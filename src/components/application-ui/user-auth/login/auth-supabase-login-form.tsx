@@ -95,7 +95,7 @@ export function AuthSupabaseLoginForm(): React.JSX.Element {
       setIsPending(true);
 
       const redirectToUrl = new URL(routes.auth['supabase.callback'], window.location.origin);
-      redirectToUrl.searchParams.set('next', routes.blueprints['generic-admin-dashboard'].index);
+      redirectToUrl.searchParams.set('next', routes.admin.index);
 
       const { data, error } = await supabaseClient.auth.signInWithOAuth({
         provider,

@@ -156,11 +156,11 @@ export const Header = () => {
         <span>{t('Components')}</span>
       </ButtonBase>
       <ButtonBase
-        className={isActive(routes.blueprints.index) ? 'active' : ''}
+        className={isActive(routes.admin.index) ? 'active' : ''}
         component={RouterLink}
-        href={routes.blueprints.index}
+        href={routes.admin.index}
       >
-        <span>{t('Blueprints')}</span>
+        <span>{t('Admin')}</span>
       </ButtonBase>
       <ButtonBase
         className={isActive(routes.website.pricing) ? 'active' : ''}

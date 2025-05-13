@@ -1,3 +1,4 @@
+import { useAuth } from '@/hooks/use-auth';
 import ChevronRightTwoToneIcon from '@mui/icons-material/ChevronRightTwoTone';
 import LockOpenTwoToneIcon from '@mui/icons-material/LockOpenTwoTone';
 import MonetizationOnTwoToneIcon from '@mui/icons-material/MonetizationOnTwoTone';
@@ -46,6 +47,7 @@ export const ProfileDropdown: FC<ProfileDropdownProps> = (props) => {
 
   const theme = useTheme();
   const { t } = useTranslation();
+  const { user } = useAuth();
 
   const handleSignOut = React.useCallback(async (): Promise<void> => {
     let redirectTo: string;
@@ -141,7 +143,7 @@ export const ProfileDropdown: FC<ProfileDropdownProps> = (props) => {
             overflow: 'hidden',
           }}
         >
-          <AvatarTitleDescriptionAlternate />
+          <AvatarTitleDescriptionAlternate user={user} />
         </Box>
         <Divider sx={{ mb: 1 }} />
         {menuItems.map((item) => (

@@ -45,7 +45,7 @@ function PageContent(): React.JSX.Element | null {
       return;
     }
     await checkSession();
-    const next = searchParams.get('next') || routes.blueprints['generic-admin-dashboard'].index;
+    const next = searchParams.get('next') || routes.admin.index;
     router.push(next);
   }, [supabaseClient, router, checkSession]);
   React.useEffect((): void => {

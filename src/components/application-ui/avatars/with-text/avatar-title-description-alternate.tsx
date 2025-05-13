@@ -1,7 +1,12 @@
+import { User } from '@/contexts/auth/user';
 import { Avatar, Badge, Box, Typography } from '@mui/material';
 import { lime } from '@mui/material/colors';
+import { FC } from 'react';
 
-const Component = () => {
+interface AvatarTitleDescriptionAlternateProps {
+  user: any;
+}
+const Component: FC<AvatarTitleDescriptionAlternateProps> = ({ user }) => {
   return (
     <Box
       display="flex"
@@ -21,7 +26,7 @@ const Component = () => {
             height: 48,
           }}
         >
-          CM
+          {user?.firstName?.charAt(0).toUpperCase() || 'JD'}
         </Avatar>
       </Badge>
       <Box
@@ -32,14 +37,14 @@ const Component = () => {
           variant="h5"
           component="div"
         >
-          Clara Martinez
+          {user?.firstName || 'John Doe'}
         </Typography>
         <Typography
           variant="subtitle1"
           color="text.secondary"
           noWrap
         >
-          Marketing Specialist
+          {user.role || 'Marketing Manager'}
         </Typography>
       </Box>
     </Box>

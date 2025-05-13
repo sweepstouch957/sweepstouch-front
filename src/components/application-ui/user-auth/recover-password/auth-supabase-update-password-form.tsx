@@ -65,7 +65,7 @@ export function UpdatePasswordForm(): React.JSX.Element {
         return;
       }
 
-      router.push(routes.blueprints['generic-admin-dashboard'].index);
+      router.push(routes.admin.index);
     },
     [supabaseClient, router, setError]
   );

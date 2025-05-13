@@ -12,7 +12,7 @@ import {
   useTheme,
 } from '@mui/material';
 import PropTypes from 'prop-types';
-import { FC, useState } from 'react';
+import { FC } from 'react';
 import { Logo } from 'src/components/base/logo';
 import { Scrollbar } from 'src/components/base/scrollbar';
 import { useSidebarContext } from 'src/contexts/sidebar-context';
@@ -22,7 +22,6 @@ import { SIDEBAR_WIDTH, SIDEBAR_WIDTH_COLLAPSED } from 'src/theme/utils';
 import SidebarFooter from './sidebar-footer';
 import { SidebarNavMenu } from './sidebar-nav-menu';
 import { SidebarNavMenuCollapsed } from './sidebar-nav-menu-collapsed';
-import TenantSwitcher from './sidebar-tenant-switcher';
 
 const SidebarWrapper = styled(Box)({
   height: '100vh',
@@ -43,33 +42,6 @@ export const Sidebar: FC<SidebarProps> = (props) => {
 
   const lgUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('lg'));
   const mdUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('md'));
-
-  const sampleTenants = [
-    {
-      id: 1,
-      name: 'TechSolutions',
-      logo: '/placeholders/logo/adobe.jpg',
-      description: 'A leading tech consultancy firm.',
-    },
-    {
-      id: 2,
-      name: 'GreenGrocers',
-      logo: '/placeholders/logo/ibm.jpg',
-      description: 'Organic produce suppliers since 1990.',
-    },
-    {
-      id: 3,
-      name: 'UrbanArch',
-      logo: '/placeholders/logo/oracle.jpg',
-      description: 'Modern architectural designs and solutions.',
-    },
-  ];
-
-  const [currentTenant, setCurrentTenant] = useState(sampleTenants[0]);
-
-  const handleTenantSwitch = (tenant: any) => {
-    setCurrentTenant(tenant);
-  };
 
   const { isSidebarCollapsed, isSidebarHovered, toggleSidebarCollapsed, toggleSidebarHover } =
     useSidebarContext();
@@ -147,13 +119,13 @@ export const Sidebar: FC<SidebarProps> = (props) => {
         <Logo
           dark
           isLinkStatic
+          isCollapsed={isSidebarCollapsed && !isSidebarHovered}
         />
 
         {lgUp && (
           <IconButton
             sx={{
               display: mdUp && isSidebarCollapsed ? (isSidebarHovered ? 'flex' : 'none') : 'flex',
-
               color: neutral[400],
               textAlign: 'left',
               borderWidth: 1,
@@ -185,13 +157,6 @@ export const Sidebar: FC<SidebarProps> = (props) => {
         zIndex={6}
       >
         <Scrollbar dark>
-          <TenantSwitcher
-            sidebarCollapsed={isSidebarCollapsed}
-            isHovered={isSidebarHovered}
-            tenants={sampleTenants}
-            currentTenant={currentTenant}
-            onSwitch={handleTenantSwitch}
-          />
           {mdUp && isSidebarCollapsed ? (
             isSidebarHovered ? (
               <SidebarNavMenu menuItems={menuItems} />

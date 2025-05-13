@@ -1,3 +1,4 @@
+import { QrCode, Web } from '@mui/icons-material';
 import AnalyticsTwoToneIcon from '@mui/icons-material/AnalyticsTwoTone';
 import IntegrationInstructionsTwoToneIcon from '@mui/icons-material/IntegrationInstructionsTwoTone';
 import SettingsTwoToneIcon from '@mui/icons-material/SettingsTwoTone';
@@ -30,13 +31,13 @@ export const tabData: TabInfo[] = [
     value: '0',
     title: 'Analytics',
     description: 'Gain insights into your data',
-    icon: <AnalyticsTwoToneIcon />,
+    icon: <QrCode />,
   },
   {
     value: '1',
     title: 'Integrations',
     description: 'Connect with third-party tools',
-    icon: <IntegrationInstructionsTwoToneIcon />,
+    icon: <Web />,
   },
   {
     value: '2',

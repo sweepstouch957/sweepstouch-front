@@ -262,7 +262,7 @@ const Page = () => {
                   size="large"
                   variant="contained"
                   component={RouterLink}
-                  href={routes.blueprints['generic-admin-dashboard'].dashboards.reports}
+                  href={routes.admin.dashboards.reports}
                 >
                   View dashboard template
                 </Button>
@@ -496,7 +496,7 @@ const Page = () => {
                       <Link
                         component={RouterLink}
                         variant="h4"
-                        href={routes.blueprints['generic-admin-dashboard'].dashboards.reports}
+                        href={routes.admin.dashboards.reports}
                         fontWeight={500}
                         gutterBottom
                         color="text.primary"
@@ -511,7 +511,7 @@ const Page = () => {
                         boxShadow: theme.shadows[12],
                       }}
                       // @ts-ignore
-                      href={routes.blueprints['generic-admin-dashboard'].dashboards.reports}
+                      href={routes.admin.dashboards.reports}
                       component={RouterLink}
                     >
                       <CardMedia

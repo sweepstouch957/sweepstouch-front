@@ -1,30 +1,24 @@
 'use client';
 
-import ChartBarIcon from '@heroicons/react/24/outline/ChartBarIcon';
+import SweepstakesBalance from '@/components/application-ui/pie-doughnut-charts/sweepstakes-balance/sweepstakes-balance';
+import Promotors from '@/components/application-ui/tables/promotors/leaderboard';
+import GiftIcon from '@heroicons/react/24/outline/GiftIcon';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import { Box, Button, Container, Unstable_Grid2 as Grid, useTheme } from '@mui/material';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import SalesAlerts from 'src/components/application-ui/area-charts/sales-alerts/sales-alerts';
-import WeeklySales from 'src/components/application-ui/area-charts/weekly-sales/weekly-sales';
-import NumbersIconsCardsAccent from 'src/components/application-ui/data-grid-lists/numbers-icons-cards-accent/numbers-icons-cards-accent';
-import RevenueProgress from 'src/components/application-ui/horizontal-lists/revenue-progress/revenue-progress';
-import UserAnalyticsProgress from 'src/components/application-ui/progress-grid-lists/user-analytics/user-analytics';
-import SalesSparklines from 'src/components/application-ui/sparkline-charts/sales-sparklines/sales-sparklines';
-import OrdersList from 'src/components/application-ui/tables/orders-list/orders-list';
 import PageHeading from 'src/components/base/page-heading';
 import { AvatarState } from 'src/components/base/styles/avatar';
 import { useCustomization } from 'src/hooks/use-customization';
-import { Layout } from 'src/layouts';
 
 function Page(): React.JSX.Element {
   const customization = useCustomization();
   const theme = useTheme();
   const { t } = useTranslation();
   const pageMeta = {
-    title: 'Reports',
-    description: 'Generate and access various reports',
-    icon: <ChartBarIcon />,
+    title: 'Sweepstakes',
+    description: 'Track and analyze your sweepstakes',
+    icon: <GiftIcon />,
   };
   return (
     <>
@@ -105,33 +99,11 @@ function Page(): React.JSX.Element {
             }}
           >
             <Grid xs={12}>
-              <SalesAlerts />
+              <SweepstakesBalance />
             </Grid>
-            <Grid
-              xs={12}
-              lg={6}
-              xl={7}
-            >
-              <UserAnalyticsProgress />
-            </Grid>
-            <Grid
-              xs={12}
-              lg={6}
-              xl={5}
-            >
-              <WeeklySales />
-            </Grid>
+
             <Grid xs={12}>
-              <OrdersList />
-            </Grid>
-            <Grid xs={12}>
-              <SalesSparklines />
-            </Grid>
-            <Grid xs={12}>
-              <RevenueProgress />
-            </Grid>
-            <Grid xs={12}>
-              <NumbersIconsCardsAccent />
+              <Promotors />
             </Grid>
           </Grid>
         </Box>

@@ -2,6 +2,8 @@
 
 import { Box, Card, CardActionArea, Container, Divider, Stack, Typography } from '@mui/material';
 import { Breakpoint } from '@mui/system';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { useState } from 'react';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import toast from 'react-hot-toast';
@@ -115,103 +117,105 @@ const Page = () => {
           md: 3,
         }}
       >
-        <Container maxWidth="xl">
-          <Stack
-            spacing={{
-              xs: 3,
-              sm: 4,
-              md: 5,
-            }}
-            divider={<Divider />}
-          >
-            {components.map((component) => (
-              <Card
-                key={component.title}
-                elevation={0}
-                variant="outlined"
-                sx={{
-                  borderWidth: 2,
-                  boxShadow: (theme) => `0 0 0 6px ${theme.palette.divider}`,
-                  borderColor: (theme) =>
-                    theme.palette.mode === 'dark' ? 'neutral.700' : 'neutral.500',
-                  pb:
-                    (component.size as Breakpoint) !== 'xl'
-                      ? {
-                          xs: 2,
-                          sm: 3,
-                        }
-                      : undefined,
-                }}
-              >
-                <Box
-                  p={{
-                    xs: 2,
-                    sm: 3,
-                  }}
-                  mb={
-                    (component.size as Breakpoint) !== 'xl'
-                      ? {
-                          xs: 2,
-                          sm: 3,
-                        }
-                      : undefined
-                  }
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
+          <Container maxWidth="xl">
+            <Stack
+              spacing={{
+                xs: 3,
+                sm: 4,
+                md: 5,
+              }}
+              divider={<Divider />}
+            >
+              {components.map((component) => (
+                <Card
+                  key={component.title}
+                  elevation={0}
+                  variant="outlined"
                   sx={{
-                    backgroundColor: 'background.default',
+                    borderWidth: 2,
+                    boxShadow: (theme) => `0 0 0 6px ${theme.palette.divider}`,
+                    borderColor: (theme) =>
+                      theme.palette.mode === 'dark' ? 'neutral.700' : 'neutral.500',
+                    pb:
+                      (component.size as Breakpoint) !== 'xl'
+                        ? {
+                            xs: 2,
+                            sm: 3,
+                          }
+                        : undefined,
                   }}
                 >
-                  <Typography variant="h4">{formatTitle(component.title)}</Typography>
-                  {component.description && (
-                    <Typography
-                      variant="h5"
-                      fontWeight={400}
-                      color="text.secondary"
-                    >
-                      {component.description}
-                    </Typography>
-                  )}
                   <Box
-                    mt={{
-                      xs: 1,
-                      sm: 2,
+                    p={{
+                      xs: 2,
+                      sm: 3,
                     }}
-                    display="flex"
+                    mb={
+                      (component.size as Breakpoint) !== 'xl'
+                        ? {
+                            xs: 2,
+                            sm: 3,
+                          }
+                        : undefined
+                    }
+                    sx={{
+                      backgroundColor: 'background.default',
+                    }}
                   >
-                    <Card
-                      elevation={0}
-                      variant="outlined"
-                    >
-                      <CopyToClipboard
-                        text={generateSrcPath(component.category, component.title)}
-                        onCopy={handleCopy}
+                    <Typography variant="h4">{formatTitle(component.title)}</Typography>
+                    {component.description && (
+                      <Typography
+                        variant="h5"
+                        fontWeight={400}
+                        color="text.secondary"
                       >
-                        <CardActionArea
-                          sx={{
-                            py: 1,
-                            px: 1.5,
-                          }}
+                        {component.description}
+                      </Typography>
+                    )}
+                    <Box
+                      mt={{
+                        xs: 1,
+                        sm: 2,
+                      }}
+                      display="flex"
+                    >
+                      <Card
+                        elevation={0}
+                        variant="outlined"
+                      >
+                        <CopyToClipboard
+                          text={generateSrcPath(component.category, component.title)}
+                          onCopy={handleCopy}
                         >
-                          <Typography
-                            variant="h6"
-                            component="span"
+                          <CardActionArea
+                            sx={{
+                              py: 1,
+                              px: 1.5,
+                            }}
                           >
-                            {generateSrcPath(component.category, component.title)}
-                          </Typography>
-                        </CardActionArea>
-                      </CopyToClipboard>
-                    </Card>
+                            <Typography
+                              variant="h6"
+                              component="span"
+                            >
+                              {generateSrcPath(component.category, component.title)}
+                            </Typography>
+                          </CardActionArea>
+                        </CopyToClipboard>
+                      </Card>
+                    </Box>
                   </Box>
-                </Box>
-                <Container
-                  disableGutters
-                  maxWidth={component.size as Breakpoint}
-                >
-                  {component.element}
-                </Container>
-              </Card>
-            ))}
-          </Stack>
-        </Container>
+                  <Container
+                    disableGutters
+                    maxWidth={component.size as Breakpoint}
+                  >
+                    {component.element}
+                  </Container>
+                </Card>
+              ))}
+            </Stack>
+          </Container>
+        </LocalizationProvider>
       </Box>
     </>
   );

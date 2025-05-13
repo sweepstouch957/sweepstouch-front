@@ -1,5 +1,6 @@
 'use client';
 
+import ApplicationUiTablesProducts from '@/components/application-ui/tables/products/products';
 import { Box, Card, CardActionArea, Container, Divider, Stack, Typography } from '@mui/material';
 import { Breakpoint } from '@mui/system';
 import { useState } from 'react';
@@ -12,7 +13,6 @@ import ApplicationUiTablesInvoices from 'src/components/application-ui/tables/in
 import ApplicationUiTablesLeaderboard from 'src/components/application-ui/tables/leaderboard/leaderboard';
 import ApplicationUiTablesOrdersList from 'src/components/application-ui/tables/orders-list/orders-list';
 import ApplicationUiTablesPendingTickets from 'src/components/application-ui/tables/pending-tickets/pending-tickets';
-import ApplicationUiTablesProducts from 'src/components/application-ui/tables/products/products';
 import ApplicationUiTablesProjects from 'src/components/application-ui/tables/projects/projects';
 import ApplicationUiTablesRecentOrdersCard from 'src/components/application-ui/tables/recent-orders-card/recent-orders-card';
 import ApplicationUiTablesRecentOrders from 'src/components/application-ui/tables/recent-orders/recent-orders';

@@ -25,7 +25,7 @@ export function GuestGuard({ children }: GuestGuardProps): React.JSX.Element | n
 
     if (user) {
       console.debug('User is logged in, redirecting to dashboard');
-      router.push(routes.blueprints['generic-admin-dashboard'].index);
+      router.push(routes.admin.index);
       return;
     }
 

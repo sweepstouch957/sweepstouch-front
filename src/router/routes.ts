@@ -115,46 +115,55 @@ export const routes = {
     index: '/',
     pricing: '/pricing',
   },
-  blueprints: {
-    index: '/blueprints',
-    'generic-admin-dashboard': {
-      index: '/blueprints/generic-admin-dashboard/dashboards/reports',
-
-      dashboards: {
-        reports: '/blueprints/generic-admin-dashboard/dashboards/reports',
-        expenses: '/blueprints/generic-admin-dashboard/dashboards/expenses',
-        statistics: '/blueprints/generic-admin-dashboard/dashboards/statistics',
-        automation: '/blueprints/generic-admin-dashboard/dashboards/automation',
-        analytics: '/blueprints/generic-admin-dashboard/dashboards/analytics',
-        hospital: '/blueprints/generic-admin-dashboard/dashboards/hospital',
-        helpdesk: '/blueprints/generic-admin-dashboard/dashboards/helpdesk',
-        monitoring: '/blueprints/generic-admin-dashboard/dashboards/monitoring',
+  admin: {
+    index: '/admin/dashboards/reports',
+    dashboards: {
+      reports: '/admin/dashboards/reports',
+      expenses: '/admin/dashboards/expenses',
+      sweepstakes: '/admin/dashboards/sweepstakes',
+      statistics: '/admin/dashboards/statistics',
+      automation: '/admin/dashboards/automation',
+      analytics: '/admin/dashboards/analytics',
+      hospital: '/admin/dashboards/hospital',
+      helpdesk: '/admin/dashboards/helpdesk',
+      monitoring: '/admin/dashboards/monitoring',
+    },
+    applications: {
+      calendar: '/admin/applications/calendar',
+      'file-manager': '/admin/applications/file-manager',
+      'jobs-platform': '/admin/applications/jobs-platform',
+      mailbox: '/admin/applications/mailbox',
+      messenger: '/admin/applications/messenger',
+      'projects-board': '/admin/applications/projects-board',
+      tasks: '/admin/applications/tasks',
+    },
+    management: {
+      users: {
+        listing: '/admin/management/users-listing',
+        profile: '/admin/management/users-profile',
       },
-      applications: {
-        calendar: '/blueprints/generic-admin-dashboard/applications/calendar',
-        'file-manager': '/blueprints/generic-admin-dashboard/applications/file-manager',
-        'jobs-platform': '/blueprints/generic-admin-dashboard/applications/jobs-platform',
-        mailbox: '/blueprints/generic-admin-dashboard/applications/mailbox',
-        messenger: '/blueprints/generic-admin-dashboard/applications/messenger',
-        'projects-board': '/blueprints/generic-admin-dashboard/applications/projects-board',
-        tasks: '/blueprints/generic-admin-dashboard/applications/tasks',
+      projects: '/admin/management/projects',
+      stores: {
+        listing: '/admin/management/stores',
+        create: '/admin/management/stores/create',
       },
-      management: {
-        users: {
-          listing: '/blueprints/generic-admin-dashboard/management/users-listing',
-          profile: '/blueprints/generic-admin-dashboard/management/users-profile',
-        },
-        projects: '/blueprints/generic-admin-dashboard/management/projects',
-        commerce: {
-          'shop-front': '/blueprints/generic-admin-dashboard/management/shop-front',
-          'shop-listing': '/blueprints/generic-admin-dashboard/management/shop-listing',
-          'shop-product-create':
-            '/blueprints/generic-admin-dashboard/management/shop-product-create',
-          'shop-product-details':
-            '/blueprints/generic-admin-dashboard/management/shop-product-details',
-          'invoices-listing': '/blueprints/generic-admin-dashboard/management/invoices-listing',
-          'invoices-details': '/blueprints/generic-admin-dashboard/management/invoices-details',
-        },
+      campaings: {
+        listing: '/admin/management/campaings',
+        analytics: '/admin/management/campaings/analytics',
+      },
+      sweepstakes: {
+        listing: '/admin/management/sweepstakes',
+        create: '/admin/management/sweepstakes/create',
+      },
+      commerce: {
+        'shop-front': '/admin/management/shop-front',
+        'shop-listing': '/admin/management/shop-listing',
+        'shop-product-create':
+          '/admin/management/shop-product-create',
+        'shop-product-details':
+          '/admin/management/shop-product-details',
+        'invoices-listing': '/admin/management/invoices-listing',
+        'invoices-details': '/admin/management/invoices-details',
       },
     },
   },

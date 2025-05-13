@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: {
-    default: 'UIFort',
+    default: 'Admin Sweepstouch ',
     template: `%s | UIFort`,
   },
   description: 'React UI Kit and Admin Dashboard Template - UIFort',
@@ -55,6 +55,13 @@ const Layout = (props: LayoutProps) => {
 
   return (
     <html>
+      <head>
+        <link
+          rel="shortcut icon"
+          href="/sweeps.ico"
+        />
+      </head>
+
       <body>
         <DocumentLayout customization={customization}>
           {children}

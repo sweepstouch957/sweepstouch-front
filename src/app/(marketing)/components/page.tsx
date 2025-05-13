@@ -17,6 +17,8 @@ import {
   useTheme,
 } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'src/components/base/helmet';
@@ -436,9 +438,11 @@ const Page = () => {
         </Button>
       </MarketingPageTitle>
       <ThemeProvider theme={theme}>
-        <Container maxWidth="xl">
-          <Navigation navigationArray={navigationArray} />
-        </Container>
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
+          <Container maxWidth="xl">
+            <Navigation navigationArray={navigationArray} />
+          </Container>
+        </LocalizationProvider>
       </ThemeProvider>
     </>
   );

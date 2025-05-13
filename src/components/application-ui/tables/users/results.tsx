@@ -1,3 +1,4 @@
+import { User } from '@/contexts/auth/user';
 import ClearRoundedIcon from '@mui/icons-material/ClearRounded';
 import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
 import GridViewTwoToneIcon from '@mui/icons-material/GridViewTwoTone';
@@ -44,7 +45,6 @@ import { ChangeEvent, FC, MouseEvent, SyntheticEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ButtonIcon } from 'src/components/base/styles/button-icon';
 import { TabsShadow } from 'src/components/base/styles/tabs';
-import { User } from 'src/mocks/users';
 import BulkDelete from './bulk-delete';
 
 export const CardWrapper = styled(Card)(
@@ -63,7 +63,7 @@ export const CardWrapper = styled(Card)(
     border-radius: inherit;
     z-index: 1;
   }
-      
+
     &.Mui-selected::after {
       box-shadow: 0 0 0 3px ${theme.palette.primary.main};
     }
@@ -86,9 +86,10 @@ interface Tab {
 
 interface UserCounts {
   all: number;
-  customer: number;
+  merchant: number;
+  promotor: number;
+  promotorOwner: number;
   admin: number;
-  subscriber: number;
 }
 
 const getUserRoleLabel = (userRole: string): JSX.Element => {
@@ -97,12 +98,16 @@ const getUserRoleLabel = (userRole: string): JSX.Element => {
       text: 'Administrator',
       color: 'error',
     },
-    customer: {
-      text: 'Customer',
+    merchant: {
+      text: 'Merchant',
       color: 'info',
     },
-    subscriber: {
-      text: 'Subscriber',
+    promotor: {
+      text: 'Promotor',
+      color: 'warning',
+    },
+    promotorOwner: {
+      text: 'Promotor Owner',
       color: 'warning',
     },
   };
@@ -122,7 +127,7 @@ const applyFilters = (users: User[], query: string, filters: Filters): User[] =>
     let matches = true;
 
     if (query) {
-      const properties = ['email', 'name', 'username'];
+      const properties = ['email', 'name',];
       let containsQuery = false;
 
       properties.forEach((property) => {
@@ -164,9 +169,11 @@ const Results: FC<ResultsProps> = ({ users }) => {
 
   const userCounts: UserCounts = {
     all: users.length,
-    customer: users.filter((user) => user.role === 'customer').length,
+    merchant: users.filter((user) => user.role === 'merchant').length,
     admin: users.filter((user) => user.role === 'admin').length,
-    subscriber: users.filter((user) => user.role === 'subscriber').length,
+    promotor: users.filter((user) => user.role === 'promotor').length,
+    promotorOwner: users.filter((user) => user.role === 'promotor_manager').length,
+
   };
 
   const tabs: Tab[] = [
@@ -176,9 +183,9 @@ const Results: FC<ResultsProps> = ({ users }) => {
       count: userCounts.all,
     },
     {
-      value: 'customer',
-      label: t('Customers'),
-      count: userCounts.customer,
+      value: 'merchant',
+      label: t('Merchants'),
+      count: userCounts.merchant,
     },
     {
       value: 'admin',
@@ -186,9 +193,9 @@ const Results: FC<ResultsProps> = ({ users }) => {
       count: userCounts.admin,
     },
     {
-      value: 'subscriber',
-      label: t('Subscribers'),
-      count: userCounts.subscriber,
+      value: 'promotor',
+      label: t('Promotors'),
+      count: userCounts.promotor,
     },
   ];
 
@@ -464,8 +471,7 @@ const Results: FC<ResultsProps> = ({ users }) => {
                         <TableCell>{t('Username')}</TableCell>
                         <TableCell>{t('Name')}</TableCell>
                         <TableCell>{t('Email')}</TableCell>
-                        <TableCell align="center">{t('Posts')}</TableCell>
-                        <TableCell>{t('Location')}</TableCell>
+
                         <TableCell>{t('Role')}</TableCell>
                         <TableCell align="center">{t('Actions')}</TableCell>
                       </TableRow>
@@ -487,7 +493,7 @@ const Results: FC<ResultsProps> = ({ users }) => {
                               />
                             </TableCell>
                             <TableCell>
-                              <Typography fontWeight={400}>{user.username}</Typography>
+                              <Typography fontWeight={400}>{user.firstName}</Typography>
                             </TableCell>
                             <TableCell>
                               <Box
@@ -509,14 +515,14 @@ const Results: FC<ResultsProps> = ({ users }) => {
                                     onClick={(e) => e.preventDefault()}
                                     underline="hover"
                                   >
-                                    {user.name}
+                                    {user.firstName}
                                   </Link>
                                   <Typography
                                     noWrap
                                     variant="subtitle2"
                                     color="text.secondary"
                                   >
-                                    {user.jobtitle}
+                                    {user.role}
                                   </Typography>
                                 </Box>
                               </Box>
@@ -524,12 +530,7 @@ const Results: FC<ResultsProps> = ({ users }) => {
                             <TableCell>
                               <Typography>{user.email}</Typography>
                             </TableCell>
-                            <TableCell align="center">
-                              <Typography fontWeight={600}>{user.posts}</Typography>
-                            </TableCell>
-                            <TableCell>
-                              <Typography>{user.location}</Typography>
-                            </TableCell>
+
                             <TableCell>{getUserRoleLabel(user.role)}</TableCell>
                             <TableCell align="center">
                               <Typography noWrap>
@@ -668,14 +669,14 @@ const Results: FC<ResultsProps> = ({ users }) => {
                                       onClick={(e) => e.preventDefault()}
                                       underline="hover"
                                     >
-                                      {user.name}
+                                      {user.firstName}
                                     </Link>{' '}
                                     <Typography
                                       component="span"
                                       variant="body2"
                                       color="text.secondary"
                                     >
-                                      ({user.username})
+                                      ({user.lastName})
                                     </Typography>
                                   </Box>
                                   <Typography
@@ -684,7 +685,7 @@ const Results: FC<ResultsProps> = ({ users }) => {
                                     }}
                                     variant="subtitle2"
                                   >
-                                    {user.jobtitle}
+                                    {user.role}
                                   </Typography>
                                   <Typography
                                     sx={{
@@ -696,24 +697,6 @@ const Results: FC<ResultsProps> = ({ users }) => {
                                     {user.email}
                                   </Typography>
                                 </Box>
-                              </Box>
-                              <Divider />
-                              <Box
-                                pl={2}
-                                py={1}
-                                pr={1}
-                                display="flex"
-                                alignItems="center"
-                                justifyContent="space-between"
-                              >
-                                <Typography>
-                                  <b>{user.posts}</b> {t('posts')}
-                                </Typography>
-                                <Checkbox
-                                  checked={isUserSelected}
-                                  onChange={(event) => handleSelectOneUser(event, user.id)}
-                                  value={isUserSelected}
-                                />
                               </Box>
                             </Box>
                           </CardWrapper>

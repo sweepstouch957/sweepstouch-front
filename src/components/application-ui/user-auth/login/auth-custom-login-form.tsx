@@ -4,12 +4,10 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import {
   Alert,
-  AlertTitle,
   Box,
   Button,
   Checkbox,
   Container,
-  Divider,
   FilledInput,
   FormControl,
   FormControlLabel,
@@ -19,7 +17,6 @@ import {
   Link,
   Stack,
   Typography,
-  useTheme,
 } from '@mui/material';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -44,15 +41,10 @@ const oAuthProviders = [
     name: 'Google',
     logo: '/placeholders/logo/google-icon.svg',
   },
-  {
-    id: 'github',
-    name: 'Github',
-    logo: '/placeholders/logo/github-icon.svg',
-  },
 ] satisfies OAuthProvider[];
 
 const schema = zod.object({
-  email: zod.string().min(1, { message: 'Email is required' }).email(),
+  email: zod.string().min(1, { message: 'Email is required' }),
   password: zod.string().min(1, { message: 'Password is required' }),
 });
 
@@ -77,19 +69,6 @@ export function AuthCustomLoginForm(): React.JSX.Element {
     resolver: zodResolver(schema),
   });
 
-  const onAuth = React.useCallback(async (provider: OAuthProvider['id']): Promise<void> => {
-    setIsPending(true);
-
-    const { error } = await authClient.signInWithOAuth({ provider });
-
-    if (error) {
-      setIsPending(false);
-      // toast.error(error);
-      return;
-    }
-
-    setIsPending(false);
-  }, []);
 
   const onSubmit = React.useCallback(
     async (values: Values): Promise<void> => {
@@ -120,18 +99,6 @@ export function AuthCustomLoginForm(): React.JSX.Element {
   };
   const { t } = useTranslation();
 
-  const theme = useTheme();
-  const isDarkMode = theme.palette.mode === 'dark';
-
-  const updatedOAuthProviders = oAuthProviders.map((provider) => ({
-    ...provider,
-    logo:
-      provider.id === 'github'
-        ? isDarkMode
-          ? '/placeholders/logo/github-icon-light.svg'
-          : '/placeholders/logo/github-icon.svg'
-        : provider.logo,
-  }));
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
@@ -158,39 +125,6 @@ export function AuthCustomLoginForm(): React.JSX.Element {
         spacing={{ xs: 2, sm: 3 }}
       >
         <Container maxWidth="sm">
-          <Stack
-            justifyContent="center"
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={1}
-          >
-            {updatedOAuthProviders.map((provider) => (
-              <Button
-                fullWidth
-                disabled={isPending}
-                sx={{
-                  whiteSpace: 'nowrap',
-                }}
-                variant="outlined"
-                color="secondary"
-                key={provider.id}
-                onClick={() => onAuth(provider.id).catch(() => {})}
-                startIcon={
-                  <img
-                    style={{ height: 24, width: 24 }}
-                    alt="Google"
-                    src={provider.logo}
-                  />
-                }
-              >
-                Sign in with {provider.name}
-              </Button>
-            ))}
-          </Stack>
-        </Container>
-        <Divider flexItem>
-          <Typography variant="subtitle1">or with email</Typography>
-        </Divider>
-        <Container maxWidth="sm">
           <Grid
             container
             spacing={2}
@@ -212,8 +146,6 @@ export function AuthCustomLoginForm(): React.JSX.Element {
                 <FilledInput
                   hiddenLabel
                   {...register('email')}
-                  type="email"
-                  id="email-input"
                   placeholder="Write your email"
                   startAdornment={
                     <InputAdornment position="start">
@@ -303,25 +235,6 @@ export function AuthCustomLoginForm(): React.JSX.Element {
                 Sign in
               </Button>
             </Grid>
-            <Grid
-              xs={12}
-              textAlign="center"
-            >
-              <Typography
-                component="span"
-                color="text.secondary"
-              >
-                Not a Member yet?
-              </Typography>{' '}
-              <Link
-                component={RouterLink}
-                href={routes.auth['custom.register']}
-                underline="hover"
-                fontWeight={500}
-              >
-                Sign up
-              </Link>
-            </Grid>
             {errors.root && (
               <Grid xs={12}>
                 <Alert
@@ -332,22 +245,7 @@ export function AuthCustomLoginForm(): React.JSX.Element {
                 </Alert>
               </Grid>
             )}
-            <Grid xs={12}>
-              <Alert
-                severity="warning"
-                variant="outlined"
-              >
-                <AlertTitle sx={{ pb: 0.3, textTransform: 'uppercase', fontWeight: 600 }}>
-                  Sign in credentials
-                </AlertTitle>
-                <Typography
-                  variant="h5"
-                  fontWeight={400}
-                >
-                  Email <b>example@uifort.com</b> and password <b>DemoPass123</b>
-                </Typography>
-              </Alert>
-            </Grid>
+
           </Grid>
         </Container>
       </Stack>

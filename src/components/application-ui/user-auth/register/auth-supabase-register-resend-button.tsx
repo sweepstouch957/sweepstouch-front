@@ -29,7 +29,7 @@ export function SignUpResendButton({
       routes.auth['supabase.callback.implicit'],
       window.location.origin
     );
-    redirectToUrl.searchParams.set('next', routes.blueprints['generic-admin-dashboard'].index);
+    redirectToUrl.searchParams.set('next', routes.admin.index);
 
     const { error } = await supabaseClient.auth.resend({
       email,

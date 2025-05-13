@@ -93,7 +93,7 @@ function AccountBalance() {
   const theme = useTheme();
 
   const data = [
-    { label: 'Bitcoin', color: theme.palette.error.main, value: 40 },
+    { label: 'Send', color: theme.palette.error.main, value: 40 },
     { label: 'Ripple', color: theme.palette.success.main, value: 30 },
     { label: 'Cardano', color: theme.palette.warning.main, value: 15 },
     { label: 'Ethereum', color: theme.palette.primary.main, value: 15 },

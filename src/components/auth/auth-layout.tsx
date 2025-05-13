@@ -164,32 +164,16 @@ export function AuthLayout({ children, strategy }: AuthLayoutProps): React.JSX.E
                     gutterBottom
                     sx={{ pt: 3 }}
                   >
-                    Discover Customized Solutions.
+                    Swepstouch Admin
                   </Typography>
                   <Typography
                     variant="h4"
                     color="common.white"
                     fontWeight={400}
                   >
-                    Streamlined Processes, and Exclusive Insights Tailored for Your Business Success
+                    The best way to manage your application
                   </Typography>
 
-                  <Box
-                    display="flex"
-                    pt={3}
-                    alignItems="center"
-                  >
-                    <Chip
-                      variant="outlined"
-                      color="secondary"
-                      sx={{ borderColor: 'inherit', color: 'common.white' }}
-                      label={
-                        strategy === AuthStrategy.SUPABASE
-                          ? 'Auth method: SUPABASE'
-                          : 'Auth method: CUSTOM'
-                      }
-                    />
-                  </Box>
                   <Box
                     display="flex"
                     pt={3}

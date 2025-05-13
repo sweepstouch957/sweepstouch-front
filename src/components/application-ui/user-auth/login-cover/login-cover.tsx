@@ -150,7 +150,7 @@ const Component = () => {
                     gutterBottom
                     sx={{ pt: 3 }}
                   >
-                    Discover Customized Solutions.
+                    Swwepstouch Admin
                   </Typography>
                   <Typography
                     variant="h4"

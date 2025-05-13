@@ -4,17 +4,17 @@ import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import { Box, Button, Container } from '@mui/material';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import ProductsListing from 'src/components/application-ui/tables/products/products';
+import ProjectsListing from 'src/components/application-ui/tables/projects/projects';
 import PageHeading from 'src/components/base/page-heading';
 import { useCustomization } from 'src/hooks/use-customization';
-import { Layout } from 'src/layouts';
 
 function Page(): React.JSX.Element {
   const customization = useCustomization();
   const { t } = useTranslation();
   const pageMeta = {
-    title: 'Shop Listing',
-    description: 'List and categorize your shop items',
+    title: 'Sweepstakes',
+    description: 'Manage and monitor sweepstakes',
+    icon: <FileDownloadOutlinedIcon />,
   };
   return (
     <>
@@ -59,9 +59,7 @@ function Page(): React.JSX.Element {
           sm: 3,
         }}
       >
-        <Container maxWidth={customization.stretch ? false : 'xl'}>
-          <ProductsListing />
-        </Container>
+        <Container maxWidth={customization.stretch ? false : 'xl'}></Container>
       </Box>
     </>
   );

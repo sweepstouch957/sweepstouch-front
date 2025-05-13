@@ -1,29 +1,47 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useRefMounted } from 'src/hooks/use-ref-mounted';
-import { User, usersApi } from 'src/mocks/users';
+'use client';
+
+import { usersApi } from '@/mocks/users';
+import { Box, CircularProgress, Typography } from '@mui/material';
+import { useQuery } from '@tanstack/react-query';
 import Results from './results';
 
 function Component() {
-  const isMountedRef = useRefMounted();
-  const [users, setUsers] = useState<User[]>([]);
+  const {
+    data: users,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => usersApi.getUsers(),
+    staleTime: 1000 * 60 * 5, // Cache por 5 minutos
+    refetchOnWindowFocus: false,
+  });
 
-  const getUsers = useCallback(async () => {
-    try {
-      const response = await usersApi.getUsers();
+  if (isLoading) {
+    return (
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="300px"
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
 
-      if (isMountedRef()) {
-        setUsers(response);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  }, [isMountedRef]);
+  if (error) {
+    return (
+      <Typography
+        color="error"
+        align="center"
+      >
+        Error al cargar usuarios
+      </Typography>
+    );
+  }
 
-  useEffect(() => {
-    getUsers();
-  }, [getUsers]);
-
-  return <Results users={users} />;
+  return <Results users={users || []} />;
 }
 
 export default Component;
