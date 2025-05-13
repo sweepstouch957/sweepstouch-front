@@ -24,12 +24,14 @@ function CampaignsGrid() {
     limit: 10,
   });
 
-  const { data, isPending, error, refetch } = useQuery({
+  const { data, isPending, error, refetch , isLoading ,isFetching } = useQuery({
     queryKey: ['campaigns', filters],
     queryFn: () => campaignClient.getFilteredCampaigns(filters),
     staleTime: 1000 * 60, // 1 minuto cache
     placeholderData: (previousData) => previousData,
   });
+  
+
 
   const [openModal, setOpenModal] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '' });
@@ -82,6 +84,7 @@ function CampaignsGrid() {
             setFilters={setFilters}
             total={data?.total || 0}
             refetch={refetch}
+            isLoading={isFetching}
           />
         </Grid>
       </Grid>

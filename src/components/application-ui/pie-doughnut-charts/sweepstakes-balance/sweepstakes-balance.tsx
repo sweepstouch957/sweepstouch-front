@@ -3,7 +3,7 @@
 import { AvatarState } from '@/components/base/styles/avatar';
 import { TabsAlternate } from '@/components/base/styles/tabs';
 import { sweepstakesClient } from '@/services/sweepstakes.service';
-import { AllInbox, QrCode, RedeemOutlined, Web } from '@mui/icons-material';
+import { QrCode, RedeemOutlined, Web } from '@mui/icons-material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import TrendingUp from '@mui/icons-material/TrendingUp';
 import {
@@ -26,6 +26,9 @@ import {
 } from '@mui/material';
 import { DefaultizedPieValueType } from '@mui/x-charts';
 import { pieArcLabelClasses, PieChart } from '@mui/x-charts/PieChart';
+import BasicIcon from '@public/web/basic.png';
+import PremiumIcon from '@public/web/elite.png';
+import FreeIcon from '@public/web/ree.png';
 import { useQuery } from '@tanstack/react-query';
 import Image from 'next/image';
 import { Fragment, useState } from 'react';
@@ -124,6 +127,18 @@ function SkeletonCardItem() {
   );
 }
 
+const getImage = (type: string) => {
+  const images = {
+    elite: PremiumIcon.src,
+    basic: BasicIcon.src,
+    '': FreeIcon.src,
+  };
+
+  const imageSelected = images[type];
+
+  return imageSelected || FreeIcon.src;
+};
+
 function SweepstakesBalance() {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -141,7 +156,7 @@ function SweepstakesBalance() {
     staleTime: 1000 * 60 * 5, // ❄️ 5 minutos "fresco"
   });
 
-  const visibleData = expanded ? data : data.slice(0, 5);
+  const visibleData = expanded ? data : data.slice(0, 3);
   const total = data.reduce((acc, item) => acc + item.totalRegistrations, 0);
 
   const colors = [
@@ -149,14 +164,36 @@ function SweepstakesBalance() {
     theme.palette.error.main,
     theme.palette.success.main,
     theme.palette.warning.main,
-    theme.palette.info.main,
+    theme.palette.secondary[100],
   ];
 
-  const pieData = data.map((item, index) => ({
-    label: item.storeName,
-    value: item.totalRegistrations,
-    color: colors[index % colors.length],
-  }));
+  const totalRegistrations = data.reduce((acc, item) => acc + item.totalRegistrations, 0);
+
+  const grouped = [];
+  let othersValue = 0;
+
+  data.forEach((item, index) => {
+    const percentage = item.totalRegistrations / totalRegistrations;
+    if (percentage < 0.1) {
+      othersValue += item.totalRegistrations;
+    } else {
+      grouped.push({
+        label: item.storeName,
+        value: item.totalRegistrations,
+        color: colors[index % colors.length],
+      });
+    }
+  });
+
+  if (othersValue > 0) {
+    grouped.push({
+      label: 'Others',
+      value: othersValue,
+      color: '#ee1',
+    });
+  }
+
+  const pieData = grouped;
 
   const getArcLabel = (params: DefaultizedPieValueType) => {
     const percent = params.value / total;
@@ -339,17 +376,26 @@ function SweepstakesBalance() {
                         <ListItem>
                           <ListItemAvatarWrapper>
                             <Image
-                              src={item.storeImage}
+                              src={getImage(item.storeType)}
                               alt={item.storeName}
                               width={40}
                               height={40}
                             />
                           </ListItemAvatarWrapper>
                           <ListItemText
-                            primary={cortarHastaPrimerNumeroIncluido(item.storeName)}
-                            primaryTypographyProps={{ variant: 'h5', noWrap: true }}
-                            secondary={`${item.totalParticipations} registros`}
-                            secondaryTypographyProps={{ variant: 'subtitle2', noWrap: true }}
+                            primary={item.storeName}
+                            sx={{
+                              textWrap: 'wrap',
+                              maxWidth: '40ch',
+                            }}
+                            primaryTypographyProps={{ variant: 'h4', noWrap: true }}
+                            secondary={`${item.totalParticipations} participaciones ,  ${(
+                                (item.totalParticipations /
+                                  data.reduce((acc, m) => acc + m.totalParticipations, 0)) *
+                                100
+                              ).toFixed(1)}
+                              %`}
+                            secondaryTypographyProps={{ variant: 'h6', noWrap: true }}
                           />
                           <Box>
                             <Typography
@@ -357,12 +403,7 @@ function SweepstakesBalance() {
                               variant="h4"
                               noWrap
                             >
-                              {(
-                                (item.totalParticipations /
-                                  data.reduce((acc, m) => acc + m.totalParticipations, 0)) *
-                                100
-                              ).toFixed(1)}
-                              %
+
                             </Typography>
                           </Box>
                         </ListItem>

@@ -1,10 +1,7 @@
 'use client';
 
 import { sweepstakesClient } from '@/services/sweepstakes.service';
-import ArrowDownwardTwoToneIcon from '@mui/icons-material/ArrowDownwardTwoTone';
 import ArrowUpwardTwoToneIcon from '@mui/icons-material/ArrowUpwardTwoTone';
-import CloseIcon from '@mui/icons-material/Close';
-import ExpandMoreTwoToneIcon from '@mui/icons-material/ExpandMoreTwoTone';
 import {
   Autocomplete,
   Avatar,
@@ -15,12 +12,9 @@ import {
   CardActions,
   CardContent,
   CardHeader,
-  Chip,
+  CircularProgress,
   Divider,
   Grid,
-  IconButton,
-  Menu,
-  MenuItem,
   Skeleton,
   Stack,
   styled,
@@ -34,8 +28,10 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
+import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { useQuery } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 const AvatarLight = styled(Avatar)(({ theme }) => ({
@@ -57,21 +53,28 @@ function Promotors() {
   const theme = useTheme();
 
   const [selectedStores, setSelectedStores] = useState<any[]>([]);
+  const [startDate, setStartDate] = useState<Date | null>(new Date('2025-05-01'));
+  const [endDate, setEndDate] = useState<Date | null>(new Date('2025-05-31'));
 
   const storeIds = selectedStores.map((s) => s._id);
 
   const { data: stores = [], isLoading: loadingStores } = useQuery({
     queryKey: ['store-sweepstakes'],
-    queryFn: () => sweepstakesClient.getStoresBySweepstkes('6807fcbd8f35ccf17c308623'),
+    queryFn: () =>
+      sweepstakesClient.getStoresBySweepstkes(`${process.env.NEXT_PUBLIC_SWEEPTAKE_LABOR_DAY}`),
     staleTime: 1000 * 60 * 5,
   });
 
-  const { data: promotors = [], isLoading: loadingPromotors } = useQuery({
-    queryKey: ['promotors-list', storeIds],
+  const {
+    data: promotors = [],
+    isLoading: loadingPromotors,
+    isFetching,
+  } = useQuery({
+    queryKey: ['promotors-list', storeIds, startDate, endDate],
     queryFn: () =>
       sweepstakesClient.getSweepstakesPromotors({
-        startDate: '2025-05-01',
-        endDate: '2025-05-31',
+        startDate: startDate?.toISOString(),
+        endDate: endDate?.toISOString(),
         storeIds: storeIds.length > 0 ? storeIds : undefined,
       }),
     staleTime: 1000 * 60 * 5,
@@ -87,7 +90,10 @@ function Promotors() {
         md={6.5}
       >
         <Card>
-          <CardHeader title={t('Promotors')} />
+          <CardHeader
+            title={t('Promotors')}
+            action={isFetching && <CircularProgress size={20} />}
+          />
           <Divider />
           <TableContainer>
             <Table>
@@ -166,8 +172,8 @@ function Promotors() {
               </TableBody>
             </Table>
           </TableContainer>
-          <CardActions sx={{ display: 'flex', justifyContent: 'center' }}>
-            <Button>{t('View all promotors')}</Button>
+          <CardActions sx={{ justifyContent: 'center' }}>
+            <Button disabled={loadingPromotors}>{t('View all promotors')}</Button>
           </CardActions>
         </Card>
       </Grid>
@@ -180,20 +186,35 @@ function Promotors() {
           <CardHeader title={t('Filters')} />
           <Divider />
           <CardContent>
-            <Autocomplete
-              multiple
-              options={stores}
-              getOptionLabel={(option) => option.name}
-              value={selectedStores}
-              onChange={(_, newValue) => setSelectedStores(newValue)}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Selecciona tiendas"
-                  variant="outlined"
+            <Stack spacing={2}>
+              <Autocomplete
+                multiple
+                options={stores}
+                getOptionLabel={(option) => option.name}
+                value={selectedStores}
+                loading={loadingStores}
+                onChange={(_, newValue) => setSelectedStores(newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Selecciona tiendas"
+                    variant="outlined"
+                  />
+                )}
+              />
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <DatePicker
+                  label="Fecha inicio"
+                  value={startDate}
+                  onChange={(newValue) => setStartDate(newValue)}
                 />
-              )}
-            />
+                <DatePicker
+                  label="Fecha fin"
+                  value={endDate}
+                  onChange={(newValue) => setEndDate(newValue)}
+                />
+              </LocalizationProvider>
+            </Stack>
           </CardContent>
         </Card>
       </Grid>

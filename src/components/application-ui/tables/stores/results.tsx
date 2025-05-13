@@ -10,8 +10,11 @@ import {
   Box,
   Card,
   Checkbox,
+  FormControl,
   IconButton,
   InputAdornment,
+  MenuItem,
+  Select,
   Table,
   TableBody,
   TableCell,
@@ -25,12 +28,24 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import debounce from 'lodash.debounce';
 import Link from 'next/link';
-import { ChangeEvent, FC, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FC, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ButtonIcon } from 'src/components/base/styles/button-icon';
-import { ButtonSoft } from 'src/components/base/styles/button-soft';
+
+interface ResultsProps {
+  stores: Store[];
+  page: number;
+  limit: number;
+  total: number;
+  search: string;
+  type: string;
+  onPageChange: (page: number) => void;
+  onLimitChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  onSearchChange: (query: string) => void;
+  onTypeChange: (type: string) => void;
+  loading?: boolean;
+  error?: string | null;
+}
 
 const LogoImg = ({ src }: { src: string }) => (
   <Box
@@ -41,67 +56,39 @@ const LogoImg = ({ src }: { src: string }) => (
   />
 );
 
-interface ResultsProps {
-  stores: Store[];
-  page: number;
-  limit: number;
-  total: number;
-  onPageChange: (page: number) => void;
-  onLimitChange: (limit: number) => void;
-  onSearchChange: (query: string) => void;
-  loading?: boolean;
-  error?: string | null;
-}
-
 const Results: FC<ResultsProps> = ({
   stores,
   page,
   limit,
   total,
+  search,
+  type,
   onPageChange,
   onLimitChange,
   onSearchChange,
+  onTypeChange,
   loading,
   error,
 }) => {
   const [selectedItems, setSelected] = useState<string[]>([]);
-  const [query, setQuery] = useState('');
   const { t } = useTranslation();
   const theme = useTheme();
-
-  const handleQueryChange = (event: ChangeEvent<HTMLInputElement>): void => {
-    setQuery(event.target.value);
-    debouncedSearch(event.target.value);
-  };
-
-  const debouncedSearch = useMemo(
-    () => debounce((value: string) => onSearchChange(value), 500),
-    [onSearchChange]
-  );
-
-  useEffect(() => {
-    return () => debouncedSearch.cancel();
-  }, [debouncedSearch]);
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const handleSelectAll = (event: ChangeEvent<HTMLInputElement>): void => {
     setSelected(event.target.checked ? stores.map((s) => s.id) : []);
   };
 
-  const handleSelectOne = (event: ChangeEvent<HTMLInputElement>, id: string): void => {
-    if (!selectedItems.includes(id)) {
-      setSelected((prev) => [...prev, id]);
-    } else {
-      setSelected((prev) => prev.filter((item) => item !== id));
-    }
+  const handleSelectOne = (_: any, id: string): void => {
+    setSelected((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
 
-  const handlePageChange = (_: any, newPage: number): void => {
-    onPageChange(newPage);
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
+    onSearchChange(e.target.value);
   };
 
-  const handleLimitChange = (event: ChangeEvent<HTMLInputElement>): void => {
-    onLimitChange(parseInt(event.target.value));
-    onPageChange(0);
+  const handleTypeChange = (e: ChangeEvent<{ value: unknown }>) => {
+    onTypeChange(e.target.value as string);
   };
 
   const selectedAll = selectedItems.length === stores.length;
@@ -113,53 +100,45 @@ const Results: FC<ResultsProps> = ({
       <Box
         display="flex"
         pb={2}
-        alignItems="center"
+        flexWrap="wrap"
+        gap={2}
         justifyContent="space-between"
+        alignItems="center"
       >
-        {hasSelection ? (
-          <>
-            <ButtonSoft
-              color="error"
-              variant="contained"
-              startIcon={<DeleteRounded />}
-            >
-              Delete selected
-            </ButtonSoft>
-            <ButtonIcon
-              color="secondary"
-              startIcon={<MoreVertRounded />}
-            />
-          </>
-        ) : (
-          <Box
-            flex={1}
-            display={{ xs: 'block', md: 'flex' }}
-            alignItems="center"
-            justifyContent="space-between"
+        <TextField
+          size="small"
+          placeholder={t('Filter by store name or zip')}
+          value={search}
+          onChange={handleSearchChange}
+          fullWidth={isMobile}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
+        <FormControl size="small">
+          <Select
+            value={type}
+            onChange={(e) => {
+              console.log(e);
+            }}
+            displayEmpty
           >
-            <TextField
-              size="small"
-              fullWidth={useMediaQuery(theme.breakpoints.down('md'))}
-              onChange={handleQueryChange}
-              value={query}
-              placeholder={t('Filter by store name or zip')}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{ my: '2px' }}
-            />
-          </Box>
-        )}
+            <MenuItem value="">{t('All types')}</MenuItem>
+            <MenuItem value="elite">Elite</MenuItem>
+            <MenuItem value="basic">Basic</MenuItem>
+            <MenuItem value="free">Free</MenuItem>
+          </Select>
+        </FormControl>
       </Box>
 
       {loading ? (
         <Typography
           align="center"
-          sx={{ py: 5 }}
+          py={5}
         >
           {t('Loading stores...')}
         </Typography>
@@ -167,16 +146,16 @@ const Results: FC<ResultsProps> = ({
         <Typography
           align="center"
           color="error"
-          sx={{ py: 5 }}
+          py={5}
         >
           {t('Error fetching stores')}: {error}
         </Typography>
       ) : stores.length === 0 ? (
         <Typography
+          align="center"
           py={6}
           variant="h3"
           color="text.secondary"
-          align="center"
         >
           {t('No stores found')}
         </Typography>
@@ -267,8 +246,8 @@ const Results: FC<ResultsProps> = ({
               count={total}
               page={page}
               rowsPerPage={limit}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleLimitChange}
+              onPageChange={(_, newPage) => onPageChange(newPage)}
+              onRowsPerPageChange={onLimitChange}
               rowsPerPageOptions={[5, 10, 25, 50]}
             />
           </Box>

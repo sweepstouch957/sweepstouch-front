@@ -34,13 +34,26 @@ export interface GetStoresParams {
   page?: number;
   limit?: number;
   search?: string;
+  type?: 'elite' | 'basic' | 'free' | '';
 }
 
-export const getStores = async ({ page = 1, limit = 25, search = '' }: GetStoresParams): Promise<GetStoresResponse> => {
-  const res = await api.get<GetStoresResponse>('/store');
+export const getStores = async ({
+  page = 1,
+  limit = 25,
+  search = '',
+  type = '',
+}: GetStoresParams): Promise<GetStoresResponse> => {
+  const res = await api.get<GetStoresResponse>('/store/filter', {
+    params: {
+      page,
+      limit,
+      search,
+      type: type || undefined, // evita enviar vacío si no hay filtro
+    },
+  });
+
   return res.data;
 };
-
 export const getStoreById = async (id: string): Promise<Store> => {
   const res = await api.get<AxiosResponse<Store>>(`/stores/${id}`)
 

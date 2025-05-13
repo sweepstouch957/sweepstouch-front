@@ -4,8 +4,9 @@
     "allowSyntheticDefaultImports": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
-    },
+      "@/*": ["src/*"],
+      "@public/*": ["public/*"],
+     },
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "incremental": true,

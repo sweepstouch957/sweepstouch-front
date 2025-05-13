@@ -39,7 +39,6 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import clsx from 'clsx';
 import PropTypes from 'prop-types';
 import { ChangeEvent, FC, MouseEvent, SyntheticEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -127,7 +126,7 @@ const applyFilters = (users: User[], query: string, filters: Filters): User[] =>
     let matches = true;
 
     if (query) {
-      const properties = ['email', 'name',];
+      const properties = ['email', 'name'];
       let containsQuery = false;
 
       properties.forEach((property) => {
@@ -173,7 +172,6 @@ const Results: FC<ResultsProps> = ({ users }) => {
     admin: users.filter((user) => user.role === 'admin').length,
     promotor: users.filter((user) => user.role === 'promotor').length,
     promotorOwner: users.filter((user) => user.role === 'promotor_manager').length,
-
   };
 
   const tabs: Tab[] = [
@@ -617,11 +615,7 @@ const Results: FC<ResultsProps> = ({ users }) => {
                           lg={4}
                           key={user.id}
                         >
-                          <CardWrapper
-                            className={clsx({
-                              'Mui-selected': isUserSelected,
-                            })}
-                          >
+                          <CardWrapper className={`${isUserSelected ? 'Mui-selected' : ''}`}>
                             <Box
                               sx={{
                                 position: 'relative',

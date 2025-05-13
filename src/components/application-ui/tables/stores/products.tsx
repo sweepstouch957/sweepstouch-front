@@ -2,8 +2,21 @@ import { useStores } from '@/hooks/stores/useStores';
 import Results from './results';
 
 function Component() {
-  const { stores, total, page, limit, loading, error, setPage, setLimit, setSearch } = useStores();
-console.log(stores);
+  const {
+    stores,
+    total,
+    loading,
+    error,
+    page,
+    limit,
+    search,
+    type,
+    handlePageChange,
+    handleLimitChange,
+    handleTypeChange,
+    handleSearchChange,
+
+  } = useStores();
 
   return (
     <Results
@@ -11,9 +24,12 @@ console.log(stores);
       total={total}
       page={page}
       limit={limit}
-      onPageChange={setPage}
-      onLimitChange={setLimit}
-      onSearchChange={setSearch}
+      search={search}
+      type={type}
+      onPageChange={handlePageChange}
+      onLimitChange={handleLimitChange}
+      onSearchChange={handleSearchChange}
+      onTypeChange={handleTypeChange}
       loading={loading}
       error={error}
     />

@@ -34,6 +34,7 @@ import type { ChangeEvent, FC } from 'react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ButtonSoft } from 'src/components/base/styles/button-soft';
+import { SkeletonTableRow } from '../../skeleton/table/table';
 
 interface ResultsProps {
   campaigns: Campaing[];
@@ -41,6 +42,7 @@ interface ResultsProps {
   setFilters: (filters: any) => void;
   total: number;
   refetch: () => void;
+  isLoading: boolean;
 }
 
 const getInvoiceStatusLabel = (campaignStatus: CampaingStatus): JSX.Element => {
@@ -62,7 +64,7 @@ const getInvoiceStatusLabel = (campaignStatus: CampaingStatus): JSX.Element => {
   );
 };
 
-const Results: FC<ResultsProps> = ({ campaigns, filters, setFilters, total }) => {
+const Results: FC<ResultsProps> = ({ campaigns, filters, setFilters, total, isLoading }) => {
   const { t } = useTranslation();
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
@@ -226,96 +228,98 @@ const Results: FC<ResultsProps> = ({ campaigns, filters, setFilters, total }) =>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {campaigns.map((campaign) => {
-                  const selected = selectedItems.includes(campaign._id);
-                  return (
-                    <TableRow
-                      key={campaign._id}
-                      selected={selected}
-                      hover
-                    >
-                      <TableCell>
-                        <Box
-                          display="flex"
-                          alignItems="center"
+                {isLoading
+                  ? Array.from({ length: 5 }).map((_, idx) => <SkeletonTableRow key={idx} />)
+                  : campaigns.map((campaign) => {
+                      const selected = selectedItems.includes(campaign._id);
+                      return (
+                        <TableRow
+                          key={campaign._id}
+                          selected={selected}
+                          hover
                         >
-                          <Checkbox
-                            checked={selected}
-                            onChange={(e) => handleSelectOne(e, campaign._id)}
-                          />
-                          <Box pl={1}>
+                          <TableCell>
+                            <Box
+                              display="flex"
+                              alignItems="center"
+                            >
+                              <Checkbox
+                                checked={selected}
+                                onChange={(e) => handleSelectOne(e, campaign._id)}
+                              />
+                              <Box pl={1}>
+                                <Typography
+                                  noWrap
+                                  variant="subtitle2"
+                                >
+                                  {campaign.type}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </TableCell>
+                          <TableCell>
                             <Typography
                               noWrap
                               variant="subtitle2"
                             >
-                              {campaign.type}
+                              {format(new Date(campaign.startDate), 'dd/MM/yyyy')}
                             </Typography>
-                          </Box>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Typography
-                          noWrap
-                          variant="subtitle2"
-                        >
-                          {format(new Date(campaign.startDate), 'dd/MM/yyyy')}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Box
-                          display="flex"
-                          alignItems="center"
-                        >
-                          <Avatar
-                            sx={{ mr: 1, width: 38, height: 38 }}
-                            src={campaign.store?.image}
-                          />
-                          <Typography
-                            variant="h6"
-                            fontWeight={500}
-                          >
-                            {campaign.store?.name}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Typography
-                          noWrap
-                          variant="body2"
-                        >
-                          {campaign.audience}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography
-                          variant="h6"
-                          fontWeight={600}
-                        >
-                          {numeral(campaign.cost).format(`$0,0.00`)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>{getInvoiceStatusLabel(campaign.status)}</TableCell>
-                      <TableCell align="center">
-                        <Tooltip
-                          title={t('View')}
-                          arrow
-                        >
-                          <IconButton color="primary">
-                            <LaunchTwoToneIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip
-                          title={t('Delete')}
-                          arrow
-                        >
-                          <IconButton color="error">
-                            <DeleteTwoToneIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                          </TableCell>
+                          <TableCell>
+                            <Box
+                              display="flex"
+                              alignItems="center"
+                            >
+                              <Avatar
+                                sx={{ mr: 1, width: 38, height: 38 }}
+                                src={campaign.store?.image}
+                              />
+                              <Typography
+                                variant="h6"
+                                fontWeight={500}
+                              >
+                                {campaign.store?.name}
+                              </Typography>
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            <Typography
+                              noWrap
+                              variant="body2"
+                            >
+                              {campaign.audience}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography
+                              variant="h6"
+                              fontWeight={600}
+                            >
+                              {numeral(campaign.cost).format(`$0,0.00`)}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>{getInvoiceStatusLabel(campaign.status)}</TableCell>
+                          <TableCell align="center">
+                            <Tooltip
+                              title={t('View')}
+                              arrow
+                            >
+                              <IconButton color="primary">
+                                <LaunchTwoToneIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip
+                              title={t('Delete')}
+                              arrow
+                            >
+                              <IconButton color="error">
+                                <DeleteTwoToneIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
               </TableBody>
             </Table>
           </TableContainer>
