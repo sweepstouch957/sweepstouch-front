@@ -34,10 +34,7 @@ import Image from 'next/image';
 import { Fragment, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-function cortarHastaPrimerNumeroIncluido(texto: string): string {
-  const match = texto.match(/^.*?\d+/);
-  return match ? match[0].trim() : texto;
-}
+
 
 const ListItemAvatarWrapper = styled(ListItemAvatar)(({ theme }) => ({
   minWidth: 0,
@@ -390,11 +387,8 @@ function SweepstakesBalance() {
                               textWrap: 'wrap',
                               maxWidth: '40ch',
                             }}
-                            primaryTypographyProps={{ variant: 'h4', noWrap: true }}
-                            secondary={`${item.totalParticipations} participaciones ,  ${
-                              (item.totalParticipations / totalRegistrations) * 100
-                            }
-                              %`}
+                            primaryTypographyProps={{ variant: 'h5' }}
+                            secondary={`${item.totalParticipations} participaciones`}
                             secondaryTypographyProps={{ variant: 'h6', noWrap: true }}
                           />
                           <Box>
