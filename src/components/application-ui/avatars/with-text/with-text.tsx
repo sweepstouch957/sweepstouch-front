@@ -58,7 +58,7 @@ const Component = () => {
             variant="outlined"
             sx={{ p: 2, height: '100%', minHeight: 128, display: 'flex', justifyContent: 'center' }}
           >
-            <AvatarTitleDescriptionAlternate />
+            <AvatarTitleDescriptionAlternate user={null} />
           </Card>
         </Grid>
       </Grid>

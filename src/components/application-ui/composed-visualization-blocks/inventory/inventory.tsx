@@ -234,7 +234,7 @@ function Component() {
               href=""
               onClick={(e) => e.preventDefault()}
               alt="Cindy Baker"
-              src="/avatars/3.png"
+              src="/avatars/1.png"
             />
           </Tooltip>
         </Box>

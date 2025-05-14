@@ -83,7 +83,7 @@ function LearningProfile() {
   const [period, setPeriod] = useState<string>(periods[0].text);
 
   const user = {
-    avatar: '/avatars/3.png',
+    avatar: '/avatars/1.png',
     name: 'Ethan Donovan',
     jobTitle: 'Principal Engineer',
   };

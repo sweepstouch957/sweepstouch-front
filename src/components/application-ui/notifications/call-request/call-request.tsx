@@ -81,7 +81,7 @@ const Component = () => {
                           height: 20,
                           mr: 0.5,
                         }}
-                        src="/avatars/3.png"
+                        src="/avatars/1.png"
                       />
                       <Link
                         href=""

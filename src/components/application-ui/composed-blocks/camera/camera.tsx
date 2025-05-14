@@ -244,7 +244,7 @@ function VideoCameras() {
               </TalkButton>
             </Box>
             <Box>
-              <CameraImage src="/placeholders/fitness/3.png" />
+              <CameraImage src="/placeholders/fitness/1.png" />
             </Box>
           </Box>
         </CameraActions>

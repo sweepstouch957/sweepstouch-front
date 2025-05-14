@@ -19,7 +19,7 @@ const Component = () => {
       />
       <Avatar
         alt="..."
-        src="/avatars/3.png"
+        src="/avatars/1.png"
         sx={{ width: 52, height: 52 }}
       />
       <Avatar

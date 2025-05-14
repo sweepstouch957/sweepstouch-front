@@ -24,7 +24,7 @@ import { useTranslation } from 'react-i18next';
 import { ButtonIcon } from 'src/components/base/styles/button-icon';
 import { ButtonSoft } from 'src/components/base/styles/button-soft';
 import { VisuallyHiddenInputNative } from 'src/components/base/styles/visually-hidden';
-import { User } from 'src/mocks/users';
+import { IUser } from 'src/mocks/users';
 
 const AvatarWrapper = styled(Card)(
   ({ theme }) => `
@@ -83,7 +83,7 @@ const CardCoverAction = styled(Box)(
 );
 
 interface ProfileCoverProps {
-  user: User;
+  user: IUser;
 }
 
 const ProfileCover: FC<ProfileCoverProps> = ({ user }) => {

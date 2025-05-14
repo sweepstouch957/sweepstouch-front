@@ -246,7 +246,7 @@ function Component() {
                     0.1
                   )}, 0 .126rem .225rem ${alpha(theme.palette.common.black, 0.3)}`,
                 }}
-                src="/avatars/3.png"
+                src="/avatars/1.png"
               />
               <Box ml={1.5}>
                 <Link

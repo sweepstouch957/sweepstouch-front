@@ -152,7 +152,7 @@ const mails: Mail[] = [
       {
         name: 'Drew Hawes',
         email: 'drew.hawes@example.com',
-        avatar: '/avatars/3.png',
+        avatar: '/avatars/1.png',
       },
     ],
     from: {
@@ -225,7 +225,7 @@ const mails: Mail[] = [
     from: {
       name: 'Ryley Hardin',
       email: 'ryleyhar.2@example.com',
-      avatar: '/avatars/3.png',
+      avatar: '/avatars/1.png',
     },
     date: subDays(new Date(), 4).getTime(),
   },
@@ -346,7 +346,7 @@ const mails: Mail[] = [
       {
         name: 'Drew Hawes',
         email: 'drew.hawes@example.com',
-        avatar: '/avatars/3.png',
+        avatar: '/avatars/1.png',
       },
     ],
     from: {

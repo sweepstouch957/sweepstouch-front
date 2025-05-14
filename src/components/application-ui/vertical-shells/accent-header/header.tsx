@@ -58,7 +58,7 @@ export const Header: FC<HeaderProps> = (props) => {
   const widgets = useDialog();
 
   const user = {
-    avatar: '/avatars/3.png',
+    avatar: '/avatars/1.png',
     name: 'Ethan Donovan',
     jobTitle: 'Principal Engineer',
   };

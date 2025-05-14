@@ -316,7 +316,7 @@ function TrainingPrograms() {
                 <CardMedia
                   component="img"
                   height="230"
-                  image="/placeholders/fitness/3.png"
+                  image="/placeholders/fitness/1.png"
                   alt="..."
                 />
               </CardActionAreaWrapper>
@@ -619,7 +619,7 @@ function TrainingPrograms() {
                 <CardMedia
                   component="img"
                   height="230"
-                  image="/placeholders/fitness/3.png"
+                  image="/placeholders/fitness/1.png"
                   alt="..."
                 />
               </CardActionAreaWrapper>

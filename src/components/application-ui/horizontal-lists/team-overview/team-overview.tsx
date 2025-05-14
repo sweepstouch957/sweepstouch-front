@@ -145,7 +145,7 @@ function Component() {
                   height: 54,
                 }}
                 alt="Ann Saris"
-                src="/avatars/3.png"
+                src="/avatars/1.png"
               />
             </Badge>
             <Box

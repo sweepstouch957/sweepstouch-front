@@ -47,7 +47,7 @@ const membersList: Member[] = [
   {
     name: 'Carol Williams',
     detail: 'UX Designer',
-    avatar: '/avatars/3.png',
+    avatar: '/avatars/1.png',
   },
   {
     name: 'David Brown',

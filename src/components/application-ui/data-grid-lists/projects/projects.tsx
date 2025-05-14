@@ -135,7 +135,7 @@ function Projects() {
                 />
                 <Avatar
                   alt="Cindy Baker"
-                  src="/avatars/3.png"
+                  src="/avatars/1.png"
                   sx={{ width: 34, height: 34 }}
                 />
                 <Avatar
@@ -265,7 +265,7 @@ function Projects() {
                 />
                 <Avatar
                   alt="Cindy Baker"
-                  src="/avatars/3.png"
+                  src="/avatars/1.png"
                   sx={{ width: 34, height: 34 }}
                 />
                 <Avatar
@@ -410,7 +410,7 @@ function Projects() {
                 />
                 <Avatar
                   alt="Cindy Baker"
-                  src="/avatars/3.png"
+                  src="/avatars/1.png"
                   sx={{ width: 34, height: 34 }}
                 />
                 <Avatar

@@ -187,7 +187,7 @@ function Component() {
               >
                 <img
                   style={{ height: 134 }}
-                  src="/placeholders/products/3.png"
+                  src="/placeholders/products/1.png"
                   alt="..."
                 />
               </Link>

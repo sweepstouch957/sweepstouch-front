@@ -44,7 +44,6 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import clsx from 'clsx';
 import { format, formatDistance } from 'date-fns';
 import PropTypes from 'prop-types';
 import { ChangeEvent, FC, MouseEvent, useState } from 'react';
@@ -861,11 +860,7 @@ const Results: FC<ResultsProps> = ({ projects }) => {
                         lg={4}
                         key={project.name}
                       >
-                        <CardWrapper
-                          className={clsx({
-                            'Mui-selected': isProjectSelected,
-                          })}
-                        >
+                        <CardWrapper className={isProjectSelected ? 'Mui-selected' : ''}>
                           <Box
                             sx={{
                               position: 'relative',

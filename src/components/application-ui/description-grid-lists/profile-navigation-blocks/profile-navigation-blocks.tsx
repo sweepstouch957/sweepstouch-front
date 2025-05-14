@@ -95,7 +95,7 @@ function Component2() {
                             0 0.6rem 1.6rem ${alpha(theme.palette.common.black, 0.15)}, 
                             0 0.2rem 0.2rem ${alpha(theme.palette.common.black, 0.1)}`,
           }}
-          src="/avatars/3.png"
+          src="/avatars/1.png"
         />
         <Link
           href=""

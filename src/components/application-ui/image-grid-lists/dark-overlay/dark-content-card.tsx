@@ -60,7 +60,7 @@ function DarkContentCard() {
                 width: 44,
                 height: 44,
               }}
-              src="/avatars/3.png"
+              src="/avatars/1.png"
             />
 
             <Box ml={1.5}>

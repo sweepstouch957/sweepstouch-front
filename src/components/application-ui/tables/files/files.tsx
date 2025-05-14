@@ -100,7 +100,7 @@ const Component = () => {
       id: '2',
       filename: '2021Screenshot.jpg',
       owner: 'Kitty Herbert',
-      avatarUrl: '/avatars/3.png',
+      avatarUrl: '/avatars/1.png',
       dateCreated: subDays(new Date(), 15),
     },
     {

@@ -39,7 +39,7 @@ const notifications: NotificationData[] = [
     description: 'Reported time-off leave: 21-27 March 2022',
   },
   {
-    avatarSrc: '/avatars/3.png',
+    avatarSrc: '/avatars/1.png',
     name: 'Emerson Lubin',
     role: 'Patient',
     chipLabel: 'Patients',

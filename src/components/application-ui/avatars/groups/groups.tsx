@@ -22,7 +22,7 @@ const Component = () => {
         />
         <Avatar
           alt="Cindy Baker"
-          src="/avatars/3.png"
+          src="/avatars/1.png"
           sx={{ width: 24, height: 24 }}
         />
         <Avatar
@@ -47,7 +47,7 @@ const Component = () => {
         />
         <Avatar
           alt="Cindy Baker"
-          src="/avatars/3.png"
+          src="/avatars/1.png"
         />
         <Avatar
           alt="Agnes Walker"
@@ -71,7 +71,7 @@ const Component = () => {
         </Avatar>
         <Avatar
           alt="Cindy Baker"
-          src="/avatars/3.png"
+          src="/avatars/1.png"
           sx={{ width: 52, height: 52 }}
         />
       </AvatarGroup>

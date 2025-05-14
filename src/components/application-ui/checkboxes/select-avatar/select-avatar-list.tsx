@@ -44,7 +44,7 @@ const items: Item[] = [
     name: 'Liu Wei',
     email: generateEmail('Liu Wei', 'Global Exports Co.'),
     company: 'Global Exports Co.',
-    avatarSrc: '/avatars/3.png',
+    avatarSrc: '/avatars/1.png',
   },
   {
     id: 4,

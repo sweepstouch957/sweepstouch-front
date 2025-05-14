@@ -74,7 +74,7 @@ function Users() {
                   width: 62,
                   height: 62,
                 }}
-                src="/avatars/3.png"
+                src="/avatars/1.png"
               />
             </Tooltip>
             <Typography variant="h5">Randy</Typography>

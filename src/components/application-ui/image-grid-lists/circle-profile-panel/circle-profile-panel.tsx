@@ -172,7 +172,7 @@ function Component() {
             mx: 'auto',
             boxShadow: `0 0 0 4px ${theme.palette.common.white}`,
           }}
-          src="/avatars/3.png"
+          src="/avatars/1.png"
         />
         <Typography
           sx={{

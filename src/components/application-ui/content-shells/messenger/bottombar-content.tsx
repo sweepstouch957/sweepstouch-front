@@ -44,7 +44,7 @@ function BottomBarContent() {
           alignItems="center"
         >
           <Avatar
-            src="/avatars/3.png"
+            src="/avatars/1.png"
             sx={{ display: { xs: 'none', sm: 'flex' }, mr: 1 }}
           />
           <InputBase

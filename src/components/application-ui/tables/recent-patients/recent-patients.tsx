@@ -66,7 +66,7 @@ const patients: Patient[] = [
     name: 'Lincoln Torff',
     admissionDate: subDays(new Date(), 5),
     gender: 'Male',
-    doctorAvatarSrc: '/avatars/3.png',
+    doctorAvatarSrc: '/avatars/1.png',
     doctorName: 'Gretchen Rosser',
     doctorStatus: 'On Planned Leave',
     weight: '75.50kg',

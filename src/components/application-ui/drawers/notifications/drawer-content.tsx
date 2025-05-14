@@ -346,7 +346,7 @@ const Component = () => {
                     width: 38,
                     height: 38,
                   }}
-                  src="/avatars/3.png"
+                  src="/avatars/1.png"
                 />
               </Badge>
               <Box

@@ -225,7 +225,7 @@ function Component() {
                       href=""
                       onClick={(e) => e.preventDefault()}
                       alt="Alaina Henry"
-                      src="/avatars/3.png"
+                      src="/avatars/1.png"
                     />
                   </Tooltip>
                 </Box>

@@ -30,7 +30,7 @@ const CardWrapperSecondary = styled(Card)(
 function ChatContent() {
   const { t } = useTranslation();
   const user = {
-    avatar: '/avatars/3.png',
+    avatar: '/avatars/1.png',
     name: 'Ethan Donovan',
   };
 

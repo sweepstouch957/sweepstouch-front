@@ -32,7 +32,7 @@ function Feed() {
       name: 'Rowena Geistmann',
       jobTitle: t('Pharmacist'),
       company: 'Yozio',
-      avatar: '/avatars/3.png',
+      avatar: '/avatars/1.png',
     },
     {
       name: 'Ede Stoving',

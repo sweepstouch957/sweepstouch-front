@@ -57,7 +57,7 @@ function Component() {
       id: 3,
       username: 'Abigayle Hicks',
       jobTitle: t('Project Manager, Spotify'),
-      avatar: '/avatars/3.png',
+      avatar: '/avatars/1.png',
       value: 695,
     },
     {

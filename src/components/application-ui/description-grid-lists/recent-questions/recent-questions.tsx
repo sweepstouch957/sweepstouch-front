@@ -47,7 +47,7 @@ function RecentQuestions() {
       views: 198,
     },
     {
-      avatarSrc: '/avatars/3.png',
+      avatarSrc: '/avatars/1.png',
       name: 'Max',
       timeAgo: formatDistance(subDays(new Date(), 1), new Date(), { addSuffix: true }),
       category: 'API Integration',

@@ -309,7 +309,7 @@ function Component() {
                         width: 54,
                       }}
                       alt="Leonardo Delgado"
-                      src="/avatars/3.png"
+                      src="/avatars/1.png"
                     />
                   </Badge>
                   <Box

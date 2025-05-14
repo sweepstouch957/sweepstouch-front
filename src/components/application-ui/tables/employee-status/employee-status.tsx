@@ -107,7 +107,7 @@ const employees: EmployeeData[] = [
   {
     name: 'Regan Norris',
     jobFunction: 'Senior Project Manager',
-    avatar: '/avatars/3.png',
+    avatar: '/avatars/1.png',
     status: 'Declined',
     statusColor: 'error',
   },

@@ -27,7 +27,7 @@ function TopBarContent() {
             height: 48,
           }}
           alt="Zain Baptista"
-          src="/avatars/3.png"
+          src="/avatars/1.png"
         />
         <Box
           sx={{

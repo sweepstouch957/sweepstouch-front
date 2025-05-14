@@ -69,7 +69,7 @@ export const Sidebar: FC<SidebarProps> = (props) => {
     {
       id: 2,
       name: 'Jane Smith',
-      avatar: '/avatars/3.png',
+      avatar: '/avatars/1.png',
       userRole: 'Product Manager',
     },
     {

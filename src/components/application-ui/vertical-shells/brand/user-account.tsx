@@ -147,7 +147,7 @@ const UserAccount: React.FC<Props> = ({ sidebarCollapsed, isHovered }) => {
               : theme.spacing(5)
             : theme.spacing(7),
         }}
-        src="/avatars/3.png"
+        src="/avatars/1.png"
       />
       {mdUp && sidebarCollapsed ? isHovered && tenantDescription : tenantDescription}
     </Box>

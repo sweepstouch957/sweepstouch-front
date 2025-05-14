@@ -21,7 +21,7 @@ class ProjectsApi {
           {
             id: '3',
             name: 'Emily Taylor',
-            avatar: '/avatars/3.png',
+            avatar: '/avatars/1.png',
           },
           {
             id: '5',
@@ -46,7 +46,7 @@ class ProjectsApi {
         startDate: subDays(new Date(), 20).getTime(),
         dueDate: subDays(new Date(), 120).getTime(),
         memberIds: [
-          { id: '3', name: 'Emily Taylor', avatar: '/avatars/3.png' },
+          { id: '3', name: 'Emily Taylor', avatar: '/avatars/1.png' },
           { id: '4', name: 'David Wilson', avatar: '/avatars/4.png' },
           { id: '5', name: 'Michael Brown', avatar: '/avatars/5.png' },
         ],
@@ -77,7 +77,7 @@ class ProjectsApi {
         startDate: subDays(new Date(), 5).getTime(),
         dueDate: subDays(new Date(), 60).getTime(),
         memberIds: [
-          { id: '3', name: 'Emily Taylor', avatar: '/avatars/3.png' },
+          { id: '3', name: 'Emily Taylor', avatar: '/avatars/1.png' },
           { id: '5', name: 'Michael Brown', avatar: '/avatars/5.png' },
         ],
         progress: 30,
@@ -123,7 +123,7 @@ class ProjectsApi {
         dueDate: subDays(new Date(), 200).getTime(),
         memberIds: [
           { id: '1', name: 'Alex Johnson', avatar: '/avatars/1.png' },
-          { id: '3', name: 'Emily Taylor', avatar: '/avatars/3.png' },
+          { id: '3', name: 'Emily Taylor', avatar: '/avatars/1.png' },
           { id: '4', name: 'David Wilson', avatar: '/avatars/4.png' },
         ],
         progress: 60,
@@ -190,7 +190,7 @@ class ProjectsApi {
           {
             id: '3',
             name: 'Emily Taylor',
-            avatar: '/avatars/3.png',
+            avatar: '/avatars/1.png',
           },
           {
             id: '2',
@@ -235,7 +235,7 @@ class ProjectsApi {
         dueDate: subDays(new Date(), 200).getTime(),
         memberIds: [
           { id: '2', name: 'Sarah Miller', avatar: '/avatars/2.png' },
-          { id: '3', name: 'Emily Taylor', avatar: '/avatars/3.png' },
+          { id: '3', name: 'Emily Taylor', avatar: '/avatars/1.png' },
         ],
         progress: 55,
         status: 'in_progress',
@@ -265,7 +265,7 @@ class ProjectsApi {
         startDate: subDays(new Date(), 15).getTime(),
         dueDate: subDays(new Date(), 120).getTime(),
         memberIds: [
-          { id: '3', name: 'Emily Taylor', avatar: '/avatars/3.png' },
+          { id: '3', name: 'Emily Taylor', avatar: '/avatars/1.png' },
           { id: '5', name: 'Michael Brown', avatar: '/avatars/5.png' },
         ],
         progress: 60,
@@ -297,7 +297,7 @@ class ProjectsApi {
         dueDate: subDays(new Date(), 365).getTime(),
         memberIds: [
           { id: '1', name: 'Alex Johnson', avatar: '/avatars/1.png' },
-          { id: '3', name: 'Emily Taylor', avatar: '/avatars/3.png' },
+          { id: '3', name: 'Emily Taylor', avatar: '/avatars/1.png' },
         ],
         progress: 30,
         status: 'not_started',
@@ -334,7 +334,7 @@ class ProjectsApi {
           {
             id: '3',
             name: 'Emily Taylor',
-            avatar: '/avatars/3.png',
+            avatar: '/avatars/1.png',
           },
         ],
         progress: 50,
@@ -380,7 +380,7 @@ class ProjectsApi {
           {
             id: '3',
             name: 'Emily Taylor',
-            avatar: '/avatars/3.png',
+            avatar: '/avatars/1.png',
           },
           {
             id: '4',
@@ -414,7 +414,7 @@ class ProjectsApi {
         {
           id: '3',
           name: 'Emily Taylor',
-          avatar: '/avatars/3.png',
+          avatar: '/avatars/1.png',
         },
         {
           id: '5',

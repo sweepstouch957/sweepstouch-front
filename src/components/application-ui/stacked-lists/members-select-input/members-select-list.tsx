@@ -33,7 +33,7 @@ const items = [
     name: 'Rowena Geistmann',
     email: 'rowena.geistmann@yozioconnect.com',
     company: 'Yozio',
-    avatar: '/avatars/3.png',
+    avatar: '/avatars/1.png',
     value: 54,
   },
   {

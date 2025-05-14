@@ -66,7 +66,7 @@ function Component0() {
             width: 95,
             height: 95,
           }}
-          src="/avatars/3.png"
+          src="/avatars/1.png"
         />
         <Box
           sx={{

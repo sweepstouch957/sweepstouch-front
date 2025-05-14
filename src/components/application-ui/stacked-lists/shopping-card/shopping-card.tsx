@@ -51,7 +51,7 @@ function Component() {
     {
       id: 3,
       title: t('Apple iPhone 12 PRO'),
-      image: '/placeholders/products/3.png',
+      image: '/placeholders/products/1.png',
       price: '749',
     },
     {

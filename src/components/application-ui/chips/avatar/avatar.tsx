@@ -70,7 +70,7 @@ const Component = () => {
         <Chip
           avatar={
             <Avatar
-              src="/avatars/3.png"
+              src="/avatars/1.png"
               alt="..."
             />
           }

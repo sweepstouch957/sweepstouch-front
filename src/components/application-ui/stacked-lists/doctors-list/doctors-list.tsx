@@ -50,7 +50,7 @@ const doctorsData: Doctor[] = [
     name: 'James Workman',
     specialty: 'Pediatrician',
     rating: '5.0',
-    avatar: '/avatars/3.png',
+    avatar: '/avatars/1.png',
     status: 'warning',
   },
   {

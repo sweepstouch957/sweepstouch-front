@@ -59,7 +59,7 @@ const issues: IssueData[] = [
   },
   {
     title: 'Database connection errors',
-    avatarSrc: '/avatars/3.png',
+    avatarSrc: '/avatars/1.png',
     userName: 'Rebecca Martin',
     minutesAgo: 190,
     status: 'Rejected',

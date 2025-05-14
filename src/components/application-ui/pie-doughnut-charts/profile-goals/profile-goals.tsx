@@ -40,7 +40,7 @@ function ProfileGoals() {
   const actionRef1 = useRef<any>(null);
   const [openPeriod, setOpenMenuPeriod] = useState<boolean>(false);
   const user = {
-    avatar: '/avatars/3.png',
+    avatar: '/avatars/1.png',
     name: 'Ethan Donovan',
     jobTitle: 'Principal Engineer',
   };

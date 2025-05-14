@@ -25,7 +25,7 @@ class TopProductsApi {
       },
       {
         id: '3',
-        image: '/placeholders/products/3.png',
+        image: '/placeholders/products/1.png',
         name: 'iPhone 12 PRO Max 512MB',
         orders: 34,
         inventory: 5,

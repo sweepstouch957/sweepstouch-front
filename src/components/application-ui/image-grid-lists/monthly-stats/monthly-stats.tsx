@@ -66,7 +66,7 @@ function Component() {
       title: t('Apple Watch 12'),
       excerpt:
         'Complete your profile verifications to take full advantage of your account right away.',
-      image: '/placeholders/covers/landscape3.png',
+      image: '/placeholders/covers/landscape1.png',
       info_value: '$68,593',
       info_title: t('sales'),
       date: format(subDays(new Date(), 12), 'MMMM dd yyyy'),

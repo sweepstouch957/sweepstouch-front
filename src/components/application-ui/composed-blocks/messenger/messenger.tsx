@@ -105,7 +105,7 @@ function Component() {
                 height: 50,
               }}
               alt="Zain Baptista"
-              src="/avatars/3.png"
+              src="/avatars/1.png"
             />
             <Box
               display="flex"
@@ -254,7 +254,7 @@ function Component() {
                 height: 50,
               }}
               alt="Zain Baptista"
-              src="/avatars/3.png"
+              src="/avatars/1.png"
             />
             <Box
               display="flex"

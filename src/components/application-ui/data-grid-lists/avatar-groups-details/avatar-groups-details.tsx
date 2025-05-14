@@ -123,7 +123,7 @@ function Component() {
                   height: 34,
                 }}
                 alt="Cindy Baker"
-                src="/avatars/3.png"
+                src="/avatars/1.png"
               />
               <Avatar
                 variant="rounded"
@@ -428,7 +428,7 @@ function Component() {
                   height: 44,
                 }}
                 alt="Remy Sharp"
-                src="/avatars/3.png"
+                src="/avatars/1.png"
               />
               <Avatar
                 sx={{

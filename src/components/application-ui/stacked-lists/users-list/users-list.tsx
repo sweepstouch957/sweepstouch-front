@@ -46,7 +46,7 @@ const usersData: UserListItemData[] = [
     arrowIcon: 'up',
   },
   {
-    avatarSrc: '/avatars/3.png',
+    avatarSrc: '/avatars/1.png',
     primaryTextKey: 'Adyan Sosa',
     secondaryTextKey: 'User Experience Designer',
     value: '$1,24M',

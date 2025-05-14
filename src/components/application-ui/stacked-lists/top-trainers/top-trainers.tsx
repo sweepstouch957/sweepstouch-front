@@ -58,7 +58,7 @@ const listItems: ListItemData[] = [
     rating: 4.8,
   },
   {
-    avatarSrc: '/avatars/3.png',
+    avatarSrc: '/avatars/1.png',
     status: 'offline',
     timeAgo: 12,
     name: 'Brandon Jonas',

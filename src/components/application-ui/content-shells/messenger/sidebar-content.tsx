@@ -231,7 +231,7 @@ function SidebarContent() {
               />
               <ListItemButton>
                 <ListItemAvatar>
-                  <Avatar src="/avatars/3.png" />
+                  <Avatar src="/avatars/1.png" />
                 </ListItemAvatar>
                 <ListItemText
                   sx={{
@@ -478,7 +478,7 @@ function SidebarContent() {
                   href=""
                   onClick={(e) => e.preventDefault()}
                   alt="Craig Vaccaro"
-                  src="/avatars/3.png"
+                  src="/avatars/1.png"
                 />
               </Tooltip>
             </AvatarGroup>

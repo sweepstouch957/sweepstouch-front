@@ -300,7 +300,7 @@ function Component() {
                       )}, 0 .126rem .225rem ${alpha(theme.palette.common.black, 0.3)}`,
                     }}
                     alt="Cindy Baker"
-                    src="/avatars/3.png"
+                    src="/avatars/1.png"
                   />
                   <Avatar
                     variant="rounded"

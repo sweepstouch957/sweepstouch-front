@@ -24,8 +24,8 @@ const AlternateSpotlightSearch = () => {
           backgroundSize: 'cover',
           backgroundImage: (theme) =>
             theme.palette.mode === 'dark'
-              ? `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url("/placeholders/covers/landscape3.png")`
-              : `url("/placeholders/covers/landscape3.png")`,
+              ? `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url("/placeholders/covers/landscape1.png")`
+              : `url("/placeholders/covers/landscape1.png")`,
         }}
       />
 

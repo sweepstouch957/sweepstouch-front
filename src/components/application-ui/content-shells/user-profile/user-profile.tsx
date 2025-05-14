@@ -18,7 +18,7 @@ import MyCards from 'src/components/application-ui/radio-groups/my-cards/my-card
 import { TabsPills } from 'src/components/base/styles/tabs';
 import { useCustomization } from 'src/hooks/use-customization';
 import { useRefMounted } from 'src/hooks/use-ref-mounted';
-import { User, usersApi } from 'src/mocks/users';
+import { IUser, usersApi } from 'src/mocks/users';
 import Addresses from './addresses';
 import Feed from './feed';
 import PopularTags from './popular-tags';
@@ -27,7 +27,7 @@ import RecentActivity from './recent-activity';
 
 function Component() {
   const isMountedRef = useRefMounted();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<IUser | null>(null);
   const { t } = useTranslation();
   const theme = useTheme();
   const smUp = useMediaQuery(theme.breakpoints.up('sm'));
@@ -52,7 +52,7 @@ function Component() {
 
   const getUser = useCallback(async () => {
     try {
-      const response = await usersApi.getUser();
+      const response = await usersApi.getUser("");
 
       if (isMountedRef()) {
         setUser(response);

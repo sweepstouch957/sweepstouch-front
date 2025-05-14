@@ -124,7 +124,7 @@ function Component() {
                   boxShadow: '0 .113rem .5rem rgba(7,9,25,.3), 0 .126rem .225rem rgba(7,9,25,.1)',
                 }}
                 alt="Cindy Baker"
-                src="/avatars/3.png"
+                src="/avatars/1.png"
               />
               <Avatar
                 variant="rounded"
@@ -468,7 +468,7 @@ function Component() {
                   boxShadow: '0 .113rem .5rem rgba(7,9,25,.3), 0 .126rem .225rem rgba(7,9,25,.1)',
                 }}
                 alt="Remy Sharp"
-                src="/avatars/3.png"
+                src="/avatars/1.png"
               />
               <Avatar
                 sx={{

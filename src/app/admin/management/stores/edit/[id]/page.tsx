@@ -1,7 +1,7 @@
 'use client';
 
-import { getStoreById, getStoreCustomers } from '@/services/store.service';
-import { Customer, Store } from '@/types';
+import { Customer } from '@/models/customer';
+import { getStoreById, getStoreCustomers, Store } from '@/services/store.service';
 import {
   Avatar,
   Box,

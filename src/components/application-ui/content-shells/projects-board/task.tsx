@@ -19,7 +19,6 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import clsx from 'clsx';
 import { formatDistance } from 'date-fns';
 import PropTypes from 'prop-types';
 import { FC, forwardRef, useRef, useState } from 'react';
@@ -77,7 +76,7 @@ const Task: FC<TaskProps> = forwardRef(({ taskId, dragging, index, list, ...rest
           sx={{
             p: 2,
           }}
-          className={clsx({ dragging: dragging })}
+          className={`${dragging ?? 'dragging'}`}
           raised={dragging}
           variant={dragging ? 'elevation' : 'outlined'}
           elevation={dragging ? 14 : 0}

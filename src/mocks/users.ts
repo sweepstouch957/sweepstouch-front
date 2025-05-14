@@ -1,6 +1,20 @@
 import { User } from '@/contexts/auth/user';
 import { api } from '@/libs/axios';
-
+export interface IUser{
+  id: string;
+  avatar?: string;
+  email?: string;
+  name?: string;
+  jobtitle?: string;
+  username?: string;
+  location?: string;
+  role?: string;
+  coverImg?: string;
+  followers?: string;
+  description?: string;
+  posts?: string;
+  [key: string]: any;
+}
 class UsersApi {
   async getUsers(): Promise<User[]> {
     const res = await api.get('/auth/users'); // 🔁 ajustá la ruta si es diferente

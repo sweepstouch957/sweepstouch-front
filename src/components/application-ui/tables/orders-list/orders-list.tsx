@@ -65,9 +65,9 @@ const orders: OrderData[] = [
   {
     orderNumber: '#591',
     clientName: 'Amin Waller',
-    clientAvatar: '/avatars/3.png',
+    clientAvatar: '/avatars/1.png',
     product: 'Apple TV Gen. 5',
-    productImage: '/placeholders/products/3.png',
+    productImage: '/placeholders/products/1.png',
     status: 'Failed',
     statusColor: 'error',
     total: '$7,584',

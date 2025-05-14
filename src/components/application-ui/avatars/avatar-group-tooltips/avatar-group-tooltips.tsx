@@ -42,7 +42,7 @@ const Component = () => {
           onClick={(e) => e.preventDefault()}
           href=""
           alt="Cindy Baker"
-          src="/avatars/3.png"
+          src="/avatars/1.png"
         />
       </Tooltip>
       <Tooltip

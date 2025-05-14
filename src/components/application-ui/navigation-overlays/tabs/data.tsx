@@ -198,7 +198,7 @@ export const dummyData: Item[] = [
     id: 28,
     title: 'Daniel Smith',
     description: 'Senior Accountant',
-    avatar: '/avatars/3.png',
+    avatar: '/avatars/1.png',
     category: 'users',
   },
   {
@@ -233,7 +233,7 @@ export const dummyData: Item[] = [
     id: 33,
     title: 'Michael Brown',
     description: 'Sales Executive',
-    avatar: '/avatars/3.png',
+    avatar: '/avatars/1.png',
     category: 'users',
   },
   {

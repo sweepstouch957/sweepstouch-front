@@ -30,7 +30,7 @@ const Component = () => {
             </Button>
           </>
         }
-        title={<AvatarTitleDescriptionAlternate />}
+        title={<AvatarTitleDescriptionAlternate user={null} />}
       />
       <Divider />
       <CardContent>

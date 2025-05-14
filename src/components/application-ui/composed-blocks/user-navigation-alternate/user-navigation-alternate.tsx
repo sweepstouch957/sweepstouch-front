@@ -74,7 +74,7 @@ function Component() {
               0.4
             )}, 0 .226rem .225rem ${alpha(theme.palette.common.black, 0.1)}`,
           }}
-          src="/avatars/3.png"
+          src="/avatars/1.png"
         />
         <Typography
           sx={{

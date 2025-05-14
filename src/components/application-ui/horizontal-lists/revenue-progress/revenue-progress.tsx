@@ -26,7 +26,7 @@ function Component() {
   const mdUp = useMediaQuery(theme.breakpoints.up('md'));
 
   const peopleData: PersonData[] = [
-    { name: 'Remy Sharp', avatarSrc: '/avatars/3.png', rating: 4.8, jobs: 34 },
+    { name: 'Remy Sharp', avatarSrc: '/avatars/1.png', rating: 4.8, jobs: 34 },
     { name: 'Agnes Walker', avatarSrc: '/avatars/2.png', rating: 5.0, jobs: 74 },
     { name: 'Anabel Mayo', avatarSrc: '/avatars/1.png', rating: 2.9, jobs: 52 },
     { name: 'Travis Howard', avatarSrc: '/avatars/4.png', rating: 3.5, jobs: 82 },

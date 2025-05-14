@@ -201,7 +201,7 @@ function Component() {
                 mb: 1,
                 border: theme.palette.common.white + ' solid 3px',
               }}
-              src="/avatars/3.png"
+              src="/avatars/1.png"
             />
             <Typography
               variant="h4"
