@@ -1,6 +1,7 @@
 import { Box, Link, useMediaQuery, useTheme } from '@mui/material';
 import Image from 'next/image';
 import { RouterLink } from './router-link';
+import LogoIcon from '@public/web/SweeptouchIcon.png';
 
 interface LogoProps {
   dark?: boolean;
@@ -50,7 +51,7 @@ export const Logo = ({ dark = false, isLinkStatic = false, isCollapsed }: LogoPr
       >
         {isCollapsed || isMobile ? (
           <Image
-            src={'/s.svg'}
+            src={LogoIcon.src}
             alt="logo"
             width={48}
             height={48}
