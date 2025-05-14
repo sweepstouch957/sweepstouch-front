@@ -28,7 +28,7 @@ import { DefaultizedPieValueType } from '@mui/x-charts';
 import { pieArcLabelClasses, PieChart } from '@mui/x-charts/PieChart';
 import BasicIcon from '@public/web/basic.png';
 import PremiumIcon from '@public/web/elite.png';
-import FreeIcon from '@public/web/ree.png';
+import FreeIcon from '@public/web/free.png';
 import { useQuery } from '@tanstack/react-query';
 import Image from 'next/image';
 import { Fragment, useState } from 'react';
@@ -378,7 +378,8 @@ function SweepstakesBalance() {
                               src={getImage(item.storeType)}
                               alt={item.storeName}
                               width={40}
-                              height={40}
+                              style={{padding:"4px"}}
+                              height={50}
                             />
                           </ListItemAvatarWrapper>
                           <ListItemText

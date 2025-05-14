@@ -1,4 +1,4 @@
-import { Box, Link, useTheme } from '@mui/material';
+import { Box, Link, useMediaQuery, useTheme } from '@mui/material';
 import Image from 'next/image';
 import { RouterLink } from './router-link';
 
@@ -10,6 +10,7 @@ interface LogoProps {
 
 export const Logo = ({ dark = false, isLinkStatic = false, isCollapsed }: LogoProps) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery('(max-width:768px)');
 
   const color = dark
     ? theme.palette.common.white
@@ -47,7 +48,7 @@ export const Logo = ({ dark = false, isLinkStatic = false, isCollapsed }: LogoPr
           justifyContent: 'center',
         }}
       >
-        {isCollapsed ? (
+        {isCollapsed || isMobile ? (
           <Image
             src={'/s.svg'}
             alt="logo"
