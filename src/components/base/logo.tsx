@@ -53,8 +53,8 @@ export const Logo = ({ dark = false, isLinkStatic = false, isCollapsed }: LogoPr
           <Image
             src={LogoIcon.src}
             alt="logo"
-            width={48}
-            height={48}
+            width={32}
+            height={32}
           />
         ) : (
           <Image
