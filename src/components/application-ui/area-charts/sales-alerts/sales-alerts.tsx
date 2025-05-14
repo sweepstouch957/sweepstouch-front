@@ -7,8 +7,8 @@ import {
   Box,
   Card,
   Chip,
-  Skeleton,
   Unstable_Grid2 as Grid,
+  Skeleton,
   styled,
   Typography,
   useTheme,
@@ -106,7 +106,11 @@ function Component() {
         }}
       >
         {loading ? (
-          <Skeleton variant="circular" width={64} height={64} />
+          <Skeleton
+            variant="circular"
+            width={64}
+            height={64}
+          />
         ) : (
           <AvatarState
             useShadow
@@ -117,26 +121,34 @@ function Component() {
           </AvatarState>
         )}
 
-        <Typography variant="h1" sx={{ pt: 2 }}>
-          {loading ? (
-            <Skeleton width={70} />
-          ) : error ? (
-            'Error'
-          ) : (
-            value
-          )}
+        <Typography
+          variant="h1"
+          sx={{ pt: 2 }}
+        >
+          {loading ? <Skeleton width={70} /> : error ? 'Error' : value}
         </Typography>
 
-        <Typography variant="h5" fontWeight={500} sx={{ pb: 2 }}>
+        <Typography
+          variant="h5"
+          fontWeight={500}
+          sx={{ pb: 2 }}
+        >
           {title}
         </Typography>
 
-        <Chip label={chipLabel} variant="outlined" color={chipColor} />
+        <Chip
+          label={chipLabel}
+          variant="outlined"
+          color={chipColor}
+        />
       </CardContentOverlay>
 
       <ChartOverlay>
         {loading ? (
-          <Skeleton variant="rectangular" height={170} />
+          <Skeleton
+            variant="rectangular"
+            height={170}
+          />
         ) : (
           <LineChart
             height={170}
@@ -164,9 +176,18 @@ function Component() {
             }}
           >
             <defs>
-              <linearGradient id={gradientId} gradientTransform="rotate(90)">
-                <stop offset="0%" stopColor={chartColor} />
-                <stop offset="100%" stopColor={theme.palette.background.paper} />
+              <linearGradient
+                id={gradientId}
+                gradientTransform="rotate(90)"
+              >
+                <stop
+                  offset="0%"
+                  stopColor={chartColor}
+                />
+                <stop
+                  offset="100%"
+                  stopColor={theme.palette.background.paper}
+                />
               </linearGradient>
             </defs>
           </LineChart>
@@ -176,8 +197,15 @@ function Component() {
   );
 
   return (
-    <Grid container spacing={{ xs: 2, sm: 3 }}>
-      <Grid xs={12} lg={4} md={6}>
+    <Grid
+      container
+      spacing={{ xs: 2, sm: 3 }}
+    >
+      <Grid
+        xs={12}
+        lg={4}
+        md={6}
+      >
         {renderBox(
           t('Campaigns'),
           <CampaignOutlined />,
@@ -192,7 +220,11 @@ function Component() {
         )}
       </Grid>
 
-      <Grid xs={12} lg={4} md={6}>
+      <Grid
+        xs={12}
+        lg={4}
+        md={6}
+      >
         {renderBox(
           t('Total Customers'),
           <AssignmentIndTwoToneIcon />,
@@ -204,11 +236,14 @@ function Component() {
           totalSales,
           'successGradient1',
           theme.palette.success.main
-
         )}
       </Grid>
 
-      <Grid xs={12} lg={4} md={6}>
+      <Grid
+        xs={12}
+        lg={4}
+        md={6}
+      >
         {renderBox(
           t('Sweeptakes Participants'),
           <RedeemOutlined />,

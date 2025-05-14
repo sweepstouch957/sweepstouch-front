@@ -10,6 +10,7 @@ import {
   Box,
   Card,
   Checkbox,
+  CircularProgress,
   FormControl,
   IconButton,
   InputAdornment,
@@ -87,10 +88,6 @@ const Results: FC<ResultsProps> = ({
     onSearchChange(e.target.value);
   };
 
-  const handleTypeChange = (e: ChangeEvent<{ value: unknown }>) => {
-    onTypeChange(e.target.value as string);
-  };
-
   const selectedAll = selectedItems.length === stores.length;
   const selectedSome = selectedItems.length > 0 && selectedItems.length < stores.length;
   const hasSelection = selectedItems.length > 0;
@@ -123,7 +120,7 @@ const Results: FC<ResultsProps> = ({
           <Select
             value={type}
             onChange={(e) => {
-              console.log(e);
+              onTypeChange(e.target.value as string);
             }}
             displayEmpty
           >
@@ -136,12 +133,7 @@ const Results: FC<ResultsProps> = ({
       </Box>
 
       {loading ? (
-        <Typography
-          align="center"
-          py={5}
-        >
-          {t('Loading stores...')}
-        </Typography>
+        <CircularProgress sx={{ width: '50px', height: '50px' }} />
       ) : error ? (
         <Typography
           align="center"
@@ -177,6 +169,7 @@ const Results: FC<ResultsProps> = ({
                     <TableCell>{t('Store name')}</TableCell>
                     <TableCell>{t('Address')}</TableCell>
                     <TableCell>{t('Zip code')}</TableCell>
+                    <TableCell>{t('Plan')}</TableCell>
                     <TableCell align="center">{t('Status')}</TableCell>
                     <TableCell align="center">{t('Actions')}</TableCell>
                   </TableRow>
@@ -204,6 +197,9 @@ const Results: FC<ResultsProps> = ({
                         </TableCell>
                         <TableCell>{store.address}</TableCell>
                         <TableCell>{store.zipCode}</TableCell>
+                        <TableCell sx={{ textTransform: 'uppercase' }}>
+                          {store.type || 'FREE'}
+                        </TableCell>
                         <TableCell align="center">
                           <Typography color={store.active ? 'success.main' : 'error.main'}>
                             {store.active ? t('Active') : t('Inactive')}
@@ -215,7 +211,7 @@ const Results: FC<ResultsProps> = ({
                             arrow
                           >
                             <Link
-                              href={`/blueprints/generic-admin-dashboard/management/stores/edit/${store.id}`}
+                              href={`/admin/management/stores/edit/${store.id}`}
                               passHref
                             >
                               <IconButton color="primary">

@@ -4,16 +4,10 @@
 import PageHeading from '@/components/base/page-heading';
 import { AvatarState } from '@/components/base/styles/avatar';
 import { useCustomization } from '@/hooks/use-customization';
-import CampaingService from '@/services/campaing.service';
+import { campaignClient } from '@/services/campaing.service';
 import DeviceTabletIcon from '@heroicons/react/24/outline/DeviceTabletIcon';
-import ArrowDownwardTwoToneIcon from '@mui/icons-material/ArrowDownwardTwoTone';
-import ArrowUpwardTwoToneIcon from '@mui/icons-material/ArrowUpwardTwoTone';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
-import PieChartTwoToneIcon from '@mui/icons-material/PieChartTwoTone';
-import ReceiptTwoToneIcon from '@mui/icons-material/ReceiptTwoTone';
-import SnowmobileTwoToneIcon from '@mui/icons-material/SnowmobileTwoTone';
-import SupportTwoToneIcon from '@mui/icons-material/SupportTwoTone';
-import YardTwoToneIcon from '@mui/icons-material/YardTwoTone';
+
 import {
   alpha,
   Avatar,
@@ -61,7 +55,7 @@ export default function CampaignStatsPage() {
 
   const fetchData = async () => {
     try {
-      const campaign = await CampaingService.getCampaingById(id as string);
+      const campaign = await campaignClient.getCampaignById(id as string);
       if (!campaign) return;
       setData(campaign);
     } catch (err) {

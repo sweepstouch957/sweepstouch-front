@@ -193,6 +193,8 @@ function SweepstakesBalance() {
     });
   }
 
+  console.log({ grouped });
+
   const pieData = grouped;
 
   const getArcLabel = (params: DefaultizedPieValueType) => {
@@ -389,11 +391,9 @@ function SweepstakesBalance() {
                               maxWidth: '40ch',
                             }}
                             primaryTypographyProps={{ variant: 'h4', noWrap: true }}
-                            secondary={`${item.totalParticipations} participaciones ,  ${(
-                                (item.totalParticipations /
-                                  data.reduce((acc, m) => acc + m.totalParticipations, 0)) *
-                                100
-                              ).toFixed(1)}
+                            secondary={`${item.totalParticipations} participaciones ,  ${
+                              (item.totalParticipations / totalRegistrations) * 100
+                            }
                               %`}
                             secondaryTypographyProps={{ variant: 'h6', noWrap: true }}
                           />
@@ -402,9 +402,7 @@ function SweepstakesBalance() {
                               align="right"
                               variant="h4"
                               noWrap
-                            >
-
-                            </Typography>
+                            ></Typography>
                           </Box>
                         </ListItem>
                         {index !== visibleData.length - 1 && <Divider />}
