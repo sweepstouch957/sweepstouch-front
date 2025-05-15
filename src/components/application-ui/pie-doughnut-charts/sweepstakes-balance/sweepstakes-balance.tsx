@@ -34,8 +34,6 @@ import Image from 'next/image';
 import { Fragment, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-
-
 const ListItemAvatarWrapper = styled(ListItemAvatar)(({ theme }) => ({
   minWidth: 0,
   display: 'flex',
@@ -164,19 +162,20 @@ function SweepstakesBalance() {
     theme.palette.secondary[100],
   ];
 
-  const totalRegistrations = data.reduce((acc, item) => acc + item.totalRegistrations, 0);
+  const totalPaticipations = data.reduce((acc, item) => acc + item.totalRegistrations, 0);
+
 
   const grouped = [];
   let othersValue = 0;
 
   data.forEach((item, index) => {
-    const percentage = item.totalRegistrations / totalRegistrations;
+    const percentage = item.totalParticipations / totalPaticipations;
     if (percentage < 0.1) {
-      othersValue += item.totalRegistrations;
+      othersValue += item.totalParticipations;
     } else {
       grouped.push({
         label: item.storeName,
-        value: item.totalRegistrations,
+        value: item.totalParticipations,
         color: colors[index % colors.length],
       });
     }
@@ -189,8 +188,6 @@ function SweepstakesBalance() {
       color: '#ee1',
     });
   }
-
-  console.log({ grouped });
 
   const pieData = grouped;
 
@@ -378,7 +375,7 @@ function SweepstakesBalance() {
                               src={getImage(item.storeType)}
                               alt={item.storeName}
                               width={40}
-                              style={{padding:"4px"}}
+                              style={{ padding: '4px' }}
                               height={50}
                             />
                           </ListItemAvatarWrapper>
@@ -392,12 +389,21 @@ function SweepstakesBalance() {
                             secondary={`${item.totalParticipations} participaciones`}
                             secondaryTypographyProps={{ variant: 'h6', noWrap: true }}
                           />
-                          <Box>
+                          <Box ml={2} >
                             <Typography
                               align="right"
-                              variant="h4"
+                              variant="body1"
                               noWrap
-                            ></Typography>
+                            >
+                              Customers
+                            </Typography>
+                            <Typography
+                              align="right"
+                              variant="h5"
+                              noWrap
+                            >
+                              {item.storeCustomerCount}
+                            </Typography>
                           </Box>
                         </ListItem>
                         {index !== visibleData.length - 1 && <Divider />}

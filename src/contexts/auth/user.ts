@@ -1,3 +1,13 @@
+export type UserRole =
+  | 'admin'
+  | 'design'
+  | 'cashier'
+  | 'merchant'
+  | 'promotor'
+  | 'campaign_manager'
+  | 'promotor_manager'
+  | 'general_manager';
+
 export interface User {
   id: string;
   avatar: string | null;
@@ -5,6 +15,6 @@ export interface User {
   lastName: string;
   email?: string;
   phone?: string;
-  role: string;
+  role: UserRole;
   phoneNumber?: string;
 }

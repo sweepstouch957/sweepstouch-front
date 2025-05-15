@@ -1,3 +1,4 @@
+import { useAuth } from '@/hooks/use-auth';
 import PropTypes from 'prop-types';
 import type { FC, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -30,9 +31,8 @@ import { MenuItem } from 'src/router/menuItem';
 // Menu Item Hooks
 import useMenuItemsCollapsedShells from 'src/router/nav-items-generic-admin-dashboard/collapsed-shells';
 import useMenuItemsStackedShells from 'src/router/nav-items-generic-admin-dashboard/stacked-shells';
-import useMenuItemsVerticalShells from 'src/router/nav-items-generic-admin-dashboard/vertical-shells';
-
 // import { withGuestGuard } from 'src/hocs/with-guest-guard';
+import useMenuItemsVerticalShells from 'src/router/nav-items-generic-admin-dashboard/vertical-shells';
 
 interface LayoutProps {
   children?: ReactNode;
@@ -42,6 +42,7 @@ interface LayoutProps {
 export const Layout: FC<LayoutProps> = withAuthGuard((props) => {
   const customization = useCustomization();
   const { t } = useTranslation();
+  const { user } = useAuth();
 
   let ShellComponent: FC<LayoutProps>;
   let menuItems: MenuItem[] = [];
@@ -50,84 +51,84 @@ export const Layout: FC<LayoutProps> = withAuthGuard((props) => {
     // Vertical Shells
     case 'vertical-shells-dark':
       ShellComponent = VerticalShellsDark;
-      menuItems = useMenuItemsVerticalShells(t);
+      menuItems = useMenuItemsVerticalShells(t, user.role || '');
       break;
     case 'vertical-shells-dark-alternate':
       ShellComponent = VerticalShellsDarkAlternate;
-      menuItems = useMenuItemsVerticalShells(t);
+      menuItems = useMenuItemsVerticalShells(t, user.role || '');
       break;
     case 'vertical-shells-brand':
       ShellComponent = VerticalShellsBrand;
-      menuItems = useMenuItemsVerticalShells(t);
+      menuItems = useMenuItemsVerticalShells(t, user.role || '');
       break;
     case 'vertical-shells-white':
       ShellComponent = VerticalShellsWhite;
-      menuItems = useMenuItemsVerticalShells(t);
+      menuItems = useMenuItemsVerticalShells(t, user.role || '');
       break;
     case 'vertical-shells-white-off':
       ShellComponent = VerticalShellsWhiteOff;
-      menuItems = useMenuItemsVerticalShells(t);
+      menuItems = useMenuItemsVerticalShells(t, user.role || '');
       break;
     case 'vertical-shells-light':
       ShellComponent = VerticalShellsLight;
-      menuItems = useMenuItemsVerticalShells(t);
+      menuItems = useMenuItemsVerticalShells(t, user.role || '');
       break;
     case 'vertical-shells-accent-header':
       ShellComponent = VerticalShellsAccentHeader;
-      menuItems = useMenuItemsVerticalShells(t);
+      menuItems = useMenuItemsVerticalShells(t, user.role || '');
       break;
 
     // Collapsed Shells
     case 'collapsed-shells-double':
       ShellComponent = CollapsedShellsDouble;
-      menuItems = useMenuItemsCollapsedShells(t);
+      menuItems = useMenuItemsCollapsedShells(t, user.role || '');
       break;
     case 'collapsed-shells-double-accent':
       ShellComponent = CollapsedShellsDoubleAccent;
-      menuItems = useMenuItemsCollapsedShells(t);
+      menuItems = useMenuItemsCollapsedShells(t, user.role || '');
       break;
     case 'collapsed-shells-double-dark':
       ShellComponent = CollapsedShellsDoubleDark;
-      menuItems = useMenuItemsCollapsedShells(t);
+      menuItems = useMenuItemsCollapsedShells(t, user.role || '');
       break;
     case 'collapsed-shells-single':
       ShellComponent = CollapsedShellsSingle;
-      menuItems = useMenuItemsCollapsedShells(t);
+      menuItems = useMenuItemsCollapsedShells(t, user.role || '');
       break;
     case 'collapsed-shells-single-accent':
       ShellComponent = CollapsedShellsSingleAccent;
-      menuItems = useMenuItemsCollapsedShells(t);
+      menuItems = useMenuItemsCollapsedShells(t, user.role || '');
       break;
     case 'collapsed-shells-single-white':
       ShellComponent = CollapsedShellsSingleWhite;
-      menuItems = useMenuItemsCollapsedShells(t);
+      menuItems = useMenuItemsCollapsedShells(t, user.role || '');
       break;
     case 'collapsed-shells-single-white-off':
       ShellComponent = CollapsedShellsSingleWhiteOff;
-      menuItems = useMenuItemsCollapsedShells(t);
+      menuItems = useMenuItemsCollapsedShells(t, user.role || '');
       break;
 
     // Stacked Shells
     case 'stacked-shells-top-nav':
       ShellComponent = StackedShellsTopNav;
-      menuItems = useMenuItemsStackedShells(t);
+      menuItems = useMenuItemsStackedShells(t, user.role || '');
       break;
     case 'stacked-shells-top-nav-accent':
       ShellComponent = StackedShellsTopNavAccent;
-      menuItems = useMenuItemsStackedShells(t);
+      menuItems = useMenuItemsStackedShells(t, user.role || '');
       break;
     case 'stacked-shells-top-nav-tabs':
       ShellComponent = StackedShellsTopNavTabs;
-      menuItems = useMenuItemsStackedShells(t);
+      menuItems = useMenuItemsStackedShells(t, user.role || '');
       break;
     case 'stacked-shells-top-nav-wide':
       ShellComponent = StackedShellsTopNavWide;
-      menuItems = useMenuItemsStackedShells(t);
+      menuItems = useMenuItemsStackedShells(t, user.role || '');
       break;
 
     default:
       ShellComponent = VerticalShellsDark;
-      menuItems = useMenuItemsVerticalShells(t);
+      menuItems = useMenuItemsVerticalShells(t, user.role || '');
   }
 
   return (

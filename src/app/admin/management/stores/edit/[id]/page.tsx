@@ -73,7 +73,6 @@ export default function EditStorePage() {
   }, [page, id, rowsPerPage]);
 
   const onSubmit = async (data: Store) => {
-    console.log('Tienda actualizada:', data);
     // Aquí podés llamar a tu servicio de actualización cuando lo tengas listo
   };
 

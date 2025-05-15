@@ -121,6 +121,7 @@ export const routes = {
       reports: '/admin/dashboards/reports',
       expenses: '/admin/dashboards/expenses',
       sweepstakes: '/admin/dashboards/sweepstakes',
+      prouctivity: '/admin/dashboards/productivity',
       statistics: '/admin/dashboards/statistics',
       automation: '/admin/dashboards/automation',
       analytics: '/admin/dashboards/analytics',
@@ -158,10 +159,8 @@ export const routes = {
       commerce: {
         'shop-front': '/admin/management/shop-front',
         'shop-listing': '/admin/management/shop-listing',
-        'shop-product-create':
-          '/admin/management/shop-product-create',
-        'shop-product-details':
-          '/admin/management/shop-product-details',
+        'shop-product-create': '/admin/management/shop-product-create',
+        'shop-product-details': '/admin/management/shop-product-details',
         'invoices-listing': '/admin/management/invoices-listing',
         'invoices-details': '/admin/management/invoices-details',
       },

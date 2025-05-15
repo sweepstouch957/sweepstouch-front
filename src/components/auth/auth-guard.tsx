@@ -27,7 +27,6 @@ export function AuthGuard({ children }: AuthGuardProps): React.JSX.Element | nul
 
     if (!user) {
       console.debug('User is not logged in, redirecting to sign in');
-
       switch (config.auth.strategy) {
         case AuthStrategy.CUSTOM: {
           router.push(routes.auth['custom.login']);
@@ -44,7 +43,8 @@ export function AuthGuard({ children }: AuthGuardProps): React.JSX.Element | nul
   };
 
   React.useEffect(() => {
-    checkPermissions().catch(() => {});
+    checkPermissions().catch(() => {
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Expected
   }, [user, error, isLoading]);
 

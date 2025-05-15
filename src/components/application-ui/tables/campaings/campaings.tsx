@@ -30,14 +30,13 @@ function CampaignsGrid() {
     staleTime: 1000 * 60, // 1 minuto cache
     placeholderData: (previousData) => previousData,
   });
-  
+
 
 
   const [openModal, setOpenModal] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '' });
 
   const handleAddCampaign = async (data: any) => {
-    console.log('Campaña enviada:', data);
     setOpenModal(false);
     setSnackbar({ open: true, message: 'Campaña creada exitosamente' });
     refetch(); // recarga campañas después de crear
