@@ -105,7 +105,7 @@ const getUserRoleLabel = (userRole: string): JSX.Element => {
       text: 'Promotor',
       color: 'warning',
     },
-    promotorOwner: {
+    "promotor_manager": {
       text: 'Promotor Owner',
       color: 'warning',
     },

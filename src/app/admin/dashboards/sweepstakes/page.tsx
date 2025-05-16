@@ -1,6 +1,7 @@
 'use client';
 
 import SweepstakesBalance from '@/components/application-ui/pie-doughnut-charts/sweepstakes-balance/sweepstakes-balance';
+import Promotors from '@/components/application-ui/tables/promotors/leaderboard';
 import GiftIcon from '@heroicons/react/24/outline/GiftIcon';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import { Box, Button, Container, Unstable_Grid2 as Grid, useTheme } from '@mui/material';
@@ -8,7 +9,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import SweepstakesResume from 'src/components/application-ui/composed-visualization-blocks/sweepstakes-resume/sweeptakes-resume';
 
-import WeeklySales from 'src/components/application-ui/tables/weekly-sales/weekly-sales';
+import WeeklySales from 'src/components/application-ui/tables/sweepstakes-participant/participants-sweepstakes';
 import PageHeading from 'src/components/base/page-heading';
 import { AvatarState } from 'src/components/base/styles/avatar';
 import { useCustomization } from 'src/hooks/use-customization';
@@ -102,6 +103,13 @@ function Page(): React.JSX.Element {
           >
             <Grid xs={12}>
               <SweepstakesBalance />
+            </Grid>
+
+            <Grid xs={12}>
+              <SweepstakesResume />
+            </Grid>
+            <Grid xs={12}>
+              <WeeklySales />
             </Grid>
           </Grid>
         </Box>

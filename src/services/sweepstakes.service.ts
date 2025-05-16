@@ -24,6 +24,27 @@ interface FilterPromotors {
   storeIds?: string[];
 }
 
+interface Pagination {
+  page:number;
+  limit:number;
+}
+export interface StoreSweepstake {
+  storeId: string;
+  storeName: string;
+  storeType?: 'elite' | 'basic' | 'free';
+  storeImage: string;
+  storeCustomerCount: number;
+  totalParticipations: number;
+}
+
+
+interface StoreSweepstakeResponse {
+  total: number;
+  page: number;
+  limit: number;
+  data: StoreSweepstake[];
+}
+
 export class SweepstakesClient {
   async registerParticipant(data: RegisterParticipantPayload): Promise<AxiosResponse> {
     return api.post('/sweepstakes/participants/register', data);
@@ -60,10 +81,22 @@ export class SweepstakesClient {
     return res.data;
   }
 
+  async getStoresBySweepstkesFiltered(id: string, filters?: Pagination): Promise<StoreSweepstakeResponse> {
+    const res = await api.get(`/sweepstakes/${id}/stores`, {
+      params: filters,
+    });
+    return res.data;
+  }
+
   async getSweepstakesPromotors(filters: FilterPromotors): Promise<any> {
     const res = await api.get('/sweepstakes/participants/audit', {
       params: filters,
     });
+    return res.data;
+  }
+
+  async getMonthlyParticipants(): Promise<any> {
+    const res = await api.get('/sweepstakes/participants/reports');
     return res.data;
   }
 }

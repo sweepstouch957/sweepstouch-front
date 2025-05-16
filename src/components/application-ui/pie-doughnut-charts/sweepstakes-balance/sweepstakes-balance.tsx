@@ -141,7 +141,7 @@ function SweepstakesBalance() {
   const [method, setMethod] = useState<'qr' | 'web' | 'all'>('all');
 
   const { data = [], isLoading } = useQuery({
-    queryKey: ['sweepstake-metrics', method],
+    queryKey: ['sweepstake-metrics'],
     queryFn: () =>
       sweepstakesClient.getRegistrationsByStore({
         startDate: '2025-05-01',
