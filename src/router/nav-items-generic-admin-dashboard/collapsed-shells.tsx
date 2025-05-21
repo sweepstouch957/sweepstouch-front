@@ -108,6 +108,75 @@ const useMenuItemsCollapsedShells = (t: (token: string) => string, role: UserRol
       },
     ];
   }
+
+  if (role === 'general_manager') {
+    return [
+      {
+        title: t('General'),
+        subMenu: [
+          {
+            title: t('Dashboards'),
+            icon: <DashboardRoundedIcon />,
+            subMenu: [
+              {
+                title: t('Reports'),
+                route: routes.admin.dashboards.reports,
+              },
+            ],
+          },
+          {
+            title: t('Applications'),
+            icon: <AppsRoundedIcon />,
+            subMenu: [
+              {
+                title: t('Calendar'),
+                route: routes.admin.applications.calendar,
+              },
+              {
+                title: t('File manager'),
+                route: routes.admin.applications['file-manager'],
+              },
+
+              {
+                title: t('Messenger'),
+                route: routes.admin.applications.messenger,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        title: t('Management'),
+        subMenu: [
+          {
+            title: t('Campaigns'),
+            icon: <Campaign />,
+            route: routes.admin.management.campaings.listing,
+            subMenu: [
+              {
+                title: t('Listing'),
+                route: routes.admin.management.campaings.listing,
+              },
+            ],
+          },
+          {
+            title: t('Stores'),
+            icon: <Store />,
+            subMenu: [
+              {
+                title: t('Listing'),
+                route: routes.admin.management.stores.listing,
+              },
+              {
+                title: t('Create Store'),
+                route: routes.admin.management.stores.create,
+              },
+            ],
+          },
+        ],
+      },
+    ];
+  }
   if (role === 'promotor_manager') {
     return [
       {
