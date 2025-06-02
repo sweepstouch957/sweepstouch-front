@@ -6,7 +6,7 @@ interface RegisterParticipantPayload {
   customerPhone: string;
   storeId: string;
   createdBy?: string;
-  method?: 'qr' | 'tablet' | 'pinpad' | 'web';
+  method?: 'qr' | 'tablet' | 'pinpad' | 'web' | 'referral';
 }
 
 interface FilterParams {
@@ -14,7 +14,7 @@ interface FilterParams {
   startDate: string;
   endDate: string;
   storeId?: string;
-  method?: 'qr' | 'tablet' | 'pinpad' | 'web';
+  method?: 'qr' | 'tablet' | 'pinpad' | 'web' | 'referral';
   sweepstakeId?: string;
 }
 
@@ -25,8 +25,8 @@ interface FilterPromotors {
 }
 
 interface Pagination {
-  page:number;
-  limit:number;
+  page: number;
+  limit: number;
 }
 export interface StoreSweepstake {
   storeId: string;
@@ -36,7 +36,6 @@ export interface StoreSweepstake {
   storeCustomerCount: number;
   totalParticipations: number;
 }
-
 
 interface StoreSweepstakeResponse {
   total: number;
@@ -81,7 +80,10 @@ export class SweepstakesClient {
     return res.data;
   }
 
-  async getStoresBySweepstkesFiltered(id: string, filters?: Pagination): Promise<StoreSweepstakeResponse> {
+  async getStoresBySweepstkesFiltered(
+    id: string,
+    filters?: Pagination
+  ): Promise<StoreSweepstakeResponse> {
     const res = await api.get(`/sweepstakes/${id}/stores`, {
       params: filters,
     });

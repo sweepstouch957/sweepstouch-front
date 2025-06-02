@@ -1,7 +1,6 @@
 'use client';
 
 import { AvatarState } from '@/components/base/styles/avatar';
-import { TabsAlternate } from '@/components/base/styles/tabs';
 import { sweepstakesClient } from '@/services/sweepstakes.service';
 import { QrCode, RedeemOutlined, Web } from '@mui/icons-material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -12,11 +11,15 @@ import {
   Button,
   Card,
   Divider,
+  FormControl,
   Unstable_Grid2 as Grid,
+  InputLabel,
   List,
   ListItem,
   ListItemAvatar,
   ListItemText,
+  MenuItem,
+  Select,
   Skeleton,
   Stack,
   styled,
@@ -24,12 +27,14 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import { DefaultizedPieValueType } from '@mui/x-charts';
 import { pieArcLabelClasses, PieChart } from '@mui/x-charts/PieChart';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import BasicIcon from '@public/web/basic.png';
 import PremiumIcon from '@public/web/elite.png';
 import FreeIcon from '@public/web/free.png';
 import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import Image from 'next/image';
 import { Fragment, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -82,6 +87,12 @@ export const tabData: TabInfo[] = [
     description: 'Registrations by web',
     icon: <Web />,
   },
+  {
+    value: 'referral',
+    title: 'Referidos',
+    description: 'Registrations by web',
+    icon: <Web />,
+  },
 ];
 
 function SkeletonCardItem() {
@@ -128,31 +139,37 @@ const getImage = (type: string) => {
     basic: BasicIcon.src,
     '': FreeIcon.src,
   };
-
-  const imageSelected = images[type];
-
-  return imageSelected || FreeIcon.src;
+  return images[type] || FreeIcon.src;
 };
 
 function SweepstakesBalance() {
   const { t } = useTranslation();
   const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
-  const [method, setMethod] = useState<'qr' | 'web' | 'all'>('all');
+  const [method, setMethod] = useState<'qr' | 'web' | 'all' | 'referral'>('all');
+  const [startDate, setStartDate] = useState<Date | null>(new Date('2025-05-01'));
+  const [endDate, setEndDate] = useState<Date | null>(new Date());
 
   const { data = [], isLoading } = useQuery({
-    queryKey: ['sweepstake-metrics',method],
+    queryKey: [
+      'sweepstake-metrics',
+      method,
+      startDate ? format(startDate, 'yyyy-MM-dd') : '',
+      endDate ? format(endDate, 'yyyy-MM-dd') : '',
+    ],
     queryFn: () =>
       sweepstakesClient.getRegistrationsByStore({
-        startDate: '2025-05-01',
-        endDate: '2025-05-31',
+        startDate: startDate ? format(startDate, 'yyyy-MM-dd') : undefined,
+        endDate: endDate ? format(endDate, 'yyyy-MM-dd') : undefined,
         method: method === 'all' ? undefined : method,
       }),
-    staleTime: 1000 * 60 * 5, // ❄️ 5 minutos "fresco"
+
+    staleTime: 1000 * 60 * 5,
   });
 
   const visibleData = expanded ? data : data.slice(0, 3);
   const total = data.reduce((acc, item) => acc + item.totalRegistrations, 0);
+  const totalPaticipations = data.reduce((acc, item) => acc + item.totalParticipations, 0);
 
   const colors = [
     theme.palette.primary.main,
@@ -161,9 +178,6 @@ function SweepstakesBalance() {
     theme.palette.warning.main,
     theme.palette.secondary[100],
   ];
-
-  const totalPaticipations = data.reduce((acc, item) => acc + item.totalRegistrations, 0);
-
 
   const grouped = [];
   let othersValue = 0;
@@ -190,11 +204,7 @@ function SweepstakesBalance() {
   }
 
   const pieData = grouped;
-
-  const getArcLabel = (params: DefaultizedPieValueType) => {
-    const percent = params.value / total;
-    return `${(percent * 100).toFixed(0)}%`;
-  };
+  const getArcLabel = (params: any) => `${((params.value / total) * 100).toFixed(0)}%`;
 
   return (
     <Card>
@@ -223,7 +233,13 @@ function SweepstakesBalance() {
                 fontWeight={400}
                 color="text.secondary"
               >
-                Total este mes
+                {startDate && endDate
+                  ? `Del ${format(startDate, "d 'de' MMMM", { locale: es })} al ${format(
+                      endDate,
+                      "d 'de' MMMM",
+                      { locale: es }
+                    )}`
+                  : 'Selecciona un rango'}
               </Typography>
             </Box>
             <Box
@@ -240,11 +256,7 @@ function SweepstakesBalance() {
               </AvatarState>
               <Box>
                 <Typography variant="h4">
-                  {isLoading ? (
-                    <Skeleton width={100} />
-                  ) : (
-                    `${data.reduce((acc, m) => acc + m.totalParticipations, 0)} participaciones`
-                  )}
+                  {isLoading ? <Skeleton width={100} /> : `${totalPaticipations} participaciones`}
                 </Typography>
                 <Typography
                   variant="subtitle2"
@@ -266,47 +278,62 @@ function SweepstakesBalance() {
               theme.palette.mode === 'dark' ? alpha(theme.palette.neutral[25], 0.02) : 'neutral.25',
           }}
         >
+          {/* 📅 DatePickers y Tabs */}
           <Stack
-            direction={'row'}
-            justifyContent={'flex-end'}
-            pt={1}
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={2}
+            px={2}
+            pt={2}
+            justifyContent="space-between"
           >
-            <TabsAlternate
-              value={method}
-              onChange={(_, newValue) => {
-                setMethod(newValue as 'qr' | 'web');
+            <DatePicker
+              label="Fecha inicio"
+              value={startDate}
+              onChange={(newValue) => setStartDate(newValue)}
+              slotProps={{
+                textField: {
+                  size: 'small',
+                  fullWidth: true,
+                  variant: 'outlined',
+                },
               }}
-              textColor="secondary"
-              indicatorColor="secondary"
+            />
+            <DatePicker
+              label="Fecha fin"
+              value={endDate}
+              onChange={(newValue) => setEndDate(newValue)}
+              slotProps={{
+                textField: {
+                  size: 'small',
+                  fullWidth: true,
+                  variant: 'outlined',
+                },
+              }}
+            />
+
+            <FormControl
+              size="small"
+              sx={{
+                minWidth: 180,
+              }}
             >
-              {tabData.map((tab) => (
-                <Tab
-                  key={tab.value}
-                  value={tab.value}
-                  label={
-                    <Stack
-                      textAlign="left"
-                      width="100%"
-                      direction="row"
-                      spacing={0.5}
-                      mt={1}
-                    >
-                      <Box>{tab.icon}</Box>
-                      <Box overflow="hidden">
-                        <Typography
-                          variant="h5"
-                          noWrap
-                        >
-                          {tab.title}
-                        </Typography>
-                      </Box>
-                    </Stack>
-                  }
-                />
-              ))}
-            </TabsAlternate>
+              <InputLabel id="method-select-label">Método</InputLabel>
+              <Select
+                labelId="method-select-label"
+                id="method-select"
+                value={method}
+                label="Método"
+                onChange={(e) => setMethod(e.target.value as 'qr' | 'web' | 'all' | 'referral')}
+              >
+                <MenuItem value="all">All</MenuItem>
+                <MenuItem value="qr">QR</MenuItem>
+                <MenuItem value="web">Web</MenuItem>
+                <MenuItem value="referral">Referidos</MenuItem>
+              </Select>
+            </FormControl>
           </Stack>
 
+          {/* 🧁 Pie Chart y Listado */}
           <Stack
             direction={{ xs: 'column', md: 'row' }}
             flex={1}
@@ -381,15 +408,12 @@ function SweepstakesBalance() {
                           </ListItemAvatarWrapper>
                           <ListItemText
                             primary={item.storeName}
-                            sx={{
-                              textWrap: 'wrap',
-                              maxWidth: '40ch',
-                            }}
+                            sx={{ textWrap: 'wrap', maxWidth: '40ch' }}
                             primaryTypographyProps={{ variant: 'h5' }}
                             secondary={`${item.totalParticipations} participaciones`}
                             secondaryTypographyProps={{ variant: 'h6', noWrap: true }}
                           />
-                          <Box ml={2} >
+                          <Box ml={2}>
                             <Typography
                               align="right"
                               variant="body1"
