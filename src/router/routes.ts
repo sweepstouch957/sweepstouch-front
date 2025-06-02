@@ -150,7 +150,7 @@ export const routes = {
       },
       campaings: {
         listing: '/admin/management/campaings',
-        analytics: '/admin/management/campaings/analytics',
+        create: '/admin/management/campaings/create',
       },
       sweepstakes: {
         listing: '/admin/management/sweepstakes',

@@ -77,6 +77,10 @@ const useMenuItemsCollapsedShells = (t: (token: string) => string, role: UserRol
                 title: t('Listing'),
                 route: routes.admin.management.campaings.listing,
               },
+              {
+                title: t('Create Campaign'),
+                route: routes.admin.management.campaings.create,
+              },
             ],
           },
           {
@@ -156,6 +160,10 @@ const useMenuItemsCollapsedShells = (t: (token: string) => string, role: UserRol
               {
                 title: t('Listing'),
                 route: routes.admin.management.campaings.listing,
+              },
+              {
+                title: t('Create Campaign'),
+                route: routes.admin.management.campaings.create,
               },
             ],
           },
@@ -296,8 +304,13 @@ const useMenuItemsCollapsedShells = (t: (token: string) => string, role: UserRol
                 title: t('Listing'),
                 route: routes.admin.management.campaings.listing,
               },
+              {
+                title: t('Create Campaign'),
+                route: routes.admin.management.campaings.create,
+              },
             ],
           },
+
         ],
       },
     ];

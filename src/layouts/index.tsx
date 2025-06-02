@@ -1,4 +1,5 @@
 import { useAuth } from '@/hooks/use-auth';
+import useMenuItemsCollapsedShells from '@/hooks/use-routes';
 import PropTypes from 'prop-types';
 import type { FC, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -28,11 +29,6 @@ import { VerticalShellsWhite } from 'src/components/application-ui/vertical-shel
 import { withAuthGuard } from 'src/hocs/with-auth-guard';
 import { useCustomization } from 'src/hooks/use-customization';
 import { MenuItem } from 'src/router/menuItem';
-// Menu Item Hooks
-import useMenuItemsCollapsedShells from 'src/router/nav-items-generic-admin-dashboard/collapsed-shells';
-import useMenuItemsStackedShells from 'src/router/nav-items-generic-admin-dashboard/stacked-shells';
-// import { withGuestGuard } from 'src/hocs/with-guest-guard';
-import useMenuItemsVerticalShells from 'src/router/nav-items-generic-admin-dashboard/vertical-shells';
 
 interface LayoutProps {
   children?: ReactNode;
@@ -51,31 +47,31 @@ export const Layout: FC<LayoutProps> = withAuthGuard((props) => {
     // Vertical Shells
     case 'vertical-shells-dark':
       ShellComponent = VerticalShellsDark;
-      menuItems = useMenuItemsVerticalShells(t, user.role || '');
+      menuItems = useMenuItemsCollapsedShells(t, user.role || '');
       break;
     case 'vertical-shells-dark-alternate':
       ShellComponent = VerticalShellsDarkAlternate;
-      menuItems = useMenuItemsVerticalShells(t, user.role || '');
+      menuItems = useMenuItemsCollapsedShells(t, user.role || '');
       break;
     case 'vertical-shells-brand':
       ShellComponent = VerticalShellsBrand;
-      menuItems = useMenuItemsVerticalShells(t, user.role || '');
+      menuItems = useMenuItemsCollapsedShells(t, user.role || '');
       break;
     case 'vertical-shells-white':
       ShellComponent = VerticalShellsWhite;
-      menuItems = useMenuItemsVerticalShells(t, user.role || '');
+      menuItems = useMenuItemsCollapsedShells(t, user.role || '');
       break;
     case 'vertical-shells-white-off':
       ShellComponent = VerticalShellsWhiteOff;
-      menuItems = useMenuItemsVerticalShells(t, user.role || '');
+      menuItems = useMenuItemsCollapsedShells(t, user.role || '');
       break;
     case 'vertical-shells-light':
       ShellComponent = VerticalShellsLight;
-      menuItems = useMenuItemsVerticalShells(t, user.role || '');
+      menuItems = useMenuItemsCollapsedShells(t, user.role || '');
       break;
     case 'vertical-shells-accent-header':
       ShellComponent = VerticalShellsAccentHeader;
-      menuItems = useMenuItemsVerticalShells(t, user.role || '');
+      menuItems = useMenuItemsCollapsedShells(t, user.role || '');
       break;
 
     // Collapsed Shells
@@ -111,24 +107,24 @@ export const Layout: FC<LayoutProps> = withAuthGuard((props) => {
     // Stacked Shells
     case 'stacked-shells-top-nav':
       ShellComponent = StackedShellsTopNav;
-      menuItems = useMenuItemsStackedShells(t, user.role || '');
+      menuItems = useMenuItemsCollapsedShells(t, user.role || '');
       break;
     case 'stacked-shells-top-nav-accent':
       ShellComponent = StackedShellsTopNavAccent;
-      menuItems = useMenuItemsStackedShells(t, user.role || '');
+      menuItems = useMenuItemsCollapsedShells(t, user.role || '');
       break;
     case 'stacked-shells-top-nav-tabs':
       ShellComponent = StackedShellsTopNavTabs;
-      menuItems = useMenuItemsStackedShells(t, user.role || '');
+      menuItems = useMenuItemsCollapsedShells(t, user.role || '');
       break;
     case 'stacked-shells-top-nav-wide':
       ShellComponent = StackedShellsTopNavWide;
-      menuItems = useMenuItemsStackedShells(t, user.role || '');
+      menuItems = useMenuItemsCollapsedShells(t, user.role || '');
       break;
 
     default:
       ShellComponent = VerticalShellsDark;
-      menuItems = useMenuItemsVerticalShells(t, user.role || '');
+      menuItems = useMenuItemsCollapsedShells(t, user.role || '');
   }
 
   return (

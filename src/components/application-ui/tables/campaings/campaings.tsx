@@ -11,7 +11,6 @@ import {
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import CampaignModal from '../../modal/campaings';
 import Results from './results';
 
 function CampaignsGrid() {
@@ -24,23 +23,13 @@ function CampaignsGrid() {
     limit: 10,
   });
 
-  const { data, isPending, error, refetch , isLoading ,isFetching } = useQuery({
+  const { data, isPending, error, refetch, isFetching } = useQuery({
     queryKey: ['campaigns', filters],
     queryFn: () => campaignClient.getFilteredCampaigns(filters),
     staleTime: 1000 * 60, // 1 minuto cache
     placeholderData: (previousData) => previousData,
   });
 
-
-
-  const [openModal, setOpenModal] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '' });
-
-  const handleAddCampaign = async (data: any) => {
-    setOpenModal(false);
-    setSnackbar({ open: true, message: 'Campaña creada exitosamente' });
-    refetch(); // recarga campañas después de crear
-  };
   if (isPending) {
     return (
       <Box
@@ -87,19 +76,6 @@ function CampaignsGrid() {
           />
         </Grid>
       </Grid>
-
-      <CampaignModal
-        onSubmit={handleAddCampaign}
-        open={openModal}
-        onClose={() => setOpenModal(false)}
-      />
-
-      <Snackbar
-        open={snackbar.open}
-        onClose={() => setSnackbar({ open: false, message: '' })}
-        autoHideDuration={4000}
-        message={snackbar.message}
-      />
     </>
   );
 }
