@@ -430,7 +430,7 @@ export default function SweepstakesBalance({
                               primary={item.storeName}
                               sx={{ textWrap: 'wrap', maxWidth: '40ch' }}
                               primaryTypographyProps={{ variant: 'h6', fontWeight: 600 }}
-                              secondary={`${item.totalParticipations} participaciones`}
+                              secondary={`${item.totalRegistrations} números registrados`}
                               secondaryTypographyProps={{ variant: 'body2', noWrap: true }}
                             />
                             <Box ml={2}>
