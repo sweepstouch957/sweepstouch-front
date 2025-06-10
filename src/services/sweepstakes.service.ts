@@ -36,7 +36,16 @@ export interface StoreSweepstake {
   storeCustomerCount: number;
   totalParticipations: number;
 }
-
+export interface Sweepstakes {
+  id: string;
+  name: string;
+  participants: number;
+  stores: number;
+  startDate: string; // ISO date
+  endDate: string; // ISO date
+  status: string;
+  image: string;
+}
 interface StoreSweepstakeResponse {
   total: number;
   page: number;
@@ -101,6 +110,15 @@ export class SweepstakesClient {
     const res = await api.get('/sweepstakes/participants/reports');
     return res.data;
   }
+
+  async getSweepstakes(filters?: { status?: string; name?: string }): Promise<Sweepstakes[]> {
+    const res = await api.get('/sweepstakes', { params: filters });
+    return res.data;
+  }
+  async getSweepstakeById(id: string): Promise<Sweepstakes> {
+    const res = await api.get(`/sweepstakes/${id}`);
+    return res.data;
+  }S
 }
 
 export const sweepstakesClient = new SweepstakesClient();

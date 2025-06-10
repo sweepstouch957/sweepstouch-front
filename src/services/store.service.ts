@@ -17,6 +17,7 @@ export interface Store {
   ownerId: string;
   description: string;
   type: string;
+
 }
 
 // services/stores.service.ts

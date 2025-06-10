@@ -1,7 +1,8 @@
 'use client';
 
+import SweepstakesTable from '@/components/application-ui/tables/sweepstakes/table';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
-import { Box, Button, Container } from '@mui/material';
+import { Box, Button, Container, Typography } from '@mui/material';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import ProjectsListing from 'src/components/application-ui/tables/projects/projects';
@@ -59,7 +60,9 @@ function Page(): React.JSX.Element {
           sm: 3,
         }}
       >
-        <Container maxWidth={customization.stretch ? false : 'xl'}></Container>
+        <Container maxWidth={customization.stretch ? false : 'xl'}>
+          <SweepstakesTable />
+        </Container>
       </Box>
     </>
   );

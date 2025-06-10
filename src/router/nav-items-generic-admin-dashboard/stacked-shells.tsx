@@ -3,318 +3,242 @@ import { Campaign, Redeem, Store } from '@mui/icons-material';
 import AppsRoundedIcon from '@mui/icons-material/AppsRounded';
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
+import React from 'react';
 import { MenuItem } from 'src/router/menuItem';
 import { routes } from 'src/router/routes';
 
+// ---- CONFIGURACIÓN ----
+
+type MenuConfig = {
+  [key in UserRole]?: any[];
+};
+
+const commonMenus = {
+  general: [
+    {
+      title: 'Dashboards',
+      icon: <DashboardRoundedIcon />,
+      subMenu: [
+        {
+          title: 'Reports',
+          route: (r: typeof routes, role: UserRole) => r.admin.dashboards.reports,
+        },
+        {
+          title: 'Sweepstakes',
+          route: (r: typeof routes, role: UserRole) => r.admin.dashboards.sweepstakes,
+        },
+        {
+          title: 'Productivity',
+          route: (r: typeof routes, role: UserRole) => r.admin.dashboards.prouctivity,
+        },
+      ],
+    },
+    {
+      title: 'Applications',
+      icon: <AppsRoundedIcon />,
+      subMenu: [
+        {
+          title: 'Calendar',
+          route: (r: typeof routes, role: UserRole) => r.admin.applications.calendar,
+        },
+        {
+          title: 'File manager',
+          route: (r: typeof routes, role: UserRole) => r.admin.applications['file-manager'],
+        },
+        {
+          title: 'Messenger',
+          route: (r: typeof routes, role: UserRole) => r.admin.applications.messenger,
+        },
+      ],
+    },
+  ],
+};
+
+const menuConfig: MenuConfig = {
+  admin: [
+    {
+      section: 'General',
+      items: commonMenus.general,
+    },
+    {
+      section: 'Management',
+      items: [
+        {
+          title: 'Users',
+          icon: <PeopleRoundedIcon />,
+          subMenu: [
+            {
+              title: 'Listing',
+              route: (r: typeof routes, role: UserRole) => r.admin.management.users.listing,
+            },
+            {
+              title: 'User profile',
+              route: (r: typeof routes, role: UserRole) => r.admin.management.users.profile,
+            },
+          ],
+        },
+        {
+          title: 'Campaigns',
+          icon: <Campaign />,
+          route: (r: typeof routes, role: UserRole) => r.admin.management.campaings.listing,
+          subMenu: [
+            {
+              title: 'Listing',
+              route: (r: typeof routes, role: UserRole) => r.admin.management.campaings.listing,
+            },
+          ],
+        },
+        {
+          title: 'Sweepstakes',
+          icon: <Redeem />,
+          subMenu: [
+            {
+              title: 'Listing',
+              route: (r: typeof routes, role: UserRole) => r.admin.management.sweepstakes.listing,
+            },
+            {
+              title: 'Ver estadísticas',
+              route: (r: typeof routes, role: UserRole) =>
+                r.admin.management.sweepstakes.stats(':id'),
+            },
+          ],
+        },
+        {
+          title: 'Stores',
+          icon: <Store />,
+          subMenu: [
+            {
+              title: 'Listing',
+              route: (r: typeof routes, role: UserRole) => r.admin.management.stores.listing,
+            },
+            {
+              title: 'Create Store',
+              route: (r: typeof routes, role: UserRole) => r.admin.management.stores.create,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  general_manager: [
+    {
+      section: 'General',
+      items: [
+        {
+          title: 'Dashboards',
+          icon: <DashboardRoundedIcon />,
+          subMenu: [
+            {
+              title: 'Reports',
+              route: (r: typeof routes, role: UserRole) => r.admin.dashboards.reports,
+            },
+          ],
+        },
+        ...commonMenus.general.slice(1),
+      ],
+    },
+    {
+      section: 'Management',
+      items: [
+        {
+          title: 'Campaigns',
+          icon: <Campaign />,
+          route: (r: typeof routes, role: UserRole) => r.admin.management.campaings.listing,
+          subMenu: [
+            {
+              title: 'Listing',
+              route: (r: typeof routes, role: UserRole) => r.admin.management.campaings.listing,
+            },
+          ],
+        },
+        {
+          title: 'Stores',
+          icon: <Store />,
+          subMenu: [
+            {
+              title: 'Listing',
+              route: (r: typeof routes, role: UserRole) => r.admin.management.stores.listing,
+            },
+            {
+              title: 'Create Store',
+              route: (r: typeof routes, role: UserRole) => r.admin.management.stores.create,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  promotor_manager: [
+    {
+      section: 'General',
+      items: commonMenus.general,
+    },
+    {
+      section: 'Management',
+      items: [
+        {
+          title: 'Sweepstakes',
+          icon: <Redeem />,
+          route: (r: typeof routes, role: UserRole) => r.admin.management.sweepstakes.listing,
+          subMenu: [
+            {
+              title: 'Listing',
+              route: (r: typeof routes, role: UserRole) => r.admin.management.sweepstakes.listing,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  campaign_manager: [
+    {
+      section: 'General',
+      items: commonMenus.general,
+    },
+    {
+      section: 'Management',
+      items: [
+        {
+          title: 'Campaigns',
+          icon: <Campaign />,
+          route: (r: typeof routes, role: UserRole) => r.admin.management.campaings.listing,
+          subMenu: [
+            {
+              title: 'Listing',
+              route: (r: typeof routes, role: UserRole) => r.admin.management.campaings.listing,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
+// ---- FUNCIÓN GENÉRICA ----
+
+function translateAndMap(menu: any[], t: (token: string) => string, role: UserRole): MenuItem[] {
+  return menu.map((section) => ({
+    title: t(section.section),
+    subMenu: section.items.map((item: any) => ({
+      title: t(item.title),
+      icon: item.icon,
+      route: typeof item.route === 'function' ? item.route(routes, role) : undefined,
+      subMenu: item.subMenu
+        ? item.subMenu.map((sub: any) => ({
+            title: t(sub.title),
+            route: typeof sub.route === 'function' ? sub.route(routes, role) : undefined,
+          }))
+        : undefined,
+    })),
+  }));
+}
+
+// ---- HOOK PRINCIPAL ----
+
 const useMenuItemsCollapsedShells = (t: (token: string) => string, role: UserRole): MenuItem[] => {
-  if (role === 'admin') {
-    return [
-      {
-        title: t('General'),
-        subMenu: [
-          {
-            title: t('Dashboards'),
-            icon: <DashboardRoundedIcon />,
-            subMenu: [
-              {
-                title: t('Reports'),
-                route: routes.admin.dashboards.reports,
-              },
-              {
-                title: t('Sweepstakes'),
-                route: routes.admin.dashboards.sweepstakes,
-              },
-              {
-                title: t('Productivity'),
-                route: routes.admin.dashboards.prouctivity,
-              },
-            ],
-          },
-          {
-            title: t('Applications'),
-            icon: <AppsRoundedIcon />,
-            subMenu: [
-              {
-                title: t('Calendar'),
-                route: routes.admin.applications.calendar,
-              },
-              {
-                title: t('File manager'),
-                route: routes.admin.applications['file-manager'],
-              },
-
-              {
-                title: t('Messenger'),
-                route: routes.admin.applications.messenger,
-              },
-            ],
-          },
-        ],
-      },
-      {
-        title: t('Management'),
-        subMenu: [
-          {
-            title: t('Users'),
-            icon: <PeopleRoundedIcon />,
-            subMenu: [
-              {
-                title: t('Listing'),
-                route: routes.admin.management.users.listing,
-              },
-              {
-                title: t('User profile'),
-                route: routes.admin.management.users.profile,
-              },
-            ],
-          },
-          {
-            title: t('Campaigns'),
-            icon: <Campaign />,
-            route: routes.admin.management.campaings.listing,
-            subMenu: [
-              {
-                title: t('Listing'),
-                route: routes.admin.management.campaings.listing,
-              },
-              {
-                title: t('Create Campaign'),
-                route: routes.admin.management.campaings.create,
-              },
-            ],
-          },
-          {
-            title: t('Sweepstakes'),
-            icon: <Redeem />,
-            route: routes.admin.management.sweepstakes.listing,
-            subMenu: [
-              {
-                title: t('Listing'),
-                route: routes.admin.management.sweepstakes.listing,
-              },
-            ],
-          },
-          {
-            title: t('Stores'),
-            icon: <Store />,
-            subMenu: [
-              {
-                title: t('Listing'),
-                route: routes.admin.management.stores.listing,
-              },
-              {
-                title: t('Create Store'),
-                route: routes.admin.management.stores.create,
-              },
-            ],
-          },
-        ],
-      },
-    ];
-  }
-
-  if (role === 'general_manager') {
-    return [
-      {
-        title: t('General'),
-        subMenu: [
-          {
-            title: t('Dashboards'),
-            icon: <DashboardRoundedIcon />,
-            subMenu: [
-              {
-                title: t('Reports'),
-                route: routes.admin.dashboards.reports,
-              },
-            ],
-          },
-          {
-            title: t('Applications'),
-            icon: <AppsRoundedIcon />,
-            subMenu: [
-              {
-                title: t('Calendar'),
-                route: routes.admin.applications.calendar,
-              },
-              {
-                title: t('File manager'),
-                route: routes.admin.applications['file-manager'],
-              },
-
-              {
-                title: t('Messenger'),
-                route: routes.admin.applications.messenger,
-              },
-            ],
-          },
-        ],
-      },
-      {
-        title: t('Management'),
-        subMenu: [
-          {
-            title: t('Campaigns'),
-            icon: <Campaign />,
-            route: routes.admin.management.campaings.listing,
-            subMenu: [
-              {
-                title: t('Listing'),
-                route: routes.admin.management.campaings.listing,
-              },
-              {
-                title: t('Create Campaign'),
-                route: routes.admin.management.campaings.create,
-              },
-            ],
-          },
-          {
-            title: t('Stores'),
-            icon: <Store />,
-            subMenu: [
-              {
-                title: t('Listing'),
-                route: routes.admin.management.stores.listing,
-              },
-              {
-                title: t('Create Store'),
-                route: routes.admin.management.stores.create,
-              },
-            ],
-          },
-        ],
-      },
-    ];
-  }
-  if (role === 'promotor_manager') {
-    return [
-      {
-        title: t('General'),
-        subMenu: [
-          {
-            title: t('Dashboards'),
-            icon: <DashboardRoundedIcon />,
-            subMenu: [
-              {
-                title: t('Reports'),
-                route: routes.admin.dashboards.reports,
-              },
-              {
-                title: t('Sweepstakes'),
-                route: routes.admin.dashboards.sweepstakes,
-              },
-              {
-                title: t('Productivity'),
-                route: routes.admin.dashboards.prouctivity,
-              },
-            ],
-          },
-          {
-            title: t('Applications'),
-            icon: <AppsRoundedIcon />,
-            subMenu: [
-              {
-                title: t('Calendar'),
-                route: routes.admin.applications.calendar,
-              },
-              {
-                title: t('File manager'),
-                route: routes.admin.applications['file-manager'],
-              },
-
-              {
-                title: t('Messenger'),
-                route: routes.admin.applications.messenger,
-              },
-            ],
-          },
-        ],
-      },
-      {
-        title: t('Management'),
-        subMenu: [
-          {
-            title: t('Sweepstakes'),
-            icon: <Redeem />,
-            route: routes.admin.management.sweepstakes.listing,
-            subMenu: [
-              {
-                title: t('Listing'),
-                route: routes.admin.management.sweepstakes.listing,
-              },
-            ],
-          },
-        ],
-      },
-    ];
-  }
-
-  if (role === 'campaign_manager') {
-    return [
-      {
-        title: t('General'),
-        subMenu: [
-          {
-            title: t('Dashboards'),
-            icon: <DashboardRoundedIcon />,
-            subMenu: [
-              {
-                title: t('Reports'),
-                route: routes.admin.dashboards.reports,
-              },
-              {
-                title: t('Sweepstakes'),
-                route: routes.admin.dashboards.sweepstakes,
-              },
-              {
-                title: t('Productivity'),
-                route: routes.admin.dashboards.prouctivity,
-              },
-            ],
-          },
-          {
-            title: t('Applications'),
-            icon: <AppsRoundedIcon />,
-            subMenu: [
-              {
-                title: t('Calendar'),
-                route: routes.admin.applications.calendar,
-              },
-              {
-                title: t('File manager'),
-                route: routes.admin.applications['file-manager'],
-              },
-
-              {
-                title: t('Messenger'),
-                route: routes.admin.applications.messenger,
-              },
-            ],
-          },
-        ],
-      },
-      {
-        title: t('Management'),
-        subMenu: [
-          {
-            title: t('Campaigns'),
-            icon: <Campaign />,
-            route: routes.admin.management.campaings.listing,
-            subMenu: [
-              {
-                title: t('Listing'),
-                route: routes.admin.management.campaings.listing,
-              },
-              {
-                title: t('Create Campaign'),
-                route: routes.admin.management.campaings.create,
-              },
-            ],
-          },
-
-        ],
-      },
-    ];
-  }
+  const menu = menuConfig[role];
+  if (!menu) return [];
+  return translateAndMap(menu, t, role);
 };
 
 export default useMenuItemsCollapsedShells;
