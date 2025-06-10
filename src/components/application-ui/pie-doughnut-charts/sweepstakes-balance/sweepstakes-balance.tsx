@@ -165,13 +165,13 @@ export default function SweepstakesBalance({
   const grouped: any[] = [];
   let othersValue = 0;
   data.forEach((item, index) => {
-    const percentage = item.totalParticipations / (totalParticipations || 1);
+    const percentage = item.totalRegistrations / (total || 1);
     if (data.length > 8 && percentage < 0.07) {
-      othersValue += item.totalParticipations;
+      othersValue += item.totalRegistrations;
     } else {
       grouped.push({
         label: item.storeName,
-        value: item.totalParticipations,
+        value: item.totalRegistrations,
         color: colors[index % colors.length],
       });
     }
@@ -325,7 +325,8 @@ export default function SweepstakesBalance({
                 >
                   <MenuItem value="all">Todos</MenuItem>
                   <MenuItem value="qr">QR</MenuItem>
-                  <MenuItem value="web">Web</MenuItem>
+                  <MenuItem value="web">Tablet</MenuItem>
+                  <MenuItem value="promotor">Promotoras</MenuItem>
                   <MenuItem value="referral">Referidos</MenuItem>
                 </Select>
               </FormControl>
