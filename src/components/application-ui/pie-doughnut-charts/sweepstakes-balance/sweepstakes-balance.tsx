@@ -519,7 +519,7 @@ export default function SweepstakesBalance({
                   <ListItemText
                     primary={item.storeName}
                     primaryTypographyProps={{ fontWeight: 700, variant: 'h6' }}
-                    secondary={`${item.totalParticipations} participaciones`}
+                    secondary={`${item.totalRegistrations} números registrados`}
                   />
                   <Box ml={2}>
                     <Typography
