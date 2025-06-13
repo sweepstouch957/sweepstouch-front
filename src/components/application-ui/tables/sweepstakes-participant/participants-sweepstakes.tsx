@@ -1,5 +1,6 @@
 import { sweepstakesClient } from '@/services/sweepstakes.service';
 import MoreVertTwoToneIcon from '@mui/icons-material/MoreVertTwoTone';
+import StorefrontIcon from '@mui/icons-material/Storefront';
 import {
   Avatar,
   Box,
@@ -155,28 +156,32 @@ function SweepstakeStoresTable({ sweepstakeId }: Props) {
                           colSpan={4}
                           sx={{ p: 0, border: 0 }}
                         >
-                          <Box
-                            display="flex"
-                            flexDirection="row"
-                            alignItems="center"
-                            p={2}
-                            gap={2}
+                          <Card
+                            elevation={3}
                             sx={{
+                              display: 'flex',
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              p: 1.5,
+                              mb: 2,
                               borderRadius: 4,
-                              bgcolor: '#f7fafc',
-                              boxShadow: '0 2px 16px 0 #0001',
-                              my: 1,
+                              background: theme.palette.mode === 'dark' ? '#181A1B' : '#fafbfc',
+                              boxShadow: '0 2px 16px 0 #0002',
                             }}
                           >
                             <Avatar
                               src={store.storeImage}
                               sx={{
-                                width: 46,
-                                height: 46,
-                                mr: 1,
-                                border: `2px solid ${theme.palette.primary.light}`,
+                                width: 52,
+                                height: 52,
+                                mr: 2,
+                                border: `2.5px solid ${theme.palette.primary.light}`,
+                                boxShadow: 1,
+                                bgcolor: theme.palette.grey[200],
                               }}
-                            />
+                            >
+                              {!store.storeImage && <StorefrontIcon fontSize="medium" />}
+                            </Avatar>
                             <Box
                               flex={1}
                               minWidth={0}
@@ -185,6 +190,7 @@ function SweepstakeStoresTable({ sweepstakeId }: Props) {
                                 variant="subtitle1"
                                 fontWeight={700}
                                 noWrap
+                                sx={{ fontSize: 17, color: theme.palette.text.primary }}
                               >
                                 {store.storeName}
                               </Typography>
@@ -193,29 +199,50 @@ function SweepstakeStoresTable({ sweepstakeId }: Props) {
                                 display="flex"
                                 gap={1}
                                 alignItems="center"
+                                flexWrap="wrap"
                               >
                                 <Chip
                                   size="small"
                                   label={store.storeType || 'N/A'}
                                   variant="outlined"
-                                  sx={{ fontWeight: 600 }}
+                                  sx={{
+                                    fontWeight: 600,
+                                    px: 1.3,
+                                    background:
+                                      theme.palette.mode === 'dark' ? '#232323' : '#f3f3f3',
+                                    color: theme.palette.text.secondary,
+                                  }}
                                 />
                                 <Typography
                                   variant="caption"
                                   color="text.secondary"
+                                  sx={{ ml: 0.3, fontWeight: 400 }}
                                 >
-                                  {t('Customers')}: <b>{store.storeCustomerCount}</b>
+                                  Clientes: <b>{store.storeCustomerCount}</b>
                                 </Typography>
-                                <Typography
-                                  variant="caption"
-                                  color="primary"
-                                  fontWeight={700}
-                                >
-                                  {t('Participations')}: <b>{store.totalParticipations}</b>
-                                </Typography>
+                                <Chip
+                                  label={
+                                    <span>
+                                      <b style={{ color: theme.palette.primary.main }}>
+                                        {store.totalParticipations}
+                                      </b>{' '}
+                                      participaciones
+                                    </span>
+                                  }
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{
+                                    borderColor: theme.palette.primary.light,
+                                    color: theme.palette.primary.dark,
+                                    fontWeight: 700,
+                                    ml: 0.5,
+                                    background:
+                                      theme.palette.mode === 'dark' ? '#232323' : '#eef8ff',
+                                  }}
+                                />
                               </Box>
                             </Box>
-                          </Box>
+                          </Card>
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -232,7 +259,9 @@ function SweepstakeStoresTable({ sweepstakeId }: Props) {
                               <Avatar
                                 src={store.storeImage}
                                 sx={{ mr: 1, width: 40, height: 40 }}
-                              />
+                              >
+                                {!store.storeImage && <StorefrontIcon fontSize="small" />}
+                              </Avatar>
                               <Typography
                                 variant="subtitle2"
                                 noWrap
@@ -276,16 +305,7 @@ function SweepstakeStoresTable({ sweepstakeId }: Props) {
             onRowsPerPageChange={handleLimitChange}
             rowsPerPageOptions={[5, 10, 25]}
             labelRowsPerPage={isMobile ? t('Rows') : t('Rows per page')}
-            sx={{
-              '.MuiTablePagination-toolbar': {
-                flexDirection: isMobile ? 'column' : 'row',
-                alignItems: isMobile ? 'flex-start' : 'center',
-                gap: isMobile ? 1 : 0,
-              },
-              '.MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': {
-                fontSize: isMobile ? 14 : 16,
-              },
-            }}
+
           />
         </Box>
       </Box>

@@ -15,7 +15,10 @@ function Component() {
     handleLimitChange,
     handleTypeChange,
     handleSearchChange,
-
+    handleSortChange,
+    handleOrderChange,
+    order,
+    sortBy,
   } = useStores();
 
   return (
@@ -32,6 +35,10 @@ function Component() {
       onTypeChange={handleTypeChange}
       loading={loading}
       error={error}
+      onOrderChange={handleOrderChange}
+      onSortChange={handleSortChange}
+      order={order}
+      sortBy={sortBy  }
     />
   );
 }

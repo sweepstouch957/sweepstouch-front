@@ -10,15 +10,29 @@ export interface Store {
   name: string;
   address: string;
   zipCode: string;
+  type: 'elite' | 'basic' | 'free';
+  location?: {
+    type: 'Point';
+    coordinates: [number, number];
+  };
+  ownerId: string;
+  description?: string;
+  slug?: string;
   image: string;
   active: boolean;
+  subscription?: string;
+  phoneNumber?: string;
+  twilioPhoneNumber?: string;
+  twilioPhoneNumberSid?: string;
+  twilioPhoneNumberFriendlyName?: string;
+  verifiedByTwilio?: boolean;
+  bandwidthPhoneNumber?: string;
+  customerCount:number
+  provider: 'twilio' | 'bandwidth';
   createdAt: string;
   updatedAt: string;
-  ownerId: string;
-  description: string;
-  type: string;
-
 }
+
 
 // services/stores.service.ts
 export interface GetStoresResponse {
@@ -37,29 +51,34 @@ export interface GetStoresParams {
   limit?: number;
   search?: string;
   type?: 'elite' | 'basic' | 'free' | '';
+  sortBy?: 'customerCount'; // puedes añadir más campos si quieres ordenar por otros
+  order?: 'asc' | 'desc';
 }
-
 export const getStores = async ({
   page = 1,
   limit = 25,
   search = '',
   type = '',
+  sortBy = 'customerCount',
+  order = 'desc',
 }: GetStoresParams): Promise<GetStoresResponse> => {
   const res = await api.get<GetStoresResponse>('/store/filter', {
     params: {
       page,
       limit,
       search,
-      type: type || undefined, // evita enviar vacío si no hay filtro
+      type: type || undefined,
+      sortBy,
+      order,
     },
   });
 
   return res.data;
 };
 export const getStoreById = async (id: string): Promise<Store> => {
-  const res = await api.get<AxiosResponse<Store>>(`/stores/${id}`);
+  const res = await api.get(`/store/${id}`);
 
-  return res.data.data;
+  return res.data;
 };
 
 export const getStoreCustomers = async (
@@ -67,7 +86,7 @@ export const getStoreCustomers = async (
   page: number = 1,
   limit: number = 10
 ): Promise<PaginatedResponse<Customer>> => {
-  const res = await api.get(`/stores/${storeId}/customers?page=${page}&limit=${limit}`);
+  const res = await api.get(`/store/${storeId}/customers?page=${page}&limit=${limit}`);
   return res.data;
 };
 

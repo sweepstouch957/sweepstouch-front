@@ -14,6 +14,7 @@ import {
   FormControl,
   IconButton,
   InputAdornment,
+  InputLabel,
   MenuItem,
   Select,
   Table,
@@ -32,6 +33,7 @@ import {
 import Link from 'next/link';
 import { ChangeEvent, FC, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import StoreFilter from './filter';
 
 interface ResultsProps {
   stores: Store[];
@@ -40,10 +42,14 @@ interface ResultsProps {
   total: number;
   search: string;
   type: string;
+  sortBy: string;
+  order: string;
   onPageChange: (page: number) => void;
   onLimitChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onSearchChange: (query: string) => void;
   onTypeChange: (type: string) => void;
+  onSortChange: (sortBy: string) => void;
+  onOrderChange: (order: string) => void;
   loading?: boolean;
   error?: string | null;
 }
@@ -67,6 +73,10 @@ const Results: FC<ResultsProps> = ({
   onPageChange,
   onLimitChange,
   onSearchChange,
+  onOrderChange,
+  onSortChange,
+  order,
+  sortBy,
   onTypeChange,
   loading,
   error,
@@ -94,43 +104,17 @@ const Results: FC<ResultsProps> = ({
 
   return (
     <>
-      <Box
-        display="flex"
-        pb={2}
-        flexWrap="wrap"
-        gap={2}
-        justifyContent="space-between"
-        alignItems="center"
-      >
-        <TextField
-          size="small"
-          placeholder={t('Filter by store name or zip')}
-          value={search}
-          onChange={handleSearchChange}
-          fullWidth={isMobile}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-        />
-        <FormControl size="small">
-          <Select
-            value={type}
-            onChange={(e) => {
-              onTypeChange(e.target.value as string);
-            }}
-            displayEmpty
-          >
-            <MenuItem value="">{t('All types')}</MenuItem>
-            <MenuItem value="elite">Elite</MenuItem>
-            <MenuItem value="basic">Basic</MenuItem>
-            <MenuItem value="free">Free</MenuItem>
-          </Select>
-        </FormControl>
-      </Box>
+      <StoreFilter
+        search={search}
+        handleSearchChange={handleSearchChange}
+        type={type}
+        onTypeChange={onTypeChange}
+        sortBy={sortBy}
+        onSortChange={onSortChange}
+        order={order}
+        onOrderChange={onOrderChange}
+        t={t}
+      />
 
       {loading ? (
         <CircularProgress sx={{ width: '50px', height: '50px' }} />
@@ -168,7 +152,7 @@ const Results: FC<ResultsProps> = ({
                     <TableCell>{t('Brand')}</TableCell>
                     <TableCell>{t('Store name')}</TableCell>
                     <TableCell>{t('Address')}</TableCell>
-                    <TableCell>{t('Zip code')}</TableCell>
+                    <TableCell>{t('Customers')}</TableCell>
                     <TableCell>{t('Plan')}</TableCell>
                     <TableCell align="center">{t('Status')}</TableCell>
                     <TableCell align="center">{t('Actions')}</TableCell>
@@ -196,7 +180,7 @@ const Results: FC<ResultsProps> = ({
                           <Typography variant="h5">{store.name}</Typography>
                         </TableCell>
                         <TableCell>{store.address}</TableCell>
-                        <TableCell>{store.zipCode}</TableCell>
+                        <TableCell>{store.customerCount}</TableCell>
                         <TableCell sx={{ textTransform: 'uppercase' }}>
                           {store.type || 'FREE'}
                         </TableCell>

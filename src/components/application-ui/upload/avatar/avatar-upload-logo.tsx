@@ -6,20 +6,36 @@ import { DropzoneOptions, useDropzone } from 'react-dropzone';
 import { AvatarState } from 'src/components/base/styles/avatar';
 import { ButtonIcon } from 'src/components/base/styles/button-icon';
 
-const AvatarUploadLogo = () => {
-  const [avatar, setAvatar] = useState<string>('');
+interface AvatarUploadLogoProps {
+  onSelect?: (file: File | null, previewUrl?: string) => void;
+  label?: string;
+  initialUrl?: string;
+}
+
+const AvatarUploadLogo = ({
+  onSelect,
+  label = 'Company logo',
+  initialUrl = '',
+}: AvatarUploadLogoProps) => {
+  const [avatar, setAvatar] = useState<string>(initialUrl);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    setLoading(true);
-    const file = acceptedFiles[0];
-    if (file) {
-      setTimeout(() => {
-        setAvatar(URL.createObjectURL(file));
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      setLoading(true);
+      const file = acceptedFiles[0];
+      if (file) {
+        const url = URL.createObjectURL(file);
+        setAvatar(url);
         setLoading(false);
-      }, 2000);
-    }
-  }, []);
+        if (onSelect) onSelect(file, url); // Notifica a quien lo use
+      } else {
+        setLoading(false);
+        if (onSelect) onSelect(null, '');
+      }
+    },
+    [onSelect]
+  );
 
   const { getRootProps, getInputProps } = useDropzone({
     onDrop,
@@ -28,8 +44,9 @@ const AvatarUploadLogo = () => {
   });
 
   const removeImage = () => {
-    setAvatar('');
     if (avatar) URL.revokeObjectURL(avatar);
+    setAvatar('');
+    if (onSelect) onSelect(null, '');
   };
 
   return (
@@ -43,7 +60,7 @@ const AvatarUploadLogo = () => {
         component="label"
         fontWeight={500}
       >
-        Company logo
+        {label}
       </Typography>
       <Stack
         spacing={2}
@@ -94,9 +111,7 @@ const AvatarUploadLogo = () => {
                 color="secondary"
                 startIcon={<CloseRounded fontSize="inherit" />}
                 size="small"
-                sx={{
-                  color: 'error.main',
-                }}
+                sx={{ color: 'error.main' }}
                 onClick={removeImage}
               />
               <Button
@@ -106,7 +121,7 @@ const AvatarUploadLogo = () => {
                 {...getRootProps()}
                 disabled={loading}
               >
-                {loading ? 'Please wait...' : 'Change logo'}
+                {loading ? 'Please wait...' : 'Change '+label}
               </Button>
             </Stack>
           ) : (
@@ -117,9 +132,7 @@ const AvatarUploadLogo = () => {
               component="span"
               {...getRootProps()}
               disabled={loading}
-              sx={{
-                px: loading && 0,
-              }}
+              sx={{ px: loading && 0 }}
             >
               {loading ? 'Please wait...' : 'Upload'}
             </Button>
@@ -127,9 +140,7 @@ const AvatarUploadLogo = () => {
           <Typography
             variant="subtitle2"
             color="text.secondary"
-            sx={{
-              mt: 0.5,
-            }}
+            sx={{ mt: 0.5 }}
           >
             Accepted files:{' '}
             <Typography
@@ -158,12 +169,6 @@ const AvatarUploadLogo = () => {
             .
           </Typography>
         </Box>
-        <Box
-          sx={{
-            display: 'inline-block',
-            position: 'relative',
-          }}
-        ></Box>
       </Stack>
     </FormControl>
   );

@@ -1,7 +1,7 @@
 'use client';
-import { Box, Button, CircularProgress, Container, Fab, Snackbar } from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
-import React, { useState } from 'react';
+
+import { Box, Button, Container } from '@mui/material';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import ApplicationUiTablesInvoices from 'src/components/application-ui/tables/campaings/campaings';
 import PageHeading from 'src/components/base/page-heading';

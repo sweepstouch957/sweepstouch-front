@@ -1,7 +1,7 @@
 import { campaignClient } from '@/services/campaing.service';
 import { customerClient } from '@/services/customerService';
 import { sweepstakesClient } from '@/services/sweepstakes.service';
-import { CampaignOutlined, RedeemOutlined } from '@mui/icons-material';
+import { CampaignOutlined, Message, RedeemOutlined } from '@mui/icons-material';
 import AssignmentIndTwoToneIcon from '@mui/icons-material/AssignmentIndTwoTone';
 import {
   Box,
@@ -207,8 +207,8 @@ function Component() {
         md={6}
       >
         {renderBox(
-          t('Campaigns'),
-          <CampaignOutlined />,
+          t('Send Messages'),
+          <Message />,
           campaignsCount,
           loadingCampaigns,
           errorCampaigns,

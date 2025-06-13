@@ -132,7 +132,7 @@ export default function SweepstakesBalance({
     return today;
   });
   // Data query
-  const { data = [], isLoading } = useQuery({
+  const { data , isLoading } = useQuery({
     queryKey: [
       'sweepstake-metrics',
       sweepstakeId,
@@ -149,10 +149,12 @@ export default function SweepstakesBalance({
       }),
     staleTime: 1000 * 60 * 10,
   });
+  const stores = data?.stores || []
+  const total = data?.totalRegistrations || 0
 
-  const visibleData = !expandedDrawer ? data.slice(0, 4) : data;
-  const total = data.reduce((acc, item) => acc + item.totalRegistrations, 0);
-  const totalParticipations = data.reduce((acc, item) => acc + item.totalParticipations, 0);
+  const visibleData = !expandedDrawer ? stores.slice(0, 4) : stores;
+
+  const totalParticipations = stores.reduce((acc, item) => acc + item.totalParticipations, 0);
 
   // Pie chart data (agrupa 'others' si hay más de 8 tiendas)
   const colors = [
@@ -164,9 +166,9 @@ export default function SweepstakesBalance({
   ];
   const grouped: any[] = [];
   let othersValue = 0;
-  data.forEach((item, index) => {
+  stores.forEach((item, index) => {
     const percentage = item.totalRegistrations / (total || 1);
-    if (data.length > 8 && percentage < 0.07) {
+    if (stores.length > 8 && percentage < 0.07) {
       othersValue += item.totalRegistrations;
     } else {
       grouped.push({
@@ -504,7 +506,7 @@ export default function SweepstakesBalance({
           </Typography>
           <Divider sx={{ mb: 2 }} />
           <List>
-            {data.map((item) => (
+            {stores.map((item) => (
               <Fragment key={item.storeId}>
                 <ListItem>
                   <ListItemAvatarWrapper>

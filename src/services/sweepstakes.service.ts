@@ -76,7 +76,7 @@ export class SweepstakesClient {
     return res.data;
   }
 
-  async getRegistrationsByStore(filters: FilterParams): Promise<any[]> {
+  async getRegistrationsByStore(filters: FilterParams): Promise<any> {
     const res = await api.get('/sweepstakes/participants/metrics', {
       params: filters,
     });
