@@ -25,8 +25,8 @@ import { ButtonIcon } from 'src/components/base/styles/button-icon';
 import { useSearchParams } from 'src/hooks/use-search-params';
 import { useDispatch, useSelector } from 'src/store';
 import CampaignsPanel from './panel/campaigns/campaign-panel';
-import CreateCampaignForm from './panel/campaigns/create-campaing';
 import { StoreSidebar } from './store-sidebar';
+import CreateCampaignContainer from './panel/campaigns/createCampaignContainer';
 
 const StoreManagementPage = () => {
   const dispatch = useDispatch();
@@ -164,11 +164,11 @@ const StoreManagementPage = () => {
             px={{ xs: 1, md: 2 }}
             pt={2}
           >
-            <CreateCampaignForm
+            <CreateCampaignContainer
               provider={store.provider}
               phoneNumber={store.twilioPhoneNumber || store.bandwidthPhoneNumber || ''}
-              onSubmit={(data) => console.log(data)}
               totalAudience={store.customerCount || 0}
+              storeId={storeId}
             />
           </Box>
         );

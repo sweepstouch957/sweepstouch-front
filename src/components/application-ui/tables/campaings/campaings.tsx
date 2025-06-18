@@ -1,9 +1,12 @@
 'use client';
 
+import PageHeading from '@/components/base/page-heading';
 import { campaignClient } from '@/services/campaing.service';
-import { Box, CircularProgress, Unstable_Grid2 as Grid, Typography } from '@mui/material';
+import { Box, Button, CircularProgress, Unstable_Grid2 as Grid, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import ExportButton from '../../buttons/export-button';
 import Results from './results';
 
 interface CampaignsGridProps {
@@ -17,9 +20,10 @@ function CampaignsGrid({ storeId }: CampaignsGridProps) {
     startDate: '',
     endDate: '',
     page: 1,
-    limit: 10,
+    limit: 50,
     storeId, // incluimos el storeId en los filtros
   });
+  const { t } = useTranslation();
 
   const { data, isPending, error, refetch, isFetching } = useQuery({
     queryKey: ['campaigns', filters],
@@ -58,22 +62,30 @@ function CampaignsGrid({ storeId }: CampaignsGridProps) {
   }
 
   return (
-    <Grid
-      container
-      spacing={{ xs: 2, sm: 3 }}
-    >
-      <Grid xs={12}>
-        <Results
-          campaigns={data?.data || []}
-          filters={filters}
-          setFilters={setFilters}
-          total={data?.total || 0}
-          refetch={refetch}
-          storeId={storeId}
-          isLoading={isFetching}
-        />
+    <>
+      <PageHeading
+        title={t('Campaigns')}
+        description={t('Overview of ongoing campaigns')}
+        actions={<ExportButton campaigns={data?.data || []} />}
+      />
+      <Grid
+        container
+        mt={2}
+        spacing={{ xs: 2, sm: 3 }}
+      >
+        <Grid xs={12}>
+          <Results
+            campaigns={data?.data || []}
+            filters={filters}
+            setFilters={setFilters}
+            total={data?.total || 0}
+            refetch={refetch}
+            storeId={storeId}
+            isLoading={isFetching}
+          />
+        </Grid>
       </Grid>
-    </Grid>
+    </>
   );
 }
 
