@@ -79,7 +79,7 @@ export default function CampaignFormContainer({
       setFormData(null);
 
       setTimeout(() => {
-        router.push(`/admin/management/stores/edit/${storeId}?tag=campaigns`);
+        router.back();
       }, 500);
     },
     onError: () => {
