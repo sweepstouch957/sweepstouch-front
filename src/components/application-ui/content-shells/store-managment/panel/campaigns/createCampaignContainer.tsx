@@ -58,7 +58,7 @@ export default function CampaignFormContainer({
 
         const payload = {
           ...data,
-          image: uploadedImage?.url || data.imageUrl || null,
+          image: initialData?.image || uploadedImage?.url || data.imageUrl || null,
           imagePublicId: uploadedImage?.public_id || data.imagePublicId || null,
           customAudience: totalAudience,
         };
