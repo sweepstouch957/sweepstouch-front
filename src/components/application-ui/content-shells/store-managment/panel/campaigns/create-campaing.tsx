@@ -1,3 +1,4 @@
+// components/campaigns/CreateCampaignForm.tsx
 'use client';
 
 import PreviewModal from '@/components/application-ui/dialogs/preview/preview-modal';
@@ -11,7 +12,6 @@ import {
   Checkbox,
   Chip,
   Container,
-  Divider,
   FormControlLabel,
   Grid,
   Paper,
@@ -29,9 +29,12 @@ interface CampaignFormInputs {
   title: string;
   description: string;
   content: string;
+  type:string;
   startDate: Date;
   estimatedCost: number;
-  image?: FileList;
+  image?: string;
+  imageUrl?: string;
+  imagePublicId?: string;
   customAudience?: number;
 }
 
@@ -57,11 +60,15 @@ export default function CreateCampaignForm({
   provider,
   phoneNumber,
   totalAudience,
+  initialValues,
+  isEditing = false,
 }: {
   onSubmit: (data: CampaignFormInputs) => void;
   provider: string;
   phoneNumber: string;
   totalAudience: number;
+  initialValues?: Partial<CampaignFormInputs>;
+  isEditing?: boolean;
 }) {
   const {
     handleSubmit,
@@ -71,14 +78,17 @@ export default function CreateCampaignForm({
     formState: { errors },
   } = useForm<CampaignFormInputs>({
     defaultValues: {
-      estimatedCost: 0.0015,
-      startDate: new Date(),
+      title: initialValues?.title || '',
+      description: initialValues?.description || '',
+      content: initialValues?.content || '',
+      estimatedCost: initialValues?.estimatedCost || 0.0015,
+      startDate: initialValues?.startDate ? new Date(initialValues.startDate) : new Date(),
     },
     mode: 'onBlur',
   });
 
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [useFullAudience, setUseFullAudience] = useState(true);
+  const [useFullAudience, setUseFullAudience] = useState(!initialValues?.customAudience);
   const contentRef = useRef<HTMLTextAreaElement | null>(null);
 
   const image = watch('image');
@@ -109,7 +119,7 @@ export default function CreateCampaignForm({
           >
             <Card
               variant="outlined"
-              sx={{ p: 2}}
+              sx={{ p: 3 }}
             >
               <Stack
                 direction="row"
@@ -168,9 +178,7 @@ export default function CreateCampaignForm({
                         <DateTimePicker
                           {...field}
                           label="Start Date"
-                          sx={{
-                            width: '100%',
-                          }}
+                          sx={{ width: '100%' }}
                         />
                       )}
                     />
@@ -183,7 +191,7 @@ export default function CreateCampaignForm({
                   >
                     <TextField
                       label="Campaign Type"
-                      value={image?.length ? 'MMS' : 'SMS'}
+                      value={initialValues?.type || image?.length ? 'MMS' : 'SMS'}
                       disabled
                       fullWidth
                     />
@@ -255,6 +263,7 @@ export default function CreateCampaignForm({
                       ))}
                     </Box>
                   </Grid>
+
                   <Grid
                     item
                     xs={12}
@@ -280,11 +289,12 @@ export default function CreateCampaignForm({
                   >
                     <AvatarUploadLogo
                       label="Imagen de campaña"
+                      initialUrl={initialValues?.image}
                       onSelect={(file) => {
                         if (file) {
                           const dt = new DataTransfer();
                           dt.items.add(file);
-                          setValue('image', dt.files as FileList, { shouldValidate: true });
+                          setValue('image', dt.files as any, { shouldValidate: true });
                         } else {
                           setValue('image', undefined);
                         }
@@ -342,17 +352,18 @@ export default function CreateCampaignForm({
                   justifyContent="flex-end"
                   gap={2}
                 >
-                  <Button variant="outlined">Create Draft</Button>
+                  <Button variant="outlined">Borrador</Button>
                   <Button
                     variant="contained"
                     type="submit"
                   >
-                    Create Campaign
+                    {isEditing ? 'Actualizar campaña' : 'Crear campaña'}
                   </Button>
                 </Box>
               </form>
             </Card>
           </Grid>
+
           <Grid
             item
             xs={12}
@@ -363,7 +374,7 @@ export default function CreateCampaignForm({
               startDate={startDate}
               totalAudience={totalAudience}
               type={image?.length ? 'MMS' : 'SMS'}
-              useFullAudience={true}
+              useFullAudience={useFullAudience}
               customAudience={customAudience}
               onPreviewClick={() => setPreviewOpen(true)}
             />
@@ -375,7 +386,7 @@ export default function CreateCampaignForm({
         open={previewOpen}
         handleClose={() => setPreviewOpen(false)}
         content={content}
-        image={image?.[0]}
+        image={image?.[0] || initialValues?.image}
       />
     </Box>
   );

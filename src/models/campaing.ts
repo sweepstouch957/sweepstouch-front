@@ -17,7 +17,7 @@ export interface Campaing {
   _id: string;
   title: string;
   type: string;
-  store: Store;
+  store: any;
   description: string;
   content: string;
   image: string;

@@ -1,5 +1,7 @@
-// Suponiendo que ya importaste este formulario como `CreateCampaignForm`
+'use client';
 
+import { campaignClient } from '@/services/campaing.service';
+import { uploadCampaignImage } from '@/services/upload.service';
 import {
   Alert,
   Button,
@@ -11,50 +13,93 @@ import {
   Snackbar,
 } from '@mui/material';
 import { useMutation } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import CreateCampaignForm from './create-campaing';
-import { campaignClient } from '@/services/campaing.service';
 
-export default function CreateCampaignContainer({
-  storeId,
-  provider,
-  phoneNumber,
-  totalAudience,
-}: {
+interface CampaignFormContainerProps {
   storeId: string;
   provider: string;
   phoneNumber: string;
   totalAudience: number;
-}) {
+  initialData?: any;
+}
+
+export default function CampaignFormContainer({
+  storeId,
+  provider,
+  phoneNumber,
+  totalAudience,
+  initialData,
+}: CampaignFormContainerProps) {
   const [successOpen, setSuccessOpen] = useState(false);
   const [errorOpen, setErrorOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [formData, setFormData] = useState<any>(null);
-  const [image, setImage] = useState<File | null>(null);
+  const router = useRouter();
+
+  const isEditing = !!initialData;
+
 
   const mutation = useMutation({
-    mutationFn: (data: any) => campaignClient.createCampaign(data, storeId, image),
+    mutationFn: async (data: any) => {
+      try {
+        const hasImage = data.image && data.image.length > 0;
+        let uploadedImage = null;
+
+        // Solo sube si no es una URL existente
+        if (
+          hasImage &&
+          typeof data.image[0] === 'object' &&
+          !(data.image[0].url || data.image[0].startsWith?.('http'))
+        ) {
+          uploadedImage = await uploadCampaignImage(data.image[0]);
+        }
+
+        const payload = {
+          ...data,
+          image: uploadedImage?.url || data.imageUrl || null,
+          imagePublicId: uploadedImage?.public_id || data.imagePublicId || null,
+          customAudience: totalAudience,
+        };
+
+        const response = isEditing
+          ? await campaignClient.updateCampaign(initialData._id, payload)
+          : await campaignClient.createCampaign(payload, storeId);
+
+        return response;
+      } catch (error) {
+        console.error('❌ API error:', error);
+        throw error;
+      }
+    },
     onSuccess: () => {
       setSuccessOpen(true);
+      setConfirmOpen(false);
+      setFormData(null);
+
+      setTimeout(() => {
+        router.push(`/admin/management/stores/edit/${storeId}?tag=campaigns`);
+      }, 500);
     },
     onError: () => {
       setErrorOpen(true);
+      setConfirmOpen(false);
+    },
+    onSettled: (data, error) => {
+      console.log('🎯 Mutation settled:', { data, error });
     },
   });
 
   const handleSubmit = (data: any) => {
     setFormData(data);
-    if (data.image?.length) {
-      setImage(data.image[0]);
-    } else {
-      setImage(null);
-    }
     setConfirmOpen(true);
   };
 
   const confirmAndSend = () => {
-    setConfirmOpen(false);
-    mutation.mutate(formData);
+    if (formData) {
+      mutation.mutate(formData);
+    }
   };
 
   return (
@@ -64,17 +109,18 @@ export default function CreateCampaignContainer({
         provider={provider}
         phoneNumber={phoneNumber}
         totalAudience={totalAudience}
+        initialValues={initialData}
+        isEditing={isEditing}
       />
 
       <Dialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
       >
-        <DialogTitle>Confirmar envío</DialogTitle>
+        <DialogTitle>Confirmar {isEditing ? 'edición' : 'creación'}</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            ¿Estás seguro de que deseas crear esta campaña? Asegúrate de revisar el contenido antes
-            de continuar.
+            ¿Estás seguro de que deseas {isEditing ? 'editar' : 'crear'} esta campaña?
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -88,8 +134,9 @@ export default function CreateCampaignContainer({
             onClick={confirmAndSend}
             color="primary"
             variant="contained"
+            disabled={mutation.isPending}
           >
-            Confirmar
+            {mutation.isPending ? (isEditing ? 'Guardando...' : 'Creando...') : 'Confirmar'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -104,7 +151,7 @@ export default function CreateCampaignContainer({
           severity="success"
           sx={{ width: '100%' }}
         >
-          ¡Campaña creada con éxito!
+          ¡Campaña {isEditing ? 'actualizada' : 'creada'} con éxito!
         </Alert>
       </Snackbar>
 
@@ -118,7 +165,7 @@ export default function CreateCampaignContainer({
           severity="error"
           sx={{ width: '100%' }}
         >
-          Hubo un error al crear la campaña. Inténtalo de nuevo.
+          Hubo un error al {isEditing ? 'editar' : 'crear'} la campaña. Inténtalo de nuevo.
         </Alert>
       </Snackbar>
     </>

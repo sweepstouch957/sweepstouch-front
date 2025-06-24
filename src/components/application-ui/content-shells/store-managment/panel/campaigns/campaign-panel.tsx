@@ -8,33 +8,9 @@ interface CampaignsPanelProps {
   onCreate?: () => void;
 }
 
-interface CampaignsHeaderProps {
-  storeName: string;
-}
-
-const CampaignsHeader: FC<CampaignsHeaderProps> = () => {
-  return (
-    <Box
-      display="flex"
-      justifyContent="space-between"
-      alignItems="center"
-      flexWrap="wrap"
-      mb={2}
-    >
-      <Typography
-        variant="h4"
-        fontWeight={600}
-      >
-        Campañas
-      </Typography>
-    </Box>
-  );
-};
-
 const CampaignsPanel: FC<CampaignsPanelProps> = ({ storeId, storeName, onCreate }) => {
   return (
     <Box p={3}>
-      <CampaignsHeader storeName={storeName} />
       <CampaignsGrid storeId={storeId} />
     </Box>
   );

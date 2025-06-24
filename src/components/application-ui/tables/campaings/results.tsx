@@ -2,8 +2,12 @@ import { Campaing, CampaingStatus } from '@/models/campaing';
 import {
   ClearRounded as ClearIcon,
   DeleteRounded,
+  Edit,
+  EditNote,
+  EditRoad,
   OpenInNewRounded,
   SearchTwoTone,
+  WatchLaterOutlined,
 } from '@mui/icons-material';
 import {
   Avatar,
@@ -35,7 +39,6 @@ import numeral from 'numeral';
 import type { FC } from 'react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ButtonSoft } from 'src/components/base/styles/button-soft';
 import { SkeletonTableRow } from '../../skeleton/table/table';
 
 interface ResultsProps {
@@ -85,9 +88,9 @@ const Results: FC<ResultsProps> = ({
     window.open(`/admin/management/campaings/stats/${storeId}`, '_blank');
   };
 
-  const selectedAll = selectedItems.length === campaigns.length;
-  const selectedSome = selectedItems.length > 0 && selectedItems.length < campaigns.length;
-
+  const handleCampaingEditRedirect = (storeId: string) => {
+    window.open(`/admin/management/campaings/edit/${storeId}`);
+  };
   return (
     <Card sx={{ borderRadius: 3, overflow: 'hidden' }}>
       <Box
@@ -98,12 +101,10 @@ const Results: FC<ResultsProps> = ({
         justifyContent="space-between"
         flexWrap="wrap"
       >
-
         {!storeId && (
           <Stack
             direction="row"
             spacing={2}
-
             mt={{ xs: 2, sm: 0 }}
           >
             <DatePicker
@@ -263,17 +264,36 @@ const Results: FC<ResultsProps> = ({
                       </TableCell>
                       <TableCell>{getInvoiceStatusLabel(campaign.status)}</TableCell>
                       <TableCell align="center">
-                        <Tooltip
-                          title={t('Go to store')}
-                          arrow
+                        <Stack
+                          direction={'row'}
+                          spacing={1}
+                          justifyContent="center"
                         >
-                          <IconButton
-                            onClick={() => handleCampaingRedirect(campaign._id || '')}
-                            color="info"
+                          <Tooltip
+                            title={t('Go to Stats')}
+                            arrow
                           >
-                            <OpenInNewRounded fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                            <IconButton
+                              onClick={() => handleCampaingRedirect(campaign._id || '')}
+                              color="info"
+                            >
+                              <OpenInNewRounded fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          {campaign.status !== 'completed' && (
+                            <Tooltip
+                              title={t('Edit Campaign')}
+                              arrow
+                            >
+                              <IconButton
+                                onClick={() => handleCampaingEditRedirect(campaign._id || '')}
+                                color="primary"
+                              >
+                                <Edit fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </Stack>
                       </TableCell>
                     </TableRow>
                   );

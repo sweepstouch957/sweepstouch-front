@@ -7,7 +7,7 @@ interface PreviewModalProps {
   open: boolean;
   handleClose: () => void;
   content: string;
-  image?: File;
+  image?: File | string | null;
 }
 
 const Transition = forwardRef(function Transition(
@@ -31,7 +31,8 @@ const SCREEN_BG = '#111';
 
 export default function PreviewModal({ open, handleClose, content, image }: PreviewModalProps) {
   const theme = useTheme();
-  const imageUrl = image ? URL.createObjectURL(image) : null;
+  const imageUrl = typeof image === 'string' ? image : image ? URL.createObjectURL(image) : null;
+
 
   return (
     <Dialog

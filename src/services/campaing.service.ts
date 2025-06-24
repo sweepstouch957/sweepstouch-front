@@ -45,39 +45,18 @@ class CampaignClient {
     return res.data;
   }
 
-  async createCampaign(data: Campaing, id: string, image: any): Promise<Campaing> {
-    const formData = new FormData();
+  async createCampaign(data: Partial<Campaing>, storeId: string): Promise<Campaing> {
+    const payload = {
+      ...data,
+      store: storeId,
+    };
 
-    formData.append('title', data.title);
-    formData.append('description', data.description || '');
-    formData.append('content', data.content);
-    formData.append('startDate', new Date(data.startDate).toISOString());
-    formData.append('campaignType', data.campaignType || 'normal');
-
-    // 🏪 ID de tienda
-    if (id) formData.append('store', id);
-
-    // 👥 Audiencia personalizada
-    if (data.audience) {
-      formData.append('audience', data.audience.toString());
-    }
-
-    // 🖼 Imagen si se adjunta
-    if (image instanceof File) {
-      formData.append('image', image);
-    }
-
-    const res = await api.post(`/campaigns`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
+    const res = await api.post(`/campaigns`, payload);
     return res.data;
   }
 
   async updateCampaign(id: string, data: Campaing): Promise<Campaing> {
-    const res = await api.put(`/campaigns/${id}`, data);
+    const res = await api.put(`/campaigns/old/${id}`, data);
     return res.data;
   }
 

@@ -156,7 +156,9 @@ export const routes = {
         listing: '/admin/management/sweepstakes',
         create: '/admin/management/sweepstakes/create',
         stats: (id: string) => `/admin/management/sweepstakes/${id}/stats`,
+        edit: (id: string) => `/admin/management/sweepstakes/${id}/edit`,
       },
+
       commerce: {
         'shop-front': '/admin/management/shop-front',
         'shop-listing': '/admin/management/shop-listing',
