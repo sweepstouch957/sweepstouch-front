@@ -132,7 +132,7 @@ export default function SweepstakesBalance({
     return today;
   });
   // Data query
-  const { data , isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: [
       'sweepstake-metrics',
       sweepstakeId,
@@ -149,8 +149,8 @@ export default function SweepstakesBalance({
       }),
     staleTime: 1000 * 60 * 10,
   });
-  const stores = data?.stores || []
-  const total = data?.totalRegistrations || 0
+  const stores = data?.stores || [];
+  const total = data?.totalRegistrations || 0;
 
   const visibleData = !expandedDrawer ? stores.slice(0, 4) : stores;
 
@@ -327,7 +327,8 @@ export default function SweepstakesBalance({
                 >
                   <MenuItem value="all">Todos</MenuItem>
                   <MenuItem value="qr">QR</MenuItem>
-                  <MenuItem value="web">Tablet</MenuItem>
+                  <MenuItem value="web">Web</MenuItem>
+                  <MenuItem value="tablet">Tablet</MenuItem>
                   <MenuItem value="promotor">Promotoras</MenuItem>
                   <MenuItem value="referral">Referidos</MenuItem>
                 </Select>
