@@ -1,5 +1,5 @@
 import CampaignsGrid from '@/components/application-ui/tables/campaings/campaings';
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import type { FC } from 'react';
 
 interface CampaignsPanelProps {

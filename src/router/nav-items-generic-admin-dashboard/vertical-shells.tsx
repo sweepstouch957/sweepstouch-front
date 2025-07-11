@@ -1,5 +1,5 @@
 import type { UserRole } from '@/contexts/auth/user';
-import { Campaign, Redeem, Store } from '@mui/icons-material';
+import { AdsClickOutlined, Campaign, Redeem, Store } from '@mui/icons-material';
 import AppsRoundedIcon from '@mui/icons-material/AppsRounded';
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
@@ -78,9 +78,13 @@ const menuConfig: MenuConfig = {
           ],
         },
         {
+          title: 'Ads',
+          icon: <AdsClickOutlined />,
+          route: (r: typeof routes, role: UserRole) => r.admin.management.promos.listing,
+        },
+        {
           title: 'Campaigns',
           icon: <Campaign />,
-          route: (r: typeof routes, role: UserRole) => r.admin.management.campaings.listing,
           subMenu: [
             {
               title: 'Listing',
@@ -140,6 +144,11 @@ const menuConfig: MenuConfig = {
     {
       section: 'Management',
       items: [
+        {
+          title: 'Ads',
+          icon: <AdsClickOutlined />,
+          route: (r: typeof routes, role: UserRole) => r.admin.management.promos.listing,
+        },
         {
           title: 'Campaigns',
           icon: <Campaign />,

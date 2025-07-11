@@ -152,6 +152,10 @@ export const routes = {
         listing: '/admin/management/campaings',
         create: '/admin/management/campaings/create',
       },
+      promos:{
+        listing: '/admin/management/ads',
+        create: '/admin/management/promos/create',
+      },
       sweepstakes: {
         listing: '/admin/management/sweepstakes',
         create: '/admin/management/sweepstakes/create',

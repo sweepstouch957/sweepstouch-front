@@ -1,5 +1,7 @@
 import { closeSidebar, openSidebar, setActiveSection } from '@/slices/store_managment';
 import {
+  AdsClick,
+  Analytics,
   AutoAwesomeMosaicTwoTone as CampaignsIcon,
   InfoTwoTone as InfoIcon,
   RedeemTwoTone as RewardIcon,
@@ -32,6 +34,8 @@ const STORE_SECTIONS = [
   { id: 'sms-provider', label: 'SMS Provider', icon: <SmsIcon /> },
   { id: 'general-info', label: 'General Info', icon: <InfoIcon /> },
   { id: 'sweepstakes', label: 'Sweepstakes', icon: <RewardIcon /> },
+  { id: 'ads', label: 'Ads', icon: <Analytics/> },
+
 ];
 
 export const StoreSidebar: FC<StoreSidebarProps> = ({ parentContainer, storeName, image }) => {

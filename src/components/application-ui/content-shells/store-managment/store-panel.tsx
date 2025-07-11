@@ -24,9 +24,10 @@ import { useEffect, useRef } from 'react';
 import { ButtonIcon } from 'src/components/base/styles/button-icon';
 import { useSearchParams } from 'src/hooks/use-search-params';
 import { useDispatch, useSelector } from 'src/store';
+import { PromoDashboard } from '../../tables/promos/panel';
 import CampaignsPanel from './panel/campaigns/campaign-panel';
-import { StoreSidebar } from './store-sidebar';
 import CreateCampaignContainer from './panel/campaigns/createCampaignContainer';
+import { StoreSidebar } from './store-sidebar';
 
 const StoreManagementPage = () => {
   const dispatch = useDispatch();
@@ -52,6 +53,7 @@ const StoreManagementPage = () => {
         { id: 'sms-provider', label: 'SMS Provider' },
         { id: 'general-info', label: 'General Info' },
         { id: 'sweepstakes', label: 'Sweepstakes' },
+        { id: 'ads', label: 'Ads' },
       ])
     );
   }, [dispatch, tag]);
@@ -182,6 +184,8 @@ const StoreManagementPage = () => {
     }
 
     switch (tag) {
+      case 'ads':
+        return <PromoDashboard storeId={storeId || ''} />;
       case 'sms-provider':
         return (
           <Box p={3}>
@@ -210,6 +214,7 @@ const StoreManagementPage = () => {
             <Typography>Dirección: {store.address}</Typography>
             <Typography>Código Postal: {store.zipCode}</Typography>
             <Typography>Teléfono: {store.phoneNumber || 'No disponible'}</Typography>
+            <Typography>Kiosko: https://kiosko.sweepstouch.com/?slug={store.slug}</Typography>
           </Box>
         );
       case 'sweepstakes':

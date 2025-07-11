@@ -5,11 +5,13 @@ export interface UploadResponse {
   public_id: string;
 }
 
-export const uploadCampaignImage = async (image: File): Promise<UploadResponse> => {
+export const uploadCampaignImage = async (
+  image: File,
+  folder: string = 'campaigns'
+): Promise<UploadResponse> => {
   const formData = new FormData();
   formData.append('image', image);
-  formData.append("folder", "campaigns");
-
+  formData.append('folder', folder);
 
   const response = await api.post('/upload', formData, {
     headers: {
