@@ -3,18 +3,19 @@ import {
   ClearRounded as ClearIcon,
   DeleteRounded,
   Edit,
-  EditNote,
-  EditRoad,
   OpenInNewRounded,
   SearchTwoTone,
-  WatchLaterOutlined,
 } from '@mui/icons-material';
 import {
   Avatar,
   Box,
+  Button,
   Card,
-  Checkbox,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   FormControl,
   IconButton,
@@ -40,6 +41,7 @@ import type { FC } from 'react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SkeletonTableRow } from '../../skeleton/table/table';
+import { campaignClient } from '@/services/campaing.service';
 
 interface ResultsProps {
   campaigns: Campaing[];
@@ -75,10 +77,27 @@ const Results: FC<ResultsProps> = ({
   setFilters,
   total,
   isLoading,
+  refetch,
   storeId,
 }) => {
   const { t } = useTranslation();
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [selectedToDelete, setSelectedToDelete] = useState<string | null>(null);
+
+  const handleDelete = () => {
+    console.log('Deleting campaign:', selectedToDelete);
+
+    if (!selectedToDelete) return;
+    campaignClient
+      .deleteCampaign(selectedToDelete)
+      .then(() => {
+        setSelectedToDelete(null);
+        refetch();
+      })
+      .catch((error) => {
+        console.error('Error deleting campaign:', error);
+      });
+  };
 
   const handleStoreRedirect = (storeId: string) => {
     window.open(`/admin/management/stores/edit/${storeId}`, '_blank');
@@ -91,6 +110,7 @@ const Results: FC<ResultsProps> = ({
   const handleCampaingEditRedirect = (storeId: string) => {
     window.open(`/admin/management/campaings/edit/${storeId}`);
   };
+
   return (
     <Card sx={{ borderRadius: 3, overflow: 'hidden' }}>
       <Box
@@ -280,6 +300,7 @@ const Results: FC<ResultsProps> = ({
                               <OpenInNewRounded fontSize="small" />
                             </IconButton>
                           </Tooltip>
+
                           {campaign.status !== 'completed' && (
                             <Tooltip
                               title={t('Edit Campaign')}
@@ -290,6 +311,20 @@ const Results: FC<ResultsProps> = ({
                                 color="primary"
                               >
                                 <Edit fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+
+                          {campaign.status === 'scheduled' && (
+                            <Tooltip
+                              title="Eliminar campaña"
+                              arrow
+                            >
+                              <IconButton
+                                onClick={() => setSelectedToDelete(campaign._id)}
+                                color="error"
+                              >
+                                <DeleteRounded fontSize="small" />
                               </IconButton>
                             </Tooltip>
                           )}
@@ -315,6 +350,27 @@ const Results: FC<ResultsProps> = ({
           slotProps={{ select: { variant: 'outlined', size: 'small', sx: { p: 0 } } }}
         />
       </Box>
+
+      <Dialog
+        open={Boolean(selectedToDelete)}
+        onClose={() => setSelectedToDelete(null)}
+      >
+        <DialogTitle>¿Estás seguro?</DialogTitle>
+        <DialogContent>
+          <Typography>¿Deseas eliminar esta campaña programada?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSelectedToDelete(null)}>Cancelar</Button>
+          <Button
+            onClick={handleDelete}
+            color="error"
+            startIcon={<DeleteRounded />}
+            variant='contained'
+          >
+            Eliminar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Card>
   );
 };
