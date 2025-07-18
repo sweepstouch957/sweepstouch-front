@@ -60,7 +60,7 @@ interface Props {
 }
 
 const values:any = {
-  active: {
+  "in_progress": {
     label: 'En Progreso',
     color: 'info',
   },
@@ -177,9 +177,9 @@ export const PromoResults = ({
                   {/* Estado */}
                   <TableCell>
                     <Chip
-                      label={values[promo.status].label}
+                      label={values[promo.status]?.label || ""}
                       size="small"
-                      color={values[promo.status].color || "default"}
+                      color={values[promo.status]?.color || "default"}
                     />
                   </TableCell>
 
