@@ -38,6 +38,7 @@ export interface StoreSweepstake {
 }
 export interface Sweepstakes {
   id: string;
+  _id: string;
   name: string;
   participants: number;
   stores: number;
@@ -118,7 +119,34 @@ export class SweepstakesClient {
   async getSweepstakeById(id: string): Promise<Sweepstakes> {
     const res = await api.get(`/sweepstakes/${id}`);
     return res.data;
-  }S
+  }
+
+  async getSweepstakeByStoreId(
+    storeId: string,
+    showParticipants: boolean = false
+  ): Promise<Sweepstakes> {
+    const res = await api.get(`/sweepstakes/active/${storeId}`, {
+      params: showParticipants ? { showParticipants: true } : {},
+    });
+    return res.data;
+  }
+
+  async createSweepstake(data: any): Promise<Sweepstakes> {
+    const res = await api.post('/sweepstakes', data);
+    return res.data;
+  }
+  async reasignSweepstake(
+    originalSweepstakeId: string,
+    storeId: string,
+    newSweepstakeId: string
+  ): Promise<Sweepstakes> {
+    const res = await api.post(`/sweepstakes/reassign-store`, {
+      originalSweepstakeId,
+      storeId,
+      newSweepstakeId,
+    });
+    return res.data;
+  }
 }
 
 export const sweepstakesClient = new SweepstakesClient();

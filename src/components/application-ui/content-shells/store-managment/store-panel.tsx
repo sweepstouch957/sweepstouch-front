@@ -24,6 +24,7 @@ import { useEffect, useRef } from 'react';
 import { ButtonIcon } from 'src/components/base/styles/button-icon';
 import { useSearchParams } from 'src/hooks/use-search-params';
 import { useDispatch, useSelector } from 'src/store';
+import { ActiveSweepstakeCard } from '../../active-sweeptake';
 import { PromoDashboard } from '../../tables/promos/panel';
 import CampaignsPanel from './panel/campaigns/campaign-panel';
 import CreateCampaignContainer from './panel/campaigns/createCampaignContainer';
@@ -224,9 +225,9 @@ const StoreManagementPage = () => {
               variant="h5"
               gutterBottom
             >
-              Sorteos
+              Sorteo
             </Typography>
-            <Typography>Sorteos asociados: 1</Typography>
+            <ActiveSweepstakeCard storeId={storeId} />
           </Box>
         );
       default:
