@@ -25,7 +25,7 @@ const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
 const getColorByAudience = (audience: number) => {
   if (audience < 1000) return '#f44336';
   if (audience < 5000) return '#fdd835';
-  if (audience < 10000) return '#2196f3';
+  if (audience < 10000) return '#EE1E7C';
   return '#4caf50';
 };
 
