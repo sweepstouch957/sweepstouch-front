@@ -29,6 +29,15 @@ const getColorByAudience = (audience: number) => {
   return '#4caf50';
 };
 
+
+const getColorText = (audience: number) => {
+  if (audience < 1000) return '#ffffff';
+  if (audience < 5000) return '#000000';
+  if (audience < 10000) return '#ffffff';
+  return '#ffffff';
+};
+
+
 const MapboxMap = () => {
   const { data: stores, isLoading, error } = useStores();
   const [selected, setSelected] = useState<any>(null);
@@ -54,11 +63,6 @@ const MapboxMap = () => {
       }) || []
     );
   }, [stores, audienceFilter, zipFilter, searchTerm]);
-
-  const zipCodes = useMemo(() => {
-    const unique = new Set(stores?.map((s) => s.zipCode));
-    return Array.from(unique);
-  }, [stores]);
 
   const exportToExcel = () => {
     const data = filteredStores.map((s) => ({
@@ -203,7 +207,7 @@ const MapboxMap = () => {
                     sx={{
                       width: 32,
                       height: 32,
-                      backgroundColor: '#1976d2',
+                      backgroundColor: '#EE1E7C',
                       borderRadius: '50%',
                       color: '#fff',
                       display: 'flex',
@@ -222,6 +226,8 @@ const MapboxMap = () => {
 
             const store = cluster.properties.store;
             const color = getColorByAudience(store.customerCount || 0);
+            const textColor = getColorText(store.customerCount || 0);
+
             const imageSrc =
               store.image ||
               'https://res.cloudinary.com/proyectos-personales/image/upload/v1679455472/woocommerce-placeholder-600x600_xo2kmv.png';
@@ -255,9 +261,9 @@ const MapboxMap = () => {
                       px: 1,
                       py: '2px',
                       borderRadius: '8px',
-                      fontWeight: 600,
+                      fontWeight: 300,
                       backgroundColor: color,
-                      color: 'white',
+                      color: textColor,
                       display: 'inline-block',
                       minWidth: '50px',
                     }}
