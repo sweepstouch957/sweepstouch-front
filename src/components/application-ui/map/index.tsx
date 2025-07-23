@@ -95,6 +95,10 @@ const MapboxMap = () => {
     });
   }, [filteredStores]);
 
+  const sumAudienceFiltrered = useMemo(() => {
+    return filteredStores.reduce((sum, store) => sum + (store.customerCount || 0), 0);
+  }, [filteredStores]);
+
   const clusterIndex = useMemo(() => {
     const cl = new supercluster({ radius: 60, maxZoom: 20 });
     cl.load(points);
@@ -140,6 +144,7 @@ const MapboxMap = () => {
         mb={2}
         display="flex"
         flexWrap="wrap"
+        alignItems="center"
         gap={2}
       >
         <FormControl size="small">
@@ -171,10 +176,11 @@ const MapboxMap = () => {
         </Button>
 
         <Typography
-          variant="body2"
-          color="text.secondary"
+          variant="body1"
+          color="text.primary"
+          fontSize={"1rem"}
         >
-          {filteredStores.length} tiendas encontradas
+          <b>{filteredStores.length}</b> tiendas encontradas ({sumAudienceFiltrered})
         </Typography>
 
       </Box>
@@ -187,7 +193,7 @@ const MapboxMap = () => {
       >
         <Map
           initialViewState={{ latitude: 40.72, longitude: -74, zoom: 9 }}
-          mapStyle="mapbox://styles/mapbox/streets-v11"
+          mapStyle="mapbox://styles/mapbox/streets-v12"
           mapboxAccessToken={MAPBOX_TOKEN}
           style={{ width: '100%', height: '100%' }}
           optimizeForTerrain
