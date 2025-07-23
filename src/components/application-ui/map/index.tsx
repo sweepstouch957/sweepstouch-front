@@ -169,6 +169,14 @@ const MapboxMap = () => {
         >
           Exportar a Excel
         </Button>
+
+        <Typography
+          variant="body2"
+          color="text.secondary"
+        >
+          {filteredStores.length} tiendas encontradas
+        </Typography>
+
       </Box>
 
       <Box
