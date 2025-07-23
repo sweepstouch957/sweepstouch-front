@@ -7,6 +7,7 @@ import { AxiosResponse } from 'axios';
 
 export interface Store {
   id: string;
+  _id: string;
   name: string;
   address: string;
   zipCode: string;
@@ -73,6 +74,11 @@ export const getStores = async ({
     },
   });
 
+  return res.data;
+};
+
+export const getAllStores = async (): Promise<Store[]> => {
+  const res: AxiosResponse<Store[]> = await api.get('/store');
   return res.data;
 };
 export const getStoreById = async (id: string): Promise<Store> => {

@@ -23,9 +23,11 @@ const dashboardsMenu = (t: (token: string) => string): MenuItem =>
 
 const applicationsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Applications'), <AppsRoundedIcon />, [
+    { title: t('Store Maps'), route: routes.admin.applications.maps },
     { title: t('Calendar'), route: routes.admin.applications.calendar },
     { title: t('File manager'), route: routes.admin.applications['file-manager'] },
     { title: t('Messenger'), route: routes.admin.applications.messenger },
+
   ]);
 
 const usersMenu = (t: (token: string) => string): MenuItem =>

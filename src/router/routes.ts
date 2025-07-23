@@ -134,6 +134,8 @@ export const routes = {
       'file-manager': '/admin/applications/file-manager',
       'jobs-platform': '/admin/applications/jobs-platform',
       mailbox: '/admin/applications/mailbox',
+      maps: '/admin/applications/maps',
+
       messenger: '/admin/applications/messenger',
       'projects-board': '/admin/applications/projects-board',
       tasks: '/admin/applications/tasks',
