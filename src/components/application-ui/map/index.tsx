@@ -193,7 +193,7 @@ const MapboxMap = () => {
       >
         <Map
           initialViewState={{ latitude: 40.72, longitude: -74, zoom: 9 }}
-          mapStyle="mapbox://styles/mapbox/streets-v12"
+          mapStyle="mapbox://styles/mapbox/light-v10"
           mapboxAccessToken={MAPBOX_TOKEN}
           style={{ width: '100%', height: '100%' }}
           optimizeForTerrain
