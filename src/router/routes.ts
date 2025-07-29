@@ -158,6 +158,9 @@ export const routes = {
         listing: '/admin/management/ads',
         create: '/admin/management/promos/create',
       },
+        promotors:{
+        listing: '/admin/management/promotors',
+      },
       sweepstakes: {
         listing: '/admin/management/sweepstakes',
         create: '/admin/management/sweepstakes/create',

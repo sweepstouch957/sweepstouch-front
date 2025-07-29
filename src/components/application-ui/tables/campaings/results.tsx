@@ -254,13 +254,13 @@ const Results: FC<ResultsProps> = ({
                           <Avatar
                             sx={{ mr: 1, width: 38, height: 38, cursor: 'pointer' }}
                             src={campaign.store?.image}
-                            onClick={() => handleStoreRedirect(campaign.store?.id || '')}
+                            onClick={() => handleStoreRedirect(campaign.store?._id || '')}
                           />
                           <Typography
                             variant="h6"
                             fontWeight={500}
                             sx={{ cursor: 'pointer' }}
-                            onClick={() => handleStoreRedirect(campaign.store?.id || '')}
+                            onClick={() => handleStoreRedirect(campaign.store?._id || '')}
                           >
                             {campaign.store?.name}
                           </Typography>
