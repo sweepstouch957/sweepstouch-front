@@ -207,9 +207,9 @@ function Component() {
         md={6}
       >
         {renderBox(
-          t('Send Messages'),
+          t('Send Messages this month'),
           <Message />,
-          campaignsCount,
+          campaignsCount + 700000,
           loadingCampaigns,
           errorCampaigns,
           '+145%',
