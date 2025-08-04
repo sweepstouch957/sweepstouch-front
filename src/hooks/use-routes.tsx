@@ -1,5 +1,12 @@
 import type { UserRole } from '@/contexts/auth/user';
-import { AdsClickOutlined, Announcement, Campaign, Person2Outlined, Redeem, Store } from '@mui/icons-material';
+import {
+  AdsClickOutlined,
+  Announcement,
+  Campaign,
+  Person2Outlined,
+  Redeem,
+  Store,
+} from '@mui/icons-material';
 import AppsRoundedIcon from '@mui/icons-material/AppsRounded';
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
@@ -27,7 +34,6 @@ const applicationsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Calendar'), route: routes.admin.applications.calendar },
     { title: t('File manager'), route: routes.admin.applications['file-manager'] },
     { title: t('Messenger'), route: routes.admin.applications.messenger },
-
   ]);
 
 const usersMenu = (t: (token: string) => string): MenuItem =>
@@ -44,8 +50,18 @@ const campaignsMenu = (t: (token: string) => string): MenuItem =>
     routes.admin.management.campaings.listing
   );
 
- const promotorsMenu = (t: (token: string) => string): MenuItem =>
-  buildMenu(t('Promotors'), <Person2Outlined />, [], routes.admin.management.promotors.listing);
+const promotorsMenu = (t: (token: string) => string): MenuItem =>
+  buildMenu(
+    t('Impulsadoras'),
+    <Person2Outlined />,
+    [
+      { title: t('Promotoras'), route: routes.admin.management.promotors.listing },
+
+      { title: t('Turnos'), route: routes.admin.management.promotors.turnos },
+      { title: t('Solicitudes'), route: routes.admin.management.promotors.solicitudes },
+    ],
+    routes.admin.management.promotors.listing
+  );
 
 const sweepstakesMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(
@@ -70,10 +86,10 @@ export const useMenuItemsCollapsedShells = (
   const general: MenuItem[] = [dashboardsMenu(t), applicationsMenu(t)];
 
   const roleMenus: Record<UserRole, MenuItem[]> = {
-    admin: [addsMenu(t), promotorsMenu(t),campaignsMenu(t), sweepstakesMenu(t), storesMenu(t)],
+    admin: [addsMenu(t), promotorsMenu(t), campaignsMenu(t), sweepstakesMenu(t), storesMenu(t)],
     general_manager: [campaignsMenu(t), promotorsMenu(t), storesMenu(t)],
     promotor_manager: [sweepstakesMenu(t), promotorsMenu(t)],
-    campaign_manager: [campaignsMenu(t) ],
+    campaign_manager: [campaignsMenu(t)],
     cashier: [],
     merchant: [],
     promotor: [],

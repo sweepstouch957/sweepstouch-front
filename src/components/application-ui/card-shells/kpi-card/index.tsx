@@ -24,7 +24,7 @@ const KpiCard = ({ icon, label, value }: KpiCardProps) => {
         borderRadius: 4,
         boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.05)',
         textAlign: 'center',
-        width: { xs: '100%', sm: 'calc(50% - 16px)', md: 'calc(25% - 16px)' },
+        width: { xs: '100%'},
       }}
     >
       <Box
@@ -33,7 +33,7 @@ const KpiCard = ({ icon, label, value }: KpiCardProps) => {
           width: 40,
           height: 40,
           borderRadius: '50%',
-          backgroundColor: theme.palette.grey[100],
+          backgroundColor: theme.palette.grey[50],
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

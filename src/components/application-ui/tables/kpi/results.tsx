@@ -1,14 +1,13 @@
-// components/PromoterTable.tsx
 'use client';
 
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import {
-  alpha,
   Avatar,
   Box,
   Chip,
+  CircularProgress,
   InputAdornment,
   Paper,
   Stack,
@@ -22,63 +21,36 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useState } from 'react';
+import { useMemo } from 'react';
 
-const allPromoters = [
-  {
-    name: 'Valentina Ramírez',
-    location: 'Brooklyn, NY',
-    email: 'maria.gonzalez@email.com',
-    phone: '+1 (555) 123-4567',
-    status: 'Activa',
-    shifts: 45,
-    registrations: 2850,
-    rating: 4.9,
-    earnings: '$3,375',
-  },
-  {
-    name: 'Maria Camila Leon',
-    location: 'Brooklyn, NY',
-    email: 'maria.gonzalez@email.com',
-    phone: '+1 (555) 123-4567',
-    status: 'Activa',
-    shifts: 38,
-    registrations: 2420,
-    rating: 4.8,
-    earnings: '$2,850',
-  },
-  {
-    name: 'Maria Manga',
-    location: 'Brooklyn, NY',
-    email: 'maria.gonzalez@email.com',
-    phone: '+1 (555) 123-4567',
-    status: 'Activa',
-    shifts: 31,
-    registrations: 1540,
-    rating: 4.7,
-    earnings: '$1,650',
-  },
-  {
-    name: 'Wendy Toala',
-    location: 'Brooklyn, NY',
-    email: 'maria.gonzalez@email.com',
-    phone: '+1 (555) 123-4567',
-    status: 'Inactiva',
-    shifts: 22,
-    registrations: 1980,
-    rating: 4.6,
-    earnings: '$1,350',
-  },
-];
-
-const PromoterTable = () => {
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(2);
-  const [search, setSearch] = useState('');
-
-  const filteredPromoters = allPromoters.filter((p) =>
-    `${p.name} ${p.email}`.toLowerCase().includes(search.toLowerCase())
-  );
+const PromoterTable = ({
+  promoters,
+  isLoading,
+  isError,
+  refetch,
+  search,
+  setSearch,
+  page,
+  setPage,
+  rowsPerPage,
+  setRowsPerPage,
+}: {
+  promoters: any[];
+  isLoading: boolean;
+  isError: boolean;
+  refetch: () => void;
+  search: string;
+  setSearch: (value: string) => void;
+  page: number;
+  setPage: (value: number) => void;
+  rowsPerPage: number;
+  setRowsPerPage: (value: number) => void;
+}) => {
+  const filteredPromoters = useMemo(() => {
+    return promoters.filter((p) =>
+      `${p.firstName} ${p.lastName} ${p.email}`.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [search, promoters]);
 
   const handleChangePage = (_: unknown, newPage: number) => setPage(newPage);
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,41 +58,66 @@ const PromoterTable = () => {
     setPage(0);
   };
 
+  if (isLoading) {
+    return (
+      <Stack
+        alignItems="center"
+        py={4}
+      >
+        <CircularProgress />
+      </Stack>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Typography
+        color="error"
+        textAlign="center"
+        py={4}
+      >
+        Error al cargar las impulsadoras.
+      </Typography>
+    );
+  }
+
   return (
     <Box>
-      <TextField
-        placeholder="Buscar por nombre o email"
-        size="small"
-        variant="outlined"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchOutlinedIcon color="disabled" />
-            </InputAdornment>
-          ),
-        }}
-        sx={{
-          mb: 2,
-          backgroundColor: (theme) => alpha(theme.palette.grey[100], 0.7),
-          borderRadius: 10,
-          '& fieldset': {
-            border: 'none',
-          },
-          input: {
-            px: 0.5,
-          },
-        }}
-      />
-
-      <Typography
-        variant="h6"
-        fontWeight={700}
-        gutterBottom
+      <Stack
+        spacing={2}
+        direction={{ xs: 'column', sm: 'row' }}
+        justifyContent="space-between"
+        alignItems="center"
+        sx={{ mb: 2 }}
       >
-        Lista de Impulsadoras ({filteredPromoters.length})
-      </Typography>
+        <Typography
+          variant="h6"
+          fontWeight={700}
+        >
+          Lista de Impulsadoras ({filteredPromoters.length})
+        </Typography>
+
+        <TextField
+          placeholder="Buscar por nombre o email"
+          size="small"
+          variant="outlined"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchOutlinedIcon color="disabled" />
+              </InputAdornment>
+            ),
+          }}
+          sx={{
+            backgroundColor: (theme) => theme.palette.grey[100],
+            borderRadius: 10,
+            '& fieldset': { border: 'none' },
+            input: { px: 0.5 },
+          }}
+        />
+      </Stack>
 
       <TableContainer
         component={Paper}
@@ -130,7 +127,7 @@ const PromoterTable = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Impulsadoras</TableCell>
+              <TableCell>Impulsadora</TableCell>
               <TableCell>Contacto</TableCell>
               <TableCell>Estado</TableCell>
               <TableCell>Turnos</TableCell>
@@ -142,25 +139,24 @@ const PromoterTable = () => {
           <TableBody>
             {filteredPromoters
               .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-              .map((p, index) => (
-                <TableRow key={index}>
+              .map((p) => (
+                <TableRow key={p._id}>
                   <TableCell>
                     <Stack
                       direction="row"
                       spacing={2}
                       alignItems="center"
                     >
-                      <Avatar
-                        src="/placeholder-profile.png"
-                        alt={p.name}
-                      />
+                      <Avatar src={p?.profileImage || '/placeholder-profile.png'} />
                       <Box>
-                        <Typography fontWeight={600}>{p.name}</Typography>
+                        <Typography fontWeight={600}>
+                          {p.firstName} {p.lastName}
+                        </Typography>
                         <Typography
                           variant="body2"
                           color="text.secondary"
                         >
-                          {p.location}
+                          {p.store?.zipCode || 'N/A'}
                         </Typography>
                       </Box>
                     </Stack>
@@ -187,26 +183,28 @@ const PromoterTable = () => {
                           fontSize="small"
                           color="disabled"
                         />
-                        <Typography variant="body2">{p.phone}</Typography>
+                        <Typography variant="body2">
+                          {p.countryCode} {p.phoneNumber}
+                        </Typography>
                       </Stack>
                     </Stack>
                   </TableCell>
                   <TableCell>
                     <Chip
-                      label={p.status}
-                      color={p.status === 'Activa' ? 'primary' : 'default'}
-                      variant="filled"
+                      label={p.active ? 'Activa' : 'Inactiva'}
+                      color={p.active ? 'primary' : 'default'}
                       sx={{ fontWeight: 600 }}
                     />
                   </TableCell>
-                  <TableCell>{p.shifts}</TableCell>
-                  <TableCell>{p.registrations.toLocaleString()}</TableCell>
-                  <TableCell>{p.rating}</TableCell>
-                  <TableCell>{p.earnings}</TableCell>
+                  <TableCell>{p.totalShifts || 0}</TableCell>
+                  <TableCell>{p.totalRegistrations?.toLocaleString() || 0}</TableCell>
+                  <TableCell>{p.rating?.toFixed(1) || '-'}</TableCell>
+                  <TableCell>${p.totalAccumulatedMoney?.toFixed(2) || '0.00'}</TableCell>
                 </TableRow>
               ))}
           </TableBody>
         </Table>
+
         <TablePagination
           component="div"
           count={filteredPromoters.length}
