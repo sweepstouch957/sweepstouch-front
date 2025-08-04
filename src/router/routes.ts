@@ -158,6 +158,11 @@ export const routes = {
         listing: '/admin/management/ads',
         create: '/admin/management/promos/create',
       },
+        promotors:{
+        listing: '/admin/management/promotors',
+        turnos: '/admin/management/turnos',
+        solicitudes: '/admin/management/solicitudes',
+      },
       sweepstakes: {
         listing: '/admin/management/sweepstakes',
         create: '/admin/management/sweepstakes/create',
