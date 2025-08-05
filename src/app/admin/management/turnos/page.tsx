@@ -18,7 +18,10 @@ const ShiftManagementPage = () => {
   const { data: sweepstakes, isLoading: loadingSweepstakes } = useSweepstakes();
 
   return (
-    <Container maxWidth="xl">
+    <Container
+      maxWidth="xl"
+      sx={{ py: { xs: 2, sm: 3 } }}
+    >
       <PageHeading
         title="Gestión de Turnos"
         description="Programa y administra los turnos de trabajo"

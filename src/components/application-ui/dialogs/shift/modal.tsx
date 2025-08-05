@@ -188,7 +188,13 @@ const NewShiftModal = ({ open, onClose, sweepstakes }: NewShiftModalProps) => {
                 <TimePicker
                   label="Hora de Inicio"
                   value={startTime}
-                  onChange={(newValue) => setStartTime(newValue)}
+                  onChange={(newValue) => {
+                    if (!newValue) return;
+                    setStartTime(newValue);
+                    const end = new Date(newValue);
+                    end.setHours(end.getHours() + 4);
+                    setEndTime(end);
+                  }}
                   slotProps={{ textField: { fullWidth: true, variant: 'outlined' } }}
                 />
               </Grid>
@@ -201,7 +207,7 @@ const NewShiftModal = ({ open, onClose, sweepstakes }: NewShiftModalProps) => {
                 <TimePicker
                   label="Hora de Fin"
                   value={endTime}
-                  onChange={(newValue) => setEndTime(newValue)}
+                  disabled
                   slotProps={{ textField: { fullWidth: true, variant: 'outlined' } }}
                 />
               </Grid>
