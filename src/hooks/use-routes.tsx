@@ -51,17 +51,11 @@ const campaignsMenu = (t: (token: string) => string): MenuItem =>
   );
 
 const promotorsMenu = (t: (token: string) => string): MenuItem =>
-  buildMenu(
-    t('Impulsadoras'),
-    <Person2Outlined />,
-    [
-      { title: t('Promotoras'), route: routes.admin.management.promotors.listing },
-
-      { title: t('Turnos'), route: routes.admin.management.promotors.turnos },
-      { title: t('Solicitudes'), route: routes.admin.management.promotors.solicitudes },
-    ],
-    routes.admin.management.promotors.listing
-  );
+  buildMenu(t('Impulsadoras'), <Person2Outlined />, [
+    { title: t('Promotoras'), route: routes.admin.management.promotors.listing },
+    { title: t('Turnos'), route: routes.admin.management.promotors.turnos },
+    { title: t('Solicitudes'), route: routes.admin.management.promotors.solicitudes },
+  ]);
 
 const sweepstakesMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(

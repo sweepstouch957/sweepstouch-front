@@ -198,7 +198,7 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({ sweepstakes }) 
                       <Box>
                         <LinearProgress
                           variant="determinate"
-                          value={(shift.totalParticipations / 1000) * 100}
+                          value={(shift.totalParticipations / 400) * 100}
                           sx={{
                             height: 8,
                             borderRadius: 4,
@@ -208,7 +208,7 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({ sweepstakes }) 
                             },
                           }}
                         />
-                        <Typography variant="caption">{shift.totalParticipations}/200</Typography>
+                        <Typography variant="caption">{shift.totalParticipations}/400</Typography>
                       </Box>
                     </TableCell>
                     <TableCell>
