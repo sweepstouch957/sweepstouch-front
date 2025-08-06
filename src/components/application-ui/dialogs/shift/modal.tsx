@@ -38,9 +38,10 @@ interface NewShiftModalProps {
   open: boolean;
   onClose: () => void;
   sweepstakes: Sweepstake[];
+  shiftId?: string | null;
 }
 
-const NewShiftModal = ({ open, onClose, sweepstakes }: NewShiftModalProps) => {
+const NewShiftModal = ({ open, onClose, sweepstakes, shiftId }: NewShiftModalProps) => {
   const [selectedSweepstake, setSelectedSweepstake] = useState<Sweepstake | null>(null);
   const [selectedStore, setSelectedStore] = useState<StoreOption | null>(null);
   const [date, setDate] = useState<Date | null>(new Date());
@@ -62,6 +63,12 @@ const NewShiftModal = ({ open, onClose, sweepstakes }: NewShiftModalProps) => {
     staleTime: 1000 * 60 * 5,
   });
 
+  const { data: existingShift, isLoading: loadingShift } = useQuery({
+    queryKey: ['shift-by-id', shiftId],
+    queryFn: () => (shiftId ? shiftService.getShiftById(shiftId) : null),
+    enabled: !!shiftId,
+  });
+
   const { mutate: saveShift, isPending: saving } = useMutation({
     mutationFn: async () => {
       const payload: any = {
@@ -72,17 +79,52 @@ const NewShiftModal = ({ open, onClose, sweepstakes }: NewShiftModalProps) => {
         storeId: selectedStore?._id,
         sweepstakeId: selectedSweepstake?.id,
       };
-      return shiftService.createShift(payload);
+
+      if (shiftId) {
+        return shiftService.updateShift(shiftId, payload);
+      } else {
+        return shiftService.createShift(payload);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shifts'] });
-      setSnackbar({ open: true, message: 'Turno creado exitosamente', severity: 'success' });
+      setSnackbar({
+        open: true,
+        message: shiftId ? 'Turno actualizado' : 'Turno creado exitosamente',
+        severity: 'success',
+      });
       onClose();
     },
     onError: () => {
-      setSnackbar({ open: true, message: 'Error al crear turno', severity: 'error' });
+      setSnackbar({
+        open: true,
+        message: 'Error al guardar turno',
+        severity: 'error',
+      });
     },
   });
+
+  useEffect(() => {
+    if (existingShift?.shift) {
+      const shift = existingShift.shift;
+      setDate(new Date(shift.date));
+      setStartTime(new Date(shift.startTime));
+      setEndTime(new Date(shift.endTime));
+      setNotes(shift.notes || '');
+      setSelectedStore(shift.storeInfo || null);
+      setSelectedSweepstake(sweepstakes.find((s) => s.id === shift.sweepstakeId) || null);
+    } else {
+      // 🧼 Resetear estados si no hay shift (modo creación)
+      setDate(new Date());
+      setStartTime(new Date());
+      const end = new Date();
+      end.setHours(end.getHours() + 4);
+      setEndTime(end);
+      setNotes('');
+      setSelectedStore(null);
+      setSelectedSweepstake(null);
+    }
+  }, [existingShift, sweepstakes]);
 
   return (
     <>

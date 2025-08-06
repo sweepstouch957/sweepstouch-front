@@ -24,10 +24,21 @@ import {
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import Image from 'next/image';
-import { useState } from 'react';
+import { FC, useState } from 'react';
 import ShiftPreviewModal from '../../dialogs/shift-preview';
+import DeleteShiftDialog from '../../dialogs/shift/delete';
+import NewShiftModal from '../../dialogs/shift/modal';
 
-const ShiftTableWithActions = () => {
+interface Sweepstake {
+  id: string;
+  name: string;
+}
+
+interface ShiftTableWithActionsProps {
+  sweepstakes: Sweepstake[];
+}
+
+const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({ sweepstakes }) => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const theme = useTheme();
@@ -41,6 +52,8 @@ const ShiftTableWithActions = () => {
       }),
   });
   const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+
   const [modalOpen, setModalOpen] = useState(false);
   const shifts = data?.shifts || [];
   const pagination = data?.pagination || { page: 1, pages: 1, total: 0 };
@@ -208,23 +221,54 @@ const ShiftTableWithActions = () => {
                         spacing={1}
                         justifyContent="center"
                       >
+                        {/* Ver siempre */}
                         <IconButton
                           color="primary"
                           onClick={() => {
-                            console.log('log');
-
                             setSelectedShiftId(shift._id);
                             setModalOpen(true);
                           }}
                         >
                           <Visibility fontSize="small" />
                         </IconButton>
-                        <IconButton color="secondary">
-                          <Edit fontSize="small" />
-                        </IconButton>
-                        <IconButton color="error">
-                          <Delete fontSize="small" />
-                        </IconButton>
+
+                        {/* Editar solo si está activo */}
+                        {shift.status === 'active' && (
+                          <IconButton
+                            color="secondary"
+                            onClick={() => {
+                              setSelectedShiftId(shift._id);
+                              setModalOpen(true);
+                            }}
+                          >
+                            <Edit fontSize="small" />
+                          </IconButton>
+                        )}
+
+                        {/* Editar + Eliminar si NO está activo ni completado */}
+                        {!['active', 'completed'].includes(shift.status) && (
+                          <>
+                            <IconButton
+                              color="secondary"
+                              onClick={() => {
+                                setSelectedShiftId(shift._id);
+                                setModalOpen(true);
+                              }}
+                            >
+                              <Edit fontSize="small" />
+                            </IconButton>
+
+                            <IconButton
+                              color="error"
+                              onClick={() => {
+                                setDeleteModalOpen(true);
+                                setSelectedShiftId(shift._id);
+                              }}
+                            >
+                              <Delete fontSize="small" />
+                            </IconButton>
+                          </>
+                        )}
                       </Stack>
                     </TableCell>
                   </TableRow>
@@ -250,6 +294,23 @@ const ShiftTableWithActions = () => {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         shiftId={selectedShiftId}
+      />
+      <NewShiftModal
+        open={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedShiftId(null);
+        }}
+        sweepstakes={sweepstakes}
+        shiftId={selectedShiftId}
+      />
+      <DeleteShiftDialog
+        open={deleteModalOpen}
+        shiftId={selectedShiftId}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setSelectedShiftId(null);
+        }}
       />
     </Box>
   );

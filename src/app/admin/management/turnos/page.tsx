@@ -41,7 +41,9 @@ const ShiftManagementPage = () => {
         <KpiCards />
       </Box>
 
-      <Box mt={4}>{isMobile ? <MobileShiftCarousel /> : <ShiftTable />}</Box>
+      <Box mt={4}>
+        {isMobile ? <MobileShiftCarousel /> : <ShiftTable sweepstakes={sweepstakes} />}
+      </Box>
 
       <NewShiftModal
         open={modalOpen}
