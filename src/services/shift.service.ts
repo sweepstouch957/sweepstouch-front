@@ -60,7 +60,7 @@ export class ShiftService {
   }
 
   async getShiftById(id: string): Promise<{ shift: Shift; stats: any }> {
-    const res = await api.get(`/promoter/shifts/${id}`);
+    const res = await api.get(`/promoter/shifts/by-id/${id}`);
     return res.data;
   }
 

@@ -25,6 +25,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import Image from 'next/image';
 import { useState } from 'react';
+import ShiftPreviewModal from '../../dialogs/shift-preview';
 
 const ShiftTableWithActions = () => {
   const [search, setSearch] = useState('');
@@ -39,7 +40,8 @@ const ShiftTableWithActions = () => {
         limit: 4,
       }),
   });
-
+  const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
   const shifts = data?.shifts || [];
   const pagination = data?.pagination || { page: 1, pages: 1, total: 0 };
 
@@ -206,7 +208,15 @@ const ShiftTableWithActions = () => {
                         spacing={1}
                         justifyContent="center"
                       >
-                        <IconButton color="primary">
+                        <IconButton
+                          color="primary"
+                          onClick={() => {
+                            console.log('log');
+
+                            setSelectedShiftId(shift._id);
+                            setModalOpen(true);
+                          }}
+                        >
                           <Visibility fontSize="small" />
                         </IconButton>
                         <IconButton color="secondary">
@@ -236,6 +246,11 @@ const ShiftTableWithActions = () => {
           </Stack>
         </>
       )}
+      <ShiftPreviewModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        shiftId={selectedShiftId}
+      />
     </Box>
   );
 };
