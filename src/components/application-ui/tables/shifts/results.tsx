@@ -53,6 +53,7 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({ sweepstakes }) 
   });
   const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
   const shifts = data?.shifts || [];
@@ -238,7 +239,7 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({ sweepstakes }) 
                             color="secondary"
                             onClick={() => {
                               setSelectedShiftId(shift._id);
-                              setModalOpen(true);
+                              setEditModalOpen(true);
                             }}
                           >
                             <Edit fontSize="small" />
@@ -252,7 +253,7 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({ sweepstakes }) 
                               color="secondary"
                               onClick={() => {
                                 setSelectedShiftId(shift._id);
-                                setModalOpen(true);
+                                setEditModalOpen(true);
                               }}
                             >
                               <Edit fontSize="small" />
@@ -296,7 +297,7 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({ sweepstakes }) 
         shiftId={selectedShiftId}
       />
       <NewShiftModal
-        open={modalOpen}
+        open={editModalOpen}
         onClose={() => {
           setModalOpen(false);
           setSelectedShiftId(null);

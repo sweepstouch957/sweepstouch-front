@@ -69,7 +69,7 @@ const StoreManagementPage = () => {
     };
 
     const goToCreateCampaign = () => {
-      router.push(`/admin/management/stores/edit/${storeId}?tag=campaigns&action=create`);
+      window.open(`/admin/management/stores/edit/${storeId}?tag=campaigns&action=create`, '_blank');
     };
 
     return (
