@@ -47,7 +47,6 @@ const campaignsMenu = (t: (token: string) => string): MenuItem =>
     t('Campaigns'),
     <Campaign />,
     [{ title: t('Listing'), route: routes.admin.management.campaings.listing }],
-    routes.admin.management.campaings.listing
   );
 
 const promotorsMenu = (t: (token: string) => string): MenuItem =>
