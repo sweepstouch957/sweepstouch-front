@@ -23,6 +23,7 @@ interface CampaignFormContainerProps {
   phoneNumber: string;
   totalAudience: number;
   initialData?: any;
+  onCreate: () => void;
 }
 
 export default function CampaignFormContainer({
@@ -31,12 +32,12 @@ export default function CampaignFormContainer({
   phoneNumber,
   totalAudience,
   initialData,
+  onCreate,
 }: CampaignFormContainerProps) {
   const [successOpen, setSuccessOpen] = useState(false);
   const [errorOpen, setErrorOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [formData, setFormData] = useState<any>(null);
-  const router = useRouter();
 
   const isEditing = !!initialData;
 
@@ -78,7 +79,7 @@ export default function CampaignFormContainer({
       setFormData(null);
 
       setTimeout(() => {
-        router.back();
+        onCreate()
       }, 500);
     },
     onError: () => {

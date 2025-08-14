@@ -62,12 +62,10 @@ const StoreManagementPage = () => {
   const handleDrawerToggle = () => {
     dispatch(sidebarOpen ? closeSidebar() : openSidebar());
   };
-
+  const handleBack = () => {
+    router.push(`/admin/management/stores/edit/${storeId}?tag=campaigns`);
+  };
   const renderHeader = () => {
-    const handleBack = () => {
-      router.push(`/admin/management/stores/edit/${storeId}?tag=campaigns`);
-    };
-
     const goToCreateCampaign = () => {
       window.open(`/admin/management/stores/edit/${storeId}?tag=campaigns&action=create`, '_blank');
     };
@@ -172,6 +170,7 @@ const StoreManagementPage = () => {
               phoneNumber={store.bandwidthPhoneNumber || ''}
               totalAudience={store.customerCount || 0}
               storeId={storeId}
+              onCreate={handleBack}
             />
           </Box>
         );
