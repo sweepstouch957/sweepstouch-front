@@ -33,6 +33,7 @@ const PageHeading: React.FC<PageHeadingProps> = ({
         alignItems="center"
         justifyContent="space-between"
         width="100%"
+        mt={2}
       >
         <Stack
           direction={{ xs: 'column', md: 'row' }}

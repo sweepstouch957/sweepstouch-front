@@ -20,7 +20,7 @@ const ShiftManagementPage = () => {
   return (
     <Container
       maxWidth="xl"
-      sx={{ py: { xs: 2, sm: 3 } }}
+      sx={{ py: { xs: 2, sm: 4 } }}
     >
       <PageHeading
         title="Gestión de Turnos"

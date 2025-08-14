@@ -169,7 +169,7 @@ const StoreManagementPage = () => {
           >
             <CreateCampaignContainer
               provider={store.provider}
-              phoneNumber={store.twilioPhoneNumber || store.bandwidthPhoneNumber || ''}
+              phoneNumber={store.bandwidthPhoneNumber || ''}
               totalAudience={store.customerCount || 0}
               storeId={storeId}
             />

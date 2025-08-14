@@ -40,14 +40,11 @@ export default function CampaignFormContainer({
 
   const isEditing = !!initialData;
 
-
   const mutation = useMutation({
     mutationFn: async (data: any) => {
       try {
         const hasImage = data.image && data.image.length > 0;
         let uploadedImage = null;
-
-        // Solo sube si no es una URL existente
         if (
           hasImage &&
           typeof data.image[0] === 'object' &&
@@ -61,6 +58,8 @@ export default function CampaignFormContainer({
           image: initialData?.image || uploadedImage?.url || data.imageUrl || null,
           imagePublicId: uploadedImage?.public_id || data.imagePublicId || null,
           customAudience: totalAudience,
+          platform: provider || '',
+          sourceTn: phoneNumber || '',
         };
 
         const response = isEditing
