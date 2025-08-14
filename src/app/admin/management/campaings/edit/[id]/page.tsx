@@ -5,10 +5,11 @@ import { campaignClient } from '@/services/campaing.service';
 import storesService from '@/services/store.service';
 import { Box, CircularProgress, Container, Skeleton, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { useParams } from 'next/navigation';
+import { useParams,useRouter } from 'next/navigation';
 
 export default function EditCampaignPage() {
   const params = useParams();
+  const router= useRouter()
   const campaignId = params?.id;
 
   // 1. Traer la campaña por ID
@@ -102,6 +103,9 @@ export default function EditCampaignPage() {
         phoneNumber={store.twilioPhoneNumber || store.bandwidthPhoneNumber || ''}
         totalAudience={store.customerCount}
         initialData={campaign}
+        onCreate={()=>{
+            router.back()
+        }}
       />
     </Container>
   );

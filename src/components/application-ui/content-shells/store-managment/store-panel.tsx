@@ -1,6 +1,5 @@
 'use client';
 
-import { useCustomerCountByStore } from '@/hooks/fetching/customers/useCustomerByStoreId';
 import { useStoreById } from '@/hooks/fetching/stores/useStoreById';
 import { closeSidebar, openSidebar, setActiveSection, setTags } from '@/slices/store_managment';
 import AddCircleOutlineRoundedIcon from '@mui/icons-material/AddCircleOutlineRounded';
