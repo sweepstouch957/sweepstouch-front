@@ -154,14 +154,17 @@ export const routes = {
         listing: '/admin/management/campaings',
         create: '/admin/management/campaings/create',
       },
-      promos:{
+      promos: {
         listing: '/admin/management/ads',
         create: '/admin/management/promos/create',
       },
-        promotors:{
+      promotors: {
         listing: '/admin/management/promotors',
         turnos: '/admin/management/turnos',
-        solicitudes: '/admin/management/solicitudes',
+        solicitudes: {
+          turnos: '/admin/management/solicitudes/turnos',
+          promotoras: '/admin/management/solicitudes/promotoras',
+        },
       },
       sweepstakes: {
         listing: '/admin/management/sweepstakes',
