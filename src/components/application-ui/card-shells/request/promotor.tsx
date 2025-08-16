@@ -1,6 +1,5 @@
 'use client';
 
-// Ajusta la ruta según donde pusiste tu servicio
 import type { ActivationRequest, ActivationUserSummary } from '@/services/activation.service';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import BadgeIcon from '@mui/icons-material/Badge';
@@ -13,6 +12,7 @@ import MailOutlineIcon from '@mui/icons-material/MailOutline';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import {
+  alpha,
   Avatar,
   Box,
   Button,
@@ -22,11 +22,12 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  IconButton,
   Stack,
+  styled,
   TextField,
   Tooltip,
   Typography,
+  useTheme,
 } from '@mui/material';
 import { format } from 'date-fns';
 import es from 'date-fns/locale/es';
@@ -34,19 +35,19 @@ import { useMemo, useState } from 'react';
 
 type StatusKey = 'pendiente' | 'aprobado' | 'rechazado';
 
-const STATUS_STYLES: Record<StatusKey, { label: string; fg: string; bg: string }> = {
-  pendiente: { label: 'Pendiente', fg: '#8a6d00', bg: '#fff6cf' }, // amber soft
-  aprobado: { label: 'Aprobado', fg: '#1b5e20', bg: '#e6f4ea' }, // green soft
-  rechazado: { label: 'Rechazado', fg: '#7f1d1d', bg: '#fde8e8' }, // red soft
+const STATUS_STYLES: Record<StatusKey, { label: string; fg: string; bg: string; ring: string }> = {
+  pendiente: { label: 'Pendiente', fg: '#8a6d00', bg: '#fff6cf', ring: '#fde68a' },
+  aprobado: { label: 'Aprobado', fg: '#0a5c39', bg: '#e6f4ea', ring: '#b7f0d3' },
+  rechazado: { label: 'Rechazado', fg: '#7f1d1d', bg: '#fde8e8', ring: '#fecaca' },
 };
 
+// -------- Helpers
 function getUserFromRequest(req: ActivationRequest): ActivationUserSummary | null {
   const anyReq: any = req;
   if (anyReq?.userId && typeof anyReq.userId === 'object')
     return anyReq.userId as ActivationUserSummary;
   return null;
 }
-
 function getField<T>(
   req: ActivationRequest,
   picker: (u: ActivationUserSummary | null, p: any) => T
@@ -54,7 +55,6 @@ function getField<T>(
   const u = getUserFromRequest(req);
   return picker(u, req.payload);
 }
-
 function getInitials(name?: string) {
   if (!name) return 'ST';
   const parts = name.trim().split(/\s+/);
@@ -63,12 +63,102 @@ function getInitials(name?: string) {
   return (first + last).toUpperCase() || 'ST';
 }
 
+// -------- Styles
+const SoftCard = styled(Card)(({ theme }) => ({
+  borderRadius: 20,
+  padding: theme.spacing(2.25),
+  background: theme.palette.mode === 'dark' ? alpha('#121212', 0.6) : '#fff',
+  border: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
+  boxShadow: '0 10px 25px rgba(16,24,40,0.06), 0 2px 8px rgba(16,24,40,0.04)',
+  transition: 'transform .2s ease, box-shadow .2s ease',
+  willChange: 'transform',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: '0 14px 30px rgba(16,24,40,0.10), 0 3px 10px rgba(16,24,40,0.06)',
+  },
+}));
+
+const TagChip = styled(Chip)(({ theme }) => ({
+  height: 24,
+  borderRadius: 10,
+  background: alpha(theme.palette.grey[200], 0.5),
+  '& .MuiChip-label': { fontWeight: 700, fontSize: 11, letterSpacing: 0.3 },
+  '& .MuiChip-icon': { fontSize: 18, marginLeft: 4 },
+}));
+
+const StatusPill = styled(Chip)(({ theme }) => ({
+  borderRadius: 999,
+  fontWeight: 700,
+  boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+  '& .MuiChip-label': { paddingInline: 10 },
+}));
+
+// Botones bonitos con gradientes y “pill”
+const PillButton = styled(Button)<{ varianttone?: 'neutral' | 'success' | 'danger' }>(({
+  theme,
+  varianttone = 'neutral',
+}) => {
+  const base = {
+    neutral: {
+      bg: 'linear-gradient(180deg, #ffd9e7 0%, #ffb6d2 100%)',
+      hover: 'linear-gradient(180deg, #ffcae0 0%, #ffa3c6 100%)',
+      active: '#ff8db6',
+      text: '#5b1131',
+      shadow: '0 6px 16px rgba(255, 182, 210, .45)',
+    },
+    success: {
+      bg: 'linear-gradient(180deg, #38ef7d 0%, #00c49a 100%)',
+      hover: 'linear-gradient(180deg, #33e171 0%, #00b18b 100%)',
+      active: '#00a07d',
+      text: '#083d31',
+      shadow: '0 8px 18px rgba(0, 196, 154, .35)',
+    },
+    danger: {
+      bg: 'linear-gradient(180deg, #ff8fa3 0%, #fc5c7d 100%)',
+      hover: 'linear-gradient(180deg, #ff7a92 0%, #f64569 100%)',
+      active: '#e33d5d',
+      text: '#5a0b1a',
+      shadow: '0 8px 18px rgba(252, 92, 125, .35)',
+    },
+  }[varianttone];
+
+  return {
+    borderRadius: 999,
+    textTransform: 'none',
+    fontWeight: 700,
+    letterSpacing: 0.2,
+    paddingInline: 14,
+    fontSize: '14px',
+    height: 36,
+    boxShadow: base.shadow,
+    color: base.text,
+    background: base.bg,
+    transition: 'transform .15s ease, box-shadow .15s ease, filter .15s ease',
+    '&:hover': {
+      background: base.hover,
+      transform: 'translateY(-1px)',
+      boxShadow: base.shadow.replace('18', '22'),
+    },
+    '&:active': {
+      filter: 'saturate(.95)',
+      transform: 'translateY(0)',
+      background: base.active,
+    },
+    '&.Mui-disabled': {
+      filter: 'grayscale(.35)',
+      boxShadow: 'none',
+      opacity: 0.7,
+    },
+    '& .MuiButton-startIcon': { marginRight: 6 },
+  };
+});
+
 interface Props {
   request: ActivationRequest;
   onApprove?: (id: string) => void;
   onReject?: (id: string, reason: string) => void;
   onView?: (id: string) => void;
-  onResendLink?: (userId: string) => void; // útil cuando ya está aprobada
+  onResendLink?: (userId: string) => void;
   approving?: boolean;
   rejecting?: boolean;
 }
@@ -82,8 +172,9 @@ const ActivationRequestCard = ({
   approving,
   rejecting,
 }: Props) => {
+  const theme = useTheme();
   const statusKey = (request.status as StatusKey) || 'pendiente';
-  const status = STATUS_STYLES[statusKey] ?? { label: request.status, fg: '#333', bg: '#eee' };
+  const status = STATUS_STYLES[statusKey];
 
   const [openRejectModal, setOpenRejectModal] = useState(false);
   const [reason, setReason] = useState('');
@@ -116,37 +207,39 @@ const ActivationRequestCard = ({
   };
 
   return (
-    <Card
-      sx={{
-        borderRadius: 4,
-        p: 2.25,
-        backgroundColor: '#fff',
-        border: '1px solid #eee',
-        boxShadow: '0px 6px 16px rgba(0,0,0,0.06)',
-      }}
-    >
+    <SoftCard>
       {/* Header */}
       <Stack
         direction="row"
         justifyContent="space-between"
         alignItems="center"
+        gap={1}
       >
         <Stack
           direction="row"
           spacing={1.5}
           alignItems="center"
+          minWidth={0}
         >
           <Avatar
             src={avatarUrl || undefined}
-            sx={{ bgcolor: '#fc0680', width: 44, height: 44, fontWeight: 700 }}
+            sx={{
+              bgcolor: '#ff0aa2',
+              width: 48,
+              height: 48,
+              fontWeight: 800,
+              boxShadow: '0 6px 14px rgba(255,10,162,.25)',
+            }}
             variant="circular"
           >
             {!avatarUrl ? getInitials(fullName) : null}
           </Avatar>
-          <Box>
+          <Box minWidth={0}>
             <Typography
-              fontWeight={700}
+              fontWeight={800}
               fontSize={16}
+              lineHeight={1.2}
+              noWrap
             >
               {fullName}
             </Typography>
@@ -154,42 +247,28 @@ const ActivationRequestCard = ({
               direction="row"
               spacing={1}
               alignItems="center"
+              flexWrap="wrap"
             >
-              <Chip
-                icon={<BadgeIcon sx={{ fontSize: 18 }} />}
-                label={role?.toUpperCase?.() || 'PROMOTOR'}
-                size="small"
-                sx={{
-                  height: 22,
-                  bgcolor: '#f5f5f5',
-                  '& .MuiChip-label': { fontWeight: 700, fontSize: 11, letterSpacing: 0.4 },
-                }}
+              <TagChip
+                icon={<BadgeIcon />}
+                label={(role?.toUpperCase?.() || 'PROMOTOR') as string}
               />
               {zip && (
-                <Chip
-                  icon={<LocationOnIcon sx={{ fontSize: 18 }} />}
+                <TagChip
+                  icon={<LocationOnIcon />}
                   label={`ZIP ${zip}`}
-                  size="small"
-                  sx={{
-                    height: 22,
-                    bgcolor: '#f5f5f5',
-                    '& .MuiChip-label': { fontWeight: 700, fontSize: 11, letterSpacing: 0.4 },
-                  }}
                 />
               )}
             </Stack>
           </Box>
         </Stack>
 
-        <Chip
+        <StatusPill
           label={status.label}
           sx={{
             bgcolor: status.bg,
             color: status.fg,
-            fontWeight: 700,
-            borderRadius: 2,
-            px: 1,
-            '& .MuiChip-label': { px: 0.5 },
+            border: `1px solid ${alpha(status.ring, 0.9)}`,
           }}
         />
       </Stack>
@@ -198,19 +277,25 @@ const ActivationRequestCard = ({
       <Box mt={2}>
         <Stack
           direction="row"
-          spacing={4}
+          spacing={3}
           flexWrap="wrap"
         >
           <Stack
             direction="row"
             spacing={1}
             alignItems="center"
+            minWidth={0}
           >
             <MailOutlineIcon
               fontSize="small"
-              color="primary"
+              sx={{ color: theme.palette.primary.main }}
             />
-            <Typography fontSize={13}>{email}</Typography>
+            <Typography
+              fontSize={13}
+              sx={{ wordBreak: 'break-all' }}
+            >
+              {email}
+            </Typography>
           </Stack>
           <Stack
             direction="row"
@@ -219,7 +304,7 @@ const ActivationRequestCard = ({
           >
             <PhoneIphoneIcon
               fontSize="small"
-              color="primary"
+              sx={{ color: theme.palette.primary.main }}
             />
             <Typography fontSize={13}>{phone}</Typography>
           </Stack>
@@ -227,7 +312,7 @@ const ActivationRequestCard = ({
 
         <Stack
           direction="row"
-          spacing={4}
+          spacing={3}
           mt={2}
           flexWrap="wrap"
         >
@@ -238,7 +323,7 @@ const ActivationRequestCard = ({
           >
             <CalendarMonthIcon
               fontSize="small"
-              color="primary"
+              sx={{ color: theme.palette.primary.main }}
             />
             <Typography fontSize={13}>Creada: {createdDateLabel}</Typography>
           </Stack>
@@ -249,7 +334,7 @@ const ActivationRequestCard = ({
           >
             <AccessTimeIcon
               fontSize="small"
-              color="primary"
+              sx={{ color: theme.palette.primary.main }}
             />
             <Typography fontSize={13}>{createdTimeLabel}</Typography>
           </Stack>
@@ -271,16 +356,19 @@ const ActivationRequestCard = ({
           )}
         </Stack>
 
-        {/* Comentario admin / último cambio */}
         {!!request?.statusHistory?.length && (
           <Box
             mt={2}
             sx={{
-              backgroundColor: '#f7f7f8',
-              borderRadius: 2,
+              background:
+                theme.palette.mode === 'dark'
+                  ? alpha('#fff', 0.06)
+                  : 'linear-gradient(0deg, #fafafa, #fafafa)',
+              borderRadius: 14,
               px: 2,
               py: 1.25,
               color: '#333',
+              border: `1px dashed ${alpha(theme.palette.divider, 0.6)}`,
             }}
           >
             <Typography
@@ -297,58 +385,57 @@ const ActivationRequestCard = ({
       {/* Actions */}
       <Stack
         direction="row"
-        spacing={1.5}
+        spacing={1}
         mt={2.25}
         alignItems="center"
-        flexWrap="wrap"
+        flexWrap="nowrap" // 👈 evita que se vayan abajo
+        sx={{
+          overflowX: 'auto', // por si el contenedor es más pequeño
+          '& > *': { flexShrink: 0 }, // evita que se aplasten demasiado
+          gap: '4px',
+        }}
       >
-        <Button
-          variant="contained"
+        <PillButton
+          varianttone="neutral"
           startIcon={<VisibilityIcon />}
-          size="small"
-          sx={{ textTransform: 'none', borderRadius: 2, bgcolor: '#ffb6d2' }}
           onClick={() => onView?.(request._id)}
-        >
-          Ver detalles
-        </Button>
+        ></PillButton>
 
-        {statusKey === 'pendiente' && (
+        {request.status === 'pendiente' && (
           <>
-            <Button
-              variant="contained"
+            {' '}
+            <PillButton
+              varianttone="success"
               startIcon={<CheckCircleIcon />}
-              size="small"
-              sx={{ textTransform: 'none', borderRadius: 2, bgcolor: '#00c49a' }}
               onClick={() => onApprove?.(request._id)}
               disabled={approving}
             >
               {approving ? 'Aprobando…' : 'Aprobar'}
-            </Button>
-            <Button
-              variant="contained"
+            </PillButton>
+            <PillButton
+              varianttone="danger"
               startIcon={<CancelIcon />}
-              size="small"
-              sx={{ textTransform: 'none', borderRadius: 2, bgcolor: '#fc5c7d' }}
               onClick={() => setOpenRejectModal(true)}
               disabled={rejecting}
             >
-              Rechazar
-            </Button>
+              {rejecting ? 'Rechazando…' : 'Rechazar'}
+            </PillButton>
           </>
         )}
 
-        {statusKey === 'aprobado' && request?.userId && (
-          <Tooltip title="Reenviar email para crear contraseña">
+        {request.status === 'aprobado' && (
+          <Tooltip title="Reenviar email para crear/establecer contraseña">
             <span>
-              <Button
-                variant="outlined"
+              <PillButton
+                varianttone="neutral"
                 startIcon={<ForwardToInboxIcon />}
-                size="small"
-                sx={{ textTransform: 'none', borderRadius: 2 }}
-                onClick={() => onResendLink?.((request.userId as any)?._id)}
+                onClick={() => {
+                  const userId: any = request.userId;
+                  onResendLink?.(userId?._id?.toString());
+                }}
               >
-                Reenviar link
-              </Button>
+                {'Reenviar correo'}
+              </PillButton>
             </span>
           </Tooltip>
         )}
@@ -386,7 +473,7 @@ const ActivationRequestCard = ({
           </Button>
         </DialogActions>
       </Dialog>
-    </Card>
+    </SoftCard>
   );
 };
 

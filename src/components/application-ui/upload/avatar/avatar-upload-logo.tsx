@@ -39,7 +39,7 @@ const AvatarUploadLogo = ({
 
   const { getRootProps, getInputProps } = useDropzone({
     onDrop,
-    accept: { 'image/*': ['.jpeg', '.jpg', '.png'] } as DropzoneOptions['accept'],
+    accept: { 'image/*': ['.jpeg', '.jpg', '.png', ".mp4"] } as DropzoneOptions['accept'],
     maxFiles: 1,
   });
 

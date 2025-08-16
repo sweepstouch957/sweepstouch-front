@@ -28,6 +28,7 @@ import { PromoDashboard } from '../../tables/promos/panel';
 import CampaignsPanel from './panel/campaigns/campaign-panel';
 import CreateCampaignContainer from './panel/campaigns/createCampaignContainer';
 import { StoreSidebar } from './store-sidebar';
+import StoreInfo from '@/components/website/store-panel';
 
 const StoreManagementPage = () => {
   const dispatch = useDispatch();
@@ -204,16 +205,7 @@ const StoreManagementPage = () => {
       case 'general-info':
         return (
           <Box p={3}>
-            <Typography
-              variant="h5"
-              gutterBottom
-            >
-              Información General
-            </Typography>
-            <Typography>Dirección: {store.address}</Typography>
-            <Typography>Código Postal: {store.zipCode}</Typography>
-            <Typography>Teléfono: {store.phoneNumber || 'No disponible'}</Typography>
-            <Typography>Kiosko: https://kiosko.sweepstouch.com/?slug={store.slug}</Typography>
+            <StoreInfo store={store} />
           </Box>
         );
       case 'sweepstakes':
