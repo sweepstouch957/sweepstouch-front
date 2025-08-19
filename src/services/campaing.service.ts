@@ -20,9 +20,15 @@ class CampaignClient {
     return res.data;
   }
 
-  async getCampaignsCount(): Promise<number> {
-    const res = await api.get(`/campaigns/messages/sent/total`);
-    return res.data.totalSent;
+  async getCampaignsCount(month?: number, year?: number): Promise<number> {
+    const now = new Date();
+    const m = month ?? now.getMonth() + 1; // 1..12
+    const y = year ?? now.getFullYear();
+
+    const res = await api.get('/campaigns/total-sent-by-month', {
+      params: { month: m, year: y },
+    });
+    return res.data.totalSent ?? 0;
   }
 
   async getFilteredCampaigns({

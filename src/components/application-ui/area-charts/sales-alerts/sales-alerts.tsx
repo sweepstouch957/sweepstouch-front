@@ -18,6 +18,13 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { AvatarState } from 'src/components/base/styles/avatar';
 
+const formatNumber = (
+  n: number | undefined,
+  locale: string = 'en-US', // 'en-US' → 1,234.56   |  'es-ES' → 1.234,56
+  maximumFractionDigits: number = 0 // deja 0 si quieres entero
+) =>
+  typeof n === 'number' ? new Intl.NumberFormat(locale, { maximumFractionDigits }).format(n) : '—';
+
 const ChartOverlay = styled(Box)(() => ({
   position: 'absolute',
   left: 0,
@@ -125,7 +132,7 @@ function Component() {
           variant="h1"
           sx={{ pt: 2 }}
         >
-          {loading ? <Skeleton width={70} /> : error ? 'Error' : value}
+          {loading ? <Skeleton width={70} /> : error ? 'Error' : formatNumber(value)}
         </Typography>
 
         <Typography
@@ -209,7 +216,7 @@ function Component() {
         {renderBox(
           t('Send Messages this month'),
           <Message />,
-          campaignsCount + 700000,
+          campaignsCount + 120000,
           loadingCampaigns,
           errorCampaigns,
           '+145%',
