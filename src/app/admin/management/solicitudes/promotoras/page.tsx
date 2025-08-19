@@ -10,21 +10,27 @@ import BadgeIcon from '@mui/icons-material/Badge';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
 import {
   Avatar,
   Box,
+  Button,
   Chip,
   CircularProgress,
   Container,
   Dialog,
+  DialogActions,
   DialogContent,
   DialogTitle,
   Divider,
+  IconButton,
   Snackbar,
   Stack,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import MuiAlert from '@mui/material/Alert';
@@ -45,6 +51,17 @@ const ActivationRequestsPage = () => {
   const [viewOpen, setViewOpen] = useState(false);
   const [viewItem, setViewItem] = useState<ActivationRequest | null>(null);
 
+  // Modal de Aprobación con contraseña temporal
+  const [approvedModal, setApprovedModal] = useState<{
+    open: boolean;
+    tempPassword: string;
+    item: ActivationRequest | null;
+  }>({ open: false, tempPassword: '', item: null });
+
+  // Guardar referencia del aprobado para mostrar datos aunque se invalide la query
+  const [lastApprovedId, setLastApprovedId] = useState<string | null>(null);
+  const [lastApprovedItem, setLastApprovedItem] = useState<ActivationRequest | null>(null);
+
   // Fetch
   const { data, isLoading } = useQuery({
     queryKey: ['activationRequests'],
@@ -64,9 +81,28 @@ const ActivationRequestsPage = () => {
   // Mutations
   const approveMutation = useMutation({
     mutationFn: (id: string) => activationService.approveActivationRequest(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['activationRequests'] });
+    onSuccess: (res: any, id) => {
       setSnackbar({ open: true, message: 'Solicitud aprobada con éxito.', severity: 'success' });
+
+      // Password con fallbacks defensivos
+      const temp =
+        res?.data?.previewTempPassword ??
+        res?.data?.tempPassword ??
+        res?.previewTempPassword ??
+        res?.tempPassword ??
+        res?.data?.previewSetPasswordLink ?? // por si venía con otro nombre
+        '';
+
+
+      // Item aprobado desde el snapshot guardado; si falta, intenta buscar por id
+      const targetId = id || lastApprovedId;
+      const item = lastApprovedItem || requests.find((r) => r._id === targetId) || null;
+
+      // Abrir modal con credenciales y datos
+      setApprovedModal({ open: true, tempPassword: temp, item });
+
+      // Luego invalidar lista
+      queryClient.invalidateQueries({ queryKey: ['activationRequests'] });
     },
     onError: (err: any) => {
       setSnackbar({
@@ -108,14 +144,67 @@ const ActivationRequestsPage = () => {
   });
 
   // Handlers
-  const handleApprove = (id: string) => approveMutation.mutate(id);
+  const handleApprove = (id: string) => {
+    setLastApprovedId(id);
+    const item = requests.find((r) => r._id === id) || null; // snapshot para el modal
+    setLastApprovedItem(item);
+    approveMutation.mutate(id);
+  };
+
   const handleReject = (id: string, reason: string) => rejectMutation.mutate({ id, reason });
+
   const handleView = (id: string) => {
     const item = requests.find((r) => r._id === id) || null;
     setViewItem(item);
     setViewOpen(true);
   };
+
   const handleResendLink = (userId: string) => resendLinkMutation.mutate(userId);
+
+  // Helpers (datos para el modal aprobado)
+  const approvedUserName = (() => {
+    const it = approvedModal.item as any;
+    const fn =
+      (it?.userId && typeof it.userId === 'object' && it.userId.firstName) ||
+      it?.payload?.firstName ||
+      '';
+    const ln =
+      (it?.userId && typeof it.userId === 'object' && it.userId.lastName) ||
+      it?.payload?.lastName ||
+      '';
+    return [fn, ln].filter(Boolean).join(' ');
+  })();
+
+  const approvedEmail = (() => {
+    const it = approvedModal.item as any;
+    return (
+      (it?.userId && typeof it.userId === 'object' && it.userId.email) || it?.payload?.email || ''
+    );
+  })();
+
+  const approvedPhone = (() => {
+    const it = approvedModal.item as any;
+    return (
+      (it?.userId && typeof it.userId === 'object' && it.userId.phoneNumber) ||
+      it?.payload?.phoneNumber ||
+      ''
+    );
+  })();
+
+  // Copiar al portapapeles
+  const copyText = async (text?: string, label = 'Texto') => {
+    try {
+      if (!text) return;
+      await navigator.clipboard.writeText(text);
+      setSnackbar({ open: true, message: `${label} copiado al portapapeles.`, severity: 'info' });
+    } catch {
+      setSnackbar({
+        open: true,
+        message: `No se pudo copiar el ${label.toLowerCase()}.`,
+        severity: 'error',
+      });
+    }
+  };
 
   return (
     <Container maxWidth="xl">
@@ -203,7 +292,7 @@ const ActivationRequestsPage = () => {
         <DialogContent dividers>
           {viewItem ? (
             <Box>
-              {/* Header con avatar + nombre + estado */}
+              {/* Header */}
               <Stack
                 direction="row"
                 spacing={2}
@@ -252,7 +341,7 @@ const ActivationRequestsPage = () => {
 
               <Divider sx={{ my: 2 }} />
 
-              {/* Datos de contacto */}
+              {/* Datos */}
               <Stack spacing={1.5}>
                 <Stack
                   direction="row"
@@ -365,6 +454,130 @@ const ActivationRequestsPage = () => {
             <Typography>Sin datos</Typography>
           )}
         </DialogContent>
+      </Dialog>
+
+      {/* Modal de Aprobación (credenciales) */}
+      <Dialog
+        open={approvedModal.open}
+        onClose={() => setApprovedModal((s) => ({ ...s, open: false }))}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <CheckCircleIcon color="success" />
+          Solicitud aprobada
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography sx={{ mb: 1.5 }}>
+            Se enviaron usuario y contraseña temporal por correo.
+          </Typography>
+
+          {/* Info de promotora */}
+          <Stack
+            direction="row"
+            spacing={2}
+            alignItems="center"
+            sx={{ mb: 2 }}
+          >
+            <Avatar
+              src={
+                (approvedModal.item &&
+                  typeof approvedModal.item.userId === 'object' &&
+                  (approvedModal.item.userId as any)?.avatarUrl) ||
+                (approvedModal.item as any)?.payload?.avatarUrl ||
+                undefined
+              }
+              sx={{ width: 52, height: 52, bgcolor: '#fc0680', fontWeight: 700 }}
+            />
+            <Box>
+              <Typography fontWeight={700}>{approvedUserName || 'Promotora'}</Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+              >
+                {approvedEmail || '—'} {approvedPhone ? `• ${approvedPhone}` : ''}
+              </Typography>
+            </Box>
+          </Stack>
+
+          {/* Credenciales */}
+          <Box
+            sx={{
+              backgroundColor: '#f7f7f8',
+              borderRadius: 2,
+              p: 2,
+              border: '1px solid #eee',
+              mb: 2,
+            }}
+          >
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={1}
+              sx={{ mb: 0.75 }}
+            >
+              <Typography fontSize={14}>
+                <strong>Usuario:</strong>{' '}
+                <Box
+                  component="span"
+                  sx={{ wordBreak: 'break-all' }}
+                >
+                  {approvedEmail || '—'}
+                </Box>
+              </Typography>
+              {approvedEmail && (
+                <Tooltip title="Copiar usuario">
+                  <IconButton
+                    size="small"
+                    onClick={() => copyText(approvedEmail, 'Usuario')}
+                  >
+                    <ContentCopyIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Stack>
+
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={1}
+            >
+              <Typography fontSize={14}>
+                <strong>Contraseña temporal:</strong>{' '}
+                <Box
+                  component="span"
+                  sx={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}
+                >
+                  {approvedModal.tempPassword || '—'}
+                </Box>
+              </Typography>
+              {approvedModal.tempPassword && (
+                <Tooltip title="Copiar contraseña">
+                  <IconButton
+                    size="small"
+                    onClick={() => copyText(approvedModal.tempPassword, 'Contraseña')}
+                  >
+                    <ContentCopyIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Stack>
+          </Box>
+
+          {/* CTA a la plataforma */}
+          <Button
+            variant="contained"
+            endIcon={<OpenInNewIcon />}
+            href="https://work.sweepstouch.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Ir a la plataforma
+          </Button>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setApprovedModal((s) => ({ ...s, open: false }))}>Cerrar</Button>
+        </DialogActions>
       </Dialog>
 
       {/* Snackbar */}
