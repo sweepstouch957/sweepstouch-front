@@ -27,21 +27,31 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  FormControl,
   IconButton,
+  InputLabel,
+  MenuItem,
+  Pagination,
+  Select,
   Snackbar,
   Stack,
   Tooltip,
   Typography,
+  useTheme,
 } from '@mui/material';
 import MuiAlert from '@mui/material/Alert';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import es from 'date-fns/locale/es';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+
+const PAGE_SIZE_OPTIONS = [6, 9, 12, 24];
 
 const ActivationRequestsPage = () => {
+  const theme = useTheme();
   const queryClient = useQueryClient();
 
+  // UI state
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
@@ -62,21 +72,33 @@ const ActivationRequestsPage = () => {
   const [lastApprovedId, setLastApprovedId] = useState<string | null>(null);
   const [lastApprovedItem, setLastApprovedItem] = useState<ActivationRequest | null>(null);
 
-  // Fetch
-  const { data, isLoading } = useQuery({
-    queryKey: ['activationRequests'],
-    queryFn: () => activationService.getActivationRequests(),
+  // 🔢 Paginación
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(PAGE_SIZE_OPTIONS[1]); // 9 por defecto
+
+  // Fetch con paginación
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: ['activationRequests', { page, limit: rowsPerPage }],
+    queryFn: () => activationService.getActivationRequests({ page, limit: rowsPerPage }),
   });
 
   const requests: ActivationRequest[] = data?.data ?? [];
+  const pagination = data?.pagination;
+  const totalItems = pagination?.totalItems ?? 0;
+  const totalPages = pagination?.totalPages ?? 1;
+  const showingFrom = totalItems === 0 ? 0 : (page - 1) * rowsPerPage + 1;
+  const showingTo = totalItems === 0 ? 0 : Math.min(page * rowsPerPage, totalItems);
 
-  // Stats
-  const stats = {
-    total: requests.length,
-    pending: requests.filter((r) => r.status === 'pendiente').length,
-    approved: requests.filter((r) => r.status === 'aprobado').length,
-    rejected: requests.filter((r) => r.status === 'rechazado').length,
-  };
+  // Stats (de la página actual)
+  const stats = useMemo(
+    () => ({
+      total: totalItems,
+      pending: requests.filter((r) => r.status === 'pendiente').length,
+      approved: requests.filter((r) => r.status === 'aprobado').length,
+      rejected: requests.filter((r) => r.status === 'rechazado').length,
+    }),
+    [requests, totalItems]
+  );
 
   // Mutations
   const approveMutation = useMutation({
@@ -93,15 +115,14 @@ const ActivationRequestsPage = () => {
         res?.data?.previewSetPasswordLink ?? // por si venía con otro nombre
         '';
 
-
-      // Item aprobado desde el snapshot guardado; si falta, intenta buscar por id
+      // Item aprobado desde snapshot guardado; si falta, intenta buscar por id
       const targetId = id || lastApprovedId;
       const item = lastApprovedItem || requests.find((r) => r._id === targetId) || null;
 
       // Abrir modal con credenciales y datos
       setApprovedModal({ open: true, tempPassword: temp, item });
 
-      // Luego invalidar lista
+      // Invalidar lista después
       queryClient.invalidateQueries({ queryKey: ['activationRequests'] });
     },
     onError: (err: any) => {
@@ -132,12 +153,16 @@ const ActivationRequestsPage = () => {
   const resendLinkMutation = useMutation({
     mutationFn: (userId: string) => activationService.resendSetPasswordLink(userId),
     onSuccess: () => {
-      setSnackbar({ open: true, message: 'Link reenviado correctamente.', severity: 'success' });
+      setSnackbar({
+        open: true,
+        message: 'Credenciales reenviadas correctamente.',
+        severity: 'success',
+      });
     },
     onError: (err: any) => {
       setSnackbar({
         open: true,
-        message: err?.response?.data?.error || 'No se pudo reenviar el link.',
+        message: err?.response?.data?.error || 'No se pudo reenviar.',
         severity: 'error',
       });
     },
@@ -240,14 +265,136 @@ const ActivationRequestsPage = () => {
         />
       </Stack>
 
-      <Box mt={6}>
+      {/* Controles de paginación top (bonitos) */}
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        alignItems={{ xs: 'flex-start', md: 'center' }}
+        justifyContent="space-between"
+        spacing={2}
+        mt={4}
+        sx={{
+          p: 2,
+          borderRadius: 2,
+          border: `1px solid ${theme.palette.divider}`,
+          background:
+            theme.palette.mode === 'dark'
+              ? 'rgba(255,255,255,0.04)'
+              : 'linear-gradient(180deg, #fff, #fafafa)',
+        }}
+      >
         <Typography
-          variant="h5"
-          fontWeight={700}
-          mb={3}
+          variant="body2"
+          sx={{ opacity: 0.8 }}
         >
-          Lista de Solicitudes ({stats.total})
+          {totalItems ? `Mostrando ${showingFrom}–${showingTo} de ${totalItems}` : 'Sin resultados'}
         </Typography>
+
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={{ xs: 1.25, sm: 2 }}
+          alignItems={{ xs: 'stretch', sm: 'center' }}
+          justifyContent={{ xs: 'center', sm: 'flex-end' }}
+          sx={{
+            width: '100%',
+            flexWrap: 'wrap',
+            gap: { xs: 1, sm: 2 },
+          }}
+        >
+          <FormControl
+            size="small"
+            sx={{ minWidth: { xs: '100%', sm: 140 } }}
+          >
+            <InputLabel id="rows-per-page-label">Por página</InputLabel>
+            <Select
+              labelId="rows-per-page-label"
+              label="Por página"
+              value={rowsPerPage}
+              onChange={(e) => {
+                setRowsPerPage(Number(e.target.value));
+                setPage(1); // reset a página 1 cuando cambia el tamaño
+              }}
+              sx={{
+                width: '100%',
+                '& .MuiSelect-select': { py: 1.0 },
+              }}
+            >
+              {PAGE_SIZE_OPTIONS.map((n) => (
+                <MenuItem
+                  key={n}
+                  value={n}
+                >
+                  {n}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <Box
+            sx={{
+              width: { xs: '100%', sm: 'auto' },
+              display: 'flex',
+              justifyContent: { xs: 'center', sm: 'flex-start' },
+            }}
+          >
+            <Pagination
+              color="primary"
+              variant="outlined"
+              shape="rounded"
+              page={page}
+              count={totalPages}
+              onChange={(_, value) => setPage(value)}
+              siblingCount={1}
+              boundaryCount={1}
+              hidePrevButton={totalPages <= 1}
+              hideNextButton={totalPages <= 1}
+              sx={{
+                // que se vea lindo cuando hay muchas páginas en pantallas chicas
+                '& .MuiPagination-ul': {
+                  flexWrap: 'wrap',
+                  justifyContent: { xs: 'center', sm: 'flex-start' },
+                  gap: { xs: 0.5, sm: 0.75 },
+                },
+                // reduce un pelín el padding de los items en móvil
+                '& .MuiPaginationItem-root': {
+                  minWidth: { xs: 32, sm: 36 },
+                  height: { xs: 32, sm: 36 },
+                  fontSize: { xs: 12, sm: 14 },
+                },
+              }}
+            />
+          </Box>
+        </Stack>
+      </Stack>
+
+      <Box
+        mt={3}
+        position="relative"
+      >
+        {/* indicador sutil mientras hace fetch de la nueva página */}
+        {isFetching && !isLoading && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: -8,
+              left: 0,
+              right: 0,
+              height: 3,
+              bgcolor: 'transparent',
+              '&:after': {
+                content: '""',
+                display: 'block',
+                width: '100%',
+                height: '100%',
+                background: 'linear-gradient(90deg, transparent, #ff5aa7, transparent)',
+                animation: 'loadingBar 1.3s linear infinite',
+              },
+              '@keyframes loadingBar': {
+                '0%': { backgroundPosition: '200% 0' },
+                '100%': { backgroundPosition: '-200% 0' },
+              },
+            }}
+          />
+        )}
 
         {isLoading ? (
           <Box sx={{ display: 'grid', placeItems: 'center', height: 240 }}>
