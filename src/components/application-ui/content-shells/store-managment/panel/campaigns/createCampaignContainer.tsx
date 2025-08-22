@@ -60,7 +60,7 @@ export default function CampaignFormContainer({
           imagePublicId: uploadedImage?.public_id || data.imagePublicId || null,
           customAudience: totalAudience,
           platform: provider || '',
-          sourceTn: phoneNumber || '',
+          sourceTn: phoneNumber ? `+${phoneNumber}` : '',
         };
 
         const response = isEditing
@@ -79,7 +79,7 @@ export default function CampaignFormContainer({
       setFormData(null);
 
       setTimeout(() => {
-        onCreate()
+        onCreate();
       }, 500);
     },
     onError: () => {
