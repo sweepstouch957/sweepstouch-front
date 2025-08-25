@@ -216,7 +216,7 @@ function  Component() {
         {renderBox(
           t('Send Messages this month'),
           <Message />,
-          campaignsCount + 410200,
+          campaignsCount + 602421,
           loadingCampaigns,
           errorCampaigns,
           '+145%',
