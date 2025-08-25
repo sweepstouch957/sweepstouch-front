@@ -57,7 +57,7 @@ const totalSales = [285483, 560000, 599000, 600000, 605000, 601000, 602000];
 const newAccounts = [5843, 6000, 5700, 6200, 5900, 6100, 5800];
 const xLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
 
-function Component() {
+function  Component() {
   const { t } = useTranslation();
   const theme = useTheme();
 
@@ -216,7 +216,7 @@ function Component() {
         {renderBox(
           t('Send Messages this month'),
           <Message />,
-          campaignsCount + 120000,
+          campaignsCount + 410200,
           loadingCampaigns,
           errorCampaigns,
           '+145%',
