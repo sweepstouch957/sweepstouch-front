@@ -103,6 +103,7 @@ export interface GetActivationRequestsResponse {
   success: boolean;
   data: ActivationRequest[];
   pagination: Pagination;
+  dangerCountTotal?: number;
 }
 
 export interface ActivationRequestDetailResponse {
@@ -120,6 +121,7 @@ export interface ActivationFilters {
   email?: string;
   page?: number;
   limit?: number;
+  prioritizeDanger?: boolean;
   sortBy?: string; // por defecto createdAt en el backend
   sortOrder?: 'asc' | 'desc';
 }

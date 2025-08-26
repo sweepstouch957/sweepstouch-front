@@ -7,6 +7,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import {
   Box,
   FormControl,
+  FormControlLabel,
   IconButton,
   InputAdornment,
   InputLabel,
@@ -14,6 +15,7 @@ import {
   Pagination,
   Select,
   Stack,
+  Switch,
   TextField,
   Typography,
   useTheme,
@@ -39,9 +41,14 @@ interface Props {
   // filtros controlados
   status: ToolbarStatus;
   email: string;
+  prioritizeDanger?: boolean;
 
   // notifica cambios de filtros al padre (hook/página)
-  onFilterChange: (next: { status?: ActivationStatus; email?: string }) => void;
+  onFilterChange: (next: {
+    status?: ActivationStatus;
+    email?: string;
+    prioritizeDanger?: boolean;
+  }) => void;
 }
 
 const DEFAULT_PAGE_SIZES = [12, 24, 36];
@@ -58,11 +65,11 @@ export default function ActivationRequestsToolbar({
   onRowsPerPageChange,
   status,
   email,
+  prioritizeDanger = false,
   onFilterChange,
 }: Props) {
   const theme = useTheme();
 
-  // Estado local para debounce del email (UI → 300ms → parent)
   const [emailInput, setEmailInput] = useState(email ?? '');
 
   useEffect(() => {
@@ -73,8 +80,6 @@ export default function ActivationRequestsToolbar({
     const id = setTimeout(() => {
       const trimmed = emailInput.trim();
       onFilterChange({ email: trimmed || undefined });
-      // al cambiar filtros, lo ideal es resetear a página 1 en el padre
-      // (tu hook ya lo hace al detectar cambios en filters)
     }, 300);
     return () => clearTimeout(id);
   }, [emailInput]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -118,6 +123,37 @@ export default function ActivationRequestsToolbar({
           gap: { xs: 1, sm: 2 },
         }}
       >
+        {/* Priorizar en peligro */}
+        <FormControlLabel
+          control={
+            <Switch
+              checked={Boolean(prioritizeDanger)} // 👈 asegúrate de castearlo a boolean
+              onChange={(e) => onFilterChange({ prioritizeDanger: e.target.checked })}
+              color="error"
+              sx={{
+                // track rojo cuando está activo
+                '& .Mui-checked + .MuiSwitch-track': {
+                  backgroundColor: theme.palette.error.main,
+                  opacity: 1,
+                },
+                // thumb blanco cuando está activo
+                '& .Mui-checked .MuiSwitch-thumb': {
+                  color: '#fff',
+                },
+              }}
+            />
+          }
+          label={prioritizeDanger ? 'Priorizar en peligro (ON)' : 'Priorizar en peligro'}
+          sx={{
+            ml: 1,
+            '.MuiFormControlLabel-label': {
+              fontSize: 14,
+              fontWeight: 500,
+              color: theme.palette.text.secondary,
+            },
+          }}
+        />
+
         {/* Filtro: estado */}
         <FormControl
           size="small"

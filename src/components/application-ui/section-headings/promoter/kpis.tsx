@@ -1,8 +1,9 @@
 // components/ActivationRequestsKpis.tsx
 'use client';
+
 import KpiCard from '@/components/application-ui/card-shells/kpi-card';
 import { useActivationRequestsStats } from '@/hooks/fetching/promoter/useActivationStats';
-
+import { InfoOutlined } from '@mui/icons-material';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -12,6 +13,7 @@ import { Alert, Card, CardContent, Skeleton, Stack } from '@mui/material';
 interface Props {
   from?: string; // ISO date
   to?: string; // ISO date
+  dangerCount?: number;
 }
 
 const KpiSkeleton = () => (
@@ -37,7 +39,7 @@ const KpiSkeleton = () => (
  * - Muestra 4 skeletons mientras carga
  * - Mapea los nombres del backend -> UI
  */
-export default function ActivationRequestsKpis({ from, to }: Props) {
+export default function ActivationRequestsKpis({ from, to, dangerCount }: Props) {
   const { data, isLoading, isFetching, error } = useActivationRequestsStats({ from, to });
 
   if (error) {
@@ -73,6 +75,8 @@ export default function ActivationRequestsKpis({ from, to }: Props) {
           <KpiSkeleton />
           <KpiSkeleton />
           <KpiSkeleton />
+
+          <KpiSkeleton />
         </>
       ) : (
         <>
@@ -80,6 +84,11 @@ export default function ActivationRequestsKpis({ from, to }: Props) {
             icon={<CalendarMonthIcon />}
             label="Total Solicitudes"
             value={stats.total}
+          />
+           <KpiCard
+            icon={<InfoOutlined />}
+            label="Tiendas en Peligro"
+            value={dangerCount || 0}
           />
           <KpiCard
             icon={<AccessTimeIcon />}

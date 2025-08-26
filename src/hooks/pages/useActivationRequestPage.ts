@@ -29,7 +29,9 @@ export function useActivationRequestsPage(initialPageSize: PageSize = 12) {
   // 🔢 Paginación
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState<PageSize>(initialPageSize);
-  const [filters, setFilters] = useState<Pick<ActivationFilters, 'status' | 'email'>>({});
+  const [filters, setFilters] = useState<
+    Pick<ActivationFilters, 'status' | 'email' | 'prioritizeDanger'>
+  >({});
 
   // UI: snackbar + modal aprobado
   const [snackbar, setSnackbar] = useState<SnackbarState>({
@@ -62,6 +64,7 @@ export function useActivationRequestsPage(initialPageSize: PageSize = 12) {
   const pagination = data?.pagination;
   const totalItems = pagination?.totalItems ?? 0;
   const totalPages = pagination?.totalPages ?? 1;
+  const dangerCount = data?.dangerCountTotal ?? 1;
 
   const { showingFrom, showingTo } = useMemo(() => {
     const from = totalItems === 0 ? 0 : (page - 1) * rowsPerPage + 1;
@@ -193,7 +196,7 @@ export function useActivationRequestsPage(initialPageSize: PageSize = 12) {
     closeSnackbar,
     approvedModal,
     closeApprovedModal,
-
+    dangerCount,
     // actions
     filters,
     setFilters,

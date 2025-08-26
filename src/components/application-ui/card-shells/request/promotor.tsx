@@ -10,6 +10,7 @@ import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
 import ReportGmailerrorredRoundedIcon from '@mui/icons-material/ReportGmailerrorredRounded';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded';
+import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import {
   Avatar,
   Badge,
@@ -43,17 +44,6 @@ const getDangerCount = (r?: ActivationRequest) =>
       ? r.inDangerStores.count
       : r.inDangerStores.data?.length ?? 0
     : 0;
-
-const getStatusChip = (status: ActivationRequest['status']) => {
-  switch (status) {
-    case 'aprobado':
-      return { label: 'Aprobado', color: 'success' as const };
-    case 'rechazado':
-      return { label: 'Rechazado', color: 'error' as const };
-    default:
-      return { label: 'Pendiente', color: 'warning' as const };
-  }
-};
 
 const InfoRow = ({ icon, text }: { icon: React.ReactNode; text: React.ReactNode }) => (
   <Stack
@@ -92,7 +82,6 @@ export default function ActivationRequestCard({
   rejecting,
 }: Props) {
   const theme = useTheme();
-  const statusChip = getStatusChip(request.status);
   const created = request.createdAt ? new Date(request.createdAt) : null;
 
   const approvedEntry = request.statusHistory?.find((s) => (s.status as string) === 'aprobado');
@@ -101,8 +90,8 @@ export default function ActivationRequestCard({
   const fullName = (() => {
     const fromUser =
       typeof request.userId === 'object'
-        ? `${(request.userId as ActivationUserSummary).firstName || ''} ${
-            (request.userId as ActivationUserSummary).lastName || ''
+        ? `${(request.userId as ActivationUserSummary)?.firstName || ''} ${
+            (request.userId as ActivationUserSummary)?.lastName || ''
           }`.trim()
         : '';
     const fromPayload = `${request.payload.firstName || ''} ${
@@ -112,17 +101,17 @@ export default function ActivationRequestCard({
   })();
 
   const avatarUrl =
-    (typeof request.userId === 'object' && (request.userId as ActivationUserSummary).avatarUrl) ||
+    (typeof request.userId === 'object' && (request.userId as ActivationUserSummary)?.avatarUrl) ||
     request.payload.avatarUrl ||
     undefined;
 
   const userEmail =
-    (typeof request.userId === 'object' && (request.userId as ActivationUserSummary).email) ||
+    (typeof request.userId === 'object' && (request.userId as ActivationUserSummary)?.email) ||
     request.payload.email ||
     '';
 
   const userPhone =
-    (typeof request.userId === 'object' && (request.userId as ActivationUserSummary).phoneNumber) ||
+    (typeof request.userId === 'object' && (request.userId as ActivationUserSummary)?.phoneNumber) ||
     request.payload.phoneNumber ||
     '';
 
@@ -230,8 +219,8 @@ export default function ActivationRequestCard({
               sx={{
                 width: 48,
                 height: 48,
-                bgcolor:"#eeeeee",
-                color: "#000",
+                bgcolor: '#eeeeee',
+                color: '#000',
                 fontWeight: 700,
               }}
             >
@@ -273,15 +262,26 @@ export default function ActivationRequestCard({
                   color: theme.palette.text.secondary,
                 }}
               />
+              {/* Estado como ícono en lugar de chip */}
+              <Box sx={{ ml: 'auto' }}>
+                {request.status === 'aprobado' && (
+                  <Tooltip title="Aprobado">
+                    <CheckCircleIcon sx={{ color: theme.palette.success.main }} />
+                  </Tooltip>
+                )}
+                {request.status === 'rechazado' && (
+                  <Tooltip title="Rechazado">
+                    <CancelIcon sx={{ color: theme.palette.error.main }} />
+                  </Tooltip>
+                )}
+                {request.status === 'pendiente' && (
+                  <Tooltip title="Pendiente">
+                    <WarningAmberRoundedIcon sx={{ color: theme.palette.warning.main }} />
+                  </Tooltip>
+                )}
+              </Box>
             </Stack>
           </Box>
-
-          <Chip
-            label={statusChip.label}
-            color={statusChip.color}
-            size="small"
-            sx={{ fontWeight: 700 }}
-          />
         </Stack>
 
         <Divider sx={{ my: 1.5 }} />

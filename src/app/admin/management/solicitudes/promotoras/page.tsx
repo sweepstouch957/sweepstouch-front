@@ -5,10 +5,7 @@ import ActivationRequestCard from '@/components/application-ui/card-shells/reque
 import ActivationRequestsToolbar from '@/components/application-ui/filters/activationRequestToolBar';
 import ActivationRequestsKpis from '@/components/application-ui/section-headings/promoter/kpis';
 import PageHeading from '@/components/base/page-heading';
-import {
-  PAGE_SIZE_OPTIONS,
-  useActivationRequestsPage,
-} from '@/hooks/pages/useActivationRequestPage';
+import { useActivationRequestsPage } from '@/hooks/pages/useActivationRequestPage';
 import type { ActivationRequest } from '@/services/activation.service';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import BadgeIcon from '@mui/icons-material/Badge';
@@ -18,7 +15,9 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import PeopleAltTwoToneIcon from '@mui/icons-material/PeopleAltTwoTone';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
+import StoreMallDirectoryIcon from '@mui/icons-material/StoreMallDirectory';
 import {
   Avatar,
   Box,
@@ -47,8 +46,6 @@ import MuiAlert from '@mui/material/Alert';
 import { format } from 'date-fns';
 import es from 'date-fns/locale/es';
 import { useState } from 'react';
-import PeopleAltTwoToneIcon from '@mui/icons-material/PeopleAltTwoTone';
-import StoreMallDirectoryIcon from '@mui/icons-material/StoreMallDirectory';
 
 const ActivationRequestsPage = () => {
   const theme = useTheme();
@@ -81,6 +78,7 @@ const ActivationRequestsPage = () => {
     handleResendLink,
     copyText,
     approving,
+    dangerCount,
     rejecting,
   } = useActivationRequestsPage(12);
 
@@ -131,7 +129,7 @@ const ActivationRequestsPage = () => {
         description="Aprueba o rechaza la creación de cuentas para promotoras"
       />
 
-      <ActivationRequestsKpis />
+      <ActivationRequestsKpis dangerCount={dangerCount} />
 
       {/* Controles de paginación top (bonitos) */}
       <ActivationRequestsToolbar
@@ -145,8 +143,8 @@ const ActivationRequestsPage = () => {
         onRowsPerPageChange={setRowsPerPage}
         status={(filters.status ?? 'all') as any}
         email={filters.email ?? ''}
-        // cuando cambian filtros desde el toolbar → actualiza el hook
         onFilterChange={(next) => setFilters((prev) => ({ ...prev, ...next }))}
+        prioritizeDanger={Boolean(filters.prioritizeDanger)}
       />
       <Box
         mt={3}
