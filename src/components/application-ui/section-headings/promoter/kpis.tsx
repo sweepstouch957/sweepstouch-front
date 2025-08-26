@@ -87,7 +87,7 @@ export default function ActivationRequestsKpis({ from, to, dangerCount }: Props)
           />
            <KpiCard
             icon={<InfoOutlined />}
-            label="Tiendas en Peligro"
+            label="Locales con Audiencia Crítica"
             value={dangerCount || 0}
           />
           <KpiCard
