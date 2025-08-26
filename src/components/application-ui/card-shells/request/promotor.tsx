@@ -194,7 +194,7 @@ export default function ActivationRequestCard({
               size="small"
               color="error"
               icon={<ReportGmailerrorredRoundedIcon sx={{ fontSize: 18 }} />}
-              label={`ZIP en conflicto • ${dangerCount}`}
+              label={`${dangerCount}`}
               sx={{
                 fontWeight: 700,
                 borderRadius: '999px',
@@ -230,8 +230,8 @@ export default function ActivationRequestCard({
               sx={{
                 width: 48,
                 height: 48,
-                bgcolor: hasDanger ? alpha(theme.palette.error.main, 0.15) : '#fc0680',
-                color: hasDanger ? theme.palette.error.main : '#fff',
+                bgcolor:"#eeeeee",
+                color: "#000",
                 fontWeight: 700,
               }}
             >
@@ -386,9 +386,9 @@ export default function ActivationRequestCard({
                     disabled={!userIdForResend}
                     startIcon={<SendRoundedIcon />}
                     sx={{
-                      bgcolor: alpha(theme.palette.error.main, 0.12),
-                      color: theme.palette.error.main,
-                      '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.18) },
+                      bgcolor: alpha(theme.palette.secondary.main, 0.12),
+                      color: theme.palette.secondary.main,
+                      '&:hover': { bgcolor: alpha(theme.palette.secondary.main, 0.18) },
                       textTransform: 'none',
                       borderRadius: 999,
                       px: 1.5,
