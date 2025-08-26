@@ -8,9 +8,10 @@ interface KpiCardProps {
   icon: ReactNode;
   label: string;
   value: string | number;
+  variant?: 'error' | 'info' | 'success' | 'warning';
 }
 
-const KpiCard = ({ icon, label, value }: KpiCardProps) => {
+const KpiCard = ({ icon, label, value , variant }: KpiCardProps) => {
   const theme = useTheme();
 
   return (
@@ -45,7 +46,8 @@ const KpiCard = ({ icon, label, value }: KpiCardProps) => {
       <Typography
         variant="h6"
         fontWeight={500}
-        color="text.secondary"
+        color={variant ? `${variant}.main` : 'text.secondary'}
+
       >
         {label}
       </Typography>
