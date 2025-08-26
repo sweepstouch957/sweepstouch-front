@@ -2,479 +2,437 @@
 
 import type { ActivationRequest, ActivationUserSummary } from '@/services/activation.service';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import BadgeIcon from '@mui/icons-material/Badge';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import ForwardToInboxIcon from '@mui/icons-material/ForwardToInbox';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
-import VisibilityIcon from '@mui/icons-material/Visibility';
+import ReportGmailerrorredRoundedIcon from '@mui/icons-material/ReportGmailerrorredRounded';
+import SendRoundedIcon from '@mui/icons-material/SendRounded';
+import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded';
 import {
-  alpha,
   Avatar,
+  Badge,
   Box,
   Button,
   Card,
+  CardContent,
   Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
+  Divider,
   Stack,
-  styled,
-  TextField,
   Tooltip,
   Typography,
-  useTheme,
 } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
 import { format } from 'date-fns';
 import es from 'date-fns/locale/es';
-import { useMemo, useState } from 'react';
 
-type StatusKey = 'pendiente' | 'aprobado' | 'rechazado';
-
-const STATUS_STYLES: Record<StatusKey, { label: string; fg: string; bg: string; ring: string }> = {
-  pendiente: { label: 'Pendiente', fg: '#8a6d00', bg: '#fff6cf', ring: '#fde68a' },
-  aprobado: { label: 'Aprobado', fg: '#0a5c39', bg: '#e6f4ea', ring: '#b7f0d3' },
-  rechazado: { label: 'Rechazado', fg: '#7f1d1d', bg: '#fde8e8', ring: '#fecaca' },
-};
-
-// -------- Helpers
-function getUserFromRequest(req: ActivationRequest): ActivationUserSummary | null {
-  const anyReq: any = req;
-  if (anyReq?.userId && typeof anyReq.userId === 'object')
-    return anyReq.userId as ActivationUserSummary;
-  return null;
-}
-function getField<T>(
-  req: ActivationRequest,
-  picker: (u: ActivationUserSummary | null, p: any) => T
-): T {
-  const u = getUserFromRequest(req);
-  return picker(u, req.payload);
-}
-function getInitials(name?: string) {
-  if (!name) return 'ST';
-  const parts = name.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? parts[parts.length - 1][0] ?? '' : '';
-  return (first + last).toUpperCase() || 'ST';
-}
-
-// -------- Styles
-const SoftCard = styled(Card)(({ theme }) => ({
-  borderRadius: 20,
-  padding: theme.spacing(2.25),
-  background: theme.palette.mode === 'dark' ? alpha('#121212', 0.6) : '#fff',
-  border: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
-  boxShadow: '0 10px 25px rgba(16,24,40,0.06), 0 2px 8px rgba(16,24,40,0.04)',
-  transition: 'transform .2s ease, box-shadow .2s ease',
-  willChange: 'transform',
-  '&:hover': {
-    transform: 'translateY(-2px)',
-    boxShadow: '0 14px 30px rgba(16,24,40,0.10), 0 3px 10px rgba(16,24,40,0.06)',
-  },
-}));
-
-const TagChip = styled(Chip)(({ theme }) => ({
-  height: 24,
-  borderRadius: 10,
-  background: alpha(theme.palette.grey[200], 0.5),
-  '& .MuiChip-label': { fontWeight: 700, fontSize: 11, letterSpacing: 0.3 },
-  '& .MuiChip-icon': { fontSize: 18, marginLeft: 4 },
-}));
-
-const StatusPill = styled(Chip)(({ theme }) => ({
-  borderRadius: 999,
-  fontWeight: 700,
-  boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
-  '& .MuiChip-label': { paddingInline: 10 },
-}));
-
-// Botones bonitos con gradientes y “pill”
-const PillButton = styled(Button)<{ varianttone?: 'neutral' | 'success' | 'danger' }>(({
-  theme,
-  varianttone = 'neutral',
-}) => {
-  const base = {
-    neutral: {
-      bg: 'linear-gradient(180deg, #ffd9e7 0%, #ffb6d2 100%)',
-      hover: 'linear-gradient(180deg, #ffcae0 0%, #ffa3c6 100%)',
-      active: '#ff8db6',
-      text: '#5b1131',
-      shadow: '0 6px 16px rgba(255, 182, 210, .45)',
-    },
-    success: {
-      bg: 'linear-gradient(180deg, #38ef7d 0%, #00c49a 100%)',
-      hover: 'linear-gradient(180deg, #33e171 0%, #00b18b 100%)',
-      active: '#00a07d',
-      text: '#083d31',
-      shadow: '0 8px 18px rgba(0, 196, 154, .35)',
-    },
-    danger: {
-      bg: 'linear-gradient(180deg, #ff8fa3 0%, #fc5c7d 100%)',
-      hover: 'linear-gradient(180deg, #ff7a92 0%, #f64569 100%)',
-      active: '#e33d5d',
-      text: '#5a0b1a',
-      shadow: '0 8px 18px rgba(252, 92, 125, .35)',
-    },
-  }[varianttone];
-
-  return {
-    borderRadius: 999,
-    textTransform: 'none',
-    fontWeight: 700,
-    letterSpacing: 0.2,
-    paddingInline: 14,
-    fontSize: '14px',
-    height: 36,
-    boxShadow: base.shadow,
-    color: base.text,
-    background: base.bg,
-    transition: 'transform .15s ease, box-shadow .15s ease, filter .15s ease',
-    '&:hover': {
-      background: base.hover,
-      transform: 'translateY(-1px)',
-      boxShadow: base.shadow.replace('18', '22'),
-    },
-    '&:active': {
-      filter: 'saturate(.95)',
-      transform: 'translateY(0)',
-      background: base.active,
-    },
-    '&.Mui-disabled': {
-      filter: 'grayscale(.35)',
-      boxShadow: 'none',
-      opacity: 0.7,
-    },
-    '& .MuiButton-startIcon': { marginRight: 6 },
-  };
-});
-
-interface Props {
+type Props = {
   request: ActivationRequest;
-  onApprove?: (id: string) => void;
-  onReject?: (id: string, reason: string) => void;
-  onView?: (id: string) => void;
-  onResendLink?: (userId: string) => void;
+  onView: (id: string) => void;
+  onApprove: (id: string) => void;
+  onReject: (id: string, reason: string) => void;
+  onResendLink: (userId: string) => void;
   approving?: boolean;
   rejecting?: boolean;
-}
+};
 
-const ActivationRequestCard = ({
+const getDangerCount = (r?: ActivationRequest) =>
+  r?.inDangerStores
+    ? typeof r.inDangerStores.count === 'number'
+      ? r.inDangerStores.count
+      : r.inDangerStores.data?.length ?? 0
+    : 0;
+
+const getStatusChip = (status: ActivationRequest['status']) => {
+  switch (status) {
+    case 'aprobado':
+      return { label: 'Aprobado', color: 'success' as const };
+    case 'rechazado':
+      return { label: 'Rechazado', color: 'error' as const };
+    default:
+      return { label: 'Pendiente', color: 'warning' as const };
+  }
+};
+
+const InfoRow = ({ icon, text }: { icon: React.ReactNode; text: React.ReactNode }) => (
+  <Stack
+    direction="row"
+    alignItems="center"
+    spacing={1}
+  >
+    <Box
+      sx={{
+        width: 22,
+        height: 22,
+        display: 'grid',
+        placeItems: 'center',
+        borderRadius: '6px',
+        bgcolor: 'action.hover',
+      }}
+    >
+      {icon}
+    </Box>
+    <Typography
+      variant="body2"
+      sx={{ wordBreak: 'break-word' }}
+    >
+      {text}
+    </Typography>
+  </Stack>
+);
+
+export default function ActivationRequestCard({
   request,
+  onView,
   onApprove,
   onReject,
-  onView,
   onResendLink,
   approving,
   rejecting,
-}: Props) => {
+}: Props) {
   const theme = useTheme();
-  const statusKey = (request.status as StatusKey) || 'pendiente';
-  const status = STATUS_STYLES[statusKey];
+  const statusChip = getStatusChip(request.status);
+  const created = request.createdAt ? new Date(request.createdAt) : null;
 
-  const [openRejectModal, setOpenRejectModal] = useState(false);
-  const [reason, setReason] = useState('');
+  const approvedEntry = request.statusHistory?.find((s) => (s.status as string) === 'aprobado');
+  const approvedAt = approvedEntry?.timestamp ? new Date(approvedEntry.timestamp) : null;
 
-  const fullName = useMemo(() => {
-    const first = getField(request, (u, p) => u?.firstName ?? p?.firstName ?? '');
-    const last = getField(request, (u, p) => u?.lastName ?? p?.lastName ?? '');
-    const name = `${first} ${last}`.trim();
-    return name || 'Promotora';
-  }, [request]);
+  const fullName = (() => {
+    const fromUser =
+      typeof request.userId === 'object'
+        ? `${(request.userId as ActivationUserSummary).firstName || ''} ${
+            (request.userId as ActivationUserSummary).lastName || ''
+          }`.trim()
+        : '';
+    const fromPayload = `${request.payload.firstName || ''} ${
+      request.payload.lastName || ''
+    }`.trim();
+    return (fromUser || fromPayload || '—').trim();
+  })();
 
-  const email = getField(request, (u, p) => u?.email ?? p?.email ?? '—');
-  const phone = getField(request, (u, p) => u?.phoneNumber ?? p?.phoneNumber ?? '—');
-  const role = getField(request, (u, p) => p?.role ?? 'promotor');
-  const zip = getField(request, (u, p) => p?.zipcode ?? '');
-  const avatarUrl = getField(request, (u, p) => u?.avatarUrl ?? p?.avatarUrl ?? '');
+  const avatarUrl =
+    (typeof request.userId === 'object' && (request.userId as ActivationUserSummary).avatarUrl) ||
+    request.payload.avatarUrl ||
+    undefined;
 
-  const createdAt = request.createdAt ? new Date(request.createdAt) : undefined;
-  const responseDate = request.responseDate ? new Date(request.responseDate) : undefined;
+  const userEmail =
+    (typeof request.userId === 'object' && (request.userId as ActivationUserSummary).email) ||
+    request.payload.email ||
+    '';
 
-  const createdDateLabel = createdAt ? format(createdAt, 'EEE, d MMM yyyy', { locale: es }) : '—';
-  const createdTimeLabel = createdAt ? format(createdAt, 'HH:mm', { locale: es }) : '—';
+  const userPhone =
+    (typeof request.userId === 'object' && (request.userId as ActivationUserSummary).phoneNumber) ||
+    request.payload.phoneNumber ||
+    '';
 
-  const handleConfirmReject = () => {
-    if (reason.trim() && onReject) {
-      onReject(request._id, reason.trim());
-      setOpenRejectModal(false);
-      setReason('');
-    }
-  };
+  const role =
+    request.payload.role ||
+    (typeof request.userId === 'object' ? (request.userId as any)?.role : undefined) ||
+    'promotor';
+
+  const zip = request.payload.zipcode || request.inDangerStores?.zipcode || '—';
+
+  const userIdForResend =
+    typeof request.userId === 'string'
+      ? request.userId
+      : (request.userId as ActivationUserSummary)?._id;
+
+  // 🔴 Conflicto de ZIP (resaltado)
+  const dangerCount = getDangerCount(request);
+  const hasDanger = !!dangerCount;
+
+  const dangerStoresTooltip =
+    hasDanger && request.inDangerStores?.data?.length
+      ? request.inDangerStores.data
+          .slice(0, 5)
+          .map((s) => `• ${s.name}`)
+          .join('\n')
+      : undefined;
 
   return (
-    <SoftCard>
-      {/* Header */}
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        gap={1}
-      >
+    <Card
+      elevation={0}
+      sx={{
+        borderRadius: 3,
+        overflow: 'hidden',
+        border: `1px solid ${hasDanger ? theme.palette.error.light : theme.palette.divider}`,
+        boxShadow: hasDanger
+          ? `0 0 0 2px ${alpha(theme.palette.error.main, 0.15)}`
+          : `0 1px 2px ${alpha(theme.palette.common.black, 0.05)}`,
+        transition: 'transform 120ms ease, box-shadow 120ms ease',
+        '&:hover': {
+          transform: 'translateY(-2px)',
+          boxShadow: hasDanger
+            ? `0 0 0 2px ${alpha(theme.palette.error.main, 0.2)}, 0 8px 24px ${alpha(
+                theme.palette.common.black,
+                0.08
+              )}`
+            : `0 8px 24px ${alpha(theme.palette.common.black, 0.08)}`,
+        },
+        position: 'relative',
+      }}
+    >
+      {/* Ribbon de alerta arriba cuando hay conflicto */}
+      {hasDanger && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            zIndex: 2,
+          }}
+        >
+          <Tooltip
+            title={
+              dangerStoresTooltip
+                ? `ZIP en conflicto (${dangerCount})\n${dangerStoresTooltip}`
+                : `ZIP en conflicto (${dangerCount})`
+            }
+          >
+            <Chip
+              size="small"
+              color="error"
+              icon={<ReportGmailerrorredRoundedIcon sx={{ fontSize: 18 }} />}
+              label={`ZIP en conflicto • ${dangerCount}`}
+              sx={{
+                fontWeight: 700,
+                borderRadius: '999px',
+              }}
+            />
+          </Tooltip>
+        </Box>
+      )}
+
+      <CardContent sx={{ p: 2.25 }}>
+        {/* Header */}
         <Stack
           direction="row"
           spacing={1.5}
           alignItems="center"
-          minWidth={0}
         >
-          <Avatar
-            src={avatarUrl || undefined}
+          <Badge
+            overlap="circular"
+            invisible={!hasDanger}
+            badgeContent=" "
+            color="error"
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
             sx={{
-              bgcolor: '#ff0aa2',
-              width: 48,
-              height: 48,
-              fontWeight: 800,
-              boxShadow: '0 6px 14px rgba(255,10,162,.25)',
+              '& .MuiBadge-badge': {
+                width: 10,
+                height: 10,
+                border: `2px solid ${theme.palette.background.paper}`,
+              },
             }}
-            variant="circular"
           >
-            {!avatarUrl ? getInitials(fullName) : null}
-          </Avatar>
-          <Box minWidth={0}>
+            <Avatar
+              src={avatarUrl}
+              sx={{
+                width: 48,
+                height: 48,
+                bgcolor: hasDanger ? alpha(theme.palette.error.main, 0.15) : '#fc0680',
+                color: hasDanger ? theme.palette.error.main : '#fff',
+                fontWeight: 700,
+              }}
+            >
+              {fullName?.[0]?.toUpperCase()}
+            </Avatar>
+          </Badge>
+
+          <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography
-              fontWeight={800}
-              fontSize={16}
-              lineHeight={1.2}
+              variant="subtitle1"
+              fontWeight={700}
+              sx={{ lineHeight: 1.2, mb: 0.5, pr: 6 }}
               noWrap
+              title={fullName}
             >
               {fullName}
             </Typography>
+
             <Stack
               direction="row"
               spacing={1}
-              alignItems="center"
               flexWrap="wrap"
             >
-              <TagChip
-                icon={<BadgeIcon />}
-                label={(role?.toUpperCase?.() || 'PROMOTOR') as string}
+              <Chip
+                label={role?.toUpperCase() || 'PROMOTOR'}
+                size="small"
+                sx={{
+                  fontWeight: 700,
+                  bgcolor: alpha(theme.palette.primary.main, 0.08),
+                  color: theme.palette.primary.main,
+                }}
               />
-              {zip && (
-                <TagChip
-                  icon={<LocationOnIcon />}
-                  label={`ZIP ${zip}`}
-                />
-              )}
+              <Chip
+                label={`ZIP ${zip}`}
+                size="small"
+                sx={{
+                  fontWeight: 700,
+                  bgcolor: alpha(theme.palette.grey[900], 0.06),
+                  color: theme.palette.text.secondary,
+                }}
+              />
             </Stack>
           </Box>
+
+          <Chip
+            label={statusChip.label}
+            color={statusChip.color}
+            size="small"
+            sx={{ fontWeight: 700 }}
+          />
         </Stack>
 
-        <StatusPill
-          label={status.label}
-          sx={{
-            bgcolor: status.bg,
-            color: status.fg,
-            border: `1px solid ${alpha(status.ring, 0.9)}`,
-          }}
-        />
-      </Stack>
+        <Divider sx={{ my: 1.5 }} />
 
-      {/* Body */}
-      <Box mt={2}>
-        <Stack
-          direction="row"
-          spacing={3}
-          flexWrap="wrap"
-        >
+        {/* Datos alineados en columna */}
+        <Stack spacing={1.25}>
+          <InfoRow
+            icon={<MailOutlineIcon fontSize="small" />}
+            text={userEmail || '—'}
+          />
+          <InfoRow
+            icon={<PhoneIphoneIcon fontSize="small" />}
+            text={userPhone || '—'}
+          />
+
           <Stack
             direction="row"
-            spacing={1}
-            alignItems="center"
-            minWidth={0}
+            spacing={2}
+            flexWrap="wrap"
           >
-            <MailOutlineIcon
-              fontSize="small"
-              sx={{ color: theme.palette.primary.main }}
+            <InfoRow
+              icon={<CalendarMonthIcon fontSize="small" />}
+              text={
+                created
+                  ? `Creada: ${format(created, 'EEE, d LLL yyyy', { locale: es })}`
+                  : 'Creada: —'
+              }
             />
+            <InfoRow
+              icon={<AccessTimeIcon fontSize="small" />}
+              text={created ? format(created, 'HH:mm', { locale: es }) : '—'}
+            />
+          </Stack>
+
+          {approvedAt && (
             <Typography
-              fontSize={13}
-              sx={{ wordBreak: 'break-all' }}
+              variant="caption"
+              color="text.secondary"
             >
-              {email}
+              Aprobada: {format(approvedAt, 'EEE, d LLL yyyy HH:mm', { locale: es })}
             </Typography>
-          </Stack>
-          <Stack
-            direction="row"
-            spacing={1}
-            alignItems="center"
-          >
-            <PhoneIphoneIcon
-              fontSize="small"
-              sx={{ color: theme.palette.primary.main }}
-            />
-            <Typography fontSize={13}>{phone}</Typography>
-          </Stack>
-        </Stack>
+          )}
 
-        <Stack
-          direction="row"
-          spacing={3}
-          mt={2}
-          flexWrap="wrap"
-        >
-          <Stack
-            direction="row"
-            spacing={1}
-            alignItems="center"
-          >
-            <CalendarMonthIcon
-              fontSize="small"
-              sx={{ color: theme.palette.primary.main }}
-            />
-            <Typography fontSize={13}>Creada: {createdDateLabel}</Typography>
-          </Stack>
-          <Stack
-            direction="row"
-            spacing={1}
-            alignItems="center"
-          >
-            <AccessTimeIcon
-              fontSize="small"
-              sx={{ color: theme.palette.primary.main }}
-            />
-            <Typography fontSize={13}>{createdTimeLabel}</Typography>
-          </Stack>
-          {responseDate && (
-            <Stack
-              direction="row"
-              spacing={1}
-              alignItems="center"
+          {!!request.statusHistory?.length && (
+            <Box
+              sx={{
+                mt: 0.5,
+                backgroundColor: alpha(theme.palette.grey[900], 0.04),
+                borderRadius: 1.5,
+                px: 1.25,
+                py: 0.75,
+              }}
             >
-              <AccessTimeIcon
-                fontSize="small"
-                color="secondary"
-              />
-              <Typography fontSize={13}>
-                {statusKey === 'aprobado' ? 'Aprobada' : 'Respondida'}:{' '}
-                {format(responseDate, 'EEE, d MMM yyyy HH:mm', { locale: es })}
+              <Typography
+                variant="caption"
+                sx={{ opacity: 0.9 }}
+              >
+                Último estado: “
+                {request.statusHistory[request.statusHistory.length - 1]?.reason || '—'}”
               </Typography>
-            </Stack>
+            </Box>
           )}
         </Stack>
 
-        {!!request?.statusHistory?.length && (
-          <Box
-            mt={2}
-            sx={{
-              background:
-                theme.palette.mode === 'dark'
-                  ? alpha('#fff', 0.06)
-                  : 'linear-gradient(0deg, #fafafa, #fafafa)',
-              borderRadius: 14,
-              px: 2,
-              py: 1.25,
-              color: '#333',
-              border: `1px dashed ${alpha(theme.palette.divider, 0.6)}`,
-            }}
+        {/* Acciones */}
+        <Stack
+          direction="row"
+          spacing={1}
+          mt={2}
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{ flexWrap: 'wrap' }}
+        >
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            sx={{ mb: { xs: 1, sm: 0 } }}
           >
-            <Typography
-              fontSize={12}
-              sx={{ opacity: 0.85 }}
+            <Button
+              variant="outlined" // si usas MUI v6; si no, cámbialo a "outlined"
+              onClick={() => onView(request._id)}
+              startIcon={<VisibilityRoundedIcon />}
+              sx={{
+                bgcolor: alpha(theme.palette.primary.main, 0.08),
+                color: theme.palette.primary.main,
+                '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.12) },
+                textTransform: 'none',
+                borderRadius: 999,
+                px: 1.5,
+                py: 0.5,
+              }}
             >
-              Último estado: “
-              {request.statusHistory[request.statusHistory.length - 1]?.reason || '—'}”
-            </Typography>
-          </Box>
-        )}
-      </Box>
+              Ver
+            </Button>
 
-      {/* Actions */}
-      <Stack
-        direction="row"
-        spacing={1}
-        mt={2.25}
-        alignItems="center"
-        flexWrap="nowrap" // 👈 evita que se vayan abajo
-        sx={{
-          overflowX: 'auto', // por si el contenedor es más pequeño
-          '& > *': { flexShrink: 0 }, // evita que se aplasten demasiado
-          gap: '4px',
-        }}
-      >
-        <PillButton
-          varianttone="neutral"
-          startIcon={<VisibilityIcon />}
-          onClick={() => onView?.(request._id)}
-        ></PillButton>
+            {request.status === 'aprobado' && (
+              <Tooltip title="Reenviar correo de credenciales">
+                <span>
+                  <Button
+                    onClick={() => userIdForResend && onResendLink(userIdForResend)}
+                    disabled={!userIdForResend}
+                    startIcon={<SendRoundedIcon />}
+                    sx={{
+                      bgcolor: alpha(theme.palette.error.main, 0.12),
+                      color: theme.palette.error.main,
+                      '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.18) },
+                      textTransform: 'none',
+                      borderRadius: 999,
+                      px: 1.5,
+                      py: 0.5,
+                    }}
+                  >
+                    Reenviar correo
+                  </Button>
+                </span>
+              </Tooltip>
+            )}
+          </Stack>
 
-        {request.status === 'pendiente' && (
-          <>
-            {' '}
-            <PillButton
-              varianttone="success"
-              startIcon={<CheckCircleIcon />}
-              onClick={() => onApprove?.(request._id)}
-              disabled={approving}
+          {request.status === 'pendiente' && (
+            <Stack
+              direction="row"
+              spacing={1}
             >
-              {approving ? 'Aprobando…' : 'Aprobar'}
-            </PillButton>
-            <PillButton
-              varianttone="danger"
-              startIcon={<CancelIcon />}
-              onClick={() => setOpenRejectModal(true)}
-              disabled={rejecting}
-            >
-              {rejecting ? 'Rechazando…' : 'Rechazar'}
-            </PillButton>
-          </>
-        )}
-
-        {request.status === 'aprobado' && (
-          <Tooltip title="Reenviar email para crear/establecer contraseña">
-            <span>
-              <PillButton
-                varianttone="neutral"
-                startIcon={<ForwardToInboxIcon />}
-                onClick={() => {
-                  const userId: any = request.userId;
-                  onResendLink?.(userId?._id?.toString());
-                }}
+              <Button
+                variant="contained"
+                color="success"
+                size="small"
+                startIcon={<CheckCircleIcon />}
+                onClick={() => onApprove(request._id)}
+                disabled={approving}
+                sx={{ textTransform: 'none', borderRadius: 999 }}
               >
-                {'Reenviar correo'}
-              </PillButton>
-            </span>
-          </Tooltip>
-        )}
-      </Stack>
-
-      {/* Modal de rechazo */}
-      <Dialog
-        open={openRejectModal}
-        onClose={() => setOpenRejectModal(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Motivo de rechazo</DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            label="Motivo"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            required
-            multiline
-            minRows={3}
-            sx={{ mt: 1 }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenRejectModal(false)}>Cancelar</Button>
-          <Button
-            onClick={handleConfirmReject}
-            variant="contained"
-            color="error"
-            disabled={!reason.trim() || rejecting}
-          >
-            {rejecting ? 'Rechazando…' : 'Confirmar rechazo'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </SoftCard>
+                Aprobar
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                size="small"
+                startIcon={<CancelIcon />}
+                onClick={() => onReject(request._id, '')}
+                disabled={rejecting}
+                sx={{ textTransform: 'none', borderRadius: 999 }}
+              >
+                Rechazar
+              </Button>
+            </Stack>
+          )}
+        </Stack>
+      </CardContent>
+    </Card>
   );
-};
-
-export default ActivationRequestCard;
+}

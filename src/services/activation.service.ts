@@ -1,7 +1,26 @@
 // src/services/activation.service.ts
 import { api } from '@/libs/axios';
+import { Store } from './store.service';
 
 export type ActivationStatus = 'pendiente' | 'aprobado' | 'rechazado';
+export type ISODateString = string;
+
+export interface ActivationFilters {
+  // rango de fechas (si tu endpoint de stats/list los acepta)
+  from?: ISODateString;
+  to?: ISODateString;
+  // filtros nuevos
+  status?: ActivationStatus;
+  email?: string;
+  // zip: acepta alias; en el cliente soportamos ambos
+  zipCode?: string;
+  zipcode?: string;
+  // paginación y orden
+  page?: number; // default backend: 1
+  limit?: number; // default backend: 10
+  sortBy?: string; // default backend: "createdAt"
+  sortOrder?: 'asc' | 'desc'; // default backend: "desc"
+}
 
 export interface ActivationUserSummary {
   _id: string;
@@ -19,7 +38,7 @@ export interface ActivationRequestPayload {
   email: string;
   phoneNumber?: string;
   zipcode?: string;
-  role?: string;      // default 'promotor'
+  role?: string; // default 'promotor'
   avatarUrl?: string; // url de la foto
 }
 
@@ -47,6 +66,13 @@ export interface ActivationRequest {
   responseDate?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  inDangerStores: {
+    zipcode: string;
+    data: Store[];
+    mode: string;
+    success: boolean;
+    count?: number; // a veces viene en la response; si no, puedes usar data.length
+  };
 }
 
 export interface Pagination {
@@ -94,10 +120,20 @@ export interface ActivationFilters {
   email?: string;
   page?: number;
   limit?: number;
-  sortBy?: string;        // por defecto createdAt en el backend
+  sortBy?: string; // por defecto createdAt en el backend
   sortOrder?: 'asc' | 'desc';
 }
+export interface ActivationRequestsStats {
+  total: number;
+  pendiente: number;
+  aprobado: number;
+  rechazado: number;
+}
 
+export interface GetActivationRequestsDataResponse {
+  success: boolean;
+  data: ActivationRequestsStats;
+}
 export class ActivationService {
   // Crear solicitud
   async createActivationRequest(
@@ -115,7 +151,10 @@ export class ActivationService {
     id: string,
     body?: { reviewedBy?: string; adminComments?: string }
   ): Promise<ApproveActivationResponse> {
-    const res = await api.post(`/promoter/activation/activation-requests/${id}/approve`, body ?? {});
+    const res = await api.post(
+      `/promoter/activation/activation-requests/${id}/approve`,
+      body ?? {}
+    );
     return res.data;
   }
 
@@ -129,13 +168,19 @@ export class ActivationService {
   }
 
   // Listar con filtros y paginación
-  async getActivationRequests(
-    filters?: ActivationFilters
-  ): Promise<GetActivationRequestsResponse> {
+  async getActivationRequests(filters?: ActivationFilters): Promise<GetActivationRequestsResponse> {
     const res = await api.get('/promoter/activation/activation-requests', { params: filters });
     return res.data;
   }
 
+  async getActivationRequestsStats(
+    filters?: ActivationFilters
+  ): Promise<GetActivationRequestsDataResponse> {
+    const res = await api.get('/promoter/activation/activation-requests/stats', {
+      params: filters,
+    });
+    return res.data as GetActivationRequestsDataResponse;
+  }
   // Detalle por ID
   async getActivationRequestById(id: string): Promise<ActivationRequest> {
     const res = await api.get(`/promoter/activation/activation-requests/${id}`);

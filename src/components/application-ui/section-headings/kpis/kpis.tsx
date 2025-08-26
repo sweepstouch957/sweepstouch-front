@@ -48,7 +48,6 @@ const KpiSection = () => {
           md: 'repeat(4, 1fr)',
         },
         gap: 2,
-        mb: 3,
       }}
     >
       <KpiCard

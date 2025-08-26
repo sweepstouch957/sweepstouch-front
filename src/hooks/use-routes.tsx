@@ -1,11 +1,14 @@
 import type { UserRole } from '@/contexts/auth/user';
 import {
   AdsClickOutlined,
-  Announcement,
+  AirplaneTicket,
+  Assignment,
+  BookOutlined,
   Campaign,
   Person2Outlined,
   Redeem,
   Store,
+  SupportAgent,
 } from '@mui/icons-material';
 import AppsRoundedIcon from '@mui/icons-material/AppsRounded';
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
@@ -54,14 +57,14 @@ const promotorsMenu = (t: (token: string) => string): MenuItem =>
   ]);
 
 const requestMenu = (t: (token: string) => string): MenuItem =>
-  buildMenu(t('Solicitudes'), <Person2Outlined />, [
+  buildMenu(t('Solicitudes'), <Assignment />, [
     {
       title: t('Turnos'),
       route: routes.admin.management.solicitudes.turnos,
     },
 
     {
-      title: t('Creacion Promotoras'),
+      title: t('Promotoras'),
       route: routes.admin.management.solicitudes.promotoras,
     },
   ]);
@@ -89,7 +92,7 @@ export const useMenuItemsCollapsedShells = (
   const general: MenuItem[] = [dashboardsMenu(t), applicationsMenu(t)];
 
   const roleMenus: Record<UserRole, MenuItem[]> = {
-    admin: [addsMenu(t), promotorsMenu(t), campaignsMenu(t), sweepstakesMenu(t), storesMenu(t), requestMenu(t)],
+    admin: [addsMenu(t), requestMenu(t), promotorsMenu(t), campaignsMenu(t), sweepstakesMenu(t), storesMenu(t)],
     general_manager: [campaignsMenu(t), promotorsMenu(t), storesMenu(t), requestMenu(t)],
     promotor_manager: [sweepstakesMenu(t), promotorsMenu(t),requestMenu(t)  ],
     campaign_manager: [campaignsMenu(t)],
