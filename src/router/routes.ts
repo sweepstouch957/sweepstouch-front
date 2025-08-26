@@ -161,10 +161,10 @@ export const routes = {
       promotors: {
         listing: '/admin/management/promotors',
         turnos: '/admin/management/turnos',
-        solicitudes: {
-          turnos: '/admin/management/solicitudes/turnos',
-          promotoras: '/admin/management/solicitudes/promotoras',
-        },
+      },
+      solicitudes: {
+        turnos: '/admin/management/solicitudes/turnos',
+        promotoras: '/admin/management/solicitudes/promotoras',
       },
       sweepstakes: {
         listing: '/admin/management/sweepstakes',

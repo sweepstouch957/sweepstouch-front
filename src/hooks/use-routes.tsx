@@ -51,19 +51,18 @@ const promotorsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Impulsadoras'), <Person2Outlined />, [
     { title: t('Promotoras'), route: routes.admin.management.promotors.listing },
     { title: t('Turnos'), route: routes.admin.management.promotors.turnos },
-    {
-      title: t('Solicitudes'),
-      subMenu: [
-        {
-          title: t('Turnos'),
-          route: routes.admin.management.promotors.solicitudes.turnos,
-        },
+  ]);
 
-        {
-          title: t('Creacion Promotoras'),
-          route: routes.admin.management.promotors.solicitudes.promotoras,
-        },
-      ],
+const requestMenu = (t: (token: string) => string): MenuItem =>
+  buildMenu(t('Solicitudes'), <Person2Outlined />, [
+    {
+      title: t('Turnos'),
+      route: routes.admin.management.solicitudes.turnos,
+    },
+
+    {
+      title: t('Creacion Promotoras'),
+      route: routes.admin.management.solicitudes.promotoras,
     },
   ]);
 
@@ -90,9 +89,9 @@ export const useMenuItemsCollapsedShells = (
   const general: MenuItem[] = [dashboardsMenu(t), applicationsMenu(t)];
 
   const roleMenus: Record<UserRole, MenuItem[]> = {
-    admin: [addsMenu(t), promotorsMenu(t), campaignsMenu(t), sweepstakesMenu(t), storesMenu(t)],
-    general_manager: [campaignsMenu(t), promotorsMenu(t), storesMenu(t)],
-    promotor_manager: [sweepstakesMenu(t), promotorsMenu(t)],
+    admin: [addsMenu(t), promotorsMenu(t), campaignsMenu(t), sweepstakesMenu(t), storesMenu(t), requestMenu(t)],
+    general_manager: [campaignsMenu(t), promotorsMenu(t), storesMenu(t), requestMenu(t)],
+    promotor_manager: [sweepstakesMenu(t), promotorsMenu(t),requestMenu(t)  ],
     campaign_manager: [campaignsMenu(t)],
     cashier: [],
     merchant: [],
