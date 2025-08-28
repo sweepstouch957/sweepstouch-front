@@ -441,12 +441,8 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({ sweepstakes }) 
                           style={{ borderRadius: '50%' }}
                         />
                         <Box>
-                          <Typography fontWeight="bold">{shift.storeInfo?.name}</Typography>
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                          >
-                            {shift.storeAddress}
+                          <Typography fontWeight="bold">
+                            {shift.storeInfo?.name} , <b>{shift.storeInfo?.customerCount}</b>
                           </Typography>
                         </Box>
                       </Stack>
