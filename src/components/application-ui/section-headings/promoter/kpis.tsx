@@ -89,7 +89,6 @@ export default function ActivationRequestsKpis({ from, to, dangerCount }: Props)
             icon={<InfoOutlined />}
             label="Locales con Audiencia Crítica"
             value={dangerCount || 0}
-            variant='error'
           />
           <KpiCard
             icon={<AccessTimeIcon />}

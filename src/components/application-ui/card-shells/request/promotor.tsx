@@ -27,6 +27,7 @@ import {
 import { alpha, useTheme } from '@mui/material/styles';
 import { format } from 'date-fns';
 import es from 'date-fns/locale/es';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 
 type Props = {
   request: ActivationRequest;
@@ -145,7 +146,7 @@ export default function ActivationRequestCard({
       sx={{
         borderRadius: 3,
         overflow: 'hidden',
-        border: `1px solid ${hasDanger ? theme.palette.error.light : theme.palette.divider}`,
+        border: `1px solid ${hasDanger ?  alpha(theme.palette.primary.main, 0.08) : theme.palette.divider}`,
         boxShadow: hasDanger
           ? `0 0 0 2px ${alpha(theme.palette.error.main, 0.15)}`
           : `0 1px 2px ${alpha(theme.palette.common.black, 0.05)}`,
@@ -181,8 +182,7 @@ export default function ActivationRequestCard({
           >
             <Chip
               size="small"
-              color="error"
-              icon={<ReportGmailerrorredRoundedIcon sx={{ fontSize: 18 }} />}
+              icon={<ReportGmailerrorredRoundedIcon sx={{ fontSize: 18, }} />}
               label={`${dangerCount}`}
               sx={{
                 fontWeight: 700,
@@ -266,7 +266,7 @@ export default function ActivationRequestCard({
               <Box sx={{ ml: 'auto' }}>
                 {request.status === 'aprobado' && (
                   <Tooltip title="Aprobado">
-                    <CheckCircleIcon sx={{ color: theme.palette.success.main }} />
+                    <CheckCircleOutlineIcon sx={{ color: theme.palette.success.main }}  />
                   </Tooltip>
                 )}
                 {request.status === 'rechazado' && (

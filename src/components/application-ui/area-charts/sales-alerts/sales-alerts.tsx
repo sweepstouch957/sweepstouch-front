@@ -122,7 +122,7 @@ function  Component() {
           <AvatarState
             useShadow
             state="secondary"
-            sx={{ height: 64, width: 64 }}
+            sx={{ height: 64, width: 64,bgcolor:"#eeeeee" }}
           >
             {icon}
           </AvatarState>
@@ -143,11 +143,6 @@ function  Component() {
           {title}
         </Typography>
 
-        <Chip
-          label={chipLabel}
-          variant="outlined"
-          color={chipColor}
-        />
       </CardContentOverlay>
 
       <ChartOverlay>
@@ -167,7 +162,7 @@ function  Component() {
               {
                 data: chartData,
                 area: true,
-                color: chartColor,
+                color: "#111111",
                 showMark: false,
               },
             ]}
@@ -177,7 +172,7 @@ function  Component() {
                 strokeWidth: 3,
               },
               '.MuiAreaElement-root': {
-                fill: `url('#${gradientId}')`,
+                fill: `#eeeeee`,
                 fillOpacity: theme.palette.mode === 'dark' ? 0.76 : 1,
               },
             }}
@@ -189,7 +184,7 @@ function  Component() {
               >
                 <stop
                   offset="0%"
-                  stopColor={chartColor}
+                  stopColor={"#dddddd"}
                 />
                 <stop
                   offset="100%"
@@ -215,7 +210,7 @@ function  Component() {
       >
         {renderBox(
           t('Send Messages this month'),
-          <Message />,
+          <Message sx={{color:"#111111"}}/>,
           campaignsCount + 782421,
           loadingCampaigns,
           errorCampaigns,
@@ -234,7 +229,7 @@ function  Component() {
       >
         {renderBox(
           t('Total Customers'),
-          <AssignmentIndTwoToneIcon />,
+          <AssignmentIndTwoToneIcon  sx={{color:"#111111"}} />,
           customersCount,
           loadingCustomers,
           errorCustomers,
@@ -253,7 +248,7 @@ function  Component() {
       >
         {renderBox(
           t('Sweeptakes Participants'),
-          <RedeemOutlined />,
+          <RedeemOutlined  sx={{color:"#111111"}} />,
           sweepstakesCount,
           loadingSweepstakes,
           errorSweepstakes,
