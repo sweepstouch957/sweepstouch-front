@@ -287,12 +287,14 @@ const PromotersDialog: React.FC<{
                   icon={<DirectionsWalkIcon />}
                   label={`Radio ${radiusKm ?? 50} km`}
                 />
-                <Chip
-                  size="small"
-                  color="primary"
-                  icon={<LeaderboardIcon />}
-                  label={`${promoters.length} promotoras`}
-                />
+                <Typography
+                  component="span"
+                  fontWeight={200}
+                  fontSize={'0.7rem'}
+                  color="text.secondary"
+                >
+                  {promoters.length} promotoras
+                </Typography>
               </Stack>
             </Box>
           </Stack>
@@ -431,7 +433,7 @@ const PromotersDialog: React.FC<{
                   <Box
                     sx={{
                       height: 76,
-                      background: "#DDDDDD",
+                      background: '#DDDDDD',
                     }}
                   />
 
@@ -646,6 +648,7 @@ const StoresNearbyTable: React.FC<StoresNearbyTableProps> = ({
   isLoading,
   isError,
   onRetry,
+  changeRadius,
 }) => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
@@ -727,6 +730,22 @@ const StoresNearbyTable: React.FC<StoresNearbyTableProps> = ({
           </Stack>
 
           <Box flex={1} />
+          <TextField
+            placeholder="Radio"
+            size="small"
+            type="number"
+            value={radiusKm ?? ''}
+            onChange={(e) => {
+              const v = parseInt(e.target.value, 10);
+              if (!isNaN(v) && v > 0) changeRadius?.(v);
+            }}
+            sx={{
+              width: 100,
+              backgroundColor: (theme) => theme.palette.common.white,
+              borderRadius: 10,
+              '& fieldset': { border: '1px solid', borderColor: 'divider' },
+            }}
+          />
 
           <TextField
             placeholder="Buscar tienda, dirección o ZIP"
@@ -863,7 +882,7 @@ const StoresNearbyTable: React.FC<StoresNearbyTableProps> = ({
                             />
                             <Box>
                               <Typography
-                                fontWeight={800}
+                                fontWeight={400}
                                 sx={{ letterSpacing: 0.2 }}
                               >
                                 {store.name ?? 'Tienda sin nombre'}
@@ -881,27 +900,23 @@ const StoresNearbyTable: React.FC<StoresNearbyTableProps> = ({
                         </TableCell>
 
                         <TableCell width={140}>
-                          {typeof store.customerCount === 'number' ? (
-                            <Chip
-                              color="secondary"
-                              label={`${store.customerCount.toLocaleString()}`}
-                              icon={<GroupsIcon />}
-                              sx={{ fontWeight: 700 }}
-                            />
-                          ) : (
-                            <Chip
-                              variant="outlined"
-                              label="s/d"
-                            />
-                          )}
+                          <Typography
+                            variant="body2"
+                            sx={{ mb: 0.5 }}
+                            fontWeight={600}
+                          >
+                            {store.customerCount.toLocaleString()}
+                          </Typography>
                         </TableCell>
 
                         <TableCell>
-                          <Chip
-                            color="primary"
-                            label={`${promoters.length} promotoras`}
-                            sx={{ fontWeight: 600 }}
-                          />
+                          <Typography
+                            component="span"
+                            fontWeight={400}
+                            color="text.secondary"
+                          >
+                            {promoters.length}
+                          </Typography>
                         </TableCell>
 
                         <TableCell width={360}>
@@ -928,17 +943,19 @@ const StoresNearbyTable: React.FC<StoresNearbyTableProps> = ({
                                     />
                                     <Typography
                                       variant="body2"
-                                      fontWeight={600}
+                                      fontWeight={400}
                                       noWrap
                                     >
-                                      {p.firstName} {p.lastName}
+                                      {p.firstName} {p.lastName} ,{' '}
+                                      <Typography
+                                        component="span"
+                                        fontWeight={200}
+                                        fontSize={'0.7rem'}
+                                        color="primary.main"
+                                      >
+                                        {getDistance(p)?.toFixed(1) ?? '—'} km
+                                      </Typography>
                                     </Typography>
-                                    {typeof getDistance(p) === 'number' && (
-                                      <Chip
-                                        size="small"
-                                        label={`${getDistance(p)?.toFixed(1)} km`}
-                                      />
-                                    )}
                                   </Stack>
                                 ))}
                               </Stack>
