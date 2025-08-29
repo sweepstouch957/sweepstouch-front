@@ -1,11 +1,14 @@
 // ShiftManagementPage.tsx
 'use client';
 
-import KpiCards from '@/components/application-ui/section-headings/shifts';
+import StoresNearbyTable from '@/components/application-ui/tables/stores-warning/results';
 import PageHeading from '@/components/base/page-heading';
-import { Box, Container } from '@mui/material';
+import { useUnder1500NearbyPromoters } from '@/hooks/fetching/promoter/useInWarningStores';
+import { Container } from '@mui/material';
 
 const CandidatesStorePage = () => {
+  const { data, isError, isLoading, refetch } = useUnder1500NearbyPromoters();
+
 
   return (
     <Container
@@ -16,9 +19,13 @@ const CandidatesStorePage = () => {
         title="Tiendas Candidatas"
         description="Tiendas mas beneficiadas con impulsadoras"
       />
-      <Box mt={2}>
-        <KpiCards />
-      </Box>
+      <StoresNearbyTable
+        radiusKm={data?.radiusKm}
+        stores={data?.stores ?? []}
+        isLoading={isLoading}
+        isError={isError}
+        onRetry={refetch}
+      />
     </Container>
   );
 };

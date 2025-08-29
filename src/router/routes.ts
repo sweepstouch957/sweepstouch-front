@@ -161,6 +161,7 @@ export const routes = {
       promotors: {
         listing: '/admin/management/promotors',
         turnos: '/admin/management/turnos',
+        featuredStores: '/admin/management/work-stores',
       },
       solicitudes: {
         turnos: '/admin/management/solicitudes/turnos',

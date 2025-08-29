@@ -89,6 +89,9 @@ export default function ActivationRequestsKpis({ from, to, dangerCount }: Props)
             icon={<InfoOutlined />}
             label="Locales con Audiencia Crítica"
             value={dangerCount || 0}
+            href='/admin/management/work-stores'
+            external={true}
+            tooltip="Locales con menos de 1000 personas en un radio de 5km"
           />
           <KpiCard
             icon={<AccessTimeIcon />}

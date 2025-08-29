@@ -54,6 +54,7 @@ const promotorsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Impulsadoras'), <Person2Outlined />, [
     { title: t('Promotoras'), route: routes.admin.management.promotors.listing },
     { title: t('Turnos'), route: routes.admin.management.promotors.turnos },
+    { title: t('Tiendas Destacadas'), route: routes.admin.management.promotors.featuredStores }
   ]);
 
 const requestMenu = (t: (token: string) => string): MenuItem =>
@@ -94,7 +95,7 @@ export const useMenuItemsCollapsedShells = (
   const roleMenus: Record<UserRole, MenuItem[]> = {
     admin: [addsMenu(t), requestMenu(t), promotorsMenu(t), campaignsMenu(t), sweepstakesMenu(t), storesMenu(t)],
     general_manager: [campaignsMenu(t), promotorsMenu(t), storesMenu(t), requestMenu(t)],
-    promotor_manager: [sweepstakesMenu(t), promotorsMenu(t),requestMenu(t)  ],
+    promotor_manager: [sweepstakesMenu(t), promotorsMenu(t),requestMenu(t) ,  storesMenu(t)],
     campaign_manager: [campaignsMenu(t)],
     cashier: [],
     merchant: [],

@@ -24,17 +24,53 @@ export interface Promoter {
   existingUsersRegistered?: number;
   totalHoursWorked?: number;
 }
+
+// Promotoras cercanas: el backend incluye distanceKm/distanceMeters y fullName
+export interface NearbyPromoter extends Promoter {
+  distanceKm?: number;
+  distanceMeters?: number;
+  fullName?: string;
+}
+
 export interface PromoterDashboardStats {
   totalPromoters: number;
   activePromoters: number;
   totalShifts: number;
   avgRating: number;
 }
+
 export interface PromoterFilters {
   status?: string;
   zipCode?: string;
   supermarketName?: string;
   active?: boolean;
+}
+
+// Respuesta: /promoter/users/near-under1500
+export interface StoreWithPromoters {
+  store: {
+    id: string;
+    name: string;
+    coordinates: [number, number]; // [lng, lat]
+  };
+  promoters: NearbyPromoter[];
+}
+export interface Under1500NearbyResponse {
+  radiusKm: number;
+  totalStores: number;
+  stores: StoreWithPromoters[];
+}
+
+// Respuesta: /promoter/users/near-store/:storeId
+export interface NearStoreResponse {
+  store: {
+    id: string;
+    name: string;
+    coordinates: [number, number];
+  };
+  radiusKm: number;
+  total: number;
+  promoters: NearbyPromoter[];
 }
 
 export class PromoterService {
@@ -45,7 +81,7 @@ export class PromoterService {
       email: data.email,
       active: data.status === 'Activa',
       phoneNumber: data.phoneNumber,
-    }
+    };
     const res = await api.post('/promoter/users', payload);
     return res.data;
   }
@@ -61,7 +97,8 @@ export class PromoterService {
   }
 
   async updatePromoter(id: string, data: Partial<Promoter>): Promise<Promoter> {
-    const res = await api.put(`/promoter/users${id}`, data);
+    // ✅ fix: faltaba la slash antes del id
+    const res = await api.put(`/promoter/users/${id}`, data);
     return res.data;
   }
 
@@ -79,8 +116,21 @@ export class PromoterService {
     const res = await api.get('/promoter/users/stats');
     return res.data;
   }
+
   async login(email: string, password: string): Promise<{ token: string; user: Promoter }> {
     const res = await api.post('/promoter/users/login', { email, password });
+    return res.data;
+  }
+
+  // 🔥 Nuevo: tiendas <1500 con promotoras <= radiusKm (sin paginación)
+  async getStoresUnder1500WithNearbyPromoters(radiusKm = 50): Promise<Under1500NearbyResponse> {
+    const res = await api.get('/promoter/users/near-under1500', { params: { radiusKm } });
+    return res.data;
+  }
+
+  // 🔥 Nuevo: promotoras cerca de una tienda específica (sin paginación)
+  async getPromotersNearStore(storeId: string, radiusKm = 50): Promise<NearStoreResponse> {
+    const res = await api.get(`/promoter/users/near-store/${storeId}`, { params: { radiusKm } });
     return res.data;
   }
 }
