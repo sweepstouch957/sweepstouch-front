@@ -64,6 +64,8 @@ const KpiSection = () => {
         icon={<CalendarMonthIcon />}
         label="Total Turnos"
         value={data.totalShifts}
+        external={false}
+        href="/admin/management/turnos"
       />
       <KpiCard
         icon={<StarIcon />}
