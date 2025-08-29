@@ -106,6 +106,7 @@ export type StoresNearbyTableProps = {
   isLoading?: boolean;
   isError?: boolean;
   onRetry?: () => void;
+  changeRadius?: (newRadius: number) => void;
 };
 
 // ==========================================
@@ -424,15 +425,13 @@ const PromotersDialog: React.FC<{
                     height: '100%',
                     overflow: 'hidden',
                     position: 'relative',
-                    '&:hover': { boxShadow: (t) => t.shadows[1] },
                   }}
                 >
                   {/* Hero */}
                   <Box
                     sx={{
                       height: 76,
-                      background: (t) =>
-                        `linear-gradient(135deg, ${t.palette.primary.light}, ${t.palette.primary.main})`,
+                      background: "#DDDDDD",
                     }}
                   />
 
@@ -700,8 +699,6 @@ const StoresNearbyTable: React.FC<StoresNearbyTableProps> = ({
           p: 2,
           mb: 2,
           borderRadius: 3,
-          background: (t) =>
-            `linear-gradient(135deg, ${t.palette.grey[50]}, ${t.palette.background.paper})`,
           border: '1px solid',
           borderColor: 'divider',
         }}
@@ -823,7 +820,6 @@ const StoresNearbyTable: React.FC<StoresNearbyTableProps> = ({
       ) : (
         <TableContainer
           component={Paper}
-          elevation={1}
           sx={{ borderRadius: 4 }}
         >
           <Table>
