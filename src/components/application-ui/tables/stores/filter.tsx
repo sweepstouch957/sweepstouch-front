@@ -1,6 +1,8 @@
+import { SearchTwoTone } from '@mui/icons-material';
 import {
   Box,
   FormControl,
+  InputAdornment,
   InputLabel,
   MenuItem,
   OutlinedInput,
@@ -13,18 +15,27 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import { SearchTwoTone } from '@mui/icons-material';
 
 export default function StoreFilters({
   t,
   search,
-  type,
+  status, // 👈 nuevo
   sortBy,
   order,
   handleSearchChange,
-  onTypeChange,
+  onStatusChange, // 👈 nuevo
   onSortChange,
   onOrderChange,
+}: {
+  t: (k: string) => string;
+  search: string;
+  status: 'all' | 'active' | 'inactive';
+  sortBy: string;
+  order: string;
+  handleSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onStatusChange: (s: 'all' | 'active' | 'inactive') => void;
+  onSortChange: (v: string) => void;
+  onOrderChange: (v: string) => void;
 }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -46,6 +57,7 @@ export default function StoreFilters({
         alignItems={{ xs: 'stretch', sm: 'center' }}
         justifyContent="space-between"
         flexWrap="wrap"
+        useFlexGap
       >
         <TextField
           size="small"
@@ -53,31 +65,34 @@ export default function StoreFilters({
           value={search}
           onChange={handleSearchChange}
           fullWidth={isMobile}
-          sx={{ flex: 1, minWidth: 200 }}
+          sx={{ flex: 1, minWidth: 220 }}
           InputProps={{
             startAdornment: (
-              <SearchTwoTone
-                sx={{ mr: 1, color: 'text.secondary' }}
-                fontSize="small"
-              />
+              <InputAdornment position="start">
+                <SearchTwoTone
+                  fontSize="small"
+                  sx={{ color: 'text.secondary' }}
+                />
+              </InputAdornment>
             ),
           }}
         />
 
+        {/* 👇 Select de Estado (reemplaza Plan/Type) */}
         <FormControl
           size="small"
-          sx={{ minWidth: 140, flexShrink: 0 }}
+          sx={{ minWidth: 160, flexShrink: 0 }}
         >
-          <InputLabel>{t('Plan')}</InputLabel>
+          <InputLabel id="status-label">{t('Status')}</InputLabel>
           <Select
-            value={type}
-            onChange={(e) => onTypeChange(e.target.value)}
-            input={<OutlinedInput label={t('Plan')} />}
+            labelId="status-label"
+            value={status}
+            onChange={(e) => onStatusChange(e.target.value as 'all' | 'active' | 'inactive')}
+            input={<OutlinedInput label={t('Status')} />}
           >
-            <MenuItem value="">{t('All types')}</MenuItem>
-            <MenuItem value="elite">Elite</MenuItem>
-            <MenuItem value="basic">Basic</MenuItem>
-            <MenuItem value="free">Free</MenuItem>
+            <MenuItem value="all">{t('All')}</MenuItem>
+            <MenuItem value="active">{t('Active')}</MenuItem>
+            <MenuItem value="inactive">{t('Inactive')}</MenuItem>
           </Select>
         </FormControl>
 
@@ -85,13 +100,15 @@ export default function StoreFilters({
           size="small"
           sx={{ minWidth: 160, flexShrink: 0 }}
         >
-          <InputLabel>{t('Sort by')}</InputLabel>
+          <InputLabel id="sort-by-label">{t('Sort by')}</InputLabel>
           <Select
+            labelId="sort-by-label"
             value={sortBy}
             onChange={(e) => onSortChange(e.target.value)}
             input={<OutlinedInput label={t('Sort by')} />}
           >
             <MenuItem value="customerCount">{t('Customers')}</MenuItem>
+            {/* agrega más si quieres: name, createdAt, etc. */}
           </Select>
         </FormControl>
 
@@ -128,4 +145,3 @@ export default function StoreFilters({
     </Box>
   );
 }
-

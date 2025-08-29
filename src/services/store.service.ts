@@ -89,12 +89,14 @@ export interface GetStoresParams {
   type?: 'elite' | 'basic' | 'free' | '';
   sortBy?: 'customerCount'; // puedes añadir más campos si quieres ordenar por otros
   order?: 'asc' | 'desc';
+  status?: 'all' | 'active' | 'inactive';
 }
 export const getStores = async ({
   page = 1,
   limit = 25,
   search = '',
   type = '',
+  status = 'all',
   sortBy = 'customerCount',
   order = 'desc',
 }: GetStoresParams): Promise<GetStoresResponse> => {
@@ -106,6 +108,7 @@ export const getStores = async ({
       type: type || undefined,
       sortBy,
       order,
+      status: status === 'all' ? undefined : status,
     },
   });
 

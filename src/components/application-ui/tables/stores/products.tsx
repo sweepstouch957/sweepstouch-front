@@ -10,10 +10,10 @@ function Component() {
     page,
     limit,
     search,
-    type,
+    status,
+    onStatusChange,
     handlePageChange,
     handleLimitChange,
-    handleTypeChange,
     handleSearchChange,
     handleSortChange,
     handleOrderChange,
@@ -24,21 +24,21 @@ function Component() {
   return (
     <Results
       stores={stores}
+      status={status}
+      onStatusChange={onStatusChange}
       total={total}
       page={page}
       limit={limit}
       search={search}
-      type={type}
       onPageChange={handlePageChange}
       onLimitChange={handleLimitChange}
       onSearchChange={handleSearchChange}
-      onTypeChange={handleTypeChange}
       loading={loading}
       error={error}
       onOrderChange={handleOrderChange}
       onSortChange={handleSortChange}
       order={order}
-      sortBy={sortBy  }
+      sortBy={sortBy}
     />
   );
 }

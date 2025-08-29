@@ -1,22 +1,11 @@
 import { Store } from '@/services/store.service';
-import {
-  DeleteTwoTone as DeleteIcon,
-  DeleteRounded,
-  LaunchTwoTone as LaunchIcon,
-  MoreVertRounded,
-  SearchTwoTone as SearchIcon,
-} from '@mui/icons-material';
+import { DeleteTwoTone as DeleteIcon, LaunchTwoTone as LaunchIcon } from '@mui/icons-material';
 import {
   Box,
   Card,
   Checkbox,
   CircularProgress,
-  FormControl,
   IconButton,
-  InputAdornment,
-  InputLabel,
-  MenuItem,
-  Select,
   Table,
   TableBody,
   TableCell,
@@ -24,11 +13,8 @@ import {
   TableHead,
   TablePagination,
   TableRow,
-  TextField,
   Tooltip,
   Typography,
-  useMediaQuery,
-  useTheme,
 } from '@mui/material';
 import Link from 'next/link';
 import { ChangeEvent, FC, useState } from 'react';
@@ -40,16 +26,21 @@ interface ResultsProps {
   page: number;
   limit: number;
   total: number;
-  search: string;
-  type: string;
+
+  // 🔄 Reemplazamos "type" por "status"
+  status: 'all' | 'active' | 'inactive';
   sortBy: string;
   order: string;
+  search: string;
+
   onPageChange: (page: number) => void;
   onLimitChange: (e: ChangeEvent<HTMLInputElement>) => void;
+
   onSearchChange: (query: string) => void;
-  onTypeChange: (type: string) => void;
+  onStatusChange: (status: 'all' | 'active' | 'inactive') => void;
   onSortChange: (sortBy: string) => void;
   onOrderChange: (order: string) => void;
+
   loading?: boolean;
   error?: string | null;
 }
@@ -68,23 +59,25 @@ const Results: FC<ResultsProps> = ({
   page,
   limit,
   total,
+
+  // props de filtros
+  status,
+  sortBy,
+  order,
   search,
-  type,
+
+  // handlers
   onPageChange,
   onLimitChange,
   onSearchChange,
-  onOrderChange,
+  onStatusChange,
   onSortChange,
-  order,
-  sortBy,
-  onTypeChange,
+  onOrderChange,
   loading,
   error,
 }) => {
   const [selectedItems, setSelected] = useState<string[]>([]);
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const handleSelectAll = (event: ChangeEvent<HTMLInputElement>): void => {
     setSelected(event.target.checked ? stores.map((s) => s.id) : []);
@@ -100,15 +93,15 @@ const Results: FC<ResultsProps> = ({
 
   const selectedAll = selectedItems.length === stores.length;
   const selectedSome = selectedItems.length > 0 && selectedItems.length < stores.length;
-  const hasSelection = selectedItems.length > 0;
 
   return (
     <>
       <StoreFilter
         search={search}
         handleSearchChange={handleSearchChange}
-        type={type}
-        onTypeChange={onTypeChange}
+        // 🔄 ahora usamos status en vez de type
+        status={status}
+        onStatusChange={onStatusChange}
         sortBy={sortBy}
         onSortChange={onSortChange}
         order={order}
@@ -153,7 +146,6 @@ const Results: FC<ResultsProps> = ({
                     <TableCell>{t('Store name')}</TableCell>
                     <TableCell>{t('Address')}</TableCell>
                     <TableCell>{t('Customers')}</TableCell>
-                    <TableCell>{t('Plan')}</TableCell>
                     <TableCell align="center">{t('Status')}</TableCell>
                     <TableCell align="center">{t('Actions')}</TableCell>
                   </TableRow>
@@ -181,9 +173,7 @@ const Results: FC<ResultsProps> = ({
                         </TableCell>
                         <TableCell>{store.address}</TableCell>
                         <TableCell>{store.customerCount}</TableCell>
-                        <TableCell sx={{ textTransform: 'uppercase' }}>
-                          {store.type || 'FREE'}
-                        </TableCell>
+
                         <TableCell align="center">
                           <Typography color={store.active ? 'success.main' : 'error.main'}>
                             {store.active ? t('Active') : t('Inactive')}

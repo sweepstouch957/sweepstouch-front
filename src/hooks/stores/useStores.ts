@@ -19,23 +19,30 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
   const [type, setType] = useState<UseStoresOptions['type']>(initialOptions.type || '');
   const [sortBy, setSortBy] = useState<UseStoresOptions['sortBy']>('customerCount');
   const [order, setOrder] = useState<UseStoresOptions['order']>('desc');
-
+  const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all');
   // Debounced search control
   const [searchInput, setSearchInput] = useState(search);
   const debouncedSearch = useMemo(() => debounce((val: string) => setSearch(val), 500), []);
+
+  const onStatusChange = useCallback((value: 'all' | 'active' | 'inactive') => {
+    console.log('value', value);
+
+    setStatus(value);
+    setPage(0);
+  }, []);
 
   useEffect(() => {
     return () => debouncedSearch.cancel();
   }, [debouncedSearch]);
 
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['stores', page, limit, search, type, sortBy, order],
+    queryKey: ['stores', page, limit, search, type, sortBy, order,status],
     queryFn: () =>
       storesService.getStores({
         page: page + 1,
         limit,
         search,
-        type,
+        status,
         sortBy,
         order,
       }),
@@ -90,5 +97,7 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
     handleSortChange,
     handleOrderChange,
     refetch,
+    status,
+    onStatusChange,
   };
 };
