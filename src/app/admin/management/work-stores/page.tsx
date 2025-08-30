@@ -8,7 +8,7 @@ import { Container } from '@mui/material';
 import { useState } from 'react';
 
 const CandidatesStorePage = () => {
-  const [radiusKm, setRadiusKm] = useState(10);
+  const [radiusKm, setRadiusKm] = useState(20);
   const { data, isError, isLoading, refetch } = useUnder1500NearbyPromoters(radiusKm);
 
   const changeRadius = (newRadius: number) => {
@@ -25,7 +25,7 @@ const CandidatesStorePage = () => {
         description="Tiendas mas beneficiadas con impulsadoras"
       />
       <StoresNearbyTable
-        radiusKm={data?.radiusKm}
+        radiusKm={data?.radiusMi }
         stores={data?.stores ?? []}
         isLoading={isLoading}
         isError={isError}

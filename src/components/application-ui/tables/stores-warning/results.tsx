@@ -67,7 +67,7 @@ export type PromoterBrief = {
   countryCode?: string;
   profileImage?: string;
   rating?: number;
-  distanceKm?: number; // preferred key
+  distanceMiles?: number; // preferred key
   distance?: number; // fallback key
   totalShifts?: number;
   totalRegistrations?: number;
@@ -115,8 +115,8 @@ export type StoresNearbyTableProps = {
 const fmtInt = (n?: number) => (typeof n === 'number' ? n.toLocaleString() : '0');
 const fmtMoney = (n?: number) => (typeof n === 'number' ? `$${n.toFixed(2)}` : '$0.00');
 const getDistance = (p: PromoterBrief) =>
-  typeof p.distanceKm === 'number'
-    ? p.distanceKm
+  typeof p.distanceMiles === 'number'
+    ? p.distanceMiles
     : typeof p.distance === 'number'
       ? p.distance
       : undefined;
@@ -285,7 +285,7 @@ const PromotersDialog: React.FC<{
                   size="small"
                   variant="outlined"
                   icon={<DirectionsWalkIcon />}
-                  label={`Radio ${radiusKm ?? 50} km`}
+                  label={`Radio ${radiusKm ?? 50} mi`}
                 />
                 <Typography
                   component="span"
@@ -472,7 +472,7 @@ const PromotersDialog: React.FC<{
                         <Chip
                           size="small"
                           icon={<DirectionsWalkIcon />}
-                          label={`${getDistance(p)?.toFixed(1)} km`}
+                          label={`${getDistance(p)?.toFixed(1)} mi`}
                         />
                       )}
                       {typeof p.rating === 'number' && (
@@ -718,7 +718,7 @@ const StoresNearbyTable: React.FC<StoresNearbyTableProps> = ({
             flexWrap="wrap"
           >
             <Chip
-              label={`Radio: ${radiusKm ?? 50} km`}
+              label={`Radio: ${radiusKm ?? 50} mi`}
               color="primary"
               sx={{ fontWeight: 600 }}
             />
@@ -731,16 +731,60 @@ const StoresNearbyTable: React.FC<StoresNearbyTableProps> = ({
 
           <Box flex={1} />
           <TextField
-            placeholder="Radio"
+            placeholder="Radio (mi)"
             size="small"
-            type="number"
-            value={radiusKm ?? ''}
+            type="text"
+            inputMode="decimal"
+            value={typeof radiusKm === 'number' && radiusKm >= 0 ? String(radiusKm) : ''} // si tu var ya es en millas
             onChange={(e) => {
-              const v = parseInt(e.target.value, 10);
-              if (!isNaN(v) && v > 0) changeRadius?.(v);
+              const next = e.target.value;
+              // Solo dígitos y un punto decimal
+              if (!/^\d*\.?\d*$/.test(next)) return;
+
+              // Propaga el número en millas (sin convertir)
+              const miles = parseFloat(next);
+              if (!isNaN(miles)) {
+                changeRadius?.(miles);
+              } else if (next === '') {
+                // si borran todo, no mandamos nada (evita setear 0)
+              }
+            }}
+            onKeyDown={(e) => {
+              const allowedNav = [
+                'Backspace',
+                'Delete',
+                'ArrowLeft',
+                'ArrowRight',
+                'Home',
+                'End',
+                'Tab',
+              ];
+              // Permitir atajos comunes (Ctrl/Cmd + A/C/V/X/Z/Y)
+              const isCtrlCmd = e.ctrlKey || e.metaKey;
+              const allowedShortcut = ['a', 'c', 'v', 'x', 'z', 'y'].includes(e.key.toLowerCase());
+              if (allowedNav.includes(e.key) || (isCtrlCmd && allowedShortcut)) return;
+
+              // Permitir dígitos
+              if (e.key >= '0' && e.key <= '9') return;
+
+              // Permitir UN solo punto
+              if (e.key === '.') {
+                const hasDot = (e.currentTarget as HTMLInputElement).value.includes('.');
+                if (!hasDot) return;
+              }
+
+              // Bloquear todo lo demás (letras, e, +, - , comas, etc.)
+              e.preventDefault();
+            }}
+            onPaste={(e) => {
+              const text = e.clipboardData.getData('text');
+              if (!/^\d*\.?\d*$/.test(text)) e.preventDefault();
+            }}
+            InputProps={{
+              endAdornment: <InputAdornment position="end">mi</InputAdornment>,
             }}
             sx={{
-              width: 100,
+              width: 120,
               backgroundColor: (theme) => theme.palette.common.white,
               borderRadius: 10,
               '& fieldset': { border: '1px solid', borderColor: 'divider' },
@@ -953,7 +997,7 @@ const StoresNearbyTable: React.FC<StoresNearbyTableProps> = ({
                                         fontSize={'0.7rem'}
                                         color="primary.main"
                                       >
-                                        {getDistance(p)?.toFixed(1) ?? '—'} km
+                                        {getDistance(p)?.toFixed(1) ?? '—'} mi
                                       </Typography>
                                     </Typography>
                                   </Stack>

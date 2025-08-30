@@ -27,7 +27,7 @@ export interface Promoter {
 
 // Promotoras cercanas: el backend incluye distanceKm/distanceMeters y fullName
 export interface NearbyPromoter extends Promoter {
-  distanceKm?: number;
+  distanceMiles?: number;
   distanceMeters?: number;
   fullName?: string;
 }
@@ -56,7 +56,7 @@ export interface StoreWithPromoters {
   promoters: NearbyPromoter[];
 }
 export interface Under1500NearbyResponse {
-  radiusKm: number;
+  radiusMi: number;
   totalStores: number;
   stores: StoreWithPromoters[];
 }
@@ -123,8 +123,8 @@ export class PromoterService {
   }
 
   // 🔥 Nuevo: tiendas <1500 con promotoras <= radiusKm (sin paginación)
-  async getStoresUnder1500WithNearbyPromoters(radiusKm = 50): Promise<Under1500NearbyResponse> {
-    const res = await api.get('/promoter/users/near-under1500', { params: { radiusKm } });
+  async getStoresUnder1500WithNearbyPromoters(radiusMi = 20): Promise<Under1500NearbyResponse> {
+    const res = await api.get('/promoter/users/near-under1500', { params: { radiusMi } });
     return res.data;
   }
 

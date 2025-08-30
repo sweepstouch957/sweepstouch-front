@@ -64,12 +64,14 @@ type Promoter = {
     createdAt?: string;
     status?: string;
   };
+  // NUEVO: campos posibles para comentario existente en DB
+  comment?: string | null;
+  notes?: string | null;
+  internalNotes?: string | null;
 };
 
 const fmtMoney = (n?: number) => (typeof n === 'number' ? `$${n.toFixed(2)}` : '$0.00');
-
 const fmtInt = (n?: number) => (typeof n === 'number' ? n.toLocaleString() : '0');
-
 const fmtDate = (iso?: string) => {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -88,6 +90,8 @@ const PromoterTable = ({
   setPage,
   rowsPerPage,
   setRowsPerPage,
+  // NUEVO: callback opcional para guardar comentario
+  onSaveComment,
 }: {
   promoters: Promoter[];
   isLoading: boolean;
@@ -99,10 +103,17 @@ const PromoterTable = ({
   setPage: (value: number) => void;
   rowsPerPage: number;
   setRowsPerPage: (value: number) => void;
+  onSaveComment?: (id: string, comment: string) => Promise<void> | void;
 }) => {
   const [selected, setSelected] = useState<Promoter | null>(null);
   const [openDetails, setOpenDetails] = useState(false);
   const [openPhoto, setOpenPhoto] = useState(false);
+
+  // NUEVO: estado para comentario
+  const [commentText, setCommentText] = useState('');
+  const [savingComment, setSavingComment] = useState(false);
+  const [commentError, setCommentError] = useState<string | null>(null);
+  const MAX_COMMENT = 600;
 
   const filteredPromoters = useMemo(() => {
     const q = search.toLowerCase();
@@ -119,12 +130,67 @@ const PromoterTable = ({
 
   const handleOpenDetails = (p: Promoter) => {
     setSelected(p);
+    setCommentText('');
+    setCommentError(null);
     setOpenDetails(true);
   };
 
   const handleOpenPhoto = (p?: Promoter | null) => {
     if (p) setSelected(p);
     setOpenPhoto(true);
+  };
+
+  const existingComment =
+    (selected?.comment ?? selected?.notes ?? selected?.internalNotes)?.trim() || '';
+
+  const canShowCommentInput = selected && !existingComment;
+
+  const persistComment = async () => {
+    if (!selected) return;
+    const text = commentText.trim();
+    if (!text) {
+      setCommentError('Escribe un comentario.');
+      return;
+    }
+    if (text.length > MAX_COMMENT) {
+      setCommentError(`Máximo ${MAX_COMMENT} caracteres.`);
+      return;
+    }
+    try {
+      setSavingComment(true);
+      setCommentError(null);
+
+      if (onSaveComment) {
+        await onSaveComment(selected._id, text);
+      } else {
+        // fallback genérico
+        const res = await fetch(`/api/promoters/${selected._id}/comment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ comment: text }),
+        });
+        if (!res.ok) throw new Error('request_failed');
+      }
+
+      // Actualiza localmente para ocultar el input
+      const updated = { ...selected, comment: text };
+      setSelected(updated);
+      setCommentText('');
+      // si tienes refetch que re-hidrate, lo puedes llamar:
+      // refetch();
+    } catch (e) {
+      setCommentError('No se pudo guardar el comentario. Intenta de nuevo.');
+    } finally {
+      setSavingComment(false);
+    }
+  };
+
+  const onKeyDownComment = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const isSubmit = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'enter';
+    if (isSubmit) {
+      e.preventDefault();
+      void persistComment();
+    }
   };
 
   if (isLoading) {
@@ -588,6 +654,78 @@ const PromoterTable = ({
                       </Typography>
                     </Grid>
                   </Grid>
+                </Grid>
+
+                {/* NUEVO: Comentario interno */}
+                <Grid
+                  item
+                  xs={12}
+                >
+                  <Divider sx={{ my: 1 }} />
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    gutterBottom
+                  >
+                    Comentario interno
+                  </Typography>
+
+                  {existingComment ? (
+                    // Si ya hay comentario en DB: solo mostrarlo (no input)
+                    <Paper
+                      variant="outlined"
+                      sx={{ p: 1.5, borderRadius: 2, backgroundColor: (t) => t.palette.grey[50] }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{ whiteSpace: 'pre-wrap' }}
+                      >
+                        {existingComment}
+                      </Typography>
+                    </Paper>
+                  ) : (
+                    // Si no hay: mostrar input para agregar
+                    <Stack spacing={1.25}>
+                      <TextField
+                        placeholder="Añadir comentario (solo visible internamente)"
+                        value={commentText}
+                        onChange={(e) => {
+                          const v = e.target.value.slice(0, MAX_COMMENT);
+                          setCommentText(v);
+                          if (commentError) setCommentError(null);
+                        }}
+                        onKeyDown={onKeyDownComment}
+                        multiline
+                        minRows={3}
+                        maxRows={6}
+                        inputProps={{ maxLength: MAX_COMMENT }}
+                        error={Boolean(commentError)}
+                        helperText={
+                          commentError ??
+                          `Ctrl/⌘ + Enter para guardar · ${commentText.length}/${MAX_COMMENT}`
+                        }
+                      />
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                      >
+                        <Button
+                          variant="contained"
+                          disabled={savingComment || !commentText.trim()}
+                          onClick={persistComment}
+                        >
+                          {savingComment ? 'Guardando…' : 'Guardar comentario'}
+                        </Button>
+                        <Button
+                          variant="text"
+                          disabled={savingComment || !commentText}
+                          onClick={() => setCommentText('')}
+                        >
+                          Limpiar
+                        </Button>
+                      </Stack>
+                    </Stack>
+                  )}
                 </Grid>
               </Grid>
             </Stack>
