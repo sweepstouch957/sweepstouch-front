@@ -257,6 +257,21 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({ sweepstakes }) 
 
   const shifts = data?.shifts || [];
   const pagination = data?.pagination || { page: 1, pages: 1, total: 0 };
+  // Total a pagar con los resultados actuales (filtros aplicados)
+  const totalToPay = useMemo(
+    () => shifts.reduce((sum: number, s: any) => sum + safeNum(s.totalEarnings), 0),
+    [shifts]
+  );
+
+  const usd = useMemo(
+    () =>
+      new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        maximumFractionDigits: 2,
+      }),
+    []
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -275,16 +290,8 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({ sweepstakes }) 
     }
   };
 
-  const clearFilters = () => {
-    setStartDate(null);
-    setEndDate(null);
-    // setSearch(''); // si quieres limpiar búsqueda también
-    setPage(1);
-  };
-
   return (
     <Box>
-      {/* Toolbar superior: título + filtros */}
       <Stack
         direction={{ xs: 'column', md: 'row' }}
         spacing={1.5}
@@ -387,17 +394,31 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({ sweepstakes }) 
             </span>
           </Tooltip>
 
-          <Tooltip title="Limpiar filtros">
-            <span>
-              <Button
-                variant="text"
-                onClick={clearFilters}
-                disabled={!startDate && !endDate /* && !search */}
-                sx={{ textTransform: 'none' }}
-              >
-                Limpiar
-              </Button>
-            </span>
+          {/* Total a pagar con filtros actuales */}
+          <Tooltip
+            title={
+              startDate || endDate
+                ? 'Total con rango de fechas aplicado'
+                : 'Total con filtros actuales'
+            }
+          >
+            <Chip
+              label={`Total a pagar ${usd.format(totalToPay)}`}
+              sx={{
+                fontWeight: 700,
+                bgcolor: theme.palette.mode === 'dark' ? '#1f1f1f' : '#fff',
+                border: `1px solid ${theme.palette.divider}`,
+                height: 36,
+              }}
+              icon={
+                isFetching ? (
+                  <CircularProgress
+                    size={16}
+                    sx={{ ml: 0.5 }}
+                  />
+                ) : undefined
+              }
+            />
           </Tooltip>
         </Stack>
       </Stack>

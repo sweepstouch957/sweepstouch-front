@@ -211,7 +211,7 @@ function  Component() {
         {renderBox(
           t('Send Messages this month'),
           <Message sx={{color:"#111111"}}/>,
-          2164683,
+          campaignsCount,
           loadingCampaigns,
           errorCampaigns,
           '+145%',

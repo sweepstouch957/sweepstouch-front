@@ -170,6 +170,7 @@ export const routes = {
       sweepstakes: {
         listing: '/admin/management/sweepstakes',
         create: '/admin/management/sweepstakes/create',
+        prizes: '/admin/management/sweepstakes/prizes',
         stats: (id: string) => `/admin/management/sweepstakes/${id}/stats`,
         edit: (id: string) => `/admin/management/sweepstakes/${id}/edit`,
       },

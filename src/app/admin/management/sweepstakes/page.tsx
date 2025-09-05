@@ -1,6 +1,7 @@
 'use client';
 
 import SweepstakesTable from '@/components/application-ui/tables/sweepstakes/table';
+import { Add } from '@mui/icons-material';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import { Box, Button, Container, Typography } from '@mui/material';
 import React from 'react';
@@ -45,9 +46,10 @@ function Page(): React.JSX.Element {
                     },
                   }}
                   variant="contained"
-                  startIcon={<FileDownloadOutlinedIcon fontSize="small" />}
+                  startIcon={<Add fontSize="small" />}
+                  href="/admin/management/sweepstakes/create"
                 >
-                  {t('Export')}
+                  {t('Create New Sweepstake')}
                 </Button>
               </>
             }

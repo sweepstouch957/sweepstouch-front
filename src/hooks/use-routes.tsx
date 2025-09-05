@@ -54,7 +54,7 @@ const promotorsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Impulsadoras'), <Person2Outlined />, [
     { title: t('Promotoras'), route: routes.admin.management.promotors.listing },
     { title: t('Turnos'), route: routes.admin.management.promotors.turnos },
-    { title: t('Tiendas Destacadas'), route: routes.admin.management.promotors.featuredStores }
+    { title: t('Tiendas Destacadas'), route: routes.admin.management.promotors.featuredStores },
   ]);
 
 const requestMenu = (t: (token: string) => string): MenuItem =>
@@ -71,12 +71,12 @@ const requestMenu = (t: (token: string) => string): MenuItem =>
   ]);
 
 const sweepstakesMenu = (t: (token: string) => string): MenuItem =>
-  buildMenu(
-    t('Sweepstakes'),
-    <Redeem />,
-    [{ title: t('Listing'), route: routes.admin.management.sweepstakes.listing }],
-    routes.admin.management.sweepstakes.listing
-  );
+  buildMenu(t('Sweepstakes'), <Redeem />, [
+    { title: t('Listing'), route: routes.admin.management.sweepstakes.listing },
+    { title: t('Create Sweepstakes'), route: routes.admin.management.sweepstakes.create },
+    { title: t('Prizes'), route: routes.admin.management.sweepstakes.create }
+    ,
+  ]);
 
 const storesMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Stores'), <Store />, [
@@ -93,9 +93,16 @@ export const useMenuItemsCollapsedShells = (
   const general: MenuItem[] = [dashboardsMenu(t), applicationsMenu(t)];
 
   const roleMenus: Record<UserRole, MenuItem[]> = {
-    admin: [addsMenu(t), requestMenu(t), promotorsMenu(t), campaignsMenu(t), sweepstakesMenu(t), storesMenu(t)],
+    admin: [
+      addsMenu(t),
+      requestMenu(t),
+      promotorsMenu(t),
+      campaignsMenu(t),
+      sweepstakesMenu(t),
+      storesMenu(t),
+    ],
     general_manager: [campaignsMenu(t), promotorsMenu(t), storesMenu(t), requestMenu(t)],
-    promotor_manager: [sweepstakesMenu(t), promotorsMenu(t),requestMenu(t) ,  storesMenu(t)],
+    promotor_manager: [sweepstakesMenu(t), promotorsMenu(t), requestMenu(t), storesMenu(t)],
     campaign_manager: [campaignsMenu(t)],
     cashier: [],
     merchant: [],
