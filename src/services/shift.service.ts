@@ -47,7 +47,7 @@ export class ShiftService {
     return res.data;
   }
 
-  async getAllShifts(filters?: ShiftFilters): Promise<{ shifts: Shift[]; pagination: any }> {
+  async getAllShifts(filters?: ShiftFilters): Promise<{ shifts: Shift[]; pagination: any , totals:any }> {
     const res = await api.get('/promoter/shifts', { params: filters });
     return res.data;
   }
