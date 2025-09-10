@@ -103,8 +103,6 @@ export default function KpiCards(props: KpiCardsProps) {
               value={kpi.value}
               variant={kpi.variant}
               descriptions={kpi.descriptions}
-              // href={kpi.href}
-              // tooltip={kpi.tooltip}
             />
           ))}
     </Box>
