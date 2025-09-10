@@ -1,6 +1,8 @@
+// ================================================
+// components/ShiftTableWithActions.tsx (controlled by parent via hook props)
+// ================================================
 'use client';
 
-import { shiftService } from '@/services/shift.service';
 import { Delete, Edit, Visibility } from '@mui/icons-material';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ClearIcon from '@mui/icons-material/Clear';
@@ -32,193 +34,25 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
-import { endOfDay, format, startOfDay } from 'date-fns';
 import Image from 'next/image';
 import { FC, useMemo, useRef, useState } from 'react';
 import { DateRange, Range, RangeKeyDict } from 'react-date-range';
-import * as XLSX from 'xlsx';
 import ShiftPreviewModal from '../../dialogs/shift-preview';
 import DeleteShiftDialog from '../../dialogs/shift/delete';
 import NewShiftModal from '../../dialogs/shift/modal';
+import { DateRangeValue, Sweepstake, UseShiftsTableResult } from '@/hooks/pages/useShiftsPage';
 
-// ================== Tipos ==================
-interface Sweepstake {
-  id: string;
-  name: string;
-}
-interface ShiftTableWithActionsProps {
-  sweepstakes: Sweepstake[];
-}
-type ShiftRow = {
-  _id: string;
-  startTime?: string;
-  endTime?: string;
-  date?: string;
-  status?: string;
-  totalParticipations?: number;
-  newParticipations?: number;
-  existingParticipations?: number;
-  totalEarnings?: number;
-  storeInfo?: {
-    name?: string;
-    address?: string;
-    zipCode?: string;
-    image?: string;
-    customerCount?: number;
-  };
-  requestedBy?: {
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    profileImage?: string;
-  };
-  promoterInfo?: {
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-  };
-  promoterId?: string;
-  supermarketName?: string;
-};
-
-type DateRangeValue = { startDate: Date | null; endDate: Date | null };
-
-// ============== Helpers Excel / UI ============
-const fmt2 = (n: number) => (Number.isFinite(n) ? Number(n.toFixed(2)) : 0);
-const safeNum = (n: any) => (typeof n === 'number' && isFinite(n) ? n : 0);
-const getHours = (s?: string, e?: string) => {
-  if (!s || !e) return 4;
-  const diff = new Date(e).getTime() - new Date(s).getTime();
-  if (!isFinite(diff) || diff <= 0) return 4;
-  return fmt2(diff / 36e5);
-};
-const getPromoterName = (row: ShiftRow) => {
-  const r = row.requestedBy || {};
-  const p = row.promoterInfo || {};
-  const name = [r.firstName ?? p.firstName ?? '', r.lastName ?? p.lastName ?? '']
-    .join(' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  return name || 'Sin asignar';
-};
-const getPromoterEmail = (row: ShiftRow) => row.requestedBy?.email || row.promoterInfo?.email || '';
-const autoFit = (data: any[]) => {
-  const cols = Object.keys(data[0] ?? {}).map(() => ({ wch: 10 }));
-  data.forEach((row) => {
-    Object.values(row).forEach((val: any, i) => {
-      const len = val == null ? 0 : String(val).length;
-      cols[i].wch = Math.max(cols[i].wch, Math.min(60, len + 2));
-    });
-  });
-  return cols;
-};
-const buildExcelAndDownload = (shifts: ShiftRow[]) => {
-  const groups = new Map<
-    string,
-    {
-      name: string;
-      email: string;
-      rows: ShiftRow[];
-      totals: {
-        shifts: number;
-        hours: number;
-        earnings: number;
-        totalNums: number;
-        newNums: number;
-        existingNums: number;
-      };
-    }
-  >();
-  shifts.forEach((row) => {
-    const name = getPromoterName(row);
-    const email = getPromoterEmail(row);
-    const hours = getHours(row.startTime, row.endTime);
-    const earn = safeNum(row.totalEarnings);
-    const tot = safeNum(row.totalParticipations);
-    const neu = safeNum(row.newParticipations);
-    const exi = safeNum(row.existingParticipations);
-    if (!groups.has(name)) {
-      groups.set(name, {
-        name,
-        email,
-        rows: [],
-        totals: { shifts: 0, hours: 0, earnings: 0, totalNums: 0, newNums: 0, existingNums: 0 },
-      });
-    }
-    const g = groups.get(name)!;
-    g.rows.push(row);
-    g.totals.shifts += 1;
-    g.totals.hours += hours;
-    g.totals.earnings += earn;
-    g.totals.totalNums += tot;
-    g.totals.newNums += neu;
-    g.totals.existingNums += exi;
-  });
-  const resumenRows = Array.from(groups.values()).map((g) => ({
-    Promotora: g.name,
-    Email: g.email,
-    Turnos: g.totals.shifts,
-    'Horas totales': fmt2(g.totals.hours),
-    'Ganancias totales ($)': fmt2(g.totals.earnings),
-    'Números totales': g.totals.totalNums,
-    'Números nuevos': g.totals.newNums,
-    'Números existentes': g.totals.existingNums,
-  }));
-  const detalleRows = Array.from(groups.values())
-    .flatMap((g) =>
-      g.rows.map((r) => {
-        const hours = getHours(r.startTime, r.endTime);
-        return {
-          Promotora: g.name,
-          Email: g.email,
-          Fecha: r.date ? new Date(r.date).toLocaleDateString() : '',
-          Inicio: r.startTime ? new Date(r.startTime).toLocaleTimeString() : '',
-          Fin: r.endTime ? new Date(r.endTime).toLocaleTimeString() : '',
-          'Horas (turno)': hours,
-          Tienda: r.storeInfo?.name ?? '',
-          Dirección: r.storeInfo?.address ?? '',
-          ZIP: r.storeInfo?.zipCode ?? '',
-          Estado: r.status ?? '',
-          'Números totales': safeNum(r.totalParticipations),
-          'Números nuevos': safeNum(r.newParticipations),
-          'Números existentes': safeNum(r.existingParticipations),
-          'Ganancia turno ($)': fmt2(safeNum(r.totalEarnings)),
-        };
-      })
-    )
-    .sort((a, b) =>
-      a.Promotora === b.Promotora
-        ? new Date(a.Fecha).getTime() - new Date(b.Fecha).getTime()
-        : a.Promotora.localeCompare(b.Promotora)
-    );
-  const wb = XLSX.utils.book_new();
-  const wsResumen = XLSX.utils.json_to_sheet(resumenRows);
-  const wsDetalle = XLSX.utils.json_to_sheet(detalleRows);
-  if (resumenRows.length) wsResumen['!cols'] = autoFit(resumenRows);
-  if (detalleRows.length) wsDetalle['!cols'] = autoFit(detalleRows);
-  XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen por promotora');
-  XLSX.utils.book_append_sheet(wb, wsDetalle, 'Detalle por turno');
-  const today = new Date().toISOString().slice(0, 10);
-  XLSX.writeFile(wb, `turnos_${today}.xlsx`);
-};
-
-// ============== Mini RangePicker (sin MUI Pro) ============
-function formatRange(value: DateRangeValue) {
-  const { startDate, endDate } = value;
-  if (!startDate && !endDate) return '';
-  if (startDate && !endDate) return `${format(startDate, 'MM/dd/yyyy')} –`;
-  if (!startDate && endDate) return `– ${format(endDate, 'MM/dd/yyyy')}`;
-  return `${format(startDate!, 'MM/dd/yyyy')} – ${format(endDate!, 'MM/dd/yyyy')}`;
-}
+// === Small inline RangePicker (pure controlled) ===
 function RangePicker({
   value,
   onChange,
   label = 'Rango de fechas',
+  formatRange,
 }: {
   value: DateRangeValue;
   onChange: (val: DateRangeValue) => void;
   label?: string;
+  formatRange: (value: DateRangeValue) => string;
 }) {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
@@ -233,10 +67,7 @@ function RangePicker({
   );
   const handleChange = (r: RangeKeyDict) => {
     const sel = r.selection;
-    onChange({
-      startDate: sel.startDate ? startOfDay(sel.startDate) : null,
-      endDate: sel.endDate ? endOfDay(sel.endDate) : null,
-    });
+    onChange({ startDate: sel.startDate ?? null, endDate: sel.endDate ?? null });
   };
   return (
     <>
@@ -298,66 +129,44 @@ function RangePicker({
   );
 }
 
-// ================== Tabla ==================
-const PAGE_SIZE_OPTIONS = [10, 12, 20, 30, 50];
-const STATUS_OPTIONS = ['available', 'assigned', 'active', 'completed'] as const;
-type StatusFilter = 'all' | (typeof STATUS_OPTIONS)[number];
+// ===== Controlled props: everything the hook returns + sweepstakes =====
+export interface ShiftTableWithActionsProps extends UseShiftsTableResult {
+  sweepstakes: Sweepstake[];
+}
 
-const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({ sweepstakes }) => {
+const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({
+  sweepstakes,
+  // data
+  shifts,
+  pagination,
+  totalToPay,
+  isLoading,
+  isFetching,
+  // filters & paging
+  status,
+  setStatus,
+  dateRange,
+  setDateRange,
+  page,
+  setPage,
+  rowsPerPage,
+  setRowsPerPage,
+  pageSizeOptions,
+  // modals
+  selectedShiftId,
+  openPreview,
+  openEdit,
+  openDelete,
+  closeAllModals,
+  previewModalOpen,
+  editModalOpen,
+  deleteModalOpen,
+  // helpers
+  usd,
+  buildExcelAndDownload,
+  formatRange,
+}) => {
   const theme = useTheme();
-
-  // Filtros UI
-  const [status, setStatus] = useState<StatusFilter>('all');
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(12);
-
-  // 🔥 Un solo rango
-  const [dateRange, setDateRange] = useState<DateRangeValue>({ startDate: null, endDate: null });
-
-  // Modales
-  const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [previewModalOpen, setPreviewModalOpen] = useState(false);
-
-  // Fechas ISO para el query
-  const startISO = useMemo(
-    () => (dateRange.startDate ? startOfDay(dateRange.startDate).toISOString() : undefined),
-    [dateRange.startDate]
-  );
-  const endISO = useMemo(
-    () => (dateRange.endDate ? endOfDay(dateRange.endDate).toISOString() : undefined),
-    [dateRange.endDate]
-  );
-
-  // Fetch (incluye rango + estado + paginación)
-  const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['shifts', page, rowsPerPage, startISO, endISO, status],
-    queryFn: () =>
-      shiftService.getAllShifts({
-        page,
-        limit: rowsPerPage,
-        startTime: startISO,
-        endTime: endISO,
-        status: status === 'all' ? undefined : status,
-      }),
-  });
-
-  const shifts: ShiftRow[] = data?.shifts || [];
-  const pagination = data?.pagination || { page: 1, pages: 1, total: 0 };
-
-  // ✅ Total a pagar desde el backend (según filtros)
-  const totalToPay = Number(data?.totals?.totalToPayUsd ?? 0);
-
-  const usd = useMemo(
-    () =>
-      new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-        maximumFractionDigits: 2,
-      }),
-    []
-  );
 
   const getStatusColor = (st: string) => {
     switch (st) {
@@ -405,10 +214,7 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({ sweepstakes }) 
               labelId="status-label"
               label="Estado"
               value={status}
-              onChange={(e) => {
-                setStatus(e.target.value as StatusFilter);
-                setPage(1);
-              }}
+              onChange={(e) => setStatus(e.target.value as any)}
             >
               <MenuItem value="all">Todos</MenuItem>
               <MenuItem value="available">available</MenuItem>
@@ -418,13 +224,10 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({ sweepstakes }) 
             </Select>
           </FormControl>
 
-          {/* 🎯 Un solo input para rango de fechas (sin Pro) */}
           <RangePicker
             value={dateRange}
-            onChange={(r) => {
-              setDateRange(r);
-              setPage(1);
-            }}
+            onChange={setDateRange}
+            formatRange={formatRange}
           />
 
           <Tooltip title="Exportar a Excel (agrupado por promotora)">
@@ -439,33 +242,6 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({ sweepstakes }) 
                 Exportar Excel
               </Button>
             </span>
-          </Tooltip>
-
-          {/* Total a pagar (desde backend) */}
-          <Tooltip
-            title={
-              dateRange.startDate || dateRange.endDate
-                ? 'Total según filtros (con rango de fechas aplicado)'
-                : 'Total según filtros actuales'
-            }
-          >
-            <Chip
-              label={`Total a pagar ${usd.format(totalToPay)}`}
-              sx={{
-                fontWeight: 700,
-                bgcolor: theme.palette.mode === 'dark' ? '#1f1f1f' : '#fff',
-                border: `1px solid ${theme.palette.divider}`,
-                height: 36,
-              }}
-              icon={
-                isFetching ? (
-                  <CircularProgress
-                    size={16}
-                    sx={{ ml: 0.5 }}
-                  />
-                ) : undefined
-              }
-            />
           </Tooltip>
         </Stack>
       </Stack>
@@ -551,7 +327,7 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({ sweepstakes }) 
                         >
                           <Avatar
                             src={shift.requestedBy?.profileImage || '/placeholder-profile.png'}
-                            alt={getPromoterName(shift)}
+                            alt={shift.requestedBy?.firstName || 'Promotora'}
                           />
                           <Typography>{shift.requestedBy?.firstName || 'Sin asignar'}</Typography>
                         </Stack>
@@ -586,7 +362,7 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({ sweepstakes }) 
 
                     <TableCell>
                       <Typography fontWeight="bold">
-                        ${safeNum(shift.totalEarnings).toFixed(2)}
+                        ${(shift.totalEarnings ?? 0).toFixed(2)}
                       </Typography>
                     </TableCell>
 
@@ -596,49 +372,33 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({ sweepstakes }) 
                         spacing={1}
                         justifyContent="center"
                       >
-                        {/* Ver */}
                         <IconButton
                           color="primary"
-                          onClick={() => {
-                            setSelectedShiftId(shift._id);
-                            setPreviewModalOpen(true);
-                          }}
+                          onClick={() => openPreview(shift._id)}
                         >
                           <Visibility fontSize="small" />
                         </IconButton>
 
-                        {/* Editar mientras está activo */}
                         {shift.status === 'active' && (
                           <IconButton
                             color="secondary"
-                            onClick={() => {
-                              setSelectedShiftId(shift._id);
-                              setEditModalOpen(true);
-                            }}
+                            onClick={() => openEdit(shift._id)}
                           >
                             <Edit fontSize="small" />
                           </IconButton>
                         )}
 
-                        {/* Editar/Eliminar si NO está activo ni completed */}
                         {!['active', 'completed'].includes(String(shift.status)) && (
                           <>
                             <IconButton
                               color="secondary"
-                              onClick={() => {
-                                setSelectedShiftId(shift._id);
-                                setEditModalOpen(true);
-                              }}
+                              onClick={() => openEdit(shift._id)}
                             >
                               <Edit fontSize="small" />
                             </IconButton>
-
                             <IconButton
                               color="error"
-                              onClick={() => {
-                                setDeleteModalOpen(true);
-                                setSelectedShiftId(shift._id);
-                              }}
+                              onClick={() => openDelete(shift._id)}
                             >
                               <Delete fontSize="small" />
                             </IconButton>
@@ -652,7 +412,6 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({ sweepstakes }) 
             </Table>
           </TableContainer>
 
-          {/* Footer: rows per page + paginación */}
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
             spacing={1.5}
@@ -669,12 +428,9 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({ sweepstakes }) 
                 labelId="rows-per-page-label"
                 label="Por página"
                 value={rowsPerPage}
-                onChange={(e) => {
-                  setRowsPerPage(Number(e.target.value));
-                  setPage(1);
-                }}
+                onChange={(e) => setRowsPerPage(Number(e.target.value))}
               >
-                {PAGE_SIZE_OPTIONS.map((n) => (
+                {pageSizeOptions.map((n) => (
                   <MenuItem
                     key={n}
                     value={n}
@@ -699,28 +455,22 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({ sweepstakes }) 
         </>
       )}
 
-      {/* Modales */}
+      {/* Modals */}
       <ShiftPreviewModal
         open={previewModalOpen}
-        onClose={() => setPreviewModalOpen(false)}
+        onClose={closeAllModals}
         shiftId={selectedShiftId}
       />
       <NewShiftModal
         open={editModalOpen}
-        onClose={() => {
-          setEditModalOpen(false);
-          setSelectedShiftId(null);
-        }}
+        onClose={closeAllModals}
         sweepstakes={sweepstakes}
         shiftId={selectedShiftId}
       />
       <DeleteShiftDialog
         open={deleteModalOpen}
         shiftId={selectedShiftId}
-        onClose={() => {
-          setDeleteModalOpen(false);
-          setSelectedShiftId(null);
-        }}
+        onClose={closeAllModals}
       />
     </Box>
   );

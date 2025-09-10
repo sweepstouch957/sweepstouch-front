@@ -9,18 +9,21 @@ import { ReactNode } from 'react';
 interface KpiCardProps {
   icon: ReactNode;
   label: string;
+  descriptions?: string; // ✅ nuevo
   value: string | number;
   variant?: 'error' | 'info' | 'success' | 'warning';
   href?: string;
   external?: boolean;
   tooltip?: string;
   ariaLabel?: string;
-  showLinkHint?: boolean; // 👈 NUEVO (opcional)
+  showLinkHint?: boolean;
+  onClick?: () => void; // ✅ nuevo
 }
 
 const KpiCard = ({
   icon,
   label,
+  descriptions,
   value,
   variant,
   href,
@@ -28,6 +31,7 @@ const KpiCard = ({
   tooltip,
   ariaLabel,
   showLinkHint = true,
+  onClick,
 }: KpiCardProps) => {
   const theme = useTheme();
 
@@ -44,7 +48,6 @@ const KpiCard = ({
         minHeight: 120,
       }}
     >
-      {/* Hint de enlace en la esquina (opcional) */}
       {href && showLinkHint && (
         <Box
           aria-hidden
@@ -86,6 +89,17 @@ const KpiCard = ({
         {label}
       </Typography>
 
+      {/* ✅ Nueva línea opcional de descripción */}
+      {descriptions && (
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ mb: 0.5 }}
+        >
+          {descriptions}
+        </Typography>
+      )}
+
       <Typography
         variant="h2"
         fontWeight={700}
@@ -95,7 +109,7 @@ const KpiCard = ({
     </Box>
   );
 
-  const content = href ? (
+  const cardContent = href ? (
     <CardActionArea
       component={Link}
       href={href}
@@ -107,11 +121,18 @@ const KpiCard = ({
         borderRadius: 4,
         '&:hover .kpi-label': { textDecoration: 'underline' },
       }}
+      onClick={onClick} // ✅ soporta onClick incluso con href
     >
       {Inner}
     </CardActionArea>
   ) : (
-    Inner
+    <CardActionArea
+      sx={{ borderRadius: 4 }}
+      onClick={onClick} // ✅ también funciona sin href
+      disabled={!onClick}
+    >
+      {Inner}
+    </CardActionArea>
   );
 
   const card = (
@@ -122,7 +143,7 @@ const KpiCard = ({
         width: { xs: '100%' },
       }}
     >
-      {content}
+      {cardContent}
     </Card>
   );
 

@@ -12,7 +12,11 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import KpiCard from '../../card-shells/kpi-card';
 
-export default function KpiCards() {
+interface KpiCardsProps {
+  totalToPay?: number;
+}
+export default function KpiCards(props: KpiCardsProps) {
+  const { totalToPay } = props;
   // Turnos
   const { data: shiftData, isLoading: isShiftsLoading } = useQuery({
     queryKey: ['shift-metrics'],
@@ -45,9 +49,7 @@ export default function KpiCards() {
       // si no hay data aún, muestra "-" (evita NaN)
       value: budgetData?.availableUsd != null ? fmtUsd.format(budgetData.availableUsd) : '—',
       variant: 'success' as const,
-      // Si tienes una ruta para budget, puedes enlazarla:
-      // href: '/admin/budget',
-      // tooltip: 'Ver detalle de presupuesto'
+      descriptions: totalToPay ? `A pagar: ${fmtUsd.format(totalToPay)}` : undefined,
     },
     {
       icon: <CalendarMonthIcon sx={{ fontSize: 24 }} />,
@@ -100,6 +102,7 @@ export default function KpiCards() {
               label={kpi.label}
               value={kpi.value}
               variant={kpi.variant}
+              descriptions={kpi.descriptions}
               // href={kpi.href}
               // tooltip={kpi.tooltip}
             />

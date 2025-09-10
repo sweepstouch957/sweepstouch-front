@@ -7,6 +7,7 @@ import KpiCards from '@/components/application-ui/section-headings/shifts';
 import ShiftTable from '@/components/application-ui/tables/shifts/results';
 import PageHeading from '@/components/base/page-heading';
 import { useSweepstakes } from '@/hooks/fetching/sweepstakes/useSweepstakes';
+import { useShiftsTable } from '@/hooks/pages/useShiftsPage';
 import AddIcon from '@mui/icons-material/Add';
 import { Box, Button, Container, useMediaQuery, useTheme } from '@mui/material';
 import React, { useState } from 'react';
@@ -15,7 +16,11 @@ const ShiftManagementPage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [modalOpen, setModalOpen] = useState(false);
-  const { data: sweepstakes, isLoading: loadingSweepstakes } = useSweepstakes();
+  const { data: sweepstakes } = useSweepstakes();
+  const shiftsState = useShiftsTable({
+    defaultRowsPerPage: 12,
+    pageSizeOptions: [10, 12, 20, 30, 50],
+  });
 
   return (
     <Container
@@ -38,11 +43,18 @@ const ShiftManagementPage = () => {
       />
 
       <Box mt={2}>
-        <KpiCards />
+        <KpiCards totalToPay={shiftsState.totalToPay} />
       </Box>
 
       <Box mt={4}>
-        {isMobile ? <MobileShiftCarousel /> : <ShiftTable sweepstakes={sweepstakes} />}
+        {isMobile ? (
+          <MobileShiftCarousel />
+        ) : (
+          <ShiftTable
+            sweepstakes={sweepstakes}
+            {...shiftsState}
+          />
+        )}
       </Box>
 
       <NewShiftModal
