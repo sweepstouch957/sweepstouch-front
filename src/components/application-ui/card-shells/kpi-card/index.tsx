@@ -89,6 +89,12 @@ const KpiCard = ({
         {label}
       </Typography>
 
+      <Typography
+        variant="h2"
+        fontWeight={700}
+      >
+        {value}
+      </Typography>
       {/* ✅ Nueva línea opcional de descripción */}
       {descriptions && (
         <Typography
@@ -99,13 +105,6 @@ const KpiCard = ({
           {descriptions}
         </Typography>
       )}
-
-      <Typography
-        variant="h2"
-        fontWeight={700}
-      >
-        {value}
-      </Typography>
     </Box>
   );
 
