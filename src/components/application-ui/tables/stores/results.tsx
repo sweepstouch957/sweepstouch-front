@@ -152,17 +152,17 @@ const Results: FC<ResultsProps> = ({
                 </TableHead>
                 <TableBody>
                   {stores.map((store) => {
-                    const isSelected = selectedItems.includes(store.id);
+                    const isSelected = selectedItems.includes(store._id);
                     return (
                       <TableRow
                         hover
-                        key={store.id}
+                        key={store._id}
                         selected={isSelected}
                       >
                         <TableCell padding="checkbox">
                           <Checkbox
                             checked={isSelected}
-                            onChange={(e) => handleSelectOne(e, store.id)}
+                            onChange={(e) => handleSelectOne(e, store._id)}
                           />
                         </TableCell>
                         <TableCell>
@@ -185,7 +185,7 @@ const Results: FC<ResultsProps> = ({
                             arrow
                           >
                             <Link
-                              href={`/admin/management/stores/edit/${store.id}`}
+                              href={`/admin/management/stores/edit/${store._id}`}
                               passHref
                             >
                               <IconButton color="primary">

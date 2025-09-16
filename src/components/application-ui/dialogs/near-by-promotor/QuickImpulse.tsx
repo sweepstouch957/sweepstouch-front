@@ -2,7 +2,6 @@
 
 import { PromoterBrief, StoreInfo } from '@/models/near-by';
 import { shiftService } from '@/services/shift.service';
-import { defaultEndFrom, defaultStart, getDistance } from '@/utils/ui/near-by';
 import CloseIcon from '@mui/icons-material/Close';
 import GroupsIcon from '@mui/icons-material/Groups';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
@@ -30,32 +29,51 @@ import {
 import { DatePicker, TimePicker } from '@mui/x-date-pickers';
 // date-fns
 import { addHours, getHours, getMinutes, set as setTime } from 'date-fns';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
-const QuickImpulseDialog: React.FC<{
+const TOAST_MS = 2200; // duración del snackbar y delay para cerrar el modal
+
+const defaultStart = () => {
+  // Redondea al próximo cuarto de hora
+  const now = new Date();
+  const m = now.getMinutes();
+  const next = [0, 15, 30, 45].find((x) => x > m) ?? 60;
+  now.setMinutes(next, 0, 0);
+  return now;
+};
+
+type Props = {
   open: boolean;
   onClose: () => void;
   store: StoreInfo;
   promoters: PromoterBrief[];
-}> = ({ open, onClose, store, promoters }) => {
-  // Sugerir la más cercana
+};
+
+const QuickImpulseDialog: React.FC<Props> = ({ open, onClose, store, promoters }) => {
+  // Sugerir la promotora más cercana
   const nearest = useMemo(() => {
-    const arr = [...(promoters ?? [])].filter((p) => typeof getDistance(p) === 'number');
-    arr.sort((a, b) => getDistance(a)! - getDistance(b)!);
-    return arr[0] || null;
+    const withDistance = [...(promoters ?? [])].filter(
+      (p) => typeof p.distanceMiles === 'number' || typeof p.distance === 'number'
+    );
+    withDistance.sort((a, b) => {
+      const da = (typeof a.distanceMiles === 'number' ? a.distanceMiles : a.distance) ?? Infinity;
+      const db = (typeof b.distanceMiles === 'number' ? b.distanceMiles : b.distance) ?? Infinity;
+      return da - db;
+    });
+    return withDistance[0] || null;
   }, [promoters]);
 
   // Selección de promotora
   const [selected, setSelected] = useState<PromoterBrief | null>(nearest);
   const [forAll, setForAll] = useState(false);
 
-  // Horario (obligatorio): Date pickers
-  const startDefault = defaultStart();
+  // Horario (obligatorio) con pickers (Date | null)
+  const startDefault = defaultStart(); // Date
   const [dateVal, setDateVal] = useState<Date | null>(startDefault);
   const [startTimeVal, setStartTimeVal] = useState<Date | null>(startDefault);
-  const [endTimeVal, setEndTimeVal] = useState<Date | null>(defaultEndFrom(startDefault, 4)); // sólo display
+  const [endTimeVal, setEndTimeVal] = useState<Date | null>(addHours(startDefault, 4)); // display-only
 
-  // UI
+  // UI / Snackbar
   const [loading, setLoading] = useState(false);
   const [snack, setSnack] = useState<{ open: boolean; msg: string; sev: 'success' | 'error' }>({
     open: false,
@@ -63,8 +81,15 @@ const QuickImpulseDialog: React.FC<{
     sev: 'success',
   });
   const closeSnack = () => setSnack((s) => ({ ...s, open: false }));
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Mantener el fin SIEMPRE a +4h del inicio (para la UI)
+  useEffect(() => {
+    return () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    };
+  }, []);
+
+  // Mantener el fin SIEMPRE a +4h del inicio (solo UI)
   useEffect(() => {
     if (startTimeVal) setEndTimeVal(addHours(startTimeVal, 4));
   }, [startTimeVal]);
@@ -111,8 +136,12 @@ const QuickImpulseDialog: React.FC<{
 
       setLoading(true);
       await shiftService.createShift(payload);
+
+      // Mostrar snackbar y cerrar el modal luego de un delay
       setSnack({ open: true, msg: 'Turno creado correctamente 🎉', sev: 'success' });
-      onClose();
+      closeTimer.current = setTimeout(() => {
+        onClose();
+      }, TOAST_MS);
     } catch (e: any) {
       setSnack({
         open: true,
@@ -193,7 +222,7 @@ const QuickImpulseDialog: React.FC<{
                   value={forAll ? null : selected}
                   onChange={(_, v) => {
                     setSelected(v);
-                    if (v) setForAll(false); // si eliges promotora, apaga "para todas"
+                    if (v) setForAll(false); // al elegir promotora, apaga "para todas"
                   }}
                   getOptionLabel={(p) => `${p?.firstName ?? ''} ${p?.lastName ?? ''}`.trim() || '—'}
                   renderOption={(props, p) => (
@@ -212,13 +241,13 @@ const QuickImpulseDialog: React.FC<{
                         />
                         <Typography variant="body2">
                           {p.firstName} {p.lastName}{' '}
-                          {typeof getDistance(p) === 'number' && (
+                          {typeof p.distanceMiles === 'number' && (
                             <Typography
                               component="span"
                               color="primary.main"
                               fontSize="0.75rem"
                             >
-                              · {getDistance(p)?.toFixed(1)} mi
+                              · {p.distanceMiles.toFixed(1)} mi
                             </Typography>
                           )}
                         </Typography>
@@ -229,7 +258,7 @@ const QuickImpulseDialog: React.FC<{
                     <TextField
                       {...params}
                       label="Selecciona promotora"
-                      placeholder="Buscar por nombre"
+                      placeholder="Buscar..."
                     />
                   )}
                   noOptionsText="Sin promotoras cercanas"
@@ -320,7 +349,10 @@ const QuickImpulseDialog: React.FC<{
 
         <DialogActions>
           <Button
-            onClick={onClose}
+            onClick={() => {
+              if (closeTimer.current) clearTimeout(closeTimer.current);
+              onClose();
+            }}
             startIcon={<CloseIcon />}
           >
             Cancelar
@@ -338,7 +370,7 @@ const QuickImpulseDialog: React.FC<{
 
       <Snackbar
         open={snack.open}
-        autoHideDuration={2800}
+        autoHideDuration={TOAST_MS}
         onClose={closeSnack}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
