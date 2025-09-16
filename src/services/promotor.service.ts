@@ -1,6 +1,8 @@
+// services/promoter.service.ts
 import { api } from '@/libs/axios';
 import { Store } from './store.service';
 
+// ===== Tipos base =====
 export interface Promoter {
   _id: string;
   firstName: string;
@@ -25,7 +27,6 @@ export interface Promoter {
   totalHoursWorked?: number;
 }
 
-// Promotoras cercanas: el backend incluye distanceKm/distanceMeters y fullName
 export interface NearbyPromoter extends Promoter {
   distanceMiles?: number;
   distanceMeters?: number;
@@ -46,22 +47,34 @@ export interface PromoterFilters {
   active?: boolean;
 }
 
-// Respuesta: /promoter/users/near-under1500
+// ===== Near-under (con canImpulse y paginación) =====
+export type NearSortBy = 'customerCount' | 'name' | 'createdAt';
+export type NearOrder = 'asc' | 'desc';
+
 export interface StoreWithPromoters {
   store: {
     id: string;
     name: string;
     coordinates: [number, number]; // [lng, lat]
+    customerCount?: number;
+    address?: string;
+    zipCode?: string;
+    imageUrl?: string;
+    canImpulse?: boolean; // 👈 bandera del backend
   };
   promoters: NearbyPromoter[];
 }
-export interface Under1500NearbyResponse {
+
+export interface UnderNearbyResponse {
   radiusMi: number;
+  audienceLt?: number;
   totalStores: number;
+  page?: number;
+  limit?: number;
   stores: StoreWithPromoters[];
 }
 
-// Respuesta: /promoter/users/near-store/:storeId
+// ===== Near-store =====
 export interface NearStoreResponse {
   store: {
     id: string;
@@ -97,7 +110,6 @@ export class PromoterService {
   }
 
   async updatePromoter(id: string, data: Partial<Promoter>): Promise<Promoter> {
-    // ✅ fix: faltaba la slash antes del id
     const res = await api.put(`/promoter/users/${id}`, data);
     return res.data;
   }
@@ -122,13 +134,71 @@ export class PromoterService {
     return res.data;
   }
 
-  // 🔥 Nuevo: tiendas <1500 con promotoras <= radiusKm (sin paginación)
-  async getStoresUnder1500WithNearbyPromoters(radiusMi = 20): Promise<Under1500NearbyResponse> {
-    const res = await api.get('/promoter/users/near-under1500', { params: { radiusMi } });
+  // ============== NUEVOS MÉTODOS near-under (paginados) ==============
+
+  /**
+   * Tiendas bajo cierta audiencia con promotoras cercanas (PAGINADO).
+   * Backend: GET /promoter/near-under
+   */
+  async getStoresUnderWithNearbyPromoters(opts?: {
+    audienceLt?: number; // default 1500
+    radiusMi?: number; // default 20
+    page?: number; // default 1
+    limit?: number; // default 20
+    sortBy?: NearSortBy; // 'customerCount' | 'name' | 'createdAt'
+    order?: NearOrder; // 'asc' | 'desc'
+  }): Promise<UnderNearbyResponse> {
+    const {
+      audienceLt = 1500,
+      radiusMi = 20,
+      page = 1,
+      limit = 20,
+      sortBy = 'createdAt',
+      order = 'desc',
+    } = opts || {};
+
+    const res = await api.get('/promoter/users/near-under', {
+      params: { audienceLt, radiusMi, page, limit, sortBy, order },
+    });
     return res.data;
   }
 
-  // 🔥 Nuevo: promotoras cerca de una tienda específica (sin paginación)
+  /**
+   * Compat: versión "1500" (internamente llama al nuevo endpoint)
+   * Backend mantiene /promoter/near-under1500 por compat.
+   */
+  async getStoresUnder1500WithNearbyPromotersPaginated(params?: {
+    radiusMi?: number;
+    page?: number;
+    limit?: number;
+    sortBy?: NearSortBy;
+    order?: NearOrder;
+  }): Promise<UnderNearbyResponse> {
+    const {
+      radiusMi = 20,
+      page = 1,
+      limit = 20,
+      sortBy = 'createdAt',
+      order = 'desc',
+    } = params || {};
+    const res = await api.get('/promoter/users/near-under1500', {
+      params: { radiusMi, page, limit, sortBy, order },
+    });
+    return res.data;
+  }
+
+  // ====== (Legacy) método corto sin paginación -> redirige al nuevo ======
+  async getStoresUnder1500WithNearbyPromoters(radiusMi = 20): Promise<UnderNearbyResponse> {
+    // usa la versión paginada con defaults
+    return this.getStoresUnderWithNearbyPromoters({
+      audienceLt: 1500,
+      radiusMi,
+      page: 1,
+      limit: 9999,
+    });
+  }
+
+  // ===== Near-store =====
   async getPromotersNearStore(storeId: string, radiusKm = 50): Promise<NearStoreResponse> {
     const res = await api.get(`/promoter/users/near-store/${storeId}`, { params: { radiusKm } });
     return res.data;

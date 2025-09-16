@@ -11,8 +11,8 @@ export interface Shift {
     profileImage?: string;
   };
   storeId?: string;
-  startTime: string;
-  endTime: string;
+  startTime?: string;
+  endTime?: string;
   status: string;
   totalParticipations?: number;
   approvedByAdmin?: boolean;

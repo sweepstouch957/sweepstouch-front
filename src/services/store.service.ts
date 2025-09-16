@@ -50,7 +50,6 @@ export interface UpdateStoreBody {
   location?: { type: 'Point'; coordinates: [number, number] };
 }
 
-// services/stores.service.ts
 export interface GetStoresResponse {
   success: boolean;
   count: number;
@@ -87,10 +86,16 @@ export interface GetStoresParams {
   limit?: number;
   search?: string;
   type?: 'elite' | 'basic' | 'free' | '';
-  sortBy?: 'customerCount'; // puedes añadir más campos si quieres ordenar por otros
+  sortBy?: 'customerCount' | 'name'; // puedes ampliar si ordenas por otros campos
   order?: 'asc' | 'desc';
   status?: 'all' | 'active' | 'inactive';
+  /**
+   * Filtro de audiencia máxima (customers < audienceLt).
+   * Se envía como ?lt= en /store/filter.
+   */
+  audienceLt?: number;
 }
+
 export const getStores = async ({
   page = 1,
   limit = 25,
@@ -99,19 +104,26 @@ export const getStores = async ({
   status = 'all',
   sortBy = 'customerCount',
   order = 'desc',
+  audienceLt, // 👈 nuevo
 }: GetStoresParams): Promise<GetStoresResponse> => {
-  const res = await api.get<GetStoresResponse>('/store/filter', {
-    params: {
-      page,
-      limit,
-      search,
-      type: type || undefined,
-      sortBy,
-      order,
-      status: status === 'all' ? undefined : status,
-    },
-  });
+  const params: Record<string, any> = {
+    page,
+    limit,
+    search,
+    sortBy,
+    order,
+  };
 
+  // Normaliza type y status
+  if (type) params.type = type;
+  if (status !== 'all') params.status = status;
+
+  // 👇 agrega lt solo si viene con valor válido (> 0)
+  if (typeof audienceLt === 'number' && audienceLt > 0) {
+    params.lt = audienceLt;
+  }
+
+  const res = await api.get<GetStoresResponse>('/store/filter', { params });
   return res.data;
 };
 
@@ -119,9 +131,9 @@ export const getAllStores = async (): Promise<Store[]> => {
   const res: AxiosResponse<Store[]> = await api.get('/store');
   return res.data;
 };
+
 export const getStoreById = async (id: string): Promise<Store> => {
   const res = await api.get(`/store/${id}`);
-
   return res.data;
 };
 
@@ -136,72 +148,70 @@ export const getStoreCustomers = async (
 
 export const createStore = async (store: Store): Promise<Store> => {
   const res = await api.post<Store>('/store', store);
-
   return res.data;
 };
+
 export const updateStore = async (id: string, store: Store): Promise<Store> => {
   const res = await api.put<Store>(`/store/${id}`, store);
-
   return res.data;
 };
 
 export async function updateStorePatch(id: string, body: UpdateStoreBody) {
-  // 🔧 Ajusta la ruta si en tu gateway es diferente (ej. /admin/store/:id)
   const res = await api.patch(`/store/${id}`, body);
-  return res.data; // se espera { success, data }
+  return res.data;
 }
 
 export const deleteStore = async (id: string): Promise<void> => {
   await api.delete(`/store/${id}`);
 };
+
 export const getStoreByOwnerId = async (ownerId: string): Promise<Store[]> => {
   const res = await api.get<Store[]>(`/store/owner/${ownerId}`);
-
   return res.data;
 };
+
 export const getStoreByName = async (name: string): Promise<Store[]> => {
   const res = await api.get<Store[]>(`/store/name/${name}`);
-
   return res.data;
 };
+
 export const getStoreByAddress = async (address: string): Promise<Store[]> => {
   const res = await api.get<Store[]>(`/store/address/${address}`);
-
   return res.data;
 };
+
 export const getStoreByZipCode = async (zipCode: string): Promise<Store[]> => {
   const res = await api.get<Store[]>(`/store/zipCode/${zipCode}`);
-
   return res.data;
 };
+
 export const getStoreByActive = async (active: boolean): Promise<Store[]> => {
   const res = await api.get<Store[]>(`/store/active/${active}`);
-
   return res.data;
 };
+
 export const getStoreByCreatedAt = async (createdAt: string): Promise<Store[]> => {
   const res = await api.get<Store[]>(`/store/createdAt/${createdAt}`);
-
   return res.data;
 };
+
 export const getStoreByUpdatedAt = async (updatedAt: string): Promise<Store[]> => {
   const res = await api.get<Store[]>(`/store/updatedAt/${updatedAt}`);
-
   return res.data;
 };
+
 export const getStoreByImage = async (image: string): Promise<Store[]> => {
   const res = await api.get<Store[]>(`/store/image/${image}`);
-
   return res.data;
 };
+
 export const getStoreByDescription = async (description: string): Promise<Store[]> => {
   const res = await api.get<Store[]>(`/store/description/${description}`);
-
   return res.data;
 };
+
 export const getStoreByIdAndOwnerId = async (id: string, ownerId: string): Promise<Store[]> => {
   const res = await api.get<Store[]>(`/store/${id}/owner/${ownerId}`);
-
   return res.data;
 };
 
@@ -223,4 +233,5 @@ const storesService = {
   getStoreByDescription,
   getStoreByIdAndOwnerId,
 };
+
 export default storesService;

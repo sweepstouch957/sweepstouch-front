@@ -6,6 +6,10 @@
     "paths": {
       "@/*": ["src/*"],
       "@public/*": ["public/*"],
+      "@utils/*": ["src/utils/*"],
+      "@hooks/*": ["src/hooks/*"],
+      "@models/*": ["src/models/*"],
+      "@services/*": ["src/services/*"],
      },
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
