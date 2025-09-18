@@ -29,12 +29,11 @@ import {
   Typography,
 } from '@mui/material';
 import { getDistance, googleMapsUrlFromStore } from '@utils/ui/near-by';
-import React, { useDeferredValue, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import PromotersDialog from '../../dialogs/near-by-promotor/PromotorInfo';
 import QuickImpulseDialog from '../../dialogs/near-by-promotor/QuickImpulse';
-import FiltersSkeleton from './skelleton';
 import FiltersBar from './filters';
-
+import FiltersSkeleton from './skelleton';
 
 function TableSkeletonRows({ rows = 6 }: { rows?: number }) {
   return (
@@ -100,7 +99,6 @@ function TableSkeletonRows({ rows = 6 }: { rows?: number }) {
   );
 }
 
-
 // ===== Tabla principal =====
 const StoresNearbyTable: React.FC<StoresNearbyTableProps> = ({
   // data
@@ -118,7 +116,7 @@ const StoresNearbyTable: React.FC<StoresNearbyTableProps> = ({
   onChangePage,
   onChangeRowsPerPage,
 
-  // controlled filters
+  // controlled filters (se siguen mostrando en la UI y viajan al backend)
   searchTerm,
   onSearchTermChange,
   audienceMax,
@@ -135,21 +133,12 @@ const StoresNearbyTable: React.FC<StoresNearbyTableProps> = ({
     promoters: PromoterBrief[];
   } | null>(null);
 
-  const dSearch = useDeferredValue(searchTerm);
-
-  // Backend ya pagina; aquí solo ordenamos/buscamos dentro de esta página
+  // ✅ Sin filtrado local por "search": eso ya viene aplicado desde backend.
+  // Sólo ordenamos dentro de la página actual y ocultamos tiendas sin promotoras.
   const filtered = useMemo(() => {
     const onlyWithPromoters = (stores ?? []).filter((s) => (s.promoters?.length ?? 0) > 0);
 
-    const searched = dSearch
-      ? onlyWithPromoters.filter(({ store }) =>
-          `${store.name ?? ''} ${store.address ?? ''} ${store.city ?? ''} ${store.zipCode ?? ''}`
-            .toLowerCase()
-            .includes(dSearch.toLowerCase())
-        )
-      : onlyWithPromoters;
-
-    const sorted = [...searched].sort((a, b) => {
+    const sorted = [...onlyWithPromoters].sort((a, b) => {
       if (sortBy === 'promoters') return (b.promoters?.length ?? 0) - (a.promoters?.length ?? 0);
       if (sortBy === 'name') return (a.store.name ?? '').localeCompare(b.store.name ?? '');
       if (sortBy === 'customers')
@@ -169,11 +158,11 @@ const StoresNearbyTable: React.FC<StoresNearbyTableProps> = ({
     });
 
     return sorted;
-  }, [stores, dSearch, sortBy]);
+  }, [stores, sortBy]);
 
   return (
     <Box>
-      {/* Filtros */}
+      {/* Filtros (UI controlada; el search ya lo usa el backend) */}
       {isLoading ? (
         <FiltersSkeleton />
       ) : (

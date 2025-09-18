@@ -19,6 +19,8 @@ function Component() {
     handleOrderChange,
     order,
     sortBy,
+    audienceLt,
+    handleAudienceLtChange,
   } = useStores();
 
   return (
@@ -39,6 +41,8 @@ function Component() {
       onSortChange={handleSortChange}
       order={order}
       sortBy={sortBy}
+      audienceLt={audienceLt}
+      onAudienceLtChange={handleAudienceLtChange}
     />
   );
 }

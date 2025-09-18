@@ -147,6 +147,7 @@ export class PromoterService {
     limit?: number; // default 20
     sortBy?: NearSortBy; // 'customerCount' | 'name' | 'createdAt'
     order?: NearOrder; // 'asc' | 'desc'
+    search?: string;
   }): Promise<UnderNearbyResponse> {
     const {
       audienceLt = 1500,
@@ -155,10 +156,11 @@ export class PromoterService {
       limit = 20,
       sortBy = 'createdAt',
       order = 'desc',
+      search = '',
     } = opts || {};
 
     const res = await api.get('/promoter/users/near-under', {
-      params: { audienceLt, radiusMi, page, limit, sortBy, order },
+      params: { audienceLt, radiusMi, page, limit, sortBy, order , search },
     });
     return res.data;
   }

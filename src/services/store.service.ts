@@ -89,11 +89,8 @@ export interface GetStoresParams {
   sortBy?: 'customerCount' | 'name'; // puedes ampliar si ordenas por otros campos
   order?: 'asc' | 'desc';
   status?: 'all' | 'active' | 'inactive';
-  /**
-   * Filtro de audiencia máxima (customers < audienceLt).
-   * Se envía como ?lt= en /store/filter.
-   */
-  audienceLt?: number;
+
+  audienceLt?: string;
 }
 
 export const getStores = async ({
@@ -104,7 +101,7 @@ export const getStores = async ({
   status = 'all',
   sortBy = 'customerCount',
   order = 'desc',
-  audienceLt, // 👈 nuevo
+  audienceLt = '',
 }: GetStoresParams): Promise<GetStoresResponse> => {
   const params: Record<string, any> = {
     page,
@@ -119,7 +116,7 @@ export const getStores = async ({
   if (status !== 'all') params.status = status;
 
   // 👇 agrega lt solo si viene con valor válido (> 0)
-  if (typeof audienceLt === 'number' && audienceLt > 0) {
+  if (!!audienceLt) {
     params.lt = audienceLt;
   }
 

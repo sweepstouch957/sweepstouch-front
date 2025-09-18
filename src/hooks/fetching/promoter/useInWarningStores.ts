@@ -14,6 +14,7 @@ export type NearUnderParams = {
   limit?: number; // default 20
   sortBy?: NearSortBy; // 'customerCount' | 'name' | 'createdAt'
   order?: NearOrder; // 'asc' | 'desc'
+  search?: string;
 };
 
 /** Hook genérico para /promoter/near-under (paginado) */
@@ -25,6 +26,7 @@ export function useNearUnderStores(params: NearUnderParams = {}) {
     limit = 20,
     sortBy = 'createdAt',
     order = 'desc',
+    search = '',
   } = params;
 
   const initialData: UnderNearbyResponse = {
@@ -37,7 +39,7 @@ export function useNearUnderStores(params: NearUnderParams = {}) {
   };
 
   return useQuery<UnderNearbyResponse, Error>({
-    queryKey: ['near-under', { audienceLt, radiusMi, page, limit, sortBy, order }],
+    queryKey: ['near-under', { audienceLt, radiusMi, page, limit, sortBy, order,  search  }],
     queryFn: () =>
       promoterService.getStoresUnderWithNearbyPromoters({
         audienceLt,
@@ -46,6 +48,7 @@ export function useNearUnderStores(params: NearUnderParams = {}) {
         limit,
         sortBy,
         order,
+        search,
       }),
     initialData,
     refetchOnWindowFocus: false,

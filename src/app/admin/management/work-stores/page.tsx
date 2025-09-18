@@ -18,15 +18,16 @@ const CandidatesStorePage = () => {
 
   // filtros controlados
   const searchParams = useSearchParams();
+  const q = searchParams.get('q') || '';
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [audienceMax, setAudienceMax] = useState<string>('1500');
 
   // Lee ?q= de la URL al montar (y cuando cambie)
   useEffect(() => {
-    const q = searchParams.get('q') || '';
-    if (q !== searchTerm) setSearchTerm(q);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+    if (q !== searchTerm) {
+      setSearchTerm(q);
+    }
+  }, [searchParams, q]);
 
   // Hook paginado (1-based para backend)
   const { data, isError, isLoading, refetch } = useNearUnderStores({
@@ -36,6 +37,7 @@ const CandidatesStorePage = () => {
     limit: rowsPerPage,
     sortBy: 'createdAt',
     order: 'desc',
+    search: searchTerm,
   });
 
   const changeRadius = (newRadius: number) => {

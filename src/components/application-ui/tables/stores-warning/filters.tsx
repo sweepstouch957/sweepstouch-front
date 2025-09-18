@@ -1,5 +1,6 @@
 'use client';
 
+import { useDebouncedValue } from '@/hooks/useDebounceValue';
 import GpsFixedIcon from '@mui/icons-material/GpsFixed';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
@@ -10,6 +11,7 @@ import {
   alpha,
   Box,
   Chip,
+  CircularProgress,
   Grid,
   IconButton,
   InputAdornment,
@@ -44,6 +46,8 @@ type Props = {
   setSortBy: (s: SortKey) => void;
 };
 
+const MIN_CHARS = 2; // umbral para buscar
+const DEBOUNCE_MS = 400; // latencia ideal para UX
 const FiltersBar: React.FC<Props> = ({
   radiusKm,
   total,
@@ -73,6 +77,19 @@ const FiltersBar: React.FC<Props> = ({
     const v = Number(audienceMax);
     if (!isNaN(v)) setAudLocal(v);
   }, [audienceMax]);
+  const [localSearch, setLocalSearch] = useState(searchTerm ?? '');
+  useEffect(() => setLocalSearch(searchTerm ?? ''), [searchTerm]);
+
+  const debounced = useDebouncedValue(localSearch, DEBOUNCE_MS);
+
+  useEffect(() => {
+    const shouldSearch = debounced.length === 0 || debounced.length >= MIN_CHARS;
+    if (shouldSearch && debounced !== searchTerm) {
+      onSearchTermChange(debounced);
+    }
+  }, [debounced, searchTerm, onSearchTermChange]);
+
+  const isTyping = localSearch !== searchTerm; // para mostrar spinner
 
   const resetAll = () => {
     onSearchTermChange('');
@@ -113,7 +130,7 @@ const FiltersBar: React.FC<Props> = ({
       {/* Resumen compacto */}
       <Stack
         direction="row"
-        spacing={"8px"}
+        spacing={'8px'}
         flexWrap="wrap"
         mb={1.5}
       >
@@ -155,7 +172,7 @@ const FiltersBar: React.FC<Props> = ({
 
       <Grid
         container
-        spacing={"8px"}
+        spacing={'8px'}
         alignItems="center"
       >
         {/* Radio (slider) */}
@@ -200,7 +217,6 @@ const FiltersBar: React.FC<Props> = ({
               step={5}
               onChange={(_, v) => setRadiusLocal(Number(v))}
               onChangeCommitted={(_, v) => changeRadius?.(Number(v))}
-
             />
           </Box>
         </Grid>
@@ -250,20 +266,17 @@ const FiltersBar: React.FC<Props> = ({
                 InputProps={{
                   endAdornment: <InputAdornment position="end">clientes</InputAdornment>,
                 }}
-                sx={{ width: 160, ...pillSx ,
-
-
-                }}
+                sx={{ width: 160, ...pillSx }}
               />
             </Stack>
             <Slider
               value={audLocal}
               min={100}
-              max={5000}
-              step={50}
+              max={50000}
+              step={5}
               sx={{
-                mt:0,
-                mb:0,
+                mt: 0,
+                mb: 0,
               }}
               onChange={(_, v) => setAudLocal(Number(v))}
               onChangeCommitted={(_, v) => onAudienceMaxChange(String(v))}
@@ -281,20 +294,30 @@ const FiltersBar: React.FC<Props> = ({
             placeholder="Buscar tienda, dirección o ZIP"
             size="small"
             fullWidth
-            value={searchTerm}
-            onChange={(e) => onSearchTermChange(e.target.value)}
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
+            onKeyDown={(e) => {
+              // Enter = aplicar inmediato (opcional)
+              if (e.key === 'Enter') {
+                onSearchTermChange(localSearch);
+              }
+            }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
                   <SearchOutlinedIcon color="disabled" />
                 </InputAdornment>
               ),
+              endAdornment: isTyping ? (
+                <InputAdornment position="end">
+                  <CircularProgress size={16} />
+                </InputAdornment>
+              ) : null,
             }}
             sx={pillSx}
           />
         </Grid>
 
-        {/* Orden + acciones */}
         <Grid
           item
           xs={12}

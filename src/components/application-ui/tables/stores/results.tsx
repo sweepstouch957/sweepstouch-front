@@ -1,11 +1,17 @@
+'use client';
+
 import { Store } from '@/services/store.service';
-import { DeleteTwoTone as DeleteIcon, LaunchTwoTone as LaunchIcon } from '@mui/icons-material';
+import {
+  DeleteTwoTone as DeleteIcon,
+  RocketLaunchTwoTone as ImpulseIcon,
+  LaunchTwoTone as LaunchIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Card,
   Checkbox,
-  CircularProgress,
   IconButton,
+  Skeleton,
   Table,
   TableBody,
   TableCell,
@@ -27,7 +33,6 @@ interface ResultsProps {
   limit: number;
   total: number;
 
-  // 🔄 Reemplazamos "type" por "status"
   status: 'all' | 'active' | 'inactive';
   sortBy: string;
   order: string;
@@ -41,6 +46,8 @@ interface ResultsProps {
   onSortChange: (sortBy: string) => void;
   onOrderChange: (order: string) => void;
 
+  audienceLt: string; // 👈 nuevo
+  onAudienceLtChange: (v: string) => void; // 👈 nuevo
   loading?: boolean;
   error?: string | null;
 }
@@ -50,8 +57,114 @@ const LogoImg = ({ src }: { src: string }) => (
     component="img"
     src={src}
     alt="store logo"
-    sx={{ width: 48, height: 48, borderRadius: 1 }}
+    sx={{ width: 48, height: 48, borderRadius: 1, objectFit: 'cover' }}
   />
+);
+
+const StoreTableSkeleton: FC<{ rows?: number }> = ({ rows = 8 }) => (
+  <Card>
+    <TableContainer>
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell padding="checkbox">
+              <Skeleton
+                variant="rectangular"
+                width={20}
+                height={20}
+              />
+            </TableCell>
+            <TableCell>
+              <Skeleton width={80} />
+            </TableCell>
+            <TableCell>
+              <Skeleton width={120} />
+            </TableCell>
+            <TableCell>
+              <Skeleton width={140} />
+            </TableCell>
+            <TableCell>
+              <Skeleton width={90} />
+            </TableCell>
+            <TableCell align="center">
+              <Skeleton
+                width={80}
+                sx={{ mx: 'auto' }}
+              />
+            </TableCell>
+            <TableCell align="center">
+              <Skeleton
+                width={80}
+                sx={{ mx: 'auto' }}
+              />
+            </TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {Array.from({ length: rows }).map((_, i) => (
+            <TableRow key={i}>
+              <TableCell padding="checkbox">
+                <Skeleton
+                  variant="rectangular"
+                  width={20}
+                  height={20}
+                />
+              </TableCell>
+              <TableCell>
+                <Skeleton
+                  variant="rounded"
+                  width={48}
+                  height={48}
+                />
+              </TableCell>
+              <TableCell>
+                <Skeleton width="60%" />
+                <Skeleton width="40%" />
+              </TableCell>
+              <TableCell>
+                <Skeleton width="80%" />
+              </TableCell>
+              <TableCell>
+                <Skeleton width={60} />
+              </TableCell>
+              <TableCell align="center">
+                <Skeleton
+                  width={70}
+                  sx={{ mx: 'auto' }}
+                />
+              </TableCell>
+              <TableCell align="center">
+                <StackActionsSkeleton />
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+    <Box p={2}>
+      <Skeleton width="35%" />
+    </Box>
+  </Card>
+);
+
+const StackActionsSkeleton = () => (
+  <Box sx={{ display: 'inline-flex', gap: 1 }}>
+    <Skeleton
+      variant="circular"
+      width={32}
+      height={32}
+    />
+    <Skeleton
+      variant="circular"
+      width={32}
+      height={32}
+    />
+    <Skeleton
+      variant="circular"
+      width={32}
+      height={32}
+    />
+  </Box>
 );
 
 const Results: FC<ResultsProps> = ({
@@ -60,19 +173,19 @@ const Results: FC<ResultsProps> = ({
   limit,
   total,
 
-  // props de filtros
   status,
   sortBy,
   order,
   search,
 
-  // handlers
   onPageChange,
   onLimitChange,
   onSearchChange,
   onStatusChange,
   onSortChange,
   onOrderChange,
+  audienceLt,
+  onAudienceLtChange,
   loading,
   error,
 }) => {
@@ -80,7 +193,7 @@ const Results: FC<ResultsProps> = ({
   const { t } = useTranslation();
 
   const handleSelectAll = (event: ChangeEvent<HTMLInputElement>): void => {
-    setSelected(event.target.checked ? stores.map((s) => s.id) : []);
+    setSelected(event.target.checked ? stores.map((s) => s._id || s.id) : []);
   };
 
   const handleSelectOne = (_: any, id: string): void => {
@@ -91,26 +204,27 @@ const Results: FC<ResultsProps> = ({
     onSearchChange(e.target.value);
   };
 
-  const selectedAll = selectedItems.length === stores.length;
+  const selectedAll = stores.length > 0 && selectedItems.length === stores.length;
   const selectedSome = selectedItems.length > 0 && selectedItems.length < stores.length;
 
   return (
     <>
       <StoreFilter
-        search={search}
-        handleSearchChange={handleSearchChange}
-        // 🔄 ahora usamos status en vez de type
-        status={status}
-        onStatusChange={onStatusChange}
-        sortBy={sortBy}
-        onSortChange={onSortChange}
-        order={order}
-        onOrderChange={onOrderChange}
         t={t}
+        search={search}
+        status={status}
+        sortBy={sortBy}
+        order={order}
+        handleSearchChange={handleSearchChange}
+        onStatusChange={onStatusChange}
+        onSortChange={onSortChange}
+        onOrderChange={onOrderChange}
+        audienceLt={audienceLt}
+        onAudienceLtChange={onAudienceLtChange}
       />
 
       {loading ? (
-        <CircularProgress sx={{ width: '50px', height: '50px' }} />
+        <StoreTableSkeleton rows={limit || 8} />
       ) : error ? (
         <Typography
           align="center"
@@ -152,26 +266,37 @@ const Results: FC<ResultsProps> = ({
                 </TableHead>
                 <TableBody>
                   {stores.map((store) => {
-                    const isSelected = selectedItems.includes(store._id);
+                    const id = store._id || store.id;
+                    const isSelected = selectedItems.includes(id);
                     return (
                       <TableRow
                         hover
-                        key={store._id}
+                        key={id}
                         selected={isSelected}
                       >
                         <TableCell padding="checkbox">
                           <Checkbox
                             checked={isSelected}
-                            onChange={(e) => handleSelectOne(e, store._id)}
+                            onChange={(e) => handleSelectOne(e, id)}
                           />
                         </TableCell>
+
                         <TableCell>
                           <LogoImg src={store.image} />
                         </TableCell>
+
                         <TableCell>
-                          <Typography variant="h5">{store.name}</Typography>
+                          <Link
+                            href={`/admin/management/stores/edit/${id}`}
+                            passHref
+                            style={{ textDecoration: 'none', color: 'inherit' }}
+                          >
+                            <Typography variant="h5">{store.name}</Typography>
+                          </Link>
                         </TableCell>
+
                         <TableCell>{store.address}</TableCell>
+
                         <TableCell>{store.customerCount}</TableCell>
 
                         <TableCell align="center">
@@ -179,13 +304,14 @@ const Results: FC<ResultsProps> = ({
                             {store.active ? t('Active') : t('Inactive')}
                           </Typography>
                         </TableCell>
+
                         <TableCell align="center">
                           <Tooltip
                             title={t('View')}
                             arrow
                           >
                             <Link
-                              href={`/admin/management/stores/edit/${store._id}`}
+                              href={`/admin/management/stores/edit/${id}`}
                               passHref
                             >
                               <IconButton color="primary">
@@ -193,6 +319,24 @@ const Results: FC<ResultsProps> = ({
                               </IconButton>
                             </Link>
                           </Tooltip>
+
+                          {/* Nuevo: botón Impulsar */}
+                          <Tooltip
+                            title={t('Boost / Impulsar')}
+                            arrow
+                          >
+                            <Link
+                              href={`/admin/management/work-stores?q=${encodeURIComponent(
+                                store.name
+                              )}`}
+                              passHref
+                            >
+                              <IconButton color="primary">
+                                <ImpulseIcon fontSize="small" />
+                              </IconButton>
+                            </Link>
+                          </Tooltip>
+
                           <Tooltip
                             title={t('Delete')}
                             arrow
