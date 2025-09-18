@@ -19,14 +19,38 @@ import {
   TableHead,
   TablePagination,
   TableRow,
-  TableSortLabel, // 👈 importa esto
+  TableSortLabel,
   Tooltip,
   Typography,
 } from '@mui/material';
 import Link from 'next/link';
-import { ChangeEvent, FC, useState } from 'react';
+import React, { ChangeEvent, FC, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import StoreFilter from './filter';
+
+/* ------------------------------- helper split ------------------------------ */
+// Corta en el PRIMER dígito que aparezca.
+// Ej: "Antillana Superfood 2750 E Tremont Ave, Bronx, NY 10461, USA"
+// => name: "Antillana Superfood"
+//    address: "2750 E Tremont Ave, Bronx, NY 10461, USA"
+function splitByFirstNumber(raw: string, fallbackAddress?: string) {
+  const s = (raw || '').trim();
+  const i = s.search(/\d/); // índice del primer dígito
+
+  if (i > 0) {
+    const name = s
+      .slice(0, i)
+      .trim()
+      .replace(/[,\-\s]+$/, '');
+    const address = s.slice(i).trim();
+    return { displayName: name, displayAddress: address };
+  }
+
+  // Sin dígitos en name: deja name como está y usa address si viene
+  return { displayName: s, displayAddress: (fallbackAddress || '').trim() };
+}
+
+/* --------------------------------- props ---------------------------------- */
 
 interface ResultsProps {
   stores: Store[];
@@ -35,7 +59,7 @@ interface ResultsProps {
   total: number;
 
   status: 'all' | 'active' | 'inactive';
-  sortBy: 'customerCount' | 'name' | 'active' | string; // 👈 ampliado
+  sortBy: 'customerCount' | 'name' | 'active' | string;
   order: 'asc' | 'desc' | string;
   search: string;
 
@@ -54,6 +78,8 @@ interface ResultsProps {
   error?: string | null;
 }
 
+/* ----------------------------- tiny components ---------------------------- */
+
 const LogoImg = ({ src }: { src: string }) => (
   <Box
     component="img"
@@ -64,12 +90,108 @@ const LogoImg = ({ src }: { src: string }) => (
 );
 
 const StoreTableSkeleton: FC<{ rows?: number }> = ({ rows = 8 }) => (
-  <Card>{/* ...igual que antes... */}</Card>
+  <Card>
+    <TableContainer>
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell padding="checkbox">
+              <Skeleton
+                variant="rectangular"
+                width={20}
+                height={20}
+              />
+            </TableCell>
+            <TableCell>
+              <Skeleton width={80} />
+            </TableCell>
+            <TableCell>
+              <Skeleton width={120} />
+            </TableCell>
+            <TableCell>
+              <Skeleton width={140} />
+            </TableCell>
+            <TableCell>
+              <Skeleton width={90} />
+            </TableCell>
+            <TableCell align="center">
+              <Skeleton
+                width={80}
+                sx={{ mx: 'auto' }}
+              />
+            </TableCell>
+            <TableCell align="center">
+              <Skeleton
+                width={80}
+                sx={{ mx: 'auto' }}
+              />
+            </TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {Array.from({ length: rows }).map((_, i) => (
+            <TableRow key={i}>
+              <TableCell padding="checkbox">
+                <Skeleton
+                  variant="rectangular"
+                  width={20}
+                  height={20}
+                />
+              </TableCell>
+              <TableCell>
+                <Skeleton
+                  variant="rounded"
+                  width={48}
+                  height={48}
+                />
+              </TableCell>
+              <TableCell>
+                <Skeleton width="60%" />
+                <Skeleton width="40%" />
+              </TableCell>
+              <TableCell>
+                <Skeleton width="80%" />
+              </TableCell>
+              <TableCell>
+                <Skeleton width={60} />
+              </TableCell>
+              <TableCell align="center">
+                <Skeleton
+                  width={70}
+                  sx={{ mx: 'auto' }}
+                />
+              </TableCell>
+              <TableCell align="center">
+                <Box sx={{ display: 'inline-flex', gap: 1 }}>
+                  <Skeleton
+                    variant="circular"
+                    width={32}
+                    height={32}
+                  />
+                  <Skeleton
+                    variant="circular"
+                    width={32}
+                    height={32}
+                  />
+                  <Skeleton
+                    variant="circular"
+                    width={32}
+                    height={32}
+                  />
+                </Box>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+    <Box p={2}>
+      <Skeleton width="35%" />
+    </Box>
+  </Card>
 );
 
-const StackActionsSkeleton = () => (
-  <Box sx={{ display: 'inline-flex', gap: 1 }}>{/* ...igual que antes... */}</Box>
-);
+/* -------------------------------- component -------------------------------- */
 
 const Results: FC<ResultsProps> = ({
   stores,
@@ -99,22 +221,23 @@ const Results: FC<ResultsProps> = ({
   const { t } = useTranslation();
 
   const handleSelectAll = (event: ChangeEvent<HTMLInputElement>): void => {
-    setSelected(event.target.checked ? stores.map((s) => s._id || s.id) : []);
+    setSelected(event.target.checked ? stores.map((s: any) => s._id || s.id) : []);
   };
+
   const handleSelectOne = (_: any, id: string): void => {
     setSelected((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
+
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     onSearchChange(e.target.value);
   };
 
-  // 👇 handler genérico para ordenar desde el header
+  // Ordenar desde el header (Name, Customers, Status/active)
   const handleRequestSort = (field: 'name' | 'active' | 'customerCount') => {
-    const fieldKey = field; // backend: usar 'active' para status
-    if (sortBy === fieldKey) {
+    if (sortBy === field) {
       onOrderChange(order === 'asc' ? 'desc' : 'asc');
     } else {
-      onSortChange(fieldKey);
+      onSortChange(field);
       onOrderChange('asc');
     }
     onPageChange(0);
@@ -133,7 +256,6 @@ const Results: FC<ResultsProps> = ({
         onStatusChange={onStatusChange}
         audienceLt={audienceLt}
         onAudienceLtChange={onAudienceLtChange}
-        // 👆 ya NO pasamos sortBy/order ni sus handlers (los quitamos del filtro)
       />
 
       {loading ? (
@@ -172,7 +294,7 @@ const Results: FC<ResultsProps> = ({
 
                     <TableCell>{t('Brand')}</TableCell>
 
-                    {/* Name sortable */}
+                    {/* Name (sortable) */}
                     <TableCell
                       sortDirection={sortBy === 'name' ? (order as 'asc' | 'desc') : false}
                     >
@@ -185,10 +307,10 @@ const Results: FC<ResultsProps> = ({
                       </TableSortLabel>
                     </TableCell>
 
-                    {/* Address (no sortable) */}
+                    {/* Address */}
                     <TableCell>{t('Address')}</TableCell>
 
-                    {/* Customers sortable */}
+                    {/* Customers (sortable) */}
                     <TableCell
                       sortDirection={sortBy === 'customerCount' ? (order as 'asc' | 'desc') : false}
                     >
@@ -201,7 +323,7 @@ const Results: FC<ResultsProps> = ({
                       </TableSortLabel>
                     </TableCell>
 
-                    {/* Status sortable (usa campo 'active') */}
+                    {/* Status (sortable via 'active') */}
                     <TableCell
                       align="center"
                       sortDirection={sortBy === 'active' ? (order as 'asc' | 'desc') : false}
@@ -220,9 +342,16 @@ const Results: FC<ResultsProps> = ({
                 </TableHead>
 
                 <TableBody>
-                  {stores.map((store) => {
+                  {stores.map((store: any) => {
                     const id = store._id || store.id;
                     const isSelected = selectedItems.includes(id);
+
+                    // 👇 Derivar SIEMPRE desde store.name: "Name<espacio>Address(que inicia en dígito)"
+                    const { displayName, displayAddress } = splitByFirstNumber(
+                      store.name,
+                      store.address
+                    );
+
                     return (
                       <TableRow
                         hover
@@ -246,11 +375,11 @@ const Results: FC<ResultsProps> = ({
                             passHref
                             style={{ textDecoration: 'none', color: 'inherit' }}
                           >
-                            <Typography variant="h5">{store.name}</Typography>
+                            <Typography variant="h5">{displayName}</Typography>
                           </Link>
                         </TableCell>
 
-                        <TableCell>{store.address}</TableCell>
+                        <TableCell>{displayAddress}</TableCell>
 
                         <TableCell>{store.customerCount}</TableCell>
 
