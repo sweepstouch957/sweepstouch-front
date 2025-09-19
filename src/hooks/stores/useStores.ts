@@ -1,3 +1,4 @@
+// src/hooks/useStores.ts
 import storesService from '@/services/store.service';
 import { useQuery } from '@tanstack/react-query';
 import debounce from 'lodash.debounce';
@@ -10,22 +11,19 @@ export interface UseStoresOptions {
   type?: 'elite' | 'basic' | 'free' | '';
   sortBy?: 'customerCount';
   order?: 'asc' | 'desc';
-  audienceLt?: string // 👈 nuevo
+  audienceLt?: string;
 }
 
 export const useStores = (initialOptions: UseStoresOptions = {}) => {
   const [page, setPage] = useState(initialOptions.page ?? 0);
-  const [limit, setLimit] = useState(initialOptions.limit ?? 25);
+  const [limit, setLimit] = useState(initialOptions.limit ?? 50);
   const [search, setSearch] = useState(initialOptions.search ?? '');
   const [type, setType] = useState<UseStoresOptions['type']>(initialOptions.type ?? '');
   const [sortBy, setSortBy] = useState<UseStoresOptions['sortBy']>('customerCount');
   const [order, setOrder] = useState<UseStoresOptions['order']>('desc');
   const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all');
-
-  // 👇 nuevo estado para "menos de"
   const [audienceLt, setAudienceLt] = useState<string>(initialOptions.audienceLt ?? '');
 
-  // Debounced search control
   const [searchInput, setSearchInput] = useState(search);
   const debouncedSearch = useMemo(() => debounce((val: string) => setSearch(val), 500), []);
 
@@ -34,12 +32,10 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
     setPage(0);
   }, []);
 
-  useEffect(() => {
-    return () => debouncedSearch.cancel();
-  }, [debouncedSearch]);
+  useEffect(() => () => debouncedSearch.cancel(), [debouncedSearch]);
 
-  const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['stores', page, limit, search, type, sortBy, order, status, audienceLt], // 👈 incluir
+  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
+    queryKey: ['stores', page, limit, search, type, sortBy, order, status, audienceLt],
     queryFn: () =>
       storesService.getStores({
         page: page + 1,
@@ -48,12 +44,12 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
         status,
         sortBy,
         order,
-        audienceLt, // 👈 enviar
+        audienceLt,
       }),
     staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false, // opcional: evita refetch al cambiar de pestaña
   });
 
-  // handlers
   const handlePageChange = (newPage: number) => setPage(newPage);
   const handleLimitChange = (e: ChangeEvent<HTMLInputElement>) => {
     setLimit(parseInt(e.target.value));
@@ -76,11 +72,7 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
     setOrder(value);
     setPage(0);
   };
-
-  // 👇 handler para el input numérico (limpia o setea)
   const handleAudienceLtChange = (value: string) => {
-    console.log('value', value);
-
     setAudienceLt(value);
     setPage(0);
   };
@@ -89,6 +81,7 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
     stores: data?.data || [],
     total: data?.total || 0,
     loading: isLoading,
+    fetching: isFetching, // 👈 nuevo
     error: isError ? (error instanceof Error ? error.message : 'Error desconocido') : null,
     page,
     limit,
@@ -97,7 +90,7 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
     sortBy,
     order,
     status,
-    audienceLt, // 👈 exponer
+    audienceLt,
     setPage,
     setLimit,
     setSearchInput,
@@ -112,8 +105,6 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
     handleOrderChange,
     onStatusChange,
     refetch,
-
-    // 👇 exponer setter/handler para el filtro
     setAudienceLt,
     handleAudienceLtChange,
   };

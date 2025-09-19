@@ -27,16 +27,16 @@ import Link from 'next/link';
 import React, { ChangeEvent, FC, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import StoreFilter from './filter';
+import { StoreTableSkeleton } from './skelleton';
 
 /* ------------------------------- helper split ------------------------------ */
 // Corta en el PRIMER dígito que aparezca.
-// Ej: "Antillana Superfood 2750 E Tremont Ave, Bronx, NY 10461, USA"
+// "Antillana Superfood 2750 E Tremont Ave, Bronx, NY 10461, USA"
 // => name: "Antillana Superfood"
 //    address: "2750 E Tremont Ave, Bronx, NY 10461, USA"
 function splitByFirstNumber(raw: string, fallbackAddress?: string) {
   const s = (raw || '').trim();
-  const i = s.search(/\d/); // índice del primer dígito
-
+  const i = s.search(/\d/);
   if (i > 0) {
     const name = s
       .slice(0, i)
@@ -45,13 +45,10 @@ function splitByFirstNumber(raw: string, fallbackAddress?: string) {
     const address = s.slice(i).trim();
     return { displayName: name, displayAddress: address };
   }
-
-  // Sin dígitos en name: deja name como está y usa address si viene
   return { displayName: s, displayAddress: (fallbackAddress || '').trim() };
 }
 
 /* --------------------------------- props ---------------------------------- */
-
 interface ResultsProps {
   stores: Store[];
   page: number;
@@ -79,120 +76,16 @@ interface ResultsProps {
 }
 
 /* ----------------------------- tiny components ---------------------------- */
-
 const LogoImg = ({ src }: { src: string }) => (
   <Box
     component="img"
     src={src}
     alt="store logo"
-    sx={{ width: 48, height: 48, borderRadius: 1, objectFit: 'cover' }}
+    sx={{ width: 40, height: 40, borderRadius: 1, objectFit: 'cover' }}
   />
 );
 
-const StoreTableSkeleton: FC<{ rows?: number }> = ({ rows = 8 }) => (
-  <Card>
-    <TableContainer>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell padding="checkbox">
-              <Skeleton
-                variant="rectangular"
-                width={20}
-                height={20}
-              />
-            </TableCell>
-            <TableCell>
-              <Skeleton width={80} />
-            </TableCell>
-            <TableCell>
-              <Skeleton width={120} />
-            </TableCell>
-            <TableCell>
-              <Skeleton width={140} />
-            </TableCell>
-            <TableCell>
-              <Skeleton width={90} />
-            </TableCell>
-            <TableCell align="center">
-              <Skeleton
-                width={80}
-                sx={{ mx: 'auto' }}
-              />
-            </TableCell>
-            <TableCell align="center">
-              <Skeleton
-                width={80}
-                sx={{ mx: 'auto' }}
-              />
-            </TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {Array.from({ length: rows }).map((_, i) => (
-            <TableRow key={i}>
-              <TableCell padding="checkbox">
-                <Skeleton
-                  variant="rectangular"
-                  width={20}
-                  height={20}
-                />
-              </TableCell>
-              <TableCell>
-                <Skeleton
-                  variant="rounded"
-                  width={48}
-                  height={48}
-                />
-              </TableCell>
-              <TableCell>
-                <Skeleton width="60%" />
-                <Skeleton width="40%" />
-              </TableCell>
-              <TableCell>
-                <Skeleton width="80%" />
-              </TableCell>
-              <TableCell>
-                <Skeleton width={60} />
-              </TableCell>
-              <TableCell align="center">
-                <Skeleton
-                  width={70}
-                  sx={{ mx: 'auto' }}
-                />
-              </TableCell>
-              <TableCell align="center">
-                <Box sx={{ display: 'inline-flex', gap: 1 }}>
-                  <Skeleton
-                    variant="circular"
-                    width={32}
-                    height={32}
-                  />
-                  <Skeleton
-                    variant="circular"
-                    width={32}
-                    height={32}
-                  />
-                  <Skeleton
-                    variant="circular"
-                    width={32}
-                    height={32}
-                  />
-                </Box>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
-    <Box p={2}>
-      <Skeleton width="35%" />
-    </Box>
-  </Card>
-);
-
 /* -------------------------------- component -------------------------------- */
-
 const Results: FC<ResultsProps> = ({
   stores,
   page,
@@ -225,7 +118,7 @@ const Results: FC<ResultsProps> = ({
   };
 
   const handleSelectOne = (_: any, id: string): void => {
-    setSelected((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
+    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -248,9 +141,11 @@ const Results: FC<ResultsProps> = ({
 
   return (
     <>
+      {/* Filtros arriba (sin sort/order aquí, solo búsqueda, status y audienceLt) */}
       <StoreFilter
         t={t}
         search={search}
+        total={total}
         status={status}
         handleSearchChange={handleSearchChange}
         onStatusChange={onStatusChange}
@@ -259,7 +154,7 @@ const Results: FC<ResultsProps> = ({
       />
 
       {loading ? (
-        <StoreTableSkeleton rows={limit || 8} />
+        <StoreTableSkeleton rows={limit || 12} />
       ) : error ? (
         <Typography
           align="center"
@@ -307,7 +202,7 @@ const Results: FC<ResultsProps> = ({
                       </TableSortLabel>
                     </TableCell>
 
-                    {/* Address */}
+                    {/* Address (no sortable) */}
                     <TableCell>{t('Address')}</TableCell>
 
                     {/* Customers (sortable) */}
@@ -345,8 +240,6 @@ const Results: FC<ResultsProps> = ({
                   {stores.map((store: any) => {
                     const id = store._id || store.id;
                     const isSelected = selectedItems.includes(id);
-
-                    // 👇 Derivar SIEMPRE desde store.name: "Name<espacio>Address(que inicia en dígito)"
                     const { displayName, displayAddress } = splitByFirstNumber(
                       store.name,
                       store.address
@@ -375,7 +268,12 @@ const Results: FC<ResultsProps> = ({
                             passHref
                             style={{ textDecoration: 'none', color: 'inherit' }}
                           >
-                            <Typography variant="h5">{displayName}</Typography>
+                            <Typography
+                              variant="h6"
+                              sx={{ fontSize: 15 }}
+                            >
+                              {displayName}
+                            </Typography>
                           </Link>
                         </TableCell>
 
@@ -437,6 +335,7 @@ const Results: FC<ResultsProps> = ({
             </TableContainer>
           </Card>
 
+          {/* 🧭 Paginación MUI clásica */}
           <Box p={2}>
             <TablePagination
               component="div"
@@ -445,7 +344,7 @@ const Results: FC<ResultsProps> = ({
               rowsPerPage={limit}
               onPageChange={(_, newPage) => onPageChange(newPage)}
               onRowsPerPageChange={onLimitChange}
-              rowsPerPageOptions={[5, 10, 25, 50]}
+              rowsPerPageOptions={[5, 10, 25, 50, 100]}
             />
           </Box>
         </>

@@ -10,6 +10,7 @@ import {
   Select,
   Stack,
   TextField,
+  Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
@@ -19,6 +20,7 @@ export default function StoreFilters({
   search,
   status,
   audienceLt, // string
+  total, // 👈 nuevo
   handleSearchChange,
   onStatusChange,
   onAudienceLtChange, // (v: string) => void
@@ -27,6 +29,7 @@ export default function StoreFilters({
   search: string;
   status: 'all' | 'active' | 'inactive';
   audienceLt: string;
+  total: number; // 👈 nuevo
   handleSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onStatusChange: (s: 'all' | 'active' | 'inactive') => void;
   onAudienceLtChange: (v: string) => void;
@@ -64,6 +67,10 @@ export default function StoreFilters({
     const next = (audienceLt.slice(0, start) + pasted + audienceLt.slice(end)).replace(/\D/g, '');
     onAudienceLtChange(next);
   };
+
+  // Mostrar contador SOLO si hay algún filtro aplicado
+  const filtersActive =
+    (search?.trim()?.length ?? 0) > 0 || status !== 'all' || (audienceLt?.trim()?.length ?? 0) > 0;
 
   return (
     <Box
@@ -146,6 +153,17 @@ export default function StoreFilters({
             <MenuItem value="inactive">{t('Inactive')}</MenuItem>
           </Select>
         </FormControl>
+
+        {/* Contador de resultados (solo si hay filtros) */}
+        {filtersActive && (
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ ml: 'auto', whiteSpace: 'nowrap' }}
+          >
+            {t('Results')}: {total}
+          </Typography>
+        )}
       </Stack>
     </Box>
   );
