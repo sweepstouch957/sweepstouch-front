@@ -155,7 +155,6 @@ export default function StoreFilters({
         </FormControl>
 
         {/* Contador de resultados (solo si hay filtros) */}
-        {filtersActive && (
           <Typography
             variant="body2"
             color="text.secondary"
@@ -163,7 +162,6 @@ export default function StoreFilters({
           >
             {t('Results')}: {total}
           </Typography>
-        )}
       </Stack>
     </Box>
   );
