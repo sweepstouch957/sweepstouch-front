@@ -165,9 +165,8 @@ const QuickImpulseDialog: React.FC<Props> = ({ open, onClose, store, promoters }
           <Stack
             direction="row"
             alignItems="center"
-            justifyContent="space-between"
+            justifyContent="flex-end"
           >
-            <Typography fontWeight={800}>Impulsar en {store.name ?? 'Tienda'}</Typography>
             <IconButton onClick={onClose}>
               <CloseIcon />
             </IconButton>

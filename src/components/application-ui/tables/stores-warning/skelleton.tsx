@@ -1,9 +1,9 @@
 'use client';
 
-import { alpha, Grid, Paper, Skeleton, Stack } from '@mui/material';
+import { alpha, Box, Grid, Paper, Skeleton, Stack, TableBody, TableCell, TableRow } from '@mui/material';
 import React from 'react';
 
-const FiltersBarSkeleton: React.FC = () => {
+export const FiltersBarSkeleton: React.FC = () => {
   return (
     <Paper
       elevation={0}
@@ -85,4 +85,66 @@ const FiltersBarSkeleton: React.FC = () => {
   );
 };
 
-export default FiltersBarSkeleton;
+export  function TableSkeletonRows({ rows = 6 }: { rows?: number }) {
+  return (
+    <TableBody>
+      {Array.from({ length: rows }).map((_, i) => (
+        <TableRow key={i}>
+          <TableCell>
+            <Stack
+              direction="row"
+              spacing={2}
+              alignItems="center"
+            >
+              <Skeleton
+                variant="rounded"
+                width={48}
+                height={48}
+              />
+              <Box sx={{ flex: 1 }}>
+                <Skeleton width="42%" />
+                <Skeleton width="28%" />
+              </Box>
+            </Stack>
+          </TableCell>
+          <TableCell width={140}>
+            <Skeleton width="50%" />
+          </TableCell>
+          <TableCell>
+            <Skeleton width="25%" />
+          </TableCell>
+          <TableCell width={360}>
+            <Stack spacing={0.5}>
+              <Skeleton width="70%" />
+              <Skeleton width="60%" />
+              <Skeleton width="40%" />
+            </Stack>
+          </TableCell>
+          <TableCell align="right">
+            <Stack
+              direction="row"
+              spacing={1}
+              justifyContent="flex-end"
+            >
+              <Skeleton
+                variant="circular"
+                width={36}
+                height={36}
+              />
+              <Skeleton
+                variant="circular"
+                width={36}
+                height={36}
+              />
+              <Skeleton
+                variant="rounded"
+                width={110}
+                height={36}
+              />
+            </Stack>
+          </TableCell>
+        </TableRow>
+      ))}
+    </TableBody>
+  );
+}

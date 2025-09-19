@@ -1,8 +1,6 @@
 'use client';
 
 import { PromoterBrief, StoreInfo, StoresNearbyTableProps } from '@models/near-by';
-import CloseIcon from '@mui/icons-material/Close';
-import MapIcon from '@mui/icons-material/Map';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -10,13 +8,9 @@ import {
   Avatar,
   Box,
   Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
+
   IconButton,
   Paper,
-  Skeleton,
   Stack,
   Table,
   TableBody,
@@ -28,76 +22,12 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { getDistance, googleMapsUrlFromStore } from '@utils/ui/near-by';
+import { getDistance } from '@utils/ui/near-by';
 import React, { useMemo, useState } from 'react';
 import PromotersDialog from '../../dialogs/near-by-promotor/PromotorInfo';
 import QuickImpulseDialog from '../../dialogs/near-by-promotor/QuickImpulse';
 import FiltersBar from './filters';
-import FiltersSkeleton from './skelleton';
-
-function TableSkeletonRows({ rows = 6 }: { rows?: number }) {
-  return (
-    <TableBody>
-      {Array.from({ length: rows }).map((_, i) => (
-        <TableRow key={i}>
-          <TableCell>
-            <Stack
-              direction="row"
-              spacing={2}
-              alignItems="center"
-            >
-              <Skeleton
-                variant="rounded"
-                width={48}
-                height={48}
-              />
-              <Box sx={{ flex: 1 }}>
-                <Skeleton width="42%" />
-                <Skeleton width="28%" />
-              </Box>
-            </Stack>
-          </TableCell>
-          <TableCell width={140}>
-            <Skeleton width="50%" />
-          </TableCell>
-          <TableCell>
-            <Skeleton width="25%" />
-          </TableCell>
-          <TableCell width={360}>
-            <Stack spacing={0.5}>
-              <Skeleton width="70%" />
-              <Skeleton width="60%" />
-              <Skeleton width="40%" />
-            </Stack>
-          </TableCell>
-          <TableCell align="right">
-            <Stack
-              direction="row"
-              spacing={1}
-              justifyContent="flex-end"
-            >
-              <Skeleton
-                variant="circular"
-                width={36}
-                height={36}
-              />
-              <Skeleton
-                variant="circular"
-                width={36}
-                height={36}
-              />
-              <Skeleton
-                variant="rounded"
-                width={110}
-                height={36}
-              />
-            </Stack>
-          </TableCell>
-        </TableRow>
-      ))}
-    </TableBody>
-  );
-}
+import { FiltersBarSkeleton, TableSkeletonRows } from './skelleton';
 
 // ===== Tabla principal =====
 const StoresNearbyTable: React.FC<StoresNearbyTableProps> = ({
@@ -108,22 +38,18 @@ const StoresNearbyTable: React.FC<StoresNearbyTableProps> = ({
   isLoading,
   isError,
   onRetry,
-  changeRadius,
 
-  // controlled pagination
   page,
   rowsPerPage,
   onChangePage,
   onChangeRowsPerPage,
 
-  // controlled filters (se siguen mostrando en la UI y viajan al backend)
   searchTerm,
   onSearchTermChange,
   audienceMax,
   onAudienceMaxChange,
 }) => {
   const [sortBy, setSortBy] = useState<'nearest' | 'promoters' | 'name' | 'customers'>('nearest');
-  const [mapOf, setMapOf] = useState<StoreInfo | undefined>(undefined);
   const [promotersOf, setPromotersOf] = useState<{
     store: StoreInfo;
     promoters: PromoterBrief[];
@@ -133,8 +59,6 @@ const StoresNearbyTable: React.FC<StoresNearbyTableProps> = ({
     promoters: PromoterBrief[];
   } | null>(null);
 
-  // ✅ Sin filtrado local por "search": eso ya viene aplicado desde backend.
-  // Sólo ordenamos dentro de la página actual y ocultamos tiendas sin promotoras.
   const filtered = useMemo(() => {
     const onlyWithPromoters = (stores ?? []).filter((s) => (s.promoters?.length ?? 0) > 0);
 
@@ -164,20 +88,15 @@ const StoresNearbyTable: React.FC<StoresNearbyTableProps> = ({
     <Box>
       {/* Filtros (UI controlada; el search ya lo usa el backend) */}
       {isLoading ? (
-        <FiltersSkeleton />
+        <FiltersBarSkeleton />
       ) : (
         <FiltersBar
-          radiusKm={radiusKm}
           total={total}
           isLoading={isLoading}
-          onRetry={onRetry}
-          changeRadius={changeRadius}
           searchTerm={searchTerm}
           onSearchTermChange={onSearchTermChange}
           audienceMax={audienceMax}
           onAudienceMaxChange={onAudienceMaxChange}
-          sortBy={sortBy}
-          setSortBy={setSortBy}
         />
       )}
 
@@ -360,11 +279,6 @@ const StoresNearbyTable: React.FC<StoresNearbyTableProps> = ({
                           spacing={1}
                           justifyContent="flex-end"
                         >
-                          <Tooltip title="Mapa">
-                            <IconButton onClick={() => setMapOf(store)}>
-                              <MapIcon />
-                            </IconButton>
-                          </Tooltip>
 
                           <Tooltip title="Ver promotoras">
                             <IconButton onClick={() => setPromotersOf({ store, promoters })}>
@@ -414,55 +328,6 @@ const StoresNearbyTable: React.FC<StoresNearbyTableProps> = ({
           />
         </TableContainer>
       )}
-
-      {/* Modal Mapa (fallback sin token) */}
-      <Dialog
-        open={Boolean(mapOf)}
-        onClose={() => setMapOf(undefined)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="space-between"
-          >
-            <Typography fontWeight={700}>Mapa de la tienda</Typography>
-            <IconButton onClick={() => setMapOf(undefined)}>
-              <CloseIcon />
-            </IconButton>
-          </Stack>
-        </DialogTitle>
-        <DialogContent dividers>
-          {mapOf ? (
-            <Stack
-              spacing={2}
-              alignItems="center"
-              py={2}
-            >
-              <Typography>Sin token de Mapbox en este modal.</Typography>
-              <Button
-                variant="outlined"
-                startIcon={<MapIcon />}
-                href={googleMapsUrlFromStore(mapOf)}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Abrir en Google Maps
-              </Button>
-            </Stack>
-          ) : null}
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => setMapOf(undefined)}
-            variant="contained"
-          >
-            Cerrar
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       <PromotersDialog
         open={Boolean(promotersOf)}

@@ -24,6 +24,7 @@ const CandidatesStorePage = () => {
 
   // Lee ?q= de la URL al montar (y cuando cambie)
   useEffect(() => {
+
     if (q !== searchTerm) {
       setSearchTerm(q);
     }
@@ -35,8 +36,6 @@ const CandidatesStorePage = () => {
     radiusMi: radiusMi,
     page: page + 1,
     limit: rowsPerPage,
-    sortBy: 'createdAt',
-    order: 'desc',
     search: searchTerm,
   });
 
