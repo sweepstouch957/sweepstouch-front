@@ -59,7 +59,7 @@ interface Props {
   onDelete: (id: string) => void;
 }
 
-const values:any = {
+const values: any = {
   "in_progress": {
     label: 'En Progreso',
     color: 'info',
@@ -202,14 +202,15 @@ export const PromoResults = ({
                       spacing={1}
                       justifyContent="center"
                     >
-                      <Tooltip title={t('Preview Image')}>
+                      {/*<Tooltip title={t('Preview Image')}>
                         <IconButton
                           color="info"
                           onClick={() => handlePreview(promo.imageMobile)}
                         >
                           <ImageSearch fontSize="small" />
                         </IconButton>
-                      </Tooltip>
+                      </Tooltip>*/}
+
                       <Tooltip title={t('Edit')}>
                         <IconButton
                           color="primary"

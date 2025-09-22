@@ -30,9 +30,15 @@ import {
   Typography,
   useMediaQuery,
   useTheme,
+  ButtonBase,
+  Dialog,
+  DialogContent,
+  DialogTitle,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+
+
 
 const statusOptions = [
   { value: '', label: 'Todos' },
@@ -76,6 +82,7 @@ const getStatusChip = (status?: string) => {
 };
 
 export default function SweepstakesTable() {
+  const [preview, setPreview] = useState<{ url: string; name: string } | null>(null);
   const [filters, setFilters] = useState({ status: '', name: '' });
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -191,9 +198,9 @@ export default function SweepstakesTable() {
                 <TableHead>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 700, minWidth: 220 }}>Nombre</TableCell>
-                    <TableCell sx={{ fontWeight: 700, minWidth: 170 }}>Creación</TableCell>
+                    <TableCell sx={{ fontWeight: 700, minWidth: 170 }}>Cheklist</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Participantes</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Tiendas</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Tiendas Afiliadas</TableCell>
                     <TableCell sx={{ fontWeight: 700, minWidth: 200 }}>Fechas</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Estado</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Imagen</TableCell>
@@ -325,18 +332,26 @@ export default function SweepstakesTable() {
                         {/* Imagen */}
                         <TableCell>
                           {sw.image ? (
-                            <Avatar
-                              src={sw.image}
-                              alt={sw.name}
-                              variant="rounded"
-                              sx={{
-                                width: 44,
-                                height: 44,
-                                boxShadow: 1,
-                                borderRadius: 2,
-                                border: '2px solid #e2e8f0',
-                              }}
-                            />
+                            <Tooltip title="Ver imagen">
+                              <ButtonBase
+                                onClick={() => setPreview({ url: sw.image, name: sw.name })}
+                                sx={{ borderRadius: 2, cursor: 'zoom-in' }}
+                                aria-label={`Ver imagen de ${sw.name}`}
+                              >
+                                <Avatar
+                                  src={sw.image}
+                                  alt={sw.name}
+                                  variant="rounded"
+                                  sx={{
+                                    width: 44,
+                                    height: 44,
+                                    boxShadow: 1,
+                                    borderRadius: 2,
+                                    border: '2px solid #e2e8f0',
+                                  }}
+                                />
+                              </ButtonBase>
+                            </Tooltip>
                           ) : (
                             <Chip
                               label="Sin imagen"
@@ -382,7 +397,26 @@ export default function SweepstakesTable() {
             </TableContainer>
           )}
         </Box>
+
       </Fade>
+      <Dialog
+        open={!!preview}
+        onClose={() => setPreview(null)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>{preview?.name ?? 'Imagen'}</DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          <Box
+            component="img"
+            src={preview?.url ?? ''}
+            alt={preview?.name ?? 'preview'}
+            sx={{ width: '100%', height: 'auto', display: 'block', borderRadius: 1 }}
+          />
+        </DialogContent>
+      </Dialog>
     </Box>
+
   );
+
 }
