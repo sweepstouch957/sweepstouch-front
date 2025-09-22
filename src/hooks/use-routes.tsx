@@ -5,6 +5,10 @@ import {
   Assignment,
   BookOutlined,
   Campaign,
+  ManageAccounts,
+  ManageAccountsSharp,
+  ManageHistory,
+  ManageSearch,
   Person2Outlined,
   Redeem,
   Store,
@@ -13,6 +17,7 @@ import {
 import AppsRoundedIcon from '@mui/icons-material/AppsRounded';
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
+import { List } from '@mui/material';
 import { MenuItem } from 'src/router/menuItem';
 import { routes } from 'src/router/routes';
 
@@ -52,23 +57,43 @@ const campaignsMenu = (t: (token: string) => string): MenuItem =>
 
 const promotorsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Impulsadoras'), <Person2Outlined />, [
-    { title: t('Promotoras'), route: routes.admin.management.promotors.listing },
-    { title: t('Turnos'), route: routes.admin.management.promotors.turnos },
+
+    buildMenu(t('Gestion de Personal'), undefined, [
+      {
+        title: t('Listado'),
+        icon: <List />,
+        route: routes.admin.management.promotors.listing
+      },
+
+      {
+        title: t('Solicitudes'),
+        icon: <List />,
+        route: routes.admin.management.solicitudes.promotoras,
+      },
+    ]),
+
+    buildMenu(t('Gestion de Turnos'), undefined, [
+      {
+        title: t('Listado'),
+        icon: <List />,
+        route: routes.admin.management.promotors.turnos
+      },
+
+      {
+        title: t('Solicitudes'),
+        icon: <List />,
+        route: routes.admin.management.solicitudes.turnos,
+      },
+    ]),
+
+
     { title: t('Tiendas Destacadas'), route: routes.admin.management.promotors.featuredStores },
   ]);
 
-const requestMenu = (t: (token: string) => string): MenuItem =>
-  buildMenu(t('Solicitudes'), <Assignment />, [
-    {
-      title: t('Turnos'),
-      route: routes.admin.management.solicitudes.turnos,
-    },
+//const requestMenu = (t: (token: string) => string): MenuItem =>
+// buildMenu(t('Solicitudes'), <Assignment />, [
 
-    {
-      title: t('Promotoras'),
-      route: routes.admin.management.solicitudes.promotoras,
-    },
-  ]);
+//]);
 
 const sweepstakesMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Sweepstakes'), <Redeem />, [
@@ -94,15 +119,16 @@ export const useMenuItemsCollapsedShells = (
 
   const roleMenus: Record<UserRole, MenuItem[]> = {
     admin: [
-      addsMenu(t),
-      requestMenu(t),
-      promotorsMenu(t),
+      storesMenu(t),
       campaignsMenu(t),
       sweepstakesMenu(t),
-      storesMenu(t),
+      promotorsMenu(t),
+      addsMenu(t),
+      //requestMenu(t),
+
     ],
-    general_manager: [campaignsMenu(t), promotorsMenu(t), storesMenu(t), requestMenu(t)],
-    promotor_manager: [sweepstakesMenu(t), promotorsMenu(t), requestMenu(t), storesMenu(t)],
+    general_manager: [campaignsMenu(t), promotorsMenu(t), storesMenu(t),],
+    promotor_manager: [sweepstakesMenu(t), promotorsMenu(t), storesMenu(t)],
     campaign_manager: [campaignsMenu(t)],
     cashier: [],
     merchant: [],

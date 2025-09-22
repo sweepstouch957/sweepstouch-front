@@ -90,7 +90,7 @@ const SubMenu = styled(List)<ListProps<'div', { component: 'div' }>>(({ theme })
   paddingTop: theme.spacing(0.5),
 
   '& .MuiListItemButton-root': {
-    padding: theme.spacing(0.8, 1, 0.8, 6.5),
+    padding: theme.spacing(0.8, 2, 0.8, 7),
     fontWeight: 500,
 
     '&::before': {
@@ -152,6 +152,7 @@ const NavItem: React.FC<NavItemProps> = ({ item }) => {
         {subMenu && (
           <Box
             sx={{
+
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
