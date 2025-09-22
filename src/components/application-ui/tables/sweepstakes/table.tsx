@@ -353,7 +353,10 @@ export default function SweepstakesTable() {
                               </ButtonBase>
                             </Tooltip>
                           ) : (
-                            <Chip label="Sin imagen" size="small" />
+                            <Chip
+                              label="Sin imagen"
+                              size="small"
+                            />
                           )}
                         </TableCell>
 
