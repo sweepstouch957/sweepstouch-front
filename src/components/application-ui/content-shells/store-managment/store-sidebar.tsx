@@ -1,11 +1,11 @@
 import { closeSidebar, openSidebar, setActiveSection } from '@/slices/store_managment';
 import {
-  AdsClick,
   Analytics,
   AutoAwesomeMosaicTwoTone as CampaignsIcon,
   InfoTwoTone as InfoIcon,
   RedeemTwoTone as RewardIcon,
   SmsTwoTone as SmsIcon,
+  Web as WebIcon,
 } from '@mui/icons-material';
 import {
   alpha,
@@ -18,6 +18,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import Grid2 from '@mui/material/Unstable_Grid2';
 import type { FC } from 'react';
 import { Scrollbar } from 'src/components/base/scrollbar';
 import { useDispatch, useSelector } from 'src/store';
@@ -27,6 +28,20 @@ interface StoreSidebarProps {
   parentContainer?: HTMLDivElement | null;
   storeName: string;
   image?: string;
+  /** 👇 NUEVO: necesitamos el storeId para construir el switch URL */
+  storeId: string;
+  /** Opcionales para customizar: */
+  portalRedirectPath?: string; // default: "/dashboard"
+  portalOpenInNewTab?: boolean; // default: false (misma pestaña)
+}
+
+const MERCHANT_ORIGIN =
+  process.env.NEXT_PUBLIC_MERCHANT_ORIGIN || 'https://merchant.sweepstouch.com';
+
+function buildSwitchUrl(storeId: string, redirectPath = '/dashboard') {
+  return `${MERCHANT_ORIGIN}/?ac=${storeId}&r=${encodeURIComponent(
+    redirectPath
+  )}`;
 }
 
 const STORE_SECTIONS = [
@@ -34,23 +49,45 @@ const STORE_SECTIONS = [
   { id: 'sms-provider', label: 'SMS Provider', icon: <SmsIcon /> },
   { id: 'general-info', label: 'General Info', icon: <InfoIcon /> },
   { id: 'sweepstakes', label: 'Sweepstakes', icon: <RewardIcon /> },
-  { id: 'ads', label: 'Ads', icon: <Analytics/> },
-
+  { id: 'ads', label: 'Ads', icon: <Analytics /> },
 ];
 
-export const StoreSidebar: FC<StoreSidebarProps> = ({ parentContainer, storeName, image }) => {
+export const StoreSidebar: FC<StoreSidebarProps> = ({
+  parentContainer,
+  storeName,
+  image,
+  storeId,
+  portalRedirectPath = '/dashboard',
+  portalOpenInNewTab = false,
+}) => {
   const dispatch = useDispatch();
   const theme = useTheme();
   const lgUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('lg'));
   const { sidebarOpen, activeSection } = useSelector((state) => state.storeManagement);
 
+  const openPortal = () => {
+    const url = buildSwitchUrl(storeId, portalRedirectPath);
+    if (portalOpenInNewTab) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else {
+      window.location.href = url;
+    }
+  };
+
   const handleSectionClick = (id: string) => {
+    // 🔸 Si hacen click en "Portal", no cambiamos sección; abrimos merchant
+    if (id === 'portal') {
+      openPortal();
+      dispatch(closeSidebar());
+      return;
+    }
     dispatch(setActiveSection(id));
     dispatch(closeSidebar());
   };
 
   const sidebarContent = (
     <Box p={{ xs: 2, sm: 3 }}>
+      {/* Header con logo/nombre */}
       <Box
         display="flex"
         flexDirection="column"
@@ -63,8 +100,8 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({ parentContainer, storeName
           src={image || '/no-image.jpg'}
           alt={storeName}
           sx={{
-            width: 80,
-            height: 80,
+            width: 84,
+            height: 84,
             borderRadius: '50%',
             objectFit: 'cover',
             mb: 1,
@@ -75,16 +112,42 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({ parentContainer, storeName
         <Box
           component="span"
           sx={{
-            fontWeight: 600,
-            fontSize: '0.95rem',
+            fontWeight: 700,
+            fontSize: '0.98rem',
             color: theme.palette.text.primary,
             wordBreak: 'break-word',
           }}
+          title={storeName}
         >
           {storeName}
         </Box>
+
+        {/* 🔘 Botón grande para entrar al Portal (switch + redirect) */}
+        <Grid2
+          container
+          spacing={1.5}
+          sx={{ mt: 1.5 }}
+        >
+          <Grid2 xs={12}>
+            <Button
+              fullWidth
+              variant="contained"
+              size="small"
+              startIcon={<WebIcon />}
+              onClick={openPortal}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 700,
+                borderRadius: 2,
+              }}
+            >
+              Open Portal
+            </Button>
+          </Grid2>
+        </Grid2>
       </Box>
 
+      {/* Lista de secciones */}
       <List disablePadding>
         {STORE_SECTIONS.map((section) => (
           <StoreSidebarItem

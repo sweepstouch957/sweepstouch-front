@@ -241,6 +241,7 @@ const StoreManagementPage = () => {
       <StoreSidebar
         parentContainer={pageRef.current}
         storeName={store?.name || ''}
+        storeId={storeId || ''}
         image={store?.image || ''}
       />
       <Box
