@@ -1,4 +1,4 @@
-import { CloseRounded } from '@mui/icons-material';
+import { CloseRounded, DeleteOutlineRounded } from '@mui/icons-material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { Box, Button, CircularProgress, FormControl, Stack, Typography } from '@mui/material';
 import { useCallback, useState } from 'react';
@@ -109,7 +109,7 @@ const AvatarUploadLogo = ({
               <ButtonIcon
                 variant="outlined"
                 color="secondary"
-                startIcon={<CloseRounded fontSize="inherit" />}
+                startIcon={<DeleteOutlineRounded fontSize="inherit" />}
                 size="small"
                 sx={{ color: 'error.main' }}
                 onClick={removeImage}
@@ -121,7 +121,7 @@ const AvatarUploadLogo = ({
                 {...getRootProps()}
                 disabled={loading}
               >
-                {loading ? 'Please wait...' : 'Change '+label}
+                {loading ? 'Please wait...' : 'Change ' + label}
               </Button>
             </Stack>
           ) : (
@@ -168,6 +168,12 @@ const AvatarUploadLogo = ({
             </Typography>
             .
           </Typography>
+          res 671x602{' '}
+          <Typography
+            color="text.primary"
+            fontWeight={500}
+            component="span"
+          ></Typography>
         </Box>
       </Stack>
     </FormControl>

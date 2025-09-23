@@ -5,6 +5,10 @@ import {
   Assignment,
   BookOutlined,
   Campaign,
+  ManageAccounts,
+  ManageAccountsSharp,
+  ManageHistory,
+  ManageSearch,
   Person2Outlined,
   Redeem,
   Store,
@@ -13,6 +17,7 @@ import {
 import AppsRoundedIcon from '@mui/icons-material/AppsRounded';
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
+import { List } from '@mui/material';
 import { MenuItem } from 'src/router/menuItem';
 import { routes } from 'src/router/routes';
 
@@ -35,8 +40,8 @@ const applicationsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Applications'), <AppsRoundedIcon />, [
     { title: t('Store Maps'), route: routes.admin.applications.maps },
     { title: t('Calendar'), route: routes.admin.applications.calendar },
-    { title: t('File manager'), route: routes.admin.applications['file-manager'] },
-    { title: t('Messenger'), route: routes.admin.applications.messenger },
+    //{ title: t('File manager'), route: routes.admin.applications['file-manager'] },
+    //{ title: t('Messenger'), route: routes.admin.applications.messenger },
   ]);
 
 const usersMenu = (t: (token: string) => string): MenuItem =>
@@ -52,30 +57,47 @@ const campaignsMenu = (t: (token: string) => string): MenuItem =>
 
 const promotorsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Impulsadoras'), <Person2Outlined />, [
-    { title: t('Promotoras'), route: routes.admin.management.promotors.listing },
-    { title: t('Turnos'), route: routes.admin.management.promotors.turnos },
+    buildMenu(t('Gestion de Personal'), undefined, [
+      {
+        title: t('Listado'),
+        icon: <List />,
+        route: routes.admin.management.promotors.listing,
+      },
+
+      {
+        title: t('Solicitudes'),
+        icon: <List />,
+        route: routes.admin.management.solicitudes.promotoras,
+      },
+    ]),
+
+    buildMenu(t('Gestion de Turnos'), undefined, [
+      {
+        title: t('Listado'),
+        icon: <List />,
+        route: routes.admin.management.promotors.turnos,
+      },
+
+      {
+        title: t('Solicitudes'),
+        icon: <List />,
+        route: routes.admin.management.solicitudes.turnos,
+      },
+    ]),
+
     { title: t('Tiendas Destacadas'), route: routes.admin.management.promotors.featuredStores },
   ]);
 
-const requestMenu = (t: (token: string) => string): MenuItem =>
-  buildMenu(t('Solicitudes'), <Assignment />, [
-    {
-      title: t('Turnos'),
-      route: routes.admin.management.solicitudes.turnos,
-    },
+//const requestMenu = (t: (token: string) => string): MenuItem =>
+// buildMenu(t('Solicitudes'), <Assignment />, [
 
-    {
-      title: t('Promotoras'),
-      route: routes.admin.management.solicitudes.promotoras,
-    },
-  ]);
+//]);
 
 const sweepstakesMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Sweepstakes'), <Redeem />, [
     { title: t('Listing'), route: routes.admin.management.sweepstakes.listing },
     { title: t('Create Sweepstakes'), route: routes.admin.management.sweepstakes.create },
-    { title: t('Prizes'), route: routes.admin.management.sweepstakes.create }
-    ,
+    { title: t('Prizes'), route: routes.admin.management.sweepstakes.create },
   ]);
 
 const storesMenu = (t: (token: string) => string): MenuItem =>
@@ -94,15 +116,15 @@ export const useMenuItemsCollapsedShells = (
 
   const roleMenus: Record<UserRole, MenuItem[]> = {
     admin: [
-      addsMenu(t),
-      requestMenu(t),
-      promotorsMenu(t),
+      storesMenu(t),
       campaignsMenu(t),
       sweepstakesMenu(t),
-      storesMenu(t),
+      promotorsMenu(t),
+      addsMenu(t),
+      //requestMenu(t),
     ],
-    general_manager: [campaignsMenu(t), promotorsMenu(t), storesMenu(t), requestMenu(t)],
-    promotor_manager: [sweepstakesMenu(t), promotorsMenu(t), requestMenu(t), storesMenu(t)],
+    general_manager: [campaignsMenu(t), promotorsMenu(t), storesMenu(t)],
+    promotor_manager: [sweepstakesMenu(t), promotorsMenu(t), storesMenu(t)],
     campaign_manager: [campaignsMenu(t)],
     cashier: [],
     merchant: [],

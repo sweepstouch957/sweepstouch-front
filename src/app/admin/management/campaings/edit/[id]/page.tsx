@@ -3,13 +3,14 @@
 import CampaignFormContainer from '@/components/application-ui/content-shells/store-managment/panel/campaigns/createCampaignContainer';
 import { campaignClient } from '@/services/campaing.service';
 import storesService from '@/services/store.service';
-import { Box, CircularProgress, Container, Skeleton, Typography } from '@mui/material';
+import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
+import { Box, Container, IconButton, Skeleton, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { useParams,useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 
 export default function EditCampaignPage() {
   const params = useParams();
-  const router= useRouter()
+  const router = useRouter();
   const campaignId = params?.id;
 
   // 1. Traer la campaña por ID
@@ -23,7 +24,6 @@ export default function EditCampaignPage() {
     enabled: !!campaignId,
     staleTime: 1000 * 60 * 5,
   });
-
 
   // 2. Traer la tienda asociada a la campaña
   const {
@@ -88,6 +88,14 @@ export default function EditCampaignPage() {
       maxWidth="lg"
       sx={{ py: 6 }}
     >
+      {/* Flecha para volver */}
+      <IconButton
+        onClick={() => router.back()}
+        sx={{ mb: 2 }}
+      >
+        <ArrowBackIosNewIcon />
+      </IconButton>
+
       <Box mb={1}>
         <Typography
           variant="h5"
@@ -103,8 +111,8 @@ export default function EditCampaignPage() {
         phoneNumber={store.twilioPhoneNumber || store.bandwidthPhoneNumber || ''}
         totalAudience={store.customerCount}
         initialData={campaign}
-        onCreate={()=>{
-            router.back()
+        onCreate={() => {
+          router.back();
         }}
       />
     </Container>

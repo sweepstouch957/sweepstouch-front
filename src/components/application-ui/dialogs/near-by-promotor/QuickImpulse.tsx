@@ -279,7 +279,7 @@ const QuickImpulseDialog: React.FC<Props> = ({ open, onClose, store, promoters }
                       }}
                     />
                   }
-                  label="Para todas"
+                  label="Turno abierto para todas"
                 />
               </Grid>
             </Grid>
@@ -295,7 +295,7 @@ const QuickImpulseDialog: React.FC<Props> = ({ open, onClose, store, promoters }
                 md={4}
               >
                 <DatePicker
-                  label="Fecha"
+                  label="Fecha del turno"
                   value={dateVal}
                   onChange={(v) => setDateVal(v)}
                   slotProps={{ textField: { fullWidth: true, required: true } }}
@@ -307,7 +307,7 @@ const QuickImpulseDialog: React.FC<Props> = ({ open, onClose, store, promoters }
                 md={4}
               >
                 <TimePicker
-                  label="Inicio"
+                  label="Hora de Inicio"
                   value={startTimeVal}
                   onChange={(v) => {
                     if (v) setStartTimeVal(v);
@@ -322,7 +322,7 @@ const QuickImpulseDialog: React.FC<Props> = ({ open, onClose, store, promoters }
                 md={4}
               >
                 <TimePicker
-                  label="Fin (auto +4h)"
+                  label="Hora de Finalizacion"
                   value={endTimeVal}
                   disabled
                   readOnly
@@ -337,6 +337,7 @@ const QuickImpulseDialog: React.FC<Props> = ({ open, onClose, store, promoters }
                 <Typography
                   variant="caption"
                   color="text.secondary"
+                  sx={{ mt: 1.5, textTransform: 'none' }}
                 >
                   El horario es obligatorio. La hora de fin se calcula automáticamente 4 horas
                   después del inicio.

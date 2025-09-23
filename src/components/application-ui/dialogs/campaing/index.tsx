@@ -235,6 +235,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
         </Stack>
 
         {/* Right Column: Chart & KPIs */}
+        {/* Right Column: Chart & KPIs */}
         <Stack
           flex={1}
           alignItems="center"
@@ -254,6 +255,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
           >
             {t('Delivery Distribution')}
           </Typography>
+
           {isLoading ? (
             <Skeleton
               variant="circular"
@@ -261,75 +263,99 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
               height={isMobile ? 180 : 250}
             />
           ) : (
-            <PieChart
-              series={[
-                {
-                  data: pieData,
-                  innerRadius: isMobile ? 40 : 70,
-                  outerRadius: isMobile ? 80 : 115,
-                  paddingAngle: 5,
-                  cornerRadius: 12,
-                  arcLabel: (item) => '',
-                  highlightScope: { faded: 'global', highlighted: 'item' },
-                  faded: { innerRadius: 45, additionalRadius: -8, color: '#f4f4f4' },
-                },
-              ]}
-              colors={pieData.map((d) => d.color)}
-              height={isMobile ? 200 : 280}
-              width={isMobile ? 200 : 280}
-              margin={{ right: 8, top: 10, bottom: 10, left: 8 }}
-              slotProps={{ legend: { hidden: true } }}
-              sx={{
-                [`& .${pieArcLabelClasses.root}`]: {
-                  fontWeight: 600,
-                  fontSize: isMobile ? 11 : 15,
-                  fill: theme.palette.mode === 'dark' ? '#fff' : '#181C1F',
-                },
-                mx: 'auto',
-              }}
-            />
+            <>
+              {/* 👇 Aquí pego el bloque nuevo */}
+              <Box
+                sx={{
+                  position: 'relative',
+                  display: 'flex',
+                  justifyContent: 'flex-start',
+                  alignItems: 'center',
+                }}
+              >
+                <PieChart
+                  series={[
+                    {
+                      data: [
+                        { id: 0, label: 'Sent', value: campaign?.sent ?? 0, color: '#19B278' },
+                        { id: 1, label: 'Errors', value: campaign?.errors ?? 0, color: '#FF4F4F' },
+                      ],
+                      innerRadius: isMobile ? 60 : 90,
+                      outerRadius: isMobile ? 100 : 140,
+                      arcLabel: () => '',
+                    },
+                  ]}
+                  height={isMobile ? 260 : 340}
+                  slotProps={{ legend: { hidden: true } }}
+                  width={isMobile ? 320 : 400}
+                  margin={{ left: 100 }}
+                />
+
+                {/* Texto central */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    textAlign: 'center',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight={600}
+                  >
+                    Delivery Rate
+                  </Typography>
+                  <Typography
+                    variant="h4"
+                    fontWeight={900}
+                    color={
+                      deliveryRate > 75 ? '#19B278' : deliveryRate > 40 ? '#FFD600' : '#FF4F4F'
+                    }
+                  >
+                    {deliveryRate}%
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Etiquetas externas */}
+              <Stack
+                direction="row"
+                justifyContent="center"
+                spacing={3}
+                mt={2}
+              >
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  alignItems="center"
+                >
+                  <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#19B278' }} />
+                  <Typography
+                    variant="body2"
+                    fontWeight={600}
+                  >
+                    Sent ({total > 0 ? Math.round(((campaign?.sent ?? 0) / total) * 100) : 0}%)
+                  </Typography>
+                </Stack>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  alignItems="center"
+                >
+                  <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#FF4F4F' }} />
+                  <Typography
+                    variant="body2"
+                    fontWeight={600}
+                  >
+                    Errors ({total > 0 ? Math.round(((campaign?.errors ?? 0) / total) * 100) : 0}%)
+                  </Typography>
+                </Stack>
+              </Stack>
+            </>
           )}
-
-          <Chip
-            label={`${t('Delivery Rate')}: ${deliveryRate}%`}
-            color={deliveryRate > 75 ? 'success' : deliveryRate > 40 ? 'warning' : 'error'}
-            sx={{
-              mt: 1.5,
-              fontWeight: 700,
-              fontSize: isMobile ? 14 : 17,
-              px: 2,
-              background: '#fff',
-              color: '#19B278',
-              border: '2px solid #19B278',
-            }}
-          />
-
-          <Stack
-            spacing={0.8}
-            alignItems="center"
-            width="100%"
-            mt={1}
-          >
-            <Chip
-              label={`${t('Audience')}: ${campaign?.audience ?? '-'}`}
-              size="small"
-            />
-            <Chip
-              label={`${t('Sent')}: ${campaign?.sent ?? '-'}`}
-              sx={{ background: '#19B278', color: '#fff', fontWeight: 700 }}
-              size="small"
-            />
-            <Chip
-              label={`${t('Not Sent')}: ${campaign?.notSent ?? '-'}`}
-              sx={{ background: '#FFD600', color: '#000', fontWeight: 700 }}
-              size="small"
-            />
-            <Chip
-              label={`${t('Errors')}: ${campaign?.errors ?? '-'}`}
-              sx={{ background: '#FF4F4F', color: '#fff', fontWeight: 700 }}
-              size="small"
-            />
-          </Stack>
         </Stack>
       </CardContent>
 
