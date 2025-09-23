@@ -29,14 +29,12 @@ const getColorByAudience = (audience: number) => {
   return '#4caf50';
 };
 
-
 const getColorText = (audience: number) => {
   if (audience < 1000) return '#ffffff';
   if (audience < 5000) return '#000000';
   if (audience < 10000) return '#ffffff';
   return '#ffffff';
 };
-
 
 const MapboxMap = () => {
   const { data: stores, isLoading, error } = useStores();
@@ -178,11 +176,10 @@ const MapboxMap = () => {
         <Typography
           variant="body1"
           color="text.primary"
-          fontSize={"1rem"}
+          fontSize={'1rem'}
         >
           <b>{filteredStores.length}</b> tiendas encontradas ({sumAudienceFiltrered})
         </Typography>
-
       </Box>
 
       <Box
@@ -282,7 +279,7 @@ const MapboxMap = () => {
                       minWidth: '50px',
                     }}
                   >
-                    {store.customerCount || 0} usuarios
+                    {store.customerCount || 0}
                   </Box>
                 </Box>
               </Marker>

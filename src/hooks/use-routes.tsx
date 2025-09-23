@@ -40,8 +40,8 @@ const applicationsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Applications'), <AppsRoundedIcon />, [
     { title: t('Store Maps'), route: routes.admin.applications.maps },
     { title: t('Calendar'), route: routes.admin.applications.calendar },
-    { title: t('File manager'), route: routes.admin.applications['file-manager'] },
-    { title: t('Messenger'), route: routes.admin.applications.messenger },
+    //{ title: t('File manager'), route: routes.admin.applications['file-manager'] },
+    //{ title: t('Messenger'), route: routes.admin.applications.messenger },
   ]);
 
 const usersMenu = (t: (token: string) => string): MenuItem =>
@@ -57,12 +57,11 @@ const campaignsMenu = (t: (token: string) => string): MenuItem =>
 
 const promotorsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Impulsadoras'), <Person2Outlined />, [
-
     buildMenu(t('Gestion de Personal'), undefined, [
       {
         title: t('Listado'),
         icon: <List />,
-        route: routes.admin.management.promotors.listing
+        route: routes.admin.management.promotors.listing,
       },
 
       {
@@ -76,7 +75,7 @@ const promotorsMenu = (t: (token: string) => string): MenuItem =>
       {
         title: t('Listado'),
         icon: <List />,
-        route: routes.admin.management.promotors.turnos
+        route: routes.admin.management.promotors.turnos,
       },
 
       {
@@ -85,7 +84,6 @@ const promotorsMenu = (t: (token: string) => string): MenuItem =>
         route: routes.admin.management.solicitudes.turnos,
       },
     ]),
-
 
     { title: t('Tiendas Destacadas'), route: routes.admin.management.promotors.featuredStores },
   ]);
@@ -99,8 +97,7 @@ const sweepstakesMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Sweepstakes'), <Redeem />, [
     { title: t('Listing'), route: routes.admin.management.sweepstakes.listing },
     { title: t('Create Sweepstakes'), route: routes.admin.management.sweepstakes.create },
-    { title: t('Prizes'), route: routes.admin.management.sweepstakes.create }
-    ,
+    { title: t('Prizes'), route: routes.admin.management.sweepstakes.create },
   ]);
 
 const storesMenu = (t: (token: string) => string): MenuItem =>
@@ -125,9 +122,8 @@ export const useMenuItemsCollapsedShells = (
       promotorsMenu(t),
       addsMenu(t),
       //requestMenu(t),
-
     ],
-    general_manager: [campaignsMenu(t), promotorsMenu(t), storesMenu(t),],
+    general_manager: [campaignsMenu(t), promotorsMenu(t), storesMenu(t)],
     promotor_manager: [sweepstakesMenu(t), promotorsMenu(t), storesMenu(t)],
     campaign_manager: [campaignsMenu(t)],
     cashier: [],
