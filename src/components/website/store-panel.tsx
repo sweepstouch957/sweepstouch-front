@@ -8,7 +8,7 @@ import BadgeIcon from '@mui/icons-material/Badge';
 import GroupsIcon from '@mui/icons-material/Groups';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
 import TagIcon from '@mui/icons-material/Tag';
-import { Alert,  Box, Card, CardContent, Divider, Grid, Snackbar } from '@mui/material';
+import { Alert, Box, Card, CardContent, Divider, Grid, Snackbar } from '@mui/material';
 import { useState } from 'react';
 import StoreKioskCard from '../application-ui/composed-blocks/kiosk';
 import StatItem from '../application-ui/composed-blocks/my-cards/store-item';
@@ -55,6 +55,9 @@ export default function StoreInfo({ store }: { store: Store }) {
           image={store.image}
           address={form.address}
           kioskUrl={kioskUrl}
+          //storeId={store?.id ?? (store as any)?._id ?? (store as any)?.store_id}
+          // qrImageUrl={store?.qrImageUrl}
+          showQrBadge
           edit={edit}
           saving={saving}
           name={form.name}

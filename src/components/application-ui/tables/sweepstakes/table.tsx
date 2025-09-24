@@ -42,8 +42,8 @@ import { useState } from 'react';
 
 const statusOptions = [
   { value: '', label: 'Todos' },
-  { value: 'in progress', label: 'Activo' },
-  { value: 'completed', label: 'Finalizado' },
+  { value: 'in progress', label: 'Active' },
+  { value: 'completed', label: 'completed' },
   { value: 'draft', label: 'Borrador' },
 ];
 
@@ -58,10 +58,10 @@ const getChecklist = (sw: any) => {
   let label = 'Borrador';
   let color: 'default' | 'warning' | 'success' = 'default';
   if (progress >= total) {
-    label = 'Completo';
+    label = 'Completed';
     color = 'success';
   } else if (progress > 0) {
-    label = 'En progreso';
+    label = 'In Progress';
     color = 'warning';
   }
   return { progress, total, pct, label, color };
@@ -69,11 +69,11 @@ const getChecklist = (sw: any) => {
 
 const getStatusChip = (status?: string) => {
   const s = (status || '').toLowerCase();
-  if (s === 'in progress' || s === 'active') {
-    return { color: 'warning' as const, label: 'En curso' };
+  if (s === 'In progress' || s === 'active') {
+    return { color: 'warning' as const, label: 'Ongoing' };
   }
   if (s === 'completed') {
-    return { color: 'success' as const, label: 'Finalizado' };
+    return { color: 'success' as const, label: 'completed' };
   }
   if (s === 'draft') {
     return { color: 'default' as const, label: 'Borrador' };
@@ -116,7 +116,7 @@ export default function SweepstakesTable() {
           alignItems={isMobile ? 'stretch' : 'center'}
         >
           <TextField
-            placeholder="Buscar por nombre..."
+            placeholder="Search by name..."
             size="small"
             value={filters.name}
             onChange={handleNameChange}
@@ -197,14 +197,14 @@ export default function SweepstakesTable() {
               <Table size={isMobile ? 'small' : 'medium'}>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700, minWidth: 220 }}>Nombre</TableCell>
+                    <TableCell sx={{ fontWeight: 700, minWidth: 220 }}>Name</TableCell>
                     <TableCell sx={{ fontWeight: 700, minWidth: 170 }}>Cheklist</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Participantes</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Tiendas Afiliadas</TableCell>
-                    <TableCell sx={{ fontWeight: 700, minWidth: 200 }}>Fechas</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Estado</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Imagen</TableCell>
-                    <TableCell sx={{ fontWeight: 700, minWidth: 160 }}>Acciones</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Participants</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Affiliated Stores</TableCell>
+                    <TableCell sx={{ fontWeight: 700, minWidth: 200 }}>Dates</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Estate</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Image</TableCell>
+                    <TableCell sx={{ fontWeight: 700, minWidth: 160 }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -265,7 +265,7 @@ export default function SweepstakesTable() {
                                 variant="caption"
                                 color="text.secondary"
                               >
-                                {progress}/{total} completado
+                                {progress}/{total} completed
                               </Typography>
                             </Stack>
                           </Stack>
@@ -313,7 +313,7 @@ export default function SweepstakesTable() {
                                 variant="caption"
                                 color="text.secondary"
                               >
-                                Inicio — Fin
+                                Start — End
                               </Typography>
                             </Stack>
                           </Stack>

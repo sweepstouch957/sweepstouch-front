@@ -56,36 +56,36 @@ const campaignsMenu = (t: (token: string) => string): MenuItem =>
   ]);
 
 const promotorsMenu = (t: (token: string) => string): MenuItem =>
-  buildMenu(t('Impulsadoras'), <Person2Outlined />, [
-    buildMenu(t('Gestion de Personal'), undefined, [
+  buildMenu(t('Promotors'), <Person2Outlined />, [
+    buildMenu(t('Personnel management'), undefined, [
       {
-        title: t('Listado'),
+        title: t('Listing'),
         icon: <List />,
         route: routes.admin.management.promotors.listing,
       },
 
       {
-        title: t('Solicitudes'),
+        title: t('Applications'),
         icon: <List />,
         route: routes.admin.management.solicitudes.promotoras,
       },
     ]),
 
-    buildMenu(t('Gestion de Turnos'), undefined, [
+    buildMenu(t('shift management'), undefined, [
       {
-        title: t('Listado'),
+        title: t('Listing'),
         icon: <List />,
         route: routes.admin.management.promotors.turnos,
       },
 
       {
-        title: t('Solicitudes'),
+        title: t('Applications'),
         icon: <List />,
         route: routes.admin.management.solicitudes.turnos,
       },
     ]),
 
-    { title: t('Tiendas Destacadas'), route: routes.admin.management.promotors.featuredStores },
+    { title: t('featured stores'), route: routes.admin.management.promotors.featuredStores },
   ]);
 
 //const requestMenu = (t: (token: string) => string): MenuItem =>
