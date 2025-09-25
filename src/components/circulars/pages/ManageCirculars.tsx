@@ -1,53 +1,62 @@
 'use client';
+
 /* eslint-disable react/jsx-max-props-per-line */
-
-import React from 'react';
 import {
+  Error as ErrorIcon,
+  Schedule as ScheduleIcon,
+  TrendingUp as TrendingUpIcon,
+  Visibility as VisibilityIcon,
+} from '@mui/icons-material';
+import {
+  Avatar,
   Box,
-  Typography,
-
+  IconButton,
+  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  Avatar,
-  IconButton,
+  Typography,
 } from '@mui/material';
-import {
-  TrendingUp as TrendingUpIcon,
-  Schedule as ScheduleIcon,
-  Error as ErrorIcon,
-  Visibility as VisibilityIcon,
-} from '@mui/icons-material';
+import React from 'react';
+import { mockManageCirculars } from '../../../data/circularsData';
 import { MetricCard } from '../MetricCard';
 import { StatusBadge } from '../StatusBadge';
-import { mockManageCirculars } from '../../../data/circularsData';
 
 const ManageCirculars: React.FC = () => {
   return (
-    <Box sx={{
-        p: { xs: 2, sm: 3, md: 4 }, 
-      }}>
+    <Box
+      sx={{
+        p: { xs: 2, sm: 3, md: 4 },
+      }}
+    >
       {/* Page Header */}
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 600, color: '#2D3748', mb: 0.5 }}>
+        <Typography
+          variant="h4"
+          sx={{ fontWeight: 600, color: '#2D3748', mb: 0.5 }}
+        >
           Manage Circulars
         </Typography>
-        <Typography variant="subtitle1" sx={{ color: '#718096' }}>
+        <Typography
+          variant="subtitle1"
+          sx={{ color: '#718096' }}
+        >
           Manage circular schedule of stores
         </Typography>
       </Box>
 
       {/* Metrics Cards */}
-      <Box sx={{ 
-        display: 'grid', 
-        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' },
-        gap: 3,
-        mb: 4 
-      }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' },
+          gap: 3,
+          mb: 4,
+        }}
+      >
         <MetricCard
           title="Active Circulars"
           value={mockManageCirculars.activeCirculars}
@@ -71,11 +80,14 @@ const ManageCirculars: React.FC = () => {
       {/* Circular Status by Store Table */}
       <Paper sx={{ borderRadius: 3, overflow: 'hidden' }}>
         <Box sx={{ p: 3, borderBottom: '1px solid #E2E8F0' }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, color: '#2D3748' }}>
+          <Typography
+            variant="h6"
+            sx={{ fontWeight: 600, color: '#2D3748' }}
+          >
             Circular Status by Store
           </Typography>
         </Box>
-        
+
         <TableContainer sx={{ overflowX: 'auto' }}>
           <Table sx={{ minWidth: 650 }}>
             <TableHead>
@@ -89,7 +101,10 @@ const ManageCirculars: React.FC = () => {
             </TableHead>
             <TableBody>
               {mockManageCirculars.stores.map((store) => (
-                <TableRow key={store.id} hover>
+                <TableRow
+                  key={store.id}
+                  hover
+                >
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                       <Avatar
@@ -105,7 +120,10 @@ const ManageCirculars: React.FC = () => {
                       </Avatar>
                       <Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 500, color: '#2D3748' }}>
+                          <Typography
+                            variant="body2"
+                            sx={{ fontWeight: 500, color: '#2D3748' }}
+                          >
                             {store.name}
                           </Typography>
                           <StatusBadge status={store.status} />
@@ -114,17 +132,26 @@ const ManageCirculars: React.FC = () => {
                     </Box>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" sx={{ color: '#2D3748' }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: '#2D3748' }}
+                    >
                       {store.contact}
                     </Typography>
                   </TableCell>
                   <TableCell>
                     <Box>
-                      <Typography variant="body2" sx={{ color: '#2D3748', fontWeight: 500 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: '#2D3748', fontWeight: 500 }}
+                      >
                         {store.currentCircular}
                       </Typography>
                       {store.currentCircularDate && (
-                        <Typography variant="caption" sx={{ color: '#718096' }}>
+                        <Typography
+                          variant="caption"
+                          sx={{ color: '#718096' }}
+                        >
                           {store.currentCircularDate}
                         </Typography>
                       )}
@@ -132,18 +159,27 @@ const ManageCirculars: React.FC = () => {
                   </TableCell>
                   <TableCell>
                     <Box>
-                      <Typography variant="body2" sx={{ color: '#2D3748', fontWeight: 500 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: '#2D3748', fontWeight: 500 }}
+                      >
                         {store.nextCircular}
                       </Typography>
                       {store.nextCircularDate && (
-                        <Typography variant="caption" sx={{ color: '#2196F3' }}>
+                        <Typography
+                          variant="caption"
+                          sx={{ color: '#2196F3' }}
+                        >
                           {store.nextCircularDate}
                         </Typography>
                       )}
                     </Box>
                   </TableCell>
                   <TableCell align="center">
-                    <IconButton size="small" sx={{ color: '#718096' }}>
+                    <IconButton
+                      size="small"
+                      sx={{ color: '#718096' }}
+                    >
                       <VisibilityIcon fontSize="small" />
                     </IconButton>
                   </TableCell>
