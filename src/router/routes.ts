@@ -174,6 +174,13 @@ export const routes = {
         stats: (id: string) => `/admin/management/sweepstakes/${id}/stats`,
         edit: (id: string) => `/admin/management/sweepstakes/${id}/edit`,
       },
+      circulars: {
+        'subscribed-stores': '/admin/management/circulars/subscribed-stores',
+        'info-dashboard': '/admin/management/circulars/info-dashboard',
+        'manage': '/admin/management/circulars/manage',
+        'edit': '/admin/management/circulars/edit',
+        'schedule': '/admin/management/circulars/schedule',
+      },
 
       commerce: {
         'shop-front': '/admin/management/shop-front',

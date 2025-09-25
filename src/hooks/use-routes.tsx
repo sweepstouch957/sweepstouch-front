@@ -108,6 +108,17 @@ const storesMenu = (t: (token: string) => string): MenuItem =>
 const addsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Ads'), <AdsClickOutlined />, [], routes.admin.management.promos.listing);
 
+const circularsMenu = (t: (token: string) => string): MenuItem =>
+  buildMenu(t('Circulars'), <BookOutlined />, [
+    { title: t('Subscribed Stores'), route: routes.admin.management.circulars['subscribed-stores'] },
+    { title: t('Info Dashboard'), route: routes.admin.management.circulars['info-dashboard'] },
+    { title: t('Manage Circulars'), route: routes.admin.management.circulars.manage },
+    buildMenu(t('Edit/Schedule Circulars'), undefined, [
+      { title: t('Edit Circulars'), route: routes.admin.management.circulars.edit },
+      { title: t('Schedule Circulars'), route: routes.admin.management.circulars.schedule },
+    ]),
+  ]);
+
 export const useMenuItemsCollapsedShells = (
   t: (token: string) => string,
   role: UserRole
@@ -121,6 +132,7 @@ export const useMenuItemsCollapsedShells = (
       sweepstakesMenu(t),
       promotorsMenu(t),
       addsMenu(t),
+      circularsMenu(t),
       //requestMenu(t),
     ],
     general_manager: [campaignsMenu(t), promotorsMenu(t), storesMenu(t)],
