@@ -1,5 +1,6 @@
 'use client';
 
+import StoreInfo from '@/components/website/store-panel';
 import { useStoreById } from '@/hooks/fetching/stores/useStoreById';
 import { closeSidebar, openSidebar, setActiveSection, setTags } from '@/slices/store_managment';
 import AddCircleOutlineRoundedIcon from '@mui/icons-material/AddCircleOutlineRounded';
@@ -27,8 +28,8 @@ import { ActiveSweepstakeCard } from '../../active-sweeptake';
 import { PromoDashboard } from '../../tables/promos/panel';
 import CampaignsPanel from './panel/campaigns/campaign-panel';
 import CreateCampaignContainer from './panel/campaigns/createCampaignContainer';
+import QrDuetMUI from './panel/qr/QrContainer';
 import { StoreSidebar } from './store-sidebar';
-import StoreInfo from '@/components/website/store-panel';
 
 const StoreManagementPage = () => {
   const dispatch = useDispatch();
@@ -55,6 +56,7 @@ const StoreManagementPage = () => {
         { id: 'general-info', label: 'General Info' },
         { id: 'sweepstakes', label: 'Sweepstakes' },
         { id: 'ads', label: 'Ads' },
+        { id: 'qr', label: 'QR' },
       ])
     );
   }, [dispatch, tag]);
@@ -71,32 +73,31 @@ const StoreManagementPage = () => {
     };
 
     return (
-      <Box px={{ xs: 1, md: 3 }}
+      <Box
+        px={{ xs: 1, md: 3 }}
         pt={2}
         display="flex"
         alignItems="center"
         justifyContent="space-between"
-        flexWrap="wrap">
-        <Stack direction="row"
+        flexWrap="wrap"
+      >
+        <Stack
+          direction="row"
           alignItems="center"
-          spacing={1}>
+          spacing={1}
+        >
           <IconButton
             onClick={handleBack}
             size="small"
-            color="primary">
+            color="primary"
+          >
             <ArrowBackIosNewRoundedIcon fontSize="small" />
           </IconButton>
           <Breadcrumbs aria-label="breadcrumb">
-            <Typography
-              color="text.secondary">Tiendas</Typography>
-            <Typography
-              color="text.primary">{store?.name}</Typography>
-            <Typography
-              color="text.primary">{tag}</Typography>
-            {action &&
-              <Typography
-                color="text.primary">{action}
-              </Typography>}
+            <Typography color="text.secondary">Tiendas</Typography>
+            <Typography color="text.primary">{store?.name}</Typography>
+            <Typography color="text.primary">{tag}</Typography>
+            {action && <Typography color="text.primary">{action}</Typography>}
           </Breadcrumbs>
         </Stack>
 
@@ -104,19 +105,22 @@ const StoreManagementPage = () => {
           <Stack
             direction="row"
             spacing={2}
-            mt={{ xs: 2, sm: 0 }}>
+            mt={{ xs: 2, sm: 0 }}
+          >
             {action === 'create' ? (
               <Button
                 variant="contained"
                 color="secondary"
-                onClick={handleBack}>
+                onClick={handleBack}
+              >
                 Ver campañas
               </Button>
             ) : (
               <Button
                 variant="contained"
                 startIcon={<AddCircleOutlineRoundedIcon />}
-                onClick={goToCreateCampaign}>
+                onClick={goToCreateCampaign}
+              >
                 Crear campaña
               </Button>
             )}
@@ -133,14 +137,17 @@ const StoreManagementPage = () => {
           <Skeleton
             variant="text"
             width="40%"
-            height={40} />
+            height={40}
+          />
           <Skeleton
             variant="rectangular"
             height={200}
-            sx={{ my: 2 }} />
+            sx={{ my: 2 }}
+          />
           <Skeleton
             variant="text"
-            width="60%" />
+            width="60%"
+          />
         </Box>
       );
     }
@@ -148,8 +155,7 @@ const StoreManagementPage = () => {
     if (error || !store) {
       return (
         <Box p={3}>
-          <Typography
-            color="error">No se pudo cargar la tienda.</Typography>
+          <Typography color="error">No se pudo cargar la tienda.</Typography>
         </Box>
       );
     }
@@ -160,9 +166,10 @@ const StoreManagementPage = () => {
           <Box
             px={{
               xs: 1,
-              md: 2
+              md: 2,
             }}
-            pt={2}>
+            pt={2}
+          >
             <CreateCampaignContainer
               provider={store.provider}
               phoneNumber={store.bandwidthPhoneNumber || ''}
@@ -173,9 +180,12 @@ const StoreManagementPage = () => {
           </Box>
         );
       }
-      return <CampaignsPanel
-        storeId={storeId || ''}
-        storeName={store?.name || ''} />;
+      return (
+        <CampaignsPanel
+          storeId={storeId || ''}
+          storeName={store?.name || ''}
+        />
+      );
     }
 
     switch (tag) {
@@ -186,11 +196,11 @@ const StoreManagementPage = () => {
           <Box p={3}>
             <Typography
               variant="h5"
-              gutterBottom>
+              gutterBottom
+            >
               Proveedor SMS
             </Typography>
-            <Typography
-              color="text.secondary">
+            <Typography color="text.secondary">
               {store.provider === 'twilio'
                 ? `Twilio: ${store.twilioPhoneNumber || 'No asignado'}`
                 : `Bandwidth: ${store.bandwidthPhoneNumber || 'No asignado'}`}
@@ -208,17 +218,26 @@ const StoreManagementPage = () => {
           <Box p={3}>
             <Typography
               variant="h5"
-              gutterBottom>
+              gutterBottom
+            >
               Sorteo
             </Typography>
             <ActiveSweepstakeCard storeId={storeId} />
           </Box>
         );
+
+      case 'qr':
+        return (
+          <Box p={3}>
+            <QrDuetMUI
+              storeId={storeId}
+            />
+          </Box>
+        );
       default:
         return (
           <Box p={3}>
-            <Typography
-              variant="h5">Campañas</Typography>
+            <Typography variant="h5">Campañas</Typography>
           </Box>
         );
     }
@@ -231,12 +250,14 @@ const StoreManagementPage = () => {
       position="relative"
       zIndex={2}
       ref={pageRef}
-      overflow="hidden">
+      overflow="hidden"
+    >
       <StoreSidebar
         parentContainer={pageRef.current}
         storeName={store?.name || ''}
         storeId={store?.id || ''}
-        image={store?.image || ''} />
+        image={store?.image || ''}
+      />
       <Box
         flex={1}
         position="relative"
@@ -245,13 +266,13 @@ const StoreManagementPage = () => {
         sx={{
           transition: sidebarOpen
             ? theme.transitions.create('margin', {
-              easing: theme.transitions.easing.easeOut,
-              duration: theme.transitions.duration.enteringScreen,
-            })
+                easing: theme.transitions.easing.easeOut,
+                duration: theme.transitions.duration.enteringScreen,
+              })
             : theme.transitions.create('margin', {
-              easing: theme.transitions.easing.sharp,
-              duration: theme.transitions.duration.leavingScreen,
-            }),
+                easing: theme.transitions.easing.sharp,
+                duration: theme.transitions.duration.leavingScreen,
+              }),
         }}
       >
         {!lgUp && (
@@ -260,11 +281,13 @@ const StoreManagementPage = () => {
               variant="outlined"
               color="secondary"
               sx={{
-                mx: { xs: 2, sm: 3 }, my: 2,
-                color: 'primary.main'
+                mx: { xs: 2, sm: 3 },
+                my: 2,
+                color: 'primary.main',
               }}
               onClick={handleDrawerToggle}
-              size="small">
+              size="small"
+            >
               <MenuRoundedIcon />
             </ButtonIcon>
             <Divider />
