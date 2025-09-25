@@ -1,4 +1,6 @@
 'use client';
+/* eslint-disable react/jsx-max-props-per-line */
+
 import React from 'react';
 import { Box } from '@mui/material';
 import Sidebar from './Sidebar';
