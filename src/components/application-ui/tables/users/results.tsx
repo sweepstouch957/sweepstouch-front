@@ -137,7 +137,9 @@ const getUserRoleLabel = (userRole?: string): JSX.Element => {
   const item =
     ROLE_META[roleKey] ?? { text: roleKey ? toTitle(roleKey) : 'Unknown', color: 'default' };
 
-  return <Chip color={item.color} label={item.text} />;
+  return <Chip
+    color={item.color}
+    label={item.text} />;
 };
 
 // Convertimos cualquier valor a string seguro para el buscador
@@ -318,7 +320,9 @@ const Results: FC<ResultsProps> = ({ users }) => {
               label={
                 <>
                   {tab.label}
-                  <Chip label={tab.count} size="small" />
+                  <Chip
+                    label={tab.count}
+                    size="small" />
                 </>
               }
             />
@@ -326,19 +330,31 @@ const Results: FC<ResultsProps> = ({ users }) => {
         </TabsShadow>
       ) : (
         <Select value={filters.role || 'all'} //@ts-ignore
-          onChange={handleSelectChange} fullWidth>
+          onChange={handleSelectChange}
+          fullWidth>
           {tabs.map((tab) => (
-            <MenuItem key={tab.value} value={tab.value}>
+            <MenuItem
+              key={tab.value}
+              value={tab.value}>
               {tab.label}
             </MenuItem>
           ))}
         </Select>
       )}
 
-      <Box display="flex" justifyContent="space-between" alignItems="center" py={2}>
-        <Box display="flex" alignItems="center">
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        py={2}>
+        <Box
+          display="flex"
+          alignItems="center">
           {toggleView === 'grid_view' && (
-            <Tooltip arrow placement="top" title={t('Select all users')}>
+            <Tooltip
+              arrow
+              placement="top"
+              title={t('Select all users')}>
               <Checkbox
                 edge="start"
                 sx={{ mr: 1 }}
@@ -351,15 +367,21 @@ const Results: FC<ResultsProps> = ({ users }) => {
           )}
 
           {selectedBulkActions ? (
-            <Stack direction="row" spacing={1}>
+            <Stack
+              direction="row"
+              spacing={1}>
               <BulkDelete />
-              <Tooltip arrow placement="top" title={t('Export user list')}>
+              <Tooltip
+                arrow
+                placement="top"
+                title={t('Export user list')}>
                 <ButtonIcon
                   variant="outlined"
                   color="secondary"
                   sx={{ color: 'primary.main' }}
                   size="small"
-                  startIcon={<IosShareRoundedIcon fontSize="small" />}
+                  startIcon={<IosShareRoundedIcon
+                    fontSize="small" />}
                 />
               </Tooltip>
             </Stack>
@@ -368,12 +390,14 @@ const Results: FC<ResultsProps> = ({ users }) => {
               margin="none"
               InputProps={{
                 startAdornment: (
-                  <InputAdornment position="start">
+                  <InputAdornment
+                    position="start">
                     <SearchTwoToneIcon />
                   </InputAdornment>
                 ),
                 endAdornment: query && (
-                  <InputAdornment sx={{ mr: -0.7 }} position="end">
+                  <InputAdornment sx={{ mr: -0.7 }}
+                    position="end">
                     <IconButton
                       color="error"
                       aria-label="clear input"
@@ -382,7 +406,8 @@ const Results: FC<ResultsProps> = ({ users }) => {
                       size="small"
                       sx={{ color: 'error.main' }}
                     >
-                      <ClearRoundedIcon fontSize="small" />
+                      <ClearRoundedIcon
+                        fontSize="small" />
                     </IconButton>
                   </InputAdornment>
                 ),
@@ -404,10 +429,12 @@ const Results: FC<ResultsProps> = ({ users }) => {
           exclusive
           onChange={handleViewOrientation}
         >
-          <ToggleButton value="table_view">
+          <ToggleButton
+            value="table_view">
             <TableRowsTwoToneIcon />
           </ToggleButton>
-          <ToggleButton value="grid_view">
+          <ToggleButton
+            value="grid_view">
             <GridViewTwoToneIcon />
           </ToggleButton>
         </ToggleButtonGroup>
@@ -454,7 +481,10 @@ const Results: FC<ResultsProps> = ({ users }) => {
                       {paginatedUsers.map((user) => {
                         const isUserSelected = selectedItems.includes(user.id);
                         return (
-                          <TableRow hover key={user.id} selected={isUserSelected}>
+                          <TableRow
+                            hover
+                            key={user.id}
+                            selected={isUserSelected}>
                             <TableCell padding="checkbox">
                               <Checkbox
                                 checked={isUserSelected}
@@ -463,10 +493,13 @@ const Results: FC<ResultsProps> = ({ users }) => {
                               />
                             </TableCell>
                             <TableCell>
-                              <Typography fontWeight={400}>{user.firstName}</Typography>
+                              <Typography
+                                fontWeight={400}>{user.firstName}</Typography>
                             </TableCell>
                             <TableCell>
-                              <Box display="flex" alignItems="center">
+                              <Box
+                                display="flex"
+                                alignItems="center">
                                 <Avatar
                                   variant="rounded"
                                   sx={{
@@ -484,7 +517,10 @@ const Results: FC<ResultsProps> = ({ users }) => {
                                   >
                                     {user.firstName}
                                   </Link>
-                                  <Typography noWrap variant="subtitle2" color="text.secondary">
+                                  <Typography
+                                    noWrap
+                                    variant="subtitle2"
+                                    color="text.secondary">
                                     {user.role}
                                   </Typography>
                                 </Box>
@@ -496,12 +532,16 @@ const Results: FC<ResultsProps> = ({ users }) => {
                             <TableCell>{getUserRoleLabel(user.role)}</TableCell>
                             <TableCell align="center">
                               <Typography noWrap>
-                                <Tooltip title={t('View')} arrow>
+                                <Tooltip
+                                  title={t('View')}
+                                  arrow>
                                   <IconButton color="secondary">
                                     <LaunchTwoToneIcon fontSize="small" />
                                   </IconButton>
                                 </Tooltip>
-                                <Tooltip title={t('Delete')} arrow>
+                                <Tooltip
+                                  title={t('Delete')}
+                                  arrow>
                                   <IconButton color="secondary">
                                     <DeleteTwoToneIcon fontSize="small" />
                                   </IconButton>
@@ -561,12 +601,18 @@ const Results: FC<ResultsProps> = ({ users }) => {
                 </Typography>
               ) : (
                 <>
-                  <Grid container spacing={{ xs: 2, sm: 3 }}>
+                  <Grid
+                    container
+                    spacing={{ xs: 2, sm: 3 }}>
                     {paginatedUsers.map((user) => {
                       const isUserSelected = selectedItems.includes(user.id);
 
                       return (
-                        <Grid xs={12} sm={6} lg={4} key={user.id}>
+                        <Grid
+                          xs={12}
+                          sm={6}
+                          lg={4}
+                          key={user.id}>
                           <CardWrapper className={`${isUserSelected ? 'Mui-selected' : ''}`}>
                             <Box
                               sx={{
@@ -582,7 +628,9 @@ const Results: FC<ResultsProps> = ({ users }) => {
                                 justifyContent="space-between"
                               >
                                 {getUserRoleLabel(user.role)}
-                                <IconButton color="primary" sx={{ p: 0.5 }}>
+                                <IconButton
+                                  color="primary"
+                                  sx={{ p: 0.5 }}>
                                   <MoreVertTwoToneIcon />
                                 </IconButton>
                               </Box>
@@ -612,14 +660,22 @@ const Results: FC<ResultsProps> = ({ users }) => {
                                     >
                                       {user.firstName}
                                     </Link>{' '}
-                                    <Typography component="span" variant="body2" color="text.secondary">
+                                    <Typography
+                                      component="span"
+                                      variant="body2"
+                                      color="text.secondary">
                                       ({user.lastName})
                                     </Typography>
                                   </Box>
-                                  <Typography sx={{ pt: 0.3 }} variant="subtitle2">
+                                  <Typography
+                                    sx={{ pt: 0.3 }}
+                                    variant="subtitle2">
                                     {user.role}
                                   </Typography>
-                                  <Typography sx={{ pt: 1 }} variant="h6" fontWeight={500}>
+                                  <Typography
+                                    sx={{ pt: 1 }}
+                                    variant="h6"
+                                    fontWeight={500}>
                                     {user.email}
                                   </Typography>
                                 </Box>
@@ -644,7 +700,9 @@ const Results: FC<ResultsProps> = ({ users }) => {
                     }}
                   >
                     <Box>
-                      <Typography component="span" variant="subtitle1">
+                      <Typography
+                        component="span"
+                        variant="subtitle1">
                         {t('Showing')}
                       </Typography>{' '}
                       <b>{limit}</b> {t('of')} <b>{filteredUsers.length}</b> <b>{t('users')}</b>
