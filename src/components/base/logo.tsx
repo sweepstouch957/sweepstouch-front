@@ -1,7 +1,7 @@
 import { Box, Link, useMediaQuery, useTheme } from '@mui/material';
 import Image from 'next/image';
 import { RouterLink } from './router-link';
-import LogoIcon from '@public/web/SweeptouchIcon.png';
+import LogoIcon from '../../../public/web/SweeptouchIcon.png';
 
 interface LogoProps {
   dark?: boolean;

@@ -3,6 +3,10 @@
 
 import { Store } from '@/services/store.service';
 import { Card, CardContent, CardHeader, MenuItem, Stack, Switch, TextField } from '@mui/material';
+// ✅ Date Picker (MUI X)
+import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import esLocale from 'date-fns/locale/es';
 
 type Props = {
   form: {
@@ -18,6 +22,10 @@ type Props = {
     zipCode: string;
     type: Store['type'];
     location?: { type: 'Point'; coordinates: [number, number] };
+
+    // ✅ Nuevos campos:
+    email: string;
+    contractStartDate: string | null; // ISO string o null
   };
   edit: boolean;
   onChange: (key: keyof Props['form']) => (e: any) => void;
@@ -27,6 +35,12 @@ type Props = {
 
 export default function StoreGeneralForm({ form, edit, onChange, lng, lat }: Props) {
   const hasCoords = !!form.location?.coordinates;
+
+  // ✅ Validación simple de email (solo UI)
+  const isEmailValid = !form.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email);
+
+  // Helper para parsear ISO -> Date (DatePicker)
+  const toDate = (iso: string | null) => (iso ? new Date(iso) : null);
 
   return (
     <Card
@@ -71,6 +85,22 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat }: Pro
           onChange={onChange('phoneNumber')}
           sx={{ mb: 1.5 }}
           disabled={!edit}
+        />
+
+        {/* ✅ Email con validación visual */}
+        <TextField
+          fullWidth
+          size="small"
+          label="Email"
+          value={form.email}
+          onChange={onChange('email')}
+          disabled={!edit}
+          sx={{ mb: 1.5 }}
+          error={!isEmailValid}
+          helperText={!isEmailValid ? 'Ingresa un email válido' : ' '}
+          placeholder="correo@tienda.com"
+          type="email"
+          inputProps={{ inputMode: 'email', autoComplete: 'email' }}
         />
 
         {form.provider === 'bandwidth' && (
@@ -141,6 +171,7 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat }: Pro
           sx={{ mb: 1.5 }}
           disabled={!edit}
         />
+
         <Stack
           direction="row"
           spacing={1.5}
@@ -168,6 +199,29 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat }: Pro
             <MenuItem value="free">Free</MenuItem>
           </TextField>
         </Stack>
+
+        {/* ✅ Fecha de inicio de contrato (DatePicker) */}
+        <LocalizationProvider
+          dateAdapter={AdapterDateFns}
+          adapterLocale={esLocale}
+        >
+          <DatePicker
+            label="Inicio de contrato"
+            value={toDate(form.contractStartDate)}
+            onChange={(date: Date | null) => {
+              if (!edit) return;
+              onChange('contractStartDate')({ value: date ? date.toISOString() : null });
+            }}
+            slotProps={{
+              textField: {
+                size: 'small',
+                fullWidth: true,
+                disabled: !edit,
+                sx: { mb: 1.5 },
+              },
+            }}
+          />
+        </LocalizationProvider>
 
         <Stack
           direction="row"
