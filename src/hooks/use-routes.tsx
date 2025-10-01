@@ -140,7 +140,7 @@ export const useMenuItemsCollapsedShells = (
     campaign_manager: [campaignsMenu(t)],
     cashier: [],
     merchant: [],
-    promotor: [],
+    promotor: [storesMenu(t)],
     design: [],
   };
 

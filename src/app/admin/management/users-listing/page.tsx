@@ -7,7 +7,6 @@ import { useTranslation } from 'react-i18next';
 import UsersTableListing from 'src/components/application-ui/tables/users/users';
 import PageHeading from 'src/components/base/page-heading';
 import { useCustomization } from 'src/hooks/use-customization';
-import { Layout } from 'src/layouts';
 
 function Page(): React.JSX.Element {
   const customization = useCustomization();
