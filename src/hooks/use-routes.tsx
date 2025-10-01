@@ -47,7 +47,7 @@ const applicationsMenu = (t: (token: string) => string): MenuItem =>
 const usersMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Users'), <PeopleRoundedIcon />, [
     { title: t('Listing'), route: routes.admin.management.users.listing },
-    { title: t('User profile'), route: routes.admin.management.users.profile },
+    //{ title: t('User profile'), route: routes.admin.management.users.profile },
   ]);
 
 const campaignsMenu = (t: (token: string) => string): MenuItem =>
@@ -116,11 +116,13 @@ export const useMenuItemsCollapsedShells = (
 
   const roleMenus: Record<UserRole, MenuItem[]> = {
     admin: [
+      usersMenu(t),
       storesMenu(t),
       campaignsMenu(t),
       sweepstakesMenu(t),
       promotorsMenu(t),
       addsMenu(t),
+
       //requestMenu(t),
     ],
     general_manager: [campaignsMenu(t), promotorsMenu(t), storesMenu(t)],

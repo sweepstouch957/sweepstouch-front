@@ -40,15 +40,15 @@ import {
   useTheme,
 } from '@mui/material';
 import PropTypes from 'prop-types';
-import { ChangeEvent, FC, MouseEvent, SyntheticEvent, useState } from 'react';
+import { ChangeEvent, FC, MouseEvent, SyntheticEvent, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ButtonIcon } from 'src/components/base/styles/button-icon';
 import { TabsShadow } from 'src/components/base/styles/tabs';
 import BulkDelete from './bulk-delete';
 
+// ---------- Styles ----------
 export const CardWrapper = styled(Card)(
   ({ theme }) => `
-
   position: relative;
   overflow: visible;
 
@@ -63,96 +63,119 @@ export const CardWrapper = styled(Card)(
     z-index: 1;
   }
 
-    &.Mui-selected::after {
-      box-shadow: 0 0 0 3px ${theme.palette.primary.main};
-    }
-  `
+  &.Mui-selected::after {
+    box-shadow: 0 0 0 3px ${theme.palette.primary.main};
+  }
+`
 );
 
+// ---------- Tipos ----------
 interface ResultsProps {
   users: User[];
 }
 
 interface Filters {
-  role?: string;
+  role: string | null; // guardamos la key normalizada o null
 }
 
-interface Tab {
-  value: string;
-  label: string;
-  count: number;
+interface UITabItem {
+  value: string; // 'all' o roleKey normalizado
+  label: string; // etiqueta visible
+  count: number; // conteo
 }
 
-interface UserCounts {
-  all: number;
-  merchant: number;
-  promotor: number;
-  promotorOwner: number;
-  admin: number;
-}
+// ---------- Helpers de rol ----------
+const normalizeRole = (r?: string) =>
+  (r ?? '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '_')
+    .replace(/-/g, '_');
 
-const getUserRoleLabel = (userRole: string): JSX.Element => {
-  const map = {
-    admin: {
-      text: 'Administrator',
-      color: 'error',
-    },
-    merchant: {
-      text: 'Merchant',
-      color: 'info',
-    },
-    promotor: {
-      text: 'Promotor',
-      color: 'warning',
-    },
-    "promotor_manager": {
-      text: 'Promotor Owner',
-      color: 'warning',
-    },
-  };
-
-  const { text, color }: any = map[userRole];
-
-  return (
-    <Chip
-      color={color}
-      label={text}
-    />
-  );
+const ROLE_ALIAS: Record<string, string> = {
+  promotorowner: 'promotor_owner',
+  promotor_manager: 'promotor_owner',
+  promoter: 'promotor',
+  promoters: 'promotor',
+  gm: 'general_manager',
 };
 
+const getRoleKey = (raw?: string) => {
+  const norm = normalizeRole(raw);
+  return ROLE_ALIAS[norm] ?? norm;
+};
+
+// Texto (singular) y color para el Chip
+const ROLE_META: Record<
+  string,
+  { text: string; color: 'primary' | 'secondary' | 'default' | 'info' | 'success' | 'warning' | 'error' }
+> = {
+  admin: { text: 'Administrator', color: 'error' },
+  merchant: { text: 'Merchant', color: 'info' },
+  promotor: { text: 'Promotor', color: 'warning' },
+  promotor_owner: { text: 'Promotor Owner', color: 'warning' },
+  cashier: { text: 'Cashier', color: 'secondary' },
+  general_manager: { text: 'General Manager', color: 'success' },
+};
+
+// Etiquetas (plural) para los tabs
+const ROLE_TABS_LABEL: Record<string, string> = {
+  admin: 'Administrators',
+  merchant: 'Merchants',
+  promotor: 'Promotors',
+  promotor_owner: 'Promotor Owners',
+  cashier: 'Cashiers',
+  general_manager: 'General Managers',
+};
+
+const toTitle = (k: string) =>
+  k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+// ---------- Helpers de UI ----------
+const getUserRoleLabel = (userRole?: string): JSX.Element => {
+  const roleKey = getRoleKey(userRole);
+  const item =
+    ROLE_META[roleKey] ?? { text: roleKey ? toTitle(roleKey) : 'Unknown', color: 'default' };
+
+  return <Chip color={item.color} label={item.text} />;
+};
+
+// Convertimos cualquier valor a string seguro para el buscador
+const normalizeVal = (v: unknown): string => {
+  if (v == null) return '';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+  if (Array.isArray(v)) return v.map(normalizeVal).join(' ');
+  try {
+    return JSON.stringify(v);
+  } catch {
+    return '';
+  }
+};
+
+// Aplica filtros (rol + query)
 const applyFilters = (users: User[], query: string, filters: Filters): User[] => {
+  const q = (query ?? '').toLowerCase();
+
   return users.filter((user) => {
-    let matches = true;
+    // 1) Filtro de rol (si se eligió)
+    if (filters.role && getRoleKey(user.role) !== filters.role) {
+      return false;
+    }
 
-    if (query) {
-      const properties = ['email', 'name'];
-      let containsQuery = false;
+    // 2) Filtro de búsqueda
+    if (!q) return true;
 
-      properties.forEach((property) => {
-        if (user[property].toLowerCase().includes(query.toLowerCase())) {
-          containsQuery = true;
-        }
-      });
-
-      if (filters.role && user.role !== filters.role) {
-        matches = false;
-      }
-
-      if (!containsQuery) {
-        matches = false;
+    const properties: Array<keyof User | string> = ['email', 'name', 'firstName', 'lastName'];
+    for (const property of properties) {
+      const val = (user as any)?.[property];
+      const text = Array.isArray(val) ? val.join(' ') : normalizeVal(val);
+      if (text.toLowerCase().includes(q)) {
+        return true;
       }
     }
 
-    Object.keys(filters).forEach((key) => {
-      const value = filters[key];
-
-      if (value && user[key] !== value) {
-        matches = false;
-      }
-    });
-
-    return matches;
+    return false;
   });
 };
 
@@ -160,77 +183,66 @@ const applyPagination = (users: User[], page: number, limit: number): User[] => 
   return users.slice(page * limit, page * limit + limit);
 };
 
+// ---------- Componente ----------
 const Results: FC<ResultsProps> = ({ users }) => {
   const [selectedItems, setSelectedUsers] = useState<string[]>([]);
   const { t } = useTranslation();
   const theme = useTheme();
   const smUp = useMediaQuery(theme.breakpoints.up('sm'));
 
-  const userCounts: UserCounts = {
-    all: users.length,
-    merchant: users.filter((user) => user.role === 'merchant').length,
-    admin: users.filter((user) => user.role === 'admin').length,
-    promotor: users.filter((user) => user.role === 'promotor').length,
-    promotorOwner: users.filter((user) => user.role === 'promotor_manager').length,
-  };
+  // Conteo por rol dinámico (normalizado)
+  const roleCounts = useMemo(() => {
+    const acc: Record<string, number> = {};
+    users.forEach((u) => {
+      const k = getRoleKey(u?.role);
+      if (!k) return;
+      acc[k] = (acc[k] ?? 0) + 1;
+    });
+    return acc;
+  }, [users]);
 
-  const tabs: Tab[] = [
-    {
-      value: 'all',
-      label: t('All users'),
-      count: userCounts.all,
-    },
-    {
-      value: 'merchant',
-      label: t('Merchants'),
-      count: userCounts.merchant,
-    },
-    {
-      value: 'admin',
-      label: t('Administrators'),
-      count: userCounts.admin,
-    },
-    {
-      value: 'promotor',
-      label: t('Promotors'),
-      count: userCounts.promotor,
-    },
-  ];
+  // Orden sugerido (roles conocidos primero)
+  const ROLE_ORDER = ['admin', 'merchant', 'promotor', 'promotor_owner', 'cashier', 'general_manager'];
+
+  // Tabs dinámicos a partir de roleCounts
+  const tabs: UITabItem[] = useMemo(() => {
+    const knownFirst = ROLE_ORDER.filter((k) => roleCounts[k]);
+    const unknownAfter = Object.keys(roleCounts).filter((k) => !ROLE_ORDER.includes(k));
+    const keys = [...knownFirst, ...unknownAfter];
+
+    return [
+      { value: 'all', label: t('All users'), count: users.length },
+      ...keys.map((k) => ({
+        value: k,
+        label: t(ROLE_TABS_LABEL[k] ?? toTitle(ROLE_META[k]?.text ?? k)),
+        count: roleCounts[k] ?? 0,
+      })),
+    ];
+  }, [users.length, roleCounts, t]);
 
   const [page, setPage] = useState<number>(0);
   const [limit, setLimit] = useState<number>(10);
   const [query, setQuery] = useState<string>('');
-  const [filters, setFilters] = useState<Filters>({
-    role: null,
-  });
+  const [filters, setFilters] = useState<Filters>({ role: null });
+
   const handleTabsChange = (_event: SyntheticEvent, tabsValue: unknown) => {
-    let value = null;
-
-    if (tabsValue !== 'all') {
-      value = tabsValue;
-    }
-
-    setFilters((prevFilters) => ({
-      ...prevFilters,
-      role: value,
-    }));
-
+    const value = tabsValue === 'all' ? null : (tabsValue as string);
+    setFilters((prev) => ({ ...prev, role: value }));
     setSelectedUsers([]);
+    setPage(0);
   };
+
   const handleSelectChange = (event: ChangeEvent<{ value: unknown }>) => {
     const selectedValue = event.target.value as string;
-
-    setFilters((prevFilters) => ({
-      ...prevFilters,
-      role: selectedValue === 'all' ? null : selectedValue,
-    }));
-
+    setFilters((prev) => ({ ...prev, role: selectedValue === 'all' ? null : selectedValue }));
     setSelectedUsers([]);
+    setPage(0);
   };
 
   const handleQueryChange = (event: ChangeEvent<HTMLInputElement>): void => {
     event.persist();
     setQuery(event.target.value);
+    setPage(0);
   };
 
   const handleSelectAllUsers = (event: ChangeEvent<HTMLInputElement>): void => {
@@ -306,49 +318,27 @@ const Results: FC<ResultsProps> = ({ users }) => {
               label={
                 <>
                   {tab.label}
-                  <Chip
-                    label={tab.count}
-                    size="small"
-                  />
+                  <Chip label={tab.count} size="small" />
                 </>
               }
             />
           ))}
         </TabsShadow>
       ) : (
-        <Select
-          value={filters.role || 'all'}
-          //@ts-ignore
-          onChange={handleSelectChange}
-          fullWidth
-        >
+        <Select value={filters.role || 'all'} //@ts-ignore
+          onChange={handleSelectChange} fullWidth>
           {tabs.map((tab) => (
-            <MenuItem
-              key={tab.value}
-              value={tab.value}
-            >
+            <MenuItem key={tab.value} value={tab.value}>
               {tab.label}
             </MenuItem>
           ))}
         </Select>
       )}
 
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        py={2}
-      >
-        <Box
-          display="flex"
-          alignItems="center"
-        >
+      <Box display="flex" justifyContent="space-between" alignItems="center" py={2}>
+        <Box display="flex" alignItems="center">
           {toggleView === 'grid_view' && (
-            <Tooltip
-              arrow
-              placement="top"
-              title={t('Select all users')}
-            >
+            <Tooltip arrow placement="top" title={t('Select all users')}>
               <Checkbox
                 edge="start"
                 sx={{ mr: 1 }}
@@ -359,18 +349,11 @@ const Results: FC<ResultsProps> = ({ users }) => {
               />
             </Tooltip>
           )}
-          {selectedBulkActions ? (
-            <Stack
-              direction="row"
-              spacing={1}
-            >
-              <BulkDelete />
 
-              <Tooltip
-                arrow
-                placement="top"
-                title={t('Export user list')}
-              >
+          {selectedBulkActions ? (
+            <Stack direction="row" spacing={1}>
+              <BulkDelete />
+              <Tooltip arrow placement="top" title={t('Export user list')}>
                 <ButtonIcon
                   variant="outlined"
                   color="secondary"
@@ -390,21 +373,14 @@ const Results: FC<ResultsProps> = ({ users }) => {
                   </InputAdornment>
                 ),
                 endAdornment: query && (
-                  <InputAdornment
-                    sx={{
-                      mr: -0.7,
-                    }}
-                    position="end"
-                  >
+                  <InputAdornment sx={{ mr: -0.7 }} position="end">
                     <IconButton
                       color="error"
                       aria-label="clear input"
                       onClick={() => setQuery('')}
                       edge="end"
                       size="small"
-                      sx={{
-                        color: 'error.main',
-                      }}
+                      sx={{ color: 'error.main' }}
                     >
                       <ClearRoundedIcon fontSize="small" />
                     </IconButton>
@@ -436,6 +412,7 @@ const Results: FC<ResultsProps> = ({ users }) => {
           </ToggleButton>
         </ToggleButtonGroup>
       </Box>
+
       {paginatedUsers.length === 0 ? (
         <>
           <Typography
@@ -469,7 +446,6 @@ const Results: FC<ResultsProps> = ({ users }) => {
                         <TableCell>{t('Username')}</TableCell>
                         <TableCell>{t('Name')}</TableCell>
                         <TableCell>{t('Email')}</TableCell>
-
                         <TableCell>{t('Role')}</TableCell>
                         <TableCell align="center">{t('Actions')}</TableCell>
                       </TableRow>
@@ -478,11 +454,7 @@ const Results: FC<ResultsProps> = ({ users }) => {
                       {paginatedUsers.map((user) => {
                         const isUserSelected = selectedItems.includes(user.id);
                         return (
-                          <TableRow
-                            hover
-                            key={user.id}
-                            selected={isUserSelected}
-                          >
+                          <TableRow hover key={user.id} selected={isUserSelected}>
                             <TableCell padding="checkbox">
                               <Checkbox
                                 checked={isUserSelected}
@@ -494,10 +466,7 @@ const Results: FC<ResultsProps> = ({ users }) => {
                               <Typography fontWeight={400}>{user.firstName}</Typography>
                             </TableCell>
                             <TableCell>
-                              <Box
-                                display="flex"
-                                alignItems="center"
-                              >
+                              <Box display="flex" alignItems="center">
                                 <Avatar
                                   variant="rounded"
                                   sx={{
@@ -515,11 +484,7 @@ const Results: FC<ResultsProps> = ({ users }) => {
                                   >
                                     {user.firstName}
                                   </Link>
-                                  <Typography
-                                    noWrap
-                                    variant="subtitle2"
-                                    color="text.secondary"
-                                  >
+                                  <Typography noWrap variant="subtitle2" color="text.secondary">
                                     {user.role}
                                   </Typography>
                                 </Box>
@@ -528,22 +493,15 @@ const Results: FC<ResultsProps> = ({ users }) => {
                             <TableCell>
                               <Typography>{user.email}</Typography>
                             </TableCell>
-
                             <TableCell>{getUserRoleLabel(user.role)}</TableCell>
                             <TableCell align="center">
                               <Typography noWrap>
-                                <Tooltip
-                                  title={t('View')}
-                                  arrow
-                                >
+                                <Tooltip title={t('View')} arrow>
                                   <IconButton color="secondary">
                                     <LaunchTwoToneIcon fontSize="small" />
                                   </IconButton>
                                 </Tooltip>
-                                <Tooltip
-                                  title={t('Delete')}
-                                  arrow
-                                >
+                                <Tooltip title={t('Delete')} arrow>
                                   <IconButton color="secondary">
                                     <DeleteTwoToneIcon fontSize="small" />
                                   </IconButton>
@@ -557,6 +515,7 @@ const Results: FC<ResultsProps> = ({ users }) => {
                   </Table>
                 </TableContainer>
               </Card>
+
               <Box
                 pt={2}
                 sx={{
@@ -586,6 +545,7 @@ const Results: FC<ResultsProps> = ({ users }) => {
               </Box>
             </>
           )}
+
           {toggleView === 'grid_view' && (
             <>
               {paginatedUsers.length === 0 ? (
@@ -601,20 +561,12 @@ const Results: FC<ResultsProps> = ({ users }) => {
                 </Typography>
               ) : (
                 <>
-                  <Grid
-                    container
-                    spacing={{ xs: 2, sm: 3 }}
-                  >
+                  <Grid container spacing={{ xs: 2, sm: 3 }}>
                     {paginatedUsers.map((user) => {
                       const isUserSelected = selectedItems.includes(user.id);
 
                       return (
-                        <Grid
-                          xs={12}
-                          sm={6}
-                          lg={4}
-                          key={user.id}
-                        >
+                        <Grid xs={12} sm={6} lg={4} key={user.id}>
                           <CardWrapper className={`${isUserSelected ? 'Mui-selected' : ''}`}>
                             <Box
                               sx={{
@@ -630,12 +582,7 @@ const Results: FC<ResultsProps> = ({ users }) => {
                                 justifyContent="space-between"
                               >
                                 {getUserRoleLabel(user.role)}
-                                <IconButton
-                                  color="primary"
-                                  sx={{
-                                    p: 0.5,
-                                  }}
-                                >
+                                <IconButton color="primary" sx={{ p: 0.5 }}>
                                   <MoreVertTwoToneIcon />
                                 </IconButton>
                               </Box>
@@ -665,29 +612,14 @@ const Results: FC<ResultsProps> = ({ users }) => {
                                     >
                                       {user.firstName}
                                     </Link>{' '}
-                                    <Typography
-                                      component="span"
-                                      variant="body2"
-                                      color="text.secondary"
-                                    >
+                                    <Typography component="span" variant="body2" color="text.secondary">
                                       ({user.lastName})
                                     </Typography>
                                   </Box>
-                                  <Typography
-                                    sx={{
-                                      pt: 0.3,
-                                    }}
-                                    variant="subtitle2"
-                                  >
+                                  <Typography sx={{ pt: 0.3 }} variant="subtitle2">
                                     {user.role}
                                   </Typography>
-                                  <Typography
-                                    sx={{
-                                      pt: 1,
-                                    }}
-                                    variant="h6"
-                                    fontWeight={500}
-                                  >
+                                  <Typography sx={{ pt: 1 }} variant="h6" fontWeight={500}>
                                     {user.email}
                                   </Typography>
                                 </Box>
@@ -698,6 +630,7 @@ const Results: FC<ResultsProps> = ({ users }) => {
                       );
                     })}
                   </Grid>
+
                   <Card
                     sx={{
                       p: 2,
@@ -705,17 +638,13 @@ const Results: FC<ResultsProps> = ({ users }) => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-
                       '.MuiTablePagination-select': {
                         py: 0.55,
                       },
                     }}
                   >
                     <Box>
-                      <Typography
-                        component="span"
-                        variant="subtitle1"
-                      >
+                      <Typography component="span" variant="subtitle1">
                         {t('Showing')}
                       </Typography>{' '}
                       <b>{limit}</b> {t('of')} <b>{filteredUsers.length}</b> <b>{t('users')}</b>
@@ -744,6 +673,7 @@ const Results: FC<ResultsProps> = ({ users }) => {
               )}
             </>
           )}
+
           {!toggleView && (
             <Box
               sx={{
