@@ -32,6 +32,7 @@ export interface Store {
   provider: 'twilio' | 'bandwidth';
   createdAt: string;
   updatedAt: string;
+  accessCode?: string;
 }
 
 export interface UpdateStoreBody {

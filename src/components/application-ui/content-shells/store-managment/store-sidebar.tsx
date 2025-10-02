@@ -31,6 +31,7 @@ interface StoreSidebarProps {
   image?: string;
   /** 👇 NUEVO: necesitamos el storeId para construir el switch URL */
   storeId: string;
+  accessCode:string;
   /** Opcionales para customizar: */
   portalRedirectPath?: string; // default: "/dashboard"
   portalOpenInNewTab?: boolean; // default: false (misma pestaña)
@@ -39,10 +40,8 @@ interface StoreSidebarProps {
 const MERCHANT_ORIGIN =
   process.env.NEXT_PUBLIC_MERCHANT_ORIGIN || 'https://merchant.sweepstouch.com';
 
-function buildSwitchUrl(storeId: string, redirectPath = '/dashboard') {
-  return `${MERCHANT_ORIGIN}/?ac=${storeId}&r=${encodeURIComponent(
-    redirectPath
-  )}`;
+function buildSwitchUrl(storeId: string) {
+  return `${MERCHANT_ORIGIN}/?ac=${storeId}`;
 }
 
 const STORE_SECTIONS = [
@@ -68,9 +67,9 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
   const { sidebarOpen, activeSection } = useSelector((state) => state.storeManagement);
 
   const openPortal = () => {
-    const url = buildSwitchUrl(storeId, portalRedirectPath);
+    const url = buildSwitchUrl(storeId);
     if (portalOpenInNewTab) {
-      window.open(url, '_blank', 'noopener,noreferrer');
+      window.open(url, '_blank');
     } else {
       window.location.href = url;
     }

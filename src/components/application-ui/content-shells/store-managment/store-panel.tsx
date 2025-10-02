@@ -257,6 +257,7 @@ const StoreManagementPage = () => {
         storeName={store?.name || ''}
         storeId={store?.id || ''}
         image={store?.image || ''}
+        accessCode={store?.accessCode}
       />
       <Box
         flex={1}
