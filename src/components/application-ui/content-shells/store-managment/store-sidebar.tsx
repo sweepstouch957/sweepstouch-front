@@ -59,6 +59,7 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
   image,
   storeId,
   portalOpenInNewTab = false,
+  accessCode
 }) => {
   const dispatch = useDispatch();
   const theme = useTheme();
@@ -66,7 +67,7 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
   const { sidebarOpen, activeSection } = useSelector((state) => state.storeManagement);
 
   const openPortal = () => {
-    const url = buildSwitchUrl(storeId);
+    const url = buildSwitchUrl(accessCode);
     if (portalOpenInNewTab) {
       window.open(url, '_blank');
     } else {
