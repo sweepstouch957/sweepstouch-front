@@ -58,7 +58,7 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
   storeName,
   image,
   storeId,
-  portalOpenInNewTab = false,
+  portalOpenInNewTab = true,
   accessCode
 }) => {
   const dispatch = useDispatch();
