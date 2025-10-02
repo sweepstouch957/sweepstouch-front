@@ -58,7 +58,6 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
   storeName,
   image,
   storeId,
-  portalRedirectPath = '/dashboard',
   portalOpenInNewTab = false,
 }) => {
   const dispatch = useDispatch();
