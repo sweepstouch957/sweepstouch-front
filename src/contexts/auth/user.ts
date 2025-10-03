@@ -8,6 +8,7 @@ export type UserRole =
   | 'promotor_manager'
   | 'general_manager';
 
+
 export interface User {
   id: string;
   avatar: string | null;

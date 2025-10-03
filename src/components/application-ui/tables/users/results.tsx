@@ -1,8 +1,9 @@
+'use client';
+
 import { User } from '@/contexts/auth/user';
 import ClearRoundedIcon from '@mui/icons-material/ClearRounded';
 import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
 import GridViewTwoToneIcon from '@mui/icons-material/GridViewTwoTone';
-import IosShareRoundedIcon from '@mui/icons-material/IosShareRounded';
 import LaunchTwoToneIcon from '@mui/icons-material/LaunchTwoTone';
 import MoreVertTwoToneIcon from '@mui/icons-material/MoreVertTwoTone';
 import SearchTwoToneIcon from '@mui/icons-material/SearchTwoTone';
@@ -14,7 +15,6 @@ import {
   Card,
   Checkbox,
   Chip,
-  Divider,
   Unstable_Grid2 as Grid,
   IconButton,
   InputAdornment,
@@ -37,14 +37,28 @@ import {
   Tooltip,
   Typography,
   useMediaQuery,
-  useTheme,
+  useTheme
 } from '@mui/material';
 import PropTypes from 'prop-types';
-import { ChangeEvent, FC, MouseEvent, SyntheticEvent, useMemo, useState } from 'react';
+import React, {
+  ChangeEvent,
+  FC,
+  MouseEvent,
+  SyntheticEvent,
+  useEffect,
+  useMemo,
+  useState
+} from 'react';
 import { useTranslation } from 'react-i18next';
-import { ButtonIcon } from 'src/components/base/styles/button-icon';
 import { TabsShadow } from 'src/components/base/styles/tabs';
 import BulkDelete from './bulk-delete';
+
+/**
+ * RESULTS (Users listing)
+ * - Role normalization & dynamic tabs
+ * - Safe search (no toLowerCase on undefined)
+ * - Export to XLSX via CustomEvent('users-export')
+ */
 
 // ---------- Styles ----------
 export const CardWrapper = styled(Card)(
@@ -75,13 +89,13 @@ interface ResultsProps {
 }
 
 interface Filters {
-  role: string | null; // guardamos la key normalizada o null
+  role: string | null;
 }
 
 interface UITabItem {
-  value: string; // 'all' o roleKey normalizado
-  label: string; // etiqueta visible
-  count: number; // conteo
+  value: string;
+  label: string;
+  count: number;
 }
 
 // ---------- Helpers de rol ----------
@@ -98,6 +112,7 @@ const ROLE_ALIAS: Record<string, string> = {
   promoter: 'promotor',
   promoters: 'promotor',
   gm: 'general_manager',
+  merchant_manager: 'merchant_manager'
 };
 
 const getRoleKey = (raw?: string) => {
@@ -105,10 +120,20 @@ const getRoleKey = (raw?: string) => {
   return ROLE_ALIAS[norm] ?? norm;
 };
 
-// Texto (singular) y color para el Chip
+// Singular chip meta
 const ROLE_META: Record<
   string,
-  { text: string; color: 'primary' | 'secondary' | 'default' | 'info' | 'success' | 'warning' | 'error' }
+  {
+    text: string;
+    color:
+    | 'primary'
+    | 'secondary'
+    | 'default'
+    | 'info'
+    | 'success'
+    | 'warning'
+    | 'error';
+  }
 > = {
   admin: { text: 'Administrator', color: 'error' },
   merchant: { text: 'Merchant', color: 'info' },
@@ -116,9 +141,10 @@ const ROLE_META: Record<
   promotor_owner: { text: 'Promotor Owner', color: 'warning' },
   cashier: { text: 'Cashier', color: 'secondary' },
   general_manager: { text: 'General Manager', color: 'success' },
+  merchant_manager: { text: 'Merchant Manager', color: 'info' }
 };
 
-// Etiquetas (plural) para los tabs
+// Tabs plural labels
 const ROLE_TABS_LABEL: Record<string, string> = {
   admin: 'Administrators',
   merchant: 'Merchants',
@@ -126,23 +152,32 @@ const ROLE_TABS_LABEL: Record<string, string> = {
   promotor_owner: 'Promotor Owners',
   cashier: 'Cashiers',
   general_manager: 'General Managers',
+  merchant_manager: 'Merchant Manager'
 };
 
 const toTitle = (k: string) =>
-  k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  k
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 
 // ---------- Helpers de UI ----------
 const getUserRoleLabel = (userRole?: string): JSX.Element => {
   const roleKey = getRoleKey(userRole);
   const item =
-    ROLE_META[roleKey] ?? { text: roleKey ? toTitle(roleKey) : 'Unknown', color: 'default' };
+    ROLE_META[roleKey] ?? {
+      text: roleKey ? toTitle(roleKey) : 'Unknown',
+      color: 'default'
+    };
 
-  return <Chip
-    color={item.color}
-    label={item.text} />;
+  return (
+    <Chip
+      color={item.color}
+      label={item.text}
+    />
+  );
 };
 
-// Convertimos cualquier valor a string seguro para el buscador
+// Convert to safe string for search
 const normalizeVal = (v: unknown): string => {
   if (v == null) return '';
   if (typeof v === 'string') return v;
@@ -155,70 +190,100 @@ const normalizeVal = (v: unknown): string => {
   }
 };
 
-// Aplica filtros (rol + query)
-const applyFilters = (users: User[], query: string, filters: Filters): User[] => {
+// Filters (role + query)
+const applyFilters = (
+  users: User[],
+  query: string,
+  filters: Filters
+): User[] => {
   const q = (query ?? '').toLowerCase();
 
   return users.filter((user) => {
-    // 1) Filtro de rol (si se eligió)
-    if (filters.role && getRoleKey(user.role) !== filters.role) {
-      return false;
-    }
+    if (filters.role && getRoleKey(user.role) !== filters.role) return false;
 
-    // 2) Filtro de búsqueda
     if (!q) return true;
 
-    const properties: Array<keyof User | string> = ['email', 'name', 'firstName', 'lastName'];
+    const properties: Array<keyof User | string> = [
+      'email',
+      'name',
+      'firstName',
+      'lastName'
+    ];
     for (const property of properties) {
       const val = (user as any)?.[property];
       const text = Array.isArray(val) ? val.join(' ') : normalizeVal(val);
-      if (text.toLowerCase().includes(q)) {
-        return true;
-      }
+      if (text.toLowerCase().includes(q)) return true;
     }
-
     return false;
   });
 };
 
-const applyPagination = (users: User[], page: number, limit: number): User[] => {
+const applyPagination = (
+  users: User[],
+  page: number,
+  limit: number
+): User[] => {
   return users.slice(page * limit, page * limit + limit);
 };
 
-// ---------- Componente ----------
+// Build plain rows for XLSX export
+const buildExportRows = (rows: User[]) =>
+  rows.map((u) => {
+    const roleKey = getRoleKey(u.role);
+    const roleLabel = ROLE_META[roleKey]?.text ?? toTitle(roleKey || '');
+    return {
+      ID: (u as any).id ?? '',
+      Nombre: `${(u as any).firstName ?? ''} ${(u as any).lastName ?? ''}`.trim(),
+      Email: (u as any).email ?? '',
+      Rol: roleLabel
+    };
+  });
+
 const Results: FC<ResultsProps> = ({ users }) => {
   const [selectedItems, setSelectedUsers] = useState<string[]>([]);
   const { t } = useTranslation();
   const theme = useTheme();
   const smUp = useMediaQuery(theme.breakpoints.up('sm'));
 
-  // Conteo por rol dinámico (normalizado)
+  // Dynamic counts
   const roleCounts = useMemo(() => {
     const acc: Record<string, number> = {};
     users.forEach((u) => {
-      const k = getRoleKey(u?.role);
+      const k = getRoleKey((u as any)?.role);
       if (!k) return;
       acc[k] = (acc[k] ?? 0) + 1;
     });
     return acc;
   }, [users]);
 
-  // Orden sugerido (roles conocidos primero)
-  const ROLE_ORDER = ['admin', 'merchant', 'promotor', 'promotor_owner', 'cashier', 'general_manager'];
+  const ROLE_ORDER = [
+    'admin',
+    'merchant',
+    'promotor',
+    'promotor_owner',
+    'cashier',
+    'general_manager',
+    'merchant_manager'
+  ];
 
-  // Tabs dinámicos a partir de roleCounts
   const tabs: UITabItem[] = useMemo(() => {
     const knownFirst = ROLE_ORDER.filter((k) => roleCounts[k]);
-    const unknownAfter = Object.keys(roleCounts).filter((k) => !ROLE_ORDER.includes(k));
+    const unknownAfter = Object.keys(roleCounts).filter(
+      (k) => !ROLE_ORDER.includes(k)
+    );
     const keys = [...knownFirst, ...unknownAfter];
 
     return [
-      { value: 'all', label: t('All users'), count: users.length },
+      {
+        value: 'all',
+        label: t('All users'),
+        count: users.length
+      },
       ...keys.map((k) => ({
         value: k,
         label: t(ROLE_TABS_LABEL[k] ?? toTitle(ROLE_META[k]?.text ?? k)),
-        count: roleCounts[k] ?? 0,
-      })),
+        count: roleCounts[k] ?? 0
+      }))
     ];
   }, [users.length, roleCounts, t]);
 
@@ -227,57 +292,115 @@ const Results: FC<ResultsProps> = ({ users }) => {
   const [query, setQuery] = useState<string>('');
   const [filters, setFilters] = useState<Filters>({ role: null });
 
-  const handleTabsChange = (_event: SyntheticEvent, tabsValue: unknown) => {
+  const handleTabsChange = (
+    _event: SyntheticEvent,
+    tabsValue: unknown
+  ) => {
     const value = tabsValue === 'all' ? null : (tabsValue as string);
     setFilters((prev) => ({ ...prev, role: value }));
     setSelectedUsers([]);
     setPage(0);
   };
 
-  const handleSelectChange = (event: ChangeEvent<{ value: unknown }>) => {
+  const handleSelectChange = (
+    event: ChangeEvent<{ value: unknown }>
+  ) => {
     const selectedValue = event.target.value as string;
-    setFilters((prev) => ({ ...prev, role: selectedValue === 'all' ? null : selectedValue }));
+    setFilters((prev) => ({
+      ...prev,
+      role: selectedValue === 'all' ? null : selectedValue
+    }));
     setSelectedUsers([]);
     setPage(0);
   };
 
-  const handleQueryChange = (event: ChangeEvent<HTMLInputElement>): void => {
+  const handleQueryChange = (
+    event: ChangeEvent<HTMLInputElement>
+  ): void => {
     event.persist();
     setQuery(event.target.value);
     setPage(0);
   };
 
-  const handleSelectAllUsers = (event: ChangeEvent<HTMLInputElement>): void => {
-    setSelectedUsers(event.target.checked ? users.map((user) => user.id) : []);
+  const handleSelectAllUsers = (
+    event: ChangeEvent<HTMLInputElement>
+  ): void => {
+    setSelectedUsers(
+      event.target.checked ? users.map((user: any) => user.id) : []
+    );
   };
 
-  const handleSelectOneUser = (_event: ChangeEvent<HTMLInputElement>, userId: string): void => {
+  const handleSelectOneUser = (
+    _event: ChangeEvent<HTMLInputElement>,
+    userId: string
+  ): void => {
     if (!selectedItems.includes(userId)) {
       setSelectedUsers((prevSelected) => [...prevSelected, userId]);
     } else {
-      setSelectedUsers((prevSelected) => prevSelected.filter((id) => id !== userId));
+      setSelectedUsers((prevSelected) =>
+        prevSelected.filter((id) => id !== userId)
+      );
     }
   };
 
-  const handlePageChange = (_event: any, newPage: number): void => {
+  const handlePageChange = (
+    _event: any,
+    newPage: number
+  ): void => {
     setPage(newPage);
   };
 
-  const handleLimitChange = (event: ChangeEvent<HTMLInputElement>): void => {
+  const handleLimitChange = (
+    event: ChangeEvent<HTMLInputElement>
+  ): void => {
     setLimit(parseInt(event.target.value));
   };
 
   const filteredUsers = applyFilters(users, query, filters);
   const paginatedUsers = applyPagination(filteredUsers, page, limit);
   const selectedBulkActions = selectedItems.length > 0;
-  const selectedSomeUsers = selectedItems.length > 0 && selectedItems.length < users.length;
+  const selectedSomeUsers =
+    selectedItems.length > 0 && selectedItems.length < users.length;
   const selectedAllUsers = selectedItems.length === users.length;
 
   const [toggleView, setToggleView] = useState<string | null>('grid_view');
 
-  const handleViewOrientation = (_event: MouseEvent<HTMLElement>, newValue: string | null) => {
+  const handleViewOrientation = (
+    _event: MouseEvent<HTMLElement>,
+    newValue: string | null
+  ) => {
     setToggleView(newValue);
   };
+
+  const handleExport = async (
+    mode: 'filtered' | 'page' | 'selected' | 'all' = 'filtered'
+  ) => {
+    const rows =
+      mode === 'page'
+        ? paginatedUsers
+        : mode === 'selected'
+          ? users.filter((u: any) => selectedItems.includes(u.id))
+          : mode === 'all'
+            ? users
+            : filteredUsers;
+
+    const data = buildExportRows(rows as any);
+    const XLSX = await import('xlsx');
+    const ws = (XLSX.utils as any).json_to_sheet(data);
+    const wb = (XLSX.utils as any).book_new();
+    (XLSX.utils as any).book_append_sheet(wb, ws, 'Users');
+    const today = new Date().toISOString().slice(0, 10);
+    (XLSX as any).writeFile(wb, `users_${mode}_${today}.xlsx`);
+  };
+
+  useEffect(() => {
+    const listener = (e: any) => {
+      const mode = e?.detail?.mode || 'filtered';
+      handleExport(mode);
+    };
+    window.addEventListener('users-export', listener);
+    return () => window.removeEventListener('users-export', listener);
+  }, [filteredUsers, paginatedUsers, selectedItems, users]);
 
   return (
     <>
@@ -287,25 +410,25 @@ const Results: FC<ResultsProps> = ({ users }) => {
             '& .MuiTab-root': {
               flexDirection: 'row',
               pr: 1,
-
               '& .MuiChip-root': {
                 ml: 1,
                 transition: theme.transitions.create(['background', 'color'], {
-                  duration: theme.transitions.duration.complex,
-                }),
+                  duration: theme.transitions.duration.complex
+                })
               },
-
               '&.Mui-selected': {
                 '& .MuiChip-root': {
-                  backgroundColor: alpha(theme.palette.primary.contrastText, 0.12),
-                  color: 'primary.contrastText',
-                },
+                  backgroundColor: alpha(
+                    theme.palette.primary.contrastText,
+                    0.12
+                  ),
+                  color: 'primary.contrastText'
+                }
               },
-
               '&:first-child': {
-                ml: 0,
-              },
-            },
+                ml: 0
+              }
+            }
           }}
           onChange={handleTabsChange}
           scrollButtons="auto"
@@ -313,7 +436,18 @@ const Results: FC<ResultsProps> = ({ users }) => {
           value={filters.role || 'all'}
           variant="scrollable"
         >
-          {tabs.map((tab) => (
+          {[
+            {
+              value: 'all',
+              label: 'All users',
+              count: users.length
+            },
+            ...Object.keys(roleCounts).map((k) => ({
+              value: k,
+              label: ROLE_TABS_LABEL[k] ?? toTitle(ROLE_META[k]?.text ?? k),
+              count: roleCounts[k] ?? 0
+            }))
+          ].map((tab) => (
             <Tab
               key={tab.value}
               value={tab.value}
@@ -322,21 +456,28 @@ const Results: FC<ResultsProps> = ({ users }) => {
                   {tab.label}
                   <Chip
                     label={tab.count}
-                    size="small" />
+                    size="small"
+                  />
                 </>
               }
             />
           ))}
         </TabsShadow>
       ) : (
-        <Select value={filters.role || 'all'} //@ts-ignore
-          onChange={handleSelectChange}
-          fullWidth>
-          {tabs.map((tab) => (
+        <Select
+          value={(filters.role || 'all') as any}
+          onChange={handleSelectChange as any}
+          fullWidth
+        >
+          <MenuItem value="all">
+            All users
+          </MenuItem>
+          {Object.keys(roleCounts).map((k) => (
             <MenuItem
-              key={tab.value}
-              value={tab.value}>
-              {tab.label}
+              key={k}
+              value={k}
+            >
+              {ROLE_TABS_LABEL[k] ?? toTitle(ROLE_META[k]?.text ?? k)}
             </MenuItem>
           ))}
         </Select>
@@ -346,15 +487,18 @@ const Results: FC<ResultsProps> = ({ users }) => {
         display="flex"
         justifyContent="space-between"
         alignItems="center"
-        py={2}>
+        py={2}
+      >
         <Box
           display="flex"
-          alignItems="center">
+          alignItems="center"
+        >
           {toggleView === 'grid_view' && (
             <Tooltip
               arrow
               placement="top"
-              title={t('Select all users')}>
+              title={'Select all users'}
+            >
               <Checkbox
                 edge="start"
                 sx={{ mr: 1 }}
@@ -369,35 +513,24 @@ const Results: FC<ResultsProps> = ({ users }) => {
           {selectedBulkActions ? (
             <Stack
               direction="row"
-              spacing={1}>
+              spacing={1}
+            >
               <BulkDelete />
-              <Tooltip
-                arrow
-                placement="top"
-                title={t('Export user list')}>
-                <ButtonIcon
-                  variant="outlined"
-                  color="secondary"
-                  sx={{ color: 'primary.main' }}
-                  size="small"
-                  startIcon={<IosShareRoundedIcon
-                    fontSize="small" />}
-                />
-              </Tooltip>
             </Stack>
           ) : (
             <TextField
               margin="none"
               InputProps={{
                 startAdornment: (
-                  <InputAdornment
-                    position="start">
+                  <InputAdornment position="start">
                     <SearchTwoToneIcon />
                   </InputAdornment>
                 ),
                 endAdornment: query && (
-                  <InputAdornment sx={{ mr: -0.7 }}
-                    position="end">
+                  <InputAdornment
+                    sx={{ mr: -0.7 }}
+                    position="end"
+                  >
                     <IconButton
                       color="error"
                       aria-label="clear input"
@@ -406,14 +539,13 @@ const Results: FC<ResultsProps> = ({ users }) => {
                       size="small"
                       sx={{ color: 'error.main' }}
                     >
-                      <ClearRoundedIcon
-                        fontSize="small" />
+                      <ClearRoundedIcon fontSize="small" />
                     </IconButton>
                   </InputAdornment>
-                ),
+                )
               }}
               onChange={handleQueryChange}
-              placeholder={t('Filter results')}
+              placeholder={'Filter results'}
               value={query}
               size="small"
               variant="outlined"
@@ -429,31 +561,25 @@ const Results: FC<ResultsProps> = ({ users }) => {
           exclusive
           onChange={handleViewOrientation}
         >
-          <ToggleButton
-            value="table_view">
+          <ToggleButton value="table_view">
             <TableRowsTwoToneIcon />
           </ToggleButton>
-          <ToggleButton
-            value="grid_view">
+          <ToggleButton value="grid_view">
             <GridViewTwoToneIcon />
           </ToggleButton>
         </ToggleButtonGroup>
       </Box>
 
       {paginatedUsers.length === 0 ? (
-        <>
-          <Typography
-            sx={{
-              py: { xs: 2, sm: 3, md: 6, lg: 10 },
-            }}
-            variant="h3"
-            color="text.secondary"
-            align="center"
-            fontWeight={500}
-          >
-            {t("We couldn't find any users matching your search criteria")}
-          </Typography>
-        </>
+        <Typography
+          sx={{ py: { xs: 2, sm: 3, md: 6, lg: 10 } }}
+          variant="h3"
+          color="text.secondary"
+          align="center"
+          fontWeight={500}
+        >
+          {"We couldn't find any users matching your search criteria"}
+        </Typography>
       ) : (
         <>
           {toggleView === 'table_view' && (
@@ -470,41 +596,54 @@ const Results: FC<ResultsProps> = ({ users }) => {
                             onChange={handleSelectAllUsers}
                           />
                         </TableCell>
-                        <TableCell>{t('Username')}</TableCell>
-                        <TableCell>{t('Name')}</TableCell>
-                        <TableCell>{t('Email')}</TableCell>
-                        <TableCell>{t('Role')}</TableCell>
-                        <TableCell align="center">{t('Actions')}</TableCell>
+                        <TableCell>
+                          Username
+                        </TableCell>
+                        <TableCell>
+                          Name
+                        </TableCell>
+                        <TableCell>
+                          Email
+                        </TableCell>
+                        <TableCell>
+                          Role
+                        </TableCell>
+                        <TableCell align="center">
+                          Actions
+                        </TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {paginatedUsers.map((user) => {
+                      {paginatedUsers.map((user: any) => {
                         const isUserSelected = selectedItems.includes(user.id);
                         return (
                           <TableRow
                             hover
                             key={user.id}
-                            selected={isUserSelected}>
+                            selected={isUserSelected}
+                          >
                             <TableCell padding="checkbox">
                               <Checkbox
                                 checked={isUserSelected}
-                                onChange={(event) => handleSelectOneUser(event, user.id)}
+                                onChange={(event) =>
+                                  handleSelectOneUser(event as any, user.id)
+                                }
                                 value={isUserSelected}
                               />
                             </TableCell>
                             <TableCell>
-                              <Typography
-                                fontWeight={400}>{user.firstName}</Typography>
+                              <Typography fontWeight={400}>
+                                {user.firstName}
+                              </Typography>
                             </TableCell>
                             <TableCell>
                               <Box
                                 display="flex"
-                                alignItems="center">
+                                alignItems="center"
+                              >
                                 <Avatar
                                   variant="rounded"
-                                  sx={{
-                                    mr: 1,
-                                  }}
+                                  sx={{ mr: 1 }}
                                   src={user.avatar}
                                 />
                                 <Box>
@@ -520,28 +659,35 @@ const Results: FC<ResultsProps> = ({ users }) => {
                                   <Typography
                                     noWrap
                                     variant="subtitle2"
-                                    color="text.secondary">
+                                    color="text.secondary"
+                                  >
                                     {user.role}
                                   </Typography>
                                 </Box>
                               </Box>
                             </TableCell>
                             <TableCell>
-                              <Typography>{user.email}</Typography>
+                              <Typography>
+                                {user.email}
+                              </Typography>
                             </TableCell>
-                            <TableCell>{getUserRoleLabel(user.role)}</TableCell>
+                            <TableCell>
+                              {getUserRoleLabel(user.role)}
+                            </TableCell>
                             <TableCell align="center">
                               <Typography noWrap>
                                 <Tooltip
-                                  title={t('View')}
-                                  arrow>
+                                  title={'View'}
+                                  arrow
+                                >
                                   <IconButton color="secondary">
                                     <LaunchTwoToneIcon fontSize="small" />
                                   </IconButton>
                                 </Tooltip>
                                 <Tooltip
-                                  title={t('Delete')}
-                                  arrow>
+                                  title={'Delete'}
+                                  arrow
+                                >
                                   <IconButton color="secondary">
                                     <DeleteTwoToneIcon fontSize="small" />
                                   </IconButton>
@@ -558,11 +704,7 @@ const Results: FC<ResultsProps> = ({ users }) => {
 
               <Box
                 pt={2}
-                sx={{
-                  '.MuiTablePagination-select': {
-                    py: 0.55,
-                  },
-                }}
+                sx={{ '.MuiTablePagination-select': { py: 0.55 } }}
               >
                 <TablePagination
                   component="div"
@@ -576,10 +718,8 @@ const Results: FC<ResultsProps> = ({ users }) => {
                     select: {
                       variant: 'outlined',
                       size: 'small',
-                      sx: {
-                        p: 0,
-                      },
-                    },
+                      sx: { p: 0 }
+                    }
                   }}
                 />
               </Box>
@@ -588,170 +728,133 @@ const Results: FC<ResultsProps> = ({ users }) => {
 
           {toggleView === 'grid_view' && (
             <>
-              {paginatedUsers.length === 0 ? (
-                <Typography
-                  sx={{
-                    py: { xs: 2, sm: 3, md: 6, lg: 10 },
-                  }}
-                  variant="h3"
-                  color="text.secondary"
-                  align="center"
-                >
-                  {t("We couldn't find any users matching your search criteria")}
-                </Typography>
-              ) : (
-                <>
-                  <Grid
-                    container
-                    spacing={{ xs: 2, sm: 3 }}>
-                    {paginatedUsers.map((user) => {
-                      const isUserSelected = selectedItems.includes(user.id);
+              <Grid container
+                spacing={{ xs: 2, sm: 3 }}>
+                {paginatedUsers.map((user: any) => {
+                  const isUserSelected = selectedItems.includes(user.id);
 
-                      return (
-                        <Grid
-                          xs={12}
-                          sm={6}
-                          lg={4}
-                          key={user.id}>
-                          <CardWrapper className={`${isUserSelected ? 'Mui-selected' : ''}`}>
-                            <Box
-                              sx={{
-                                position: 'relative',
-                                zIndex: '2',
-                              }}
+                  return (
+                    <Grid
+                      xs={12}
+                      sm={6}
+                      lg={4}
+                      key={user.id}
+                    >
+                      <CardWrapper
+                        className={`${isUserSelected ? 'Mui-selected' : ''}`}
+                      >
+                        <Box
+                          sx={{ position: 'relative', zIndex: '2' }}
+                        >
+                          <Box
+                            px={2}
+                            pt={2}
+                            display="flex"
+                            alignItems="flex-start"
+                            justifyContent="space-between"
+                          >
+                            {getUserRoleLabel(user.role)}
+                            <IconButton
+                              color="primary"
+                              sx={{ p: 0.5 }}
                             >
-                              <Box
-                                px={2}
-                                pt={2}
-                                display="flex"
-                                alignItems="flex-start"
-                                justifyContent="space-between"
-                              >
-                                {getUserRoleLabel(user.role)}
-                                <IconButton
-                                  color="primary"
-                                  sx={{ p: 0.5 }}>
-                                  <MoreVertTwoToneIcon />
-                                </IconButton>
+                              <MoreVertTwoToneIcon />
+                            </IconButton>
+                          </Box>
+                          <Box
+                            p={2}
+                            display="flex"
+                            flexDirection={{ xs: 'column', md: 'row' }}
+                            alignItems="flex-start"
+                          >
+                            <Avatar
+                              variant="rounded"
+                              sx={{
+                                width: 50,
+                                height: 50,
+                                mr: 1.5,
+                                mb: { xs: 2, md: 0 }
+                              }}
+                              src={user.avatar}
+                            />
+                            <Box>
+                              <Box>
+                                <Link
+                                  variant="h6"
+                                  href=""
+                                  onClick={(e) => e.preventDefault()}
+                                  underline="hover"
+                                >
+                                  {user.firstName}
+                                </Link>{' '}
+                                <Typography
+                                  component="span"
+                                  variant="body2"
+                                  color="text.secondary"
+                                >
+                                  ({user.lastName})
+                                </Typography>
                               </Box>
-                              <Box
-                                p={2}
-                                display="flex"
-                                flexDirection={{ xs: 'column', md: 'row' }}
-                                alignItems="flex-start"
+                              <Typography
+                                sx={{ pt: 0.3 }}
+                                variant="subtitle2"
                               >
-                                <Avatar
-                                  variant="rounded"
-                                  sx={{
-                                    width: 50,
-                                    height: 50,
-                                    mr: 1.5,
-                                    mb: { xs: 2, md: 0 },
-                                  }}
-                                  src={user.avatar}
-                                />
-                                <Box>
-                                  <Box>
-                                    <Link
-                                      variant="h6"
-                                      href=""
-                                      onClick={(e) => e.preventDefault()}
-                                      underline="hover"
-                                    >
-                                      {user.firstName}
-                                    </Link>{' '}
-                                    <Typography
-                                      component="span"
-                                      variant="body2"
-                                      color="text.secondary">
-                                      ({user.lastName})
-                                    </Typography>
-                                  </Box>
-                                  <Typography
-                                    sx={{ pt: 0.3 }}
-                                    variant="subtitle2">
-                                    {user.role}
-                                  </Typography>
-                                  <Typography
-                                    sx={{ pt: 1 }}
-                                    variant="h6"
-                                    fontWeight={500}>
-                                    {user.email}
-                                  </Typography>
-                                </Box>
-                              </Box>
+                                {user.role}
+                              </Typography>
+                              <Typography
+                                sx={{ pt: 1 }}
+                                variant="h6"
+                                fontWeight={500}
+                              >
+                                {user.email}
+                              </Typography>
                             </Box>
-                          </CardWrapper>
-                        </Grid>
-                      );
-                    })}
-                  </Grid>
+                          </Box>
+                        </Box>
+                      </CardWrapper>
+                    </Grid>
+                  );
+                })}
+              </Grid>
 
-                  <Card
-                    sx={{
-                      p: 2,
-                      mt: 3,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      '.MuiTablePagination-select': {
-                        py: 0.55,
-                      },
-                    }}
-                  >
-                    <Box>
-                      <Typography
-                        component="span"
-                        variant="subtitle1">
-                        {t('Showing')}
-                      </Typography>{' '}
-                      <b>{limit}</b> {t('of')} <b>{filteredUsers.length}</b> <b>{t('users')}</b>
-                    </Box>
-                    <TablePagination
-                      component="div"
-                      count={filteredUsers.length}
-                      onPageChange={handlePageChange}
-                      onRowsPerPageChange={handleLimitChange}
-                      page={page}
-                      rowsPerPage={limit}
-                      labelRowsPerPage=""
-                      rowsPerPageOptions={[5, 10, 15]}
-                      slotProps={{
-                        select: {
-                          variant: 'outlined',
-                          size: 'small',
-                          sx: {
-                            p: 0,
-                          },
-                        },
-                      }}
-                    />
-                  </Card>
-                </>
-              )}
-            </>
-          )}
-
-          {!toggleView && (
-            <Box
-              sx={{
-                textAlign: 'center',
-                p: { xs: 2, sm: 3 },
-              }}
-            >
-              <Typography
-                align="center"
-                variant="h4"
-                color="text.secondary"
-                fontWeight={500}
+              <Card
                 sx={{
-                  my: { xs: 2, sm: 3, md: 5 },
+                  p: 2,
+                  mt: 3,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  '.MuiTablePagination-select': { py: 0.55 }
                 }}
-                gutterBottom
               >
-                {t('Choose between table or grid views for displaying the users list.')}
-              </Typography>
-            </Box>
+                <Box>
+                  <Typography
+                    component="span"
+                    variant="subtitle1">
+                    {'Showing'}
+                  </Typography>{' '}
+                  <b>{limit}</b> {'of'} <b>{filteredUsers.length}</b>{' '}
+                  <b>{'users'}</b>
+                </Box>
+                <TablePagination
+                  component="div"
+                  count={filteredUsers.length}
+                  onPageChange={handlePageChange}
+                  onRowsPerPageChange={handleLimitChange}
+                  page={page}
+                  rowsPerPage={limit}
+                  labelRowsPerPage=""
+                  rowsPerPageOptions={[5, 10, 15]}
+                  slotProps={{
+                    select: {
+                      variant: 'outlined',
+                      size: 'small',
+                      sx: { p: 0 }
+                    }
+                  }}
+                />
+              </Card>
+            </>
           )}
         </>
       )}
@@ -760,11 +863,11 @@ const Results: FC<ResultsProps> = ({ users }) => {
 };
 
 Results.propTypes = {
-  users: PropTypes.array.isRequired,
+  users: PropTypes.array.isRequired
 };
 
 Results.defaultProps = {
-  users: [],
+  users: []
 };
 
 export default Results;

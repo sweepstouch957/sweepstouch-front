@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import UsersTableListing from 'src/components/application-ui/tables/users/users';
 import PageHeading from 'src/components/base/page-heading';
 import { useCustomization } from 'src/hooks/use-customization';
+import { Layout } from 'src/layouts';
 
 function Page(): React.JSX.Element {
   const customization = useCustomization();
@@ -15,6 +16,17 @@ function Page(): React.JSX.Element {
     title: 'Users',
     description: 'Manage user accounts and permissions',
   };
+
+  const triggerExport = (
+    mode: 'filtered' | 'page' | 'selected' | 'all' = 'filtered'
+  ) => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('users-export', { detail: { mode } })
+      );
+    }
+  };
+
   return (
     <>
       {pageMeta.title && (
@@ -36,14 +48,10 @@ function Page(): React.JSX.Element {
             actions={
               <>
                 <Button
-                  sx={{
-                    mt: {
-                      xs: 2,
-                      md: 0,
-                    },
-                  }}
                   variant="contained"
-                  startIcon={<FileDownloadOutlinedIcon fontSize="small" />}
+                  size="small"
+                  startIcon={<FileDownloadOutlinedIcon />}
+                  onClick={() => triggerExport('filtered')}
                 >
                   {t('Export')}
                 </Button>

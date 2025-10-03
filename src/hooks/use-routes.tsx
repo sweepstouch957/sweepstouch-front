@@ -30,10 +30,13 @@ const buildMenu = (
 ): MenuItem => ({ title, icon, subMenu, route, roles });
 
 const dashboardsMenu = (t: (token: string) => string): MenuItem =>
-  buildMenu(t('Dashboards'), <DashboardRoundedIcon />, [
-    { title: t('Reports'), route: routes.admin.dashboards.reports },
-    { title: t('Sweepstakes'), route: routes.admin.dashboards.sweepstakes },
-    { title: t('Productivity'), route: routes.admin.dashboards.prouctivity },
+  buildMenu(t('Dashboards'), <Person2Outlined />, [
+    buildMenu(t('Metrics'), undefined, [
+      { title: t('Reports'), icon: <List />, route: routes.admin.dashboards.reports },
+      { title: t('Sweepstakes'), icon: <List />, route: routes.admin.dashboards.sweepstakes },
+      { title: t('Productivity'), icon: <List />, route: routes.admin.dashboards.prouctivity },
+    ]),
+
   ]);
 
 const applicationsMenu = (t: (token: string) => string): MenuItem =>
@@ -79,7 +82,7 @@ const promotorsMenu = (t: (token: string) => string): MenuItem =>
       },
 
       {
-        title: t('Applications'),
+        title: t('Applies'),
         icon: <List />,
         route: routes.admin.management.solicitudes.turnos,
       },
@@ -123,7 +126,9 @@ export const useMenuItemsCollapsedShells = (
   t: (token: string) => string,
   role: UserRole
 ): MenuItem[] => {
-  const general: MenuItem[] = [dashboardsMenu(t), applicationsMenu(t)];
+  const general: MenuItem[] = [dashboardsMenu(t)];
+
+  const others: MenuItem[] = [applicationsMenu(t)];
 
   const roleMenus: Record<UserRole, MenuItem[]> = {
     admin: [
@@ -149,6 +154,7 @@ export const useMenuItemsCollapsedShells = (
   return [
     { title: t('General'), subMenu: general },
     ...(management.length > 0 ? [{ title: t('Management'), subMenu: management }] : []),
+    ...(management.length > 0 ? [{ title: t('Others'), subMenu: others }] : []),
   ];
 };
 
