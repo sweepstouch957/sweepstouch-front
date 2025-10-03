@@ -34,7 +34,7 @@ const dashboardsMenu = (t: (token: string) => string): MenuItem =>
     buildMenu(t('Metrics'), undefined, [
       { title: t('Reports'), icon: <List />, route: routes.admin.dashboards.reports },
       { title: t('Sweepstakes'), icon: <List />, route: routes.admin.dashboards.sweepstakes },
-      { title: t('Productivity'), icon: <List />, route: routes.admin.dashboards.prouctivity },
+      //{ title: t('Productivity'), icon: <List />, route: routes.admin.dashboards.prouctivity },
     ]),
 
   ]);
@@ -68,7 +68,7 @@ const promotorsMenu = (t: (token: string) => string): MenuItem =>
       },
 
       {
-        title: t('Applications'),
+        title: t('Applies'),
         icon: <List />,
         route: routes.admin.management.solicitudes.promotoras,
       },
