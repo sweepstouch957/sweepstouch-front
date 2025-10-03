@@ -27,6 +27,7 @@ import { useDispatch, useSelector } from 'src/store';
 import { ActiveSweepstakeCard } from '../../active-sweeptake';
 import { PromoDashboard } from '../../tables/promos/panel';
 import CampaignsPanel from './panel/campaigns/campaign-panel';
+import CustomersPanel from './panel/customers/customers-panel';
 import CreateCampaignContainer from './panel/campaigns/createCampaignContainer';
 import QrDuetMUI from './panel/qr/QrContainer';
 import { StoreSidebar } from './store-sidebar';
@@ -189,6 +190,8 @@ const StoreManagementPage = () => {
     }
 
     switch (tag) {
+      case 'customers':
+        return <CustomersPanel storeId={storeId || ''} />;
       case 'ads':
         return <PromoDashboard storeId={storeId || ''} />;
       case 'sms-provider':

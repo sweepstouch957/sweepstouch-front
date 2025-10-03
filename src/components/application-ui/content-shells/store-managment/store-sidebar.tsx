@@ -21,6 +21,8 @@ import {
 } from '@mui/material';
 import Grid2 from '@mui/material/Unstable_Grid2';
 import type { FC } from 'react';
+import React from 'react';
+import { UserContext } from '@/contexts/auth/auth-context';
 import { Scrollbar } from 'src/components/base/scrollbar';
 import { useDispatch, useSelector } from 'src/store';
 import { StoreSidebarItem } from './store-sidebar-item';
@@ -51,6 +53,7 @@ const STORE_SECTIONS = [
   { id: 'sweepstakes', label: 'Sweepstakes', icon: <RewardIcon /> },
   { id: 'ads', label: 'Ads', icon: <Analytics /> },
   { id: 'qr', label: 'QR', icon: <QrCode2Outlined /> },
+  { id: 'customers', label: 'Customers', icon: <WebIcon /> },
 ];
 
 export const StoreSidebar: FC<StoreSidebarProps> = ({
@@ -65,6 +68,8 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
   const theme = useTheme();
   const lgUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('lg'));
   const { sidebarOpen, activeSection } = useSelector((state) => state.storeManagement);
+  const auth = React.useContext(UserContext);
+  const userRole = auth?.user?.role;
 
   const openPortal = () => {
     const url = buildSwitchUrl(accessCode);
@@ -150,7 +155,7 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
 
       {/* Lista de secciones */}
       <List disablePadding>
-        {STORE_SECTIONS.map((section) => (
+        {(STORE_SECTIONS.filter((s) => s.id !== 'customers' || userRole === 'admin')).map((section) => (
           <StoreSidebarItem
             key={section.id}
             section={section}
