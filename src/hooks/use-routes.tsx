@@ -138,6 +138,7 @@ export const useMenuItemsCollapsedShells = (
       sweepstakesMenu(t),
       promotorsMenu(t),
       addsMenu(t),
+      circularsMenu(t),
       //requestMenu(t),
     ],
     general_manager: [campaignsMenu(t), promotorsMenu(t), storesMenu(t)],
