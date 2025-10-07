@@ -35,5 +35,7 @@ export interface Campaing {
   createdAt: Date;
   __v: number;
   updatedAt: Date;
-  campaignType:string
+  campaignType: string;
+  platform?: string;
+  sourceTn?: string;
 }

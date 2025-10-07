@@ -12,6 +12,66 @@ interface FilterCampaignParams {
   title?: string;
 }
 
+export type MessageLogStatus = 'sent' | 'error' | 'queued' | 'not-sent';
+
+export interface CampaignLog {
+  messageSid?: string;
+  phone?: string;
+  destinationTn?: string;
+  sourceTn?: string;
+  status: MessageLogStatus;
+  bwMessageStatus?: string;
+  messageType?: string;
+  segmentCount?: number;
+  messageLength?: number;
+  messageSize?: number;
+  attachmentCount?: number;
+  recipientCount?: number;
+  carrierName?: string;
+  campaignClass?: string;
+  price?: number;
+  errorInfo?: {
+    code: string;
+    class: string;
+    key: string;
+    explanation: string;
+    friendly: string;
+    source: string;
+  } | null;
+  dateSent?: string;
+  timestamp?: string;
+  body?: string;
+  errorCode?: string;
+  errorMessage?: string;
+}
+
+export interface CampaignLogsResponse {
+  campaignId: string;
+  filters: {
+    status: MessageLogStatus | 'any';
+    search: string | null;
+    from: string | null;
+    to: string | null;
+  };
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  sort: 'asc' | 'desc';
+  countsByStatus: Record<MessageLogStatus, number>;
+  data: CampaignLog[];
+}
+
+export interface CampaignLogsQueryParams {
+  status?: MessageLogStatus;
+  page?: number;
+  limit?: number;
+  sort?: 'asc' | 'desc';
+  search?: string;
+  from?: string;
+  to?: string;
+}
+
 class CampaignClient {
   async getCampaigns(page: number = 1, limit: number = 10): Promise<PaginatedResponse<Campaing>> {
     const res = await api.get(`/campaigns/filter`, {
@@ -68,6 +128,27 @@ class CampaignClient {
 
   async deleteCampaign(id: string): Promise<Campaing> {
     const res = await api.delete(`/campaigns/${id}`);
+    return res.data;
+  }
+
+  async getCampaignLogs(
+    campaignId: string,
+    params: CampaignLogsQueryParams = {}
+  ): Promise<CampaignLogsResponse> {
+    const { status, page = 1, limit = 20, sort = 'desc', search, from, to } = params;
+
+    const res = await api.get(`/tracking/campaigns/${campaignId}/logs`, {
+      params: {
+        status,
+        page,
+        limit,
+        sort,
+        search,
+        from,
+        to,
+      },
+    });
+
     return res.data;
   }
 }
