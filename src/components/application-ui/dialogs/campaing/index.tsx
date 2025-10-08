@@ -365,6 +365,8 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                     direction="row"
                     spacing={1}
                     alignItems="center"
+                    sx={{ cursor: 'pointer' }}
+                    onClick={() => setLogsOpen(true)}
                   >
                     <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#FF4F4F' }} />
                     <Typography
@@ -376,24 +378,6 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                     </Typography>
                   </Stack>
                 </Stack>
-
-                {/* Not Sent link */}
-                <Box
-                  display="flex"
-                  flexDirection="column"
-                  mt={2}
-                >
-                  <Typography
-                    sx={{
-                      cursor: 'pointer',
-                      textDecoration: 'underline',
-                      fontSize: '16px',
-                    }}
-                    onClick={() => setLogsOpen(true)}
-                  >
-                    Not Sent : {(campaign?.errors ?? 0) + (campaign?.notSent ?? 0)}
-                  </Typography>
-                </Box>
               </>
             )}
           </Stack>
