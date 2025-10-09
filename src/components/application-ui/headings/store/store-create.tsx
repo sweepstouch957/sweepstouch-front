@@ -371,6 +371,89 @@ export default function StoreHeader({
         )}
       </Stack>
 
+      {/* Acciones (Mobile) */}
+      {!mdUp && (
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            mt: 1,
+            flexWrap: 'nowrap',         // queremos una sola fila
+            overflowX: 'auto',          // si no caben, scroll horizontal
+            whiteSpace: 'nowrap',
+            '&::-webkit-scrollbar': { display: 'none' },
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          {/* Editar */}
+          <Tooltip title="Editar">
+            <IconButton
+              sx={{ bgcolor: iconBg, '&:hover': { bgcolor: iconBgHover } }}
+              onClick={onEdit}
+            >
+              <EditIcon />
+            </IconButton>
+          </Tooltip>
+
+          {/* Editar en Google Maps */}
+          <Tooltip title="Editar en Google Maps">
+            <IconButton
+              sx={{ bgcolor: iconBg, '&:hover': { bgcolor: iconBgHover } }}
+              onClick={() => {
+                const addr = encodeURIComponent(address || '');
+                window.open(`https://www.google.com/maps/search/?api=1&query=${addr}`, '_blank');
+              }}
+            >
+              <EditLocationAltIcon />
+            </IconButton>
+          </Tooltip>
+
+          {/* Abrir Kiosko */}
+          <Tooltip title="Abrir Kiosko">
+            <IconButton
+              sx={{ bgcolor: iconBg, '&:hover': { bgcolor: iconBgHover } }}
+              onClick={() => window.open(kioskUrl, '_blank')}
+            >
+              <OpenInNewIcon />
+            </IconButton>
+          </Tooltip>
+
+          {/* QR badge → abre modal */}
+          {shouldShowQr && qrHref && (
+            <Box
+              role="button"
+              onClick={() => setQrOpen(true)}
+              aria-label="Ver QR en grande"
+              sx={{
+                ml: 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 40,
+                height: 40,
+                borderRadius: 1.5,
+                border: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'background.paper',
+                overflow: 'hidden',
+                cursor: 'pointer'
+              }}
+            >
+              {qrImageUrl || fallbackQrSrc ? (
+                <Box
+                  component="img"
+                  src={qrImageUrl || fallbackQrSrc}
+                  alt="QR"
+                  sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <Typography variant="caption">QR</Typography>
+              )}
+            </Box>
+          )}
+        </Stack>
+      )}
+
       {/* Modal con QR grande */}
       <Dialog
         open={qrOpen}

@@ -184,6 +184,12 @@ export const routes = {
         'schedule': '/admin/management/circulars/schedule',
       },
 
+
+      prizes: {
+        listing: '/admin/management/prizes',
+        create: '/admin/management/prizes/create',
+      },
+
       commerce: {
         'shop-front': '/admin/management/shop-front',
         'shop-listing': '/admin/management/shop-listing',
