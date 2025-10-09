@@ -33,7 +33,7 @@ interface StoreSidebarProps {
   image?: string;
   /** 👇 NUEVO: necesitamos el storeId para construir el switch URL */
   storeId: string;
-  accessCode:string;
+  accessCode: string;
   /** Opcionales para customizar: */
   portalRedirectPath?: string; // default: "/dashboard"
   portalOpenInNewTab?: boolean; // default: false (misma pestaña)
@@ -48,7 +48,7 @@ function buildSwitchUrl(storeId: string) {
 
 const STORE_SECTIONS = [
   { id: 'campaigns', label: 'Campaigns', icon: <CampaignsIcon /> },
-  { id: 'sms-provider', label: 'SMS Provider', icon: <SmsIcon /> },
+  //{ id: 'sms-provider', label: 'SMS Provider', icon: <SmsIcon /> },
   { id: 'general-info', label: 'General Info', icon: <InfoIcon /> },
   { id: 'sweepstakes', label: 'Sweepstakes', icon: <RewardIcon /> },
   { id: 'ads', label: 'Ads', icon: <Analytics /> },

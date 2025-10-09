@@ -53,7 +53,7 @@ const StoreManagementPage = () => {
     dispatch(
       setTags([
         { id: 'campaigns', label: 'Campaigns' },
-        { id: 'sms-provider', label: 'SMS Provider' },
+        //{ id: 'sms-provider', label: 'SMS Provider' },
         { id: 'general-info', label: 'General Info' },
         { id: 'sweepstakes', label: 'Sweepstakes' },
         { id: 'ads', label: 'Ads' },
@@ -270,13 +270,13 @@ const StoreManagementPage = () => {
         sx={{
           transition: sidebarOpen
             ? theme.transitions.create('margin', {
-                easing: theme.transitions.easing.easeOut,
-                duration: theme.transitions.duration.enteringScreen,
-              })
+              easing: theme.transitions.easing.easeOut,
+              duration: theme.transitions.duration.enteringScreen,
+            })
             : theme.transitions.create('margin', {
-                easing: theme.transitions.easing.sharp,
-                duration: theme.transitions.duration.leavingScreen,
-              }),
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.leavingScreen,
+            }),
         }}
       >
         {!lgUp && (

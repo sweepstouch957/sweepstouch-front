@@ -100,7 +100,7 @@ const sweepstakesMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Sweepstakes'), <Redeem />, [
     { title: t('Listing'), route: routes.admin.management.sweepstakes.listing },
     { title: t('Create Sweepstakes'), route: routes.admin.management.sweepstakes.create },
-    { title: t('Prizes'), route: routes.admin.management.sweepstakes.create },
+    { title: t('Prizes'), route: routes.admin.management.prizes.listing },
   ]);
 
 const storesMenu = (t: (token: string) => string): MenuItem =>
