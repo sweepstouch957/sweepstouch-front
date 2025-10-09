@@ -1,21 +1,13 @@
 import type { UserRole } from '@/contexts/auth/user';
 import {
   AdsClickOutlined,
-  AirplaneTicket,
-  Assignment,
   BookOutlined,
   Campaign,
-  ManageAccounts,
-  ManageAccountsSharp,
-  ManageHistory,
-  ManageSearch,
   Person2Outlined,
   Redeem,
   Store,
-  SupportAgent,
 } from '@mui/icons-material';
 import AppsRoundedIcon from '@mui/icons-material/AppsRounded';
-import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
 import { List } from '@mui/material';
 import { MenuItem } from 'src/router/menuItem';
@@ -31,12 +23,12 @@ const buildMenu = (
 
 const dashboardsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Dashboards'), <Person2Outlined />, [
+    { title: t('Billing'), route: routes.admin.dashboards.billing },
     buildMenu(t('Metrics'), undefined, [
       { title: t('Reports'), icon: <List />, route: routes.admin.dashboards.reports },
       { title: t('Sweepstakes'), icon: <List />, route: routes.admin.dashboards.sweepstakes },
       //{ title: t('Productivity'), icon: <List />, route: routes.admin.dashboards.prouctivity },
     ]),
-
   ]);
 
 const applicationsMenu = (t: (token: string) => string): MenuItem =>
@@ -113,7 +105,10 @@ const addsMenu = (t: (token: string) => string): MenuItem =>
 
 const circularsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Circulars'), <BookOutlined />, [
-    { title: t('Subscribed Stores'), route: routes.admin.management.circulars['subscribed-stores'] },
+    {
+      title: t('Subscribed Stores'),
+      route: routes.admin.management.circulars['subscribed-stores'],
+    },
     { title: t('Info Dashboard'), route: routes.admin.management.circulars['info-dashboard'] },
     { title: t('Manage Circulars'), route: routes.admin.management.circulars.manage },
     buildMenu(t('Edit/Schedule Circulars'), undefined, [

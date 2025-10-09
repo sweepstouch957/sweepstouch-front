@@ -128,6 +128,8 @@ export const routes = {
       hospital: '/admin/dashboards/hospital',
       helpdesk: '/admin/dashboards/helpdesk',
       monitoring: '/admin/dashboards/monitoring',
+      billing: '/admin/dashboards/billing',
+
     },
     applications: {
       calendar: '/admin/applications/calendar',
