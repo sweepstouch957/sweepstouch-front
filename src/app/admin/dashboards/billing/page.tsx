@@ -442,7 +442,7 @@ export default function BillingPage() {
                             {
                               id: 1,
                               value: pieSource.storesFee,
-                              label: 'Tiendas',
+                              label: 'Membresías',
                               color: colorStores,
                             },
                           ],
@@ -479,7 +479,7 @@ export default function BillingPage() {
                             maximumFractionDigits: 0,
                           }).format(pieSource.storesFee)}
                         </Typography>
-                        Tiendas
+                        Membresías
                       </LegendRow>
                       <Divider flexItem />
                       <LegendRow>
@@ -545,7 +545,12 @@ export default function BillingPage() {
                         stack: 'total',
                         color: colorCampaigns,
                       },
-                      { data: rangeStores, label: 'Tiendas', stack: 'total', color: colorStores },
+                      {
+                        data: rangeStores,
+                        label: 'Membresías',
+                        stack: 'total',
+                        color: colorStores,
+                      },
                     ]}
                     xAxis={[{ scaleType: 'band', data: rangeLabels }]}
                     slots={{ axisContent: AxisTooltipTotal }}
@@ -617,7 +622,12 @@ export default function BillingPage() {
                         stack: 'total',
                         color: colorCampaigns,
                       },
-                      { data: monthStores, label: 'Tiendas', stack: 'total', color: colorStores },
+                      {
+                        data: monthStores,
+                        label: 'Membresías',
+                        stack: 'total',
+                        color: colorStores,
+                      },
                     ]}
                     xAxis={[{ scaleType: 'band', data: monthLabels }]}
                     slots={{ axisContent: AxisTooltipTotal }}
