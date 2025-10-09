@@ -6,6 +6,7 @@ import {
   useWeeklyBilling,
   useWeeklyRangeBilling,
 } from '@/hooks/fetching/billing/useBilling';
+import { AxisTooltipTotal, Dot, LegendRow } from '@/libs/billing';
 import type { WeekStart } from '@/services/billing.service';
 import AssessmentTwoToneIcon from '@mui/icons-material/AssessmentTwoTone';
 import ExpandMoreTwoToneIcon from '@mui/icons-material/ExpandMoreTwoTone';
@@ -65,21 +66,6 @@ function PieCenterLabel({ children }: { children: React.ReactNode }) {
     </CenterText>
   );
 }
-
-const LegendRow = styled('div')(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: theme.spacing(1),
-  fontSize: theme.typography.pxToRem(14),
-}));
-
-const Dot = styled('span')<{ color: string }>(({ color }) => ({
-  display: 'inline-block',
-  width: 10,
-  height: 10,
-  borderRadius: 999,
-  background: color,
-}));
 
 function toYYYYMMDD(d: Date | null | undefined) {
   if (!d) return undefined;
@@ -559,14 +545,10 @@ export default function BillingPage() {
                         stack: 'total',
                         color: colorCampaigns,
                       },
-                      {
-                        data: rangeStores,
-                        label: 'Tiendas',
-                        stack: 'total',
-                        color: colorStores,
-                      },
+                      { data: rangeStores, label: 'Tiendas', stack: 'total', color: colorStores },
                     ]}
                     xAxis={[{ scaleType: 'band', data: rangeLabels }]}
+                    slots={{ axisContent: AxisTooltipTotal }}
                     slotProps={{
                       legend: {
                         labelStyle: { fontWeight: 500 },
@@ -638,6 +620,7 @@ export default function BillingPage() {
                       { data: monthStores, label: 'Tiendas', stack: 'total', color: colorStores },
                     ]}
                     xAxis={[{ scaleType: 'band', data: monthLabels }]}
+                    slots={{ axisContent: AxisTooltipTotal }}
                     slotProps={{
                       legend: {
                         labelStyle: { fontWeight: 500 },
@@ -770,7 +753,7 @@ function StatusChip({ loading, error }: { loading: boolean; error: boolean }) {
     <Chip
       color="success"
       variant="filled"
-      label="OK"
+      label="$"
     />
   );
 }
