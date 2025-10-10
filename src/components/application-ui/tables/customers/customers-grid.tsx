@@ -71,12 +71,12 @@ export default function CustomersGrid({ storeId }: CustomersGridProps) {
       }
 
       const doc = new jsPDF();
-      const head = [['Name', 'Phone', 'ZIP', 'Created']];
+      const head = [['Phone']];
       const body = all.map((c: any) => [
-        [c.firstName, c.lastName].filter(Boolean).join(' ') || '—',
-        ('+' + c.phoneNumber),
-        c.zipCode || '',
-        (c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '')
+        //[c.firstName, c.lastName].filter(Boolean).join(' ') || '—',
+        (c.phoneNumber),
+        //c.zipCode || '',
+        //(c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '')
       ]);
 
       autoTable(doc, { head, body, styles: { fontSize: 8 }, headStyles: { fillColor: [33, 150, 243] } });
