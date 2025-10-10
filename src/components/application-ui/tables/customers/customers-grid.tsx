@@ -8,13 +8,25 @@ import { customerClient } from '@/services/customerService';
 
 interface CustomersGridProps {
   storeId: string;
+  storeName?: string;
 }
 
-export default function CustomersGrid({ storeId }: CustomersGridProps) {
+function slugifyName(s?: string) {
+  return (s || 'store')
+    .toString()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // sin acentos
+    .replace(/[^\w\s-]/g, '')                         // sin caracteres raros
+    .trim()
+    .replace(/\s+/g, '_')                             // espacios -> _
+    .toLowerCase()
+}
+
+export default function CustomersGrid({ storeId, storeName }: CustomersGridProps) {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
   const [search, setSearch] = useState('');
   const [exporting, setExporting] = useState(false);
+
 
   const { data, isPending, error, refetch, isFetching } = useQuery({
     queryKey: ['customers', storeId, { page, limit, search }],
@@ -53,37 +65,46 @@ export default function CustomersGrid({ storeId }: CustomersGridProps) {
   async function handleExportPdf() {
     try {
       setExporting(true);
+
       const [{ jsPDF }, autoTableModule] = await Promise.all([
         import('jspdf'),
-        import('jspdf-autotable')
+        import('jspdf-autotable'),
       ]);
       const autoTable: any = (autoTableModule as any).default || (autoTableModule as any);
 
+      // Recolectar TODOS los registros pero solo el phoneNumber (formateado)
       let all: any[] = [];
       let pageCursor = 1;
       const pageSize = 500;
+
       while (true) {
         const res: any = await customerClient.getCustomersByStore(storeId, pageCursor, pageSize);
-        all = all.concat(res?.data || []);
-        if (!res?.total || all.length >= res.total || (res.data || []).length === 0) break;
+        const pageData = (res?.data || []).map((c: any) => {
+          const phone = (c?.phoneNumber);
+          return [phone];
+        });
+        all = all.concat(pageData);
+
+        if (!res?.total || all.length >= res.total || (res?.data || []).length === 0) break;
         pageCursor += 1;
-        if (pageCursor > 1000) break;
+        if (pageCursor > 2000) break; // safety
       }
-
+      const safeName = slugifyName(storeName) || storeId || 'store';
       const doc = new jsPDF();
-      const head = [['Phone']];
-      const body = all.map((c: any) => [
-        //[c.firstName, c.lastName].filter(Boolean).join(' ') || '—',
-        (c.phoneNumber),
-        //c.zipCode || '',
-        //(c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '')
-      ]);
 
-      autoTable(doc, { head, body, styles: { fontSize: 8 }, headStyles: { fillColor: [33, 150, 243] } });
-      doc.save(`customers_${storeId}.pdf`);
+      // Solo una columna y sin colores/striped
+      autoTable(doc, {
+        body: all,
+        theme: 'plain',              // elimina striped y fondos
+        styles: { fontSize: 10, textColor: [0, 0, 0] },  // negro
+        headStyles: { textColor: [0, 0, 0] },            // header en negro
+        // Si quieres sin bordes: styles: { lineWidth: 0 }
+      });
+
+      doc.save(`customers_phones_${safeName}.pdf`);
     } catch (err) {
       console.error('Export PDF failed', err);
-      alert('No se pudo generar el PDF. Revisa la consola.');
+      alert('No se pudo generar el PDF. Revisa la consola para más detalles.');
     } finally {
       setExporting(false);
     }

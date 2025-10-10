@@ -191,7 +191,9 @@ const StoreManagementPage = () => {
 
     switch (tag) {
       case 'customers':
-        return <CustomersPanel storeId={storeId || ''} />;
+        return <CustomersPanel
+          storeId={storeId || ''}
+          storeName={store?.name} />;
       case 'ads':
         return <PromoDashboard storeId={storeId || ''} />;
       case 'sms-provider':

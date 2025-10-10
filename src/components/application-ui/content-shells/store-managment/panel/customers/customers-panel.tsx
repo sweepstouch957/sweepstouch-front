@@ -4,12 +4,15 @@ import type { FC } from 'react';
 
 interface CustomersPanelProps {
   storeId: string;
+  storeName?: string;
 }
 
-const CustomersPanel: FC<CustomersPanelProps> = ({ storeId }) => {
+const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName }) => {
   return (
     <Box p={3}>
-      <CustomersGrid storeId={storeId} />
+      <CustomersGrid
+        storeId={storeId}
+        storeName={storeName} />
     </Box>
   );
 };
