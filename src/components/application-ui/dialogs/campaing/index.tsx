@@ -48,12 +48,6 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
       color: '#19B278',
     },
     {
-      id: 1,
-      label: t('Not Sent'),
-      value: campaign?.notSent ?? 0,
-      color: '#FFD600',
-    },
-    {
       id: 2,
       label: t('Errors'),
       value: campaign?.errors ?? 0,
@@ -292,7 +286,6 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                       {
                         data: [
                           { id: 0, label: 'Delivered', value: campaign?.sent ?? 0, color: '#19B278' },
-                          { id: 0, label: 'Sending', value: campaign?.notSent ?? 0, color: '#FFD600' },
                           {
                             id: 1,
                             label: 'Errors',
