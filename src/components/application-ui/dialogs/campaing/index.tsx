@@ -386,7 +386,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                     onClick={() => setLogsOpen(true)}
                   >
                     <AppBlocking
-                      color="error"
+                      color="info"
                       fontSize="small"
                     />
                     <Typography
