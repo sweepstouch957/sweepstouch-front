@@ -2,6 +2,7 @@
 
 import CampaignLogsModal from '@/components/CampaignLogsModal';
 import { useCampaignById } from '@/hooks/fetching/campaigns/useCampaignById';
+import { AppBlocking, Warning } from '@mui/icons-material';
 import CloseIcon from '@mui/icons-material/Close';
 import {
   Avatar,
@@ -285,7 +286,12 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                     series={[
                       {
                         data: [
-                          { id: 0, label: 'Delivered', value: campaign?.sent ?? 0, color: '#19B278' },
+                          {
+                            id: 0,
+                            label: 'Delivered',
+                            value: campaign?.sent ?? 0,
+                            color: '#19B278',
+                          },
                           {
                             id: 1,
                             label: 'Sending',
@@ -367,7 +373,8 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                       variant="body2"
                       fontWeight={600}
                     >
-                      Sending ({total > 0 ? Math.round(((campaign?.notSent ?? 0) / total) * 100) : 0}
+                      Sending (
+                      {total > 0 ? Math.round(((campaign?.notSent ?? 0) / total) * 100) : 0}
                       %)
                     </Typography>
                   </Stack>
@@ -378,12 +385,15 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                     sx={{ cursor: 'pointer' }}
                     onClick={() => setLogsOpen(true)}
                   >
-                    <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#FF4F4F' }} />
+                    <AppBlocking
+                      color="error"
+                      fontSize="small"
+                    />
                     <Typography
                       variant="body2"
                       fontWeight={600}
                     >
-                     revision numbers
+                      Revision
                     </Typography>
                   </Stack>
                 </Stack>
