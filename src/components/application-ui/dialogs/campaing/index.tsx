@@ -1,5 +1,6 @@
 'use client';
 
+import CampaignLogsModal from '@/components/CampaignLogsModal';
 import { useCampaignById } from '@/hooks/fetching/campaigns/useCampaignById';
 import CloseIcon from '@mui/icons-material/Close';
 import {
@@ -24,7 +25,6 @@ import { PieChart } from '@mui/x-charts/PieChart';
 import { formatInTimeZone } from 'date-fns-tz';
 import { FC, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import CampaignLogsModal from '@/components/CampaignLogsModal';
 
 interface CampaignOverviewProps {
   campaignId: string;
@@ -291,7 +291,8 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                     series={[
                       {
                         data: [
-                          { id: 0, label: 'Sent', value: campaign?.sent ?? 0, color: '#19B278' },
+                          { id: 0, label: 'Delivered', value: campaign?.sent ?? 0, color: '#19B278' },
+                          { id: 0, label: 'Sending', value: campaign?.notSent ?? 0, color: '#FFD600' },
                           {
                             id: 1,
                             label: 'Errors',
@@ -368,13 +369,28 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                     sx={{ cursor: 'pointer' }}
                     onClick={() => setLogsOpen(true)}
                   >
+                    <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#FFD600' }} />
+                    <Typography
+                      variant="body2"
+                      fontWeight={600}
+                    >
+                      Sending ({total > 0 ? Math.round(((campaign?.notSent ?? 0) / total) * 100) : 0}
+                      %)
+                    </Typography>
+                  </Stack>
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    alignItems="center"
+                    sx={{ cursor: 'pointer' }}
+                    onClick={() => setLogsOpen(true)}
+                  >
                     <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#FF4F4F' }} />
                     <Typography
                       variant="body2"
                       fontWeight={600}
                     >
-                      Errors ({total > 0 ? Math.round(((campaign?.errors ?? 0) / total) * 100) : 0}
-                      %)
+                     revision numbers
                     </Typography>
                   </Stack>
                 </Stack>
