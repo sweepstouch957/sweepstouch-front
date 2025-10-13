@@ -111,7 +111,11 @@ function InventoryPicker({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="sm">
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         <TextField
@@ -138,7 +142,11 @@ function InventoryPicker({
                 }
               >
                 <ListItemIcon>
-                  <Checkbox edge="start" checked={!!sel.selected} tabIndex={-1} onChange={() => toggle(it.id)} />
+                  <Checkbox
+                    edge="start"
+                    checked={!!sel.selected}
+                    tabIndex={-1}
+                    onChange={() => toggle(it.id)} />
                 </ListItemIcon>
                 <ListItemText
                   primary={`${it.label}${typeof it.price === 'number' ? ` — $${it.price}` : ''}`}
@@ -249,7 +257,9 @@ export default function CreateStoreStep2(): React.JSX.Element {
   const grandTotal = materials.reduce((acc, r) => acc + lineTotal(r.price, r.qty), 0);
 
   return (
-    <Container maxWidth="md" sx={{ py: 3 }}>
+    <Container
+      maxWidth="md"
+      sx={{ py: 3 }}>
       <PageHeading
         title="Create Store — Step 2 (Equipos y Materiales)"
         description="Selecciona tablets, impresoras y materiales para la nueva tienda"
@@ -258,13 +268,19 @@ export default function CreateStoreStep2(): React.JSX.Element {
         <CardContent>
           {/* Sección A */}
           <Box>
-            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: 600, mb: 1 }}>
               Sección A: Equipos
             </Typography>
             <Divider sx={{ mb: 2 }} />
 
             {/* Tablets */}
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" sx={{ mb: 2 }}>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={2}
+              alignItems="center"
+              sx={{ mb: 2 }}>
               <DevicesIcon />
               <Box sx={{ flex: 1 }}>
                 <Typography variant="subtitle1">Tablets</Typography>
@@ -273,13 +289,19 @@ export default function CreateStoreStep2(): React.JSX.Element {
                   <strong>Seleccionadas:</strong> {summarize(tabletInventory, tabletSelections)}
                 </Typography>
               </Box>
-              <Button variant="outlined" onClick={() => setPickTablets(true)}>
+              <Button
+                variant="outlined"
+                onClick={() => setPickTablets(true)}>
                 Elegir del inventario
               </Button>
             </Stack>
 
             {/* Printers */}
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" sx={{ mb: 3 }}>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={2}
+              alignItems="center"
+              sx={{ mb: 3 }}>
               <PrintIcon />
               <Box sx={{ flex: 1 }}>
                 <Typography variant="subtitle1">Impresoras</Typography>
@@ -288,7 +310,9 @@ export default function CreateStoreStep2(): React.JSX.Element {
                   <strong>Seleccionadas:</strong> {summarize(printerInventory, printerSelections)}
                 </Typography>
               </Box>
-              <Button variant="outlined" onClick={() => setPickPrinters(true)}>
+              <Button
+                variant="outlined"
+                onClick={() => setPickPrinters(true)}>
                 Elegir del inventario
               </Button>
             </Stack>
@@ -296,7 +320,8 @@ export default function CreateStoreStep2(): React.JSX.Element {
 
           {/* Sección B */}
           <Box sx={{ mt: 4 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+            <Typography variant="h6"
+              sx={{ fontWeight: 600, mb: 1 }}>
               Sección B: Posters y Materiales
             </Typography>
             <Divider sx={{ mb: 2 }} />
@@ -314,16 +339,22 @@ export default function CreateStoreStep2(): React.JSX.Element {
                 </TableHead>
                 <TableBody>
                   {materials.map((row) => (
-                    <TableRow key={row.id} hover>
+                    <TableRow
+                      key={row.id}
+                      hover>
                       <TableCell>{row.product}</TableCell>
                       <TableCell>{row.material ?? '—'}</TableCell>
                       <TableCell>{typeof row.price === 'number' ? `$${row.price}` : '—'}</TableCell>
                       <TableCell>
-                        <Checkbox checked={row.checked} onChange={() => toggleMaterial(row.id)} />
+                        <Checkbox checked={row.checked}
+                          onChange={() => toggleMaterial(row.id)} />
                       </TableCell>
                       <TableCell>
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                          <IconButton size="small" onClick={() => changeQty(row.id, -1)}>
+                        <Stack direction="row"
+                          alignItems="center"
+                          spacing={1}>
+                          <IconButton size="small"
+                            onClick={() => changeQty(row.id, -1)}>
                             <RemoveIcon fontSize="small" />
                           </IconButton>
                           <TextField
@@ -334,7 +365,8 @@ export default function CreateStoreStep2(): React.JSX.Element {
                             onChange={(e) => setQty(row.id, Number(e.target.value || 0))}
                             sx={{ width: 80 }}
                           />
-                          <IconButton size="small" onClick={() => changeQty(row.id, 1)}>
+                          <IconButton size="small"
+                            onClick={() => changeQty(row.id, 1)}>
                             <AddIcon fontSize="small" />
                           </IconButton>
                         </Stack>
@@ -344,7 +376,8 @@ export default function CreateStoreStep2(): React.JSX.Element {
                   ))}
                   {/* Footer row with Grand Total */}
                   <TableRow>
-                    <TableCell colSpan={5} align="right">
+                    <TableCell colSpan={5}
+                      align="right">
                       <strong>Total general</strong>
                     </TableCell>
                     <TableCell>
@@ -356,7 +389,10 @@ export default function CreateStoreStep2(): React.JSX.Element {
             </TableContainer>
           </Box>
 
-          <Stack direction="row" justifyContent="flex-end" spacing={2} sx={{ mt: 3 }}>
+          <Stack direction="row"
+            justifyContent="flex-end"
+            spacing={2}
+            sx={{ mt: 3 }}>
             <Button variant="outlined">Cancelar</Button>
             <Button variant="contained">Guardar y continuar</Button>
           </Stack>
