@@ -261,8 +261,8 @@ export default function CreateStoreStep2(): React.JSX.Element {
       maxWidth="md"
       sx={{ py: 3 }}>
       <PageHeading
-        title="Create Store — Step 2 (Equipos y Materiales)"
-        description="Selecciona tablets, impresoras y materiales para la nueva tienda"
+        title=""
+        description=""
       />
       <Card>
         <CardContent>

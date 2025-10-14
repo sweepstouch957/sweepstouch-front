@@ -18,7 +18,7 @@ import { CircleStepIndicator } from 'src/components/application-ui/steppers/circ
 import CreateStoreStep1, { StoreFormData } from './CreateStoreStep1';
 import CreateStoreStep2 from './CreateStoreStep2';
 
-const steps = ['Información General', 'Información Adicional'];
+const steps = ['Paso 1', 'Paso 2'];
 
 const CreateStoreStepper: React.FC = () => {
   const theme = useTheme();
