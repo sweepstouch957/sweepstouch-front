@@ -1,9 +1,11 @@
 'use client';
 
 import React from 'react';
-import ProductCreate from 'src/components/application-ui/form-layouts/create-product/create-product';
+import CreateStoreStepper from 'src/components/admin/stores/CreateStoreStepper';
 
 function Page(): React.JSX.Element {
-  return <ProductCreate />;
+  return <CreateStoreStepper />;
 }
+
 export default Page;
+

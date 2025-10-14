@@ -1,5 +1,5 @@
 import type { UserRole } from '@/contexts/auth/user';
-import { AdsClickOutlined, Campaign, Redeem, Store } from '@mui/icons-material';
+import { AdsClickOutlined, Campaign, Redeem, Store, NewspaperOutlined } from '@mui/icons-material';
 import AppsRoundedIcon from '@mui/icons-material/AppsRounded';
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
@@ -108,6 +108,28 @@ const menuConfig: MenuConfig = {
           ],
         },
         {
+          title: 'Circulars',
+          icon: <NewspaperOutlined />,
+          subMenu: [
+            {
+              title: 'Manage',
+              route: (r: typeof routes, role: UserRole) => r.admin.management.circulars.manage,
+            },
+            {
+              title: 'Subscribed Stores',
+              route: (r: typeof routes, role: UserRole) => r.admin.management.circulars['subscribed-stores'],
+            },
+            {
+              title: 'Info Dashboard',
+              route: (r: typeof routes, role: UserRole) => r.admin.management.circulars['info-dashboard'],
+            },
+            {
+              title: 'Schedule',
+              route: (r: typeof routes, role: UserRole) => r.admin.management.circulars.schedule,
+            },
+          ],
+        },
+        {
           title: 'Stores',
           icon: <Store />,
           subMenu: [
@@ -157,6 +179,28 @@ const menuConfig: MenuConfig = {
             {
               title: 'Listing',
               route: (r: typeof routes, role: UserRole) => r.admin.management.campaings.listing,
+            },
+          ],
+        },
+        {
+          title: 'Circulars',
+          icon: <NewspaperOutlined />,
+          subMenu: [
+            {
+              title: 'Manage',
+              route: (r: typeof routes, role: UserRole) => r.admin.management.circulars.manage,
+            },
+            {
+              title: 'Subscribed Stores',
+              route: (r: typeof routes, role: UserRole) => r.admin.management.circulars['subscribed-stores'],
+            },
+            {
+              title: 'Info Dashboard',
+              route: (r: typeof routes, role: UserRole) => r.admin.management.circulars['info-dashboard'],
+            },
+            {
+              title: 'Schedule',
+              route: (r: typeof routes, role: UserRole) => r.admin.management.circulars.schedule,
             },
           ],
         },
@@ -251,3 +295,4 @@ const useMenuItemsCollapsedShells = (t: (token: string) => string, role: UserRol
 };
 
 export default useMenuItemsCollapsedShells;
+
