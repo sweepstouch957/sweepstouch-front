@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react/jsx-max-props-per-line */
 
 import * as React from 'react';
 import {
@@ -12,10 +13,8 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
-  FormControlLabel,
   Checkbox,
   IconButton,
-  InputAdornment,
   List,
   ListItem,
   ListItemIcon,
@@ -37,6 +36,9 @@ import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import PageHeading from '@/components/base/page-heading';
 
+// ======================
+// 🔸 Tipos de datos
+// ======================
 type InventoryItem = {
   id: string;
   label: string;
@@ -44,11 +46,27 @@ type InventoryItem = {
   price?: number;
 };
 
-// ---- MOCK DATA (replace later with API) ----
+type DeviceSelection = {
+  selected: boolean;
+  imei?: string;   // tablets only
+  serie?: string;  // tablets & printers
+};
+
+type DeviceSelectionMap = Record<string, DeviceSelection>;
+
+interface CreateStoreStep2Props {
+  onBack: () => void;
+  onSubmit: (data: any) => Promise<void>;
+  initialData?: any;
+}
+
+// ======================
+// 🔹 Inventario Mock
+// ======================
 const tabletInventory: InventoryItem[] = [
   { id: 't1', label: "Tablet 9\" inch", description: 'Android, 64 GB, LTE', price: 200 },
   { id: 't2', label: "Tablet 14\" inch", description: 'Android, 128 GB, LTE', price: 500 },
-  { id: 't3', label: 'iPad 10.2', description: 'Wi‑Fi 64 GB', price: 350 },
+  { id: 't3', label: 'iPad 10.2', description: 'Wi-Fi 64 GB', price: 350 },
 ];
 
 const printerInventory: InventoryItem[] = [
@@ -57,13 +75,9 @@ const printerInventory: InventoryItem[] = [
   { id: 'p3', label: 'Impresora de inyección', description: 'Color', price: 180 },
 ];
 
-type DeviceSelection = {
-  selected: boolean;
-  imei?: string;   // tablets only (required when selected)
-  serie?: string;  // tablets & printers (required when selected)
-};
-type DeviceSelectionMap = Record<string, DeviceSelection>;
-
+// ======================
+// 🔸 Componente Picker
+// ======================
 function InventoryPicker({
   open,
   onClose,
@@ -99,11 +113,13 @@ function InventoryPicker({
     }));
 
   const setField = (id: string, field: 'imei' | 'serie', value: string) =>
-    setLocalSel((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value, selected: prev[id]?.selected ?? true } }));
+    setLocalSel((prev) => ({
+      ...prev,
+      [id]: { ...prev[id], [field]: value, selected: prev[id]?.selected ?? true },
+    }));
 
   const isValid = (): boolean => {
-    // Validate required fields for selected items
-    return Object.entries(localSel).every(([id, sel]) => {
+    return Object.entries(localSel).every(([_, sel]) => {
       if (!sel?.selected) return true;
       if (mode === 'tablet') return !!sel.imei && !!sel.serie;
       return !!sel.serie;
@@ -111,11 +127,7 @@ function InventoryPicker({
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      fullWidth
-      maxWidth="sm">
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         <TextField
@@ -130,29 +142,14 @@ function InventoryPicker({
           {filtered.map((it) => {
             const sel = localSel[it.id] ?? { selected: false, imei: '', serie: '' };
             return (
-              <ListItem
-                key={it.id}
-                alignItems="flex-start"
-                secondaryAction={
-                  <Checkbox
-                    edge="end"
-                    checked={!!sel.selected}
-                    onChange={() => toggle(it.id)}
-                  />
-                }
-              >
+              <ListItem key={it.id} alignItems="flex-start">
                 <ListItemIcon>
-                  <Checkbox
-                    edge="start"
-                    checked={!!sel.selected}
-                    tabIndex={-1}
-                    onChange={() => toggle(it.id)} />
+                  <Checkbox checked={!!sel.selected} onChange={() => toggle(it.id)} />
                 </ListItemIcon>
                 <ListItemText
                   primary={`${it.label}${typeof it.price === 'number' ? ` — $${it.price}` : ''}`}
                   secondary={it.description}
                 />
-                {/* Inline fields for required info when selected */}
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, ml: 2, minWidth: 220 }}>
                   {mode === 'tablet' && (
                     <TextField
@@ -183,7 +180,7 @@ function InventoryPicker({
         <Button
           variant="contained"
           onClick={() => {
-            if (!isValid()) return; // simple guard
+            if (!isValid()) return;
             onApply(localSel);
             onClose();
           }}
@@ -196,28 +193,40 @@ function InventoryPicker({
   );
 }
 
-export default function CreateStoreStep2(): React.JSX.Element {
-  // Local state for selected devices/materials
-  const [tabletSelections, setTabletSelections] = React.useState<DeviceSelectionMap>({});
-  const [printerSelections, setPrinterSelections] = React.useState<DeviceSelectionMap>({});
+// ======================
+// 🔸 Componente Principal
+// ======================
+export default function CreateStoreStep2({
+  onBack,
+  onSubmit,
+  initialData,
+}: CreateStoreStep2Props): React.JSX.Element {
+  const [tabletSelections, setTabletSelections] = React.useState<DeviceSelectionMap>(
+    initialData?.tablets ?? {}
+  );
+  const [printerSelections, setPrinterSelections] = React.useState<DeviceSelectionMap>(
+    initialData?.printers ?? {}
+  );
   const [pickTablets, setPickTablets] = React.useState(false);
   const [pickPrinters, setPickPrinters] = React.useState(false);
 
-  // Section B materials
-  type MaterialRow = { id: string; product: string; material?: string; price?: number; checked: boolean; qty: number };
-  const [materials, setMaterials] = React.useState<MaterialRow[]>([
-    { id: 'm1', product: "Poster 5' x 5'", material: 'Coroplast', price: 175, checked: false, qty: 0 },
-    { id: 'm2', product: "Poster 2' x 3'", material: 'Coroplast', price: 42, checked: false, qty: 0 },
-    { id: 'm3', product: "Poster 4' x 5'", material: 'Coroplast', price: 140, checked: false, qty: 0 },
-    { id: 'm4', product: "Poster 3' x 5'", material: 'Coroplast', price: 105, checked: false, qty: 0 },
-    { id: 'm5', product: "Poster 5' x 7'", material: 'Coroplast', price: 245, checked: false, qty: 0 },
-    { id: 'm6', product: "Poster 7' x 10'", material: 'Coroplast', price: 490, checked: false, qty: 0 },
-    { id: 'm7', product: 'Ánfora acrílica pequeña', material: 'Acrílico', price: 250, checked: false, qty: 0 },
-    { id: 'm8', product: 'Ánfora acrílica grande', material: 'Acrílico', price: 800, checked: false, qty: 0 },
-    { id: 'm9', product: 'Stand A (incluye 1 póster)', material: 'Vinyl', price: 500, checked: false, qty: 0 },
-    { id: 'm10', product: 'Delivery, instalación', material: '—', price: 100, checked: false, qty: 0 },
-    { id: 'm11', product: 'Setup', material: '—', price: 999, checked: false, qty: 0 },
-  ]);
+  // materiales
+  type MaterialRow = {
+    id: string;
+    product: string;
+    material?: string;
+    price?: number;
+    checked: boolean;
+    qty: number;
+  };
+
+  const [materials, setMaterials] = React.useState<MaterialRow[]>(
+    initialData?.materials ?? [
+      { id: 'm1', product: "Poster 5' x 5'", material: 'Coroplast', price: 175, checked: false, qty: 0 },
+      { id: 'm2', product: "Poster 2' x 3'", material: 'Coroplast', price: 42, checked: false, qty: 0 },
+      { id: 'm3', product: "Poster 4' x 5'", material: 'Coroplast', price: 140, checked: false, qty: 0 },
+    ]
+  );
 
   const toggleMaterial = (id: string) =>
     setMaterials((rows) => rows.map((r) => (r.id === id ? { ...r, checked: !r.checked } : r)));
@@ -236,7 +245,6 @@ export default function CreateStoreStep2(): React.JSX.Element {
       rows.map((r) => (r.id === id ? { ...r, qty: Math.max(0, value), checked: value > 0 ? true : r.checked } : r))
     );
 
-  // Helpers to render selected devices summary
   const summarize = (items: InventoryItem[], map: DeviceSelectionMap) =>
     items
       .filter((i) => map[i.id]?.selected)
@@ -248,71 +256,45 @@ export default function CreateStoreStep2(): React.JSX.Element {
       })
       .join(', ') || '—';
 
-  const lineTotal = (price?: number, qty?: number) => {
-    const p = typeof price === 'number' ? price : 0;
-    const q = typeof qty === 'number' ? qty : 0;
-    return p * q;
-  };
-
+  const lineTotal = (price?: number, qty?: number) => (price ?? 0) * (qty ?? 0);
   const grandTotal = materials.reduce((acc, r) => acc + lineTotal(r.price, r.qty), 0);
 
   return (
-    <Container
-      maxWidth="md"
-      sx={{ py: 3 }}>
-      <PageHeading
-        title=""
-        description=""
-      />
+    <Container maxWidth="md" sx={{ py: 3 }}>
+      <PageHeading title="" description="" />
       <Card>
         <CardContent>
           {/* Sección A */}
           <Box>
-            <Typography
-              variant="h6"
-              sx={{ fontWeight: 600, mb: 1 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
               Sección A: Equipos
             </Typography>
             <Divider sx={{ mb: 2 }} />
 
             {/* Tablets */}
-            <Stack
-              direction={{ xs: 'column', sm: 'row' }}
-              spacing={2}
-              alignItems="center"
-              sx={{ mb: 2 }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" sx={{ mb: 2 }}>
               <DevicesIcon />
               <Box sx={{ flex: 1 }}>
                 <Typography variant="subtitle1">Tablets</Typography>
-
                 <Typography sx={{ mt: 1 }}>
                   <strong>Seleccionadas:</strong> {summarize(tabletInventory, tabletSelections)}
                 </Typography>
               </Box>
-              <Button
-                variant="outlined"
-                onClick={() => setPickTablets(true)}>
+              <Button variant="outlined" onClick={() => setPickTablets(true)}>
                 Elegir del inventario
               </Button>
             </Stack>
 
             {/* Printers */}
-            <Stack
-              direction={{ xs: 'column', sm: 'row' }}
-              spacing={2}
-              alignItems="center"
-              sx={{ mb: 3 }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" sx={{ mb: 3 }}>
               <PrintIcon />
               <Box sx={{ flex: 1 }}>
                 <Typography variant="subtitle1">Impresoras</Typography>
-
                 <Typography sx={{ mt: 1 }}>
                   <strong>Seleccionadas:</strong> {summarize(printerInventory, printerSelections)}
                 </Typography>
               </Box>
-              <Button
-                variant="outlined"
-                onClick={() => setPickPrinters(true)}>
+              <Button variant="outlined" onClick={() => setPickPrinters(true)}>
                 Elegir del inventario
               </Button>
             </Stack>
@@ -320,8 +302,7 @@ export default function CreateStoreStep2(): React.JSX.Element {
 
           {/* Sección B */}
           <Box sx={{ mt: 4 }}>
-            <Typography variant="h6"
-              sx={{ fontWeight: 600, mb: 1 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
               Sección B: Posters y Materiales
             </Typography>
             <Divider sx={{ mb: 2 }} />
@@ -339,22 +320,16 @@ export default function CreateStoreStep2(): React.JSX.Element {
                 </TableHead>
                 <TableBody>
                   {materials.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      hover>
+                    <TableRow key={row.id} hover>
                       <TableCell>{row.product}</TableCell>
                       <TableCell>{row.material ?? '—'}</TableCell>
                       <TableCell>{typeof row.price === 'number' ? `$${row.price}` : '—'}</TableCell>
                       <TableCell>
-                        <Checkbox checked={row.checked}
-                          onChange={() => toggleMaterial(row.id)} />
+                        <Checkbox checked={row.checked} onChange={() => toggleMaterial(row.id)} />
                       </TableCell>
                       <TableCell>
-                        <Stack direction="row"
-                          alignItems="center"
-                          spacing={1}>
-                          <IconButton size="small"
-                            onClick={() => changeQty(row.id, -1)}>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <IconButton size="small" onClick={() => changeQty(row.id, -1)}>
                             <RemoveIcon fontSize="small" />
                           </IconButton>
                           <TextField
@@ -365,8 +340,7 @@ export default function CreateStoreStep2(): React.JSX.Element {
                             onChange={(e) => setQty(row.id, Number(e.target.value || 0))}
                             sx={{ width: 80 }}
                           />
-                          <IconButton size="small"
-                            onClick={() => changeQty(row.id, 1)}>
+                          <IconButton size="small" onClick={() => changeQty(row.id, 1)}>
                             <AddIcon fontSize="small" />
                           </IconButton>
                         </Stack>
@@ -374,10 +348,8 @@ export default function CreateStoreStep2(): React.JSX.Element {
                       <TableCell>{`$${lineTotal(row.price, row.qty)}`}</TableCell>
                     </TableRow>
                   ))}
-                  {/* Footer row with Grand Total */}
                   <TableRow>
-                    <TableCell colSpan={5}
-                      align="right">
+                    <TableCell colSpan={5} align="right">
                       <strong>Total general</strong>
                     </TableCell>
                     <TableCell>
@@ -389,15 +361,23 @@ export default function CreateStoreStep2(): React.JSX.Element {
             </TableContainer>
           </Box>
 
-          <Stack direction="row"
-            justifyContent="flex-end"
-            spacing={2}
-            sx={{ mt: 3 }}>
-            <Button variant="outlined">Cancelar</Button>
-            <Button variant="contained">Guardar y continuar</Button>
+          {/* Botones navegación */}
+          <Stack direction="row" justifyContent="flex-end" spacing={2} sx={{ mt: 3 }}>
+            <Button variant="outlined" onClick={onBack}>
+              Atrás
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => onSubmit({ tablets: tabletSelections, printers: printerSelections, materials })}
+            >
+              Guardar y continuar
+            </Button>
           </Stack>
         </CardContent>
       </Card>
+
+
+
 
       {/* Pickers */}
       <InventoryPicker
