@@ -1,7 +1,8 @@
+
 'use client';
-/* eslint-disable react/jsx-max-props-per-line */
 
 import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Box,
   Button,
@@ -13,11 +14,8 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
-  Checkbox,
-  IconButton,
   List,
   ListItem,
-  ListItemIcon,
   ListItemText,
   Stack,
   Table,
@@ -28,6 +26,7 @@ import {
   TableRow,
   TextField,
   Typography,
+  IconButton,
 } from '@mui/material';
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import DevicesIcon from '@mui/icons-material/Devices';
@@ -36,98 +35,62 @@ import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import PageHeading from '@/components/base/page-heading';
 
-// ======================
-// 🔸 Tipos de datos
-// ======================
-type InventoryItem = {
-  id: string;
-  label: string;
-  description?: string;
-  price?: number;
-};
-
-type DeviceSelection = {
-  selected: boolean;
-  imei?: string;   // tablets only
-  serie?: string;  // tablets & printers
-};
-
-type DeviceSelectionMap = Record<string, DeviceSelection>;
-
-interface CreateStoreStep2Props {
-  onBack: () => void;
-  onSubmit: (data: any) => Promise<void>;
+export type CreateStoreStep2Props = {
+  onBack?: () => void;
+  onSubmit?: (data: any) => void | Promise<void>;
   initialData?: any;
-}
+};
 
-// ======================
-// 🔹 Inventario Mock
-// ======================
+type InventoryItem = { id: string; label: string; description?: string; price?: number };
 const tabletInventory: InventoryItem[] = [
-  { id: 't1', label: "Tablet 9\" inch", description: 'Android, 64 GB, LTE', price: 200 },
-  { id: 't2', label: "Tablet 14\" inch", description: 'Android, 128 GB, LTE', price: 500 },
-  { id: 't3', label: 'iPad 10.2', description: 'Wi-Fi 64 GB', price: 350 },
+  { id: 't1', label: 'Tablet 9\" inch', description: 'Android, 64 GB, LTE', price: 200 },
+  { id: 't2', label: 'Tablet 14\" inch', description: 'Android, 128 GB, LTE', price: 500 },
+  { id: 't3', label: 'iPad 10.2', description: 'Wi‑Fi 64 GB', price: 350 },
 ];
 
-const printerInventory: InventoryItem[] = [
-  { id: 'p1', label: 'Impresora térmica 80mm', description: 'USB + BT', price: 200 },
-  { id: 'p2', label: 'Impresora térmica 58mm', description: 'USB', price: 150 },
-  { id: 'p3', label: 'Impresora de inyección', description: 'Color', price: 180 },
-];
+const printerInventory: InventoryItem[] = [{ id: 'p1', label: 'Impresora térmica', description: 'USB/BT', price: 200 }];
 
-// ======================
-// 🔸 Componente Picker
-// ======================
+type QuantityMap = Record<string, number>;
+
 function InventoryPicker({
   open,
   onClose,
   title,
   items,
-  selections,
+  quantities,
   onApply,
-  mode, // 'tablet' | 'printer'
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   items: InventoryItem[];
-  selections: DeviceSelectionMap;
-  onApply: (next: DeviceSelectionMap) => void;
-  mode: 'tablet' | 'printer';
+  quantities: QuantityMap;
+  onApply: (n: QuantityMap) => void;
 }) {
   const [query, setQuery] = React.useState('');
-  const [localSel, setLocalSel] = React.useState<DeviceSelectionMap>(selections);
-
-  React.useEffect(() => setLocalSel(selections), [selections]);
+  const [localQty, setLocalQty] = React.useState<QuantityMap>(quantities);
+  React.useEffect(() => setLocalQty(quantities), [quantities]);
 
   const filtered = items.filter(
     (i) =>
       i.label.toLowerCase().includes(query.toLowerCase()) ||
-      (i.description ?? '').toLowerCase().includes(query.toLowerCase())
+      (i.description ?? '').toLowerCase().includes(query.toLowerCase()),
   );
 
-  const toggle = (id: string) =>
-    setLocalSel((prev) => ({
-      ...prev,
-      [id]: { selected: !prev[id]?.selected, imei: prev[id]?.imei ?? '', serie: prev[id]?.serie ?? '' },
-    }));
+  const changeQty = (id: string, d: number) =>
+    setLocalQty((prev) => ({ ...prev, [id]: Math.max(0, (prev[id] ?? 0) + d) }));
+  const setQty = (id: string, v: number) => setLocalQty((prev) => ({ ...prev, [id]: Math.max(0, v) }));
 
-  const setField = (id: string, field: 'imei' | 'serie', value: string) =>
-    setLocalSel((prev) => ({
-      ...prev,
-      [id]: { ...prev[id], [field]: value, selected: prev[id]?.selected ?? true },
-    }));
-
-  const isValid = (): boolean => {
-    return Object.entries(localSel).every(([_, sel]) => {
-      if (!sel?.selected) return true;
-      if (mode === 'tablet') return !!sel.imei && !!sel.serie;
-      return !!sel.serie;
-    });
-  };
+  const lineTotal = (p?: number, q?: number) => (typeof p === 'number' ? p : 0) * (typeof q === 'number' ? q : 0);
+  const modalTotal = filtered.reduce((acc, it) => acc + lineTotal(it.price, localQty[it.id] ?? 0), 0);
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="sm"
+    >
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         <TextField
@@ -140,169 +103,206 @@ function InventoryPicker({
         />
         <List dense>
           {filtered.map((it) => {
-            const sel = localSel[it.id] ?? { selected: false, imei: '', serie: '' };
+            const qty = localQty[it.id] ?? 0;
             return (
-              <ListItem key={it.id} alignItems="flex-start">
-                <ListItemIcon>
-                  <Checkbox checked={!!sel.selected} onChange={() => toggle(it.id)} />
-                </ListItemIcon>
+              <ListItem
+                key={it.id}
+                alignItems="flex-start"
+              >
                 <ListItemText
                   primary={`${it.label}${typeof it.price === 'number' ? ` — $${it.price}` : ''}`}
                   secondary={it.description}
                 />
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, ml: 2, minWidth: 220 }}>
-                  {mode === 'tablet' && (
-                    <TextField
-                      size="small"
-                      label="IMEI"
-                      value={sel.imei ?? ''}
-                      onChange={(e) => setField(it.id, 'imei', e.target.value)}
-                      disabled={!sel.selected}
-                      required
-                    />
-                  )}
-                  <TextField
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  spacing={1}
+                  sx={{ minWidth: 220 }}
+                >
+                  <IconButton
                     size="small"
-                    label="Serie"
-                    value={sel.serie ?? ''}
-                    onChange={(e) => setField(it.id, 'serie', e.target.value)}
-                    disabled={!sel.selected}
-                    required
+                    onClick={() => changeQty(it.id, -1)}
+                  >
+                    <RemoveIcon fontSize="small" />
+                  </IconButton>
+                  <TextField
+                    type="number"
+                    size="small"
+                    sx={{ width: 80 }}
+                    value={qty}
+                    inputProps={{ min: 0 }}
+                    onChange={(e) => setQty(it.id, Number(e.target.value || 0))}
                   />
-                </Box>
+                  <IconButton
+                    size="small"
+                    onClick={() => changeQty(it.id, 1)}
+                  >
+                    <AddIcon fontSize="small" />
+                  </IconButton>
+                  <Box
+                    sx={{ ml: 2, minWidth: 80, textAlign: 'right' }}
+                  >
+                    <Typography variant="body2">
+                      <strong>${lineTotal(it.price, qty)}</strong>
+                    </Typography>
+                  </Box>
+                </Stack>
               </ListItem>
             );
           })}
         </List>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Cancelar</Button>
-        <Button
-          variant="contained"
-          onClick={() => {
-            if (!isValid()) return;
-            onApply(localSel);
-            onClose();
-          }}
-          startIcon={<AddShoppingCartIcon />}
-        >
-          Agregar seleccionados
-        </Button>
+      <DialogActions
+        sx={{ justifyContent: 'space-between', px: 3 }}
+      >
+        <Typography variant="subtitle2">Total: ${modalTotal}</Typography>
+        <Box>
+          <Button
+            onClick={onClose}
+            sx={{ mr: 1 }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddShoppingCartIcon />}
+            onClick={() => {
+              onApply(localQty);
+              onClose();
+            }}
+          >
+            Agregar
+          </Button>
+        </Box>
       </DialogActions>
     </Dialog>
   );
 }
 
-// ======================
-// 🔸 Componente Principal
-// ======================
-export default function CreateStoreStep2({
-  onBack,
-  onSubmit,
-  initialData,
-}: CreateStoreStep2Props): React.JSX.Element {
-  const [tabletSelections, setTabletSelections] = React.useState<DeviceSelectionMap>(
-    initialData?.tablets ?? {}
-  );
-  const [printerSelections, setPrinterSelections] = React.useState<DeviceSelectionMap>(
-    initialData?.printers ?? {}
-  );
+export default function CreateStoreStep2({ onBack, onSubmit }: CreateStoreStep2Props) {
+  const router = useRouter();
+  const goBack = () => {
+    if (onBack) return onBack();
+    router.push('/admin/management/stores/create');
+  };
+
+  const [tabletQty, setTabletQty] = React.useState<QuantityMap>({});
+  const [printerQty, setPrinterQty] = React.useState<QuantityMap>({});
   const [pickTablets, setPickTablets] = React.useState(false);
   const [pickPrinters, setPickPrinters] = React.useState(false);
 
-  // materiales
-  type MaterialRow = {
-    id: string;
-    product: string;
-    material?: string;
-    price?: number;
-    checked: boolean;
-    qty: number;
-  };
-
-  const [materials, setMaterials] = React.useState<MaterialRow[]>(
-    initialData?.materials ?? [
-      { id: 'm1', product: "Poster 5' x 5'", material: 'Coroplast', price: 175, checked: false, qty: 0 },
-      { id: 'm2', product: "Poster 2' x 3'", material: 'Coroplast', price: 42, checked: false, qty: 0 },
-      { id: 'm3', product: "Poster 4' x 5'", material: 'Coroplast', price: 140, checked: false, qty: 0 },
-    ]
-  );
+  type MaterialRow = { id: string; product: string; material?: string; price?: number; checked: boolean; qty: number };
+  const [materials, setMaterials] = React.useState<MaterialRow[]>([
+    { id: 'm1', product: "Poster 5' x 5'", material: 'Coroplast', price: 175, checked: false, qty: 0 },
+    { id: 'm2', product: "Poster 2' x 3'", material: 'Coroplast', price: 42, checked: false, qty: 0 },
+    { id: 'm3', product: "Poster 4' x 5'", material: 'Coroplast', price: 140, checked: false, qty: 0 },
+    { id: 'm4', product: "Poster 3' x 5'", material: 'Coroplast', price: 105, checked: false, qty: 0 },
+    { id: 'm5', product: "Poster 5' x 7'", material: 'Coroplast', price: 245, checked: false, qty: 0 },
+    { id: 'm6', product: "Poster 7' x 10'", material: 'Coroplast', price: 490, checked: false, qty: 0 },
+    { id: 'm7', product: 'Ánfora acrílica pequeña', material: 'Acrílico', price: 250, checked: false, qty: 0 },
+    { id: 'm8', product: 'Ánfora acrílica grande', material: 'Acrílico', price: 800, checked: false, qty: 0 },
+    { id: 'm9', product: 'Stand A (incluye 1 póster)', material: 'Vinyl', price: 500, checked: false, qty: 0 },
+    { id: 'm10', product: 'Delivery, instalación', material: '—', price: 100, checked: false, qty: 0 },
+    { id: 'm11', product: 'Setup', material: '—', price: 999, checked: false, qty: 0 },
+  ]);
 
   const toggleMaterial = (id: string) =>
     setMaterials((rows) => rows.map((r) => (r.id === id ? { ...r, checked: !r.checked } : r)));
-
-  const changeQty = (id: string, delta: number) =>
+  const changeQty = (id: string, d: number) =>
     setMaterials((rows) =>
-      rows.map((r) => {
-        if (r.id !== id) return r;
-        const next = Math.max(0, (r.qty ?? 0) + delta);
-        return { ...r, qty: next, checked: next > 0 ? true : r.checked };
-      })
+      rows.map((r) => (r.id === id ? { ...r, qty: Math.max(0, (r.qty ?? 0) + d), checked: (r.qty ?? 0) + d > 0 || r.checked } : r)),
     );
+  const setQty = (id: string, v: number) =>
+    setMaterials((rows) => rows.map((r) => (r.id === id ? { ...r, qty: Math.max(0, v), checked: v > 0 || r.checked } : r)));
 
-  const setQty = (id: string, value: number) =>
-    setMaterials((rows) =>
-      rows.map((r) => (r.id === id ? { ...r, qty: Math.max(0, value), checked: value > 0 ? true : r.checked } : r))
-    );
-
-  const summarize = (items: InventoryItem[], map: DeviceSelectionMap) =>
+  const summarizeQty = (items: InventoryItem[], qmap: QuantityMap) =>
     items
-      .filter((i) => map[i.id]?.selected)
-      .map((i) => {
-        const s = map[i.id];
-        if (!s) return i.label;
-        if (s.imei) return `${i.label} (IMEI: ${s.imei}, Serie: ${s.serie})`;
-        return `${i.label} (Serie: ${s.serie})`;
-      })
+      .filter((i) => (qmap[i.id] ?? 0) > 0)
+      .map((i) => `${i.label} x ${qmap[i.id]}`)
       .join(', ') || '—';
 
-  const lineTotal = (price?: number, qty?: number) => (price ?? 0) * (qty ?? 0);
-  const grandTotal = materials.reduce((acc, r) => acc + lineTotal(r.price, r.qty), 0);
+  const lineTotal = (p?: number, q?: number) => (typeof p === 'number' ? p : 0) * (typeof q === 'number' ? q : 0);
+  const grandTotal = materials.reduce((a, r) => a + lineTotal(r.price, r.qty), 0);
+
+  const equipmentTotal =
+    tabletInventory.reduce((acc, i) => acc + lineTotal(i.price, tabletQty[i.id] ?? 0), 0) +
+    printerInventory.reduce((acc, i) => acc + lineTotal(i.price, printerQty[i.id] ?? 0), 0);
 
   return (
-    <Container maxWidth="md" sx={{ py: 3 }}>
-      <PageHeading title="" description="" />
+    <Container
+      maxWidth="md"
+      sx={{ py: 3 }}
+    >
+      <PageHeading
+        title="Create Store — Step 2 (Equipos y Materiales)"
+        description="Selecciona tablets, impresoras y materiales para la nueva tienda."
+      />
       <Card>
         <CardContent>
-          {/* Sección A */}
           <Box>
-            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: 600, mb: 1 }}
+            >
               Sección A: Equipos
             </Typography>
             <Divider sx={{ mb: 2 }} />
 
-            {/* Tablets */}
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" sx={{ mb: 2 }}>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={2}
+              alignItems="center"
+              sx={{ mb: 2 }}
+            >
               <DevicesIcon />
               <Box sx={{ flex: 1 }}>
                 <Typography variant="subtitle1">Tablets</Typography>
                 <Typography sx={{ mt: 1 }}>
-                  <strong>Seleccionadas:</strong> {summarize(tabletInventory, tabletSelections)}
+                  <strong>Seleccionadas:</strong> {summarizeQty(tabletInventory, tabletQty)}
                 </Typography>
               </Box>
-              <Button variant="outlined" onClick={() => setPickTablets(true)}>
-                Elegir del inventario
+              <Button
+                variant="outlined"
+                onClick={() => setPickTablets(true)}
+              >
+                Agregar
               </Button>
             </Stack>
 
-            {/* Printers */}
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" sx={{ mb: 3 }}>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={2}
+              alignItems="center"
+              sx={{ mb: 3 }}
+            >
               <PrintIcon />
               <Box sx={{ flex: 1 }}>
-                <Typography variant="subtitle1">Impresoras</Typography>
+                <Typography variant="subtitle1">Impresora térmica</Typography>
                 <Typography sx={{ mt: 1 }}>
-                  <strong>Seleccionadas:</strong> {summarize(printerInventory, printerSelections)}
+                  <strong>Seleccionadas:</strong> {summarizeQty(printerInventory, printerQty)}
                 </Typography>
               </Box>
-              <Button variant="outlined" onClick={() => setPickPrinters(true)}>
-                Elegir del inventario
+              <Button
+                variant="outlined"
+                onClick={() => setPickPrinters(true)}
+              >
+                Agregar
               </Button>
             </Stack>
+
+            <Typography
+              variant="body2"
+              sx={{ textAlign: 'right', color: 'text.secondary' }}
+            >
+              Total equipos: <strong>${equipmentTotal}</strong>
+            </Typography>
           </Box>
 
-          {/* Sección B */}
           <Box sx={{ mt: 4 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: 600, mb: 1 }}
+            >
               Sección B: Posters y Materiales
             </Typography>
             <Divider sx={{ mb: 2 }} />
@@ -320,27 +320,44 @@ export default function CreateStoreStep2({
                 </TableHead>
                 <TableBody>
                   {materials.map((row) => (
-                    <TableRow key={row.id} hover>
+                    <TableRow
+                      key={row.id}
+                      hover
+                    >
                       <TableCell>{row.product}</TableCell>
                       <TableCell>{row.material ?? '—'}</TableCell>
                       <TableCell>{typeof row.price === 'number' ? `$${row.price}` : '—'}</TableCell>
                       <TableCell>
-                        <Checkbox checked={row.checked} onChange={() => toggleMaterial(row.id)} />
+                        <input
+                          type="checkbox"
+                          checked={row.checked}
+                          onChange={() => toggleMaterial(row.id)}
+                        />
                       </TableCell>
                       <TableCell>
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                          <IconButton size="small" onClick={() => changeQty(row.id, -1)}>
+                        <Stack
+                          direction="row"
+                          alignItems="center"
+                          spacing={1}
+                        >
+                          <IconButton
+                            size="small"
+                            onClick={() => changeQty(row.id, -1)}
+                          >
                             <RemoveIcon fontSize="small" />
                           </IconButton>
                           <TextField
                             type="number"
                             size="small"
+                            sx={{ width: 80 }}
                             value={row.qty}
                             inputProps={{ min: 0 }}
                             onChange={(e) => setQty(row.id, Number(e.target.value || 0))}
-                            sx={{ width: 80 }}
                           />
-                          <IconButton size="small" onClick={() => changeQty(row.id, 1)}>
+                          <IconButton
+                            size="small"
+                            onClick={() => changeQty(row.id, 1)}
+                          >
                             <AddIcon fontSize="small" />
                           </IconButton>
                         </Stack>
@@ -349,8 +366,11 @@ export default function CreateStoreStep2({
                     </TableRow>
                   ))}
                   <TableRow>
-                    <TableCell colSpan={5} align="right">
-                      <strong>Total general</strong>
+                    <TableCell
+                      colSpan={5}
+                      align="right"
+                    >
+                      <strong>Total general (materiales)</strong>
                     </TableCell>
                     <TableCell>
                       <strong>{`$${grandTotal}`}</strong>
@@ -361,14 +381,21 @@ export default function CreateStoreStep2({
             </TableContainer>
           </Box>
 
-          {/* Botones navegación */}
-          <Stack direction="row" justifyContent="flex-end" spacing={2} sx={{ mt: 3 }}>
-            <Button variant="outlined" onClick={onBack}>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            spacing={2}
+            sx={{ mt: 3 }}
+          >
+            <Button
+              variant="outlined"
+              onClick={goBack}
+            >
               Atrás
             </Button>
             <Button
               variant="contained"
-              onClick={() => onSubmit({ tablets: tabletSelections, printers: printerSelections, materials })}
+              onClick={() => onSubmit?.({ tablets: tabletQty, printers: printerQty, materials })}
             >
               Guardar y continuar
             </Button>
@@ -376,27 +403,21 @@ export default function CreateStoreStep2({
         </CardContent>
       </Card>
 
-
-
-
-      {/* Pickers */}
       <InventoryPicker
         open={pickTablets}
         onClose={() => setPickTablets(false)}
         title="Seleccionar tablets del inventario"
         items={tabletInventory}
-        selections={tabletSelections}
-        onApply={setTabletSelections}
-        mode="tablet"
+        quantities={tabletQty}
+        onApply={setTabletQty}
       />
       <InventoryPicker
         open={pickPrinters}
         onClose={() => setPickPrinters(false)}
-        title="Seleccionar impresoras del inventario"
+        title="Seleccionar impresora térmica"
         items={printerInventory}
-        selections={printerSelections}
-        onApply={setPrinterSelections}
-        mode="printer"
+        quantities={printerQty}
+        onApply={setPrinterQty}
       />
     </Container>
   );
