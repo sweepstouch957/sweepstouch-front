@@ -1,24 +1,24 @@
 'use client';
 
-import React, { useState } from 'react';
+import SettingsTwoToneIcon from '@mui/icons-material/SettingsTwoTone';
 import {
+  Avatar,
   Box,
   Button,
   Card,
   CardContent,
   CardHeader,
   Divider,
+  FormControl,
   Grid,
+  InputLabel,
+  MenuItem,
+  Select,
   TextField,
   Typography,
   useTheme,
-  Avatar,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
 } from '@mui/material';
-import SettingsTwoToneIcon from '@mui/icons-material/SettingsTwoTone';
+import React, { useState } from 'react';
 
 interface CreateStoreStep2Props {
   onBack: () => void;
@@ -28,7 +28,7 @@ interface CreateStoreStep2Props {
 
 const CreateStoreStep2: React.FC<CreateStoreStep2Props> = ({ onBack, onSubmit, initialData }) => {
   const theme = useTheme();
-  
+
   const [formData, setFormData] = useState(
     initialData || {
       additionalInfo: '',
@@ -39,12 +39,11 @@ const CreateStoreStep2: React.FC<CreateStoreStep2Props> = ({ onBack, onSubmit, i
     }
   );
 
-  const handleInputChange = (field: string) => (
-    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | any
-  ) => {
-    const value = event.target.value;
-    setFormData((prev: any) => ({ ...prev, [field]: value }));
-  };
+  const handleInputChange =
+    (field: string) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | any) => {
+      const value = event.target.value;
+      setFormData((prev: any) => ({ ...prev, [field]: value }));
+    };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,7 +65,10 @@ const CreateStoreStep2: React.FC<CreateStoreStep2Props> = ({ onBack, onSubmit, i
             </Avatar>
           }
           title={
-            <Typography variant="h5" component="div">
+            <Typography
+              variant="h5"
+              component="div"
+            >
               Información Adicional
             </Typography>
           }
@@ -74,9 +76,16 @@ const CreateStoreStep2: React.FC<CreateStoreStep2Props> = ({ onBack, onSubmit, i
         />
         <Divider />
         <CardContent>
-          <Grid container spacing={3}>
+          <Grid
+            container
+            spacing={3}
+          >
             {/* Categoría */}
-            <Grid item xs={12} md={6}>
+            <Grid
+              item
+              xs={12}
+              md={6}
+            >
               <FormControl fullWidth>
                 <InputLabel>Categoría</InputLabel>
                 <Select
@@ -93,7 +102,11 @@ const CreateStoreStep2: React.FC<CreateStoreStep2Props> = ({ onBack, onSubmit, i
             </Grid>
 
             {/* Website */}
-            <Grid item xs={12} md={6}>
+            <Grid
+              item
+              xs={12}
+              md={6}
+            >
               <TextField
                 fullWidth
                 label="Sitio Web"
@@ -106,7 +119,10 @@ const CreateStoreStep2: React.FC<CreateStoreStep2Props> = ({ onBack, onSubmit, i
             </Grid>
 
             {/* Descripción */}
-            <Grid item xs={12}>
+            <Grid
+              item
+              xs={12}
+            >
               <TextField
                 fullWidth
                 label="Descripción"
@@ -121,7 +137,11 @@ const CreateStoreStep2: React.FC<CreateStoreStep2Props> = ({ onBack, onSubmit, i
             </Grid>
 
             {/* Redes Sociales */}
-            <Grid item xs={12} md={6}>
+            <Grid
+              item
+              xs={12}
+              md={6}
+            >
               <TextField
                 fullWidth
                 label="Facebook"
@@ -133,7 +153,11 @@ const CreateStoreStep2: React.FC<CreateStoreStep2Props> = ({ onBack, onSubmit, i
               />
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid
+              item
+              xs={12}
+              md={6}
+            >
               <TextField
                 fullWidth
                 label="Instagram"
@@ -146,7 +170,10 @@ const CreateStoreStep2: React.FC<CreateStoreStep2Props> = ({ onBack, onSubmit, i
             </Grid>
 
             {/* Información Adicional */}
-            <Grid item xs={12}>
+            <Grid
+              item
+              xs={12}
+            >
               <TextField
                 fullWidth
                 label="Información Adicional"
@@ -196,4 +223,3 @@ const CreateStoreStep2: React.FC<CreateStoreStep2Props> = ({ onBack, onSubmit, i
 };
 
 export default CreateStoreStep2;
-

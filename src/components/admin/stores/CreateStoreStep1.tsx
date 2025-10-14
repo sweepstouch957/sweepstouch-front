@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import CloudUploadTwoToneIcon from '@mui/icons-material/CloudUploadTwoTone';
+import StorefrontTwoToneIcon from '@mui/icons-material/StorefrontTwoTone';
 import {
+  Avatar,
   Box,
   Button,
   Card,
@@ -14,19 +16,17 @@ import {
   InputLabel,
   MenuItem,
   Select,
+  Stack,
   TextField,
   Typography,
   useTheme,
-  Avatar,
-  Stack,
 } from '@mui/material';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { useDropzone } from 'react-dropzone';
-import CloudUploadTwoToneIcon from '@mui/icons-material/CloudUploadTwoTone';
-import StorefrontTwoToneIcon from '@mui/icons-material/StorefrontTwoTone';
 import dayjs, { Dayjs } from 'dayjs';
+import React, { useCallback, useState } from 'react';
+import { useDropzone } from 'react-dropzone';
 
 interface CreateStoreStep1Props {
   onNext: (data: StoreFormData) => void;
@@ -50,7 +50,7 @@ export interface StoreFormData {
 
 const CreateStoreStep1: React.FC<CreateStoreStep1Props> = ({ onNext, initialData }) => {
   const theme = useTheme();
-  
+
   const [formData, setFormData] = useState<StoreFormData>(
     initialData || {
       name: '',
@@ -77,7 +77,7 @@ const CreateStoreStep1: React.FC<CreateStoreStep1Props> = ({ onNext, initialData
     if (acceptedFiles.length > 0) {
       const file = acceptedFiles[0];
       setFormData((prev) => ({ ...prev, storeImage: file }));
-      
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
@@ -86,10 +86,14 @@ const CreateStoreStep1: React.FC<CreateStoreStep1Props> = ({ onNext, initialData
     }
   }, []);
 
-  const { getRootProps: getImageRootProps, getInputProps: getImageInputProps, isDragActive: isImageDragActive } = useDropzone({
+  const {
+    getRootProps: getImageRootProps,
+    getInputProps: getImageInputProps,
+    isDragActive: isImageDragActive,
+  } = useDropzone({
     onDrop: onDropImage,
     accept: {
-      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp']
+      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'],
     },
     multiple: false,
   });
@@ -103,42 +107,46 @@ const CreateStoreStep1: React.FC<CreateStoreStep1Props> = ({ onNext, initialData
     }
   }, []);
 
-  const { getRootProps: getContractRootProps, getInputProps: getContractInputProps, isDragActive: isContractDragActive } = useDropzone({
+  const {
+    getRootProps: getContractRootProps,
+    getInputProps: getContractInputProps,
+    isDragActive: isContractDragActive,
+  } = useDropzone({
     onDrop: onDropContract,
     accept: {
       'application/pdf': ['.pdf'],
-      'image/*': ['.png', '.jpg', '.jpeg']
+      'image/*': ['.png', '.jpg', '.jpeg'],
     },
     multiple: false,
   });
 
-  const handleInputChange = (field: keyof StoreFormData) => (
-    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | any
-  ) => {
-    const value = event.target.value;
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    
-    // Limpiar error del campo
-    if (errors[field]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
+  const handleInputChange =
+    (field: keyof StoreFormData) =>
+    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | any) => {
+      const value = event.target.value;
+      setFormData((prev) => ({ ...prev, [field]: value }));
 
-    // Geocoding automático cuando se cambia la dirección
-    if (field === 'address' && value.length > 5) {
-      geocodeAddress(value);
-    }
-  };
+      // Limpiar error del campo
+      if (errors[field]) {
+        setErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors[field];
+          return newErrors;
+        });
+      }
+
+      // Geocoding automático cuando se cambia la dirección
+      if (field === 'address' && value.length > 5) {
+        geocodeAddress(value);
+      }
+    };
 
   const geocodeAddress = async (address: string) => {
     try {
       // Aquí deberías usar tu API key de Google Maps
       // Por ahora, simularemos el geocoding
       // En producción, usar: https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=YOUR_API_KEY
-      
+
       // Simulación de geocoding
       console.log('Geocoding address:', address);
       // setFormData(prev => ({
@@ -194,7 +202,7 @@ const CreateStoreStep1: React.FC<CreateStoreStep1Props> = ({ onNext, initialData
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (validateForm()) {
       onNext(formData);
     }
@@ -216,7 +224,10 @@ const CreateStoreStep1: React.FC<CreateStoreStep1Props> = ({ onNext, initialData
               </Avatar>
             }
             title={
-              <Typography variant="h5" component="div">
+              <Typography
+                variant="h5"
+                component="div"
+              >
                 Información General de la Tienda
               </Typography>
             }
@@ -224,9 +235,16 @@ const CreateStoreStep1: React.FC<CreateStoreStep1Props> = ({ onNext, initialData
           />
           <Divider />
           <CardContent>
-            <Grid container spacing={3}>
+            <Grid
+              container
+              spacing={3}
+            >
               {/* Nombre de la tienda */}
-              <Grid item xs={12} md={6}>
+              <Grid
+                item
+                xs={12}
+                md={6}
+              >
                 <TextField
                   fullWidth
                   label="Nombre de la Tienda"
@@ -241,7 +259,11 @@ const CreateStoreStep1: React.FC<CreateStoreStep1Props> = ({ onNext, initialData
               </Grid>
 
               {/* Email */}
-              <Grid item xs={12} md={6}>
+              <Grid
+                item
+                xs={12}
+                md={6}
+              >
                 <TextField
                   fullWidth
                   label="Email"
@@ -257,7 +279,11 @@ const CreateStoreStep1: React.FC<CreateStoreStep1Props> = ({ onNext, initialData
               </Grid>
 
               {/* Dirección */}
-              <Grid item xs={12} md={8}>
+              <Grid
+                item
+                xs={12}
+                md={8}
+              >
                 <TextField
                   fullWidth
                   label="Dirección Completa"
@@ -265,14 +291,20 @@ const CreateStoreStep1: React.FC<CreateStoreStep1Props> = ({ onNext, initialData
                   value={formData.address}
                   onChange={handleInputChange('address')}
                   error={!!errors.address}
-                  helperText={errors.address || 'La dirección se usará para calcular latitud y longitud'}
+                  helperText={
+                    errors.address || 'La dirección se usará para calcular latitud y longitud'
+                  }
                   required
                   variant="outlined"
                 />
               </Grid>
 
               {/* Código Postal */}
-              <Grid item xs={12} md={4}>
+              <Grid
+                item
+                xs={12}
+                md={4}
+              >
                 <TextField
                   fullWidth
                   label="Código Postal"
@@ -287,7 +319,11 @@ const CreateStoreStep1: React.FC<CreateStoreStep1Props> = ({ onNext, initialData
               </Grid>
 
               {/* Teléfono */}
-              <Grid item xs={12} md={6}>
+              <Grid
+                item
+                xs={12}
+                md={6}
+              >
                 <TextField
                   fullWidth
                   label="Teléfono"
@@ -302,7 +338,11 @@ const CreateStoreStep1: React.FC<CreateStoreStep1Props> = ({ onNext, initialData
               </Grid>
 
               {/* Fecha Inicio de Contrato */}
-              <Grid item xs={12} md={6}>
+              <Grid
+                item
+                xs={12}
+                md={6}
+              >
                 <DatePicker
                   label="Fecha Inicio de Contrato"
                   value={formData.contractStartDate}
@@ -328,8 +368,16 @@ const CreateStoreStep1: React.FC<CreateStoreStep1Props> = ({ onNext, initialData
               </Grid>
 
               {/* Membresía */}
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth required error={!!errors.membership}>
+              <Grid
+                item
+                xs={12}
+                md={6}
+              >
+                <FormControl
+                  fullWidth
+                  required
+                  error={!!errors.membership}
+                >
                   <InputLabel>Membresía</InputLabel>
                   <Select
                     value={formData.membership}
@@ -346,8 +394,16 @@ const CreateStoreStep1: React.FC<CreateStoreStep1Props> = ({ onNext, initialData
               </Grid>
 
               {/* Sweepstake */}
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth required error={!!errors.sweepstake}>
+              <Grid
+                item
+                xs={12}
+                md={6}
+              >
+                <FormControl
+                  fullWidth
+                  required
+                  error={!!errors.sweepstake}
+                >
                   <InputLabel>Sorteo Activo</InputLabel>
                   <Select
                     value={formData.sweepstake}
@@ -363,20 +419,31 @@ const CreateStoreStep1: React.FC<CreateStoreStep1Props> = ({ onNext, initialData
               </Grid>
 
               {/* Imagen de la Tienda */}
-              <Grid item xs={12} md={6}>
+              <Grid
+                item
+                xs={12}
+                md={6}
+              >
                 <Box>
-                  <Typography variant="subtitle2" gutterBottom>
+                  <Typography
+                    variant="subtitle2"
+                    gutterBottom
+                  >
                     Imagen de la Tienda
                   </Typography>
                   <Box
                     {...getImageRootProps()}
                     sx={{
-                      border: `2px dashed ${isImageDragActive ? theme.palette.primary.main : theme.palette.divider}`,
+                      border: `2px dashed ${
+                        isImageDragActive ? theme.palette.primary.main : theme.palette.divider
+                      }`,
                       borderRadius: 2,
                       p: 3,
                       textAlign: 'center',
                       cursor: 'pointer',
-                      backgroundColor: isImageDragActive ? theme.palette.action.hover : 'transparent',
+                      backgroundColor: isImageDragActive
+                        ? theme.palette.action.hover
+                        : 'transparent',
                       transition: 'all 0.3s ease',
                       '&:hover': {
                         backgroundColor: theme.palette.action.hover,
@@ -396,19 +463,32 @@ const CreateStoreStep1: React.FC<CreateStoreStep1Props> = ({ onNext, initialData
                             borderRadius: '8px',
                           }}
                         />
-                        <Typography variant="caption" display="block" mt={1}>
+                        <Typography
+                          variant="caption"
+                          display="block"
+                          mt={1}
+                        >
                           Haz clic o arrastra para cambiar la imagen
                         </Typography>
                       </Box>
                     ) : (
-                      <Stack spacing={1} alignItems="center">
+                      <Stack
+                        spacing={1}
+                        alignItems="center"
+                      >
                         <CloudUploadTwoToneIcon
                           sx={{ fontSize: 48, color: theme.palette.text.secondary }}
                         />
-                        <Typography variant="body2" color="textSecondary">
+                        <Typography
+                          variant="body2"
+                          color="textSecondary"
+                        >
                           Arrastra una imagen aquí o haz clic para seleccionar
                         </Typography>
-                        <Typography variant="caption" color="textSecondary">
+                        <Typography
+                          variant="caption"
+                          color="textSecondary"
+                        >
                           PNG, JPG, JPEG, GIF o WEBP
                         </Typography>
                       </Stack>
@@ -418,20 +498,31 @@ const CreateStoreStep1: React.FC<CreateStoreStep1Props> = ({ onNext, initialData
               </Grid>
 
               {/* Subida de Contrato */}
-              <Grid item xs={12} md={6}>
+              <Grid
+                item
+                xs={12}
+                md={6}
+              >
                 <Box>
-                  <Typography variant="subtitle2" gutterBottom>
+                  <Typography
+                    variant="subtitle2"
+                    gutterBottom
+                  >
                     Contrato (PDF o Imagen)
                   </Typography>
                   <Box
                     {...getContractRootProps()}
                     sx={{
-                      border: `2px dashed ${isContractDragActive ? theme.palette.primary.main : theme.palette.divider}`,
+                      border: `2px dashed ${
+                        isContractDragActive ? theme.palette.primary.main : theme.palette.divider
+                      }`,
                       borderRadius: 2,
                       p: 3,
                       textAlign: 'center',
                       cursor: 'pointer',
-                      backgroundColor: isContractDragActive ? theme.palette.action.hover : 'transparent',
+                      backgroundColor: isContractDragActive
+                        ? theme.palette.action.hover
+                        : 'transparent',
                       transition: 'all 0.3s ease',
                       '&:hover': {
                         backgroundColor: theme.palette.action.hover,
@@ -442,22 +533,38 @@ const CreateStoreStep1: React.FC<CreateStoreStep1Props> = ({ onNext, initialData
                     <input {...getContractInputProps()} />
                     {contractFileName ? (
                       <Box>
-                        <Typography variant="body1" fontWeight="bold">
+                        <Typography
+                          variant="body1"
+                          fontWeight="bold"
+                        >
                           {contractFileName}
                         </Typography>
-                        <Typography variant="caption" display="block" mt={1}>
+                        <Typography
+                          variant="caption"
+                          display="block"
+                          mt={1}
+                        >
                           Haz clic o arrastra para cambiar el archivo
                         </Typography>
                       </Box>
                     ) : (
-                      <Stack spacing={1} alignItems="center">
+                      <Stack
+                        spacing={1}
+                        alignItems="center"
+                      >
                         <CloudUploadTwoToneIcon
                           sx={{ fontSize: 48, color: theme.palette.text.secondary }}
                         />
-                        <Typography variant="body2" color="textSecondary">
+                        <Typography
+                          variant="body2"
+                          color="textSecondary"
+                        >
                           Arrastra el contrato aquí o haz clic para seleccionar
                         </Typography>
-                        <Typography variant="caption" color="textSecondary">
+                        <Typography
+                          variant="caption"
+                          color="textSecondary"
+                        >
                           PDF, PNG, JPG o JPEG
                         </Typography>
                       </Stack>
@@ -469,7 +576,11 @@ const CreateStoreStep1: React.FC<CreateStoreStep1Props> = ({ onNext, initialData
               {/* Coordenadas (solo lectura) */}
               {(formData.latitude !== null || formData.longitude !== null) && (
                 <>
-                  <Grid item xs={12} md={6}>
+                  <Grid
+                    item
+                    xs={12}
+                    md={6}
+                  >
                     <TextField
                       fullWidth
                       label="Latitud"
@@ -481,7 +592,11 @@ const CreateStoreStep1: React.FC<CreateStoreStep1Props> = ({ onNext, initialData
                       helperText="Calculado automáticamente desde la dirección"
                     />
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid
+                    item
+                    xs={12}
+                    md={6}
+                  >
                     <TextField
                       fullWidth
                       label="Longitud"
@@ -523,4 +638,3 @@ const CreateStoreStep1: React.FC<CreateStoreStep1Props> = ({ onNext, initialData
 };
 
 export default CreateStoreStep1;
-

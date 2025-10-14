@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
+import { Box, Container } from '@mui/material';
 import { useRouter } from 'next/navigation';
+import React from 'react';
 import CreateStoreStep2 from 'src/components/admin/stores/CreateStoreStep2';
-import { Container, Box } from '@mui/material';
 
 function Page(): React.JSX.Element {
   const router = useRouter();
@@ -21,11 +21,13 @@ function Page(): React.JSX.Element {
   return (
     <Container maxWidth="lg">
       <Box sx={{ py: 4 }}>
-        <CreateStoreStep2 onBack={handleBack} onSubmit={handleSubmit} />
+        <CreateStoreStep2
+          onBack={handleBack}
+          onSubmit={handleSubmit}
+        />
       </Box>
     </Container>
   );
 }
 
 export default Page;
-

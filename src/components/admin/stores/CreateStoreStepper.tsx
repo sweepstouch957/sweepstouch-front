@@ -1,22 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
 import {
   Box,
   Container,
+  Paper,
   Step,
   StepLabel,
   Stepper,
-  useTheme,
-  Paper,
   Typography,
+  useTheme,
 } from '@mui/material';
-import { CircleStepIndicator } from 'src/components/application-ui/steppers/circles/circle-step-indicator';
+import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { CircleStepConnector } from 'src/components/application-ui/steppers/circles/circle-step-connector';
+import { CircleStepIndicator } from 'src/components/application-ui/steppers/circles/circle-step-indicator';
 import CreateStoreStep1, { StoreFormData } from './CreateStoreStep1';
 import CreateStoreStep2 from './CreateStoreStep2';
-import { useRouter } from 'next/navigation';
-import toast from 'react-hot-toast';
 
 const steps = ['Información General', 'Información Adicional'];
 
@@ -38,7 +38,7 @@ const CreateStoreStepper: React.FC = () => {
 
   const handleStep2Submit = async (data: any) => {
     setStep2Data(data);
-    
+
     // Aquí deberías hacer la llamada al API para crear la tienda
     const completeData = {
       ...step1Data,
@@ -50,9 +50,9 @@ const CreateStoreStepper: React.FC = () => {
     try {
       // Simulación de llamada al API
       // const response = await storeService.createStore(completeData);
-      
+
       toast.success('Tienda creada exitosamente');
-      
+
       // Redirigir al listado de tiendas
       setTimeout(() => {
         router.push('/admin/management/stores');
@@ -71,16 +71,24 @@ const CreateStoreStepper: React.FC = () => {
           sx={{
             p: 3,
             mb: 4,
-            backgroundColor: theme.palette.mode === 'dark' 
-              ? theme.palette.neutral[900] 
-              : theme.palette.neutral[50],
+            backgroundColor:
+              theme.palette.mode === 'dark'
+                ? theme.palette.neutral[900]
+                : theme.palette.neutral[50],
             border: `1px solid ${theme.palette.divider}`,
           }}
         >
-          <Typography variant="h4" gutterBottom fontWeight="bold">
+          <Typography
+            variant="h4"
+            gutterBottom
+            fontWeight="bold"
+          >
             Crear Nueva Tienda
           </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography
+            variant="body1"
+            color="text.secondary"
+          >
             Complete el formulario en dos pasos para registrar una nueva tienda en el sistema
           </Typography>
         </Paper>
@@ -90,9 +98,10 @@ const CreateStoreStepper: React.FC = () => {
             activeStep={activeStep}
             connector={<CircleStepConnector />}
             sx={{
-              backgroundColor: theme.palette.mode === 'dark' 
-                ? theme.palette.neutral[900] 
-                : theme.palette.background.paper,
+              backgroundColor:
+                theme.palette.mode === 'dark'
+                  ? theme.palette.neutral[900]
+                  : theme.palette.background.paper,
               p: 3,
               borderRadius: 2,
               border: `1px solid ${theme.palette.divider}`,
@@ -115,14 +124,14 @@ const CreateStoreStepper: React.FC = () => {
 
         <Box>
           {activeStep === 0 && (
-            <CreateStoreStep1 
-              onNext={handleStep1Next} 
+            <CreateStoreStep1
+              onNext={handleStep1Next}
               initialData={step1Data || undefined}
             />
           )}
           {activeStep === 1 && (
-            <CreateStoreStep2 
-              onBack={handleStep2Back} 
+            <CreateStoreStep2
+              onBack={handleStep2Back}
               onSubmit={handleStep2Submit}
               initialData={step2Data}
             />
@@ -134,4 +143,3 @@ const CreateStoreStepper: React.FC = () => {
 };
 
 export default CreateStoreStepper;
-
