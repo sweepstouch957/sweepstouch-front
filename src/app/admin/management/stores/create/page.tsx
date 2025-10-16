@@ -20,16 +20,32 @@ import {
   useMediaQuery,
 } from '@mui/material';
 import StepConnector, { stepConnectorClasses } from '@mui/material/StepConnector';
-import { styled, useTheme } from '@mui/material/styles';
+import { styled, useTheme, ThemeProvider, createTheme } from '@mui/material/styles';
 import PageHeading from '@/components/base/page-heading';
 import { useCreateStoreState } from '@/components/admin/stores/create/useCreateStoreState';
 
 // @ts-ignore
 import * as sweepstakesHook from '@/hooks/fetching/sweepstakes/useSweepstakes';
+import { useGeocodeAddress } from '@/hooks/useGeocodeAddress';
+import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { es } from 'date-fns/locale';
+
+
 const useSweepstakesAny: any =
   (sweepstakesHook as any).useSweepstakes ||
   (sweepstakesHook as any).default ||
   (() => ({ data: [], isLoading: false, error: null }));
+
+const pinkTheme = createTheme({
+  palette: {
+    primary: { main: '#FF008A' },
+    secondary: { main: '#FF4D9E' },
+  },
+  components: {
+    MuiButton: { styleOverrides: { root: { borderRadius: 8, textTransform: 'none' } } },
+  },
+});
 
 const steps = ['Información General', 'Equipos y Materiales'];
 
@@ -61,15 +77,11 @@ function LogoPreview() {
     >
       <Box>
         <div style={{ fontSize: 40, lineHeight: 1 }}>🏪</div>
-        <Typography
-          variant="body2"
-          sx={{ mt: 1, fontWeight: 600 }}
-        >
+        <Typography variant="body2"
+          sx={{ mt: 1, fontWeight: 600 }}>
           Logo de la Tienda (preview)
         </Typography>
-        <Typography variant="caption">
-          El logo real se cargará desde el backend posteriormente
-        </Typography>
+        <Typography variant="caption">El logo real se cargará desde el backend posteriormente</Typography>
       </Box>
     </Box>
   );
@@ -83,21 +95,21 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
 
   const { data: swRaw, isLoading: swLoading } = useSweepstakesAny();
   const sweepstakes = React.useMemo(() => {
-    const arr: any[] = Array.isArray((swRaw as any)?.data)
-      ? (swRaw as any).data
-      : Array.isArray(swRaw)
-        ? (swRaw as any)
-        : [];
+    const arr: any[] = Array.isArray((swRaw as any)?.data) ? (swRaw as any).data : Array.isArray(swRaw) ? (swRaw as any) : [];
     return arr.map((x: any) => ({
-      id: String(
-        x.id ?? x._id ?? x.uuid ?? x.sweepstakeId ?? x.sorteoId ?? Math.random(),
-      ),
+      id: String(x.id ?? x._id ?? x.uuid ?? x.sweepstakeId ?? x.sorteoId ?? Math.random()),
       name: String(x.name ?? x.title ?? x.nombre ?? 'Sorteo'),
     }));
   }, [swRaw]);
 
-  const [touched, setTouched] = React.useState(false);
+  const { geocoding, loading: geoLoading, error: geoError } = useGeocodeAddress(state.address ?? '');
+  React.useEffect(() => {
+    if (geocoding) {
+      setState((s: any) => ({ ...s, latitude: geocoding.lat, longitude: geocoding.lng }));
+    }
+  }, [geocoding, setState]);
 
+  const [touched, setTouched] = React.useState(false);
   const isValid = Boolean(
     (state.storeName && state.storeName.trim()) &&
     (state.address && state.address.trim()) &&
@@ -105,7 +117,7 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
     (state.phone && state.phone.trim()) &&
     (state.startDate && state.startDate.trim()) &&
     //(state.membership && state.membership !== '') &&
-    (state.sweepstakeId && state.sweepstakeId !== ''),
+    (state.sweepstakeId && state.sweepstakeId !== '')
   );
 
   const next = () => {
@@ -118,342 +130,265 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
   const helper = (cond: boolean) => (touched && !cond ? 'Campo obligatorio' : '');
 
   return (
-    <Container
-      maxWidth="lg"
-      sx={{ py: { xs: 2, md: 3 } }}
-    >
-      <PageHeading
-        title="Create Store"
-        description="Registra una nueva tienda"
-      />
-      <Card>
-        <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-          <Stepper
-            activeStep={0}
-            connector={<ColorConnector />}
-            sx={{
-              mb: { xs: 2, md: 3 },
-              '& .MuiStep-root': { px: { xs: 0.5, md: 2 } },
-              '& .MuiStepLabel-label': { fontSize: { xs: 13, md: 14 } },
-            }}
-          >
-            {steps.map((label) => (
-              <Step key={label}>
-                <StepLabel>{label}</StepLabel>
-              </Step>
-            ))}
-          </Stepper>
-
-          <Box>
-            <Typography
-              variant="h6"
-              sx={{ mb: 2, fontWeight: 600 }}
-            >
-              Información General de la Tienda
-            </Typography>
-
-            <Grid
-              container
-              spacing={2}
-            >
-              <Grid
-                item
-                xs={12}
-                md={6}
-              >
-                <TextField
-                  label="Nombre de la Tienda *"
-                  fullWidth
-                  value={state.storeName ?? ''}
-                  error={err(Boolean(state.storeName))}
-                  helperText={helper(Boolean(state.storeName))}
-                  onChange={(e) =>
-                    setState((s) => ({ ...s, storeName: e.target.value }))
-                  }
-                />
-              </Grid>
-              <Grid
-                item
-                xs={12}
-                md={6}
-              >
-                <TextField
-                  label="Email (opcional)"
-                  fullWidth
-                  placeholder="storeName@sweeptouch.com"
-                  value={state.email ?? ''}
-                  onChange={(e) => setState((s) => ({ ...s, email: e.target.value }))}
-                />
-              </Grid>
-
-              <Grid
-                item
-                xs={12}
-                md={8}
-              >
-                <TextField
-                  label="Dirección Completa *"
-                  fullWidth
-                  helperText={
-                    helper(Boolean(state.address)) ||
-                    'La dirección se usará para calcular latitud y longitud'
-                  }
-                  error={err(Boolean(state.address))}
-                  value={state.address ?? ''}
-                  onChange={(e) => setState((s) => ({ ...s, address: e.target.value }))}
-                />
-              </Grid>
-              <Grid
-                item
-                xs={12}
-                md={4}
-              >
-                <TextField
-                  label="Código Postal *"
-                  fullWidth
-                  error={err(Boolean(state.zipCode))}
-                  helperText={helper(Boolean(state.zipCode))}
-                  value={state.zipCode ?? ''}
-                  onChange={(e) => setState((s) => ({ ...s, zipCode: e.target.value }))}
-                />
-              </Grid>
-
-              <Grid
-                item
-                xs={12}
-                md={6}
-              >
-                <TextField
-                  label="Teléfono *"
-                  fullWidth
-                  error={err(Boolean(state.phone))}
-                  helperText={helper(Boolean(state.phone))}
-                  value={state.phone ?? ''}
-                  onChange={(e) => setState((s) => ({ ...s, phone: e.target.value }))}
-                />
-              </Grid>
-              <Grid
-                item
-                xs={12}
-                md={6}
-              >
-                <TextField
-                  label="Fecha Inicio de Contrato *"
-                  type="date"
-                  fullWidth
-                  InputLabelProps={{ shrink: true }}
-                  error={err(Boolean(state.startDate))}
-                  helperText={helper(Boolean(state.startDate))}
-                  value={state.startDate ?? ''}
-                  onChange={(e) => setState((s) => ({ ...s, startDate: e.target.value }))}
-                />
-              </Grid>
-
-              <Grid
-                item
-                xs={12}
-                md={6}
-              >
-                <TextField
-                  select
-                  label="Membresía *"
-                  fullWidth
-                  error={err(Boolean(state.membership))}
-                  helperText={helper(Boolean(state.membership))}
-                  value={state.membership ?? ''}
-                  onChange={(e) =>
-                    setState((s) => ({ ...s, membership: e.target.value as any }))
-                  }
-                >
-                  <MenuItem value="Semanal">
-                    Semanal
-                  </MenuItem>
-                  <MenuItem value="Mensual">
-                    Mensual
-                  </MenuItem>
-                </TextField>
-              </Grid>
-              <Grid
-                item
-                xs={12}
-                md={6}
-              >
-                <TextField
-                  select
-                  label="Sorteo Activo *"
-                  fullWidth
-                  error={err(Boolean(state.sweepstakeId))}
-                  helperText={helper(Boolean(state.sweepstakeId))}
-                  value={state.sweepstakeId ?? ''}
-                  onChange={(e) => setState((s) => ({ ...s, sweepstakeId: e.target.value }))}
-                >
-                  {swLoading && (
-                    <MenuItem disabled>
-                      Cargando sorteos…
-                    </MenuItem>
-                  )}
-                  {!swLoading && sweepstakes.length === 0 && (
-                    <MenuItem disabled>
-                      No hay sorteos
-                    </MenuItem>
-                  )}
-                  {sweepstakes.map((s: any) => (
-                    <MenuItem
-                      key={s.id}
-                      value={s.id}
-                    >
-                      {s.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-
-              {/* LOGO */}
-              <Grid
-                item
-                xs={12}
-                md={6}
-              >
-                <Typography
-                  variant="body2"
-                  sx={{ mb: 1, fontWeight: 600 }}
-                >
-                  Logo de la Tienda
-                </Typography>
-                <LogoPreview />
-              </Grid>
-              {/* CONTRATO */}
-              <Grid
-                item
-                xs={12}
-                md={6}
-              >
-                <UploadDrop
-                  label="Contrato (PDF o Imagen)"
-                  accept="application/pdf,image/*"
-                  file={state.contractFile ?? null}
-                  onChange={(file) => {
-                    if (!file)
-                      return setState((s) => ({
-                        ...s,
-                        contractFile: null,
-                        contractFileB64: null,
-                      }));
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                      const res = (reader.result as string) || '';
-                      setState((s) => ({
-                        ...s,
-                        contractFile: file,
-                        contractFileB64: res.split(',')[1],
-                      }));
-                    };
-                    reader.readAsDataURL(file);
-                  }}
-                />
-              </Grid>
-            </Grid>
-
-            <Divider sx={{ my: { xs: 2, md: 3 } }} />
-
-            <Typography
-              variant="h6"
-              sx={{ mb: 2, fontWeight: 600 }}
-            >
-              Información Adicional
-            </Typography>
-
-            <Grid
-              container
-              spacing={2}
-            >
-              <Grid
-                item
-                xs={12}
-                md={6}
-              >
-                <TextField
-                  label="Sitio Web (opcional)"
-                  fullWidth
-                  value={state.website ?? ''}
-                  onChange={(e) => setState((s) => ({ ...s, website: e.target.value }))}
-                />
-              </Grid>
-              <Grid
-                item
-                xs={12}
-                md={6}
-              >
-                <TextField
-                  label="Facebook (opcional)"
-                  fullWidth
-                  value={state.facebook ?? ''}
-                  onChange={(e) => setState((s) => ({ ...s, facebook: e.target.value }))}
-                />
-              </Grid>
-              <Grid
-                item
-                xs={12}
-                md={6}
-              >
-                <TextField
-                  label="Instagram (opcional)"
-                  fullWidth
-                  value={state.instagram ?? ''}
-                  onChange={(e) => setState((s) => ({ ...s, instagram: e.target.value }))}
-                />
-              </Grid>
-              <Grid
-                item
-                xs={12}
-              >
-                <TextField
-                  label="Descripción (opcional)"
-                  fullWidth
-                  multiline
-                  minRows={3}
-                  value={state.description ?? ''}
-                  onChange={(e) => setState((s) => ({ ...s, description: e.target.value }))}
-                />
-              </Grid>
-              <Grid
-                item
-                xs={12}
-              >
-                <TextField
-                  label="Información Adicional (opcional)"
-                  fullWidth
-                  multiline
-                  minRows={3}
-                  value={state.extraInfo ?? ''}
-                  onChange={(e) => setState((s) => ({ ...s, extraInfo: e.target.value }))}
-                />
-              </Grid>
-            </Grid>
-
-            <Box
+    <ThemeProvider theme={pinkTheme}>
+      <Container maxWidth="lg"
+        sx={{ py: { xs: 2, md: 3 } }}>
+        <PageHeading title="Create Store"
+          description="Registra una nueva tienda" />
+        <Card>
+          <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+            <Stepper
+              activeStep={0}
+              connector={<ColorConnector />}
               sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                mt: { xs: 2, md: 3 },
+                mb: { xs: 2, md: 3 },
+                '& .MuiStep-root': { px: { xs: 0.5, md: 2 } },
+                '& .MuiStepLabel-label': { fontSize: { xs: 13, md: 14 } },
               }}
             >
-              <Button variant="outlined"
-                disabled>
-                Atrás
-              </Button>
-              <Button
-                variant="contained"
-                onClick={next}
-                disabled={!isValid}
-              >
-                Siguiente
-              </Button>
+              {steps.map((label) => (
+                <Step key={label}>
+                  <StepLabel>{label}</StepLabel>
+                </Step>
+              ))}
+            </Stepper>
+
+            <Box>
+              <Typography variant="h6"
+                sx={{ mb: 2, fontWeight: 600 }}>
+                Información General de la Tienda
+              </Typography>
+
+              <Grid container
+                spacing={2}>
+                <Grid item
+                  xs={12}
+                  md={6}>
+                  <TextField
+                    label="Nombre de la Tienda *"
+                    fullWidth
+                    value={state.storeName ?? ''}
+                    error={err(Boolean(state.storeName))}
+                    helperText={helper(Boolean(state.storeName))}
+                    onChange={(e) => setState((s: any) => ({ ...s, storeName: e.target.value }))}
+                  />
+                </Grid>
+                <Grid item
+                  xs={12}
+                  md={6}>
+                  <TextField
+                    label="Email (opcional)"
+                    fullWidth
+                    placeholder="storeName@sweeptouch.com"
+                    value={state.email ?? ''}
+                    onChange={(e) => setState((s: any) => ({ ...s, email: e.target.value }))}
+                  />
+                </Grid>
+
+                <Grid item
+                  xs={12}
+                  md={8}>
+                  <TextField
+                    label="Dirección Completa *"
+                    fullWidth
+                    helperText={helper(Boolean(state.address)) || 'La dirección se usará para calcular latitud y longitud'}
+                    error={err(Boolean(state.address))}
+                    value={state.address ?? ''}
+                    onChange={(e) => setState((s: any) => ({ ...s, address: e.target.value }))}
+                  />
+                </Grid>
+                <Grid item
+                  xs={12}
+                  md={4}>
+                  <TextField
+                    label="Código Postal *"
+                    fullWidth
+                    error={err(Boolean(state.zipCode))}
+                    helperText={helper(Boolean(state.zipCode))}
+                    value={state.zipCode ?? ''}
+                    onChange={(e) => setState((s: any) => ({ ...s, zipCode: e.target.value }))}
+                  />
+                </Grid>
+
+
+                <Grid item
+                  xs={12}
+                  md={6}>
+                  <TextField
+                    label="Teléfono *"
+                    fullWidth
+                    error={err(Boolean(state.phone))}
+                    helperText={helper(Boolean(state.phone))}
+                    value={state.phone ?? ''}
+                    onChange={(e) => setState((s: any) => ({ ...s, phone: e.target.value }))}
+                  />
+                </Grid>
+                <Grid item
+                  xs={12}
+                  md={6}>
+                  <LocalizationProvider dateAdapter={AdapterDateFns}
+                    adapterLocale={es}>
+                    <DatePicker label="Fecha Inicio de Contrato *"
+                      value={state.startDate ? new Date(state.startDate) : null}
+                      onChange={(date) => {
+                        const val = date instanceof Date && !isNaN(date.getTime()) ? date.toISOString().slice(0, 10) : '';
+                        setState(s => ({ ...s, startDate: val }));
+                      }}
+                      slotProps={{ textField: { fullWidth: true, required: true } }}
+                    />
+                  </LocalizationProvider>
+                </Grid>
+
+                <Grid item
+                  xs={12}
+                  md={6}>
+                  <TextField
+                    select
+                    label="Membresía *"
+                    fullWidth
+                    error={err(Boolean(state.membership))}
+                    helperText={helper(Boolean(state.membership))}
+                    value={state.membership ?? ''}
+                    onChange={(e) => setState((s: any) => ({ ...s, membership: e.target.value as any }))}
+                  >
+                    <MenuItem value="Semanal">Semanal</MenuItem>
+                    <MenuItem value="Mensual">Mensual</MenuItem>
+                  </TextField>
+                </Grid>
+                <Grid item
+                  xs={12}
+                  md={6}>
+                  <TextField
+                    select
+                    label="Sorteo Activo *"
+                    fullWidth
+                    error={err(Boolean(state.sweepstakeId))}
+                    helperText={helper(Boolean(state.sweepstakeId))}
+                    value={state.sweepstakeId ?? ''}
+                    onChange={(e) => setState((s: any) => ({ ...s, sweepstakeId: e.target.value }))}
+                  >
+                    {swLoading && <MenuItem disabled>Cargando sorteos…</MenuItem>}
+                    {!swLoading && sweepstakes.length === 0 && <MenuItem disabled>No hay sorteos</MenuItem>}
+                    {sweepstakes.map((s: any) => (
+                      <MenuItem key={s.id}
+                        value={s.id}>
+                        {s.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+
+                <Grid item
+                  xs={12}
+                  md={6}>
+                  <Typography variant="body2"
+                    sx={{ mb: 1, fontWeight: 600 }}>
+                    Logo de la Tienda
+                  </Typography>
+                  <LogoPreview />
+                </Grid>
+                <Grid item
+                  xs={12}
+                  md={6}>
+                  <UploadDrop
+                    label="Contrato (PDF o Imagen)"
+                    accept="application/pdf,image/*"
+                    file={state.contractFile ?? null}
+                    onChange={(file) => {
+                      if (!file) {
+                        setState((s: any) => ({ ...s, contractFile: null, contractFileB64: null }));
+                        return;
+                      }
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        const res = (reader.result as string) || '';
+                        setState((s: any) => ({ ...s, contractFile: file, contractFileB64: res.split(',')[1] }));
+                      };
+                      reader.readAsDataURL(file);
+                    }}
+                  />
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ my: { xs: 2, md: 3 } }} />
+
+              <Typography variant="h6"
+                sx={{ mb: 2, fontWeight: 600 }}>
+                Información Adicional
+              </Typography>
+
+              <Grid container
+                spacing={2}>
+                <Grid item
+                  xs={12}
+                  md={6}>
+                  <TextField
+                    label="Sitio Web (opcional)"
+                    fullWidth
+                    value={state.website ?? ''}
+                    onChange={(e) => setState((s: any) => ({ ...s, website: e.target.value }))}
+                  />
+                </Grid>
+                <Grid item
+                  xs={12}
+                  md={6}>
+                  <TextField
+                    label="Facebook (opcional)"
+                    fullWidth
+                    value={state.facebook ?? ''}
+                    onChange={(e) => setState((s: any) => ({ ...s, facebook: e.target.value }))}
+                  />
+                </Grid>
+                <Grid item
+                  xs={12}
+                  md={6}>
+                  <TextField
+                    label="Instagram (opcional)"
+                    fullWidth
+                    value={state.instagram ?? ''}
+                    onChange={(e) => setState((s: any) => ({ ...s, instagram: e.target.value }))}
+                  />
+                </Grid>
+                <Grid item
+                  xs={12}>
+                  <TextField
+                    label="Descripción (opcional)"
+                    fullWidth
+                    multiline
+                    minRows={3}
+                    value={state.description ?? ''}
+                    onChange={(e) => setState((s: any) => ({ ...s, description: e.target.value }))}
+                  />
+                </Grid>
+                <Grid item
+                  xs={12}>
+                  <TextField
+                    label="Información Adicional (opcional)"
+                    fullWidth
+                    multiline
+                    minRows={3}
+                    value={state.extraInfo ?? ''}
+                    onChange={(e) => setState((s: any) => ({ ...s, extraInfo: e.target.value }))}
+                  />
+                </Grid>
+              </Grid>
+
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: { xs: 2, md: 3 } }}>
+                <Button variant="outlined"
+                  disabled>
+                  Atrás
+                </Button>
+                <Button variant="contained"
+                  onClick={next}
+                  disabled={!isValid}>
+                  Siguiente
+                </Button>
+              </Box>
             </Box>
-          </Box>
-        </CardContent>
-      </Card>
-    </Container>
+          </CardContent>
+        </Card>
+      </Container>
+    </ThemeProvider>
   );
 }
 
@@ -471,47 +406,30 @@ function UploadDrop({
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const open = () => inputRef.current?.click();
   return (
-    <Box
-      sx={{
-        p: 2,
-        border: '1px dashed',
-        borderColor: 'divider',
-        borderRadius: 2,
-      }}
-      onClick={open}
-    >
-      <Typography
-        variant="body2"
-        sx={{ mb: 1 }}
-      >
+    <Box sx={{ p: 2, border: '1px dashed', borderColor: 'divider', borderRadius: 2 }}
+      onClick={open}>
+      <Typography variant="body2"
+        sx={{ mb: 1 }}>
         {label}
       </Typography>
-      <Box
-        sx={{ p: { xs: 2, md: 4 }, textAlign: 'center', color: 'text.secondary' }}
-      >
+      <Box sx={{ p: { xs: 2, md: 4 }, textAlign: 'center', color: 'text.secondary' }}>
         <div style={{ fontSize: 20 }}>☁️</div>
         <div>Haz clic para seleccionar un archivo</div>
         <Typography variant="caption">
-          {accept.includes('image')
-            ? 'PNG, JPG, JPEG, GIF o WEBP'
-            : 'PDF, PNG, JPG O JPEG'}
+          {accept.includes('image') ? 'PNG, JPG, JPEG, GIF o WEBP' : 'PDF, PNG, JPG O JPEG'}
         </Typography>
       </Box>
       {file && (
-        <Typography
-          variant="caption"
-          sx={{ display: 'block' }}
-        >
+        <Typography variant="caption"
+          sx={{ display: 'block' }}>
           {file.name}
         </Typography>
       )}
-      <input
-        hidden
+      <input hidden
         ref={inputRef}
         type="file"
         accept={accept}
-        onChange={(e) => onChange(e.target.files?.[0] ?? null)}
-      />
+        onChange={(e) => onChange(e.target.files?.[0] ?? null)} />
     </Box>
   );
 }

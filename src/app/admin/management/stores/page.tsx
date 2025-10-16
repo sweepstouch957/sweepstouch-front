@@ -10,6 +10,7 @@ import { useCustomization } from 'src/hooks/use-customization';
 
 function Page(): React.JSX.Element {
   const customization = useCustomization();
+  const handleExport = (): void => { if (typeof window !== 'undefined') { window.dispatchEvent(new CustomEvent('stores:export')); } };
   const { t } = useTranslation();
   const pageMeta = {
     title: 'List Stores',
@@ -43,6 +44,7 @@ function Page(): React.JSX.Element {
                     },
                   }}
                   variant="contained"
+                  onClick={handleExport}
                   startIcon={<FileDownloadOutlinedIcon fontSize="small" />}
                 >
                   {t('Export')}

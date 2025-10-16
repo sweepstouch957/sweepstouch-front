@@ -1,424 +1,466 @@
-
 'use client';
-
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
 import {
   Box,
-  Button,
-  Card,
-  CardContent,
   Container,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
   Typography,
+  Stack,
+  Button,
+  Grid,
+  Dialog,
+  DialogTitle,
+  DialogContent,
   IconButton,
+  TextField,
+  Card as MuiCard,
+  CardContent as MuiCardContent,
+  CardMedia,
+  Divider,
+  Checkbox,
 } from '@mui/material';
-import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import DevicesIcon from '@mui/icons-material/Devices';
 import PrintIcon from '@mui/icons-material/Print';
+import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
-import PageHeading from '@/components/base/page-heading';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import { useRouter } from 'next/navigation';
 
-export type CreateStoreStep2Props = {
-  onBack?: () => void;
-  onSubmit?: (data: any) => void | Promise<void>;
-  initialData?: any;
+type InventoryItem = {
+  id: string;
+  label: string;
+  description?: string;
+  price: number;
+  image?: string;
 };
 
-type InventoryItem = { id: string; label: string; description?: string; price?: number };
+type QtyMap = Record<string, number>;
+
 const tabletInventory: InventoryItem[] = [
-  { id: 't1', label: 'Tablet 9\" inch', description: 'Android, 64 GB, LTE', price: 200 },
-  { id: 't2', label: 'Tablet 14\" inch', description: 'Android, 128 GB, LTE', price: 500 },
-  { id: 't3', label: 'iPad 10.2', description: 'Wi‑Fi 64 GB', price: 350 },
+  { id: 't9', label: 'Tablet 9" inch', description: 'Android, 64 GB, LTE', price: 200, image: '/images/devices/tablet-9.png' },
+  { id: 't14', label: 'Tablet 14" inch', description: 'Android, 128 GB, LTE', price: 500, image: '/images/devices/tablet-14.png' },
 ];
 
-const printerInventory: InventoryItem[] = [{ id: 'p1', label: 'Impresora térmica', description: 'USB/BT', price: 200 }];
+const printerInventory: InventoryItem[] = [
+  { id: 'p1', label: 'Impresora térmica', description: 'USB/BT', price: 200, image: '/images/devices/printer-thermal.png' },
+];
 
-type QuantityMap = Record<string, number>;
+/** ===== Sección B (lista demo con los items de la captura) ===== */
+type BItem = { id: string; name: string; material: string; price: number; checked: boolean; qty: number };
+const initialBItems: BItem[] = [
+  { id: 'b-5x5', name: `Poster 5' x 5'`, material: 'Coroplast', price: 175, checked: false, qty: 0 },
+  { id: 'b-2x3', name: `Poster 2' x 3'`, material: 'Coroplast', price: 42, checked: false, qty: 0 },
+  { id: 'b-4x5', name: `Poster 4' x 5'`, material: 'Coroplast', price: 140, checked: false, qty: 0 },
+  { id: 'b-3x5', name: `Poster 3' x 5'`, material: 'Coroplast', price: 105, checked: false, qty: 0 },
+  { id: 'b-5x7', name: `Poster 5' x 7'`, material: 'Coroplast', price: 245, checked: false, qty: 0 },
+  { id: 'b-7x10', name: `Poster 7' x 10'`, material: 'Coroplast', price: 490, checked: false, qty: 0 },
+  { id: 'b-a-sm', name: 'Ánfora acrílica pequeña', material: 'Acrílico', price: 250, checked: false, qty: 0 },
+  { id: 'b-a-lg', name: 'Ánfora acrílica grande', material: 'Acrílico', price: 800, checked: false, qty: 0 },
+  { id: 'b-stand', name: 'Stand A (incluye 1 póster)', material: 'Vinyl', price: 500, checked: false, qty: 0 },
+  { id: 'b-deliv', name: 'Delivery, instalación', material: '—', price: 100, checked: false, qty: 0 },
+  { id: 'b-setup', name: 'Setup', material: '—', price: 999, checked: false, qty: 0 },
+];
 
-function InventoryPicker({
-  open,
-  onClose,
-  title,
-  items,
-  quantities,
-  onApply,
-}: {
-  open: boolean;
-  onClose: () => void;
-  title: string;
-  items: InventoryItem[];
-  quantities: QuantityMap;
-  onApply: (n: QuantityMap) => void;
-}) {
-  const [query, setQuery] = React.useState('');
-  const [localQty, setLocalQty] = React.useState<QuantityMap>(quantities);
-  React.useEffect(() => setLocalQty(quantities), [quantities]);
+/* Utils */
+function selectedWithQty(items: InventoryItem[], qmap: QtyMap) {
+  return items.filter(i => (qmap[i.id] ?? 0) > 0).map(i => ({ ...i, qty: qmap[i.id] ?? 0 }));
+}
+// duplica por cantidad para renderizar una card por unidad
+function expandByQty<T extends { id: string; qty: number }>(items: T[]) {
+  return items.flatMap((it) => Array.from({ length: it.qty }).map((_, i) => ({ ...it, uid: `${it.id}-${i}` })));
+}
 
-  const filtered = items.filter(
-    (i) =>
-      i.label.toLowerCase().includes(query.toLowerCase()) ||
-      (i.description ?? '').toLowerCase().includes(query.toLowerCase()),
-  );
-
-  const changeQty = (id: string, d: number) =>
-    setLocalQty((prev) => ({ ...prev, [id]: Math.max(0, (prev[id] ?? 0) + d) }));
-  const setQty = (id: string, v: number) => setLocalQty((prev) => ({ ...prev, [id]: Math.max(0, v) }));
-
-  const lineTotal = (p?: number, q?: number) => (typeof p === 'number' ? p : 0) * (typeof q === 'number' ? q : 0);
-  const modalTotal = filtered.reduce((acc, it) => acc + lineTotal(it.price, localQty[it.id] ?? 0), 0);
-
+function ItemCardCompact({
+  title, desc, price, image, onRemove,
+}: { title: string; desc?: string; price: number; image?: string; onRemove?: () => void }) {
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      fullWidth
-      maxWidth="sm"
-    >
-      <DialogTitle>{title}</DialogTitle>
-      <DialogContent>
-        <TextField
-          fullWidth
-          size="small"
-          margin="dense"
-          placeholder="Buscar en inventario..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <List dense>
-          {filtered.map((it) => {
-            const qty = localQty[it.id] ?? 0;
-            return (
-              <ListItem
-                key={it.id}
-                alignItems="flex-start"
-              >
-                <ListItemText
-                  primary={`${it.label}${typeof it.price === 'number' ? ` — $${it.price}` : ''}`}
-                  secondary={it.description}
-                />
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  spacing={1}
-                  sx={{ minWidth: 220 }}
-                >
-                  <IconButton
-                    size="small"
-                    onClick={() => changeQty(it.id, -1)}
-                  >
-                    <RemoveIcon fontSize="small" />
-                  </IconButton>
-                  <TextField
-                    type="number"
-                    size="small"
-                    sx={{ width: 80 }}
-                    value={qty}
-                    inputProps={{ min: 0 }}
-                    onChange={(e) => setQty(it.id, Number(e.target.value || 0))}
-                  />
-                  <IconButton
-                    size="small"
-                    onClick={() => changeQty(it.id, 1)}
-                  >
-                    <AddIcon fontSize="small" />
-                  </IconButton>
-                  <Box
-                    sx={{ ml: 2, minWidth: 80, textAlign: 'right' }}
-                  >
-                    <Typography variant="body2">
-                      <strong>${lineTotal(it.price, qty)}</strong>
-                    </Typography>
-                  </Box>
-                </Stack>
-              </ListItem>
-            );
-          })}
-        </List>
-      </DialogContent>
-      <DialogActions
-        sx={{ justifyContent: 'space-between', px: 3 }}
-      >
-        <Typography variant="subtitle2">Total: ${modalTotal}</Typography>
-        <Box>
-          <Button
-            onClick={onClose}
-            sx={{ mr: 1 }}
-          >
-            Cancelar
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddShoppingCartIcon />}
-            onClick={() => {
-              onApply(localQty);
-              onClose();
-            }}
-          >
-            Agregar
-          </Button>
+    <MuiCard variant="outlined"
+      sx={{ display: 'flex', alignItems: 'stretch', height: 96 }}>
+      {image ? (
+        <CardMedia component="img"
+          image={image}
+          alt={title}
+          sx={{ width: 120, height: '100%', objectFit: 'cover', borderRight: '1px solid', borderColor: 'divider' }} />
+      ) : <Box sx={{ width: 120, height: '100%', bgcolor: 'action.hover' }} />}
+      <MuiCardContent sx={{ p: 1.25, flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Typography variant="body2"
+          sx={{ fontWeight: 600, lineHeight: 1.2 }}>{title}</Typography>
+        {desc && <Typography variant="caption"
+          sx={{ color: 'text.secondary', mt: 0.25 }}>{desc}</Typography>}
+        <Box sx={{ mt: 'auto', display: 'flex', alignItems: 'center' }}>
+          <Typography variant="caption">${price} c/u</Typography>
+          <Box sx={{ ml: 'auto' }}>
+            <IconButton size="small"
+              onClick={onRemove}
+              aria-label="Eliminar">
+              <DeleteOutlineIcon fontSize="small" />
+            </IconButton>
+          </Box>
         </Box>
-      </DialogActions>
-    </Dialog>
+      </MuiCardContent>
+    </MuiCard>
   );
 }
 
-export default function CreateStoreStep2({ onBack, onSubmit }: CreateStoreStep2Props) {
+type Props = {
+  /** lo envía el stepper padre */
+  onBack?: () => void;
+  onSubmit?: (data: any) => void | Promise<void>;
+  initialData?: {
+    tabletQty?: QtyMap;
+    printerQty?: QtyMap;
+    sectionB?: BItem[];
+  };
+};
+
+export default function CreateStoreStep2({ onBack, onSubmit, initialData }: Props) {
   const router = useRouter();
-  const goBack = () => {
-    if (onBack) return onBack();
-    router.push('/admin/management/stores/create');
+
+  /** Sección A */
+  const [tabletQty, setTabletQty] = React.useState<QtyMap>(initialData?.tabletQty ?? {});
+  const [printerQty, setPrinterQty] = React.useState<QtyMap>(initialData?.printerQty ?? {});
+  const [openTablets, setOpenTablets] = React.useState(false);
+  const [openPrinters, setOpenPrinters] = React.useState(false);
+
+  const changeQty = (
+    setter: React.Dispatch<React.SetStateAction<QtyMap>>,
+    map: QtyMap,
+    id: string,
+    delta: number,
+  ) => setter({ ...map, [id]: Math.max(0, (map[id] ?? 0) + delta) });
+
+  const equipmentTotal = React.useMemo(() => {
+    const all = [...tabletInventory, ...printerInventory];
+    const allQty: QtyMap = { ...tabletQty, ...printerQty };
+    return Object.entries(allQty).reduce((acc, [id, qty]) => {
+      const item = all.find(i => i.id === id);
+      return acc + (item?.price ?? 0) * qty;
+    }, 0);
+  }, [tabletQty, printerQty]);
+
+  /** Sección B (restaurada) */
+  const [sectionB, setSectionB] = React.useState<BItem[]>(initialData?.sectionB ?? initialBItems);
+  const sectionBTotal = sectionB.reduce((acc, it) => acc + (it.checked ? it.qty * it.price : 0), 0);
+
+  /** Guardar todo el step 2 */
+  const handleSave = async () => {
+    const payload = {
+      tabletQty,
+      printerQty,
+      sectionB,
+      equipmentTotal,
+      sectionBTotal,
+      grandTotal: equipmentTotal + sectionBTotal,
+    };
+    await onSubmit?.(payload);
   };
 
-  const [tabletQty, setTabletQty] = React.useState<QuantityMap>({});
-  const [printerQty, setPrinterQty] = React.useState<QuantityMap>({});
-  const [pickTablets, setPickTablets] = React.useState(false);
-  const [pickPrinters, setPickPrinters] = React.useState(false);
-
-  type MaterialRow = { id: string; product: string; material?: string; price?: number; checked: boolean; qty: number };
-  const [materials, setMaterials] = React.useState<MaterialRow[]>([
-    { id: 'm1', product: "Poster 5' x 5'", material: 'Coroplast', price: 175, checked: false, qty: 0 },
-    { id: 'm2', product: "Poster 2' x 3'", material: 'Coroplast', price: 42, checked: false, qty: 0 },
-    { id: 'm3', product: "Poster 4' x 5'", material: 'Coroplast', price: 140, checked: false, qty: 0 },
-    { id: 'm4', product: "Poster 3' x 5'", material: 'Coroplast', price: 105, checked: false, qty: 0 },
-    { id: 'm5', product: "Poster 5' x 7'", material: 'Coroplast', price: 245, checked: false, qty: 0 },
-    { id: 'm6', product: "Poster 7' x 10'", material: 'Coroplast', price: 490, checked: false, qty: 0 },
-    { id: 'm7', product: 'Ánfora acrílica pequeña', material: 'Acrílico', price: 250, checked: false, qty: 0 },
-    { id: 'm8', product: 'Ánfora acrílica grande', material: 'Acrílico', price: 800, checked: false, qty: 0 },
-    { id: 'm9', product: 'Stand A (incluye 1 póster)', material: 'Vinyl', price: 500, checked: false, qty: 0 },
-    { id: 'm10', product: 'Delivery, instalación', material: '—', price: 100, checked: false, qty: 0 },
-    { id: 'm11', product: 'Setup', material: '—', price: 999, checked: false, qty: 0 },
-  ]);
-
-  const toggleMaterial = (id: string) =>
-    setMaterials((rows) => rows.map((r) => (r.id === id ? { ...r, checked: !r.checked } : r)));
-  const changeQty = (id: string, d: number) =>
-    setMaterials((rows) =>
-      rows.map((r) => (r.id === id ? { ...r, qty: Math.max(0, (r.qty ?? 0) + d), checked: (r.qty ?? 0) + d > 0 || r.checked } : r)),
-    );
-  const setQty = (id: string, v: number) =>
-    setMaterials((rows) => rows.map((r) => (r.id === id ? { ...r, qty: Math.max(0, v), checked: v > 0 || r.checked } : r)));
-
-  const summarizeQty = (items: InventoryItem[], qmap: QuantityMap) =>
-    items
-      .filter((i) => (qmap[i.id] ?? 0) > 0)
-      .map((i) => `${i.label} x ${qmap[i.id]}`)
-      .join(', ') || '—';
-
-  const lineTotal = (p?: number, q?: number) => (typeof p === 'number' ? p : 0) * (typeof q === 'number' ? q : 0);
-  const grandTotal = materials.reduce((a, r) => a + lineTotal(r.price, r.qty), 0);
-
-  const equipmentTotal =
-    tabletInventory.reduce((acc, i) => acc + lineTotal(i.price, tabletQty[i.id] ?? 0), 0) +
-    printerInventory.reduce((acc, i) => acc + lineTotal(i.price, printerQty[i.id] ?? 0), 0);
+  const handleBack = () => {
+    if (onBack) return onBack();
+    router.back();
+  };
 
   return (
-    <Container
-      maxWidth="md"
-      sx={{ py: 3 }}
-    >
-      <PageHeading
-        title="Create Store — Step 2 (Equipos y Materiales)"
-        description="Selecciona tablets, impresoras y materiales para la nueva tienda."
-      />
-      <Card>
-        <CardContent>
-          <Box>
-            <Typography
-              variant="h6"
-              sx={{ fontWeight: 600, mb: 1 }}
-            >
-              Sección A: Equipos
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
+    <Container maxWidth="lg"
+      sx={{ py: 3 }}>
+      <Typography variant="h6"
+        sx={{ mb: 2, fontWeight: 600 }}>Equipos y Materiales</Typography>
 
-            <Stack
-              direction={{ xs: 'column', sm: 'row' }}
-              spacing={2}
-              alignItems="center"
-              sx={{ mb: 2 }}
-            >
-              <DevicesIcon />
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="subtitle1">Tablets</Typography>
-                <Typography sx={{ mt: 1 }}>
-                  <strong>Seleccionadas:</strong> {summarizeQty(tabletInventory, tabletQty)}
-                </Typography>
+      {/* ====== Sección A: Tablets ====== */}
+      <Stack direction={{ xs: 'column', sm: 'row' }}
+        spacing={2}
+        alignItems="center"
+        sx={{ mb: 1.5 }}>
+        <DevicesIcon />
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="subtitle1">Tablets</Typography>
+          <Typography variant="body2"
+            sx={{ color: 'text.secondary' }}>Selecciona la cantidad desde el inventario</Typography>
+        </Box>
+        <Button variant="outlined"
+          onClick={() => setOpenTablets(true)}>Agregar</Button>
+      </Stack>
+
+      <Grid container
+        spacing={1.5}>
+        {expandByQty(selectedWithQty(tabletInventory, tabletQty)).map((it) => (
+          <Grid key={it.uid}
+            item
+            xs={12}
+            sm={6}
+            md={4}>
+            <ItemCardCompact
+              title={it.label}
+              desc={it.description}
+              price={it.price}
+              image={it.image}
+              onRemove={() => setTabletQty(prev => ({ ...prev, [it.id]: Math.max(0, (prev[it.id] ?? 0) - 1) }))}
+            />
+          </Grid>
+        ))}
+      </Grid>
+
+      {/* ====== Sección A: Impresora térmica ====== */}
+      <Stack direction={{ xs: 'column', sm: 'row' }}
+        spacing={2}
+        alignItems="center"
+        sx={{ mt: 2.5, mb: 1.5 }}>
+        <PrintIcon />
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="subtitle1">Impresora térmica</Typography>
+          <Typography variant="body2"
+            sx={{ color: 'text.secondary' }}>Selecciona la cantidad desde el inventario</Typography>
+        </Box>
+        <Button variant="outlined"
+          onClick={() => setOpenPrinters(true)}>Agregar</Button>
+      </Stack>
+
+      <Grid container
+        spacing={1.5}>
+        {expandByQty(selectedWithQty(printerInventory, printerQty)).map((it) => (
+          <Grid key={it.uid}
+            item
+            xs={12}
+            sm={6}
+            md={4}>
+            <ItemCardCompact
+              title={it.label}
+              desc={it.description}
+              price={it.price}
+              image={it.image}
+              onRemove={() => setPrinterQty(prev => ({ ...prev, [it.id]: Math.max(0, (prev[it.id] ?? 0) - 1) }))}
+            />
+          </Grid>
+        ))}
+      </Grid>
+
+      <Typography variant="body2"
+        sx={{ textAlign: 'right', mt: 2, color: 'text.secondary' }}>
+        Total equipos: <strong>${equipmentTotal}</strong>
+      </Typography>
+
+      {/* ===== Modales de selección ===== */}
+      <Dialog open={openTablets}
+        onClose={() => setOpenTablets(false)}
+        maxWidth="sm"
+        fullWidth>
+        <DialogTitle sx={{ pr: 6 }}>Seleccionar tablets del inventario</DialogTitle>
+        <IconButton onClick={() => setOpenTablets(false)}
+          sx={{ position: 'absolute', right: 8, top: 8 }}>
+          <CloseIcon />
+        </IconButton>
+        <DialogContent dividers>
+          <Stack spacing={1.5}>
+            {tabletInventory.map((it) => (
+              <Box key={it.id}
+                sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                {it.image ? (
+                  <Box sx={{
+                    width: 72,
+                    height: 54, overflow: 'hidden', borderRadius: 1, bgcolor: 'action.hover'
+                  }}>
+                    <img src={it.image}
+                      alt={it.label}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </Box>
+                ) : <Box sx={{ width: 72, height: 54, bgcolor: 'action.hover' }} />}
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="body2"
+                    sx={{ fontWeight: 600 }}>{it.label}</Typography>
+                  <Typography variant="caption"
+                    sx={{ color: 'text.secondary' }}>{it.description}</Typography>
+                </Box>
+                <Typography variant="body2"
+                  sx={{ width: 80 }}>${it.price}</Typography>
+                <IconButton size="small"
+                  onClick={() => changeQty(setTabletQty, tabletQty, it.id, -1)}><RemoveIcon fontSize="small" /></IconButton>
+                <TextField size="small"
+                  value={tabletQty[it.id] ?? 0}
+                  inputProps={{ style: { width: 36, textAlign: 'center' } }} />
+                <IconButton size="small"
+                  onClick={() => changeQty(setTabletQty, tabletQty, it.id, +1)}><AddIcon fontSize="small" /></IconButton>
               </Box>
-              <Button
-                variant="outlined"
-                onClick={() => setPickTablets(true)}
-              >
-                Agregar
-              </Button>
-            </Stack>
-
-            <Stack
-              direction={{ xs: 'column', sm: 'row' }}
-              spacing={2}
-              alignItems="center"
-              sx={{ mb: 3 }}
-            >
-              <PrintIcon />
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="subtitle1">Impresora térmica</Typography>
-                <Typography sx={{ mt: 1 }}>
-                  <strong>Seleccionadas:</strong> {summarizeQty(printerInventory, printerQty)}
-                </Typography>
-              </Box>
-              <Button
-                variant="outlined"
-                onClick={() => setPickPrinters(true)}
-              >
-                Agregar
-              </Button>
-            </Stack>
-
-            <Typography
-              variant="body2"
-              sx={{ textAlign: 'right', color: 'text.secondary' }}
-            >
-              Total equipos: <strong>${equipmentTotal}</strong>
-            </Typography>
-          </Box>
-
-          <Box sx={{ mt: 4 }}>
-            <Typography
-              variant="h6"
-              sx={{ fontWeight: 600, mb: 1 }}
-            >
-              Sección B: Posters y Materiales
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Producto</TableCell>
-                    <TableCell>Material</TableCell>
-                    <TableCell>Precio</TableCell>
-                    <TableCell>Seleccionar</TableCell>
-                    <TableCell>Cantidad</TableCell>
-                    <TableCell>Total</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {materials.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      hover
-                    >
-                      <TableCell>{row.product}</TableCell>
-                      <TableCell>{row.material ?? '—'}</TableCell>
-                      <TableCell>{typeof row.price === 'number' ? `$${row.price}` : '—'}</TableCell>
-                      <TableCell>
-                        <input
-                          type="checkbox"
-                          checked={row.checked}
-                          onChange={() => toggleMaterial(row.id)}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Stack
-                          direction="row"
-                          alignItems="center"
-                          spacing={1}
-                        >
-                          <IconButton
-                            size="small"
-                            onClick={() => changeQty(row.id, -1)}
-                          >
-                            <RemoveIcon fontSize="small" />
-                          </IconButton>
-                          <TextField
-                            type="number"
-                            size="small"
-                            sx={{ width: 80 }}
-                            value={row.qty}
-                            inputProps={{ min: 0 }}
-                            onChange={(e) => setQty(row.id, Number(e.target.value || 0))}
-                          />
-                          <IconButton
-                            size="small"
-                            onClick={() => changeQty(row.id, 1)}
-                          >
-                            <AddIcon fontSize="small" />
-                          </IconButton>
-                        </Stack>
-                      </TableCell>
-                      <TableCell>{`$${lineTotal(row.price, row.qty)}`}</TableCell>
-                    </TableRow>
-                  ))}
-                  <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      align="right"
-                    >
-                      <strong>Total general (materiales)</strong>
-                    </TableCell>
-                    <TableCell>
-                      <strong>{`$${grandTotal}`}</strong>
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Box>
-
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            spacing={2}
-            sx={{ mt: 3 }}
-          >
-            <Button
-              variant="outlined"
-              onClick={goBack}
-            >
-              Atrás
-            </Button>
-            <Button
-              variant="contained"
-              onClick={() => onSubmit?.({ tablets: tabletQty, printers: printerQty, materials })}
-            >
-              Guardar y continuar
-            </Button>
+            ))}
           </Stack>
-        </CardContent>
-      </Card>
+        </DialogContent>
+        <Box sx={{ p: 1.5, display: 'flex', justifyContent: 'flex-end' }}>
+          <Button variant="contained"
+            onClick={() => setOpenTablets(false)}>Agregar</Button>
+        </Box>
+      </Dialog>
 
-      <InventoryPicker
-        open={pickTablets}
-        onClose={() => setPickTablets(false)}
-        title="Seleccionar tablets del inventario"
-        items={tabletInventory}
-        quantities={tabletQty}
-        onApply={setTabletQty}
-      />
-      <InventoryPicker
-        open={pickPrinters}
-        onClose={() => setPickPrinters(false)}
-        title="Seleccionar impresora térmica"
-        items={printerInventory}
-        quantities={printerQty}
-        onApply={setPrinterQty}
-      />
+      <Dialog open={openPrinters}
+        onClose={() => setOpenPrinters(false)}
+        maxWidth="sm"
+        fullWidth>
+        <DialogTitle sx={{ pr: 6 }}>Seleccionar impresoras del inventario</DialogTitle>
+        <IconButton onClick={() => setOpenPrinters(false)}
+          sx={{ position: 'absolute', right: 8, top: 8 }}>
+          <CloseIcon />
+        </IconButton>
+        <DialogContent dividers>
+          <Stack spacing={1.5}>
+            {printerInventory.map((it) => (
+              <Box key={it.id}
+                sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                {it.image ? (
+                  <Box sx={{ width: 72, height: 54, overflow: 'hidden', borderRadius: 1, bgcolor: 'action.hover' }}>
+                    <img src={it.image}
+                      alt={it.label}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </Box>
+                ) : <Box sx={{ width: 72, height: 54, bgcolor: 'action.hover' }} />}
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="body2"
+                    sx={{ fontWeight: 600 }}>{it.label}</Typography>
+                  <Typography variant="caption"
+                    sx={{ color: 'text.secondary' }}>{it.description}</Typography>
+                </Box>
+                <Typography variant="body2"
+                  sx={{ width: 80 }}>${it.price}</Typography>
+                <IconButton size="small"
+                  onClick={() => changeQty(setPrinterQty, printerQty, it.id, -1)}><RemoveIcon fontSize="small" /></IconButton>
+                <TextField size="small"
+                  value={printerQty[it.id] ?? 0}
+                  inputProps={{ style: { width: 36, textAlign: 'center' } }} />
+                <IconButton size="small"
+                  onClick={() => changeQty(setPrinterQty, printerQty, it.id, +1)}><AddIcon fontSize="small" /></IconButton>
+              </Box>
+            ))}
+          </Stack>
+        </DialogContent>
+        <Box sx={{ p: 1.5, display: 'flex', justifyContent: 'flex-end' }}>
+          <Button variant="contained"
+            onClick={() => setOpenPrinters(false)}>Agregar</Button>
+        </Box>
+      </Dialog>
+
+      <Divider sx={{ my: 3 }} />
+
+      {/* ===== Sección B (RESTABLECIDA) ===== */}
+      <Typography variant="h6"
+        sx={{ mb: 1, fontWeight: 600 }}>Sección B: Posters y Materiales</Typography>
+
+      {/* Encabezados */}
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: 'minmax(170px,1.4fr) 140px 110px 130px 120px 120px',
+        gap: 1, px: 1, py: 1, bgcolor: 'background.paper',
+        border: '1px solid', borderColor: 'divider', borderRadius: 1, fontWeight: 600,
+      }}>
+        <Typography variant="caption">PRODUCTO</Typography>
+        <Typography variant="caption">MATERIAL</Typography>
+        <Typography variant="caption">PRECIO</Typography>
+        <Typography variant="caption">SELECCIONAR</Typography>
+        <Typography variant="caption">CANTIDAD</Typography>
+        <Typography variant="caption">TOTAL</Typography>
+      </Box>
+
+      {/* Filas */}
+      <Box sx={{ mt: 0.75 }}>
+        {sectionB.map((row, idx) => {
+          const total = row.checked ? row.qty * row.price : 0;
+
+          const setQty = (next: number) => {
+            setSectionB(prev =>
+              prev.map((r, i) =>
+                i === idx
+                  ? { ...r, qty: next, checked: next > 0 ? true : false }
+                  : r
+              ),
+            );
+          };
+
+          return (
+            <Box
+              key={row.id}
+              sx={{
+                display: 'grid',
+                gridTemplateColumns:
+                  'minmax(170px,1.4fr) 140px 110px 130px 120px 120px',
+                gap: 1,
+                alignItems: 'center',
+                p: 1,
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1,
+                mb: 0.75,
+              }}
+            >
+              <Typography variant="body2"
+                sx={{ fontWeight: 600 }}>
+                {row.name}
+              </Typography>
+              <Typography variant="body2">{row.material}</Typography>
+              <Typography variant="body2">${row.price}</Typography>
+
+              <Checkbox
+                checked={row.checked}
+                onChange={(_, c) =>
+                  setSectionB(prev =>
+                    prev.map((r, i) => (i === idx ? { ...r, checked: c } : r)),
+                  )
+                }
+              />
+
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <IconButton
+                  size="small"
+                  onClick={() => setQty(Math.max(0, row.qty - 1))}
+                >
+                  <RemoveIcon fontSize="small" />
+                </IconButton>
+
+                <TextField
+                  size="small"
+                  type="number"
+                  value={row.qty}
+                  onChange={(e) => {
+                    const v = Math.max(0, parseInt(e.target.value || '0', 10));
+                    setQty(v);
+                  }}
+                  InputProps={{ inputProps: { min: 0 } }}
+                  sx={{
+                    width: 56,
+                    '& input': {
+                      textAlign: 'center',
+                      padding: '6px 0',
+                    },
+                  }}
+                />
+
+                <IconButton size="small"
+                  onClick={() => setQty(row.qty + 1)}>
+                  <AddIcon fontSize="small" />
+                </IconButton>
+              </Box>
+
+              <TextField
+                size="small"
+                value={`$${total}`}
+                InputProps={{ readOnly: true }}
+                sx={{
+                  '& input': { textAlign: 'center', fontWeight: 600 },
+                }}
+              />
+            </Box>
+          );
+        })}
+
+      </Box>
+
+      <Typography variant="body2"
+        sx={{ textAlign: 'right', mt: 1.5, color: 'text.secondary' }}>
+        Total Sección B: <strong>${sectionBTotal}</strong>
+      </Typography>
+
+      {/* Footer acciones del Step 2 */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
+        <Button variant="outlined"
+          onClick={handleBack}>Atrás</Button>
+        <Button variant="contained"
+          onClick={handleSave}>Guardar</Button>
+      </Box>
     </Container>
   );
 }

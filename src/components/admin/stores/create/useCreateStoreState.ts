@@ -11,6 +11,9 @@ export type CreateStoreState = {
   startDate?: string;
   membership?: 'Semanal' | 'Mensual' | '';
   sweepstakeId?: string;
+  latitude?: string;
+  longitude?: string;
+
   storeImageFile?: File | null;
   storeImageB64?: string | null;
   contractFile?: File | null;
