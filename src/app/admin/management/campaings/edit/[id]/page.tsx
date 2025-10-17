@@ -13,7 +13,6 @@ export default function EditCampaignPage() {
   const router = useRouter();
   const campaignId = params?.id;
 
-  // 1. Traer la campaña por ID
   const {
     data: campaign,
     isLoading: isCampaignLoading,
@@ -25,7 +24,6 @@ export default function EditCampaignPage() {
     staleTime: 1000 * 60 * 5,
   });
 
-  // 2. Traer la tienda asociada a la campaña
   const {
     data: store,
     isLoading: isStoreLoading,
@@ -37,7 +35,6 @@ export default function EditCampaignPage() {
     staleTime: 1000 * 60 * 5,
   });
 
-  // Loading con Skeleton
   if (isCampaignLoading || (campaign?.store && isStoreLoading)) {
     return (
       <Container
@@ -59,7 +56,6 @@ export default function EditCampaignPage() {
     );
   }
 
-  // Errores
   if (isCampaignError || !campaign) {
     return (
       <Container
@@ -82,21 +78,31 @@ export default function EditCampaignPage() {
     );
   }
 
-  // Render final
   return (
     <Container
       maxWidth="lg"
       sx={{ py: 6 }}
     >
-      {/* Flecha para volver */}
-      <IconButton
-        onClick={() => router.back()}
-        sx={{ mb: 2 }}
+      {/* Flecha al lado del texto */}
+      <Box
+        display="flex"
+        alignItems="center"
+        mb={3}
+        gap={1}
       >
-        <ArrowBackIosNewIcon />
-      </IconButton>
+        <IconButton
+          onClick={() => {
+            if (window.history.length > 1) {
+              router.back(); // volver si hay historial
+            } else {
+              router.push('/admin/management/campaings'); // fallback
+            }
+          }}
+          size="small"
+        >
+          <ArrowBackIosNewIcon fontSize="small" />
+        </IconButton>
 
-      <Box mb={1}>
         <Typography
           variant="h5"
           component="h1"
@@ -112,7 +118,7 @@ export default function EditCampaignPage() {
         totalAudience={store.customerCount}
         initialData={campaign}
         onCreate={() => {
-          router.back();
+          router.push('/admin/management/campaigns');
         }}
       />
     </Container>

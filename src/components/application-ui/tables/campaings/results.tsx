@@ -1,4 +1,5 @@
 import { Campaing, CampaingStatus } from '@/models/campaing';
+import { campaignClient } from '@/services/campaing.service';
 import {
   ClearRounded as ClearIcon,
   DeleteRounded,
@@ -41,7 +42,6 @@ import type { FC } from 'react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SkeletonTableRow } from '../../skeleton/table/table';
-import { campaignClient } from '@/services/campaing.service';
 
 interface ResultsProps {
   campaigns: Campaing[];
@@ -365,7 +365,7 @@ const Results: FC<ResultsProps> = ({
             onClick={handleDelete}
             color="error"
             startIcon={<DeleteRounded />}
-            variant='contained'
+            variant="contained"
           >
             Eliminar
           </Button>
