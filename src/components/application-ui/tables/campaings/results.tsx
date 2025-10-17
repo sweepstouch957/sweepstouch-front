@@ -1,3 +1,4 @@
+import React from 'react';
 import { Campaing, CampaingStatus } from '@/models/campaing';
 import {
   ClearRounded as ClearIcon,
@@ -54,13 +55,22 @@ interface ResultsProps {
 }
 
 const getInvoiceStatusLabel = (campaignStatus: CampaingStatus): JSX.Element => {
-  const map = {
+  const map: Partial<Record<CampaingStatus, {
+    text: string;
+    color: 'warning' | 'success' | 'info' | 'primary';
+  }>> = {
     scheduled: { text: 'Scheduled', color: 'warning' },
     completed: { text: 'Completed', color: 'success' },
     draft: { text: 'Draft', color: 'info' },
     active: { text: 'Active', color: 'primary' },
+    // opcionalmente agrega los extras si existen:
+    progress: { text: 'In Progress', color: 'primary' },
+    cancelled: { text: 'Cancelled', color: 'warning' },
   };
-  const { text, color }: any = map[campaignStatus];
+
+  // Fallback seguro si llega un estado no mapeado:
+  const { text, color } = map[campaignStatus] ?? { text: String(campaignStatus), color: 'info' as const };
+
 
   return (
     <Chip
@@ -80,13 +90,85 @@ const Results: FC<ResultsProps> = ({
   refetch,
   storeId,
 }) => {
+  // Mantener filtros vigentes accesibles a handlers (export)
+  const filtersRef = React.useRef<any>(filters);
+  React.useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
+
+  // Exportar TODAS las campañas con los filtros actuales
+  // Exportar TODAS las campañas con los filtros actuales
+  async function exportAllCampaigns(): Promise<void> {
+    try {
+      const limit = 500;
+      let page = 1;
+      let all: any[] = [];
+
+      const { campaignClient: svc } = await import('@/services/campaing.service');
+
+      // Usar EXACTAMENTE los filtros vigentes de la tabla.
+      // No cambiamos valores (no convertimos '' a undefined, etc.)
+      // Solo ponemos page y limit encima.
+      const baseFilters: any = { ...(filtersRef.current || {}) };
+      delete baseFilters.page;
+      delete baseFilters.limit;
+
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const params: any = { ...baseFilters, page, limit };
+        const res: any = await svc.getFilteredCampaigns(params);
+
+        const data = res?.data ?? res?.items ?? [];
+        all = all.concat(data);
+
+        // Condición de salida robusta basada en tamaño de página:
+        if (data.length < limit) break;
+
+        page += 1;
+        if (page > 5000) break; // safety
+      }
+
+      // Mapea a columnas llanas (ajusta si quieres más)
+      const rows = all.map((c: any) => ({
+        store: c?.store?.name ?? '',
+        type: c?.type ?? '',
+        startDate: c?.startDate ? new Date(c.startDate).toISOString().slice(0, 10) : '',
+        audience: c?.audience ?? 0,
+        cost: c?.cost ?? 0,
+        status: c?.status ?? '',
+      }));
+
+      const xlsx = await import('xlsx');
+      const ws = xlsx.utils.json_to_sheet(rows);
+      const wb = xlsx.utils.book_new();
+      xlsx.utils.book_append_sheet(wb, ws, 'Campaigns');
+      xlsx.writeFile(wb, 'campaigns_listing.xlsx');
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Export campaigns failed', err);
+      // eslint-disable-next-line no-alert
+      alert('No se pudo exportar campañas. Revisa la consola para detalles.');
+    }
+  }
+
+
+  // Escucha el botón Export del header (ExportButton emite `campaigns:export`)
+  React.useEffect(() => {
+    const handler = () => {
+      void exportAllCampaigns();
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('campaigns:export', handler);
+      return () => window.removeEventListener('campaigns:export', handler);
+    }
+    return () => { };
+  }, []); // no dependas de filters aquí, ya usamos filtersRef
+
   const { t } = useTranslation();
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [selectedToDelete, setSelectedToDelete] = useState<string | null>(null);
 
   const handleDelete = () => {
-    console.log('Deleting campaign:', selectedToDelete);
-
     if (!selectedToDelete) return;
     campaignClient
       .deleteCampaign(selectedToDelete)
@@ -95,20 +177,21 @@ const Results: FC<ResultsProps> = ({
         refetch();
       })
       .catch((error) => {
+        // eslint-disable-next-line no-console
         console.error('Error deleting campaign:', error);
       });
   };
 
-  const handleStoreRedirect = (storeId: string) => {
-    window.open(`/admin/management/stores/edit/${storeId}`, '_blank');
+  const handleStoreRedirect = (id: string) => {
+    window.open(`/admin/management/stores/edit/${id}`, '_blank');
   };
 
-  const handleCampaingRedirect = (storeId: string) => {
-    window.open(`/admin/management/campaings/stats/${storeId}`, '_blank');
+  const handleCampaingRedirect = (id: string) => {
+    window.open(`/admin/management/campaings/stats/${id}`, '_blank');
   };
 
-  const handleCampaingEditRedirect = (storeId: string) => {
-    window.open(`/admin/management/campaings/edit/${storeId}`);
+  const handleCampaingEditRedirect = (id: string) => {
+    window.open(`/admin/management/campaings/edit/${id}`);
   };
 
   return (
@@ -223,116 +306,116 @@ const Results: FC<ResultsProps> = ({
             {isLoading
               ? Array.from({ length: 5 }).map((_, i) => <SkeletonTableRow key={i} />)
               : campaigns.map((campaign) => {
-                  const selected = selectedItems.includes(campaign._id);
-                  return (
-                    <TableRow
-                      key={campaign._id}
-                      selected={selected}
-                      hover
-                    >
-                      <TableCell>
-                        <Typography
-                          noWrap
-                          variant="subtitle2"
-                        >
-                          {campaign.type}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography
-                          noWrap
-                          variant="subtitle2"
-                        >
-                          {format(new Date(campaign.startDate), 'dd/MM/yyyy')}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Box
-                          display="flex"
-                          alignItems="center"
-                        >
-                          <Avatar
-                            sx={{ mr: 1, width: 38, height: 38, cursor: 'pointer' }}
-                            src={campaign.store?.image}
-                            onClick={() => handleStoreRedirect(campaign.store?._id || '')}
-                          />
-                          <Typography
-                            variant="h6"
-                            fontWeight={500}
-                            sx={{ cursor: 'pointer' }}
-                            onClick={() => handleStoreRedirect(campaign.store?._id || '')}
-                          >
-                            {campaign.store?.name}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Typography
-                          noWrap
-                          variant="body2"
-                        >
-                          {campaign.audience}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
+                const selected = selectedItems.includes(campaign._id);
+                return (
+                  <TableRow
+                    key={campaign._id}
+                    selected={selected}
+                    hover
+                  >
+                    <TableCell>
+                      <Typography
+                        noWrap
+                        variant="subtitle2"
+                      >
+                        {campaign.type}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography
+                        noWrap
+                        variant="subtitle2"
+                      >
+                        {format(new Date(campaign.startDate), 'dd/MM/yyyy')}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Box
+                        display="flex"
+                        alignItems="center"
+                      >
+                        <Avatar
+                          sx={{ mr: 1, width: 38, height: 38, cursor: 'pointer' }}
+                          src={campaign.store?.image}
+                          onClick={() => handleStoreRedirect(campaign.store?._id || '')}
+                        />
                         <Typography
                           variant="h6"
-                          fontWeight={600}
+                          fontWeight={500}
+                          sx={{ cursor: 'pointer' }}
+                          onClick={() => handleStoreRedirect(campaign.store?._id || '')}
                         >
-                          {numeral(campaign.cost).format(`$0,0.00`)}
+                          {campaign.store?.name}
                         </Typography>
-                      </TableCell>
-                      <TableCell>{getInvoiceStatusLabel(campaign.status)}</TableCell>
-                      <TableCell align="center">
-                        <Stack
-                          direction={'row'}
-                          spacing={1}
-                          justifyContent="center"
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Typography
+                        noWrap
+                        variant="body2"
+                      >
+                        {campaign.audience}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography
+                        variant="h6"
+                        fontWeight={600}
+                      >
+                        {numeral(campaign.cost).format(`$0,0.00`)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>{getInvoiceStatusLabel(campaign.status)}</TableCell>
+                    <TableCell align="center">
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        justifyContent="center"
+                      >
+                        <Tooltip
+                          title={t('Go to Stats')}
+                          arrow
                         >
+                          <IconButton
+                            onClick={() => handleCampaingRedirect(campaign._id || '')}
+                            color="info"
+                          >
+                            <OpenInNewRounded fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+
+                        {campaign.status !== 'completed' && (
                           <Tooltip
-                            title={t('Go to Stats')}
+                            title={t('Edit Campaign')}
                             arrow
                           >
                             <IconButton
-                              onClick={() => handleCampaingRedirect(campaign._id || '')}
-                              color="info"
+                              onClick={() => handleCampaingEditRedirect(campaign._id || '')}
+                              color="primary"
                             >
-                              <OpenInNewRounded fontSize="small" />
+                              <Edit fontSize="small" />
                             </IconButton>
                           </Tooltip>
+                        )}
 
-                          {campaign.status !== 'completed' && (
-                            <Tooltip
-                              title={t('Edit Campaign')}
-                              arrow
+                        {campaign.status === 'scheduled' && (
+                          <Tooltip
+                            title="Eliminar campaña"
+                            arrow
+                          >
+                            <IconButton
+                              onClick={() => setSelectedToDelete(campaign._id)}
+                              color="error"
                             >
-                              <IconButton
-                                onClick={() => handleCampaingEditRedirect(campaign._id || '')}
-                                color="primary"
-                              >
-                                <Edit fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-
-                          {campaign.status === 'scheduled' && (
-                            <Tooltip
-                              title="Eliminar campaña"
-                              arrow
-                            >
-                              <IconButton
-                                onClick={() => setSelectedToDelete(campaign._id)}
-                                color="error"
-                              >
-                                <DeleteRounded fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                              <DeleteRounded fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
           </TableBody>
         </Table>
       </TableContainer>
@@ -344,7 +427,7 @@ const Results: FC<ResultsProps> = ({
           onPageChange={(e, newPage) => setFilters({ ...filters, page: newPage + 1 })}
           rowsPerPage={filters.limit}
           onRowsPerPageChange={(e) =>
-            setFilters({ ...filters, limit: parseInt(e.target.value), page: 1 })
+            setFilters({ ...filters, limit: parseInt(e.target.value, 10), page: 1 })
           }
           rowsPerPageOptions={[5, 10, 15]}
           slotProps={{ select: { variant: 'outlined', size: 'small', sx: { p: 0 } } }}
@@ -365,7 +448,7 @@ const Results: FC<ResultsProps> = ({
             onClick={handleDelete}
             color="error"
             startIcon={<DeleteRounded />}
-            variant='contained'
+            variant="contained"
           >
             Eliminar
           </Button>
