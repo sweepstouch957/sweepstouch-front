@@ -10,6 +10,11 @@ import {
   Box,
   Breadcrumbs,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Divider,
   IconButton,
   Skeleton,
@@ -20,15 +25,15 @@ import {
   useTheme,
 } from '@mui/material';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ButtonIcon } from 'src/components/base/styles/button-icon';
 import { useSearchParams } from 'src/hooks/use-search-params';
 import { useDispatch, useSelector } from 'src/store';
 import { ActiveSweepstakeCard } from '../../active-sweeptake';
 import { PromoDashboard } from '../../tables/promos/panel';
 import CampaignsPanel from './panel/campaigns/campaign-panel';
-import CustomersPanel from './panel/customers/customers-panel';
 import CreateCampaignContainer from './panel/campaigns/createCampaignContainer';
+import CustomersPanel from './panel/customers/customers-panel';
 import QrDuetMUI from './panel/qr/QrContainer';
 import { StoreSidebar } from './store-sidebar';
 
@@ -48,12 +53,13 @@ const StoreManagementPage = () => {
 
   const { data: store, isLoading, error } = useStoreById(storeId);
 
+  const [openInactiveModal, setOpenInactiveModal] = useState(false);
+
   useEffect(() => {
     dispatch(setActiveSection(tag));
     dispatch(
       setTags([
         { id: 'campaigns', label: 'Campaigns' },
-        //{ id: 'sms-provider', label: 'SMS Provider' },
         { id: 'general-info', label: 'General Info' },
         { id: 'sweepstakes', label: 'Sweepstakes' },
         { id: 'ads', label: 'Ads' },
@@ -65,71 +71,79 @@ const StoreManagementPage = () => {
   const handleDrawerToggle = () => {
     dispatch(sidebarOpen ? closeSidebar() : openSidebar());
   };
+
   const handleBack = () => {
     router.push(`/admin/management/stores/edit/${storeId}?tag=campaigns`);
   };
-  const renderHeader = () => {
-    const goToCreateCampaign = () => {
-      window.open(`/admin/management/stores/edit/${storeId}?tag=campaigns&action=create`, '_blank');
-    };
 
-    return (
-      <Box
-        px={{ xs: 1, md: 3 }}
-        pt={2}
-        display="flex"
+  const handleGoToCreateCampaign = () => {
+    if (store?.active) {
+      window.open(`/admin/management/stores/edit/${storeId}?tag=campaigns&action=create`, '_blank');
+    } else {
+      setOpenInactiveModal(true);
+    }
+  };
+
+  const renderHeader = () => (
+    <Box
+      px={{ xs: 1, md: 3 }}
+      pt={2}
+      display="flex"
+      alignItems="center"
+      justifyContent="space-between"
+      flexWrap="wrap"
+    >
+      <Stack
+        direction="row"
         alignItems="center"
-        justifyContent="space-between"
-        flexWrap="wrap"
+        spacing={1}
       >
+        <IconButton
+          onClick={handleBack}
+          size="small"
+          color="primary"
+        >
+          <ArrowBackIosNewRoundedIcon fontSize="small" />
+        </IconButton>
+        <Breadcrumbs aria-label="breadcrumb">
+          <Typography color="text.secondary">Tiendas</Typography>
+          <Typography color="text.primary">{store?.name}</Typography>
+          <Typography color="text.primary">{tag}</Typography>
+          {action && <Typography color="text.primary">{action}</Typography>}
+        </Breadcrumbs>
+      </Stack>
+
+      {tag === 'campaigns' && (
         <Stack
           direction="row"
-          alignItems="center"
-          spacing={1}
+          spacing={2}
+          mt={{ xs: 2, sm: 0 }}
         >
-          <IconButton
-            onClick={handleBack}
-            size="small"
-            color="primary"
-          >
-            <ArrowBackIosNewRoundedIcon fontSize="small" />
-          </IconButton>
-          <Breadcrumbs aria-label="breadcrumb">
-            <Typography color="text.secondary">Tiendas</Typography>
-            <Typography color="text.primary">{store?.name}</Typography>
-            <Typography color="text.primary">{tag}</Typography>
-            {action && <Typography color="text.primary">{action}</Typography>}
-          </Breadcrumbs>
+          {action === 'create' ? (
+            <Button
+              variant="contained"
+              color="secondary"
+              onClick={handleBack}
+            >
+              Ver campañas
+            </Button>
+          ) : (
+            <Button
+              variant="contained"
+              startIcon={<AddCircleOutlineRoundedIcon />}
+              onClick={handleGoToCreateCampaign}
+              sx={{
+                opacity: store?.active ? 1 : 0.5,
+                cursor: store?.active ? 'pointer' : 'not-allowed',
+              }}
+            >
+              Crear campaña
+            </Button>
+          )}
         </Stack>
-
-        {tag === 'campaigns' && (
-          <Stack
-            direction="row"
-            spacing={2}
-            mt={{ xs: 2, sm: 0 }}
-          >
-            {action === 'create' ? (
-              <Button
-                variant="contained"
-                color="secondary"
-                onClick={handleBack}
-              >
-                Ver campañas
-              </Button>
-            ) : (
-              <Button
-                variant="contained"
-                startIcon={<AddCircleOutlineRoundedIcon />}
-                onClick={goToCreateCampaign}
-              >
-                Crear campaña
-              </Button>
-            )}
-          </Stack>
-        )}
-      </Box>
-    );
-  };
+      )}
+    </Box>
+  );
 
   const renderContent = () => {
     if (isLoading) {
@@ -165,10 +179,7 @@ const StoreManagementPage = () => {
       if (action === 'create') {
         return (
           <Box
-            px={{
-              xs: 1,
-              md: 2,
-            }}
+            px={{ xs: 1, md: 2 }}
             pt={2}
           >
             <CreateCampaignContainer
@@ -191,9 +202,12 @@ const StoreManagementPage = () => {
 
     switch (tag) {
       case 'customers':
-        return <CustomersPanel
-          storeId={storeId || ''}
-          storeName={store?.name} />;
+        return (
+          <CustomersPanel
+            storeId={storeId || ''}
+            storeName={store?.name}
+          />
+        );
       case 'ads':
         return <PromoDashboard storeId={storeId || ''} />;
       case 'sms-provider':
@@ -230,13 +244,10 @@ const StoreManagementPage = () => {
             <ActiveSweepstakeCard storeId={storeId} />
           </Box>
         );
-
       case 'qr':
         return (
           <Box p={3}>
-            <QrDuetMUI
-              storeId={storeId}
-            />
+            <QrDuetMUI storeId={storeId} />
           </Box>
         );
       default:
@@ -272,13 +283,13 @@ const StoreManagementPage = () => {
         sx={{
           transition: sidebarOpen
             ? theme.transitions.create('margin', {
-              easing: theme.transitions.easing.easeOut,
-              duration: theme.transitions.duration.enteringScreen,
-            })
+                easing: theme.transitions.easing.easeOut,
+                duration: theme.transitions.duration.enteringScreen,
+              })
             : theme.transitions.create('margin', {
-              easing: theme.transitions.easing.sharp,
-              duration: theme.transitions.duration.leavingScreen,
-            }),
+                easing: theme.transitions.easing.sharp,
+                duration: theme.transitions.duration.leavingScreen,
+              }),
         }}
       >
         {!lgUp && (
@@ -302,6 +313,22 @@ const StoreManagementPage = () => {
 
         {renderHeader()}
         {renderContent()}
+
+        {/* Modal para tienda inactiva */}
+        <Dialog
+          open={openInactiveModal}
+          onClose={() => setOpenInactiveModal(false)}
+        >
+          <DialogTitle>Tienda inactiva</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              No se puede crear una campaña porque la tienda está desactivada.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenInactiveModal(false)}>Cerrar</Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </Box>
   );
