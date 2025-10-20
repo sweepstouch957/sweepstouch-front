@@ -298,6 +298,7 @@ const Results: FC<ResultsProps> = ({
               <TableCell>{t('Store')}</TableCell>
               <TableCell>{t('Audience')}</TableCell>
               <TableCell>{t('Cost')}</TableCell>
+              <TableCell>% entrega</TableCell>
               <TableCell>{t('Status')}</TableCell>
               <TableCell align="center">{t('Actions')}</TableCell>
             </TableRow>
@@ -364,6 +365,21 @@ const Results: FC<ResultsProps> = ({
                       >
                         {numeral(campaign.cost).format(`$0,0.00`)}
                       </Typography>
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const sent = campaign?.sent ?? 0;
+                        const audience = campaign?.audience ?? 0;
+                        const rate = audience > 0 ? Math.round((sent / audience) * 100) : 0;
+                        const color = rate >= 90 ? '#13981cff' : rate >= 85 ? '#FB8C00' : '#FF4F4F';
+                        return (
+                          <Typography variant="h6"
+                            fontWeight={600}
+                            sx={{ color }}>
+                            {`${rate}%`}
+                          </Typography>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>{getInvoiceStatusLabel(campaign.status)}</TableCell>
                     <TableCell align="center">
