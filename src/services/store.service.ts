@@ -33,6 +33,9 @@ export interface Store {
   createdAt: string;
   updatedAt: string;
   accessCode?: string;
+  membershipType?: 'mensual' | 'semanal' | 'especial';
+  paymentMethod?: 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
+  startContractDate?: string | null; // ISO o null
 }
 
 export interface UpdateStoreBody {
@@ -49,6 +52,9 @@ export interface UpdateStoreBody {
   twilioPhoneNumberFriendlyName?: string;
   verifiedByTwilio?: boolean;
   location?: { type: 'Point'; coordinates: [number, number] };
+  membershipType?: 'mensual' | 'semanal' | 'especial';
+  paymentMethod?: 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
+  startContractDate?: string | null; // ISO o null
 }
 
 export interface GetStoresResponse {
@@ -150,7 +156,7 @@ export const createStore = async (store: Store): Promise<Store> => {
 };
 
 export const updateStore = async (id: string, store: Store): Promise<Store> => {
-  const res = await api.put<Store>(`/store/${id}`, store);
+  const res = await api.patch<Store>(`/store/${id}`, store);
   return res.data;
 };
 

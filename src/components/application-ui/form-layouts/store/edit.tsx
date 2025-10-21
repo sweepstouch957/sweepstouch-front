@@ -3,7 +3,6 @@
 
 import { Store } from '@/services/store.service';
 import { Card, CardContent, CardHeader, MenuItem, Stack, Switch, TextField } from '@mui/material';
-// ✅ Date Picker (MUI X)
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import esLocale from 'date-fns/locale/es';
@@ -23,9 +22,11 @@ type Props = {
     type: Store['type'];
     location?: { type: 'Point'; coordinates: [number, number] };
 
-    // ✅ Nuevos campos:
+    // ✅ Nuevos/actualizados campos:
     email: string;
-    contractStartDate: string | null; // ISO string o null
+    membershipType: NonNullable<Store['membershipType']>;
+    paymentMethod: NonNullable<Store['paymentMethod']>;
+    startContractDate: string | null; // ISO string o null
   };
   edit: boolean;
   onChange: (key: keyof Props['form']) => (e: any) => void;
@@ -39,7 +40,6 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat }: Pro
   // ✅ Validación simple de email (solo UI)
   const isEmailValid = !form.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email);
 
-  // Helper para parsear ISO -> Date (DatePicker)
   const toDate = (iso: string | null) => (iso ? new Date(iso) : null);
 
   return (
@@ -95,13 +95,47 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat }: Pro
           value={form.email}
           onChange={onChange('email')}
           disabled={!edit}
-          sx={{ mb: 1.5 }}
           error={!isEmailValid}
           helperText={!isEmailValid ? 'Ingresa un email válido' : ' '}
           placeholder="correo@tienda.com"
           type="email"
           inputProps={{ inputMode: 'email', autoComplete: 'email' }}
         />
+
+        {/* ✅ Membership Type */}
+        <TextField
+          select
+          fullWidth
+          size="small"
+          label="Membresía"
+          value={form.membershipType}
+          onChange={onChange('membershipType')}
+          sx={{ mb: 1.5 }}
+          disabled={!edit}
+        >
+          <MenuItem value="semanal">Semanal</MenuItem>
+          <MenuItem value="mensual">Mensual</MenuItem>
+          <MenuItem value="especial">Especial</MenuItem>
+        </TextField>
+
+        {/* ✅ Payment Method */}
+        <TextField
+          select
+          fullWidth
+          size="small"
+          label="Método de pago"
+          value={form.paymentMethod}
+          onChange={onChange('paymentMethod')}
+          sx={{ mb: 1.5 }}
+          disabled={!edit}
+        >
+          <MenuItem value="card">Tarjeta</MenuItem>
+          <MenuItem value="central_billing">Central Billing</MenuItem>
+          <MenuItem value="quickbooks">QuickBooks</MenuItem>
+          <MenuItem value="ach">ACH</MenuItem>
+          <MenuItem value="wire">Wire</MenuItem>
+          <MenuItem value="cash">Efectivo</MenuItem>
+        </TextField>
 
         {form.provider === 'bandwidth' && (
           <TextField
@@ -207,10 +241,10 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat }: Pro
         >
           <DatePicker
             label="Inicio de contrato"
-            value={toDate(form.contractStartDate)}
+            value={toDate(form.startContractDate)}
             onChange={(date: Date | null) => {
               if (!edit) return;
-              onChange('contractStartDate')({ value: date ? date.toISOString() : null });
+              onChange('startContractDate')({ value: date ? date.toISOString() : null });
             }}
             slotProps={{
               textField: {

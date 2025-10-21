@@ -15,6 +15,7 @@ import StatItem from '../application-ui/composed-blocks/my-cards/store-item';
 import StoreGeneralForm from '../application-ui/form-layouts/store/edit';
 import StoreHeader from '../application-ui/headings/store/store-create';
 import StoreMap from '../application-ui/map/store-map';
+import { PaymentOutlined } from '@mui/icons-material';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
 
@@ -101,10 +102,10 @@ export default function StoreInfo({ store }: { store: Store }) {
               md={3}
             >
               <StatItem
-                icon={<BadgeIcon fontSize="small" />}
-                label="Owner ID"
-                value={store.ownerId?.slice?.(0, 8) ?? '—'}
-                help="Identificador del dueño"
+                icon={<PaymentOutlined fontSize="small" />}
+                label="Metodo de pago"
+                value={store.paymentMethod ? store.paymentMethod.replace('_', ' ').toUpperCase() : '—'}
+                help="Método de pago asignado"
               />
             </Grid>
             <Grid
@@ -114,9 +115,9 @@ export default function StoreInfo({ store }: { store: Store }) {
             >
               <StatItem
                 icon={<TagIcon fontSize="small" />}
-                label="Suscripción"
-                value={store.subscription || '—'}
-                help="Plan asociado"
+                label="Membresía"
+                value={form.membershipType ?? '—'}
+                help="Tipo de membresía"
               />
             </Grid>
             <Grid

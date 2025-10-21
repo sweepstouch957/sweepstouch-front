@@ -1,5 +1,5 @@
 // src/hooks/useStoreEditor.js
-import {  Store, updateStore } from '@/services/store.service';
+import { Store, updateStore } from '@/services/store.service';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 
@@ -57,6 +57,9 @@ export function useStoreEditor(store) {
     location: isValidLngLat(store?.location?.coordinates)
       ? { type: 'Point', coordinates: [...store.location.coordinates] }
       : undefined,
+    membershipType: store.membershipType ?? 'semanal',
+    paymentMethod: store.paymentMethod ?? 'card',
+    startContractDate: store.startContractDate ?? null,
   });
 
   const kioskUrl = useMemo(
@@ -92,7 +95,7 @@ export function useStoreEditor(store) {
 
   // Construye el patch SOLO con cambios reales
   const buildPatch = (orig, curr) => {
-    const patch :any= {};
+    const patch: any = {};
 
     const keys = [
       'name',
@@ -107,6 +110,9 @@ export function useStoreEditor(store) {
       'twilioPhoneNumberSid',
       'twilioPhoneNumberFriendlyName',
       'verifiedByTwilio',
+      'membershipType',
+      'paymentMethod',
+      'startContractDate',
     ];
 
     keys.forEach((k) => {
@@ -139,7 +145,7 @@ export function useStoreEditor(store) {
   const mutation = useMutation({
     mutationFn: (body: Store) => updateStore(store._id, body),
     onSuccess: (resp) => {
-      const updated :any= resp ;
+      const updated: any = resp;
       // refresca form con lo que vino del server
       setForm((s) => ({
         ...s,
@@ -190,6 +196,9 @@ export function useStoreEditor(store) {
       location: isValidLngLat(store?.location?.coordinates)
         ? { type: 'Point', coordinates: [...store.location.coordinates] }
         : undefined,
+      membershipType: store.membershipType ?? 'semanal',
+      paymentMethod: store.paymentMethod ?? 'card',
+      startContractDate: store.startContractDate ?? null,
     });
     setEdit(false);
   };
