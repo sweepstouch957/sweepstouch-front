@@ -371,7 +371,7 @@ const Results: FC<ResultsProps> = ({
                         const sent = campaign?.sent ?? 0;
                         const audience = campaign?.audience ?? 0;
                         const rate = audience > 0 ? Math.round((sent / audience) * 100) : 0;
-                        const color = rate >= 90 ? '#06a311ff' : rate >= 85 ? '#FB8C00' : '#FF4F4F';
+                        const color = rate >= 90 ? '#04b410ff' : rate >= 85 ? '#FB8C00' : '#FF4F4F';
                         return (
                           <Typography variant="h6"
                             fontWeight={600}
