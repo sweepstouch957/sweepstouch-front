@@ -54,6 +54,7 @@ const STORE_SECTIONS = [
   { id: 'ads', label: 'Ads', icon: <Analytics /> },
   { id: 'qr', label: 'QR', icon: <QrCode2Outlined /> },
   { id: 'customers', label: 'Customers', icon: <WebIcon /> },
+  { id: 'cajeras', label: 'Cajeras', icon: <WebIcon /> },
 ];
 
 export const StoreSidebar: FC<StoreSidebarProps> = ({
@@ -155,7 +156,7 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
 
       {/* Lista de secciones */}
       <List disablePadding>
-        {(STORE_SECTIONS.filter((s) => s.id !== 'customers' || userRole === 'admin')).map((section) => (
+        {(STORE_SECTIONS.filter((s) => (s.id !== 'customers' && s.id !== 'cajeras') || userRole === 'admin')).map((section) => (
           <StoreSidebarItem
             key={section.id}
             section={section}

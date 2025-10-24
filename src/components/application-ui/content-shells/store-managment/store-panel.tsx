@@ -34,6 +34,7 @@ import { PromoDashboard } from '../../tables/promos/panel';
 import CampaignsPanel from './panel/campaigns/campaign-panel';
 import CreateCampaignContainer from './panel/campaigns/createCampaignContainer';
 import CustomersPanel from './panel/customers/customers-panel';
+import CajerasPanel from './panel/cajeras/cajeras-panel';
 import QrDuetMUI from './panel/qr/QrContainer';
 import { StoreSidebar } from './store-sidebar';
 
@@ -208,6 +209,12 @@ const StoreManagementPage = () => {
             storeName={store?.name}
           />
         );
+      case 'cajeras':
+        return (
+          <CajerasPanel storeId={storeId || ''}
+            storeName={store?.name} />
+        );
+
       case 'ads':
         return <PromoDashboard storeId={storeId || ''} />;
       case 'sms-provider':
@@ -283,13 +290,13 @@ const StoreManagementPage = () => {
         sx={{
           transition: sidebarOpen
             ? theme.transitions.create('margin', {
-                easing: theme.transitions.easing.easeOut,
-                duration: theme.transitions.duration.enteringScreen,
-              })
+              easing: theme.transitions.easing.easeOut,
+              duration: theme.transitions.duration.enteringScreen,
+            })
             : theme.transitions.create('margin', {
-                easing: theme.transitions.easing.sharp,
-                duration: theme.transitions.duration.leavingScreen,
-              }),
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.leavingScreen,
+            }),
         }}
       >
         {!lgUp && (
