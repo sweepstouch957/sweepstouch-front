@@ -1,9 +1,9 @@
+// src/services/billing.service.ts
 import { api } from '@/libs/axios';
 import type { AxiosResponse } from 'axios';
 
 /* ========================= Tipos compartidos ========================= */
 
-export type WeekStart = 'mon' | 'sun';
 export type MembershipType = 'mensual' | 'semanal' | 'especial';
 export type PaymentMethod = 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
 
@@ -13,194 +13,123 @@ export type CampaignTotals = {
   total: number;
 };
 
-export type WeekItem = {
-  start: string; // ISO
-  end: string; // ISO
-  breakdown: {
-    campaigns: CampaignTotals; // SMS/MMS/total
-    storesFee: number;
-  };
-  total: number;
-};
-
-/* ---------- /billing/weekly ---------- */
-export interface WeeklyBillingParams {
-  start?: string; // YYYY-MM-DD
-  weekStart?: WeekStart;
-  paymentMethod?: PaymentMethod;
-  membershipType?: MembershipType;
-}
-
-export interface WeeklyBillingResponse {
-  ok: boolean;
-  range: { start: string; end: string; weekStart?: WeekStart };
-  breakdown: { campaigns: CampaignTotals; storesFee: number };
-  total: number;
-  metrics?: { activeStores: number; storeWeeklyFeePerStore: number };
-}
-
-/* ---------- /billing/monthly ---------- */
-export interface MonthlyBillingParams {
-  from?: string; // YYYY-MM
-  to?: string; // YYYY-MM
-  weekStart?: WeekStart;
-  paymentMethod?: PaymentMethod;
-  membershipType?: MembershipType;
-}
-
-export interface MonthlyRow {
-  month: string; // YYYY-MM
-  range: { start: string; end: string };
-  campaigns: CampaignTotals;
-  storesFee: number;
-  total: number;
-  weeksInMonth?: number;
-}
-
-export interface MonthlyBillingResponse {
-  ok: boolean;
-  monthly: MonthlyRow[];
-  totals: {
-    sms: number;
-    mms: number;
-    storesFee: number;
-    grandTotal: number;
-  };
-  config?: {
-    from: string;
-    to: string;
-    weekStart: WeekStart;
-    storeWeeklyFeePerStore: number;
-    activeStoresUsedForCalc: number;
-  };
-}
-
-/* ---------- /billing/weeks-range ---------- */
-export interface WeeklyRangeParams {
+/* ---------- /billing/range ---------- */
+export interface RangeBillingParams {
   start: string; // YYYY-MM-DD
   end: string; // YYYY-MM-DD
-  weekStart?: WeekStart;
+  /** Multiplicador de membresía (entero, opcional). Ej: 4 */
+  periods?: number;
   paymentMethod?: PaymentMethod;
   membershipType?: MembershipType;
 }
 
-export interface WeeklyRangeResponse {
-  ok: boolean;
-  activeStores?: number;
-  weeks: WeekItem[];
-  totals: {
-    sms: number;
-    mms: number;
-    storesFee: number;
-    grandTotal: number;
-  };
-  config?: {
-    start: string;
-    end: string;
-    weekStart: WeekStart;
-    storeWeeklyFeePerStore: number;
-    activeStoresUsedForCalc: number;
-  };
+export interface MembershipPerTypeSubtotal {
+  mensual: number;
+  semanal: number;
+  especial: number;
 }
 
-/* ---------- /billing/weeks-by-month ---------- */
-export interface WeeklyByMonthParams {
-  month: string; // YYYY-MM
-  weekStart?: WeekStart;
-  paymentMethod?: PaymentMethod;
-  membershipType?: MembershipType;
+export interface MembershipUnitFees {
+  mensual: number;
+  semanal: number;
+  especial: number;
 }
 
-export interface WeeklyByMonthResponse {
+export interface MembershipCounts {
+  mensual: number;
+  semanal: number;
+  especial: number;
+  other: number;
+}
+
+export interface MembershipMeta {
+  periods: number; // periods efectivos usados (0 si no aplica)
+  totalStores: number; // tiendas activas consideradas
+  counts: MembershipCounts; // conteo por tipo
+  unitFees: MembershipUnitFees; // fee unitario por tipo
+  perTypeSubtotal: MembershipPerTypeSubtotal; // suma por tipo (unit * periods)
+}
+
+export interface RangeBillingResponse {
   ok: boolean;
-  activeStores?: number;
-  weeks: WeekItem[];
-  totals: {
-    sms: number;
-    mms: number;
-    storesFee: number;
-    grandTotal: number;
+  range: {
+    start: string; // ISO
+    end: string; // ISO
+    paymentMethod: PaymentMethod | null;
+    membershipType: MembershipType | null;
   };
-  config?: {
-    month: string;
-    range: { start: string; end: string };
-    weekStart: WeekStart;
-    storeWeeklyFeePerStore: number;
-    activeStoresUsedForCalc: number;
+  breakdown: {
+    campaigns: CampaignTotals;
+    membership: MembershipMeta & { subtotal: number }; // subtotal membresía
   };
+  total: number; // campaigns.total + membership.subtotal
 }
 
 /* ---------- /billing/stores-report ---------- */
 export interface StoresReportParams {
   start: string; // YYYY-MM-DD
   end: string; // YYYY-MM-DD
-  weekStart?: WeekStart;
+  /** Multiplicador de membresía por tienda (entero, opcional). Ej: 3 */
+  periods?: number;
   paymentMethod?: PaymentMethod;
   membershipType?: MembershipType;
 }
 
+export interface StoreMembershipBreakdown {
+  unitFee: number; // fee unitario según membershipType
+  periods: number; // periods efectivos aplicados
+  subtotal: number; // unitFee * periods
+}
+
 export interface StoreReportRow {
   storeId: string;
-  storeName: string;
-  membershipType: MembershipType;
-  paymentMethod: PaymentMethod;
-  sms: number;
-  mms: number;
-  campaignsTotal: number;
-  storesFee: number;
-  grandTotal: number;
+  name: string | null;
+  membershipType: MembershipType | null;
+  paymentMethod: PaymentMethod | null;
+  campaigns: CampaignTotals; // por tienda en rango
+  membership: StoreMembershipBreakdown;
+  total: number; // campaigns.total + membership.subtotal
 }
 
 export interface StoresReportResponse {
   ok: boolean;
   range: {
-    start: string;
-    end: string;
-    weekStart: WeekStart;
+    start: string; // ISO
+    end: string; // ISO
+    periods: number; // periods efectivos usados
     paymentMethod: PaymentMethod | null;
+    membershipType: MembershipType | null;
   };
   stores: StoreReportRow[];
   totals: {
-    sms: number;
-    mms: number;
-    campaignsTotal: number;
-    storesFee: number;
-    grandTotal: number;
+    campaigns: CampaignTotals; // agregados globales
+    membership: number; // suma de membership.subtotal
+    grandTotal: number; // campaigns.total + membership
   };
 }
 
 /* ========================= Servicio ========================= */
 
 export class BillingService {
-  async getWeeklyBilling(
-    params?: WeeklyBillingParams
-  ): Promise<AxiosResponse<WeeklyBillingResponse>> {
-    return api.get('/billing/weekly', { params });
+  /** Global: campañas del rango + membresía × periods (si viene) */
+  async getRangeBilling(params: RangeBillingParams): Promise<AxiosResponse<RangeBillingResponse>> {
+    return api.get('/billing/range', { params });
   }
 
-  async getMonthlyBillingSummary(
-    params?: MonthlyBillingParams
-  ): Promise<AxiosResponse<MonthlyBillingResponse>> {
-    return api.get('/billing/monthly', { params });
-  }
-
-  async getWeeklyRangeBilling(
-    params: WeeklyRangeParams
-  ): Promise<AxiosResponse<WeeklyRangeResponse>> {
-    return api.get('/billing/weeks-range', { params });
-  }
-
-  async getMonthWeeklyBilling(
-    params: WeeklyByMonthParams
-  ): Promise<AxiosResponse<WeeklyByMonthResponse>> {
-    return api.get('/billing/weeks-by-month', { params });
-  }
-
+  /** Por tienda: campañas del rango + membresía × periods (si viene) */
   async getStoresRangeReport(
     params: StoresReportParams
   ): Promise<AxiosResponse<StoresReportResponse>> {
     return api.get('/billing/stores-report', { params });
   }
+
+  /* ===== [DEPRECATED] Métodos anteriores (eliminados del backend) =====
+   * Si los tenías usados en UI, cámbialos a getRangeBilling o getStoresRangeReport.
+   */
+  // async getWeeklyBilling() { throw new Error('Deprecated: use getRangeBilling'); }
+  // async getMonthlyBillingSummary() { throw new Error('Deprecated: use getRangeBilling'); }
+  // async getWeeklyRangeBilling() { throw new Error('Deprecated: use getRangeBilling'); }
+  // async getMonthWeeklyBilling() { throw new Error('Deprecated: use getRangeBilling'); }
 }
 
 export const billingService = new BillingService();
@@ -210,56 +139,27 @@ export const billingService = new BillingService();
 const norm = (v: unknown) => (v ?? 'all').toString();
 
 export const billingQK = {
-  weekly: (p?: WeeklyBillingParams) =>
+  /** Global */
+  range: (p: RangeBillingParams) =>
     [
       'billing',
-      'weekly',
-      p?.start ?? 'current',
-      p?.weekStart ?? 'mon',
-      norm(p?.paymentMethod),
-      norm(p?.membershipType),
-    ] as const,
-
-  monthly: (p?: MonthlyBillingParams) =>
-    [
-      'billing',
-      'monthly',
-      p?.from ?? '2025-07',
-      p?.to ?? 'current',
-      p?.weekStart ?? 'mon',
-      norm(p?.paymentMethod),
-      norm(p?.membershipType),
-    ] as const,
-
-  range: (p: WeeklyRangeParams) =>
-    [
-      'billing',
-      'weeks-range',
+      'range',
       p.start,
       p.end,
-      p.weekStart ?? 'mon',
-      norm(p?.paymentMethod),
-      norm(p?.membershipType),
+      norm(p.periods ?? 0),
+      norm(p.paymentMethod),
+      norm(p.membershipType),
     ] as const,
 
-  byMonth: (p: WeeklyByMonthParams) =>
-    [
-      'billing',
-      'weeks-by-month',
-      p.month,
-      p.weekStart ?? 'mon',
-      norm(p?.paymentMethod),
-      norm(p?.membershipType),
-    ] as const,
-
+  /** Por tienda */
   storesReport: (p: StoresReportParams) =>
     [
       'billing',
       'stores-report',
       p.start,
       p.end,
-      p.weekStart ?? 'mon',
-      norm(p?.paymentMethod),
-      norm(p?.membershipType),
+      norm(p.periods ?? 0),
+      norm(p.paymentMethod),
+      norm(p.membershipType),
     ] as const,
 };

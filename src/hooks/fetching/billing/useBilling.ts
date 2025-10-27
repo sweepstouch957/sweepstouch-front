@@ -1,85 +1,52 @@
+// src/hooks/useBilling.ts
 import { billingQK, billingService } from '@/services/billing.service';
 import type {
-  MonthlyBillingParams,
-  MonthlyBillingResponse,
+  RangeBillingParams,
+  RangeBillingResponse,
   StoresReportParams,
   StoresReportResponse,
-  WeeklyBillingParams,
-  WeeklyBillingResponse,
-  WeeklyByMonthParams,
-  WeeklyByMonthResponse,
-  WeeklyRangeParams,
-  WeeklyRangeResponse,
 } from '@/services/billing.service';
 import { useQuery } from '@tanstack/react-query';
 
-/* ============ Hooks ============ */
+/* ============ Hooks nuevos ============ */
 
-// 1) Semanal
-export function useWeeklyBilling(params?: WeeklyBillingParams) {
-  return useQuery<WeeklyBillingResponse>({
-    queryKey: billingQK.weekly(params ?? {}),
+/** Global: campañas del rango + membresía × periods (si viene) */
+export function useRangeBilling(
+  params: RangeBillingParams | undefined,
+  opts?: {
+    enabled?: boolean;
+    staleTime?: number;
+  }
+) {
+  return useQuery<RangeBillingResponse>({
+    queryKey: params ? billingQK.range(params) : ['billing', 'range', 'disabled'],
     queryFn: async () => {
-      const res = await billingService.getWeeklyBilling(params);
+      if (!params?.start || !params?.end) {
+        throw new Error('start y end son requeridos para /billing/range');
+      }
+      const res = await billingService.getRangeBilling(params);
       return res.data;
     },
-    staleTime: 60_000,
+    enabled: (opts?.enabled ?? true) && Boolean(params?.start && params?.end),
+    staleTime: opts?.staleTime ?? 60_000,
   });
 }
 
-// 2) Resumen mensual
-export function useMonthlyBillingSummary(params?: MonthlyBillingParams) {
-  return useQuery<MonthlyBillingResponse>({
-    queryKey: billingQK.monthly(params ?? {}),
-    queryFn: async () => {
-      const res = await billingService.getMonthlyBillingSummary(params);
-      return res.data;
-    },
-    staleTime: 60_000,
-  });
-}
-
-// 3) Rango → semanas
-export function useWeeklyRangeBilling(params: WeeklyRangeParams | undefined) {
-  return useQuery<WeeklyRangeResponse>({
-    queryKey: params ? billingQK.range(params) : ['billing', 'weeks-range', 'disabled'],
-    queryFn: async () => {
-      if (!params) throw new Error('params es requerido para weeks-range');
-      const res = await billingService.getWeeklyRangeBilling(params);
-      return res.data;
-    },
-    enabled: !!params?.start && !!params?.end,
-    staleTime: 60_000,
-  });
-}
-
-// 4) Semanas del mes
-export function useMonthWeeklyBilling(params: WeeklyByMonthParams | undefined) {
-  return useQuery<WeeklyByMonthResponse>({
-    queryKey: params ? billingQK.byMonth(params) : ['billing', 'weeks-by-month', 'disabled'],
-    queryFn: async () => {
-      if (!params) throw new Error('params es requerido para weeks-by-month');
-      const res = await billingService.getMonthWeeklyBilling(params);
-      return res.data;
-    },
-    enabled: !!params?.month,
-    staleTime: 60_000,
-  });
-}
-
-// 5) Reporte por tiendas (manual por defecto)
+/** Por tienda: campañas del rango + membresía × periods (si viene) */
 export function useStoresRangeReport(
   params: StoresReportParams | undefined,
-  opts?: { enabled?: boolean }
+  opts?: { enabled?: boolean; staleTime?: number }
 ) {
   return useQuery<StoresReportResponse>({
     queryKey: params ? billingQK.storesReport(params) : ['billing', 'stores-report', 'disabled'],
     queryFn: async () => {
-      if (!params) throw new Error('params es requerido para stores-report');
+      if (!params?.start || !params?.end) {
+        throw new Error('start y end son requeridos para /billing/stores-report');
+      }
       const res = await billingService.getStoresRangeReport(params);
       return res.data;
     },
-    enabled: opts?.enabled ?? false,
-    staleTime: 0,
+    enabled: (opts?.enabled ?? true) && Boolean(params?.start && params?.end),
+    staleTime: opts?.staleTime ?? 0, // forzamos re-fetch fácil en vistas de detalle
   });
 }

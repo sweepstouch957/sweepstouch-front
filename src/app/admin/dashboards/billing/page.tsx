@@ -1,17 +1,9 @@
+// components/billing/BillingPage.tsx
 'use client';
 
-import {
-  useMonthlyBillingSummary,
-  useMonthWeeklyBilling,
-  useWeeklyBilling,
-  useWeeklyRangeBilling,
-} from '@/hooks/fetching/billing/useBilling';
-import { AxisTooltipTotal } from '@/libs/billing';
-import type { WeekStart } from '@/services/billing.service';
-import { pickTotalsForUI, startOfWeekMon, toYYYYMM, toYYYYMMDD } from '@/utils/billing.utils';
+import { useRangeBilling, useStoresRangeReport } from '@hooks/fetching/billing/useBilling';
 import {
   alpha,
-  Box,
   Card,
   CardContent,
   CardHeader,
@@ -24,20 +16,27 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import { BarChart } from '@mui/x-charts/BarChart';
-import { LineChart } from '@mui/x-charts/LineChart';
 import * as React from 'react';
 import { useMemo, useState } from 'react';
+import { KpiBlock, PieWithLegend, StatusChip } from './utils';
 import BillingFilters, { MembershipType, PaymentMethod } from './filters';
-import { DownloadButton, KpiBlock, PieWithLegend, StatusChip } from './utils';
+
+// Util: formateo YYYY-MM-DD
+const toYYYYMMDD = (d: Date | null | undefined) =>
+  d
+    ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+        d.getDate()
+      ).padStart(2, '0')}`
+    : '';
 
 export default function BillingPage() {
   const theme = useTheme();
   const smUp = useMediaQuery(theme.breakpoints.up('sm'));
-  const [weekStart, setWeekStart] = useState<WeekStart>('mon');
+
   const colorSMS = theme.palette.success.light; // verde
   const colorMMS = theme.palette.info.light; // azul
   const colorStoreFees = theme.palette.secondary.light; // morado/secondary
+
   // Rango por defecto: últimos 14 días
   const [startDate, setStartDate] = useState<Date | null>(() => {
     const d = new Date();
@@ -46,74 +45,47 @@ export default function BillingPage() {
   });
   const [endDate, setEndDate] = useState<Date | null>(new Date());
 
-  // Mes actual (no hay input de mes)
-  const [selectedMonth] = useState<Date | null>(new Date());
-
   // Filtros
-  const [membershipType, setMembershipType] = useState<MembershipType>('mensual');
+  const [membershipType, setMembershipType] = useState<MembershipType>('semanal');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>(''); // '' = todos
 
-  const weeklyAnchor = useMemo(() => startOfWeekMon(new Date()), []);
+  // Periods (multiplicador de membresía)
+  const [periods, setPeriods] = useState<number>(0);
 
-  // Hooks
-  const weekly = useWeeklyBilling({
-    start: toYYYYMMDD(weeklyAnchor),
-    weekStart,
-    paymentMethod: paymentMethod || undefined,
-    membershipType,
-  });
+  const startStr = useMemo(() => toYYYYMMDD(startDate), [startDate]);
+  const endStr = useMemo(() => toYYYYMMDD(endDate), [endDate]);
 
-  const monthly = useMonthlyBillingSummary({
-    from: '2025-07',
-    weekStart,
-    paymentMethod: paymentMethod || undefined,
-    membershipType,
-  });
-
-  const range = useWeeklyRangeBilling(
+  /* ================= Hooks nuevos ================= */
+  const range = useRangeBilling(
     startDate && endDate
       ? {
-          start: toYYYYMMDD(startDate)!,
-          end: toYYYYMMDD(endDate)!,
-          weekStart,
+          start: startStr!,
+          end: endStr!,
+          periods,
           paymentMethod: paymentMethod || undefined,
           membershipType,
         }
       : undefined
   );
 
-  const byMonth = useMonthWeeklyBilling(
-    selectedMonth
+  const storesReport = useStoresRangeReport(
+    startDate && endDate
       ? {
-          month: toYYYYMM(selectedMonth)!,
-          weekStart,
+          start: startStr!,
+          end: endStr!,
+          periods,
           paymentMethod: paymentMethod || undefined,
           membershipType,
         }
       : undefined
   );
 
-  // Totales
-  const totalsUI = pickTotalsForUI(range.data?.totals, byMonth.data?.totals);
-  const pieCampaigns = totalsUI.campaignsTotal;
+  /* ================= Totales para UI ================= */
+  const sms = range.data?.breakdown.campaigns.sms ?? 0;
+  const mms = range.data?.breakdown.campaigns.mms ?? 0;
+  const storesFee = range.data?.breakdown.membership.subtotal ?? 0;
+  const grandTotal = range.data?.total ?? 0;
 
-  // Datos charts
-  const rangeWeeks = range.data?.weeks ?? [];
-  const rangeLabels = rangeWeeks.map((w) => `${w.start.slice(5, 10)} → ${w.end.slice(5, 10)}`);
-  const rangeCampaigns = rangeWeeks.map((w) => w.breakdown.campaigns?.total ?? 0);
-  const rangeStores = rangeWeeks.map((w) => w.breakdown.storesFee ?? 0);
-
-  const monthWeeks = byMonth.data?.weeks ?? [];
-  const monthLabels = monthWeeks.map((w) => `${w.start.slice(5, 10)} → ${w.end.slice(5, 10)}`);
-  const monthCampaigns = monthWeeks.map((w) => w.breakdown.campaigns?.total ?? 0);
-  const monthStores = monthWeeks.map((w) => w.breakdown.storesFee ?? 0);
-
-  const monthlyRows = monthly.data?.monthly ?? [];
-  const lineLabels = monthlyRows.map((m) => m.month);
-  const lineTotals = monthlyRows.map((m) => m.total);
-
-  const colorCampaigns = theme.palette.success.light;
-  const colorStores = theme.palette.secondary.light;
   const bgSoft =
     theme.palette.mode === 'dark'
       ? alpha(theme.palette.neutral?.[25] ?? '#fff', 0.04)
@@ -131,20 +103,16 @@ export default function BillingPage() {
         justifyContent="space-between"
         mb={3}
       >
-        <Box>
-          <Typography
-            variant="h4"
-            fontWeight={800}
-          >
-            Facturación · Sweepstouch
-          </Typography>
-        </Box>
+        <Typography
+          variant="h4"
+          fontWeight={800}
+        >
+          Facturación · Sweepstouch
+        </Typography>
       </Stack>
 
       {/* Filtros */}
       <BillingFilters
-        weekStart={weekStart}
-        onWeekStartChange={setWeekStart}
         startDate={startDate}
         endDate={endDate}
         onChangeDates={(s, e) => {
@@ -155,23 +123,22 @@ export default function BillingPage() {
         onMembershipChange={setMembershipType}
         paymentMethod={paymentMethod}
         onPaymentMethodChange={setPaymentMethod}
+        periods={periods}
+        onPeriodsChange={setPeriods}
       />
 
-      {/* KPIs + Descargar */}
+      {/* KPIs */}
       <Card
         variant="outlined"
         sx={{ mb: 3, borderRadius: 3 }}
       >
         <CardHeader
-          title="Resumen express"
-          subheader="Totales claves"
+          title="Resumen"
+          subheader="Totales del rango seleccionado (campañas + membresía)"
           action={
-            <DownloadButton
-              start={toYYYYMMDD(startDate!)!}
-              end={toYYYYMMDD(endDate!)!}
-              weekStart={weekStart}
-              paymentMethod={paymentMethod || undefined}
-              membershipType={membershipType}
+            <StatusChip
+              loading={range.isLoading || storesReport.isLoading}
+              error={!!range.isError || !!storesReport.isError}
             />
           }
         />
@@ -194,32 +161,32 @@ export default function BillingPage() {
               range.isLoading
                 ? undefined
                 : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
-                    range.data?.totals.grandTotal ?? 0
+                    grandTotal
                   )
             }
-            hint={`${toYYYYMMDD(startDate!)} → ${toYYYYMMDD(endDate!)}`}
+            hint={`${startStr} → ${endStr}`}
           />
           <KpiBlock
-            title="Semanal actual"
+            title="Campañas"
             value={
-              weekly.isLoading
+              range.isLoading
                 ? undefined
                 : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
-                    weekly.data?.total ?? 0
+                    sms + mms
                   )
             }
-            hint="Fuente: /weekly"
+            hint="SMS + MMS"
           />
           <KpiBlock
-            title="Mes actual"
+            title="Membresías"
             value={
-              byMonth.isLoading
+              range.isLoading
                 ? undefined
                 : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
-                    byMonth.data?.totals.grandTotal ?? 0
+                    storesFee
                   )
             }
-            hint={byMonth.isLoading ? 'Cargando…' : byMonth.data?.config?.month}
+            hint={`Periods x${periods || 0}`}
           />
         </Stack>
       </Card>
@@ -241,31 +208,31 @@ export default function BillingPage() {
           >
             <CardHeader
               title="Composición"
-              subheader="Campañas vs Fee Tiendas"
+              subheader="Campañas vs Membresías"
             />
             <Divider />
             <CardContent>
-              {range.isLoading && byMonth.isLoading ? (
+              {range.isLoading ? (
                 <Skeleton
                   variant="rounded"
                   height={220}
                 />
               ) : (
                 <PieWithLegend
-                  smsValue={totalsUI.sms}
-                  mmsValue={totalsUI.mms}
-                  storesValue={totalsUI.storesFee}
+                  smsValue={sms}
+                  mmsValue={mms}
+                  storesValue={storesFee}
                   colorSMS={colorSMS}
                   colorMMS={colorMMS}
                   colorStores={colorStoreFees}
-                  grandTotal={totalsUI.grandTotal}
+                  grandTotal={grandTotal}
                 />
               )}
             </CardContent>
           </Card>
         </Grid>
 
-        {/* Semanas del rango */}
+        {/* Resumen por tiendas (tabla/grilla puede ir aquí si ya la tienes) */}
         <Grid
           item
           xs={12}
@@ -276,134 +243,62 @@ export default function BillingPage() {
             sx={{ borderRadius: 3 }}
           >
             <CardHeader
-              title="Semanas · Rango"
-              subheader={
-                range.isLoading
-                  ? 'Calculando…'
-                  : `${toYYYYMMDD(startDate!)} → ${toYYYYMMDD(endDate!)}`
-              }
+              title="Resumen por tiendas"
+              subheader={`${startStr} → ${endStr}`}
               action={
                 <StatusChip
-                  loading={range.isLoading}
-                  error={!!range.isError}
+                  loading={storesReport.isLoading}
+                  error={!!storesReport.isError}
                 />
               }
             />
             <Divider />
             <CardContent>
-              {range.isLoading ? (
+              {storesReport.isLoading ? (
                 <Skeleton
                   variant="rounded"
                   height={320}
                 />
               ) : (
-                <BarChart
-                  height={340}
-                  margin={{ left: smUp ? 62 : 8, top: 56, right: smUp ? 22 : 8, bottom: 28 }}
-                  series={[
-                    {
-                      data: rangeCampaigns,
-                      label: 'Campañas',
-                      stack: 'total',
-                      color: colorCampaigns,
-                    },
-                    { data: rangeStores, label: 'Membresías', stack: 'total', color: colorStores },
-                  ]}
-                  xAxis={[{ scaleType: 'band', data: rangeLabels }]}
-                  slots={{ axisContent: AxisTooltipTotal }}
-                />
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      <Grid
-        container
-        spacing={3}
-      >
-        {/* Semanas del mes */}
-        <Grid
-          item
-          xs={12}
-          md={7}
-        >
-          <Card
-            variant="outlined"
-            sx={{ borderRadius: 3 }}
-          >
-            <CardHeader
-              title="Semanas · Mes"
-              subheader={byMonth.isLoading ? 'Calculando…' : byMonth.data?.config?.month}
-              action={
-                <StatusChip
-                  loading={byMonth.isLoading}
-                  error={!!byMonth.isError}
-                />
-              }
-            />
-            <Divider />
-            <CardContent>
-              {byMonth.isLoading ? (
-                <Skeleton
-                  variant="rounded"
-                  height={320}
-                />
-              ) : (
-                <BarChart
-                  height={340}
-                  margin={{ left: smUp ? 62 : 8, top: 56, right: smUp ? 22 : 8, bottom: 28 }}
-                  series={[
-                    {
-                      data: monthCampaigns,
-                      label: 'Campañas',
-                      stack: 'total',
-                      color: colorCampaigns,
-                    },
-                    { data: monthStores, label: 'Membresías', stack: 'total', color: colorStores },
-                  ]}
-                  xAxis={[{ scaleType: 'band', data: monthLabels }]}
-                  slots={{ axisContent: AxisTooltipTotal }}
-                />
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Histórico mensual */}
-        <Grid
-          item
-          xs={12}
-          md={5}
-        >
-          <Card
-            variant="outlined"
-            sx={{ borderRadius: 3, height: '100%' }}
-          >
-            <CardHeader
-              title="Histórico mensual"
-              subheader="Desde 2025-07"
-              action={
-                <StatusChip
-                  loading={monthly.isLoading}
-                  error={!!monthly.isError}
-                />
-              }
-            />
-            <Divider />
-            <CardContent>
-              {monthly.isLoading ? (
-                <Skeleton
-                  variant="rounded"
-                  height={320}
-                />
-              ) : (
-                <LineChart
-                  height={320}
-                  xAxis={[{ data: lineLabels, scaleType: 'point', label: 'Mes' }]}
-                  series={[{ data: lineTotals, label: 'Total mensual (USD)', curve: 'monotoneX' }]}
-                  margin={{ left: 60, right: 20, top: 20, bottom: 40 }}
-                />
+                <Stack spacing={1}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                  >
+                    Tiendas incluidas: {storesReport.data?.stores.length ?? 0}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                  >
+                    Total campañas (global):{' '}
+                    {new Intl.NumberFormat('en-US', {
+                      style: 'currency',
+                      currency: 'USD',
+                    }).format(storesReport.data?.totals.campaigns.total ?? 0)}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                  >
+                    Total membresía:{' '}
+                    {new Intl.NumberFormat('en-US', {
+                      style: 'currency',
+                      currency: 'USD',
+                    }).format(storesReport.data?.totals.membership ?? 0)}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                  >
+                    Grand total:{' '}
+                    {new Intl.NumberFormat('en-US', {
+                      style: 'currency',
+                      currency: 'USD',
+                    }).format(storesReport.data?.totals.grandTotal ?? 0)}
+                  </Typography>
+                  {/* Aquí podrías renderizar una tabla con storesReport.data?.stores */}
+                </Stack>
               )}
             </CardContent>
           </Card>

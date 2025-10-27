@@ -7,6 +7,7 @@ import {
   RedeemTwoTone as RewardIcon,
   SmsTwoTone as SmsIcon,
   Web as WebIcon,
+  Woman2,
 } from '@mui/icons-material';
 import {
   alpha,
@@ -26,6 +27,7 @@ import { UserContext } from '@/contexts/auth/auth-context';
 import { Scrollbar } from 'src/components/base/scrollbar';
 import { useDispatch, useSelector } from 'src/store';
 import { StoreSidebarItem } from './store-sidebar-item';
+import PeopleIcon from '@mui/icons-material/People';
 
 interface StoreSidebarProps {
   parentContainer?: HTMLDivElement | null;
@@ -53,8 +55,8 @@ const STORE_SECTIONS = [
   { id: 'sweepstakes', label: 'Sweepstakes', icon: <RewardIcon /> },
   { id: 'ads', label: 'Ads', icon: <Analytics /> },
   { id: 'qr', label: 'QR', icon: <QrCode2Outlined /> },
-  { id: 'customers', label: 'Customers', icon: <WebIcon /> },
-  { id: 'cajeras', label: 'Cajeras', icon: <WebIcon /> },
+  { id: 'customers', label: 'Customers', icon: <PeopleIcon /> },
+  { id: 'cajeras', label: 'Cajeras', icon: <Woman2 /> },
 ];
 
 export const StoreSidebar: FC<StoreSidebarProps> = ({
