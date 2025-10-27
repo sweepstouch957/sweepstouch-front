@@ -1,12 +1,8 @@
 'use client';
 
-import { useStoresRangeReport } from '@/hooks/fetching/billing/useBilling';
-import type { MembershipType, PaymentMethod, WeekStart } from '@/services/billing.service';
-import AssessmentTwoToneIcon from '@mui/icons-material/AssessmentTwoTone';
-import { Button, Chip, CircularProgress, Divider, Skeleton, Stack, Typography } from '@mui/material';
-import { alpha, styled } from '@mui/material/styles';
+import { Chip, Divider, Skeleton, Stack, Typography } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import { PieChart, useDrawingArea } from '@mui/x-charts';
-import * as XLSX from 'xlsx';
 
 const CenterText = styled('text')(({ theme }) => ({
   fill: theme.palette.text.primary,
@@ -27,112 +23,7 @@ function PieCenterLabel({ children }: { children: React.ReactNode }) {
     </CenterText>
   );
 }
-export function DownloadButton({
-  start,
-  end,
-  weekStart,
-  paymentMethod,
-  membershipType,
-}: {
-  start: string; // YYYY-MM-DD
-  end: string; // YYYY-MM-DD
-  weekStart: WeekStart;
-  paymentMethod?: PaymentMethod | '';
-  membershipType?: MembershipType;
-}) {
-  const params = {
-    start,
-    end,
-    weekStart,
-    paymentMethod: paymentMethod || undefined,
-    membershipType,
-  };
 
-  const storesReport = useStoresRangeReport(params, { enabled: false });
-
-  const isLoading = storesReport.isLoading || storesReport.isFetching;
-  async function handleDownload() {
-    const { data } = await storesReport.refetch();
-    if (!data) return;
-
-    // tipamos filas con string en Membership/PaymentMethod para permitir '' en TOTAL
-    type Row = {
-      Store: string;
-      Membership: string;
-      PaymentMethod: string;
-      SMS: number;
-      MMS: number;
-      CampaignsTotal: number;
-      MembershipFee: number;
-      GrandTotal: number;
-    };
-
-    const rows: Row[] =
-      data.stores?.map((s) => ({
-        Store: s.storeName,
-        Membership: String(s.membershipType ?? ''),
-        PaymentMethod: String(s.paymentMethod ?? ''),
-        SMS: s.sms,
-        MMS: s.mms,
-        CampaignsTotal: s.campaignsTotal,
-        MembershipFee: s.storesFee,
-        GrandTotal: s.grandTotal,
-      })) ?? [];
-
-    if (data.totals) {
-      rows.push({
-        Store: 'TOTAL',
-        Membership: '',
-        PaymentMethod: '',
-        SMS: data.totals.sms,
-        MMS: data.totals.mms,
-        CampaignsTotal: data.totals.campaignsTotal,
-        MembershipFee: data.totals.storesFee,
-        GrandTotal: data.totals.grandTotal,
-      });
-    }
-
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'StoresReport');
-
-    const fname = `stores-report_${start}_to_${end}_${weekStart}${
-      paymentMethod ? `_pm-${paymentMethod}` : ''
-    }${membershipType ? `_mem-${membershipType}` : ''}.xlsx`;
-
-    XLSX.writeFile(wb, fname);
-  }
-
-  return (
-    <Button
-      size="small"
-      variant="contained"
-      startIcon={
-        isLoading ? <CircularProgress size={"small"} /> : <AssessmentTwoToneIcon fontSize="small" />
-      }
-      onClick={handleDownload}
-      disabled={isLoading}
-      sx={{
-        px: 2,
-        boxShadow: (theme) =>
-          `0px 1px 4px ${alpha(theme.palette.primary.main, 0.25)}, 0px 3px 12px 2px ${alpha(
-            theme.palette.primary.main,
-            0.35
-          )}`,
-        '&:hover': {
-          boxShadow: (theme) =>
-            `0px 1px 4px ${alpha(theme.palette.primary.main, 0.25)}, 0px 3px 12px 2px ${alpha(
-              theme.palette.primary.main,
-              0.35
-            )}`,
-          transform: 'translateY(-1px)',
-        },
-      }}
-    >
-      Descargar reporte
-    </Button>
-  );
-}
 
 /* =================== Otros componentes UI =================== */
 
