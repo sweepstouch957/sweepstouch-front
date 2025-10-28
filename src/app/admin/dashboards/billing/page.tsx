@@ -132,14 +132,14 @@ export default function BillingPage() {
         <Grid item
           xs={12}
           md={4}
-          lg={3}
+          lg={4}
           sx={{ minWidth: 0 }}>
           <Card variant="outlined"
             sx={{ borderRadius: 3 }}>
             <CardContent sx={{ textAlign: 'left', py: { xs: 1, md: 1 } }}>
               <CardHeader
                 title="Resumen"
-                subheader="Total rango seleccionado"
+                subheader="Total de rango seleccionado"
                 sx={{ pb: { xs: 0.5, md: 0.75 } }}
               />
               <Stack
@@ -195,7 +195,7 @@ export default function BillingPage() {
         <Grid item
           xs={12}
           md={4}
-          lg={5}
+          lg={4}
           sx={{ minWidth: 0 }}>
           <Card variant="outlined"
             sx={{ borderRadius: 3, height: '100%' }}>
