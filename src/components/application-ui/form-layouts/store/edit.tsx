@@ -116,6 +116,8 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat }: Pro
           <MenuItem value="semanal">Semanal</MenuItem>
           <MenuItem value="mensual">Mensual</MenuItem>
           <MenuItem value="especial">Especial</MenuItem>
+          <MenuItem value="none">No Page</MenuItem>
+
         </TextField>
 
         {/* ✅ Payment Method */}
