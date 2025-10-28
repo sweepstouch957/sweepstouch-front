@@ -1,8 +1,9 @@
-
 'use client';
 
-import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { useCreateStoreState } from '@/components/admin/stores/create/useCreateStoreState';
+// @ts-ignore – el hook puede exportarse como default o nombrado según el proyecto
+import * as sweepstakesHook from '@/hooks/fetching/sweepstakes/useSweepstakes';
+import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import {
   Box,
   Button,
@@ -19,24 +20,13 @@ import {
   Typography,
   useMediaQuery,
 } from '@mui/material';
-import StepConnector, {
-  stepConnectorClasses,
-} from '@mui/material/StepConnector';
-import {
-  styled,
-  useTheme,
-  ThemeProvider,
-  createTheme,
-} from '@mui/material/styles';
-import PageHeading from '@/components/base/page-heading';
-import { useCreateStoreState } from '@/components/admin/stores/create/useCreateStoreState';
-
-// @ts-ignore – el hook puede exportarse como default o nombrado según el proyecto
-import * as sweepstakesHook from '@/hooks/fetching/sweepstakes/useSweepstakes';
-
+import StepConnector, { stepConnectorClasses } from '@mui/material/StepConnector';
+import { createTheme, styled, ThemeProvider, useTheme } from '@mui/material/styles';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { es } from 'date-fns/locale';
+import { useRouter } from 'next/navigation';
+import * as React from 'react';
 
 const useSweepstakesAny: any =
   (sweepstakesHook as any).useSweepstakes ||
@@ -110,9 +100,7 @@ function UploadDrop({
         <div style={{ fontSize: 20 }}>☁️</div>
         <div>Haz clic para seleccionar un archivo</div>
         <Typography variant="caption">
-          {accept.includes('image')
-            ? 'PNG, JPG, JPEG, GIF o WEBP'
-            : 'PDF, PNG, JPG O JPEG'}
+          {accept.includes('image') ? 'PNG, JPG, JPEG, GIF o WEBP' : 'PDF, PNG, JPG O JPEG'}
         </Typography>
       </Box>
 
@@ -196,14 +184,7 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
         : [];
 
     return arr.map((x: any) => ({
-      id: String(
-        x.id ??
-        x._id ??
-        x.uuid ??
-        x.sweepstakeId ??
-        x.sorteoId ??
-        Math.random(),
-      ),
+      id: String(x.id ?? x._id ?? x.uuid ?? x.sweepstakeId ?? x.sorteoId ?? Math.random()),
       name: String(x.name ?? x.title ?? x.nombre ?? 'Sorteo'),
     }));
   }, [swRaw]);
@@ -211,12 +192,18 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
   const [touched, setTouched] = React.useState(false);
 
   const isValid = Boolean(
-    (state.storeName && state.storeName.trim()) &&
-    (state.address && state.address.trim()) &&
-    (state.zipCode && state.zipCode.trim()) &&
-    (state.phone && state.phone.trim()) &&
-    (state.startDate && state.startDate.trim()) &&
-    (state.sweepstakeId && state.sweepstakeId !== ''),
+    state.storeName &&
+      state.storeName.trim() &&
+      state.address &&
+      state.address.trim() &&
+      state.zipCode &&
+      state.zipCode.trim() &&
+      state.phone &&
+      state.phone.trim() &&
+      state.startDate &&
+      state.startDate.trim() &&
+      state.sweepstakeId &&
+      state.sweepstakeId !== ''
   );
 
   const next = () => {
@@ -234,10 +221,48 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
         maxWidth="lg"
         sx={{ py: { xs: 2, md: 3 } }}
       >
-        <PageHeading
-          title="Create Store"
-          description="Registra una nueva tienda"
-        />
+        <Box sx={{ mb: '30px' }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+            }}
+          >
+            <Button
+              onClick={() => router.push('/admin/management/stores')}
+              sx={{
+                minWidth: 0,
+                p: 0.5,
+                color: 'text.primary',
+                '&:hover': { backgroundColor: 'transparent', color: 'primary.main' },
+              }}
+            >
+              <ArrowBackIosNewIcon fontSize="small" />
+            </Button>
+
+            <Typography
+              variant="h5"
+              sx={{
+                fontSize: '26px',
+                fontWeight: 600,
+              }}
+            >
+              Create Store
+            </Typography>
+          </Box>
+
+          <Typography
+            variant="body2"
+            sx={{
+              fontSize: '20px',
+              color: 'text.secondary',
+              mt: 0.5,
+            }}
+          >
+            Registra una nueva tienda
+          </Typography>
+        </Box>
 
         <Card>
           <CardContent sx={{ p: { xs: 2, md: 3 } }}>
@@ -266,11 +291,15 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
                 Información General de la Tienda
               </Typography>
 
-              <Grid container
-                spacing={2}>
-                <Grid item
+              <Grid
+                container
+                spacing={2}
+              >
+                <Grid
+                  item
                   xs={12}
-                  md={6}>
+                  md={6}
+                >
                   <TextField
                     label="Nombre de la Tienda *"
                     fullWidth
@@ -286,23 +315,25 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
                   />
                 </Grid>
 
-                <Grid item
+                <Grid
+                  item
                   xs={12}
-                  md={6}>
+                  md={6}
+                >
                   <TextField
                     label="Email (opcional)"
                     fullWidth
                     placeholder="storeName@sweeptouch.com"
                     value={state.email ?? ''}
-                    onChange={(e) =>
-                      setState((s: any) => ({ ...s, email: e.target.value }))
-                    }
+                    onChange={(e) => setState((s: any) => ({ ...s, email: e.target.value }))}
                   />
                 </Grid>
 
-                <Grid item
+                <Grid
+                  item
                   xs={12}
-                  md={8}>
+                  md={8}
+                >
                   <TextField
                     label="Dirección Completa *"
                     fullWidth
@@ -312,45 +343,45 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
                     }
                     error={err(Boolean(state.address))}
                     value={state.address ?? ''}
-                    onChange={(e) =>
-                      setState((s: any) => ({ ...s, address: e.target.value }))
-                    }
+                    onChange={(e) => setState((s: any) => ({ ...s, address: e.target.value }))}
                   />
                 </Grid>
 
-                <Grid item
+                <Grid
+                  item
                   xs={12}
-                  md={4}>
+                  md={4}
+                >
                   <TextField
                     label="Código Postal *"
                     fullWidth
                     error={err(Boolean(state.zipCode))}
                     helperText={helper(Boolean(state.zipCode))}
                     value={state.zipCode ?? ''}
-                    onChange={(e) =>
-                      setState((s: any) => ({ ...s, zipCode: e.target.value }))
-                    }
+                    onChange={(e) => setState((s: any) => ({ ...s, zipCode: e.target.value }))}
                   />
                 </Grid>
 
-                <Grid item
+                <Grid
+                  item
                   xs={12}
-                  md={6}>
+                  md={6}
+                >
                   <TextField
                     label="Teléfono *"
                     fullWidth
                     error={err(Boolean(state.phone))}
                     helperText={helper(Boolean(state.phone))}
                     value={state.phone ?? ''}
-                    onChange={(e) =>
-                      setState((s: any) => ({ ...s, phone: e.target.value }))
-                    }
+                    onChange={(e) => setState((s: any) => ({ ...s, phone: e.target.value }))}
                   />
                 </Grid>
 
-                <Grid item
+                <Grid
+                  item
                   xs={12}
-                  md={6}>
+                  md={6}
+                >
                   <LocalizationProvider
                     dateAdapter={AdapterDateFns}
                     adapterLocale={es}
@@ -376,9 +407,11 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
                   </LocalizationProvider>
                 </Grid>
 
-                <Grid item
+                <Grid
+                  item
                   xs={12}
-                  md={6}>
+                  md={6}
+                >
                   <TextField
                     select
                     label="Membresía *"
@@ -398,9 +431,11 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
                   </TextField>
                 </Grid>
 
-                <Grid item
+                <Grid
+                  item
                   xs={12}
-                  md={6}>
+                  md={6}
+                >
                   <TextField
                     select
                     label="Sorteo Activo *"
@@ -415,9 +450,7 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
                       }))
                     }
                   >
-                    {swLoading && (
-                      <MenuItem disabled>Cargando sorteos…</MenuItem>
-                    )}
+                    {swLoading && <MenuItem disabled>Cargando sorteos…</MenuItem>}
 
                     {!swLoading && sweepstakes.length === 0 && (
                       <MenuItem disabled>No hay sorteos</MenuItem>
@@ -434,9 +467,11 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
                   </TextField>
                 </Grid>
 
-                <Grid item
+                <Grid
+                  item
                   xs={12}
-                  md={6}>
+                  md={6}
+                >
                   <Typography
                     variant="body2"
                     sx={{ mb: 1, fontWeight: 600 }}
@@ -447,9 +482,11 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
                   <LogoPreview />
                 </Grid>
 
-                <Grid item
+                <Grid
+                  item
                   xs={12}
-                  md={6}>
+                  md={6}
+                >
                   <UploadDrop
                     label="Contrato (PDF o Imagen)"
                     accept="application/pdf,image/*"
@@ -490,24 +527,28 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
                 Información Adicional
               </Typography>
 
-              <Grid container
-                spacing={2}>
-                <Grid item
+              <Grid
+                container
+                spacing={2}
+              >
+                <Grid
+                  item
                   xs={12}
-                  md={6}>
+                  md={6}
+                >
                   <TextField
                     label="Sitio Web (opcional)"
                     fullWidth
                     value={state.website ?? ''}
-                    onChange={(e) =>
-                      setState((s: any) => ({ ...s, website: e.target.value }))
-                    }
+                    onChange={(e) => setState((s: any) => ({ ...s, website: e.target.value }))}
                   />
                 </Grid>
 
-                <Grid item
+                <Grid
+                  item
                   xs={12}
-                  md={6}>
+                  md={6}
+                >
                   <TextField
                     label="Facebook (opcional)"
                     fullWidth
@@ -521,9 +562,11 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
                   />
                 </Grid>
 
-                <Grid item
+                <Grid
+                  item
                   xs={12}
-                  md={6}>
+                  md={6}
+                >
                   <TextField
                     label="Instagram (opcional)"
                     fullWidth
@@ -537,8 +580,10 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
                   />
                 </Grid>
 
-                <Grid item
-                  xs={12}>
+                <Grid
+                  item
+                  xs={12}
+                >
                   <TextField
                     label="Descripción (opcional)"
                     fullWidth
@@ -554,8 +599,10 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
                   />
                 </Grid>
 
-                <Grid item
-                  xs={12}>
+                <Grid
+                  item
+                  xs={12}
+                >
                   <TextField
                     label="Información Adicional (opcional)"
                     fullWidth
@@ -579,8 +626,10 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
                   mt: { xs: 2, md: 3 },
                 }}
               >
-                <Button variant="outlined"
-                  disabled>
+                <Button
+                  variant="outlined"
+                  disabled
+                >
                   Atrás
                 </Button>
 
