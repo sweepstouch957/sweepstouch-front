@@ -1,7 +1,7 @@
-// components/billing/BillingPage.tsx
 'use client';
 
-import { useRangeBilling, useStoresRangeReport } from '@hooks/fetching/billing/useBilling';
+import * as React from 'react';
+import { useMemo, useState } from 'react';
 import {
   alpha,
   Box,
@@ -17,12 +17,12 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import * as React from 'react';
-import { useMemo, useState } from 'react';
-import { KpiBlock, PieWithLegend, StatusChip } from './utils';
-import BillingFilters, { MembershipType, PaymentMethod } from './filters';
 
-// Util: formateo YYYY-MM-DD
+import { useRangeBilling, useStoresRangeReport } from '@hooks/fetching/billing/useBilling';
+import BillingFilters, { MembershipType, PaymentMethod } from './filters';
+import { KpiBlock, PieWithLegend, StatusChip } from './utils';
+
+// Util: YYYY-MM-DD
 const toYYYYMMDD = (d: Date | null | undefined) =>
   d
     ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
@@ -34,9 +34,10 @@ export default function BillingPage() {
   const theme = useTheme();
   const smUp = useMediaQuery(theme.breakpoints.up('sm'));
 
-  const colorSMS = theme.palette.success.light; // verde
-  const colorMMS = theme.palette.info.light; // azul
-  const colorStoreFees = theme.palette.secondary.light; // morado/secondary
+  // Colores para el gráfico
+  const colorSMS = theme.palette.success.light;
+  const colorMMS = theme.palette.info.light;
+  const colorStoreFees = theme.palette.secondary.light;
 
   // Rango por defecto: últimos 14 días
   const [startDate, setStartDate] = useState<Date | null>(() => {
@@ -48,20 +49,18 @@ export default function BillingPage() {
 
   // Filtros
   const [membershipType, setMembershipType] = useState<MembershipType>('semanal');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>(''); // '' = todos
-
-  // Periods (multiplicador de membresía)
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>('');
   const [periods, setPeriods] = useState<number>(0);
 
   const startStr = useMemo(() => toYYYYMMDD(startDate), [startDate]);
   const endStr = useMemo(() => toYYYYMMDD(endDate), [endDate]);
 
-  /* ================= Hooks ================= */
+  // Queries
   const range = useRangeBilling(
     startDate && endDate
       ? {
-        start: startStr!,
-        end: endStr!,
+        start: startStr,
+        end: endStr,
         periods,
         paymentMethod: paymentMethod || undefined,
         membershipType,
@@ -72,8 +71,8 @@ export default function BillingPage() {
   const storesReport = useStoresRangeReport(
     startDate && endDate
       ? {
-        start: startStr!,
-        end: endStr!,
+        start: startStr,
+        end: endStr,
         periods,
         paymentMethod: paymentMethod || undefined,
         membershipType,
@@ -81,7 +80,7 @@ export default function BillingPage() {
       : undefined
   );
 
-  /* ================= Totales para UI ================= */
+  // Totales
   const sms = range.data?.breakdown.campaigns.sms ?? 0;
   const mms = range.data?.breakdown.campaigns.mms ?? 0;
   const storesFee = range.data?.breakdown.membership.subtotal ?? 0;
@@ -94,12 +93,12 @@ export default function BillingPage() {
 
   return (
     <Container maxWidth="xl"
-      sx={{ py: 4 }}>
+      sx={{ py: { xs: 2, md: 3 } }}>
       {/* Header */}
       <Stack direction="row"
         alignItems="center"
         justifyContent="space-between"
-        mb={3}>
+        sx={{ mb: 2 }}>
         <Typography variant="h4"
           fontWeight={800}>
           Facturación · Sweepstouch
@@ -122,83 +121,105 @@ export default function BillingPage() {
         onPeriodsChange={setPeriods}
       />
 
-      {/* ====== LAYOUT PRINCIPAL: 3 columnas (lg) ====== */}
-      <Grid container
-        spacing={1}
-        mb={1}>
-
+      {/* Layout 3 columnas (tablet md: 3x4; desktop lg: 3/5/4) */}
+      <Grid
+        container
+        columnSpacing={{ xs: 1, sm: 1.25, md: 1.5 }}
+        rowSpacing={{ xs: 1, md: 1.25 }}
+        sx={{ flexWrap: { xs: 'wrap', md: 'nowrap' } }}
+      >
+        {/* KPIs (izquierda) */}
         <Grid item
           xs={12}
-          lg={3}>
-          <Box sx={{ maxWidth: 320, width: '100%', mx: { xs: 0, lg: 'auto' } }}>
-            <Card variant="outlined"
-              sx={{ borderRadius: 3 }}>
-              <CardContent sx={{ textAlign: 'left' }}>
-                <Stack direction="column"
-                  justifyContent="flex-start"
-                  alignItems="stretch"
-                  divider={<Divider
-                    orientation="horizontal"
-                    flexItem />} >
-                  <KpiBlock
-                    title="Rango seleccionado"
-                    value={
-                      range.isLoading
-                        ? undefined
-                        : new Intl.NumberFormat('en-US', {
-                          style: 'currency',
-                          currency: 'USD',
-                        }).format(grandTotal)
-                    }
-                    hint={`${startStr} → ${endStr}`}
-                  />
-                  <KpiBlock
-                    title="Campañas"
-                    value={
-                      range.isLoading
-                        ? undefined
-                        : new Intl.NumberFormat('en-US', {
-                          style: 'currency',
-                          currency: 'USD',
-                        }).format(sms + mms)
-                    }
-                    hint="SMS + MMS"
-                  />
-                  <KpiBlock
-                    title="Membresías"
-                    value={
-                      range.isLoading
-                        ? undefined
-                        : new Intl.NumberFormat('en-US', {
-                          style: 'currency',
-                          currency: 'USD',
-                        }).format(storesFee)
-                    }
-                    hint={`Periods x${periods || 0}`}
-                  />
-                </Stack>
-              </CardContent>
-            </Card>
-          </Box>
+          md={4}
+          lg={3}
+          sx={{ minWidth: 0 }}>
+          <Card variant="outlined"
+            sx={{ borderRadius: 3 }}>
+            <CardContent sx={{ textAlign: 'left', py: { xs: 1, md: 1 } }}>
+              <CardHeader
+                title="Resumen"
+                subheader="Total rango seleccionado"
+                sx={{ pb: { xs: 0.5, md: 0.75 } }}
+              />
+              <Stack
+                direction="column"
+                justifyContent="flex-start"
+                alignItems="stretch"
+                sx={{ backgroundColor: bgSoft }}
+                divider={<Divider orientation="horizontal"
+                  flexItem />}
+              >
+                <KpiBlock
+                  title="Rango seleccionado"
+                  value={
+                    range.isLoading
+                      ? undefined
+                      : new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                      }).format(grandTotal)
+                  }
+                  hint={`${startStr} → ${endStr}`}
+                />
+                <KpiBlock
+                  title="Campañas"
+                  value={
+                    range.isLoading
+                      ? undefined
+                      : new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                      }).format(sms + mms)
+                  }
+                  hint="SMS + MMS"
+                />
+                <KpiBlock
+                  title="Membresías"
+                  value={
+                    range.isLoading
+                      ? undefined
+                      : new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                      }).format(storesFee)
+                  }
+                  hint={`PERIODS x${periods || 0}`}
+                />
+              </Stack>
+            </CardContent>
+          </Card>
         </Grid>
 
+        {/* Composición (centro) */}
         <Grid item
           xs={12}
-          lg={5}>
-
+          md={4}
+          lg={5}
+          sx={{ minWidth: 0 }}>
           <Card variant="outlined"
             sx={{ borderRadius: 3, height: '100%' }}>
-            <CardHeader title="Composición"
+            <CardHeader
+              title="Composición"
               subheader="Campañas vs Membresías"
-              sx={{ pb: 1 }} />
-            <Divider sx={{ mb: 1 }} />
+              sx={{ pb: { xs: 0.5, md: 0.75 } }}
+            />
+            <Divider sx={{ mb: { xs: 0.75, md: 0.75 } }} />
             <CardContent>
               {range.isLoading ? (
                 <Skeleton variant="rounded"
                   height={220} />
               ) : (
                 <>
-                  <Box sx={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+                  <Box
+                    sx={{
+                      height: { xs: 200, sm: 210, md: 200, lg: 230 },
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      mb: { xs: 0.75, md: 1 },
+                    }}
+                  >
                     <PieWithLegend
                       smsValue={sms}
                       mmsValue={mms}
@@ -209,51 +230,48 @@ export default function BillingPage() {
                       grandTotal={grandTotal}
                     />
                   </Box>
-                  {/* Filas alineadas a la derecha */}
+
+                  {/* Totales bajo el gráfico */}
                   <Stack spacing={1.25}
-                    sx={{ mt: 2 }}>
+                    sx={{ mt: 0.5 }}>
                     <Box sx={{ display: 'flex', gap: 2 }}>
-                      <Box sx={{ flex: 1 }}>Campañas (SMS+MMS):</Box>
-                      <Box sx={{ textAlign: 'right', minWidth: 160, fontWeight: 600 }}>
-                        {new Intl.NumberFormat('en-US', {
-                          style: 'currency',
-                          currency: 'USD',
-                        }).format(sms + mms)}
-                      </Box>
+                      <Typography sx={{ flex: 1, fontSize: { xs: 13, md: 12 } }}>
+                        Campañas (SMS+MMS):
+                      </Typography>
+                      <Typography
+                        sx={{ textAlign: 'right', minWidth: 120, fontWeight: 700, fontSize: { xs: 13, md: 12 } }}
+                      >
+                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(sms + mms)}
+                      </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', gap: 2 }}>
-                      <Box sx={{ flex: 1 }}>TOTAL:</Box>
-                      <Box sx={{ textAlign: 'right', minWidth: 160, fontWeight: 700 }}>
-                        {new Intl.NumberFormat('en-US', {
-                          style: 'currency',
-                          currency: 'USD',
-                        }).format(grandTotal)}
-                      </Box>
+                      <Typography sx={{ flex: 1, fontSize: { xs: 13, md: 12 } }}>TOTAL:</Typography>
+                      <Typography
+                        sx={{ textAlign: 'right', minWidth: 120, fontWeight: 700, fontSize: { xs: 13, md: 12 } }}
+                      >
+                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(grandTotal)}
+                      </Typography>
                     </Box>
                   </Stack>
                 </>
               )}
             </CardContent>
           </Card>
-
         </Grid>
 
-        {/* Derecha: KPIs (columna) */}
-
+        {/* Resumen por tiendas (derecha) */}
         <Grid item
           xs={12}
-          lg={4}>
+          md={4}
+          lg={4}
+          sx={{ minWidth: 0 }}>
           <Card variant="outlined"
-            sx={{ borderRadius: 3 }}>
+            sx={{ borderRadius: 3, height: '100%' }}>
             <CardHeader
               title="Resumen por tiendas"
               subheader={`${startStr} → ${endStr}`}
-              action={
-                <StatusChip
-                  loading={storesReport.isLoading}
-                  error={!!storesReport.isError}
-                />
-              }
+              action={<StatusChip loading={storesReport.isLoading}
+                error={!!storesReport.isError} />}
             />
             <Divider />
             <CardContent>
@@ -290,15 +308,11 @@ export default function BillingPage() {
                       currency: 'USD',
                     }).format(storesReport.data?.totals.grandTotal ?? 0)}
                   </Typography>
-                  {/* Aquí podrías renderizar una tabla con storesReport.data?.stores */}
                 </Stack>
               )}
             </CardContent>
           </Card>
         </Grid>
-
-        {/* Centro: Composición */}
-
       </Grid>
     </Container>
   );

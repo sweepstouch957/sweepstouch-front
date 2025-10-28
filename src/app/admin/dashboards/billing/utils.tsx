@@ -33,6 +33,7 @@ export function KpiBlock({ title, value, hint }: { title: string; value?: string
       <Typography
         variant="caption"
         color="text.secondary"
+        sx={{ fontSize: { xs: 12, md: 11 } }}
         gutterBottom
       >
         {title}
@@ -42,6 +43,7 @@ export function KpiBlock({ title, value, hint }: { title: string; value?: string
         <Typography
           variant="caption"
           color="text.secondary"
+          sx={{ fontSize: { xs: 12, md: 11 } }}
         >
           {hint}
         </Typography>
@@ -128,8 +130,8 @@ export function PieWithLegend({
       alignItems="center"
     >
       <PieChart
-        width={240}
-        height={240}
+        width={110}
+        height={110}
         slotProps={{ legend: { hidden: true } }}
         series={[
           {
@@ -138,7 +140,7 @@ export function PieWithLegend({
               { id: 1, value: mmsValue ?? 0, label: 'MMS', color: colorMMS },
               { id: 2, value: storesValue ?? 0, label: 'Membresías', color: colorStores },
             ],
-            innerRadius: 70,
+            innerRadius: 40,
             paddingAngle: 2,
           },
         ]}
@@ -153,7 +155,7 @@ export function PieWithLegend({
 
       <Stack
         spacing={1}
-        minWidth={165}
+        minWidth={180}
         flex={1}
       >
         <LegendRow>
