@@ -153,7 +153,7 @@ export function PieWithLegend({
 
       <Stack
         spacing={1}
-        minWidth={220}
+        minWidth={165}
         flex={1}
       >
         <LegendRow>
@@ -184,32 +184,8 @@ export function PieWithLegend({
           Membresías
         </LegendRow>
         <Divider flexItem />
-        <LegendRow>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-          >
-            Campañas (SMS+MMS):
-          </Typography>
-          <Typography fontWeight={700}>
-            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
-              campaignsValue
-            )}
-          </Typography>
-        </LegendRow>
-        <LegendRow>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-          >
-            Total:
-          </Typography>
-          <Typography fontWeight={700}>
-            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
-              grandTotal ?? 0
-            )}
-          </Typography>
-        </LegendRow>
+
+
       </Stack>
     </Stack>
   );

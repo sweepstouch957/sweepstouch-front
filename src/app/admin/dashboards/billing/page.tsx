@@ -4,6 +4,7 @@
 import { useRangeBilling, useStoresRangeReport } from '@hooks/fetching/billing/useBilling';
 import {
   alpha,
+  Box,
   Card,
   CardContent,
   CardHeader,
@@ -25,8 +26,8 @@ import BillingFilters, { MembershipType, PaymentMethod } from './filters';
 const toYYYYMMDD = (d: Date | null | undefined) =>
   d
     ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
-        d.getDate()
-      ).padStart(2, '0')}`
+      d.getDate()
+    ).padStart(2, '0')}`
     : '';
 
 export default function BillingPage() {
@@ -55,28 +56,28 @@ export default function BillingPage() {
   const startStr = useMemo(() => toYYYYMMDD(startDate), [startDate]);
   const endStr = useMemo(() => toYYYYMMDD(endDate), [endDate]);
 
-  /* ================= Hooks nuevos ================= */
+  /* ================= Hooks ================= */
   const range = useRangeBilling(
     startDate && endDate
       ? {
-          start: startStr!,
-          end: endStr!,
-          periods,
-          paymentMethod: paymentMethod || undefined,
-          membershipType,
-        }
+        start: startStr!,
+        end: endStr!,
+        periods,
+        paymentMethod: paymentMethod || undefined,
+        membershipType,
+      }
       : undefined
   );
 
   const storesReport = useStoresRangeReport(
     startDate && endDate
       ? {
-          start: startStr!,
-          end: endStr!,
-          periods,
-          paymentMethod: paymentMethod || undefined,
-          membershipType,
-        }
+        start: startStr!,
+        end: endStr!,
+        periods,
+        paymentMethod: paymentMethod || undefined,
+        membershipType,
+      }
       : undefined
   );
 
@@ -92,21 +93,15 @@ export default function BillingPage() {
       : 'neutral.25';
 
   return (
-    <Container
-      maxWidth="xl"
-      sx={{ py: 4 }}
-    >
+    <Container maxWidth="xl"
+      sx={{ py: 4 }}>
       {/* Header */}
-      <Stack
-        direction="row"
+      <Stack direction="row"
         alignItems="center"
         justifyContent="space-between"
-        mb={3}
-      >
-        <Typography
-          variant="h4"
-          fontWeight={800}
-        >
+        mb={3}>
+        <Typography variant="h4"
+          fontWeight={800}>
           Facturación · Sweepstouch
         </Typography>
       </Stack>
@@ -127,121 +122,129 @@ export default function BillingPage() {
         onPeriodsChange={setPeriods}
       />
 
-      {/* KPIs */}
-      <Card
-        variant="outlined"
-        sx={{ mb: 3, borderRadius: 3 }}
-      >
-        <CardHeader
-          title="Resumen"
-          subheader="Totales del rango seleccionado (campañas + membresía)"
-          action={
-            <StatusChip
-              loading={range.isLoading || storesReport.isLoading}
-              error={!!range.isError || !!storesReport.isError}
-            />
-          }
-        />
-        <Divider />
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          justifyContent="space-evenly"
-          alignItems="stretch"
-          sx={{ backgroundColor: bgSoft }}
-          divider={
-            <Divider
-              orientation={smUp ? 'vertical' : 'horizontal'}
-              flexItem
-            />
-          }
-        >
-          <KpiBlock
-            title="Rango seleccionado"
-            value={
-              range.isLoading
-                ? undefined
-                : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
-                    grandTotal
-                  )
-            }
-            hint={`${startStr} → ${endStr}`}
-          />
-          <KpiBlock
-            title="Campañas"
-            value={
-              range.isLoading
-                ? undefined
-                : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
-                    sms + mms
-                  )
-            }
-            hint="SMS + MMS"
-          />
-          <KpiBlock
-            title="Membresías"
-            value={
-              range.isLoading
-                ? undefined
-                : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
-                    storesFee
-                  )
-            }
-            hint={`Periods x${periods || 0}`}
-          />
-        </Stack>
-      </Card>
+      {/* ====== LAYOUT PRINCIPAL: 3 columnas (lg) ====== */}
+      <Grid container
+        spacing={1}
+        mb={1}>
 
-      <Grid
-        container
-        spacing={3}
-        mb={1}
-      >
-        {/* Composición */}
-        <Grid
-          item
+        <Grid item
           xs={12}
-          md={4}
-        >
-          <Card
-            variant="outlined"
-            sx={{ borderRadius: 3, height: '100%' }}
-          >
-            <CardHeader
-              title="Composición"
+          lg={3}>
+          <Box sx={{ maxWidth: 320, width: '100%', mx: { xs: 0, lg: 'auto' } }}>
+            <Card variant="outlined"
+              sx={{ borderRadius: 3 }}>
+              <CardContent sx={{ textAlign: 'left' }}>
+                <Stack direction="column"
+                  justifyContent="flex-start"
+                  alignItems="stretch"
+                  divider={<Divider
+                    orientation="horizontal"
+                    flexItem />} >
+                  <KpiBlock
+                    title="Rango seleccionado"
+                    value={
+                      range.isLoading
+                        ? undefined
+                        : new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: 'USD',
+                        }).format(grandTotal)
+                    }
+                    hint={`${startStr} → ${endStr}`}
+                  />
+                  <KpiBlock
+                    title="Campañas"
+                    value={
+                      range.isLoading
+                        ? undefined
+                        : new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: 'USD',
+                        }).format(sms + mms)
+                    }
+                    hint="SMS + MMS"
+                  />
+                  <KpiBlock
+                    title="Membresías"
+                    value={
+                      range.isLoading
+                        ? undefined
+                        : new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: 'USD',
+                        }).format(storesFee)
+                    }
+                    hint={`Periods x${periods || 0}`}
+                  />
+                </Stack>
+              </CardContent>
+            </Card>
+          </Box>
+        </Grid>
+
+        <Grid item
+          xs={12}
+          lg={5}>
+
+          <Card variant="outlined"
+            sx={{ borderRadius: 3, height: '100%' }}>
+            <CardHeader title="Composición"
               subheader="Campañas vs Membresías"
-            />
-            <Divider />
+              sx={{ pb: 1 }} />
+            <Divider sx={{ mb: 1 }} />
             <CardContent>
               {range.isLoading ? (
-                <Skeleton
-                  variant="rounded"
-                  height={220}
-                />
+                <Skeleton variant="rounded"
+                  height={220} />
               ) : (
-                <PieWithLegend
-                  smsValue={sms}
-                  mmsValue={mms}
-                  storesValue={storesFee}
-                  colorSMS={colorSMS}
-                  colorMMS={colorMMS}
-                  colorStores={colorStoreFees}
-                  grandTotal={grandTotal}
-                />
+                <>
+                  <Box sx={{ height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+                    <PieWithLegend
+                      smsValue={sms}
+                      mmsValue={mms}
+                      storesValue={storesFee}
+                      colorSMS={colorSMS}
+                      colorMMS={colorMMS}
+                      colorStores={colorStoreFees}
+                      grandTotal={grandTotal}
+                    />
+                  </Box>
+                  {/* Filas alineadas a la derecha */}
+                  <Stack spacing={1.25}
+                    sx={{ mt: 2 }}>
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                      <Box sx={{ flex: 1 }}>Campañas (SMS+MMS):</Box>
+                      <Box sx={{ textAlign: 'right', minWidth: 160, fontWeight: 600 }}>
+                        {new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: 'USD',
+                        }).format(sms + mms)}
+                      </Box>
+                    </Box>
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                      <Box sx={{ flex: 1 }}>TOTAL:</Box>
+                      <Box sx={{ textAlign: 'right', minWidth: 160, fontWeight: 700 }}>
+                        {new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: 'USD',
+                        }).format(grandTotal)}
+                      </Box>
+                    </Box>
+                  </Stack>
+                </>
               )}
             </CardContent>
           </Card>
+
         </Grid>
 
-        {/* Resumen por tiendas (tabla/grilla puede ir aquí si ya la tienes) */}
-        <Grid
-          item
+        {/* Derecha: KPIs (columna) */}
+
+        <Grid item
           xs={12}
-          md={8}
-        >
-          <Card
-            variant="outlined"
-            sx={{ borderRadius: 3 }}
-          >
+          lg={4}>
+          <Card variant="outlined"
+            sx={{ borderRadius: 3 }}>
             <CardHeader
               title="Resumen por tiendas"
               subheader={`${startStr} → ${endStr}`}
@@ -255,42 +258,32 @@ export default function BillingPage() {
             <Divider />
             <CardContent>
               {storesReport.isLoading ? (
-                <Skeleton
-                  variant="rounded"
-                  height={320}
-                />
+                <Skeleton variant="rounded"
+                  height={320} />
               ) : (
                 <Stack spacing={1}>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                  >
+                  <Typography variant="body2"
+                    color="text.secondary">
                     Tiendas incluidas: {storesReport.data?.stores.length ?? 0}
                   </Typography>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                  >
+                  <Typography variant="body2"
+                    color="text.secondary">
                     Total campañas (global):{' '}
                     {new Intl.NumberFormat('en-US', {
                       style: 'currency',
                       currency: 'USD',
                     }).format(storesReport.data?.totals.campaigns.total ?? 0)}
                   </Typography>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                  >
+                  <Typography variant="body2"
+                    color="text.secondary">
                     Total membresía:{' '}
                     {new Intl.NumberFormat('en-US', {
                       style: 'currency',
                       currency: 'USD',
                     }).format(storesReport.data?.totals.membership ?? 0)}
                   </Typography>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                  >
+                  <Typography variant="body2"
+                    color="text.secondary">
                     Grand total:{' '}
                     {new Intl.NumberFormat('en-US', {
                       style: 'currency',
@@ -303,6 +296,9 @@ export default function BillingPage() {
             </CardContent>
           </Card>
         </Grid>
+
+        {/* Centro: Composición */}
+
       </Grid>
     </Container>
   );
