@@ -4,7 +4,7 @@ import type { AxiosResponse } from 'axios';
 
 /* ========================= Tipos compartidos ========================= */
 
-export type MembershipType = 'mensual' | 'semanal' | 'especial'  | 'none' | 'all';
+export type MembershipType = 'mensual' | 'semanal' | 'especial' | 'none' | 'all';
 export type PaymentMethod = 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
 
 export type CampaignTotals = {
@@ -61,11 +61,11 @@ export interface RangeBillingResponse {
   breakdown: {
     campaigns: CampaignTotals;
     membership: MembershipMeta & { subtotal: number }; // subtotal membresía
-    optin:{
+    optin: {
       cost: number; // costo total opt-in SMS
       count: number; // cantidad total opt-in SMS
       unitPrice: number; // precio unitario opt-in SMS
-    }
+    };
   };
   total: number; // campaigns.total + membership.subtotal
 }
@@ -123,14 +123,22 @@ export interface StoresReportResponse {
 export class BillingService {
   /** Global: campañas del rango + membresía × periods (si viene) */
   async getRangeBilling(params: RangeBillingParams): Promise<AxiosResponse<RangeBillingResponse>> {
-    return api.get('/billing/range', { params });
+    const cleanParams = {
+      ...params,
+      membershipType: params.membershipType === 'all' ? undefined : params.membershipType,
+    };
+    return api.get('/billing/range', { params: cleanParams });
   }
 
   /** Por tienda: campañas del rango + membresía × periods (si viene) */
   async getStoresRangeReport(
     params: StoresReportParams
   ): Promise<AxiosResponse<StoresReportResponse>> {
-    return api.get('/billing/stores-report', { params });
+    const cleanParams = {
+      ...params,
+      membershipType: params.membershipType === 'all' ? undefined : params.membershipType,
+    };
+    return api.get('/billing/stores-report', { params: cleanParams });
   }
 
   /* ===== [DEPRECATED] Métodos anteriores (eliminados del backend) =====

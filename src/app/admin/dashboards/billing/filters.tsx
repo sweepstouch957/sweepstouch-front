@@ -57,11 +57,11 @@ type Props = {
 };
 
 const MEMBERSHIP_OPTIONS: { value: MembershipType; label: string; hint?: string }[] = [
+  { value: 'all', label: 'Todas', hint: 'Todas' },
   { value: 'semanal', label: 'Semanal', hint: '99 por periodo por tienda' },
   { value: 'mensual', label: 'Mensual', hint: '107 por mes por tienda' },
   { value: 'especial', label: 'Especial', hint: '99 por periodo (según tu regla actual)' },
   { value: 'none', label: 'Sin Membresia', hint: 'Tiendas que no pagan membresia' },
-  { value: 'all', label: 'Todas', hint: 'Todas' },
 ];
 
 const PAYMENT_OPTIONS: { value: PaymentMethod; label: string }[] = [
