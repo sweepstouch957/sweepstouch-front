@@ -24,7 +24,6 @@ function PieCenterLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-
 /* =================== Otros componentes UI =================== */
 
 export function KpiBlock({ title, value, hint }: { title: string; value?: string; hint?: string }) {
@@ -108,17 +107,21 @@ export function PieWithLegend({
   smsValue,
   mmsValue,
   storesValue,
+  optinValue = 0,
   colorSMS,
   colorMMS,
   colorStores,
+  colorOptin,
   grandTotal,
 }: {
   smsValue: number;
   mmsValue: number;
   storesValue: number;
+  optinValue?: number;
   colorSMS: string;
   colorMMS: string;
   colorStores: string;
+  colorOptin: string;
   grandTotal: number;
 }) {
   const campaignsValue = (smsValue ?? 0) + (mmsValue ?? 0);
@@ -139,6 +142,7 @@ export function PieWithLegend({
               { id: 0, value: smsValue ?? 0, label: 'SMS', color: colorSMS },
               { id: 1, value: mmsValue ?? 0, label: 'MMS', color: colorMMS },
               { id: 2, value: storesValue ?? 0, label: 'Membresías', color: colorStores },
+              { id: 3, value: optinValue ?? 0, label: 'Opt-in', color: colorOptin },
             ],
             innerRadius: 40,
             paddingAngle: 2,
@@ -167,6 +171,7 @@ export function PieWithLegend({
           </Typography>
           SMS
         </LegendRow>
+
         <LegendRow>
           <Dot color={colorMMS} />
           <Typography sx={{ color: colorMMS, px: 0.5 }}>
@@ -176,6 +181,7 @@ export function PieWithLegend({
           </Typography>
           MMS
         </LegendRow>
+
         <LegendRow>
           <Dot color={colorStores} />
           <Typography sx={{ color: colorStores, px: 0.5 }}>
@@ -185,9 +191,19 @@ export function PieWithLegend({
           </Typography>
           Membresías
         </LegendRow>
+
+        {/* 🚀 NUEVO: Opt-in */}
+        <LegendRow>
+          <Dot color={colorOptin} />
+          <Typography sx={{ color: colorOptin, px: 0.5 }}>
+            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
+              optinValue ?? 0
+            )}
+          </Typography>
+          Opt-in
+        </LegendRow>
+
         <Divider flexItem />
-
-
       </Stack>
     </Stack>
   );

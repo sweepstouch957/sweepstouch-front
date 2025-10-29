@@ -61,6 +61,11 @@ export interface RangeBillingResponse {
   breakdown: {
     campaigns: CampaignTotals;
     membership: MembershipMeta & { subtotal: number }; // subtotal membresía
+    optin:{
+      cost: number; // costo total opt-in SMS
+      count: number; // cantidad total opt-in SMS
+      unitPrice: number; // precio unitario opt-in SMS
+    }
   };
   total: number; // campaigns.total + membership.subtotal
 }
@@ -105,6 +110,11 @@ export interface StoresReportResponse {
     campaigns: CampaignTotals; // agregados globales
     membership: number; // suma de membership.subtotal
     grandTotal: number; // campaigns.total + membership
+    optin: {
+      cost: number; // costo total opt-in SMS
+      count: number; // cantidad total opt-in SMS
+      unitPrice: number; // precio unitario opt-in SMS
+    };
   };
 }
 

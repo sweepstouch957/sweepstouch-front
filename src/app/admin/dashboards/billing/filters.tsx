@@ -34,7 +34,7 @@ import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import { useStoresRangeReport } from '@hooks/fetching/billing/useBilling';
 
-export type MembershipType ='semanal' | 'mensual'  | 'especial';
+export type MembershipType = 'semanal' | 'mensual' | 'especial';
 export type PaymentMethod = 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
 
 type Props = {
@@ -200,7 +200,7 @@ export default function BillingFilters({
     try {
       setExporting(true);
 
-      // Dispara el fetch con los últimos filtros/rango
+      // Dispara el fetch con los últimos filtros/rango (enabled:false en el hook)
       const { data } = await storesReport.refetch();
       if (!data) {
         setExporting(false);
@@ -215,27 +215,35 @@ export default function BillingFilters({
       } de membresía`;
       const subtitle = `Rango: ${range.start.slice(0, 10)} → ${range.end.slice(0, 10)}`;
 
-      const rows = stores.map((s: any) => {
+      // ----- Construcción de filas -----
+      const rows = (stores ?? []).map((s: any) => {
         const base: Record<string, any> = {
           Tienda: s.name ?? '',
           Membresía: s.membershipType ?? '',
           'Método de pago': s.paymentMethod ?? '',
-          'SMS (USD)': +(s.campaigns.sms ?? 0).toFixed(2),
-          'MMS (USD)': +(s.campaigns.mms ?? 0).toFixed(2),
-          'Total campañas (USD)': +(s.campaigns.total ?? 0).toFixed(2),
+          'SMS (USD)': +(s?.campaigns?.sms ?? 0).toFixed(2),
+          'MMS (USD)': +(s?.campaigns?.mms ?? 0).toFixed(2),
+          'Total campañas (USD)': +(s?.campaigns?.total ?? 0).toFixed(2),
+          'Opt-in (count)': +(s?.optin?.count ?? 0),
+          'Opt-in (USD)': +(s?.optin?.cost ?? 0).toFixed(2),
         };
-        if (includeMembership) base['Membresía (USD)'] = +(s.membership.subtotal ?? 0).toFixed(2);
-        base['Gran total (USD)'] = +(s.total ?? 0).toFixed(2);
+
+        if (includeMembership) {
+          base['Membresía (USD)'] = +(s?.membership?.subtotal ?? 0).toFixed(2);
+        }
+
+        base['Gran total (USD)'] = +(s?.total ?? 0).toFixed(2);
         return base;
       });
 
-      const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{}]);
+      // ----- Crear hoja vacía y escribir en orden -----
+      const ws = XLSX.utils.aoa_to_sheet([]); // <— hoja VACÍA (no duplica nada)
 
-      // Title + subtitle
+      // Título y subtítulo
       XLSX.utils.sheet_add_aoa(ws, [[title]], { origin: 'A1' });
       XLSX.utils.sheet_add_aoa(ws, [[subtitle]], { origin: 'A2' });
 
-      // Headers + rows a partir de A4
+      // Headers (A4) — si no hay filas, generar estructura base
       const header = Object.keys(
         rows[0] ??
           (includeMembership
@@ -246,6 +254,8 @@ export default function BillingFilters({
                 'SMS (USD)': 0,
                 'MMS (USD)': 0,
                 'Total campañas (USD)': 0,
+                'Opt-in (count)': 0,
+                'Opt-in (USD)': 0,
                 'Membresía (USD)': 0,
                 'Gran total (USD)': 0,
               }
@@ -256,32 +266,42 @@ export default function BillingFilters({
                 'SMS (USD)': 0,
                 'MMS (USD)': 0,
                 'Total campañas (USD)': 0,
+                'Opt-in (count)': 0,
+                'Opt-in (USD)': 0,
                 'Gran total (USD)': 0,
               })
       );
       XLSX.utils.sheet_add_aoa(ws, [header], { origin: 'A4' });
-      XLSX.utils.sheet_add_json(ws, rows, { origin: 'A5', skipHeader: true });
 
-      // Totales al final
-      if (data?.totals) {
+      // Filas (A5…)
+      if (rows.length) {
+        XLSX.utils.sheet_add_json(ws, rows, { origin: 'A5', skipHeader: true });
+      }
+
+      // ----- Fila de totales -----
+      if (totals) {
         const totalsRow: Record<string, any> = {
           Tienda: '— Totales —',
           Membresía: '',
           'Método de pago': '',
-          'SMS (USD)': +(totals.campaigns.sms ?? 0).toFixed(2),
-          'MMS (USD)': +(totals.campaigns.mms ?? 0).toFixed(2),
-          'Total campañas (USD)': +(totals.campaigns.total ?? 0).toFixed(2),
+          'SMS (USD)': +(totals?.campaigns?.sms ?? 0).toFixed(2),
+          'MMS (USD)': +(totals?.campaigns?.mms ?? 0).toFixed(2),
+          'Total campañas (USD)': +(totals?.campaigns?.total ?? 0).toFixed(2),
+          'Opt-in (count)': +(totals?.optin?.count ?? 0),
+          'Opt-in (USD)': +(totals?.optin?.cost ?? 0).toFixed(2),
         };
-        if (includeMembership) totalsRow['Membresía (USD)'] = +(totals.membership ?? 0).toFixed(2);
-        totalsRow['Gran total (USD)'] = +(totals.grandTotal ?? 0).toFixed(2);
+        if (includeMembership) totalsRow['Membresía (USD)'] = +(totals?.membership ?? 0).toFixed(2);
+        totalsRow['Gran total (USD)'] = +(totals?.grandTotal ?? 0).toFixed(2);
 
-        XLSX.utils.sheet_add_aoa(ws, [[]], { origin: { r: rows.length + 5, c: 0 } });
+        const startRow = (rows.length || 0) + 6; // A5 + rows + línea en blanco
+        XLSX.utils.sheet_add_aoa(ws, [[]], { origin: { r: startRow - 1, c: 0 } });
         XLSX.utils.sheet_add_json(ws, [totalsRow], {
-          origin: { r: rows.length + 6, c: 0 },
+          origin: { r: startRow, c: 0 },
           skipHeader: true,
         });
       }
 
+      // ----- Libro y descarga -----
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Facturación');
       const filename = `billing_stores_${range.start.slice(0, 10)}_${range.end.slice(0, 10)}_p${
