@@ -4,7 +4,7 @@ import type { AxiosResponse } from 'axios';
 
 /* ========================= Tipos compartidos ========================= */
 
-export type MembershipType = 'mensual' | 'semanal' | 'especial';
+export type MembershipType = 'mensual' | 'semanal' | 'especial'  | 'none' | 'all';
 export type PaymentMethod = 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
 
 export type CampaignTotals = {

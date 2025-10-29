@@ -18,8 +18,9 @@ import {
 } from '@mui/material';
 import * as React from 'react';
 import { useMemo, useState } from 'react';
-import BillingFilters, { MembershipType, PaymentMethod } from './filters';
+import BillingFilters, {  PaymentMethod } from './filters';
 import { KpiBlock, PieWithLegend, StatusChip } from './utils';
+import { MembershipType } from '@/services/billing.service';
 
 // Util: YYYY-MM-DD
 const toYYYYMMDD = (d: Date | null | undefined) =>
@@ -47,7 +48,7 @@ export default function BillingPage() {
   const [endDate, setEndDate] = useState<Date | null>(new Date());
 
   // Filtros
-  const [membershipType, setMembershipType] = useState<MembershipType>('semanal');
+  const [membershipType, setMembershipType] = useState<MembershipType>('all');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>('');
   const [periods, setPeriods] = useState<number>(0);
 

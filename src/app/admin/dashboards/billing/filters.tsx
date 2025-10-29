@@ -33,8 +33,8 @@ import * as XLSX from 'xlsx';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import { useStoresRangeReport } from '@hooks/fetching/billing/useBilling';
+import { MembershipType } from '@/services/billing.service';
 
-export type MembershipType = 'semanal' | 'mensual' | 'especial';
 export type PaymentMethod = 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
 
 type Props = {
@@ -60,6 +60,8 @@ const MEMBERSHIP_OPTIONS: { value: MembershipType; label: string; hint?: string 
   { value: 'semanal', label: 'Semanal', hint: '99 por periodo por tienda' },
   { value: 'mensual', label: 'Mensual', hint: '107 por mes por tienda' },
   { value: 'especial', label: 'Especial', hint: '99 por periodo (según tu regla actual)' },
+  { value: 'none', label: 'Sin Membresia', hint: 'Tiendas que no pagan membresia' },
+  { value: 'all', label: 'Todas', hint: 'Todas' },
 ];
 
 const PAYMENT_OPTIONS: { value: PaymentMethod; label: string }[] = [
