@@ -131,7 +131,6 @@ export async function getCashierCountByStore(params: {
   return res.data;
 }
 
-/** 🔥 GET /auth/cashiers/ranking (nuevo) */
 export async function getCashierRanking(params: {
   startDate: string;
   endDate: string;
@@ -157,11 +156,7 @@ export async function getCashierRanking(params: {
   return res.data;
 }
 
-/* =========================
- * React Query Hooks
- * ======================= */
 
-/** Hook de lista (GET /auth/cashiers) */
 export function useCashiers(
   params: {
     storeId?: string;

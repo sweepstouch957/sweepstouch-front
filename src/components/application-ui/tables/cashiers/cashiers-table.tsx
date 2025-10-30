@@ -1,13 +1,16 @@
+// components/cashiers/CashiersRankingTable.tsx
 'use client';
 
-import { useCashierCount, useCashiers, useCreateCashier } from '@/services/cashier.service';
+import { useCashierRanking, useCreateCashier } from '@/services/cashier.service';
 import AddIcon from '@mui/icons-material/Add';
+import EmojiEventsTwoToneIcon from '@mui/icons-material/EmojiEventsTwoTone';
 import SearchIcon from '@mui/icons-material/Search';
 import {
   Box,
   Button,
   Card,
   CardContent,
+  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -15,11 +18,13 @@ import {
   DialogTitle,
   Divider,
   InputAdornment,
+  Paper,
   Stack,
   Table,
   TableBody,
   TableCell,
   TableContainer,
+  TableFooter,
   TableHead,
   TablePagination,
   TableRow,
@@ -28,32 +33,32 @@ import {
 } from '@mui/material';
 import * as React from 'react';
 
+// ===== Tipos según tu payload de ranking =====
 type Row = {
-  _id: string;
-  firstName?: string;
-  lastName?: string;
-  name?: string;
-  phoneNumber?: string;
-  email?: string;
-  accessCode?: string;
-  code?: string;
-  access_code?: string;
-  createdAt?: string;
-  [k: string]: any;
+  cashierId: string;
+  name: string | null;
+  email: string | null;
+  phoneNumber: string | null;
+  accessCode: string | null;
+  active: boolean;
+  store: string | null;
+  count: number; // participaciones / números ingresados
+  newNumbers?: number;
+  existingNumbers?: number;
 };
 
-interface Props {
+export interface Props {
+  startDate: string;
+  endDate: string;
   storeId?: string;
+  active?: boolean;
 }
 
-const getDisplayName = (r: Row) => {
-  const full = `${r.firstName ?? ''} ${r.lastName ?? ''}`.trim();
-  return full || r.name || '-';
-};
+// ===== Helpers =====
+const getFirstName = (full?: string | null) => (full ? String(full).trim().split(/\s+/)[0] : '-');
+const toInt = (v: any, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d);
 
-const getAccessCode = (r: Row) => r.accessCode ?? r.code ?? r.access_code ?? '-';
-
-function useDebounced<T>(value: T, delay = 400) {
+function useDebounced<T>(value: T, delay = 350) {
   const [debounced, setDebounced] = React.useState(value);
   React.useEffect(() => {
     const id = setTimeout(() => setDebounced(value), delay);
@@ -62,62 +67,82 @@ function useDebounced<T>(value: T, delay = 400) {
   return debounced;
 }
 
-const CashiersTable: React.FC<Props> = ({ storeId }) => {
+const medalColor = (idx: number) =>
+  idx === 0 ? 'warning' : idx === 1 ? 'secondary' : idx === 2 ? 'info' : 'default';
+
+const CashiersRankingTable: React.FC<Props> = ({ startDate, endDate, storeId, active }) => {
   // UI state
   const [q, setQ] = React.useState('');
   const qDebounced = useDebounced(q, 350);
-
-  const [page0, setPage0] = React.useState(0); // MUI es 0-based
+  const [page0, setPage0] = React.useState(0);
   const [limit, setLimit] = React.useState(10);
 
+  // Crear cajera (opcional)
   const [open, setOpen] = React.useState(false);
   const [form, setForm] = React.useState({ name: '', phoneNumber: '', email: '' });
 
-  // Memo de params para no recrear el objeto en cada render
-  const listParams = React.useMemo(
+  // Params
+  const params = React.useMemo(
     () => ({
-      storeId,
+      startDate,
+      endDate,
+      storeId: storeId || undefined,
+      active,
       q: qDebounced || undefined,
-      page: page0 + 1, // backend 1-based
+      page: page0 + 1,
       limit,
     }),
-    [storeId, qDebounced, page0, limit]
+    [startDate, endDate, storeId, active, qDebounced, page0, limit]
   );
 
-  // Queries
-  const {
-    data: listData,
-    isLoading,
-    isFetching,
-    isError,
-    error,
-  } = useCashiers(listParams, {
-    enabled: Boolean(storeId),
+  const { data, isLoading, isFetching, isError, error } = useCashierRanking(params, {
     keepPreviousData: true,
   });
+  const totalCashiers = data?.totalCashiers ?? 0;
+  const items = (data?.data ?? []) as Row[];
 
-  // Conteo por tienda (opcional: si tu endpoint de lista ya trae total, usamos ese)
-  const { data: countData } = useCashierCount(storeId || undefined, undefined);
+  // Normaliza + ranking (por nuevos+existentes si existen; si no, count)
+  const ranked = React.useMemo(() => {
+    return [...items]
+      .map((r) => ({
+        ...r,
+        __firstName: getFirstName(r.name),
+        __new: r.newNumbers,
+        __existing: r.existingNumbers,
+      }))
+      .sort((a: any, b: any) => {
+        const aKey =
+          Number.isFinite(a.__new) || Number.isFinite(a.__existing)
+            ? toInt(a.__new, 0) + toInt(a.__existing, 0)
+            : toInt(a.count, 0);
+        const bKey =
+          Number.isFinite(b.__new) || Number.isFinite(b.__existing)
+            ? toInt(b.__new, 0) + toInt(b.__existing, 0)
+            : toInt(b.count, 0);
+        return bKey - aKey;
+      });
+  }, [items]);
 
-  const total = listData?.total ?? (typeof countData?.total === 'number' ? countData.total : 0);
+  // Totales (arriba)
+  const totals = React.useMemo(
+    () => ({
+      sumNew: ranked.reduce((acc: number, r: any) => acc + toInt(r.__new, 0), 0),
+      sumExisting: ranked.reduce((acc: number, r: any) => acc + toInt(r.__existing, 0), 0),
+      sumCount: ranked.reduce((acc: number, r: any) => acc + toInt(r.count, 0), 0),
+    }),
+    [ranked]
+  );
 
-  const rows: Row[] = React.useMemo(() => {
-    if (!listData) return [];
-    // Tu servicio tipado regresa { data: CashierUser[] }
-    // por si en algún entorno viene como items o docs
-    return (listData.data as Row[]) ?? (listData as any).items ?? (listData as any).docs ?? [];
-  }, [listData]);
+  const loadLabel = isLoading ? 'Cargando…' : isFetching ? 'Actualizando…' : null;
 
-  // Mutación: crear cajera
+  // Mutación crear (opcional)
   const createMut = useCreateCashier({
     onSuccess: () => {
       setOpen(false);
       setForm({ name: '', phoneNumber: '', email: '' });
       setPage0(0);
     },
-    onError: () => {
-      alert('No se pudo crear la cajera');
-    },
+    onError: () => alert('No se pudo crear la cajera'),
   });
 
   const onCreate = async () => {
@@ -126,7 +151,6 @@ const CashiersTable: React.FC<Props> = ({ storeId }) => {
     const [firstName, ...rest] = name.split(/\s+/);
     const lastName = rest.join(' ');
     if (!firstName || !form.phoneNumber) return;
-
     await createMut.mutateAsync({
       firstName,
       lastName,
@@ -137,11 +161,10 @@ const CashiersTable: React.FC<Props> = ({ storeId }) => {
     });
   };
 
-  const loadLabel = isLoading ? 'Cargando…' : isFetching ? 'Actualizando…' : null;
-
   return (
     <Card sx={{ borderRadius: 3, overflow: 'hidden' }}>
       <CardContent>
+        {/* Header */}
         <Stack
           direction="row"
           alignItems="center"
@@ -153,7 +176,7 @@ const CashiersTable: React.FC<Props> = ({ storeId }) => {
             variant="h5"
             fontWeight={700}
           >
-            Cajeras
+            Ranking de Cajeras
           </Typography>
           <Stack
             direction="row"
@@ -186,6 +209,26 @@ const CashiersTable: React.FC<Props> = ({ storeId }) => {
           </Stack>
         </Stack>
 
+        {/* Totales arriba */}
+        <Stack
+          direction="row"
+          spacing={1.5}
+          sx={{ mt: 1.5 }}
+          flexWrap="wrap"
+        >
+          <Chip
+            label={`Total cajeras: ${totalCashiers}`}
+            size="small"
+            color="default"
+          />
+
+          <Chip
+            label={`Participaciones: ${totals.sumCount}`}
+            size="small"
+            color="primary"
+          />
+        </Stack>
+
         {loadLabel && (
           <Stack
             direction="row"
@@ -202,44 +245,55 @@ const CashiersTable: React.FC<Props> = ({ storeId }) => {
             </Typography>
           </Stack>
         )}
-
         {isError && (
           <Typography
             variant="caption"
             color="error"
             sx={{ mt: 1, display: 'block' }}
           >
-            {(error as any)?.message ?? 'Error cargando cajeras'}
+            {(error as any)?.message ?? 'Error cargando ranking'}
           </Typography>
         )}
 
         <Divider sx={{ my: 2 }} />
 
-        <TableContainer>
-          <Table>
+        {/* Tabla */}
+        <TableContainer component={Paper}>
+          <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell>Nombre</TableCell>
-                <TableCell>Teléfono</TableCell>
+                <TableCell>#</TableCell>
+                <TableCell>First name</TableCell>
                 <TableCell>Email</TableCell>
                 <TableCell>Access code</TableCell>
+                <TableCell align="right">Participaciones</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.map((r) => (
+              {ranked.map((r: any, idx: number) => (
                 <TableRow
-                  key={r._id}
+                  key={r.cashierId || r._id || idx}
                   hover
                 >
-                  <TableCell>{getDisplayName(r)}</TableCell>
-                  <TableCell>{r.phoneNumber || '-'}</TableCell>
-                  <TableCell>{r.email || '-'}</TableCell>
-                  <TableCell>{getAccessCode(r)}</TableCell>
+                  <TableCell width={64}>
+                    <Chip
+                      size="small"
+                      label={idx + 1 + page0 * limit}
+                      color={medalColor(idx)}
+                      icon={idx < 3 ? <EmojiEventsTwoToneIcon fontSize="small" /> : undefined}
+                    />
+                  </TableCell>
+                  <TableCell>{getFirstName(r.name)}</TableCell>
+                  <TableCell>{r.email ?? '—'}</TableCell>
+                  <TableCell>{r.accessCode ?? '—'}</TableCell>
+
+                  <TableCell align="right">{toInt(r.count, 0)}</TableCell>
                 </TableRow>
               ))}
-              {!rows.length && !isLoading && !isFetching && (
+
+              {!ranked.length && !isLoading && !isFetching && (
                 <TableRow>
-                  <TableCell colSpan={4}>
+                  <TableCell colSpan={7}>
                     <Typography
                       textAlign="center"
                       py={3}
@@ -250,26 +304,43 @@ const CashiersTable: React.FC<Props> = ({ storeId }) => {
                 </TableRow>
               )}
             </TableBody>
+            <TableFooter>
+              <TableRow>
+                <TableCell colSpan={7}>
+                  <Stack
+                    direction="row"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    flexWrap="wrap"
+                    gap={1}
+                  >
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                    >
+                      Total cajeras: <b>{totalCashiers}</b>
+                    </Typography>
+                    <TablePagination
+                      component="div"
+                      count={totalCashiers}
+                      page={page0}
+                      onPageChange={(_, p) => setPage0(p)}
+                      rowsPerPage={limit}
+                      onRowsPerPageChange={(e) => {
+                        setLimit(parseInt(e.target.value, 10));
+                        setPage0(0);
+                      }}
+                      rowsPerPageOptions={[5, 10, 15, 25, 50]}
+                    />
+                  </Stack>
+                </TableCell>
+              </TableRow>
+            </TableFooter>
           </Table>
         </TableContainer>
-
-        <Box p={2}>
-          <TablePagination
-            component="div"
-            count={total ?? 0}
-            page={page0}
-            onPageChange={(_, p) => setPage0(p)}
-            rowsPerPage={limit}
-            onRowsPerPageChange={(e) => {
-              setLimit(parseInt(e.target.value, 10));
-              setPage0(0);
-            }}
-            rowsPerPageOptions={[5, 10, 15, 25]}
-          />
-        </Box>
       </CardContent>
 
-      {/* Dialog crear */}
+      {/* Modal crear (opcional) */}
       <Dialog
         open={open}
         onClose={() => setOpen(false)}
@@ -314,4 +385,4 @@ const CashiersTable: React.FC<Props> = ({ storeId }) => {
   );
 };
 
-export default CashiersTable;
+export default CashiersRankingTable;
