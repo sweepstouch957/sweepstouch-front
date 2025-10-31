@@ -21,6 +21,7 @@ import { useMemo, useState } from 'react';
 import BillingFilters, {  PaymentMethod } from './filters';
 import { KpiBlock, PieWithLegend, StatusChip } from './utils';
 import { MembershipType } from '@/services/billing.service';
+import SmsCampaignsModal from '@/components/billing/SmsCampaignsModal';
 
 // Util: YYYY-MM-DD
 const toYYYYMMDD = (d: Date | null | undefined) =>
@@ -31,6 +32,7 @@ const toYYYYMMDD = (d: Date | null | undefined) =>
     : '';
 
 export default function BillingPage() {
+  const [isSmsModalOpen, setIsSmsModalOpen] = useState(false);
   const theme = useTheme();
   const smUp = useMediaQuery(theme.breakpoints.up('sm'));
 
@@ -190,6 +192,7 @@ export default function BillingPage() {
                         }).format(sms + mms)
                   }
                   hint="SMS + MMS"
+                  onClick={() => setIsSmsModalOpen(true)}
                 />
                 <KpiBlock
                   title="Membresías"
@@ -217,12 +220,18 @@ export default function BillingPage() {
                   hint={`${optinCount} × ${new Intl.NumberFormat('en-US', {
                     style: 'currency',
                     currency: 'USD',
-                  }).format(optinUnit)}`}
+                      }).format(optinUnit)}`}
                 />
               </Stack>
             </CardContent>
           </Card>
         </Grid>
+        <SmsCampaignsModal
+          open={isSmsModalOpen}
+          onClose={() => setIsSmsModalOpen(false)}
+          startDate={startStr}
+          endDate={endStr}
+        />
 
         {/* Composición (centro) */}
         <Grid
