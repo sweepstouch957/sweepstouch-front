@@ -93,6 +93,7 @@ export interface StoreReportRow {
   paymentMethod: PaymentMethod | null;
   campaigns: CampaignTotals; // por tienda en rango
   membership: StoreMembershipBreakdown;
+  lastCampaignAudience: number | null; // tamaño audiencia última campaña enviada
   total: number; // campaigns.total + membership.subtotal
 }
 

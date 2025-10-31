@@ -32,10 +32,10 @@ import { DateRange, RangeKeyDict } from 'react-date-range';
 import * as XLSX from 'xlsx';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
-import { useStoresRangeReport } from '@hooks/fetching/billing/useBilling';
-import { MembershipType } from '@/services/billing.service';
-import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import StoresReportModal from '@/components/billing/StoresReportModal';
+import { MembershipType } from '@/services/billing.service';
+import { useStoresRangeReport } from '@hooks/fetching/billing/useBilling';
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 
 export type PaymentMethod = 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
 
@@ -75,8 +75,8 @@ const PAYMENT_OPTIONS: { value: PaymentMethod; label: string }[] = [
 const toYYYYMMDD = (d: Date | null) =>
   d
     ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
-      d.getDate()
-    ).padStart(2, '0')}`
+        d.getDate()
+      ).padStart(2, '0')}`
     : '';
 
 export default function BillingFilters({
@@ -118,18 +118,17 @@ export default function BillingFilters({
   const storesReport = useStoresRangeReport(
     startDate && endDate
       ? {
-        start: startStr!,
-        end: endStr!,
-        periods,
-        paymentMethod: (paymentMethod || undefined) as any,
-        membershipType,
-      }
+          start: startStr!,
+          end: endStr!,
+          periods,
+          paymentMethod: (paymentMethod || undefined) as any,
+          membershipType,
+        }
       : undefined,
     { enabled: false } // <- clave
   );
 
   const [exporting, setExporting] = React.useState(false);
-
 
   const [openStores, setOpenStores] = React.useState(false);
   const bgSoft =
@@ -199,7 +198,6 @@ export default function BillingFilters({
     }
   };
 
-  /* ====== Export ====== */
   const handleExport = async () => {
     if (!startDate || !endDate) return;
 
@@ -216,8 +214,9 @@ export default function BillingFilters({
       const { stores, totals, range } = data;
       const includeMembership = (periods ?? 0) > 0;
 
-      const title = `Facturación por tiendas — en base a ${periods} periodo${periods === 1 ? '' : 's'
-        } de membresía`;
+      const title = `Facturación por tiendas — en base a ${periods} periodo${
+        periods === 1 ? '' : 's'
+      } de membresía`;
       const subtitle = `Rango: ${range.start.slice(0, 10)} → ${range.end.slice(0, 10)}`;
 
       // ----- Construcción de filas -----
@@ -231,6 +230,7 @@ export default function BillingFilters({
           'Total campañas (USD)': +(s?.campaigns?.total ?? 0).toFixed(2),
           'Opt-in (count)': +(s?.optin?.count ?? 0),
           'Opt-in (USD)': +(s?.optin?.cost ?? 0).toFixed(2),
+          'Audiencia': +(s?.lastCampaignAudience ?? 0),
         };
 
         if (includeMembership) {
@@ -242,39 +242,41 @@ export default function BillingFilters({
       });
 
       // ----- Crear hoja vacía y escribir en orden -----
-      const ws = XLSX.utils.aoa_to_sheet([]); // <— hoja VACÍA (no duplica nada)
+      const ws = XLSX.utils.aoa_to_sheet([]); // <— hoja VACÍA
 
       // Título y subtítulo
       XLSX.utils.sheet_add_aoa(ws, [[title]], { origin: 'A1' });
       XLSX.utils.sheet_add_aoa(ws, [[subtitle]], { origin: 'A2' });
 
-      // Headers (A4) — si no hay filas, generar estructura base
+      // Headers (A4)
       const header = Object.keys(
         rows[0] ??
-        (includeMembership
-          ? {
-            Tienda: '',
-            Membresía: '',
-            'Método de pago': '',
-            'SMS (USD)': 0,
-            'MMS (USD)': 0,
-            'Total campañas (USD)': 0,
-            'Opt-in (count)': 0,
-            'Opt-in (USD)': 0,
-            'Membresía (USD)': 0,
-            'Gran total (USD)': 0,
-          }
-          : {
-            Tienda: '',
-            Membresía: '',
-            'Método de pago': '',
-            'SMS (USD)': 0,
-            'MMS (USD)': 0,
-            'Total campañas (USD)': 0,
-            'Opt-in (count)': 0,
-            'Opt-in (USD)': 0,
-            'Gran total (USD)': 0,
-          })
+          (includeMembership
+            ? {
+                Tienda: '',
+                Membresía: '',
+                'Método de pago': '',
+                'SMS (USD)': 0,
+                'MMS (USD)': 0,
+                'Total campañas (USD)': 0,
+                'Opt-in (count)': 0,
+                'Opt-in (USD)': 0,
+                'Audiencia': 0,
+                'Membresía (USD)': 0,
+                'Gran total (USD)': 0,
+              }
+            : {
+                Tienda: '',
+                Membresía: '',
+                'Método de pago': '',
+                'SMS (USD)': 0,
+                'MMS (USD)': 0,
+                'Total campañas (USD)': 0,
+                'Opt-in (count)': 0,
+                'Opt-in (USD)': 0,
+                'Audiencia': 0,
+                'Gran total (USD)': 0,
+              })
       );
       XLSX.utils.sheet_add_aoa(ws, [header], { origin: 'A4' });
 
@@ -294,11 +296,12 @@ export default function BillingFilters({
           'Total campañas (USD)': +(totals?.campaigns?.total ?? 0).toFixed(2),
           'Opt-in (count)': +(totals?.optin?.count ?? 0),
           'Opt-in (USD)': +(totals?.optin?.cost ?? 0).toFixed(2),
+          'Audiencia': '', // no aplica total
         };
         if (includeMembership) totalsRow['Membresía (USD)'] = +(totals?.membership ?? 0).toFixed(2);
         totalsRow['Gran total (USD)'] = +(totals?.grandTotal ?? 0).toFixed(2);
 
-        const startRow = (rows.length || 0) + 6; // A5 + rows + línea en blanco
+        const startRow = (rows.length || 0) + 6;
         XLSX.utils.sheet_add_aoa(ws, [[]], { origin: { r: startRow - 1, c: 0 } });
         XLSX.utils.sheet_add_json(ws, [totalsRow], {
           origin: { r: startRow, c: 0 },
@@ -309,8 +312,9 @@ export default function BillingFilters({
       // ----- Libro y descarga -----
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Facturación');
-      const filename = `billing_stores_${range.start.slice(0, 10)}_${range.end.slice(0, 10)}_p${periods || 0
-        }.xlsx`;
+      const filename = `billing_stores_${range.start.slice(0, 10)}_${range.end.slice(0, 10)}_p${
+        periods || 0
+      }.xlsx`;
       XLSX.writeFile(wb, filename);
     } finally {
       setExporting(false);
