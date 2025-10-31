@@ -1,6 +1,6 @@
 'use client';
 
-import { Chip, Divider, Skeleton, Stack, Typography } from '@mui/material';
+import { Box, Chip, Divider, Skeleton, Stack, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { PieChart, useDrawingArea } from '@mui/x-charts';
 
@@ -113,6 +113,7 @@ export function PieWithLegend({
   colorStores,
   colorOptin,
   grandTotal,
+  onClickSMS,
 }: {
   smsValue: number;
   mmsValue: number;
@@ -123,6 +124,7 @@ export function PieWithLegend({
   colorStores: string;
   colorOptin: string;
   grandTotal: number;
+  onClickSMS?: () => void;
 }) {
   const campaignsValue = (smsValue ?? 0) + (mmsValue ?? 0);
 
@@ -164,12 +166,24 @@ export function PieWithLegend({
       >
         <LegendRow>
           <Dot color={colorSMS} />
-          <Typography sx={{ color: colorSMS, px: 0.5 }}>
-            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
-              smsValue ?? 0
-            )}
-          </Typography>
-          SMS
+          <Box
+            onClick={onClickSMS}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              cursor: onClickSMS ? 'pointer' : 'default',
+              '&:hover': {
+                textDecoration: onClickSMS ? 'underline' : 'none',
+              },
+            }}
+          >
+            <Typography sx={{ color: colorSMS, px: 0.5 }}>
+              {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
+                smsValue ?? 0
+              )}
+            </Typography>
+            SMS
+          </Box>
         </LegendRow>
 
         <LegendRow>

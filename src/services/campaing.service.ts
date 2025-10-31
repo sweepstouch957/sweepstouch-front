@@ -12,7 +12,12 @@ interface FilterCampaignParams {
   title?: string;
 }
 
-export type MessageLogStatus = 'sent' | 'error' | 'queued' | 'not-sent';
+export type MessageLogStatus =
+  | 'queued'
+  | 'failed'
+  | 'sent'
+  | 'delivered' // 👈 agregar este
+  | 'undelivered';
 
 export interface CampaignLog {
   messageSid?: string;

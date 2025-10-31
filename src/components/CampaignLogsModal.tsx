@@ -1,8 +1,20 @@
 'use client';
 
-import * as React from 'react';
+import { useCampaignLogs } from '@/hooks/fetching/campaigns/useCampaignLogs';
+import type { CampaignLogsResponse, MessageLogStatus } from '@/services/campaing.service';
+import ClearIcon from '@mui/icons-material/Clear';
+import CloseIcon from '@mui/icons-material/Close';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import FileDownloadIcon from '@mui/icons-material/FileDownload'; // <- NUEVO
+import ImageIcon from '@mui/icons-material/Image';
+import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
+import RouterIcon from '@mui/icons-material/Router';
+import SearchIcon from '@mui/icons-material/Search';
+import SmsIcon from '@mui/icons-material/Sms';
 import {
   Box,
+  Button, // <- NUEVO
   Chip,
   CircularProgress,
   Dialog,
@@ -10,33 +22,20 @@ import {
   DialogTitle,
   IconButton,
   InputAdornment,
+  LinearProgress,
   Pagination,
   Paper,
-  TextField,
-  Tooltip,
-  Typography,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  LinearProgress,
-  Button,                      // <- NUEVO
+  TextField,
+  Tooltip,
+  Typography,
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import SearchIcon from '@mui/icons-material/Search';
-import ClearIcon from '@mui/icons-material/Clear';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
-import SmsIcon from '@mui/icons-material/Sms';
-import ImageIcon from '@mui/icons-material/Image';
-import RouterIcon from '@mui/icons-material/Router';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';   // <- NUEVO
-
-import { useCampaignLogs } from '@/hooks/fetching/campaigns/useCampaignLogs';
-import type { MessageLogStatus, CampaignLogsResponse } from '@/services/campaing.service';
+import * as React from 'react';
 
 /* ---------------- helpers ---------------- */
 
@@ -75,42 +74,53 @@ const renderErrorTooltip = (row: any) => {
   const friendly = info?.friendly || '';
   const explanation = info?.explanation || '';
   const klass = info?.class || '';
-  const billable =
-    typeof info?.billable === 'boolean' ? (info.billable ? 'Yes' : 'No') : '-';
+  const billable = typeof info?.billable === 'boolean' ? (info.billable ? 'Yes' : 'No') : '-';
 
   return (
     <Box sx={{ p: 0.5 }}>
-      <Typography variant="caption"
-        sx={{ display: 'block' }}>
+      <Typography
+        variant="caption"
+        sx={{ display: 'block' }}
+      >
         <b>Code:</b> {code}
       </Typography>
       {msg ? (
-        <Typography variant="caption"
-          sx={{ display: 'block' }}>
+        <Typography
+          variant="caption"
+          sx={{ display: 'block' }}
+        >
           <b>Message:</b> {msg}
         </Typography>
       ) : null}
       {friendly ? (
-        <Typography variant="caption"
-          sx={{ display: 'block' }}>
+        <Typography
+          variant="caption"
+          sx={{ display: 'block' }}
+        >
           <b>Reason:</b> {friendly}
         </Typography>
       ) : null}
       {explanation ? (
-        <Typography variant="caption"
-          sx={{ display: 'block' }}>
+        <Typography
+          variant="caption"
+          sx={{ display: 'block' }}
+        >
           <b>Details:</b> {explanation}
         </Typography>
       ) : null}
       {klass ? (
-        <Typography variant="caption"
-          sx={{ display: 'block' }}>
+        <Typography
+          variant="caption"
+          sx={{ display: 'block' }}
+        >
           <b>Class:</b> {klass}
         </Typography>
       ) : null}
       {billable !== '-' ? (
-        <Typography variant="caption"
-          sx={{ display: 'block' }}>
+        <Typography
+          variant="caption"
+          sx={{ display: 'block' }}
+        >
           <b>Billable:</b> {billable}
         </Typography>
       ) : null}
@@ -224,9 +234,9 @@ const CampaignLogsModal: React.FC<Props> = ({
         const params = {
           page,
           limit: LIMIT,
-          sort: so,           // algunos servicios usan sort, otros order (por eso pondremos ambos)
+          sort: so, // algunos servicios usan sort, otros order (por eso pondremos ambos)
           order: so,
-          q: s || undefined,  // algunos usan 'q', otros 'search'
+          q: s || undefined, // algunos usan 'q', otros 'search'
           search: s || undefined,
           status: normStatus,
         };
@@ -274,10 +284,7 @@ const CampaignLogsModal: React.FC<Props> = ({
         }
 
         const total =
-          res?.total ??
-          res?.count ??
-          (res?.totalPages && res.totalPages * LIMIT) ??
-          undefined;
+          res?.total ?? res?.count ?? (res?.totalPages && res.totalPages * LIMIT) ?? undefined;
 
         console.log(
           `[export] page=${page} got=${rows.length} written=${written} total=${total ?? 'unknown'}`
@@ -306,7 +313,6 @@ const CampaignLogsModal: React.FC<Props> = ({
     }
   };
 
-
   /* ------------------------------------------------------------------------- */
 
   return (
@@ -318,8 +324,10 @@ const CampaignLogsModal: React.FC<Props> = ({
       PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden' } }}
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Typography variant="h6"
-          sx={{ fontWeight: 800, flexGrow: 1 }}>
+        <Typography
+          variant="h6"
+          sx={{ fontWeight: 800, flexGrow: 1 }}
+        >
           Campaign logs
           {status !== 'any' ? ` - ${String(status).toUpperCase()}` : ''}
         </Typography>
@@ -387,11 +395,15 @@ const CampaignLogsModal: React.FC<Props> = ({
         </Box>
 
         {/* tabla */}
-        <Paper variant="outlined"
-          sx={{ borderRadius: 2, overflow: 'hidden' }}>
+        <Paper
+          variant="outlined"
+          sx={{ borderRadius: 2, overflow: 'hidden' }}
+        >
           <TableContainer sx={{ maxHeight: 520 }}>
-            <Table stickyHeader
-              size="small">
+            <Table
+              stickyHeader
+              size="small"
+            >
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 700, minWidth: 120 }}>Time</TableCell>
@@ -400,7 +412,7 @@ const CampaignLogsModal: React.FC<Props> = ({
                   <TableCell sx={{ fontWeight: 700, minWidth: 140 }}>BW Status</TableCell>
                   <TableCell sx={{ fontWeight: 700, minWidth: 140 }}>SID</TableCell>
                   <TableCell sx={{ fontWeight: 700, minWidth: 140 }}>Carrier</TableCell>
-                  {status === 'error' && (
+                  {status === 'failed' && (
                     <TableCell sx={{ fontWeight: 700, minWidth: 120 }}>Error Code</TableCell>
                   )}
                 </TableRow>
@@ -420,7 +432,7 @@ const CampaignLogsModal: React.FC<Props> = ({
                     const key = row.messageSid || `${idx}-${row.timestamp}`;
                     const phone = row.phone || row.destinationTn || '-';
                     const phoneTrunked =
-                      status === 'error'
+                      status === 'failed'
                         ? phone
                         : 'xxxxx' + phone.slice(5, phone.length - 1).toString();
 
@@ -428,8 +440,10 @@ const CampaignLogsModal: React.FC<Props> = ({
                     const hasError = !!(row.errorCode || row.errorMessage || row.errorInfo);
 
                     return (
-                      <TableRow hover
-                        key={key}>
+                      <TableRow
+                        hover
+                        key={key}
+                      >
                         {/* Time */}
                         <TableCell>{formatDateTime(row.timestamp)}</TableCell>
 
@@ -437,9 +451,11 @@ const CampaignLogsModal: React.FC<Props> = ({
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <PhoneIphoneIcon fontSize="small" />
-                            <Typography variant="body2"
+                            <Typography
+                              variant="body2"
                               noWrap
-                              title={phoneTrunked}>
+                              title={phoneTrunked}
+                            >
                               {phoneTrunked}
                             </Typography>
                           </Box>
@@ -450,9 +466,11 @@ const CampaignLogsModal: React.FC<Props> = ({
 
                         {/* BW Status */}
                         <TableCell>
-                          <Typography variant="body2"
+                          <Typography
+                            variant="body2"
                             noWrap
-                            title={row.bwMessageStatus || '-'}>
+                            title={row.bwMessageStatus || '-'}
+                          >
                             {row.bwMessageStatus || '-'}
                           </Typography>
                         </TableCell>
@@ -461,16 +479,20 @@ const CampaignLogsModal: React.FC<Props> = ({
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Tooltip title={row.messageSid || '-'}>
-                              <Typography variant="body2"
+                              <Typography
+                                variant="body2"
                                 sx={{ maxWidth: 140 }}
-                                noWrap>
+                                noWrap
+                              >
                                 {row.messageSid || '-'}
                               </Typography>
                             </Tooltip>
                             {row.messageSid && (
                               <Tooltip title="Copy SID">
-                                <IconButton size="small"
-                                  onClick={() => copy(row.messageSid!)}>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => copy(row.messageSid!)}
+                                >
                                   <ContentCopyIcon fontSize="inherit" />
                                 </IconButton>
                               </Tooltip>
@@ -482,22 +504,26 @@ const CampaignLogsModal: React.FC<Props> = ({
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <RouterIcon fontSize="small" />
-                            <Typography variant="body2"
+                            <Typography
+                              variant="body2"
                               noWrap
-                              title={carrier}>
+                              title={carrier}
+                            >
                               {carrier}
                             </Typography>
                           </Box>
                         </TableCell>
 
                         {/* Error Code (tooltip con info ampliada) */}
-                        {status === 'error' && (
+                        {status === 'failed' && (
                           <TableCell>
                             {hasError ? (
                               <Tooltip title={renderErrorTooltip(row)}>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                  <ErrorOutlineIcon fontSize="small"
-                                    color="error" />
+                                  <ErrorOutlineIcon
+                                    fontSize="small"
+                                    color="error"
+                                  />
                                   <Typography
                                     variant="body2"
                                     sx={{ maxWidth: 140 }}
@@ -509,8 +535,10 @@ const CampaignLogsModal: React.FC<Props> = ({
                                 </Box>
                               </Tooltip>
                             ) : (
-                              <Typography variant="body2"
-                                color="text.secondary">
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
                                 —
                               </Typography>
                             )}
@@ -544,8 +572,10 @@ const CampaignLogsModal: React.FC<Props> = ({
               gap: 2,
             }}
           >
-            <Typography variant="caption"
-              color="text.secondary">
+            <Typography
+              variant="caption"
+              color="text.secondary"
+            >
               Page {response?.page ?? page} / {response?.totalPages ?? 1} • {response?.total ?? 0}{' '}
               results
             </Typography>

@@ -20,6 +20,7 @@ import * as React from 'react';
 import { useMemo, useState } from 'react';
 import BillingFilters, {  PaymentMethod } from './filters';
 import { KpiBlock, PieWithLegend, StatusChip } from './utils';
+import { SmsLogsModal } from '@/components/SmsLogsModal';
 import { MembershipType } from '@/services/billing.service';
 
 // Util: YYYY-MM-DD
@@ -33,6 +34,11 @@ const toYYYYMMDD = (d: Date | null | undefined) =>
 export default function BillingPage() {
   const theme = useTheme();
   const smUp = useMediaQuery(theme.breakpoints.up('sm'));
+
+  // Estado del modal de logs de SMS
+  const [isSmsModalOpen, setIsSmsModalOpen] = useState(false);
+  const handleOpenSmsModal = () => setIsSmsModalOpen(true);
+  const handleCloseSmsModal = () => setIsSmsModalOpen(false);
 
   // Colores para el gráfico
   const colorSMS = theme.palette.success.light;
@@ -94,11 +100,17 @@ export default function BillingPage() {
       ? alpha(theme.palette.neutral?.[25] ?? '#fff', 0.04)
       : 'neutral.25';
 
-  return (
-    <Container
-      maxWidth="xl"
-      sx={{ py: { xs: 2, md: 3 } }}
-    >
+	  return (
+	    <Container
+	      maxWidth="xl"
+	      sx={{ py: { xs: 2, md: 3 } }}
+	    >
+        <SmsLogsModal
+          open={isSmsModalOpen}
+          onClose={handleCloseSmsModal}
+          start={startStr}
+          end={endStr}
+        />
       {/* Header */}
       <Stack
         direction="row"
@@ -270,6 +282,7 @@ export default function BillingPage() {
                       /* nuevo color para Opt-in */
                       colorOptin={theme.palette.warning.light}
                       grandTotal={grandTotal}
+                      onClickSMS={handleOpenSmsModal} // <--- NUEVO: Evento de clic
                     />
                   </Box>
 
