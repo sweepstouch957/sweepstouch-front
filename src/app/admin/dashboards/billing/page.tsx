@@ -1,5 +1,8 @@
 'use client';
 
+import SmsCampaignsModal from '@/components/billing/SmsCampaignsModal';
+import { SmsLogsModal } from '@/components/SmsLogsModal';
+import { MembershipType } from '@/services/billing.service';
 import { useRangeBilling, useStoresRangeReport } from '@hooks/fetching/billing/useBilling';
 import {
   alpha,
@@ -18,11 +21,8 @@ import {
 } from '@mui/material';
 import * as React from 'react';
 import { useMemo, useState } from 'react';
-import BillingFilters, {  PaymentMethod } from './filters';
+import BillingFilters, { PaymentMethod } from './filters';
 import { KpiBlock, PieWithLegend, StatusChip } from './utils';
-import { SmsLogsModal } from '@/components/SmsLogsModal';
-import { MembershipType } from '@/services/billing.service';
-import SmsCampaignsModal from '@/components/billing/SmsCampaignsModal';
 
 // Util: YYYY-MM-DD
 const toYYYYMMDD = (d: Date | null | undefined) =>
@@ -33,7 +33,6 @@ const toYYYYMMDD = (d: Date | null | undefined) =>
     : '';
 
 export default function BillingPage() {
-  const [isSmsModalOpen, setIsSmsModalOpen] = useState(false);
   const theme = useTheme();
   const smUp = useMediaQuery(theme.breakpoints.up('sm'));
 
@@ -102,17 +101,17 @@ export default function BillingPage() {
       ? alpha(theme.palette.neutral?.[25] ?? '#fff', 0.04)
       : 'neutral.25';
 
-	  return (
-	    <Container
-	      maxWidth="xl"
-	      sx={{ py: { xs: 2, md: 3 } }}
-	    >
-        <SmsLogsModal
-          open={isSmsModalOpen}
-          onClose={handleCloseSmsModal}
-          start={startStr}
-          end={endStr}
-        />
+  return (
+    <Container
+      maxWidth="xl"
+      sx={{ py: { xs: 2, md: 3 } }}
+    >
+      <SmsLogsModal
+        open={isSmsModalOpen}
+        onClose={handleCloseSmsModal}
+        start={startStr}
+        end={endStr}
+      />
       {/* Header */}
       <Stack
         direction="row"
@@ -232,7 +231,7 @@ export default function BillingPage() {
                   hint={`${optinCount} × ${new Intl.NumberFormat('en-US', {
                     style: 'currency',
                     currency: 'USD',
-                      }).format(optinUnit)}`}
+                  }).format(optinUnit)}`}
                 />
               </Stack>
             </CardContent>

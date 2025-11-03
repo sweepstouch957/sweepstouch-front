@@ -4,11 +4,8 @@
 
 // Importar el hook de fetching adaptado para logs de billing
 import { useBillingSmsLogs } from '@/hooks/fetching/billing/useBilling';
-import type {
-  CampaignLog,
-  CampaignLogsResponse,
-  MessageLogStatus,
-} from '@/services/campaing.service'; // Reutilizar el tipo de estado
+import type { CampaignLog, MessageLogStatus } from '@/services/campaing.service';
+// Reutilizar el tipo de estado
 import ClearIcon from '@mui/icons-material/Clear';
 import CloseIcon from '@mui/icons-material/Close';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';

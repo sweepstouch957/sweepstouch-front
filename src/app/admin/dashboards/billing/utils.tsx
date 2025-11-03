@@ -1,9 +1,6 @@
 'use client';
 
-<<<<<<< HEAD
-=======
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
->>>>>>> 8311af9d8124d882abda5208bf598e9563288e45
 import { Box, Chip, Divider, Skeleton, Stack, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { PieChart, useDrawingArea } from '@mui/x-charts';

@@ -1,5 +1,3 @@
-// Contenido completo de sweepstouch-front/src/hooks/fetching/billing/useBilling.ts
-
 import { billingQK, billingService } from '@/services/billing.service';
 import type {
   RangeBillingParams,
@@ -9,10 +7,19 @@ import type {
   StoresReportParams,
   StoresReportResponse,
 } from '@/services/billing.service';
-import { CampaignLogsResponse } from '@/services/campaing.service'; // Importar el tipo correcto
+import type { CampaignLogsResponse } from '@/services/campaing.service'; // Importar el tipo correcto
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 
 /* ============ Hooks nuevos ============ */
+
+/** Interfaz común para las respuestas de los logs */
+export type CommonCampaignLogsResponse = {
+  campaignId?: string;
+  filters?: any;
+  sort?: string;
+  countsByStatus?: any;
+  data: CampaignLogsResponse[];
+};
 
 /** Global: campañas del rango + membresía × periods (si viene) */
 export function useRangeBilling(
@@ -51,8 +58,13 @@ export function useStoresRangeReport(
       return res.data;
     },
     enabled: (opts?.enabled ?? true) && Boolean(params?.start && params?.end),
-    staleTime: opts?.staleTime ?? 0, // forzamos re-fetch fácil en vistas de detalle
+    staleTime: opts?.staleTime ?? 0, // Forzamos re-fetch fácil en vistas de detalle
   });
+}
+
+/** Verificar si los datos son de tipo CampaignLogsResponse */
+function isCampaignLogsResponse(data: any): data is CampaignLogsResponse {
+  return 'campaignId' in data && 'filters' in data && 'sort' in data && 'countsByStatus' in data;
 }
 
 /** Logs de SMS/MMS para un rango de fechas */
@@ -68,11 +80,14 @@ export function useBillingSmsLogs(
       if (!params.start || !params.end) {
         throw new Error('start y end son requeridos para /billing/sms-logs');
       }
-      // Nota: El servicio getSmsLogs devuelve SmsLogsResponse, que es un alias de CampaignLogsResponse
+      // Obtener logs de SMS/MMS desde el servicio
       const res = await billingService.getSmsLogs(params);
-      // SmsLogsResponse (en billing.service.ts) tiene el mismo shape que CampaignLogsResponse (en campaing.service.ts)
-      // Ambos usan CampaignLog[] para los datos.
-      return res.data as CampaignLogsResponse; // Aseguramos el tipo de retorno para el hook
+      // Verificar si los datos son de tipo CampaignLogsResponse antes de devolverlos
+      if (isCampaignLogsResponse(res.data)) {
+        return res.data; // Solo se retorna si es de tipo CampaignLogsResponse
+      } else {
+        throw new Error('Respuesta inesperada del servicio de logs');
+      }
     },
 
     ...(opts ?? {}),
