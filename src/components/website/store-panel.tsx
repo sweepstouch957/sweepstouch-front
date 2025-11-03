@@ -1,6 +1,27 @@
 // app/components/stores/StoreInfo.tsx
 'use client';
 
+/** Devuelve antigüedad formateada "X años, Y meses" a partir de ISO startContractDate */
+const formatAge = (iso?: string | null) => {
+  if (!iso) return '—';
+  const start = new Date(iso);
+  if (Number.isNaN(start.getTime())) return '—';
+  const now = new Date();
+  let months =
+    (now.getFullYear() - start.getFullYear()) * 12 +
+    (now.getMonth() - start.getMonth());
+
+  // Ajuste por día del mes para evitar sumar un mes si aún no se cumple el día
+  if (now.getDate() < start.getDate()) months -= 1;
+
+  const years = Math.floor(months / 12);
+  const rem = Math.max(0, months % 12);
+  const y = `${years} año${years === 1 ? '' : 's'}`;
+  const m = `${rem} mes${rem === 1 ? '' : 'es'}`;
+  return `${y}, ${m}`;
+};
+
+
 import { useStoreEditor } from '@/hooks/pages/useStoreEditor';
 import { Store } from '@/services/store.service';
 import { getTierColor } from '@/utils/ui/store.page';
@@ -16,6 +37,8 @@ import StoreGeneralForm from '../application-ui/form-layouts/store/edit';
 import StoreHeader from '../application-ui/headings/store/store-create';
 import StoreMap from '../application-ui/map/store-map';
 import { PaymentOutlined } from '@mui/icons-material';
+
+import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
 
@@ -125,11 +148,12 @@ export default function StoreInfo({ store }: { store: Store }) {
               xs={6}
               md={3}
             >
+
               <StatItem
-                icon={<PhoneIphoneIcon fontSize="small" />}
-                label="Proveedor"
-                value={form.provider.toUpperCase()}
-                help={form.provider === 'twilio' ? 'Números Twilio' : 'Números Bandwidth'}
+                icon={<CalendarMonthOutlinedIcon fontSize="small" />}
+                label="Antigüedad"
+                value={formatAge(form.startContractDate as any)}
+                help="Tiempo desde contrato"
               />
             </Grid>
           </Grid>
