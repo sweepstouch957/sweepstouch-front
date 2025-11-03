@@ -81,7 +81,7 @@ const Component = () => {
                     All
                     <Chip
                       color="primary"
-                      label={18}
+                      label={0}
                       size="small"
                     />
                   </>
@@ -93,7 +93,7 @@ const Component = () => {
                     Unread
                     <Chip
                       color="warning"
-                      label={12}
+                      label={0}
                       size="small"
                     />
                   </>
@@ -105,7 +105,7 @@ const Component = () => {
                     Archived
                     <Chip
                       color="info"
-                      label={34}
+                      label={0}
                       size="small"
                     />
                   </>

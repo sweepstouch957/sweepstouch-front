@@ -44,7 +44,7 @@ class AuthClient {
 
     try {
       const res = await api.post('/auth/login', {
-         email, // puede ser email o phoneNumber
+        email, // puede ser email o phoneNumber
         password,
       });
 

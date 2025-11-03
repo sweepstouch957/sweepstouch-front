@@ -38,7 +38,7 @@ const Component = () => {
   return (
     <Scrollbar>
       <DialogContent sx={{ p: 0 }}>
-        <Stack divider={<Divider />}>
+        {/*<Stack divider={<Divider />}>
           <ListItemButton>
             <IconButton
               color="primary"
@@ -758,7 +758,7 @@ const Component = () => {
               </Box>
             </Box>
           </ListItemButton>
-        </Stack>
+        </Stack>*/}
       </DialogContent>
     </Scrollbar>
   );
