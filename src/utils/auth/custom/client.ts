@@ -39,7 +39,8 @@ class AuthClient {
   }
 
   async signInWithPassword(params: LoginWithPasswordParams): Promise<{ error?: string }> {
-    const { email, password } = params;
+    const email = params.email?.trim();
+    const password = params.password?.trim();
 
     try {
       const res = await api.post('/auth/login', {

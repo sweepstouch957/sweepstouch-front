@@ -32,8 +32,10 @@ import { DateRange, RangeKeyDict } from 'react-date-range';
 import * as XLSX from 'xlsx';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
-import { useStoresRangeReport } from '@hooks/fetching/billing/useBilling';
+import StoresReportModal from '@/components/billing/StoresReportModal';
 import { MembershipType } from '@/services/billing.service';
+import { useStoresRangeReport } from '@hooks/fetching/billing/useBilling';
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 
 export type PaymentMethod = 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
 
@@ -128,6 +130,7 @@ export default function BillingFilters({
 
   const [exporting, setExporting] = React.useState(false);
 
+  const [openStores, setOpenStores] = React.useState(false);
   const bgSoft =
     theme.palette.mode === 'dark'
       ? alpha(theme.palette.neutral?.[25] ?? '#fff', 0.04)
@@ -195,7 +198,6 @@ export default function BillingFilters({
     }
   };
 
-  /* ====== Export ====== */
   const handleExport = async () => {
     if (!startDate || !endDate) return;
 
@@ -228,6 +230,7 @@ export default function BillingFilters({
           'Total campañas (USD)': +(s?.campaigns?.total ?? 0).toFixed(2),
           'Opt-in (count)': +(s?.optin?.count ?? 0),
           'Opt-in (USD)': +(s?.optin?.cost ?? 0).toFixed(2),
+          'Audiencia': +(s?.lastCampaignAudience ?? 0),
         };
 
         if (includeMembership) {
@@ -239,13 +242,13 @@ export default function BillingFilters({
       });
 
       // ----- Crear hoja vacía y escribir en orden -----
-      const ws = XLSX.utils.aoa_to_sheet([]); // <— hoja VACÍA (no duplica nada)
+      const ws = XLSX.utils.aoa_to_sheet([]); // <— hoja VACÍA
 
       // Título y subtítulo
       XLSX.utils.sheet_add_aoa(ws, [[title]], { origin: 'A1' });
       XLSX.utils.sheet_add_aoa(ws, [[subtitle]], { origin: 'A2' });
 
-      // Headers (A4) — si no hay filas, generar estructura base
+      // Headers (A4)
       const header = Object.keys(
         rows[0] ??
           (includeMembership
@@ -258,6 +261,7 @@ export default function BillingFilters({
                 'Total campañas (USD)': 0,
                 'Opt-in (count)': 0,
                 'Opt-in (USD)': 0,
+                'Audiencia': 0,
                 'Membresía (USD)': 0,
                 'Gran total (USD)': 0,
               }
@@ -270,6 +274,7 @@ export default function BillingFilters({
                 'Total campañas (USD)': 0,
                 'Opt-in (count)': 0,
                 'Opt-in (USD)': 0,
+                'Audiencia': 0,
                 'Gran total (USD)': 0,
               })
       );
@@ -291,11 +296,12 @@ export default function BillingFilters({
           'Total campañas (USD)': +(totals?.campaigns?.total ?? 0).toFixed(2),
           'Opt-in (count)': +(totals?.optin?.count ?? 0),
           'Opt-in (USD)': +(totals?.optin?.cost ?? 0).toFixed(2),
+          'Audiencia': '', // no aplica total
         };
         if (includeMembership) totalsRow['Membresía (USD)'] = +(totals?.membership ?? 0).toFixed(2);
         totalsRow['Gran total (USD)'] = +(totals?.grandTotal ?? 0).toFixed(2);
 
-        const startRow = (rows.length || 0) + 6; // A5 + rows + línea en blanco
+        const startRow = (rows.length || 0) + 6;
         XLSX.utils.sheet_add_aoa(ws, [[]], { origin: { r: startRow - 1, c: 0 } });
         XLSX.utils.sheet_add_json(ws, [totalsRow], {
           origin: { r: startRow, c: 0 },
@@ -530,6 +536,15 @@ export default function BillingFilters({
             >
               {exporting ? 'Exportando…' : 'Exportar Excel'}
             </Button>
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<VisibilityOutlinedIcon />}
+              onClick={() => setOpenStores(true)}
+              sx={{ ml: 1 }}
+            >
+              Ver tiendas
+            </Button>
           </Box>
         </Stack>
 
@@ -550,6 +565,16 @@ export default function BillingFilters({
           }}
         />
       </CardContent>
+
+      <StoresReportModal
+        open={openStores}
+        onClose={() => setOpenStores(false)}
+        start={toYYYYMMDD(startDate)!}
+        end={toYYYYMMDD(endDate)!}
+        periods={periods ?? 0}
+        paymentMethod={(paymentMethod || undefined) as any}
+        membershipType={membershipType}
+      />
     </Card>
   );
 }
