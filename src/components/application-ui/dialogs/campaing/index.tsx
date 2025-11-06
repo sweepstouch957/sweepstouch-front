@@ -434,7 +434,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
         open={logsOpen}
         onClose={() => setLogsOpen(false)}
         campaignId={campaignId}
-        defaultStatus="error"
+        defaultStatus="failed"
       />
 
       <CampaignLogsModal

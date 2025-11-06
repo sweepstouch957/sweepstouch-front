@@ -1,6 +1,7 @@
 'use client';
 
-import { Chip, Divider, Skeleton, Stack, Typography } from '@mui/material';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import { Box, Chip, Divider, Skeleton, Stack, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { PieChart, useDrawingArea } from '@mui/x-charts';
 
@@ -26,16 +27,37 @@ function PieCenterLabel({ children }: { children: React.ReactNode }) {
 
 /* =================== Otros componentes UI =================== */
 
-export function KpiBlock({ title, value, hint }: { title: string; value?: string; hint?: string }) {
+export function KpiBlock({
+  title,
+  value,
+  hint,
+  onClick,
+}: {
+  title: string;
+  value?: string;
+  hint?: string;
+  onClick?: () => void;
+}) {
   return (
-    <div style={{ padding: 8, textAlign: 'center', flex: 1 }}>
+    <div
+      style={{ padding: 8, textAlign: 'center', flex: 1, cursor: onClick ? 'pointer' : 'default' }}
+      onClick={onClick}
+    >
       <Typography
         variant="caption"
         color="text.secondary"
         sx={{ fontSize: { xs: 12, md: 11 } }}
         gutterBottom
       >
-        {title}
+        <Box
+          component="span"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+        >
+          {title}
+          {onClick && <InfoOutlinedIcon sx={{ fontSize: 14, ml: 0.5, color: 'text.secondary' }} />}
+        </Box>
       </Typography>
       <Typography variant="h3">{value ?? <Skeleton width={140} />}</Typography>
       {hint && (
@@ -113,6 +135,7 @@ export function PieWithLegend({
   colorStores,
   colorOptin,
   grandTotal,
+  onClickSMS,
 }: {
   smsValue: number;
   mmsValue: number;
@@ -123,6 +146,7 @@ export function PieWithLegend({
   colorStores: string;
   colorOptin: string;
   grandTotal: number;
+  onClickSMS?: () => void;
 }) {
   const campaignsValue = (smsValue ?? 0) + (mmsValue ?? 0);
 
@@ -164,12 +188,24 @@ export function PieWithLegend({
       >
         <LegendRow>
           <Dot color={colorSMS} />
-          <Typography sx={{ color: colorSMS, px: 0.5 }}>
-            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
-              smsValue ?? 0
-            )}
-          </Typography>
-          SMS
+          <Box
+            onClick={onClickSMS}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              cursor: onClickSMS ? 'pointer' : 'default',
+              '&:hover': {
+                textDecoration: onClickSMS ? 'underline' : 'none',
+              },
+            }}
+          >
+            <Typography sx={{ color: colorSMS, px: 0.5 }}>
+              {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
+                smsValue ?? 0
+              )}
+            </Typography>
+            SMS
+          </Box>
         </LegendRow>
 
         <LegendRow>

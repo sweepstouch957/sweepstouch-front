@@ -1,14 +1,25 @@
-// src/hooks/useBilling.ts
 import { billingQK, billingService } from '@/services/billing.service';
 import type {
   RangeBillingParams,
   RangeBillingResponse,
+  SmsLogsParams,
+  SmsLogsResponse,
   StoresReportParams,
   StoresReportResponse,
 } from '@/services/billing.service';
-import { useQuery } from '@tanstack/react-query';
+import type { CampaignLogsResponse } from '@/services/campaing.service'; // Importar el tipo correcto
+import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 
 /* ============ Hooks nuevos ============ */
+
+/** Interfaz común para las respuestas de los logs */
+export type CommonCampaignLogsResponse = {
+  campaignId?: string;
+  filters?: any;
+  sort?: string;
+  countsByStatus?: any;
+  data: CampaignLogsResponse[];
+};
 
 /** Global: campañas del rango + membresía × periods (si viene) */
 export function useRangeBilling(
@@ -47,6 +58,38 @@ export function useStoresRangeReport(
       return res.data;
     },
     enabled: (opts?.enabled ?? true) && Boolean(params?.start && params?.end),
-    staleTime: opts?.staleTime ?? 0, // forzamos re-fetch fácil en vistas de detalle
+    staleTime: opts?.staleTime ?? 0, // Forzamos re-fetch fácil en vistas de detalle
+  });
+}
+
+/** Verificar si los datos son de tipo CampaignLogsResponse */
+function isCampaignLogsResponse(data: any): data is CampaignLogsResponse {
+  return 'campaignId' in data && 'filters' in data && 'sort' in data && 'countsByStatus' in data;
+}
+
+/** Logs de SMS/MMS para un rango de fechas */
+export function useBillingSmsLogs(
+  params: SmsLogsParams,
+  opts?: Omit<UseQueryOptions<CampaignLogsResponse>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery<CampaignLogsResponse>({
+    queryKey:
+      params.start && params.end ? billingQK.smsLogs(params) : ['billing', 'sms-logs', 'disabled'],
+
+    queryFn: async () => {
+      if (!params.start || !params.end) {
+        throw new Error('start y end son requeridos para /billing/sms-logs');
+      }
+      // Obtener logs de SMS/MMS desde el servicio
+      const res = await billingService.getSmsLogs(params);
+      // Verificar si los datos son de tipo CampaignLogsResponse antes de devolverlos
+      if (isCampaignLogsResponse(res.data)) {
+        return res.data; // Solo se retorna si es de tipo CampaignLogsResponse
+      } else {
+        throw new Error('Respuesta inesperada del servicio de logs');
+      }
+    },
+
+    ...(opts ?? {}),
   });
 }

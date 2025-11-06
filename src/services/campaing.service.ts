@@ -12,7 +12,12 @@ interface FilterCampaignParams {
   title?: string;
 }
 
-export type MessageLogStatus = 'sent' | 'error' | 'queued' | 'not-sent';
+export type MessageLogStatus =
+  | 'queued'
+  | 'failed'
+  | 'sent'
+  | 'delivered' //
+  | 'undelivered';
 
 export interface CampaignLog {
   messageSid?: string;
@@ -28,6 +33,7 @@ export interface CampaignLog {
   attachmentCount?: number;
   recipientCount?: number;
   carrierName?: string;
+  carrier?: string;
   campaignClass?: string;
   price?: number;
   errorInfo?: {
@@ -37,12 +43,17 @@ export interface CampaignLog {
     explanation: string;
     friendly: string;
     source: string;
+    billable?: boolean;
   } | null;
   dateSent?: string;
   timestamp?: string;
   body?: string;
   errorCode?: string;
   errorMessage?: string;
+  phoneNumber?: string;
+  createdAt?: string;
+  time?: string;
+  sid?: string;
 }
 
 export interface CampaignLogsResponse {

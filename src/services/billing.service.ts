@@ -1,17 +1,19 @@
-// src/services/billing.service.ts
+// Contenido completo de sweepstouch-front/src/services/billing.service.ts
+
 import { api } from '@/libs/axios';
 import type { AxiosResponse } from 'axios';
+import type { CampaignLog, MessageLogStatus } from './campaing.service';
 
 /* ========================= Tipos compartidos ========================= */
 
 export type MembershipType = 'mensual' | 'semanal' | 'especial' | 'none' | 'all';
 export type PaymentMethod = 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
 
-export type CampaignTotals = {
+export interface CampaignTotals {
   sms: number;
   mms: number;
   total: number;
-};
+}
 
 /* ---------- /billing/range ---------- */
 export interface RangeBillingParams {
@@ -119,6 +121,27 @@ export interface StoresReportResponse {
   };
 }
 
+/* ---------- /billing/sms-logs ---------- */
+// Reutilizamos los tipos de logs de campaña, asumiendo que el backend los devuelve igual
+export interface SmsLogsParams {
+  start: string; // YYYY-MM-DD
+  end: string; // YYYY-MM-DD
+  status?: MessageLogStatus; // delivered, failed, queued
+  page?: number;
+  limit?: number;
+  sort?: 'asc' | 'desc';
+  search?: string; // phone or sid
+}
+
+export interface SmsLogsResponse {
+  ok: boolean;
+  data: CampaignLog[]; // Lista de logs de SMS/MMS
+  total: number; // Total de logs
+  totalPages: number;
+  page: number;
+  limit: number;
+}
+
 /* ========================= Servicio ========================= */
 
 export class BillingService {
@@ -140,6 +163,22 @@ export class BillingService {
       membershipType: params.membershipType === 'all' ? undefined : params.membershipType,
     };
     return api.get('/billing/stores-report', { params: cleanParams });
+  }
+
+  /** Logs de SMS/MMS para un rango de fechas */
+  async getSmsLogs(params: SmsLogsParams): Promise<AxiosResponse<SmsLogsResponse>> {
+    // Limpiamos los parámetros undefined/null/empty-string para que no se envíen en la URL
+    const cleanParams: Record<string, any> = {};
+    if (params.start) cleanParams.start = params.start;
+    if (params.end) cleanParams.end = params.end;
+    if (params.status) cleanParams.status = params.status;
+    if (params.page) cleanParams.page = params.page;
+    if (params.limit) cleanParams.limit = params.limit;
+    if (params.sort) cleanParams.sort = params.sort;
+    if (params.search) cleanParams.search = params.search;
+
+    // La URL correcta es /tracking/campaigns/logs (endpoint global sin campaignId)
+    return api.get('/tracking/campaigns/logs', { params: cleanParams });
   }
 
   /* ===== [DEPRECATED] Métodos anteriores (eliminados del backend) =====
@@ -180,5 +219,19 @@ export const billingQK = {
       norm(p.periods ?? 0),
       norm(p.paymentMethod),
       norm(p.membershipType),
+    ] as const,
+
+  /** Logs de SMS/MMS */
+  smsLogs: (p: SmsLogsParams) =>
+    [
+      'billing',
+      'campaigns', // Corregido el nombre del query key
+      p.start,
+      p.end,
+      p.status,
+      p.page,
+      p.limit,
+      p.sort,
+      p.search,
     ] as const,
 };
