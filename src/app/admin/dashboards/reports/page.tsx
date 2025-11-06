@@ -1,6 +1,7 @@
 'use client';
 
 import YtdMessagesBarChart from '@/components/application-ui/composed-visualization-blocks/campaigns-bar/campaigns-bar';
+import AudienceGrowthChart from '@/components/application-ui/composed-visualization-blocks/sweepstakes-resume/sweeptakes-resume';
 import ChartBarIcon from '@heroicons/react/24/outline/ChartBarIcon';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import { Box, Button, Container, Unstable_Grid2 as Grid, useTheme } from '@mui/material';
@@ -103,6 +104,9 @@ function Page(): React.JSX.Element {
             </Grid>
             <Grid xs={12}>
               <YtdMessagesBarChart />
+            </Grid>
+            <Grid xs={12}>
+              <AudienceGrowthChart />
             </Grid>
           </Grid>
         </Box>

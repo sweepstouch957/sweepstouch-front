@@ -1,165 +1,270 @@
+'use client';
+
 import { sweepstakesClient } from '@/services/sweepstakes.service';
-import PieChartTwoToneIcon from '@mui/icons-material/PieChartTwoTone';
 import {
-  alpha,
   Box,
-  Button,
   Card,
+  CardContent,
+  CardHeader,
   Divider,
-  Unstable_Grid2 as Grid,
   Skeleton,
+  Stack,
+  styled,
   Typography,
-  useMediaQuery,
   useTheme,
 } from '@mui/material';
 import { BarChart } from '@mui/x-charts/BarChart';
 import { useQuery } from '@tanstack/react-query';
+import { format, subHours } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 
-function Component() {
-  const { t } = useTranslation();
+// Styled Dividers
+const DividerInfo = styled(Divider)(({ theme }) => ({
+  height: '4px',
+  background: theme.palette.info.main,
+}));
+
+const DividerSuccess = styled(Divider)(({ theme }) => ({
+  height: '4px',
+  background: theme.palette.success.main,
+}));
+
+export default function AudienceGrowthKPICard() {
   const theme = useTheme();
-  const smUp = useMediaQuery(theme.breakpoints.up('sm'));
+  const { t } = useTranslation();
 
-  const xLabels = ['Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'];
-
-  const { data = [], isLoading } = useQuery({
-    queryKey: ['sweepstake-reports'],
+  const { data, isLoading } = useQuery({
+    queryKey: ['audience-growth'],
     queryFn: () => sweepstakesClient.getMonthlyParticipants(),
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 10,
   });
 
-  const newCustomers = data.map((d) => d.newCustomers);
-  const existingCustomers = data.map((d) => d.existingCustomers);
+  const months = data?.months ?? [];
+
+  const xLabels = months.map((m) => m.month);
+  const newCustomers = months.map((m) => m.newCustomers);
+  const existingCustomers = months.map((m) => m.existingCustomers);
+
+  const sumNew = newCustomers.reduce((a, b) => a + b, 0);
+  const sumExisting = existingCustomers.reduce((a, b) => a + b, 0);
+  const sumTotal = sumNew + sumExisting;
+
+  const pctNew = sumTotal > 0 ? (sumNew / sumTotal) * 100 : 0;
+  const pctExisting = sumTotal > 0 ? (sumExisting / sumTotal) * 100 : 0;
 
   return (
-    <Card>
-      <Grid container>
-        <Grid
-          xs={12}
-          lg={12}
-          display="flex"
-          flexDirection="column"
-        >
-          <Box p={{ xs: 2, sm: 3 }}>
-            <Box>
-              <Typography variant="h4">{t('Monthly Participantes Status')}</Typography>
-              <Typography
-                variant="subtitle2"
-                color="text.secondary"
-              >
-                {t('Check how the sweepstakes are going')}
-              </Typography>
-            </Box>
-          </Box>
+    <Card
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <CardHeader
+        sx={{ p: { xs: 2, sm: 3 } }}
+        titleTypographyProps={{
+          variant: 'h5',
+          fontWeight: 600,
+          sx: {
+            textTransform: 'uppercase',
+            textAlign: 'center',
+          },
+        }}
+        title={t('Crecimiento de Audiencia')}
+      />
 
-          <Divider />
-
-          <Box
-            flexGrow={1}
-            px={2}
-          >
-            {isLoading ? (
-              <Skeleton
-                variant="rectangular"
-                height={380}
-              />
-            ) : (
-              <BarChart
-                height={380}
-                margin={{ left: smUp ? 62 : 0, top: 56, right: smUp ? 22 : 0 }}
-                series={[
-                  {
-                    data: newCustomers,
-                    label: 'New Customers',
-                    stack: 'total',
-                    color: theme.palette.success.light,
-                  },
-                  {
-                    data: existingCustomers,
-                    label: 'Existing',
-                    stack: 'total',
-                    color: theme.palette.secondary.light,
-                  },
-                ]}
-                xAxis={[
-                  {
-                    scaleType: 'band',
-                    data: xLabels,
-                  },
-                ]}
-                slotProps={{
-                  legend: {
-                    labelStyle: {
-                      fontWeight: 500,
-                    },
-                    itemMarkWidth: 12,
-                    itemMarkHeight: 12,
-                    markGap: 6,
-                    itemGap: 12,
-                    position: { vertical: 'top', horizontal: 'right' },
-                    padding: { top: 12 },
-                  },
-                }}
-                sx={{
-                  '.MuiBarElement-root': {
-                    fillOpacity: theme.palette.mode === 'dark' ? 0.76 : 1,
-                    ry: theme.shape.borderRadius / 1.5,
-                  },
-                  '.MuiChartsLegend-mark': {
-                    rx: theme.shape.borderRadius,
-                  },
-                  '.MuiChartsAxis-left': {
-                    display: { xs: 'none', sm: 'block' },
-                  },
-                }}
-              />
-            )}
-          </Box>
-
-          <Divider />
-
-          <Box
-            p={{ xs: 2, sm: 3 }}
+      <CardContent
+        sx={{
+          py: 0,
+          px: { xs: 0, sm: 2 },
+          flex: 1,
+        }}
+      >
+        {isLoading ? (
+          <Skeleton
+            variant="rectangular"
+            height={300}
+          />
+        ) : (
+          <BarChart
+            height={300}
+            leftAxis={null}
+            margin={{ left: 24, top: 24, right: 24 }}
+            series={[
+              {
+                data: newCustomers,
+                label: 'Nuevos',
+                color: theme.palette.info.light,
+              },
+              {
+                data: existingCustomers,
+                label: 'Existentes',
+                color: theme.palette.success.light,
+              },
+            ]}
+            slotProps={{
+              legend: {
+                hidden: false,
+                position: { vertical: 'top', horizontal: 'right' },
+                labelStyle: { fontWeight: 600 },
+              },
+            }}
+            xAxis={[
+              {
+                scaleType: 'band',
+                data: xLabels,
+              },
+            ]}
             sx={{
-              textAlign: 'center',
-              backgroundColor:
-                theme.palette.mode === 'dark'
-                  ? alpha(theme.palette.neutral[25], 0.02)
-                  : 'neutral.25',
+              '.MuiBarElement-root': {
+                fillOpacity: theme.palette.mode === 'dark' ? 0.8 : 1,
+                rx: theme.shape.borderRadius / 1.6,
+                fill: "url('#audienceGradient')",
+              },
+              '.MuiChartsAxis-left': {
+                display: 'none',
+              },
             }}
           >
-            <Button
-              size="large"
-              sx={{
-                px: 2,
-                transform: 'translateY(0px)',
-                boxShadow: `0px 1px 4px ${alpha(
-                  theme.palette.primary.main,
-                  0.25
-                )}, 0px 3px 12px 2px ${alpha(theme.palette.primary.main, 0.35)}`,
-                fontSize: theme.typography.pxToRem(14),
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: `0px 1px 4px ${alpha(
-                    theme.palette.primary.main,
-                    0.25
-                  )}, 0px 3px 12px 2px ${alpha(theme.palette.primary.main, 0.35)}`,
-                },
-                '&:active': {
-                  boxShadow: 'none',
-                },
-              }}
-              variant="contained"
-              startIcon={<PieChartTwoToneIcon />}
+            <defs>
+              <linearGradient
+                id="audienceGradient"
+                gradientTransform="rotate(90)"
+              >
+                <stop
+                  offset="0%"
+                  stopColor={theme.palette.info.light}
+                />
+                <stop
+                  offset="100%"
+                  stopColor={theme.palette.success.main}
+                />
+              </linearGradient>
+            </defs>
+          </BarChart>
+        )}
+
+        <Stack
+          sx={{ px: 4 }}
+          direction="row"
+          justifyContent="center"
+          alignItems="center"
+          spacing={1}
+        >
+          <Box
+            py={3}
+            sx={{ width: '100%' }}
+          >
+            <Typography
+              component="h6"
+              variant="h6"
+              textTransform="uppercase"
+              fontWeight={500}
+              textAlign="center"
+              sx={{ pb: 1 }}
             >
-              {t('Download report')}
-            </Button>
+              {t('Nuevos')}
+            </Typography>
+            <DividerInfo />
           </Box>
-        </Grid>
-      </Grid>
+
+          <Box
+            py={3}
+            sx={{ width: '100%' }}
+          >
+            <Typography
+              component="h6"
+              variant="h6"
+              textTransform="uppercase"
+              fontWeight={500}
+              textAlign="center"
+              sx={{ pb: 1 }}
+            >
+              {t('Existentes')}
+            </Typography>
+            <DividerSuccess />
+          </Box>
+        </Stack>
+
+        <Typography
+          component="h6"
+          variant="subtitle2"
+          fontWeight={600}
+          textAlign="center"
+          color="text.secondary"
+        >
+          {format(subHours(new Date(), 5), 'MMMM dd yyyy')}
+        </Typography>
+
+        {/* Percentages */}
+        <Stack
+          sx={{  px: 4 }}
+          direction="row"
+          justifyContent="center"
+          alignItems="center"
+          spacing={1}
+        >
+          <Box sx={{ width: '100%' }}>
+            <Typography
+              component="h6"
+              variant="h2"
+              textAlign="center"
+              sx={{
+                color: theme.palette.info.main,
+                pb: 1,
+              }}
+            >
+              {pctNew.toFixed(1)}%
+            </Typography>
+          </Box>
+
+          <Box sx={{ width: '100%' }}>
+            <Typography
+              component="h6"
+              variant="h2"
+              textAlign="center"
+              sx={{
+                color: theme.palette.success.main,
+                pb: 1,
+              }}
+            >
+              {pctExisting.toFixed(1)}%
+            </Typography>
+          </Box>
+        </Stack>
+
+        {/* Totals */}
+        <Stack
+          sx={{ mt: 2, px: 4 }}
+          direction="row"
+          justifyContent="center"
+          alignItems="center"
+          spacing={1}
+        >
+          <Box sx={{ width: '100%' }}>
+            <Typography
+              component="h6"
+              variant="body1"
+              fontWeight={600}
+              textAlign="center"
+            >
+              {t('Total nuevos')}: {sumNew.toLocaleString()}
+            </Typography>
+          </Box>
+
+          <Box sx={{ width: '100%' }}>
+            <Typography
+              component="h6"
+              variant="body1"
+              fontWeight={600}
+              textAlign="center"
+            >
+              {t('Total existentes')}: {sumExisting.toLocaleString()}
+            </Typography>
+          </Box>
+        </Stack>
+      </CardContent>
     </Card>
   );
 }
 
-export default Component;
