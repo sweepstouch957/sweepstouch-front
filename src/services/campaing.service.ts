@@ -72,6 +72,26 @@ export interface CampaignLogsQueryParams {
   to?: string;
 }
 
+/* ===================== NUEVOS TIPOS PARA YTD ===================== */
+export interface YtdMonthlyMonth {
+  monthNumber: number; // 1..12
+  monthName: string; // "Jan".."Dec"
+  sentSms: number;
+  sentMms: number;
+  sent: number; // sentSms + sentMms
+}
+
+export interface YtdMonthlyResponse {
+  storeId: string | null; // null => todas las tiendas
+  scope: 'by_store' | 'all_stores'; // para que sepas qué devolvió
+  year: number;
+  totalYtd: number;
+  totalYtdSms: number;
+  totalYtdMms: number;
+  months: YtdMonthlyMonth[];
+}
+
+/* ========================= CLIENTE ========================= */
 class CampaignClient {
   async getCampaigns(page: number = 1, limit: number = 10): Promise<PaginatedResponse<Campaing>> {
     const res = await api.get(`/campaigns/filter`, {
@@ -150,6 +170,27 @@ class CampaignClient {
     });
 
     return res.data;
+  }
+
+  /* ===================== NUEVO MÉTODO: YTD MONTHLY ===================== */
+  /**
+   * Obtiene los mensajes enviados YTD (mes a mes) separados en SMS/MMS.
+   * - Si envías storeId => filtra por tienda.
+   * - Si NO envías storeId => devuelve métricas globales (todas las tiendas).
+   *
+   * @param storeId   opcional
+   * @param year      opcional (por defecto: año actual)
+   */
+  async getYtdMonthlyMessagesSent(storeId?: string, year?: number): Promise<YtdMonthlyResponse> {
+    const path = storeId
+      ? `/campaigns/messages/sent/ytd-monthly/${storeId}`
+      : `/campaigns/messages/sent/ytd-monthly`;
+
+    const params: Record<string, any> = {};
+    if (typeof year === 'number') params.year = year;
+
+    const res = await api.get(path, { params });
+    return res.data as YtdMonthlyResponse;
   }
 }
 

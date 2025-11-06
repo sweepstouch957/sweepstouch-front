@@ -1,12 +1,12 @@
 'use client';
 
+import YtdMessagesBarChart from '@/components/application-ui/composed-visualization-blocks/campaigns-bar/campaigns-bar';
 import ChartBarIcon from '@heroicons/react/24/outline/ChartBarIcon';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import { Box, Button, Container, Unstable_Grid2 as Grid, useTheme } from '@mui/material';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import SalesAlerts from 'src/components/application-ui/area-charts/sales-alerts/sales-alerts';
-
 import PageHeading from 'src/components/base/page-heading';
 import { AvatarState } from 'src/components/base/styles/avatar';
 import { useCustomization } from 'src/hooks/use-customization';
@@ -100,6 +100,9 @@ function Page(): React.JSX.Element {
           >
             <Grid xs={12}>
               <SalesAlerts />
+            </Grid>
+            <Grid xs={12}>
+              <YtdMessagesBarChart />
             </Grid>
           </Grid>
         </Box>
