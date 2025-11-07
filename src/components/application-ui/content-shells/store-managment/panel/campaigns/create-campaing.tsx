@@ -29,7 +29,7 @@ interface CampaignFormInputs {
   title: string;
   description: string;
   content: string;
-  type:string;
+  type: string;
   startDate: Date;
   estimatedCost: number;
   image?: string;
@@ -110,7 +110,7 @@ export default function CreateCampaignForm({
       <Container maxWidth="lg">
         <Grid
           container
-          spacing={2}
+          spacing={3}
         >
           <Grid
             item
@@ -174,6 +174,7 @@ export default function CreateCampaignForm({
                     <Controller
                       name="startDate"
                       control={control}
+                      rules={{ required: 'Start date is required' }}
                       render={({ field }) => (
                         <DateTimePicker
                           {...field}
@@ -191,7 +192,7 @@ export default function CreateCampaignForm({
                   >
                     <TextField
                       label="Campaign Type"
-                      value={initialValues?.type || image?.length ? 'MMS' : 'SMS'}
+                      value={initialValues?.type || (image?.length ? 'MMS' : 'SMS')}
                       disabled
                       fullWidth
                     />
@@ -205,27 +206,51 @@ export default function CreateCampaignForm({
                       name="content"
                       control={control}
                       rules={{ required: 'Message content is required' }}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          inputRef={(el) => {
-                            if (el) contentRef.current = el;
-                          }}
-                          label="Message Content"
-                          fullWidth
-                          multiline
-                          rows={6}
-                          placeholder={`Ej: Hola #n, aprovecha las ofertas en #storeName...`}
-                          error={!!errors.content}
-                          helperText={errors.content?.message}
-                          sx={{
-                            '& .MuiInputBase-root': {
-                              fontFamily: 'monospace',
-                              whiteSpace: 'pre-wrap',
-                            },
-                          }}
-                        />
-                      )}
+                      render={({ field }) => {
+                        const handleChange = (e: any) => {
+                          const value = e.target.value || '';
+                          if (value.length > 2047) {
+                            alert(
+                              'Message content cannot exceed 2047 characters (max 2047).'
+                            );
+                            return;
+                          }
+                          field.onChange(e);
+                        };
+
+                        return (
+                          <>
+                            <TextField
+                              {...field}
+                              inputRef={(el) => {
+                                if (el) contentRef.current = el;
+                              }}
+                              label="Message Content"
+                              fullWidth
+                              multiline
+                              rows={6}
+                              placeholder={`Ej: Hola #n, aprovecha las ofertas en #storeName...`}
+                              error={!!errors.content}
+                              helperText={errors.content?.message}
+                              onChange={handleChange}
+                              sx={{
+                                '& .MuiInputBase-root': {
+                                  fontFamily: 'monospace',
+                                  whiteSpace: 'pre-wrap',
+                                },
+                              }}
+                            />
+                            <Box mt={0.5}>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                100 to 2047 characters max
+                              </Typography>
+                            </Box>
+                          </>
+                        );
+                      }}
                     />
                   </Grid>
 
@@ -251,10 +276,13 @@ export default function CreateCampaignForm({
                             variant="outlined"
                             onClick={() => {
                               if (contentRef.current) {
-                                const updatedText = insertAtCursor(
-                                  contentRef.current,
-                                  ` ${ph.key} `
-                                );
+                                const updatedText = insertAtCursor(contentRef.current, ` ${ph.key} `);
+                                if (updatedText.length > 2047) {
+                                  alert('Message content cannot exceed 2047 characters (max 2047).');
+                                  // revertimos visualmente al valor anterior del form
+                                  contentRef.current.value = content || '';
+                                  return;
+                                }
                                 setValue('content', updatedText);
                               }
                             }}
@@ -306,43 +334,47 @@ export default function CreateCampaignForm({
                     item
                     xs={12}
                   >
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={useFullAudience}
-                          onChange={(e) => {
-                            setUseFullAudience(e.target.checked);
-                            if (e.target.checked) setValue('customAudience', undefined);
-                          }}
+                    <Paper
+                      variant="outlined"
+                      sx={{ p: 2 }}
+                    >
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        spacing={2}
+                      >
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={useFullAudience}
+                              onChange={(e) => {
+                                setUseFullAudience(e.target.checked);
+                                if (e.target.checked) {
+                                  setValue('customAudience', undefined);
+                                }
+                              }}
+                            />
+                          }
+                          label={`Enviar a toda la audiencia (${totalAudience} clientes)`}
                         />
-                      }
-                      label={`Enviar a toda la audiencia (${totalAudience} clientes)`}
-                    />
-                    {!useFullAudience && (
-                      <Controller
-                        name="customAudience"
-                        control={control}
-                        rules={{
-                          required: 'Debe especificar una cantidad',
-                          min: { value: 1, message: 'Debe ser al menos 1' },
-                          max: {
-                            value: totalAudience,
-                            message: `No puede superar ${totalAudience} clientes`,
-                          },
-                        }}
-                        render={({ field }) => (
-                          <TextField
-                            {...field}
-                            type="number"
-                            label="Cantidad de clientes"
-                            fullWidth
-                            error={!!errors.customAudience}
-                            helperText={errors.customAudience?.message}
-                            sx={{ mt: 2 }}
+
+                        {!useFullAudience && (
+                          <Controller
+                            name="customAudience"
+                            control={control}
+                            render={({ field }) => (
+                              <TextField
+                                {...field}
+                                type="number"
+                                label="Tamaño de audiencia personalizada"
+                                size="small"
+                                inputProps={{ min: 1, max: totalAudience }}
+                              />
+                            )}
                           />
                         )}
-                      />
-                    )}
+                      </Stack>
+                    </Paper>
                   </Grid>
                 </Grid>
 
