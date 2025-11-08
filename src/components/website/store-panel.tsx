@@ -25,9 +25,7 @@ const formatAge = (iso?: string | null) => {
 import { useStoreEditor } from '@/hooks/pages/useStoreEditor';
 import { Store } from '@/services/store.service';
 import { getTierColor } from '@/utils/ui/store.page';
-import BadgeIcon from '@mui/icons-material/Badge';
 import GroupsIcon from '@mui/icons-material/Groups';
-import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
 import TagIcon from '@mui/icons-material/Tag';
 import { Alert, Box, Card, CardContent, Divider, Grid, Snackbar } from '@mui/material';
 import { useState } from 'react';

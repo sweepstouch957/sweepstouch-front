@@ -5,7 +5,7 @@ import React from 'react';
 import { Chip } from '@mui/material';
 
 interface StatusBadgeProps {
-  status: 'Active' | 'Inactive' | 'Incomplete' | 'Expired';
+  status: any;
 }
 
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {

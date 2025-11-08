@@ -1,23 +1,23 @@
 'use client';
-/* eslint-disable react/jsx-max-props-per-line */
 
-import React, { useCallback, useState } from 'react';
+/* eslint-disable react/jsx-max-props-per-line */
+import {
+  AttachFile as AttachFileIcon,
+  CloudUpload as CloudUploadIcon,
+  Delete as DeleteIcon,
+} from '@mui/icons-material';
 import {
   Box,
-  Typography,
-  Paper,
+  Chip,
+  IconButton,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
-  IconButton,
-  Chip,
+  Paper,
+  Typography,
 } from '@mui/material';
-import {
-  CloudUpload as CloudUploadIcon,
-  AttachFile as AttachFileIcon,
-  Delete as DeleteIcon,
-} from '@mui/icons-material';
+import React, { useCallback, useState } from 'react';
 
 interface UploadedFile {
   id: string;
@@ -30,41 +30,71 @@ interface FileUploaderProps {
   uploadedFiles?: UploadedFile[];
   onFileUpload?: (files: File[]) => void;
   onFileDelete?: (fileId: string) => void;
+  onError?: (message: string) => void;
+
+  /** ✅ NUEVAS PROPS */
+  accept?: string; // ej: "application/pdf,.pdf"
+  icon?: React.ReactNode; // un icono custom
+  helpText?: string; // texto debajo del título
+  maxSizeMB?: number; // default: 10MB
 }
+
+const bytesToSize = (bytes: number) => {
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  if (bytes === 0) return '0 Byte';
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return `${parseFloat((bytes / Math.pow(1024, i)).toFixed(2))} ${sizes[i]}`;
+};
 
 const FileUploader: React.FC<FileUploaderProps> = ({
   uploadedFiles = [],
   onFileUpload,
   onFileDelete,
+  onError,
+
+  accept = 'application/pdf,.pdf',
+  icon,
+  helpText = '',
+  maxSizeMB = 10,
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(true);
-  }, []);
+  const validateAndSend = (files: File[]) => {
+    const maxBytes = maxSizeMB * 1024 * 1024;
+    const accepted: File[] = [];
+    const rejected: string[] = [];
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    files.forEach((f) => {
+      const isAllowed = accept
+        .split(',')
+        .some(
+          (type) =>
+            f.type === type || f.name.toLowerCase().endsWith(type.replace('.', '').toLowerCase())
+        );
+
+      const sizeOk = f.size <= maxBytes;
+
+      if (!isAllowed) rejected.push(`• ${f.name}: formato no permitido`);
+      else if (!sizeOk)
+        rejected.push(`• ${f.name}: excede ${maxSizeMB} MB (${bytesToSize(f.size)})`);
+      else accepted.push(f);
+    });
+
+    if (rejected.length && onError) onError(rejected.join('\n'));
+
+    if (accepted.length && onFileUpload) onFileUpload(accepted);
+  };
+
+  const handleDrop = useCallback((e) => {
     e.preventDefault();
     setIsDragOver(false);
+    validateAndSend(Array.from(e.dataTransfer.files || []));
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    
-    const files = Array.from(e.dataTransfer.files);
-    if (onFileUpload) {
-      onFileUpload(files);
-    }
-  }, [onFileUpload]);
-
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (onFileUpload) {
-      onFileUpload(files);
-    }
-  }, [onFileUpload]);
+  const handleFileSelect = useCallback((e) => {
+    validateAndSend(Array.from(e.target.files || []));
+    e.target.value = '';
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -88,16 +118,19 @@ const FileUploader: React.FC<FileUploaderProps> = ({
           borderRadius: 3,
           p: 6,
           textAlign: 'center',
-          backgroundColor: isDragOver ? 'rgba(233, 30, 99, 0.05)' : 'transparent',
+          backgroundColor: isDragOver ? 'rgba(233,30,99,0.05)' : 'transparent',
           cursor: 'pointer',
-          transition: 'all 0.2s ease-in-out',
-          '&:hover': {
-            borderColor: '#E91E63',
-            backgroundColor: 'rgba(233, 30, 99, 0.02)',
-          },
+          transition: 'all .2s',
+          '&:hover': { borderColor: '#E91E63' },
         }}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragOver(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          setIsDragOver(false);
+        }}
         onDrop={handleDrop}
         onClick={() => document.getElementById('file-input')?.click()}
       >
@@ -110,40 +143,51 @@ const FileUploader: React.FC<FileUploaderProps> = ({
             mb: 3,
           }}
         >
-          <CloudUploadIcon sx={{ fontSize: 32, color: '#718096' }} />
+          {icon ?? <CloudUploadIcon sx={{ fontSize: 32, color: '#718096' }} />}
         </Box>
-        
-        <Typography variant="body1" sx={{ mb: 1 }}>
+
+        <Typography
+          variant="body1"
+          sx={{ mb: 1 }}
+        >
           <Typography
             component="span"
-            sx={{ color: '#2196F3', fontWeight: 500, cursor: 'pointer' }}
+            sx={{ color: '#2196F3', fontWeight: 500 }}
           >
             Click to upload
+          </Typography>{' '}
+          or drag and drop your files here.
+        </Typography>
+
+        {helpText && (
+          <Typography
+            variant="body2"
+            sx={{ color: '#718096' }}
+          >
+            {helpText}
           </Typography>
-          {' '}or drag and drop documents here.
-        </Typography>
-        
-        <Typography variant="body2" sx={{ color: '#718096' }}>
-          (Max 10MB each)
-        </Typography>
+        )}
 
         <input
           id="file-input"
           type="file"
           multiple
-          accept=".pdf,.doc,.docx"
+          accept={accept}
           style={{ display: 'none' }}
           onChange={handleFileSelect}
         />
       </Paper>
 
-      {/* Uploaded Files */}
+      {/* Uploaded list */}
       {uploadedFiles.length > 0 && (
         <Box sx={{ mt: 4 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, color: '#2D3748', mb: 2 }}>
+          <Typography
+            variant="h6"
+            sx={{ fontWeight: 600, color: '#2D3748', mb: 2 }}
+          >
             Uploaded Files
           </Typography>
-          
+
           <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
             <List>
               {uploadedFiles.map((file, index) => (
@@ -156,34 +200,38 @@ const FileUploader: React.FC<FileUploaderProps> = ({
                   <ListItemIcon>
                     <AttachFileIcon sx={{ color: '#718096' }} />
                   </ListItemIcon>
+
                   <ListItemText
                     primary={
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 500, color: '#2D3748' }}>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: 500 }}
+                        >
                           {file.name}
                         </Typography>
                         <Chip
                           label={file.status}
                           size="small"
                           sx={{
-                            backgroundColor: `${getStatusColor(file.status)}15`,
+                            backgroundColor: `${getStatusColor(file.status)}22`,
                             color: getStatusColor(file.status),
-                            fontWeight: 500,
-                            fontSize: '0.75rem',
-                            height: 20,
                           }}
                         />
                       </Box>
                     }
                     secondary={
-                      <Typography variant="caption" sx={{ color: '#718096' }}>
+                      <Typography
+                        variant="caption"
+                        sx={{ color: '#718096' }}
+                      >
                         {file.size}
                       </Typography>
                     }
                   />
+
                   <IconButton
                     size="small"
-                    sx={{ color: '#718096' }}
                     onClick={() => onFileDelete?.(file.id)}
                   >
                     <DeleteIcon fontSize="small" />

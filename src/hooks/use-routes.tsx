@@ -26,8 +26,6 @@ const dashboardsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Billing'), route: routes.admin.dashboards.billing },
     buildMenu(t('Metrics'), undefined, [
       { title: t('Reports'), icon: <List />, route: routes.admin.dashboards.reports },
-      { title: t('Sweepstakes'), icon: <List />, route: routes.admin.dashboards.sweepstakes },
-      //{ title: t('Productivity'), icon: <List />, route: routes.admin.dashboards.prouctivity },
     ]),
   ]);
 
@@ -106,10 +104,6 @@ const addsMenu = (t: (token: string) => string): MenuItem =>
 
 const circularsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Circulars'), <BookOutlined />, [
-    {
-      title: t('Subscribed Stores'),
-      route: routes.admin.management.circulars['subscribed-stores'],
-    },
     { title: t('Info Dashboard'), route: routes.admin.management.circulars['info-dashboard'] },
     { title: t('Manage Circulars'), route: routes.admin.management.circulars.manage },
     buildMenu(t('Edit/Schedule Circulars'), undefined, [

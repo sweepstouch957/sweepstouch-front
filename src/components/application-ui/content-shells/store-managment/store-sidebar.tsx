@@ -1,3 +1,4 @@
+import { UserContext } from '@/contexts/auth/auth-context';
 import { closeSidebar, openSidebar, setActiveSection } from '@/slices/store_managment';
 import {
   Analytics,
@@ -9,6 +10,7 @@ import {
   Web as WebIcon,
   Woman2,
 } from '@mui/icons-material';
+import PeopleIcon from '@mui/icons-material/People';
 import {
   alpha,
   Box,
@@ -23,11 +25,9 @@ import {
 import Grid2 from '@mui/material/Unstable_Grid2';
 import type { FC } from 'react';
 import React from 'react';
-import { UserContext } from '@/contexts/auth/auth-context';
 import { Scrollbar } from 'src/components/base/scrollbar';
 import { useDispatch, useSelector } from 'src/store';
 import { StoreSidebarItem } from './store-sidebar-item';
-import PeopleIcon from '@mui/icons-material/People';
 
 interface StoreSidebarProps {
   parentContainer?: HTMLDivElement | null;
@@ -65,7 +65,7 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
   image,
   storeId,
   portalOpenInNewTab = true,
-  accessCode
+  accessCode,
 }) => {
   const dispatch = useDispatch();
   const theme = useTheme();
@@ -158,7 +158,12 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
 
       {/* Lista de secciones */}
       <List disablePadding>
-        {(STORE_SECTIONS.filter((s) => (s.id !== 'customers' && s.id !== 'cajeras') || userRole === 'admin')).map((section) => (
+        {STORE_SECTIONS.filter(
+          (s) =>
+            (s.id !== 'customers' && s.id !== 'cajeras') ||
+            userRole === 'admin' ||
+            userRole === 'promotor_manager'
+        ).map((section) => (
           <StoreSidebarItem
             key={section.id}
             section={section}
