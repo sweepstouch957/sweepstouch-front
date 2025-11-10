@@ -1,3 +1,4 @@
+// services/sweeptakeService.ts
 import { api } from '@/libs/axios';
 import type { AxiosResponse } from 'axios';
 
@@ -8,7 +9,12 @@ interface RegisterParticipantPayload {
   createdBy?: string;
   method?: 'qr' | 'tablet' | 'pinpad' | 'web' | 'referral';
 }
-
+export interface AudienceWindowResponse {
+  storeId: string;
+  dateRange: { startDate: string; endDate: string };
+  audience: { initial: number; final: number; delta: number; newInRange: number };
+  byWeekday: { label: string; total: number }[];
+}
 interface FilterParams {
   promotorId?: string;
   startDate: string;
@@ -46,7 +52,7 @@ export interface ChecklistStep {
   owner?: string;
   etaHours?: number;
   notes?: string;
-  confirmationLink?: string; // solo para optinMedia
+  confirmationLink?: string;
 }
 
 export interface Checklist {
@@ -74,8 +80,8 @@ export interface Sweepstakes {
   name: string;
   participants: number;
   stores: number;
-  startDate: string; // ISO
-  endDate: string;   // ISO
+  startDate: string;
+  endDate: string;
   status: string;
   image: string;
   description?: string;
@@ -83,7 +89,7 @@ export interface Sweepstakes {
   participationMessage?: string;
   rules?: string;
   checklist?: Checklist;
-  checklistProgress?: number; // 0..7
+  checklistProgress?: number;
   prize?: Prize[] | string[];
   hasOptinLink?: boolean;
   confirmationLink?: string | null;
@@ -97,6 +103,14 @@ interface StoreSweepstakeResponse {
   data: StoreSweepstake[];
 }
 
+/** ===== Tipos Audience Windows ===== */
+export interface AudienceWindowResponse {
+  storeId: string;
+  dateRange: { startDate: string; endDate: string };
+  audience: { initial: number; final: number; delta: number; newInRange: number };
+  byWeekday: Array<{ label: string; total: number }>;
+}
+
 export class SweepstakesClient {
   /* ------------ Participants ------------ */
   async registerParticipant(data: RegisterParticipantPayload): Promise<AxiosResponse> {
@@ -104,7 +118,7 @@ export class SweepstakesClient {
   }
 
   async getParticipants(sweepstakeId: string, storeId?: string): Promise<any[]> {
-    const res = await api.get(`/sweepstakes/participants/${sweepstakeId}/participants`, {
+    const res = await api.get(`/sweepstakes/${sweepstakeId}/participants`, {
       params: storeId ? { storeId } : {},
     });
     return res.data;
@@ -187,7 +201,7 @@ export class SweepstakesClient {
     return res.data;
   }
 
-  /* -------- NUEVO: Checklist & Count ----- */
+  /* -------- Checklist & Count ----- */
   async patchChecklistStep(
     sweepstakeId: string,
     step: ChecklistStepKey,
@@ -204,7 +218,12 @@ export class SweepstakesClient {
 
   async getChecklistProgress(
     sweepstakeId: string
-  ): Promise<{ totalSteps: number; completed: number; progressPercent: number; checklist: Checklist }> {
+  ): Promise<{
+    totalSteps: number;
+    completed: number;
+    progressPercent: number;
+    checklist: Checklist;
+  }> {
     const res = await api.get(`/sweepstakes/${sweepstakeId}/checklist/progress`);
     return res.data;
   }
@@ -213,12 +232,26 @@ export class SweepstakesClient {
     const res = await api.get('/sweepstakes/count');
     return res.data.total ?? 0;
   }
+
+  /* ====== NUEVO: Audience Windows por tienda (7 días) ======
+     GET /sweepstakes/audience-windows/:storeId?startDate=ISO&endDate=ISO
+     Responde con el shape que mandaste.
+  */
+  async getAudienceWindows(
+    storeId: string,
+    startISO: string,
+    endISO: string
+  ): Promise<AudienceWindowResponse> {
+    const res = await api.get(`/sweepstakes/participants/audience-windows/${storeId}`, {
+      params: { startDate: startISO, endDate: endISO },
+    });
+    return res.data as AudienceWindowResponse;
+  }
 }
 
 export const sweepstakesClient = new SweepstakesClient();
 
 /* ===================== PRIZES ===================== */
-
 export interface Prize {
   _id?: string;
   name: string;
@@ -241,7 +274,6 @@ export class PrizesClient {
     return res.data;
   }
 
-  // opcionales por si los quieres en UI:
   async getPrizeById(id: string): Promise<Prize> {
     const res = await api.get(`/sweepstakes/prizes/list/${id}`);
     return res.data;
