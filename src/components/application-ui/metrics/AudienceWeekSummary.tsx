@@ -1,3 +1,4 @@
+// src/components/sweepstakes/AudienceWeekSummaryCompact.tsx
 'use client';
 
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
@@ -23,48 +24,45 @@ import {
 import { BarChart } from '@mui/x-charts/BarChart';
 import { sweepstakesClient } from '@services/sweepstakes.service';
 import { useQuery } from '@tanstack/react-query';
+import React, { useMemo, useState } from 'react';
 import { DateRange } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
-import {
-  endOfWeek as _endOfWeek,
-  startOfWeek as _startOfWeek,
-  addDays,
-  format,
-  formatISO,
-} from 'date-fns';
+import { addDays, format, formatISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { useMemo, useState } from 'react';
 
 type Props = {
   storeId: string;
-  startDate: string; // ISO
-  endDate: string; // ISO
+  startDate: string; // ISO inicial
+  endDate: string; // ISO inicial
   onChange: (startISO: string, endISO: string) => void;
+  cusomerCount?: number;
 };
-
-const startOfWeek = (d: Date) => _startOfWeek(d, { weekStartsOn: 1 });
-const endOfWeek = (d: Date) => _endOfWeek(d, { weekStartsOn: 1 });
 
 // Orden fijo para normalizar la gráfica L-D
 const DAY_ORDER = ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', 'DOMINGO'];
+
+// 🔒 Fecha mínima permitida
+const MIN_DATE = new Date('2025-11-03T00:00:00');
 
 export default function AudienceWeekSummaryCompact({
   storeId,
   startDate,
   endDate,
   onChange,
+  cusomerCount
 }: Props) {
   const theme = useTheme();
 
-  const initialStart = startOfWeek(new Date(startDate));
-  const initialEnd = endOfWeek(new Date(endDate));
+  // rango inicial: tal cual viene en props (ya NO se fuerza a semana)
+  const initialStart = new Date(startDate);
+  const initialEnd = new Date(endDate);
 
   const [range, setRange] = useState([
     { startDate: initialStart, endDate: initialEnd, key: 'selection' as const },
   ]);
 
-  // Estado temporal para el Popover (lo que el usuario va eligiendo)
+  // Estado temporal para el Popover
   const [pendingRange, setPendingRange] = useState([
     { startDate: initialStart, endDate: initialEnd, key: 'selection' as const },
   ]);
@@ -72,12 +70,12 @@ export default function AudienceWeekSummaryCompact({
   // Popover calendario
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const openPopover = (e: React.MouseEvent<HTMLElement>) => {
-    setPendingRange(range); // abre con la semana actual
+    setPendingRange(range);
     setAnchorEl(e.currentTarget);
   };
   const closePopover = () => setAnchorEl(null);
 
-  // Normalizamos a ISO “completo” (para el query)
+  // ISO completos para el query
   const startISO = useMemo(
     () => (range[0].startDate ? formatISO(range[0].startDate, { representation: 'complete' }) : ''),
     [range]
@@ -106,10 +104,6 @@ export default function AudienceWeekSummaryCompact({
     }),
   });
 
-  // Fallbacks seguros
-  const audienceInitial = audienceResp?.audience?.initial ?? 0;
-  const audienceFinal = audienceResp?.audience?.final ?? 0;
-  const audienceDelta = audienceResp?.audience?.delta ?? 0;
   const audienceNew = audienceResp?.audience?.newInRange ?? 0;
 
   // Normalización para el chart
@@ -120,38 +114,40 @@ export default function AudienceWeekSummaryCompact({
     return Number(found?.total ?? 0);
   });
 
-  const goPrevWeek = () => {
-    const s = addDays(range[0].startDate!, -7);
-    const n = [{ startDate: startOfWeek(s), endDate: endOfWeek(s), key: 'selection' as const }];
-    setRange(n);
-    onChange(
-      formatISO(n[0].startDate!, { representation: 'date' }),
-      formatISO(n[0].endDate!, { representation: 'date' })
-    );
-  };
-  const goNextWeek = () => {
-    const s = addDays(range[0].startDate!, 7);
-    const n = [{ startDate: startOfWeek(s), endDate: endOfWeek(s), key: 'selection' as const }];
-    setRange(n);
-    onChange(
-      formatISO(n[0].startDate!, { representation: 'date' }),
-      formatISO(n[0].endDate!, { representation: 'date' })
-    );
+  // Utilidad para desplazar el rango manteniendo su tamaño actual
+  const shiftRange = (days: number) => {
+    const s = range[0].startDate!;
+    const e = range[0].endDate!;
+    const ns = addDays(s, days);
+    const ne = addDays(e, days);
+    setRange([{ startDate: ns, endDate: ne, key: 'selection' as const }]);
+    onChange(formatISO(ns, { representation: 'date' }), formatISO(ne, { representation: 'date' }));
   };
 
-  // ⛳️ Forzar que el usuario solo pueda elegir una SEMANA (Lun–Dom) sin cerrar
+  // Tamaño actual del rango en días (redondeado)
+  const rangeDays = Math.max(
+    1,
+    Math.round((range[0].endDate!.getTime() - range[0].startDate!.getTime()) / 86_400_000) + 1
+  );
+
+  const goPrev = () => shiftRange(-rangeDays);
+  const goNext = () => shiftRange(rangeDays);
+
+  // Ahora el calendario NO fuerza semana: deja elegir libremente
   const onRangeChange = (ranges: any) => {
     const sel = ranges.selection || ranges['selection'];
-    const base = sel?.startDate ? new Date(sel.startDate) : new Date();
+    if (!sel) return;
 
-    const s = startOfWeek(base);
-    const e = endOfWeek(base);
+    // Asegurar límite inferior (fechas antes del 3-nov-2025 quedan bloqueadas por minDate,
+    // pero igual “clamp” por si acaso)
+    const s = sel.startDate ? new Date(sel.startDate) : new Date();
+    const e = sel.endDate ? new Date(sel.endDate) : s;
+    const startClamped = s < MIN_DATE ? MIN_DATE : s;
+    const endClamped = e < MIN_DATE ? MIN_DATE : e;
 
-    const n = [{ startDate: s, endDate: e, key: 'selection' as const }];
-    setPendingRange(n); // ← solo actualiza lo que se ve en el calendario, sin aplicar aún
+    setPendingRange([{ startDate: startClamped, endDate: endClamped, key: 'selection' as const }]);
   };
 
-  // Aplica la semana seleccionada y cierra
   const applyPending = () => {
     setRange(pendingRange);
     onChange(
@@ -181,7 +177,7 @@ export default function AudienceWeekSummaryCompact({
             : alpha('#fff', 0.9),
       }}
     >
-      {/* Header compacto */}
+      {/* Header */}
       <Box
         sx={{
           px: 2,
@@ -201,7 +197,7 @@ export default function AudienceWeekSummaryCompact({
           variant="subtitle1"
           fontWeight={800}
         >
-          Resumen semanal de audiencia
+          Resumen de audiencia por rango
         </Typography>
 
         <Stack
@@ -210,11 +206,11 @@ export default function AudienceWeekSummaryCompact({
           sx={{ ml: 'auto' }}
           alignItems="center"
         >
-          <Tooltip title="Semana anterior">
+          <Tooltip title="Rango anterior">
             <span>
               <IconButton
                 size="small"
-                onClick={goPrevWeek}
+                onClick={goPrev}
               >
                 <ArrowBackIosNewIcon fontSize="inherit" />
               </IconButton>
@@ -228,11 +224,11 @@ export default function AudienceWeekSummaryCompact({
             sx={{ fontWeight: 700, borderColor: alpha(theme.palette.primary.main, 0.3) }}
           />
 
-          <Tooltip title="Siguiente semana">
+          <Tooltip title="Rango siguiente">
             <span>
               <IconButton
                 size="small"
-                onClick={goNextWeek}
+                onClick={goNext}
               >
                 <ArrowForwardIosIcon fontSize="inherit" />
               </IconButton>
@@ -246,7 +242,7 @@ export default function AudienceWeekSummaryCompact({
             onClick={openPopover}
             sx={{ ml: 0.5 }}
           >
-            Cambiar semana
+            Cambiar rango
           </Button>
         </Stack>
       </Box>
@@ -257,7 +253,7 @@ export default function AudienceWeekSummaryCompact({
           spacing={2}
           alignItems="stretch"
         >
-          {/* Chart a la izquierda */}
+          {/* Chart */}
           <Grid
             item
             xs={12}
@@ -350,7 +346,7 @@ export default function AudienceWeekSummaryCompact({
             </Box>
           </Grid>
 
-          {/* KPIs a la derecha */}
+          {/* KPIs */}
           <Grid
             item
             xs={12}
@@ -377,60 +373,18 @@ export default function AudienceWeekSummaryCompact({
                     variant="caption"
                     sx={{ color: theme.palette.info.main, fontWeight: 800 }}
                   >
-                    AUDIENCIA INICIAL
+                    AUDIENCIA TOTAL
                   </Typography>
                   <Typography
                     variant="h5"
                     fontWeight={900}
                     sx={{ color: theme.palette.info.main }}
                   >
-                    {isFetching ? '…' : audienceInitial.toLocaleString()}
+                    {cusomerCount || "…"}
                   </Typography>
                 </CardContent>
               </Card>
 
-              <Card
-                sx={{
-                  borderRadius: 2,
-                  borderLeft: `5px solid ${theme.palette.success.main}`,
-                  bgcolor:
-                    theme.palette.mode === 'dark'
-                      ? alpha(theme.palette.success.main, 0.09)
-                      : alpha(theme.palette.success.light, 0.14),
-                  boxShadow: 'none',
-                }}
-              >
-                <CardContent sx={{ py: 1.25 }}>
-                  <Typography
-                    variant="caption"
-                    sx={{ color: theme.palette.success.main, fontWeight: 800 }}
-                  >
-                    AUDIENCIA FINAL
-                  </Typography>
-                  <Typography
-                    variant="h5"
-                    fontWeight={900}
-                    sx={{ color: theme.palette.success.main }}
-                  >
-                    {isFetching ? '…' : audienceFinal.toLocaleString()}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: theme.palette.success.main,
-                      fontWeight: 700,
-                      mt: 0.25,
-                      display: 'block',
-                    }}
-                  >
-                    {isFetching
-                      ? '…'
-                      : `${
-                          audienceDelta >= 0 ? '+' : ''
-                        }${audienceDelta.toLocaleString()} en el período`}
-                  </Typography>
-                </CardContent>
-              </Card>
 
               <Card
                 sx={{
@@ -448,7 +402,7 @@ export default function AudienceWeekSummaryCompact({
                     variant="caption"
                     sx={{ color: theme.palette.secondary.main, fontWeight: 800 }}
                   >
-                    NÚMEROS NUEVOS EN LA SEMANA
+                    NÚMEROS NUEVOS EN EL PERÍODO
                   </Typography>
                   <Typography
                     variant="h5"
@@ -465,7 +419,7 @@ export default function AudienceWeekSummaryCompact({
 
         <Divider sx={{ my: 1.25 }} />
 
-        {/* Footer compacto */}
+        {/* Footer */}
         <Stack
           direction="row"
           alignItems="center"
@@ -475,7 +429,8 @@ export default function AudienceWeekSummaryCompact({
             variant="caption"
             color="text.secondary"
           >
-            Ventana: Semana (Lun–Dom). Los valores faltantes se normalizan a 0.
+            Rango libre. Los días sin datos se normalizan a 0. Fechas anteriores al 03-nov-2025
+            están bloqueadas.
           </Typography>
           <Typography
             variant="caption"
@@ -486,7 +441,7 @@ export default function AudienceWeekSummaryCompact({
         </Stack>
       </CardContent>
 
-      {/* Popover del calendario (forzado a semanas) */}
+      {/* Popover del calendario (rango libre, con minDate) */}
       <Popover
         open={Boolean(anchorEl)}
         anchorEl={anchorEl}
@@ -497,17 +452,16 @@ export default function AudienceWeekSummaryCompact({
       >
         <DateRange
           ranges={pendingRange}
-          onChange={onRangeChange} // ← fija la SEMANA (Lun–Dom), no cierra
+          onChange={onRangeChange}
           moveRangeOnFirstSelection={false}
           showDateDisplay={false}
           weekdayDisplayFormat="EEEEEE"
-          showMonthAndYearPickers={false}
-          editableDateInputs={false}
-          dragSelectionEnabled={false} // ← evita rangos arbitrarios
+          editableDateInputs
+          dragSelectionEnabled
+          minDate={MIN_DATE} // ⛔️ bloquea < 03-nov-2025
           rangeColors={[theme.palette.primary.main]}
         />
 
-        {/* Acciones del calendario */}
         <Stack
           direction="row"
           justifyContent="flex-end"
@@ -525,7 +479,7 @@ export default function AudienceWeekSummaryCompact({
             variant="contained"
             onClick={applyPending}
           >
-            Aplicar semana
+            Aplicar rango
           </Button>
         </Stack>
       </Popover>

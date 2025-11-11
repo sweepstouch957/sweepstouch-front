@@ -1,10 +1,12 @@
 'use client';
 
-import { useCashierRanking, useCreateCashier } from '@/services/cashier.service';
+import { useCashierRanking, useCashierStats, useCreateCashier } from '@/services/cashier.service';
 import AddIcon from '@mui/icons-material/Add';
 import EmojiEventsTwoToneIcon from '@mui/icons-material/EmojiEventsTwoTone';
 import SearchIcon from '@mui/icons-material/Search';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import {
+  Avatar,
   Box,
   Button,
   Card,
@@ -16,7 +18,9 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  Grid,
   InputAdornment,
+  LinearProgress,
   Paper,
   Popover,
   Stack,
@@ -36,6 +40,7 @@ import { addDays, formatISO, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import * as React from 'react';
 import { DateRange } from 'react-date-range';
+import CashierDetailsDialog from './modal';
 
 type Row = {
   cashierId: string;
@@ -54,6 +59,30 @@ export interface CashiersTableProps {
   storeId?: string;
   active?: boolean;
 }
+
+type CashierStatsResponse = {
+  cashierId: string;
+  range: { startDate: string; endDate: string };
+  totals: {
+    total: number;
+    newNumbers: number;
+    existingNumbers: number;
+  };
+  breakdown?: Array<{
+    date: string;
+    total: number;
+    newNumbers: number;
+    existingNumbers: number;
+  }>;
+  user?: {
+    firstName?: string;
+    lastName?: string;
+    name?: string;
+    email?: string | null;
+    accessCode?: string | null;
+    profileImage?: string | null;
+  };
+};
 
 const getFirstName = (full?: string | null) => (full ? String(full).trim().split(/\s+/)[0] : '-');
 const toInt = (v: any, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d);
@@ -79,9 +108,8 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
   const minDate = React.useMemo(() => startOfDay(new Date('2025-11-03T00:00:00')), []);
   const maxDate = React.useMemo(() => new Date(), []);
 
-  // Rango aplicado (lo que alimenta la query) — iniciamos con la última semana completa o desde minDate si hoy está antes
+  // Rango aplicado por defecto (últimos 7 días)
   const initialStart = React.useMemo(() => {
-    // por defecto últimos 7 días dentro de [minDate, today]
     const today = startOfDay(new Date());
     const tentativeStart = addDays(today, -6);
     return tentativeStart < minDate ? minDate : tentativeStart;
@@ -95,7 +123,7 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
     { startDate: initialStart, endDate: initialEnd, key: 'selection' as const },
   ]);
 
-  // Rango pendiente en el Popover (no afecta la query hasta "Aplicar")
+  // Rango pendiente en el Popover
   const [pendingRange, setPendingRange] = React.useState([
     { startDate: initialStart, endDate: initialEnd, key: 'selection' as const },
   ]);
@@ -170,12 +198,12 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
 
   const loadLabel = isLoading ? 'Cargando…' : isFetching ? 'Actualizando…' : null;
 
-  // Modal crear cajera (opcional)
-  const [open, setOpen] = React.useState(false);
+  // Modal crear cajera
+  const [openCreate, setOpenCreate] = React.useState(false);
   const [form, setForm] = React.useState({ name: '', phoneNumber: '', email: '' });
   const createMut = useCreateCashier({
     onSuccess: () => {
-      setOpen(false);
+      setOpenCreate(false);
       setForm({ name: '', phoneNumber: '', email: '' });
       setPage0(0);
     },
@@ -198,7 +226,7 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
     });
   };
 
-  // Manejo de cambios en el calendario (permite cualquier rango entre minDate y maxDate)
+  // Calendario (cualquier rango entre minDate y maxDate)
   const onPendingChange = (ranges: any) => {
     const sel = ranges.selection || ranges['selection'];
     let s = sel?.startDate ? new Date(sel.startDate) : appliedRange[0].startDate!;
@@ -215,7 +243,7 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
 
   const applyRange = () => {
     setAppliedRange(pendingRange);
-    setPage0(0); // reset paginación al cambiar rango
+    setPage0(0);
     closePopover();
   };
 
@@ -227,287 +255,333 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
     return `${sTxt} — ${eTxt}`;
   })();
 
-  return (
-    <Card sx={{ borderRadius: 3, overflow: 'hidden' }}>
-      <CardContent>
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-          gap={2}
-          flexWrap="wrap"
-        >
-          <Typography
-            variant="h5"
-            fontWeight={700}
-          >
-            Ranking de Cajeras
-          </Typography>
+  // 🔎 Modal de detalles (hereda rango)
+  const [detailsOpen, setDetailsOpen] = React.useState(false);
+  const [selected, setSelected] = React.useState<{
+    id: string | null;
+    name?: string | null;
+    email?: string | null;
+    accessCode?: string | null;
+  }>({ id: null });
 
+  return (
+    <>
+      <Card sx={{ borderRadius: 3, overflow: 'hidden' }}>
+        <CardContent>
           <Stack
             direction="row"
+            alignItems="center"
+            justifyContent="space-between"
             gap={2}
             flexWrap="wrap"
-            alignItems="center"
           >
-            <Chip label={periodLabel} />
-            <Button
-              variant="outlined"
-              onClick={openPopover}
+            <Typography
+              variant="h5"
+              fontWeight={700}
             >
-              Cambiar rango
-            </Button>
-            <TextField
-              placeholder="Buscar por nombre, teléfono o email"
-              size="small"
-              value={q}
-              onChange={(e) => {
-                setQ(e.target.value);
-                setPage0(0);
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setOpen(true)}
-              disabled={!storeId}
+              Ranking de Cajeras
+            </Typography>
+
+            <Stack
+              direction="row"
+              gap={2}
+              flexWrap="wrap"
+              alignItems="center"
             >
-              Nueva Cajera
-            </Button>
+              <Chip label={periodLabel} />
+              <Button
+                variant="outlined"
+                onClick={openPopover}
+              >
+                Cambiar rango
+              </Button>
+              <TextField
+                placeholder="Buscar por nombre, teléfono o email"
+                size="small"
+                value={q}
+                onChange={(e) => {
+                  setQ(e.target.value);
+                  setPage0(0);
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => setOpenCreate(true)}
+                disabled={!storeId}
+              >
+                Nueva Cajera
+              </Button>
+            </Stack>
           </Stack>
-        </Stack>
 
-        <Stack
-          direction="row"
-          spacing={1.5}
-          sx={{ mt: 1.5 }}
-          flexWrap="wrap"
-        >
-          <Chip
-            label={`Total cajeras: ${totalCashiers}`}
-            size="small"
-          />
-          <Chip
-            label={`Participaciones: ${totals.sumCount}`}
-            size="small"
-            color="primary"
-          />
-          <Chip
-            label={`Nuevos: ${totals.sumNew}`}
-            size="small"
-            color="success"
-          />
-          <Chip
-            label={`Existentes: ${totals.sumExisting}`}
-            size="small"
-            color="secondary"
-          />
-        </Stack>
-
-        {(isLoading || isFetching) && (
           <Stack
             direction="row"
-            alignItems="center"
-            gap={1}
-            sx={{ mt: 1 }}
+            spacing={1.5}
+            sx={{ mt: 1.5 }}
+            flexWrap="wrap"
           >
-            <CircularProgress size={14} />
+            <Chip
+              label={`Total cajeras: ${totalCashiers}`}
+              size="small"
+            />
+            <Chip
+              label={`Participaciones: ${totals.sumCount}`}
+              size="small"
+              color="primary"
+            />
+            <Chip
+              label={`Nuevos: ${totals.sumNew}`}
+              size="small"
+              color="success"
+            />
+            <Chip
+              label={`Existentes: ${totals.sumExisting}`}
+              size="small"
+              color="secondary"
+            />
+          </Stack>
+
+          {(isLoading || isFetching) && (
+            <Stack
+              direction="row"
+              alignItems="center"
+              gap={1}
+              sx={{ mt: 1 }}
+            >
+              <CircularProgress size={14} />
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                {loadLabel}
+              </Typography>
+            </Stack>
+          )}
+          {isError && (
             <Typography
               variant="caption"
-              color="text.secondary"
+              color="error"
+              sx={{ mt: 1, display: 'block' }}
             >
-              {loadLabel}
+              {(error as any)?.message ?? 'Error cargando ranking'}
             </Typography>
-          </Stack>
-        )}
-        {isError && (
-          <Typography
-            variant="caption"
-            color="error"
-            sx={{ mt: 1, display: 'block' }}
-          >
-            {(error as any)?.message ?? 'Error cargando ranking'}
-          </Typography>
-        )}
+          )}
 
-        <Divider sx={{ my: 2 }} />
+          <Divider sx={{ my: 2 }} />
 
-        <TableContainer component={Paper}>
-          <Table stickyHeader>
-            <TableHead>
-              <TableRow>
-                <TableCell>#</TableCell>
-                <TableCell>First name</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Access code</TableCell>
-                <TableCell align="right">Participaciones</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {ranked.map((r: any, idx: number) => (
-                <TableRow
-                  key={r.cashierId || r._id || idx}
-                  hover
-                >
-                  <TableCell width={64}>
-                    <Chip
-                      size="small"
-                      label={idx + 1 + page0 * limit}
-                      color={medalColor(idx)}
-                      icon={idx < 3 ? <EmojiEventsTwoToneIcon fontSize="small" /> : undefined}
-                    />
-                  </TableCell>
-                  <TableCell>{getFirstName(r.name)}</TableCell>
-                  <TableCell>{r.email ?? '—'}</TableCell>
-                  <TableCell>{r.accessCode ?? '—'}</TableCell>
-                  <TableCell align="right">{toInt(r.count, 0)}</TableCell>
+          <TableContainer component={Paper}>
+            <Table stickyHeader>
+              <TableHead>
+                <TableRow>
+                  <TableCell>#</TableCell>
+                  <TableCell>First name</TableCell>
+                  <TableCell>Email</TableCell>
+                  <TableCell>Access code</TableCell>
+                  <TableCell align="right">Participaciones</TableCell>
+                  <TableCell align="center">Acciones</TableCell>
                 </TableRow>
-              ))}
+              </TableHead>
+              <TableBody>
+                {ranked.map((r: any, idx: number) => (
+                  <TableRow
+                    key={r.cashierId || r._id || idx}
+                    hover
+                  >
+                    <TableCell width={64}>
+                      <Chip
+                        size="small"
+                        label={idx + 1 + page0 * limit}
+                        color={medalColor(idx)}
+                        icon={idx < 3 ? <EmojiEventsTwoToneIcon fontSize="small" /> : undefined}
+                      />
+                    </TableCell>
+                    <TableCell>{getFirstName(r.name)}</TableCell>
+                    <TableCell>{r.email ?? '—'}</TableCell>
+                    <TableCell>{r.accessCode ?? '—'}</TableCell>
+                    <TableCell align="right">{toInt(r.count, 0)}</TableCell>
+                    <TableCell
+                      align="center"
+                      width={140}
+                    >
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<VisibilityIcon />}
+                        onClick={() => {
+                          setSelected({
+                            id: r.cashierId,
+                            name: r.name,
+                            email: r.email,
+                            accessCode: r.accessCode,
+                          });
+                          setDetailsOpen(true);
+                        }}
+                      >
+                        Ver
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
 
-              {!ranked.length && !isLoading && !isFetching && (
+                {!ranked.length && !isLoading && !isFetching && (
+                  <TableRow>
+                    <TableCell colSpan={7}>
+                      <Typography
+                        textAlign="center"
+                        py={3}
+                      >
+                        Sin registros
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+              <TableFooter>
                 <TableRow>
                   <TableCell colSpan={7}>
-                    <Typography
-                      textAlign="center"
-                      py={3}
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      justifyContent="space-between"
+                      flexWrap="wrap"
+                      gap={1}
                     >
-                      Sin registros
-                    </Typography>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                      >
+                        Total cajeras: <b>{totalCashiers}</b>
+                      </Typography>
+                      <TablePagination
+                        component="div"
+                        count={totalCashiers}
+                        page={page0}
+                        onPageChange={(_, p) => setPage0(p)}
+                        rowsPerPage={limit}
+                        onRowsPerPageChange={(e) => {
+                          setLimit(parseInt(e.target.value, 10));
+                          setPage0(0);
+                        }}
+                        rowsPerPageOptions={[5, 10, 15, 25, 50]}
+                      />
+                    </Stack>
                   </TableCell>
                 </TableRow>
-              )}
-            </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell colSpan={7}>
-                  <Stack
-                    direction="row"
-                    alignItems="center"
-                    justifyContent="space-between"
-                    flexWrap="wrap"
-                    gap={1}
-                  >
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                    >
-                      Total cajeras: <b>{totalCashiers}</b>
-                    </Typography>
-                    <TablePagination
-                      component="div"
-                      count={totalCashiers}
-                      page={page0}
-                      onPageChange={(_, p) => setPage0(p)}
-                      rowsPerPage={limit}
-                      onRowsPerPageChange={(e) => {
-                        setLimit(parseInt(e.target.value, 10));
-                        setPage0(0);
-                      }}
-                      rowsPerPageOptions={[5, 10, 15, 25, 50]}
-                    />
-                  </Stack>
-                </TableCell>
-              </TableRow>
-            </TableFooter>
-          </Table>
-        </TableContainer>
-      </CardContent>
+              </TableFooter>
+            </Table>
+          </TableContainer>
+        </CardContent>
 
-      {/* Modal crear */}
-      <Dialog
-        open={open}
-        onClose={() => setOpen(false)}
-      >
-        <DialogTitle>Nueva Cajera</DialogTitle>
-        <DialogContent>
-          <Stack
-            gap={2}
-            mt={1}
-            sx={{ minWidth: 320 }}
-          >
-            <TextField
-              label="Nombre completo"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-            />
-            <TextField
-              label="Teléfono"
-              value={form.phoneNumber}
-              onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
-            />
-            <TextField
-              label="Email"
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button
-            onClick={onCreate}
-            variant="contained"
-            disabled={createMut.isPending || !storeId}
-          >
-            {createMut.isPending ? 'Guardando…' : 'Guardar'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Popover rango de fechas */}
-      <Popover
-        open={Boolean(anchorEl)}
-        anchorEl={anchorEl}
-        onClose={closePopover}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        slotProps={{ paper: { sx: { borderRadius: 2, p: 1.5 } } }}
-      >
-        <DateRange
-          ranges={pendingRange}
-          onChange={onPendingChange}
-          moveRangeOnFirstSelection={false}
-          showDateDisplay={false}
-          weekdayDisplayFormat="EEEEEE"
-          showMonthAndYearPickers={true}
-          editableDateInputs={false}
-          dragSelectionEnabled={true}
-          minDate={minDate}
-          maxDate={maxDate}
-          locale={es}
-          rangeColors={[theme.palette.primary.main]}
-        />
-
-        <Stack
-          direction="row"
-          justifyContent="flex-end"
-          gap={1}
-          sx={{ pt: 1 }}
+        {/* Modal crear */}
+        <Dialog
+          open={openCreate}
+          onClose={() => setOpenCreate(false)}
         >
-          <Button
-            size="small"
-            onClick={closePopover}
+          <DialogTitle>Nueva Cajera</DialogTitle>
+          <DialogContent>
+            <Stack
+              gap={2}
+              mt={1}
+              sx={{ minWidth: 320 }}
+            >
+              <TextField
+                label="Nombre completo"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+              />
+              <TextField
+                label="Teléfono"
+                value={form.phoneNumber}
+                onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
+              />
+              <TextField
+                label="Email"
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenCreate(false)}>Cancelar</Button>
+            <Button
+              onClick={onCreate}
+              variant="contained"
+              disabled={createMut.isPending || !storeId}
+            >
+              {createMut.isPending ? 'Guardando…' : 'Guardar'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Popover rango de fechas */}
+        <Popover
+          open={Boolean(anchorEl)}
+          anchorEl={anchorEl}
+          onClose={closePopover}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          slotProps={{ paper: { sx: { borderRadius: 2, p: 1.5 } } }}
+        >
+          <DateRange
+            ranges={pendingRange}
+            onChange={onPendingChange}
+            moveRangeOnFirstSelection={false}
+            showDateDisplay={false}
+            weekdayDisplayFormat="EEEEEE"
+            showMonthAndYearPickers={true}
+            editableDateInputs={false}
+            dragSelectionEnabled={true}
+            minDate={minDate}
+            maxDate={maxDate}
+            locale={es}
+            rangeColors={[theme.palette.primary.main]}
+          />
+
+          <Stack
+            direction="row"
+            justifyContent="flex-end"
+            gap={1}
+            sx={{ pt: 1 }}
           >
-            Cancelar
-          </Button>
-          <Button
-            size="small"
-            variant="contained"
-            onClick={applyRange}
-          >
-            Aplicar
-          </Button>
-        </Stack>
-      </Popover>
-    </Card>
+            <Button
+              size="small"
+              onClick={closePopover}
+            >
+              Cancelar
+            </Button>
+            <Button
+              size="small"
+              variant="contained"
+              onClick={applyRange}
+            >
+              Aplicar
+            </Button>
+          </Stack>
+        </Popover>
+      </Card>
+
+      {/* 🔎 Modal de detalles (usa hook y hereda rango actual) */}
+      <CashierDetailsDialog
+        open={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+        cashierId={selected.id}
+        cashierName={selected.name}
+        cashierEmail={selected.email || undefined}
+        cashierAccessCode={selected.accessCode || undefined}
+        startDateYMD={startDateYMD}
+        endDateYMD={endDateYMD}
+        storeId={storeId}
+      />
+    </>
   );
 };
 

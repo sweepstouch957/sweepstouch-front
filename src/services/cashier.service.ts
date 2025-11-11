@@ -1,9 +1,10 @@
-
+// src/services/cashier.service.ts
 import { api } from '@/libs/axios';
 import { QueryKey, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import Cookies from 'js-cookie';
 
-// Ajusta el base si en tu backend no usas /auth
+/* =========================
+ * Constantes
+ * ======================= */
 const BASE = '/auth/cashiers';
 
 /* =========================
@@ -16,13 +17,13 @@ export interface CashierUser {
   name?: string;
   email?: string;
   phone?: string;
+  phoneNumber?: string;
   accessCode?: string;
   role: 'cashier' | string;
   store?: string; // ObjectId string
   active?: boolean;
   createdAt?: string;
   updatedAt?: string;
-  // agrega aquí cualquier otro campo de tu User que necesites
 }
 
 export interface CashierListResponse {
@@ -39,15 +40,14 @@ export interface CashierCreatePayload {
   email?: string;
   phoneNumber?: string;
   active?: boolean;
-  // otros campos que acepte tu backend...
 }
 
 export interface CashierCreateResponse {
   message: string;
-  user: CashierUser; // password ya removido en el controller
+  user: CashierUser;
   credentials: {
     accessCode: string;
-    password: string; // se muestra solo una vez
+    password: string; // visible solo una vez
   };
 }
 
@@ -58,7 +58,6 @@ export interface CashierCountResponse {
   total: number;
 }
 
-/* ===== Ranking ===== */
 export interface CashierRankingItem {
   cashierId: string;
   name: string | null;
@@ -67,19 +66,50 @@ export interface CashierRankingItem {
   accessCode: string | null;
   active: boolean;
   store: string | null;
-  count: number; // participaciones registradas por la cajera
+  count: number; // total (fuente ranking)
+  newNumbers?: number; // opcional si el backend lo incluye
+  existingNumbers?: number; // opcional si el backend lo incluye
 }
 
 export interface CashierRankingResponse {
-  total: number;
+  total: number; // total de NUEVOS (según tu controller)
+  totalCashiers: number;
   page: number;
   limit: number;
   dateRange: { startDate: string; endDate: string };
   filters: { storeId: string; active: string; q: string };
-  totals: { participants: number };
+  totals?: {
+    participantsNew?: number;
+    participantsFromListedCashiers?: number;
+  };
   warning?: string | null;
   data: CashierRankingItem[];
 }
+
+/** ✨ Stats por cajera (nuevo) */
+export type CashierStatsResponse = {
+  cashierId: string;
+  range: { startDate: string; endDate: string };
+  totals: {
+    total: number;
+    newNumbers: number;
+    existingNumbers: number;
+  };
+  breakdown?: Array<{
+    date: string; // 'YYYY-MM-DD'
+    total: number;
+    newNumbers: number;
+    existingNumbers: number;
+  }>;
+  user?: {
+    firstName?: string;
+    lastName?: string;
+    name?: string;
+    email?: string | null;
+    accessCode?: string | null;
+    profileImage?: string | null;
+  };
+};
 
 /* =========================
  * HTTP Services
@@ -131,10 +161,11 @@ export async function getCashierCountByStore(params: {
   return res.data;
 }
 
+/** GET /auth/cashiers/ranking */
 export async function getCashierRanking(params: {
-  startDate: string;
-  endDate: string;
-  storeId?: string; // "all" para todas si quieres
+  startDate: string; // 'YYYY-MM-DD'
+  endDate: string; // 'YYYY-MM-DD'
+  storeId?: string; // "all" o específico
   active?: boolean; // undefined => any
   q?: string;
   page?: number;
@@ -156,6 +187,31 @@ export async function getCashierRanking(params: {
   return res.data;
 }
 
+/** 🆕 GET /auth/cashiers/:cashierId/stats  (hereda rango y opcional storeId) */
+export async function getCashierStats(params: {
+  cashierId: string;
+  startDate: string; // 'YYYY-MM-DD'
+  endDate: string; // 'YYYY-MM-DD'
+  storeId?: string;
+}): Promise<CashierStatsResponse> {
+  const { cashierId, startDate, endDate, storeId } = params;
+  const res = await api.get<CashierStatsResponse>(
+    `${BASE}/${encodeURIComponent(cashierId)}/stats`,
+    {
+      withCredentials: true,
+      params: {
+        startDate,
+        endDate,
+        ...(storeId ? { storeId } : {}),
+      },
+    }
+  );
+  return res.data;
+}
+
+/* =========================
+ * Hooks (React Query)
+ * ======================= */
 
 export function useCashiers(
   params: {
@@ -176,7 +232,6 @@ export function useCashiers(
   });
 }
 
-/** Hook de creación (POST /auth/cashiers) */
 export function useCreateCashier(options?: {
   onSuccess?: (data: CashierCreateResponse) => void;
   onError?: (err: unknown) => void;
@@ -193,7 +248,6 @@ export function useCreateCashier(options?: {
   });
 }
 
-/** Hook de conteo (GET /auth/cashiers/count/store/:storeId) */
 export function useCashierCount(storeId?: string, active?: boolean) {
   const enabled = Boolean(storeId);
   const key: QueryKey = ['cashiers', 'count', storeId, active ?? 'any'];
@@ -204,7 +258,6 @@ export function useCashierCount(storeId?: string, active?: boolean) {
   });
 }
 
-/** 🔥 Hook de ranking (GET /auth/cashiers/ranking) */
 export function useCashierRanking(
   params: {
     startDate: string;
@@ -222,6 +275,31 @@ export function useCashierRanking(
     queryKey: key,
     queryFn: () => getCashierRanking(params),
     enabled: Boolean(params?.startDate && params?.endDate),
+    ...(options ?? {}),
+  });
+}
+
+/** ✅ Hook NUEVO: stats por cajera con rango (y store opcional) */
+export function useCashierStats(
+  cashierId?: string,
+  params?: { startDate: string; endDate: string; storeId?: string },
+  options?: any
+):any {
+  const enabled = Boolean(cashierId) && Boolean(params?.startDate) && Boolean(params?.endDate);
+
+  const key: QueryKey = ['cashiers', 'stats', cashierId, params] as const;
+
+  return useQuery({
+    queryKey: key,
+    queryFn: () =>
+      getCashierStats({
+        cashierId: cashierId!,
+        startDate: params!.startDate,
+        endDate: params!.endDate,
+        storeId: params?.storeId,
+      }),
+    enabled,
+    staleTime: 60_000,
     ...(options ?? {}),
   });
 }
