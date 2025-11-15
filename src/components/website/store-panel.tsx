@@ -1,6 +1,46 @@
 // app/components/stores/StoreInfo.tsx
 'use client';
 
+import { useStoreEditor } from '@/hooks/pages/useStoreEditor';
+import { Store } from '@/services/store.service';
+import { getTierColor } from '@/utils/ui/store.page';
+import { usersApi } from '@/mocks/users'; // 👈 ajusta si luego apuntas al service real
+
+import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+
+import GroupsIcon from '@mui/icons-material/Groups';
+import TagIcon from '@mui/icons-material/Tag';
+import { PaymentOutlined } from '@mui/icons-material';
+import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
+import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import ContentCopyOutlinedIcon from '@mui/icons-material/ContentCopyOutlined';
+
+import {
+  Alert,
+  Box,
+  Card,
+  CardContent,
+  Divider,
+  Grid,
+  Snackbar,
+  TextField,
+  Typography,
+  Stack,
+  IconButton,
+  InputAdornment,
+  Tooltip,
+} from '@mui/material';
+
+import StoreKioskCard from '../application-ui/composed-blocks/kiosk';
+import StatItem from '../application-ui/composed-blocks/my-cards/store-item';
+import StoreGeneralForm from '../application-ui/form-layouts/store/edit';
+import StoreHeader from '../application-ui/headings/store/store-create';
+import StoreMap from '../application-ui/map/store-map';
+
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
+
 /** Devuelve antigüedad formateada "X años, Y meses" a partir de ISO startContractDate */
 const formatAge = (iso?: string | null) => {
   if (!iso) return '—';
@@ -21,27 +61,10 @@ const formatAge = (iso?: string | null) => {
   return `${y}, ${m}`;
 };
 
-
-import { useStoreEditor } from '@/hooks/pages/useStoreEditor';
-import { Store } from '@/services/store.service';
-import { getTierColor } from '@/utils/ui/store.page';
-import GroupsIcon from '@mui/icons-material/Groups';
-import TagIcon from '@mui/icons-material/Tag';
-import { Alert, Box, Card, CardContent, Divider, Grid, Snackbar } from '@mui/material';
-import { useState } from 'react';
-import StoreKioskCard from '../application-ui/composed-blocks/kiosk';
-import StatItem from '../application-ui/composed-blocks/my-cards/store-item';
-import StoreGeneralForm from '../application-ui/form-layouts/store/edit';
-import StoreHeader from '../application-ui/headings/store/store-create';
-import StoreMap from '../application-ui/map/store-map';
-import { PaymentOutlined } from '@mui/icons-material';
-
-import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
-
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
-
 export default function StoreInfo({ store }: { store: Store }) {
   const [zoom, setZoom] = useState(12);
+  const [showPassword, setShowPassword] = useState(false);
+
   const {
     form,
     setForm,
@@ -61,7 +84,54 @@ export default function StoreInfo({ store }: { store: Store }) {
     kioskUrl,
   } = useStoreEditor(store);
 
-  const tier = getTierColor(form.type);
+  const tier = getTierColor(form.type); // si después quieres usar el tier en algún badge
+
+  // Password fija (no editable)
+  const passwordValue = 'ABC123';
+
+  // ─────────────────────────────────────────────────────────────
+  //  React Query: buscar usuario merchant por store
+  //  GET /auth/users/search?store=STORE_ID
+  // ─────────────────────────────────────────────────────────────
+  const {
+    data: merchantUser,
+    isLoading: loadingMerchant,
+    isError: errorMerchant,
+  } = useQuery({
+    queryKey: ['store-merchant-user', store._id],
+    enabled: Boolean(store?._id),
+    queryFn: async () => {
+      const users = await usersApi.searchUsers({ store: String(store._id) });
+      if (!Array.isArray(users) || users.length === 0) return null;
+
+      // Preferimos el que tenga role merchant
+      const merchant = users.find(
+        (u: any) => String(u.role || '').toLowerCase() === 'merchant'
+      );
+
+      return (merchant || users[0]) as any;
+    },
+  });
+
+  const handleCopySlug = async () => {
+    const slug = (store as any)?.slug || '';
+    if (!slug) return;
+
+    try {
+      await navigator.clipboard.writeText(slug);
+      setSnack({
+        open: true,
+        msg: `Slug "${slug}" copiado al portapapeles.`,
+        type: 'success',
+      });
+    } catch {
+      setSnack({
+        open: true,
+        msg: 'No se pudo copiar el slug.',
+        type: 'error',
+      });
+    }
+  };
 
   return (
     <Box>
@@ -77,8 +147,6 @@ export default function StoreInfo({ store }: { store: Store }) {
           image={store.image}
           address={form.address}
           kioskUrl={kioskUrl}
-          //storeId={store?.id ?? (store as any)?._id ?? (store as any)?.store_id}
-          // qrImageUrl={store?.qrImageUrl}
           showQrBadge
           edit={edit}
           saving={saving}
@@ -124,8 +192,12 @@ export default function StoreInfo({ store }: { store: Store }) {
             >
               <StatItem
                 icon={<PaymentOutlined fontSize="small" />}
-                label="Metodo de pago"
-                value={store.paymentMethod ? store.paymentMethod.replace('_', ' ').toUpperCase() : '—'}
+                label="Método de pago"
+                value={
+                  store.paymentMethod
+                    ? store.paymentMethod.replace('_', ' ').toUpperCase()
+                    : '—'
+                }
                 help="Método de pago asignado"
               />
             </Grid>
@@ -146,7 +218,6 @@ export default function StoreInfo({ store }: { store: Store }) {
               xs={6}
               md={3}
             >
-
               <StatItem
                 icon={<CalendarMonthOutlinedIcon fontSize="small" />}
                 label="Antigüedad"
@@ -155,6 +226,170 @@ export default function StoreInfo({ store }: { store: Store }) {
               />
             </Grid>
           </Grid>
+          <Card
+            variant="outlined"
+            sx={{
+              borderRadius: 2,
+              mb: 2,
+              backgroundColor: (t) => t.palette.grey[50],
+            }}
+          >
+            <CardContent>
+              <Box
+                display="flex"
+                justifyContent="space-between"
+                alignItems={{ xs: 'flex-start', sm: 'center' }}
+                flexDirection={{ xs: 'column', sm: 'row' }}
+                gap={1}
+                mb={1.5}
+              >
+                <Box>
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight={600}
+                    gutterBottom
+                  >
+                    Acceso del merchant
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                  >
+                    Credenciales de acceso para el panel de la tienda.
+                  </Typography>
+                </Box>
+
+                {/* Slug con botón copiar */}
+                <Box textAlign={{ xs: 'left', sm: 'right' }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: 'block' }}
+                  >
+                    Slug de la tienda
+                  </Typography>
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    alignItems="center"
+                    mt={0.5}
+                  >
+                    <Box
+                      component="code"
+                      sx={{
+                        px: 1.2,
+                        py: 0.4,
+                        borderRadius: 1,
+                        fontSize: 12,
+                        bgcolor: 'grey.100',
+                        border: (t) => `1px dashed ${t.palette.grey[300]}`,
+                        maxWidth: 220,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                      title={(store as any)?.slug || 'Sin slug'}
+                    >
+                      {(store as any)?.slug || '—'}
+                    </Box>
+                    <Tooltip title="Copiar slug">
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={handleCopySlug}
+                          disabled={!(store as any)?.slug}
+                        >
+                          <ContentCopyOutlinedIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  </Stack>
+                </Box>
+              </Box>
+
+              {loadingMerchant && (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                >
+                  Cargando usuario merchant...
+                </Typography>
+              )}
+
+              {errorMerchant && (
+                <Typography
+                  variant="body2"
+                  color="error"
+                >
+                  No se pudo cargar el usuario asociado a esta tienda.
+                </Typography>
+              )}
+
+              {!loadingMerchant && !errorMerchant && !merchantUser && (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                >
+                  No hay un usuario asociado a esta tienda.
+                </Typography>
+              )}
+
+              {merchantUser && (
+                <Stack
+                  direction={{ xs: 'column', sm: 'row' }}
+                  spacing={2}
+                  mt={2}
+                >
+                  <TextField
+                    label="Phone number (username)"
+                    value={merchantUser.phoneNumber || '—'}
+                    fullWidth
+                    InputProps={{
+                      readOnly: true,
+                    }}
+                    size="small"
+                  />
+
+                  <TextField
+                    label="Access code"
+                    value={merchantUser.accessCode || '—'}
+                    fullWidth
+                    InputProps={{
+                      readOnly: true,
+                    }}
+                    size="small"
+                  />
+
+                  <TextField
+                    label="Password"
+                    value={passwordValue}
+                    type={showPassword ? 'text' : 'password'}
+                    fullWidth
+                    size="small"
+                    InputProps={{
+                      readOnly: true,
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            edge="end"
+                            onClick={() => setShowPassword((s) => !s)}
+                            aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                          >
+                            {showPassword ? (
+                              <VisibilityOffOutlinedIcon fontSize="small" />
+                            ) : (
+                              <VisibilityOutlinedIcon fontSize="small" />
+                            )}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                    helperText="Estos valores no se pueden editar."
+                  />
+                </Stack>
+              )}
+            </CardContent>
+          </Card>
 
           <Divider sx={{ my: 2 }} />
 
@@ -198,6 +433,8 @@ export default function StoreInfo({ store }: { store: Store }) {
           </Grid>
 
           <Divider sx={{ my: 2 }} />
+
+          {/* Merchant acceso (phone, accessCode, password fija) */}
 
           <StoreKioskCard
             kioskUrl={kioskUrl}

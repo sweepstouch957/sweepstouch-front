@@ -231,11 +231,17 @@ const buildExportRows = (rows: User[]) =>
   rows.map((u) => {
     const roleKey = getRoleKey(u.role);
     const roleLabel = ROLE_META[roleKey]?.text ?? toTitle(roleKey || '');
+    const isMerchant = roleKey === 'merchant';
+
     return {
       ID: (u as any).id ?? '',
       Nombre: `${(u as any).firstName ?? ''} ${(u as any).lastName ?? ''}`.trim(),
       Email: (u as any).email ?? '',
-      Rol: roleLabel
+      Rol: roleLabel,
+      Username: isMerchant
+        ? (u as any).phoneNumber ?? ''
+        : (u as any).firstName ?? '',
+      AccessCode: isMerchant ? (u as any).accessCode ?? '' : ''
     };
   });
 
@@ -616,6 +622,13 @@ const Results: FC<ResultsProps> = ({ users }) => {
                     <TableBody>
                       {paginatedUsers.map((user: any) => {
                         const isUserSelected = selectedItems.includes(user.id);
+                        const roleKey = getRoleKey(user.role);
+                        const username =
+                          roleKey === 'merchant'
+                            ? user.phoneNumber || user.firstName
+                            : user.firstName;
+                        const emailDisplay = user.email || '';
+
                         return (
                           <TableRow
                             hover
@@ -633,7 +646,7 @@ const Results: FC<ResultsProps> = ({ users }) => {
                             </TableCell>
                             <TableCell>
                               <Typography fontWeight={400}>
-                                {user.firstName}
+                                {username}
                               </Typography>
                             </TableCell>
                             <TableCell>
@@ -663,13 +676,27 @@ const Results: FC<ResultsProps> = ({ users }) => {
                                   >
                                     {user.role}
                                   </Typography>
+                                  {roleKey === 'merchant' && user.accessCode && (
+                                    <Typography
+                                      variant="caption"
+                                      color="text.secondary"
+                                      sx={{ display: 'block', mt: 0.3 }}
+                                    >
+                                      Access code: {user.accessCode}
+                                    </Typography>
+                                  )}
                                 </Box>
                               </Box>
                             </TableCell>
                             <TableCell>
-                              <Typography>
-                                {user.email}
-                              </Typography>
+                              <Tooltip title={emailDisplay}>
+                                <Typography
+                                  noWrap
+                                  sx={{ maxWidth: 220 }}
+                                >
+                                  {emailDisplay}
+                                </Typography>
+                              </Tooltip>
                             </TableCell>
                             <TableCell>
                               {getUserRoleLabel(user.role)}
@@ -728,10 +755,15 @@ const Results: FC<ResultsProps> = ({ users }) => {
 
           {toggleView === 'grid_view' && (
             <>
-              <Grid container
-                spacing={{ xs: 2, sm: 3 }}>
+              <Grid container spacing={{ xs: 2, sm: 3 }}>
                 {paginatedUsers.map((user: any) => {
                   const isUserSelected = selectedItems.includes(user.id);
+                  const roleKey = getRoleKey(user.role);
+                  const emailDisplay = user.email || '';
+                  const username =
+                    roleKey === 'merchant'
+                      ? user.phoneNumber || user.firstName
+                      : user.firstName;
 
                   return (
                     <Grid
@@ -743,9 +775,7 @@ const Results: FC<ResultsProps> = ({ users }) => {
                       <CardWrapper
                         className={`${isUserSelected ? 'Mui-selected' : ''}`}
                       >
-                        <Box
-                          sx={{ position: 'relative', zIndex: '2' }}
-                        >
+                        <Box sx={{ position: 'relative', zIndex: '2' }}>
                           <Box
                             px={2}
                             pt={2}
@@ -795,19 +825,40 @@ const Results: FC<ResultsProps> = ({ users }) => {
                                   ({user.lastName})
                                 </Typography>
                               </Box>
-                              <Typography
-                                sx={{ pt: 0.3 }}
-                                variant="subtitle2"
-                              >
-                                {user.role}
-                              </Typography>
-                              <Typography
-                                sx={{ pt: 1 }}
-                                variant="h6"
-                                fontWeight={500}
-                              >
-                                {user.email}
-                              </Typography>
+
+                              {/* Username si es merchant */}
+                              {roleKey === 'merchant' && (
+                                <Typography
+                                  sx={{ pt: 0.3 }}
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  <b>Username </b>: {username}
+                                </Typography>
+                              )}
+                              <br />
+                              {/* Access code si es merchant */}
+                              {roleKey === 'merchant' && user.accessCode && (
+                                <Typography
+                                  sx={{ pt: 0.3 }}
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  <b>Access code </b>: {user.accessCode}
+                                </Typography>
+                              )}
+
+                              {/* Email truncado */}
+                              <Tooltip title={emailDisplay}>
+                                <Typography
+                                  sx={{ pt: 1, maxWidth: 260 }}
+                                  variant="h6"
+                                  fontWeight={500}
+                                  noWrap
+                                >
+                                  {emailDisplay}
+                                </Typography>
+                              </Tooltip>
                             </Box>
                           </Box>
                         </Box>
@@ -856,6 +907,7 @@ const Results: FC<ResultsProps> = ({ users }) => {
               </Card>
             </>
           )}
+
         </>
       )}
     </>

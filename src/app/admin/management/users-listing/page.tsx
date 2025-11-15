@@ -48,12 +48,30 @@ function Page(): React.JSX.Element {
             actions={
               <>
                 <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<FileDownloadOutlinedIcon />}
+                  onClick={() => triggerExport('page')}
+                  sx={{ mr: 1 }}
+                >
+                  {t('Export page')}
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<FileDownloadOutlinedIcon />}
+                  onClick={() => triggerExport('all')}
+                  sx={{ mr: 1 }}
+                >
+                  {t('Export all')}
+                </Button>
+                <Button
                   variant="contained"
                   size="small"
                   startIcon={<FileDownloadOutlinedIcon />}
                   onClick={() => triggerExport('filtered')}
                 >
-                  {t('Export')}
+                  {t('Export filtered')}
                 </Button>
               </>
             }
@@ -67,10 +85,13 @@ function Page(): React.JSX.Element {
         }}
       >
         <Container maxWidth={customization.stretch ? false : 'xl'}>
-          <UsersTableListing />
+          <UsersTableListing
+
+          />
         </Container>
       </Box>
     </>
   );
 }
+
 export default Page;
