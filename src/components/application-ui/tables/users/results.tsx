@@ -755,7 +755,9 @@ const Results: FC<ResultsProps> = ({ users }) => {
 
           {toggleView === 'grid_view' && (
             <>
-              <Grid container spacing={{ xs: 2, sm: 3 }}>
+              <Grid container
+               spacing={{ xs: 2, sm: 3 }}
+               >
                 {paginatedUsers.map((user: any) => {
                   const isUserSelected = selectedItems.includes(user.id);
                   const roleKey = getRoleKey(user.role);
