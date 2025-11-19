@@ -109,6 +109,7 @@ export interface AudienceWindowResponse {
   dateRange: { startDate: string; endDate: string };
   audience: { initial: number; final: number; delta: number; newInRange: number };
   byWeekday: Array<{ label: string; total: number }>;
+  byDay: Array<{ date: string; total: number }>;
 }
 
 export class SweepstakesClient {

@@ -10,9 +10,10 @@ import { useCallback, useMemo, useState } from 'react';
 interface CajerasPanelProps {
   storeId: string;
   storeName?: string;
+  customerCount?: number;
 }
 
-export default function CajerasPanel({ storeId, storeName }: CajerasPanelProps) {
+export default function CajerasPanel({ storeId, storeName, customerCount }: CajerasPanelProps) {
   // inicial: semana actual bloqueada (YYYY-MM-DD)
   const now = new Date();
   const s0 = startOfWeek(now, { weekStartsOn: 1 });
@@ -21,8 +22,6 @@ export default function CajerasPanel({ storeId, storeName }: CajerasPanelProps) 
   const [startDate, setStartDate] = useState(formatISO(s0, { representation: 'date' }));
   const [endDate, setEndDate] = useState(formatISO(e0, { representation: 'date' }));
 
-  const startISOFull = useMemo(() => `${startDate}T00:00:00.000Z`, [startDate]);
-  const endISOFull = useMemo(() => `${endDate}T23:59:59.999Z`, [endDate]);
 
   const handleRangeChange = useCallback((startISO: string, endISO: string) => {
     // vienen como YYYY-MM-DD
@@ -49,6 +48,7 @@ export default function CajerasPanel({ storeId, storeName }: CajerasPanelProps) 
 
       {/* Resumen + selector semanal + gráfica */}
       <AudienceWeekSummary
+        cusomerCount={ customerCount}
         storeId={storeId}
         startDate={startDate}
         endDate={endDate}

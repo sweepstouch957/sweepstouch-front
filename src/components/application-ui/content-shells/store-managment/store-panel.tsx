@@ -212,7 +212,9 @@ const StoreManagementPage = () => {
       case 'cajeras':
         return (
           <CajerasPanel storeId={storeId || ''}
-            storeName={store?.name} />
+            storeName={store?.name} 
+            customerCount={store?.customerCount}
+            />
         );
 
       case 'ads':

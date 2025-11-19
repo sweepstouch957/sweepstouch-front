@@ -332,21 +332,7 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
               label={`Total cajeras: ${totalCashiers}`}
               size="small"
             />
-            <Chip
-              label={`Participaciones: ${totals.sumCount}`}
-              size="small"
-              color="primary"
-            />
-            <Chip
-              label={`Nuevos: ${totals.sumNew}`}
-              size="small"
-              color="success"
-            />
-            <Chip
-              label={`Existentes: ${totals.sumExisting}`}
-              size="small"
-              color="secondary"
-            />
+            
           </Stack>
 
           {(isLoading || isFetching) && (

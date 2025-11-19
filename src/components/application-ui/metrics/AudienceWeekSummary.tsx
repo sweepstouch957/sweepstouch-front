@@ -34,23 +34,36 @@ import { es } from 'date-fns/locale';
 type Props = {
   storeId: string;
   startDate: string; // ISO inicial
-  endDate: string; // ISO inicial
+  endDate: string;   // ISO inicial
   onChange: (startISO: string, endISO: string) => void;
   cusomerCount?: number;
 };
 
-// Orden fijo para normalizar la gráfica L-D
-const DAY_ORDER = ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', 'DOMINGO'];
-
 // 🔒 Fecha mínima permitida
 const MIN_DATE = new Date('2025-11-03T00:00:00');
+
+// Meses cortos en español para formatear el string YYYY-MM-DD sin usar Date
+const MONTH_LABELS = [
+  'ene',
+  'feb',
+  'mar',
+  'abr',
+  'may',
+  'jun',
+  'jul',
+  'ago',
+  'sep',
+  'oct',
+  'nov',
+  'dic',
+];
 
 export default function AudienceWeekSummaryCompact({
   storeId,
   startDate,
   endDate,
   onChange,
-  cusomerCount
+  cusomerCount,
 }: Props) {
   const theme = useTheme();
 
@@ -96,23 +109,27 @@ export default function AudienceWeekSummaryCompact({
     enabled: Boolean(storeId && startISO && endISO),
     staleTime: 30_000,
     refetchOnWindowFocus: false,
-    placeholderData: () => ({
-      storeId,
-      dateRange: { startDate: startISO, endDate: endISO },
-      audience: { initial: 0, final: 0, delta: 0, newInRange: 0 },
-      byWeekday: [],
-    }),
   });
 
   const audienceNew = audienceResp?.audience?.newInRange ?? 0;
 
-  // Normalización para el chart
-  const byWeekday = Array.isArray(audienceResp?.byWeekday) ? audienceResp!.byWeekday : [];
-  const weekdayLabels = DAY_ORDER;
-  const weekdayTotals = DAY_ORDER.map((lbl) => {
-    const found = byWeekday.find((d: any) => d?.label === lbl);
-    return Number(found?.total ?? 0);
+  // Normalización para el chart basado en byDay
+  type ByDayPoint = { date: string; total: number };
+
+  const byDay: ByDayPoint[] = Array.isArray(audienceResp?.byDay)
+    ? (audienceResp!.byDay as ByDayPoint[])
+    : [];
+
+  // ⛔️ Sin Date, puro string: "YYYY-MM-DD" → "dd mes"
+  const dayLabels = byDay.map((d) => {
+    // Esperamos formato "YYYY-MM-DD"
+    const [yearStr, monthStr, dayStr] = d.date.split('-');
+    const monthIndex = Number(monthStr) - 1;
+    const monthLabel = MONTH_LABELS[monthIndex] ?? '';
+    return `${dayStr} ${monthLabel}`; // ej: "11 nov"
   });
+
+  const dayTotals = byDay.map((d) => Number(d.total ?? 0));
 
   // Utilidad para desplazar el rango manteniendo su tamaño actual
   const shiftRange = (days: number) => {
@@ -121,7 +138,10 @@ export default function AudienceWeekSummaryCompact({
     const ns = addDays(s, days);
     const ne = addDays(e, days);
     setRange([{ startDate: ns, endDate: ne, key: 'selection' as const }]);
-    onChange(formatISO(ns, { representation: 'date' }), formatISO(ne, { representation: 'date' }));
+    onChange(
+      formatISO(ns, { representation: 'date' }),
+      formatISO(ne, { representation: 'date' })
+    );
   };
 
   // Tamaño actual del rango en días (redondeado)
@@ -138,8 +158,7 @@ export default function AudienceWeekSummaryCompact({
     const sel = ranges.selection || ranges['selection'];
     if (!sel) return;
 
-    // Asegurar límite inferior (fechas antes del 3-nov-2025 quedan bloqueadas por minDate,
-    // pero igual “clamp” por si acaso)
+    // Asegurar límite inferior (minDate)
     const s = sel.startDate ? new Date(sel.startDate) : new Date();
     const e = sel.endDate ? new Date(sel.endDate) : s;
     const startClamped = s < MIN_DATE ? MIN_DATE : s;
@@ -193,25 +212,14 @@ export default function AudienceWeekSummaryCompact({
         }}
       >
         <CalendarTodayIcon fontSize="small" />
-        <Typography
-          variant="subtitle1"
-          fontWeight={800}
-        >
+        <Typography variant="subtitle1" fontWeight={800}>
           Resumen de audiencia por rango
         </Typography>
 
-        <Stack
-          direction="row"
-          gap={1}
-          sx={{ ml: 'auto' }}
-          alignItems="center"
-        >
+        <Stack direction="row" gap={1} sx={{ ml: 'auto' }} alignItems="center">
           <Tooltip title="Rango anterior">
             <span>
-              <IconButton
-                size="small"
-                onClick={goPrev}
-              >
+              <IconButton size="small" onClick={goPrev}>
                 <ArrowBackIosNewIcon fontSize="inherit" />
               </IconButton>
             </span>
@@ -226,10 +234,7 @@ export default function AudienceWeekSummaryCompact({
 
           <Tooltip title="Rango siguiente">
             <span>
-              <IconButton
-                size="small"
-                onClick={goNext}
-              >
+              <IconButton size="small" onClick={goNext}>
                 <ArrowForwardIosIcon fontSize="inherit" />
               </IconButton>
             </span>
@@ -248,17 +253,9 @@ export default function AudienceWeekSummaryCompact({
       </Box>
 
       <CardContent sx={{ pt: 1.5, px: 2 }}>
-        <Grid
-          container
-          spacing={2}
-          alignItems="stretch"
-        >
+        <Grid container spacing={2} alignItems="stretch">
           {/* Chart */}
-          <Grid
-            item
-            xs={12}
-            md={8}
-          >
+          <Grid item xs={12} md={8}>
             <Box
               sx={{
                 width: '100%',
@@ -287,27 +284,25 @@ export default function AudienceWeekSummaryCompact({
                     color: theme.palette.error.main,
                   }}
                 >
-                  <Typography
-                    variant="body2"
-                    fontWeight={700}
-                  >
+                  <Typography variant="body2" fontWeight={700}>
                     No se pudieron cargar los datos.
                   </Typography>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                  >
+                  <Typography variant="caption" color="text.secondary">
                     {(error as any)?.message ?? 'Error desconocido'}
                   </Typography>
                 </Box>
               ) : (
                 <BarChart
                   xAxis={[
-                    { scaleType: 'band', data: weekdayLabels, tickLabelStyle: { fontWeight: 600 } },
+                    {
+                      scaleType: 'band',
+                      data: dayLabels,
+                      tickLabelStyle: { fontWeight: 600 },
+                    },
                   ]}
                   series={[
                     {
-                      data: weekdayTotals,
+                      data: dayTotals,
                       label: 'Participaciones',
                       color: theme.palette.primary.main,
                     },
@@ -320,17 +315,14 @@ export default function AudienceWeekSummaryCompact({
                       fillOpacity: theme.palette.mode === 'dark' ? 0.9 : 1,
                       rx: 10,
                       ry: 10,
-                      fill: "url('#weekdayGradient')",
+                      fill: "url('#audienceGradient')",
                     },
                     '.MuiChartsAxis-left': { display: 'none' },
                     '.MuiChartsTooltip-root': { borderRadius: 8 },
                   }}
                 >
                   <defs>
-                    <linearGradient
-                      id="weekdayGradient"
-                      gradientTransform="rotate(90)"
-                    >
+                    <linearGradient id="audienceGradient" gradientTransform="rotate(90)">
                       <stop
                         offset="0%"
                         stopColor={alpha(theme.palette.primary.light, 0.95)}
@@ -347,16 +339,8 @@ export default function AudienceWeekSummaryCompact({
           </Grid>
 
           {/* KPIs */}
-          <Grid
-            item
-            xs={12}
-            md={4}
-          >
-            <Stack
-              gap={1.25}
-              height="100%"
-              justifyContent="center"
-            >
+          <Grid item xs={12} md={4}>
+            <Stack gap={1.25} height="100%" justifyContent="center">
               <Card
                 sx={{
                   borderRadius: 2,
@@ -380,11 +364,10 @@ export default function AudienceWeekSummaryCompact({
                     fontWeight={900}
                     sx={{ color: theme.palette.info.main }}
                   >
-                    {cusomerCount || "…"}
+                    {cusomerCount || '…'}
                   </Typography>
                 </CardContent>
               </Card>
-
 
               <Card
                 sx={{
@@ -420,22 +403,12 @@ export default function AudienceWeekSummaryCompact({
         <Divider sx={{ my: 1.25 }} />
 
         {/* Footer */}
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-        >
-          <Typography
-            variant="caption"
-            color="text.secondary"
-          >
-            Rango libre. Los días sin datos se normalizan a 0. Fechas anteriores al 03-nov-2025
-            están bloqueadas.
+        <Stack direction="row" alignItems="center" justifyContent="space-between">
+          <Typography variant="caption" color="text.secondary">
+            Rango libre. Los días sin datos se normalizan a 0 desde el backend. Fechas anteriores
+            al 03-nov-2025 están bloqueadas.
           </Typography>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-          >
+          <Typography variant="caption" color="text.secondary">
             Última actualización: {format(new Date(), 'dd LLL yyyy, HH:mm', { locale: es })}
           </Typography>
         </Stack>
@@ -458,27 +431,15 @@ export default function AudienceWeekSummaryCompact({
           weekdayDisplayFormat="EEEEEE"
           editableDateInputs
           dragSelectionEnabled
-          minDate={MIN_DATE} // ⛔️ bloquea < 03-nov-2025
+          minDate={MIN_DATE}
           rangeColors={[theme.palette.primary.main]}
         />
 
-        <Stack
-          direction="row"
-          justifyContent="flex-end"
-          gap={1}
-          sx={{ pt: 1 }}
-        >
-          <Button
-            size="small"
-            onClick={closePopover}
-          >
+        <Stack direction="row" justifyContent="flex-end" gap={1} sx={{ pt: 1 }}>
+          <Button size="small" onClick={closePopover}>
             Cancelar
           </Button>
-          <Button
-            size="small"
-            variant="contained"
-            onClick={applyPending}
-          >
+          <Button size="small" variant="contained" onClick={applyPending}>
             Aplicar rango
           </Button>
         </Stack>
