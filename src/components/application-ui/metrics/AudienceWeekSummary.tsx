@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-max-props-per-line */
 // src/components/sweepstakes/AudienceWeekSummaryCompact.tsx
 'use client';
 
