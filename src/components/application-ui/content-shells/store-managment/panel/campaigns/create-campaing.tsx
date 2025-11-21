@@ -5,6 +5,7 @@ import PreviewModal from '@/components/application-ui/dialogs/preview/preview-mo
 import AvatarUploadLogo from '@/components/application-ui/upload/avatar/avatar-upload-logo';
 import { Sms } from '@mui/icons-material';
 import {
+  Alert,
   Avatar,
   Box,
   Button,
@@ -24,6 +25,7 @@ import { DateTimePicker } from '@mui/x-date-pickers';
 import { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import CampaignResume from './campaing-resume';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 
 interface CampaignFormInputs {
   title: string;
@@ -90,6 +92,8 @@ export default function CreateCampaignForm({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [useFullAudience, setUseFullAudience] = useState(!initialValues?.customAudience);
   const contentRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const isPhoneMissing = !phoneNumber || phoneNumber.trim() === '';
 
   const image = watch('image');
   const content = watch('content');
@@ -381,16 +385,55 @@ export default function CreateCampaignForm({
                 <Box
                   mt={4}
                   display="flex"
-                  justifyContent="flex-end"
-                  gap={2}
+                  flexDirection="column"
+                  alignItems="flex-end"
+                  gap={1.5}
                 >
-                  <Button variant="outlined">Borrador</Button>
-                  <Button
-                    variant="contained"
-                    type="submit"
-                  >
-                    {isEditing ? 'Actualizar campaña' : 'Crear campaña'}
-                  </Button>
+                  {isPhoneMissing && (
+                    <Tooltip title="No se puede crear una campaña para esta tienda ya que no tiene un numero asignado">
+                      <Alert
+                        severity="error"
+                        icon={<ErrorOutlineIcon />}
+                        sx={{
+                          cursor: 'help',
+                          p: 0.5,
+                          minWidth: 'auto',
+                          width: 'auto',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        No hay numero asignado
+                      </Alert>
+                    </Tooltip>
+                  )}
+
+                  <Box display="flex"
+                    justifyContent="flex-end"
+                    gap={2}>
+                    <Button variant="outlined">
+                      Borrador
+                    </Button>
+                    <Tooltip
+                      title={
+                        isPhoneMissing
+                          ? 'No se puede crear una campaña para esta tienda ya que no tiene un numero asignado'
+                          : ''
+                      }
+                    >
+                      {/* span necesario porque MUI no muestra tooltip en botones deshabilitados */}
+                      <span>
+                        <Button
+                          variant="contained"
+                          type="submit"
+                          disabled={isPhoneMissing}
+                        >
+                          {isEditing ? 'Actualizar campaña' : 'Crear campaña'}
+                        </Button>
+                      </span>
+                    </Tooltip>
+                  </Box>
                 </Box>
               </form>
             </Card>
