@@ -5,6 +5,7 @@ import {
   DeleteTwoTone as DeleteIcon,
   RocketLaunchTwoTone as ImpulseIcon,
   LaunchTwoTone as LaunchIcon,
+  Web,
 } from '@mui/icons-material';
 import {
   Box,
@@ -319,11 +320,14 @@ const Results: FC<ResultsProps> = ({
                           </Tooltip>
 
                           <Tooltip
-                            title={t('Delete')}
+                            title={t('Merchant')}
                             arrow
                           >
-                            <IconButton color="secondary">
-                              <DeleteIcon fontSize="small" />
+                            <IconButton color="secondary" 
+                            onClick={() => {
+                              window.open(`https://merchant.sweepstouch.com/${store.accessCode}`, '_blank');
+                            }}>
+                              <Web fontSize="small" />
                             </IconButton>
                           </Tooltip>
                         </TableCell>
