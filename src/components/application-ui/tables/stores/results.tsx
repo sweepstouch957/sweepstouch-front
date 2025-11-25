@@ -2,9 +2,7 @@
 
 import { Store } from '@/services/store.service';
 import {
-  DeleteTwoTone as DeleteIcon,
-  RocketLaunchTwoTone as ImpulseIcon,
-  LaunchTwoTone as LaunchIcon,
+  Settings,
   Web,
 } from '@mui/icons-material';
 import {
@@ -298,26 +296,11 @@ const Results: FC<ResultsProps> = ({
                               passHref
                             >
                               <IconButton color="primary">
-                                <LaunchIcon fontSize="small" />
+                                <Settings fontSize="small" />
                               </IconButton>
                             </Link>
                           </Tooltip>
 
-                          <Tooltip
-                            title={t('Boost / Impulsar')}
-                            arrow
-                          >
-                            <Link
-                              href={`/admin/management/work-stores?q=${encodeURIComponent(
-                                store.name
-                              )}`}
-                              passHref
-                            >
-                              <IconButton color="primary">
-                                <ImpulseIcon fontSize="small" />
-                              </IconButton>
-                            </Link>
-                          </Tooltip>
 
                           <Tooltip
                             title={t('Merchant')}

@@ -2,6 +2,7 @@
 
 import { Store } from '@/services/store.service';
 import { getProviderChip, getTierColor } from '@/utils/ui/store.page';
+import { RocketLaunch } from '@mui/icons-material';
 import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
 import EditLocationAltIcon from '@mui/icons-material/EditLocationAlt';
@@ -29,6 +30,7 @@ import {
   Button,
   Link as MuiLink,
 } from '@mui/material';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 
@@ -241,6 +243,19 @@ export default function StoreHeader({
                   </IconButton>
                 </Tooltip>
 
+                <Tooltip
+                  title="Imupulsar Tienda">
+                  <Link
+                    href={`/admin/management/work-stores?q=${encodeURIComponent(
+                      name
+                    )}`}
+                    passHref
+                  >
+                    <IconButton color="primary">
+                      <RocketLaunch fontSize="small" />
+                    </IconButton>
+                  </Link>
+                </Tooltip>
                 {/* QR badge → abre modal */}
                 {shouldShowQr && qrHref && (
                   <Box
