@@ -325,7 +325,7 @@ const Results: FC<ResultsProps> = ({
                           >
                             <IconButton color="secondary" 
                             onClick={() => {
-                              window.open(`https://merchant.sweepstouch.com/${store.accessCode}`, '_blank');
+                              window.open(`https://merchant.sweepstouch.com/ac?=${store.accessCode}`, '_blank');
                             }}>
                               <Web fontSize="small" />
                             </IconButton>
