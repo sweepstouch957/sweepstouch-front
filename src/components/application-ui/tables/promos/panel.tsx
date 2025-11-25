@@ -4,6 +4,7 @@ import { Promo, PromoResults } from '@/components/application-ui/tables/promos/r
 import PageHeading from '@/components/base/page-heading';
 import { usePromos } from '@/hooks/fetching/promos/usePromos';
 import { useSweepstakes } from '@/hooks/fetching/sweepstakes/useSweepstakes';
+import { promoService } from '@/services/promo.service';
 import { useCustomization } from '@/hooks/use-customization';
 import { Create } from '@mui/icons-material';
 import { Box, Button, CircularProgress, Container, Typography } from '@mui/material';
@@ -30,6 +31,23 @@ export const PromoDashboard = ({ storeId }: PromoDashboardProps) => {
   } = usePromos({ page: filters.page, limit: filters.limit, storeId });
 
   const { data: sweepstakes, isLoading: loadingSweepstakes } = useSweepstakes();
+
+  const handleDeletePromo = async (id: string) => {
+    if (!id) return;
+
+    const confirmed = window.confirm(
+      t('Are you sure you want to delete this promotion?')
+    );
+    if (!confirmed) return;
+
+    try {
+      await promoService.deletePromo(id);
+      refetch(); // recargar la lista
+    } catch (error) {
+      console.error('Error deleting promo', error);
+      alert(t('There was an error deleting the promotion.'));
+    }
+  };
 
   const stores = [
     { _id: 't1', name: 'Tienda Principal', logo: 'https://via.placeholder.com/50' },
@@ -100,9 +118,7 @@ export const PromoDashboard = ({ storeId }: PromoDashboardProps) => {
                 setPromo(promo);
                 setOpenModal(true);
               }}
-              onDelete={(id) => {
-                console.log('Eliminar promo con ID:', id);
-              }}
+              onDelete={handleDeletePromo}
               idStore={storeId}
             />
           )}
