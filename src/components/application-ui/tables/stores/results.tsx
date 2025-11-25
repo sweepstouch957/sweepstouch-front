@@ -46,6 +46,12 @@ function splitByFirstNumber(raw: string, fallbackAddress?: string) {
   }
   return { displayName: s, displayAddress: (fallbackAddress || '').trim() };
 }
+const MERCHANT_ORIGIN =
+  process.env.NEXT_PUBLIC_MERCHANT_ORIGIN || 'https://merchant.sweepstouch.com';
+
+function buildSwitchUrl(storeId: string) {
+  return `${MERCHANT_ORIGIN}/?ac=${storeId}`;
+}
 
 /* --------------------------------- props ---------------------------------- */
 interface ResultsProps {
@@ -308,7 +314,7 @@ const Results: FC<ResultsProps> = ({
                           >
                             <IconButton color="secondary" 
                             onClick={() => {
-                              window.open(`https://merchant.sweepstouch.com/ac?=${store.accessCode}`, '_blank');
+                              window.open(buildSwitchUrl(store.accessCode), '_blank');
                             }}>
                               <Web fontSize="small" />
                             </IconButton>
