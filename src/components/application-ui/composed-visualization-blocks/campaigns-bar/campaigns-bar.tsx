@@ -43,9 +43,9 @@ export default function YtdMessagesBarChart({
 
   const months = data?.months ?? [];
   const xLabels = months.map((m) => m.monthName);
-  const sms = months.map((m) => m.sentSms);
-  const mms = months.map((m) => m.sentMms);
-  const total = months.map((m) => m.sent);
+  const sms = months.map((m) => m.audienceSms);
+  const mms = months.map((m) => m.audienceMms);
+  const total = months.map((m) => m.audience);
 
   return (
     <Card>

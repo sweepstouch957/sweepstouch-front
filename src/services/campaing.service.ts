@@ -90,6 +90,9 @@ export interface YtdMonthlyMonth {
   sentSms: number;
   sentMms: number;
   sent: number; // sentSms + sentMms
+  audienceSms: number;
+  audienceMms: number;
+  audience: number; // audienceSms + audienceMms
 }
 
 export interface YtdMonthlyResponse {
