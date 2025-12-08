@@ -106,10 +106,7 @@ const circularsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Circulars'), <BookOutlined />, [
     { title: t('Info Dashboard'), route: routes.admin.management.circulars['info-dashboard'] },
     { title: t('Manage Circulars'), route: routes.admin.management.circulars.manage },
-    buildMenu(t('Edit/Schedule Circulars'), undefined, [
-      { title: t('Edit Circulars'), route: routes.admin.management.circulars.edit },
-      { title: t('Schedule Circulars'), route: routes.admin.management.circulars.schedule },
-    ]),
+    { title: t('Schedule Circulars'), route: routes.admin.management.circulars.schedule },
   ]);
 
 export const useMenuItemsCollapsedShells = (

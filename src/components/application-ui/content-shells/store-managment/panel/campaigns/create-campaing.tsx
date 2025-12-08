@@ -4,6 +4,7 @@
 import PreviewModal from '@/components/application-ui/dialogs/preview/preview-modal';
 import AvatarUploadLogo from '@/components/application-ui/upload/avatar/avatar-upload-logo';
 import { Sms } from '@mui/icons-material';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import {
   Alert,
   Avatar,
@@ -25,7 +26,6 @@ import { DateTimePicker } from '@mui/x-date-pickers';
 import { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import CampaignResume from './campaing-resume';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 
 interface CampaignFormInputs {
   title: string;
@@ -38,13 +38,15 @@ interface CampaignFormInputs {
   imageUrl?: string;
   imagePublicId?: string;
   customAudience?: number;
+  linktree?: boolean; // 👈 nuevo parámetro
 }
 
 const placeholders = [
-  { key: '#n', label: 'Nombre del cliente' },
+  { key: '#n', label: 'Salto de línea' },
   { key: '#storeName', label: 'Nombre de la tienda' },
   { key: '#referralLink', label: 'Link de referido' },
   { key: '#disclaimer', label: 'Texto legal' },
+  { key: '#linktree', label: 'Linktree de la tienda' }, // 👈 nuevo placeholder
 ];
 
 const insertAtCursor = (inputEl: HTMLTextAreaElement, text: string) => {
@@ -64,7 +66,7 @@ export default function CreateCampaignForm({
   totalAudience,
   initialValues,
   isEditing = false,
-}: {
+}: {  
   onSubmit: (data: CampaignFormInputs) => void;
   provider: string;
   phoneNumber: string;
@@ -85,6 +87,7 @@ export default function CreateCampaignForm({
       content: initialValues?.content || '',
       estimatedCost: initialValues?.estimatedCost || 0.0015,
       startDate: initialValues?.startDate ? new Date(initialValues.startDate) : new Date(),
+      linktree: initialValues?.linktree ?? false,
     },
     mode: 'onBlur',
   });
@@ -102,12 +105,14 @@ export default function CreateCampaignForm({
   const startDate = watch('startDate');
 
   useEffect(() => {
-    if (image && image.length > 0) {
+    if (image && (image as any).length > 0) {
       setValue('estimatedCost', 0.06);
     } else {
       setValue('estimatedCost', 0.04);
     }
   }, [image, setValue]);
+
+  const currentLength = content?.length || 0;
 
   return (
     <Box>
@@ -196,7 +201,7 @@ export default function CreateCampaignForm({
                   >
                     <TextField
                       label="Campaign Type"
-                      value={initialValues?.type || (image?.length ? 'MMS' : 'SMS')}
+                      value={initialValues?.type || ((image as any)?.length ? 'MMS' : 'SMS')}
                       disabled
                       fullWidth
                     />
@@ -214,9 +219,7 @@ export default function CreateCampaignForm({
                         const handleChange = (e: any) => {
                           const value = e.target.value || '';
                           if (value.length > 2047) {
-                            alert(
-                              'Message content cannot exceed 2047 characters (max 2047).'
-                            );
+                            alert('Message content cannot exceed 2047 characters (max 2047).');
                             return;
                           }
                           field.onChange(e);
@@ -244,12 +247,22 @@ export default function CreateCampaignForm({
                                 },
                               }}
                             />
-                            <Box mt={0.5}>
+                            <Box
+                              mt={0.5}
+                              display="flex"
+                              justifyContent="space-between"
+                            >
                               <Typography
                                 variant="caption"
                                 color="text.secondary"
                               >
                                 100 to 2047 characters max
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                {currentLength} / 2047
                               </Typography>
                             </Box>
                           </>
@@ -280,9 +293,14 @@ export default function CreateCampaignForm({
                             variant="outlined"
                             onClick={() => {
                               if (contentRef.current) {
-                                const updatedText = insertAtCursor(contentRef.current, ` ${ph.key} `);
+                                const updatedText = insertAtCursor(
+                                  contentRef.current,
+                                  ` ${ph.key} `
+                                );
                                 if (updatedText.length > 2047) {
-                                  alert('Message content cannot exceed 2047 characters (max 2047).');
+                                  alert(
+                                    'Message content cannot exceed 2047 characters (max 2047).'
+                                  );
                                   // revertimos visualmente al valor anterior del form
                                   contentRef.current.value = content || '';
                                   return;
@@ -295,6 +313,9 @@ export default function CreateCampaignForm({
                       ))}
                     </Box>
                   </Grid>
+
+                  {/* Toggle de Linktree */}
+                
 
                   <Grid
                     item
@@ -409,12 +430,12 @@ export default function CreateCampaignForm({
                     </Tooltip>
                   )}
 
-                  <Box display="flex"
+                  <Box
+                    display="flex"
                     justifyContent="flex-end"
-                    gap={2}>
-                    <Button variant="outlined">
-                      Borrador
-                    </Button>
+                    gap={2}
+                  >
+                    <Button variant="outlined">Borrador</Button>
                     <Tooltip
                       title={
                         isPhoneMissing
@@ -422,7 +443,6 @@ export default function CreateCampaignForm({
                           : ''
                       }
                     >
-                      {/* span necesario porque MUI no muestra tooltip en botones deshabilitados */}
                       <span>
                         <Button
                           variant="contained"
@@ -448,7 +468,7 @@ export default function CreateCampaignForm({
               estimatedCost={estimatedCost}
               startDate={startDate}
               totalAudience={totalAudience}
-              type={image?.length ? 'MMS' : 'SMS'}
+              type={(image as any)?.length ? 'MMS' : 'SMS'}
               useFullAudience={useFullAudience}
               customAudience={customAudience}
               onPreviewClick={() => setPreviewOpen(true)}
@@ -461,7 +481,7 @@ export default function CreateCampaignForm({
         open={previewOpen}
         handleClose={() => setPreviewOpen(false)}
         content={content}
-        image={image?.[0] || initialValues?.image}
+        image={(image as any)?.[0] || initialValues?.image}
       />
     </Box>
   );
