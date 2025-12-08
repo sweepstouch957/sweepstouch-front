@@ -1,6 +1,7 @@
 'use client';
 
-import { ScheduleCirculars } from 'src/components/circulars/pages/ScheduleCirculars';
+import { ScheduleCirculars } from "@/components/circulars/ScheduleCirculars";
+
 
 const ScheduleCircularsPage = () => {
   return <ScheduleCirculars />;

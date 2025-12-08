@@ -219,6 +219,11 @@ export const getStoreByIdAndOwnerId = async (id: string, ownerId: string): Promi
   return res.data;
 };
 
+export const getStoreBySlug = async (slug: string): Promise<Store> => {
+  const res = await api.get<Store>(`/store/slug/${slug}`);
+  return res.data;
+};
+
 const storesService = {
   getStores,
   getStoreById,
@@ -232,6 +237,7 @@ const storesService = {
   getStoreByZipCode,
   getStoreByActive,
   getStoreByCreatedAt,
+  getStoreBySlug,
   getStoreByUpdatedAt,
   getStoreByImage,
   getStoreByDescription,
