@@ -139,11 +139,7 @@ function HelpdeskSidebar() {
             width={260}
             height={260}
             margin={{ right: 0 }}
-            slotProps={{
-              legend: {
-                hidden: true,
-              },
-            }}
+            hideLegend
             sx={{
               [`& .${pieArcLabelClasses.root}`]: {
                 fill: theme.palette.common.white,

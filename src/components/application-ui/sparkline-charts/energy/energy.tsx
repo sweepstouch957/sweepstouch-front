@@ -93,7 +93,7 @@ function EnergySaving() {
             <SparkLineChart
               plotType="line"
               height={120}
-              colors={[alpha(theme.palette.common.white, 0.6)]}
+              color={alpha(theme.palette.common.white, 0.6)}
               showHighlight
               margin={{ top: 0, bottom: 0, left: 0, right: 0 }}
               data={generateRandomData()}

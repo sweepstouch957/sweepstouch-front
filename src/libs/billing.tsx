@@ -1,5 +1,5 @@
 import { Box, Divider, Stack, styled, Typography } from '@mui/material';
-import { ChartsAxisContentProps } from '@mui/x-charts';
+//import { ChartsAxisContentProps } from '@mui/x-charts';
 
 // === Tooltip helpers ===
 const usd = (n: number) =>
@@ -23,7 +23,7 @@ export const Dot = styled('span')<{ color: string }>(({ color }) => ({
   background: color,
 }));
 
-export const AxisTooltipTotal: React.FC<ChartsAxisContentProps> = (props) => {
+export const AxisTooltipTotal: React.FC<any> = (props) => {
   // `props` contiene la info del punto activo (índice, series, label, etc.)
   const p: any = props as any;
   const idx = p?.dataIndex ?? 0;

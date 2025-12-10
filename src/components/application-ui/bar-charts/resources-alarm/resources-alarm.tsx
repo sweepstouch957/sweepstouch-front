@@ -104,7 +104,7 @@ function ResourcesAlarm() {
           margin={{ left: 4, bottom: 36, top: 24, right: 12 }}
           dataset={dataset}
           colors={[theme.palette.primary.main]}
-          leftAxis={null}
+          //leftAxis={null}
           yAxis={[{ scaleType: 'band', dataKey: 'month' }]}
           series={[{ dataKey: 'seoul', label: 'Seoul snapshot', valueFormatter }]}
           sx={{

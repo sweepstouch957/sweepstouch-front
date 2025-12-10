@@ -146,17 +146,17 @@ export default function YtdMessagesBarChart({
                 color: theme.palette.primary.main,
               },
             ]}
-            slotProps={{
-              legend: {
-                labelStyle: { fontWeight: 600 },
-                itemMarkWidth: 12,
-                itemMarkHeight: 12,
-                markGap: 6,
-                itemGap: 14,
-                position: { vertical: 'top', horizontal: 'right' },
-                padding: { top: 12 },
-              },
-            }}
+            //slotProps={{
+            //legend: {
+            //labelStyle: { fontWeight: 600 },
+            //itemMarkWidth: 12,
+            //itemMarkHeight: 12,
+            //markGap: 6,
+            //itemGap: 14,
+            //position: { vertical: 'top', horizontal: 'end' },
+            //padding: { top: 12 },
+            //},
+            //}}
             sx={{
               '.MuiBarElement-root': {
                 // bordes suaves y ligera opacidad en dark mode
@@ -201,9 +201,8 @@ export default function YtdMessagesBarChart({
           variant="body2"
           color="text.secondary"
         >
-          {`Total YTD: ${data?.totalYtd?.toLocaleString() ?? 0} · SMS: ${
-            data?.totalYtdSms?.toLocaleString() ?? 0
-          } · MMS: ${data?.totalYtdMms?.toLocaleString() ?? 0}`}
+          {`Total YTD: ${data?.totalYtd?.toLocaleString() ?? 0} · SMS: ${data?.totalYtdSms?.toLocaleString() ?? 0
+            } · MMS: ${data?.totalYtdMms?.toLocaleString() ?? 0}`}
         </Typography>
       </Box>
     </Card>

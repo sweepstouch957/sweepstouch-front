@@ -89,7 +89,7 @@ function TimeSpent() {
             theme.palette.secondary.light,
             theme.palette.success.light,
           ]}
-          leftAxis={null}
+          //leftAxis={null}
           yAxis={[
             {
               scaleType: 'band', //@ts-ignore

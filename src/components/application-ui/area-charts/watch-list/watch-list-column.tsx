@@ -112,10 +112,10 @@ const CryptoCard = ({ name, symbol, imageSrc, value, percentageChange, chipLabel
         </Box>
         <LineChart
           height={193}
-          leftAxis={null}
+          //leftAxis={null}
           margin={{ top: 0, bottom: 0, left: 0, right: 0 }}
-          bottomAxis={null}
-          slotProps={{ legend: { hidden: true } }}
+          //bottomAxis={null}
+          hideLegend
           series={[
             {
               data: chartValues,

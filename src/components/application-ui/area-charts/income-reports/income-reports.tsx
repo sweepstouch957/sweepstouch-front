@@ -147,8 +147,8 @@ function Component() {
 
       <LineChart
         height={300}
-        slotProps={{ legend: { hidden: true } }}
-        leftAxis={null}
+        hideLegend
+        //leftAxis={null}
         margin={{ top: 12, bottom: 36, left: 24, right: 24 }}
         series={[
           {

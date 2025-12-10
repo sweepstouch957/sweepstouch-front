@@ -86,7 +86,7 @@ function Component() {
               showHighlight
               area
               margin={{ top: 12, bottom: 0, left: 0, right: 0 }}
-              colors={[theme.palette.success.main]}
+              color={theme.palette.success.main}
               sx={{
                 '.MuiLineElement-root': { strokeWidth: 1, strokeLinecap: 'round' },
                 '.MuiAreaElement-root': {
@@ -149,7 +149,7 @@ function Component() {
               curve="linear"
               area
               margin={{ top: 12, bottom: 0, left: 0, right: 0 }}
-              colors={[theme.palette.error.main]}
+              color={theme.palette.error.main}
               sx={{
                 '.MuiLineElement-root': { strokeWidth: 3, strokeLinecap: 'round' },
                 '.MuiAreaElement-root': {
@@ -212,7 +212,7 @@ function Component() {
               curve="natural"
               area
               margin={{ top: 6, bottom: 0, left: 0, right: 0 }}
-              colors={[theme.palette.warning.main]}
+              color={theme.palette.warning.main}
               sx={{
                 '.MuiLineElement-root': { strokeWidth: 2, strokeLinecap: 'round' },
                 '.MuiAreaElement-root': {

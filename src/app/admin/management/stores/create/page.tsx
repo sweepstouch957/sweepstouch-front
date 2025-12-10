@@ -1,8 +1,7 @@
 'use client';
 
 import { useCreateStoreState } from '@/components/admin/stores/create/useCreateStoreState';
-// @ts-ignore – el hook puede exportarse como default o nombrado según el proyecto
-import * as sweepstakesHook from '@/hooks/fetching/sweepstakes/useSweepstakes';
+import { useSweepstakes } from '@/hooks/fetching/sweepstakes/useSweepstakes';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import {
   Box,
@@ -28,10 +27,6 @@ import { es } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
 
-const useSweepstakesAny: any =
-  (sweepstakesHook as any).useSweepstakes ||
-  (sweepstakesHook as any).default ||
-  (() => ({ data: [], isLoading: false, error: null }));
 
 const pinkTheme = createTheme({
   palette: {
@@ -174,7 +169,7 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
 
   const { state, setState } = useCreateStoreState();
 
-  const { data: swRaw, isLoading: swLoading } = useSweepstakesAny();
+  const { data: swRaw, isLoading: swLoading } = useSweepstakes();
 
   const sweepstakes = React.useMemo(() => {
     const arr: any[] = Array.isArray((swRaw as any)?.data)
@@ -193,17 +188,17 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
 
   const isValid = Boolean(
     state.storeName &&
-      state.storeName.trim() &&
-      state.address &&
-      state.address.trim() &&
-      state.zipCode &&
-      state.zipCode.trim() &&
-      state.phone &&
-      state.phone.trim() &&
-      state.startDate &&
-      state.startDate.trim() &&
-      state.sweepstakeId &&
-      state.sweepstakeId !== ''
+    state.storeName.trim() &&
+    state.address &&
+    state.address.trim() &&
+    state.zipCode &&
+    state.zipCode.trim() &&
+    state.phone &&
+    state.phone.trim() &&
+    state.startDate &&
+    state.startDate.trim() &&
+    state.sweepstakeId &&
+    state.sweepstakeId !== ''
   );
 
   const next = () => {

@@ -305,7 +305,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                       },
                     ]}
                     height={isMobile ? 260 : 340}
-                    slotProps={{ legend: { hidden: true } }}
+                    hideLegend
                     width={isMobile ? 320 : 400}
                     margin={{ left: 100 }}
                   />

@@ -32,7 +32,7 @@ function Component() {
             data: data1,
             paddingAngle: 8,
             cornerRadius: 4,
-            highlightScope: { faded: 'series', highlighted: 'item' },
+            highlightScope: { fade: 'global', highlight: 'item' },
           },
           {
             innerRadius: 100,
@@ -44,9 +44,7 @@ function Component() {
         ]}
         margin={{ right: 0 }}
         height={302}
-        slotProps={{
-          legend: { hidden: true },
-        }}
+        hideLegend
       />
       <Box
         display="flex"

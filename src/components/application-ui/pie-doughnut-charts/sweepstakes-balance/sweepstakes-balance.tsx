@@ -232,10 +232,10 @@ export default function SweepstakesBalance({
               >
                 {startDate && endDate
                   ? `Del ${format(startDate, "d 'de' MMMM", { locale: es })} al ${format(
-                      endDate,
-                      "d 'de' MMMM",
-                      { locale: es }
-                    )}`
+                    endDate,
+                    "d 'de' MMMM",
+                    { locale: es }
+                  )}`
                   : 'Selecciona un rango'}
               </Typography>
             </Box>
@@ -367,14 +367,14 @@ export default function SweepstakesBalance({
                         cornerRadius: 8,
                         startAngle: 0,
                         endAngle: 360,
-                        highlightScope: { faded: 'global', highlighted: 'item' },
+                        highlightScope: { fade: 'global', highlight: 'item' },
                         arcLabel: getArcLabel,
                       },
                     ]}
                     height={230}
                     width={230}
                     margin={{ right: 0 }}
-                    slotProps={{ legend: { hidden: true } }}
+                    hideLegend
                     sx={{
                       [`& .${pieArcLabelClasses.root}`]: {
                         fill: theme.palette.common.white,
@@ -404,59 +404,59 @@ export default function SweepstakesBalance({
                 <List disablePadding>
                   {isLoading
                     ? Array.from({ length: 4 }).map((_, index) => (
-                        <Fragment key={index}>
-                          <SkeletonCardItem />
-                          {index !== 3 && <Divider />}
-                        </Fragment>
-                      ))
+                      <Fragment key={index}>
+                        <SkeletonCardItem />
+                        {index !== 3 && <Divider />}
+                      </Fragment>
+                    ))
                     : visibleData.map((item, index) => (
-                        <Fragment key={item.storeId}>
-                          <ListItem
-                            sx={{
-                              transition: 'background 0.2s',
-                              '&:hover': {
-                                background: alpha(theme.palette.primary.main, 0.06),
-                                boxShadow: '0 1px 8px 0 #d1d5db38',
-                              },
-                            }}
-                          >
-                            <ListItemAvatarWrapper>
-                              <Image
-                                src={getImage(item.storeType)}
-                                alt={item.storeName}
-                                width={40}
-                                style={{ padding: '4px' }}
-                                height={50}
-                              />
-                            </ListItemAvatarWrapper>
-                            <ListItemText
-                              primary={item.storeName}
-                              sx={{ textWrap: 'wrap', maxWidth: '40ch' }}
-                              primaryTypographyProps={{ variant: 'h6', fontWeight: 600 }}
-                              secondary={`${item.totalRegistrations} números registrados`}
-                              secondaryTypographyProps={{ variant: 'body2', noWrap: true }}
+                      <Fragment key={item.storeId}>
+                        <ListItem
+                          sx={{
+                            transition: 'background 0.2s',
+                            '&:hover': {
+                              background: alpha(theme.palette.primary.main, 0.06),
+                              boxShadow: '0 1px 8px 0 #d1d5db38',
+                            },
+                          }}
+                        >
+                          <ListItemAvatarWrapper>
+                            <Image
+                              src={getImage(item.storeType)}
+                              alt={item.storeName}
+                              width={40}
+                              style={{ padding: '4px' }}
+                              height={50}
                             />
-                            <Box ml={2}>
-                              <Typography
-                                align="right"
-                                variant="body2"
-                                color="text.secondary"
-                                noWrap
-                              >
-                                Customers
-                              </Typography>
-                              <Typography
-                                align="right"
-                                variant="h6"
-                                noWrap
-                              >
-                                {item.storeCustomerCount}
-                              </Typography>
-                            </Box>
-                          </ListItem>
-                          {index !== visibleData.length - 1 && <Divider />}
-                        </Fragment>
-                      ))}
+                          </ListItemAvatarWrapper>
+                          <ListItemText
+                            primary={item.storeName}
+                            sx={{ textWrap: 'wrap', maxWidth: '40ch' }}
+                            primaryTypographyProps={{ variant: 'h6', fontWeight: 600 }}
+                            secondary={`${item.totalRegistrations} números registrados`}
+                            secondaryTypographyProps={{ variant: 'body2', noWrap: true }}
+                          />
+                          <Box ml={2}>
+                            <Typography
+                              align="right"
+                              variant="body2"
+                              color="text.secondary"
+                              noWrap
+                            >
+                              Customers
+                            </Typography>
+                            <Typography
+                              align="right"
+                              variant="h6"
+                              noWrap
+                            >
+                              {item.storeCustomerCount}
+                            </Typography>
+                          </Box>
+                        </ListItem>
+                        {index !== visibleData.length - 1 && <Divider />}
+                      </Fragment>
+                    ))}
                 </List>
 
                 {!isLoading && data.length > 4 && (

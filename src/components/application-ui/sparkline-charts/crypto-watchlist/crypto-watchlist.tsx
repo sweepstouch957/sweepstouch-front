@@ -166,7 +166,7 @@ function Component0() {
               height={100}
               curve="natural"
               margin={{ top: 12, bottom: 12, left: 0, right: 0 }}
-              colors={[theme.palette.primary.main]}
+              color={theme.palette.primary.main}
               sx={{ '.MuiLineElement-root': { strokeWidth: 2, strokeLinecap: 'round' } }}
             />
           </Box>
@@ -254,7 +254,7 @@ function Component0() {
               height={100}
               curve="natural"
               margin={{ top: 12, bottom: 12, left: 0, right: 0 }}
-              colors={[theme.palette.primary.main]}
+              color={theme.palette.primary.main}
               sx={{ '.MuiLineElement-root': { strokeWidth: 2, strokeLinecap: 'round' } }}
             />
           </Box>
@@ -342,7 +342,7 @@ function Component0() {
               height={100}
               curve="natural"
               margin={{ top: 12, bottom: 12, left: 0, right: 0 }}
-              colors={[theme.palette.primary.main]}
+              color={theme.palette.primary.main}
               sx={{ '.MuiLineElement-root': { strokeWidth: 2, strokeLinecap: 'round' } }}
             />
           </Box>

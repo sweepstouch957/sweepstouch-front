@@ -136,7 +136,7 @@ function WatchListRow() {
             data={[55.701, 57.598, 48.607, 46.439, 58.755, 46.978, 58.16]}
             height={140}
             curve="natural"
-            colors={[theme.palette.success.light]}
+            color={theme.palette.success.light}
             sx={{
               '.MuiLineElement-root': {
                 strokeWidth: 4,
@@ -226,7 +226,7 @@ function WatchListRow() {
           <SparkLineChart
             data={[2.854, 2.873, 2.592, 2.109, 2.909, 2.942, 2.884]}
             height={140}
-            colors={[theme.palette.error.light]}
+            color={theme.palette.success.light}
             curve="natural"
             sx={{
               '.MuiLineElement-root': {

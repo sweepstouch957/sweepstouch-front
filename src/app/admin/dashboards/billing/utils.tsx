@@ -159,7 +159,7 @@ export function PieWithLegend({
       <PieChart
         width={110}
         height={110}
-        slotProps={{ legend: { hidden: true } }}
+        hideLegend
         series={[
           {
             data: [

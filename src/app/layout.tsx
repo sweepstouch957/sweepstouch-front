@@ -26,42 +26,36 @@ export const viewport: Viewport = {
 
 const CUSTOMIZATION_STORAGE_KEY = 'uifort.customization';
 
-const restoreCustomization = (): Customization | undefined => {
-  const cookieList = cookies();
+// 👇 ahora es async y usa await cookies() + .get()
+const restoreCustomization = async (): Promise<Customization | undefined> => {
+  const cookieStore = await cookies();
 
-  let value: Customization | undefined;
+  const restored = cookieStore.get(CUSTOMIZATION_STORAGE_KEY);
+  if (!restored) return undefined;
 
-  if (cookieList.has(CUSTOMIZATION_STORAGE_KEY)) {
-    try {
-      const restored = cookieList.get(CUSTOMIZATION_STORAGE_KEY);
-
-      if (restored) {
-        value = JSON.parse(restored!.value);
-      }
-    } catch (err) {
-      console.error(err);
-    }
+  try {
+    const value = JSON.parse(restored.value) as Customization;
+    return value;
+  } catch (err) {
+    console.error(err);
+    return undefined;
   }
-
-  return value;
 };
 
 interface LayoutProps {
   children: ReactNode;
 }
 
-const Layout = (props: LayoutProps) => {
+// 👇 el layout también pasa a ser async para poder await restoreCustomization()
+const Layout = async (props: LayoutProps) => {
   const { children } = props;
 
-  const customization = restoreCustomization();
+  const customization = await restoreCustomization();
 
   return (
     <html>
       <head>
-        <link
-          rel="shortcut icon"
-          href="/sweeps.ico"
-        />
+        <link rel="shortcut icon" href="/sweeps.ico" />
       </head>
 
       <body>

@@ -271,7 +271,7 @@ function LearningProfile() {
             <SparkLineChart
               plotType="line"
               height={80}
-              colors={[theme.palette.common.white]}
+              color={theme.palette.success.light}
               showHighlight
               margin={{ top: 0, bottom: 0, left: 0, right: 0 }}
               data={chartValues}

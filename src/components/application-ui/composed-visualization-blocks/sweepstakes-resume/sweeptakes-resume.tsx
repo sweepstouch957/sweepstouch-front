@@ -88,7 +88,7 @@ export default function AudienceGrowthKPICard() {
         ) : (
           <BarChart
             height={300}
-            leftAxis={null}
+            //leftAxis={null}
             margin={{ left: 24, top: 24, right: 24 }}
             series={[
               {
@@ -104,9 +104,9 @@ export default function AudienceGrowthKPICard() {
             ]}
             slotProps={{
               legend: {
-                hidden: false,
-                position: { vertical: 'top', horizontal: 'right' },
-                labelStyle: { fontWeight: 600 },
+                //hidden: false,
+                position: { vertical: 'top', horizontal: 'end' },
+                //labelStyle: { fontWeight: 600 },
               },
             }}
             xAxis={[
@@ -198,7 +198,7 @@ export default function AudienceGrowthKPICard() {
 
         {/* Percentages */}
         <Stack
-          sx={{  px: 4 }}
+          sx={{ px: 4 }}
           direction="row"
           justifyContent="center"
           alignItems="center"

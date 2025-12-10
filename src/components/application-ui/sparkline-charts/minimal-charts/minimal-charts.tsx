@@ -73,7 +73,7 @@ function Component() {
             <SparkLineChart
               plotType="bar"
               height={100}
-              colors={[theme.palette.primary.main]}
+              color={theme.palette.primary.main}
               margin={{ top: 0, bottom: 0, left: 0, right: 3 }}
               data={generateRandomData()}
               sx={{
@@ -143,7 +143,7 @@ function Component() {
             <SparkLineChart
               plotType="bar"
               height={100}
-              colors={[theme.palette.success.main]}
+              color={theme.palette.success.main}
               margin={{ top: 0, bottom: 0, left: 0, right: 3 }}
               data={generateRandomData()}
               sx={{
@@ -210,7 +210,7 @@ function Component() {
             <SparkLineChart
               plotType="line"
               height={100}
-              colors={[theme.palette.error.main]}
+              color={theme.palette.error.main}
               margin={{ top: 0, bottom: 0, left: 0, right: 3 }}
               data={generateRandomData()}
               area
@@ -299,7 +299,7 @@ function Component() {
               plotType="line"
               height={100}
               curve="natural"
-              colors={[theme.palette.primary.main]}
+              color={theme.palette.primary.main}
               margin={{ top: 0, bottom: 0, left: 0, right: 3 }}
               data={generateRandomData()}
               area

@@ -211,18 +211,14 @@ function AccountBalance() {
                     cornerRadius: 8,
                     startAngle: 0,
                     endAngle: 360,
-                    highlightScope: { faded: 'global', highlighted: 'item' },
+                    highlightScope: { fade: 'global', highlight: 'item' },
                     arcLabel: getArcLabel,
                   },
                 ]}
                 height={230}
                 width={230}
                 margin={{ right: 0 }}
-                slotProps={{
-                  legend: {
-                    hidden: true,
-                  },
-                }}
+                hideLegend
                 sx={{
                   [`& .${pieArcLabelClasses.root}`]: {
                     fill: theme.palette.common.white,

@@ -176,7 +176,7 @@ function Component() {
             ],
             valueFormatter: (value) => value.getFullYear(),
           }}
-          colors={[theme.palette.info.main]}
+          color={theme.palette.info.main}
           sx={{ '.MuiLineElement-root': { strokeWidth: 3, strokeLinecap: 'round' } }}
         />
       </Box>

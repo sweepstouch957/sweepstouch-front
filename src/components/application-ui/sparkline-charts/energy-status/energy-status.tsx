@@ -65,7 +65,7 @@ function VideoCameras() {
               plotType="line"
               height={172}
               curve="natural"
-              colors={[theme.palette.common.white]}
+              color={theme.palette.common.white}
               margin={{ top: 0, bottom: 0, left: 0, right: 0 }}
               data={generateRandomData()}
               area
@@ -143,7 +143,7 @@ function VideoCameras() {
               plotType="line"
               height={172}
               curve="natural"
-              colors={[theme.palette.common.white]}
+              color={theme.palette.common.white}
               margin={{ top: 0, bottom: 0, left: 0, right: 0 }}
               data={generateRandomData()}
               area

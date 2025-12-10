@@ -197,11 +197,7 @@ function AllExpenses() {
           mt={2}
         >
           <PieChart
-            slotProps={{
-              legend: {
-                hidden: true,
-              },
-            }}
+            hideLegend
             margin={{ right: 0 }}
             series={[{ data, innerRadius: 70 }]}
             width={200}

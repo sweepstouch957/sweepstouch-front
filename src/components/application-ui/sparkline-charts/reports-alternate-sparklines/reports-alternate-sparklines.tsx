@@ -86,7 +86,7 @@ function Component() {
           showHighlight
           showTooltip
           curve="natural"
-          colors={[theme.palette.info.main]}
+          color={theme.palette.info.main}
           margin={{ top: 12, bottom: 12, left: 12, right: 12 }}
           data={generateRandomData()}
           sx={{
