@@ -1,16 +1,17 @@
 'use client';
 
 import { Store } from '@/services/store.service';
-import {
-  Settings,
-  Web,
-} from '@mui/icons-material';
+import { AccountCircle, Settings, Web } from '@mui/icons-material';
 import {
   Box,
   Card,
   Checkbox,
+  Dialog,
+  DialogContent,
+  DialogTitle,
   IconButton,
   Skeleton,
+  Tab,
   Table,
   TableBody,
   TableCell,
@@ -19,14 +20,19 @@ import {
   TablePagination,
   TableRow,
   TableSortLabel,
+  Tabs,
+  TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
 import Link from 'next/link';
 import React, { ChangeEvent, FC, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import StoreInfo from '../../../website/store-panel';
+import CampaignsPanel from '../../content-shells/store-managment/panel/campaigns/campaign-panel';
 import StoreFilter from './filter';
 import { StoreTableSkeleton } from './skelleton';
+import StaffManagementMock from './StaffManagementMock';
 
 /* ------------------------------- helper split ------------------------------ */
 // Corta en el PRIMER dígito que aparezca.
@@ -116,7 +122,25 @@ const Results: FC<ResultsProps> = ({
   error,
 }) => {
   const [selectedItems, setSelected] = useState<string[]>([]);
+  const [openModal, setOpenModal] = useState(false);
+  const [selectedStore, setSelectedStore] = useState<Store | null>(null);
+  const [activeTab, setActiveTab] = useState(0);
   const { t } = useTranslation();
+
+  const handleOpenModal = (store: Store) => {
+    setSelectedStore(store);
+    setOpenModal(true);
+    setActiveTab(0);
+  };
+
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    setSelectedStore(null);
+  };
+
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+    setActiveTab(newValue);
+  };
 
   const handleSelectAll = (event: ChangeEvent<HTMLInputElement>): void => {
     setSelected(event.target.checked ? stores.map((s: any) => s._id || s.id) : []);
@@ -146,6 +170,76 @@ const Results: FC<ResultsProps> = ({
 
   return (
     <>
+      {/* Modal de detalles de la tienda */}
+      <Dialog
+        open={openModal}
+        onClose={handleCloseModal}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>
+          {t('Store Details')}: {selectedStore?.name}
+        </DialogTitle>
+        <DialogContent
+          dividers
+          sx={{ p: 0 }}
+        >
+          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            <Tabs
+              value={activeTab}
+              onChange={handleTabChange}
+              aria-label="store details tabs"
+            >
+              <Tab label={t('General Info')} />
+              <Tab label={t('Campaigns')} />
+              <Tab label={t('Staff Management (Mock)')} />
+            </Tabs>
+          </Box>
+          <Box sx={{ p: 3 }}>
+            {/* Tab Panel 1: General Info */}
+            {activeTab === 0 && selectedStore && (
+              <Box>
+                <Typography
+                  variant="h5"
+                  gutterBottom
+                >
+                  {t('General Info')}
+                </Typography>
+                <StoreInfo store={selectedStore} />
+              </Box>
+            )}
+
+            {/* Tab Panel 2: Campaigns */}
+            {activeTab === 1 && selectedStore && (
+              <Box>
+                <Typography
+                  variant="h5"
+                  gutterBottom
+                >
+                  {t('Campaigns')}
+                </Typography>
+                <CampaignsPanel
+                  storeId={selectedStore._id || selectedStore.id}
+                  storeName={selectedStore.name}
+                />
+              </Box>
+            )}
+
+            {/* Tab Panel 3: Staff Management (Mock) */}
+            {activeTab === 2 && selectedStore && (
+              <Box>
+                <Typography
+                  variant="h5"
+                  gutterBottom
+                >
+                  {t('Staff Management (Mock)')}
+                </Typography>
+                <StaffManagementMock storeId={selectedStore._id || selectedStore.id} />
+              </Box>
+            )}
+          </Box>
+        </DialogContent>
+      </Dialog>
       {/* Filtros arriba (sin sort/order aquí, solo búsqueda, status y audienceLt) */}
       <StoreFilter
         t={t}
@@ -307,16 +401,30 @@ const Results: FC<ResultsProps> = ({
                             </Link>
                           </Tooltip>
 
-
                           <Tooltip
                             title={t('Merchant')}
                             arrow
                           >
-                            <IconButton color="secondary" 
-                            onClick={() => {
-                              window.open(buildSwitchUrl(store.accessCode), '_blank');
-                            }}>
+                            <IconButton
+                              color="secondary"
+                              onClick={() => {
+                                window.open(buildSwitchUrl(store.accessCode), '_blank');
+                              }}
+                            >
                               <Web fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+
+                          {/* Nuevo icono de usuario para el modal */}
+                          <Tooltip
+                            title={t('Store Details')}
+                            arrow
+                          >
+                            <IconButton
+                              color="primary"
+                              onClick={() => handleOpenModal(store)}
+                            >
+                              <AccountCircle fontSize="small" />
                             </IconButton>
                           </Tooltip>
                         </TableCell>
@@ -342,6 +450,77 @@ const Results: FC<ResultsProps> = ({
           </Box>
         </>
       )}
+
+      {/* Modal de detalles de la tienda */}
+      <Dialog
+        open={openModal}
+        onClose={handleCloseModal}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>
+          {t('Store Details')}: {selectedStore?.name}
+        </DialogTitle>
+        <DialogContent
+          dividers
+          sx={{ p: 0 }}
+        >
+          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            <Tabs
+              value={activeTab}
+              onChange={handleTabChange}
+              aria-label="store details tabs"
+            >
+              <Tab label={t('General Info')} />
+              <Tab label={t('Campaigns')} />
+              <Tab label={t('Staff Management')} />
+            </Tabs>
+          </Box>
+          <Box sx={{ p: 3 }}>
+            {/* Tab Panel 1: General Info */}
+            {activeTab === 0 && selectedStore && (
+              <Box>
+                <Typography
+                  variant="h5"
+                  gutterBottom
+                >
+                  {t('General Info')}
+                </Typography>
+                <StoreInfo store={selectedStore} />
+              </Box>
+            )}
+
+            {/* Tab Panel 2: Campaigns */}
+            {activeTab === 1 && selectedStore && (
+              <Box>
+                <Typography
+                  variant="h5"
+                  gutterBottom
+                >
+                  {t('Campaigns')}
+                </Typography>
+                <CampaignsPanel
+                  storeId={selectedStore._id || selectedStore.id}
+                  storeName={selectedStore.name}
+                />
+              </Box>
+            )}
+
+            {/* Tab Panel 3: Staff Management (Mock) */}
+            {activeTab === 2 && selectedStore && (
+              <Box>
+                <Typography
+                  variant="h5"
+                  gutterBottom
+                >
+                  {t('Staff Management (Mock)')}
+                </Typography>
+                <StaffManagementMock storeId={selectedStore._id || selectedStore.id} />
+              </Box>
+            )}
+          </Box>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
