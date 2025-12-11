@@ -278,7 +278,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                   sx={{
                     position: 'relative',
                     display: 'flex',
-                    justifyContent: 'flex-start',
+                    justifyContent: 'center',
                     alignItems: 'center',
                   }}
                 >
@@ -307,7 +307,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                     height={isMobile ? 260 : 340}
                     hideLegend
                     width={isMobile ? 320 : 400}
-                    margin={{ left: 100 }}
+                  //margin={{ left: 100 }}
                   />
 
                   {/* Center text */}
