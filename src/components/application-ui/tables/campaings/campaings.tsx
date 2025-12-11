@@ -66,8 +66,12 @@ function CampaignsGrid({ storeId }: CampaignsGridProps) {
       <PageHeading
         title={t('Campaigns')}
         description={t('Overview of ongoing campaigns')}
-        actions={<ExportButton eventName="campaigns:export"
-          emitOnly />}
+        actions={
+          <ExportButton
+            eventName="campaigns:export"
+            emitOnly
+          />
+        }
       />
       <Grid
         container

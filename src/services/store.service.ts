@@ -36,6 +36,9 @@ export interface Store {
   membershipType?: 'mensual' | 'semanal' | 'especial';
   paymentMethod?: 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
   startContractDate?: string | null; // ISO o null
+  lng?: number | null;
+  lat?: number | null;
+  email?: string;
 }
 
 export interface UpdateStoreBody {
