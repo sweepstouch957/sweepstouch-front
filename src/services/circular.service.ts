@@ -19,32 +19,50 @@ export interface Circular {
 }
 
 export interface UploadCircularPayload {
-  /** PDF file */
   file: File | Blob;
-  /** Si no lo mandas, se infiere del nombre del PDF (new_rochelle.pdf -> new-rochelle) */
   storeSlug?: string;
-  /** "current" | "next"  */
   schedule?: 'current' | 'next';
-  /** O rango explícito */
-  startDate?: string; // ISO
-  endDate?: string; // ISO
+  startDate?: string;
+  endDate?: string;
   title?: string;
 }
 
 export interface ScheduleCircularPayload {
   storeSlug: string;
-  startDate: string; // ISO
-  endDate: string; // ISO
+  startDate: string;
+  endDate: string;
   title?: string;
+}
+
+export interface ReschedulePayload {
+  circularId: string;
+  startDate: string;
+  endDate: string;
+  title?: string;
+}
+
+export interface OverviewStoreInfo {
+  _id: string; // slug
+  last: Circular;
+  store?: {
+    _id: string;
+    slug: string;
+    name: string;
+    image?: string;
+    customerCount?: number;
+    type?: string;
+    address?: string;
+    zipCode?: string;
+    membershipType?: string;
+  };
 }
 
 export interface OverviewResponse {
   totals: { active: number; scheduled: number; expired: number };
-  byStore: Array<{ _id: string; last: Circular }>;
+  byStore: OverviewStoreInfo[];
 }
 
 export class CircularService {
-  /** Sube un PDF y crea el circular. Devuelve el documento creado */
   async upload(payload: UploadCircularPayload): Promise<{ ok: boolean; circular: Circular }> {
     const form = new FormData();
     form.append('file', payload.file);
@@ -60,13 +78,18 @@ export class CircularService {
     return res.data;
   }
 
-  /** Agenda un circular sin archivo (luego puedes adjuntar con attachFile) */
   async schedule(payload: ScheduleCircularPayload): Promise<{ ok: boolean; circular: Circular }> {
     const res = await api.post('/circulars/schedule', payload);
     return res.data;
   }
 
-  /** Adjunta/actualiza el PDF de un circular existente */
+  /** Reprograma un circular existente (nuevas fechas o título) */
+  async reschedule(payload: ReschedulePayload): Promise<{ ok: boolean; circular: Circular }> {
+    const { circularId, ...body } = payload;
+    const res = await api.patch(`/circulars/${circularId}/reschedule`, body);
+    return res.data;
+  }
+
   async attachFile(
     circularId: string,
     file: File | Blob
@@ -79,13 +102,12 @@ export class CircularService {
     return res.data;
   }
 
-  /** KPIs y resumen por tienda (para las cards del dashboard) */
-  async getOverview(): Promise<OverviewResponse> {
-    const res = await api.get('/circulars/status/overview');
+  /** 🔍 Overview con filtro por slug o búsqueda por nombre/dirección (q) */
+  async getOverview(params?: { slug?: string; q?: string }): Promise<OverviewResponse> {
+    const res = await api.get('/circulars/status/overview', { params });
     return res.data;
   }
 
-  /** Lista de circulares por tienda (ordenados desc por startDate) */
   async getByStore(storeSlug: string): Promise<{ storeSlug: string; items: Circular[] }> {
     const res = await api.get(`/circulars/store/${storeSlug}`);
     return res.data;
@@ -99,14 +121,11 @@ export class CircularService {
 
 /** Helpers para filename -> slug/título */
 export function inferStoreSlugFromFilename(fileName: string): string | null {
-  // quita extensión
   const base = fileName.replace(/\.[^/.]+$/, '');
-  // normaliza underscores/espacios a guiones
   const norm = base
     .trim()
     .toLowerCase()
     .replace(/[_\s]+/g, '-');
-  // deja solo [a-z0-9-]
   const slug = norm
     .replace(/[^a-z0-9-]/g, '')
     .replace(/-+/g, '-')
@@ -117,7 +136,6 @@ export function inferStoreSlugFromFilename(fileName: string): string | null {
 export function inferTitleFromFilename(fileName: string): string {
   const base = fileName.replace(/\.[^/.]+$/, '');
   const cleaned = base.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
-  // Capitaliza simple
   return cleaned.replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
