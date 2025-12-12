@@ -6,7 +6,7 @@ import ClearIcon from '@mui/icons-material/Clear';
 import CloseIcon from '@mui/icons-material/Close';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import FileDownloadIcon from '@mui/icons-material/FileDownload'; // <- NUEVO
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import ImageIcon from '@mui/icons-material/Image';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
 import RouterIcon from '@mui/icons-material/Router';
@@ -14,7 +14,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import SmsIcon from '@mui/icons-material/Sms';
 import {
   Box,
-  Button, // <- NUEVO
+  Button,
   Chip,
   CircularProgress,
   Dialog,
@@ -38,7 +38,6 @@ import {
 import * as React from 'react';
 
 /* ---------------- helpers ---------------- */
-
 const formatDateTime = (iso?: string) => {
   if (!iso) return '-';
   try {
@@ -66,9 +65,9 @@ const typeIcon = (t?: string) =>
     </Tooltip>
   );
 
-/** Muestra un tooltip rico para el error combinando lo que venga del backend (errorInfo) */
+/** Tooltip rico para el error combinando lo que venga del backend (errorInfo) */
 const renderErrorTooltip = (row: any) => {
-  const code = row?.errorCode ?? '-';
+  const code = row?.errorCode ?? row?.errorInfo?.code ?? '-';
   const msg = row?.errorMessage ?? '';
   const info = row?.errorInfo || null;
   const friendly = info?.friendly || '';
@@ -78,49 +77,31 @@ const renderErrorTooltip = (row: any) => {
 
   return (
     <Box sx={{ p: 0.5 }}>
-      <Typography
-        variant="caption"
-        sx={{ display: 'block' }}
-      >
+      <Typography variant="caption" sx={{ display: 'block' }}>
         <b>Code:</b> {code}
       </Typography>
       {msg ? (
-        <Typography
-          variant="caption"
-          sx={{ display: 'block' }}
-        >
+        <Typography variant="caption" sx={{ display: 'block' }}>
           <b>Message:</b> {msg}
         </Typography>
       ) : null}
       {friendly ? (
-        <Typography
-          variant="caption"
-          sx={{ display: 'block' }}
-        >
+        <Typography variant="caption" sx={{ display: 'block' }}>
           <b>Reason:</b> {friendly}
         </Typography>
       ) : null}
       {explanation ? (
-        <Typography
-          variant="caption"
-          sx={{ display: 'block' }}
-        >
+        <Typography variant="caption" sx={{ display: 'block' }}>
           <b>Details:</b> {explanation}
         </Typography>
       ) : null}
       {klass ? (
-        <Typography
-          variant="caption"
-          sx={{ display: 'block' }}
-        >
+        <Typography variant="caption" sx={{ display: 'block' }}>
           <b>Class:</b> {klass}
         </Typography>
       ) : null}
       {billable !== '-' ? (
-        <Typography
-          variant="caption"
-          sx={{ display: 'block' }}
-        >
+        <Typography variant="caption" sx={{ display: 'block' }}>
           <b>Billable:</b> {billable}
         </Typography>
       ) : null}
@@ -143,18 +124,15 @@ const CampaignLogsModal: React.FC<Props> = ({
   campaignId,
   defaultStatus = 'any',
 }) => {
-  // ui state
   const [page, setPage] = React.useState(1);
   const [limit, setLimit] = React.useState(20);
   const [sort, setSort] = React.useState<'asc' | 'desc'>('desc');
   const [query, setQuery] = React.useState('');
-  const [search, setSearch] = React.useState(''); // debounced value
+  const [search, setSearch] = React.useState('');
   const [status, setStatus] = React.useState<MessageLogStatus | 'any'>(defaultStatus);
 
-  // NUEVO: estado exportación
+  // export
   const [exporting, setExporting] = React.useState(false);
-
-  // NUEVO: mantener filtros actuales en una ref para la exportación
   const filtersRef = React.useRef({ search, sort, status });
   React.useEffect(() => {
     filtersRef.current = { search, sort, status };
@@ -166,11 +144,21 @@ const CampaignLogsModal: React.FC<Props> = ({
     return () => clearTimeout(t);
   }, [query]);
 
-  // fetch
+  /**
+   * ✅ CLAVE (igual que el otro proyecto):
+   * - Cuando aquí el status sea "failed" (tu sending), pedimos al backend status "error"
+   * - Para el resto, mandamos el status normal
+   */
+  const apiStatus = React.useMemo(() => {
+    if (status === 'any') return undefined;
+    if (status === 'failed') return 'error' as any; // backend soporta 'error' (como el otro modal)
+    return status;
+  }, [status]);
+
   const { data, isLoading, isFetching, isError } = useCampaignLogs(
     campaignId,
     {
-      status: status === 'any' ? undefined : status,
+      status: apiStatus,
       page,
       limit,
       sort,
@@ -181,7 +169,6 @@ const CampaignLogsModal: React.FC<Props> = ({
 
   const loadingBar = isLoading || isFetching;
 
-  // reset al abrir/cambiar campaña
   React.useEffect(() => {
     if (open) {
       setPage(1);
@@ -195,6 +182,7 @@ const CampaignLogsModal: React.FC<Props> = ({
 
   const response = data as CampaignLogsResponse | undefined;
   const totalPages = response?.totalPages ?? 1;
+  const rows = response?.data ?? [];
 
   const copy = async (text: string) => {
     try {
@@ -204,7 +192,7 @@ const CampaignLogsModal: React.FC<Props> = ({
     }
   };
 
-  /* --------- NUEVO: exportar TODAS las filas según filtros vigentes --------- */
+  /* --------- exportar TODAS las filas según filtros vigentes --------- */
   const exportAllLogs = async () => {
     setExporting(true);
     console.groupCollapsed('[Export logs]');
@@ -212,7 +200,6 @@ const CampaignLogsModal: React.FC<Props> = ({
       const mod = await import('@/services/campaing.service');
       const svc: any = (mod as any).campaignClient || (mod as any).default || mod;
 
-      // posibles nombres de método en el servicio
       const methodNames = [
         'getCampaignLogs',
         'logsByCampaign',
@@ -221,80 +208,65 @@ const CampaignLogsModal: React.FC<Props> = ({
         'logs',
       ].filter((n) => typeof svc?.[n] === 'function');
 
-      if (!methodNames.length) {
-        throw new Error('No encontré un método de logs en campaignClient');
-      }
+      if (!methodNames.length) throw new Error('No encontré un método de logs en campaignClient');
 
       const LIMIT = 500;
       const { search: s, sort: so, status: st } = filtersRef.current || {};
-      const normStatus = st === 'any' ? undefined : st;
 
-      // llamada que prueba ambas firmas: (id, params) y ({campaignId, ...})
+      // mismo truco: si st === failed => pedimos 'error'
+      const normStatus =
+        st === 'any' ? undefined : st === 'failed' ? ('error' as any) : st;
+
       const callApi = async (page: number) => {
         const params = {
           page,
           limit: LIMIT,
-          sort: so, // algunos servicios usan sort, otros order (por eso pondremos ambos)
+          sort: so,
           order: so,
-          q: s || undefined, // algunos usan 'q', otros 'search'
+          q: s || undefined,
           search: s || undefined,
           status: normStatus,
         };
 
         const name = methodNames[0];
         try {
-          // Firma A: (campaignId, params)
-          console.log('[export] usando', `${name}(campaignId, params)`, params);
           return await svc[name](campaignId, params);
-        } catch (e1) {
-          // Firma B: ({ campaignId, ...params })
-          console.log('[export] fallback', `${name}({campaignId,...})`, params);
+        } catch {
           return await svc[name]({ campaignId, ...params });
         }
       };
 
-      // XLSX por bloques
       const xlsx = await import('xlsx');
       const wb = xlsx.utils.book_new();
       const ws = xlsx.utils.aoa_to_sheet([
         ['time', 'phone', 'type', 'bwStatus', 'sid', 'carrier', 'errorCode'],
       ]);
 
-      let page = 1;
+      let p = 1;
       let written = 0;
 
-      // eslint-disable-next-line no-constant-condition
       while (true) {
-        const res: any = await callApi(page);
+        const res: any = await callApi(p);
         const items: any[] = res?.data ?? res?.items ?? [];
 
-        const rows = items.map((row) => [
+        const out = items.map((row) => [
           row.timestamp || row.time || row.createdAt || '',
           row.phone || row.destinationTn || row.phoneNumber || '',
           (row.messageType || '').toUpperCase(),
           row.bwMessageStatus || row.status || '',
           row.messageSid || row.sid || '',
           row.carrierName || row.carrier || 'Other',
-          row.errorCode ?? row.error_code ?? '',
+          row.errorCode ?? row.errorInfo?.code ?? '',
         ]);
 
-        if (rows.length) {
-          xlsx.utils.sheet_add_aoa(ws, rows, { origin: { r: written + 1, c: 0 } });
-          written += rows.length;
+        if (out.length) {
+          xlsx.utils.sheet_add_aoa(ws, out, { origin: { r: written + 1, c: 0 } });
+          written += out.length;
         }
 
-        const total =
-          res?.total ?? res?.count ?? (res?.totalPages && res.totalPages * LIMIT) ?? undefined;
-
-        console.log(
-          `[export] page=${page} got=${rows.length} written=${written} total=${total ?? 'unknown'}`
-        );
-
-        if (!rows.length) break;
-        if (typeof total === 'number' && written >= total) break;
-
-        page += 1;
-        if (page > 5000) break;
+        if (!items.length) break;
+        p += 1;
+        if (p > (res?.totalPages ?? 9999)) break;
       }
 
       xlsx.utils.book_append_sheet(wb, ws, 'logs');
@@ -303,7 +275,6 @@ const CampaignLogsModal: React.FC<Props> = ({
         .replace(/[\\/:*?"<>|]+/g, '')
         .slice(0, 120);
       xlsx.writeFile(wb, fname);
-      console.log('[export] listo:', fname);
     } catch (err) {
       console.error('[export] error:', err);
       alert('No se pudo exportar los logs. Revisa la consola para detalles.');
@@ -312,8 +283,6 @@ const CampaignLogsModal: React.FC<Props> = ({
       setExporting(false);
     }
   };
-
-  /* ------------------------------------------------------------------------- */
 
   return (
     <Dialog
@@ -324,10 +293,7 @@ const CampaignLogsModal: React.FC<Props> = ({
       PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden' } }}
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Typography
-          variant="h6"
-          sx={{ fontWeight: 800, flexGrow: 1 }}
-        >
+        <Typography variant="h6" sx={{ fontWeight: 800, flexGrow: 1 }}>
           Campaign logs
           {status !== 'any' ? ` - ${String(status).toUpperCase()}` : ''}
         </Typography>
@@ -340,16 +306,7 @@ const CampaignLogsModal: React.FC<Props> = ({
       {loadingBar && <LinearProgress />}
 
       <DialogContent sx={{ pt: 2 }}>
-        {/* filtros superiores */}
-        <Box
-          sx={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 1,
-            alignItems: 'center',
-            mb: 1.5,
-          }}
-        >
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center', mb: 1.5 }}>
           <TextField
             value={query}
             onChange={(e) => {
@@ -382,7 +339,6 @@ const CampaignLogsModal: React.FC<Props> = ({
             sx={{ minWidth: 280 }}
           />
 
-          {/* NUEVO: botón Export XLSX */}
           <Button
             size="small"
             variant="outlined"
@@ -394,16 +350,9 @@ const CampaignLogsModal: React.FC<Props> = ({
           </Button>
         </Box>
 
-        {/* tabla */}
-        <Paper
-          variant="outlined"
-          sx={{ borderRadius: 2, overflow: 'hidden' }}
-        >
+        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
           <TableContainer sx={{ maxHeight: 520 }}>
-            <Table
-              stickyHeader
-              size="small"
-            >
+            <Table stickyHeader size="small">
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 700, minWidth: 120 }}>Time</TableCell>
@@ -428,9 +377,11 @@ const CampaignLogsModal: React.FC<Props> = ({
                 )}
 
                 {!isError &&
-                  response?.data?.map((row, idx) => {
+                  rows.map((row: any, idx: number) => {
                     const key = row.messageSid || `${idx}-${row.timestamp}`;
                     const phone = row.phone || row.destinationTn || '-';
+
+                    // ✅ mantenemos tu comportamiento: solo en "failed" se ve completo, sino máscara
                     const phoneTrunked =
                       status === 'failed'
                         ? phone
@@ -440,59 +391,36 @@ const CampaignLogsModal: React.FC<Props> = ({
                     const hasError = !!(row.errorCode || row.errorMessage || row.errorInfo);
 
                     return (
-                      <TableRow
-                        hover
-                        key={key}
-                      >
-                        {/* Time */}
+                      <TableRow hover key={key}>
                         <TableCell>{formatDateTime(row.timestamp)}</TableCell>
 
-                        {/* Phone */}
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <PhoneIphoneIcon fontSize="small" />
-                            <Typography
-                              variant="body2"
-                              noWrap
-                              title={phoneTrunked}
-                            >
+                            <Typography variant="body2" noWrap title={phoneTrunked}>
                               {phoneTrunked}
                             </Typography>
                           </Box>
                         </TableCell>
 
-                        {/* Type */}
                         <TableCell>{typeIcon(row.messageType)}</TableCell>
 
-                        {/* BW Status */}
                         <TableCell>
-                          <Typography
-                            variant="body2"
-                            noWrap
-                            title={row.bwMessageStatus || '-'}
-                          >
+                          <Typography variant="body2" noWrap title={row.bwMessageStatus || '-'}>
                             {row.bwMessageStatus || '-'}
                           </Typography>
                         </TableCell>
 
-                        {/* SID */}
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Tooltip title={row.messageSid || '-'}>
-                              <Typography
-                                variant="body2"
-                                sx={{ maxWidth: 140 }}
-                                noWrap
-                              >
+                              <Typography variant="body2" sx={{ maxWidth: 140 }} noWrap>
                                 {row.messageSid || '-'}
                               </Typography>
                             </Tooltip>
                             {row.messageSid && (
                               <Tooltip title="Copy SID">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => copy(row.messageSid!)}
-                                >
+                                <IconButton size="small" onClick={() => copy(row.messageSid!)}>
                                   <ContentCopyIcon fontSize="inherit" />
                                 </IconButton>
                               </Tooltip>
@@ -500,45 +428,33 @@ const CampaignLogsModal: React.FC<Props> = ({
                           </Box>
                         </TableCell>
 
-                        {/* Carrier */}
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <RouterIcon fontSize="small" />
-                            <Typography
-                              variant="body2"
-                              noWrap
-                              title={carrier}
-                            >
+                            <Typography variant="body2" noWrap title={carrier}>
                               {carrier}
                             </Typography>
                           </Box>
                         </TableCell>
 
-                        {/* Error Code (tooltip con info ampliada) */}
                         {status === 'failed' && (
                           <TableCell>
                             {hasError ? (
                               <Tooltip title={renderErrorTooltip(row)}>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                  <ErrorOutlineIcon
-                                    fontSize="small"
-                                    color="error"
-                                  />
+                                  <ErrorOutlineIcon fontSize="small" color="error" />
                                   <Typography
                                     variant="body2"
                                     sx={{ maxWidth: 140 }}
                                     noWrap
-                                    title={row.errorCode || '-'}
+                                    title={row.errorCode || row?.errorInfo?.code || '-'}
                                   >
-                                    {row.errorCode || '-'}
+                                    {row.errorCode || row?.errorInfo?.code || '-'}
                                   </Typography>
                                 </Box>
                               </Tooltip>
                             ) : (
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                              >
+                              <Typography variant="body2" color="text.secondary">
                                 —
                               </Typography>
                             )}
@@ -548,12 +464,10 @@ const CampaignLogsModal: React.FC<Props> = ({
                     );
                   })}
 
-                {!isError && response && response.data.length === 0 && !isLoading && (
+                {!isError && response && rows.length === 0 && !isLoading && (
                   <TableRow>
                     <TableCell colSpan={9}>
-                      <Typography color="text.secondary">
-                        No logs found with current filters.
-                      </Typography>
+                      <Typography color="text.secondary">No logs found with current filters.</Typography>
                     </TableCell>
                   </TableRow>
                 )}
@@ -561,7 +475,6 @@ const CampaignLogsModal: React.FC<Props> = ({
             </Table>
           </TableContainer>
 
-          {/* footer paginación */}
           <Box
             sx={{
               px: 2,
@@ -572,10 +485,7 @@ const CampaignLogsModal: React.FC<Props> = ({
               gap: 2,
             }}
           >
-            <Typography
-              variant="caption"
-              color="text.secondary"
-            >
+            <Typography variant="caption" color="text.secondary">
               Page {response?.page ?? page} / {response?.totalPages ?? 1} • {response?.total ?? 0}{' '}
               results
             </Typography>
@@ -604,7 +514,6 @@ const CampaignLogsModal: React.FC<Props> = ({
           </Box>
         </Paper>
 
-        {/* loading overlay sutil */}
         {isFetching && !isLoading && (
           <Box
             sx={{
