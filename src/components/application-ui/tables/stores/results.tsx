@@ -1,16 +1,17 @@
 'use client';
 
 import { Store } from '@/services/store.service';
-import {
-  Settings,
-  Web,
-} from '@mui/icons-material';
+import { AccountCircle, Settings, Web } from '@mui/icons-material';
 import {
   Box,
   Card,
   Checkbox,
+  Dialog,
+  DialogContent,
+  DialogTitle,
   IconButton,
   Skeleton,
+  Tab,
   Table,
   TableBody,
   TableCell,
@@ -19,14 +20,19 @@ import {
   TablePagination,
   TableRow,
   TableSortLabel,
+  Tabs,
+  TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
 import Link from 'next/link';
 import React, { ChangeEvent, FC, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import CampaignsPanel from '../../content-shells/store-managment/panel/campaigns/campaign-panel';
 import StoreFilter from './filter';
 import { StoreTableSkeleton } from './skelleton';
+import StaffManagementMock from './StaffManagementMock';
+import StoreInfoSimplified from './StoreInfoSimplified';
 
 /* ------------------------------- helper split ------------------------------ */
 // Corta en el PRIMER dígito que aparezca.
@@ -81,14 +87,18 @@ interface ResultsProps {
 }
 
 /* ----------------------------- tiny components ---------------------------- */
-const LogoImg = ({ src }: { src: string }) => (
-  <Box
-    component="img"
-    src={src}
-    alt="store logo"
-    sx={{ width: 40, height: 40, borderRadius: 1, objectFit: 'cover' }}
-  />
-);
+const LogoImg = ({ src }: { src: string }) => {
+  if (!src) return null;
+
+  return (
+    <Box
+      component="img"
+      src={src}
+      alt="store logo"
+      sx={{ width: 40, height: 40, objectFit: 'contain' }}
+    />
+  );
+};
 
 /* -------------------------------- component -------------------------------- */
 const Results: FC<ResultsProps> = ({
@@ -116,7 +126,25 @@ const Results: FC<ResultsProps> = ({
   error,
 }) => {
   const [selectedItems, setSelected] = useState<string[]>([]);
+  const [openModal, setOpenModal] = useState(false);
+  const [selectedStore, setSelectedStore] = useState<Store | null>(null);
+  const [activeTab, setActiveTab] = useState(0);
   const { t } = useTranslation();
+
+  const handleOpenModal = (store: Store) => {
+    setSelectedStore(store);
+    setOpenModal(true);
+    setActiveTab(0);
+  };
+
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    setSelectedStore(null);
+  };
+
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+    setActiveTab(newValue);
+  };
 
   const handleSelectAll = (event: ChangeEvent<HTMLInputElement>): void => {
     setSelected(event.target.checked ? stores.map((s: any) => s._id || s.id) : []);
@@ -146,6 +174,68 @@ const Results: FC<ResultsProps> = ({
 
   return (
     <>
+      {/* Modal de detalles de la tienda */}
+      <Dialog
+        open={openModal}
+        onClose={handleCloseModal}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>
+          {t('Store Details')}: {selectedStore?.name}
+        </DialogTitle>
+        <DialogContent
+          dividers
+          sx={{ p: 0 }}
+        >
+          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            <Tabs
+              value={activeTab}
+              onChange={handleTabChange}
+              aria-label="store details tabs"
+              variant="fullWidth"
+              sx={{ '& .MuiTabs-flexContainer': { justifyContent: 'space-around' } }}
+            >
+              <Tab label={t('General Info')} />
+              <Tab label={t('Campaigns')} />
+              <Tab label={t('Staff Management (Mock)')} />
+            </Tabs>
+          </Box>
+          <Box sx={{ p: 3 }}>
+            {/* Tab Panel 1: General Info */}
+            {activeTab === 0 && selectedStore && (
+              <Box>
+                <StoreInfoSimplified store={selectedStore} />
+              </Box>
+            )}
+
+            {/* Tab Panel 2: Campaigns */}
+            {activeTab === 1 && selectedStore && (
+              <Box sx={{ p: 0 }}>
+                {' '}
+                {/* Remove inner padding for full space */}
+                <CampaignsPanel
+                  storeId={selectedStore._id || selectedStore.id}
+                  storeName={selectedStore.name}
+                />
+              </Box>
+            )}
+
+            {/* Tab Panel 3: Staff Management (Mock) */}
+            {activeTab === 2 && selectedStore && (
+              <Box>
+                <Typography
+                  variant="h5"
+                  gutterBottom
+                >
+                  {t('Staff Management ')}
+                </Typography>
+                <StaffManagementMock storeId={selectedStore._id || selectedStore.id} />
+              </Box>
+            )}
+          </Box>
+        </DialogContent>
+      </Dialog>
       {/* Filtros arriba (sin sort/order aquí, solo búsqueda, status y audienceLt) */}
       <StoreFilter
         t={t}
@@ -307,16 +397,30 @@ const Results: FC<ResultsProps> = ({
                             </Link>
                           </Tooltip>
 
-
                           <Tooltip
                             title={t('Merchant')}
                             arrow
                           >
-                            <IconButton color="secondary" 
-                            onClick={() => {
-                              window.open(buildSwitchUrl(store.accessCode), '_blank');
-                            }}>
+                            <IconButton
+                              color="secondary"
+                              onClick={() => {
+                                window.open(buildSwitchUrl(store.accessCode), '_blank');
+                              }}
+                            >
                               <Web fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+
+                          {/* Nuevo icono de usuario para el modal */}
+                          <Tooltip
+                            title={t('Store Details')}
+                            arrow
+                          >
+                            <IconButton
+                              color="primary"
+                              onClick={() => handleOpenModal(store)}
+                            >
+                              <AccountCircle fontSize="small" />
                             </IconButton>
                           </Tooltip>
                         </TableCell>

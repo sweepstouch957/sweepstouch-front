@@ -36,11 +36,7 @@ function SalesByCategory() {
           mt={2}
         >
           <PieChart
-            slotProps={{
-              legend: {
-                hidden: true,
-              },
-            }}
+            hideLegend
             margin={{ right: 0 }}
             series={[
               {

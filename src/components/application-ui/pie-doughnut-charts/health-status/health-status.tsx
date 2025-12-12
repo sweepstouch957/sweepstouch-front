@@ -92,15 +92,13 @@ function HealthStatus() {
                 outerRadius: 80,
                 cornerRadius: 5,
                 data,
-                highlightScope: { faded: 'global', highlighted: 'item' },
+                highlightScope: { fade: 'global', highlight: 'item' },
               },
             ]}
             margin={{ right: 0 }}
             width={200}
             height={225}
-            slotProps={{
-              legend: { hidden: true },
-            }}
+            hideLegend
           />
         </Box>
         <Box flex={1}>

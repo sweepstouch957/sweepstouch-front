@@ -154,10 +154,10 @@ function Component() {
       </Box>
       <LineChart
         height={175}
-        leftAxis={null}
+        //leftAxis={null}
         margin={{ top: 0, bottom: 0, left: 0, right: 0 }}
-        bottomAxis={null}
-        slotProps={{ legend: { hidden: true } }}
+        //bottomAxis={null}
+        hideLegend
         series={[
           {
             data: chartValues,

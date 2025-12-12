@@ -109,7 +109,7 @@ function Component() {
         curve="step"
         showHighlight
         showTooltip
-        colors={[theme.palette.warning.main]}
+        color={theme.palette.warning.main}
         margin={{ top: 0, bottom: 0, left: 0, right: 0 }}
         data={generateRandomData()}
         area

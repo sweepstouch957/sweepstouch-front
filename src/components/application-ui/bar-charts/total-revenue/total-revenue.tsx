@@ -60,7 +60,7 @@ function Component() {
       >
         <BarChart
           height={300}
-          leftAxis={null}
+          //leftAxis={null}
           margin={{ left: 24, top: 24, right: 24 }}
           series={[
             {
@@ -69,7 +69,7 @@ function Component() {
               color: theme.palette.secondary.light,
             },
           ]}
-          slotProps={{ legend: { hidden: true } }}
+          hideLegend
           xAxis={[
             {
               scaleType: 'band',

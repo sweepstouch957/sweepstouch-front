@@ -217,9 +217,9 @@ function AudienceOverview() {
         </Menu>
         <LineChart
           height={260}
-          slotProps={{ legend: { hidden: true } }}
-          leftAxis={null}
-          bottomAxis={null}
+          hideLegend
+          //leftAxis={null}
+          //bottomAxis={null}
           margin={{ top: 12, bottom: 12, left: 6, right: 6 }}
           series={[
             {
@@ -314,7 +314,7 @@ function AudienceOverview() {
                 <SparkLineChart
                   data={item.sparkLineData}
                   height={65}
-                  colors={[theme.palette.primary.main]}
+                  color={theme.palette.primary.main}
                   sx={{ '.MuiLineElement-root': { strokeWidth: 2, strokeLinecap: 'round' } }}
                 />
               </Box>

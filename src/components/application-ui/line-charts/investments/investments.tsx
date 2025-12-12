@@ -183,7 +183,7 @@ function Investments() {
       >
         <LineChart
           height={280}
-          slotProps={{
+          /*slotProps={{
             legend: {
               labelStyle: {
                 fontWeight: 500,
@@ -195,7 +195,7 @@ function Investments() {
               position: { vertical: 'top', horizontal: 'right' },
               padding: { bottom: 6 },
             },
-          }}
+          }}*/
           series={[
             {
               data: stocksData,

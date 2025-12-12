@@ -114,7 +114,7 @@ function Component() {
         plotType="line"
         height={220}
         curve="natural"
-        colors={[theme.palette.success.main]}
+        color={theme.palette.success.main}
         margin={{ top: 0, bottom: 0, left: 0, right: 0 }}
         data={generateRandomData()}
         area

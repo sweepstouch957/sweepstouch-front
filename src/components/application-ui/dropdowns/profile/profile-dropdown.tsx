@@ -196,7 +196,7 @@ export const ProfileDropdown: FC<ProfileDropdownProps> = (props) => {
             height={64}
             curve="natural"
             margin={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            colors={[theme.palette.error.main]}
+            color={theme.palette.error.main}
             sx={{ '.MuiLineElement-root': { strokeWidth: 3, strokeLinecap: 'round' } }}
           />
         </Box>
@@ -207,7 +207,7 @@ export const ProfileDropdown: FC<ProfileDropdownProps> = (props) => {
             fullWidth
             onClick={(): void => {
               onClose?.();
-              handleSignOut().catch(() => {});
+              handleSignOut().catch(() => { });
             }}
           >
             <LockOpenTwoToneIcon

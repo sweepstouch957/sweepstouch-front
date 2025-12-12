@@ -207,10 +207,10 @@ function UnresolvedTickets() {
             <ChartWrapper height={250}>
               <LineChart
                 height={250}
-                leftAxis={null}
+                //leftAxis={null}
                 margin={{ top: 24, bottom: 0, left: 0, right: 0 }}
-                bottomAxis={null}
-                slotProps={{ legend: { hidden: true } }}
+                //bottomAxis={null}
+                hideLegend
                 series={[ticketInfo.data]}
                 xAxis={[{ scaleType: 'point', data: xLabels }]}
                 sx={{

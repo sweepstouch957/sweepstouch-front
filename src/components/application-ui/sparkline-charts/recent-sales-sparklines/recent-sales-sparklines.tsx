@@ -88,7 +88,7 @@ function Component() {
         plotType="line"
         height={160}
         curve="stepAfter"
-        colors={[theme.palette.primary.main]}
+        color={theme.palette.primary.main}
         margin={{ top: 12, bottom: 12, left: 12, right: 12 }}
         data={generateRandomData()}
         sx={{

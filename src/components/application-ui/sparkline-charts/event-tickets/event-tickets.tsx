@@ -102,7 +102,7 @@ function Component() {
           height={180}
           curve="natural"
           showHighlight
-          colors={[theme.palette.common.white]}
+          color={theme.palette.common.white}
           margin={{ top: 0, bottom: 0, left: 12, right: 12 }}
           data={generateRandomData()}
           sx={{

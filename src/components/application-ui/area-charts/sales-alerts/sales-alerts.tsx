@@ -57,7 +57,7 @@ const totalSales = [285483, 560000, 599000, 600000, 605000, 601000, 602000];
 const newAccounts = [5843, 6000, 5700, 6200, 5900, 6100, 5800];
 const xLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
 
-function  Component() {
+function Component() {
   const { t } = useTranslation();
   const theme = useTheme();
 
@@ -122,7 +122,7 @@ function  Component() {
           <AvatarState
             useShadow
             state="secondary"
-            sx={{ height: 64, width: 64,bgcolor:"#eeeeee" }}
+            sx={{ height: 64, width: 64, bgcolor: "#eeeeee" }}
           >
             {icon}
           </AvatarState>
@@ -154,10 +154,10 @@ function  Component() {
         ) : (
           <LineChart
             height={170}
-            leftAxis={null}
+            //leftAxis={null}
             margin={{ top: 0, bottom: 0, left: 0, right: 0 }}
-            bottomAxis={null}
-            slotProps={{ legend: { hidden: true } }}
+            //bottomAxis={null}
+            hideLegend
             series={[
               {
                 data: chartData,
@@ -210,7 +210,7 @@ function  Component() {
       >
         {renderBox(
           t('Send Messages this month'),
-          <Message sx={{color:"#111111"}}/>,
+          <Message sx={{ color: "#111111" }} />,
           campaignsCount,
           loadingCampaigns,
           errorCampaigns,
@@ -229,7 +229,7 @@ function  Component() {
       >
         {renderBox(
           t('Total Customers'),
-          <AssignmentIndTwoToneIcon  sx={{color:"#111111"}} />,
+          <AssignmentIndTwoToneIcon sx={{ color: "#111111" }} />,
           customersCount,
           loadingCustomers,
           errorCustomers,
@@ -248,7 +248,7 @@ function  Component() {
       >
         {renderBox(
           t('Sweeptakes Participants'),
-          <RedeemOutlined  sx={{color:"#111111"}} />,
+          <RedeemOutlined sx={{ color: "#111111" }} />,
           sweepstakesCount,
           loadingSweepstakes,
           errorSweepstakes,

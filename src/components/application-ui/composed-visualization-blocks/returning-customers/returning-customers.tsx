@@ -59,9 +59,9 @@ function Component() {
         <Box p={2}>
           <LineChart
             height={260}
-            slotProps={{ legend: { hidden: true } }}
-            leftAxis={null}
-            bottomAxis={null}
+            hideLegend
+            //leftAxis={null}
+            //bottomAxis={null}
             margin={{ top: 12, bottom: 12, left: 12, right: 12 }}
             series={[
               {

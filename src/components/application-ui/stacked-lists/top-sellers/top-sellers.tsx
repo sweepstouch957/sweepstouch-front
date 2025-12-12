@@ -158,9 +158,9 @@ function Component() {
         <Box px={2}>
           <BarChart
             height={160}
-            leftAxis={null}
-            slotProps={{ legend: { hidden: true } }}
-            bottomAxis={null}
+            //leftAxis={null}
+            hideLegend
+            //bottomAxis={null}
             margin={{ top: 0, bottom: 12, left: 0, right: 0 }}
             xAxis={[
               {

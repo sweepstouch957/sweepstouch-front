@@ -95,8 +95,8 @@ function Component() {
       <CardContent>
         <LineChart
           height={236}
-          leftAxis={null}
-          slotProps={{
+          //leftAxis={null}
+          /*slotProps={{
             legend: {
               labelStyle: {
                 fontWeight: 500,
@@ -105,10 +105,10 @@ function Component() {
               itemMarkHeight: 12,
               markGap: 6,
               itemGap: 12,
-              position: { vertical: 'top', horizontal: 'right' },
+              position: { vertical: 'top', horizontal: 'end' },
               padding: { bottom: 12 },
             },
-          }}
+          }}*/
           margin={{ top: 46, bottom: 36, left: 10, right: 10 }}
           series={[
             {

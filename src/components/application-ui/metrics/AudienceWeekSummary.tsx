@@ -309,7 +309,7 @@ export default function AudienceWeekSummaryCompact({
                     },
                   ]}
                   height={292}
-                  slotProps={{ legend: { hidden: true } }}
+                  hideLegend
                   margin={{ left: 8, right: 8, top: 10, bottom: 16 }}
                   sx={{
                     '.MuiBarElement-root': {

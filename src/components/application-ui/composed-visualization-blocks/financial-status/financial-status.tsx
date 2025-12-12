@@ -164,10 +164,10 @@ function Component() {
                     </CardActions>
                     <LineChart
                       height={130}
-                      leftAxis={null}
+                      //leftAxis={null}
                       margin={{ top: 6, bottom: 0, left: 0, right: 0 }}
-                      bottomAxis={null}
-                      slotProps={{ legend: { hidden: true } }}
+                      //bottomAxis={null}
+                      hideLegend
                       series={[
                         {
                           data: generateRandomData(),
@@ -254,10 +254,10 @@ function Component() {
                     </CardActions>
                     <LineChart
                       height={130}
-                      leftAxis={null}
+                      //leftAxis={null}
                       margin={{ top: 6, bottom: 0, left: 0, right: 0 }}
-                      bottomAxis={null}
-                      slotProps={{ legend: { hidden: true } }}
+                      //bottomAxis={null}
+                      hideLegend
                       series={[
                         {
                           data: generateRandomData(),
@@ -350,7 +350,7 @@ function Component() {
                   barGapRatio: 0.3,
                 },
               ]}
-              slotProps={{
+              /*slotProps={{
                 legend: {
                   labelStyle: {
                     fontWeight: 500,
@@ -359,10 +359,10 @@ function Component() {
                   itemMarkHeight: 12,
                   markGap: 6,
                   itemGap: 12,
-                  position: { vertical: 'top', horizontal: 'right' },
+                  position: { vertical: 'top', horizontal: 'end' },
                   padding: { top: 12 },
                 },
-              }}
+              }} */
               sx={{
                 '.MuiBarElement-root': {
                   fillOpacity: theme.palette.mode === 'dark' ? 0.76 : 1,

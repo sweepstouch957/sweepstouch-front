@@ -187,7 +187,7 @@ function CpuUsage() {
                   cornerRadius: 6,
                   outerRadius: 60,
                   data: data1,
-                  highlightScope: { faded: 'series', highlighted: 'item' },
+                  highlightScope: { fade: 'series', highlight: 'item' },
                 },
                 {
                   innerRadius: 80,
@@ -199,9 +199,7 @@ function CpuUsage() {
               ]}
               margin={{ right: 0 }}
               height={220}
-              slotProps={{
-                legend: { hidden: true },
-              }}
+              hideLegend
             />
           </Card>
         </Grid>
@@ -230,9 +228,7 @@ function CpuUsage() {
               ]}
               margin={{ right: 0 }}
               height={220}
-              slotProps={{
-                legend: { hidden: true },
-              }}
+              hideLegend
             />
           </Card>
         </Grid>

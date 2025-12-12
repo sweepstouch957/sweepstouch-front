@@ -145,7 +145,7 @@ function Traffic() {
                 plotType="line"
                 height={280}
                 curve="natural"
-                colors={[theme.palette.primary.main]}
+                color={theme.palette.primary.main}
                 margin={{ top: 12, bottom: 0, left: 0, right: 0 }}
                 data={generateRandomData()}
                 area

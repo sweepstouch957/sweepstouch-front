@@ -248,7 +248,7 @@ function Component() {
                       <Box width={'100%'}>
                         <SparkLineChart
                           height={40}
-                          colors={[theme.palette.primary.main]}
+                          color={theme.palette.primary.main}
                           data={employee.sparklinesData}
                         />
                       </Box>

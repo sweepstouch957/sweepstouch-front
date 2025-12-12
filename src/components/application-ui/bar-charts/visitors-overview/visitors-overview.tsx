@@ -25,7 +25,7 @@ function VisitorsOverview() {
       >
         <BarChart
           height={360}
-          leftAxis={null}
+          //leftAxis={null}
           margin={{ left: 0, top: 56, right: 0 }}
           series={[
             {

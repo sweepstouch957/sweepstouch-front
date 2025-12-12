@@ -87,7 +87,7 @@ function Component() {
                 ],
                 valueFormatter: (value) => value.getFullYear(),
               }}
-              colors={[theme.palette.info.main]}
+              color={theme.palette.info.main}
               sx={{ '.MuiLineElement-root': { strokeWidth: 3, strokeLinecap: 'round' } }}
             />
           </Box>
@@ -162,7 +162,7 @@ function Component() {
                 ],
                 valueFormatter: (value) => value.getFullYear(),
               }}
-              colors={[theme.palette.error.main]}
+              color={theme.palette.error.main}
               sx={{ '.MuiLineElement-root': { strokeWidth: 3, strokeLinecap: 'round' } }}
             />
           </Box>
@@ -235,7 +235,7 @@ function Component() {
                 ],
                 valueFormatter: (value) => value.getFullYear(),
               }}
-              colors={[theme.palette.success.main]}
+              color={theme.palette.success.main}
               sx={{ '.MuiLineElement-root': { strokeWidth: 3, strokeLinecap: 'round' } }}
             />
           </Box>
