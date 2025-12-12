@@ -49,7 +49,7 @@ export const rewardsService = {
   },
 
   async markPaid(rewardId: string): Promise<CashierReward> {
-    const { data } = await api.post(`/sweepstakes/cashier/rewards/${rewardId}/pay`);
+    const { data } = await api.post(`/sweepstakes/rewards/cashier/rewards/${rewardId}/pay`);
     return data;
   },
 };
