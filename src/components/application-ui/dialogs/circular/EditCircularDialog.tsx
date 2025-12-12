@@ -179,7 +179,7 @@ export const EditCircularDialog: React.FC<Props> = ({ target, onClose, onSaved }
               PDF File (optional)
             </Typography>
 
-            <FileUploader
+            <FileUploader 
               uploadedFiles={uploadedFiles}
               accept="application/pdf,.pdf"
               maxSizeMB={10}
