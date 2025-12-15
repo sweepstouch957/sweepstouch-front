@@ -207,7 +207,6 @@ const StoreManagementPage = () => {
         return (
           <StoreBillingPanel
             storeId={storeId || ''}
-            storeName={store?.name}
           />
         );
       case 'customers':

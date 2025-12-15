@@ -54,11 +54,11 @@ const STORE_SECTIONS = [
   //{ id: 'sms-provider', label: 'SMS Provider', icon: <SmsIcon /> },
   { id: 'general-info', label: 'General Info', icon: <InfoIcon /> },
   { id: 'sweepstakes', label: 'Sweepstakes', icon: <RewardIcon /> },
-  { id: 'ads', label: 'Ads', icon: <Analytics /> },
+  { id: 'billing', label: 'Billing', icon: <MonetizationOn /> },
   { id: 'qr', label: 'QR', icon: <QrCode2Outlined /> },
   { id: 'customers', label: 'Customers', icon: <PeopleIcon /> },
   { id: 'cajeras', label: 'Cajeras', icon: <Woman2 /> },
-  { id: 'billing', label: 'Billing', icon: <MonetizationOn /> },
+  { id: 'ads', label: 'Ads', icon: <Analytics /> },
 ];
 
 export const StoreSidebar: FC<StoreSidebarProps> = ({

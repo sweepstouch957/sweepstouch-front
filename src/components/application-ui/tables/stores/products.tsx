@@ -1,6 +1,6 @@
+import { useStores } from '@/hooks/stores/useStores';
 import React from 'react';
 import * as XLSX from 'xlsx';
-import { useStores } from '@/hooks/stores/useStores';
 import Results from './results';
 
 function Component() {
@@ -13,18 +13,28 @@ function Component() {
     limit,
     search,
     status,
+    sortBy,
+    order,
+    audienceLt,
+
+    // 🆕 filtros de morosidad
+    debtStatus,
+    minDebt,
+    maxDebt,
+
     onStatusChange,
     handlePageChange,
     handleLimitChange,
     handleSearchChange,
     handleSortChange,
     handleOrderChange,
-    order,
-    sortBy,
-    audienceLt,
     handleAudienceLtChange,
-  } = useStores();
 
+    // 🆕 handlers morosidad
+    handleDebtStatusChange,
+    handleMinDebtChange,
+    handleMaxDebtChange,
+  } = useStores();
 
   // --- Export logic (listens to page header button) ---
   async function exportAll() {
@@ -32,7 +42,18 @@ function Component() {
     let pageNo = 1;
     let all: any[] = [];
     const svc = (await import('@/services/store.service')).default;
-    const current = { search, status, sortBy, order, audienceLt };
+
+    const current = {
+      search,
+      status,
+      sortBy,
+      order,
+      audienceLt,
+      debtStatus,
+      minDebt,
+      maxDebt,
+    };
+
     // eslint-disable-next-line no-constant-condition
     while (true) {
       const res: any = await svc.getStores({
@@ -43,21 +64,32 @@ function Component() {
         sortBy: (current.sortBy as any) || 'customerCount',
         order: (current.order as any) || 'desc',
         audienceLt: current.audienceLt || '',
+
+        // 🆕 filtros morosidad
+        debtStatus: current.debtStatus,
+        minDebt: current.minDebt || '',
+        maxDebt: current.maxDebt || '',
       });
+
       const data = res?.data || [];
       all = all.concat(data);
       const total = res?.total || data.length;
+
       if (!total || all.length >= total || data.length === 0) break;
       pageNo += 1;
       if (pageNo > 2000) break;
     }
+
     const rows = all.map((s: any) => ({
       brand: s?.brand?.name || '',
       name: s?.name || '',
       address: s?.address || '',
       customers: s?.customerCount ?? 0,
       status: s?.active ? 'Active' : 'Inactive',
+      // Opcional: podrías incluir balance aquí también
+      // balancePending: s?.billing?.totalPending ?? 0,
     }));
+
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Stores');
@@ -65,13 +97,15 @@ function Component() {
   }
 
   React.useEffect(() => {
-    const handler = () => { exportAll(); };
+    const handler = () => {
+      exportAll();
+    };
     if (typeof window !== 'undefined') {
       window.addEventListener('stores:export', handler);
       return () => window.removeEventListener('stores:export', handler);
     }
     return () => {};
-  }, [search, status, sortBy, order, audienceLt]);
+  }, [search, status, sortBy, order, audienceLt, debtStatus, minDebt, maxDebt]);
 
   return (
     <Results
@@ -93,6 +127,13 @@ function Component() {
       sortBy={sortBy}
       audienceLt={audienceLt}
       onAudienceLtChange={handleAudienceLtChange}
+      // 🆕 morosidad
+      debtStatus={debtStatus}
+      minDebt={minDebt}
+      maxDebt={maxDebt}
+      onDebtStatusChange={handleDebtStatusChange}
+      onMinDebtChange={handleMinDebtChange}
+      onMaxDebtChange={handleMaxDebtChange}
     />
   );
 }

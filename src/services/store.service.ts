@@ -96,10 +96,13 @@ export interface GetStoresParams {
   limit?: number;
   search?: string;
   type?: 'elite' | 'basic' | 'free' | '';
-  sortBy?: 'customerCount' | 'name'; // puedes ampliar si ordenas por otros campos
+  sortBy?: string; // puedes ampliar si ordenas por otros campos
   order?: 'asc' | 'desc';
   status?: 'all' | 'active' | 'inactive';
-
+  // 🆕 filtros de morosidad
+  debtStatus?: 'all' | 'ok' | 'low' | 'high';
+  minDebt?: string;
+  maxDebt?: string;
   audienceLt?: string;
 }
 
@@ -112,12 +115,19 @@ export const getStores = async ({
   sortBy = 'customerCount',
   order = 'desc',
   audienceLt = '',
+  // 🆕 filtros de morosida
+  debtStatus = 'all',
+  minDebt = '',
+  maxDebt = '',
 }: GetStoresParams): Promise<GetStoresResponse> => {
   const params: Record<string, any> = {
     page,
     limit,
     search,
     sortBy,
+    debtStatus,
+    minDebt,
+    maxDebt,
     order,
   };
 

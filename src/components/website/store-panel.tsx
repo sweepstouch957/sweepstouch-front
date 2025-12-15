@@ -2,21 +2,16 @@
 'use client';
 
 import { useStoreEditor } from '@/hooks/pages/useStoreEditor';
+import { usersApi } from '@/mocks/users'; // 👈 ajusta si luego apuntas al service real
 import { Store } from '@/services/store.service';
 import { getTierColor } from '@/utils/ui/store.page';
-import { usersApi } from '@/mocks/users'; // 👈 ajusta si luego apuntas al service real
-
-import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
-
-import GroupsIcon from '@mui/icons-material/Groups';
-import TagIcon from '@mui/icons-material/Tag';
 import { PaymentOutlined } from '@mui/icons-material';
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
+import ContentCopyOutlinedIcon from '@mui/icons-material/ContentCopyOutlined';
+import GroupsIcon from '@mui/icons-material/Groups';
+import TagIcon from '@mui/icons-material/Tag';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
-import ContentCopyOutlinedIcon from '@mui/icons-material/ContentCopyOutlined';
-
 import {
   Alert,
   Box,
@@ -24,15 +19,17 @@ import {
   CardContent,
   Divider,
   Grid,
-  Snackbar,
-  TextField,
-  Typography,
-  Stack,
   IconButton,
   InputAdornment,
+  MenuItem, // 👈 añadido
+  Snackbar,
+  Stack,
+  TextField,
   Tooltip,
+  Typography,
 } from '@mui/material';
-
+import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import StoreKioskCard from '../application-ui/composed-blocks/kiosk';
 import StatItem from '../application-ui/composed-blocks/my-cards/store-item';
 import StoreGeneralForm from '../application-ui/form-layouts/store/edit';
@@ -47,9 +44,7 @@ const formatAge = (iso?: string | null) => {
   const start = new Date(iso);
   if (Number.isNaN(start.getTime())) return '—';
   const now = new Date();
-  let months =
-    (now.getFullYear() - start.getFullYear()) * 12 +
-    (now.getMonth() - start.getMonth());
+  let months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
 
   // Ajuste por día del mes para evitar sumar un mes si aún no se cumple el día
   if (now.getDate() < start.getDate()) months -= 1;
@@ -59,6 +54,14 @@ const formatAge = (iso?: string | null) => {
   const y = `${years} año${years === 1 ? '' : 's'}`;
   const m = `${rem} mes${rem === 1 ? '' : 'es'}`;
   return `${y}, ${m}`;
+};
+
+/** Formatea Date/ISO a yyyy-mm-dd para inputs type="date" */
+const toInputDate = (value: any): string => {
+  if (!value) return '';
+  const d = typeof value === 'string' ? new Date(value) : value;
+  if (Number.isNaN(d?.getTime?.())) return '';
+  return d.toISOString().slice(0, 10);
 };
 
 export default function StoreInfo({ store }: { store: Store }) {
@@ -105,9 +108,7 @@ export default function StoreInfo({ store }: { store: Store }) {
       if (!Array.isArray(users) || users.length === 0) return null;
 
       // Preferimos el que tenga role merchant
-      const merchant = users.find(
-        (u: any) => String(u.role || '').toLowerCase() === 'merchant'
-      );
+      const merchant = users.find((u: any) => String(u.role || '').toLowerCase() === 'merchant');
 
       return (merchant || users[0]) as any;
     },
@@ -194,9 +195,7 @@ export default function StoreInfo({ store }: { store: Store }) {
                 icon={<PaymentOutlined fontSize="small" />}
                 label="Método de pago"
                 value={
-                  store.paymentMethod
-                    ? store.paymentMethod.replace('_', ' ').toUpperCase()
-                    : '—'
+                  store.paymentMethod ? store.paymentMethod.replace('_', ' ').toUpperCase() : '—'
                 }
                 help="Método de pago asignado"
               />
@@ -226,6 +225,120 @@ export default function StoreInfo({ store }: { store: Store }) {
               />
             </Grid>
           </Grid>
+
+          {/* 👇 Nueva tarjeta: configuración de facturación / morosidad */}
+          <Card
+            variant="outlined"
+            sx={{
+              borderRadius: 2,
+              mb: 2,
+              backgroundColor: (t) => t.palette.grey[50],
+            }}
+          >
+            <CardContent>
+              <Box
+                display="flex"
+                justifyContent="space-between"
+                alignItems={{ xs: 'flex-start', sm: 'center' }}
+                flexDirection={{ xs: 'column', sm: 'row' }}
+                gap={1}
+                mb={1.5}
+              >
+                <Box>
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight={600}
+                    gutterBottom
+                  >
+                    Configuración de facturación
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                  >
+                    Define las fechas de facturación y el estado de crédito de la tienda.
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Grid
+                container
+                spacing={2}
+              >
+                <Grid
+                  item
+                  xs={12}
+                  md={4}
+                >
+                  <TextField
+                    label="Próxima fecha de facturación"
+                    type="date"
+                    fullWidth
+                    size="small"
+                    value={toInputDate((form as any).billingNextDate)}
+                    onChange={(e) =>
+                      setForm((s: any) => ({
+                        ...s,
+                        billingNextDate: e.target.value || null,
+                      }))
+                    }
+                    InputLabelProps={{ shrink: true }}
+                    disabled={!edit}
+                    helperText="Fecha en que se generará la próxima factura automática."
+                  />
+                </Grid>
+                <Grid
+                  item
+                  xs={12}
+                  md={4}
+                >
+                  <TextField
+                    label="Fin del último período"
+                    type="date"
+                    fullWidth
+                    size="small"
+                    value={toInputDate((form as any).billingLastPeriodEnd)}
+                    onChange={(e) =>
+                      setForm((s: any) => ({
+                        ...s,
+                        billingLastPeriodEnd: e.target.value || null,
+                      }))
+                    }
+                    InputLabelProps={{ shrink: true }}
+                    disabled={!edit}
+                    helperText="Último período facturado (ej: fin de mes)."
+                  />
+                </Grid>
+                <Grid
+                  item
+                  xs={12}
+                  md={4}
+                >
+                  <TextField
+                    select
+                    label="Estado de crédito"
+                    fullWidth
+                    size="small"
+                    value={(form as any).creditStatus || 'ok'}
+                    onChange={(e) =>
+                      setForm((s: any) => ({
+                        ...s,
+                        creditStatus: e.target.value,
+                      }))
+                    }
+                    disabled={!edit}
+                    helperText="Control manual del estado de morosidad."
+                  >
+                    <MenuItem value="ok">OK</MenuItem>
+                    <MenuItem value="delinquent">Moroso</MenuItem>
+                    <MenuItem value="suspended">Suspendido</MenuItem>
+                  </TextField>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+
+          {/* Acceso del merchant */}
           <Card
             variant="outlined"
             sx={{
@@ -433,8 +546,6 @@ export default function StoreInfo({ store }: { store: Store }) {
           </Grid>
 
           <Divider sx={{ my: 2 }} />
-
-          {/* Merchant acceso (phone, accessCode, password fija) */}
 
           <StoreKioskCard
             kioskUrl={kioskUrl}

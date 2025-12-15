@@ -1,6 +1,7 @@
-import { GroupTwoTone, SearchTwoTone } from '@mui/icons-material';
+import { GroupTwoTone, SearchTwoTone, WarningAmberTwoTone } from '@mui/icons-material';
 import {
   Box,
+  Chip,
   FormControl,
   InputAdornment,
   InputLabel,
@@ -10,7 +11,6 @@ import {
   Select,
   Stack,
   TextField,
-  Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
@@ -19,58 +19,44 @@ export default function StoreFilters({
   t,
   search,
   status,
-  audienceLt, // string
-  total, // 👈 nuevo
+  audienceLt,
+  total,
+
+  debtStatus,
+  minDebt,
+  maxDebt,
+
   handleSearchChange,
   onStatusChange,
-  onAudienceLtChange, // (v: string) => void
+  onAudienceLtChange,
+  onDebtStatusChange,
+  onMinDebtChange,
+  onMaxDebtChange,
 }: {
   t: (k: string) => string;
   search: string;
   status: 'all' | 'active' | 'inactive';
   audienceLt: string;
-  total: number; // 👈 nuevo
+  total: number;
+
+  debtStatus: 'all' | 'ok' | 'high' | 'low';
+  minDebt: string;
+  maxDebt: string;
+
   handleSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onStatusChange: (s: 'all' | 'active' | 'inactive') => void;
   onAudienceLtChange: (v: string) => void;
+  onDebtStatusChange: (v: 'all' | 'ok' | 'low' | 'high') => void;
+  onMinDebtChange: (v: string) => void;
+  onMaxDebtChange: (v: string) => void;
 }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  // Solo dígitos, pero mantén string
-  const handleAudienceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const digitsOnly = e.target.value.replace(/\D/g, '');
-    onAudienceLtChange(digitsOnly);
-  };
-  const handleAudienceKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    const controlKeys = new Set([
-      'Backspace',
-      'Delete',
-      'Tab',
-      'ArrowLeft',
-      'ArrowRight',
-      'Home',
-      'End',
-      'Enter',
-    ]);
-    if (controlKeys.has(e.key)) return;
-    if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x', 'z', 'y'].includes(e.key.toLowerCase()))
-      return;
-    if (!/^\d$/.test(e.key)) e.preventDefault();
-  };
-  const handleAudiencePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData('text') || '';
-    const el = e.currentTarget;
-    const start = el.selectionStart ?? audienceLt.length;
-    const end = el.selectionEnd ?? start;
-    const next = (audienceLt.slice(0, start) + pasted + audienceLt.slice(end)).replace(/\D/g, '');
-    onAudienceLtChange(next);
-  };
+  const onlyDigits = (v: string) => v.replace(/\D/g, '');
 
-  // Mostrar contador SOLO si hay algún filtro aplicado
   const filtersActive =
-    (search?.trim()?.length ?? 0) > 0 || status !== 'all' || (audienceLt?.trim()?.length ?? 0) > 0;
+    search.trim() || status !== 'all' || audienceLt || debtStatus !== 'all' || minDebt || maxDebt;
 
   return (
     <Box
@@ -83,85 +69,115 @@ export default function StoreFilters({
         mb: 2,
       }}
     >
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        alignItems={{ xs: 'stretch', sm: 'center' }}
-        justifyContent="space-between"
-        flexWrap="wrap"
-        useFlexGap
-      >
-        {/* Búsqueda */}
-        <TextField
-          size="small"
-          placeholder={t('Filter by store name or zip')}
-          value={search}
-          onChange={handleSearchChange}
-          fullWidth={isMobile}
-          sx={{ flex: 1, minWidth: 220 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchTwoTone
-                  fontSize="small"
-                  sx={{ color: 'text.secondary' }}
-                />
-              </InputAdornment>
-            ),
-          }}
-        />
-
-        {/* Audience < N (string solo dígitos) */}
-        <TextField
-          size="small"
-          type="text"
-          value={audienceLt}
-          onChange={handleAudienceChange}
-          onKeyDown={handleAudienceKeyDown}
-          onPaste={handleAudiencePaste}
-          fullWidth={isMobile}
-          sx={{ minWidth: 160, flexShrink: 0 }}
-          inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', autoComplete: 'off' }}
-          placeholder={t('Audience < e.g. 1000')}
-          label={t('Audience <')}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <GroupTwoTone
-                  fontSize="small"
-                  sx={{ color: 'text.secondary' }}
-                />
-              </InputAdornment>
-            ),
-          }}
-        />
-
-        {/* Estado */}
-        <FormControl
-          size="small"
-          sx={{ minWidth: 160, flexShrink: 0 }}
+      <Stack spacing={2}>
+        {/* 🔍 Primera fila */}
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={2}
+          alignItems="center"
         >
-          <InputLabel id="status-label">{t('Status')}</InputLabel>
-          <Select
-            labelId="status-label"
-            value={status}
-            onChange={(e) => onStatusChange(e.target.value as 'all' | 'active' | 'inactive')}
-            input={<OutlinedInput label={t('Status')} />}
-          >
-            <MenuItem value="all">{t('All')}</MenuItem>
-            <MenuItem value="active">{t('Active')}</MenuItem>
-            <MenuItem value="inactive">{t('Inactive')}</MenuItem>
-          </Select>
-        </FormControl>
+          <TextField
+            size="small"
+            placeholder={t('Search by store name or zip')}
+            value={search}
+            onChange={handleSearchChange}
+            fullWidth={isMobile}
+            sx={{ flex: 1, minWidth: 220 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchTwoTone fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
+          />
 
-        {/* Contador de resultados (solo si hay filtros) */}
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ ml: 'auto', whiteSpace: 'nowrap' }}
+          <TextField
+            size="small"
+            value={audienceLt}
+            onChange={(e) => onAudienceLtChange(onlyDigits(e.target.value))}
+            label={t('Audience <')}
+            sx={{ minWidth: 150 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <GroupTwoTone fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
+          />
+
+          <FormControl
+            size="small"
+            sx={{ minWidth: 150 }}
           >
-            {t('Results')}: {total}
-          </Typography>
+            <InputLabel>{t('Status')}</InputLabel>
+            <Select
+              value={status}
+              onChange={(e) => onStatusChange(e.target.value as any)}
+              input={<OutlinedInput label={t('Status')} />}
+            >
+              <MenuItem value="all">{t('All')}</MenuItem>
+              <MenuItem value="active">{t('Active')}</MenuItem>
+              <MenuItem value="inactive">{t('Inactive')}</MenuItem>
+            </Select>
+          </FormControl>
+        </Stack>
+
+        {/* 💸 Segunda fila – Morosidad */}
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={2}
+          alignItems="center"
+        >
+          <FormControl
+            size="small"
+            sx={{ minWidth: 180 }}
+          >
+            <InputLabel>{t('Debt status')}</InputLabel>
+            <Select
+              value={debtStatus}
+              onChange={(e) => onDebtStatusChange(e.target.value as any)}
+              input={<OutlinedInput label={t('Debt status')} />}
+              startAdornment={
+                <InputAdornment position="start">
+                  <WarningAmberTwoTone fontSize="small" />
+                </InputAdornment>
+              }
+            >
+              <MenuItem value="all">{t('All')}</MenuItem>
+              <MenuItem value="ok">{t('OK')}</MenuItem>
+              <MenuItem value="high">{t('High debt')}</MenuItem>
+              <MenuItem value="low">{t('Low debt')}</MenuItem>
+            </Select>
+          </FormControl>
+
+          <TextField
+            size="small"
+            label={t('Debt >')}
+            value={minDebt}
+            onChange={(e) => onMinDebtChange(onlyDigits(e.target.value))}
+            sx={{ minWidth: 120 }}
+          />
+
+          <TextField
+            size="small"
+            label={t('Debt <')}
+            value={maxDebt}
+            onChange={(e) => onMaxDebtChange(onlyDigits(e.target.value))}
+            sx={{ minWidth: 120 }}
+          />
+
+          <Box flexGrow={1} />
+
+          {filtersActive && (
+            <Chip
+              label={`${t('Results')}: ${total}`}
+              color="primary"
+              variant="outlined"
+            />
+          )}
+        </Stack>
       </Stack>
     </Box>
   );

@@ -1,3 +1,4 @@
+// app/components/stores/Results.tsx
 'use client';
 
 import { Store } from '@/services/store.service';
@@ -10,7 +11,6 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
-  Skeleton,
   Tab,
   Table,
   TableBody,
@@ -21,7 +21,6 @@ import {
   TableRow,
   TableSortLabel,
   Tabs,
-  TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
@@ -52,11 +51,46 @@ function splitByFirstNumber(raw: string, fallbackAddress?: string) {
   }
   return { displayName: s, displayAddress: (fallbackAddress || '').trim() };
 }
+
 const MERCHANT_ORIGIN =
   process.env.NEXT_PUBLIC_MERCHANT_ORIGIN || 'https://merchant.sweepstouch.com';
 
 function buildSwitchUrl(storeId: string) {
   return `${MERCHANT_ORIGIN}/?ac=${storeId}`;
+}
+
+/* --------------------------- helpers de morosidad -------------------------- */
+
+function getDebtStatus(pending = 0) {
+  if (pending <= 0) {
+    return {
+      label: 'OK',
+      color: 'white' as const,
+      bg: 'success.light' as const,
+    };
+  }
+
+  if (pending <= 300) {
+    return {
+      label: 'Low debt',
+      color: 'warning.main' as const,
+      bg: 'warning.light' as const,
+    };
+  }
+
+  return {
+    label: 'High debt',
+    color: 'white' as const,
+    bg: 'error.light' as const,
+  };
+}
+
+function formatMoney(value = 0, currency = 'USD') {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 2,
+  }).format(value);
 }
 
 /* --------------------------------- props ---------------------------------- */
@@ -71,6 +105,11 @@ interface ResultsProps {
   order: 'asc' | 'desc' | string;
   search: string;
 
+  // Filtros de morosidad
+  debtStatus: 'all' | 'ok' | 'low' | 'high';
+  minDebt: string;
+  maxDebt: string;
+
   onPageChange: (page: number) => void;
   onLimitChange: (e: ChangeEvent<HTMLInputElement>) => void;
 
@@ -81,6 +120,10 @@ interface ResultsProps {
 
   audienceLt: string;
   onAudienceLtChange: (v: string) => void;
+
+  onDebtStatusChange: (v: 'all' | 'ok' | 'low' | 'high') => void;
+  onMinDebtChange: (v: string) => void;
+  onMaxDebtChange: (v: string) => void;
 
   loading?: boolean;
   error?: string | null;
@@ -112,6 +155,11 @@ const Results: FC<ResultsProps> = ({
   order,
   search,
 
+  // nuevos filtros
+  debtStatus,
+  minDebt,
+  maxDebt,
+
   onPageChange,
   onLimitChange,
   onSearchChange,
@@ -121,6 +169,10 @@ const Results: FC<ResultsProps> = ({
 
   audienceLt,
   onAudienceLtChange,
+
+  onDebtStatusChange,
+  onMinDebtChange,
+  onMaxDebtChange,
 
   loading,
   error,
@@ -212,10 +264,8 @@ const Results: FC<ResultsProps> = ({
             {/* Tab Panel 2: Campaigns */}
             {activeTab === 1 && selectedStore && (
               <Box sx={{ p: 0 }}>
-                {' '}
-                {/* Remove inner padding for full space */}
                 <CampaignsPanel
-                  storeId={selectedStore._id || selectedStore.id}
+                  storeId={selectedStore._id || (selectedStore as any).id}
                   storeName={selectedStore.name}
                 />
               </Box>
@@ -230,22 +280,29 @@ const Results: FC<ResultsProps> = ({
                 >
                   {t('Staff Management ')}
                 </Typography>
-                <StaffManagementMock storeId={selectedStore._id || selectedStore.id} />
+                <StaffManagementMock storeId={selectedStore._id || (selectedStore as any).id} />
               </Box>
             )}
           </Box>
         </DialogContent>
       </Dialog>
-      {/* Filtros arriba (sin sort/order aquí, solo búsqueda, status y audienceLt) */}
+
+      {/* Filtros arriba */}
       <StoreFilter
         t={t}
         search={search}
         total={total}
         status={status}
+        audienceLt={audienceLt}
+        debtStatus={debtStatus}
+        minDebt={minDebt}
+        maxDebt={maxDebt}
         handleSearchChange={handleSearchChange}
         onStatusChange={onStatusChange}
-        audienceLt={audienceLt}
         onAudienceLtChange={onAudienceLtChange}
+        onDebtStatusChange={onDebtStatusChange}
+        onMinDebtChange={onMinDebtChange}
+        onMaxDebtChange={onMaxDebtChange}
       />
 
       {loading ? (
@@ -313,6 +370,12 @@ const Results: FC<ResultsProps> = ({
                       </TableSortLabel>
                     </TableCell>
 
+                    {/* Nueva columna: Balance pendiente */}
+                    <TableCell align="right">{t('Balance')}</TableCell>
+
+                    {/* Nueva columna: estado de crédito */}
+                    <TableCell align="center">{t('Credit status')}</TableCell>
+
                     {/* Status (sortable via 'active') */}
                     <TableCell
                       align="center"
@@ -339,6 +402,9 @@ const Results: FC<ResultsProps> = ({
                       store.name,
                       store.address
                     );
+
+                    const pending = store.billing?.totalPending ?? 0;
+                    const debtStatusMeta = getDebtStatus(pending);
 
                     return (
                       <TableRow
@@ -375,6 +441,48 @@ const Results: FC<ResultsProps> = ({
                         <TableCell>{displayAddress}</TableCell>
 
                         <TableCell>{store.customerCount}</TableCell>
+
+                        {/* Balance pendiente */}
+                        <TableCell align="right">
+                          <Tooltip
+                            title={
+                              store.billing
+                                ? `Invoiced: ${formatMoney(
+                                    store.billing.totalInvoiced ?? 0
+                                  )} · Paid: ${formatMoney(store.billing.totalPaid ?? 0)}`
+                                : ''
+                            }
+                            arrow
+                          >
+                            <Typography
+                              fontWeight={600}
+                              color={pending > 0 ? 'error.main' : 'success.main'}
+                            >
+                              {formatMoney(pending)}
+                            </Typography>
+                          </Tooltip>
+                        </TableCell>
+
+                        {/* Estado de crédito (pill) */}
+                        <TableCell align="center">
+                          <Box
+                            sx={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              px: 1.5,
+                              py: 0.4,
+                              borderRadius: 999,
+                              fontSize: 12,
+                              fontWeight: 600,
+                              bgcolor: debtStatusMeta.bg,
+                              color: debtStatusMeta.color,
+                              textTransform: 'uppercase',
+                              letterSpacing: 0.6,
+                            }}
+                          >
+                            {debtStatusMeta.label}
+                          </Box>
+                        </TableCell>
 
                         <TableCell align="center">
                           <Typography color={store.active ? 'success.main' : 'error.main'}>

@@ -89,7 +89,20 @@ export interface StoreMembershipBreakdown {
   periods: number; // periods efectivos aplicados
   subtotal: number; // unitFee * periods
 }
+export interface ListStorePaymentsResponse {
+  ok: boolean;
+  payments: StorePayment[];
+}
 
+/* ---------- List invoice payments ---------- */
+
+export interface ListInvoicePaymentsResponse {
+  ok: boolean;
+  invoiceId: string;
+  totalPaid: number;
+  count: number;
+  payments: StorePayment[];
+}
 export interface StoreReportRow {
   storeId: string;
   name: string | null;
@@ -318,9 +331,7 @@ export interface GenerateInvoicesFromRangeResponse {
 
 export class BillingService {
   /** Global: campañas del rango + membresía × periods (si viene) */
-  async getRangeBilling(
-    params: RangeBillingParams
-  ): Promise<AxiosResponse<RangeBillingResponse>> {
+  async getRangeBilling(params: RangeBillingParams): Promise<AxiosResponse<RangeBillingResponse>> {
     const cleanParams = {
       ...params,
       membershipType: params.membershipType === 'all' ? undefined : params.membershipType,
@@ -384,7 +395,7 @@ export class BillingService {
       formData.append('file', file);
     }
 
-    return api.post(`/billing/stores/${storeId}/invoices`, formData);
+    return api.post(`/billing/invoices/stores/${storeId}/invoices`, formData);
   }
 
   /**
@@ -401,12 +412,15 @@ export class BillingService {
    * Registra un pago / abono para una tienda.
    * Si viene file, se manda como comprobante (multipart/form-data).
    */
+  // sweepstouch-front/src/services/billing.service.ts
+
   async registerStorePayment(
     storeId: string,
     payload: RegisterPaymentPayload,
     file?: File
   ): Promise<AxiosResponse<RegisterPaymentResponse>> {
     const formData = new FormData();
+
     if (payload.invoiceId) formData.append('invoiceId', payload.invoiceId);
     formData.append('amount', String(payload.amount));
     if (payload.currency) formData.append('currency', payload.currency);
@@ -414,11 +428,17 @@ export class BillingService {
     if (payload.reference) formData.append('reference', payload.reference);
     if (payload.notes) formData.append('notes', payload.notes);
 
+    // 🔥 CLAVE: adjuntar realmente el archivo con el MISMO nombre que usa multer
     if (file) {
-      formData.append('file', file);
+      formData.append('file', file); // <-- upload.single("file")
     }
 
-    return api.post(`/billing/invoices/stores/${storeId}/payments`, formData);
+    return api.post(`/billing/invoices/stores/${storeId}/payments`, formData, {
+      headers: {
+        // importante para que NO lo trate como JSON
+        'Content-Type': 'multipart/form-data',
+      },
+    });
   }
 
   /**
@@ -446,6 +466,22 @@ export class BillingService {
     payload: GenerateInvoicesFromRangePayload
   ): Promise<AxiosResponse<GenerateInvoicesFromRangeResponse>> {
     return api.post('/billing/invoices/generate-invoices-from-range', payload);
+  }
+
+  /**
+   * Lista TODOS los pagos de una tienda.
+   */
+  async listStorePayments(storeId: string): Promise<AxiosResponse<ListStorePaymentsResponse>> {
+    return api.get(`/billing/invoices/stores/${storeId}/payments`);
+  }
+
+  /**
+   * Lista TODOS los pagos asociados a una factura específica (invoiceId).
+   */
+  async listInvoicePayments(
+    invoiceId: string
+  ): Promise<AxiosResponse<ListInvoicePaymentsResponse>> {
+    return api.get(`/billing/invoices/invoices/${invoiceId}/payments`);
   }
 
   /* ===== [DEPRECATED] Métodos anteriores (eliminados del backend) =====
@@ -507,11 +543,14 @@ export const billingQK = {
     ['billing', 'store-invoices', storeId, status ?? 'all'] as const,
 
   /** Balance de una tienda */
-  storeBalance: (storeId: string) =>
-    ['billing', 'store-balance', storeId] as const,
+  storeBalance: (storeId: string) => ['billing', 'store-balance', storeId] as const,
 
   /** Morosidad de todas las tiendas */
   storesBalances: () => ['billing', 'stores-balances'] as const,
+  /** Pagos de una tienda */
+  storePayments: (storeId: string) => ['billing', 'store-payments', storeId] as const,
+  /** Pagos de una factura */
+  invoicePayments: (invoiceId: string) => ['billing', 'invoice-payments', invoiceId] as const,
 
   /** Generación de facturas por rango (si quieres cachearlo) */
   generateInvoicesFromRange: (p: GenerateInvoicesFromRangePayload) =>
