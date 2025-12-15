@@ -1,4 +1,4 @@
-// Contenido completo de sweepstouch-front/src/services/billing.service.ts
+// sweepstouch-front/src/services/billing.service.ts
 
 import { api } from '@/libs/axios';
 import type { AxiosResponse } from 'axios';
@@ -15,7 +15,8 @@ export interface CampaignTotals {
   total: number;
 }
 
-/* ---------- /billing/range ---------- */
+/* ========================= /billing/range ========================= */
+
 export interface RangeBillingParams {
   start: string; // YYYY-MM-DD
   end: string; // YYYY-MM-DD
@@ -72,7 +73,8 @@ export interface RangeBillingResponse {
   total: number; // campaigns.total + membership.subtotal
 }
 
-/* ---------- /billing/stores-report ---------- */
+/* ========================= /billing/stores-report ========================= */
+
 export interface StoresReportParams {
   start: string; // YYYY-MM-DD
   end: string; // YYYY-MM-DD
@@ -121,7 +123,8 @@ export interface StoresReportResponse {
   };
 }
 
-/* ---------- /billing/sms-logs ---------- */
+/* ========================= /tracking/campaigns/logs ========================= */
+
 // Reutilizamos los tipos de logs de campaña, asumiendo que el backend los devuelve igual
 export interface SmsLogsParams {
   start: string; // YYYY-MM-DD
@@ -142,11 +145,182 @@ export interface SmsLogsResponse {
   limit: number;
 }
 
+/* ========================= Facturas & Pagos ========================= */
+
+/** Tipos de ítems de factura (alineado con backend) */
+export type InvoiceItemKind = 'campaign' | 'membership' | 'optin' | 'manual';
+
+export interface InvoiceItem {
+  kind: InvoiceItemKind;
+  description?: string;
+  amount: number;
+  metadata?: any;
+}
+
+/** Estado de la factura (backend: open | partial | paid | cancelled) */
+export type InvoiceStatus = 'open' | 'partial' | 'paid' | 'cancelled';
+
+export interface StoreInvoice {
+  _id: string;
+  store: string;
+  periodStart?: string;
+  periodEnd?: string;
+  items: InvoiceItem[];
+  subtotal: number;
+  tax: number;
+  total: number;
+  currency: string;
+  status: InvoiceStatus;
+  invoiceNumber?: string;
+  fileKey?: string;
+  fileUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+
+  /** Campos calculados solo en /billing/stores/:storeId/balance */
+  paid?: number;
+  pending?: number;
+}
+
+export type StorePaymentMethod = 'cash' | 'wire' | 'transfer' | 'card' | 'check' | 'other';
+
+export interface StorePayment {
+  _id: string;
+  store: string;
+  invoice?: string;
+  amount: number;
+  currency: string;
+  method: StorePaymentMethod;
+  reference?: string;
+  notes?: string;
+  fileKey?: string;
+  fileUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/* ---------- Create invoice (manual) ---------- */
+
+export interface CreateInvoicePayload {
+  periodStart?: string; // YYYY-MM-DD
+  periodEnd?: string; // YYYY-MM-DD
+  items?: InvoiceItem[];
+  subtotal: number;
+  tax?: number;
+  total: number;
+  currency?: string;
+  invoiceNumber?: string;
+}
+
+export interface CreateInvoiceResponse {
+  ok: boolean;
+  invoice: StoreInvoice;
+}
+
+/* ---------- List store invoices ---------- */
+
+export interface ListStoreInvoicesParams {
+  status?: InvoiceStatus;
+}
+
+export interface ListStoreInvoicesResponse {
+  ok: boolean;
+  invoices: StoreInvoice[];
+}
+
+/* ---------- Register payment / abono ---------- */
+
+export interface RegisterPaymentPayload {
+  invoiceId?: string;
+  amount: number;
+  currency?: string;
+  method?: StorePaymentMethod;
+  reference?: string;
+  notes?: string;
+}
+
+export interface RegisterPaymentResponse {
+  ok: boolean;
+  payment: StorePayment;
+}
+
+/* ---------- Store balance (detalle) ---------- */
+
+export interface StoreBalance {
+  totalInvoiced: number;
+  totalPaid: number;
+  totalPending: number;
+}
+
+export interface StoreBalanceResponse {
+  ok: boolean;
+  storeId: string;
+  balance: StoreBalance;
+  invoices: StoreInvoice[]; // con campos paid/pending
+}
+
+/* ---------- Stores balances (morosidad global) ---------- */
+
+export interface StoreBalanceSummaryRow {
+  store: string; // storeId
+  totalInvoiced: number;
+  totalPaid: number;
+  totalPending: number;
+}
+
+export interface StoresBalancesResponse {
+  ok: boolean;
+  stores: StoreBalanceSummaryRow[];
+}
+
+/* ---------- Generate invoices from range ---------- */
+
+export interface GenerateInvoicesFromRangePayload {
+  start: string; // YYYY-MM-DD
+  end: string; // YYYY-MM-DD
+  storeIds?: string[];
+  periods?: number;
+  includeCampaigns?: boolean;
+  includeMembership?: boolean;
+  includeOptin?: boolean;
+}
+
+export interface GeneratedInvoiceRef {
+  storeId: string;
+  invoiceId: string;
+  total: number;
+}
+
+export interface SkippedInvoiceRef {
+  storeId: string;
+  reason: string;
+}
+
+export interface GenerateInvoicesFromRangeResponse {
+  ok: boolean;
+  range: {
+    start: string; // ISO o YYYY-MM-DD, según backend
+    end: string;
+    // startDate/endDate pueden venir como ISO (opcional tipado laxo)
+    startDate?: any;
+    endDate?: any;
+  };
+  summary: {
+    storesProcessed: number;
+    invoicesCreated: number;
+    storesSkipped: number;
+  };
+  created: GeneratedInvoiceRef[];
+  skipped: SkippedInvoiceRef[];
+}
+
 /* ========================= Servicio ========================= */
 
 export class BillingService {
   /** Global: campañas del rango + membresía × periods (si viene) */
-  async getRangeBilling(params: RangeBillingParams): Promise<AxiosResponse<RangeBillingResponse>> {
+  async getRangeBilling(
+    params: RangeBillingParams
+  ): Promise<AxiosResponse<RangeBillingResponse>> {
     const cleanParams = {
       ...params,
       membershipType: params.membershipType === 'all' ? undefined : params.membershipType,
@@ -179,6 +353,99 @@ export class BillingService {
 
     // La URL correcta es /tracking/campaigns/logs (endpoint global sin campaignId)
     return api.get('/tracking/campaigns/logs', { params: cleanParams });
+  }
+
+  /* ========================= Facturas ========================= */
+
+  /**
+   * Crea una factura para una tienda (manual o desde UI).
+   * Si viene file, se manda como multipart/form-data.
+   */
+  async createStoreInvoice(
+    storeId: string,
+    payload: CreateInvoicePayload,
+    file?: File
+  ): Promise<AxiosResponse<CreateInvoiceResponse>> {
+    const formData = new FormData();
+    if (payload.periodStart) formData.append('periodStart', payload.periodStart);
+    if (payload.periodEnd) formData.append('periodEnd', payload.periodEnd);
+    if (payload.currency) formData.append('currency', payload.currency);
+    if (payload.invoiceNumber) formData.append('invoiceNumber', payload.invoiceNumber);
+    formData.append('subtotal', String(payload.subtotal));
+    formData.append('tax', String(payload.tax ?? 0));
+    formData.append('total', String(payload.total));
+
+    if (payload.items && payload.items.length > 0) {
+      // Enviamos items como JSON string (backend debe parsear)
+      formData.append('items', JSON.stringify(payload.items));
+    }
+
+    if (file) {
+      formData.append('file', file);
+    }
+
+    return api.post(`/billing/stores/${storeId}/invoices`, formData);
+  }
+
+  /**
+   * Lista facturas de una tienda (puedes filtrar por status).
+   */
+  async listStoreInvoices(
+    storeId: string,
+    params?: ListStoreInvoicesParams
+  ): Promise<AxiosResponse<ListStoreInvoicesResponse>> {
+    return api.get(`/billing/invoices/stores/${storeId}/invoices`, { params });
+  }
+
+  /**
+   * Registra un pago / abono para una tienda.
+   * Si viene file, se manda como comprobante (multipart/form-data).
+   */
+  async registerStorePayment(
+    storeId: string,
+    payload: RegisterPaymentPayload,
+    file?: File
+  ): Promise<AxiosResponse<RegisterPaymentResponse>> {
+    const formData = new FormData();
+    if (payload.invoiceId) formData.append('invoiceId', payload.invoiceId);
+    formData.append('amount', String(payload.amount));
+    if (payload.currency) formData.append('currency', payload.currency);
+    if (payload.method) formData.append('method', payload.method);
+    if (payload.reference) formData.append('reference', payload.reference);
+    if (payload.notes) formData.append('notes', payload.notes);
+
+    if (file) {
+      formData.append('file', file);
+    }
+
+    return api.post(`/billing/invoices/stores/${storeId}/payments`, formData);
+  }
+
+  /**
+   * Balance completo de una tienda:
+   * - total facturado
+   * - total pagado
+   * - total pendiente
+   * - facturas con paid/pending
+   */
+  async getStoreBalance(storeId: string): Promise<AxiosResponse<StoreBalanceResponse>> {
+    return api.get(`/billing/invoices/stores/${storeId}/balance`);
+  }
+
+  /**
+   * Resumen de morosidad de todas las tiendas.
+   */
+  async getStoresBalances(): Promise<AxiosResponse<StoresBalancesResponse>> {
+    return api.get('/billing/invoices/stores-balances');
+  }
+
+  /**
+   * Genera facturas para un rango específico (acción manual tipo "facturar mes completo").
+   */
+  async generateInvoicesFromRange(
+    payload: GenerateInvoicesFromRangePayload
+  ): Promise<AxiosResponse<GenerateInvoicesFromRangeResponse>> {
+    return api.post('/billing/invoices/generate-invoices-from-range', payload);
   }
 
   /* ===== [DEPRECATED] Métodos anteriores (eliminados del backend) =====
@@ -233,5 +500,30 @@ export const billingQK = {
       p.limit,
       p.sort,
       p.search,
+    ] as const,
+
+  /** Facturas de una tienda */
+  storeInvoices: (storeId: string, status?: InvoiceStatus) =>
+    ['billing', 'store-invoices', storeId, status ?? 'all'] as const,
+
+  /** Balance de una tienda */
+  storeBalance: (storeId: string) =>
+    ['billing', 'store-balance', storeId] as const,
+
+  /** Morosidad de todas las tiendas */
+  storesBalances: () => ['billing', 'stores-balances'] as const,
+
+  /** Generación de facturas por rango (si quieres cachearlo) */
+  generateInvoicesFromRange: (p: GenerateInvoicesFromRangePayload) =>
+    [
+      'billing',
+      'generate-invoices-from-range',
+      p.start,
+      p.end,
+      norm(p.periods ?? 0),
+      (p.storeIds ?? []).join(',') || 'all',
+      p.includeCampaigns ?? true,
+      p.includeMembership ?? true,
+      p.includeOptin ?? true,
     ] as const,
 };

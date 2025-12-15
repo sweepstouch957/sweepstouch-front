@@ -4,6 +4,7 @@ import {
   Analytics,
   AutoAwesomeMosaicTwoTone as CampaignsIcon,
   InfoTwoTone as InfoIcon,
+  MonetizationOn,
   QrCode2Outlined,
   RedeemTwoTone as RewardIcon,
   SmsTwoTone as SmsIcon,
@@ -57,6 +58,7 @@ const STORE_SECTIONS = [
   { id: 'qr', label: 'QR', icon: <QrCode2Outlined /> },
   { id: 'customers', label: 'Customers', icon: <PeopleIcon /> },
   { id: 'cajeras', label: 'Cajeras', icon: <Woman2 /> },
+  { id: 'billing', label: 'Billing', icon: <MonetizationOn /> },
 ];
 
 export const StoreSidebar: FC<StoreSidebarProps> = ({

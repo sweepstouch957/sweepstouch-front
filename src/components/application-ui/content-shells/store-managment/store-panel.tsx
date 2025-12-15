@@ -31,12 +31,13 @@ import { useSearchParams } from 'src/hooks/use-search-params';
 import { useDispatch, useSelector } from 'src/store';
 import { ActiveSweepstakeCard } from '../../active-sweeptake';
 import { PromoDashboard } from '../../tables/promos/panel';
+import CajerasPanel from './panel/cajeras/cajeras-panel';
 import CampaignsPanel from './panel/campaigns/campaign-panel';
 import CreateCampaignContainer from './panel/campaigns/createCampaignContainer';
 import CustomersPanel from './panel/customers/customers-panel';
-import CajerasPanel from './panel/cajeras/cajeras-panel';
 import QrDuetMUI from './panel/qr/QrContainer';
 import { StoreSidebar } from './store-sidebar';
+import { StoreBillingPanel } from './panel/billing/StoreBillingPanel';
 
 const StoreManagementPage = () => {
   const dispatch = useDispatch();
@@ -202,6 +203,13 @@ const StoreManagementPage = () => {
     }
 
     switch (tag) {
+      case 'billing':
+        return (
+          <StoreBillingPanel
+            storeId={storeId || ''}
+            storeName={store?.name}
+          />
+        );
       case 'customers':
         return (
           <CustomersPanel
@@ -211,10 +219,11 @@ const StoreManagementPage = () => {
         );
       case 'cajeras':
         return (
-          <CajerasPanel storeId={storeId || ''}
-            storeName={store?.name} 
+          <CajerasPanel
+            storeId={storeId || ''}
+            storeName={store?.name}
             customerCount={store?.customerCount}
-            />
+          />
         );
 
       case 'ads':
@@ -292,13 +301,13 @@ const StoreManagementPage = () => {
         sx={{
           transition: sidebarOpen
             ? theme.transitions.create('margin', {
-              easing: theme.transitions.easing.easeOut,
-              duration: theme.transitions.duration.enteringScreen,
-            })
+                easing: theme.transitions.easing.easeOut,
+                duration: theme.transitions.duration.enteringScreen,
+              })
             : theme.transitions.create('margin', {
-              easing: theme.transitions.easing.sharp,
-              duration: theme.transitions.duration.leavingScreen,
-            }),
+                easing: theme.transitions.easing.sharp,
+                duration: theme.transitions.duration.leavingScreen,
+              }),
         }}
       >
         {!lgUp && (

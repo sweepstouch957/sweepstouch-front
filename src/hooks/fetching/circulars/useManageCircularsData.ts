@@ -33,7 +33,7 @@ export function useManageCircularsData(search: string) {
 
           const storeName = store?.name || slug;
           const storeImage = store?.image;
-          const audience = store?.customerCount;
+          const audience = store?.customerCount;      
 
           const { items } = await circularService.getByStore(slug);
 
