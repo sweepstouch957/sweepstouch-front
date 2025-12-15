@@ -73,7 +73,7 @@ function getDebtStatus(pending = 0) {
   if (pending <= 300) {
     return {
       label: 'Low debt',
-      color: 'warning.main' as const,
+      color: 'white' as const,
       bg: 'warning.light' as const,
     };
   }
