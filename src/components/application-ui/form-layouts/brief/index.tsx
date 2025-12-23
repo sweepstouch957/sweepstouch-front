@@ -29,14 +29,11 @@ import {
 } from '@mui/material';
 import { SelectChangeEvent } from '@mui/material/Select';
 import { useTheme } from '@mui/material/styles';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { MobileDatePicker } from '@mui/x-date-pickers/MobileDatePicker';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import LexicalRHFEditor from '../../editors/LexicalRHFEditor';
 import AvatarUploadLogo from '../../upload/avatar/avatar-upload-logo';
 
 type BriefFormValues = {
@@ -470,21 +467,11 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
                 name="rules"
                 control={control}
                 render={({ field }) => (
-                  <ReactQuill
-                    theme="snow"
+                  <LexicalRHFEditor
                     value={field.value || ''}
-                    onChange={(val) => field.onChange(val)}
-                    modules={{
-                      toolbar: [
-                        [{ header: [1, 2, 3, false] }],
-                        ['bold', 'italic', 'underline', 'strike'],
-                        [{ list: 'ordered' }, { list: 'bullet' }],
-                        [{ color: [] }, { background: [] }],
-                        [{ align: [] }],
-                        ['link', 'clean'],
-                      ],
-                    }}
-                    style={{ background: 'white', borderRadius: 8 }}
+                    onChange={(html) => field.onChange(html)}
+                    placeholder="Escribe las reglas…"
+                    minHeight={180}
                   />
                 )}
               />
