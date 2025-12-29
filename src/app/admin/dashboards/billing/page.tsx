@@ -19,8 +19,8 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import * as React from 'react';
 import { useMemo, useState } from 'react';
+import BulkPaymentsImportCard from './BulkPaymentsImportCard';
 import BillingFilters, { PaymentMethod } from './filters';
 import { KpiBlock, PieWithLegend, StatusChip } from './utils';
 
@@ -469,6 +469,10 @@ export default function BillingPage() {
           </Card>
         </Grid>
       </Grid>
+
+      <Box sx={{ mt: { xs: 1.5, md: 2 } }}>
+        <BulkPaymentsImportCard />
+      </Box>
     </Container>
   );
 }
