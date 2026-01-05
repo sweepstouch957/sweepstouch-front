@@ -139,6 +139,7 @@ export const routes = {
       maps: '/admin/applications/maps',
 
       messenger: '/admin/applications/messenger',
+      'debug-numbers': '/admin/applications/debug-numbers',
       'projects-board': '/admin/applications/projects-board',
       tasks: '/admin/applications/tasks',
     },

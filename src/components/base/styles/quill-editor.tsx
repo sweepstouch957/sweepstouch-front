@@ -1,13 +1,143 @@
+'use client';
+
 import { alpha, styled } from '@mui/material/styles';
-import dynamic from 'next/dynamic';
-import type { ReactQuillProps as QuillProps } from 'react-quill';
+import * as React from 'react';
 
-const Editor = dynamic<QuillProps>(() => import('react-quill'), {
-  ssr: false,
-  loading: () => null,
-});
+type QuillModuleConfig = {
+  toolbar?: any;
+  [key: string]: any;
+};
 
-export const QuillEditor = styled(Editor)(({ theme }) => ({
+export type QuillEditorProps = {
+  value?: string;
+  onChange?: (value: string) => void;
+  onFocus?: () => void;
+  placeholder?: string;
+  modules?: QuillModuleConfig;
+  /** Quill theme name (NOT the MUI theme). */
+  quillTheme?: 'snow' | 'bubble';
+  sx?: any;
+  style?: React.CSSProperties;
+};
+
+const DEFAULT_TOOLBAR = [
+  [{ header: [1, 2, 3, false] }],
+  ['bold', 'italic', 'underline', 'strike'],
+  [{ list: 'ordered' }, { list: 'bullet' }],
+  [{ color: [] }, { background: [] }],
+  [{ align: [] }],
+  ['link', 'clean'],
+];
+
+function QuillEditorBase(props: QuillEditorProps) {
+  const {
+    value = '',
+    onChange,
+    onFocus,
+    placeholder,
+    modules,
+    quillTheme = 'snow',
+    ...rest
+  } = props;
+
+  const mountRef = React.useRef<HTMLDivElement | null>(null);
+  const quillRef = React.useRef<any>(null);
+  const lastEmittedHtmlRef = React.useRef<string>(value || '');
+
+  // Mount Quill once
+  React.useEffect(() => {
+    let isActive = true;
+
+    (async () => {
+      if (!mountRef.current) return;
+
+      const quillImport: any = await import('quill');
+      const Quill = quillImport?.default ?? quillImport;
+
+      if (!isActive || !mountRef.current) return;
+
+      const q = new Quill(mountRef.current, {
+        theme: quillTheme,
+        placeholder,
+        modules: {
+          toolbar: modules?.toolbar ?? DEFAULT_TOOLBAR,
+          ...(modules || {}),
+        },
+      });
+
+      quillRef.current = q;
+
+      // Set initial content
+      if (value) {
+        q.clipboard.dangerouslyPasteHTML(value);
+      } else {
+        q.setText('');
+      }
+
+      const handleTextChange = () => {
+        const html = q?.root?.innerHTML ?? '';
+        lastEmittedHtmlRef.current = html;
+        onChange?.(html);
+      };
+
+      const handleSelectionChange = (range: any) => {
+        if (range) onFocus?.();
+      };
+
+      q.on('text-change', handleTextChange);
+      q.on('selection-change', handleSelectionChange);
+
+      // Cleanup
+      return () => {
+        try {
+          q.off('text-change', handleTextChange);
+          q.off('selection-change', handleSelectionChange);
+        } catch {
+          // ignore
+        }
+      };
+    })();
+
+    return () => {
+      isActive = false;
+
+      // Destroy DOM that Quill injected to avoid duplicate toolbars on remount
+      if (mountRef.current) {
+        mountRef.current.innerHTML = '';
+      }
+
+      quillRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep editor in sync if parent value changes externally
+  React.useEffect(() => {
+    const q = quillRef.current;
+    if (!q) return;
+
+    const current = q?.root?.innerHTML ?? '';
+    const next = value || '';
+
+    // Avoid feedback loops: if this exact HTML was just emitted, skip.
+    if (next === current || next === lastEmittedHtmlRef.current) return;
+
+    const selection = q.getSelection?.();
+    q.clipboard.dangerouslyPasteHTML(next);
+    if (selection) q.setSelection(selection);
+  }, [value]);
+
+  return (
+    <div {...rest}>
+      <div ref={mountRef} />
+    </div>
+  );
+}
+
+export const QuillEditor = styled(QuillEditorBase, {
+  // Prevent Quill theme string from colliding with the injected MUI theme prop.
+  shouldForwardProp: (prop) => prop !== 'quillTheme',
+})(({ theme }) => ({
   display: 'flex',
   flexDirection: 'column',
   boxShadow:
