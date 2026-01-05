@@ -26,6 +26,37 @@ export interface RangeBillingParams {
   membershipType?: MembershipType;
 }
 
+/* ---------- Bulk import payments ---------- */
+
+export interface BulkPaymentRow {
+  storeId: string;
+  invoiceId?: string;
+  amount: number;
+  currency?: string;
+  method?: StorePaymentMethod;
+  reference?: string;
+  notes?: string;
+
+  /** Opcionales para email/metadata */
+  paidAt?: string; // ISO / YYYY-MM-DD
+  periodLabel?: string; // ej: "12/2025"
+}
+
+export interface BulkImportPaymentsResponse {
+  ok: boolean;
+  inserted: number;
+  invoicesUpdated: number;
+  invoiceUpdates: Array<{ invoiceId: string; status: InvoiceStatus }>;
+  emails: Array<{
+    storeId: string;
+    sent: boolean;
+    template?: 'payment-thanks' | 'payment-reminder';
+    pending?: string;
+    reason?: string;
+  }>;
+}
+
+
 export interface MembershipPerTypeSubtotal {
   mensual: number;
   semanal: number;
@@ -484,6 +515,22 @@ export class BillingService {
     return api.get(`/billing/invoices/invoices/${invoiceId}/payments`);
   }
 
+  async importPaymentsBulkJson(
+    rows: BulkPaymentRow[]
+  ): Promise<AxiosResponse<BulkImportPaymentsResponse>> {
+    return api.post('/billing/invoices/payments/bulk-import', { rows });
+  }
+
+  async importPaymentsBulkExcel(
+    file: File
+  ): Promise<AxiosResponse<BulkImportPaymentsResponse>> {
+    const formData = new FormData();
+    formData.append('file', file); // multer upload.single("file")
+    return api.post('/billing/invoices/payments/bulk-import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  }
+
   /* ===== [DEPRECATED] Métodos anteriores (eliminados del backend) =====
    * Si los tenías usados en UI, cámbialos a getRangeBilling o getStoresRangeReport.
    */
@@ -544,7 +591,7 @@ export const billingQK = {
 
   /** Balance de una tienda */
   storeBalance: (storeId: string) => ['billing', 'store-balance', storeId] as const,
-
+  bulkImportPayments: () => ['billing', 'bulk-import-payments'] as const,
   /** Morosidad de todas las tiendas */
   storesBalances: () => ['billing', 'stores-balances'] as const,
   /** Pagos de una tienda */

@@ -161,13 +161,13 @@ export class SweepstakesClient {
     return res.data;
   }
 
-  /* --------------- Reports -------------- */
-  async getMonthlyParticipants(): Promise<any> {
-    const res = await api.get('/sweepstakes/participants/reports');
+  async getMonthlyParticipants(year: number = 2026): Promise<any> {
+    const res = await api.get('/sweepstakes/participants/reports', {
+      params: { year },
+    });
     return res.data;
   }
 
-  /* -------------- Sweepstakes ----------- */
   async getSweepstakes(filters?: { status?: string; name?: string }): Promise<Sweepstakes[]> {
     const res = await api.get('/sweepstakes', { params: filters });
     return res.data;
@@ -218,9 +218,7 @@ export class SweepstakesClient {
     return res.data;
   }
 
-  async getChecklistProgress(
-    sweepstakeId: string
-  ): Promise<{
+  async getChecklistProgress(sweepstakeId: string): Promise<{
     totalSteps: number;
     completed: number;
     progressPercent: number;
