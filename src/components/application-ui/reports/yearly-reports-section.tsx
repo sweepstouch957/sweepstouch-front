@@ -588,59 +588,6 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
 
       {/* Charts */}
       <Stack spacing={2}>
-        {/* Audience chart */}
-        <Box
-          sx={{
-            p: 2,
-            borderRadius: 3,
-            border: '1px solid rgba(0,0,0,0.10)',
-            backgroundColor: '#fff',
-          }}
-        >
-          <Typography
-            variant="h5"
-            sx={{ fontWeight: 900, color: '#111', mb: 1 }}
-          >
-            {t('Crecimiento de Audiencia')} · {year}
-          </Typography>
-
-          {audienceQ.isLoading ? (
-            <Skeleton
-              variant="rectangular"
-              height={320}
-            />
-          ) : (
-            <BarChart
-              height={320}
-              margin={{ left: smUp ? 62 : 10, top: 24, right: smUp ? 24 : 10, bottom: 24 }}
-              xAxis={[
-                {
-                  scaleType: 'band',
-                  data: aLabels,
-                  tickLabelStyle: { fill: 'rgba(0,0,0,0.7)', fontWeight: 600 },
-                },
-              ]}
-              series={[
-                { label: t('Nuevos'), data: aNew, color: SWEEP_PINK },
-                { label: t('Existentes'), data: aExisting, color: theme.palette.grey[500] },
-              ]}
-              sx={{
-                '.MuiBarElement-root': {
-                  fillOpacity: 1,
-                  rx: theme.shape.borderRadius / 1.35,
-                  ry: theme.shape.borderRadius / 1.35,
-                },
-                '.MuiChartsAxis-left': { display: { xs: 'none', sm: 'block' } },
-                '.MuiChartsAxis-tickLabel': { fill: 'rgba(0,0,0,0.7)', fontWeight: 600 },
-                '.MuiChartsAxis-line': { stroke: 'rgba(0,0,0,0.15)' },
-                '.MuiChartsAxis-tick': { stroke: 'rgba(0,0,0,0.15)' },
-                '.MuiChartsLegend-label': { fill: 'rgba(0,0,0,0.7)', fontWeight: 700 },
-              }}
-            />
-          )}
-        </Box>
-
-        {/* Audience via messages chart */}
         <Box
           sx={{
             p: 2,
@@ -712,6 +659,59 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
             </Typography>
           </Box>
         </Box>
+        {/* Audience chart */}
+        <Box
+          sx={{
+            p: 2,
+            borderRadius: 3,
+            border: '1px solid rgba(0,0,0,0.10)',
+            backgroundColor: '#fff',
+          }}
+        >
+          <Typography
+            variant="h5"
+            sx={{ fontWeight: 900, color: '#111', mb: 1 }}
+          >
+            {t('Crecimiento de Audiencia')} · {year}
+          </Typography>
+
+          {audienceQ.isLoading ? (
+            <Skeleton
+              variant="rectangular"
+              height={320}
+            />
+          ) : (
+            <BarChart
+              height={320}
+              margin={{ left: smUp ? 62 : 10, top: 24, right: smUp ? 24 : 10, bottom: 24 }}
+              xAxis={[
+                {
+                  scaleType: 'band',
+                  data: aLabels,
+                  tickLabelStyle: { fill: 'rgba(0,0,0,0.7)', fontWeight: 600 },
+                },
+              ]}
+              series={[
+                { label: t('Nuevos'), data: aNew, color: SWEEP_PINK },
+                { label: t('Existentes'), data: aExisting, color: theme.palette.grey[500] },
+              ]}
+              sx={{
+                '.MuiBarElement-root': {
+                  fillOpacity: 1,
+                  rx: theme.shape.borderRadius / 1.35,
+                  ry: theme.shape.borderRadius / 1.35,
+                },
+                '.MuiChartsAxis-left': { display: { xs: 'none', sm: 'block' } },
+                '.MuiChartsAxis-tickLabel': { fill: 'rgba(0,0,0,0.7)', fontWeight: 600 },
+                '.MuiChartsAxis-line': { stroke: 'rgba(0,0,0,0.15)' },
+                '.MuiChartsAxis-tick': { stroke: 'rgba(0,0,0,0.15)' },
+                '.MuiChartsLegend-label': { fill: 'rgba(0,0,0,0.7)', fontWeight: 700 },
+              }}
+            />
+          )}
+        </Box>
+
+        {/* Audience via messages chart */}
       </Stack>
     </Box>
   );
