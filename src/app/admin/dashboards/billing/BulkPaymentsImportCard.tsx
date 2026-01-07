@@ -18,13 +18,14 @@ import {
   CircularProgress,
   Divider,
   LinearProgress,
+  Skeleton,
   Stack,
   Tooltip,
   Typography,
 } from '@mui/material';
 import { PieChart } from '@mui/x-charts/PieChart';
 import numeral from 'numeral';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 
 type ImportResult = Awaited<ReturnType<typeof billingService.importPaymentsBulkExcel>>['data'];
@@ -38,6 +39,7 @@ export default function BulkPaymentsImportCard() {
 
   // balances
   const [isLoadingBalances, setIsLoadingBalances] = useState(false);
+  const [balancesLoadedOnce, setBalancesLoadedOnce] = useState(false);
   const [balancesError, setBalancesError] = useState<string | null>(null);
   const [pendingTotal, setPendingTotal] = useState<number>(0);
   const [invoicedTotal, setInvoicedTotal] = useState<number>(0);
@@ -77,12 +79,20 @@ export default function BulkPaymentsImportCard() {
       setPendingTotal(totalPending);
       setPaidTotal(totalPaid);
       setInvoicedTotal(totalInvoiced);
+      setBalancesLoadedOnce(true);
     } catch (e: any) {
       setBalancesError(e?.response?.data?.error || e?.message || 'Error loading balances');
+      setBalancesLoadedOnce(true);
     } finally {
       setIsLoadingBalances(false);
     }
   }
+
+  // ✅ Auto load on first render
+  useEffect(() => {
+    loadBalances();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function onImport() {
     if (!file) return;
@@ -95,7 +105,6 @@ export default function BulkPaymentsImportCard() {
       const res = await billingService.importPaymentsBulkExcel(file);
       setImportResult(res.data);
 
-      // refrescar balances luego del import
       await loadBalances();
     } catch (e: any) {
       setImportError(e?.response?.data?.error || e?.message || 'Error importing payments');
@@ -121,12 +130,21 @@ export default function BulkPaymentsImportCard() {
 
   const emailStats = useMemo(() => {
     const emails = importResult?.emails || [];
-    const sent = emails.filter((e) => e.sent).length;
-    const thanks = emails.filter((e) => e.template === 'payment-thanks' && e.sent).length;
-    const reminder = emails.filter((e) => e.template === 'payment-reminder' && e.sent).length;
-    const failed = emails.filter((e) => !e.sent).length;
+    const sent = emails.filter((e: any) => e.sent).length;
+    const thanks = emails.filter((e: any) => e.template === 'payment-thanks' && e.sent).length;
+    const reminder = emails.filter((e: any) => e.template === 'payment-reminder' && e.sent).length;
+    const failed = emails.filter((e: any) => !e.sent).length;
     return { sent, thanks, reminder, failed, total: emails.length };
   }, [importResult]);
+
+  const kpiIsSkeleton = !balancesLoadedOnce && isLoadingBalances;
+
+  const dropHint = useMemo(() => {
+    if (isImporting) return 'Importing… please wait';
+    if (file) return `${file.name} • ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+    if (isDragActive) return 'Drop it here 👇';
+    return 'Only .xlsx/.xls. Tip: include columns like Slug, Open balance, Due date, Num, Memo/Description.';
+  }, [file, isDragActive, isImporting]);
 
   return (
     <Card sx={{ borderRadius: 3, overflow: 'hidden' }}>
@@ -141,7 +159,7 @@ export default function BulkPaymentsImportCard() {
             <Box>
               <Typography
                 variant="h6"
-                sx={{ fontWeight: 800, lineHeight: 1.1 }}
+                sx={{ fontWeight: 900, lineHeight: 1.1 }}
               >
                 Bulk Payments Import
               </Typography>
@@ -149,7 +167,7 @@ export default function BulkPaymentsImportCard() {
                 variant="body2"
                 color="text.secondary"
               >
-                Sube un Excel con pagos de múltiples tiendas y actualiza balances + emails.
+                Sube un Excel y actualiza balances + envía emails automáticamente.
               </Typography>
             </Box>
           </Stack>
@@ -162,7 +180,7 @@ export default function BulkPaymentsImportCard() {
             }
             variant="outlined"
             sx={{ borderRadius: 999 }}
-            disabled={isLoadingBalances}
+            disabled={isLoadingBalances || isImporting}
           >
             Refresh
           </Button>
@@ -188,34 +206,68 @@ export default function BulkPaymentsImportCard() {
             >
               Total Pending (All Stores)
             </Typography>
-            <Typography
-              variant="h4"
-              sx={{ fontWeight: 900, letterSpacing: -0.5 }}
-            >
-              {money(pendingTotal)}
-            </Typography>
 
-            <Stack
-              direction="row"
-              spacing={1}
-              sx={{ mt: 1, flexWrap: 'wrap' }}
-            >
-              <Chip
-                label={`Invoiced: ${money(invoicedTotal)}`}
-                size="small"
-              />
-              <Chip
-                label={`Paid: ${money(paidTotal)}`}
-                size="small"
-              />
-              <Chip
-                label={`Pending: ${pendingPercent.toFixed(1)}%`}
-                size="small"
-                color={pendingPercent > 25 ? 'warning' : 'default'}
-              />
-            </Stack>
+            {kpiIsSkeleton ? (
+              <Box sx={{ mt: 0.5 }}>
+                <Skeleton
+                  variant="text"
+                  height={46}
+                  width={220}
+                />
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ mt: 1, flexWrap: 'wrap' }}
+                >
+                  <Skeleton
+                    variant="rounded"
+                    height={26}
+                    width={140}
+                  />
+                  <Skeleton
+                    variant="rounded"
+                    height={26}
+                    width={120}
+                  />
+                  <Skeleton
+                    variant="rounded"
+                    height={26}
+                    width={140}
+                  />
+                </Stack>
+              </Box>
+            ) : (
+              <>
+                <Typography
+                  variant="h4"
+                  sx={{ fontWeight: 900, letterSpacing: -0.5 }}
+                >
+                  {money(pendingTotal)}
+                </Typography>
 
-            {isLoadingBalances && (
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ mt: 1, flexWrap: 'wrap' }}
+                >
+                  <Chip
+                    size="small"
+                    label={`Invoiced: ${money(invoicedTotal)}`}
+                  />
+                  <Chip
+                    size="small"
+                    label={`Paid: ${money(paidTotal)}`}
+                  />
+                  <Chip
+                    size="small"
+                    label={`Pending: ${pendingPercent.toFixed(1)}%`}
+                    color={pendingPercent > 25 ? 'warning' : 'default'}
+                  />
+                </Stack>
+              </>
+            )}
+
+            {isLoadingBalances && balancesLoadedOnce && (
               <Box sx={{ mt: 1.5 }}>
                 <LinearProgress />
               </Box>
@@ -223,7 +275,12 @@ export default function BulkPaymentsImportCard() {
 
             {balancesError && (
               <Box sx={{ mt: 1.5 }}>
-                <Alert severity="error">{balancesError}</Alert>
+                <Alert
+                  severity="error"
+                  sx={{ borderRadius: 3 }}
+                >
+                  {balancesError}
+                </Alert>
               </Box>
             )}
           </Box>
@@ -241,35 +298,46 @@ export default function BulkPaymentsImportCard() {
               alignItems: 'center',
               justifyContent: 'center',
               position: 'relative',
+              minHeight: 190,
             }}
           >
-            <PieChart
-              height={180}
-              series={[
-                {
-                  data: pieData,
-                  innerRadius: 55,
-                  outerRadius: 80,
-                  paddingAngle: 3,
-                },
-              ]}
-              margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-            />
-            <Box sx={{ position: 'absolute', textAlign: 'center' }}>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ display: 'block' }}
-              >
-                Pending
-              </Typography>
-              <Typography
-                variant="h6"
-                sx={{ fontWeight: 900 }}
-              >
-                {money(pendingTotal)}
-              </Typography>
-            </Box>
+            {kpiIsSkeleton ? (
+              <Skeleton
+                variant="circular"
+                width={170}
+                height={170}
+              />
+            ) : (
+              <>
+                <PieChart
+                  height={180}
+                  series={[
+                    {
+                      data: pieData,
+                      innerRadius: 55,
+                      outerRadius: 80,
+                      paddingAngle: 3,
+                    },
+                  ]}
+                  margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+                />
+                <Box sx={{ position: 'absolute', textAlign: 'center' }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: 'block' }}
+                  >
+                    Pending
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: 900 }}
+                  >
+                    {money(pendingTotal)}
+                  </Typography>
+                </Box>
+              </>
+            )}
           </Box>
         </Stack>
 
@@ -277,7 +345,7 @@ export default function BulkPaymentsImportCard() {
         <Box sx={{ mt: 2 }}>
           <Typography
             variant="subtitle2"
-            sx={{ fontWeight: 800, mb: 1 }}
+            sx={{ fontWeight: 900, mb: 1 }}
           >
             Upload Excel
           </Typography>
@@ -287,13 +355,18 @@ export default function BulkPaymentsImportCard() {
             sx={{
               p: 2.25,
               borderRadius: 3,
-              border: (t) => `2px dashed ${t.palette.divider}`,
+              border: (t) =>
+                `2px dashed ${isDragActive ? t.palette.primary.main : t.palette.divider}`,
               bgcolor: isDragActive ? 'action.hover' : 'transparent',
-              cursor: 'pointer',
+              cursor: isImporting ? 'not-allowed' : 'pointer',
               transition: '0.2s',
+              opacity: isImporting ? 0.75 : 1,
             }}
           >
-            <input {...getInputProps()} />
+            <input
+              {...getInputProps()}
+              disabled={isImporting}
+            />
 
             <Stack
               direction={{ xs: 'column', sm: 'row' }}
@@ -315,16 +388,14 @@ export default function BulkPaymentsImportCard() {
               </Box>
 
               <Box sx={{ flex: 1 }}>
-                <Typography sx={{ fontWeight: 800 }}>
+                <Typography sx={{ fontWeight: 900 }}>
                   {file ? 'File selected' : 'Drag & drop your Excel here'}
                 </Typography>
                 <Typography
                   variant="body2"
                   color="text.secondary"
                 >
-                  {file
-                    ? `${file.name} • ${(file.size / 1024 / 1024).toFixed(2)} MB`
-                    : 'Only .xlsx/.xls. Tip: include columns like storeId, invoiceId (optional), amount, method, reference.'}
+                  {dropHint}
                 </Typography>
               </Box>
 
@@ -372,7 +443,12 @@ export default function BulkPaymentsImportCard() {
 
           {importError && (
             <Box sx={{ mt: 1.5 }}>
-              <Alert severity="error">{importError}</Alert>
+              <Alert
+                severity="error"
+                sx={{ borderRadius: 3 }}
+              >
+                {importError}
+              </Alert>
             </Box>
           )}
 
@@ -398,10 +474,6 @@ export default function BulkPaymentsImportCard() {
                     />
                     <Chip
                       size="small"
-                      label={`Invoices updated: ${importResult.invoicesUpdated}`}
-                    />
-                    <Chip
-                      size="small"
                       label={`Emails sent: ${emailStats.sent}/${emailStats.total}`}
                     />
                     <Chip
@@ -417,12 +489,12 @@ export default function BulkPaymentsImportCard() {
                         size="small"
                         color="warning"
                         icon={<ErrorOutlineOutlinedIcon />}
-                        label={`Email failed: ${emailStats.failed}`}
+                        label={`Failed: ${emailStats.failed}`}
                       />
                     )}
                   </Stack>
 
-                  {/* small preview list */}
+                  {/* nicer preview list */}
                   {importResult.emails?.length > 0 && (
                     <Box sx={{ mt: 1 }}>
                       <Typography
@@ -433,67 +505,66 @@ export default function BulkPaymentsImportCard() {
                       </Typography>
 
                       <Stack
-                        spacing={0.75}
-                        sx={{ mt: 0.75, maxHeight: 220, overflow: 'auto', pr: 0.5 }}
+                        spacing={1}
+                        sx={{ mt: 0.75, maxHeight: 260, overflow: 'auto', pr: 0.5 }}
                       >
-                        {importResult.emails.slice(0, 12).map((e, idx) => (
-                          <Box
-                            key={`${e.storeId}-${idx}`}
-                            sx={{
-                              p: 1,
-                              borderRadius: 2,
-                              bgcolor: 'background.default',
-                              border: (t) => `1px solid ${t.palette.divider}`,
-                            }}
-                          >
-                            <Stack
-                              direction="row"
-                              spacing={1}
-                              alignItems="center"
-                              justifyContent="space-between"
+                        {importResult.emails.slice(0, 12).map((e: any, idx: number) => {
+                          const label = e.slug || e.storeSlug || e.storeId || 'Unknown store';
+                          const subtitle = e.sent
+                            ? `Sent • ${e.template}`
+                            : `Not sent • ${e.reason || 'unknown'}`;
+
+                          return (
+                            <Box
+                              key={`${label}-${idx}`}
+                              sx={{
+                                p: 1.25,
+                                borderRadius: 2,
+                                bgcolor: 'background.default',
+                                border: (t) => `1px solid ${t.palette.divider}`,
+                              }}
                             >
-                              <Box>
-                                <Typography
-                                  variant="body2"
-                                  sx={{ fontWeight: 800 }}
-                                >
-                                  Store: {e.storeId}
-                                </Typography>
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                >
-                                  {e.sent
-                                    ? `Sent • ${e.template}`
-                                    : `Not sent • ${e.reason || 'unknown'}`}
-                                </Typography>
-                              </Box>
-
-                              {e.sent ? (
-                                <Chip
-                                  size="small"
-                                  label={e.template}
-                                  color="success"
-                                />
-                              ) : (
-                                <Chip
-                                  size="small"
-                                  label="failed"
-                                  color="warning"
-                                />
-                              )}
-                            </Stack>
-
-                            {typeof e.pending !== 'undefined' && (
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
+                              <Stack
+                                direction="row"
+                                spacing={1}
+                                alignItems="center"
+                                justifyContent="space-between"
                               >
-                                Pending: {e.pending}
-                              </Typography>
-                            )}
-                          </Box>
-                        ))}
+                                <Box sx={{ minWidth: 0 }}>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{ fontWeight: 900 }}
+                                    noWrap
+                                  >
+                                    {label}
+                                  </Typography>
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                  >
+                                    {subtitle}
+                                  </Typography>
+                                  {typeof e.pending !== 'undefined' && (
+                                    <Typography
+                                      variant="caption"
+                                      color="text.secondary"
+                                      sx={{ display: 'block' }}
+                                    >
+                                      Pending: {e.pending}
+                                    </Typography>
+                                  )}
+                                </Box>
+
+                                <Chip
+                                  size="small"
+                                  label={e.sent ? 'sent' : 'failed'}
+                                  color={e.sent ? 'success' : 'warning'}
+                                  sx={{ fontWeight: 800 }}
+                                />
+                              </Stack>
+                            </Box>
+                          );
+                        })}
                       </Stack>
                     </Box>
                   )}
