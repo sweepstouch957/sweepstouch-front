@@ -10,12 +10,10 @@ import ApplicationUiAreaChartsIncomeReports from 'src/components/application-ui/
 import ApplicationUiAreaChartsMonthlySales from 'src/components/application-ui/area-charts/monthly-sales/monthly-sales';
 import ApplicationUiAreaChartsPowerConsumption from 'src/components/application-ui/area-charts/power-consumption/power-consumption';
 import ApplicationUiAreaChartsSaleStatistics from 'src/components/application-ui/area-charts/sale-statistics/sale-statistics';
-import ApplicationUiAreaChartsSalesAlerts from 'src/components/application-ui/area-charts/sales-alerts/sales-alerts';
 import ApplicationUiAreaChartsWatchList from 'src/components/application-ui/area-charts/watch-list/watch-list';
 import ApplicationUiAreaChartsWeeklySales from 'src/components/application-ui/area-charts/weekly-sales/weekly-sales';
 import { Helmet } from 'src/components/base/helmet';
 import MarketingPageTitle from 'src/components/website/page-title';
-import { MarketingLayout as Layout } from 'src/layouts/marketing';
 
 const components: {
   element: JSX.Element;
@@ -63,15 +61,7 @@ const components: {
     height: '',
     category: 'area-charts',
   },
-  {
-    element: <ApplicationUiAreaChartsSalesAlerts />,
-    title: 'SalesAlerts',
-    isComplex: 'false',
-    size: 'lg',
-    description: 'Charts focused on highlighting alerts in sales trends.',
-    height: '',
-    category: 'area-charts',
-  },
+ 
   {
     element: <ApplicationUiAreaChartsWatchList />,
     title: 'WatchList',
