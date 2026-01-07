@@ -29,11 +29,14 @@ import {
 } from '@mui/material';
 import { SelectChangeEvent } from '@mui/material/Select';
 import { useTheme } from '@mui/material/styles';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { MobileDatePicker } from '@mui/x-date-pickers/MobileDatePicker';
-import { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import LexicalRHFEditor from '../../editors/LexicalRHFEditor';
+import { QuillEditor } from 'src/components/base/styles/quill-editor';
+import 'react-quill/dist/quill.snow.css';
 import AvatarUploadLogo from '../../upload/avatar/avatar-upload-logo';
 
 type BriefFormValues = {
@@ -41,6 +44,7 @@ type BriefFormValues = {
   description: string;
   startDate: string | null;
   endDate: string | null;
+  winnersCount: number;
   image?: string;
   hasQr: boolean;
   rules?: string;
@@ -76,6 +80,7 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
       description: '',
       startDate: null,
       endDate: null,
+      winnersCount: 1,
       image: initialValues?.image || '',
       hasQr: false,
       rules: '',
@@ -409,6 +414,38 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
               />
             </Grid>
 
+            {/* Cantidad de ganadores */}
+            <Grid
+              item
+              xs={12}
+              md={2}
+            >
+              <Controller
+                name="winnersCount"
+                control={control}
+                rules={{
+                  required: 'Requerida',
+                  min: { value: 1, message: 'Debe ser mayor o igual a 1' },
+                }}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    type="number"
+                    label="Cantidad de ganadores"
+                    fullWidth
+                    inputProps={{ min: 1, step: 1 }}
+                    error={!!errors.winnersCount}
+                    helperText={errors.winnersCount?.message}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      const num = raw === '' ? 1 : Number(raw);
+                      field.onChange(Number.isFinite(num) ? num : 1);
+                    }}
+                  />
+                )}
+              />
+            </Grid>
+
             {/* Imagen + QR bonito */}
             <Grid
               item
@@ -467,11 +504,21 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
                 name="rules"
                 control={control}
                 render={({ field }) => (
-                  <LexicalRHFEditor
+                  <QuillEditor
+                    quillTheme="snow"
                     value={field.value || ''}
-                    onChange={(html) => field.onChange(html)}
-                    placeholder="Escribe las reglas…"
-                    minHeight={180}
+                    onChange={(val) => field.onChange(val)}
+                    modules={{
+                      toolbar: [
+                        [{ header: [1, 2, 3, false] }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ list: 'ordered' }, { list: 'bullet' }],
+                        [{ color: [] }, { background: [] }],
+                        [{ align: [] }],
+                        ['link', 'clean'],
+                      ],
+                    }}
+                    style={{ background: 'white', borderRadius: 8 }}
                   />
                 )}
               />

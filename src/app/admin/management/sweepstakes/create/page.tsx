@@ -51,6 +51,7 @@ function Page(): React.JSX.Element {
     description: '',
     startDate: '',
     endDate: '',
+    winnersCount: 1,
     image: '',
     hasQr: false,
     rules: '',

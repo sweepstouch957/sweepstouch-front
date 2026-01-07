@@ -49,6 +49,10 @@ const commonMenus = {
           title: 'Messenger',
           route: (r: typeof routes, role: UserRole) => r.admin.applications.messenger,
         },
+        {
+          title: 'Debug numbers',
+          route: (r: typeof routes, role: UserRole) => r.admin.applications['debug-numbers'],
+        },
       ],
     },
   ],

@@ -85,6 +85,7 @@ export interface Sweepstakes {
   status: string;
   image: string;
   description?: string;
+  winnersCount?: number;
   hasQr?: boolean;
   participationMessage?: string;
   rules?: string;

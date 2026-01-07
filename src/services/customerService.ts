@@ -45,6 +45,7 @@ class CustomerClient {
     firstName?: string;
     countryCode: string;
     stores: string[];
+    active?: boolean;
   }): Promise<Customer> {
     const res = await api.post('/customers/upsert', data);
     return res.data;
@@ -60,6 +61,7 @@ class CustomerClient {
     const res = await api.get('/customers/count/' + id);
     return res.data.total;
   }
+
 }
 
 export const customerClient = new CustomerClient();
