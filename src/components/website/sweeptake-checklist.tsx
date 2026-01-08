@@ -175,9 +175,7 @@ export default function SweepstakeChecklist({ sweepstakeId }: Props) {
         image: (sweepstake.image as string) || '',
         hasQr: Boolean(sweepstake.hasQr),
         rules: sweepstake.rules || '',
-        participationMessage:
-          sweepstake.participationMessage ||
-          'Thank you for participating in the #StoreName For a Car Labor Day!. Your participation code is: #Codigo',
+        participationMessage: sweepstake.participationMessage || '',
         sweeptakeDescription: sweepstake.description || '',
         prizeIds: Array.isArray(sweepstake.prize)
           ? sweepstake.prize.map((p: any) => (typeof p === 'string' ? p : p._id))
