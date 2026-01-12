@@ -1,7 +1,6 @@
-// app/components/stores/Results.tsx
+// app/components/stores/Results.tsx (puede ser .tsx o .jsx)
 'use client';
 
-import { Store } from '@/services/store.service';
 import { AccountCircle, Settings, Web } from '@mui/icons-material';
 import {
   Box,
@@ -25,7 +24,7 @@ import {
   Typography,
 } from '@mui/material';
 import Link from 'next/link';
-import React, { ChangeEvent, FC, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import CampaignsPanel from '../../content-shells/store-managment/panel/campaigns/campaign-panel';
 import StoreFilter from './filter';
@@ -38,7 +37,7 @@ import StoreInfoSimplified from './StoreInfoSimplified';
 // "Antillana Superfood 2750 E Tremont Ave, Bronx, NY 10461, USA"
 // => name: "Antillana Superfood"
 //    address: "2750 E Tremont Ave, Bronx, NY 10461, USA"
-function splitByFirstNumber(raw: string, fallbackAddress?: string) {
+function splitByFirstNumber(raw, fallbackAddress) {
   const s = (raw || '').trim();
   const i = s.search(/\d/);
   if (i > 0) {
@@ -55,7 +54,7 @@ function splitByFirstNumber(raw: string, fallbackAddress?: string) {
 const MERCHANT_ORIGIN =
   process.env.NEXT_PUBLIC_MERCHANT_ORIGIN || 'https://merchant.sweepstouch.com';
 
-function buildSwitchUrl(storeId: string) {
+function buildSwitchUrl(storeId) {
   return `${MERCHANT_ORIGIN}/?ac=${storeId}`;
 }
 
@@ -65,23 +64,25 @@ function getDebtStatus(pending = 0) {
   if (pending <= 0) {
     return {
       label: 'OK',
-      color: 'white' as const,
-      bg: 'success.light' as const,
+      color: 'white',
+      bg: 'success.light',
     };
   }
 
-  if (pending <= 300) {
+  // <= 198 => Low debt
+  if (pending <= 198) {
     return {
       label: 'Low debt',
-      color: 'white' as const,
-      bg: 'warning.light' as const,
+      color: 'white',
+      bg: 'warning.light',
     };
   }
 
+  // > 198 => High debt
   return {
     label: 'High debt',
-    color: 'white' as const,
-    bg: 'error.light' as const,
+    color: 'white',
+    bg: 'error.light',
   };
 }
 
@@ -93,44 +94,8 @@ function formatMoney(value = 0, currency = 'USD') {
   }).format(value);
 }
 
-/* --------------------------------- props ---------------------------------- */
-interface ResultsProps {
-  stores: Store[];
-  page: number;
-  limit: number;
-  total: number;
-
-  status: 'all' | 'active' | 'inactive';
-  sortBy: 'customerCount' | 'name' | 'active' | string;
-  order: 'asc' | 'desc' | string;
-  search: string;
-
-  // Filtros de morosidad
-  debtStatus: 'all' | 'ok' | 'low' | 'high';
-  minDebt: string;
-  maxDebt: string;
-
-  onPageChange: (page: number) => void;
-  onLimitChange: (e: ChangeEvent<HTMLInputElement>) => void;
-
-  onSearchChange: (query: string) => void;
-  onStatusChange: (status: 'all' | 'active' | 'inactive') => void;
-  onSortChange: (sortBy: string) => void;
-  onOrderChange: (order: 'asc' | 'desc' | string) => void;
-
-  audienceLt: string;
-  onAudienceLtChange: (v: string) => void;
-
-  onDebtStatusChange: (v: 'all' | 'ok' | 'low' | 'high') => void;
-  onMinDebtChange: (v: string) => void;
-  onMaxDebtChange: (v: string) => void;
-
-  loading?: boolean;
-  error?: string | null;
-}
-
 /* ----------------------------- tiny components ---------------------------- */
-const LogoImg = ({ src }: { src: string }) => {
+const LogoImg = ({ src }) => {
   if (!src) return null;
 
   return (
@@ -144,7 +109,7 @@ const LogoImg = ({ src }: { src: string }) => {
 };
 
 /* -------------------------------- component -------------------------------- */
-const Results: FC<ResultsProps> = ({
+const Results = ({
   stores,
   page,
   limit,
@@ -154,8 +119,6 @@ const Results: FC<ResultsProps> = ({
   sortBy,
   order,
   search,
-
-  // nuevos filtros
   debtStatus,
   minDebt,
   maxDebt,
@@ -173,17 +136,18 @@ const Results: FC<ResultsProps> = ({
   onDebtStatusChange,
   onMinDebtChange,
   onMaxDebtChange,
-
+  handleSortChange,
+  handleOrderChange,
   loading,
   error,
 }) => {
-  const [selectedItems, setSelected] = useState<string[]>([]);
+  const [selectedItems, setSelected] = useState([]);
   const [openModal, setOpenModal] = useState(false);
-  const [selectedStore, setSelectedStore] = useState<Store | null>(null);
+  const [selectedStore, setSelectedStore] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
   const { t } = useTranslation();
 
-  const handleOpenModal = (store: Store) => {
+  const handleOpenModal = (store) => {
     setSelectedStore(store);
     setOpenModal(true);
     setActiveTab(0);
@@ -194,24 +158,24 @@ const Results: FC<ResultsProps> = ({
     setSelectedStore(null);
   };
 
-  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_, newValue) => {
     setActiveTab(newValue);
   };
 
-  const handleSelectAll = (event: ChangeEvent<HTMLInputElement>): void => {
-    setSelected(event.target.checked ? stores.map((s: any) => s._id || s.id) : []);
+  const handleSelectAll = (event) => {
+    setSelected(event.target.checked ? stores.map((s) => s._id || s.id) : []);
   };
 
-  const handleSelectOne = (_: any, id: string): void => {
+  const handleSelectOne = (_, id) => {
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
-  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (e) => {
     onSearchChange(e.target.value);
   };
 
-  // Ordenar desde el header (Name, Customers, Status/active)
-  const handleRequestSort = (field: 'name' | 'active' | 'customerCount') => {
+  // Ordenar desde el header (Name, Customers, Status/active, Days overdue)
+  const handleRequestSort = (field) => {
     if (sortBy === field) {
       onOrderChange(order === 'asc' ? 'desc' : 'asc');
     } else {
@@ -265,7 +229,7 @@ const Results: FC<ResultsProps> = ({
             {activeTab === 1 && selectedStore && (
               <Box sx={{ p: 0 }}>
                 <CampaignsPanel
-                  storeId={selectedStore._id || (selectedStore as any).id}
+                  storeId={selectedStore._id || selectedStore.id}
                   storeName={selectedStore.name}
                 />
               </Box>
@@ -280,14 +244,13 @@ const Results: FC<ResultsProps> = ({
                 >
                   {t('Staff Management ')}
                 </Typography>
-                <StaffManagementMock storeId={selectedStore._id || (selectedStore as any).id} />
+                <StaffManagementMock storeId={selectedStore._id || selectedStore.id} />
               </Box>
             )}
           </Box>
         </DialogContent>
       </Dialog>
 
-      {/* Filtros arriba */}
       <StoreFilter
         t={t}
         search={search}
@@ -303,6 +266,11 @@ const Results: FC<ResultsProps> = ({
         onDebtStatusChange={onDebtStatusChange}
         onMinDebtChange={onMinDebtChange}
         onMaxDebtChange={onMaxDebtChange}
+        // 🆕 sort
+        sortBy={sortBy}
+        order={order as 'asc' | 'desc'}
+        onSortChange={handleSortChange}
+        onOrderChange={handleOrderChange}
       />
 
       {loading ? (
@@ -342,12 +310,10 @@ const Results: FC<ResultsProps> = ({
                     <TableCell>{t('Brand')}</TableCell>
 
                     {/* Name (sortable) */}
-                    <TableCell
-                      sortDirection={sortBy === 'name' ? (order as 'asc' | 'desc') : false}
-                    >
+                    <TableCell sortDirection={sortBy === 'name' ? order : false}>
                       <TableSortLabel
                         active={sortBy === 'name'}
-                        direction={sortBy === 'name' ? (order as 'asc' | 'desc') : 'asc'}
+                        direction={sortBy === 'name' ? order : 'asc'}
                         onClick={() => handleRequestSort('name')}
                       >
                         {t('Store name')}
@@ -358,20 +324,32 @@ const Results: FC<ResultsProps> = ({
                     <TableCell>{t('Address')}</TableCell>
 
                     {/* Customers (sortable) */}
-                    <TableCell
-                      sortDirection={sortBy === 'customerCount' ? (order as 'asc' | 'desc') : false}
-                    >
+                    <TableCell sortDirection={sortBy === 'customerCount' ? order : false}>
                       <TableSortLabel
                         active={sortBy === 'customerCount'}
-                        direction={sortBy === 'customerCount' ? (order as 'asc' | 'desc') : 'asc'}
+                        direction={sortBy === 'customerCount' ? order : 'asc'}
                         onClick={() => handleRequestSort('customerCount')}
                       >
                         {t('Customers')}
                       </TableSortLabel>
                     </TableCell>
 
-                    {/* Nueva columna: Balance pendiente */}
+                    {/* Balance pendiente */}
                     <TableCell align="right">{t('Balance')}</TableCell>
+
+                    {/* Days overdue (sortable) */}
+                    <TableCell
+                      align="right"
+                      sortDirection={sortBy === 'maxDaysOverdue' ? order : false}
+                    >
+                      <TableSortLabel
+                        active={sortBy === 'maxDaysOverdue'}
+                        direction={sortBy === 'maxDaysOverdue' ? order : 'desc'}
+                        onClick={() => handleRequestSort('maxDaysOverdue')}
+                      >
+                        {t('Days overdue')}
+                      </TableSortLabel>
+                    </TableCell>
 
                     {/* Nueva columna: estado de crédito */}
                     <TableCell align="center">{t('Credit status')}</TableCell>
@@ -379,11 +357,11 @@ const Results: FC<ResultsProps> = ({
                     {/* Status (sortable via 'active') */}
                     <TableCell
                       align="center"
-                      sortDirection={sortBy === 'active' ? (order as 'asc' | 'desc') : false}
+                      sortDirection={sortBy === 'active' ? order : false}
                     >
                       <TableSortLabel
                         active={sortBy === 'active'}
-                        direction={sortBy === 'active' ? (order as 'asc' | 'desc') : 'asc'}
+                        direction={sortBy === 'active' ? order : 'asc'}
                         onClick={() => handleRequestSort('active')}
                       >
                         {t('Status')}
@@ -395,7 +373,7 @@ const Results: FC<ResultsProps> = ({
                 </TableHead>
 
                 <TableBody>
-                  {stores.map((store: any) => {
+                  {stores.map((store) => {
                     const id = store._id || store.id;
                     const isSelected = selectedItems.includes(id);
                     const { displayName, displayAddress } = splitByFirstNumber(
@@ -403,8 +381,9 @@ const Results: FC<ResultsProps> = ({
                       store.address
                     );
 
-                    const pending = store.billing?.totalPending ?? 0;
+                    const pending = (store.billing && store.billing.totalPending) || 0;
                     const debtStatusMeta = getDebtStatus(pending);
+                    const daysOverdue = (store.billing && store.billing.maxDaysOverdue) || 0;
 
                     return (
                       <TableRow
@@ -427,7 +406,10 @@ const Results: FC<ResultsProps> = ({
                           <Link
                             href={`/admin/management/stores/edit/${id}`}
                             passHref
-                            style={{ textDecoration: 'none', color: 'inherit' }}
+                            style={{
+                              textDecoration: 'none',
+                              color: 'inherit',
+                            }}
                           >
                             <Typography
                               variant="h6"
@@ -448,8 +430,8 @@ const Results: FC<ResultsProps> = ({
                             title={
                               store.billing
                                 ? `Invoiced: ${formatMoney(
-                                    store.billing.totalInvoiced ?? 0
-                                  )} · Paid: ${formatMoney(store.billing.totalPaid ?? 0)}`
+                                    store.billing.totalInvoiced || 0
+                                  )} · Paid: ${formatMoney(store.billing.totalPaid || 0)}`
                                 : ''
                             }
                             arrow
@@ -459,6 +441,25 @@ const Results: FC<ResultsProps> = ({
                               color={pending > 0 ? 'error.main' : 'success.main'}
                             >
                               {formatMoney(pending)}
+                            </Typography>
+                          </Tooltip>
+                        </TableCell>
+
+                        {/* Days overdue */}
+                        <TableCell align="right">
+                          <Tooltip
+                            title={
+                              daysOverdue > 0
+                                ? `${daysOverdue} ${t('days overdue')}`
+                                : t('No overdue')
+                            }
+                            arrow
+                          >
+                            <Typography
+                              fontWeight={600}
+                              color={daysOverdue > 0 ? 'warning.main' : 'text.secondary'}
+                            >
+                              {daysOverdue > 0 ? `${daysOverdue}d` : '—'}
                             </Typography>
                           </Tooltip>
                         </TableCell>

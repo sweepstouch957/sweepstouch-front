@@ -8,7 +8,7 @@ export interface UseStoresOptions {
   page?: number;
   limit?: number;
   type?: 'elite' | 'basic' | 'free' | '';
-  sortBy?: 'customerCount' | 'name' | 'active' | string;
+  sortBy?: 'customerCount' | 'name' | 'active' | 'maxDaysOverdue' | string;
   order?: 'asc' | 'desc';
   audienceLt?: string;
 
@@ -97,7 +97,9 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
     setPage(0);
   };
 
-  const handleSortChange = (value: 'customerCount' | 'name' | 'active' | string) => {
+  const handleSortChange = (
+    value: 'customerCount' | 'name' | 'active' | 'maxDaysOverdue' | string
+  ) => {
     setSortBy(value);
     setPage(0);
   };
@@ -114,7 +116,6 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
 
   // 🆕 handlers morosidad
   const handleDebtStatusChange = (value: 'all' | 'ok' | 'low' | 'high') => {
-    
     setDebtStatus(value);
     setPage(0);
   };

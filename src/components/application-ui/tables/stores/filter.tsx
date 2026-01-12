@@ -1,4 +1,9 @@
-import { GroupTwoTone, SearchTwoTone, WarningAmberTwoTone } from '@mui/icons-material';
+import {
+  GroupTwoTone,
+  SearchTwoTone,
+  SwapVertTwoTone,
+  WarningAmberTwoTone,
+} from '@mui/icons-material';
 import {
   Box,
   Chip,
@@ -11,6 +16,7 @@ import {
   Select,
   Stack,
   TextField,
+  Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
@@ -25,6 +31,12 @@ export default function StoreFilters({
   debtStatus,
   minDebt,
   maxDebt,
+
+  // 🆕 sort
+  sortBy,
+  order,
+  onSortChange,
+  onOrderChange,
 
   handleSearchChange,
   onStatusChange,
@@ -43,6 +55,11 @@ export default function StoreFilters({
   minDebt: string;
   maxDebt: string;
 
+  sortBy: 'customerCount' | 'name' | 'active' | 'maxDaysOverdue' | string;
+  order: 'asc' | 'desc';
+  onSortChange: (v: 'customerCount' | 'name' | 'active' | 'maxDaysOverdue' | string) => void;
+  onOrderChange: (v: 'asc' | 'desc') => void;
+
   handleSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onStatusChange: (s: 'all' | 'active' | 'inactive') => void;
   onAudienceLtChange: (v: string) => void;
@@ -58,38 +75,101 @@ export default function StoreFilters({
   const filtersActive =
     search.trim() || status !== 'all' || audienceLt || debtStatus !== 'all' || minDebt || maxDebt;
 
+  const handleOrderToggle = () => onOrderChange(order === 'asc' ? 'desc' : 'asc');
+
   return (
     <Box
       component={Paper}
       elevation={0}
       sx={{
         p: { xs: 2, sm: 3 },
-        border: `1px solid ${theme.palette.divider}`,
-        borderRadius: 2,
+        borderRadius: 3,
         mb: 2,
+        border: `1px solid ${theme.palette.divider}`,
+        background:
+          theme.palette.mode === 'light'
+            ? 'linear-gradient(135deg, #fdfbff 0%, #f4f7ff 60%, #fdfdfd 100%)'
+            : 'linear-gradient(135deg, #101322 0%, #151827 60%, #111318 100%)',
       }}
     >
-      <Stack spacing={2}>
+      <Stack spacing={2.5}>
+        {/* Header pequeño */}
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          spacing={2}
+        >
+          <Typography
+            variant="subtitle1"
+            fontWeight={600}
+          >
+            {t('Store filters')}
+          </Typography>
+
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+          >
+            {/* 🆕 Sort by + order */}
+            <FormControl
+              size="small"
+              sx={{ minWidth: 180 }}
+            >
+              <InputLabel>{t('Sort by')}</InputLabel>
+              <Select
+                value={sortBy}
+                onChange={(e) => onSortChange(e.target.value as any)}
+                input={<OutlinedInput label={t('Sort by')} />}
+              >
+                <MenuItem value="customerCount">{t('Customers')}</MenuItem>
+                <MenuItem value="maxDaysOverdue">{t('Days overdue')}</MenuItem>
+                <MenuItem value="name">{t('Store name')}</MenuItem>
+                <MenuItem value="active">{t('Status')}</MenuItem>
+              </Select>
+            </FormControl>
+
+            <Chip
+              size="small"
+              icon={<SwapVertTwoTone fontSize="small" />}
+              label={order === 'asc' ? t('Asc') : t('Desc')}
+              variant="outlined"
+              onClick={handleOrderToggle}
+            />
+
+            {filtersActive && (
+              <Chip
+                size="small"
+                label={`${t('Results')}: ${total}`}
+                color="primary"
+                variant="outlined"
+              />
+            )}
+          </Stack>
+        </Stack>
+
         {/* 🔍 Primera fila */}
         <Stack
           direction={{ xs: 'column', sm: 'row' }}
           spacing={2}
-          alignItems="center"
+          alignItems={{ xs: 'stretch', sm: 'center' }}
         >
           <TextField
             size="small"
             placeholder={t('Search by store name or zip')}
             value={search}
             onChange={handleSearchChange}
-            fullWidth={isMobile}
-            sx={{ flex: 1, minWidth: 220 }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchTwoTone fontSize="small" />
-                </InputAdornment>
-              ),
-            }}
+            fullWidth
+            InputProps={
+              {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchTwoTone fontSize="small" />
+                  </InputAdornment>
+                ),
+              } as any
+            }
           />
 
           <TextField
@@ -128,55 +208,85 @@ export default function StoreFilters({
         <Stack
           direction={{ xs: 'column', sm: 'row' }}
           spacing={2}
-          alignItems="center"
+          alignItems={{ xs: 'flex-start', sm: 'center' }}
         >
-          <FormControl
-            size="small"
-            sx={{ minWidth: 180 }}
+          {/* Chip group de estado de deuda */}
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            flexWrap="wrap"
           >
-            <InputLabel>{t('Debt status')}</InputLabel>
-            <Select
-              value={debtStatus}
-              onChange={(e) => onDebtStatusChange(e.target.value as any)}
-              input={<OutlinedInput label={t('Debt status')} />}
-              startAdornment={
-                <InputAdornment position="start">
-                  <WarningAmberTwoTone fontSize="small" />
-                </InputAdornment>
-              }
-            >
-              <MenuItem value="all">{t('All')}</MenuItem>
-              <MenuItem value="ok">{t('OK')}</MenuItem>
-              <MenuItem value="high">{t('High debt')}</MenuItem>
-              <MenuItem value="low">{t('Low debt')}</MenuItem>
-            </Select>
-          </FormControl>
-
-          <TextField
-            size="small"
-            label={t('Debt >')}
-            value={minDebt}
-            onChange={(e) => onMinDebtChange(onlyDigits(e.target.value))}
-            sx={{ minWidth: 120 }}
-          />
-
-          <TextField
-            size="small"
-            label={t('Debt <')}
-            value={maxDebt}
-            onChange={(e) => onMaxDebtChange(onlyDigits(e.target.value))}
-            sx={{ minWidth: 120 }}
-          />
-
-          <Box flexGrow={1} />
-
-          {filtersActive && (
-            <Chip
-              label={`${t('Results')}: ${total}`}
-              color="primary"
-              variant="outlined"
+            <WarningAmberTwoTone
+              fontSize="small"
+              color="warning"
+              style={{ marginRight: 4 }}
             />
-          )}
+            <Typography
+              variant="body2"
+              sx={{ mr: 1 }}
+            >
+              {t('Debt status')}:
+            </Typography>
+
+            <Chip
+              size="small"
+              label={t('All')}
+              variant={debtStatus === 'all' ? 'filled' : 'outlined'}
+              color={debtStatus === 'all' ? 'default' : 'default'}
+              onClick={() => onDebtStatusChange('all')}
+            />
+            <Chip
+              size="small"
+              label={t('OK')}
+              variant={debtStatus === 'ok' ? 'filled' : 'outlined'}
+              color="success"
+              onClick={() => onDebtStatusChange('ok')}
+            />
+            <Chip
+              size="small"
+              label={t('Low debt')}
+              variant={debtStatus === 'low' ? 'filled' : 'outlined'}
+              color="warning"
+              onClick={() => onDebtStatusChange('low')}
+            />
+            <Chip
+              size="small"
+              label={t('High debt')}
+              variant={debtStatus === 'high' ? 'filled' : 'outlined'}
+              color="error"
+              onClick={() => onDebtStatusChange('high')}
+            />
+          </Stack>
+
+          {/* Rango de deuda */}
+          <Stack
+            direction="row"
+            spacing={2}
+            sx={{ width: isMobile ? '100%' : 'auto' }}
+          >
+            <TextField
+              size="small"
+              label={t('Debt >')}
+              value={minDebt}
+              onChange={(e) => onMinDebtChange(onlyDigits(e.target.value))}
+              sx={{ minWidth: 120 }}
+              InputProps={{
+                startAdornment: <InputAdornment position="start">$</InputAdornment>,
+              }}
+            />
+
+            <TextField
+              size="small"
+              label={t('Debt <')}
+              value={maxDebt}
+              onChange={(e) => onMaxDebtChange(onlyDigits(e.target.value))}
+              sx={{ minWidth: 120 }}
+              InputProps={{
+                startAdornment: <InputAdornment position="start">$</InputAdornment>,
+              }}
+            />
+          </Stack>
         </Stack>
       </Stack>
     </Box>
