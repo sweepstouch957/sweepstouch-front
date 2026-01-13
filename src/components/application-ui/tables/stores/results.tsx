@@ -35,6 +35,7 @@ import StaffManagementMock from './StaffManagementMock';
 import StoreInfoSimplified from './StoreInfoSimplified';
 
 /* ------------------------------- helper split ------------------------------ */
+// Corta en el PRIMER dígito que aparezca.
 function splitByFirstNumber(raw, fallbackAddress) {
   const s = (raw || '').trim();
   const i = s.search(/\d/);
