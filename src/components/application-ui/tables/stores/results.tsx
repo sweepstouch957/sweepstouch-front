@@ -328,7 +328,7 @@ const Results = ({
                       </TableSortLabel>
                     </TableCell>
 
-                    <TableCell align="right">{t('Estimated Pay')}</TableCell>
+                    <TableCell align="right">{t('Weekly Consumed')}</TableCell>
 
                     <TableCell align="right">{t('Balance')}</TableCell>
 

@@ -39,7 +39,7 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
     initialOptions.sortBy ?? 'customerCount'
   );
   const [order, setOrder] = useState<UseStoresOptions['order']>(initialOptions.order ?? 'desc');
-  const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all');
+  const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('active');
   const [audienceLt, setAudienceLt] = useState<string>(initialOptions.audienceLt ?? '');
 
   // morosidad
