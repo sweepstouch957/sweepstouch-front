@@ -71,6 +71,22 @@ export interface GetStoresResponse {
   data: Store[];
 }
 
+// 🆕 resumen de billing por categoría
+export interface BillingBucketSummary {
+  count: number;
+  totalPending: number;
+}
+
+export interface BillingSummaryResponse {
+  ok: BillingBucketSummary;
+  low: BillingBucketSummary;
+  high: BillingBucketSummary;
+  overall: {
+    totalStores: number;
+    totalPending: number;
+  };
+}
+
 export const emptyStore: Store = {
   id: '',
   _id: '',
@@ -104,6 +120,7 @@ export interface GetStoresParams {
   minDebt?: string;
   maxDebt?: string;
   audienceLt?: string;
+  paymentMethod?: 'all' | 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
 }
 
 export const getStores = async ({
@@ -119,6 +136,7 @@ export const getStores = async ({
   debtStatus = 'all',
   minDebt = '',
   maxDebt = '',
+  paymentMethod = 'all',
 }: GetStoresParams): Promise<GetStoresResponse> => {
   const params: Record<string, any> = {
     page,
@@ -129,6 +147,7 @@ export const getStores = async ({
     minDebt,
     maxDebt,
     order,
+    paymentMethod,
   };
 
   // Normaliza type y status
@@ -141,6 +160,22 @@ export const getStores = async ({
   }
 
   const res = await api.get<GetStoresResponse>('/store/filter', { params });
+  return res.data;
+};
+
+// 🆕 Obtener resumen global de morosidad (ok / low / high)
+export const getStoresBillingSummary = async (opts?: {
+  status?: 'all' | 'active' | 'inactive';
+}): Promise<BillingSummaryResponse> => {
+  const params: Record<string, any> = {};
+  if (opts?.status && opts.status !== 'all') {
+    params.status = opts.status;
+  }
+
+  const res = await api.get<BillingSummaryResponse>('/store/billing-summary', {
+    params,
+  });
+
   return res.data;
 };
 
@@ -239,6 +274,7 @@ export const getStoreBySlug = async (slug: string): Promise<Store> => {
 
 const storesService = {
   getStores,
+  getStoresBillingSummary, // 🆕 aquí exportado
   getStoreById,
   createStore,
   updateStore,

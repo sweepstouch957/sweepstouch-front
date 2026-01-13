@@ -294,6 +294,7 @@ export interface StoreBalance {
   totalInvoiced: number;
   totalPaid: number;
   totalPending: number;
+  maxDaysOverdue?: number;
 }
 
 export interface StoreBalanceResponse {

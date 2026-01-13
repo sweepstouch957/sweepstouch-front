@@ -3,6 +3,15 @@ import { useQuery } from '@tanstack/react-query';
 import debounce from 'lodash.debounce';
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
 
+export type PaymentMethodFilter =
+  | 'all'
+  | 'central_billing'
+  | 'card'
+  | 'quickbooks'
+  | 'ach'
+  | 'wire'
+  | 'cash';
+
 export interface UseStoresOptions {
   search?: string;
   page?: number;
@@ -12,10 +21,13 @@ export interface UseStoresOptions {
   order?: 'asc' | 'desc';
   audienceLt?: string;
 
-  // 🆕 filtros de morosidad
+  // filtros de morosidad
   debtStatus?: 'all' | 'ok' | 'low' | 'high';
   minDebt?: string;
   maxDebt?: string;
+
+  // ⭐ nuevo: filtro por método de pago
+  paymentMethod?: PaymentMethodFilter;
 }
 
 export const useStores = (initialOptions: UseStoresOptions = {}) => {
@@ -30,12 +42,17 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
   const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [audienceLt, setAudienceLt] = useState<string>(initialOptions.audienceLt ?? '');
 
-  // 🆕 morosidad
+  // morosidad
   const [debtStatus, setDebtStatus] = useState<'all' | 'ok' | 'low' | 'high'>(
     initialOptions.debtStatus ?? 'all'
   );
   const [minDebt, setMinDebt] = useState<string>(initialOptions.minDebt ?? '');
   const [maxDebt, setMaxDebt] = useState<string>(initialOptions.maxDebt ?? '');
+
+  // ⭐ payment method
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodFilter>(
+    initialOptions.paymentMethod ?? 'all'
+  );
 
   const [searchInput, setSearchInput] = useState(search);
   const debouncedSearch = useMemo(() => debounce((val: string) => setSearch(val), 500), []);
@@ -45,7 +62,12 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
     setPage(0);
   }, []);
 
-  useEffect(() => () => debouncedSearch.cancel(), [debouncedSearch]);
+  useEffect(
+    () => () => {
+      debouncedSearch.cancel();
+    },
+    [debouncedSearch]
+  );
 
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: [
@@ -61,6 +83,7 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
       debtStatus,
       minDebt,
       maxDebt,
+      paymentMethod, // ⭐ entra al cache key
     ],
     queryFn: () =>
       storesService.getStores({
@@ -74,6 +97,7 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
         debtStatus,
         minDebt,
         maxDebt,
+        paymentMethod, // ⭐ se manda al backend
       }),
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
@@ -114,7 +138,7 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
     setPage(0);
   };
 
-  // 🆕 handlers morosidad
+  // morosidad
   const handleDebtStatusChange = (value: 'all' | 'ok' | 'low' | 'high') => {
     setDebtStatus(value);
     setPage(0);
@@ -127,6 +151,12 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
 
   const handleMaxDebtChange = (value: string) => {
     setMaxDebt(value);
+    setPage(0);
+  };
+
+  // ⭐ handler paymentMethod
+  const handlePaymentMethodChange = (value: PaymentMethodFilter) => {
+    setPaymentMethod(value);
     setPage(0);
   };
 
@@ -151,6 +181,9 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
     minDebt,
     maxDebt,
 
+    // payment
+    paymentMethod,
+
     setPage,
     setLimit,
     setSearchInput,
@@ -169,9 +202,11 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
     setAudienceLt,
     handleAudienceLtChange,
 
-    // nuevos handlers expuestos
     handleDebtStatusChange,
     handleMinDebtChange,
     handleMaxDebtChange,
+
+    // ⭐ nuevo handler expuesto
+    handlePaymentMethodChange,
   };
 };

@@ -190,6 +190,7 @@ export function StoreBillingPanel({ storeId, storeName }: Props) {
             totalPaid={balance?.totalPaid ?? 0}
             totalPending={balance?.totalPending ?? 0}
             currency={currency}
+            maxDaysOverdue={balance?.maxDaysOverdue ?? 0}
           />
         </CardContent>
       </Card>

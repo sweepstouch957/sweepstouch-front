@@ -1,4 +1,4 @@
-// app/components/stores/Results.tsx (puede ser .tsx o .jsx)
+// app/components/stores/Results.tsx
 'use client';
 
 import { AccountCircle, Settings, Web } from '@mui/icons-material';
@@ -6,6 +6,7 @@ import {
   Box,
   Card,
   Checkbox,
+  Chip,
   Dialog,
   DialogContent,
   DialogTitle,
@@ -28,15 +29,12 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import CampaignsPanel from '../../content-shells/store-managment/panel/campaigns/campaign-panel';
 import StoreFilter from './filter';
+import { StoresBillingHeader } from './header';
 import { StoreTableSkeleton } from './skelleton';
 import StaffManagementMock from './StaffManagementMock';
 import StoreInfoSimplified from './StoreInfoSimplified';
 
 /* ------------------------------- helper split ------------------------------ */
-// Corta en el PRIMER dígito que aparezca.
-// "Antillana Superfood 2750 E Tremont Ave, Bronx, NY 10461, USA"
-// => name: "Antillana Superfood"
-//    address: "2750 E Tremont Ave, Bronx, NY 10461, USA"
 function splitByFirstNumber(raw, fallbackAddress) {
   const s = (raw || '').trim();
   const i = s.search(/\d/);
@@ -69,7 +67,6 @@ function getDebtStatus(pending = 0) {
     };
   }
 
-  // <= 198 => Low debt
   if (pending <= 198) {
     return {
       label: 'Low debt',
@@ -78,7 +75,6 @@ function getDebtStatus(pending = 0) {
     };
   }
 
-  // > 198 => High debt
   return {
     label: 'High debt',
     color: 'white',
@@ -94,6 +90,27 @@ function formatMoney(value = 0, currency = 'USD') {
   }).format(value);
 }
 
+/* ---------------------- helper payment method (chips) ---------------------- */
+
+function getPaymentMethodMeta(pm) {
+  switch (pm) {
+    case 'central_billing':
+      return { label: 'Central billing', color: 'primary' };
+    case 'card':
+      return { label: 'Card', color: 'info' };
+    case 'quickbooks':
+      return { label: 'QuickBooks', color: 'success' };
+    case 'ach':
+      return { label: 'ACH', color: 'secondary' };
+    case 'wire':
+      return { label: 'Wire', color: 'warning' };
+    case 'cash':
+      return { label: 'Cash', color: 'success' };
+    default:
+      return { label: 'N/A', color: 'default' };
+  }
+}
+
 /* ----------------------------- tiny components ---------------------------- */
 const LogoImg = ({ src }) => {
   if (!src) return null;
@@ -103,7 +120,7 @@ const LogoImg = ({ src }) => {
       component="img"
       src={src}
       alt="store logo"
-      sx={{ width: 40, height: 40, objectFit: 'contain' }}
+      sx={{ width: 40, height: 40, objectFit: 'contain', borderRadius: 1 }}
     />
   );
 };
@@ -122,6 +139,7 @@ const Results = ({
   debtStatus,
   minDebt,
   maxDebt,
+  paymentMethod,
 
   onPageChange,
   onLimitChange,
@@ -129,10 +147,9 @@ const Results = ({
   onStatusChange,
   onSortChange,
   onOrderChange,
-
   audienceLt,
   onAudienceLtChange,
-
+  onPaymentMethodChange,
   onDebtStatusChange,
   onMinDebtChange,
   onMaxDebtChange,
@@ -174,7 +191,6 @@ const Results = ({
     onSearchChange(e.target.value);
   };
 
-  // Ordenar desde el header (Name, Customers, Status/active, Days overdue)
   const handleRequestSort = (field) => {
     if (sortBy === field) {
       onOrderChange(order === 'asc' ? 'desc' : 'asc');
@@ -190,7 +206,7 @@ const Results = ({
 
   return (
     <>
-      {/* Modal de detalles de la tienda */}
+      {/* ---------------------------- MODAL DETALLES ---------------------------- */}
       <Dialog
         open={openModal}
         onClose={handleCloseModal}
@@ -208,9 +224,7 @@ const Results = ({
             <Tabs
               value={activeTab}
               onChange={handleTabChange}
-              aria-label="store details tabs"
               variant="fullWidth"
-              sx={{ '& .MuiTabs-flexContainer': { justifyContent: 'space-around' } }}
             >
               <Tab label={t('General Info')} />
               <Tab label={t('Campaigns')} />
@@ -218,39 +232,22 @@ const Results = ({
             </Tabs>
           </Box>
           <Box sx={{ p: 3 }}>
-            {/* Tab Panel 1: General Info */}
-            {activeTab === 0 && selectedStore && (
-              <Box>
-                <StoreInfoSimplified store={selectedStore} />
-              </Box>
-            )}
-
-            {/* Tab Panel 2: Campaigns */}
+            {activeTab === 0 && selectedStore && <StoreInfoSimplified store={selectedStore} />}
             {activeTab === 1 && selectedStore && (
-              <Box sx={{ p: 0 }}>
-                <CampaignsPanel
-                  storeId={selectedStore._id || selectedStore.id}
-                  storeName={selectedStore.name}
-                />
-              </Box>
+              <CampaignsPanel
+                storeId={selectedStore._id || selectedStore.id}
+                storeName={selectedStore.name}
+              />
             )}
-
-            {/* Tab Panel 3: Staff Management (Mock) */}
             {activeTab === 2 && selectedStore && (
-              <Box>
-                <Typography
-                  variant="h5"
-                  gutterBottom
-                >
-                  {t('Staff Management ')}
-                </Typography>
-                <StaffManagementMock storeId={selectedStore._id || selectedStore.id} />
-              </Box>
+              <StaffManagementMock storeId={selectedStore._id || selectedStore.id} />
             )}
           </Box>
         </DialogContent>
       </Dialog>
 
+      {/* ------------------------------- FILTROS -------------------------------- */}
+      <StoresBillingHeader />
       <StoreFilter
         t={t}
         search={search}
@@ -260,19 +257,21 @@ const Results = ({
         debtStatus={debtStatus}
         minDebt={minDebt}
         maxDebt={maxDebt}
+        paymentMethod={paymentMethod}
         handleSearchChange={handleSearchChange}
         onStatusChange={onStatusChange}
         onAudienceLtChange={onAudienceLtChange}
         onDebtStatusChange={onDebtStatusChange}
         onMinDebtChange={onMinDebtChange}
         onMaxDebtChange={onMaxDebtChange}
-        // 🆕 sort
         sortBy={sortBy}
-        order={order as 'asc' | 'desc'}
+        order={order}
         onSortChange={handleSortChange}
         onOrderChange={handleOrderChange}
+        onPaymentMethodChange={onPaymentMethodChange}
       />
 
+      {/* ------------------------------- TABLA -------------------------------- */}
       {loading ? (
         <StoreTableSkeleton rows={limit || 12} />
       ) : error ? (
@@ -307,23 +306,18 @@ const Results = ({
                       />
                     </TableCell>
 
-                    <TableCell>{t('Brand')}</TableCell>
-
-                    {/* Name (sortable) */}
+                    {/* COL 1: Store (logo + name + address) */}
                     <TableCell sortDirection={sortBy === 'name' ? order : false}>
                       <TableSortLabel
                         active={sortBy === 'name'}
                         direction={sortBy === 'name' ? order : 'asc'}
                         onClick={() => handleRequestSort('name')}
                       >
-                        {t('Store name')}
+                        {t('Store')}
                       </TableSortLabel>
                     </TableCell>
 
-                    {/* Address (no sortable) */}
-                    <TableCell>{t('Address')}</TableCell>
-
-                    {/* Customers (sortable) */}
+                    {/* COL 2: Customers */}
                     <TableCell sortDirection={sortBy === 'customerCount' ? order : false}>
                       <TableSortLabel
                         active={sortBy === 'customerCount'}
@@ -334,10 +328,13 @@ const Results = ({
                       </TableSortLabel>
                     </TableCell>
 
-                    {/* Balance pendiente */}
+                    {/* ⭐ COL 3: Weekly Campaign Cost */}
+                    <TableCell align="right">{t('Weekly campaigns')}</TableCell>
+
+                    {/* COL 4: Balance */}
                     <TableCell align="right">{t('Balance')}</TableCell>
 
-                    {/* Days overdue (sortable) */}
+                    {/* COL 5: Days overdue */}
                     <TableCell
                       align="right"
                       sortDirection={sortBy === 'maxDaysOverdue' ? order : false}
@@ -351,10 +348,13 @@ const Results = ({
                       </TableSortLabel>
                     </TableCell>
 
-                    {/* Nueva columna: estado de crédito */}
+                    {/* COL 6: Credit status */}
                     <TableCell align="center">{t('Credit status')}</TableCell>
 
-                    {/* Status (sortable via 'active') */}
+                    {/* COL 7: Payment method */}
+                    <TableCell align="center">{t('Payment method')}</TableCell>
+
+                    {/* COL 8: Status */}
                     <TableCell
                       align="center"
                       sortDirection={sortBy === 'active' ? order : false}
@@ -368,6 +368,7 @@ const Results = ({
                       </TableSortLabel>
                     </TableCell>
 
+                    {/* COL 9: Actions */}
                     <TableCell align="center">{t('Actions')}</TableCell>
                   </TableRow>
                 </TableHead>
@@ -382,13 +383,17 @@ const Results = ({
                     );
 
                     const pending = (store.billing && store.billing.totalPending) || 0;
+                    const weeklyCost = (store.billing && store.billing.lastWeekCampaignCost) || 0;
+
                     const debtStatusMeta = getDebtStatus(pending);
                     const daysOverdue = (store.billing && store.billing.maxDaysOverdue) || 0;
 
+                    const pmMeta:any = getPaymentMethodMeta(store.paymentMethod);
+
                     return (
                       <TableRow
-                        hover
                         key={id}
+                        hover
                         selected={isSelected}
                       >
                         <TableCell padding="checkbox">
@@ -398,33 +403,61 @@ const Results = ({
                           />
                         </TableCell>
 
+                        {/* STORE (logo + name + address) */}
                         <TableCell>
-                          <LogoImg src={store.image} />
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <LogoImg src={store.image} />
+                            <Box>
+                              <Link
+                                href={`/admin/management/stores/edit/${id}`}
+                                style={{ textDecoration: 'none', color: 'inherit' }}
+                              >
+                                <Typography
+                                  variant="subtitle1"
+                                  fontWeight={700}
+                                  sx={{
+                                    fontSize: 15,
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    maxWidth: 260,
+                                  }}
+                                >
+                                  {displayName}
+                                </Typography>
+                              </Link>
+
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{
+                                  fontSize: 12,
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  maxWidth: 260,
+                                }}
+                              >
+                                {displayAddress}
+                              </Typography>
+                            </Box>
+                          </Box>
                         </TableCell>
 
-                        <TableCell>
-                          <Link
-                            href={`/admin/management/stores/edit/${id}`}
-                            passHref
-                            style={{
-                              textDecoration: 'none',
-                              color: 'inherit',
-                            }}
-                          >
-                            <Typography
-                              variant="h6"
-                              sx={{ fontSize: 15 }}
-                            >
-                              {displayName}
-                            </Typography>
-                          </Link>
-                        </TableCell>
-
-                        <TableCell>{displayAddress}</TableCell>
-
+                        {/* Customers */}
                         <TableCell>{store.customerCount}</TableCell>
 
-                        {/* Balance pendiente */}
+                        {/* ⭐ Weekly Campaign Cost */}
+                        <TableCell align="right">
+                          <Typography
+                            fontWeight={600}
+                            color={weeklyCost > 0 ? 'primary.main' : 'text.secondary'}
+                          >
+                            {formatMoney(weeklyCost)}
+                          </Typography>
+                        </TableCell>
+
+                        {/* Balance */}
                         <TableCell align="right">
                           <Tooltip
                             title={
@@ -464,12 +497,11 @@ const Results = ({
                           </Tooltip>
                         </TableCell>
 
-                        {/* Estado de crédito (pill) */}
+                        {/* Credit status */}
                         <TableCell align="center">
                           <Box
                             sx={{
                               display: 'inline-flex',
-                              alignItems: 'center',
                               px: 1.5,
                               py: 0.4,
                               borderRadius: 999,
@@ -478,19 +510,40 @@ const Results = ({
                               bgcolor: debtStatusMeta.bg,
                               color: debtStatusMeta.color,
                               textTransform: 'uppercase',
-                              letterSpacing: 0.6,
                             }}
                           >
                             {debtStatusMeta.label}
                           </Box>
                         </TableCell>
 
+                        {/* Payment method */}
+                        <TableCell align="center">
+                          {store.paymentMethod ? (
+                            <Chip
+                              size="small"
+                              label={pmMeta.label}
+                              color={pmMeta.color}
+                              variant="outlined"
+                              sx={{ fontSize: 11, fontWeight: 600 }}
+                            />
+                          ) : (
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                            >
+                              —
+                            </Typography>
+                          )}
+                        </TableCell>
+
+                        {/* Status */}
                         <TableCell align="center">
                           <Typography color={store.active ? 'success.main' : 'error.main'}>
                             {store.active ? t('Active') : t('Inactive')}
                           </Typography>
                         </TableCell>
 
+                        {/* Actions */}
                         <TableCell align="center">
                           <Tooltip
                             title={t('View')}
@@ -520,7 +573,6 @@ const Results = ({
                             </IconButton>
                           </Tooltip>
 
-                          {/* Nuevo icono de usuario para el modal */}
                           <Tooltip
                             title={t('Store Details')}
                             arrow
@@ -541,7 +593,7 @@ const Results = ({
             </TableContainer>
           </Card>
 
-          {/* 🧭 Paginación MUI clásica */}
+          {/* PAGINATION */}
           <Box p={2}>
             <TablePagination
               component="div"

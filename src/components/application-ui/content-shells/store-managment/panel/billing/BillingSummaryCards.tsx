@@ -12,6 +12,7 @@ type Props = {
   totalPaid: number;
   totalPending: number;
   currency?: string;
+  maxDaysOverdue?: number;
 };
 
 export function BillingSummaryCards({

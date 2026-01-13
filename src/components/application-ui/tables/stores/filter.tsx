@@ -32,7 +32,9 @@ export default function StoreFilters({
   minDebt,
   maxDebt,
 
-  // 🆕 sort
+  paymentMethod, // ⬅️ NEW
+  onPaymentMethodChange, // ⬅️ NEW
+
   sortBy,
   order,
   onSortChange,
@@ -55,6 +57,9 @@ export default function StoreFilters({
   minDebt: string;
   maxDebt: string;
 
+  paymentMethod: string; // ⬅️ NEW
+  onPaymentMethodChange: (v: string) => void; // ⬅️ NEW
+
   sortBy: 'customerCount' | 'name' | 'active' | 'maxDaysOverdue' | string;
   order: 'asc' | 'desc';
   onSortChange: (v: 'customerCount' | 'name' | 'active' | 'maxDaysOverdue' | string) => void;
@@ -69,11 +74,16 @@ export default function StoreFilters({
 }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
   const onlyDigits = (v: string) => v.replace(/\D/g, '');
 
   const filtersActive =
-    search.trim() || status !== 'all' || audienceLt || debtStatus !== 'all' || minDebt || maxDebt;
+    search.trim() ||
+    status !== 'all' ||
+    audienceLt ||
+    debtStatus !== 'all' ||
+    minDebt ||
+    maxDebt ||
+    paymentMethod !== 'all';
 
   const handleOrderToggle = () => onOrderChange(order === 'asc' ? 'desc' : 'asc');
 
@@ -82,17 +92,17 @@ export default function StoreFilters({
       component={Paper}
       elevation={0}
       sx={{
-        p: { xs: 2, sm: 3 },
-        borderRadius: 3,
-        mb: 2,
+        p: { xs: 1.75, sm: 2 },
+        borderRadius: 2.5,
+        mb: 1.5,
         border: `1px solid ${theme.palette.divider}`,
         background:
           theme.palette.mode === 'light'
-            ? 'linear-gradient(135deg, #fdfbff 0%, #f4f7ff 60%, #fdfdfd 100%)'
+            ? 'linear-gradient(135deg, #fbfbff 0%, #f4f7ff 55%, #fdfdfd 100%)'
             : 'linear-gradient(135deg, #101322 0%, #151827 60%, #111318 100%)',
       }}
     >
-      <Stack spacing={2.5}>
+      <Stack spacing={2}>
         {/* Header pequeño */}
         <Stack
           direction="row"
@@ -100,22 +110,29 @@ export default function StoreFilters({
           alignItems="center"
           spacing={2}
         >
-          <Typography
-            variant="subtitle1"
-            fontWeight={600}
-          >
-            {t('Store filters')}
-          </Typography>
+          <Box>
+            <Typography
+              variant="subtitle1"
+              fontWeight={600}
+            >
+              {t('Store filters')}
+            </Typography>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+            >
+              Refina la vista por audiencia, deuda y estado.
+            </Typography>
+          </Box>
 
           <Stack
             direction="row"
             spacing={1}
             alignItems="center"
           >
-            {/* 🆕 Sort by + order */}
             <FormControl
               size="small"
-              sx={{ minWidth: 180 }}
+              sx={{ minWidth: 160 }}
             >
               <InputLabel>{t('Sort by')}</InputLabel>
               <Select
@@ -136,6 +153,7 @@ export default function StoreFilters({
               label={order === 'asc' ? t('Asc') : t('Desc')}
               variant="outlined"
               onClick={handleOrderToggle}
+              sx={{ fontSize: '0.7rem' }}
             />
 
             {filtersActive && (
@@ -144,6 +162,7 @@ export default function StoreFilters({
                 label={`${t('Results')}: ${total}`}
                 color="primary"
                 variant="outlined"
+                sx={{ fontSize: '0.7rem' }}
               />
             )}
           </Stack>
@@ -155,6 +174,7 @@ export default function StoreFilters({
           spacing={2}
           alignItems={{ xs: 'stretch', sm: 'center' }}
         >
+          {/* Search */}
           <TextField
             size="small"
             placeholder={t('Search by store name or zip')}
@@ -172,12 +192,13 @@ export default function StoreFilters({
             }
           />
 
+          {/* Audience < */}
           <TextField
             size="small"
             value={audienceLt}
             onChange={(e) => onAudienceLtChange(onlyDigits(e.target.value))}
             label={t('Audience <')}
-            sx={{ minWidth: 150 }}
+            sx={{ minWidth: 140 }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -187,9 +208,10 @@ export default function StoreFilters({
             }}
           />
 
+          {/* Status */}
           <FormControl
             size="small"
-            sx={{ minWidth: 150 }}
+            sx={{ minWidth: 140 }}
           >
             <InputLabel>{t('Status')}</InputLabel>
             <Select
@@ -202,6 +224,27 @@ export default function StoreFilters({
               <MenuItem value="inactive">{t('Inactive')}</MenuItem>
             </Select>
           </FormControl>
+
+          {/* ⭐ NEW: Payment Method */}
+          <FormControl
+            size="small"
+            sx={{ minWidth: 160 }}
+          >
+            <InputLabel>{t('Payment method')}</InputLabel>
+            <Select
+              value={paymentMethod}
+              onChange={(e) => onPaymentMethodChange(e.target.value)}
+              input={<OutlinedInput label={t('Payment method')} />}
+            >
+              <MenuItem value="all">{t('All')}</MenuItem>
+              <MenuItem value="central_billing">Central billing</MenuItem>
+              <MenuItem value="card">Card</MenuItem>
+              <MenuItem value="quickbooks">QuickBooks</MenuItem>
+              <MenuItem value="ach">ACH</MenuItem>
+              <MenuItem value="wire">Wire</MenuItem>
+              <MenuItem value="cash">Cash</MenuItem>
+            </Select>
+          </FormControl>
         </Stack>
 
         {/* 💸 Segunda fila – Morosidad */}
@@ -210,7 +253,7 @@ export default function StoreFilters({
           spacing={2}
           alignItems={{ xs: 'flex-start', sm: 'center' }}
         >
-          {/* Chip group de estado de deuda */}
+          {/* Chip group de deuda */}
           <Stack
             direction="row"
             spacing={1}
@@ -220,11 +263,11 @@ export default function StoreFilters({
             <WarningAmberTwoTone
               fontSize="small"
               color="warning"
-              style={{ marginRight: 4 }}
+              sx={{ mr: 0.5 }}
             />
             <Typography
               variant="body2"
-              sx={{ mr: 1 }}
+              sx={{ mr: 0.5 }}
             >
               {t('Debt status')}:
             </Typography>
@@ -233,7 +276,6 @@ export default function StoreFilters({
               size="small"
               label={t('All')}
               variant={debtStatus === 'all' ? 'filled' : 'outlined'}
-              color={debtStatus === 'all' ? 'default' : 'default'}
               onClick={() => onDebtStatusChange('all')}
             />
             <Chip

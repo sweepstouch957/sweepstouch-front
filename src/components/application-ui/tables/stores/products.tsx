@@ -33,6 +33,8 @@ function Component() {
     // 🆕 handlers morosidad
     handleDebtStatusChange,
     handleMinDebtChange,
+    handlePaymentMethodChange,
+    paymentMethod,
     handleMaxDebtChange,
   } = useStores();
 
@@ -137,6 +139,8 @@ function Component() {
       handleOrderChange={handleOrderChange}
       onMaxDebtChange={handleMaxDebtChange}
       handleSortChange={handleSortChange}
+      paymentMethod={paymentMethod}
+      onPaymentMethodChange={handlePaymentMethodChange}
     />
   );
 }
