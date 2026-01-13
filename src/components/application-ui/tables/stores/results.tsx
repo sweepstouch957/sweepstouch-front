@@ -329,7 +329,7 @@ const Results = ({
                     </TableCell>
 
                     {/* ⭐ COL 3: Weekly Campaign Cost */}
-                    <TableCell align="right">{t('Weekly campaigns')}</TableCell>
+                    <TableCell align="right">{t('Estimated Pay')}</TableCell>
 
                     {/* COL 4: Balance */}
                     <TableCell align="right">{t('Balance')}</TableCell>
