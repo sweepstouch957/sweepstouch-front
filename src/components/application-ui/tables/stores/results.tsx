@@ -1,12 +1,11 @@
 // app/components/stores/Results.tsx
 'use client';
 
+import { Store } from '@/services/store.service';
 import { AccountCircle, Settings, Web } from '@mui/icons-material';
 import {
   Box,
   Card,
-  Checkbox,
-  Chip,
   Dialog,
   DialogContent,
   DialogTitle,
@@ -25,7 +24,7 @@ import {
   Typography,
 } from '@mui/material';
 import Link from 'next/link';
-import { useState } from 'react';
+import React, { ChangeEvent, FC, SyntheticEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import CampaignsPanel from '../../content-shells/store-managment/panel/campaigns/campaign-panel';
 import StoreFilter from './filter';
@@ -35,8 +34,7 @@ import StaffManagementMock from './StaffManagementMock';
 import StoreInfoSimplified from './StoreInfoSimplified';
 
 /* ------------------------------- helper split ------------------------------ */
-// Corta en el PRIMER dígito que aparezca.
-function splitByFirstNumber(raw, fallbackAddress) {
+function splitByFirstNumber(raw: string, fallbackAddress?: string) {
   const s = (raw || '').trim();
   const i = s.search(/\d/);
   if (i > 0) {
@@ -53,7 +51,7 @@ function splitByFirstNumber(raw, fallbackAddress) {
 const MERCHANT_ORIGIN =
   process.env.NEXT_PUBLIC_MERCHANT_ORIGIN || 'https://merchant.sweepstouch.com';
 
-function buildSwitchUrl(storeId) {
+function buildSwitchUrl(storeId: string) {
   return `${MERCHANT_ORIGIN}/?ac=${storeId}`;
 }
 
@@ -61,26 +59,12 @@ function buildSwitchUrl(storeId) {
 
 function getDebtStatus(pending = 0) {
   if (pending <= 0) {
-    return {
-      label: 'OK',
-      color: 'white',
-      bg: 'success.light',
-    };
+    return { label: 'OK', color: 'white' as const, bg: 'success.light' as const };
   }
-
   if (pending <= 198) {
-    return {
-      label: 'Low debt',
-      color: 'white',
-      bg: 'warning.light',
-    };
+    return { label: 'HIGH DEBT', color: 'white' as const, bg: 'warning.light' as const };
   }
-
-  return {
-    label: 'High debt',
-    color: 'white',
-    bg: 'error.light',
-  };
+  return { label: 'HIGH DEBT', color: 'white' as const, bg: 'error.light' as const };
 }
 
 function formatMoney(value = 0, currency = 'USD') {
@@ -91,31 +75,53 @@ function formatMoney(value = 0, currency = 'USD') {
   }).format(value);
 }
 
-/* ---------------------- helper payment method (chips) ---------------------- */
+/* --------------------------------- props ---------------------------------- */
 
-function getPaymentMethodMeta(pm) {
-  switch (pm) {
-    case 'central_billing':
-      return { label: 'Central billing', color: 'primary' };
-    case 'card':
-      return { label: 'Card', color: 'info' };
-    case 'quickbooks':
-      return { label: 'QuickBooks', color: 'success' };
-    case 'ach':
-      return { label: 'ACH', color: 'secondary' };
-    case 'wire':
-      return { label: 'Wire', color: 'warning' };
-    case 'cash':
-      return { label: 'Cash', color: 'success' };
-    default:
-      return { label: 'N/A', color: 'default' };
-  }
+type StatusFilter = 'all' | 'active' | 'inactive';
+type DebtStatus = 'all' | 'ok' | 'low' | 'high';
+
+interface ResultsProps {
+  stores: Store[];
+  page: number;
+  limit: number;
+  total: number;
+
+  status: StatusFilter;
+  sortBy: string;
+  order: 'asc' | 'desc';
+  search: string;
+
+  debtStatus: DebtStatus;
+  minDebt: string;
+  maxDebt: string;
+
+  onPageChange: (page: number) => void;
+  onLimitChange: (e: ChangeEvent<HTMLInputElement>) => void;
+
+  onSearchChange: (query: string) => void;
+  onStatusChange: (status: StatusFilter) => void;
+  onSortChange: (sortBy: string) => void;
+  onOrderChange: (order: 'asc' | 'desc') => void;
+
+  audienceLt: string;
+  onAudienceLtChange: (v: string) => void;
+
+  onDebtStatusChange: (v: DebtStatus) => void;
+  onMinDebtChange: (v: string) => void;
+  onMaxDebtChange: (v: string) => void;
+
+  handleSortChange: (field: string) => void;
+  handleOrderChange: (order: 'asc' | 'desc') => void;
+
+  loading?: boolean;
+  error?: string | null;
+  onPaymentMethodChange?: (value: string) => void;
+  paymentMethod?: string;
 }
 
 /* ----------------------------- tiny components ---------------------------- */
-const LogoImg = ({ src }) => {
+const LogoImg: FC<{ src?: string }> = ({ src }) => {
   if (!src) return null;
-
   return (
     <Box
       component="img"
@@ -127,12 +133,11 @@ const LogoImg = ({ src }) => {
 };
 
 /* -------------------------------- component -------------------------------- */
-const Results = ({
+const Results: FC<ResultsProps> = ({
   stores,
   page,
   limit,
   total,
-
   status,
   sortBy,
   order,
@@ -140,8 +145,6 @@ const Results = ({
   debtStatus,
   minDebt,
   maxDebt,
-  paymentMethod,
-
   onPageChange,
   onLimitChange,
   onSearchChange,
@@ -150,67 +153,33 @@ const Results = ({
   onOrderChange,
   audienceLt,
   onAudienceLtChange,
-  onPaymentMethodChange,
   onDebtStatusChange,
   onMinDebtChange,
   onMaxDebtChange,
   handleSortChange,
   handleOrderChange,
   loading,
+  paymentMethod,
+  onPaymentMethodChange,
   error,
 }) => {
-  const [selectedItems, setSelected] = useState([]);
   const [openModal, setOpenModal] = useState(false);
-  const [selectedStore, setSelectedStore] = useState(null);
+  const [selectedStore, setSelectedStore] = useState<Store | null>(null);
   const [activeTab, setActiveTab] = useState(0);
   const { t } = useTranslation();
 
-  const handleOpenModal = (store) => {
+  const handleOpenModal = (store: Store) => {
     setSelectedStore(store);
     setOpenModal(true);
     setActiveTab(0);
   };
-
-  const handleCloseModal = () => {
-    setOpenModal(false);
-    setSelectedStore(null);
-  };
-
-  const handleTabChange = (_, newValue) => {
-    setActiveTab(newValue);
-  };
-
-  const handleSelectAll = (event) => {
-    setSelected(event.target.checked ? stores.map((s) => s._id || s.id) : []);
-  };
-
-  const handleSelectOne = (_, id) => {
-    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  };
-
-  const handleSearchChange = (e) => {
-    onSearchChange(e.target.value);
-  };
-
-  const handleRequestSort = (field) => {
-    if (sortBy === field) {
-      onOrderChange(order === 'asc' ? 'desc' : 'asc');
-    } else {
-      onSortChange(field);
-      onOrderChange('asc');
-    }
-    onPageChange(0);
-  };
-
-  const selectedAll = stores.length > 0 && selectedItems.length === stores.length;
-  const selectedSome = selectedItems.length > 0 && selectedItems.length < stores.length;
 
   return (
     <>
       {/* ---------------------------- MODAL DETALLES ---------------------------- */}
       <Dialog
         open={openModal}
-        onClose={handleCloseModal}
+        onClose={() => setOpenModal(false)}
         maxWidth="lg"
         fullWidth
       >
@@ -224,7 +193,7 @@ const Results = ({
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
             <Tabs
               value={activeTab}
-              onChange={handleTabChange}
+              onChange={(_, v) => setActiveTab(v)}
               variant="fullWidth"
             >
               <Tab label={t('General Info')} />
@@ -236,12 +205,14 @@ const Results = ({
             {activeTab === 0 && selectedStore && <StoreInfoSimplified store={selectedStore} />}
             {activeTab === 1 && selectedStore && (
               <CampaignsPanel
-                storeId={selectedStore._id || selectedStore.id}
+                storeId={(selectedStore as any)._id || (selectedStore as any).id}
                 storeName={selectedStore.name}
               />
             )}
             {activeTab === 2 && selectedStore && (
-              <StaffManagementMock storeId={selectedStore._id || selectedStore.id} />
+              <StaffManagementMock
+                storeId={(selectedStore as any)._id || (selectedStore as any).id}
+              />
             )}
           </Box>
         </DialogContent>
@@ -258,18 +229,18 @@ const Results = ({
         debtStatus={debtStatus}
         minDebt={minDebt}
         maxDebt={maxDebt}
-        paymentMethod={paymentMethod}
-        handleSearchChange={handleSearchChange}
+        handleSearchChange={(e) => onSearchChange(e.target.value)}
         onStatusChange={onStatusChange}
         onAudienceLtChange={onAudienceLtChange}
         onDebtStatusChange={onDebtStatusChange}
         onMinDebtChange={onMinDebtChange}
+        paymentMethod={paymentMethod}
+        onPaymentMethodChange={onPaymentMethodChange}
         onMaxDebtChange={onMaxDebtChange}
         sortBy={sortBy}
         order={order}
         onSortChange={handleSortChange}
         onOrderChange={handleOrderChange}
-        onPaymentMethodChange={onPaymentMethodChange}
       />
 
       {/* ------------------------------- TABLA -------------------------------- */}
@@ -296,112 +267,102 @@ const Results = ({
         <>
           <Card>
             <TableContainer>
-              <Table>
+              <Table
+                sx={{
+                  tableLayout: 'fixed',
+                  width: '100%',
+                  '& th, & td': { whiteSpace: 'nowrap' },
+
+                  // STORE
+                  '& th:nth-of-type(1), & td:nth-of-type(1)': { width: '24%' },
+                  // CUSTOMERS (más compacto)
+                  '& th:nth-of-type(2), & td:nth-of-type(2)': { width: '6%' },
+                  // WEEKLY (más compacto)
+                  '& th:nth-of-type(3), & td:nth-of-type(3)': { width: '10%' },
+                  // BALANCE
+                  '& th:nth-of-type(4), & td:nth-of-type(4)': { width: '13%' },
+                  // OVERDUE
+                  '& th:nth-of-type(5), & td:nth-of-type(5)': { width: '8%' },
+                  // CREDIT
+                  '& th:nth-of-type(6), & td:nth-of-type(6)': { width: '13%' },
+                  // STATUS
+                  '& th:nth-of-type(7), & td:nth-of-type(7)': { width: '8%' },
+                  // ACTIONS (más ancho)
+                  '& th:nth-of-type(8), & td:nth-of-type(8)': { width: '18%' },
+                }}
+              >
                 <TableHead>
                   <TableRow>
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        checked={selectedAll}
-                        indeterminate={selectedSome}
-                        onChange={handleSelectAll}
-                      />
-                    </TableCell>
-
-                    {/* COL 1: Store (logo + name + address) */}
-                    <TableCell sortDirection={sortBy === 'name' ? order : false}>
+                    <TableCell>
                       <TableSortLabel
                         active={sortBy === 'name'}
                         direction={sortBy === 'name' ? order : 'asc'}
-                        onClick={() => handleRequestSort('name')}
+                        onClick={() => onSortChange('name')}
                       >
                         {t('Store')}
                       </TableSortLabel>
                     </TableCell>
 
-                    {/* COL 2: Customers */}
-                    <TableCell sortDirection={sortBy === 'customerCount' ? order : false}>
+                    <TableCell>
                       <TableSortLabel
                         active={sortBy === 'customerCount'}
                         direction={sortBy === 'customerCount' ? order : 'asc'}
-                        onClick={() => handleRequestSort('customerCount')}
+                        onClick={() => onSortChange('customerCount')}
                       >
                         {t('Customers')}
                       </TableSortLabel>
                     </TableCell>
 
-                    <TableCell align="right">{t('Weekly Consumed')}</TableCell>
-
+                    <TableCell align="right">{t('Weekly')}</TableCell>
                     <TableCell align="right">{t('Balance')}</TableCell>
 
-                    <TableCell
-                      align="right"
-                      sortDirection={sortBy === 'maxDaysOverdue' ? order : false}
-                    >
+                    <TableCell align="right">
                       <TableSortLabel
                         active={sortBy === 'maxDaysOverdue'}
                         direction={sortBy === 'maxDaysOverdue' ? order : 'desc'}
-                        onClick={() => handleRequestSort('maxDaysOverdue')}
+                        onClick={() => onSortChange('maxDaysOverdue')}
                       >
-                        {t('Days overdue')}
+                        {t('Overdue')}
                       </TableSortLabel>
                     </TableCell>
 
-                    {/* COL 6: Credit status */}
-                    <TableCell align="center">{t('Credit status')}</TableCell>
+                    <TableCell align="center">{t('Credit')}</TableCell>
 
-                    {/* COL 7: Payment method */}
-                    <TableCell align="center">{t('Payment method')}</TableCell>
-
-                    {/* COL 8: Status */}
-                    <TableCell
-                      align="center"
-                      sortDirection={sortBy === 'active' ? order : false}
-                    >
+                    <TableCell align="center">
                       <TableSortLabel
                         active={sortBy === 'active'}
                         direction={sortBy === 'active' ? order : 'asc'}
-                        onClick={() => handleRequestSort('active')}
+                        onClick={() => onSortChange('active')}
                       >
                         {t('Status')}
                       </TableSortLabel>
                     </TableCell>
 
-                    {/* COL 9: Actions */}
                     <TableCell align="center">{t('Actions')}</TableCell>
                   </TableRow>
                 </TableHead>
 
                 <TableBody>
-                  {stores.map((store) => {
+                  {stores.map((store: any) => {
                     const id = store._id || store.id;
-                    const isSelected = selectedItems.includes(id);
+
                     const { displayName, displayAddress } = splitByFirstNumber(
                       store.name,
                       store.address
                     );
 
-                    const pending = (store.billing && store.billing.totalPending) || 0;
-                    const weeklyCost = (store.billing && store.billing.lastWeekCampaignCost) || 0;
+                    const pending = store.billing?.totalPending || 0;
+                    const weeklyCost = store.billing?.lastWeekCampaignCost || 0;
+                    const daysOverdue = store.billing?.maxDaysOverdue || 0;
 
                     const debtStatusMeta = getDebtStatus(pending);
-                    const daysOverdue = (store.billing && store.billing.maxDaysOverdue) || 0;
-
-                    const pmMeta:any = getPaymentMethodMeta(store.paymentMethod);
 
                     return (
                       <TableRow
                         key={id}
                         hover
-                        selected={isSelected}
                       >
-                        <TableCell padding="checkbox">
-                          <Checkbox
-                            checked={isSelected}
-                            onChange={(e) => handleSelectOne(e, id)}
-                          />
-                        </TableCell>
-
-                        {/* STORE (logo + name + address) */}
+                        {/* STORE */}
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                             <LogoImg src={store.image} />
@@ -415,10 +376,9 @@ const Results = ({
                                   fontWeight={700}
                                   sx={{
                                     fontSize: 15,
-                                    whiteSpace: 'nowrap',
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
-                                    maxWidth: 260,
+                                    maxWidth: 220,
                                   }}
                                 >
                                   {displayName}
@@ -430,10 +390,9 @@ const Results = ({
                                 color="text.secondary"
                                 sx={{
                                   fontSize: 12,
-                                  whiteSpace: 'nowrap',
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
-                                  maxWidth: 260,
+                                  maxWidth: 220,
                                 }}
                               >
                                 {displayAddress}
@@ -445,7 +404,7 @@ const Results = ({
                         {/* Customers */}
                         <TableCell>{store.customerCount}</TableCell>
 
-                        {/* ⭐ Weekly Campaign Cost */}
+                        {/* Weekly */}
                         <TableCell align="right">
                           <Typography
                             fontWeight={600}
@@ -457,45 +416,25 @@ const Results = ({
 
                         {/* Balance */}
                         <TableCell align="right">
-                          <Tooltip
-                            title={
-                              store.billing
-                                ? `Invoiced: ${formatMoney(
-                                    store.billing.totalInvoiced || 0
-                                  )} · Paid: ${formatMoney(store.billing.totalPaid || 0)}`
-                                : ''
-                            }
-                            arrow
+                          <Typography
+                            fontWeight={600}
+                            color={pending > 0 ? 'error.main' : 'success.main'}
                           >
-                            <Typography
-                              fontWeight={600}
-                              color={pending > 0 ? 'error.main' : 'success.main'}
-                            >
-                              {formatMoney(pending)}
-                            </Typography>
-                          </Tooltip>
+                            {formatMoney(pending)}
+                          </Typography>
                         </TableCell>
 
-                        {/* Days overdue */}
+                        {/* Overdue */}
                         <TableCell align="right">
-                          <Tooltip
-                            title={
-                              daysOverdue > 0
-                                ? `${daysOverdue} ${t('days overdue')}`
-                                : t('No overdue')
-                            }
-                            arrow
+                          <Typography
+                            fontWeight={600}
+                            color={daysOverdue > 0 ? 'warning.main' : 'text.secondary'}
                           >
-                            <Typography
-                              fontWeight={600}
-                              color={daysOverdue > 0 ? 'warning.main' : 'text.secondary'}
-                            >
-                              {daysOverdue > 0 ? `${daysOverdue}d` : '—'}
-                            </Typography>
-                          </Tooltip>
+                            {daysOverdue > 0 ? `${daysOverdue}d` : '—'}
+                          </Typography>
                         </TableCell>
 
-                        {/* Credit status */}
+                        {/* Credit */}
                         <TableCell align="center">
                           <Box
                             sx={{
@@ -512,26 +451,6 @@ const Results = ({
                           >
                             {debtStatusMeta.label}
                           </Box>
-                        </TableCell>
-
-                        {/* Payment method */}
-                        <TableCell align="center">
-                          {store.paymentMethod ? (
-                            <Chip
-                              size="small"
-                              label={pmMeta.label}
-                              color={pmMeta.color}
-                              variant="outlined"
-                              sx={{ fontSize: 11, fontWeight: 600 }}
-                            />
-                          ) : (
-                            <Typography
-                              variant="body2"
-                              color="text.secondary"
-                            >
-                              —
-                            </Typography>
-                          )}
                         </TableCell>
 
                         {/* Status */}
@@ -563,16 +482,16 @@ const Results = ({
                           >
                             <IconButton
                               color="secondary"
-                              onClick={() => {
-                                window.open(buildSwitchUrl(store.accessCode), '_blank');
-                              }}
+                              onClick={() =>
+                                window.open(buildSwitchUrl(store.accessCode), '_blank')
+                              }
                             >
                               <Web fontSize="small" />
                             </IconButton>
                           </Tooltip>
 
                           <Tooltip
-                            title={t('Store Details')}
+                            title={t('Details')}
                             arrow
                           >
                             <IconButton
@@ -591,7 +510,6 @@ const Results = ({
             </TableContainer>
           </Card>
 
-          {/* PAGINATION */}
           <Box p={2}>
             <TablePagination
               component="div"
