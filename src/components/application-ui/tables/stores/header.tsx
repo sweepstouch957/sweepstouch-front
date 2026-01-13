@@ -49,11 +49,16 @@ export function StoresBillingHeader({ status = 'all' }: Props) {
 
   const loading = isLoading || isFetching;
 
+  const totalWithDebt =
+    data ? (data.low?.count || 0) + (data.high?.count || 0) : 0;
+
+  const overallPending = data?.overall?.totalPending || 0;
+
   return (
     <Box
       sx={{
         width: '100%',
-        mb: 1.5, // 🔽 menos espacio hacia los filtros
+        mb: 1.5, // menos espacio hacia los filtros
       }}
     >
       <Paper
@@ -186,11 +191,11 @@ export function StoresBillingHeader({ status = 'all' }: Props) {
                   variant="caption"
                   sx={{ opacity: 0.9 }}
                 >
-                  Pendiente: {formatMoney(data.ok.totalPending)}
+                  Deuda: {formatMoney(data.ok.totalPending)} · 0 días vencidos
                 </Typography>
               </Box>
 
-              {/* Low debt */}
+              {/* Low debt (1–14 días) */}
               <Box
                 sx={{
                   flex: 1,
@@ -214,7 +219,7 @@ export function StoresBillingHeader({ status = 'all' }: Props) {
                     variant="subtitle2"
                     sx={{ textTransform: 'uppercase', letterSpacing: 0.8 }}
                   >
-                    Low debt · &lt;= 198
+                    Low debt · 1–14 días
                   </Typography>
                 </Stack>
                 <Typography
@@ -227,11 +232,11 @@ export function StoresBillingHeader({ status = 'all' }: Props) {
                   variant="caption"
                   sx={{ opacity: 0.9 }}
                 >
-                  Pendiente: {formatMoney(data.low.totalPending)}
+                  Deuda: {formatMoney(data.low.totalPending)} · entre 1 y 14 días de atraso
                 </Typography>
               </Box>
 
-              {/* High debt */}
+              {/* High debt (15+ días) */}
               <Box
                 sx={{
                   flex: 1,
@@ -255,7 +260,7 @@ export function StoresBillingHeader({ status = 'all' }: Props) {
                     variant="subtitle2"
                     sx={{ textTransform: 'uppercase', letterSpacing: 0.8 }}
                   >
-                    High debt · &gt; 198
+                    High debt · 15+ días
                   </Typography>
                 </Stack>
                 <Typography
@@ -268,7 +273,7 @@ export function StoresBillingHeader({ status = 'all' }: Props) {
                   variant="caption"
                   sx={{ opacity: 0.9 }}
                 >
-                  Pendiente: {formatMoney(data.high.totalPending)}
+                  Deuda: {formatMoney(data.high.totalPending)} · 15 días o más de atraso
                 </Typography>
               </Box>
             </Stack>
@@ -280,7 +285,8 @@ export function StoresBillingHeader({ status = 'all' }: Props) {
                 color="text.secondary"
               >
                 Total tiendas: <strong>{data.overall.totalStores}</strong> · Deuda acumulada:{' '}
-                <strong>{formatMoney(data.overall.totalPending)}</strong>
+                <strong>{formatMoney(overallPending)}</strong> · Tiendas con deuda:{' '}
+                <strong>{totalWithDebt}</strong> (low + high)
               </Typography>
             </Box>
           </>
