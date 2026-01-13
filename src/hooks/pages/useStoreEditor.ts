@@ -20,6 +20,9 @@ const isValidLngLat = (coords) => {
 const softEqual = (a, b) => {
   const aEmpty = a === undefined || a === null || a === '';
   const bEmpty = b === undefined || b === null || b === '';
+  // Caso especial: tratamos "sin_instalar" como vacío para no forzar patches
+  // cuando el backend aún no tiene estos campos.
+  if ((aEmpty && b === 'sin_instalar') || (bEmpty && a === 'sin_instalar')) return true;
   if (aEmpty && bEmpty) return true;
   return a === b;
 };
@@ -60,6 +63,14 @@ export function useStoreEditor(store) {
     membershipType: store.membershipType ?? 'semanal',
     paymentMethod: store.paymentMethod ?? 'card',
     startContractDate: store.startContractDate ?? null,
+
+    // 🆕 Tablet / Kiosko
+    // 'instalada' | 'desinstalada' | 'sin_instalar'
+    kioskTabletStatus: store.kioskTabletStatus ?? 'sin_instalar',
+    // Fecha (YYYY-MM-DD) o null
+    kioskTabletDate: store.kioskTabletDate ?? null,
+    // Cantidad de tablets (number) o null
+    kioskTabletQuantity: store.kioskTabletQuantity ?? null,
   });
 
   const kioskUrl = useMemo(
@@ -113,6 +124,11 @@ export function useStoreEditor(store) {
       'membershipType',
       'paymentMethod',
       'startContractDate',
+
+      // 🆕 Tablet / Kiosko
+      'kioskTabletStatus',
+      'kioskTabletDate',
+      'kioskTabletQuantity',
     ];
 
     keys.forEach((k) => {
@@ -199,6 +215,11 @@ export function useStoreEditor(store) {
       membershipType: store.membershipType ?? 'semanal',
       paymentMethod: store.paymentMethod ?? 'card',
       startContractDate: store.startContractDate ?? null,
+
+      // 🆕 Tablet / Kiosko
+      kioskTabletStatus: store.kioskTabletStatus ?? 'sin_instalar',
+      kioskTabletDate: store.kioskTabletDate ?? null,
+      kioskTabletQuantity: store.kioskTabletQuantity ?? null,
     });
     setEdit(false);
   };

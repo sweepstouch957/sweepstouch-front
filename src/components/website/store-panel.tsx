@@ -550,6 +550,9 @@ export default function StoreInfo({ store }: { store: Store }) {
           <StoreKioskCard
             kioskUrl={kioskUrl}
             storeId={store._id}
+            edit={edit}
+            form={form as any}
+            setForm={setForm as any}
           />
         </CardContent>
       </Card>
