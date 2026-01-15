@@ -39,6 +39,11 @@ export interface Store {
   lng?: number | null;
   lat?: number | null;
   email?: string;
+
+  // 🆕 Tablet / Kiosko
+  kioskTabletStatus?: 'instalada' | 'desinstalada' | 'sin_instalar';
+  kioskTabletDate?: string | null; // YYYY-MM-DD o ISO
+  kioskTabletQuantity?: number | null;
 }
 
 export interface UpdateStoreBody {
@@ -58,6 +63,11 @@ export interface UpdateStoreBody {
   membershipType?: 'mensual' | 'semanal' | 'especial';
   paymentMethod?: 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
   startContractDate?: string | null; // ISO o null
+
+  // 🆕 Tablet / Kiosko
+  kioskTabletStatus?: 'instalada' | 'desinstalada' | 'sin_instalar';
+  kioskTabletDate?: string | null;
+  kioskTabletQuantity?: number | null;
 }
 
 export interface GetStoresResponse {
