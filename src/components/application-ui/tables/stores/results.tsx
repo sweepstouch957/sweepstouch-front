@@ -24,7 +24,7 @@ import {
   Typography,
 } from '@mui/material';
 import Link from 'next/link';
-import React, { ChangeEvent, FC, SyntheticEvent, useState } from 'react';
+import React, { ChangeEvent, FC, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import CampaignsPanel from '../../content-shells/store-managment/panel/campaigns/campaign-panel';
 import StoreFilter from './filter';
@@ -56,14 +56,25 @@ function buildSwitchUrl(storeId: string) {
 }
 
 /* --------------------------- helpers de morosidad -------------------------- */
-
-function getDebtStatus(pending = 0) {
+/**
+ * Se basa en:
+ *  - pending <= 0  -> OK
+ *  - installmentsNeeded < 2 -> LOW DEBT
+ *  - installmentsNeeded >= 2 o no definido -> HIGH DEBT
+ */
+function getDebtStatus(pending = 0, installmentsNeeded?: number | null) {
   if (pending <= 0) {
     return { label: 'OK', color: 'white' as const, bg: 'success.light' as const };
   }
-  if (pending <= 198) {
-    return { label: 'HIGH DEBT', color: 'white' as const, bg: 'warning.light' as const };
+
+  if (!installmentsNeeded || !Number.isFinite(installmentsNeeded)) {
+    return { label: 'HIGH DEBT', color: 'white' as const, bg: 'error.light' as const };
   }
+
+  if (installmentsNeeded < 2) {
+    return { label: 'LOW DEBT', color: 'white' as const, bg: 'warning.light' as const };
+  }
+
   return { label: 'HIGH DEBT', color: 'white' as const, bg: 'error.light' as const };
 }
 
@@ -275,19 +286,19 @@ const Results: FC<ResultsProps> = ({
 
                   // STORE
                   '& th:nth-of-type(1), & td:nth-of-type(1)': { width: '24%' },
-                  // CUSTOMERS (más compacto)
+                  // CUSTOMERS
                   '& th:nth-of-type(2), & td:nth-of-type(2)': { width: '6%' },
-                  // WEEKLY (más compacto)
+                  // WEEKLY
                   '& th:nth-of-type(3), & td:nth-of-type(3)': { width: '10%' },
                   // BALANCE
                   '& th:nth-of-type(4), & td:nth-of-type(4)': { width: '13%' },
-                  // OVERDUE
+                  // PLAN (antes overdue)
                   '& th:nth-of-type(5), & td:nth-of-type(5)': { width: '8%' },
                   // CREDIT
                   '& th:nth-of-type(6), & td:nth-of-type(6)': { width: '13%' },
                   // STATUS
                   '& th:nth-of-type(7), & td:nth-of-type(7)': { width: '8%' },
-                  // ACTIONS (más ancho)
+                  // ACTIONS
                   '& th:nth-of-type(8), & td:nth-of-type(8)': { width: '18%' },
                 }}
               >
@@ -316,15 +327,8 @@ const Results: FC<ResultsProps> = ({
                     <TableCell align="right">{t('Weekly')}</TableCell>
                     <TableCell align="right">{t('Balance')}</TableCell>
 
-                    <TableCell align="right">
-                      <TableSortLabel
-                        active={sortBy === 'maxDaysOverdue'}
-                        direction={sortBy === 'maxDaysOverdue' ? order : 'desc'}
-                        onClick={() => onSortChange('maxDaysOverdue')}
-                      >
-                        {t('Overdue')}
-                      </TableSortLabel>
-                    </TableCell>
+                    {/* Columna de plan de pago (cuotas necesarias) */}
+                    <TableCell align="right">{t('Installments')}</TableCell>
 
                     <TableCell align="center">{t('Credit')}</TableCell>
 
@@ -353,9 +357,9 @@ const Results: FC<ResultsProps> = ({
 
                     const pending = store.billing?.totalPending || 0;
                     const weeklyCost = store.billing?.lastWeekCampaignCost || 0;
-                    const daysOverdue = store.billing?.maxDaysOverdue || 0;
+                    const installmentsNeeded = store.billing?.installmentsNeeded ?? null;
 
-                    const debtStatusMeta = getDebtStatus(pending);
+                    const debtStatusMeta = getDebtStatus(pending, installmentsNeeded ?? undefined);
 
                     return (
                       <TableRow
@@ -424,13 +428,13 @@ const Results: FC<ResultsProps> = ({
                           </Typography>
                         </TableCell>
 
-                        {/* Overdue */}
+                        {/* Installments (plan de pago) */}
                         <TableCell align="right">
                           <Typography
                             fontWeight={600}
-                            color={daysOverdue > 0 ? 'warning.main' : 'text.secondary'}
+                            color={pending > 0 ? 'text.primary' : 'text.secondary'}
                           >
-                            {daysOverdue > 0 ? `${daysOverdue}d` : '—'}
+                            {pending <= 0 ? '—' : `${installmentsNeeded} weeks` }
                           </Typography>
                         </TableCell>
 
