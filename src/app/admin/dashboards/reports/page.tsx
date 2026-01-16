@@ -16,7 +16,7 @@ function Page(): React.JSX.Element {
   const { t } = useTranslation();
 
   const currentYear = new Date().getFullYear();
-  const initialYear = currentYear >= 2025 ? 2025 : currentYear;
+  const initialYear = currentYear >= 2026 ? 2026 : currentYear;
   const [year, setYear] = React.useState<number>(initialYear);
 
   const pageMeta = {
@@ -85,7 +85,7 @@ function Page(): React.JSX.Element {
             onYearChange={setYear}
           />
 
-       
+
         </Box>
       </Container>
     </>
