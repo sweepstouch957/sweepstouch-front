@@ -2,40 +2,38 @@
 import { api } from '@/libs/axios';
 import type { AxiosResponse } from 'axios';
 
-interface RegisterParticipantPayload {
+/* ===================== PARTICIPANTS ===================== */
+
+export interface RegisterParticipantPayload {
   sweepstakeId: string;
   customerPhone: string;
   storeId: string;
   createdBy?: string;
-  method?: 'qr' | 'tablet' | 'pinpad' | 'web' | 'referral';
+  method?: 'qr' | 'tablet' | 'pinpad' | 'web' | 'referral' | 'promotor';
 }
-export interface AudienceWindowResponse {
-  storeId: string;
-  dateRange: { startDate: string; endDate: string };
-  audience: { initial: number; final: number; delta: number; newInRange: number };
-  byWeekday: { label: string; total: number }[];
-}
-interface FilterParams {
+
+export interface FilterParams {
   promotorId?: string;
   startDate: string;
   endDate: string;
   storeId?: string;
-  method?: 'qr' | 'tablet' | 'pinpad' | 'web' | 'referral';
+  method?: 'qr' | 'tablet' | 'pinpad' | 'web' | 'referral' | 'promotor';
   sweepstakeId?: string;
 }
 
-interface FilterPromotors {
+export interface FilterPromotors {
   startDate: string;
   endDate: string;
   storeIds?: string[];
 }
 
-interface Pagination {
+export interface Pagination {
   page: number;
   limit: number;
 }
 
-/* --------- Tipos para Checklist --------- */
+/* ===================== CHECKLIST TYPES ===================== */
+
 export type ChecklistStepKey =
   | 'clientBrief'
   | 'designAssets'
@@ -65,6 +63,8 @@ export interface Checklist {
   monitoring?: ChecklistStep;
 }
 
+/* ===================== STORES BY SWEEPSTAKE TYPES ===================== */
+
 export interface StoreSweepstake {
   storeId: string;
   storeName: string;
@@ -73,6 +73,15 @@ export interface StoreSweepstake {
   storeCustomerCount: number;
   totalParticipations: number;
 }
+
+export interface StoreSweepstakeResponse {
+  total: number;
+  page: number;
+  limit: number;
+  data: StoreSweepstake[];
+}
+
+/* ===================== SWEEPSTAKES TYPES ===================== */
 
 export interface Sweepstakes {
   id: string;
@@ -97,14 +106,7 @@ export interface Sweepstakes {
   createdAt?: string;
 }
 
-interface StoreSweepstakeResponse {
-  total: number;
-  page: number;
-  limit: number;
-  data: StoreSweepstake[];
-}
-
-/** ===== Tipos Audience Windows ===== */
+/** ===== Audience Windows ===== */
 export interface AudienceWindowResponse {
   storeId: string;
   dateRange: { startDate: string; endDate: string };
@@ -112,6 +114,23 @@ export interface AudienceWindowResponse {
   byWeekday: Array<{ label: string; total: number }>;
   byDay: Array<{ date: string; total: number }>;
 }
+
+/** ===== Sample phones =====
+ * Ajusta campos según tu endpoint real si devuelve más data.
+ */
+export interface ParticipantPhoneSample {
+  phone: string;
+  createdAt?: string;
+  storeId?: string;
+}
+
+/** ===== Count by sweepstake ===== */
+export interface SweepstakeRegistrationsCountResponse {
+  sweepstakeId: string;
+  totalRegistrations: number;
+}
+
+/* ===================== SWEEPSTAKES CLIENT ===================== */
 
 export class SweepstakesClient {
   /* ------------ Participants ------------ */
@@ -168,6 +187,7 @@ export class SweepstakesClient {
     return res.data;
   }
 
+  /* ------------- Sweepstakes ------------- */
   async getSweepstakes(filters?: { status?: string; name?: string }): Promise<Sweepstakes[]> {
     const res = await api.get('/sweepstakes', { params: filters });
     return res.data;
@@ -233,9 +253,8 @@ export class SweepstakesClient {
     return res.data.total ?? 0;
   }
 
-  /* ====== NUEVO: Audience Windows por tienda (7 días) ======
-     GET /sweepstakes/audience-windows/:storeId?startDate=ISO&endDate=ISO
-     Responde con el shape que mandaste.
+  /* ====== Audience Windows por tienda ======
+     GET /sweepstakes/participants/audience-windows/:storeId?startDate=ISO&endDate=ISO
   */
   async getAudienceWindows(
     storeId: string,
@@ -247,11 +266,45 @@ export class SweepstakesClient {
     });
     return res.data as AudienceWindowResponse;
   }
+
+  /* ====== NUEVO: Sample phones ======
+     GET /sweepstakes/participants/:sweepstakeId/participants/sample-phones?storeId=...
+  */
+  async getParticipantsSamplePhones(
+    sweepstakeId: string,
+    storeId?: string
+  ): Promise<ParticipantPhoneSample[]> {
+    const res = await api.get<ParticipantPhoneSample[]>(
+      `/sweepstakes/participants/${sweepstakeId}/participants/sample-phones`,
+      { params: storeId ? { storeId } : {} }
+    );
+
+    return res.data;
+  }
+
+  /* ====== NUEVO: Count by sweepstake ======
+     GET /sweepstakes/participants/count-by-sweepstake?sweepstakeId=...&...
+  */
+  async getSweepstakeRegistrationsCount(params: {
+    sweepstakeId: string;
+    startDate?: string;
+    endDate?: string;
+    promotorId?: string;
+    method?: 'qr' | 'pinpad' | 'tablet' | 'web' | 'referral' | 'promotor';
+  }): Promise<SweepstakeRegistrationsCountResponse> {
+    const res = await api.get<SweepstakeRegistrationsCountResponse>(
+      '/sweepstakes/participants/count-by-sweepstake',
+      { params }
+    );
+
+    return res.data;
+  }
 }
 
 export const sweepstakesClient = new SweepstakesClient();
 
 /* ===================== PRIZES ===================== */
+
 export interface Prize {
   _id?: string;
   name: string;

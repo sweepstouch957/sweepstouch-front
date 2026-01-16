@@ -56,7 +56,7 @@ function Page(): React.JSX.Element {
               <SweepstakesBalance sweepstakeId={sweepstakeId as string} />
             </Grid>
             <Grid xs={12}>
-              <PrizeRouletteCard />
+              <PrizeRouletteCard sweepstakeId={sweepstakeId as string} />
             </Grid>
             <Grid xs={12}>
               <WeeklySales sweepstakeId={sweepstakeId as string} />
