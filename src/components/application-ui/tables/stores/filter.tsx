@@ -238,6 +238,7 @@ export default function StoreFilters({
             >
               <MenuItem value="all">{t('All')}</MenuItem>
               <MenuItem value="central_billing">Central billing</MenuItem>
+              <MenuItem value="check">Check</MenuItem>
               <MenuItem value="card">Card</MenuItem>
               <MenuItem value="quickbooks">QuickBooks</MenuItem>
               <MenuItem value="ach">ACH</MenuItem>

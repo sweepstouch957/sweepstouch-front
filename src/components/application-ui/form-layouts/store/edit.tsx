@@ -132,6 +132,7 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat }: Pro
           disabled={!edit}
         >
           <MenuItem value="card">Tarjeta</MenuItem>
+          <MenuItem value="check">Check</MenuItem>
           <MenuItem value="central_billing">Central Billing</MenuItem>
           <MenuItem value="quickbooks">QuickBooks</MenuItem>
           <MenuItem value="ach">ACH</MenuItem>
