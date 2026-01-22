@@ -1,40 +1,27 @@
 'use client';
 
 import { useParticipantsSamplePhones } from '@/hooks/fetching/sweepstakes/useSweepstakesExtras';
+import { useConfetti } from '@/hooks/use-confetti';
 import { alpha, Box, Button, Card, Stack, Typography, useTheme } from '@mui/material';
-import  { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 /* ===================== Types ===================== */
 export interface ParticipantPhoneSample {
-  phone: string;
-  createdAt?: string;
-  storeId?: string;
-  storeName?: string; // ✅ nombre tienda correcto
+  phoneNumber: string;
+  storeName: string;
 }
 
 type Props = {
   sweepstakeId: string;
 };
 
-type ConfettiParticle = {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  r: number;
-  a: number;
-  va: number;
-  life: number;
-  color: string;
-};
-
 /* ===================== Helpers ===================== */
 function formatPhone(raw: string): string {
-  const digits = raw.replace(/\D/g, '');
+  const digits = (raw ?? '').replace(/\D/g, '');
   if (digits.length === 10) {
     return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
   }
-  return raw;
+  return raw ?? '';
 }
 
 function randomUSPhone(): string {
@@ -188,105 +175,12 @@ function WheelSvg({ rotationDeg, size = 340 }: { rotationDeg: number; size?: num
   );
 }
 
-/* ===================== Confetti ===================== */
-function useConfetti() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const rafRef = useRef<number | null>(null);
-  const particlesRef = useRef<ConfettiParticle[]>([]);
-
-  const burst = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = Math.max(1, Math.floor(rect.width * devicePixelRatio));
-    canvas.height = Math.max(1, Math.floor(rect.height * devicePixelRatio));
-    ctx.scale(devicePixelRatio, devicePixelRatio);
-
-    const colors = ['#FF4D6D', '#4D96FF', '#FFD166', '#06D6A0', '#9B5DE5'];
-    const count = 120;
-    const startX = rect.width * 0.5;
-    const startY = rect.height * 0.25;
-
-    const parts: ConfettiParticle[] = [];
-    for (let i = 0; i < count; i += 1) {
-      const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.4;
-      const speed = 4 + Math.random() * 7;
-      parts.push({
-        x: startX,
-        y: startY,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        r: 3 + Math.random() * 4,
-        a: Math.random() * Math.PI,
-        va: (Math.random() - 0.5) * 0.35,
-        life: 70 + Math.random() * 40,
-        color: colors[i % colors.length],
-      });
-    }
-    particlesRef.current = parts;
-
-    const tick = () => {
-      const c = canvasRef.current;
-      if (!c) return;
-      const cctx = c.getContext('2d');
-      if (!cctx) return;
-
-      const w = rect.width;
-      const h = rect.height;
-      cctx.clearRect(0, 0, w, h);
-
-      const next: ConfettiParticle[] = [];
-      for (const p of particlesRef.current) {
-        const np = { ...p };
-        np.x += np.vx;
-        np.y += np.vy;
-        np.vy += 0.18;
-        np.vx *= 0.995;
-        np.a += np.va;
-        np.life -= 1;
-
-        if (np.life > 0 && np.y < h + 40) {
-          next.push(np);
-          cctx.save();
-          cctx.translate(np.x, np.y);
-          cctx.rotate(np.a);
-          cctx.fillStyle = np.color;
-          cctx.globalAlpha = Math.min(1, np.life / 40);
-          cctx.fillRect(-np.r, -np.r * 0.6, np.r * 2, np.r * 1.2);
-          cctx.restore();
-        }
-      }
-      particlesRef.current = next;
-      if (next.length > 0) rafRef.current = requestAnimationFrame(tick);
-      else {
-        cctx.clearRect(0, 0, w, h);
-        if (rafRef.current) cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-    };
-
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    rafRef.current = requestAnimationFrame(tick);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, []);
-
-  return { canvasRef, burst };
-}
-
 /* ===================== Component ===================== */
 export default function PrizeRouletteCard({ sweepstakeId }: Props) {
   const theme = useTheme();
   const { canvasRef, burst } = useConfetti();
 
-  // ✅ Usa TU hook (sin storeId)
+  // ✅ Backend devuelve: [{ phoneNumber, storeName }]
   const {
     data: samples = [],
     isLoading,
@@ -299,39 +193,45 @@ export default function PrizeRouletteCard({ sweepstakeId }: Props) {
     isError: boolean;
   };
 
-  // ✅ normalizamos y garantizamos storeName
+  // ✅ Normalizamos (formato tel + storeName)
   const base = useMemo(() => {
     return (samples ?? [])
-      .filter((x): x is ParticipantPhoneSample => Boolean(x?.phone))
+      .filter((x): x is ParticipantPhoneSample => Boolean(x?.phoneNumber))
       .map((x) => ({
-        phone: formatPhone(x.phone),
+        phoneNumber: formatPhone(x.phoneNumber),
         storeName: (x.storeName || '').trim() || '—',
-        storeId: x.storeId,
-        createdAt: x.createdAt,
       }));
   }, [samples]);
 
-  // ✅ lista para girar (relleno si hay pocos)
-  const spinList = useMemo(() => {
-    const unique = new Map<string, ParticipantPhoneSample>();
+  // ✅ lista REAL (únicos) desde backend
+  const realList = useMemo(() => {
+    const unique = new Map<string, { phoneNumber: string; storeName: string }>();
+
     for (const s of base) {
-      const k = `${s.phone}-${s.storeName}`;
-      if (!unique.has(k)) unique.set(k, s);
+      const phoneNumber = (s.phoneNumber || '').trim();
+      const storeName = (s.storeName || '').trim() || '—';
+      if (!phoneNumber) continue;
+
+      const k = `${phoneNumber}-${storeName}`;
+      if (!unique.has(k)) unique.set(k, { phoneNumber, storeName });
     }
-    const arr = Array.from(unique.values());
 
-    if (arr.length >= 14) return arr;
-
-    const fillCount = 18 - arr.length;
-    const fillers: ParticipantPhoneSample[] = Array.from({ length: Math.max(0, fillCount) }).map(
-      () => ({
-        phone: randomUSPhone(),
-        storeName: '—',
-      })
-    );
-
-    return [...arr, ...fillers];
+    return Array.from(unique.values());
   }, [base]);
+
+  // (Opcional) fillers SOLO para animación visual
+  const fillerList = useMemo(() => {
+    if (realList.length >= 14) return [];
+    const fillCount = 18 - realList.length;
+
+    return Array.from({ length: Math.max(0, fillCount) }).map(() => ({
+      phoneNumber: randomUSPhone(),
+      storeName: '—',
+    }));
+  }, [realList]);
+
+  // Para la animación (NO para ganador final si hay reales)
+  const spinList = useMemo(() => [...realList, ...fillerList], [realList, fillerList]);
 
   const [displayPhone, setDisplayPhone] = useState<string>(INITIAL_PHONE);
   const [displayStore, setDisplayStore] = useState<string>(INITIAL_STORE);
@@ -354,9 +254,6 @@ export default function PrizeRouletteCard({ sweepstakeId }: Props) {
     phoneTimerRef.current = null;
   };
 
-  // ✅ al cargar data por primera vez, NO cambies el display (queda 000)
-  // solo guardamos para usar cuando se gire
-  // (si querés que ponga el primer número automático, te lo cambio)
   useEffect(() => {
     return () => cleanupTimers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -372,12 +269,27 @@ export default function PrizeRouletteCard({ sweepstakeId }: Props) {
     velRef.current = 950 + Math.random() * 650;
     lastTickRef.current = null;
 
-    // ✅ ticker de números usando la lista real
+    // ✅ ticker: si hay reales, SOLO muestra reales (si no, fallback)
     if (phoneTimerRef.current) window.clearInterval(phoneTimerRef.current);
+
+    let i = 0;
     phoneTimerRef.current = window.setInterval(() => {
-      const idx = Math.floor(Math.random() * spinList.length);
-      const pick = spinList[idx] ?? { phone: randomUSPhone(), storeName: '—' };
-      setDisplayPhone(pick.phone);
+      if (realList.length > 0) {
+        const pick = realList[i % realList.length];
+        i += 1;
+        setDisplayPhone(pick.phoneNumber);
+        setDisplayStore(pick.storeName || '—');
+        return;
+      }
+
+      const pick =
+        spinList[Math.floor(Math.random() * spinList.length)] ??
+        ({
+          phoneNumber: randomUSPhone(),
+          storeName: '—',
+        } as const);
+
+      setDisplayPhone(pick.phoneNumber);
       setDisplayStore(pick.storeName || '—');
     }, 85);
 
@@ -418,10 +330,16 @@ export default function PrizeRouletteCard({ sweepstakeId }: Props) {
           wheelWrapRef.current.style.transform = `rotate(${rotationRef.current}deg)`;
         }
 
-        const idx = Math.floor(Math.random() * spinList.length);
-        const pick = spinList[idx] ?? { phone: randomUSPhone(), storeName: '—' };
+        // ✅ GANADOR FINAL: SIEMPRE real si existe
+        const pick =
+          realList.length > 0
+            ? realList[Math.floor(Math.random() * realList.length)]
+            : spinList[Math.floor(Math.random() * spinList.length)] ?? {
+                phoneNumber: randomUSPhone(),
+                storeName: '—',
+              };
 
-        setDisplayPhone(pick.phone);
+        setDisplayPhone(pick.phoneNumber);
         setDisplayStore(pick.storeName || '—');
 
         burst();
@@ -597,6 +515,14 @@ export default function PrizeRouletteCard({ sweepstakeId }: Props) {
                 sx={{ mt: 0.35, fontWeight: 700, fontSize: 12, color: alpha('#FFFFFF', 0.62) }}
               >
                 {isLoading ? 'Cargando participantes…' : 'No se pudo cargar participantes'}
+              </Typography>
+            )}
+
+            {!isLoading && !isError && realList.length === 0 && (
+              <Typography
+                sx={{ mt: 0.35, fontWeight: 700, fontSize: 12, color: alpha('#FFFFFF', 0.62) }}
+              >
+                Sin participantes reales aún (mostrando números demo)
               </Typography>
             )}
           </Stack>

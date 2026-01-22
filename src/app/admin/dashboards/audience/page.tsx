@@ -119,11 +119,11 @@ export default function AudienceInsightsPage() {
     };
   }, [baseParams, simStoreId, assumedCampaignsPerMonth, assumedLiftPct, assumedChurnReductionPct]);
 
-  const summary = useAudienceSummary(baseParams);
+  const summary: any = useAudienceSummary(baseParams);
   const weekly = useAudienceWeekly(weeklyParams);
   const series = useAudienceSeries(seriesParams);
   const alerts = useAudienceAlerts(alertsParams);
-  const simulator = useAudienceSimulation(simParams);
+  const simulator: any = useAudienceSimulation(simParams);
 
   const isLoadingAny =
     summary.isLoading ||

@@ -148,6 +148,7 @@ export function AudienceSimulator(props: {
                 <Avatar
                   src={option.image || undefined}
                   alt={option.name}
+                  key={option.name}
                   sx={(t) => ({
                     width: 34,
                     height: 34,
@@ -160,7 +161,10 @@ export function AudienceSimulator(props: {
                   {initials(option.name)}
                 </Avatar>
 
-                <Box sx={{ minWidth: 0 }}>
+                <Box
+                  sx={{ minWidth: 0 }}
+                  key={option.slug}
+                >
                   <Typography
                     variant="body2"
                     sx={{ fontWeight: 900, lineHeight: 1.1 }}
@@ -173,7 +177,7 @@ export function AudienceSimulator(props: {
                     sx={{ color: 'text.secondary' }}
                     noWrap
                   >
-                    {option.slug ? option.slug : option.address}
+                    {option.customerCount}
                     {option.active === false ? ' • inactive' : ''}
                   </Typography>
                 </Box>
