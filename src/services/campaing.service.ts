@@ -1,5 +1,107 @@
 // src/services/campaing.service.ts
 import { api } from '@/libs/axios';
+import type { Campaing } from '@/models/campaing';
+import type { PaginatedResponse } from '@/models/pagination';
+
+/* ========================= CAMPAIGNS (RESTORE) ========================= */
+
+export interface FilterCampaignParams {
+  page?: number;
+  limit?: number;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+  storeId?: string;
+  title?: string;
+}
+
+export type MessageLogStatus = 'queued' | 'failed' | 'sent' | 'delivered' | 'undelivered';
+
+export interface CampaignLog {
+  messageSid?: string;
+  phone?: string;
+  destinationTn?: string;
+  sourceTn?: string;
+  status: MessageLogStatus;
+  bwMessageStatus?: string;
+  messageType?: string;
+  segmentCount?: number;
+  messageLength?: number;
+  messageSize?: number;
+  attachmentCount?: number;
+  recipientCount?: number;
+  carrierName?: string;
+  carrier?: string;
+  campaignClass?: string;
+  price?: number;
+  errorInfo?: {
+    code: string;
+    class: string;
+    key: string;
+    explanation: string;
+    friendly: string;
+    source: string;
+    billable?: boolean;
+  } | null;
+  dateSent?: string;
+  timestamp?: string;
+  body?: string;
+  errorCode?: string;
+  errorMessage?: string;
+  phoneNumber?: string;
+  createdAt?: string;
+  time?: string;
+  sid?: string;
+}
+
+export interface CampaignLogsResponse {
+  campaignId: string;
+  filters: {
+    status: MessageLogStatus | 'any';
+    search: string | null;
+    from: string | null;
+    to: string | null;
+  };
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  sort: 'asc' | 'desc';
+  countsByStatus: Record<MessageLogStatus, number>;
+  data: CampaignLog[];
+}
+
+export interface CampaignLogsQueryParams {
+  status?: MessageLogStatus;
+  page?: number;
+  limit?: number;
+  sort?: 'asc' | 'desc';
+  search?: string;
+  from?: string;
+  to?: string;
+}
+
+/* ===================== YTD (existing) ===================== */
+export interface YtdMonthlyMonth {
+  monthNumber: number;
+  monthName: string;
+  sentSms: number;
+  sentMms: number;
+  sent: number;
+  audienceSms: number;
+  audienceMms: number;
+  audience: number;
+}
+
+export interface YtdMonthlyResponse {
+  storeId: string | null;
+  scope: 'by_store' | 'all_stores';
+  year: number;
+  totalYtd: number;
+  totalYtdSms: number;
+  totalYtdMms: number;
+  months: YtdMonthlyMonth[];
+}
 
 /* ===================== ✅ AUDIENCE (MATCH BACKEND) ===================== */
 
@@ -13,7 +115,8 @@ export interface AudienceQueryParams {
   timezone?: string;
   includeInactive?: boolean;
 }
-/** ✅ /simulate -> simulador */
+
+/** ✅ /simulator -> por store */
 export interface AudienceSimulatorQueryParams extends AudienceQueryParams {
   storeId: string;
   assumedCampaignsPerMonth?: number;
@@ -56,7 +159,6 @@ export interface AudienceSimulatorResponse {
     };
   };
 }
-
 
 /** ✅ Backend summary group shape */
 export interface AudienceSummaryGroup {
@@ -173,7 +275,7 @@ export interface AudienceAlertsQueryParams extends AudienceQueryParams {
   limit?: number;
   alertGrowthPct?: number;
   minAudience?: number;
-  onlyNonSenders?: boolean; // backend currently supports this logic
+  onlyNonSenders?: boolean;
 }
 
 export interface AudienceAlertRow {
@@ -194,7 +296,7 @@ export interface AudienceAlertsResponse {
   data: AudienceAlertRow[];
 }
 
-/** ✅ GET /campaigns/audience/simulate (GLOBAL in your backend) */
+/** ✅ GET /campaigns/audience/simulate (GLOBAL) */
 export interface AudienceSimulationResponse {
   ok: boolean;
 
@@ -224,11 +326,86 @@ export interface AudienceSimulationResponse {
   };
 }
 
-/* ========================= CLIENTE (AUDIENCE) ========================= */
+/* ========================= CLIENTE ========================= */
 
 const AUDIENCE_BASE = '/campaigns/audience';
 
 class CampaignClient {
+  /* ===================== ✅ CAMPAIGNS (RESTORED) ===================== */
+
+  async getCampaigns(page: number = 1, limit: number = 10): Promise<PaginatedResponse<Campaing>> {
+    const res = await api.get(`/campaigns/filter`, { params: { page, limit } });
+    return res.data as PaginatedResponse<Campaing>;
+  }
+
+  async getFilteredCampaigns(params: FilterCampaignParams) {
+    const { page = 1, limit = 10, status, startDate, endDate, storeId, title } = params;
+
+    const res = await api.get('/campaigns/filter', {
+      params: { page, limit, status, startDate, endDate, storeId, title },
+    });
+
+    return res.data;
+  }
+
+  async getCampaignById(id: string): Promise<Campaing> {
+    const res = await api.get(`/campaigns/${id}`);
+    return res.data as Campaing;
+  }
+
+  async createCampaign(data: Partial<Campaing>, storeId: string): Promise<Campaing> {
+    const payload = { ...data, store: storeId };
+    const res = await api.post(`/campaigns`, payload);
+    return res.data as Campaing;
+  }
+
+  // OJO: tu backend tiene /campaigns/old/:id en tu snippet anterior
+  async updateCampaign(id: string, data: Campaing): Promise<Campaing> {
+    const res = await api.put(`/campaigns/old/${id}`, data);
+    return res.data as Campaing;
+  }
+
+  async deleteCampaign(id: string): Promise<Campaing> {
+    const res = await api.delete(`/campaigns/${id}`);
+    return res.data as Campaing;
+  }
+
+  async getCampaignLogs(
+    campaignId: string,
+    params: CampaignLogsQueryParams = {}
+  ): Promise<CampaignLogsResponse> {
+    const { status, page = 1, limit = 20, sort = 'desc', search, from, to } = params;
+
+    const res = await api.get(`/tracking/campaigns/${campaignId}/logs`, {
+      params: { status, page, limit, sort, search, from, to },
+    });
+
+    return res.data as CampaignLogsResponse;
+  }
+
+  async getCampaignsCount(month?: number, year?: number): Promise<number> {
+    const now = new Date();
+    const m = month ?? now.getMonth() + 1;
+    const y = year ?? now.getFullYear();
+
+    const res = await api.get('/campaigns/total-sent-by-month', { params: { month: m, year: y } });
+    return res.data?.totalSent ?? 0;
+  }
+
+  async getYtdMonthlyMessagesSent(storeId?: string, year?: number): Promise<YtdMonthlyResponse> {
+    const path = storeId
+      ? `/campaigns/messages/sent/ytd-monthly/${storeId}`
+      : `/campaigns/messages/sent/ytd-monthly`;
+
+    const params: Record<string, any> = {};
+    if (typeof year === 'number') params.year = year;
+
+    const res = await api.get(path, { params });
+    return res.data as YtdMonthlyResponse;
+  }
+
+  /* ===================== ✅ AUDIENCE (CURRENT) ===================== */
+
   async getAudienceSummary(params: AudienceQueryParams = {}): Promise<AudienceSummaryResponse> {
     const res = await api.get(`${AUDIENCE_BASE}/summary`, { params });
     return res.data as AudienceSummaryResponse;
@@ -267,6 +444,14 @@ class CampaignClient {
     const res = await api.get(`${AUDIENCE_BASE}/simulate`, { params });
     return res.data as AudienceSimulationResponse;
   }
+
+  // ✅ adicional: simulador por store (si tu backend lo expone)
+  async getAudienceSimulator(
+    params: AudienceSimulatorQueryParams
+  ): Promise<AudienceSimulatorResponse> {
+    const res = await api.get(`${AUDIENCE_BASE}/simulator`, { params });
+    return res.data as AudienceSimulatorResponse;
+  }
 }
 
 export const campaignClient = new CampaignClient();
@@ -293,4 +478,14 @@ export const campaignAudienceKeys = {
 
   simulate: (params: AudienceQueryParams) =>
     [...campaignAudienceKeys.all, 'simulate', params] as const,
+
+  simulator: (params: AudienceSimulatorQueryParams) =>
+    [...campaignAudienceKeys.all, 'simulator', params] as const,
 };
+
+/* ========================= (OPTIONAL) tiny helpers ========================= */
+/**
+ * Si en tu app hay hooks tipo useAudienceSummary/useAudienceWeekly/etc,
+ * normalmente están en /hooks y llaman a campaignClient + campaignAudienceKeys.
+ * Aquí solo restauramos el service completo sin romper imports existentes.
+ */
