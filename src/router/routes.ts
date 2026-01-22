@@ -129,6 +129,7 @@ export const routes = {
       helpdesk: '/admin/dashboards/helpdesk',
       monitoring: '/admin/dashboards/monitoring',
       billing: '/admin/dashboards/billing',
+      audience: '/admin/dashboards/audience',
 
     },
     applications: {

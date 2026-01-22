@@ -26,6 +26,7 @@ const dashboardsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Billing'), route: routes.admin.dashboards.billing },
     buildMenu(t('Metrics'), undefined, [
       { title: t('Reports'), icon: <List />, route: routes.admin.dashboards.reports },
+      { title: t('Audience'), icon: <List />, route: routes.admin.dashboards.audience },
     ]),
   ]);
 

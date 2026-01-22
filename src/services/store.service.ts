@@ -5,46 +5,46 @@ import { Customer } from '@/models/customer';
 import { PaginatedResponse } from '@/models/pagination';
 import { AxiosResponse } from 'axios';
 
-export interface Store {
-  id: string;
-  _id: string;
-  name: string;
-  address: string;
-  zipCode: string;
-  type: 'elite' | 'basic' | 'free';
-  location?: {
-    type: 'Point';
-    coordinates: [number, number];
-  };
-  ownerId: string;
-  description?: string;
-  slug?: string;
-  image: string;
-  active: boolean;
-  subscription?: string;
-  phoneNumber?: string;
-  twilioPhoneNumber?: string;
-  twilioPhoneNumberSid?: string;
-  twilioPhoneNumberFriendlyName?: string;
-  verifiedByTwilio?: boolean;
-  bandwidthPhoneNumber?: string;
-  customerCount: number;
-  provider: 'twilio' | 'bandwidth';
-  createdAt: string;
-  updatedAt: string;
-  accessCode?: string;
-  membershipType?: 'mensual' | 'semanal' | 'especial';
-  paymentMethod?: 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
-  startContractDate?: string | null; // ISO o null
-  lng?: number | null;
-  lat?: number | null;
-  email?: string;
+  export interface Store {
+    id: string;
+    _id: string;
+    name: string;
+    address: string;
+    zipCode: string;
+    type: 'elite' | 'basic' | 'free';
+    location?: {
+      type: 'Point';
+      coordinates: [number, number];
+    };
+    ownerId: string;
+    description?: string;
+    slug?: string;
+    image: string;
+    active: boolean;
+    subscription?: string;
+    phoneNumber?: string;
+    twilioPhoneNumber?: string;
+    twilioPhoneNumberSid?: string;
+    twilioPhoneNumberFriendlyName?: string;
+    verifiedByTwilio?: boolean;
+    bandwidthPhoneNumber?: string;
+    customerCount: number;
+    provider: 'twilio' | 'bandwidth';
+    createdAt: string;
+    updatedAt: string;
+    accessCode?: string;
+    membershipType?: 'mensual' | 'semanal' | 'especial';
+    paymentMethod?: 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
+    startContractDate?: string | null; // ISO o null
+    lng?: number | null;
+    lat?: number | null;
+    email?: string;
 
-  // 🆕 Tablet / Kiosko
-  kioskTabletStatus?: 'instalada' | 'desinstalada' | 'sin_instalar';
-  kioskTabletDate?: string | null; // YYYY-MM-DD o ISO
-  kioskTabletQuantity?: number | null;
-}
+    // 🆕 Tablet / Kiosko
+    kioskTabletStatus?: 'instalada' | 'desinstalada' | 'sin_instalar';
+    kioskTabletDate?: string | null; // YYYY-MM-DD o ISO
+    kioskTabletQuantity?: number | null;
+  }
 
 export interface UpdateStoreBody {
   name?: string;
@@ -133,6 +133,10 @@ export interface GetStoresParams {
   paymentMethod?: 'all' | 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
 }
 
+export const getStoresWithoutFilters = async (): Promise<Store[]> => {
+  const res = await api.get<Store[]>('/store');
+  return res.data;
+};
 export const getStores = async ({
   page = 1,
   limit = 25,
