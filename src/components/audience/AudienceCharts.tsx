@@ -9,8 +9,8 @@ import { num } from './AudienceKpis';
 import { GlassCard, MetricPill } from './ui';
 
 export function AudienceCharts(props: {
-  summary?: AudienceSummaryResponse;
-  weekly?: WeeklyBreakdownResponse;
+  summary?: any;
+  weekly?: any;
   loading?: boolean;
   weeklyError?: boolean;
 }) {
