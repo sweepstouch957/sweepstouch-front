@@ -163,7 +163,7 @@ export function AudienceSimulator(props: {
 
                 <Box
                   sx={{ minWidth: 0 }}
-                  key={option.slug}
+                  key={option.accessCode  }
                 >
                   <Typography
                     variant="body2"

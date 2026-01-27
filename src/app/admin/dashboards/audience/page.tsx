@@ -1,8 +1,9 @@
+// app/(dashboard)/audience/page.tsx
 'use client';
 
 import { AudienceCharts } from '@/components/audience/AudienceCharts';
 import { AudienceKpis } from '@/components/audience/AudienceKpis';
-import { AudienceSimulator } from '@/components/audience/AudienceSimulator';
+import { AudienceSummaryExecutive } from '@/components/audience/AudienceSummaryExecutive'; // ✅ NEW
 import { GlassCard, MetricPill } from '@/components/audience/ui';
 import {
   useAudienceAlerts,
@@ -320,6 +321,8 @@ export default function AudienceInsightsPage() {
         </Stack>
       </GlassCard>
 
+      {/* ✅ NEW: Executive Summary (usa el response que pegaste) */}
+
       {/* KPIs */}
       <Box sx={{ mt: 2.25 }}>
         <AudienceKpis
@@ -337,21 +340,11 @@ export default function AudienceInsightsPage() {
           weeklyError={weekly.isError}
         />
       </Box>
-
-      {/* Simulator */}
       <Box sx={{ mt: 2.25 }}>
-        <AudienceSimulator
-          simStoreId={simStoreId}
-          setSimStoreId={setSimStoreId}
-          assumedCampaignsPerMonth={assumedCampaignsPerMonth}
-          setAssumedCampaignsPerMonth={setAssumedCampaignsPerMonth}
-          assumedLiftPct={assumedLiftPct}
-          setAssumedLiftPct={setAssumedLiftPct}
-          assumedChurnReductionPct={assumedChurnReductionPct}
-          setAssumedChurnReductionPct={setAssumedChurnReductionPct}
-          loading={simulator.isLoading}
-          error={simulator.isError}
-          data={simulator.data}
+        <AudienceSummaryExecutive
+          data={summary.data}
+          loading={summary.isLoading}
+          error={summary.isError}
         />
       </Box>
 
