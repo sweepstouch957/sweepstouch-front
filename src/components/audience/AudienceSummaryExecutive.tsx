@@ -15,7 +15,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import  { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { GlassCard } from './ui';
 
 /* ===================== Types (mínimos, no te amarro) ===================== */
@@ -59,6 +59,7 @@ type Props = {
   data?: AudienceSummaryResponse;
   loading?: boolean;
   error?: boolean;
+  onExploreClick?: () => void;
 };
 
 function fmt(n: any) {
@@ -84,21 +85,23 @@ function Pill(props: {
   tone?: 'primary' | 'info' | 'success' | 'warning';
 }) {
   const { label, value, tone = 'primary' } = props;
+
   return (
     <Stack
       sx={(t) => ({
-        px: 1.25,
+        px: 1.15,
         py: 0.9,
         borderRadius: 999,
         border: `1px solid ${alpha(t.palette[tone].main, 0.22)}`,
         bgcolor: alpha(t.palette[tone].main, 0.08),
-        minWidth: 150,
+        minWidth: { xs: '100%', sm: 200 },
+        flex: { xs: '1 1 100%', sm: '0 0 auto' },
       })}
       spacing={0.25}
     >
       <Typography
         variant="caption"
-        sx={{ color: 'text.secondary', fontWeight: 800, letterSpacing: 0.2 }}
+        sx={{ color: 'text.secondary', fontWeight: 850, letterSpacing: 0.15 }}
       >
         {label}
       </Typography>
@@ -112,13 +115,22 @@ function Pill(props: {
   );
 }
 
-function RowCard({ title, items }: { title: string; items: StoreRow[] }) {
+function RowCard({
+  title,
+  items,
+  emptyLabel = 'No data',
+}: {
+  title: string;
+  items: StoreRow[];
+  emptyLabel?: string;
+}) {
   return (
     <Stack
       sx={(t) => ({
         border: `1px solid ${alpha(t.palette.divider, 0.7)}`,
         borderRadius: 3,
         overflow: 'hidden',
+        bgcolor: alpha(t.palette.background.paper, 0.5),
       })}
     >
       <Stack
@@ -135,21 +147,48 @@ function RowCard({ title, items }: { title: string; items: StoreRow[] }) {
           direction="row"
           gap={1}
           alignItems="center"
+          sx={{ minWidth: 0 }}
         >
           <TrendingUpRoundedIcon fontSize="small" />
-          <Typography sx={{ fontWeight: 950 }}>{title}</Typography>
+          <Typography
+            sx={{
+              fontWeight: 950,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+            title={title}
+          >
+            {title}
+          </Typography>
         </Stack>
 
         <Chip
           size="small"
           label={`${items.length} shown`}
-          sx={{ fontWeight: 900 }}
+          sx={{ fontWeight: 900, flexShrink: 0 }}
         />
       </Stack>
 
       <Divider />
 
-      <Stack sx={{ maxHeight: 380, overflow: 'auto' }}>
+      <Stack
+        sx={{
+          maxHeight: { xs: 320, md: 380 },
+          overflow: 'auto',
+        }}
+      >
+        {items.length === 0 ? (
+          <Stack sx={{ p: 2 }}>
+            <Typography
+              variant="body2"
+              sx={{ color: 'text.secondary' }}
+            >
+              {emptyLabel}
+            </Typography>
+          </Stack>
+        ) : null}
+
         {items.map((s, idx) => {
           const aud = Number(s.audienceCurr || 0);
           const pct = Number(s.growthPct || 0);
@@ -158,10 +197,10 @@ function RowCard({ title, items }: { title: string; items: StoreRow[] }) {
           return (
             <Stack
               key={`${s.storeId}-${idx}`}
-              direction="row"
-              alignItems="center"
+              direction={{ xs: 'column', sm: 'row' }}
+              alignItems={{ xs: 'flex-start', sm: 'center' }}
               justifyContent="space-between"
-              gap={2}
+              gap={{ xs: 0.9, sm: 2 }}
               sx={(t) => ({
                 px: 1.5,
                 py: 1.1,
@@ -171,7 +210,7 @@ function RowCard({ title, items }: { title: string; items: StoreRow[] }) {
             >
               <Stack
                 spacing={0.2}
-                sx={{ minWidth: 0 }}
+                sx={{ minWidth: 0, width: '100%' }}
               >
                 <Typography
                   variant="body2"
@@ -186,6 +225,7 @@ function RowCard({ title, items }: { title: string; items: StoreRow[] }) {
                 >
                   {idx + 1}. {s.name}
                 </Typography>
+
                 <Typography
                   variant="caption"
                   sx={{
@@ -194,7 +234,7 @@ function RowCard({ title, items }: { title: string; items: StoreRow[] }) {
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
                   }}
-                  title={s.slug}
+                  title={s.slug || s.storeId}
                 >
                   {s.slug || s.storeId}
                 </Typography>
@@ -202,13 +242,13 @@ function RowCard({ title, items }: { title: string; items: StoreRow[] }) {
 
               <Stack
                 direction="row"
-                gap={1}
+                gap={0.75}
                 alignItems="center"
-                sx={{ flexShrink: 0 }}
+                sx={{ flexShrink: 0, flexWrap: 'wrap' }}
               >
                 <Chip
                   size="small"
-                  label={`Audience ${fmt(aud)}`}
+                  label={`Aud ${fmt(aud)}`}
                   sx={(t) => ({
                     fontWeight: 900,
                     bgcolor: alpha(t.palette.info.main, 0.12),
@@ -217,7 +257,7 @@ function RowCard({ title, items }: { title: string; items: StoreRow[] }) {
                 />
                 <Chip
                   size="small"
-                  label={`+${fmt(net)} net`}
+                  label={`+${fmt(net)}`}
                   sx={(t) => ({
                     fontWeight: 900,
                     bgcolor: alpha(t.palette.success.main, 0.12),
@@ -242,9 +282,10 @@ function RowCard({ title, items }: { title: string; items: StoreRow[] }) {
   );
 }
 
-export function AudienceSummaryExecutive({ data, loading, error }: Props) {
+export function AudienceSummaryExecutive({ data, loading, error, onExploreClick }: Props) {
   const theme = useTheme();
   const mdDown = useMediaQuery(theme.breakpoints.down('md'));
+  const smDown = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [view, setView] = useState<'audience' | 'growth'>('audience');
 
@@ -253,9 +294,9 @@ export function AudienceSummaryExecutive({ data, loading, error }: Props) {
     const p2 = shortDate(data?.period?.end);
     const q1 = shortDate(data?.previousPeriod?.start);
     const q2 = shortDate(data?.previousPeriod?.end);
-    if (!p1 || !p2) return '';
+    if (!p1 || !p2) return '—';
     if (!q1 || !q2) return `${p1} → ${p2}`;
-    return `${p1} → ${p2} (prev ${q1} → ${q2})`;
+    return `${p1} → ${p2} · prev ${q1} → ${q2}`;
   }, [
     data?.period?.start,
     data?.period?.end,
@@ -268,34 +309,59 @@ export function AudienceSummaryExecutive({ data, loading, error }: Props) {
 
   const listAudience = data?.topNonSendersByAudience || [];
   const listGrowth = data?.rankingNonSenders || [];
-
   const list = view === 'audience' ? listAudience : listGrowth;
+
+  const totalChurn = (senders?.churnInPeriod || 0) + (nonSenders?.churnInPeriod || 0);
+
+  // Copy ultra-corto, sin abrumar
+  const growthLine = useMemo(() => {
+    const ns = fmtPct(nonSenders?.growthPct);
+    const s = fmtPct(senders?.growthPct);
+    return `Non-senders ${ns} vs senders ${s}.`;
+  }, [nonSenders?.growthPct, senders?.growthPct]);
+
+  const actionLine = useMemo(() => {
+    return 'Focus: largest non-senders already trending up.';
+  }, []);
 
   return (
     <GlassCard
       title="Executive Summary"
       right={
         <Stack
-          direction="row"
+          direction={{ xs: 'column', sm: 'row' }}
           gap={1}
-          alignItems="center"
+          alignItems={{ xs: 'stretch', sm: 'center' }}
+          sx={{ width: { xs: '100%', sm: 'auto' } }}
         >
           <Chip
             size="small"
-            label={periodLabel || '—'}
+            label={periodLabel}
             sx={(t) => ({
               fontWeight: 900,
               bgcolor: alpha(t.palette.primary.main, 0.08),
+              alignSelf: { xs: 'flex-start', sm: 'center' },
+              maxWidth: { xs: '100%', sm: 520 },
+              '& .MuiChip-label': {
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                display: 'block',
+              },
             })}
           />
+
           <Button
             size="small"
             variant="outlined"
-            endIcon={<LaunchRoundedIcon />}
-            onClick={() => {
-              // placeholder: si querés después lo conectamos a /stores o /campaigns
+            endIcon={!smDown ? <LaunchRoundedIcon /> : undefined}
+            onClick={onExploreClick}
+            sx={{
+              borderRadius: 999,
+              textTransform: 'none',
+              fontWeight: 900,
+              minWidth: { xs: '100%', sm: 'auto' },
             }}
-            sx={{ borderRadius: 999, textTransform: 'none', fontWeight: 900 }}
           >
             Explore
           </Button>
@@ -314,17 +380,22 @@ export function AudienceSummaryExecutive({ data, loading, error }: Props) {
       ) : null}
 
       <Stack spacing={2}>
-        {/* Top pills */}
+        {/* Pills */}
         <Stack
-          direction={{ xs: 'column', md: 'row' }}
+          direction={{ xs: 'column', lg: 'row' }}
           spacing={1.25}
-          alignItems={{ xs: 'stretch', md: 'center' }}
+          alignItems={{ xs: 'stretch', lg: 'center' }}
           justifyContent="space-between"
+          sx={{ gap: 1.25 }}
         >
           <Stack
-            direction="row"
+            direction={{ xs: 'column', sm: 'row' }}
             spacing={1}
             flexWrap="wrap"
+            sx={{
+              width: '100%',
+              '& > *': { flexGrow: { xs: 1, sm: 0 } },
+            }}
           >
             <Pill
               label="Senders audience"
@@ -333,7 +404,7 @@ export function AudienceSummaryExecutive({ data, loading, error }: Props) {
             />
             <Pill
               label="Senders growth"
-              value={`${fmt(senders?.growthAbs)} (${fmtPct(senders?.growthPct)})`}
+              value={`${fmt(senders?.growthAbs)} · ${fmtPct(senders?.growthPct)}`}
               tone="success"
             />
             <Pill
@@ -343,15 +414,17 @@ export function AudienceSummaryExecutive({ data, loading, error }: Props) {
             />
             <Pill
               label="Non-senders growth"
-              value={`${fmt(nonSenders?.growthAbs)} (${fmtPct(nonSenders?.growthPct)})`}
+              value={`${fmt(nonSenders?.growthAbs)} · ${fmtPct(nonSenders?.growthPct)}`}
               tone="warning"
             />
           </Stack>
 
+          {/* Toggle chips */}
           <Stack
             direction="row"
             spacing={1}
-            justifyContent={{ xs: 'flex-start', md: 'flex-end' }}
+            justifyContent={{ xs: 'flex-start', lg: 'flex-end' }}
+            sx={{ flexWrap: 'wrap' }}
           >
             <Chip
               clickable
@@ -388,8 +461,9 @@ export function AudienceSummaryExecutive({ data, loading, error }: Props) {
         <Stack
           direction={{ xs: 'column', md: 'row' }}
           spacing={2}
+          alignItems="stretch"
         >
-          {/* Left: quick narrative */}
+          {/* Left: narrative (super corto) */}
           <Stack
             sx={(t) => ({
               flex: 1,
@@ -407,16 +481,21 @@ export function AudienceSummaryExecutive({ data, loading, error }: Props) {
               variant={mdDown ? 'h6' : 'h5'}
               sx={{ fontWeight: 980, letterSpacing: -0.3 }}
             >
-              What this means
+              Key takeaways
             </Typography>
 
             <Typography
               variant="body2"
               sx={{ color: 'text.secondary' }}
             >
-              Non-senders are growing <b>{fmtPct(nonSenders?.growthPct)}</b> vs senders{' '}
-              <b>{fmtPct(senders?.growthPct)}</b>. That suggests <b>organic growth</b> is strong in
-              a few large stores — great targets to push campaigns.
+              {growthLine}
+            </Typography>
+
+            <Typography
+              variant="body2"
+              sx={{ color: 'text.secondary' }}
+            >
+              {actionLine}
             </Typography>
 
             <Divider />
@@ -428,7 +507,7 @@ export function AudienceSummaryExecutive({ data, loading, error }: Props) {
             >
               <Chip
                 size="small"
-                label={`Senders: +${fmt(senders?.netGrowth)} net`}
+                label={`Senders +${fmt(senders?.netGrowth)}`}
                 sx={(t) => ({
                   fontWeight: 900,
                   bgcolor: alpha(t.palette.success.main, 0.12),
@@ -437,7 +516,7 @@ export function AudienceSummaryExecutive({ data, loading, error }: Props) {
               />
               <Chip
                 size="small"
-                label={`Non-senders: +${fmt(nonSenders?.netGrowth)} net`}
+                label={`Non-senders +${fmt(nonSenders?.netGrowth)}`}
                 sx={(t) => ({
                   fontWeight: 900,
                   bgcolor: alpha(t.palette.info.main, 0.12),
@@ -446,9 +525,7 @@ export function AudienceSummaryExecutive({ data, loading, error }: Props) {
               />
               <Chip
                 size="small"
-                label={`Churn (both): ${fmt(
-                  (senders?.churnInPeriod || 0) + (nonSenders?.churnInPeriod || 0)
-                )}`}
+                label={`Churn ${fmt(totalChurn)}`}
                 sx={(t) => ({
                   fontWeight: 900,
                   bgcolor: alpha(t.palette.warning.main, 0.14),
@@ -461,18 +538,18 @@ export function AudienceSummaryExecutive({ data, loading, error }: Props) {
               variant="caption"
               sx={{ color: 'text.secondary' }}
             >
-              Tip: use “Top by audience” to focus on the biggest wins, and “Top by growth” to catch
-              breakouts.
+              Audience = biggest • Growth = fastest
             </Typography>
           </Stack>
 
-          {/* Right: Top list */}
-          <Box sx={{ flex: 1.2 }}>
+          {/* Right: list */}
+          <Box sx={{ flex: 1.2, minWidth: 0 }}>
             <RowCard
               title={
-                view === 'audience' ? 'Top non-senders by audience' : 'Top non-senders by growth'
+                view === 'audience' ? 'Top non-senders (audience)' : 'Top non-senders (growth)'
               }
               items={list}
+              emptyLabel={loading ? 'Loading…' : 'No stores to show for this view.'}
             />
           </Box>
         </Stack>

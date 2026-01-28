@@ -8,6 +8,7 @@ import {
   Box,
   Chip,
   FormControl,
+  IconButton,
   InputAdornment,
   InputLabel,
   MenuItem,
@@ -16,6 +17,7 @@ import {
   Select,
   Stack,
   TextField,
+  Tooltip,
   Typography,
   useMediaQuery,
   useTheme,
@@ -32,8 +34,8 @@ export default function StoreFilters({
   minDebt,
   maxDebt,
 
-  paymentMethod, // ⬅️ NEW
-  onPaymentMethodChange, // ⬅️ NEW
+  paymentMethod,
+  onPaymentMethodChange,
 
   sortBy,
   order,
@@ -57,8 +59,8 @@ export default function StoreFilters({
   minDebt: string;
   maxDebt: string;
 
-  paymentMethod: string; // ⬅️ NEW
-  onPaymentMethodChange: (v: string) => void; // ⬅️ NEW
+  paymentMethod: string;
+  onPaymentMethodChange: (v: string) => void;
 
   sortBy: 'customerCount' | 'name' | 'active' | 'maxDaysOverdue' | string;
   order: 'asc' | 'desc';
@@ -92,7 +94,7 @@ export default function StoreFilters({
       component={Paper}
       elevation={0}
       sx={{
-        p: { xs: 1.75, sm: 2 },
+        p: { xs: 1.5, sm: 2 },
         borderRadius: 2.5,
         mb: 1.5,
         border: `1px solid ${theme.palette.divider}`,
@@ -102,18 +104,19 @@ export default function StoreFilters({
             : 'linear-gradient(135deg, #101322 0%, #151827 60%, #111318 100%)',
       }}
     >
-      <Stack spacing={2}>
-        {/* Header pequeño */}
+      <Stack spacing={1.75}>
+        {/* Header responsive */}
         <Stack
-          direction="row"
+          direction={{ xs: 'column', sm: 'row' }}
           justifyContent="space-between"
-          alignItems="center"
-          spacing={2}
+          alignItems={{ xs: 'stretch', sm: 'center' }}
+          spacing={{ xs: 1.25, sm: 2 }}
         >
-          <Box>
+          <Box sx={{ minWidth: 0 }}>
             <Typography
               variant="subtitle1"
-              fontWeight={600}
+              fontWeight={700}
+              noWrap={!isMobile}
             >
               {t('Store filters')}
             </Typography>
@@ -125,14 +128,17 @@ export default function StoreFilters({
             </Typography>
           </Box>
 
+          {/* Controles: en mobile bajan y ocupan ancho */}
           <Stack
             direction="row"
             spacing={1}
             alignItems="center"
+            justifyContent={{ xs: 'space-between', sm: 'flex-end' }}
+            sx={{ flexWrap: 'wrap', rowGap: 1 }}
           >
             <FormControl
               size="small"
-              sx={{ minWidth: 160 }}
+              sx={{ minWidth: isMobile ? '100%' : 180 }}
             >
               <InputLabel>{t('Sort by')}</InputLabel>
               <Select
@@ -147,14 +153,20 @@ export default function StoreFilters({
               </Select>
             </FormControl>
 
-            <Chip
-              size="small"
-              icon={<SwapVertTwoTone fontSize="small" />}
-              label={order === 'asc' ? t('Asc') : t('Desc')}
-              variant="outlined"
-              onClick={handleOrderToggle}
-              sx={{ fontSize: '0.7rem' }}
-            />
+            <Tooltip title={order === 'asc' ? t('Ascending') : t('Descending')}>
+              <IconButton
+                size="small"
+                onClick={handleOrderToggle}
+                sx={{
+                  border: `1px solid ${theme.palette.divider}`,
+                  borderRadius: 2,
+                  height: 40,
+                  width: 40,
+                }}
+              >
+                <SwapVertTwoTone fontSize="small" />
+              </IconButton>
+            </Tooltip>
 
             {filtersActive && (
               <Chip
@@ -162,19 +174,18 @@ export default function StoreFilters({
                 label={`${t('Results')}: ${total}`}
                 color="primary"
                 variant="outlined"
-                sx={{ fontSize: '0.7rem' }}
+                sx={{ fontSize: '0.72rem', height: 32 }}
               />
             )}
           </Stack>
         </Stack>
 
-        {/* 🔍 Primera fila */}
+        {/* Fila 1: en mobile todo fullWidth */}
         <Stack
           direction={{ xs: 'column', sm: 'row' }}
-          spacing={2}
+          spacing={1.5}
           alignItems={{ xs: 'stretch', sm: 'center' }}
         >
-          {/* Search */}
           <TextField
             size="small"
             placeholder={t('Search by store name or zip')}
@@ -192,13 +203,13 @@ export default function StoreFilters({
             }
           />
 
-          {/* Audience < */}
           <TextField
             size="small"
             value={audienceLt}
             onChange={(e) => onAudienceLtChange(onlyDigits(e.target.value))}
             label={t('Audience <')}
-            sx={{ minWidth: 140 }}
+            fullWidth={isMobile}
+            sx={{ width: { xs: '100%', sm: 160 } }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -208,10 +219,10 @@ export default function StoreFilters({
             }}
           />
 
-          {/* Status */}
           <FormControl
             size="small"
-            sx={{ minWidth: 140 }}
+            fullWidth={isMobile}
+            sx={{ width: { xs: '100%', sm: 160 } }}
           >
             <InputLabel>{t('Status')}</InputLabel>
             <Select
@@ -225,10 +236,10 @@ export default function StoreFilters({
             </Select>
           </FormControl>
 
-          {/* ⭐ NEW: Payment Method */}
           <FormControl
             size="small"
-            sx={{ minWidth: 160 }}
+            fullWidth={isMobile}
+            sx={{ width: { xs: '100%', sm: 190 } }}
           >
             <InputLabel>{t('Payment method')}</InputLabel>
             <Select
@@ -248,23 +259,23 @@ export default function StoreFilters({
           </FormControl>
         </Stack>
 
-        {/* 💸 Segunda fila – Morosidad */}
+        {/* Fila 2: deuda (chips + rango) */}
         <Stack
           direction={{ xs: 'column', sm: 'row' }}
-          spacing={2}
-          alignItems={{ xs: 'flex-start', sm: 'center' }}
+          spacing={1.5}
+          alignItems={{ xs: 'stretch', sm: 'center' }}
         >
-          {/* Chip group de deuda */}
           <Stack
             direction="row"
             spacing={1}
             alignItems="center"
             flexWrap="wrap"
+            sx={{ rowGap: 1, flex: 1, minWidth: 0 }}
           >
             <WarningAmberTwoTone
               fontSize="small"
               color="warning"
-              sx={{ mr: 0.5 }}
+              sx={{ mr: 0.25 }}
             />
             <Typography
               variant="body2"
@@ -302,18 +313,18 @@ export default function StoreFilters({
             />
           </Stack>
 
-          {/* Rango de deuda */}
           <Stack
             direction="row"
-            spacing={2}
-            sx={{ width: isMobile ? '100%' : 'auto' }}
+            spacing={1.5}
+            sx={{ width: { xs: '100%', sm: 'auto' } }}
           >
             <TextField
               size="small"
               label={t('Debt >')}
               value={minDebt}
               onChange={(e) => onMinDebtChange(onlyDigits(e.target.value))}
-              sx={{ minWidth: 120 }}
+              fullWidth={isMobile}
+              sx={{ flex: 1, minWidth: 0, width: { xs: '50%', sm: 140 } }}
               InputProps={{
                 startAdornment: <InputAdornment position="start">$</InputAdornment>,
               }}
@@ -324,7 +335,8 @@ export default function StoreFilters({
               label={t('Debt <')}
               value={maxDebt}
               onChange={(e) => onMaxDebtChange(onlyDigits(e.target.value))}
-              sx={{ minWidth: 120 }}
+              fullWidth={isMobile}
+              sx={{ flex: 1, minWidth: 0, width: { xs: '50%', sm: 140 } }}
               InputProps={{
                 startAdornment: <InputAdornment position="start">$</InputAdornment>,
               }}
