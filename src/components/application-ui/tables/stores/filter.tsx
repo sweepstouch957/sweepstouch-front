@@ -23,6 +23,8 @@ import {
   useTheme,
 } from '@mui/material';
 
+type DebtStatus = 'all' | 'ok' | 'min_low' | 'low' | 'mid' | 'high' | 'critical';
+
 export default function StoreFilters({
   t,
   search,
@@ -55,7 +57,7 @@ export default function StoreFilters({
   audienceLt: string;
   total: number;
 
-  debtStatus: 'all' | 'ok' | 'high' | 'low';
+  debtStatus: DebtStatus;
   minDebt: string;
   maxDebt: string;
 
@@ -70,7 +72,9 @@ export default function StoreFilters({
   handleSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onStatusChange: (s: 'all' | 'active' | 'inactive') => void;
   onAudienceLtChange: (v: string) => void;
-  onDebtStatusChange: (v: 'all' | 'ok' | 'low' | 'high') => void;
+
+  onDebtStatusChange: (v: DebtStatus) => void;
+
   onMinDebtChange: (v: string) => void;
   onMaxDebtChange: (v: string) => void;
 }) {
@@ -89,6 +93,13 @@ export default function StoreFilters({
 
   const handleOrderToggle = () => onOrderChange(order === 'asc' ? 'desc' : 'asc');
 
+  const chipSx = {
+    height: 28,
+    fontSize: 12,
+    fontWeight: 800,
+    borderRadius: 999,
+  } as const;
+
   return (
     <Box
       component={Paper}
@@ -105,7 +116,7 @@ export default function StoreFilters({
       }}
     >
       <Stack spacing={1.75}>
-        {/* Header responsive */}
+        {/* Header */}
         <Stack
           direction={{ xs: 'column', sm: 'row' }}
           justifyContent="space-between"
@@ -128,7 +139,6 @@ export default function StoreFilters({
             </Typography>
           </Box>
 
-          {/* Controles: en mobile bajan y ocupan ancho */}
           <Stack
             direction="row"
             spacing={1}
@@ -180,7 +190,7 @@ export default function StoreFilters({
           </Stack>
         </Stack>
 
-        {/* Fila 1: en mobile todo fullWidth */}
+        {/* Fila 1 */}
         <Stack
           direction={{ xs: 'column', sm: 'row' }}
           spacing={1.5}
@@ -259,7 +269,7 @@ export default function StoreFilters({
           </FormControl>
         </Stack>
 
-        {/* Fila 2: deuda (chips + rango) */}
+        {/* Fila 2: debtStatus + rango */}
         <Stack
           direction={{ xs: 'column', sm: 'row' }}
           spacing={1.5}
@@ -289,27 +299,91 @@ export default function StoreFilters({
               label={t('All')}
               variant={debtStatus === 'all' ? 'filled' : 'outlined'}
               onClick={() => onDebtStatusChange('all')}
+              sx={chipSx}
             />
+
+            {/* ok (al día) - verde esmeralda */}
             <Chip
               size="small"
               label={t('OK')}
               variant={debtStatus === 'ok' ? 'filled' : 'outlined'}
-              color="success"
               onClick={() => onDebtStatusChange('ok')}
+              sx={{
+                ...chipSx,
+                bgcolor: debtStatus === 'ok' ? '#10B981' : undefined,
+                borderColor: '#10B981',
+                color: debtStatus === 'ok' ? '#fff' : '#10B981',
+              }}
             />
+
+            {/* min_low = 1 semana (amarillo suave) */}
+            <Chip
+              size="small"
+              label={t('Min low')}
+              variant={debtStatus === 'min_low' ? 'filled' : 'outlined'}
+              onClick={() => onDebtStatusChange('min_low')}
+              sx={{
+                ...chipSx,
+                bgcolor: debtStatus === 'min_low' ? '#FDE68A' : undefined,
+                borderColor: '#FDE68A',
+                color: debtStatus === 'min_low' ? '#111827' : '#B45309',
+              }}
+            />
+
+            {/* low = 2 semanas (amarillo) */}
             <Chip
               size="small"
               label={t('Low debt')}
               variant={debtStatus === 'low' ? 'filled' : 'outlined'}
-              color="warning"
               onClick={() => onDebtStatusChange('low')}
+              sx={{
+                ...chipSx,
+                bgcolor: debtStatus === 'low' ? '#FACC15' : undefined,
+                borderColor: '#FACC15',
+                color: debtStatus === 'low' ? '#111827' : '#A16207',
+              }}
             />
+
+            {/* mid = 3 semanas (naranja) */}
+            <Chip
+              size="small"
+              label={t('Mid')}
+              variant={debtStatus === 'mid' ? 'filled' : 'outlined'}
+              onClick={() => onDebtStatusChange('mid')}
+              sx={{
+                ...chipSx,
+                bgcolor: debtStatus === 'mid' ? '#FB923C' : undefined,
+                borderColor: '#FB923C',
+                color: debtStatus === 'mid' ? '#111827' : '#9A3412',
+              }}
+            />
+
+            {/* high = 4 semanas (rojo coral) */}
             <Chip
               size="small"
               label={t('High debt')}
               variant={debtStatus === 'high' ? 'filled' : 'outlined'}
-              color="error"
               onClick={() => onDebtStatusChange('high')}
+              sx={{
+                ...chipSx,
+                bgcolor: debtStatus === 'high' ? '#F43F5E' : undefined,
+                borderColor: '#F43F5E',
+                color: debtStatus === 'high' ? '#fff' : '#BE123C',
+              }}
+            />
+
+            {/* critical = 5+ semanas (tinto) */}
+            <Chip
+              size="small"
+              label={t('Critical')}
+              variant={debtStatus === 'critical' ? 'filled' : 'outlined'}
+              onClick={() => onDebtStatusChange('critical')}
+              sx={{
+                ...chipSx,
+                bgcolor: debtStatus === 'critical' ? '#7F1D1D' : undefined,
+                borderColor: '#7F1D1D',
+                color: debtStatus === 'critical' ? '#fff' : '#7F1D1D',
+              }}
             />
           </Stack>
 

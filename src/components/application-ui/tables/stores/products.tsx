@@ -1,6 +1,8 @@
 import { useStores } from '@/hooks/stores/useStores';
 import React from 'react';
 import * as XLSX from 'xlsx';
+import StoreFilter from './filter';
+import { StoresBillingHeader } from './header';
 import Results from './results';
 
 function Component() {
@@ -17,7 +19,7 @@ function Component() {
     order,
     audienceLt,
 
-    // 🆕 filtros de morosidad
+    // morosidad
     debtStatus,
     minDebt,
     maxDebt,
@@ -30,7 +32,7 @@ function Component() {
     handleOrderChange,
     handleAudienceLtChange,
 
-    // 🆕 handlers morosidad
+    // handlers morosidad
     handleDebtStatusChange,
     handleMinDebtChange,
     handlePaymentMethodChange,
@@ -38,7 +40,6 @@ function Component() {
     handleMaxDebtChange,
   } = useStores();
 
-  // --- Export logic (listens to page header button) ---
   async function exportAll() {
     const limitPage = 500;
     let pageNo = 1;
@@ -54,6 +55,7 @@ function Component() {
       debtStatus,
       minDebt,
       maxDebt,
+      paymentMethod,
     };
 
     // eslint-disable-next-line no-constant-condition
@@ -66,10 +68,10 @@ function Component() {
         sortBy: (current.sortBy as any) || 'customerCount',
         order: (current.order as any) || 'desc',
         audienceLt: current.audienceLt || '',
-        // 🆕 filtros morosidad
         debtStatus: current.debtStatus,
         minDebt: current.minDebt || '',
         maxDebt: current.maxDebt || '',
+        paymentMethod: current.paymentMethod || 'all',
       });
 
       const data = res?.data || [];
@@ -89,6 +91,7 @@ function Component() {
       status: s?.active ? 'Active' : 'Inactive',
       balancePending: s?.billing?.totalPending ?? 0,
       daysOverdue: s?.billing?.maxDaysOverdue ?? 0,
+      installments: s?.billing?.installmentsNeeded ?? '',
     }));
 
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -98,50 +101,56 @@ function Component() {
   }
 
   React.useEffect(() => {
-    const handler = () => {
-      exportAll();
-    };
+    const handler = () => exportAll();
 
     if (typeof window !== 'undefined') {
       window.addEventListener('stores:export', handler);
       return () => window.removeEventListener('stores:export', handler);
     }
-
     return () => {};
-  }, [search, status, sortBy, order, audienceLt, debtStatus, minDebt, maxDebt]);
+  }, [search, status, sortBy, order, audienceLt, debtStatus, minDebt, maxDebt, paymentMethod]);
 
   return (
-    <Results
-      stores={stores}
-      status={status}
-      onStatusChange={onStatusChange}
-      total={total}
-      page={page}
-      limit={limit}
-      search={search}
-      onPageChange={handlePageChange}
-      onLimitChange={handleLimitChange}
-      onSearchChange={handleSearchChange}
-      loading={loading}
-      error={error}
-      onOrderChange={handleOrderChange}
-      onSortChange={handleSortChange}
-      order={order}
-      sortBy={sortBy}
-      audienceLt={audienceLt}
-      onAudienceLtChange={handleAudienceLtChange}
-      // 🆕 morosidad
-      debtStatus={debtStatus}
-      minDebt={minDebt}
-      maxDebt={maxDebt}
-      onDebtStatusChange={handleDebtStatusChange}
-      onMinDebtChange={handleMinDebtChange}
-      handleOrderChange={handleOrderChange}
-      onMaxDebtChange={handleMaxDebtChange}
-      handleSortChange={handleSortChange}
-      paymentMethod={paymentMethod}
-      onPaymentMethodChange={handlePaymentMethodChange}
-    />
+    <>
+      <StoresBillingHeader />
+
+      <StoreFilter
+        t={(k) => k}
+        search={search}
+        total={total}
+        status={status}
+        audienceLt={audienceLt}
+        debtStatus={debtStatus as any}
+        minDebt={minDebt}
+        maxDebt={maxDebt}
+        handleSearchChange={(e) => handleSearchChange(e.target.value)}
+        onStatusChange={onStatusChange}
+        onAudienceLtChange={handleAudienceLtChange}
+        onDebtStatusChange={handleDebtStatusChange as any}
+        onMinDebtChange={handleMinDebtChange}
+        onMaxDebtChange={handleMaxDebtChange}
+        paymentMethod={paymentMethod}
+        onPaymentMethodChange={handlePaymentMethodChange}
+        sortBy={sortBy}
+        order={order}
+        onSortChange={handleSortChange}
+        onOrderChange={handleOrderChange}
+      />
+
+      <Results
+        stores={stores}
+        total={total}
+        page={page}
+        limit={limit}
+        sortBy={sortBy}
+        order={order}
+        onSortChange={handleSortChange}
+        onPageChange={handlePageChange}
+        onLimitChange={handleLimitChange}
+        loading={loading}
+        error={error}
+      />
+    </>
   );
 }
 

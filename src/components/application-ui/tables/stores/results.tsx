@@ -7,13 +7,9 @@ import {
   Box,
   Card,
   Chip,
-  Dialog,
-  DialogContent,
-  DialogTitle,
   Divider,
   IconButton,
   Stack,
-  Tab,
   Table,
   TableBody,
   TableCell,
@@ -22,21 +18,13 @@ import {
   TablePagination,
   TableRow,
   TableSortLabel,
-  Tabs,
   Tooltip,
   Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
 import Link from 'next/link';
-import React, { ChangeEvent, FC, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import CampaignsPanel from '../../content-shells/store-managment/panel/campaigns/campaign-panel';
-import StoreFilter from './filter';
-import { StoresBillingHeader } from './header';
-import { StoreTableSkeleton } from './skelleton';
-import StaffManagementMock from './StaffManagementMock';
-import StoreInfoSimplified from './StoreInfoSimplified';
+import React, { ChangeEvent, FC, useMemo } from 'react';
 
 /* ------------------------------- helper split ------------------------------ */
 function splitByFirstNumber(raw: string, fallbackAddress?: string) {
@@ -60,87 +48,6 @@ function buildSwitchUrl(storeId: string) {
   return `${MERCHANT_ORIGIN}/?ac=${storeId}`;
 }
 
-/* --------------------------- helpers de morosidad -------------------------- */
-/**
- * Colores de cobranza por semanas (installments):
- * 0 / al día -> Verde esmeralda
- * 2 -> Amarillo
- * 3 -> Naranja (riesgo moderado)
- * 4 -> Rojo coral (crítico)
- * 5+ -> Rojo oscuro / tinto
- */
-function getDebtStatus(pending = 0, installmentsNeeded?: number | null) {
-  // ✅ al día (o no debe nada)
-  if (pending <= 0) {
-    return {
-      label: 'AL DÍA',
-      color: '#FFFFFF',
-      bg: '#10B981', // verde esmeralda
-      tone: 'ok' as const,
-    };
-  }
-
-  const n = Number(installmentsNeeded);
-
-  // si no viene definido, lo tratamos como alto riesgo
-  if (!Number.isFinite(n) || n <= 0) {
-    return {
-      label: 'DEUDA',
-      color: '#FFFFFF',
-      bg: '#991B1B', // tinto
-      tone: 'high' as const,
-    };
-  }
-
-  // 2 semanas
-  if (n === 2) {
-    return {
-      label: '2 SEM',
-      color: '#111827',
-      bg: '#FACC15', // amarillo
-      tone: 'low' as const,
-    };
-  }
-
-  // 3 semanas
-  if (n === 3) {
-    return {
-      label: '3 SEM',
-      color: '#111827',
-      bg: '#FB923C', // naranja
-      tone: 'mid' as const,
-    };
-  }
-
-  // 4 semanas
-  if (n === 4) {
-    return {
-      label: '4 SEM',
-      color: '#FFFFFF',
-      bg: '#F43F5E', // rojo coral
-      tone: 'high' as const,
-    };
-  }
-
-  // 5 o más
-  if (n >= 5) {
-    return {
-      label: `${n} SEM`,
-      color: '#FFFFFF',
-      bg: '#7F1D1D', // rojo oscuro / tinto
-      tone: 'critical' as const,
-    };
-  }
-
-  // 1 semana (si existiera)
-  return {
-    label: `${n} SEM`,
-    color: '#111827',
-    bg: '#FDE68A', // amarillo suave
-    tone: 'low' as const,
-  };
-}
-
 function formatMoney(value = 0, currency = 'USD') {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -149,10 +56,80 @@ function formatMoney(value = 0, currency = 'USD') {
   }).format(value);
 }
 
-/* --------------------------------- props ---------------------------------- */
+/* --------------------------- payment status logic -------------------------- */
+/**
+ * SOLO define la categoría (texto + color de texto)
+ * - OK (al día) = verde
+ * - 1 semana = MIN LOW
+ * - 2 semanas = LOW
+ * - 3 semanas = MID
+ * - 4 semanas = HIGH
+ * - 5+ semanas = CRITICAL
+ */
+type PaymentTone = 'ok' | 'min_low' | 'low' | 'mid' | 'high' | 'critical';
 
+function paymentTone(pending = 0, installmentsNeeded?: number | null): PaymentTone {
+  if (pending <= 0) return 'ok';
+
+  const n = Number(installmentsNeeded);
+  if (!Number.isFinite(n) || n <= 0) return 'critical';
+
+  if (n >= 5) return 'critical';
+  if (n === 4) return 'high';
+  if (n === 3) return 'mid';
+  if (n === 2) return 'low';
+  return 'min_low'; // 1 (o cualquier caso raro)
+}
+
+function toneLabel(tone: PaymentTone) {
+  switch (tone) {
+    case 'ok':
+      return 'OK';
+    case 'min_low':
+      return 'MIN LOW';
+    case 'low':
+      return 'LOW';
+    case 'mid':
+      return 'MID';
+    case 'high':
+      return 'HIGH';
+    case 'critical':
+      return 'CRITICAL';
+    default:
+      return '—';
+  }
+}
+
+// ✅ solo color de texto (sin background)
+function toneColor(tone: PaymentTone) {
+  switch (tone) {
+    case 'ok':
+      return '#10B981'; // verde esmeralda
+    case 'min_low':
+      return '#A3A3A3'; // gris suave
+    case 'low':
+      return '#FACC15'; // amarillo
+    case 'mid':
+      return '#FB923C'; // naranja
+    case 'high':
+      return '#F43F5E'; // rojo coral
+    case 'critical':
+      return '#7F1D1D'; // tinto
+    default:
+      return undefined;
+  }
+}
+
+function installmentsLabel(pending = 0, installmentsNeeded?: number | null) {
+  if (pending <= 0) return '—';
+  const n = Number(installmentsNeeded);
+  if (!Number.isFinite(n) || n <= 0) return '—';
+  return `${n} SEM`;
+}
+
+/* --------------------------------- props ---------------------------------- */
 type StatusFilter = 'all' | 'active' | 'inactive';
-type DebtStatus = 'all' | 'ok' | 'low' | 'high';
+type DebtStatus = 'all' | 'ok' | 'min_low' | 'low' | 'mid' | 'high' | 'critical';
 
 interface ResultsProps {
   stores: Store[];
@@ -160,38 +137,15 @@ interface ResultsProps {
   limit: number;
   total: number;
 
-  status: StatusFilter;
   sortBy: string;
   order: 'asc' | 'desc';
-  search: string;
-
-  debtStatus: DebtStatus;
-  minDebt: string;
-  maxDebt: string;
 
   onPageChange: (page: number) => void;
   onLimitChange: (e: ChangeEvent<HTMLInputElement>) => void;
-
-  onSearchChange: (query: string) => void;
-  onStatusChange: (status: StatusFilter) => void;
   onSortChange: (sortBy: string) => void;
-  onOrderChange: (order: 'asc' | 'desc') => void;
-
-  audienceLt: string;
-  onAudienceLtChange: (v: string) => void;
-
-  onDebtStatusChange: (v: DebtStatus) => void;
-  onMinDebtChange: (v: string) => void;
-  onMaxDebtChange: (v: string) => void;
-
-  handleSortChange: (field: string) => void;
-  handleOrderChange: (order: 'asc' | 'desc') => void;
 
   loading?: boolean;
   error?: string | null;
-
-  onPaymentMethodChange?: (value: string) => void;
-  paymentMethod?: string;
 }
 
 /* ----------------------------- tiny components ---------------------------- */
@@ -219,77 +173,18 @@ const Results: FC<ResultsProps> = ({
   page,
   limit,
   total,
-  status,
   sortBy,
   order,
-  search,
-  debtStatus,
-  minDebt,
-  maxDebt,
   onPageChange,
   onLimitChange,
-  onSearchChange,
-  onStatusChange,
   onSortChange,
-  onOrderChange,
-  audienceLt,
-  onAudienceLtChange,
-  onDebtStatusChange,
-  onMinDebtChange,
-  onMaxDebtChange,
-  handleSortChange,
-  handleOrderChange,
   loading,
-  paymentMethod,
-  onPaymentMethodChange,
   error,
 }) => {
-  const [openModal, setOpenModal] = useState(false);
-  const [selectedStore, setSelectedStore] = useState<Store | null>(null);
-  const [activeTab, setActiveTab] = useState(0);
-  const { t } = useTranslation();
-
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  const handleOpenModal = (store: Store) => {
-    setSelectedStore(store);
-    setOpenModal(true);
-    setActiveTab(0);
-  };
-
   const rowsPerPageOptions = useMemo(() => [5, 10, 25, 50, 100], []);
-
-  const DebtChip = ({
-    pending,
-    installmentsNeeded,
-  }: {
-    pending: number;
-    installmentsNeeded?: number | null;
-  }) => {
-    const meta = getDebtStatus(pending, installmentsNeeded ?? undefined);
-
-    return (
-      <Box
-        sx={{
-          display: 'inline-flex',
-          px: { xs: 1, sm: 1.5 },
-          py: { xs: 0.25, sm: 0.4 },
-          borderRadius: 999,
-          fontSize: { xs: 11, sm: 12 },
-          fontWeight: 900,
-          bgcolor: meta.bg,
-          color: meta.color,
-          textTransform: 'uppercase',
-          letterSpacing: 0.3,
-          lineHeight: 1.2,
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {meta.label}
-      </Box>
-    );
-  };
 
   const MobileList = () => (
     <Stack spacing={1.25}>
@@ -302,17 +197,15 @@ const Results: FC<ResultsProps> = ({
         const weeklyCost = store.billing?.lastWeekCampaignCost || 0;
         const installmentsNeeded = store.billing?.installmentsNeeded ?? null;
 
+        const tone = paymentTone(pending, installmentsNeeded);
+
         return (
           <Card
             key={id}
             variant="outlined"
-            sx={{
-              borderRadius: 2.5,
-              overflow: 'hidden',
-            }}
+            sx={{ borderRadius: 2.5, overflow: 'hidden' }}
           >
             <Box sx={{ p: 1.5 }}>
-              {/* Top row */}
               <Stack
                 direction="row"
                 spacing={1.25}
@@ -354,42 +247,43 @@ const Results: FC<ResultsProps> = ({
                   </Typography>
                 </Box>
 
-                {/* Status + debt */}
                 <Stack
                   spacing={0.5}
                   alignItems="flex-end"
                 >
                   <Chip
                     size="small"
-                    label={store.active ? t('Active') : t('Inactive')}
+                    label={store.active ? 'Active' : 'Inactive'}
                     color={store.active ? 'success' : 'error'}
                     variant="outlined"
                     sx={{ height: 22, fontSize: 11, fontWeight: 800 }}
                   />
 
-                  <DebtChip
-                    pending={pending}
-                    installmentsNeeded={installmentsNeeded}
-                  />
+                  {/* Payment status SOLO texto con color */}
+                  <Typography
+                    sx={{
+                      fontSize: 12,
+                      fontWeight: 900,
+                      letterSpacing: 0.4,
+                      textTransform: 'uppercase',
+                      color: toneColor(tone),
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {toneLabel(tone)}
+                  </Typography>
                 </Stack>
               </Stack>
 
               <Divider sx={{ my: 1.25 }} />
 
-              {/* Metrics grid */}
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: 1,
-                }}
-              >
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
                 <Box>
                   <Typography
                     variant="caption"
                     color="text.secondary"
                   >
-                    {t('Customers')}
+                    Customers
                   </Typography>
                   <Typography
                     fontWeight={900}
@@ -404,7 +298,7 @@ const Results: FC<ResultsProps> = ({
                     variant="caption"
                     color="text.secondary"
                   >
-                    {t('Weekly')}
+                    Weekly
                   </Typography>
                   <Typography
                     fontWeight={900}
@@ -420,7 +314,7 @@ const Results: FC<ResultsProps> = ({
                     variant="caption"
                     color="text.secondary"
                   >
-                    {t('Balance')}
+                    Balance
                   </Typography>
                   <Typography
                     fontWeight={900}
@@ -436,18 +330,17 @@ const Results: FC<ResultsProps> = ({
                     variant="caption"
                     color="text.secondary"
                   >
-                    {t('Installments')}
+                    Installments
                   </Typography>
                   <Typography
                     fontWeight={900}
                     sx={{ fontSize: 13 }}
                   >
-                    {pending <= 0 ? '—' : `${installmentsNeeded ?? '—'} weeks`}
+                    {installmentsLabel(pending, installmentsNeeded)}
                   </Typography>
                 </Box>
               </Box>
 
-              {/* Actions row */}
               <Stack
                 direction="row"
                 spacing={1}
@@ -455,7 +348,7 @@ const Results: FC<ResultsProps> = ({
                 sx={{ mt: 1.25 }}
               >
                 <Tooltip
-                  title={t('View')}
+                  title="View"
                   arrow
                 >
                   <Link
@@ -472,7 +365,7 @@ const Results: FC<ResultsProps> = ({
                 </Tooltip>
 
                 <Tooltip
-                  title={t('Merchant')}
+                  title="Merchant"
                   arrow
                 >
                   <IconButton
@@ -485,13 +378,12 @@ const Results: FC<ResultsProps> = ({
                 </Tooltip>
 
                 <Tooltip
-                  title={t('Details')}
+                  title="Details"
                   arrow
                 >
                   <IconButton
                     size="small"
                     color="primary"
-                    onClick={() => handleOpenModal(store)}
                   >
                     <AccountCircle fontSize="small" />
                   </IconButton>
@@ -504,348 +396,300 @@ const Results: FC<ResultsProps> = ({
     </Stack>
   );
 
+  if (loading) {
+    return (
+      <Card
+        variant="outlined"
+        sx={{ p: 3, borderRadius: 2.5 }}
+      >
+        <Typography color="text.secondary">Loading...</Typography>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card
+        variant="outlined"
+        sx={{ p: 3, borderRadius: 2.5 }}
+      >
+        <Typography color="error">{error}</Typography>
+      </Card>
+    );
+  }
+
+  if (!stores.length) {
+    return (
+      <Card
+        variant="outlined"
+        sx={{ p: 4, borderRadius: 2.5 }}
+      >
+        <Typography
+          align="center"
+          color="text.secondary"
+          fontWeight={800}
+        >
+          No stores found
+        </Typography>
+      </Card>
+    );
+  }
+
   return (
     <>
-      {/* ---------------------------- MODAL DETALLES ---------------------------- */}
-      <Dialog
-        open={openModal}
-        onClose={() => setOpenModal(false)}
-        maxWidth="lg"
-        fullWidth
-      >
-        <DialogTitle>
-          {t('Store Details')}: {selectedStore?.name}
-        </DialogTitle>
-        <DialogContent
-          dividers
-          sx={{ p: 0 }}
-        >
-          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs
-              value={activeTab}
-              onChange={(_, v) => setActiveTab(v)}
-              variant="fullWidth"
-            >
-              <Tab label={t('General Info')} />
-              <Tab label={t('Campaigns')} />
-              <Tab label={t('Staff Management (Mock)')} />
-            </Tabs>
-          </Box>
-
-          <Box sx={{ p: 3 }}>
-            {activeTab === 0 && selectedStore && <StoreInfoSimplified store={selectedStore} />}
-
-            {activeTab === 1 && selectedStore && (
-              <CampaignsPanel
-                storeId={(selectedStore as any)._id || (selectedStore as any).id}
-                storeName={selectedStore.name}
-              />
-            )}
-
-            {activeTab === 2 && selectedStore && (
-              <StaffManagementMock
-                storeId={(selectedStore as any)._id || (selectedStore as any).id}
-              />
-            )}
-          </Box>
-        </DialogContent>
-      </Dialog>
-
-      {/* ------------------------------- FILTROS -------------------------------- */}
-      <StoresBillingHeader />
-      <StoreFilter
-        t={t}
-        search={search}
-        total={total}
-        status={status}
-        audienceLt={audienceLt}
-        debtStatus={debtStatus}
-        minDebt={minDebt}
-        maxDebt={maxDebt}
-        handleSearchChange={(e) => onSearchChange(e.target.value)}
-        onStatusChange={onStatusChange}
-        onAudienceLtChange={onAudienceLtChange}
-        onDebtStatusChange={onDebtStatusChange}
-        onMinDebtChange={onMinDebtChange}
-        onMaxDebtChange={onMaxDebtChange}
-        paymentMethod={paymentMethod}
-        onPaymentMethodChange={onPaymentMethodChange}
-        sortBy={sortBy}
-        order={order}
-        onSortChange={handleSortChange}
-        onOrderChange={handleOrderChange}
-      />
-
-      {/* ------------------------------- LISTA/TABLA -------------------------------- */}
-      {loading ? (
-        <StoreTableSkeleton rows={limit || 12} />
-      ) : error ? (
-        <Typography
-          align="center"
-          color="error"
-          py={5}
-        >
-          {t('Error fetching stores')}: {error}
-        </Typography>
-      ) : stores.length === 0 ? (
-        <Typography
-          align="center"
-          py={6}
-          variant="h3"
-          color="text.secondary"
-        >
-          {t('No stores found')}
-        </Typography>
+      {isMobile ? (
+        <MobileList />
       ) : (
-        <>
-          {/* ✅ Mobile: cards */}
-          {isMobile ? (
-            <MobileList />
-          ) : (
-            /* ✅ Desktop: table */
-            <Card>
-              <TableContainer>
-                <Table
-                  sx={{
-                    tableLayout: 'fixed',
-                    width: '100%',
-                    '& th, & td': { whiteSpace: 'nowrap' },
+        <Card>
+          <TableContainer>
+            <Table
+              sx={{
+                tableLayout: 'fixed',
+                width: '100%',
+                '& th, & td': { whiteSpace: 'nowrap' },
 
-                    // STORE
-                    '& th:nth-of-type(1), & td:nth-of-type(1)': { width: '24%' },
-                    // CUSTOMERS
-                    '& th:nth-of-type(2), & td:nth-of-type(2)': { width: '6%' },
-                    // WEEKLY
-                    '& th:nth-of-type(3), & td:nth-of-type(3)': { width: '10%' },
-                    // BALANCE
-                    '& th:nth-of-type(4), & td:nth-of-type(4)': { width: '13%' },
-                    // PLAN (installments)
-                    '& th:nth-of-type(5), & td:nth-of-type(5)': { width: '8%' },
-                    // CREDIT
-                    '& th:nth-of-type(6), & td:nth-of-type(6)': { width: '13%' },
-                    // STATUS
-                    '& th:nth-of-type(7), & td:nth-of-type(7)': { width: '8%' },
-                    // ACTIONS
-                    '& th:nth-of-type(8), & td:nth-of-type(8)': { width: '18%' },
-                  }}
-                >
-                  <TableHead>
-                    <TableRow>
+                // STORE
+                '& th:nth-of-type(1), & td:nth-of-type(1)': { width: '26%' },
+                // CUSTOMERS
+                '& th:nth-of-type(2), & td:nth-of-type(2)': { width: '6%' },
+                // WEEKLY
+                '& th:nth-of-type(3), & td:nth-of-type(3)': { width: '10%' },
+                // BALANCE
+                '& th:nth-of-type(4), & td:nth-of-type(4)': { width: '13%' },
+
+                // INSTALLMENTS
+                '& th:nth-of-type(5), & td:nth-of-type(5)': { width: '11%' },
+
+                // PAYMENT STATUS
+                '& th:nth-of-type(6), & td:nth-of-type(6)': { width: '12%' },
+
+                // STATUS
+                '& th:nth-of-type(7), & td:nth-of-type(7)': { width: '8%' },
+                // ACTIONS
+                '& th:nth-of-type(8), & td:nth-of-type(8)': { width: '14%' },
+              }}
+            >
+              <TableHead>
+                <TableRow>
+                  <TableCell>
+                    <TableSortLabel
+                      active={sortBy === 'name'}
+                      direction={sortBy === 'name' ? order : 'asc'}
+                      onClick={() => onSortChange('name')}
+                    >
+                      Store
+                    </TableSortLabel>
+                  </TableCell>
+
+                  <TableCell>
+                    <TableSortLabel
+                      active={sortBy === 'customerCount'}
+                      direction={sortBy === 'customerCount' ? order : 'asc'}
+                      onClick={() => onSortChange('customerCount')}
+                    >
+                      Customers
+                    </TableSortLabel>
+                  </TableCell>
+
+                  <TableCell align="right">Weekly</TableCell>
+                  <TableCell align="right">Balance</TableCell>
+
+                  <TableCell align="right">Installments</TableCell>
+
+                  <TableCell align="center">Payment status</TableCell>
+
+                  <TableCell align="center">
+                    <TableSortLabel
+                      active={sortBy === 'active'}
+                      direction={sortBy === 'active' ? order : 'asc'}
+                      onClick={() => onSortChange('active')}
+                    >
+                      Status
+                    </TableSortLabel>
+                  </TableCell>
+
+                  <TableCell align="center">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+
+              <TableBody>
+                {stores.map((store: any) => {
+                  const id = store._id || store.id;
+
+                  const { displayName, displayAddress } = splitByFirstNumber(
+                    store.name,
+                    store.address
+                  );
+
+                  const pending = store.billing?.totalPending || 0;
+                  const weeklyCost = store.billing?.lastWeekCampaignCost || 0;
+                  const installmentsNeeded = store.billing?.installmentsNeeded ?? null;
+
+                  const tone = paymentTone(pending, installmentsNeeded);
+
+                  return (
+                    <TableRow
+                      key={id}
+                      hover
+                    >
+                      {/* STORE */}
                       <TableCell>
-                        <TableSortLabel
-                          active={sortBy === 'name'}
-                          direction={sortBy === 'name' ? order : 'asc'}
-                          onClick={() => onSortChange('name')}
-                        >
-                          {t('Store')}
-                        </TableSortLabel>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <LogoImg src={store.image} />
+                          <Box sx={{ minWidth: 0 }}>
+                            <Link
+                              href={`/admin/management/stores/edit/${id}`}
+                              style={{ textDecoration: 'none', color: 'inherit' }}
+                            >
+                              <Typography
+                                variant="subtitle1"
+                                fontWeight={900}
+                                sx={{
+                                  fontSize: 15,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  maxWidth: 280,
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {displayName}
+                              </Typography>
+                            </Link>
+
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{
+                                fontSize: 12,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                maxWidth: 280,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {displayAddress}
+                            </Typography>
+                          </Box>
+                        </Box>
                       </TableCell>
 
-                      <TableCell>
-                        <TableSortLabel
-                          active={sortBy === 'customerCount'}
-                          direction={sortBy === 'customerCount' ? order : 'asc'}
-                          onClick={() => onSortChange('customerCount')}
+                      {/* Customers */}
+                      <TableCell>{store.customerCount}</TableCell>
+
+                      {/* Weekly */}
+                      <TableCell align="right">
+                        <Typography
+                          fontWeight={900}
+                          color={weeklyCost > 0 ? 'primary.main' : 'text.secondary'}
                         >
-                          {t('Customers')}
-                        </TableSortLabel>
+                          {formatMoney(weeklyCost)}
+                        </Typography>
                       </TableCell>
 
-                      <TableCell align="right">{t('Weekly')}</TableCell>
-                      <TableCell align="right">{t('Balance')}</TableCell>
+                      {/* Balance */}
+                      <TableCell align="right">
+                        <Typography
+                          fontWeight={900}
+                          color={pending > 0 ? 'error.main' : 'success.main'}
+                        >
+                          {formatMoney(pending)}
+                        </Typography>
+                      </TableCell>
 
-                      <TableCell align="right">{t('Installments')}</TableCell>
+                      {/* Installments (AQUÍ VA 4 SEM / 5 SEM / —) */}
+                      <TableCell
+                        align="right"
+                        sx={{ position: 'relative' }}
+                      >
+                        <Typography fontWeight={900}>
+                          {installmentsLabel(pending, installmentsNeeded)}
+                        </Typography>
 
-                      <TableCell align="center">{t('Payment status')}</TableCell>
+                      
+                      </TableCell>
 
+                      {/* Payment status (SOLO TEXTO con color) */}
                       <TableCell align="center">
-                        <TableSortLabel
-                          active={sortBy === 'active'}
-                          direction={sortBy === 'active' ? order : 'asc'}
-                          onClick={() => onSortChange('active')}
+                        <Typography
+                          sx={{
+                            fontSize: 12,
+                            fontWeight: 950,
+                            letterSpacing: 0.5,
+                            textTransform: 'uppercase',
+                            color: toneColor(tone),
+                          }}
                         >
-                          {t('Status')}
-                        </TableSortLabel>
+                          {toneLabel(tone)}
+                        </Typography>
                       </TableCell>
 
-                      <TableCell align="center">{t('Actions')}</TableCell>
-                    </TableRow>
-                  </TableHead>
-
-                  <TableBody>
-                    {stores.map((store: any) => {
-                      const id = store._id || store.id;
-
-                      const { displayName, displayAddress } = splitByFirstNumber(
-                        store.name,
-                        store.address
-                      );
-
-                      const pending = store.billing?.totalPending || 0;
-                      const weeklyCost = store.billing?.lastWeekCampaignCost || 0;
-                      const installmentsNeeded = store.billing?.installmentsNeeded ?? null;
-
-                      return (
-                        <TableRow
-                          key={id}
-                          hover
+                      {/* Status */}
+                      <TableCell align="center">
+                        <Typography
+                          color={store.active ? 'success.main' : 'error.main'}
+                          fontWeight={900}
                         >
-                          {/* STORE */}
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                              <LogoImg src={store.image} />
-                              <Box sx={{ minWidth: 0 }}>
-                                <Link
-                                  href={`/admin/management/stores/edit/${id}`}
-                                  style={{ textDecoration: 'none', color: 'inherit' }}
-                                >
-                                  <Typography
-                                    variant="subtitle1"
-                                    fontWeight={900}
-                                    sx={{
-                                      fontSize: 15,
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      maxWidth: 260,
-                                      whiteSpace: 'nowrap',
-                                    }}
-                                  >
-                                    {displayName}
-                                  </Typography>
-                                </Link>
+                          {store.active ? 'Active' : 'Inactive'}
+                        </Typography>
+                      </TableCell>
 
-                                <Typography
-                                  variant="body2"
-                                  color="text.secondary"
-                                  sx={{
-                                    fontSize: 12,
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    maxWidth: 260,
-                                    whiteSpace: 'nowrap',
-                                  }}
-                                >
-                                  {displayAddress}
-                                </Typography>
-                              </Box>
-                            </Box>
-                          </TableCell>
+                      {/* Actions */}
+                      <TableCell align="center">
+                        <Tooltip
+                          title="View"
+                          arrow
+                        >
+                          <Link
+                            href={`/admin/management/stores/edit/${id}`}
+                            passHref
+                          >
+                            <IconButton color="primary">
+                              <Settings fontSize="small" />
+                            </IconButton>
+                          </Link>
+                        </Tooltip>
 
-                          {/* Customers */}
-                          <TableCell>{store.customerCount}</TableCell>
+                        <Tooltip
+                          title="Merchant"
+                          arrow
+                        >
+                          <IconButton
+                            color="secondary"
+                            onClick={() => window.open(buildSwitchUrl(store.accessCode), '_blank')}
+                          >
+                            <Web fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
 
-                          {/* Weekly */}
-                          <TableCell align="right">
-                            <Typography
-                              fontWeight={900}
-                              color={weeklyCost > 0 ? 'primary.main' : 'text.secondary'}
-                            >
-                              {formatMoney(weeklyCost)}
-                            </Typography>
-                          </TableCell>
-
-                          {/* Balance */}
-                          <TableCell align="right">
-                            <Typography
-                              fontWeight={900}
-                              color={pending > 0 ? 'error.main' : 'success.main'}
-                            >
-                              {formatMoney(pending)}
-                            </Typography>
-                          </TableCell>
-
-                          {/* Installments */}
-                          <TableCell align="right">
-                            <Typography
-                              fontWeight={800}
-                              color={pending > 0 ? 'text.primary' : 'text.secondary'}
-                            >
-                              {pending <= 0 ? '—' : `${installmentsNeeded ?? '—'} weeks`}
-                            </Typography>
-                          </TableCell>
-
-                          {/* Payment status (chip por semanas) */}
-                          <TableCell align="center">
-                            <DebtChip
-                              pending={pending}
-                              installmentsNeeded={installmentsNeeded}
-                            />
-                          </TableCell>
-
-                          {/* Status */}
-                          <TableCell align="center">
-                            <Typography
-                              color={store.active ? 'success.main' : 'error.main'}
-                              fontWeight={800}
-                            >
-                              {store.active ? t('Active') : t('Inactive')}
-                            </Typography>
-                          </TableCell>
-
-                          {/* Actions */}
-                          <TableCell align="center">
-                            <Tooltip
-                              title={t('View')}
-                              arrow
-                            >
-                              <Link
-                                href={`/admin/management/stores/edit/${id}`}
-                                passHref
-                              >
-                                <IconButton color="primary">
-                                  <Settings fontSize="small" />
-                                </IconButton>
-                              </Link>
-                            </Tooltip>
-
-                            <Tooltip
-                              title={t('Merchant')}
-                              arrow
-                            >
-                              <IconButton
-                                color="secondary"
-                                onClick={() =>
-                                  window.open(buildSwitchUrl(store.accessCode), '_blank')
-                                }
-                              >
-                                <Web fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-
-                            <Tooltip
-                              title={t('Details')}
-                              arrow
-                            >
-                              <IconButton
-                                color="primary"
-                                onClick={() => handleOpenModal(store)}
-                              >
-                                <AccountCircle fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Card>
-          )}
-
-          <Box p={2}>
-            <TablePagination
-              component="div"
-              count={total}
-              page={page}
-              rowsPerPage={limit}
-              onPageChange={(_, newPage) => onPageChange(newPage)}
-              onRowsPerPageChange={onLimitChange}
-              rowsPerPageOptions={rowsPerPageOptions}
-            />
-          </Box>
-        </>
+                        <Tooltip
+                          title="Details"
+                          arrow
+                        >
+                          <IconButton color="primary">
+                            <AccountCircle fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Card>
       )}
+
+      <Box p={2}>
+        <TablePagination
+          component="div"
+          count={total}
+          page={page}
+          rowsPerPage={limit}
+          onPageChange={(_, newPage) => onPageChange(newPage)}
+          onRowsPerPageChange={onLimitChange}
+          rowsPerPageOptions={rowsPerPageOptions}
+        />
+      </Box>
     </>
   );
 };

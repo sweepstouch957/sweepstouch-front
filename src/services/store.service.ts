@@ -1,50 +1,52 @@
 // src/services/stores.service.ts
-
 import { api } from '@/libs/axios';
 import { Customer } from '@/models/customer';
 import { PaginatedResponse } from '@/models/pagination';
 import { AxiosResponse } from 'axios';
 
-  export interface Store {
-    id: string;
-    _id: string;
-    name: string;
-    address: string;
-    zipCode: string;
-    type: 'elite' | 'basic' | 'free';
-    location?: {
-      type: 'Point';
-      coordinates: [number, number];
-    };
-    ownerId: string;
-    description?: string;
-    slug?: string;
-    image: string;
-    active: boolean;
-    subscription?: string;
-    phoneNumber?: string;
-    twilioPhoneNumber?: string;
-    twilioPhoneNumberSid?: string;
-    twilioPhoneNumberFriendlyName?: string;
-    verifiedByTwilio?: boolean;
-    bandwidthPhoneNumber?: string;
-    customerCount: number;
-    provider: 'twilio' | 'bandwidth';
-    createdAt: string;
-    updatedAt: string;
-    accessCode?: string;
-    membershipType?: 'mensual' | 'semanal' | 'especial';
-    paymentMethod?: 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
-    startContractDate?: string | null; // ISO o null
-    lng?: number | null;
-    lat?: number | null;
-    email?: string;
+/* ===================== Types ===================== */
+export type DebtStatus = 'all' | 'ok' | 'min_low' | 'low' | 'mid' | 'high' | 'critical';
 
-    // 🆕 Tablet / Kiosko
-    kioskTabletStatus?: 'instalada' | 'desinstalada' | 'sin_instalar';
-    kioskTabletDate?: string | null; // YYYY-MM-DD o ISO
-    kioskTabletQuantity?: number | null;
-  }
+export interface Store {
+  id: string;
+  _id: string;
+  name: string;
+  address: string;
+  zipCode: string;
+  type: 'elite' | 'basic' | 'free';
+  location?: {
+    type: 'Point';
+    coordinates: [number, number];
+  };
+  ownerId: string;
+  description?: string;
+  slug?: string;
+  image: string;
+  active: boolean;
+  subscription?: string;
+  phoneNumber?: string;
+  twilioPhoneNumber?: string;
+  twilioPhoneNumberSid?: string;
+  twilioPhoneNumberFriendlyName?: string;
+  verifiedByTwilio?: boolean;
+  bandwidthPhoneNumber?: string;
+  customerCount: number;
+  provider: 'twilio' | 'bandwidth';
+  createdAt: string;
+  updatedAt: string;
+  accessCode?: string;
+  membershipType?: 'mensual' | 'semanal' | 'especial';
+  paymentMethod?: 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
+  startContractDate?: string | null; // ISO o null
+  lng?: number | null;
+  lat?: number | null;
+  email?: string;
+
+  // 🆕 Tablet / Kiosko
+  kioskTabletStatus?: 'instalada' | 'desinstalada' | 'sin_instalar';
+  kioskTabletDate?: string | null; // YYYY-MM-DD o ISO
+  kioskTabletQuantity?: number | null;
+}
 
 export interface UpdateStoreBody {
   name?: string;
@@ -87,10 +89,21 @@ export interface BillingBucketSummary {
   totalPending: number;
 }
 
+/**
+ * ✅ Antes: ok/low/high
+ * ✅ Ahora: ok/min_low/low/mid/high/critical
+ *
+ * Si tu endpoint /store/billing-summary todavía devuelve solo ok/low/high,
+ * podés dejar esto como estaba.
+ * Pero si ya lo vas a ampliar, este tipo te queda perfecto.
+ */
 export interface BillingSummaryResponse {
   ok: BillingBucketSummary;
+  min_low?: BillingBucketSummary;
   low: BillingBucketSummary;
+  mid?: BillingBucketSummary;
   high: BillingBucketSummary;
+  critical?: BillingBucketSummary;
   overall: {
     totalStores: number;
     totalPending: number;
@@ -122,21 +135,27 @@ export interface GetStoresParams {
   limit?: number;
   search?: string;
   type?: 'elite' | 'basic' | 'free' | '';
-  sortBy?: string; // puedes ampliar si ordenas por otros campos
+  sortBy?: string;
   order?: 'asc' | 'desc';
   status?: 'all' | 'active' | 'inactive';
-  // 🆕 filtros de morosidad
-  debtStatus?: 'all' | 'ok' | 'low' | 'high';
+
+  // ✅ filtros de morosidad (AMPLIADO)
+  debtStatus?: DebtStatus;
+
   minDebt?: string;
   maxDebt?: string;
+
   audienceLt?: string;
+
   paymentMethod?: 'all' | 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
 }
 
+/* ===================== API ===================== */
 export const getStoresWithoutFilters = async (): Promise<Store[]> => {
   const res = await api.get<Store[]>('/store');
   return res.data;
 };
+
 export const getStores = async ({
   page = 1,
   limit = 25,
@@ -146,7 +165,8 @@ export const getStores = async ({
   sortBy = 'customerCount',
   order = 'desc',
   audienceLt = '',
-  // 🆕 filtros de morosida
+
+  // ✅ default sigue igual
   debtStatus = 'all',
   minDebt = '',
   maxDebt = '',
@@ -164,11 +184,9 @@ export const getStores = async ({
     paymentMethod,
   };
 
-  // Normaliza type y status
   if (type) params.type = type;
   if (status !== 'all') params.status = status;
 
-  // 👇 agrega lt solo si viene con valor válido (> 0)
   if (!!audienceLt) {
     params.lt = audienceLt;
   }
@@ -177,7 +195,7 @@ export const getStores = async ({
   return res.data;
 };
 
-// 🆕 Obtener resumen global de morosidad (ok / low / high)
+// 🆕 Obtener resumen global de morosidad
 export const getStoresBillingSummary = async (opts?: {
   status?: 'all' | 'active' | 'inactive';
 }): Promise<BillingSummaryResponse> => {
@@ -186,10 +204,7 @@ export const getStoresBillingSummary = async (opts?: {
     params.status = opts.status;
   }
 
-  const res = await api.get<BillingSummaryResponse>('/store/billing-summary', {
-    params,
-  });
-
+  const res = await api.get<BillingSummaryResponse>('/store/billing-summary', { params });
   return res.data;
 };
 
@@ -288,7 +303,7 @@ export const getStoreBySlug = async (slug: string): Promise<Store> => {
 
 const storesService = {
   getStores,
-  getStoresBillingSummary, // 🆕 aquí exportado
+  getStoresBillingSummary,
   getStoreById,
   createStore,
   updateStore,

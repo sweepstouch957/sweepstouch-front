@@ -1,9 +1,11 @@
 // src/components/stores/StoresBillingHeader.tsx
 'use client';
 
-import storesService, { BillingSummaryResponse } from '@/services/store.service';
+import storesService from '@/services/store.service';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import {
   Box,
@@ -17,10 +19,29 @@ import {
   useTheme,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+
+/** ⬇️ NUEVO RESPONSE */
+export type BillingBucketSummary = {
+  count: number;
+  totalPending: number;
+};
+
+export type BillingSummaryResponse = {
+  ok: BillingBucketSummary;
+  min_low: BillingBucketSummary;
+  low: BillingBucketSummary;
+  mid: BillingBucketSummary;
+  high: BillingBucketSummary;
+  critical: BillingBucketSummary;
+  overall: {
+    totalStores: number;
+    totalPending: number;
+    totalWithDebt: number;
+  };
+};
 
 type Props = {
-  /** Estado inicial opcional (solo se usa como default para el toggle) */
   status?: 'all' | 'active' | 'inactive';
 };
 
@@ -42,25 +63,92 @@ export function StoresBillingHeader({ status = 'all' }: Props) {
 
   const { data, isLoading, isError, error, isFetching } = useQuery<BillingSummaryResponse>({
     queryKey: ['stores', 'billing-summary', effectiveStatus],
-    queryFn: () => storesService.getStoresBillingSummary({ status: effectiveStatus }),
+    queryFn: () => storesService.getStoresBillingSummary({ status: effectiveStatus }) as any,
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
   });
 
   const loading = isLoading || isFetching;
 
-  const totalWithDebt =
-    data ? (data.low?.count || 0) + (data.high?.count || 0) : 0;
-
   const overallPending = data?.overall?.totalPending || 0;
+  const totalWithDebt = data?.overall?.totalWithDebt ?? 0;
+
+  const cards = useMemo(() => {
+    const d = data;
+    if (!d) return [];
+
+    return [
+      {
+        key: 'ok',
+        title: 'OK · Al día',
+        subtitle: '0 SEM',
+        count: d.ok.count,
+        pending: d.ok.totalPending,
+        bg: '#10B981',
+        color: '#FFFFFF',
+        icon: <CheckCircleOutlineIcon fontSize="small" />,
+        shadow: '0 14px 35px rgba(16,185,129,0.35)',
+      },
+      {
+        key: 'min_low',
+        title: 'MIN LOW',
+        subtitle: '1 SEM',
+        count: d.min_low.count,
+        pending: d.min_low.totalPending,
+        bg: '#E5E7EB',
+        color: '#111827',
+        icon: <InfoOutlinedIcon fontSize="small" />,
+        shadow: '0 14px 35px rgba(17,24,39,0.08)',
+      },
+      {
+        key: 'low',
+        title: 'LOW',
+        subtitle: '2 SEM',
+        count: d.low.count,
+        pending: d.low.totalPending,
+        bg: '#FACC15',
+        color: '#111827',
+        icon: <WarningAmberIcon fontSize="small" />,
+        shadow: '0 14px 35px rgba(250,204,21,0.25)',
+      },
+      {
+        key: 'mid',
+        title: 'MID',
+        subtitle: '3 SEM',
+        count: d.mid.count,
+        pending: d.mid.totalPending,
+        bg: '#FB923C',
+        color: '#111827',
+        icon: <ReportProblemOutlinedIcon fontSize="small" />,
+        shadow: '0 14px 35px rgba(251,146,60,0.25)',
+      },
+      {
+        key: 'high',
+        title: 'HIGH',
+        subtitle: '4 SEM',
+        count: d.high.count,
+        pending: d.high.totalPending,
+        bg: '#F43F5E',
+        color: '#FFFFFF',
+        icon: <ErrorOutlineIcon fontSize="small" />,
+        shadow: '0 14px 35px rgba(244,63,94,0.30)',
+      },
+      {
+        key: 'critical',
+        title: 'CRITICAL',
+        subtitle: '5+ SEM',
+        count: d.critical.count,
+        pending: d.critical.totalPending,
+        bg: '#7F1D1D',
+        color: '#FFFFFF',
+        icon: <ErrorOutlineIcon fontSize="small" />,
+        shadow: '0 14px 35px rgba(127,29,29,0.35)',
+      },
+    ];
+  }, [data]);
 
   return (
-    <Box
-      sx={{
-        width: '100%',
-        mb: 1.5, // menos espacio hacia los filtros
-      }}
-    >
+    <Box sx={{ width: '100%', mb: 1.5 }}>
       <Paper
         elevation={0}
         sx={{
@@ -82,7 +170,7 @@ export function StoresBillingHeader({ status = 'all' }: Props) {
           <Box>
             <Typography
               variant="subtitle1"
-              fontWeight={700}
+              fontWeight={800}
             >
               Resumen de facturación &amp; morosidad
             </Typography>
@@ -90,12 +178,12 @@ export function StoresBillingHeader({ status = 'all' }: Props) {
               variant="caption"
               color="text.secondary"
             >
-              Estado global de las tiendas ·{' '}
+              Estado global ·{' '}
               {effectiveStatus === 'all'
-                ? 'Todas las tiendas'
+                ? 'Todas'
                 : effectiveStatus === 'active'
-                  ? 'Solo tiendas activas'
-                  : 'Solo tiendas inactivas'}
+                  ? 'Solo activas'
+                  : 'Solo inactivas'}
             </Typography>
           </Box>
 
@@ -116,9 +204,7 @@ export function StoresBillingHeader({ status = 'all' }: Props) {
             <FormControlLabel
               sx={{
                 m: 0,
-                '& .MuiFormControlLabel-label': {
-                  fontSize: '0.72rem',
-                },
+                '& .MuiFormControlLabel-label': { fontSize: '0.72rem' },
               }}
               control={
                 <Switch
@@ -143,142 +229,72 @@ export function StoresBillingHeader({ status = 'all' }: Props) {
             variant="body2"
             color="error"
           >
-            Error cargando resumen de facturación:{' '}
-            {error instanceof Error ? error.message : 'Error desconocido'}
+            Error cargando resumen: {error instanceof Error ? error.message : 'Error desconocido'}
           </Typography>
         )}
 
         {!isError && data && (
           <>
-            <Stack
-              direction={isMobile ? 'column' : 'row'}
-              spacing={2}
+            {/* ✅ Grid responsive */}
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))',
+                gap: 2,
+              }}
             >
-              {/* OK */}
-              <Box
-                sx={{
-                  flex: 1,
-                  p: 1.75,
-                  borderRadius: 2.5,
-                  bgcolor: 'success.main',
-                  color: 'success.contrastText',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 0.25,
-                  boxShadow: '0 14px 35px rgba(22,163,74,0.35)',
-                }}
-              >
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  spacing={0.75}
+              {cards.map((c) => (
+                <Box
+                  key={c.key}
+                  sx={{
+                    p: 1.75,
+                    borderRadius: 2.5,
+                    bgcolor: c.bg,
+                    color: c.color,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 0.35,
+                    boxShadow: c.shadow,
+                  }}
                 >
-                  <CheckCircleOutlineIcon fontSize="small" />
-                  <Typography
-                    variant="subtitle2"
-                    sx={{ textTransform: 'uppercase', letterSpacing: 0.8 }}
+                  <Stack
+                    direction="row"
+                    alignItems="center"
+                    spacing={0.75}
                   >
-                    OK · Al día
-                  </Typography>
-                </Stack>
-                <Typography
-                  variant="h6"
-                  fontWeight={800}
-                >
-                  {data.ok.count} tiendas
-                </Typography>
-                <Typography
-                  variant="caption"
-                  sx={{ opacity: 0.9 }}
-                >
-                  Deuda: {formatMoney(data.ok.totalPending)} · 0 días vencidos
-                </Typography>
-              </Box>
+                    {c.icon}
+                    <Typography
+                      variant="subtitle2"
+                      sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 900 }}
+                    >
+                      {c.title}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{ ml: 'auto', opacity: 0.95, fontWeight: 900 }}
+                    >
+                      {c.subtitle}
+                    </Typography>
+                  </Stack>
 
-              {/* Low debt (1–14 días) */}
-              <Box
-                sx={{
-                  flex: 1,
-                  p: 1.75,
-                  borderRadius: 2.5,
-                  bgcolor: 'warning.main',
-                  color: 'warning.contrastText',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 0.25,
-                  boxShadow: '0 14px 35px rgba(245,158,11,0.35)',
-                }}
-              >
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  spacing={0.75}
-                >
-                  <WarningAmberIcon fontSize="small" />
                   <Typography
-                    variant="subtitle2"
-                    sx={{ textTransform: 'uppercase', letterSpacing: 0.8 }}
+                    variant="h6"
+                    fontWeight={900}
                   >
-                    Low debt · 1–14 días
+                    {c.count} tiendas
                   </Typography>
-                </Stack>
-                <Typography
-                  variant="h6"
-                  fontWeight={800}
-                >
-                  {data.low.count} tiendas
-                </Typography>
-                <Typography
-                  variant="caption"
-                  sx={{ opacity: 0.9 }}
-                >
-                  Deuda: {formatMoney(data.low.totalPending)} · entre 1 y 14 días de atraso
-                </Typography>
-              </Box>
 
-              {/* High debt (15+ días) */}
-              <Box
-                sx={{
-                  flex: 1,
-                  p: 1.75,
-                  borderRadius: 2.5,
-                  bgcolor: 'error.main',
-                  color: 'error.contrastText',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 0.25,
-                  boxShadow: '0 14px 35px rgba(239,68,68,0.4)',
-                }}
-              >
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  spacing={0.75}
-                >
-                  <ErrorOutlineIcon fontSize="small" />
                   <Typography
-                    variant="subtitle2"
-                    sx={{ textTransform: 'uppercase', letterSpacing: 0.8 }}
+                    variant="caption"
+                    sx={{ opacity: 0.9 }}
                   >
-                    High debt · 15+ días
+                    Deuda: {formatMoney(c.pending)}
                   </Typography>
-                </Stack>
-                <Typography
-                  variant="h6"
-                  fontWeight={800}
-                >
-                  {data.high.count} tiendas
-                </Typography>
-                <Typography
-                  variant="caption"
-                  sx={{ opacity: 0.9 }}
-                >
-                  Deuda: {formatMoney(data.high.totalPending)} · 15 días o más de atraso
-                </Typography>
-              </Box>
-            </Stack>
+                </Box>
+              ))}
+            </Box>
 
-            {/* Footer pequeño con totales */}
+            {/* Footer */}
             <Box mt={1.75}>
               <Typography
                 variant="caption"
@@ -286,7 +302,7 @@ export function StoresBillingHeader({ status = 'all' }: Props) {
               >
                 Total tiendas: <strong>{data.overall.totalStores}</strong> · Deuda acumulada:{' '}
                 <strong>{formatMoney(overallPending)}</strong> · Tiendas con deuda:{' '}
-                <strong>{totalWithDebt}</strong> (low + high)
+                <strong>{totalWithDebt}</strong>
               </Typography>
             </Box>
           </>
