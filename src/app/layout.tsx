@@ -2,8 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
 import type { ReactNode } from 'react';
 import 'src/global.css';
-import 'react-date-range/dist/styles.css';
-import 'react-date-range/dist/theme/default.css';
+
 import { NProgress } from 'src/components/base/nprogress';
 import type { Customization } from 'src/contexts/customization';
 import { Layout as DocumentLayout } from 'src/layouts/document';
