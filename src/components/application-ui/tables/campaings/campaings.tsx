@@ -16,12 +16,14 @@ interface CampaignsGridProps {
 function CampaignsGrid({ storeId }: CampaignsGridProps) {
   const [filters, setFilters] = useState({
     status: '',
-    name: '',
+    title: '', // ✅ antes era name
+    storeName: '', // ✅ nuevo
+    type: '', // ✅ nuevo (SMS/MMS)
     startDate: '',
     endDate: '',
     page: 1,
     limit: 50,
-    storeId, // incluimos el storeId en los filtros
+    storeId,
   });
   const { t } = useTranslation();
 

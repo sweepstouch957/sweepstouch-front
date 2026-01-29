@@ -13,6 +13,8 @@ export interface FilterCampaignParams {
   endDate?: string;
   storeId?: string;
   title?: string;
+  storeName?: string;
+  type?: string;
 }
 
 export type MessageLogStatus = 'queued' | 'failed' | 'sent' | 'delivered' | 'undelivered';
@@ -338,15 +340,26 @@ class CampaignClient {
     return res.data as PaginatedResponse<Campaing>;
   }
 
-  async getFilteredCampaigns(params: FilterCampaignParams) {
-    const { page = 1, limit = 10, status, startDate, endDate, storeId, title } = params;
+ async getFilteredCampaigns(params: FilterCampaignParams) {
+  const {
+    page = 1,
+    limit = 10,
+    status,
+    startDate,
+    endDate,
+    storeId,
+    title,
+    storeName, // ✅
+    type,      // ✅
+  } = params;
 
-    const res = await api.get('/campaigns/filter', {
-      params: { page, limit, status, startDate, endDate, storeId, title },
-    });
+  const res = await api.get('/campaigns/filter', {
+    params: { page, limit, status, startDate, endDate, storeId, title, storeName, type },
+  });
 
-    return res.data;
-  }
+  return res.data;
+}
+
 
   async getCampaignById(id: string): Promise<Campaing> {
     const res = await api.get(`/campaigns/${id}`);

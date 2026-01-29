@@ -1,13 +1,6 @@
-import React from 'react';
 import { Campaing, CampaingStatus } from '@/models/campaing';
 import { campaignClient } from '@/services/campaing.service';
-import {
-  ClearRounded as ClearIcon,
-  DeleteRounded,
-  Edit,
-  OpenInNewRounded,
-  SearchTwoTone,
-} from '@mui/icons-material';
+import { DeleteRounded, Edit, OpenInNewRounded } from '@mui/icons-material';
 import {
   Avatar,
   Box,
@@ -18,12 +11,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
-  FormControl,
   IconButton,
-  InputAdornment,
-  MenuItem,
-  Select,
   Stack,
   Table,
   TableBody,
@@ -32,17 +20,18 @@ import {
   TableHead,
   TablePagination,
   TableRow,
-  TextField,
   Tooltip,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers';
 import { format } from 'date-fns';
 import numeral from 'numeral';
+import React, { useState } from 'react';
 import type { FC } from 'react';
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SkeletonTableRow } from '../../skeleton/table/table';
+import CampaignsFilters from './CampaignsFilters';
 
 interface ResultsProps {
   campaigns: Campaing[];
@@ -54,26 +43,32 @@ interface ResultsProps {
   storeId?: string;
 }
 
-const getInvoiceStatusLabel = (campaignStatus: CampaingStatus): React.JSX.Element  => {
-  const map: Partial<Record<CampaingStatus, {
-    text: string;
-    color: 'warning' | 'success' | 'info' | 'primary';
-  }>> = {
+const getInvoiceStatusLabel = (campaignStatus: CampaingStatus): React.JSX.Element => {
+  const map: Partial<
+    Record<
+      CampaingStatus,
+      {
+        text: string;
+        color: 'warning' | 'success' | 'info' | 'primary';
+      }
+    >
+  > = {
     scheduled: { text: 'Scheduled', color: 'warning' },
     completed: { text: 'Completed', color: 'success' },
     draft: { text: 'Draft', color: 'info' },
     active: { text: 'Active', color: 'primary' },
-    // opcionalmente agrega los extras si existen:
     progress: { text: 'In Progress', color: 'primary' },
     cancelled: { text: 'Cancelled', color: 'warning' },
   };
 
-  // Fallback seguro si llega un estado no mapeado:
-  const { text, color } = map[campaignStatus] ?? { text: String(campaignStatus), color: 'info' as const };
-
+  const { text, color } = map[campaignStatus] ?? {
+    text: String(campaignStatus),
+    color: 'info' as const,
+  };
 
   return (
     <Chip
+      size="small"
       variant="outlined"
       label={text}
       color={color}
@@ -90,14 +85,16 @@ const Results: FC<ResultsProps> = ({
   refetch,
   storeId,
 }) => {
+  const { t } = useTranslation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   // Mantener filtros vigentes accesibles a handlers (export)
   const filtersRef = React.useRef<any>(filters);
   React.useEffect(() => {
     filtersRef.current = filters;
   }, [filters]);
 
-  // Exportar TODAS las campañas con los filtros actuales
-  // Exportar TODAS las campañas con los filtros actuales
   async function exportAllCampaigns(): Promise<void> {
     try {
       const limit = 500;
@@ -106,9 +103,6 @@ const Results: FC<ResultsProps> = ({
 
       const { campaignClient: svc } = await import('@/services/campaing.service');
 
-      // Usar EXACTAMENTE los filtros vigentes de la tabla.
-      // No cambiamos valores (no convertimos '' a undefined, etc.)
-      // Solo ponemos page y limit encima.
       const baseFilters: any = { ...(filtersRef.current || {}) };
       delete baseFilters.page;
       delete baseFilters.limit;
@@ -121,14 +115,12 @@ const Results: FC<ResultsProps> = ({
         const data = res?.data ?? res?.items ?? [];
         all = all.concat(data);
 
-        // Condición de salida robusta basada en tamaño de página:
         if (data.length < limit) break;
 
         page += 1;
-        if (page > 5000) break; // safety
+        if (page > 5000) break;
       }
 
-      // Mapea a columnas llanas (ajusta si quieres más)
       const rows = all.map((c: any) => ({
         store: c?.store?.name ?? '',
         type: c?.type ?? '',
@@ -151,20 +143,15 @@ const Results: FC<ResultsProps> = ({
     }
   }
 
-
-  // Escucha el botón Export del header (ExportButton emite `campaigns:export`)
   React.useEffect(() => {
-    const handler = () => {
-      void exportAllCampaigns();
-    };
+    const handler = () => void exportAllCampaigns();
     if (typeof window !== 'undefined') {
       window.addEventListener('campaigns:export', handler);
       return () => window.removeEventListener('campaigns:export', handler);
     }
-    return () => { };
-  }, []); // no dependas de filters aquí, ya usamos filtersRef
+    return () => {};
+  }, []);
 
-  const { t } = useTranslation();
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [selectedToDelete, setSelectedToDelete] = useState<string | null>(null);
 
@@ -183,259 +170,273 @@ const Results: FC<ResultsProps> = ({
   };
 
   const handleStoreRedirect = (id: string) => {
+    if (!id) return;
     window.open(`/admin/management/stores/edit/${id}`, '_blank');
   };
 
   const handleCampaingRedirect = (id: string) => {
+    if (!id) return;
     window.open(`/admin/management/campaings/stats/${id}`, '_blank');
   };
 
   const handleCampaingEditRedirect = (id: string) => {
+    if (!id) return;
     window.open(`/admin/management/campaings/edit/${id}`);
   };
 
   return (
-    <Card sx={{ borderRadius: 3, overflow: 'hidden' }}>
-      <Box
-        py={2}
-        px={3}
-        display="flex"
-        alignItems="center"
-        justifyContent="space-between"
-        flexWrap="wrap"
-      >
-        {!storeId && (
-          <Stack
-            direction="row"
-            spacing={2}
-            mt={{ xs: 2, sm: 0 }}
-          >
-            <DatePicker
-              label={t('Start Date')}
-              value={filters.startDate ? new Date(filters.startDate) : null}
-              onChange={(newValue) => {
-                setFilters({
-                  ...filters,
-                  startDate: newValue ? newValue.toISOString() : '',
-                  page: 1,
-                });
-              }}
-              slotProps={{ textField: { size: 'small' } }}
-            />
+    <Card
+      sx={{
+        borderRadius: 3,
+        overflow: 'hidden',
+        border: `1px solid ${theme.palette.divider}`,
+        boxShadow: `0 12px 32px rgba(0,0,0,0.10)`,
+      }}
+    >
+      <CampaignsFilters
+        filters={filters}
+        setFilters={setFilters}
+        storeId={storeId}
+      />
 
-            <DatePicker
-              label={t('End Date')}
-              value={filters.endDate ? new Date(filters.endDate) : null}
-              onChange={(newValue) => {
-                setFilters({
-                  ...filters,
-                  endDate: newValue ? newValue.toISOString() : '',
-                  page: 1,
-                });
-              }}
-              slotProps={{ textField: { size: 'small' } }}
-            />
-            <FormControl
-              size="small"
-              variant="outlined"
-            >
-              <Select
-                value={filters.status || 'all'}
-                onChange={(e) =>
-                  setFilters({
-                    ...filters,
-                    status: e.target.value === 'all' ? '' : e.target.value,
-                    page: 1,
-                  })
-                }
-              >
-                {['all', 'active', 'completed', 'draft', 'scheduled'].map((opt) => (
-                  <MenuItem
-                    key={opt}
-                    value={opt}
-                  >
-                    {t(opt.charAt(0).toUpperCase() + opt.slice(1))}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <TextField
-              size="small"
-              placeholder={t('Filter by Store name')}
-              value={filters.storeName || ''}
-              onChange={(e) => setFilters({ ...filters, storeName: e.target.value, page: 1 })}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchTwoTone />
-                  </InputAdornment>
-                ),
-                endAdornment: filters.storeName ? (
-                  <InputAdornment position="end">
-                    <IconButton
-                      color="error"
-                      onClick={() => setFilters({ ...filters, storeName: '', page: 1 })}
-                      edge="end"
-                      size="small"
-                    >
-                      <ClearIcon fontSize="small" />
-                    </IconButton>
-                  </InputAdornment>
-                ) : null,
-              }}
-              variant="outlined"
-            />
-          </Stack>
-        )}
-      </Box>
-      <Divider />
-      <TableContainer>
-        <Table>
+      <TableContainer sx={{ maxHeight: isMobile ? 520 : 720 }}>
+        <Table
+          stickyHeader
+          size="small"
+          sx={{
+            '& .MuiTableCell-root': { py: 1.05 }, // ✅ compact rows
+            '& .MuiTableCell-head': { py: 1 }, // ✅ compact header
+          }}
+        >
           <TableHead>
             <TableRow>
-              <TableCell>{t('Type')}</TableCell>
-              <TableCell>{t('Start Date')}</TableCell>
-              <TableCell>{t('Store')}</TableCell>
-              <TableCell>{t('Audience')}</TableCell>
-              <TableCell>{t('Cost')}</TableCell>
-              <TableCell>% entrega</TableCell>
-              <TableCell>{t('Status')}</TableCell>
-              <TableCell align="center">{t('Actions')}</TableCell>
+              <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 90 }}>
+                {t('Type')}
+              </TableCell>
+
+              <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 120 }}>
+                {t('Start Date')}
+              </TableCell>
+
+              <TableCell
+                sx={{
+                  fontWeight: 900,
+                  color: 'text.secondary',
+                  width: { xs: 260, sm: 420, md: 560 },
+                  maxWidth: { xs: 260, sm: 420, md: 560 },
+                }}
+              >
+                {t('Store')}
+              </TableCell>
+
+              {!isMobile && (
+                <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 110 }}>
+                  {t('Audience')}
+                </TableCell>
+              )}
+
+              <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 110 }}>
+                {t('Cost')}
+              </TableCell>
+
+              {!isMobile && (
+                <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 110 }}>
+                  % ENTREGA
+                </TableCell>
+              )}
+
+              <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 130 }}>
+                {t('Status')}
+              </TableCell>
+
+              <TableCell
+                align="center"
+                sx={{ fontWeight: 900, color: 'text.secondary', width: 120 }}
+              >
+                {t('Actions')}
+              </TableCell>
             </TableRow>
           </TableHead>
+
           <TableBody>
             {isLoading
-              ? Array.from({ length: 5 }).map((_, i) => <SkeletonTableRow key={i} />)
+              ? Array.from({ length: 6 }).map((_, i) => <SkeletonTableRow key={i} />)
               : campaigns.map((campaign) => {
-                const selected = selectedItems.includes(campaign._id);
-                return (
-                  <TableRow
-                    key={campaign._id}
-                    selected={selected}
-                    hover
-                  >
-                    <TableCell>
-                      <Typography
-                        noWrap
-                        variant="subtitle2"
-                      >
-                        {campaign.type}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography
-                        noWrap
-                        variant="subtitle2"
-                      >
-                        {format(new Date(campaign.startDate), 'dd/MM/yyyy')}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Box
-                        display="flex"
-                        alignItems="center"
-                      >
-                        <Avatar
-                          sx={{ mr: 1, width: 38, height: 38, cursor: 'pointer' }}
-                          src={campaign.store?.image}
-                          onClick={() => handleStoreRedirect(campaign.store?._id || '')}
+                  const selected = selectedItems.includes(campaign._id);
+
+                  const sent = campaign?.sent ?? 0;
+                  const audience = campaign?.audience ?? 0;
+                  const rate = audience > 0 ? Math.round((sent / audience) * 100) : 0;
+                  const rateColor = rate >= 90 ? '#04b410ff' : rate >= 85 ? '#FB8C00' : '#FF4F4F';
+
+                  return (
+                    <TableRow
+                      key={campaign._id}
+                      selected={selected}
+                      hover
+                      sx={{
+                        '&:hover': { backgroundColor: theme.palette.action.hover },
+                      }}
+                    >
+                      <TableCell>
+                        <Chip
+                          size="small"
+                          label={campaign.type}
+                          variant="outlined"
+                          sx={{ fontWeight: 900 }}
                         />
+                      </TableCell>
+
+                      <TableCell>
                         <Typography
-                          variant="h6"
-                          fontWeight={500}
-                          sx={{ cursor: 'pointer' }}
-                          onClick={() => handleStoreRedirect(campaign.store?._id || '')}
+                          noWrap
+                          variant="body2"
+                          fontWeight={600}
                         >
-                          {campaign.store?.name}
+                          {campaign.startDate
+                            ? format(new Date(campaign.startDate), 'dd/MM/yyyy')
+                            : '-'}
                         </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Typography
-                        noWrap
-                        variant="body2"
-                      >
-                        {campaign.audience}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography
-                        variant="h6"
-                        fontWeight={600}
-                      >
-                        {numeral(campaign.cost).format(`$0,0.00`)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      {(() => {
-                        const sent = campaign?.sent ?? 0;
-                        const audience = campaign?.audience ?? 0;
-                        const rate = audience > 0 ? Math.round((sent / audience) * 100) : 0;
-                        const color = rate >= 90 ? '#04b410ff' : rate >= 85 ? '#FB8C00' : '#FF4F4F';
-                        return (
-                          <Typography variant="h6"
-                            fontWeight={600}
-                            sx={{ color }}>
+                      </TableCell>
+
+                      {/* ✅ Store cell: 2 lines clamp (NO SLUG, NO H-scroll) */}
+                      <TableCell sx={{ maxWidth: { xs: 260, sm: 420, md: 560 } }}>
+                        <Box
+                          display="flex"
+                          alignItems="center"
+                          gap={1.25}
+                          sx={{ minWidth: 0 }}
+                        >
+                          <Avatar
+                            sx={{
+                              width: 34,
+                              height: 34,
+                              cursor: 'pointer',
+                              border: `1px solid ${theme.palette.divider}`,
+                              flex: '0 0 auto',
+                            }}
+                            src={campaign.store?.image}
+                            onClick={() => handleStoreRedirect(campaign.store?._id || '')}
+                          />
+
+                          <Typography
+                            variant="subtitle2"
+                            fontWeight={800}
+                            onClick={() => handleStoreRedirect(campaign.store?._id || '')}
+                            title={campaign.store?.name || ''}
+                            sx={{
+                              cursor: 'pointer',
+                              lineHeight: 1.2,
+                              minWidth: 0,
+
+                              // ✅ clamp 2 lines
+                              display: '-webkit-box',
+                              WebkitBoxOrient: 'vertical',
+                              WebkitLineClamp: 2,
+
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              wordBreak: 'break-word',
+                            }}
+                          >
+                            {campaign.store?.name || '-'}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+
+                      {!isMobile && (
+                        <TableCell>
+                          <Typography
+                            noWrap
+                            variant="body2"
+                          >
+                            {campaign.audience ?? 0}
+                          </Typography>
+                        </TableCell>
+                      )}
+
+                      <TableCell>
+                        <Typography
+                          variant="body2"
+                          fontWeight={900}
+                        >
+                          {numeral(campaign.cost || 0).format(`$0,0.00`)}
+                        </Typography>
+                      </TableCell>
+
+                      {!isMobile && (
+                        <TableCell>
+                          <Typography
+                            variant="body2"
+                            fontWeight={900}
+                            sx={{ color: rateColor }}
+                          >
                             {`${rate}%`}
                           </Typography>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell>{getInvoiceStatusLabel(campaign.status)}</TableCell>
-                    <TableCell align="center">
-                      <Stack
-                        direction="row"
-                        spacing={1}
-                        justifyContent="center"
-                      >
-                        <Tooltip
-                          title={t('Go to Stats')}
-                          arrow
+                        </TableCell>
+                      )}
+
+                      <TableCell>{getInvoiceStatusLabel(campaign.status)}</TableCell>
+
+                      <TableCell align="center">
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          justifyContent="center"
                         >
-                          <IconButton
-                            onClick={() => handleCampaingRedirect(campaign._id || '')}
-                            color="info"
-                          >
-                            <OpenInNewRounded fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-
-                        {campaign.status !== 'completed' && (
                           <Tooltip
-                            title={t('Edit Campaign')}
+                            title={t('Go to Stats')}
                             arrow
                           >
                             <IconButton
-                              onClick={() => handleCampaingEditRedirect(campaign._id || '')}
-                              color="primary"
+                              onClick={() => handleCampaingRedirect(campaign._id || '')}
+                              color="info"
                             >
-                              <Edit fontSize="small" />
+                              <OpenInNewRounded fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                        )}
 
-                        {campaign.status === 'scheduled' && (
-                          <Tooltip
-                            title="Eliminar campaña"
-                            arrow
-                          >
-                            <IconButton
-                              onClick={() => setSelectedToDelete(campaign._id)}
-                              color="error"
+                          {campaign.status !== 'completed' && (
+                            <Tooltip
+                              title={t('Edit Campaign')}
+                              arrow
                             >
-                              <DeleteRounded fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                              <IconButton
+                                onClick={() => handleCampaingEditRedirect(campaign._id || '')}
+                                color="primary"
+                              >
+                                <Edit fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+
+                          {campaign.status === 'scheduled' && (
+                            <Tooltip
+                              title={t('Delete Campaign')}
+                              arrow
+                            >
+                              <IconButton
+                                onClick={() => setSelectedToDelete(campaign._id)}
+                                color="error"
+                              >
+                                <DeleteRounded fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
           </TableBody>
         </Table>
       </TableContainer>
-      <Box p={2}>
+
+      <Box
+        p={2}
+        display="flex"
+        justifyContent="flex-end"
+      >
         <TablePagination
           component="div"
           count={total}
@@ -445,7 +446,7 @@ const Results: FC<ResultsProps> = ({
           onRowsPerPageChange={(e) =>
             setFilters({ ...filters, limit: parseInt(e.target.value, 10), page: 1 })
           }
-          rowsPerPageOptions={[5, 10, 15]}
+          rowsPerPageOptions={[5, 10, 15, 50]}
           slotProps={{ select: { variant: 'outlined', size: 'small', sx: { p: 0 } } }}
         />
       </Box>
