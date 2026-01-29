@@ -35,13 +35,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 // Roles mockeados
-const MOCK_ROLES = [
-  'Dueño',
-  'Supervisor de caja',
-  'Supervisor',
-  'Secretario',
-  'Asistente',
-];
+const MOCK_ROLES = ['Dueño', 'Supervisor de caja', 'Supervisor', 'Secretario', 'Asistente'];
 
 // Datos mockeados del staff
 const MOCK_STAFF = [
@@ -128,16 +122,26 @@ const StaffManagementMock: React.FC<StaffManagementMockProps> = ({ storeId }) =>
               </TableHead>
               <TableBody>
                 {filteredStaff.map((staff) => (
-                  <TableRow key={staff.id} hover>
+                  <TableRow
+                    key={staff.id}
+                    hover
+                  >
                     <TableCell>
-                      <Typography variant="body1" fontWeight="bold">
+                      <Typography
+                        variant="body1"
+                        fontWeight="bold"
+                      >
                         {staff.name}
                       </Typography>
                     </TableCell>
                     <TableCell>{staff.contact}</TableCell>
                     <TableCell>{staff.role}</TableCell>
                     <TableCell align="center">
-                      <Stack direction="row" spacing={0.5} justifyContent="center">
+                      <Stack
+                        direction="row"
+                        spacing={0.5}
+                        justifyContent="center"
+                      >
                         <Tooltip title={t('Edit (Mock)')}>
                           <IconButton
                             size="small"
@@ -162,7 +166,10 @@ const StaffManagementMock: React.FC<StaffManagementMockProps> = ({ storeId }) =>
                 ))}
                 {filteredStaff.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} align="center">
+                    <TableCell
+                      colSpan={4}
+                      align="center"
+                    >
                       {t('No staff members found.')}
                     </TableCell>
                   </TableRow>
@@ -182,8 +189,14 @@ const StaffManagementMock: React.FC<StaffManagementMockProps> = ({ storeId }) =>
       >
         <DialogTitle>{t('Add New Staff Member')}</DialogTitle>
         <DialogContent dividers>
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
+          <Grid
+            container
+            spacing={2}
+          >
+            <Grid
+              item
+              xs={12}
+            >
               <TextField
                 autoFocus
                 margin="dense"
@@ -195,7 +208,10 @@ const StaffManagementMock: React.FC<StaffManagementMockProps> = ({ storeId }) =>
                 onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid
+              item
+              xs={12}
+            >
               <TextField
                 margin="dense"
                 label={t('Contact Number')}
@@ -206,7 +222,10 @@ const StaffManagementMock: React.FC<StaffManagementMockProps> = ({ storeId }) =>
                 onChange={(e) => setNewStaff({ ...newStaff, contact: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid
+              item
+              xs={12}
+            >
               <TextField
                 select
                 margin="dense"
@@ -217,7 +236,10 @@ const StaffManagementMock: React.FC<StaffManagementMockProps> = ({ storeId }) =>
                 onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
               >
                 {MOCK_ROLES.map((role) => (
-                  <MenuItem key={role} value={role}>
+                  <MenuItem
+                    key={role}
+                    value={role}
+                  >
                     {t(role)}
                   </MenuItem>
                 ))}
@@ -226,10 +248,17 @@ const StaffManagementMock: React.FC<StaffManagementMockProps> = ({ storeId }) =>
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setIsAddModalOpen(false)} color="secondary">
+          <Button
+            onClick={() => setIsAddModalOpen(false)}
+            color="secondary"
+          >
             {t('Cancel')}
           </Button>
-          <Button onClick={handleAddStaff} color="primary" variant="contained">
+          <Button
+            onClick={handleAddStaff}
+            color="primary"
+            variant="contained"
+          >
             {t('Add Staff')}
           </Button>
         </DialogActions>
