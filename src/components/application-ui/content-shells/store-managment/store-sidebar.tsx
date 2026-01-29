@@ -74,10 +74,9 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
   const lgUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('lg'));
 
   // ✅ zustand
-  const { sidebarOpen, activeSection } = useStoreManagementStore((state) => ({
-    sidebarOpen: state.sidebarOpen,
-    activeSection: state.activeSection,
-  }));
+  const sidebarOpen = useStoreManagementStore((state) => state.sidebarOpen);
+  const activeSection = useStoreManagementStore((state) => state.activeSection);
+
 
   const auth = React.useContext(UserContext);
   const userRole = auth?.user?.role;
