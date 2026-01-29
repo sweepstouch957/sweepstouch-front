@@ -1,3 +1,6 @@
+// src/components/application-ui/content-shells/store-managment/store-sidebar.tsx
+'use client';
+
 import { UserContext } from '@/contexts/auth/auth-context';
 import {
   closeSidebar,
@@ -73,11 +76,9 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
   const theme = useTheme();
   const lgUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('lg'));
 
-  // ✅ zustand
-  const { sidebarOpen, activeSection } = useStoreManagementStore((state) => ({
-    sidebarOpen: state.sidebarOpen,
-    activeSection: state.activeSection,
-  }));
+  // ✅ zustand v5: NO armes un objeto acá
+  const sidebarOpen = useStoreManagementStore((s) => s.sidebarOpen);
+  const activeSection = useStoreManagementStore((s) => s.activeSection);
 
   const auth = React.useContext(UserContext);
   const userRole = auth?.user?.role;
@@ -101,7 +102,6 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
 
   const sidebarContent = (
     <Box p={{ xs: 2, sm: 3 }}>
-      {/* Header con logo/nombre */}
       <Box
         display="flex"
         flexDirection="column"
@@ -148,11 +148,7 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
               size="small"
               startIcon={<WebIcon />}
               onClick={openPortal}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 700,
-                borderRadius: 2,
-              }}
+              sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2 }}
             >
               Open Portal
             </Button>

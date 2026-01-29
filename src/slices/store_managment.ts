@@ -2,7 +2,6 @@
 import type React from 'react';
 import { create } from 'zustand';
 
-/** AppThunk equivalente (set/get) */
 export type AppThunk = (
   set: (
     partial:
