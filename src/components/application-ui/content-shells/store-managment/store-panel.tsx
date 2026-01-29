@@ -2,7 +2,14 @@
 
 import StoreInfo from '@/components/website/store-panel';
 import { useStoreById } from '@/hooks/fetching/stores/useStoreById';
-import { closeSidebar, openSidebar, setActiveSection, setTags } from '@/slices/store_managment';
+import {
+  closeSidebar,
+  openSidebar,
+  runStoreManagementThunk,
+  setActiveSection,
+  setTags,
+  useStoreManagementStore,
+} from '@/slices/store_managment';
 import AddCircleOutlineRoundedIcon from '@mui/icons-material/AddCircleOutlineRounded';
 import ArrowBackIosNewRoundedIcon from '@mui/icons-material/ArrowBackIosNewRounded';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
@@ -28,28 +35,29 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { ButtonIcon } from 'src/components/base/styles/button-icon';
 import { useSearchParams } from 'src/hooks/use-search-params';
-import { useDispatch, useSelector } from 'src/store';
 import { ActiveSweepstakeCard } from '../../active-sweeptake';
 import { PromoDashboard } from '../../tables/promos/panel';
+import { StoreBillingPanel } from './panel/billing/StoreBillingPanel';
 import CajerasPanel from './panel/cajeras/cajeras-panel';
 import CampaignsPanel from './panel/campaigns/campaign-panel';
 import CreateCampaignContainer from './panel/campaigns/createCampaignContainer';
 import CustomersPanel from './panel/customers/customers-panel';
 import QrDuetMUI from './panel/qr/QrContainer';
 import { StoreSidebar } from './store-sidebar';
-import { StoreBillingPanel } from './panel/billing/StoreBillingPanel';
 
 const StoreManagementPage = () => {
-  const dispatch = useDispatch();
   const router = useRouter();
-  const { sidebarOpen } = useSelector((state) => state.storeManagement);
-  const lgUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('lg'));
   const theme = useTheme();
+  const lgUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('lg'));
+
+  // ✅ zustand
+  const sidebarOpen = useStoreManagementStore((s) => s.sidebarOpen);
 
   const pageRef = useRef<HTMLDivElement | null>(null);
   const searchParams = useSearchParams();
   const tag = (searchParams.get('tag') as string) || 'campaigns';
   const action = searchParams.get('action');
+
   const params = useParams();
   const storeId = params?.id as string;
 
@@ -58,8 +66,10 @@ const StoreManagementPage = () => {
   const [openInactiveModal, setOpenInactiveModal] = useState(false);
 
   useEffect(() => {
-    dispatch(setActiveSection(tag));
-    dispatch(
+    // ✅ set active section + tags (zustand)
+    runStoreManagementThunk(setActiveSection(tag));
+
+    runStoreManagementThunk(
       setTags([
         { id: 'campaigns', label: 'Campaigns' },
         { id: 'general-info', label: 'General Info' },
@@ -68,10 +78,14 @@ const StoreManagementPage = () => {
         { id: 'qr', label: 'QR' },
       ])
     );
-  }, [dispatch, tag]);
+  }, [tag]);
 
   const handleDrawerToggle = () => {
-    dispatch(sidebarOpen ? closeSidebar() : openSidebar());
+    if (sidebarOpen) {
+      runStoreManagementThunk(closeSidebar());
+    } else {
+      runStoreManagementThunk(openSidebar());
+    }
   };
 
   const handleBack = () => {
@@ -107,6 +121,7 @@ const StoreManagementPage = () => {
         >
           <ArrowBackIosNewRoundedIcon fontSize="small" />
         </IconButton>
+
         <Breadcrumbs aria-label="breadcrumb">
           <Typography color="text.secondary">Tiendas</Typography>
           <Typography color="text.primary">{store?.name}</Typography>
@@ -194,6 +209,7 @@ const StoreManagementPage = () => {
           </Box>
         );
       }
+
       return (
         <CampaignsPanel
           storeId={storeId || ''}
@@ -204,11 +220,8 @@ const StoreManagementPage = () => {
 
     switch (tag) {
       case 'billing':
-        return (
-          <StoreBillingPanel
-            storeId={storeId || ''}
-          />
-        );
+        return <StoreBillingPanel storeId={storeId || ''} />;
+
       case 'customers':
         return (
           <CustomersPanel
@@ -216,6 +229,7 @@ const StoreManagementPage = () => {
             storeName={store?.name}
           />
         );
+
       case 'cajeras':
         return (
           <CajerasPanel
@@ -227,6 +241,7 @@ const StoreManagementPage = () => {
 
       case 'ads':
         return <PromoDashboard storeId={storeId || ''} />;
+
       case 'sms-provider':
         return (
           <Box p={3}>
@@ -243,12 +258,14 @@ const StoreManagementPage = () => {
             </Typography>
           </Box>
         );
+
       case 'general-info':
         return (
           <Box p={3}>
             <StoreInfo store={store} />
           </Box>
         );
+
       case 'sweepstakes':
         return (
           <Box p={3}>
@@ -261,12 +278,14 @@ const StoreManagementPage = () => {
             <ActiveSweepstakeCard storeId={storeId} />
           </Box>
         );
+
       case 'qr':
         return (
           <Box p={3}>
             <QrDuetMUI storeId={storeId} />
           </Box>
         );
+
       default:
         return (
           <Box p={3}>
@@ -292,6 +311,7 @@ const StoreManagementPage = () => {
         image={store?.image || ''}
         accessCode={store?.accessCode}
       />
+
       <Box
         flex={1}
         position="relative"
@@ -331,7 +351,6 @@ const StoreManagementPage = () => {
         {renderHeader()}
         {renderContent()}
 
-        {/* Modal para tienda inactiva */}
         <Dialog
           open={openInactiveModal}
           onClose={() => setOpenInactiveModal(false)}

@@ -12,7 +12,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import { FC } from 'react';
 import { useTranslation } from 'react-i18next';
 import NotificationTabsLine from 'src/components/application-ui/tabs/line/line';
@@ -144,8 +144,3 @@ export const NotificationsHeader: FC<NotificationsHeaderProps> = (props) => {
   );
 };
 
-NotificationsHeader.propTypes = {
-  onClose: PropTypes.func,
-  onOpen: PropTypes.func,
-  open: PropTypes.bool,
-};

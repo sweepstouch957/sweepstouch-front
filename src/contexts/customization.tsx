@@ -1,6 +1,6 @@
 import type { Direction, PaletteMode } from '@mui/material';
 import isEqual from 'lodash.isequal';
-import PropTypes from 'prop-types';
+
 import type { FC, ReactNode } from 'react';
 import { createContext, useCallback, useMemo, useState } from 'react';
 import type { ColorPreset } from 'src/theme';
@@ -116,7 +116,7 @@ export const CustomizationProvider: FC<CustomizationProviderProps> = (props) => 
 
   return (
     <CustomizationContext.Provider
-      value={{
+      value={{  
         ...settings,
         ...state,
         handleReset: onReset,
@@ -129,8 +129,6 @@ export const CustomizationProvider: FC<CustomizationProviderProps> = (props) => 
   );
 };
 
-CustomizationProvider.propTypes = {
-  children: PropTypes.node.isRequired,
-};
+
 
 export const CustomizationConsumer = CustomizationContext.Consumer;

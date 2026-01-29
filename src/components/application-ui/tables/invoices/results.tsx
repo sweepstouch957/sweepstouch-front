@@ -29,7 +29,7 @@ import {
 } from '@mui/material';
 import { format, formatDistance } from 'date-fns';
 import numeral from 'numeral';
-import PropTypes from 'prop-types';
+
 import { useState } from 'react';
 import type { ChangeEvent, FC } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -44,7 +44,7 @@ interface Filters {
   status?: InvoiceStatus;
 }
 
-const getInvoiceStatusLabel = (invoiceStatus: InvoiceStatus): JSX.Element => {
+const getInvoiceStatusLabel = (invoiceStatus: InvoiceStatus): React.JSX.Element  => {
   const map = {
     pending: {
       text: 'Pending Payment',
@@ -483,12 +483,5 @@ const Results: FC<ResultsProps> = ({ invoices }) => {
   );
 };
 
-Results.propTypes = {
-  invoices: PropTypes.array.isRequired,
-};
-
-Results.defaultProps = {
-  invoices: [],
-};
 
 export default Results;

@@ -28,7 +28,7 @@ interface SmsCampaignsTableProps {
 }
 
 // Reutilizar la lógica de estado de la campaña de results.tsx
-const getCampaignStatusLabel = (campaignStatus: Campaing['status']): JSX.Element => {
+const getCampaignStatusLabel = (campaignStatus: Campaing['status']): React.JSX.Element  => {
   const map: Partial<
     Record<
       Campaing['status'],

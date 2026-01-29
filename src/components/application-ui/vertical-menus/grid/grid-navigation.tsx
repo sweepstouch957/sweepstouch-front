@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 
 type DashboardItem = {
   label: string;
-  icon: JSX.Element;
+  icon: React.JSX.Element ;
   color: string;
 };
 

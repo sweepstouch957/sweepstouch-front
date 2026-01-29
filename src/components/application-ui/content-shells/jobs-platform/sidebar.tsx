@@ -1,5 +1,5 @@
 import { alpha, Drawer, SwipeableDrawer, Theme, useMediaQuery, useTheme } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import { FC } from 'react';
 import FiltersContent from 'src/components/application-ui/accordions/filters/filters-content';
 import { Scrollbar } from 'src/components/base/scrollbar';
@@ -72,11 +72,4 @@ export const JobsPlatformSidebar: FC<JobsPlatformSidebarProps> = (props) => {
       <Scrollbar>{sidebarContent}</Scrollbar>
     </SwipeableDrawer>
   );
-};
-
-JobsPlatformSidebar.propTypes = {
-  parentContainer: PropTypes.any,
-  onClose: PropTypes.func,
-  onOpen: PropTypes.func,
-  open: PropTypes.bool,
 };

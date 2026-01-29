@@ -195,7 +195,7 @@ const Component = () => {
                       limitTags={2}
                       options={jobsTags}
                       getOptionLabel={(option) => option.title}
-                      renderInput={(params): JSX.Element => (
+                      renderInput={(params) => (
                         <TextField
                           {...params}
                           variant="outlined"
@@ -211,7 +211,7 @@ const Component = () => {
                       onChange={handleLocationChange}
                       options={jobsLocations}
                       getOptionLabel={(option) => option.title}
-                      renderInput={(params): JSX.Element => (
+                      renderInput={(params) => (
                         <TextField
                           {...params}
                           variant="outlined"

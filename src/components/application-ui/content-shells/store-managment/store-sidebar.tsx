@@ -1,5 +1,11 @@
 import { UserContext } from '@/contexts/auth/auth-context';
-import { closeSidebar, openSidebar, setActiveSection } from '@/slices/store_managment';
+import {
+  closeSidebar,
+  openSidebar,
+  runStoreManagementThunk,
+  setActiveSection,
+  useStoreManagementStore,
+} from '@/slices/store_managment';
 import {
   Analytics,
   AutoAwesomeMosaicTwoTone as CampaignsIcon,
@@ -7,7 +13,6 @@ import {
   MonetizationOn,
   QrCode2Outlined,
   RedeemTwoTone as RewardIcon,
-  SmsTwoTone as SmsIcon,
   Web as WebIcon,
   Woman2,
 } from '@mui/icons-material';
@@ -27,19 +32,16 @@ import Grid2 from '@mui/material/Unstable_Grid2';
 import type { FC } from 'react';
 import React from 'react';
 import { Scrollbar } from 'src/components/base/scrollbar';
-import { useDispatch, useSelector } from 'src/store';
 import { StoreSidebarItem } from './store-sidebar-item';
 
 interface StoreSidebarProps {
   parentContainer?: HTMLDivElement | null;
   storeName?: string;
   image?: string;
-  /** 👇 NUEVO: necesitamos el storeId para construir el switch URL */
   storeId: string;
   accessCode: string;
-  /** Opcionales para customizar: */
-  portalRedirectPath?: string; // default: "/dashboard"
-  portalOpenInNewTab?: boolean; // default: false (misma pestaña)
+  portalRedirectPath?: string;
+  portalOpenInNewTab?: boolean;
 }
 
 const MERCHANT_ORIGIN =
@@ -51,7 +53,6 @@ function buildSwitchUrl(storeId: string) {
 
 const STORE_SECTIONS = [
   { id: 'campaigns', label: 'Campaigns', icon: <CampaignsIcon /> },
-  //{ id: 'sms-provider', label: 'SMS Provider', icon: <SmsIcon /> },
   { id: 'general-info', label: 'General Info', icon: <InfoIcon /> },
   { id: 'sweepstakes', label: 'Sweepstakes', icon: <RewardIcon /> },
   { id: 'billing', label: 'Billing', icon: <MonetizationOn /> },
@@ -69,31 +70,33 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
   portalOpenInNewTab = true,
   accessCode,
 }) => {
-  const dispatch = useDispatch();
   const theme = useTheme();
   const lgUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('lg'));
-  const { sidebarOpen, activeSection } = useSelector((state) => state.storeManagement);
+
+  // ✅ zustand
+  const { sidebarOpen, activeSection } = useStoreManagementStore((state) => ({
+    sidebarOpen: state.sidebarOpen,
+    activeSection: state.activeSection,
+  }));
+
   const auth = React.useContext(UserContext);
   const userRole = auth?.user?.role;
 
   const openPortal = () => {
     const url = buildSwitchUrl(accessCode);
-    if (portalOpenInNewTab) {
-      window.open(url, '_blank');
-    } else {
-      window.location.href = url;
-    }
+    if (portalOpenInNewTab) window.open(url, '_blank');
+    else window.location.href = url;
   };
 
-  const handleSectionClick = (id: string) => {
-    // 🔸 Si hacen click en "Portal", no cambiamos sección; abrimos merchant
+  const handleSectionClick = async (id: string) => {
     if (id === 'portal') {
       openPortal();
-      dispatch(closeSidebar());
+      await runStoreManagementThunk(closeSidebar());
       return;
     }
-    dispatch(setActiveSection(id));
-    dispatch(closeSidebar());
+
+    await runStoreManagementThunk(setActiveSection(id));
+    await runStoreManagementThunk(closeSidebar());
   };
 
   const sidebarContent = (
@@ -133,7 +136,6 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
           {storeName}
         </Box>
 
-        {/* 🔘 Botón grande para entrar al Portal (switch + redirect) */}
         <Grid2
           container
           spacing={1.5}
@@ -158,7 +160,6 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
         </Grid2>
       </Box>
 
-      {/* Lista de secciones */}
       <List disablePadding>
         {STORE_SECTIONS.filter(
           (s) =>
@@ -203,8 +204,8 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
       variant="temporary"
       anchor="left"
       open={sidebarOpen}
-      onClose={() => dispatch(closeSidebar())}
-      onOpen={() => dispatch(openSidebar())}
+      onClose={() => runStoreManagementThunk(closeSidebar())}
+      onOpen={() => runStoreManagementThunk(openSidebar())}
       SlideProps={{ container: parentContainer }}
       PaperProps={{
         sx: {

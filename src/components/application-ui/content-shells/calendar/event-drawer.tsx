@@ -23,13 +23,12 @@ import {
 } from '@mui/material';
 import { MobileDateTimePicker } from '@mui/x-date-pickers';
 import { setHours, setMinutes, subDays } from 'date-fns';
-import PropTypes from 'prop-types';
-import React, { FC, useState } from 'react';
+import React, { FC, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import type { Event } from 'src/models/calendar';
-import { createEvent, deleteEvent, updateEvent } from 'src/slices/calendar';
-import { useDispatch } from 'src/store';
+// ✅ zustand calendar store
+import { createEvent, deleteEvent, runCalendarThunk, updateEvent } from 'src/slices/calendar';
 import { z } from 'zod';
 
 interface AddEditEventModalProps {
@@ -43,47 +42,52 @@ interface AddEditEventModalProps {
 
 const EventDrawer: FC<AddEditEventModalProps> = ({
   event,
-  onAddComplete,
-  onCancel,
-  onDeleteComplete,
-  onEditComplete,
   range,
+  onAddComplete = () => {},
+  onCancel = () => {},
+  onDeleteComplete = () => {},
+  onEditComplete = () => {},
 }) => {
-  const dispatch = useDispatch();
   const isCreating = !event;
   const { t } = useTranslation();
   const mdUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('md'));
 
-  const schema = z.object({
-    title: z.string().min(1, 'Title is required'),
-    description: z.string().optional(),
-    start: z.date(),
-    end: z.date(),
-    allDay: z.boolean(),
-  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState<z.ZodIssue[]>([]);
 
-  const getInitialValues = (event?: Event, range?: { start: number; end: number }) => {
-    if (event) {
+  const schema = useMemo(
+    () =>
+      z.object({
+        title: z.string().min(1, 'Title is required'),
+        description: z.string().optional(),
+        start: z.date(),
+        end: z.date(),
+        allDay: z.boolean(),
+      }),
+    []
+  );
+
+  const getInitialValues = (evt?: Event, rng?: { start: number; end: number }) => {
+    if (evt) {
       return {
-        allDay: event.allDay,
-        description: event.description,
-        end: new Date(event.end),
-        start: new Date(event.start),
-        title: event.title,
+        allDay: evt.allDay,
+        description: evt.description ?? '',
+        end: new Date(evt.end),
+        start: new Date(evt.start),
+        title: evt.title ?? '',
       };
     }
 
-    if (range) {
+    if (rng) {
       return {
         allDay: false,
         description: '',
-        end: new Date(range.end),
-        start: new Date(range.start),
+        end: new Date(rng.end),
+        start: new Date(rng.start),
         title: '',
       };
     }
 
-    // Default values
     return {
       allDay: false,
       description: '',
@@ -95,55 +99,61 @@ const EventDrawer: FC<AddEditEventModalProps> = ({
 
   const [formState, setFormState] = useState(getInitialValues(event, range));
 
-  const [formErrors, setFormErrors] = useState<z.ZodIssue[]>([]);
-
   const handleFieldChange = (field: string, value: any) => {
-    setFormState((prevState) => ({ ...prevState, [field]: value }));
+    setFormState((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setFormErrors([]);
 
-    const parsed = schema.safeParse(formState);
+    // ✅ normalize por si MobileDateTimePicker manda null
+    const normalized = {
+      ...formState,
+      start: formState.start ?? new Date(),
+      end: formState.end ?? new Date(),
+    };
+
+    const parsed : any= schema.safeParse(normalized);
     if (!parsed.success) {
-      //@ts-ignore
       setFormErrors(parsed.error.issues);
       setIsSubmitting(false);
-
       return;
     }
 
     try {
       const data = {
-        allDay: formState.allDay,
-        description: formState.description,
-        end: formState.end,
-        start: formState.start,
-        title: formState.title,
+        allDay: normalized.allDay,
+        description: normalized.description,
+        // ✅ Deja Date (compatible con muchos mocks)
+        start: normalized.start,
+        end: normalized.end,
+
+        // Si tu mock requiere ISO strings, usa esto:
+        // start: normalized.start.toISOString(),
+        // end: normalized.end.toISOString(),
       };
 
       if (event) {
-        dispatch(updateEvent(event.id, data));
+        await runCalendarThunk(updateEvent(event.id, data));
       } else {
-        dispatch(createEvent(data));
+        await runCalendarThunk(createEvent(data));
       }
 
-      toast.success('The calendar has been successfully updated!', {
+      toast.success(t('The calendar has been successfully updated!'), {
         position: 'top-right',
       });
+
       setIsSubmitting(false);
 
-      if (isCreating) {
-        onAddComplete?.();
-      } else {
-        onEditComplete?.();
-      }
+      if (isCreating) onAddComplete();
+      else onEditComplete();
     } catch (err) {
       console.error(err);
       setIsSubmitting(false);
 
-      toast.error('Error updating the calendar', {
+      toast.error(t('Error updating the calendar'), {
         position: 'top-right',
       });
     }
@@ -151,41 +161,45 @@ const EventDrawer: FC<AddEditEventModalProps> = ({
 
   const handleDelete = async (): Promise<void> => {
     try {
-      dispatch(deleteEvent(event.id));
+      if (!event) return;
+
+      await runCalendarThunk(deleteEvent(event.id));
       onDeleteComplete();
-      toast.error('The event has been deleted', {
+
+      toast.error(t('The event has been deleted'), {
         position: 'top-right',
       });
     } catch (err) {
       console.error(err);
     }
   };
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const titleError = formErrors.find((err) => err.path?.[0] === 'title');
+  const descError = formErrors.find((err) => err.path?.[0] === 'description');
+  const endError = formErrors.find((err) => err.path?.[0] === 'end');
 
   return (
     <form onSubmit={handleFormSubmit}>
       <CardHeader
         title={
-          <>
-            <Container maxWidth="sm">
-              <Typography
-                fontWeight={600}
-                gutterBottom
-                textTransform="uppercase"
-              >
-                {isCreating ? t('Create new event') : t('Edit calendar event')}
-              </Typography>
-              <Typography
-                variant="h5"
-                color="text.secondary"
-                fontWeight={500}
-              >
-                {isCreating
-                  ? t('Use the form below to create a new event')
-                  : t('Use the form below to edit an event')}
-              </Typography>
-            </Container>
-          </>
+          <Container maxWidth="sm">
+            <Typography
+              fontWeight={600}
+              gutterBottom
+              textTransform="uppercase"
+            >
+              {isCreating ? t('Create new event') : t('Edit calendar event')}
+            </Typography>
+            <Typography
+              variant="h5"
+              color="text.secondary"
+              fontWeight={500}
+            >
+              {isCreating
+                ? t('Use the form below to create a new event')
+                : t('Use the form below to edit an event')}
+            </Typography>
+          </Container>
         }
         disableTypography
         sx={{
@@ -197,7 +211,9 @@ const EventDrawer: FC<AddEditEventModalProps> = ({
           },
         }}
       />
+
       <Divider />
+
       <Box
         overflow="hidden"
         my={{ xs: 2, sm: 3 }}
@@ -223,19 +239,19 @@ const EventDrawer: FC<AddEditEventModalProps> = ({
                 </Typography>
 
                 <TextField
-                  error={Boolean(formErrors.find((err) => err.path[0] === 'title'))}
+                  error={Boolean(titleError)}
                   fullWidth
-                  helperText={formErrors.find((err) => err.path[0] === 'title')?.message}
+                  helperText={titleError?.message}
                   label=""
                   name="title"
                   id="title"
-                  onBlur={(e) => handleFieldChange('title', e.target.value)}
                   onChange={(e) => handleFieldChange('title', e.target.value)}
                   value={formState.title}
                   variant="outlined"
                 />
               </FormControl>
             </Grid>
+
             <Grid xs={12}>
               <FormControl
                 fullWidth
@@ -252,21 +268,21 @@ const EventDrawer: FC<AddEditEventModalProps> = ({
                 </Typography>
 
                 <TextField
-                  error={Boolean(formErrors.find((err) => err.path[0] === 'description'))}
+                  error={Boolean(descError)}
                   fullWidth
                   multiline
                   minRows={3}
                   maxRows={6}
-                  helperText={formErrors.find((err) => err.path[0] === 'description')?.message}
+                  helperText={descError?.message}
                   label=""
                   name="description"
-                  onBlur={(e) => handleFieldChange('description', e.target.value)}
                   onChange={(e) => handleFieldChange('description', e.target.value)}
                   value={formState.description}
                   variant="outlined"
                 />
               </FormControl>
             </Grid>
+
             <Grid xs={12}>
               <FormControlLabel
                 control={
@@ -280,6 +296,7 @@ const EventDrawer: FC<AddEditEventModalProps> = ({
                 label={t('This event lasts all day')}
               />
             </Grid>
+
             <Grid
               xs={12}
               md={6}
@@ -297,24 +314,21 @@ const EventDrawer: FC<AddEditEventModalProps> = ({
                 >
                   {t('Event start date')}
                 </Typography>
+
                 <MobileDateTimePicker
                   value={formState.start}
                   sx={{
-                    '& .MuiIconButton-edgeEnd': {
-                      mr: -0.8,
-                    },
+                    '& .MuiIconButton-edgeEnd': { mr: -0.8 },
                   }}
                   label=""
                   slotProps={{
-                    field: {
-                      id: 'event-end-date',
-                      clearable: true,
-                    },
+                    field: { id: 'event-start-date', clearable: true },
                   }}
-                  onChange={(date) => handleFieldChange('start', date)}
+                  onChange={(date) => handleFieldChange('start', date ?? formState.start)}
                 />
               </FormControl>
             </Grid>
+
             <Grid
               xs={12}
               md={6}
@@ -332,36 +346,35 @@ const EventDrawer: FC<AddEditEventModalProps> = ({
                 >
                   {t('Event end date')}
                 </Typography>
+
                 <MobileDateTimePicker
                   value={formState.end}
                   sx={{
-                    '& .MuiIconButton-edgeEnd': {
-                      mr: -0.8,
-                    },
+                    '& .MuiIconButton-edgeEnd': { mr: -0.8 },
                   }}
                   label=""
                   slotProps={{
-                    field: {
-                      id: 'event-end-date',
-                      clearable: true,
-                    },
+                    field: { id: 'event-end-date', clearable: true },
                   }}
-                  onChange={(date) => handleFieldChange('end', date)}
+                  onChange={(date) => handleFieldChange('end', date ?? formState.end)}
                 />
               </FormControl>
             </Grid>
           </Grid>
-          {Boolean(formErrors.find((err) => err.path[0] === 'end')) && (
+
+          {Boolean(endError) && (
             <Alert
               sx={{ mt: 2, mb: 1 }}
               severity="error"
             >
-              {formErrors.find((err) => err.path[0] === 'end')?.message}
+              {endError?.message}
             </Alert>
           )}
         </Container>
       </Box>
+
       <Divider />
+
       <CardActions>
         <Container
           sx={{
@@ -384,6 +397,7 @@ const EventDrawer: FC<AddEditEventModalProps> = ({
               </IconButton>
             </Tooltip>
           )}
+
           <Stack
             spacing={1}
             direction="row"
@@ -398,35 +412,18 @@ const EventDrawer: FC<AddEditEventModalProps> = ({
             >
               {isCreating ? t('Add meeting') : t('Save')}
             </Button>
+
             <Button
               onClick={onCancel}
               fullWidth={!mdUp}
             >
-              Cancel
+              {t('Cancel')}
             </Button>
           </Stack>
         </Container>
       </CardActions>
     </form>
   );
-};
-
-EventDrawer.propTypes = {
-  // @ts-ignore
-  event: PropTypes.object,
-  // @ts-ignore
-  range: PropTypes.object,
-  onAddComplete: PropTypes.func,
-  onCancel: PropTypes.func,
-  onDeleteComplete: PropTypes.func,
-  onEditComplete: PropTypes.func,
-};
-
-EventDrawer.defaultProps = {
-  onAddComplete: () => {},
-  onCancel: () => {},
-  onDeleteComplete: () => {},
-  onEditComplete: () => {},
 };
 
 export default EventDrawer;

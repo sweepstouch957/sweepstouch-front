@@ -17,7 +17,10 @@ function Page(): React.JSX.Element {
         }}
       >
         <Typography variant="h3">{t('Debug numbers')}</Typography>
-        <Typography variant="subtitle1" color="text.secondary">
+        <Typography
+          variant="subtitle1"
+          color="text.secondary"
+        >
           {t('View customers by store and bulk-deactivate by CSV')}
         </Typography>
       </Box>

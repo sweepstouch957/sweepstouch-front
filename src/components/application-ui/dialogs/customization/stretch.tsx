@@ -10,7 +10,7 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import type { FC, ReactElement } from 'react';
 import { AvatarState } from 'src/components/base/styles/avatar';
 import { VisuallyHiddenRadio } from 'src/components/base/styles/visually-hidden';
@@ -138,9 +138,4 @@ export const OptionsStretch: FC<OptionsStretchProps> = (props) => {
       </Stack>
     </Box>
   );
-};
-
-OptionsStretch.propTypes = {
-  onChange: PropTypes.func,
-  value: PropTypes.bool,
 };

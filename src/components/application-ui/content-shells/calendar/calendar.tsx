@@ -16,8 +16,8 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { FullCalendarWrapper } from 'src/components/base/styles/calendar';
 import { View } from 'src/models/calendar';
-import { getEvents, updateEvent } from 'src/slices/calendar';
-import { useDispatch, useSelector } from 'src/store';
+// ✅ zustand (en vez de redux)
+import useCalendarStore, { getEvents, runCalendarThunk, updateEvent } from 'src/slices/calendar';
 import Actions from './actions';
 import EventDrawer from './event-drawer';
 
@@ -25,33 +25,49 @@ const Component = () => {
   const [date, setDate] = useState<Date>(new Date());
   const theme = useTheme();
   const mobile = useMediaQuery((theme: Theme) => theme.breakpoints.down('md'));
-  const dispatch = useDispatch();
   const calendarRef = useRef<FullCalendar | null>(null);
 
   const [view, setView] = useState<View>(mobile ? 'listWeek' : 'dayGridMonth');
 
-  const { events } = useSelector((state) => state.calendar);
+  // ✅ state from zustand
+  const events = useCalendarStore((state) => state.events);
 
-  const [drawer, setDrawer] = useState<any>({
+  const [drawer, setDrawer] = useState<{
+    isDrawerOpen: boolean;
+    eId?: string;
+    range?: { start: number; end: number };
+  }>({
     isDrawerOpen: false,
     eId: undefined,
     range: undefined,
   });
 
-  const eventChosen = drawer.eId && events.find((event) => event.id === drawer.eId);
+  const eventChosen = drawer.eId ? events.find((event) => event.id === drawer.eId) : undefined;
 
   const handleEventDrop = async ({ event }: any): Promise<void> => {
     try {
-      if (!event.start || !event.end) {
-        console.error('Event start or end date is missing');
+      if (!event?.start) {
+        console.error('Event start date is missing');
         return;
       }
 
-      dispatch(
+      const startISO =
+        event.start instanceof Date
+          ? event.start.toISOString()
+          : new Date(event.start).toISOString();
+
+      // FullCalendar a veces no trae end si es allDay o de 1 slot
+      const endISO = event.end
+        ? event.end instanceof Date
+          ? event.end.toISOString()
+          : new Date(event.end).toISOString()
+        : startISO;
+
+      await runCalendarThunk(
         updateEvent(event.id, {
-          allDay: event.allDay,
-          start: event.start.toISOString(),
-          end: event.end.toISOString(),
+          allDay: !!event.allDay,
+          start: startISO,
+          end: endISO,
         })
       );
     } catch (err) {
@@ -62,18 +78,30 @@ const Component = () => {
   const handleEventSelect = (arg: any): void => {
     setDrawer({
       isDrawerOpen: true,
-      eId: arg.event.id,
+      eId: arg?.event?.id,
       range: undefined,
     });
   };
 
   const handleEventResize = async ({ event }: any): Promise<void> => {
     try {
-      await dispatch(
+      if (!event?.start) return;
+
+      const startISO =
+        event.start instanceof Date
+          ? event.start.toISOString()
+          : new Date(event.start).toISOString();
+      const endISO = event.end
+        ? event.end instanceof Date
+          ? event.end.toISOString()
+          : new Date(event.end).toISOString()
+        : startISO;
+
+      await runCalendarThunk(
         updateEvent(event.id, {
-          allDay: event.allDay,
-          start: event.start.getTime(),
-          end: event.end.getTime(),
+          allDay: !!event.allDay,
+          start: startISO,
+          end: endISO,
         })
       );
     } catch (err) {
@@ -83,93 +111,79 @@ const Component = () => {
 
   const handleRangeSelect = (arg: any): void => {
     const calItem = calendarRef.current;
-
-    if (calItem) {
-      const calendar = calItem.getApi();
-
-      calendar.unselect();
-    }
+    if (calItem) calItem.getApi().unselect();
   };
 
   const handleDateToday = (): void => {
     const calItem = calendarRef.current;
+    if (!calItem) return;
 
-    if (calItem) {
-      const calendar = calItem.getApi();
-
-      calendar.today();
-      setDate(calendar.getDate());
-    }
+    const calendar = calItem.getApi();
+    calendar.today();
+    setDate(calendar.getDate());
   };
 
   const changeView = (changedView: View): void => {
     const calItem = calendarRef.current;
+    if (!calItem) return;
 
-    if (calItem) {
-      const calendar = calItem.getApi();
-
-      calendar.changeView(changedView);
-      setView(changedView);
-    }
+    const calendar = calItem.getApi();
+    calendar.changeView(changedView);
+    setView(changedView);
   };
 
   const handleDatePrev = (): void => {
     const calItem = calendarRef.current;
+    if (!calItem) return;
 
-    if (calItem) {
-      const calendar = calItem.getApi();
-
-      calendar.prev();
-      setDate(calendar.getDate());
-    }
+    const calendar = calItem.getApi();
+    calendar.prev();
+    setDate(calendar.getDate());
   };
 
   const handleDateNext = (): void => {
     const calItem = calendarRef.current;
+    if (!calItem) return;
 
-    if (calItem) {
-      const calendar = calItem.getApi();
-
-      calendar.next();
-      setDate(calendar.getDate());
-    }
+    const calendar = calItem.getApi();
+    calendar.next();
+    setDate(calendar.getDate());
   };
 
   const closeDrawer = (): void => {
-    setDrawer({
-      isDrawerOpen: false,
-    });
+    setDrawer({ isDrawerOpen: false, eId: undefined, range: undefined });
   };
 
   const openDrawer = (): void => {
-    setDrawer({
-      isDrawerOpen: true,
-    });
+    setDrawer((prev) => ({ ...prev, isDrawerOpen: true }));
   };
 
   const handleDateClick = (arg: any): void => {
+    const start = arg?.date?.getTime?.() ?? Date.now();
     setDrawer({
       isDrawerOpen: true,
       eId: undefined,
-      range: { start: arg.date.getTime(), end: arg.date.getTime() + 60 * 60 * 1000 },
+      range: { start, end: start + 60 * 60 * 1000 },
     });
   };
 
+  // ✅ load events (zustand)
   useEffect(() => {
-    dispatch(getEvents());
-  }, [dispatch]);
+    runCalendarThunk(getEvents());
+  }, []);
 
+  // ✅ responsive view
   useEffect(() => {
     const calItem = calendarRef.current;
+    if (!calItem) return;
 
-    if (calItem) {
-      const calendar = calItem.getApi();
-      const changedView = mobile ? 'listWeek' : 'dayGridMonth';
+    const calendar = calItem.getApi();
+    const changedView: View = mobile ? 'listWeek' : 'dayGridMonth';
 
-      calendar.changeView(changedView);
-      setView(changedView);
-    }
+    calendar.changeView(changedView);
+    setView(changedView);
   }, [mobile]);
+
   return (
     <>
       <Grid
@@ -186,6 +200,7 @@ const Component = () => {
             view={view}
           />
         </Grid>
+
         <Grid xs={12}>
           <FullCalendarWrapper>
             <FullCalendar
@@ -214,6 +229,7 @@ const Component = () => {
           </FullCalendarWrapper>
         </Grid>
       </Grid>
+
       <SwipeableDrawer
         variant="temporary"
         anchor="right"

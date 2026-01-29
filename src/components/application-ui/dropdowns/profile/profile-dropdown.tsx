@@ -14,7 +14,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { SparkLineChart } from '@mui/x-charts/SparkLineChart';
-import PropTypes from 'prop-types';
+
 import React, { FC } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -223,8 +223,3 @@ export const ProfileDropdown: FC<ProfileDropdownProps> = (props) => {
   );
 };
 
-ProfileDropdown.propTypes = {
-  anchorEl: PropTypes.any,
-  onClose: PropTypes.func,
-  open: PropTypes.bool,
-};

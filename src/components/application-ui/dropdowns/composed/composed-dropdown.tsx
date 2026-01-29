@@ -1,7 +1,7 @@
 import ArrowForwardTwoToneIcon from '@mui/icons-material/ArrowForwardTwoTone';
 import MarkChatReadTwoToneIcon from '@mui/icons-material/MarkChatReadTwoTone';
 import { alpha, Badge, Box, Button, Divider, Menu, Theme, useMediaQuery } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import { FC } from 'react';
 import { useTranslation } from 'react-i18next';
 import SearchBasic from 'src/components/application-ui/input/search/search-basic';
@@ -119,10 +119,4 @@ export const ComposedDropdown: FC<ComposedDropdownProps> = (props) => {
       </Menu>
     </>
   );
-};
-
-ComposedDropdown.propTypes = {
-  anchorEl: PropTypes.any,
-  onClose: PropTypes.func,
-  open: PropTypes.bool,
 };

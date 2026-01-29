@@ -1,5 +1,5 @@
 import { Box, Drawer, styled, SwipeableDrawer, Theme, useMediaQuery } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import { FC } from 'react';
 import { SidebarNavMenu } from 'src/components/application-ui/vertical-shells/dark/sidebar-nav-menu';
 import { Logo } from 'src/components/base/logo';
@@ -140,8 +140,3 @@ export const Sidebar: FC<SidebarProps> = (props) => {
   );
 };
 
-Sidebar.propTypes = {
-  onClose: PropTypes.func,
-  onOpen: PropTypes.func,
-  open: PropTypes.bool,
-};

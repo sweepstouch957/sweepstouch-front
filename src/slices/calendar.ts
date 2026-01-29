@@ -1,79 +1,91 @@
-import { createSlice } from '@reduxjs/toolkit';
-import type { PayloadAction } from '@reduxjs/toolkit';
 import { calendar } from 'src/mocks/calendar';
 import type { Event } from 'src/models/calendar';
-import type { AppThunk } from 'src/store';
+import { create } from 'zustand';
+
+/**
+ * Igual que en Redux: el thunk recibe (dispatch).
+ * Aquí lo hacemos equivalente: recibe (set, get) para poder mantener el mismo shape.
+ */
+export type AppThunk = (
+  set: (
+    partial: Partial<CalendarState> | ((state: CalendarState) => Partial<CalendarState>)
+  ) => void,
+  get: () => CalendarState
+) => Promise<void>;
 
 interface CalendarState {
   events: Event[];
+
+  // ✅ “actions” internas (equivalente a reducers)
+  _setEvents: (events: Event[]) => void;
+  _createEvent: (event: Event) => void;
+  _updateEvent: (event: Event) => void;
+  _deleteEvent: (eventId: string) => void;
+
+  // ✅ thunks públicos con la MISMA firma “payloads y funciones igual”
+  getEvents: () => AppThunk;
+
+  // Igual que tu createEvent con //@ts-ignore; aquí lo tipamos flexible
+  createEvent: (createData: any) => AppThunk;
+
+  updateEvent: (eventId: string, update: any) => AppThunk;
+  deleteEvent: (eventId: string) => AppThunk;
 }
 
-const initialState: CalendarState = {
+export const useCalendarStore = create<CalendarState>((set, get) => ({
   events: [],
-};
 
-const slice = createSlice({
-  name: 'calendar',
-  initialState,
-  reducers: {
-    getEvents(state: CalendarState, action: PayloadAction<Event[]>): void {
-      state.events = action.payload;
-    },
-    createEvent(state: CalendarState, action: PayloadAction<Event>): void {
-      state.events.push(action.payload);
-    },
-    updateEvent(state: CalendarState, action: PayloadAction<Event>): void {
-      const event = action.payload;
+  /* ===================== "reducers" ===================== */
+  _setEvents: (events) => set({ events }),
 
-      state.events = state.events.map((_event) => {
-        if (_event.id === event.id) {
-          return event;
-        }
+  _createEvent: (event) =>
+    set((state) => ({
+      events: [...state.events, event],
+    })),
 
-        return _event;
-      });
-    },
-    deleteEvent(state: CalendarState, action: PayloadAction<string>): void {
-      state.events = state.events.filter((event) => event.id !== action.payload);
-    },
-  },
-});
+  _updateEvent: (event) =>
+    set((state) => ({
+      events: state.events.map((_event) => (_event.id === event.id ? event : _event)),
+    })),
 
-export const { reducer } = slice;
+  _deleteEvent: (eventId) =>
+    set((state) => ({
+      events: state.events.filter((event) => event.id !== eventId),
+    })),
 
-export const getEvents =
-  (): AppThunk =>
-  async (dispatch): Promise<void> => {
+  /* ===================== thunks (mismo shape) ===================== */
+  getEvents: () => async (set, get) => {
     const data = await calendar.getEvents();
-    dispatch(slice.actions.getEvents(data));
-  };
+    // equivalente a dispatch(slice.actions.getEvents(data))
+    get()._setEvents(data);
+  },
 
-export const createEvent =
-  //@ts-ignore
+  createEvent: (createData: any) => async (set, get) => {
+    const data = await calendar.createEvent(createData);
+    get()._createEvent(data);
+  },
 
 
-    (createData): AppThunk =>
-    async (dispatch): Promise<void> => {
-      const data = await calendar.createEvent(createData);
-      dispatch(slice.actions.createEvent(data));
-    };
+  updateEvent: (eventId: string, update: any) => async (set, get) => {
+    const data = await calendar.updateEvent({ eventId, update });
+    get()._updateEvent(data);
+  },
 
-export const updateEvent =
-  (eventId: string, update: any): AppThunk =>
-  async (dispatch): Promise<void> => {
-    const data = await calendar.updateEvent({
-      eventId,
-      update,
-    });
-
-    dispatch(slice.actions.updateEvent(data));
-  };
-
-export const deleteEvent =
-  (eventId: string): AppThunk =>
-  async (dispatch): Promise<void> => {
+  deleteEvent: (eventId: string) => async (set, get) => {
     await calendar.deleteEvent(eventId);
-    dispatch(slice.actions.deleteEvent(eventId));
-  };
+    get()._deleteEvent(eventId);
+  },
+}));
 
-export default slice;
+/* ===================== exports para que quede parecido ===================== */
+export const getEvents = () => useCalendarStore.getState().getEvents();
+export const createEvent = (createData: any) => useCalendarStore.getState().createEvent(createData);
+export const updateEvent = (eventId: string, update: any) =>
+  useCalendarStore.getState().updateEvent(eventId, update);
+export const deleteEvent = (eventId: string) => useCalendarStore.getState().deleteEvent(eventId);
+export const runCalendarThunk = async (thunk: AppThunk) => {
+  const set = useCalendarStore.setState as any;
+  const get = useCalendarStore.getState;
+  return thunk(set, get);
+};
+export default useCalendarStore;

@@ -1,9 +1,9 @@
 import { Box, Card, Divider, Pagination, Stack, Typography } from '@mui/material';
 import type { FC } from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getMails } from 'src/slices/mailbox';
-import { useDispatch, useSelector } from 'src/store';
+// ✅ zustand
+import useMailStore, { getMails, runMailThunk } from 'src/slices/mailbox';
 import ResultsActionBar from './results-actionbar';
 import { ResultsItem } from './results-item';
 
@@ -14,17 +14,23 @@ interface MailboxResultsProps {
 export const MailboxResults: FC<MailboxResultsProps> = (props) => {
   const { tag } = props;
 
-  const dispatch = useDispatch();
-  const { mails } = useSelector((state) => state.mailbox);
+  const mails = useMailStore((state) => state.mails);
   const [selectedMails, setSelectedMails] = useState<string[]>([]);
   const { t } = useTranslation();
 
+  // ✅ para no recalcular a cada render
+  const allIds = mails.allIds;
+  const byId = mails.byId;
+
   useEffect(() => {
-    dispatch(getMails({ tag }));
+    runMailThunk(getMails({ tag }));
+
+    // opcional: cuando cambia el tag, limpiar selección
+    setSelectedMails([]);
   }, [tag]);
 
   const handleSelectAllMails = (): void => {
-    setSelectedMails(mails.allIds.map((mailId) => mailId));
+    setSelectedMails(allIds.slice());
   };
 
   const handleDeselectAllMails = (): void => {
@@ -32,34 +38,30 @@ export const MailboxResults: FC<MailboxResultsProps> = (props) => {
   };
 
   const handleSelectOneMail = (mailId: string): void => {
-    setSelectedMails((prevSelectedMails) => {
-      if (!prevSelectedMails.includes(mailId)) {
-        return [...prevSelectedMails, mailId];
-      }
-
-      return prevSelectedMails;
-    });
+    setSelectedMails((prev) => (prev.includes(mailId) ? prev : [...prev, mailId]));
   };
 
   const handleDeselectOneMail = (mailId: string): void => {
-    setSelectedMails((prevSelectedMails) => prevSelectedMails.filter((id) => id !== mailId));
+    setSelectedMails((prev) => prev.filter((id) => id !== mailId));
   };
+
+  const totalSelected = selectedMails.length;
+  const totalMails = allIds.length;
 
   return (
     <Box>
       <ResultsActionBar
         onDeselectAll={handleDeselectAllMails}
         onSelectAll={handleSelectAllMails}
-        selectedMails={selectedMails.length}
-        mails={mails.allIds.length}
+        selectedMails={totalSelected}
+        mails={totalMails}
       />
+
       <Divider />
 
-      {mails.allIds.length === 0 && (
+      {totalMails === 0 && (
         <Typography
-          sx={{
-            py: 5,
-          }}
+          sx={{ py: 5 }}
           variant="h3"
           fontWeight={400}
           color="text.secondary"
@@ -68,18 +70,17 @@ export const MailboxResults: FC<MailboxResultsProps> = (props) => {
           {t('There are no messages in this category')}
         </Typography>
       )}
+
       <Box p={{ xs: 0, sm: 2, md: 3 }}>
         <Card
-          sx={{
-            borderWidth: { xs: 0, sm: 1 },
-          }}
+          sx={{ borderWidth: { xs: 0, sm: 1 } }}
           variant="outlined"
         >
           <Stack divider={<Divider />}>
-            {mails.allIds.map((mailId: string) => (
+            {allIds.map((mailId: string) => (
               <ResultsItem
-                mailbox={mails.byId[mailId]}
                 key={mailId}
+                mailbox={byId[mailId]}
                 href={tag && tag !== 'inbox' ? `?mailId=${mailId}&tag=${tag}` : `?mailId=${mailId}`}
                 onDeselect={() => handleDeselectOneMail(mailId)}
                 onSelect={() => handleSelectOneMail(mailId)}
@@ -89,7 +90,8 @@ export const MailboxResults: FC<MailboxResultsProps> = (props) => {
           </Stack>
         </Card>
       </Box>
-      {mails.allIds.length !== 0 && (
+
+      {totalMails !== 0 && (
         <Box
           pb={{ xs: 2, sm: 3 }}
           display="flex"

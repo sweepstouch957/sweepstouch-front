@@ -1,5 +1,5 @@
 import { alpha, Drawer, SwipeableDrawer, Theme, useMediaQuery, useTheme } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import { FC } from 'react';
 import { Scrollbar } from 'src/components/base/scrollbar';
 import SidebarContent from './sidebar-content';
@@ -72,9 +72,3 @@ export const MessengerSidebar: FC<MessengerSidebarProps> = (props) => {
   );
 };
 
-MessengerSidebar.propTypes = {
-  parentContainer: PropTypes.any,
-  onClose: PropTypes.func,
-  onOpen: PropTypes.func,
-  open: PropTypes.bool,
-};

@@ -1,5 +1,4 @@
 import { alpha, Box, Drawer, styled, SwipeableDrawer, Theme, useMediaQuery } from '@mui/material';
-import PropTypes from 'prop-types';
 import { FC, useState } from 'react';
 import { MenuItem } from 'src/router/menuItem';
 import { SIDEBAR_WIDTH } from 'src/theme/utils';
@@ -125,8 +124,3 @@ export const Sidebar: FC<SidebarProps> = (props) => {
   );
 };
 
-Sidebar.propTypes = {
-  onClose: PropTypes.func,
-  onOpen: PropTypes.func,
-  open: PropTypes.bool,
-};

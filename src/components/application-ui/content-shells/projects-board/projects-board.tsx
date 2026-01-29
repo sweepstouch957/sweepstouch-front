@@ -28,101 +28,76 @@ import BaseButtonTab from 'src/components/base/styles/button-tab';
 import { CardAddActionDashed } from 'src/components/base/styles/card';
 import { LinearProgressSlim } from 'src/components/base/styles/progress-bar';
 import { useCustomization } from 'src/hooks/use-customization';
-import { getProject, moveTask } from 'src/slices/projects_board';
-import { useDispatch, useSelector } from 'src/store';
+import {
+  getProject,
+  moveTask,
+  runProjectsBoardThunk,
+  useProjectsBoardStore,
+} from 'src/slices/projects_board';
 import Results from './results';
 
 const Component = () => {
   const { t } = useTranslation();
   const customization = useCustomization();
 
-  const dispatch = useDispatch();
-  const { lists } = useSelector((state) => state.projectsBoard);
+  const theme = useTheme();
+  const mdUp = useMediaQuery(theme.breakpoints.up('md'));
+
+  // ✅ Zustand: agarramos lists directo del store
+  const lists = useProjectsBoardStore((s) => s.lists);
 
   const handleDragEnd = async ({ source, destination, draggableId }: DropResult): Promise<void> => {
     try {
-      if (!destination) {
-        return;
-      }
+      if (!destination) return;
 
       if (source.droppableId === destination.droppableId && source.index === destination.index) {
         return;
       }
 
+      // ✅ corre el thunk con helper
       if (source.droppableId === destination.droppableId) {
-        await dispatch(moveTask(draggableId, destination.index));
+        await runProjectsBoardThunk(moveTask(draggableId, destination.index));
       } else {
-        await dispatch(moveTask(draggableId, destination.index, destination.droppableId));
+        await runProjectsBoardThunk(
+          moveTask(draggableId, destination.index, destination.droppableId)
+        );
       }
 
       toast.success(t('Task has been successfully moved'));
     } catch (err) {
       console.error(err);
-
       toast.error(t('There was an error, try again later'));
     }
   };
 
   useEffect(() => {
-    dispatch(getProject());
-  }, [dispatch]);
+    // ✅ load project una vez (sin dispatch)
+    runProjectsBoardThunk(getProject());
+  }, []);
 
   const assignees = [
-    {
-      avatar: '/avatars/1.png',
-      name: 'Maren Lipshutz',
-    },
-    {
-      avatar: '/avatars/2.png',
-      name: 'Zain Vetrovs',
-    },
-    {
-      avatar: '/avatars/1.png',
-      name: 'Hanna Siphron',
-    },
-    {
-      avatar: '/avatars/4.png',
-      name: 'Cristofer Aminoff',
-    },
-    {
-      avatar: '/avatars/5.png',
-      name: 'Maria Calzoni',
-    },
+    { avatar: '/avatars/1.png', name: 'Maren Lipshutz' },
+    { avatar: '/avatars/2.png', name: 'Zain Vetrovs' },
+    { avatar: '/avatars/1.png', name: 'Hanna Siphron' },
+    { avatar: '/avatars/4.png', name: 'Cristofer Aminoff' },
+    { avatar: '/avatars/5.png', name: 'Maria Calzoni' },
   ];
 
   const sprints = [
-    {
-      progress: 58,
-      name: 'Sprint 1',
-    },
-    {
-      progress: 43,
-      name: 'Sprint 2',
-    },
-    {
-      progress: 65,
-      name: 'Sprint 3',
-    },
-    {
-      progress: 84,
-      name: 'Sprint 4',
-    },
-    {
-      progress: 43,
-      name: 'Sprint 5',
-    },
+    { progress: 58, name: 'Sprint 1' },
+    { progress: 43, name: 'Sprint 2' },
+    { progress: 65, name: 'Sprint 3' },
+    { progress: 84, name: 'Sprint 4' },
+    { progress: 43, name: 'Sprint 5' },
   ];
-
-  const theme = useTheme();
-  const mdUp = useMediaQuery(theme.breakpoints.up('md'));
 
   const [value, setValue] = React.useState('0');
 
-  const handleTabChange = (event, newValue) => {
+  const handleTabChange = (_event: any, newValue: any) => {
     setValue(String(newValue));
   };
 
-  const handleSelectChange = (event) => {
+  const handleSelectChange = (event: any) => {
     setValue(event.target.value);
   };
 
@@ -147,6 +122,7 @@ const Component = () => {
       >
         <Typography variant="h3">Projects board</Typography>
       </Container>
+
       <Container
         disableGutters={!mdUp}
         maxWidth={customization.stretch ? false : 'xl'}
@@ -158,36 +134,28 @@ const Component = () => {
           pb={{ xs: 2, md: 0 }}
         >
           {mdUp ? (
-            <>
-              <Tabs
-                value={Number(value)}
-                onChange={handleTabChange}
-                sx={{
-                  overflow: 'visible',
-
-                  '& .MuiTabs-indicator': {
-                    display: 'none',
-                  },
-
-                  '& .MuiTabs-scroller': {
-                    overflow: 'visible !important',
-                  },
-                }}
-              >
-                <BaseButtonTab
-                  componentType="tab"
-                  label="React project migration"
-                />
-                <BaseButtonTab
-                  componentType="tab"
-                  label="Engineering meeting"
-                />
-                <BaseButtonTab
-                  componentType="tab"
-                  label="Marketing campaign"
-                />
-              </Tabs>
-            </>
+            <Tabs
+              value={Number(value)}
+              onChange={handleTabChange}
+              sx={{
+                overflow: 'visible',
+                '& .MuiTabs-indicator': { display: 'none' },
+                '& .MuiTabs-scroller': { overflow: 'visible !important' },
+              }}
+            >
+              <BaseButtonTab
+                componentType="tab"
+                label="React project migration"
+              />
+              <BaseButtonTab
+                componentType="tab"
+                label="Engineering meeting"
+              />
+              <BaseButtonTab
+                componentType="tab"
+                label="Marketing campaign"
+              />
+            </Tabs>
           ) : (
             <Select
               value={value}
@@ -201,6 +169,7 @@ const Component = () => {
           )}
         </Stack>
       </Container>
+
       <Card
         elevation={0}
         variant="outlined"
@@ -248,14 +217,12 @@ const Component = () => {
                     </li>
                   )}
                   getOptionLabel={(option) => option.name}
-                  renderInput={(params): JSX.Element => (
+                  renderInput={(params) => (
                     <TextField
                       {...params}
                       variant="outlined"
                       fullWidth
-                      InputLabelProps={{
-                        shrink: true,
-                      }}
+                      InputLabelProps={{ shrink: true }}
                       placeholder={t('Select assignees...')}
                     />
                   )}
@@ -271,6 +238,7 @@ const Component = () => {
                   }
                 />
               </Grid>
+
               <Grid
                 xs={12}
                 md={6}
@@ -316,20 +284,19 @@ const Component = () => {
                     </Fragment>
                   )}
                   getOptionLabel={(option) => option.name}
-                  renderInput={(params): JSX.Element => (
+                  renderInput={(params) => (
                     <TextField
                       {...params}
                       variant="outlined"
                       fullWidth
-                      InputLabelProps={{
-                        shrink: true,
-                      }}
+                      InputLabelProps={{ shrink: true }}
                       placeholder={t('Select sprint...')}
                     />
                   )}
                 />
               </Grid>
             </Grid>
+
             <Box mt={{ xs: 2, sm: 3 }}>
               <DragDropContext onDragEnd={handleDragEnd}>
                 <Box
@@ -346,6 +313,7 @@ const Component = () => {
                       listId={listId}
                     />
                   ))}
+
                   <CardAddActionDashed
                     variant="outlined"
                     elevation={0}

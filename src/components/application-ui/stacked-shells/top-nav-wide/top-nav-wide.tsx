@@ -1,5 +1,5 @@
 import { alpha, Box, Card, Container, Divider, lighten, Typography, useTheme } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import { type FC, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMobileNav } from 'src/hooks/use-mobile-nav';
@@ -116,7 +116,3 @@ export const StackedShellsTopNavWide: FC<StackedShellsTopNavWide> = (props) => {
   );
 };
 
-StackedShellsTopNavWide.propTypes = {
-  children: PropTypes.node,
-  menuItems: PropTypes.array,
-};

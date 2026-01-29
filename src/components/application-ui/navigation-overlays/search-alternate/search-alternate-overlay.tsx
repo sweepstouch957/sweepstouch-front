@@ -24,7 +24,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import { ChangeEvent, FC, useEffect, useState } from 'react';
 import SmallMenu from 'src/components/application-ui/vertical-menus/small/small-menu';
 import { MenuItemPrimary } from 'src/components/base/styles/menu-item';
@@ -369,7 +369,3 @@ export const SearchAlternateOverlay: FC<SearchAlternateOverlayProps> = (props) =
   );
 };
 
-SearchAlternateOverlay.propTypes = {
-  onClose: PropTypes.func,
-  open: PropTypes.bool,
-};

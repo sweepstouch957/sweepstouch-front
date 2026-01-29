@@ -18,13 +18,13 @@ import {
 } from '@mui/material';
 import { format } from 'date-fns';
 import NextLink from 'next/link';
-import PropTypes from 'prop-types';
 import type { ChangeEvent, FC } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ListItemWrapper } from 'src/components/application-ui/stacked-lists/pricing-plans/pricing-plans';
 import { ButtonIcon } from 'src/components/base/styles/button-icon';
 import type { Mail } from 'src/models/mailbox';
-import { useSelector } from 'src/store';
+// ✅ zustand store
+import useMailStore from 'src/slices/mailbox';
 
 interface ResultsItemProps {
   mailbox: Mail;
@@ -34,25 +34,23 @@ interface ResultsItemProps {
   selected: boolean;
 }
 
-export const ResultsItem: FC<ResultsItemProps> = (props) => {
-  const { mailbox, onDeselect, onSelect, selected, href } = props;
-  const { tags } = useSelector((state) => state.mailbox);
-
+export const ResultsItem: FC<ResultsItemProps> = ({
+  mailbox,
+  href,
+  selected,
+  onDeselect = () => {},
+  onSelect = () => {},
+}) => {
+  const tags = useMailStore((state) => state.tags);
   const { t } = useTranslation();
+  const theme = useTheme();
 
   const handleCheckboxChange = (event: ChangeEvent<HTMLInputElement>): void => {
     const { checked } = event.target;
 
-    if (checked && onSelect) {
-      onSelect();
-    }
-
-    if (!checked && onDeselect) {
-      onDeselect();
-    }
+    if (checked) onSelect();
+    else onDeselect();
   };
-
-  const theme = useTheme();
 
   return (
     <Box
@@ -80,6 +78,7 @@ export const ResultsItem: FC<ResultsItemProps> = (props) => {
             onChange={handleCheckboxChange}
           />
         </ListItemAvatar>
+
         <NextLink
           href={href}
           passHref
@@ -108,15 +107,14 @@ export const ResultsItem: FC<ResultsItemProps> = (props) => {
                 {mailbox.from.name}
               </Typography>
             </Box>
+
             <ListItemText
               primary={
                 <Typography
                   variant="h5"
                   color="text.primary"
                   fontWeight={mailbox.opened ? 400 : 500}
-                  sx={{
-                    mb: 0.3,
-                  }}
+                  sx={{ mb: 0.3 }}
                 >
                   {mailbox.subject}
                 </Typography>
@@ -133,6 +131,7 @@ export const ResultsItem: FC<ResultsItemProps> = (props) => {
             />
           </Box>
         </NextLink>
+
         <Stack
           direction="row"
           spacing={2}
@@ -151,7 +150,6 @@ export const ResultsItem: FC<ResultsItemProps> = (props) => {
             >
               {mailbox.tagIds.map((tagId: string) => {
                 const tag = tags.find((_tag) => _tag.id === tagId);
-
                 if (!tag) return null;
 
                 return (
@@ -168,7 +166,6 @@ export const ResultsItem: FC<ResultsItemProps> = (props) => {
                         height: 34,
                         color: tag.color,
                         background: alpha(tag.color, 0.08),
-
                         '&:hover': {
                           background: alpha(tag.color, 0.12),
                         },
@@ -184,6 +181,7 @@ export const ResultsItem: FC<ResultsItemProps> = (props) => {
               })}
             </Stack>
           ) : null}
+
           <Typography
             variant="subtitle2"
             color="text.secondary"
@@ -202,6 +200,7 @@ export const ResultsItem: FC<ResultsItemProps> = (props) => {
               <ArchiveTwoToneIcon fontSize="small" />
             </ButtonIcon>
           </Tooltip>
+
           <Tooltip
             arrow
             placement="top"
@@ -211,6 +210,7 @@ export const ResultsItem: FC<ResultsItemProps> = (props) => {
               <MarkEmailReadTwoToneIcon fontSize="small" />
             </ButtonIcon>
           </Tooltip>
+
           <Tooltip
             arrow
             placement="top"
@@ -227,17 +227,4 @@ export const ResultsItem: FC<ResultsItemProps> = (props) => {
       </ListItemWrapper>
     </Box>
   );
-};
-
-ResultsItem.propTypes = {
-  // @ts-ignore
-  mailbox: PropTypes.object.isRequired,
-  onDeselect: PropTypes.func,
-  onSelect: PropTypes.func,
-  selected: PropTypes.bool.isRequired,
-};
-
-ResultsItem.defaultProps = {
-  onDeselect: () => {},
-  onSelect: () => {},
 };

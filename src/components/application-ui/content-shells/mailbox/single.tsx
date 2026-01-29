@@ -30,8 +30,8 @@ import { useTranslation } from 'react-i18next';
 import { ButtonIcon } from 'src/components/base/styles/button-icon';
 import { VisuallyHiddenInputNative } from 'src/components/base/styles/visually-hidden';
 import { useCustomization } from 'src/hooks/use-customization';
-import { getMail } from 'src/slices/mailbox';
-import { useDispatch, useSelector } from 'src/store';
+// ✅ zustand store
+import useMailStore, { getMail, runMailThunk } from 'src/slices/mailbox';
 
 interface MailboxSingleProps {
   mailId: string;
@@ -40,15 +40,20 @@ interface MailboxSingleProps {
 
 export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
   const { mailId, tag } = props;
-  const dispatch = useDispatch();
+
   const { t } = useTranslation();
-  const mailbox = useSelector((state) => state.mailbox.mails.byId[mailId]);
-  const [onMenuOpen, menuOpen] = useState<boolean>(false);
+  const customization = useCustomization();
+
+  // ✅ mailbox from zustand
+  const mailbox = useMailStore((state) => state.mails.byId[mailId]);
+
+  const [onMenuOpen, setMenuOpen] = useState<boolean>(false);
   const moreRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
-    dispatch(getMail(mailId));
+    runMailThunk(getMail(mailId));
   }, [mailId]);
+
   if (!mailbox) {
     return null;
   }
@@ -56,11 +61,11 @@ export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
   const handleBack = tag && tag !== 'inbox' ? `?tag=${tag}` : '?';
 
   const openMenu = (): void => {
-    menuOpen(true);
+    setMenuOpen(true);
   };
 
   const closeMenu = (): void => {
-    menuOpen(false);
+    setMenuOpen(false);
   };
 
   const user = {
@@ -68,7 +73,6 @@ export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
     name: 'Ethan Donovan',
     jobTitle: 'Principal Engineer',
   };
-  const customization = useCustomization();
 
   return (
     <Container maxWidth={customization.stretch ? false : 'xl'}>
@@ -110,6 +114,7 @@ export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
               <ArchiveTwoToneIcon />
             </IconButton>
           </Tooltip>
+
           <Tooltip
             arrow
             placement="top"
@@ -119,6 +124,7 @@ export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
               <DeleteTwoToneIcon />
             </IconButton>
           </Tooltip>
+
           <Tooltip
             arrow
             placement="top"
@@ -128,6 +134,7 @@ export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
               <MarkEmailReadTwoToneIcon />
             </IconButton>
           </Tooltip>
+
           <IconButton
             color="primary"
             onClick={openMenu}
@@ -137,7 +144,9 @@ export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
           </IconButton>
         </Stack>
       </Box>
+
       <Divider />
+
       <Box py={{ xs: 2, sm: 3 }}>
         <Typography
           variant="h4"
@@ -146,6 +155,7 @@ export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
           {mailbox.subject}
         </Typography>
       </Box>
+
       <Box
         sx={{
           backgroundColor: (theme) =>
@@ -166,9 +176,7 @@ export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
           width="100%"
         >
           <Avatar
-            sx={{
-              mr: 1,
-            }}
+            sx={{ mr: 1 }}
             src={mailbox.from.avatar}
           />
           <Box overflow="hidden">
@@ -187,6 +195,7 @@ export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
                 ({mailbox.from.name})
               </Typography>
             </Typography>
+
             <Typography
               variant="h6"
               noWrap
@@ -199,6 +208,7 @@ export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
                   component="span"
                   noWrap
                   key={to.name}
+                  sx={{ ml: 0.5 }}
                 >
                   {to.name} ({to.email})
                 </Typography>
@@ -206,6 +216,7 @@ export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
             </Typography>
           </Box>
         </Box>
+
         <Box
           pt={{ xs: 2, md: 0 }}
           display="flex"
@@ -221,20 +232,22 @@ export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
           >
             {format(mailbox.date, 'MMMM dd yyyy')}
           </Typography>
+
           <Typography
             variant="subtitle2"
             color="text.secondary"
           >
-            {formatDistance(mailbox.date, new Date(), {
-              addSuffix: true,
-            })}
+            {formatDistance(mailbox.date, new Date(), { addSuffix: true })}
           </Typography>
         </Box>
       </Box>
+
       <Box p={{ xs: 1, sm: 2 }}>
         <div dangerouslySetInnerHTML={{ __html: mailbox.content }} />
       </Box>
+
       <Divider />
+
       <Box
         py={{ xs: 2, sm: 3 }}
         display="flex"
@@ -242,14 +255,12 @@ export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
         alignItems="flex-start"
       >
         <Avatar
-          sx={{
-            width: 54,
-            height: 54,
-          }}
+          sx={{ width: 54, height: 54 }}
           variant="rounded"
           alt={user.name}
           src={user.avatar}
         />
+
         <Box
           ml={{ xs: 0, sm: 2 }}
           mt={{ xs: 2, sm: 0 }}
@@ -269,7 +280,7 @@ export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
               component="span"
               variant="subtitle1"
             >
-              {t('Sending as')}:{' '}
+              {t('Sending as')}:&nbsp;
             </Typography>
             <Typography
               component="span"
@@ -287,10 +298,9 @@ export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
                 ({mailbox.from.name})
               </Typography>
             </Typography>
+
             <TextField
-              sx={{
-                mt: 2,
-              }}
+              sx={{ mt: 2 }}
               fullWidth
               multiline
               minRows={4}
@@ -299,6 +309,7 @@ export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
               placeholder={t('Write your reply here...')}
             />
           </Box>
+
           <Box
             display="flex"
             alignItems="center"
@@ -322,6 +333,7 @@ export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
               >
                 {t('Reply')}
               </Button>
+
               <Stack
                 direction="row"
                 spacing={1}
@@ -334,11 +346,7 @@ export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
                   <ButtonIcon
                     variant="outlined"
                     color="secondary"
-                    sx={{
-                      width: 42,
-                      height: 42,
-                      fontSize: 22,
-                    }}
+                    sx={{ width: 42, height: 42, fontSize: 22 }}
                   >
                     😀
                   </ButtonIcon>
@@ -353,10 +361,7 @@ export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
                     <ButtonIcon
                       variant="outlined"
                       color="secondary"
-                      sx={{
-                        width: 42,
-                        height: 42,
-                      }}
+                      sx={{ width: 42, height: 42 }}
                     >
                       <AttachFileTwoToneIcon fontSize="small" />
                     </ButtonIcon>
@@ -371,11 +376,7 @@ export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
               title={t('Delete draft')}
             >
               <ButtonIcon
-                sx={{
-                  width: 42,
-                  height: 42,
-                  color: 'error.main',
-                }}
+                sx={{ width: 42, height: 42, color: 'error.main' }}
                 variant="outlined"
                 color="secondary"
               >
@@ -385,25 +386,21 @@ export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
           </Box>
         </Box>
       </Box>
+
       <VisuallyHiddenInputNative
         accept="image/*"
         id="messenger-upload-file"
         type="file"
       />
+
       <Menu
         disableScrollLock
         keepMounted
         anchorEl={moreRef.current}
         open={onMenuOpen}
         onClose={closeMenu}
-        anchorOrigin={{
-          vertical: 'top',
-          horizontal: 'center',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'center',
-        }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
         <List
           disablePadding
@@ -416,33 +413,25 @@ export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
         >
           <ListItemButton onClick={closeMenu}>
             <ListItemText
-              primaryTypographyProps={{
-                noWrap: true,
-              }}
+              primaryTypographyProps={{ noWrap: true }}
               primary={t('Mark as read')}
             />
           </ListItemButton>
           <ListItemButton onClick={closeMenu}>
             <ListItemText
-              primaryTypographyProps={{
-                noWrap: true,
-              }}
+              primaryTypographyProps={{ noWrap: true }}
               primary={t('Mark as important')}
             />
           </ListItemButton>
           <ListItemButton onClick={closeMenu}>
             <ListItemText
-              primaryTypographyProps={{
-                noWrap: true,
-              }}
+              primaryTypographyProps={{ noWrap: true }}
               primary={t('Show similar emails')}
             />
           </ListItemButton>
           <ListItemButton onClick={closeMenu}>
             <ListItemText
-              primaryTypographyProps={{
-                noWrap: true,
-              }}
+              primaryTypographyProps={{ noWrap: true }}
               primary={t('Forward as attachment')}
             />
           </ListItemButton>

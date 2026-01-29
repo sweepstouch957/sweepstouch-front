@@ -7,7 +7,7 @@ import ViewDayTwoToneIcon from '@mui/icons-material/ViewDayTwoTone';
 import ViewWeekTwoToneIcon from '@mui/icons-material/ViewWeekTwoTone';
 import { Grid, IconButton, Tooltip, Typography } from '@mui/material';
 import { format } from 'date-fns';
-import PropTypes from 'prop-types';
+
 import type { ElementType, FC, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ButtonIcon } from 'src/components/base/styles/button-icon';
@@ -144,27 +144,6 @@ const Actions: FC<ActionsProps> = ({ date, onNext, onPrevious, onToday, changeVi
       </Grid>
     </Grid>
   );
-};
-
-Actions.propTypes = {
-  children: PropTypes.node,
-  className: PropTypes.string,
-  date: PropTypes.instanceOf(Date).isRequired,
-  onNext: PropTypes.func,
-  onPrevious: PropTypes.func,
-  onToday: PropTypes.func,
-  handleCreateEvent: PropTypes.func,
-  changeView: PropTypes.func,
-  // @ts-ignore
-  view: PropTypes.oneOf(['dayGridMonth', 'timeGridWeek', 'timeGridDay', 'listWeek']),
-};
-
-Actions.defaultProps = {
-  onNext: () => {},
-  onPrevious: () => {},
-  onToday: () => {},
-  handleCreateEvent: () => {},
-  changeView: () => {},
 };
 
 export default Actions;

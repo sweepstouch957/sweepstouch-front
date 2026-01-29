@@ -1,5 +1,5 @@
 import { Box, ThemeProvider } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import { FC, ReactNode } from 'react';
 import { useCustomization } from 'src/hooks/use-customization';
 import { createTheme } from 'src/theme';
@@ -39,8 +39,4 @@ export const MarketingLayout: FC<MarketingLayoutProps> = ({ children }) => {
       </Box>
     </ThemeProvider>
   );
-};
-
-MarketingLayout.propTypes = {
-  children: PropTypes.node,
 };

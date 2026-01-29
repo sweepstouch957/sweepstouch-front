@@ -1,5 +1,5 @@
 import { Box } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import { type FC, type ReactNode } from 'react';
 import { useSidebarContext } from 'src/contexts/sidebar-context';
 import { useMobileNav } from 'src/hooks/use-mobile-nav';
@@ -45,7 +45,3 @@ export const VerticalShellsWhiteOff: FC<VerticalShellsWhiteOffProps> = (props) =
   );
 };
 
-VerticalShellsWhiteOff.propTypes = {
-  children: PropTypes.node,
-  menuItems: PropTypes.array,
-};

@@ -32,7 +32,7 @@ interface TableRowData {
   owner: string;
   avatarUrl?: string;
   dateCreated: Date;
-  icon?: JSX.Element;
+  icon?: React.JSX.Element ;
 }
 
 interface SortConfig {

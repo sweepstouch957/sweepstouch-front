@@ -4,7 +4,6 @@ import {
   ListItemText,
 } from '@mui/material';
 import { RouterLink } from 'src/components/base/router-link';
-import PropTypes from 'prop-types';
 import type { FC } from 'react';
 
 interface StoreSidebarItemProps {

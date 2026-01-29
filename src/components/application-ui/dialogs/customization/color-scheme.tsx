@@ -8,7 +8,7 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import type { FC } from 'react';
 import { VisuallyHiddenRadio } from 'src/components/base/styles/visually-hidden';
 import type { ColorPreset } from 'src/theme';
@@ -172,21 +172,4 @@ export const OptionsColorScheme: FC<OptionsColorSchemeProps> = (props) => {
       </Stack>
     </>
   );
-};
-
-OptionsColorScheme.propTypes = {
-  onChange: PropTypes.func,
-  value: PropTypes.oneOf([
-    'livingCoral',
-    'greenery',
-    'ultraViolet',
-    'roseQuartz',
-    'radiantOrchid',
-    'tangerineTango',
-    'emerald',
-    'honeyGold',
-    'monacoBlue',
-    'darkViolet',
-    'royalBlue',
-  ]),
 };

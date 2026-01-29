@@ -28,7 +28,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import React, { FC, useState } from 'react';
 import { AvatarState } from 'src/components/base/styles/avatar';
 import { Category, dummyData, iconMapping, Item } from './data';
@@ -426,7 +426,3 @@ export const BasicSpotlightSearch: FC<BasicSpotlightSearchProps> = (props) => {
   );
 };
 
-BasicSpotlightSearch.propTypes = {
-  onClose: PropTypes.func,
-  open: PropTypes.bool,
-};

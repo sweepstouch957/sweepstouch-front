@@ -8,7 +8,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import { FC } from 'react';
 import { SidebarNavMenu } from 'src/components/application-ui/vertical-shells/dark/sidebar-nav-menu';
 import { Logo } from 'src/components/base/logo';
@@ -154,10 +154,4 @@ export const Sidebar: FC<SidebarProps> = (props) => {
       {sidebarContentMobile}
     </SwipeableDrawer>
   );
-};
-
-Sidebar.propTypes = {
-  onOpen: PropTypes.func,
-  onClose: PropTypes.func,
-  open: PropTypes.bool,
 };

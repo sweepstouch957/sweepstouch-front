@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import PropTypes from 'prop-types';
+
 import type { FC } from 'react';
 
 interface HelmetProps {
@@ -18,6 +18,4 @@ export const Helmet: FC<HelmetProps> = (props) => {
   );
 };
 
-Helmet.propTypes = {
-  heading: PropTypes.string,
-};
+

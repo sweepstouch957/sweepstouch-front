@@ -5,7 +5,7 @@ import InboxTwoToneIcon from '@mui/icons-material/InboxTwoTone';
 import LocalOfferTwoToneIcon from '@mui/icons-material/LocalOfferTwoTone';
 import OutboxTwoToneIcon from '@mui/icons-material/OutboxTwoTone';
 import { Chip, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import type { FC } from 'react';
 import { RouterLink } from 'src/components/base/router-link';
 import type { Tag } from 'src/models/mailbox';
@@ -92,10 +92,3 @@ export const MailboxSidebarItem: FC<MailboxSidebarItemProps> = (props) => {
   );
 };
 
-MailboxSidebarItem.propTypes = {
-  active: PropTypes.bool,
-  // @ts-ignore
-  tag: PropTypes.object.isRequired,
-  href: PropTypes.string,
-  onClick: PropTypes.func,
-};

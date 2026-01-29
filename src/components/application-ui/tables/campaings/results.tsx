@@ -54,7 +54,7 @@ interface ResultsProps {
   storeId?: string;
 }
 
-const getInvoiceStatusLabel = (campaignStatus: CampaingStatus): JSX.Element => {
+const getInvoiceStatusLabel = (campaignStatus: CampaingStatus): React.JSX.Element  => {
   const map: Partial<Record<CampaingStatus, {
     text: string;
     color: 'warning' | 'success' | 'info' | 'primary';

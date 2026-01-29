@@ -18,7 +18,7 @@ import {
   Typography,
   useMediaQuery,
 } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import { FC } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ButtonIcon } from 'src/components/base/styles/button-icon';
@@ -261,11 +261,6 @@ const ProfileCover: FC<ProfileCoverProps> = ({ user }) => {
       </Box>
     </>
   );
-};
-
-ProfileCover.propTypes = {
-  // @ts-ignore
-  user: PropTypes.object.isRequired,
 };
 
 export default ProfileCover;

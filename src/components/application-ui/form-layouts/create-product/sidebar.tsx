@@ -23,7 +23,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import { ChangeEvent, FC, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Scrollbar } from 'src/components/base/scrollbar';
@@ -357,9 +357,3 @@ export const CreateProductSidebar: FC<CreateProductSidebarProps> = (props) => {
   );
 };
 
-CreateProductSidebar.propTypes = {
-  parentContainer: PropTypes.any,
-  onClose: PropTypes.func,
-  onOpen: PropTypes.func,
-  open: PropTypes.bool,
-};

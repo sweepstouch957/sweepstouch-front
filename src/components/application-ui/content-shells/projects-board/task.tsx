@@ -20,14 +20,13 @@ import {
   Typography,
 } from '@mui/material';
 import { formatDistance } from 'date-fns';
-import PropTypes from 'prop-types';
-import { FC, forwardRef, useRef, useState } from 'react';
+import type { FC } from 'react';
+import React, { forwardRef, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ButtonIcon } from 'src/components/base/styles/button-icon';
 import { LinearProgressSlim } from 'src/components/base/styles/progress-bar';
 import type { List, Member, Task as TaskType } from 'src/models/projects_board';
-import { useSelector } from 'src/store';
-import type { RootState } from 'src/store';
+import { useProjectsBoardStore } from 'src/slices/projects_board';
 
 interface TaskProps {
   taskId: string;
@@ -40,233 +39,241 @@ interface PopulatedTask extends TaskType {
   members: Member[];
 }
 
-const taskSelector = (state: RootState, taskId: string): PopulatedTask => {
-  const { tasks, members } = state.projectsBoard;
-  const task = tasks.byId[taskId];
+const Task: FC<TaskProps> = forwardRef<HTMLDivElement, TaskProps>(
+  ({ taskId, dragging, index, list, ...rest }, ref) => {
+    const { t } = useTranslation();
 
-  return {
-    ...task,
-    members: task.memberIds.map((memberId: string) => members.byId[memberId]),
-  };
-};
+    // ✅ selector memoizado: task + members populated
+    const task = useProjectsBoardStore(
+      useMemo(
+        () =>
+          (state): PopulatedTask | null => {
+            const base = state.tasks.byId[taskId];
+            if (!base) return null;
 
-const Task: FC<TaskProps> = forwardRef(({ taskId, dragging, index, list, ...rest }, ref) => {
-  const task = useSelector((state) => taskSelector(state, taskId));
-  const { t } = useTranslation();
+            const populatedMembers = (base.memberIds ?? [])
+              .map((memberId: string) => state.members.byId[memberId])
+              .filter(Boolean) as Member[];
 
-  const [onMenuOpen, menuOpen] = useState<boolean>(false);
-  const moreRef = useRef<HTMLButtonElement | null>(null);
+            return {
+              ...base,
+              members: populatedMembers,
+            };
+          },
+        [taskId]
+      )
+    );
 
-  const openMenu = (): void => {
-    menuOpen(true);
-  };
+    const [onMenuOpen, menuOpen] = useState<boolean>(false);
+    const moreRef = useRef<HTMLButtonElement | null>(null);
 
-  const closeMenu = (): void => {
-    menuOpen(false);
-  };
+    const openMenu = (): void => {
+      menuOpen(true);
+    };
 
-  return (
-    <>
-      <Box
-        key={taskId}
-        ref={ref}
-        {...rest}
-      >
-        <Card
-          sx={{
-            p: 2,
-          }}
-          className={`${dragging ?? 'dragging'}`}
-          raised={dragging}
-          variant={dragging ? 'elevation' : 'outlined'}
-          elevation={dragging ? 14 : 0}
+    const closeMenu = (): void => {
+      menuOpen(false);
+    };
+
+    if (!task) return null;
+
+    return (
+      <>
+        <Box
+          key={taskId}
+          ref={ref}
+          {...rest}
         >
-          <Typography
-            variant="h5"
-            gutterBottom
-            fontWeight={500}
-            noWrap
+          <Card
+            sx={{ p: 2 }}
+            className={`${dragging ?? 'dragging'}`}
+            raised={dragging}
+            variant={dragging ? 'elevation' : 'outlined'}
+            elevation={dragging ? 14 : 0}
           >
-            {task.name}
-          </Typography>
-          <Typography
-            variant="subtitle2"
-            color="text.secondary"
-          >
-            {task.description}
-          </Typography>
-          <Stack
-            direction="row"
-            spacing={1}
-            py={1}
-          >
-            {task.comments > 0 && (
-              <Tooltip
-                placement="top"
-                arrow
-                title={t('Comments')}
-              >
-                <ButtonIcon
-                  size="small"
-                  color="secondary"
-                >
-                  <CommentTwoToneIcon
-                    fontSize="small"
-                    sx={{ mr: 0.5, color: 'text.secondary' }}
-                  />
-                  {task.comments}
-                </ButtonIcon>
-              </Tooltip>
-            )}
-            {task.attachments != null && task.attachments > 0 && (
-              <Tooltip
-                placement="top"
-                arrow
-                title={t('File attachments')}
-              >
-                <ButtonIcon
-                  size="small"
-                  color="secondary"
-                >
-                  <AttachFileTwoToneIcon
-                    fontSize="small"
-                    sx={{ mr: 0.5, color: 'text.secondary' }}
-                  />
-                  {task.attachments}
-                </ButtonIcon>
-              </Tooltip>
-            )}
-            {task.sub_items > 0 && (
-              <Tooltip
-                placement="top"
-                arrow
-                title={t('Subtasks')}
-              >
-                <ButtonIcon
-                  size="small"
-                  color="secondary"
-                >
-                  <FormatListBulletedTwoToneIcon
-                    fontSize="small"
-                    sx={{ mr: 0.5, color: 'text.secondary' }}
-                  />
-                  {task.sub_items}
-                </ButtonIcon>
-              </Tooltip>
-            )}
-          </Stack>
-          <Box>
             <Typography
+              variant="h5"
               gutterBottom
-              variant="subtitle2"
+              fontWeight={500}
+              noWrap
             >
-              {task.due_date && t('Due')}{' '}
-              {task.due_date && formatDistance(task.due_date, new Date(), { addSuffix: true })}
+              {task.name}
             </Typography>
-            <LinearProgressSlim
-              value={task.progress}
-              color="primary"
-              variant="determinate"
-            />
-          </Box>
-          <Box
-            pt={2}
-            display="flex"
-            alignItems="center"
-            justifyContent="space-between"
-          >
-            <Box>
-              {task.members.length > 0 && (
-                <AvatarGroup max={4}>
-                  {task.members.map((member) => (
-                    <Tooltip
-                      arrow
-                      placement="top"
-                      key={member.name}
-                      title={member.name}
-                    >
-                      <Avatar
-                        sx={{
-                          width: 30,
-                          height: 30,
-                        }}
-                        key={member.id}
-                        src={member.avatar}
-                      />
-                    </Tooltip>
-                  ))}
-                </AvatarGroup>
-              )}
-            </Box>
-            <ButtonIcon
-              color="primary"
-              size="small"
-              onClick={openMenu}
-              ref={moreRef}
+
+            <Typography
+              variant="subtitle2"
+              color="text.secondary"
             >
-              <MoreHorizTwoToneIcon />
-            </ButtonIcon>
-          </Box>
-        </Card>
-      </Box>
-      <Menu
-        disableScrollLock
-        keepMounted
-        anchorEl={moreRef.current}
-        open={onMenuOpen}
-        onClose={closeMenu}
-        anchorOrigin={{
-          vertical: 'center',
-          horizontal: 'center',
-        }}
-        transformOrigin={{
-          vertical: 'center',
-          horizontal: 'center',
-        }}
-      >
-        <ListWrapper
-          sx={{
-            p: 0,
-            '& .MuiListItemButton-root': {
-              borderRadius: (theme) => theme.shape.borderRadius + 'px',
-            },
+              {task.description}
+            </Typography>
+
+            <Stack
+              direction="row"
+              spacing={1}
+              py={1}
+            >
+              {task.comments > 0 && (
+                <Tooltip
+                  placement="top"
+                  arrow
+                  title={t('Comments')}
+                >
+                  <ButtonIcon
+                    size="small"
+                    color="secondary"
+                  >
+                    <CommentTwoToneIcon
+                      fontSize="small"
+                      sx={{ mr: 0.5, color: 'text.secondary' }}
+                    />
+                    {task.comments}
+                  </ButtonIcon>
+                </Tooltip>
+              )}
+
+              {task.attachments != null && task.attachments > 0 && (
+                <Tooltip
+                  placement="top"
+                  arrow
+                  title={t('File attachments')}
+                >
+                  <ButtonIcon
+                    size="small"
+                    color="secondary"
+                  >
+                    <AttachFileTwoToneIcon
+                      fontSize="small"
+                      sx={{ mr: 0.5, color: 'text.secondary' }}
+                    />
+                    {task.attachments}
+                  </ButtonIcon>
+                </Tooltip>
+              )}
+
+              {task.sub_items > 0 && (
+                <Tooltip
+                  placement="top"
+                  arrow
+                  title={t('Subtasks')}
+                >
+                  <ButtonIcon
+                    size="small"
+                    color="secondary"
+                  >
+                    <FormatListBulletedTwoToneIcon
+                      fontSize="small"
+                      sx={{ mr: 0.5, color: 'text.secondary' }}
+                    />
+                    {task.sub_items}
+                  </ButtonIcon>
+                </Tooltip>
+              )}
+            </Stack>
+
+            <Box>
+              <Typography
+                gutterBottom
+                variant="subtitle2"
+              >
+                {task.due_date && t('Due')}{' '}
+                {task.due_date && formatDistance(task.due_date, new Date(), { addSuffix: true })}
+              </Typography>
+
+              <LinearProgressSlim
+                value={task.progress}
+                color="primary"
+                variant="determinate"
+              />
+            </Box>
+
+            <Box
+              pt={2}
+              display="flex"
+              alignItems="center"
+              justifyContent="space-between"
+            >
+              <Box>
+                {task.members.length > 0 && (
+                  <AvatarGroup max={4}>
+                    {task.members.map((member) => (
+                      <Tooltip
+                        arrow
+                        placement="top"
+                        key={member.id}
+                        title={member.name}
+                      >
+                        <Avatar
+                          sx={{ width: 30, height: 30 }}
+                          src={member.avatar}
+                        />
+                      </Tooltip>
+                    ))}
+                  </AvatarGroup>
+                )}
+              </Box>
+
+              <ButtonIcon
+                color="primary"
+                size="small"
+                onClick={openMenu}
+                ref={moreRef}
+              >
+                <MoreHorizTwoToneIcon />
+              </ButtonIcon>
+            </Box>
+          </Card>
+        </Box>
+
+        <Menu
+          disableScrollLock
+          keepMounted
+          anchorEl={moreRef.current}
+          open={onMenuOpen}
+          onClose={closeMenu}
+          anchorOrigin={{
+            vertical: 'center',
+            horizontal: 'center',
           }}
-          component="nav"
+          transformOrigin={{
+            vertical: 'center',
+            horizontal: 'center',
+          }}
         >
-          <ListItemButton>
-            <ListItemAvatar sx={{ minWidth: 36, display: 'flex' }}>
-              <VisibilityTwoToneIcon />
-            </ListItemAvatar>
-            <ListItemText primary={t('View details')} />
-          </ListItemButton>
-          <ListItemButton>
-            <ListItemAvatar sx={{ minWidth: 36, display: 'flex' }}>
-              <ArchiveTwoToneIcon />
-            </ListItemAvatar>
-            <ListItemText primary={t('Move to archive')} />
-          </ListItemButton>
-          <ListItemButton>
-            <ListItemAvatar sx={{ minWidth: 36, display: 'flex' }}>
-              <DeleteForeverTwoToneIcon />
-            </ListItemAvatar>
-            <ListItemText primary={t('Delete')} />
-          </ListItemButton>
-        </ListWrapper>
-      </Menu>
-    </>
-  );
-});
+          <ListWrapper
+            sx={{
+              p: 0,
+              '& .MuiListItemButton-root': {
+                borderRadius: (theme) => theme.shape.borderRadius + 'px',
+              },
+            }}
+            component="nav"
+          >
+            <ListItemButton onClick={closeMenu}>
+              <ListItemAvatar sx={{ minWidth: 36, display: 'flex' }}>
+                <VisibilityTwoToneIcon />
+              </ListItemAvatar>
+              <ListItemText primary={t('View details')} />
+            </ListItemButton>
 
-Task.propTypes = {
-  taskId: PropTypes.string.isRequired,
-  dragging: PropTypes.bool.isRequired,
-  index: PropTypes.number,
-  // @ts-ignore
-  list: PropTypes.object.isRequired,
-};
+            <ListItemButton onClick={closeMenu}>
+              <ListItemAvatar sx={{ minWidth: 36, display: 'flex' }}>
+                <ArchiveTwoToneIcon />
+              </ListItemAvatar>
+              <ListItemText primary={t('Move to archive')} />
+            </ListItemButton>
 
-Task.defaultProps = {
-  dragging: false,
-};
+            <ListItemButton onClick={closeMenu}>
+              <ListItemAvatar sx={{ minWidth: 36, display: 'flex' }}>
+                <DeleteForeverTwoToneIcon />
+              </ListItemAvatar>
+              <ListItemText primary={t('Delete')} />
+            </ListItemButton>
+          </ListWrapper>
+        </Menu>
+      </>
+    );
+  }
+);
+
 
 export default Task;

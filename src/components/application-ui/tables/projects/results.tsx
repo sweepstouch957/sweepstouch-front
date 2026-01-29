@@ -90,7 +90,7 @@ interface Filters {
   status?: ProjectStatus;
 }
 
-const getProjectStatusLabel = (projectStatus: ProjectStatus): JSX.Element => {
+const getProjectStatusLabel = (projectStatus: ProjectStatus) => {
   const map = {
     not_started: {
       text: 'Not started',
@@ -1140,12 +1140,5 @@ const Results: FC<ResultsProps> = ({ projects }) => {
   );
 };
 
-Results.propTypes = {
-  projects: PropTypes.array.isRequired,
-};
-
-Results.defaultProps = {
-  projects: [],
-};
 
 export default Results;

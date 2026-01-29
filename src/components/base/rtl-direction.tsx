@@ -1,6 +1,6 @@
 import createCache from '@emotion/cache';
 import { CacheProvider } from '@emotion/react';
-import PropTypes from 'prop-types';
+
 import type { FC, ReactNode } from 'react';
 import { useEffect } from 'react';
 import stylisRTLPlugin from 'stylis-plugin-rtl';
@@ -34,7 +34,3 @@ export const RtlDirection: FC<RtlDirectionProps> = (props) => {
   return <>{children}</>;
 };
 
-RtlDirection.propTypes = {
-  children: PropTypes.node.isRequired,
-  direction: PropTypes.oneOf<Direction>(['ltr', 'rtl']),
-};

@@ -1,5 +1,5 @@
 import { alpha, darken, DialogContent, SwipeableDrawer, useTheme } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import { FC } from 'react';
 import DrawerContent from './drawer-content';
 
@@ -55,8 +55,3 @@ export const WidgetsHeader: FC<WidgetsHeaderProps> = (props) => {
   );
 };
 
-WidgetsHeader.propTypes = {
-  onClose: PropTypes.func,
-  onOpen: PropTypes.func,
-  open: PropTypes.bool,
-};

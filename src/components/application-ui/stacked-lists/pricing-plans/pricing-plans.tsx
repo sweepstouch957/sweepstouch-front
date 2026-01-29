@@ -25,7 +25,7 @@ interface PlanData {
   tooltipRemove: string;
   dotColor: string;
   planType: string;
-  subscribersIcon: JSX.Element;
+  subscribersIcon: React.ReactElement;
   numberOfSubscribers: number;
   price: string;
 }

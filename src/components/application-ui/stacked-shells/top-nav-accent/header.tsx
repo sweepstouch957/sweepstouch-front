@@ -9,7 +9,7 @@ import {
   Theme,
   useMediaQuery,
 } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import { FC } from 'react';
 import { SidebarNavMenu } from 'src/components/application-ui/vertical-shells/white/sidebar-nav-menu';
 import { Logo } from 'src/components/base/logo';
@@ -140,11 +140,4 @@ export const Header: FC<HeaderProps> = (props) => {
       )}
     </>
   );
-};
-
-Header.propTypes = {
-  onClose: PropTypes.func,
-  onOpen: PropTypes.func,
-  menuItems: PropTypes.array,
-  open: PropTypes.bool,
 };

@@ -1,6 +1,6 @@
 import LogoutTwoToneIcon from '@mui/icons-material/LogoutTwoTone';
 import { Box, Button, Divider, Menu, MenuItem } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import { FC } from 'react';
 import AvatarTitleDescriptionStacked from 'src/components/application-ui/avatars/with-text/avatar-title-description-stacked';
 
@@ -73,10 +73,4 @@ export const HeaderUserDropdown: FC<HeaderUserDropdownProps> = (props) => {
       </Menu>
     </>
   );
-};
-
-HeaderUserDropdown.propTypes = {
-  anchorEl: PropTypes.any,
-  onClose: PropTypes.func,
-  open: PropTypes.bool,
 };

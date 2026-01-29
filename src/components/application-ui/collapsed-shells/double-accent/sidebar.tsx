@@ -9,7 +9,6 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import PropTypes from 'prop-types';
 import { FC, useState } from 'react';
 import { MenuItem } from 'src/router/menuItem';
 import { neutral } from 'src/theme/colors';
@@ -175,8 +174,3 @@ export const Sidebar: FC<SidebarProps> = (props) => {
   );
 };
 
-Sidebar.propTypes = {
-  onClose: PropTypes.func,
-  onOpen: PropTypes.func,
-  open: PropTypes.bool,
-};

@@ -10,39 +10,45 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import PropTypes from 'prop-types';
-import { ChangeEvent, FC, useState } from 'react';
+import type { ChangeEvent, FC } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Draggable, Droppable } from 'react-beautiful-dnd';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { ButtonIcon } from 'src/components/base/styles/button-icon';
 import { CardBorderColor } from 'src/components/base/styles/card-border-color';
 import type { List as ListType } from 'src/models/projects_board';
-import { updateList } from 'src/slices/projects_board';
-import { useDispatch, useSelector } from 'src/store';
-import type { RootState } from 'src/store';
+import {
+  runProjectsBoardThunk,
+  updateList as updateListThunk,
+  useProjectsBoardStore,
+} from 'src/slices/projects_board';
 import Task from './task';
 
 interface ResultsProps {
   listId: string;
 }
 
-const listSelector = (state: RootState, listId: string): ListType => {
-  const { lists } = state.projectsBoard;
-
-  return lists.byId[listId];
-};
-
 const Results: FC<ResultsProps> = ({ listId }) => {
   const { t } = useTranslation();
 
-  const list = useSelector((state) => listSelector(state, listId));
-  const dispatch = useDispatch();
+  // ✅ selector estable para evitar re-renders innecesarios
+  const list = useProjectsBoardStore(
+    useMemo(() => (state) => state.lists.byId[listId] as ListType, [listId])
+  );
+
+  // ✅ por si el board todavía no ha cargado
+  if (!list) return null;
+
   const [name, setName] = useState<string>(list.name);
   const [isRenaming, setRename] = useState<boolean>(false);
 
+  // ✅ si cambia el nombre en el store (ej: refresh / remote update)
+  useEffect(() => {
+    setName(list.name);
+  }, [list.name]);
+
   const handleChange = (event: ChangeEvent<HTMLInputElement>): void => {
-    event.persist();
     setName(event.target.value);
   };
 
@@ -52,20 +58,31 @@ const Results: FC<ResultsProps> = ({ listId }) => {
 
   const handleRename = async (): Promise<void> => {
     try {
-      if (!name) {
+      const trimmed = (name ?? '').trim();
+
+      if (!trimmed) {
         setName(list.name);
         setRename(false);
         return;
       }
 
-      const update = { name };
+      // ✅ evita request si no cambió
+      if (trimmed === list.name) {
+        setRename(false);
+        return;
+      }
 
       setRename(false);
-      await dispatch(updateList(list.id, update));
+
+      // ✅ thunk zustand (igual que redux pero sin dispatch)
+      await runProjectsBoardThunk(updateListThunk(list.id, { name: trimmed }));
+
       toast.success(t('Project board updated successfully!'));
     } catch (err) {
       console.error(err);
       toast.error(t('There was an error, try again later'));
+      // opcional: re-abrir rename
+      // setRename(true);
     }
   };
 
@@ -99,6 +116,7 @@ const Results: FC<ResultsProps> = ({ listId }) => {
               variant="outlined"
               margin="none"
               fullWidth
+              autoFocus
             />
           </ClickAwayListener>
         ) : (
@@ -108,10 +126,12 @@ const Results: FC<ResultsProps> = ({ listId }) => {
             noWrap
             fontWeight={500}
             onClick={handleRenameInit}
+            sx={{ cursor: 'text' }}
           >
             {list.name}
           </Typography>
         )}
+
         <Stack
           spacing={0.5}
           direction="row"
@@ -129,14 +149,16 @@ const Results: FC<ResultsProps> = ({ listId }) => {
               onClick={handleRenameInit}
             />
           </Tooltip>
+
           <Chip
             size="small"
             variant="outlined"
-            label={list.taskIds.length}
+            label={(list.taskIds ?? []).length}
             color="primary"
           />
         </Stack>
       </Box>
+
       <Box
         px={2}
         pt={2}
@@ -155,7 +177,8 @@ const Results: FC<ResultsProps> = ({ listId }) => {
           </Button>
         </Tooltip>
       </Box>
-      {list.taskIds.length === 0 && (
+
+      {(list.taskIds ?? []).length === 0 && (
         <Box
           p={{ xs: 2, sm: 3, md: 4 }}
           textAlign="center"
@@ -165,17 +188,17 @@ const Results: FC<ResultsProps> = ({ listId }) => {
           </Typography>
         </Box>
       )}
+
       <Droppable droppableId={list.id}>
         {(provided) => (
           <Stack
             p={2}
             spacing={{ xs: 2, sm: 3 }}
-            sx={{
-              minHeight: 260,
-            }}
+            sx={{ minHeight: 260 }}
             ref={provided.innerRef}
+            {...provided.droppableProps}
           >
-            {list.taskIds.map((taskId, index) => (
+            {(list.taskIds ?? []).map((taskId, index) => (
               <Draggable
                 draggableId={taskId}
                 index={index}
@@ -186,9 +209,8 @@ const Results: FC<ResultsProps> = ({ listId }) => {
                     taskId={taskId}
                     dragging={snapshot.isDragging}
                     index={index}
-                    key={taskId}
                     list={list}
-                    // @ts-ignore
+                    // @ts-ignore (si Task es forwardRef)
                     ref={provided.innerRef}
                     style={{ ...provided.draggableProps.style }}
                     {...provided.draggableProps}
@@ -201,6 +223,7 @@ const Results: FC<ResultsProps> = ({ listId }) => {
           </Stack>
         )}
       </Droppable>
+
       <Box
         px={2}
         pb={2}
@@ -221,10 +244,6 @@ const Results: FC<ResultsProps> = ({ listId }) => {
       </Box>
     </CardBorderColor>
   );
-};
-
-Results.propTypes = {
-  listId: PropTypes.string.isRequired,
 };
 
 export default Results;

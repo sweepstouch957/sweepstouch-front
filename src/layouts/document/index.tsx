@@ -8,13 +8,11 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import Cookies from 'js-cookie';
 import Head from 'next/head';
 import { useState, type FC, type ReactNode } from 'react';
-import { Provider as ReduxProvider } from 'react-redux';
 import { RtlDirection } from 'src/components/base/rtl-direction';
 import { Toastr } from 'src/components/base/toastr';
 import { AuthProvider } from 'src/contexts/auth/auth-context';
 import { CustomizationConsumer, CustomizationProvider } from 'src/contexts/customization';
 import { SidebarProvider } from 'src/contexts/sidebar-context';
-import { store } from 'src/store';
 import { createTheme } from 'src/theme';
 import { NextAppDirEmotionCacheProvider } from 'tss-react/next/appDir';
 import 'src/i18n/i18n';
@@ -54,7 +52,6 @@ export const Layout: FC<LayoutProps> = (props: LayoutProps) => {
   return (
     <NextAppDirEmotionCacheProvider options={{ key: 'uifort' }}>
       <QueryClientProvider client={queryClient}>
-        <ReduxProvider store={store}>
           <LocalizationProvider dateAdapter={AdapterDateFns}>
             <AuthProvider>
               <SidebarProvider>
@@ -102,7 +99,6 @@ export const Layout: FC<LayoutProps> = (props: LayoutProps) => {
               </SidebarProvider>
             </AuthProvider>
           </LocalizationProvider>
-        </ReduxProvider>
       </QueryClientProvider>
     </NextAppDirEmotionCacheProvider>
   );

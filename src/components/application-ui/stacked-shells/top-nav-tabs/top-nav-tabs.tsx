@@ -1,5 +1,5 @@
 import { Box } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import { type FC, type ReactNode } from 'react';
 import { useMobileNav } from 'src/hooks/use-mobile-nav';
 import { MenuItem } from 'src/router/menuItem';
@@ -47,7 +47,3 @@ export const StackedShellsTopNavTabs: FC<StackedShellsTopNavTabs> = (props) => {
   );
 };
 
-StackedShellsTopNavTabs.propTypes = {
-  children: PropTypes.node,
-  menuItems: PropTypes.array,
-};

@@ -20,7 +20,7 @@ import {
   useMediaQuery,
 } from '@mui/material';
 import numeral from 'numeral';
-import PropTypes from 'prop-types';
+
 import { FC, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Product } from 'src/models/product';
@@ -488,9 +488,6 @@ const ProductBody: FC<ProductBodyProps> = ({ product }) => {
   );
 };
 
-ProductBody.propTypes = {
-  // @ts-ignore
-  product: PropTypes.object.isRequired,
-};
+
 
 export default ProductBody;

@@ -18,7 +18,7 @@ import {
 } from '@mui/material';
 import { format } from 'date-fns';
 import numeral from 'numeral';
-import PropTypes from 'prop-types';
+
 import { FC, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Logo } from 'src/components/base/logo';
@@ -299,9 +299,6 @@ const InvoiceBody: FC<InvoiceBodyProps> = ({ invoice }) => {
   );
 };
 
-InvoiceBody.propTypes = {
-  // @ts-ignore
-  invoice: PropTypes.object.isRequired,
-};
+
 
 export default InvoiceBody;

@@ -1,6 +1,6 @@
 import { useAuth } from '@/hooks/use-auth';
 import useMenuItemsCollapsedShells from '@/hooks/use-routes';
-import PropTypes from 'prop-types';
+
 import type { FC, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 // Collapsed Shells
@@ -137,6 +137,3 @@ export const Layout: FC<LayoutProps> = withAuthGuard((props) => {
   );
 });
 
-Layout.propTypes = {
-  children: PropTypes.node,
-};

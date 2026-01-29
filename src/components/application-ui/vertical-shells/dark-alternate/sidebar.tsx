@@ -13,7 +13,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import { FC, useState } from 'react';
 import { Logo } from 'src/components/base/logo';
 import { Scrollbar } from 'src/components/base/scrollbar';
@@ -311,11 +311,4 @@ export const Sidebar: FC<SidebarProps> = (props) => {
       {sidebarContent}
     </SwipeableDrawer>
   );
-};
-
-Sidebar.propTypes = {
-  onOpen: PropTypes.func,
-  onClose: PropTypes.func,
-  open: PropTypes.bool,
-  menuItems: PropTypes.array,
 };

@@ -15,7 +15,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import { FC } from 'react';
 import { NotificationsHeader } from 'src/components/application-ui/drawers/notifications/notifications-header';
 import { WidgetsHeader } from 'src/components/application-ui/drawers/widgets/widgets-header';
@@ -312,6 +312,3 @@ export const Header: FC<HeaderProps> = (props) => {
   );
 };
 
-Header.propTypes = {
-  onMobileNav: PropTypes.func,
-};

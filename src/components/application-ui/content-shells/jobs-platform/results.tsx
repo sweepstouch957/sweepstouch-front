@@ -21,7 +21,7 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import { ChangeEvent, FC, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Job } from 'src/models/job';
@@ -367,12 +367,5 @@ const Results: FC<ResultsProps> = ({ jobs }) => {
   );
 };
 
-Results.propTypes = {
-  jobs: PropTypes.array.isRequired,
-};
-
-Results.defaultProps = {
-  jobs: [],
-};
 
 export default Results;

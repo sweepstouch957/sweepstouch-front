@@ -13,7 +13,7 @@ import {
   Theme,
   useMediaQuery,
 } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import React, { FC, useState } from 'react';
 import { RouterLink } from 'src/components/base/router-link';
 import { usePathname } from 'src/hooks/use-pathname';
@@ -217,8 +217,4 @@ export const SidebarNavMenu: FC<SidebarNavMenuProps> = ({ menuItems = [] }) => {
       ))}
     </Box>
   );
-};
-
-SidebarNavMenu.propTypes = {
-  menuItems: PropTypes.array,
 };

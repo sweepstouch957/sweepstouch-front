@@ -20,7 +20,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import { FC } from 'react';
 import { buildStyles, CircularProgressbarWithChildren } from 'react-circular-progressbar';
 import { useTranslation } from 'react-i18next';
@@ -381,9 +381,3 @@ export const FileManagerSidebar: FC<FileManagerSidebarProps> = (props) => {
   );
 };
 
-FileManagerSidebar.propTypes = {
-  parentContainer: PropTypes.any,
-  onClose: PropTypes.func,
-  onOpen: PropTypes.func,
-  open: PropTypes.bool,
-};

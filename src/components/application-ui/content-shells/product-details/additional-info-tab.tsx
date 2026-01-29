@@ -1,6 +1,6 @@
 import Masonry from '@mui/lab/Masonry';
 import { Box, Card, CardActionArea, Container, Typography } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import { FC } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Product } from 'src/models/product';
@@ -86,9 +86,5 @@ const AdditionalInfoTab: FC<AdditionalInfoTabProps> = ({ product }) => {
   );
 };
 
-AdditionalInfoTab.propTypes = {
-  // @ts-ignore
-  product: PropTypes.object.isRequired,
-};
 
 export default AdditionalInfoTab;

@@ -11,7 +11,7 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import type { FC, ReactElement } from 'react';
 import { AvatarState } from 'src/components/base/styles/avatar';
 import { VisuallyHiddenRadio } from 'src/components/base/styles/visually-hidden';
@@ -164,9 +164,4 @@ export const OptionsDirection: FC<OptionsDirectionProps> = (props) => {
     //   </Stack>
     // </Stack>
   );
-};
-
-OptionsDirection.propTypes = {
-  onChange: PropTypes.func,
-  value: PropTypes.oneOf(['ltr', 'rtl']),
 };

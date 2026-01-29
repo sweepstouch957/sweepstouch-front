@@ -10,7 +10,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import type { FC } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Scrollbar } from 'src/components/base/scrollbar';
@@ -151,12 +151,4 @@ export const MailboxSidebar: FC<MailboxSidebarProps> = (props) => {
       <Scrollbar>{sidebarContent}</Scrollbar>
     </SwipeableDrawer>
   );
-};
-
-MailboxSidebar.propTypes = {
-  open: PropTypes.bool,
-  tag: PropTypes.string,
-  tags: PropTypes.array.isRequired,
-  onClose: PropTypes.func,
-  onOpen: PropTypes.func,
 };

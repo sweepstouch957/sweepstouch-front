@@ -21,7 +21,7 @@ import {
   Typography,
 } from '@mui/material';
 import numeral from 'numeral';
-import PropTypes from 'prop-types';
+
 import { ChangeEvent, FC, MouseEvent, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -548,12 +548,5 @@ const Results: FC<ResultsProps> = ({ products }) => {
   );
 };
 
-Results.propTypes = {
-  products: PropTypes.array.isRequired,
-};
-
-Results.defaultProps = {
-  products: [],
-};
 
 export default Results;

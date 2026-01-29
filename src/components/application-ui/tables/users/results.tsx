@@ -39,7 +39,7 @@ import {
   useMediaQuery,
   useTheme
 } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import React, {
   ChangeEvent,
   FC,
@@ -161,7 +161,7 @@ const toTitle = (k: string) =>
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
 // ---------- Helpers de UI ----------
-const getUserRoleLabel = (userRole?: string): JSX.Element => {
+const getUserRoleLabel = (userRole?: string): React.JSX.Element  => {
   const roleKey = getRoleKey(userRole);
   const item =
     ROLE_META[roleKey] ?? {
@@ -916,12 +916,5 @@ const Results: FC<ResultsProps> = ({ users }) => {
   );
 };
 
-Results.propTypes = {
-  users: PropTypes.array.isRequired
-};
-
-Results.defaultProps = {
-  users: []
-};
 
 export default Results;

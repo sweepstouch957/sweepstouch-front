@@ -26,7 +26,7 @@ import {
   useTheme,
 } from '@mui/material';
 import numeral from 'numeral';
-import PropTypes from 'prop-types';
+
 import { ChangeEvent, FC, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ButtonIcon } from 'src/components/base/styles/button-icon';
@@ -383,12 +383,5 @@ const Results: FC<ResultsProps> = ({ products }) => {
   );
 };
 
-Results.propTypes = {
-  products: PropTypes.array.isRequired,
-};
-
-Results.defaultProps = {
-  products: [],
-};
 
 export default Results;

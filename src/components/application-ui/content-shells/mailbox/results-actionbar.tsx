@@ -20,7 +20,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import PropTypes from 'prop-types';
+
 import { ChangeEvent, FC, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ButtonIcon } from 'src/components/base/styles/button-icon';
@@ -251,18 +251,6 @@ const ActionBarItem: FC<ActionBarItemProps> = ({
       </Menu>
     </>
   );
-};
-
-ActionBarItem.propTypes = {
-  mails: PropTypes.number.isRequired,
-  onDeselectAll: PropTypes.func,
-  onSelectAll: PropTypes.func,
-  selectedMails: PropTypes.number.isRequired,
-};
-
-ActionBarItem.defaultProps = {
-  onDeselectAll: () => {},
-  onSelectAll: () => {},
 };
 
 export default ActionBarItem;

@@ -16,7 +16,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { TransitionProps } from '@mui/material/transitions';
-import PropTypes from 'prop-types';
+
 import React, { FC, forwardRef, ReactElement, Ref, useCallback } from 'react';
 import { Customization } from 'src/contexts/customization';
 import { OptionsColorPreset } from './color-preset';
@@ -203,12 +203,3 @@ export const CustomizationDialog: FC<CustomizationDialogProps> = (props) => {
   );
 };
 
-CustomizationDialog.propTypes = {
-  canReset: PropTypes.bool,
-  hiddenLayoutsSection: PropTypes.bool,
-  onClose: PropTypes.func,
-  onReset: PropTypes.func,
-  onUpdate: PropTypes.func,
-  open: PropTypes.bool,
-  values: PropTypes.object,
-};
