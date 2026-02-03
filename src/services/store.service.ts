@@ -51,7 +51,7 @@ export interface Store {
 export interface UpdateStoreBody {
   name?: string;
   address?: string;
-  zipCode?: string;
+  zipCode?: string; 
   type?: 'elite' | 'basic' | 'free';
   active?: boolean;
   phoneNumber?: string;

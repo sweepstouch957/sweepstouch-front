@@ -241,7 +241,7 @@ const Results: FC<ResultsProps> = ({
 
               {!isMobile && (
                 <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 110 }}>
-                  % ENTREGA
+                  ENTREGA
                 </TableCell>
               )}
 
