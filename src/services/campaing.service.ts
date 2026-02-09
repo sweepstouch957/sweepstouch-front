@@ -106,6 +106,95 @@ export interface YtdMonthlyResponse {
 }
 
 /* ===================== ✅ AUDIENCE (MATCH BACKEND) ===================== */
+/** ✅ GET /campaigns/audience/stores-growth */
+
+export type AudienceStoresGrowthSenderScope = 'senders' | 'all' | 'nonSenders';
+
+export type AudienceStoresGrowthSort =
+  | 'growthAbsAsc'
+  | 'growthAbsDesc'
+  | 'growthPctAsc'
+  | 'growthPctDesc'
+  | 'audienceAsc'
+  | 'audienceDesc'
+  | 'netGrowthAsc'
+  | 'netGrowthDesc'
+  | 'newAsc'
+  | 'newDesc'
+  | 'churnAsc'
+  | 'churnDesc'
+  | 'nameAsc'
+  | 'nameDesc';
+
+export interface AudienceStoresGrowthQueryParams extends AudienceQueryParams {
+  senderScope?: AudienceStoresGrowthSenderScope;
+  sort?: AudienceStoresGrowthSort;
+
+  page?: number;
+  limit?: number;
+
+  minGrowthAbs?: number;
+  maxGrowthAbs?: number;
+
+  minGrowthPct?: number;
+  maxGrowthPct?: number;
+
+  minAudience?: number;
+  maxAudience?: number;
+
+  minNetGrowth?: number;
+  maxNetGrowth?: number;
+}
+
+export interface AudienceStoreGrowthRow {
+  storeId: string;
+  name: string;
+  slug?: string;
+  active: boolean;
+  isSender: boolean;
+
+  audiencePrev: number;
+  audienceCurr: number;
+
+  growthAbs: number;
+  growthPct: number;
+
+  newInPeriod: number;
+  churnInPeriod: number;
+  netGrowth: number;
+}
+
+export interface AudienceStoresGrowthResponse {
+  period: { start: string; end: string };
+  filters: {
+    senderScope: AudienceStoresGrowthSenderScope;
+    includeInactive: boolean;
+    status: string | null;
+    ranges: {
+      minGrowthAbs: number | null;
+      maxGrowthAbs: number | null;
+      minGrowthPct: number | null;
+      maxGrowthPct: number | null;
+      minAudience: number | null;
+      maxAudience: number | null;
+      minNetGrowth: number | null;
+      maxNetGrowth: number | null;
+    };
+    sort: string;
+  };
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  meta: {
+    storesScope: string;
+    totalStores: number;
+    usingStoreCustomerCount: boolean;
+  };
+  data: AudienceStoreGrowthRow[];
+}
 
 export type AudiencePeriod = '7d' | '14d' | '30d' | '90d' | 'ytd' | 'custom';
 
@@ -340,26 +429,25 @@ class CampaignClient {
     return res.data as PaginatedResponse<Campaing>;
   }
 
- async getFilteredCampaigns(params: FilterCampaignParams) {
-  const {
-    page = 1,
-    limit = 10,
-    status,
-    startDate,
-    endDate,
-    storeId,
-    title,
-    storeName, // ✅
-    type,      // ✅
-  } = params;
+  async getFilteredCampaigns(params: FilterCampaignParams) {
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      startDate,
+      endDate,
+      storeId,
+      title,
+      storeName, // ✅
+      type, // ✅
+    } = params;
 
-  const res = await api.get('/campaigns/filter', {
-    params: { page, limit, status, startDate, endDate, storeId, title, storeName, type },
-  });
+    const res = await api.get('/campaigns/filter', {
+      params: { page, limit, status, startDate, endDate, storeId, title, storeName, type },
+    });
 
-  return res.data;
-}
-
+    return res.data;
+  }
 
   async getCampaignById(id: string): Promise<Campaing> {
     const res = await api.get(`/campaigns/${id}`);
@@ -465,6 +553,12 @@ class CampaignClient {
     const res = await api.get(`${AUDIENCE_BASE}/simulator`, { params });
     return res.data as AudienceSimulatorResponse;
   }
+  async getAudienceStoresGrowth(
+    params: AudienceStoresGrowthQueryParams = {}
+  ): Promise<AudienceStoresGrowthResponse> {
+    const res = await api.get(`${AUDIENCE_BASE}/stores-growth`, { params });
+    return res.data as AudienceStoresGrowthResponse;
+  }
 }
 
 export const campaignClient = new CampaignClient();
@@ -494,6 +588,8 @@ export const campaignAudienceKeys = {
 
   simulator: (params: AudienceSimulatorQueryParams) =>
     [...campaignAudienceKeys.all, 'simulator', params] as const,
+  storesGrowth: (params: AudienceStoresGrowthQueryParams) =>
+    [...campaignAudienceKeys.all, 'stores-growth', params] as const,
 };
 
 /* ========================= (OPTIONAL) tiny helpers ========================= */
