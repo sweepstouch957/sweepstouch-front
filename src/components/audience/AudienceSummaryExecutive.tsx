@@ -334,7 +334,7 @@ export function AudienceSummaryExecutive({
   const [page] = useState<number>(1);
 
   const storesGrowthParams = useMemo<AudienceStoresGrowthQueryParams>(() => {
-    const p: AudienceStoresGrowthQueryParams = {
+    const p: any = {
       period: 'custom',
       includeInactive,
       status,
