@@ -72,4 +72,35 @@ export const es = {
   "UI Components": "Componentes UI",
   "User profile": "Perfil de usuario",
   "View": "Ver",
+  "Messages sent": "Mensajes enviados",
+  "Month-by-month overview of total messages sent by campaigns": "Resumen mes a mes del total de mensajes enviados por campañas",
+  "Total messages sent per month (all campaigns)": "Total de mensajes enviados por mes (todas las campañas)",
+  "Could not load data for": "No se pudieron cargar los datos para",
+  "No data available for this year.": "No hay datos disponibles para este año.",
+
+  "Year": "Año",
+  "Month": "Mes",
+  "Day": "Día",
+  "Date": "Fecha",
+
+  "Year Total": "Total del año",
+  "Month total": "Total del mes",
+
+  "Messages sent per day": "Mensajes enviados por día",
+  "Pick a month to see total messages sent each day (grouped by campaign date).": "Elige un mes para ver el total de mensajes enviados cada día (agrupados por la fecha de la campaña).",
+  "Could not load daily data.": "No se pudieron cargar los datos diarios.",
+  "No data available for this month.": "No hay datos disponibles para este mes.",
+
+  "Compare ranges": "Comparar rangos",
+  "Range": "Rango",
+  "Selection A": "Selección A",
+  "Selection B": "Selección B",
+  "Select a day, month, or year to compare message volume between two ranges.": "Selecciona un día, mes o año para comparar el volumen de mensajes entre dos rangos.",
+  "Could not load comparison data.": "No se pudieron cargar los datos de comparación.",
+
+  "SMS": "SMS",
+  "MMS": "MMS",
+  "Total": "Total",
+  "Total messages sent per month (completed campaigns)": "Total de mensajes por mes (campañas completadas)",
+
 };
