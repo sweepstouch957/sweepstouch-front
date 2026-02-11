@@ -2,23 +2,32 @@
 
 import ChartBarIcon from '@heroicons/react/24/outline/ChartBarIcon';
 import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import {
   Alert,
   Box,
+  Button,
   CircularProgress,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
   FormControl,
   InputLabel,
+  InputAdornment,
   MenuItem,
   Paper,
   Select,
   Stack,
+  TextField,
   Typography,
   useTheme,
 } from '@mui/material';
 import { BarChart } from '@mui/x-charts/BarChart';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
+import { DateCalendar, LocalizationProvider } from '@mui/x-date-pickers';
+import { PickersDay } from '@mui/x-date-pickers/PickersDay';
+import type { PickersDayProps } from '@mui/x-date-pickers/PickersDay';
 import { useQuery } from '@tanstack/react-query';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -53,6 +62,167 @@ function localDateToYmd(date: Date | null): string {
   const m = date.getMonth() + 1;
   const d = date.getDate();
   return `${y}-${pad2(m)}-${pad2(d)}`;
+}
+
+type RangePickerValue = {
+  startYmd: string;
+  endYmd: string;
+};
+
+function RangePickerField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: RangePickerValue;
+  onChange: (next: RangePickerValue) => void;
+}) {
+  const { t } = useTranslation();
+  const { startYmd, endYmd } = value;
+  const [open, setOpen] = useState(false);
+
+  const startDate = ymdToLocalDate(startYmd);
+  const endDate = ymdToLocalDate(endYmd);
+
+  const [draftStart, setDraftStart] = useState<Date | null>(startDate);
+  const [draftEnd, setDraftEnd] = useState<Date | null>(endDate);
+  const [anchorMonth, setAnchorMonth] = useState<Date>(() => startDate ?? new Date());
+
+  const openDialog = () => {
+    setDraftStart(startDate);
+    setDraftEnd(endDate);
+    setAnchorMonth(startDate ?? new Date());
+    setOpen(true);
+  };
+
+  const closeDialog = () => setOpen(false);
+
+  const apply = () => {
+    const s = localDateToYmd(draftStart);
+    const e = localDateToYmd(draftEnd ?? draftStart);
+    if (!s) return;
+    if (!e) return;
+    const nextStart = s <= e ? s : e;
+    const nextEnd = s <= e ? e : s;
+    onChange({ startYmd: nextStart, endYmd: nextEnd });
+    setOpen(false);
+  };
+
+  const display = startYmd && endYmd ? `${startYmd} — ${endYmd}` : '';
+
+  const CustomDay = (props: PickersDayProps<Date>) => {
+    const { day, outsideCurrentMonth, ...other } = props;
+    const s = draftStart;
+    const e = draftEnd ?? draftStart;
+    const time = new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime();
+    const startTime = s ? new Date(s.getFullYear(), s.getMonth(), s.getDate()).getTime() : null;
+    const endTime = e ? new Date(e.getFullYear(), e.getMonth(), e.getDate()).getTime() : null;
+
+    const inRange =
+      startTime != null &&
+      endTime != null &&
+      time >= Math.min(startTime, endTime) &&
+      time <= Math.max(startTime, endTime);
+
+    const isStart = startTime != null && time === startTime;
+    const isEnd = endTime != null && time === endTime;
+
+    return (
+      <PickersDay
+        {...(other as any)}
+        day={day}
+        outsideCurrentMonth={outsideCurrentMonth}
+        sx={{
+          ...(inRange && {
+            bgcolor: 'action.selected',
+            borderRadius: 0,
+            '&:hover': { bgcolor: 'action.selected' },
+          }),
+          ...(isStart && {
+            borderTopLeftRadius: 16,
+            borderBottomLeftRadius: 16,
+          }),
+          ...(isEnd && {
+            borderTopRightRadius: 16,
+            borderBottomRightRadius: 16,
+          }),
+        }}
+      />
+    );
+  };
+
+  const onPick = (date: Date | null) => {
+    if (!date || Number.isNaN(date.getTime())) return;
+    // 1st click sets start; 2nd click sets end.
+    if (!draftStart || (draftStart && draftEnd)) {
+      setDraftStart(date);
+      setDraftEnd(null);
+      return;
+    }
+    setDraftEnd(date);
+  };
+
+  return (
+    <>
+      <TextField
+        label={label}
+        value={display}
+        size="small"
+        fullWidth
+        onClick={openDialog}
+        InputProps={{
+          readOnly: true,
+          endAdornment: (
+            <InputAdornment position="end">
+              <CalendarMonthIcon fontSize="small" />
+            </InputAdornment>
+          ),
+        }}
+      />
+
+      <Dialog open={open} onClose={closeDialog} maxWidth="xs" fullWidth>
+        <DialogContent>
+          <Stack spacing={2}>
+            <Stack direction="row" spacing={1} justifyContent="space-between">
+              <TextField
+                size="small"
+                label={t('From')}
+                value={localDateToYmd(draftStart)}
+                InputProps={{ readOnly: true }}
+                fullWidth
+              />
+              <TextField
+                size="small"
+                label={t('To')}
+                value={localDateToYmd(draftEnd ?? draftStart)}
+                InputProps={{ readOnly: true }}
+                fullWidth
+              />
+            </Stack>
+
+            <DateCalendar
+              value={anchorMonth}
+              onChange={(v) => {
+                if (v && !Number.isNaN(v.getTime())) {
+                  setAnchorMonth(v);
+                  onPick(v);
+                }
+              }}
+              slots={{ day: CustomDay as any }}
+              referenceDate={anchorMonth}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDialog}>{t('Cancel')}</Button>
+          <Button variant="contained" onClick={apply} disabled={!draftStart}>
+            {t('Apply')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
 }
 
 function startOfMonthIso(year: number, month1to12: number) {
@@ -347,18 +517,16 @@ export default function MessagesSentClient(): React.JSX.Element {
   const [dailyYear, setDailyYear] = useState<number>(currentYear);
   const [dailyMonth, setDailyMonth] = useState<number>(currentMonthNumber);
 
-  const todayYmd = useMemo(() => new Date().toISOString().slice(0, 10), []);
-  const [cmpMode, setCmpMode] = useState<'day' | 'month' | 'year'>('day');
+  // Comparison range (used to compare the same date-range across previous months)
+  const cmpDefaultStartYmd = useMemo(() => `${currentYear}-${pad2(currentMonthNumber)}-01`, [currentYear, currentMonthNumber]);
+  const cmpDefaultEndYmd = useMemo(() => {
+    // Default: from the 1st of the current month up to today.
+    const day = now.getDate();
+    return `${currentYear}-${pad2(currentMonthNumber)}-${pad2(day)}`;
+  }, [currentYear, currentMonthNumber, now]);
 
-  // Comparison selection A
-  const [cmpADay, setCmpADay] = useState<string>(todayYmd);
-  const [cmpAYear, setCmpAYear] = useState<number>(currentYear);
-  const [cmpAMonth, setCmpAMonth] = useState<number>(currentMonthNumber);
-
-  // Comparison selection B
-  const [cmpBDay, setCmpBDay] = useState<string>(todayYmd);
-  const [cmpBYear, setCmpBYear] = useState<number>(previousYear);
-  const [cmpBMonth, setCmpBMonth] = useState<number>(currentMonthNumber);
+  const [cmpRangeStartYmd, setCmpRangeStartYmd] = useState<string>(cmpDefaultStartYmd);
+  const [cmpRangeEndYmd, setCmpRangeEndYmd] = useState<string>(cmpDefaultEndYmd);
 
   const monthOptions = useMemo(() => {
     return Array.from({ length: 12 }, (_, i) => {
@@ -408,45 +576,28 @@ export default function MessagesSentClient(): React.JSX.Element {
     total: number;
   };
 
-  async function getCompareTotals(which: 'A' | 'B'): Promise<CompareTotals> {
-    if (cmpMode === 'day') {
-      const ymd = which === 'A' ? cmpADay : cmpBDay;
-      const startDate = startOfDayIso(ymd);
-      const endDate = endOfDayIso(ymd);
-      const rows = await fetchAllCampaignsForRange({ startDate, endDate });
+  function addMonthsClamped(ymd: string, deltaMonths: number): string {
+    const m = ymd.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return ymd;
+    const y = Number(m[1]);
+    const mo = Number(m[2]);
+    const d = Number(m[3]);
 
-      let sms = 0;
-      let mms = 0;
-      for (const c of rows) {
-        const audience = n((c as any)?.audience);
-        if (isMmsType((c as any)?.type)) mms += audience;
-        else sms += audience;
-      }
-      return { label: fmtYmdLabel(ymd), sms, mms, total: sms + mms };
-    }
+    const monthIndex = mo - 1;
+    const total = y * 12 + monthIndex + deltaMonths;
+    const ty = Math.floor(total / 12);
+    const tm = total % 12;
+    const month1to12 = tm + 1;
+    const dim = daysInMonth(ty, month1to12);
+    const dd = Math.min(d, dim);
+    return `${ty}-${pad2(month1to12)}-${pad2(dd)}`;
+  }
 
-    if (cmpMode === 'month') {
-      const year = which === 'A' ? cmpAYear : cmpBYear;
-      const month = which === 'A' ? cmpAMonth : cmpBMonth;
-      const startDate = startOfMonthIso(year, month);
-      const endDate = endOfMonthIso(year, month);
-      const rows = await fetchAllCampaignsForRange({ startDate, endDate });
-
-      let sms = 0;
-      let mms = 0;
-      for (const c of rows) {
-        const audience = n((c as any)?.audience);
-        if (isMmsType((c as any)?.type)) mms += audience;
-        else sms += audience;
-      }
-      return { label: fmtYearMonthLabel(year, month), sms, mms, total: sms + mms };
-    }
-
-    // year
-    const year = which === 'A' ? cmpAYear : cmpBYear;
-    const startDate = startOfYearIso(year);
-    const endDate = endOfYearIso(year);
-    const rows = await fetchAllCampaignsForRange({ startDate, endDate });
+  async function getTotalsForRange(startYmd: string, endYmd: string): Promise<{ sms: number; mms: number; total: number }> {
+    const rows = await fetchAllCampaignsForRange({
+      startDate: startOfDayIso(startYmd),
+      endDate: endOfDayIso(endYmd),
+    });
 
     let sms = 0;
     let mms = 0;
@@ -455,18 +606,48 @@ export default function MessagesSentClient(): React.JSX.Element {
       if (isMmsType((c as any)?.type)) mms += audience;
       else sms += audience;
     }
-    return { label: String(year), sms, mms, total: sms + mms };
+    return { sms, mms, total: sms + mms };
   }
 
-  const compareAQ = useQuery<CompareTotals>({
-    queryKey: ['dashboards', 'messages-sent', 'compare', 'A', { cmpMode, cmpADay, cmpAYear, cmpAMonth, lang: i18n.language }],
-    queryFn: () => getCompareTotals('A'),
-    staleTime: 1000 * 60 * 5,
-  });
+  const comparePrevQ = useQuery<{ selected: CompareTotals; prev: CompareTotals[]; avg: CompareTotals }>({
+    queryKey: ['dashboards', 'messages-sent', 'compare-prev3', { start: cmpRangeStartYmd, end: cmpRangeEndYmd, lang: i18n.language }],
+    queryFn: async () => {
+      const baseStart = cmpRangeStartYmd;
+      const baseEnd = cmpRangeEndYmd;
 
-  const compareBQ = useQuery<CompareTotals>({
-    queryKey: ['dashboards', 'messages-sent', 'compare', 'B', { cmpMode, cmpBDay, cmpBYear, cmpBMonth, lang: i18n.language }],
-    queryFn: () => getCompareTotals('B'),
+      const selectedTotals = await getTotalsForRange(baseStart, baseEnd);
+
+      const offsets = [-1, -2, -3];
+      const prev: CompareTotals[] = [];
+
+      for (const off of offsets) {
+        const s = addMonthsClamped(baseStart, off);
+        const e = addMonthsClamped(baseEnd, off);
+        const totals = await getTotalsForRange(s, e);
+        prev.push({
+          label: `${fmtYmdLabel(s)} – ${fmtYmdLabel(e)}`,
+          ...totals,
+        });
+      }
+
+      const avgSms = prev.reduce((acc, r) => acc + r.sms, 0) / prev.length;
+      const avgMms = prev.reduce((acc, r) => acc + r.mms, 0) / prev.length;
+      const avgTotal = prev.reduce((acc, r) => acc + r.total, 0) / prev.length;
+
+      return {
+        selected: {
+          label: `${fmtYmdLabel(baseStart)} – ${fmtYmdLabel(baseEnd)}`,
+          ...selectedTotals,
+        },
+        prev,
+        avg: {
+          label: t('Average (last 3 months)'),
+          sms: avgSms,
+          mms: avgMms,
+          total: avgTotal,
+        },
+      };
+    },
     staleTime: 1000 * 60 * 5,
   });
 
@@ -606,36 +787,141 @@ return (
           pb={{ xs: 2, sm: 3 }}
         >
           <Stack spacing={{ xs: 2, sm: 3 }}>
-            <YearBlock
-              year={yearSelected}
-              campaigns={yearQ.data}
-              isLoading={yearQ.isLoading}
-              isError={yearQ.isError}
-              error={yearQ.error}
-              limitToMonthNumber={yearSelected === currentYear ? currentMonthNumber : undefined}
-              headerControls={
-                <FormControl size="small" sx={{ minWidth: 140 }}>
-                  <InputLabel id="year-select-label">{t('Year')}</InputLabel>
-                  <Select
-                    labelId="year-select-label"
-                    label={t('Year')}
-                    value={yearSelected}
-                    onChange={(e) => setYearSelected(Number(e.target.value))}
-                  >
-                    {[previousYear, currentYear].map((y) => (
-                      <MenuItem key={y} value={y}>
-                        {y}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              }
-            />
+            {/* Compare section first */}
+            <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, borderRadius: 3 }}>
+              <Stack spacing={2}>
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                    {t('Compare ranges')}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {t('Pick a date range and compare it with the same range in the previous 3 months.')}
+                  </Typography>
+                </Box>
 
-            <Paper
-              variant="outlined"
-              sx={{ p: { xs: 2, sm: 3 }, borderRadius: 3 }}
-            >
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ xs: 'stretch', md: 'center' }}>
+                  <LocalizationProvider dateAdapter={AdapterDateFns}>
+                    <RangePickerField
+                      label={t('Range (YYYY-MM-DD — YYYY-MM-DD)')}
+                      value={{ startYmd: cmpRangeStartYmd, endYmd: cmpRangeEndYmd }}
+                      onChange={(next) => {
+                        setCmpRangeStartYmd(next.startYmd);
+                        setCmpRangeEndYmd(next.endYmd);
+                      }}
+                    />
+                  </LocalizationProvider>
+
+                  <Box sx={{ flex: 1 }} />
+
+                  <Typography variant="body2" sx={{ fontWeight: 800, whiteSpace: 'nowrap' }}>
+                    {t('Selected range')}: {fmtYmdLabel(cmpRangeStartYmd)} – {fmtYmdLabel(cmpRangeEndYmd)}
+                  </Typography>
+                </Stack>
+
+                <Box sx={{ mt: 1 }}>
+                  {comparePrevQ.isLoading ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 240 }}>
+                      <CircularProgress size={26} />
+                    </Box>
+                  ) : comparePrevQ.isError ? (
+                    <Alert severity="error" icon={<ErrorOutlineRoundedIcon />}>
+                      {t('Could not load comparison data.')}
+                    </Alert>
+                  ) : comparePrevQ.data ? (
+                    <Stack spacing={2}>
+                      <Stack
+                        direction={{ xs: 'column', sm: 'row' }}
+                        spacing={2}
+                        justifyContent="space-between"
+                        alignItems={{ xs: 'flex-start', sm: 'center' }}
+                      >
+                        <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                          {t('Selected range total')}: {comparePrevQ.data.selected.total.toLocaleString()}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>
+                          {comparePrevQ.data.selected.label}
+                        </Typography>
+                      </Stack>
+
+                      {/* Chart 1: Selected range vs Promedio trimestre anterior */}
+                      <Box sx={{ width: '100%', overflowX: 'auto' }}>
+                        <Box sx={{ minWidth: 520 }}>
+                          {(() => {
+                            const xLabels = [t('Selected range'), t('Average (last 3 months)')];
+                            const selectedSms = n(comparePrevQ.data.selected.sms);
+                            const selectedMms = n(comparePrevQ.data.selected.mms);
+                            const selectedTotal = n(comparePrevQ.data.selected.total);
+                            const avgSms = n(comparePrevQ.data.avg.sms);
+                            const avgMms = n(comparePrevQ.data.avg.mms);
+                            const avgTotal = n(comparePrevQ.data.avg.total);
+
+                            return (
+                              <BarChart
+                                height={260}
+                                xAxis={[{ scaleType: 'band', data: xLabels } as any]}
+                                series={[
+                                  { data: [selectedSms, avgSms], label: t('SMS'), color: theme.palette.grey[400] } as any,
+                                  { data: [selectedMms, avgMms], label: t('MMS'), color: theme.palette.grey[700] } as any,
+                                  { data: [selectedTotal, avgTotal], label: t('Total'), color: SWEEPSTOUCH_PINK } as any,
+                                ]}
+                                grid={{ horizontal: true }}
+                              />
+                            );
+                          })()}
+                        </Box>
+                      </Box>
+
+                      {/* Chart 2: the 3 months used for the promedio */}
+                      <Box sx={{ width: '100%', overflowX: 'auto' }}>
+                        <Box sx={{ minWidth: 760 }}>
+                          {(() => {
+                            const prev = comparePrevQ.data.prev;
+                            const cats = [
+                              { short: t('Previous month'), full: prev[0]?.label ?? '', v: prev[0] },
+                              { short: t('2 months ago'), full: prev[1]?.label ?? '', v: prev[1] },
+                              { short: t('3 months ago'), full: prev[2]?.label ?? '', v: prev[2] },
+                            ].filter((c) => c.v);
+
+                            const xLabels = cats.map((c) => c.short);
+                            const sms = cats.map((c) => n(c.v?.sms));
+                            const mms = cats.map((c) => n(c.v?.mms));
+                            const totals = cats.map((c) => n(c.v?.total));
+                            const fullLabels = cats.map((c) => c.full);
+
+                            return (
+                              <BarChart
+                                height={260}
+                                xAxis={[
+                                  {
+                                    scaleType: 'band',
+                                    data: xLabels,
+                                    valueFormatter: (value: any, ctx: any) => {
+                                      const idx = xLabels.indexOf(String(value));
+                                      const detail = fullLabels[idx] ?? '';
+                                      if (ctx?.location === 'tooltip' && detail) return `${value}: ${detail}`;
+                                      return String(value);
+                                    },
+                                  } as any,
+                                ]}
+                                series={[
+                                  { data: sms, label: t('SMS'), color: theme.palette.grey[400] } as any,
+                                  { data: mms, label: t('MMS'), color: theme.palette.grey[700] } as any,
+                                  { data: totals, label: t('Total'), color: SWEEPSTOUCH_PINK } as any,
+                                ]}
+                                grid={{ horizontal: true }}
+                              />
+                            );
+                          })()}
+                        </Box>
+                      </Box>
+                    </Stack>
+                  ) : null}
+                </Box>
+              </Stack>
+            </Paper>
+
+            {/* Daily section second */}
+            <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, borderRadius: 3 }}>
               <Stack spacing={2}>
                 <Box>
                   <Typography variant="h6" sx={{ fontWeight: 800 }}>
@@ -744,255 +1030,32 @@ return (
               </Stack>
             </Paper>
 
-            <Paper
-              variant="outlined"
-              sx={{ p: { xs: 2, sm: 3 }, borderRadius: 3 }}
-            >
-              <Stack spacing={2}>
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                    {t('Compare ranges')}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {t('Select a day, month, or year to compare message volume between two ranges.')}
-                  </Typography>
-                </Box>
-
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
-                  <FormControl size="small" sx={{ minWidth: 180 }}>
-                    <InputLabel id="cmp-mode-label">{t('Range')}</InputLabel>
-                    <Select
-                      labelId="cmp-mode-label"
-                      label={t('Range')}
-                      value={cmpMode}
-                      onChange={(e) => setCmpMode(e.target.value as any)}
-                    >
-                      <MenuItem value="day">{t('Day')}</MenuItem>
-                      <MenuItem value="month">{t('Month')}</MenuItem>
-                      <MenuItem value="year">{t('Year')}</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Stack>
-
-                <Stack
-                  direction={{ xs: 'column', md: 'row' }}
-                  spacing={2}
-                  alignItems={{ xs: 'stretch', md: 'flex-start' }}
-                >
-                  {/* Selection A */}
-                  <Box sx={{ flex: 1 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1 }}>
-                      {t('Selection A')}
-                    </Typography>
-
-                    {cmpMode === 'day' ? (
-                      <LocalizationProvider dateAdapter={AdapterDateFns}>
-                        <DatePicker
-                          label={t('Date')}
-                          value={ymdToLocalDate(cmpADay)}
-                          onChange={(v) => {
-                            const next = localDateToYmd(v as any);
-                            if (next) setCmpADay(next);
-                          }}
-                          slotProps={{
-                            textField: {
-                              size: 'small',
-                              fullWidth: true,
-                            } as any,
-                          }}
-                        />
-                      </LocalizationProvider>
-                    ) : cmpMode === 'month' ? (
-                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                        <FormControl size="small" sx={{ minWidth: 140, flex: 1 }}>
-                          <InputLabel id="cmp-a-year-label">{t('Year')}</InputLabel>
-                          <Select
-                            labelId="cmp-a-year-label"
-                            label={t('Year')}
-                            value={cmpAYear}
-                            onChange={(e) => setCmpAYear(Number(e.target.value))}
-                          >
-                            {yearOptions.map((y) => (
-                              <MenuItem key={y} value={y}>
-                                {y}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-
-                        <FormControl size="small" sx={{ minWidth: 180, flex: 1 }}>
-                          <InputLabel id="cmp-a-month-label">{t('Month')}</InputLabel>
-                          <Select
-                            labelId="cmp-a-month-label"
-                            label={t('Month')}
-                            value={cmpAMonth}
-                            onChange={(e) => setCmpAMonth(Number(e.target.value))}
-                          >
-                            {monthOptions.map((m) => (
-                              <MenuItem key={m.value} value={m.value}>
-                                {m.label}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Stack>
-                    ) : (
-                      <FormControl size="small" sx={{ minWidth: 140 }}>
-                        <InputLabel id="cmp-a-only-year-label">{t('Year')}</InputLabel>
-                        <Select
-                          labelId="cmp-a-only-year-label"
-                          label={t('Year')}
-                          value={cmpAYear}
-                          onChange={(e) => setCmpAYear(Number(e.target.value))}
-                        >
-                          {yearOptions.map((y) => (
-                            <MenuItem key={y} value={y}>
-                              {y}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    )}
-
-                    <Box sx={{ mt: 2, width: '100%', overflowX: 'auto' }}>
-                      {compareAQ.isLoading ? (
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 220 }}>
-                          <CircularProgress size={24} />
-                        </Box>
-                      ) : compareAQ.isError ? (
-                        <Alert severity="error" icon={<ErrorOutlineRoundedIcon />}>
-                          {t('Could not load comparison data.')}
-                        </Alert>
-                      ) : compareAQ.data ? (
-                        <>
-                          <Typography variant="body2" sx={{ fontWeight: 700, mb: 1 }}>
-                            {compareAQ.data.label}
-                          </Typography>
-                          <Box sx={{ minWidth: 320 }}>
-                            <BarChart
-                              height={240}
-                              xAxis={[{ scaleType: 'band', data: [''] }]}
-                              series={[
-                                { data: [compareAQ.data.sms], label: t('SMS'), color: theme.palette.grey[400] } as any,
-                                { data: [compareAQ.data.mms], label: t('MMS'), color: theme.palette.grey[700] } as any,
-                                { data: [compareAQ.data.total], label: t('Total'), color: SWEEPSTOUCH_PINK } as any,
-                              ]}
-                              grid={{ horizontal: true }}
-                            />
-                          </Box>
-                        </>
-                      ) : null}
-                    </Box>
-                  </Box>
-
-                  {/* Selection B */}
-                  <Box sx={{ flex: 1 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1 }}>
-                      {t('Selection B')}
-                    </Typography>
-
-                    {cmpMode === 'day' ? (
-                      <LocalizationProvider dateAdapter={AdapterDateFns}>
-                        <DatePicker
-                          label={t('Date')}
-                          value={ymdToLocalDate(cmpBDay)}
-                          onChange={(v) => {
-                            const next = localDateToYmd(v as any);
-                            if (next) setCmpBDay(next);
-                          }}
-                          slotProps={{
-                            textField: {
-                              size: 'small',
-                              fullWidth: true,
-                            } as any,
-                          }}
-                        />
-                      </LocalizationProvider>
-                    ) : cmpMode === 'month' ? (
-                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                        <FormControl size="small" sx={{ minWidth: 140, flex: 1 }}>
-                          <InputLabel id="cmp-b-year-label">{t('Year')}</InputLabel>
-                          <Select
-                            labelId="cmp-b-year-label"
-                            label={t('Year')}
-                            value={cmpBYear}
-                            onChange={(e) => setCmpBYear(Number(e.target.value))}
-                          >
-                            {yearOptions.map((y) => (
-                              <MenuItem key={y} value={y}>
-                                {y}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-
-                        <FormControl size="small" sx={{ minWidth: 180, flex: 1 }}>
-                          <InputLabel id="cmp-b-month-label">{t('Month')}</InputLabel>
-                          <Select
-                            labelId="cmp-b-month-label"
-                            label={t('Month')}
-                            value={cmpBMonth}
-                            onChange={(e) => setCmpBMonth(Number(e.target.value))}
-                          >
-                            {monthOptions.map((m) => (
-                              <MenuItem key={m.value} value={m.value}>
-                                {m.label}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Stack>
-                    ) : (
-                      <FormControl size="small" sx={{ minWidth: 140 }}>
-                        <InputLabel id="cmp-b-only-year-label">{t('Year')}</InputLabel>
-                        <Select
-                          labelId="cmp-b-only-year-label"
-                          label={t('Year')}
-                          value={cmpBYear}
-                          onChange={(e) => setCmpBYear(Number(e.target.value))}
-                        >
-                          {yearOptions.map((y) => (
-                            <MenuItem key={y} value={y}>
-                              {y}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    )}
-
-                    <Box sx={{ mt: 2, width: '100%', overflowX: 'auto' }}>
-                      {compareBQ.isLoading ? (
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 220 }}>
-                          <CircularProgress size={24} />
-                        </Box>
-                      ) : compareBQ.isError ? (
-                        <Alert severity="error" icon={<ErrorOutlineRoundedIcon />}>
-                          {t('Could not load comparison data.')}
-                        </Alert>
-                      ) : compareBQ.data ? (
-                        <>
-                          <Typography variant="body2" sx={{ fontWeight: 700, mb: 1 }}>
-                            {compareBQ.data.label}
-                          </Typography>
-                          <Box sx={{ minWidth: 320 }}>
-                            <BarChart
-                              height={240}
-                              xAxis={[{ scaleType: 'band', data: [''] }]}
-                              series={[
-                                { data: [compareBQ.data.sms], label: t('SMS'), color: theme.palette.grey[400] } as any,
-                                { data: [compareBQ.data.mms], label: t('MMS'), color: theme.palette.grey[700] } as any,
-                                { data: [compareBQ.data.total], label: t('Total'), color: SWEEPSTOUCH_PINK } as any,
-                              ]}
-                              grid={{ horizontal: true }}
-                            />
-                          </Box>
-                        </>
-                      ) : null}
-                    </Box>
-                  </Box>
-                </Stack>
-              </Stack>
-            </Paper>
+            {/* Year view last */}
+            <YearBlock
+              year={yearSelected}
+              campaigns={yearQ.data}
+              isLoading={yearQ.isLoading}
+              isError={yearQ.isError}
+              error={yearQ.error}
+              limitToMonthNumber={yearSelected === currentYear ? currentMonthNumber : undefined}
+              headerControls={
+                <FormControl size="small" sx={{ minWidth: 140 }}>
+                  <InputLabel id="year-select-label">{t('Year')}</InputLabel>
+                  <Select
+                    labelId="year-select-label"
+                    label={t('Year')}
+                    value={yearSelected}
+                    onChange={(e) => setYearSelected(Number(e.target.value))}
+                  >
+                    {[previousYear, currentYear].map((y) => (
+                      <MenuItem key={y} value={y}>
+                        {y}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              }
+            />
           </Stack>
         </Box>
       </Container>

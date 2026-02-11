@@ -92,15 +92,25 @@ export const es = {
   "No data available for this month.": "No hay datos disponibles para este mes.",
 
   "Compare ranges": "Comparar rangos",
-  "Range": "Rango",
-  "Selection A": "Selección A",
-  "Selection B": "Selección B",
-  "Select a day, month, or year to compare message volume between two ranges.": "Selecciona un día, mes o año para comparar el volumen de mensajes entre dos rangos.",
+  "Pick a date range and compare it with the same range in the previous 3 months.": "Elige un rango de fechas y compáralo con el mismo rango en los 3 meses anteriores.",
+  "Range (YYYY-MM-DD — YYYY-MM-DD)": "Rango (AAAA-MM-DD — AAAA-MM-DD)",
+  "From": "Desde",
+  "To": "Hasta",
+  "Cancel": "Cancelar",
+  "Apply": "Aplicar",
+  "Selected range": "Rango seleccionado",
+  "Selected": "Seleccionado",
+  "Selected range total": "Total del rango seleccionado",
+  "Previous month": "Mes anterior",
+  "2 months ago": "Hace 2 meses",
+  "3 months ago": "Hace 3 meses",
+  "Average (last 3 months)": "Promedio trimestre anterior",
   "Could not load comparison data.": "No se pudieron cargar los datos de comparación.",
+
+  "Total messages sent per month (completed campaigns)": "Total de mensajes por mes (campañas completadas)",
 
   "SMS": "SMS",
   "MMS": "MMS",
   "Total": "Total",
-  "Total messages sent per month (completed campaigns)": "Total de mensajes por mes (campañas completadas)",
 
 };
