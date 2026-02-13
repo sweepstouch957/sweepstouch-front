@@ -72,4 +72,45 @@ export const es = {
   "UI Components": "Componentes UI",
   "User profile": "Perfil de usuario",
   "View": "Ver",
+  "Messages sent": "Mensajes enviados",
+  "Month-by-month overview of total messages sent by campaigns": "Resumen mes a mes del total de mensajes enviados por campañas",
+  "Total messages sent per month (all campaigns)": "Total de mensajes enviados por mes (todas las campañas)",
+  "Could not load data for": "No se pudieron cargar los datos para",
+  "No data available for this year.": "No hay datos disponibles para este año.",
+
+  "Year": "Año",
+  "Month": "Mes",
+  "Day": "Día",
+  "Date": "Fecha",
+
+  "Year Total": "Total del año",
+  "Month total": "Total del mes",
+
+  "Messages sent per day": "Mensajes enviados por día",
+  "Pick a month to see total messages sent each day (grouped by campaign date).": "Elige un mes para ver el total de mensajes enviados cada día (agrupados por la fecha de la campaña).",
+  "Could not load daily data.": "No se pudieron cargar los datos diarios.",
+  "No data available for this month.": "No hay datos disponibles para este mes.",
+
+  "Compare ranges": "Comparar rangos",
+  "Pick a date range and compare it with the same range in the previous 3 months.": "Elige un rango de fechas y compáralo con el mismo rango en los 3 meses anteriores.",
+  "Range (YYYY-MM-DD — YYYY-MM-DD)": "Rango (AAAA-MM-DD — AAAA-MM-DD)",
+  "From": "Desde",
+  "To": "Hasta",
+  "Cancel": "Cancelar",
+  "Apply": "Aplicar",
+  "Selected range": "Rango seleccionado",
+  "Selected": "Seleccionado",
+  "Selected range total": "Total del rango seleccionado",
+  "Previous month": "Mes anterior",
+  "2 months ago": "Hace 2 meses",
+  "3 months ago": "Hace 3 meses",
+  "Average (last 3 months)": "Promedio trimestre anterior",
+  "Could not load comparison data.": "No se pudieron cargar los datos de comparación.",
+
+  "Total messages sent per month (completed campaigns)": "Total de mensajes por mes (campañas completadas)",
+
+  "SMS": "SMS",
+  "MMS": "MMS",
+  "Total": "Total",
+
 };

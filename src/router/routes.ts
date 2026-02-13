@@ -119,6 +119,7 @@ export const routes = {
     index: '/admin/dashboards/reports',
     dashboards: {
       reports: '/admin/dashboards/reports',
+      'messages-sent': '/admin/dashboards/messages-sent',
       expenses: '/admin/dashboards/expenses',
       sweepstakes: '/admin/dashboards/sweepstakes',
       prouctivity: '/admin/dashboards/productivity',
