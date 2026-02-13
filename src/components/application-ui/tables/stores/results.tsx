@@ -4,11 +4,11 @@
 import { Store } from '@/services/store.service';
 import {
   AccountCircle,
+  CancelRounded,
+  CheckCircleRounded,
+  PaymentsRounded,
   Settings,
   Web,
-  CheckCircleRounded,
-  CancelRounded,
-  PaymentsRounded,
 } from '@mui/icons-material';
 import {
   Box,
@@ -32,6 +32,7 @@ import {
 } from '@mui/material';
 import Link from 'next/link';
 import React, { ChangeEvent, FC, useMemo } from 'react';
+import StoreTechModal from './StoreInfoSimplified';
 
 /* ------------------------------- helper split ------------------------------ */
 function splitByFirstNumber(raw: string, fallbackAddress?: string) {
@@ -234,6 +235,49 @@ const Results: FC<ResultsProps> = ({
 
   const rowsPerPageOptions = useMemo(() => [5, 10, 25, 50, 100], []);
 
+  // ✅ Modal state (Ficha técnica)
+  const [techOpen, setTechOpen] = React.useState(false);
+  const [techStore, setTechStore] = React.useState<{
+    id: string;
+    slug: string;
+    name?: string;
+    image?: string;
+    audience?: number;
+    email?: string;
+    phone?: string;
+    lng?: number;
+    lat?: number;
+    startContractDate?: string;
+
+  } | null>(null);
+
+  const openTech = (store: any) => {
+    const id = String(store._id || store.id || '');
+    if (!id) return;
+    console.log({
+      store
+    });
+    
+ setTechStore({
+      id,
+      slug:store.slug || '',
+      name: store.name,
+      image: store.image,
+      audience: store.customerCount,
+      email: store.email,
+      phone: store.phoneNumber,
+      lng: store.location.coordinates?.[0] || store.lng,
+      lat: store.location.coordinates?.[1] || store.lat,
+      startContractDate: store.startContractDate,
+    });
+    setTechOpen(true);
+  };
+
+  const closeTech = () => {
+    setTechOpen(false);
+    setTechStore(null);
+  };
+
   const MobileList = () => (
     <Stack spacing={1.25}>
       {stores.map((store: any) => {
@@ -304,7 +348,6 @@ const Results: FC<ResultsProps> = ({
                   spacing={0.5}
                   alignItems="flex-end"
                 >
-                  {/* Status chip */}
                   <Chip
                     size="small"
                     label={store.active ? 'Active' : 'Inactive'}
@@ -313,7 +356,6 @@ const Results: FC<ResultsProps> = ({
                     sx={{ height: 22, fontSize: 11, fontWeight: 800 }}
                   />
 
-                  {/* Payment status SOLO texto con color */}
                   <Typography
                     sx={{
                       fontSize: 12,
@@ -394,7 +436,6 @@ const Results: FC<ResultsProps> = ({
                   </Typography>
                 </Box>
 
-                {/* 🆕 Payment method */}
                 <Box sx={{ gridColumn: '1 / -1' }}>
                   <Typography
                     variant="caption"
@@ -458,13 +499,15 @@ const Results: FC<ResultsProps> = ({
                   </IconButton>
                 </Tooltip>
 
+                {/* ✅ Details -> opens Tech Modal */}
                 <Tooltip
-                  title="Details"
+                  title="Ficha técnica"
                   arrow
                 >
                   <IconButton
                     size="small"
                     color="primary"
+                    onClick={() => openTech(store)}
                   >
                     <AccountCircle fontSize="small" />
                   </IconButton>
@@ -541,7 +584,7 @@ const Results: FC<ResultsProps> = ({
                 '& th:nth-of-type(5), & td:nth-of-type(5)': { width: '11%' },
                 // PAYMENT STATUS
                 '& th:nth-of-type(6), & td:nth-of-type(6)': { width: '12%' },
-                // STATUS (NOW includes payment method)
+                // PAYMENT METHOD
                 '& th:nth-of-type(7), & td:nth-of-type(7)': { width: '10%' },
                 // ACTIONS
                 '& th:nth-of-type(8), & td:nth-of-type(8)': { width: '12%' },
@@ -580,7 +623,7 @@ const Results: FC<ResultsProps> = ({
                       direction={sortBy === 'active' ? order : 'asc'}
                       onClick={() => onSortChange('active')}
                     >
-                      Payment Method 
+                      Payment Method
                     </TableSortLabel>
                   </TableCell>
 
@@ -702,29 +745,28 @@ const Results: FC<ResultsProps> = ({
                         </Typography>
                       </TableCell>
 
-                      {/* Status + Payment Method */}
+                      {/* Payment method */}
                       <TableCell align="center">
                         <Stack
                           spacing={0.5}
                           alignItems="center"
                         >
-
-                         <Tooltip
+                          <Tooltip
                             title={payMethod}
                             arrow
                           >
-                             <Chip
-                            size="small"
-                            icon={<PaymentsRounded sx={{ fontSize: 16 }} />}
-                            label={payMethod}
-                            variant="outlined"
-                            sx={{
-                              height: 24,
-                              fontSize: 11,
-                              fontWeight: 900,
-                              '& .MuiChip-label': { px: 0.75 },
-                            }}
-                          />
+                            <Chip
+                              size="small"
+                              icon={<PaymentsRounded sx={{ fontSize: 16 }} />}
+                              label={payMethod}
+                              variant="outlined"
+                              sx={{
+                                height: 24,
+                                fontSize: 11,
+                                fontWeight: 900,
+                                '& .MuiChip-label': { px: 0.75 },
+                              }}
+                            />
                           </Tooltip>
                         </Stack>
                       </TableCell>
@@ -757,11 +799,15 @@ const Results: FC<ResultsProps> = ({
                           </IconButton>
                         </Tooltip>
 
+                        {/* ✅ Details -> opens Tech Modal */}
                         <Tooltip
-                          title="Details"
+                          title="Ficha técnica"
                           arrow
                         >
-                          <IconButton color="primary">
+                          <IconButton
+                            color="primary"
+                            onClick={() => openTech(store)}
+                          >
                             <AccountCircle fontSize="small" />
                           </IconButton>
                         </Tooltip>
@@ -786,6 +832,24 @@ const Results: FC<ResultsProps> = ({
           rowsPerPageOptions={rowsPerPageOptions}
         />
       </Box>
+
+      {/* ✅ Modal mounted once */}
+      {techStore ? (
+        <StoreTechModal
+          open={techOpen}
+          onClose={closeTech}
+          storeId={techStore.id}
+          storeSlug={techStore.slug}
+          storeName={techStore.name}
+          storeImage={techStore.image}
+          audience={techStore.audience}
+          email={techStore.email}
+          phone={techStore.phone}
+          lng={techStore.lng}
+          lat={techStore.lat}
+          startContractDate={techStore.startContractDate}
+        />
+      ) : null}
     </>
   );
 };
