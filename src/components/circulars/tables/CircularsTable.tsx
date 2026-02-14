@@ -1,12 +1,20 @@
 // src/components/circulars/CircularsTable.tsx
 'use client';
 
-import React from 'react';
+import { RowItem } from '@/hooks/fetching/circulars/useManageCircularsData';
+import { fmt, initialsFromSlug } from '@/utils/format';
+import {
+  Edit as EditIcon,
+  Language as LanguageIcon,
+  Search as SearchIcon,
+  Visibility as VisibilityIcon,
+} from '@mui/icons-material';
 import {
   Avatar,
   Box,
   Button,
   IconButton,
+  InputAdornment,
   Paper,
   Table,
   TableBody,
@@ -15,22 +23,14 @@ import {
   TableHead,
   TableRow,
   TextField,
+  Tooltip,
   Typography,
-  InputAdornment,
 } from '@mui/material';
-import {
-  Visibility as VisibilityIcon,
-  Edit as EditIcon,
-  Search as SearchIcon,
-} from '@mui/icons-material';
-
-import { StatusBadge } from '../StatusBadge';
-import { fmt, initialsFromSlug } from '@/utils/format';
 import type { Circular } from '@services/circular.service';
-import { RowItem } from '@/hooks/fetching/circulars/useManageCircularsData';
+import React from 'react';
+import { StatusBadge } from '../StatusBadge';
 
-const formatAudience = (n?: number) =>
-  typeof n === 'number' ? n.toLocaleString('en-US') : '—';
+const formatAudience = (n?: number) => (typeof n === 'number' ? n.toLocaleString('en-US') : '—');
 
 export type PreviewLabel = 'Current Circular' | 'Next Circular';
 
@@ -225,22 +225,48 @@ export const CircularsTable: React.FC<CircularsTableProps> = ({
                   </Box>
                 </TableCell>
 
-                {/* ACTIONS (extra preview rápido) */}
+                {/* ACTIONS */}
                 <TableCell align="center">
-                  <IconButton
-                    size="small"
-                    sx={{ color: '#718096' }}
-                    disabled={!current?.fileUrl && !next?.fileUrl}
-                    onClick={() => {
-                      if (current?.fileUrl && current) {
-                        onPreview(current, storeName, 'Current Circular');
-                      } else if (next?.fileUrl && next) {
-                        onPreview(next, storeName, 'Next Circular');
-                      }
-                    }}
-                  >
-                    <VisibilityIcon fontSize="small" />
-                  </IconButton>
+                  <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                    {/* Preview rápido */}
+                    <Tooltip title="Quick preview">
+                      <span>
+                        <IconButton
+                          size="small"
+                          sx={{ color: '#718096' }}
+                          disabled={!current?.fileUrl && !next?.fileUrl}
+                          onClick={() => {
+                            if (current?.fileUrl && current) {
+                              onPreview(current, storeName, 'Current Circular');
+                            } else if (next?.fileUrl && next) {
+                              onPreview(next, storeName, 'Next Circular');
+                            }
+                          }}
+                        >
+                          <VisibilityIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+
+                    {/* 🌐 LINKTREE */}
+                    <Tooltip title="Open Linktree">
+                      <IconButton
+                        size="small"
+                        component="a"
+                        href={`https://links.sweepstouch.com/?slug=${slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{
+                          color: '#00A9BC',
+                          '&:hover': {
+                            bgcolor: 'rgba(0,169,188,0.08)',
+                          },
+                        }}
+                      >
+                        <LanguageIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
                 </TableCell>
               </TableRow>
             ))}

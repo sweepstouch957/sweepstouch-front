@@ -141,7 +141,7 @@ export const useMenuItemsCollapsedShells = (
     cashier: [],
     merchant: [],
     promotor: [storesMenu(t)],
-    design: [],
+    design: [storesMenu(t),circularsMenu(t)],
   };
 
   const management = roleMenus[role] || [];
