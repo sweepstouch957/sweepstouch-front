@@ -57,9 +57,14 @@ export function useStoreEditor(store) {
     twilioPhoneNumberSid: store.twilioPhoneNumberSid || '',
     twilioPhoneNumberFriendlyName: store.twilioPhoneNumberFriendlyName || '',
     verifiedByTwilio: !!store.verifiedByTwilio,
+
+    // 🆕 opcional: circulars url (lo mandamos al backend si cambia)
+    circularssUrl: store.circularssUrl ?? null,
+
     location: isValidLngLat(store?.location?.coordinates)
       ? { type: 'Point', coordinates: [...store.location.coordinates] }
       : undefined,
+
     membershipType: store.membershipType ?? 'semanal',
     paymentMethod: store.paymentMethod ?? 'card',
     startContractDate: store.startContractDate ?? null,
@@ -92,6 +97,7 @@ export function useStoreEditor(store) {
     const { lngLat } = e;
     setForm((s) => ({ ...s, location: { type: 'Point', coordinates: [lngLat.lng, lngLat.lat] } }));
   };
+
   const onMarkerDragEnd = (e) => {
     if (!edit) return;
     const { lngLat } = e;
@@ -124,23 +130,21 @@ export function useStoreEditor(store) {
       'membershipType',
       'paymentMethod',
       'startContractDate',
-
-      // 🆕 Tablet / Kiosko
+      'circularssUrl',
       'kioskTabletStatus',
       'kioskTabletDate',
       'kioskTabletQuantity',
     ];
 
     keys.forEach((k) => {
-      const o = orig[k];
-      const f = curr[k];
+      const o = orig?.[k];
+      const f = curr?.[k];
       if (!softEqual(o, f)) {
         patch[k] = f; // distinto → lo mandamos
       }
     });
 
     // location: solo si es válida y cambió
-    const origLoc = orig?.location;
     const currLoc = curr?.location;
     if (!locEqual(orig, curr) && isValidLngLat(currLoc?.coordinates)) {
       patch.location = {
@@ -162,6 +166,7 @@ export function useStoreEditor(store) {
     mutationFn: (body: Store) => updateStore(store._id, body),
     onSuccess: (resp) => {
       const updated: any = resp;
+
       // refresca form con lo que vino del server
       setForm((s) => ({
         ...s,
@@ -170,12 +175,14 @@ export function useStoreEditor(store) {
           ? { type: 'Point', coordinates: updated.location.coordinates }
           : s.location,
       }));
+
       setSnack({ open: true, msg: 'Cambios guardados correctamente.', type: 'success' });
       setEdit(false);
+
       queryClient.invalidateQueries({ queryKey: ['store', store._id] });
       queryClient.invalidateQueries({ queryKey: ['stores'] });
     },
-    onError: (e) => {
+    onError: () => {
       setSnack({
         open: true,
         msg: 'No se pudieron guardar los cambios.',
@@ -209,9 +216,14 @@ export function useStoreEditor(store) {
       twilioPhoneNumberSid: store.twilioPhoneNumberSid || '',
       twilioPhoneNumberFriendlyName: store.twilioPhoneNumberFriendlyName || '',
       verifiedByTwilio: !!store.verifiedByTwilio,
+
+      // 🆕 opcional
+      circularssUrl: store.circularssUrl ?? null,
+
       location: isValidLngLat(store?.location?.coordinates)
         ? { type: 'Point', coordinates: [...store.location.coordinates] }
         : undefined,
+
       membershipType: store.membershipType ?? 'semanal',
       paymentMethod: store.paymentMethod ?? 'card',
       startContractDate: store.startContractDate ?? null,
@@ -221,6 +233,7 @@ export function useStoreEditor(store) {
       kioskTabletDate: store.kioskTabletDate ?? null,
       kioskTabletQuantity: store.kioskTabletQuantity ?? null,
     });
+
     setEdit(false);
   };
 

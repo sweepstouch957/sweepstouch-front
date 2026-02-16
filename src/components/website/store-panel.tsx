@@ -334,6 +334,27 @@ export default function StoreInfo({ store }: { store: Store }) {
                     <MenuItem value="suspended">Suspendido</MenuItem>
                   </TextField>
                 </Grid>
+                <Grid
+                  item
+                  xs={12}
+                  md={12}
+                >
+                  <TextField
+                    label="Circulars URL (opcional)"
+                    fullWidth
+                    size="small"
+                    value={(form as any).circularssUrl || ''}
+                    onChange={(e) =>
+                      setForm((s: any) => ({
+                        ...s,
+                        circularssUrl: e.target.value || null,
+                      }))
+                    }
+                    disabled={!edit}
+                    placeholder="https://..."
+                    helperText="URL pública/privada donde la tienda gestiona sus circulars (opcional)."
+                  />
+                </Grid>
               </Grid>
             </CardContent>
           </Card>
