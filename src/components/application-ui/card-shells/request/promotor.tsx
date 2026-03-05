@@ -359,8 +359,12 @@ export default function ActivationRequestCard({
                 variant="caption"
                 sx={{ opacity: 0.9 }}
               >
-                Último estado: “
-                {request.statusHistory[request.statusHistory.length - 1]?.reason || '—'}”
+                ESTADO: “
+                {request.status === 'aprobado'
+                  ? 'APROBADO'
+                  : request.status === 'rechazado'
+                    ? 'RECHAZADO'
+                    : 'PENDIENTE'}”
               </Typography>
             </Box>
           )}
