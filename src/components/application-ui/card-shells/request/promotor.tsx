@@ -325,6 +325,26 @@ export default function ActivationRequestCard({
             </Typography>
           )}
 
+          {request.status === 'rechazado' && !!request.rejectionReason && (
+            <Box
+              sx={{
+                mt: 0.5,
+                backgroundColor: alpha(theme.palette.error.main, 0.06),
+                borderRadius: 1.5,
+                px: 1.25,
+                py: 0.9,
+                border: `1px solid ${alpha(theme.palette.error.main, 0.12)}`,
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{ opacity: 0.95, color: theme.palette.error.main }}
+              >
+                Motivo: “{request.rejectionReason}”
+              </Typography>
+            </Box>
+          )}
+
           {!!request.statusHistory?.length && (
             <Box
               sx={{

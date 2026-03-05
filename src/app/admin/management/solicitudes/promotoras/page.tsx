@@ -30,14 +30,10 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
-  FormControl,
   IconButton,
-  InputLabel,
-  MenuItem,
-  Pagination,
-  Select,
   Snackbar,
   Stack,
+  TextField,
   Tooltip,
   Typography,
   useTheme,
@@ -86,10 +82,42 @@ const ActivationRequestsPage = () => {
   const [viewOpen, setViewOpen] = useState(false);
   const [viewItem, setViewItem] = useState<ActivationRequest | null>(null);
 
+  // Rechazo: modal confirmación + comentario
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectStep, setRejectStep] = useState<'confirm' | 'reason'>('confirm');
+  const [rejectId, setRejectId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejectTouched, setRejectTouched] = useState(false);
+
   const handleView = (id: string) => {
     const item = requests.find((r) => r._id === id) || null;
     setViewItem(item);
     setViewOpen(true);
+  };
+
+  const openReject = (id: string) => {
+    setRejectId(id);
+    setRejectStep('confirm');
+    setRejectReason('');
+    setRejectTouched(false);
+    setRejectOpen(true);
+  };
+
+  const closeReject = () => {
+    setRejectOpen(false);
+    setRejectId(null);
+    setRejectStep('confirm');
+    setRejectReason('');
+    setRejectTouched(false);
+  };
+
+  const submitReject = () => {
+    setRejectTouched(true);
+    const reason = rejectReason.trim();
+    if (!rejectId) return;
+    if (!reason) return;
+    handleReject(rejectId, reason);
+    closeReject();
   };
 
   // Datos calculados para modal aprobado
@@ -198,7 +226,10 @@ const ActivationRequestsPage = () => {
                 request={request}
                 onView={handleView}
                 onApprove={handleApprove}
-                onReject={handleReject}
+                onReject={(id, _reason) => {
+                  void _reason;
+                  openReject(id);
+                }}
                 onResendLink={handleResendLink}
                 approving={approving}
                 rejecting={rejecting}
@@ -467,6 +498,66 @@ const ActivationRequestsPage = () => {
             <Typography>Sin datos</Typography>
           )}
         </DialogContent>
+      </Dialog>
+
+      {/* Modal de Rechazo (confirmación + comentario) */}
+      <Dialog
+        open={rejectOpen}
+        onClose={closeReject}
+        maxWidth="sm"
+        fullWidth
+      >
+        {rejectStep === 'confirm' ? (
+          <>
+            <DialogTitle>Rechazar solicitud</DialogTitle>
+            <DialogContent dividers>
+              <Typography>Seguro que quieres rechazar la solicitud</Typography>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={closeReject}>Cancelar</Button>
+              <Button
+                color="error"
+                variant="contained"
+                onClick={() => setRejectStep('reason')}
+              >
+                Aceptar
+              </Button>
+            </DialogActions>
+          </>
+        ) : (
+          <>
+            <DialogTitle>Motivo de rechazo</DialogTitle>
+            <DialogContent dividers>
+              <Typography sx={{ mb: 1.5 }}>Escribe un comentario de por qué se rechaza.</Typography>
+              <TextField
+                id="reject-reason"
+                label="Comentario"
+                multiline
+                minRows={3}
+                fullWidth
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                onBlur={() => setRejectTouched(true)}
+                error={rejectTouched && !rejectReason.trim()}
+                helperText={
+                  rejectTouched && !rejectReason.trim() ? 'El comentario es obligatorio.' : ' '
+                }
+                placeholder="Ej: Documento inválido / ZIP no coincide / Falta información..."
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setRejectStep('confirm')}>Atrás</Button>
+              <Button onClick={closeReject}>Cancelar</Button>
+              <Button
+                color="error"
+                variant="contained"
+                onClick={submitReject}
+              >
+                Rechazar
+              </Button>
+            </DialogActions>
+          </>
+        )}
       </Dialog>
 
       {/* Modal de Aprobación (credenciales) */}
