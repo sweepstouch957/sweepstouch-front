@@ -1,7 +1,6 @@
 // components/campaigns/CreateCampaignForm.tsx
 'use client';
 
-import PreviewModal from '@/components/application-ui/dialogs/preview/preview-modal';
 import AvatarUploadLogo from '@/components/application-ui/upload/avatar/avatar-upload-logo';
 import { Sms } from '@mui/icons-material';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
@@ -92,7 +91,6 @@ export default function CreateCampaignForm({
     mode: 'onBlur',
   });
 
-  const [previewOpen, setPreviewOpen] = useState(false);
   const [useFullAudience, setUseFullAudience] = useState(!initialValues?.customAudience);
   const contentRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -470,18 +468,12 @@ export default function CreateCampaignForm({
               type={(image as any)?.length ? 'MMS' : 'SMS'}
               useFullAudience={useFullAudience}
               customAudience={customAudience}
-              onPreviewClick={() => setPreviewOpen(true)}
+              content={content}
+              image={(image as any)?.[0] || initialValues?.image}
             />
           </Grid>
         </Grid>
       </Container>
-
-      <PreviewModal
-        open={previewOpen}
-        handleClose={() => setPreviewOpen(false)}
-        content={content}
-        image={(image as any)?.[0] || initialValues?.image}
-      />
     </Box>
   );
 }
