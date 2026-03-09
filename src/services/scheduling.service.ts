@@ -20,6 +20,7 @@ export interface Appointment {
   _id: string;
   slotId: string | Slot; // depending on whether it's populated
   storeRequestId?: string; // If applicable/linked
+  leadId?: string; // Mapped from backend leadId
   storeName: string;
   contactName: string;
   contactEmail?: string;

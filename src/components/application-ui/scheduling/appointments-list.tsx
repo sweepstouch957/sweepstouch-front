@@ -97,18 +97,20 @@ const AppointmentsList = () => {
             color: '#10b981', // Theme emerald/success
             scheduledAt: app.scheduledAt
         })),
-        ...storeRequests.map((req) => ({
-            id: req._id,
-            type: 'Store Request (Lead)',
-            name: req.storeName,
-            contact: req.contactName,
-            date: req.demoDate || req.createdAt,
-            time: req.demoTimeSlot || 'N/A',
-            status: req.status,
-            link: req.meetingLink,
-            color: '#f59e0b', // Theme amber/warning
-            scheduledAt: undefined
-        }))
+        ...storeRequests
+            .filter((req) => !appointments.some((app) => app.leadId === req._id))
+            .map((req) => ({
+                id: req._id,
+                type: 'Store Request (Lead)',
+                name: req.storeName,
+                contact: req.contactName,
+                date: req.demoDate || req.createdAt,
+                time: req.demoTimeSlot || 'N/A',
+                status: req.status,
+                link: req.meetingLink,
+                color: '#f59e0b', // Theme amber/warning
+                scheduledAt: undefined
+            }))
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     // Apply Filters
