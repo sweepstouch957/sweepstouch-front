@@ -154,6 +154,7 @@ export const routes = {
       stores: {
         listing: '/admin/management/stores',
         create: '/admin/management/stores/create',
+        appointments: '/admin/management/stores/appointments',
       },
       campaings: {
         listing: '/admin/management/campaings',
@@ -164,9 +165,9 @@ export const routes = {
         create: '/admin/management/promos/create',
       },
       promotors: {
-        listing: '/admin/management/promotors',
-        turnos: '/admin/management/turnos',
-        featuredStores: '/admin/management/work-stores',
+        listing: '/admin/management/promotors/listing',
+        featuredStores: '/admin/management/promotors/featuredStores',
+        turnos: '/admin/management/turnos/listing',
       },
       solicitudes: {
         turnos: '/admin/management/solicitudes/turnos',

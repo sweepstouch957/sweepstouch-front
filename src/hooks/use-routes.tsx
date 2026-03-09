@@ -104,6 +104,7 @@ const storesMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Stores'), <Store />, [
     { title: t('Listing'), route: routes.admin.management.stores.listing },
     { title: t('Create Store'), route: routes.admin.management.stores.create },
+    { title: t('Appointments & Schedule'), route: routes.admin.management.stores.appointments },
   ]);
 
 const addsMenu = (t: (token: string) => string): MenuItem =>
@@ -136,12 +137,12 @@ export const useMenuItemsCollapsedShells = (
       //requestMenu(t),
     ],
     general_manager: [campaignsMenu(t), promotorsMenu(t), storesMenu(t)],
-    promotor_manager: [sweepstakesMenu(t), promotorsMenu(t), storesMenu(t),circularsMenu(t)],
-    campaign_manager: [campaignsMenu(t),circularsMenu(t)],
+    promotor_manager: [sweepstakesMenu(t), promotorsMenu(t), storesMenu(t), circularsMenu(t)],
+    campaign_manager: [campaignsMenu(t), circularsMenu(t)],
     cashier: [],
     merchant: [],
     promotor: [storesMenu(t)],
-    design: [storesMenu(t),circularsMenu(t)],
+    design: [storesMenu(t), circularsMenu(t)],
   };
 
   const management = roleMenus[role] || [];

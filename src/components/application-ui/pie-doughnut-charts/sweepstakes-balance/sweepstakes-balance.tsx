@@ -291,7 +291,7 @@ export default function SweepstakesBalance({
               <DatePicker
                 label="Fecha inicio"
                 value={startDate}
-                onChange={setStartDate}
+                onChange={(newValue) => setStartDate(newValue)}
                 slotProps={{
                   textField: {
                     size: 'small',
@@ -304,7 +304,7 @@ export default function SweepstakesBalance({
               <DatePicker
                 label="Fecha fin"
                 value={endDate}
-                onChange={setEndDate}
+                onChange={(newValue) => setEndDate(newValue)}
                 slotProps={{
                   textField: {
                     size: 'small',
@@ -459,7 +459,7 @@ export default function SweepstakesBalance({
                     ))}
                 </List>
 
-                {!isLoading && data.length > 4 && (
+                {!isLoading && stores.length > 4 && (
                   <Box
                     textAlign="center"
                     py={2}

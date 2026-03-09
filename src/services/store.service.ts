@@ -51,7 +51,7 @@ export interface Store {
 export interface UpdateStoreBody {
   name?: string;
   address?: string;
-  zipCode?: string; 
+  zipCode?: string;
   type?: 'elite' | 'basic' | 'free';
   active?: boolean;
   phoneNumber?: string;
@@ -301,6 +301,12 @@ export const getStoreBySlug = async (slug: string): Promise<Store> => {
   return res.data;
 };
 
+// 🆕 Obtener StoreRequests (Leads)
+export const getStoreRequests = async (params?: { status?: string }): Promise<any[]> => {
+  const res = await api.get('/store/request', { params });
+  return res.data;
+};
+
 const storesService = {
   getStores,
   getStoresBillingSummary,
@@ -320,6 +326,7 @@ const storesService = {
   getStoreByImage,
   getStoreByDescription,
   getStoreByIdAndOwnerId,
+  getStoreRequests,
 };
 
 export default storesService;
