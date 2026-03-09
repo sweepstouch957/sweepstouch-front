@@ -90,11 +90,12 @@ const AppointmentsList = () => {
             type: 'Cita Confirmada',
             name: app.storeName,
             contact: app.contactName,
-            date: (app.slotId as any)?.date || app.createdAt,
-            time: (app.slotId as any)?.startTime || 'N/A',
+            date: app.scheduledAt || (app.slotId as any)?.date || app.createdAt,
+            time: (app.slotId as any)?.time || 'N/A',
             status: app.status,
             link: app.meetingLink,
-            color: '#10b981' // Theme emerald/success
+            color: '#10b981', // Theme emerald/success
+            scheduledAt: app.scheduledAt
         })),
         ...storeRequests.map((req) => ({
             id: req._id,
@@ -105,7 +106,8 @@ const AppointmentsList = () => {
             time: req.demoTimeSlot || 'N/A',
             status: req.status,
             link: req.meetingLink,
-            color: '#f59e0b' // Theme amber/warning
+            color: '#f59e0b', // Theme amber/warning
+            scheduledAt: undefined
         }))
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -133,15 +135,23 @@ const AppointmentsList = () => {
                 display: 'block'
             };
         }),
-        // 2. Mostrar Citas y Requests
+        // 2. Mostrar Citas y Requests sólo si están confirmadas y tienen link
         ...filteredList
-            .filter(item => item.date)
+            .filter(item => item.date && item.link && (item.status === 'confirmed' || item.status === 'scheduled' || item.status === 'converted'))
             .map(item => {
-                const isAllDay = item.time === 'N/A';
+                const isAllDay = item.time === 'N/A' && !item.scheduledAt;
+
+                let startStr = '';
+                if (item.scheduledAt) {
+                    startStr = new Date(item.scheduledAt).toISOString();
+                } else {
+                    startStr = isAllDay ? item.date.split('T')[0] : `${item.date.split('T')[0]}T${item.time}:00`;
+                }
+
                 return {
                     id: item.id,
                     title: `${item.name} (${item.contact})`,
-                    start: isAllDay ? item.date.split('T')[0] : `${item.date.split('T')[0]}T${item.time}:00`,
+                    start: startStr,
                     allDay: isAllDay,
                     color: item.color,
                     extendedProps: { ...item }

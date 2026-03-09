@@ -26,6 +26,7 @@ export interface Appointment {
   phoneNumber?: string;
   language?: 'es' | 'en';
   timezone?: string;
+  scheduledAt?: string;
   calendarEventId?: string;
   meetingLink?: string;
   status: 'scheduled' | 'cancelled' | 'completed';
