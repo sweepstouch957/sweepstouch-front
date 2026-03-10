@@ -10,6 +10,7 @@ import {
     Stack,
     TextField,
     Avatar,
+    Collapse,
     useTheme,
     alpha
 } from '@mui/material';
@@ -19,6 +20,12 @@ import EventAvailableTwoToneIcon from '@mui/icons-material/EventAvailableTwoTone
 import StorefrontTwoToneIcon from '@mui/icons-material/StorefrontTwoTone';
 import PersonTwoToneIcon from '@mui/icons-material/PersonTwoTone';
 import EditCalendarTwoToneIcon from '@mui/icons-material/EditCalendarTwoTone';
+import ExpandMoreTwoToneIcon from '@mui/icons-material/ExpandMoreTwoTone';
+import ExpandLessTwoToneIcon from '@mui/icons-material/ExpandLessTwoTone';
+import PhoneTwoToneIcon from '@mui/icons-material/PhoneTwoTone';
+import EmailTwoToneIcon from '@mui/icons-material/EmailTwoTone';
+import LocationCityTwoToneIcon from '@mui/icons-material/LocationCityTwoTone';
+import MessageTwoToneIcon from '@mui/icons-material/MessageTwoTone';
 import { format, isPast, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -30,11 +37,12 @@ interface EventDrawerProps {
 const EventDrawer: React.FC<EventDrawerProps> = ({ event, onClose }) => {
     const theme = useTheme();
     const [isRescheduling, setIsRescheduling] = useState(false);
+    const [showMoreInfo, setShowMoreInfo] = useState(false);
 
     // Fallback if event is null
     if (!event) return null;
 
-    const { id, type, name, contact, date, time, status, link, color } = event;
+    const { id, type, name, contact, date, time, status, link, color, phone, email, city, zipCode, estimatedVolume } = event;
 
     const isLinkDisabled = (dateStr: string, timeStr: string) => {
         if (!dateStr) return true;
@@ -121,7 +129,55 @@ const EventDrawer: React.FC<EventDrawerProps> = ({ event, onClose }) => {
                     </Typography>
                 </Box>
 
-                <Divider sx={{ my: 4 }} />
+                <Box sx={{ mb: 4 }}>
+                    <Button
+                        variant="text"
+                        color="secondary"
+                        onClick={() => setShowMoreInfo(!showMoreInfo)}
+                        endIcon={showMoreInfo ? <ExpandLessTwoToneIcon /> : <ExpandMoreTwoToneIcon />}
+                        sx={{ pl: 0, fontWeight: 600 }}
+                    >
+                        {showMoreInfo ? 'Ocultar Información' : 'Ver Más Información'}
+                    </Button>
+
+                    <Collapse in={showMoreInfo}>
+                        <Box sx={{ p: 2, bgcolor: alpha(theme.palette.secondary.main, 0.04), borderRadius: 2, display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+
+                            <Stack direction="row" spacing={1} alignItems="center">
+                                <PhoneTwoToneIcon fontSize="small" color="secondary" />
+                                <Typography variant="body2" fontWeight={500} minWidth={100}>Teléfono:</Typography>
+                                <Typography variant="body2">{phone || 'N/A'}</Typography>
+                            </Stack>
+
+                            <Stack direction="row" spacing={1} alignItems="center">
+                                <EmailTwoToneIcon fontSize="small" color="secondary" />
+                                <Typography variant="body2" fontWeight={500} minWidth={100}>Email:</Typography>
+                                <Typography variant="body2">{email || 'N/A'}</Typography>
+                            </Stack>
+
+                            {(city || zipCode) && (
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                    <LocationCityTwoToneIcon fontSize="small" color="secondary" />
+                                    <Typography variant="body2" fontWeight={500} minWidth={100}>Ubicación:</Typography>
+                                    <Typography variant="body2">
+                                        {[city, zipCode].filter(Boolean).join(', ')}
+                                    </Typography>
+                                </Stack>
+                            )}
+
+                            {estimatedVolume && (
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                    <MessageTwoToneIcon fontSize="small" color="secondary" />
+                                    <Typography variant="body2" fontWeight={500} minWidth={100}>Volumen Est.:</Typography>
+                                    <Chip label={estimatedVolume} size="small" variant="outlined" color="primary" />
+                                </Stack>
+                            )}
+
+                        </Box>
+                    </Collapse>
+                </Box>
+
+                <Divider sx={{ mb: 3 }} />
 
                 <Typography variant="h6" fontWeight="bold" gutterBottom>
                     Acciones

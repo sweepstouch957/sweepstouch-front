@@ -95,7 +95,12 @@ const AppointmentsList = () => {
             status: app.status,
             link: app.meetingLink,
             color: '#10b981', // Theme emerald/success
-            scheduledAt: app.scheduledAt
+            scheduledAt: app.scheduledAt,
+            phone: app.phoneNumber,
+            email: app.contactEmail,
+            city: (app as any).city,
+            zipCode: (app as any).zipCode,
+            estimatedVolume: (app as any).estimatedMonthlyMessages
         })),
         ...storeRequests
             .filter((req) => !appointments.some((app) => app.leadId === req._id))
@@ -109,7 +114,12 @@ const AppointmentsList = () => {
                 status: req.status,
                 link: req.meetingLink,
                 color: '#f59e0b', // Theme amber/warning
-                scheduledAt: undefined
+                scheduledAt: undefined,
+                phone: req.phoneNumber,
+                email: req.contactEmail,
+                city: req.city,
+                zipCode: req.zipCode,
+                estimatedVolume: req.estimatedMonthlyMessages
             }))
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
