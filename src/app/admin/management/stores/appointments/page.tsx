@@ -1,6 +1,5 @@
 'use client';
-import React from 'react';
-import PromoterScheduleConfig from '@/components/application-ui/scheduling/promoter-schedule-config';
+
 import AppointmentsList from '@/components/application-ui/scheduling/appointments-list';
 import { Box, Typography, Container } from '@mui/material';
 
@@ -14,10 +13,6 @@ export default function AppointmentsPage() {
                 <Typography variant="body1" color="text.secondary">
                     Configura tu horario disponible y gestiona las solicitudes de demostración o citas confirmadas de las tiendas.
                 </Typography>
-            </Box>
-
-            <Box mb={5}>
-                <PromoterScheduleConfig />
             </Box>
 
             <Box>

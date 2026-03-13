@@ -154,6 +154,7 @@ export const routes = {
       stores: {
         listing: '/admin/management/stores',
         create: '/admin/management/stores/create',
+        brands: '/admin/management/brands',
         appointments: '/admin/management/stores/appointments',
       },
       campaings: {

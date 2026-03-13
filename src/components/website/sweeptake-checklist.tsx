@@ -1,7 +1,6 @@
 import { api } from '@/libs/axios';
 import { sweepstakesClient } from '@/services/sweepstakes.service';
 import { uploadCampaignImage } from '@/services/upload.service';
-import DoneAllIcon from '@mui/icons-material/DoneAll';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import {
   Alert,
@@ -168,19 +167,19 @@ export default function SweepstakeChecklist({ sweepstakeId }: Props) {
   // Valores iniciales para el Brief (edición)
   const initialBriefValues = sweepstake
     ? {
-        name: sweepstake.name || '',
-        description: sweepstake.description || '',
-        startDate: sweepstake.startDate || null,
-        endDate: sweepstake.endDate || null,
-        image: (sweepstake.image as string) || '',
-        hasQr: Boolean(sweepstake.hasQr),
-        rules: sweepstake.rules || '',
-        participationMessage: sweepstake.participationMessage || '',
-        sweeptakeDescription: sweepstake.description || '',
-        prizeIds: Array.isArray(sweepstake.prize)
-          ? sweepstake.prize.map((p: any) => (typeof p === 'string' ? p : p._id))
-          : [],
-      }
+      name: sweepstake.name || '',
+      description: sweepstake.description || '',
+      startDate: sweepstake.startDate || null,
+      endDate: sweepstake.endDate || null,
+      image: (sweepstake.image as string) || '',
+      hasQr: Boolean(sweepstake.hasQr),
+      rules: sweepstake.rules || '',
+      participationMessage: sweepstake.participationMessage || '',
+      sweeptakeDescription: sweepstake.description || '',
+      prizeIds: Array.isArray(sweepstake.prize)
+        ? sweepstake.prize.map((p: any) => (typeof p === 'string' ? p : p._id))
+        : [],
+    }
     : undefined;
 
   return (

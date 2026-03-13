@@ -26,6 +26,7 @@ import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 
 type InventoryItem = {
   id: string;
@@ -114,6 +115,7 @@ function ItemCardCompact({
   image?: string;
   onRemove?: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <MuiCard
       variant="outlined"
@@ -154,7 +156,7 @@ function ItemCardCompact({
           variant="body2"
           sx={{ fontWeight: 600, lineHeight: 1.2 }}
         >
-          {title}
+          {t(title)}
         </Typography>
 
         {desc && (
@@ -206,6 +208,7 @@ export default function CreateStoreStep2({
   initialData,
 }: Props) {
   const router = useRouter();
+  const { t } = useTranslation();
 
   /** ===== Sección A ===== */
   const [tabletQty, setTabletQty] = React.useState<QtyMap>(
@@ -269,7 +272,7 @@ export default function CreateStoreStep2({
         variant="h6"
         sx={{ mb: 2, fontWeight: 600 }}
       >
-        Equipos y Materiales
+        {t("Equipment and Materials")}
       </Typography>
 
       {/* ====== Sección A: Tablets ====== */}
@@ -296,7 +299,7 @@ export default function CreateStoreStep2({
           variant="outlined"
           onClick={() => setOpenTablets(true)}
         >
-          Agregar
+          {t("Add")}
         </Button>
       </Stack>
 
@@ -350,7 +353,7 @@ export default function CreateStoreStep2({
           variant="outlined"
           onClick={() => setOpenPrinters(true)}
         >
-          Agregar
+          {t("Add")}
         </Button>
       </Stack>
 
@@ -386,7 +389,7 @@ export default function CreateStoreStep2({
         variant="body2"
         sx={{ textAlign: 'right', mt: 2, color: 'text.secondary' }}
       >
-        Total equipos: <strong>${equipmentTotal}</strong>
+        {t("TOTAL")} equipos: <strong>${equipmentTotal}</strong>
       </Typography>
 
       {/* ===== Modales de selección ===== */}
@@ -397,7 +400,7 @@ export default function CreateStoreStep2({
         fullWidth
       >
         <DialogTitle sx={{ pr: 6 }}>
-          Seleccionar tablets del inventario
+          {t("Select Tablet")}
         </DialogTitle>
 
         <IconButton
@@ -507,7 +510,7 @@ export default function CreateStoreStep2({
             variant="contained"
             onClick={() => setOpenTablets(false)}
           >
-            Agregar
+            {t("Add")}
           </Button>
         </Box>
       </Dialog>
@@ -519,7 +522,7 @@ export default function CreateStoreStep2({
         fullWidth
       >
         <DialogTitle sx={{ pr: 6 }}>
-          Seleccionar impresoras del inventario
+          {t("Select Printer")}
         </DialogTitle>
 
         <IconButton
@@ -627,7 +630,7 @@ export default function CreateStoreStep2({
             variant="contained"
             onClick={() => setOpenPrinters(false)}
           >
-            Agregar
+            {t("Add")}
           </Button>
         </Box>
       </Dialog>
@@ -639,7 +642,7 @@ export default function CreateStoreStep2({
         variant="h6"
         sx={{ mb: 1, fontWeight: 600 }}
       >
-        Sección B: Posters y Materiales
+        {t("Section B: Posters and Materials")}
       </Typography>
 
       {/* Header: oculto en móvil */}
@@ -658,12 +661,12 @@ export default function CreateStoreStep2({
           fontWeight: 600,
         }}
       >
-        <Typography variant="caption">PRODUCTO</Typography>
-        <Typography variant="caption">MATERIAL</Typography>
-        <Typography variant="caption">PRECIO</Typography>
-        <Typography variant="caption">SELECCIONAR</Typography>
-        <Typography variant="caption">CANTIDAD</Typography>
-        <Typography variant="caption">TOTAL</Typography>
+        <Typography variant="caption">{t("PRODUCT")}</Typography>
+        <Typography variant="caption">{t("MATERIAL")}</Typography>
+        <Typography variant="caption">{t("PRICE")}</Typography>
+        <Typography variant="caption">{t("SELECT")}</Typography>
+        <Typography variant="caption">{t("QTY")}</Typography>
+        <Typography variant="caption">{t("TOTAL")}</Typography>
       </Box>
 
       {/* Filas */}
@@ -701,7 +704,7 @@ export default function CreateStoreStep2({
                 variant="body2"
                 sx={{ fontWeight: 600 }}
               >
-                {row.name}
+                {t(row.name)}
               </Typography>
 
               {/* Material */}
@@ -717,7 +720,7 @@ export default function CreateStoreStep2({
                   variant="caption"
                   color="text.secondary"
                 >
-                  Material
+                  {t("MATERIAL")}
                 </Typography>
 
                 <Typography variant="body2">{row.material}</Typography>
@@ -736,7 +739,7 @@ export default function CreateStoreStep2({
                   variant="caption"
                   color="text.secondary"
                 >
-                  Precio
+                  {t("PRICE")}
                 </Typography>
 
                 <Typography variant="body2">${row.price}</Typography>
@@ -765,7 +768,7 @@ export default function CreateStoreStep2({
                   variant="caption"
                   sx={{ ml: 1, display: { xs: 'inline', sm: 'none' } }}
                 >
-                  Seleccionar
+                  {t("SELECT")}
                 </Typography>
               </Box>
 
@@ -841,14 +844,14 @@ export default function CreateStoreStep2({
           variant="outlined"
           onClick={handleBack}
         >
-          Atrás
+          {t("Back")}
         </Button>
 
         <Button
           variant="contained"
           onClick={handleSave}
         >
-          Guardar
+          {t("Save")}
         </Button>
       </Box>
     </Container>

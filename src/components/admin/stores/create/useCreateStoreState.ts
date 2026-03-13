@@ -11,6 +11,7 @@ export type CreateStoreState = {
   startDate?: string;
   membership?: 'Semanal' | 'Mensual' | '';
   sweepstakeId?: string;
+  brandId?: string;
   latitude?: string;
   longitude?: string;
 
@@ -24,6 +25,13 @@ export type CreateStoreState = {
   facebook?: string;
   instagram?: string;
   extraInfo?: string;
+
+  // Added Phase 2 fixing requirements
+  type?: string;
+  location?: {
+    type: string;
+    coordinates: number[];
+  };
 };
 
 const KEY = 'create-store-form-v2';

@@ -104,6 +104,7 @@ const storesMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Stores'), <Store />, [
     { title: t('Listing'), route: routes.admin.management.stores.listing },
     { title: t('Create Store'), route: routes.admin.management.stores.create },
+    { title: t('Brands'), route: routes.admin.management.stores.brands },
     { title: t('Appointments & Schedule'), route: routes.admin.management.stores.appointments },
   ]);
 
