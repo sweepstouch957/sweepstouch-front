@@ -44,6 +44,7 @@ import CreateCampaignContainer from './panel/campaigns/createCampaignContainer';
 import CustomersPanel from './panel/customers/customers-panel';
 import QrDuetMUI from './panel/qr/QrContainer';
 import { StoreSidebar } from './store-sidebar';
+import { StoreEquipmentPanel } from './panel/equipment/StoreEquipmentPanel';
 
 const StoreManagementPage = () => {
   const router = useRouter();
@@ -258,6 +259,9 @@ const StoreManagementPage = () => {
             </Typography>
           </Box>
         );
+
+      case 'equipment':
+        return <StoreEquipmentPanel store={store} storeId={storeId} />;
 
       case 'general-info':
         return (

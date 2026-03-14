@@ -24,7 +24,6 @@ import PrintIcon from '@mui/icons-material/Print';
 import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 
@@ -96,26 +95,24 @@ function selectedWithQty(items: InventoryItem[], qmap: QtyMap) {
     .map((i) => ({ ...i, qty: qmap[i.id] ?? 0 }));
 }
 
-function expandByQty<T extends { id: string; qty: number }>(items: T[]) {
-  return items.flatMap((it) =>
-    Array.from({ length: it.qty }).map((_, i) => ({ ...it, uid: `${it.id}-${i}` })),
-  );
-}
-
-function ItemCardCompact({
-  title,
-  desc,
-  price,
+/** Card que muestra el resumen agregado de un tipo de dispositivo (tablets o impresoras) */
+function DeviceSummaryCard({
+  icon,
+  label,
+  description,
+  totalQty,
+  priceEach,
   image,
-  onRemove,
+  onDecrement,
 }: {
-  title: string;
-  desc?: string;
-  price: number;
+  icon?: React.ReactNode;
+  label: string;
+  description?: string;
+  totalQty: number;
+  priceEach: number;
   image?: string;
-  onRemove?: () => void;
+  onDecrement?: () => void;
 }) {
-  const { t } = useTranslation();
   return (
     <MuiCard
       variant="outlined"
@@ -129,7 +126,7 @@ function ItemCardCompact({
         <CardMedia
           component="img"
           image={image}
-          alt={title}
+          alt={label}
           sx={{
             width: { xs: 96, sm: 120 },
             height: '100%',
@@ -141,7 +138,9 @@ function ItemCardCompact({
           }}
         />
       ) : (
-        <Box sx={{ width: 120, height: '100%', bgcolor: 'action.hover' }} />
+        <Box sx={{ width: 120, height: '100%', bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {icon}
+        </Box>
       )}
 
       <MuiCardContent
@@ -152,38 +151,24 @@ function ItemCardCompact({
           flexDirection: 'column',
         }}
       >
-        <Typography
-          variant="body2"
-          sx={{ fontWeight: 600, lineHeight: 1.2 }}
-        >
-          {t(title)}
+        <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+          {label}
         </Typography>
 
-        {desc && (
-          <Typography
-            variant="caption"
-            sx={{ color: 'text.secondary', mt: 0.25 }}
-          >
-            {desc}
+        {description && (
+          <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.25 }}>
+            {description}
           </Typography>
         )}
 
-        <Box
-          sx={{
-            mt: 'auto',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          <Typography variant="caption">${price} c/u</Typography>
+        <Box sx={{ mt: 'auto', display: 'flex', alignItems: 'center' }}>
+          <Typography variant="caption">
+            {totalQty} unid. &nbsp;·&nbsp; ${priceEach * totalQty} total
+          </Typography>
 
           <Box sx={{ ml: 'auto' }}>
-            <IconButton
-              size="small"
-              aria-label="Eliminar"
-              onClick={onRemove}
-            >
-              <DeleteOutlineIcon fontSize="small" />
+            <IconButton size="small" aria-label="Reducir" onClick={onDecrement}>
+              <RemoveIcon fontSize="small" />
             </IconButton>
           </Box>
         </Box>
@@ -249,10 +234,24 @@ export default function CreateStoreStep2({
   );
 
   const handleSave = async () => {
+    // Construir la lista plana de equipos seleccionados
+    const equipment = [
+      ...tabletInventory
+        .filter((i) => (tabletQty[i.id] ?? 0) > 0)
+        .map((i) => ({ id: i.id, label: i.label, qty: tabletQty[i.id], price: i.price, type: 'tablet' })),
+      ...printerInventory
+        .filter((i) => (printerQty[i.id] ?? 0) > 0)
+        .map((i) => ({ id: i.id, label: i.label, qty: printerQty[i.id], price: i.price, type: 'printer' })),
+    ];
+
+    // Materiales adicionales (sección B) sólo los seleccionados
+    const materials = sectionB
+      .filter((it) => it.checked && it.qty > 0)
+      .map(({ id, name, material, price, qty }) => ({ id, name, material, price, qty }));
+
     const payload = {
-      tabletQty,
-      printerQty,
-      sectionB,
+      equipment,
+      materials,
       equipmentTotal,
       sectionBTotal,
       grandTotal: equipmentTotal + sectionBTotal,
@@ -303,22 +302,17 @@ export default function CreateStoreStep2({
         </Button>
       </Stack>
 
-      <Grid container
-        spacing={1.5}>
-        {expandByQty(selectedWithQty(tabletInventory, tabletQty)).map((it) => (
-          <Grid
-            key={it.uid}
-            item
-            xs={12}
-            sm={6}
-            md={4}
-          >
-            <ItemCardCompact
-              title={it.label}
-              desc={it.description}
-              price={it.price}
+      {/* Cards resumen tablets — máximo 1 card por tipo de tablet con qty > 0 */}
+      <Grid container spacing={1.5}>
+        {selectedWithQty(tabletInventory, tabletQty).map((it) => (
+          <Grid key={it.id} item xs={12} sm={6} md={4}>
+            <DeviceSummaryCard
+              label={it.label}
+              description={it.description}
+              totalQty={it.qty}
+              priceEach={it.price}
               image={it.image}
-              onRemove={() =>
+              onDecrement={() =>
                 setTabletQty((prev) => ({
                   ...prev,
                   [it.id]: Math.max(0, (prev[it.id] ?? 0) - 1),
@@ -357,32 +351,25 @@ export default function CreateStoreStep2({
         </Button>
       </Stack>
 
-      <Grid container
-        spacing={1.5}>
-        {expandByQty(selectedWithQty(printerInventory, printerQty)).map(
-          (it) => (
-            <Grid
-              key={it.uid}
-              item
-              xs={12}
-              sm={6}
-              md={4}
-            >
-              <ItemCardCompact
-                title={it.label}
-                desc={it.description}
-                price={it.price}
-                image={it.image}
-                onRemove={() =>
-                  setPrinterQty((prev) => ({
-                    ...prev,
-                    [it.id]: Math.max(0, (prev[it.id] ?? 0) - 1),
-                  }))
-                }
-              />
-            </Grid>
-          ),
-        )}
+      {/* Cards resumen impresoras — máximo 1 card por tipo con qty > 0 */}
+      <Grid container spacing={1.5}>
+        {selectedWithQty(printerInventory, printerQty).map((it) => (
+          <Grid key={it.id} item xs={12} sm={6} md={4}>
+            <DeviceSummaryCard
+              label={it.label}
+              description={it.description}
+              totalQty={it.qty}
+              priceEach={it.price}
+              image={it.image}
+              onDecrement={() =>
+                setPrinterQty((prev) => ({
+                  ...prev,
+                  [it.id]: Math.max(0, (prev[it.id] ?? 0) - 1),
+                }))
+              }
+            />
+          </Grid>
+        ))}
       </Grid>
 
       <Typography

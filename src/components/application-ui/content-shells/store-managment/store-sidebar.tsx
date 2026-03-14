@@ -18,6 +18,7 @@ import {
   RedeemTwoTone as RewardIcon,
   Web as WebIcon,
   Woman2,
+  DevicesOtherTwoTone as DevicesIcon,
 } from '@mui/icons-material';
 import PeopleIcon from '@mui/icons-material/People';
 import {
@@ -57,6 +58,7 @@ function buildSwitchUrl(storeId: string) {
 const STORE_SECTIONS = [
   { id: 'campaigns', label: 'Campaigns', icon: <CampaignsIcon /> },
   { id: 'general-info', label: 'General Info', icon: <InfoIcon /> },
+  { id: 'equipment', label: 'Equipment', icon: <DevicesIcon /> },
   { id: 'sweepstakes', label: 'Sweepstakes', icon: <RewardIcon /> },
   { id: 'billing', label: 'Billing', icon: <MonetizationOn /> },
   { id: 'qr', label: 'QR', icon: <QrCode2Outlined /> },

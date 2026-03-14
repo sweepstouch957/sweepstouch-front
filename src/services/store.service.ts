@@ -7,6 +7,22 @@ import { AxiosResponse } from 'axios';
 /* ===================== Types ===================== */
 export type DebtStatus = 'all' | 'ok' | 'min_low' | 'low' | 'mid' | 'high' | 'critical';
 
+export interface EquipmentItem {
+  id: string;
+  label: string;
+  qty: number;
+  price: number;
+  type: 'tablet' | 'printer';
+}
+
+export interface MaterialItem {
+  id: string;
+  name: string;
+  material: string;
+  price: number;
+  qty: number;
+}
+
 export interface Store {
   id: string;
   _id: string;
@@ -46,6 +62,13 @@ export interface Store {
   kioskTabletStatus?: 'instalada' | 'desinstalada' | 'sin_instalar';
   kioskTabletDate?: string | null; // YYYY-MM-DD o ISO
   kioskTabletQuantity?: number | null;
+
+  // 🆕 Equipment & Materials (Step 2)
+  equipment?: EquipmentItem[];
+  materials?: MaterialItem[];
+  equipmentTotal?: number;
+  sectionBTotal?: number;
+  grandTotal?: number;
 }
 
 export interface UpdateStoreBody {
@@ -70,6 +93,13 @@ export interface UpdateStoreBody {
   kioskTabletStatus?: 'instalada' | 'desinstalada' | 'sin_instalar';
   kioskTabletDate?: string | null;
   kioskTabletQuantity?: number | null;
+
+  // 🆕 Equipment & Materials (Step 2)
+  equipment?: EquipmentItem[];
+  materials?: MaterialItem[];
+  equipmentTotal?: number;
+  sectionBTotal?: number;
+  grandTotal?: number;
 }
 
 export interface GetStoresResponse {
