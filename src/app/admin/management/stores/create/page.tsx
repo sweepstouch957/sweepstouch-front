@@ -295,7 +295,7 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
       email: step2Data.ownerEmail || state.email || '',
       brand: state.brandId,
       provider: 'bandwidth',
-      bandwidthPhoneNumber: '18332035884',
+      bandwidthPhoneNumber: '+18554594926',
       bandwithId: 'c3799660-ff17-4e29-a41a-e53f2d8b3859',
       socialMedia: {
         website: state.website || '',
@@ -394,7 +394,7 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
                 <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
                   <span>🏪</span> {t("Select your Brand")}
                 </Typography>
-                
+
                 <Grid container spacing={1.5}>
                   <Grid item xs={12} md={6}>
                     <Autocomplete
@@ -450,7 +450,7 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
                 <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
                   <span>📝</span> {t("Store Data")}
                 </Typography>
-                
+
                 <Grid container spacing={1.5}>
                   <Grid item xs={12} md={6}>
                     <TextField
@@ -496,7 +496,7 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
                 <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
                   <span>📍</span> {t("Physical Location")}
                 </Typography>
-                
+
                 <Grid container spacing={1.5}>
                   <Grid item xs={12} md={8}>
                     <TextField
@@ -528,8 +528,8 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
                       addressToGeocode={state.address}
                       initialCoordinates={state.location?.coordinates as [number, number]}
                       onLocationChange={(coords) => setState((s: any) => ({
-                         ...s,
-                         location: { type: 'Point', coordinates: coords }
+                        ...s,
+                        location: { type: 'Point', coordinates: coords }
                       }))}
                     />
                     {err(Boolean(state.location?.coordinates && state.location.coordinates.length === 2)) && (
@@ -546,7 +546,7 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
                 <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
                   <span>🧰</span> {t("Configuration and Contract")}
                 </Typography>
-                
+
                 <Grid container spacing={1.5}>
                   <Grid item xs={12} md={6}>
                     <TextField
