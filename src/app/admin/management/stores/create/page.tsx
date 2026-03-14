@@ -66,7 +66,8 @@ function CustomTabPanel(props: TabPanelProps) {
       aria-labelledby={`store-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
+      {/* Always mounted so inner state (Step2 equipment) is never lost on tab switch */}
+      <Box sx={{ pt: 3 }}>{children}</Box>
     </div>
   );
 }

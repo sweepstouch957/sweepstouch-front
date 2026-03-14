@@ -55,6 +55,7 @@ function normalizeEquipment(raw: any): EquipmentItem[] {
   const tablets: EquipmentItem[] = (raw.tablets ?? []).map((t: any) => ({
     ...t,
     type: 'tablet' as const,
+    imei: Array.isArray(t.imei) ? t.imei : [],
   }));
   const printers: EquipmentItem[] = (raw.printers ?? []).map((p: any) => ({
     ...p,
@@ -117,24 +118,37 @@ function DeviceCard({
         </Stack>
 
         <Stack spacing={0.75}>
-          {items.map((it, idx) => (
-            <Stack
-              key={it.id ?? idx}
-              direction="row"
-              justifyContent="space-between"
-              alignItems="center"
-            >
-              <Typography variant="body2" color="text.secondary">
-                {it.label ?? it.id ?? '—'}
-              </Typography>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Chip label={`x${it.qty}`} size="small" />
-                <Typography variant="caption" color="text.secondary">
-                  ${((it.qty ?? 0) * (it.price ?? 0)).toLocaleString()}
-                </Typography>
-              </Stack>
-            </Stack>
-          ))}
+          {items.map((it, idx) => {
+            const imeis: string[] = Array.isArray((it as any).imei) ? (it as any).imei : [];
+            return (
+              <Box key={it.id ?? idx}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Typography variant="body2" color="text.secondary">
+                    {it.label ?? it.id ?? '—'}
+                  </Typography>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Chip label={`x${it.qty}`} size="small" />
+                    <Typography variant="caption" color="text.secondary">
+                      ${((it.qty ?? 0) * (it.price ?? 0)).toLocaleString()}
+                    </Typography>
+                  </Stack>
+                </Stack>
+                {imeis.filter(Boolean).length > 0 && (
+                  <Stack direction="row" flexWrap="wrap" gap={0.5} mt={0.5}>
+                    {imeis.filter(Boolean).map((imei, i) => (
+                      <Chip
+                        key={i}
+                        label={`IMEI: ${imei}`}
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontSize: '0.68rem', fontFamily: 'monospace' }}
+                      />
+                    ))}
+                  </Stack>
+                )}
+              </Box>
+            );
+          })}
         </Stack>
       </CardContent>
     </Card>
@@ -234,10 +248,16 @@ export function StoreEquipmentPanel({ store, storeId }: Props) {
   const step2InitialData = React.useMemo(() => {
     const tabletQty: Record<string, number> = {};
     const printerQty: Record<string, number> = {};
+    const tabletImei: Record<string, string[]> = {};
 
     equipment.forEach((e) => {
-      if (e.type === 'tablet') tabletQty[e.id] = e.qty ?? 0;
-      else printerQty[e.id] = e.qty ?? 0;
+      if (e.type === 'tablet') {
+        tabletQty[e.id] = e.qty ?? 0;
+        const imeis = (e as any).imei;
+        if (Array.isArray(imeis) && imeis.length) tabletImei[e.id] = imeis;
+      } else {
+        printerQty[e.id] = e.qty ?? 0;
+      }
     });
 
     const initialBIds = [
@@ -259,7 +279,7 @@ export function StoreEquipmentPanel({ store, storeId }: Props) {
       };
     });
 
-    return { tabletQty, printerQty, sectionB };
+    return { tabletQty, tabletImei, printerQty, sectionB };
   }, [equipment, materials]);
 
   const handleSave = async (step2Data: any) => {

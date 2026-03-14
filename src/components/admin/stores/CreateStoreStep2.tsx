@@ -182,6 +182,7 @@ type Props = {
   onSubmit?: (data: any) => void | Promise<void>;
   initialData?: {
     tabletQty?: QtyMap;
+    tabletImei?: Record<string, string[]>;
     printerQty?: QtyMap;
     sectionB?: BItem[];
   };
@@ -194,6 +195,7 @@ export default function CreateStoreStep2({
 }: Props) {
   const router = useRouter();
   const { t } = useTranslation();
+  console.log("render");
 
   /** ===== Sección A ===== */
   const [tabletQty, setTabletQty] = React.useState<QtyMap>(
@@ -202,6 +204,18 @@ export default function CreateStoreStep2({
   const [printerQty, setPrinterQty] = React.useState<QtyMap>(
     initialData?.printerQty ?? {},
   );
+  // IMEI per tablet type: Record<tabletId, string[]> — one per unit
+  const [tabletImei, setTabletImei] = React.useState<Record<string, string[]>>(
+    initialData?.tabletImei ?? {},
+  );
+
+  const updateImei = (tabletId: string, index: number, value: string) => {
+    setTabletImei((prev) => {
+      const arr = [...(prev[tabletId] ?? [])];
+      arr[index] = value;
+      return { ...prev, [tabletId]: arr };
+    });
+  };
 
   const [openTablets, setOpenTablets] = React.useState(false);
   const [openPrinters, setOpenPrinters] = React.useState(false);
@@ -234,15 +248,27 @@ export default function CreateStoreStep2({
   );
 
   const handleSave = async () => {
-    // Construir la lista plana de equipos seleccionados
-    const equipment = [
-      ...tabletInventory
-        .filter((i) => (tabletQty[i.id] ?? 0) > 0)
-        .map((i) => ({ id: i.id, label: i.label, qty: tabletQty[i.id], price: i.price, type: 'tablet' })),
-      ...printerInventory
-        .filter((i) => (printerQty[i.id] ?? 0) > 0)
-        .map((i) => ({ id: i.id, label: i.label, qty: printerQty[i.id], price: i.price, type: 'printer' })),
-    ];
+    // Build { tablets, printers } object matching the backend Store schema
+    const tablets = tabletInventory
+      .filter((i) => (tabletQty[i.id] ?? 0) > 0)
+      .map((i) => ({
+        id: i.id,
+        label: i.label,
+        description: i.description,
+        qty: tabletQty[i.id],
+        price: i.price,
+        imei: (tabletImei[i.id] ?? []).filter(Boolean),
+      }));
+
+    const printers = printerInventory
+      .filter((i) => (printerQty[i.id] ?? 0) > 0)
+      .map((i) => ({
+        id: i.id,
+        label: i.label,
+        description: i.description,
+        qty: printerQty[i.id],
+        price: i.price,
+      }));
 
     // Materiales adicionales (sección B) sólo los seleccionados
     const materials = sectionB
@@ -250,7 +276,8 @@ export default function CreateStoreStep2({
       .map(({ id, name, material, price, qty }) => ({ id, name, material, price, qty }));
 
     const payload = {
-      equipment,
+      // Backend format: { tablets: [...], printers: [...] }
+      equipment: { tablets, printers },
       materials,
       equipmentTotal,
       sectionBTotal,
@@ -481,6 +508,29 @@ export default function CreateStoreStep2({
                 >
                   <AddIcon fontSize="small" />
                 </IconButton>
+
+                {/* IMEI inputs — one per unit */}
+                {(tabletQty[it.id] ?? 0) > 0 && (
+                  <Box sx={{ width: '100%', mt: 1 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                      IMEI(s) — ingresa uno por tablet
+                    </Typography>
+                    <Stack spacing={0.75}>
+                      {Array.from({ length: tabletQty[it.id] ?? 0 }).map((_, idx) => (
+                        <TextField
+                          key={idx}
+                          size="small"
+                          label={`IMEI #${idx + 1}`}
+                          placeholder="e.g. 357938070125740"
+                          value={(tabletImei[it.id] ?? [])[idx] ?? ''}
+                          onChange={(e) => updateImei(it.id, idx, e.target.value)}
+                          inputProps={{ maxLength: 20 }}
+                          fullWidth
+                        />
+                      ))}
+                    </Stack>
+                  </Box>
+                )}
               </Box>
             ))}
           </Stack>
