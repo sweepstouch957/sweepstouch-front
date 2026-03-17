@@ -159,7 +159,7 @@ export default function ActivationRequestsToolbar({
           size="small"
           sx={{ minWidth: { xs: '100%', sm: 180 } }}
         >
-          <InputLabel id="status-filter-label">Estado</InputLabel>
+          <InputLabel id="status-filter-label" sx={{ fontWeight: 600 }}>Estado</InputLabel>
           <Select
             labelId="status-filter-label"
             label="Estado"
@@ -168,7 +168,7 @@ export default function ActivationRequestsToolbar({
               const v = e.target.value as ToolbarStatus;
               onFilterChange({ status: v === 'all' ? undefined : (v as ActivationStatus) });
             }}
-            sx={{ width: '100%', '& .MuiSelect-select': { py: 1.0 } }}
+            sx={{ width: '100%', '& .MuiSelect-select': { py: 1.0, fontWeight: 500, borderRadius: 2 } }}
           >
             <MenuItem value="all">Todos</MenuItem>
             <MenuItem value="pendiente">Pendiente</MenuItem>
@@ -180,15 +180,19 @@ export default function ActivationRequestsToolbar({
         {/* Buscador: email */}
         <TextField
           size="small"
-          label="Buscar por email"
+          label=""
           value={emailInput}
           onChange={(e) => setEmailInput(e.target.value)}
-          placeholder="ej. alguien@mail.com"
-          sx={{ minWidth: { xs: '100%', sm: 260 } }}
+          placeholder="Buscar email, ej. ana@mail.com"
+          sx={{ minWidth: { xs: '100%', sm: 260 },
+                backgroundColor: (theme) => theme.palette.grey[50],
+                borderRadius: 2,
+                '& fieldset': { borderRadius: 2 },
+          }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon fontSize="small" />
+                <SearchIcon fontSize="small"  color="action" />
               </InputAdornment>
             ),
             endAdornment: emailInput ? (
@@ -197,6 +201,7 @@ export default function ActivationRequestsToolbar({
                   size="small"
                   onClick={() => setEmailInput('')}
                   aria-label="Limpiar búsqueda"
+                  sx={{ color: 'action.active' }}
                 >
                   <ClearIcon fontSize="small" />
                 </IconButton>
@@ -210,13 +215,13 @@ export default function ActivationRequestsToolbar({
           size="small"
           sx={{ minWidth: { xs: '100%', sm: 140 } }}
         >
-          <InputLabel id="rows-per-page-label">Por página</InputLabel>
+          <InputLabel id="rows-per-page-label" sx={{ fontWeight: 600 }}>Por página</InputLabel>
           <Select
             labelId="rows-per-page-label"
             label="Por página"
             value={rowsPerPage}
             onChange={(e) => onRowsPerPageChange(Number(e.target.value))}
-            sx={{ width: '100%', '& .MuiSelect-select': { py: 1.0 } }}
+            sx={{ width: '100%', '& .MuiSelect-select': { py: 1.0, fontWeight: 500, borderRadius: 2 } }}
           >
             {pageSizeOptions.map((n) => (
               <MenuItem
@@ -258,6 +263,8 @@ export default function ActivationRequestsToolbar({
                 minWidth: { xs: 32, sm: 36 },
                 height: { xs: 32, sm: 36 },
                 fontSize: { xs: 12, sm: 14 },
+                fontWeight: 600,
+                borderRadius: 2,
               },
             }}
           />

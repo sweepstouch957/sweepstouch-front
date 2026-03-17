@@ -59,6 +59,7 @@ type Promoter = {
   lastLogin?: string;
   createdAt?: string;
   store?: { zipCode?: string };
+  accessCode?: string | null;
   generalInfo?: {
     lastLogin?: string;
     createdAt?: string;
@@ -118,7 +119,7 @@ const PromoterTable = ({
   const filteredPromoters = useMemo(() => {
     const q = search.toLowerCase();
     return promoters.filter((p) =>
-      `${p.firstName ?? ''} ${p.lastName ?? ''} ${p.email ?? ''}`.toLowerCase().includes(q)
+      `${p.firstName ?? ''} ${p.lastName ?? ''} ${p.email ?? ''} ${p.accessCode ?? ''}`.toLowerCase().includes(q)
     );
   }, [search, promoters]);
 
@@ -233,7 +234,7 @@ const PromoterTable = ({
         </Typography>
 
         <TextField
-          placeholder="Buscar por nombre o email"
+          placeholder="Buscar impulsadora..."
           size="small"
           variant="outlined"
           value={search}
@@ -241,35 +242,34 @@ const PromoterTable = ({
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchOutlinedIcon color="disabled" />
+                <SearchOutlinedIcon color="action" />
               </InputAdornment>
             ),
           }}
           sx={{
-            backgroundColor: (theme) => theme.palette.grey[100],
-            borderRadius: 10,
-            '& fieldset': { border: 'none' },
-            input: { px: 0.5 },
+            minWidth: { xs: '100%', sm: 320 },
+            backgroundColor: (theme) => theme.palette.grey[50],
+            borderRadius: 2,
+            '& fieldset': { borderRadius: 2 },
           }}
         />
       </Stack>
 
       <TableContainer
         component={Paper}
-        elevation={1}
-        sx={{ borderRadius: 4 }}
+        elevation={0}
+        sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}
       >
-        <Table>
-          <TableHead>
+        <Table size="small">
+          <TableHead sx={{ backgroundColor: (theme) => theme.palette.grey[50] }}>
             <TableRow>
-              <TableCell>Impulsadora</TableCell>
-              <TableCell>Contacto</TableCell>
-              <TableCell>Estado</TableCell>
-              <TableCell>Turnos</TableCell>
-              <TableCell>Registros</TableCell>
-              <TableCell>Rating</TableCell>
-              <TableCell>Ganancias</TableCell>
-              <TableCell align="right">Acciones</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: 12, py: 1.5 }}>Impulsadora</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: 12, py: 1.5 }}>Contacto</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: 12, py: 1.5 }}>Estado</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: 12, py: 1.5 }}>Turnos</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: 12, py: 1.5 }}>Registros</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: 'text.secondary', fontSize: 12, py: 1.5 }}>Ganancias</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: 12, py: 1.5 }}>Acciones</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -278,74 +278,79 @@ const PromoterTable = ({
               .map((p) => (
                 <TableRow
                   key={p._id}
-                  hover
+
                 >
-                  <TableCell>
+                  <TableCell sx={{ py: 1 }}>
                     <Stack
                       direction="row"
-                      spacing={2}
+                      spacing={1.5}
                       alignItems="center"
                     >
                       <Tooltip title="Ver foto">
                         <Avatar
                           src={p?.profileImage || '/placeholder-profile.png'}
-                          sx={{ cursor: 'pointer' }}
+                          sx={{ cursor: 'pointer', width: 34, height: 34 }}
                           onClick={() => handleOpenPhoto(p)}
                         />
                       </Tooltip>
                       <Box>
-                        <Typography fontWeight={600}>
+                        <Typography fontWeight={600} fontSize={13} noWrap>
                           {p.firstName} {p.lastName}
                         </Typography>
                         <Typography
-                          variant="body2"
+                          variant="caption"
                           color="text.secondary"
+                          noWrap
                         >
                           {p.store?.zipCode || 'N/A'}
                         </Typography>
                       </Box>
                     </Stack>
                   </TableCell>
-                  <TableCell>
-                    <Stack spacing={0.5}>
+                  <TableCell sx={{ py: 1 }}>
+                    <Stack spacing={0.25}>
                       <Stack
                         direction="row"
-                        spacing={1}
+                        spacing={0.75}
                         alignItems="center"
                       >
                         <EmailIcon
-                          fontSize="small"
+                          sx={{ fontSize: 16 }}
                           color="disabled"
                         />
-                        <Typography variant="body2">{p.email || '—'}</Typography>
+                        <Typography variant="body2" fontSize={13} noWrap>{p.email || '—'}</Typography>
                       </Stack>
                       <Stack
                         direction="row"
-                        spacing={1}
+                        spacing={0.75}
                         alignItems="center"
                       >
                         <PhoneIcon
-                          fontSize="small"
+                          sx={{ fontSize: 16 }}
                           color="disabled"
                         />
-                        <Typography variant="body2">
+                        <Typography variant="body2" fontSize={13} noWrap>
                           {p.countryCode || ''} {p.phoneNumber || '—'}
                         </Typography>
                       </Stack>
                     </Stack>
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ py: 1 }}>
                     <Chip
                       label={p.active ? 'Activa' : 'Inactiva'}
                       color={p.active ? 'primary' : 'default'}
-                      sx={{ fontWeight: 600 }}
+                      size="small"
+                      sx={{ fontWeight: 600, fontSize: 12, height: 24 }}
                     />
                   </TableCell>
-                  <TableCell>{fmtInt(p.totalShifts)}</TableCell>
-                  <TableCell>{fmtInt(p.totalRegistrations)}</TableCell>
-                  <TableCell>{typeof p.rating === 'number' ? p.rating.toFixed(1) : '—'}</TableCell>
-                  <TableCell>{fmtMoney(p.totalAccumulatedMoney)}</TableCell>
-                  <TableCell align="right">
+                  <TableCell sx={{ py: 1, fontSize: 13 }}>{fmtInt(p.totalShifts)}</TableCell>
+                  <TableCell sx={{ py: 1, fontSize: 13 }}>{fmtInt(p.totalRegistrations)}</TableCell>
+                  <TableCell sx={{ py: 1 }}>
+                    <Typography fontWeight={600} color="success.main" fontSize={13}>
+                      {fmtMoney(p.totalAccumulatedMoney)}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right" sx={{ py: 1 }}>
                     <Stack
                       direction="row"
                       spacing={1}
@@ -439,6 +444,14 @@ const PromoterTable = ({
                         size="small"
                         label={`Status: ${selected.status}`}
                         variant="outlined"
+                      />
+                    )}
+                    {selected.accessCode && (
+                      <Chip
+                        size="small"
+                        color="secondary"
+                        variant="outlined"
+                        label={`Access code: ${selected.accessCode}`}
                       />
                     )}
                     {typeof selected.rating === 'number' && (

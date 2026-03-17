@@ -666,6 +666,33 @@ const ActivationRequestsPage = () => {
                 </Tooltip>
               )}
             </Stack>
+
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={1}
+              sx={{ mt: 0.75 }}
+            >
+              <Typography fontSize={14}>
+                <strong>Código de acceso:</strong>{' '}
+                <Box
+                  component="span"
+                  sx={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', color: 'secondary.main', fontWeight: 600 }}
+                >
+                  {approvedModal.accessCode || '—'}
+                </Box>
+              </Typography>
+              {approvedModal.accessCode && (
+                <Tooltip title="Copiar código de acceso">
+                  <IconButton
+                    size="small"
+                    onClick={() => copyText(approvedModal.accessCode, 'Código de acceso')}
+                  >
+                    <ContentCopyIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Stack>
           </Box>
 
           {/* CTA a la plataforma */}

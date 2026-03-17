@@ -166,7 +166,7 @@ export const routes = {
         create: '/admin/management/promos/create',
       },
       promotors: {
-        listing: '/admin/management/promotors/listing',
+        listing: '/admin/management/promotors',
         featuredStores: '/admin/management/promotors/featuredStores',
         turnos: '/admin/management/turnos/listing',
       },
