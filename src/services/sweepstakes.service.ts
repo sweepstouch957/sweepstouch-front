@@ -350,6 +350,12 @@ export interface WelcomeCouponConfig {
   active: boolean;
   welcomeMessage: string;
   welcomeImageUrl: string;
+  title?: string;
+  discountPercentage?: string;
+  validFrom?: string;
+  validUntil?: string;
+  minPurchaseAmount?: string;
+  terms?: string;
   totalWelcomeSent?: number;
   totalNewCustomers?: number;
   totalExisting?: number;
@@ -365,9 +371,15 @@ export interface WelcomeCouponMetrics {
 export class WelcomeCouponClient {
   async upsertConfig(data: {
     storeId: string;
-    active: boolean;
+    active?: boolean;
     welcomeMessage: string;
     welcomeImageUrl: string;
+    title?: string;
+    discountPercentage?: string;
+    validFrom?: string;
+    validUntil?: string;
+    minPurchaseAmount?: string;
+    terms?: string;
   }): Promise<{ success: boolean; config: WelcomeCouponConfig }> {
     const res = await api.post('/sweepstakes/welcome-coupon', data);
     return res.data;
