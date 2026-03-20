@@ -45,6 +45,8 @@ import CustomersPanel from './panel/customers/customers-panel';
 import QrDuetMUI from './panel/qr/QrContainer';
 import { StoreSidebar } from './store-sidebar';
 import { StoreEquipmentPanel } from './panel/equipment/StoreEquipmentPanel';
+import WelcomeCouponsPanel from './panel/welcome-coupons/WelcomeCouponsPanel';
+
 
 const StoreManagementPage = () => {
   const router = useRouter();
@@ -75,6 +77,7 @@ const StoreManagementPage = () => {
         { id: 'campaigns', label: 'Campaigns' },
         { id: 'general-info', label: 'General Info' },
         { id: 'sweepstakes', label: 'Sweepstakes' },
+        { id: 'welcome-coupons', label: 'Welcome Coupons' },
         { id: 'ads', label: 'Ads' },
         { id: 'qr', label: 'QR' },
       ])
@@ -282,6 +285,9 @@ const StoreManagementPage = () => {
             <ActiveSweepstakeCard storeId={storeId} />
           </Box>
         );
+
+      case 'welcome-coupons':
+        return <WelcomeCouponsPanel storeId={storeId} />;
 
       case 'qr':
         return (

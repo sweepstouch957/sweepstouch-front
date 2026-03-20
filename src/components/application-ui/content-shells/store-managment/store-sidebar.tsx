@@ -16,7 +16,9 @@ import {
   MonetizationOn,
   QrCode2Outlined,
   RedeemTwoTone as RewardIcon,
+  ConfirmationNumberTwoTone as CouponIcon,
   Web as WebIcon,
+
   Woman2,
   DevicesOtherTwoTone as DevicesIcon,
 } from '@mui/icons-material';
@@ -60,6 +62,7 @@ const STORE_SECTIONS = [
   { id: 'general-info', label: 'General Info', icon: <InfoIcon /> },
   { id: 'equipment', label: 'Equipment', icon: <DevicesIcon /> },
   { id: 'sweepstakes', label: 'Sweepstakes', icon: <RewardIcon /> },
+  { id: 'welcome-coupons', label: 'Welcome Coupons', icon: <CouponIcon /> },
   { id: 'billing', label: 'Billing', icon: <MonetizationOn /> },
   { id: 'qr', label: 'QR', icon: <QrCode2Outlined /> },
   { id: 'customers', label: 'Customers', icon: <PeopleIcon /> },

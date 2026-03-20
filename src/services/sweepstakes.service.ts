@@ -343,4 +343,53 @@ export class PrizesClient {
   }
 }
 
+
+/* ===================== WELCOME COUPONS ===================== */
+
+export interface WelcomeCouponConfig {
+  active: boolean;
+  welcomeMessage: string;
+  welcomeImageUrl: string;
+  totalWelcomeSent?: number;
+  totalNewCustomers?: number;
+  totalExisting?: number;
+}
+
+export interface WelcomeCouponMetrics {
+  totalWelcomeSent: number;
+  totalNewCustomers: number;
+  totalExisting: number;
+  dailyTrend: Array<{ date: string; count: number }>;
+}
+
+export class WelcomeCouponClient {
+  async upsertConfig(data: {
+    storeId: string;
+    active: boolean;
+    welcomeMessage: string;
+    welcomeImageUrl: string;
+  }): Promise<{ success: boolean; config: WelcomeCouponConfig }> {
+    const res = await api.post('/sweepstakes/welcome-coupon', data);
+    return res.data;
+  }
+
+  async getConfig(storeId: string): Promise<{ success: boolean; config: WelcomeCouponConfig }> {
+    const res = await api.get(`/sweepstakes/welcome-coupon/${storeId}`);
+    return res.data;
+  }
+
+  async toggleActive(storeId: string): Promise<{ success: boolean; active: boolean; config: WelcomeCouponConfig }> {
+    const res = await api.patch(`/sweepstakes/welcome-coupon/${storeId}/toggle`);
+    return res.data;
+  }
+
+  async getMetrics(storeId: string, params?: { startDate: string; endDate: string }): Promise<{ success: boolean; metrics: WelcomeCouponMetrics }> {
+    const res = await api.get(`/sweepstakes/welcome-coupon/${storeId}/metrics`, { params });
+    return res.data;
+  }
+}
+
+export const welcomeCouponClient = new WelcomeCouponClient();
+
 export const prizesClient = new PrizesClient();
+
