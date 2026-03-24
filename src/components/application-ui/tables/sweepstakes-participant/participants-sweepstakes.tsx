@@ -1,3 +1,5 @@
+'use client';
+
 import { sweepstakesClient } from '@/services/sweepstakes.service';
 import MoreVertTwoToneIcon from '@mui/icons-material/MoreVertTwoTone';
 import StorefrontIcon from '@mui/icons-material/Storefront';
@@ -9,19 +11,22 @@ import {
   Divider,
   IconButton,
   Skeleton,
+  Table,
   TableBody,
   TableCell,
   TableContainer,
+  TableHead,
   TablePagination,
   TableRow,
+  TableSortLabel,
   Typography,
   useMediaQuery,
   useTheme,
+  Stack,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { TableHeadWrapper, TableRowDivider, TableWrapper } from 'src/components/base/styles/table';
 
 interface Props {
   sweepstakeId: string;
@@ -34,13 +39,16 @@ function SweepstakeStoresTable({ sweepstakeId }: Props) {
 
   const [page, setPage] = useState(0);
   const [limit, setLimit] = useState(10);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['store-sweepstakes', sweepstakeId, page, limit],
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: ['store-sweepstakes', sweepstakeId, page, limit, sortOrder],
     queryFn: () =>
       sweepstakesClient.getStoresBySweepstkesFiltered(sweepstakeId, {
         page: page + 1,
         limit,
+        sortBy: 'participants',
+        sortOrder,
       }),
     staleTime: 1000 * 60 * 5,
     enabled: !!sweepstakeId,
@@ -49,253 +57,187 @@ function SweepstakeStoresTable({ sweepstakeId }: Props) {
   const stores = data?.data || [];
   const total = data?.total || 0;
 
-  const handlePageChange = (_: any, newPage: number) => {
-    setPage(newPage);
-  };
-
+  const handlePageChange = (_: any, newPage: number) => setPage(newPage);
   const handleLimitChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setLimit(parseInt(event.target.value, 10));
     setPage(0);
   };
+  const handleSort = () => {
+    setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc');
+    setPage(0);
+  };
+
+  const showSkeletons = isLoading || (isFetching && stores.length === 0);
 
   return (
-    <Card sx={{ borderRadius: 6 }}>
+    <Card sx={{ borderRadius: 4, overflow: 'hidden' }} elevation={0} variant="outlined">
       <Box
-        px={isMobile ? 2 : 3}
-        py={isMobile ? 1.5 : 2}
+        px={{ xs: 2, sm: 3 }}
+        py={{ xs: 2, sm: 3 }}
         display="flex"
-        flexDirection={isMobile ? 'column' : 'row'}
-        alignItems={isMobile ? 'flex-start' : 'center'}
+        flexDirection={{ xs: 'column', sm: 'row' }}
+        alignItems={{ xs: 'flex-start', sm: 'center' }}
         justifyContent="space-between"
-        gap={isMobile ? 1 : 0}
+        gap={{ xs: 2, sm: 0 }}
+        bgcolor={theme.palette.mode === 'light' ? '#f8fafc' : '#1e1e1e'}
       >
         <Box>
-          <Typography
-            variant={isMobile ? 'h5' : 'h4'}
-            fontWeight={700}
-          >
+          <Typography variant="h5" fontWeight={700}>
             {t('Sweepstake Stores')}
           </Typography>
-          <Typography
-            variant="subtitle2"
-            color="text.secondary"
-            fontSize={isMobile ? 14 : 16}
-          >
+          <Typography variant="body2" color="text.secondary" mt={0.5}>
             {t('List of all stores with participation metrics')}
           </Typography>
         </Box>
-        <IconButton
-          color="secondary"
-          sx={{ alignSelf: isMobile ? 'flex-end' : 'center' }}
-        >
+        <IconButton color="secondary" size="small" sx={{ alignSelf: { xs: 'flex-end', sm: 'center' } }}>
           <MoreVertTwoToneIcon />
         </IconButton>
       </Box>
       <Divider />
-      <Box
-        px={isMobile ? 1 : 3}
-        pb={isMobile ? 1 : 3}
-        width="100%"
-        sx={{
-          overflowX: isMobile ? 'auto' : 'unset',
-        }}
-      >
+      <Box width="100%">
         <TableContainer sx={{ minWidth: 320 }}>
-          <TableWrapper>
+          <Table size={isMobile ? 'small' : 'medium'}>
             {!isMobile && (
-              <TableHeadWrapper>
+              <TableHead sx={{ bgcolor: theme.palette.mode === 'light' ? '#ffffff' : '#2d2d2d' }}>
                 <TableRow>
-                  <TableCell>{t('Store')}</TableCell>
-                  <TableCell>{t('Type')}</TableCell>
-                  <TableCell>{t('Customers')}</TableCell>
-                  <TableCell>{t('Participations')}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, py: 2, color: 'text.secondary' }}>{t('Store')}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>{t('Type')}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>{t('Customers')}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                    <TableSortLabel
+                      active={true}
+                      direction={sortOrder}
+                      onClick={handleSort}
+                    >
+                      {t('Participations')}
+                    </TableSortLabel>
+                  </TableCell>
                 </TableRow>
-              </TableHeadWrapper>
+              </TableHead>
             )}
             <TableBody>
-              {isLoading
-                ? Array.from({ length: limit }).map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell colSpan={isMobile ? 1 : 4}>
-                        <Box
-                          display="flex"
-                          alignItems="center"
-                          gap={2}
-                          p={2}
-                          sx={{
-                            bgcolor: theme.palette.action.hover,
-                            borderRadius: 4,
-                          }}
-                        >
-                          <Skeleton
-                            variant="circular"
-                            width={40}
-                            height={40}
-                          />
-                          <Box flex={1}>
-                            <Skeleton
-                              variant="text"
-                              width="60%"
-                            />
-                            <Skeleton
-                              variant="text"
-                              width="30%"
-                            />
-                          </Box>
-                        </Box>
+              {showSkeletons ? (
+                Array.from({ length: limit }).map((_, i) => (
+                  <TableRow key={i}>
+                    {isMobile ? (
+                      <TableCell>
+                        <Stack direction="row" spacing={2} p={1} alignItems="center">
+                          <Skeleton variant="rounded" width={52} height={52} />
+                          <Stack flex={1} spacing={1}>
+                            <Skeleton variant="text" width="60%" />
+                            <Skeleton variant="text" width="40%" />
+                          </Stack>
+                        </Stack>
                       </TableCell>
-                    </TableRow>
-                  ))
-                : stores.map((store) =>
-                    isMobile ? (
-                      <TableRow
-                        hover
-                        key={store.storeId}
-                      >
-                        <TableCell
-                          colSpan={4}
-                          sx={{ p: 0, border: 0 }}
-                        >
-                          <Card
-                            elevation={3}
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                              p: 1.5,
-                              mb: 2,
-                              borderRadius: 4,
-                              background: theme.palette.mode === 'dark' ? '#181A1B' : '#fafbfc',
-                              boxShadow: '0 2px 16px 0 #0002',
-                            }}
-                          >
-                            <Avatar
-                              src={store.storeImage}
-                              sx={{
-                                width: 52,
-                                height: 52,
-                                mr: 2,
-                                border: `2.5px solid ${theme.palette.primary.light}`,
-                                boxShadow: 1,
-                                bgcolor: theme.palette.grey[200],
-                              }}
-                            >
-                              {!store.storeImage && <StorefrontIcon fontSize="medium" />}
-                            </Avatar>
-                            <Box
-                              flex={1}
-                              minWidth={0}
-                            >
-                              <Typography
-                                variant="subtitle1"
-                                fontWeight={700}
-                                noWrap
-                                sx={{ fontSize: 17, color: theme.palette.text.primary }}
-                              >
-                                {store.storeName}
-                              </Typography>
-                              <Box
-                                mt={0.5}
-                                display="flex"
-                                gap={1}
-                                alignItems="center"
-                                flexWrap="wrap"
-                              >
-                                <Chip
-                                  size="small"
-                                  label={store.storeType || 'N/A'}
-                                  variant="outlined"
-                                  sx={{
-                                    fontWeight: 600,
-                                    px: 1.3,
-                                    background:
-                                      theme.palette.mode === 'dark' ? '#232323' : '#f3f3f3',
-                                    color: theme.palette.text.secondary,
-                                  }}
-                                />
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                  sx={{ ml: 0.3, fontWeight: 400 }}
-                                >
-                                  Clientes: <b>{store.storeCustomerCount}</b>
-                                </Typography>
-                                <Chip
-                                  label={
-                                    <span>
-                                      <b style={{ color: theme.palette.primary.main }}>
-                                        {store.totalParticipations}
-                                      </b>{' '}
-                                      participaciones
-                                    </span>
-                                  }
-                                  size="small"
-                                  variant="outlined"
-                                  sx={{
-                                    borderColor: theme.palette.primary.light,
-                                    color: theme.palette.primary.dark,
-                                    fontWeight: 700,
-                                    ml: 0.5,
-                                    background:
-                                      theme.palette.mode === 'dark' ? '#232323' : '#eef8ff',
-                                  }}
-                                />
-                              </Box>
-                            </Box>
-                          </Card>
-                        </TableCell>
-                      </TableRow>
                     ) : (
                       <>
-                        <TableRow
-                          hover
-                          key={store.storeId}
-                        >
-                          <TableCell>
-                            <Box
-                              display="flex"
-                              alignItems="center"
-                            >
-                              <Avatar
-                                src={store.storeImage}
-                                sx={{ mr: 1, width: 40, height: 40 }}
-                              >
-                                {!store.storeImage && <StorefrontIcon fontSize="small" />}
-                              </Avatar>
-                              <Typography
-                                variant="subtitle2"
-                                noWrap
-                              >
-                                {store.storeName}
-                              </Typography>
-                            </Box>
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={store.storeType || 'N/A'}
-                              variant="outlined"
-                              sx={{ fontWeight: 600 }}
-                            />
-                          </TableCell>
-                          <TableCell>{store.storeCustomerCount}</TableCell>
-                          <TableCell>
-                            <Typography
-                              fontWeight={700}
-                              color="primary"
-                            >
-                              {store.totalParticipations}
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                        <TableRowDivider />
+                        <TableCell>
+                          <Stack direction="row" spacing={2} alignItems="center">
+                            <Skeleton variant="rounded" width={40} height={40} />
+                            <Skeleton variant="text" width={120} />
+                          </Stack>
+                        </TableCell>
+                        <TableCell><Skeleton variant="text" width={60} /></TableCell>
+                        <TableCell><Skeleton variant="text" width={40} /></TableCell>
+                        <TableCell><Skeleton variant="text" width={60} /></TableCell>
                       </>
-                    )
-                  )}
+                    )}
+                  </TableRow>
+                ))
+              ) : stores.map((store: any) =>
+                isMobile ? (
+                  <TableRow hover key={store.storeId}>
+                    <TableCell sx={{ p: 2 }}>
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Avatar
+                          src={store.storeImage}
+                          variant="rounded"
+                          sx={{
+                            width: 52,
+                            height: 52,
+                            border: `1px solid ${theme.palette.divider}`,
+                            bgcolor: theme.palette.action.hover,
+                            color: 'text.secondary',
+                            borderRadius: 2
+                          }}
+                        >
+                          {!store.storeImage && <StorefrontIcon fontSize="medium" />}
+                        </Avatar>
+                        <Box flex={1}>
+                          <Typography variant="body1" fontWeight={700} noWrap>
+                            {store.storeName}
+                          </Typography>
+                          <Stack direction="row" mt={0.5} gap={1} flexWrap="wrap" alignItems="center">
+                            <Chip
+                              size="small"
+                              label={store.storeType || 'N/A'}
+                              sx={{
+                                fontWeight: 500,
+                                fontSize: '0.7rem',
+                                color: 'text.secondary',
+                                bgcolor: 'action.hover'
+                              }}
+                            />
+                            <Typography variant="caption" color="text.secondary">
+                              Customers: {store.storeCustomerCount}
+                            </Typography>
+                            <Chip
+                              label={`${store.totalParticipations} parts`}
+                              size="small"
+                              color="primary"
+                              variant="outlined"
+                              sx={{ fontWeight: 600, fontSize: '0.7rem' }}
+                            />
+                          </Stack>
+                        </Box>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  <TableRow hover key={store.storeId}>
+                    <TableCell>
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Avatar
+                          src={store.storeImage}
+                          variant="rounded"
+                          sx={{
+                            width: 44,
+                            height: 44,
+                            bgcolor: 'action.hover',
+                            color: 'text.secondary',
+                            borderRadius: 2
+                          }}
+                        >
+                          {!store.storeImage && <StorefrontIcon fontSize="small" />}
+                        </Avatar>
+                        <Typography variant="subtitle2" fontWeight={600} noWrap>
+                          {store.storeName}
+                        </Typography>
+                      </Stack>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={store.storeType || 'N/A'}
+                        size="small"
+                        sx={{ fontWeight: 500, bgcolor: 'action.hover', color: 'text.secondary' }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight={500}>{store.storeCustomerCount}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography fontWeight={700} color="primary.main">
+                        {store.totalParticipations}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )
+              )}
             </TableBody>
-          </TableWrapper>
+          </Table>
         </TableContainer>
-
-        <Box mt={2}>
+        
+        {(!showSkeletons && stores.length > 0) && (
           <TablePagination
             component="div"
             count={total}
@@ -305,9 +247,9 @@ function SweepstakeStoresTable({ sweepstakeId }: Props) {
             onRowsPerPageChange={handleLimitChange}
             rowsPerPageOptions={[5, 10, 25]}
             labelRowsPerPage={isMobile ? t('Rows') : t('Rows per page')}
-
+            sx={{ borderTop: `1px solid ${theme.palette.divider}` }}
           />
-        </Box>
+        )}
       </Box>
     </Card>
   );

@@ -173,8 +173,8 @@ export class SweepstakesClient {
 
   async getStoresBySweepstkesFiltered(
     id: string,
-    filters?: Pagination
-  ): Promise<StoreSweepstakeResponse> {
+    filters?: { page?: number; limit?: number; sortBy?: string; sortOrder?: 'asc' | 'desc' }
+  ): Promise<any> {
     const res = await api.get(`/sweepstakes/${id}/stores`, { params: filters });
     return res.data;
   }

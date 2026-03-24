@@ -2,7 +2,7 @@
 
 import { AvatarState } from '@/components/base/styles/avatar';
 import { sweepstakesClient } from '@/services/sweepstakes.service';
-import { QrCode, RedeemOutlined, Web } from '@mui/icons-material';
+import StorefrontIcon from '@mui/icons-material/Storefront';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import TrendingUp from '@mui/icons-material/TrendingUp';
 import {
@@ -24,93 +24,31 @@ import {
   Stack,
   Typography,
   useTheme,
+  Avatar,
 } from '@mui/material';
 import { pieArcLabelClasses, PieChart } from '@mui/x-charts/PieChart';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import BasicIcon from '@public/web/basic.png';
-import PremiumIcon from '@public/web/elite.png';
-import FreeIcon from '@public/web/free.png';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import Image from 'next/image';
 import { Fragment, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SweepstakeMiniHeader } from '../../headings/sweepstake/heading';
 
-const ListItemAvatarWrapper = ({ children }) => {
-  const theme = useTheme();
-  return (
-    <ListItemAvatar
-      sx={{
-        minWidth: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: theme.spacing(1),
-        padding: theme.spacing(0.5),
-        borderRadius: '60px',
-        background:
-          theme.palette.mode === 'dark'
-            ? alpha(theme.palette.common.white, 0.3)
-            : alpha(theme.palette.common.black, 0.07),
-        img: {
-          background: theme.palette.common.white,
-          padding: theme.spacing(1),
-          display: 'block',
-          borderRadius: 'inherit',
-          height: theme.spacing(5.5),
-          width: theme.spacing(5.5),
-        },
-      }}
-    >
-      {children}
-    </ListItemAvatar>
-  );
-};
-
-const getImage = (type: string) => {
-  const images = {
-    elite: PremiumIcon.src,
-    basic: BasicIcon.src,
-    '': FreeIcon.src,
-  };
-  return images[type] || FreeIcon.src;
-};
-
 function SkeletonCardItem() {
   return (
     <ListItem>
-      <ListItemAvatarWrapper>
-        <Skeleton
-          variant="circular"
-          width={40}
-          height={40}
-        />
-      </ListItemAvatarWrapper>
+      <ListItemAvatar>
+        <Skeleton variant="rounded" width={44} height={44} sx={{ borderRadius: 2 }} />
+      </ListItemAvatar>
       <ListItemText
-        primary={
-          <Skeleton
-            variant="text"
-            width="70%"
-          />
-        }
-        secondary={
-          <Skeleton
-            variant="text"
-            width="50%"
-          />
-        }
+        sx={{ ml: 1 }}
+        primary={<Skeleton variant="text" width="70%" />}
+        secondary={<Skeleton variant="text" width="50%" />}
       />
       <Box textAlign="right">
-        <Skeleton
-          variant="text"
-          width={40}
-        />
-        <Skeleton
-          variant="text"
-          width={60}
-        />
+        <Skeleton variant="text" width={40} />
+        <Skeleton variant="text" width={60} />
       </Box>
     </ListItem>
   );
@@ -128,10 +66,10 @@ export default function SweepstakesBalance({
   const [startDate, setStartDate] = useState<Date | null>(new Date('2025-05-01'));
   const [endDate, setEndDate] = useState<Date | null>(() => {
     const today = new Date();
-    today.setDate(today.getDate() + 1); // Suma un día
+    today.setDate(today.getDate() + 1);
     return today;
   });
-  // Data query
+
   const { data, isLoading } = useQuery({
     queryKey: [
       'sweepstake-metrics',
@@ -149,14 +87,14 @@ export default function SweepstakesBalance({
       }),
     staleTime: 1000 * 60 * 10,
   });
-  const stores = data?.stores || [];
-  const total = data?.totalRegistrations || 0;
 
+  const stores = data?.stores || [];
   const visibleData = !expandedDrawer ? stores.slice(0, 4) : stores;
 
-  const totalParticipations = stores.reduce((acc, item) => acc + item.totalParticipations, 0);
+  // Usar participaciones reales para UI coherente
+  const totalParticipations = stores.reduce((acc: number, item: any) => acc + item.totalParticipations, 0);
+  const totalRegistrations = data?.totalRegistrations || 0;
 
-  // Pie chart data (agrupa 'others' si hay más de 8 tiendas)
   const colors = [
     theme.palette.primary.main,
     theme.palette.error.main,
@@ -164,72 +102,51 @@ export default function SweepstakesBalance({
     theme.palette.warning.main,
     theme.palette.secondary[100],
   ];
+
   const grouped: any[] = [];
   let othersValue = 0;
-  stores.forEach((item, index) => {
-    const percentage = item.totalRegistrations / (total || 1);
-    if (stores.length > 8 && percentage < 0.07) {
-      othersValue += item.totalRegistrations;
-    } else {
+
+  stores.forEach((item: any, index: number) => {
+    if (index < 5 || stores.length <= 6) {
       grouped.push({
+        id: item.storeId,
         label: item.storeName,
-        value: item.totalRegistrations,
+        value: item.totalParticipations,
         color: colors[index % colors.length],
       });
+    } else {
+      othersValue += item.totalParticipations;
     }
   });
+
   if (othersValue > 0) {
     grouped.push({
+      id: 'otras',
       label: 'Otras',
       value: othersValue,
-      color: '#ffe066',
+      color: theme.palette.mode === 'dark' ? theme.palette.grey[700] : theme.palette.grey[300],
     });
   }
-  const pieData = grouped;
-  const getArcLabel = (params: any) =>
-    `${((params.value / (totalParticipations || 1)) * 100).toFixed(0)}%`;
+
+  const getArcLabel = (params: any) => {
+    const percent = params.value / (totalParticipations || 1);
+    return percent >= 0.05 ? `${(percent * 100).toFixed(0)}%` : '';
+  };
 
   return (
     <>
-      <Card
-        sx={{
-          borderRadius: 4,
-          overflow: 'hidden',
-          p: { xs: 1, sm: 3 },
-        }}
-      >
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          spacing={2}
-          alignItems="center"
-        >
-          {/* Summary */}
-          <Stack
-            flex={1}
-            spacing={2}
-            p={{ xs: 1, md: 2 }}
-          >
+      <Card sx={{ borderRadius: 4, overflow: 'hidden', p: { xs: 1, sm: 3 } }} elevation={0} variant="outlined">
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center">
+          <Stack flex={1} spacing={2} p={{ xs: 1, md: 2 }}>
             <SweepstakeMiniHeader sweepstakeId={sweepstakeId} />
-
-            <Typography
-              variant="h4"
-              fontWeight={700}
-              sx={{ letterSpacing: 0.5 }}
-            >
+            <Typography variant="h4" fontWeight={700} sx={{ letterSpacing: 0.5 }}>
               Resumen del sorteo
             </Typography>
             <Box>
-              <Typography
-                variant="h2"
-                fontWeight={800}
-                color="primary.main"
-              >
-                {isLoading ? <Skeleton width={100} /> : `${total} registros`}
+              <Typography variant="h2" fontWeight={800} color="primary.main">
+                {isLoading ? <Skeleton width={100} /> : `${totalRegistrations} registros`}
               </Typography>
-              <Typography
-                variant="h6"
-                color="text.secondary"
-              >
+              <Typography variant="h6" color="text.secondary">
                 {startDate && endDate
                   ? `Del ${format(startDate, "d 'de' MMMM", { locale: es })} al ${format(
                     endDate,
@@ -239,85 +156,49 @@ export default function SweepstakesBalance({
                   : 'Selecciona un rango'}
               </Typography>
             </Box>
-            <Box
-              display="flex"
-              alignItems="center"
-            >
-              <AvatarState
-                state="success"
-                useShadow
-                sx={{ mr: 2, width: 58, height: 58 }}
-                variant="rounded"
-              >
+            <Box display="flex" alignItems="center">
+              <AvatarState state="success" useShadow sx={{ mr: 2, width: 58, height: 58 }} variant="rounded">
                 <TrendingUp />
               </AvatarState>
               <Box>
-                <Typography
-                  variant="h4"
-                  fontWeight={700}
-                >
+                <Typography variant="h4" fontWeight={700}>
                   {isLoading ? <Skeleton width={80} /> : `${totalParticipations} participaciones`}
                 </Typography>
-                <Typography
-                  variant="subtitle2"
-                  color="text.secondary"
-                >
+                <Typography variant="subtitle2" color="text.secondary">
                   Participaciones totales
                 </Typography>
               </Box>
             </Box>
           </Stack>
 
-          {/* Visualización: Filtros, Pie, Top tiendas */}
           <Stack
             flex={2}
             spacing={3}
             justifyContent="space-between"
             sx={{
-              background:
-                theme.palette.mode === 'dark'
-                  ? alpha(theme.palette.neutral[25], 0.02)
-                  : alpha('#f7fafc', 0.9),
-              borderRadius: { xs: 3, md: 3 },
-              px: { xs: 0, md: 2 },
+              background: theme.palette.mode === 'dark' ? alpha(theme.palette.neutral[25] || '#222', 0.02) : '#f8fafc',
+              borderRadius: 3,
+              px: { xs: 1, md: 2 },
               py: 2,
+              border: `1px solid ${theme.palette.divider}`
             }}
           >
-            {/* Filtros */}
-            <Stack
-              direction={{ xs: 'column', sm: 'row' }}
-              spacing={2}
-            >
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <DatePicker
                 label="Fecha inicio"
                 value={startDate}
                 onChange={(newValue) => setStartDate(newValue)}
-                slotProps={{
-                  textField: {
-                    size: 'small',
-                    fullWidth: true,
-                    variant: 'outlined',
-                  },
-                }}
-                sx={{ flex: 1 }}
+                slotProps={{ textField: { size: 'small', fullWidth: true, variant: 'outlined' } }}
+                sx={{ flex: 1, bgcolor: 'background.paper' }}
               />
               <DatePicker
                 label="Fecha fin"
                 value={endDate}
                 onChange={(newValue) => setEndDate(newValue)}
-                slotProps={{
-                  textField: {
-                    size: 'small',
-                    fullWidth: true,
-                    variant: 'outlined',
-                  },
-                }}
-                sx={{ flex: 1 }}
+                slotProps={{ textField: { size: 'small', fullWidth: true, variant: 'outlined' } }}
+                sx={{ flex: 1, bgcolor: 'background.paper' }}
               />
-              <FormControl
-                size="small"
-                sx={{ minWidth: 160, flex: 1 }}
-              >
+              <FormControl size="small" sx={{ minWidth: 160, flex: 1, bgcolor: 'background.paper' }}>
                 <InputLabel id="method-select-label">Método</InputLabel>
                 <Select
                   labelId="method-select-label"
@@ -335,58 +216,39 @@ export default function SweepstakesBalance({
               </FormControl>
             </Stack>
 
-            {/* Pie y listado */}
-            <Stack
-              direction={{ xs: 'column', md: 'row' }}
-              spacing={2}
-              alignItems="flex-start"
-              justifyContent="space-between"
-            >
-              <Box
-                minWidth={isLoading ? 230 : 240}
-                minHeight={isLoading ? 230 : 240}
-                display="flex"
-                justifyContent="center"
-                alignItems="center"
-                mx="auto"
-              >
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={4} alignItems="center" justifyContent="center">
+              <Box minWidth={isLoading ? 280 : 280} display="flex" justifyContent="center" mx="auto">
                 {isLoading ? (
-                  <Skeleton
-                    variant="circular"
-                    width={230}
-                    height={230}
-                  />
+                  <Skeleton variant="circular" width={260} height={260} />
                 ) : (
                   <PieChart
-                    series={[
-                      {
-                        data: pieData,
-                        innerRadius: 55,
-                        outerRadius: 100,
-                        paddingAngle: 5,
-                        cornerRadius: 8,
-                        startAngle: 0,
-                        endAngle: 360,
-                        highlightScope: { fade: 'global', highlight: 'item' },
-                        arcLabel: getArcLabel,
-                      },
-                    ]}
-                    height={230}
-                    width={230}
-                    margin={{ right: 0 }}
+                    series={[{
+                      data: grouped,
+                      innerRadius: 80,
+                      outerRadius: 130,
+                      paddingAngle: 3,
+                      cornerRadius: 6,
+                      cx: '50%',
+                      cy: '50%',
+                      highlightScope: { fade: 'global', highlight: 'item' },
+                      arcLabel: getArcLabel,
+                    }]}
+                    height={280}
+                    width={280}
+                    margin={{ right: 0, top: 0, bottom: 0, left: 0 }}
                     hideLegend
                     sx={{
                       [`& .${pieArcLabelClasses.root}`]: {
-                        fill: theme.palette.common.white,
-                        fontWeight: 500,
-                        fontSize: 14,
+                        fill: theme.palette.getContrastText(theme.palette.primary.main),
+                        fontWeight: 700,
+                        fontSize: 15,
                       },
+                      filter: 'drop-shadow(0px 8px 16px rgba(0,0,0,0.08))'
                     }}
                   />
                 )}
               </Box>
 
-              {/* Listado de tiendas TOP */}
               <Card
                 variant="outlined"
                 elevation={0}
@@ -394,11 +256,10 @@ export default function SweepstakesBalance({
                   flex: 1,
                   maxHeight: { xs: 260, md: 330 },
                   overflowY: 'auto',
-                  minWidth: 230,
+                  width: '100%',
+                  minWidth: 0,
                   borderRadius: 3,
-                  boxShadow: 0,
-                  bgcolor: 'background.default',
-                  transition: 'box-shadow 0.2s',
+                  bgcolor: 'background.paper',
                 }}
               >
                 <List disablePadding>
@@ -409,47 +270,36 @@ export default function SweepstakesBalance({
                         {index !== 3 && <Divider />}
                       </Fragment>
                     ))
-                    : visibleData.map((item, index) => (
-                      <Fragment key={item.storeId}>
-                        <ListItem
-                          sx={{
-                            transition: 'background 0.2s',
-                            '&:hover': {
-                              background: alpha(theme.palette.primary.main, 0.06),
-                              boxShadow: '0 1px 8px 0 #d1d5db38',
-                            },
-                          }}
-                        >
-                          <ListItemAvatarWrapper>
-                            <Image
-                              src={getImage(item.storeType)}
-                              alt={item.storeName}
-                              width={40}
-                              style={{ padding: '4px' }}
-                              height={50}
-                            />
-                          </ListItemAvatarWrapper>
+                    : visibleData.map((item: any, index: number) => (
+                      <Fragment key={item.storeId || index}>
+                        <ListItem sx={{ py: 1.5, '&:hover': { bgcolor: 'action.hover' } }}>
+                          <ListItemAvatar>
+                            <Avatar
+                              src={item.storeImage}
+                              variant="rounded"
+                              sx={{
+                                width: 44,
+                                height: 46,
+                                borderRadius: 3,
+                                bgcolor: 'action.hover',
+                                border: `1px solid ${theme.palette.divider}`,
+                              }}
+                            >
+                              {!item.storeImage && <StorefrontIcon color="action" />}
+                            </Avatar>
+                          </ListItemAvatar>
                           <ListItemText
                             primary={item.storeName}
-                            sx={{ textWrap: 'wrap', maxWidth: '40ch' }}
-                            primaryTypographyProps={{ variant: 'h6', fontWeight: 600 }}
-                            secondary={`${item.totalRegistrations} números registrados`}
-                            secondaryTypographyProps={{ variant: 'body2', noWrap: true }}
+                            primaryTypographyProps={{ variant: 'subtitle2', fontWeight: 600, noWrap: true }}
+                            secondary={`${item.totalRegistrations} registros`}
+                            secondaryTypographyProps={{ variant: 'body2' }}
+                            sx={{ ml: 1, pr: 2 }}
                           />
-                          <Box ml={2}>
-                            <Typography
-                              align="right"
-                              variant="body2"
-                              color="text.secondary"
-                              noWrap
-                            >
+                          <Box textAlign="right">
+                            <Typography variant="body2" color="text.secondary" noWrap>
                               Customers
                             </Typography>
-                            <Typography
-                              align="right"
-                              variant="h6"
-                              noWrap
-                            >
+                            <Typography variant="h6" fontWeight={700}>
                               {item.storeCustomerCount}
                             </Typography>
                           </Box>
@@ -458,18 +308,9 @@ export default function SweepstakesBalance({
                       </Fragment>
                     ))}
                 </List>
-
                 {!isLoading && stores.length > 4 && (
-                  <Box
-                    textAlign="center"
-                    py={2}
-                  >
-                    <Button
-                      endIcon={<ExpandMoreIcon />}
-                      onClick={() => setExpandedDrawer(true)}
-                      variant="text"
-                      size="small"
-                    >
+                  <Box textAlign="center" py={1}>
+                    <Button endIcon={<ExpandMoreIcon />} onClick={() => setExpandedDrawer(true)} size="small" sx={{ fontWeight: 600 }}>
                       Ver todas las tiendas
                     </Button>
                   </Box>
@@ -478,9 +319,8 @@ export default function SweepstakesBalance({
             </Stack>
           </Stack>
         </Stack>
-      </Card>
+      </Card >
 
-      {/* Drawer para todas las tiendas */}
       <Drawer
         anchor="bottom"
         open={expandedDrawer}
@@ -488,56 +328,41 @@ export default function SweepstakesBalance({
         PaperProps={{
           sx: {
             maxHeight: '85vh',
-            borderRadius: '28px 28px 0 0',
-            p: { xs: 1, sm: 3 },
-            boxShadow: 5,
+            borderTopLeftRadius: 28,
+            borderTopRightRadius: 28,
+            p: { xs: 2, sm: 3 },
           },
         }}
       >
-        <Box
-          maxWidth={600}
-          mx="auto"
-        >
-          <Typography
-            variant="h5"
-            fontWeight={700}
-            mb={2}
-          >
+        <Box maxWidth={600} mx="auto" width="100%">
+          <Typography variant="h5" fontWeight={700} mb={2}>
             Todas las tiendas
           </Typography>
           <Divider sx={{ mb: 2 }} />
           <List>
-            {stores.map((item) => (
+            {stores.map((item: any) => (
               <Fragment key={item.storeId}>
-                <ListItem>
-                  <ListItemAvatarWrapper>
-                    <Image
-                      src={getImage(item.storeType)}
-                      alt={item.storeName}
-                      width={40}
-                      style={{ padding: '4px' }}
-                      height={50}
-                    />
-                  </ListItemAvatarWrapper>
+                <ListItem sx={{ py: 2 }}>
+                  <ListItemAvatar>
+                    <Avatar
+                      src={item.storeImage}
+                      variant="rounded"
+                      sx={{ width: 52, height: 52, borderRadius: 3, bgcolor: 'action.hover' }}
+                    >
+                      {!item.storeImage && <StorefrontIcon color="action" />}
+                    </Avatar>
+                  </ListItemAvatar>
                   <ListItemText
+                    sx={{ ml: 2 }}
                     primary={item.storeName}
-                    primaryTypographyProps={{ fontWeight: 700, variant: 'h6' }}
+                    primaryTypographyProps={{ fontWeight: 700, variant: 'subtitle1' }}
                     secondary={`${item.totalRegistrations} números registrados`}
                   />
-                  <Box ml={2}>
-                    <Typography
-                      align="right"
-                      variant="body2"
-                      color="text.secondary"
-                      noWrap
-                    >
+                  <Box ml={2} textAlign="right">
+                    <Typography variant="body2" color="text.secondary">
                       Customers
                     </Typography>
-                    <Typography
-                      align="right"
-                      variant="h6"
-                      noWrap
-                    >
+                    <Typography variant="h6" fontWeight={700}>
                       {item.storeCustomerCount}
                     </Typography>
                   </Box>
@@ -546,14 +371,8 @@ export default function SweepstakesBalance({
               </Fragment>
             ))}
           </List>
-          <Box
-            textAlign="center"
-            py={2}
-          >
-            <Button
-              variant="outlined"
-              onClick={() => setExpandedDrawer(false)}
-            >
+          <Box textAlign="center" mt={3}>
+            <Button variant="outlined" onClick={() => setExpandedDrawer(false)} color="inherit" sx={{ px: 4, borderRadius: 8 }}>
               Cerrar
             </Button>
           </Box>
