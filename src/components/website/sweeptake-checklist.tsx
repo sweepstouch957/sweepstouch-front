@@ -179,6 +179,10 @@ export default function SweepstakeChecklist({ sweepstakeId }: Props) {
       prizeIds: Array.isArray(sweepstake.prize)
         ? sweepstake.prize.map((p: any) => (typeof p === 'string' ? p : p._id))
         : [],
+      bannerDesktop: sweepstake.bannerDesktop || '',
+      bannerMobile: sweepstake.bannerMobile || '',
+      mainColor: sweepstake.mainColor || '',
+      secondaryColor: sweepstake.secondaryColor || '',
     }
     : undefined;
 

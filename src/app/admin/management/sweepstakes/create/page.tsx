@@ -56,9 +56,13 @@ function Page(): React.JSX.Element {
     hasQr: false,
     rules: '',
     participationMessage:
-      'Thank you for participating in the #StoreName For a Car Labor Day!. Your participation code is: #Codigo',
+      'Thank you for participating in the #StoreName!. Your participation code is: #Codigo',
     sweeptakeDescription: '',
     prizeIds: [] as string[],
+    bannerDesktop: '',
+    bannerMobile: '',
+    mainColor: '',
+    secondaryColor: '',
   };
 
   const pageMeta = {

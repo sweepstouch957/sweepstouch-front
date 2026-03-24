@@ -1,24 +1,31 @@
 import { usePrizes } from '@/hooks/fetching/sweepstakes/usePrizes';
 import { prizesClient, type Prize } from '@/services/sweepstakes.service';
 import { uploadCampaignImage } from '@/services/upload.service';
-import AddIcon from '@mui/icons-material/Add';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CloseIcon from '@mui/icons-material/Close';
+import ColorLensOutlinedIcon from '@mui/icons-material/ColorLensOutlined';
+import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined';
+import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import MessageOutlinedIcon from '@mui/icons-material/MessageOutlined';
 import {
   Alert,
+  Autocomplete,
+  Box,
   Button,
   Chip,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControl,
+  Divider,
   FormControlLabel,
   Grid,
   IconButton,
-  InputLabel,
-  MenuItem,
-  Select,
+  InputAdornment,
+  Paper,
   Snackbar,
   Stack,
   Switch,
@@ -27,8 +34,7 @@ import {
   Typography,
   useMediaQuery,
 } from '@mui/material';
-import { SelectChangeEvent } from '@mui/material/Select';
-import { useTheme } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -39,7 +45,9 @@ import { QuillEditor } from 'src/components/base/styles/quill-editor';
 import 'react-quill/dist/quill.snow.css';
 import AvatarUploadLogo from '../../upload/avatar/avatar-upload-logo';
 
-type BriefFormValues = {
+/* ===================== Types ===================== */
+
+export type BriefFormValues = {
   name: string;
   description: string;
   startDate: string | null;
@@ -51,6 +59,11 @@ type BriefFormValues = {
   participationMessage: string;
   sweeptakeDescription?: string;
   prizeIds: string[];
+  // Branding (optional)
+  bannerDesktop?: string;
+  bannerMobile?: string;
+  mainColor?: string;
+  secondaryColor?: string;
 };
 
 type Props = {
@@ -59,12 +72,254 @@ type Props = {
   onSubmit: (payload: BriefFormValues) => Promise<void> | void;
 };
 
+/* ===================== Section header helper ===================== */
+
+function SectionHeader({
+  icon,
+  title,
+  subtitle,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle?: string;
+}) {
+  const theme = useTheme();
+  return (
+    <Stack
+      direction="row"
+      alignItems="center"
+      gap={1.5}
+      sx={{ mb: 2.5 }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 36,
+          height: 36,
+          borderRadius: '10px',
+          background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.18)}, ${alpha(theme.palette.secondary.main, 0.18)})`,
+          color: theme.palette.primary.main,
+          flexShrink: 0,
+        }}
+      >
+        {icon}
+      </Box>
+      <Box>
+        <Typography
+          variant="subtitle1"
+          fontWeight={700}
+          lineHeight={1.2}
+        >
+          {title}
+        </Typography>
+        {subtitle && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+          >
+            {subtitle}
+          </Typography>
+        )}
+      </Box>
+    </Stack>
+  );
+}
+
+/* ===================== Banner Image Upload ===================== */
+
+function BannerUpload({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value?: string;
+  onChange: (url: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState<string | null>(value || null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = async (file: File) => {
+    setUploading(true);
+    try {
+      const { url } = await uploadCampaignImage(file, 'banners');
+      setPreview(url);
+      onChange(url);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <Box>
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        gutterBottom
+      >
+        {label}
+      </Typography>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) handleFile(f);
+        }}
+      />
+      <Paper
+        variant="outlined"
+        onClick={() => inputRef.current?.click()}
+        sx={{
+          cursor: 'pointer',
+          position: 'relative',
+          overflow: 'hidden',
+          minHeight: 110,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: 2,
+          borderStyle: 'dashed',
+          transition: 'border-color 0.2s, background 0.2s',
+          '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
+        }}
+      >
+        {uploading ? (
+          <CircularProgress size={28} />
+        ) : preview ? (
+          <>
+            <Box
+              component="img"
+              src={preview}
+              alt={label}
+              sx={{ width: '100%', height: 110, objectFit: 'cover' }}
+            />
+            <Box
+              sx={{
+                position: 'absolute',
+                inset: 0,
+                bgcolor: 'rgba(0,0,0,0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: 0,
+                transition: 'opacity 0.2s',
+                '&:hover': { opacity: 1 },
+              }}
+            >
+              <Typography
+                color="white"
+                variant="caption"
+                fontWeight={700}
+              >
+                Cambiar imagen
+              </Typography>
+            </Box>
+          </>
+        ) : (
+          <Stack
+            alignItems="center"
+            gap={0.5}
+          >
+            <ImageOutlinedIcon
+              sx={{ fontSize: 32, color: 'text.disabled' }}
+            />
+            <Typography
+              variant="caption"
+              color="text.disabled"
+            >
+              Click para subir imagen
+            </Typography>
+          </Stack>
+        )}
+      </Paper>
+    </Box>
+  );
+}
+
+/* ===================== Color Picker Field ===================== */
+
+function ColorPickerField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value?: string;
+  onChange: (v: string) => void;
+}) {
+  const colorRef = useRef<HTMLInputElement>(null);
+  const display = value || '#000000';
+  return (
+    <TextField
+      label={label}
+      fullWidth
+      value={display}
+      onChange={(e) => onChange(e.target.value)}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <Tooltip title="Abrir selector de color">
+              <Box
+                component="span"
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                  position: 'relative',
+                }}
+                onClick={() => colorRef.current?.click()}
+              >
+                <Box
+                  sx={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: '6px',
+                    border: '2px solid',
+                    borderColor: 'divider',
+                    bgcolor: display,
+                  }}
+                />
+                <input
+                  ref={colorRef}
+                  type="color"
+                  value={display}
+                  onChange={(e) => onChange(e.target.value)}
+                  style={{
+                    position: 'absolute',
+                    width: 0,
+                    height: 0,
+                    opacity: 0,
+                    pointerEvents: 'none',
+                  }}
+                />
+              </Box>
+            </Tooltip>
+          </InputAdornment>
+        ),
+        endAdornment: (
+          <InputAdornment position="end">
+            <ColorLensOutlinedIcon sx={{ color: 'text.disabled', fontSize: 18 }} />
+          </InputAdornment>
+        ),
+      }}
+    />
+  );
+}
+
+/* ===================== Main Form ===================== */
+
+const DEFAULT_MSG =
+  'Thank you for participating in the #StoreName!. Your participation code is: #Codigo';
+
 export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
-
-  const defaultMsg =
-    'Thank you for participating in the #StoreName For a ...!. Your participation code is: #Codigo';
 
   const {
     control,
@@ -81,27 +336,62 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
       startDate: null,
       endDate: null,
       winnersCount: 1,
-      image: initialValues?.image || '',
+      image: '',
       hasQr: false,
       rules: '',
-      participationMessage: defaultMsg,
+      participationMessage: DEFAULT_MSG,
       sweeptakeDescription: '',
       prizeIds: [],
+      bannerDesktop: '',
+      bannerMobile: '',
+      mainColor: '',
+      secondaryColor: '',
       ...initialValues,
     },
   });
 
-  // Snackbar UI
+  // ✅ Fix: when initialValues arrive asynchronously (edit mode), reset form
+  useEffect(() => {
+    if (initialValues && Object.keys(initialValues).length > 0) {
+      reset({
+        name: '',
+        description: '',
+        startDate: null,
+        endDate: null,
+        winnersCount: 1,
+        image: '',
+        hasQr: false,
+        rules: '',
+        participationMessage: DEFAULT_MSG,
+        sweeptakeDescription: '',
+        prizeIds: [],
+        bannerDesktop: '',
+        bannerMobile: '',
+        mainColor: '',
+        secondaryColor: '',
+        ...initialValues,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(initialValues)]);
+
+  // Snackbar
   const [snack, setSnack] = useState<{
     open: boolean;
     msg: string;
     sev: 'success' | 'error' | 'info';
   } | null>(null);
 
-  // Premios
-  const { data: prizes = [], isLoading: loadingPrizes } = usePrizes();
+  // Prizes
+  const { data: prizes = [], isLoading: loadingPrizes, refetch: refetchPrizes } = usePrizes();
+  const selectedIds = watch('prizeIds') || [];
 
-  // Participation placeholders
+  const selectedPrizeObjects = useMemo(
+    () => selectedIds.map((id) => prizes.find((p) => p._id === id)).filter(Boolean) as Prize[],
+    [selectedIds, prizes]
+  );
+
+  // Participation message
   const participationRef = useRef<HTMLInputElement | null>(null);
   const insertAtCaret = (token: string) => {
     const input = participationRef.current;
@@ -120,7 +410,7 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
     });
   };
   const restoreTemplate = () =>
-    setValue('participationMessage', defaultMsg, { shouldValidate: true });
+    setValue('participationMessage', DEFAULT_MSG, { shouldValidate: true });
 
   const participationMessage = watch('participationMessage') || '';
   const hasStore = participationMessage.includes('#StoreName');
@@ -128,6 +418,7 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
 
   // Modal Crear Premio
   const [openPrizeDialog, setOpenPrizeDialog] = useState(false);
+  const [creatingPrize, setCreatingPrize] = useState(false);
   const [newPrize, setNewPrize] = useState<Prize>({
     name: '',
     description: '',
@@ -136,14 +427,9 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
   });
   const [prizeFile, setPrizeFile] = useState<File | null>(null);
 
-  const selectedIds = watch('prizeIds') || [];
-  const missingPrizeSelected = useMemo(() => {
-    if (!selectedIds.length) return false;
-    const ids = new Set(prizes.map((p) => p._id));
-    return selectedIds.some((id) => !ids.has(id));
-  }, [selectedIds, prizes]);
-
   const handleCreatePrize = async () => {
+    if (!newPrize.name.trim()) return;
+    setCreatingPrize(true);
     try {
       let imageUrl = newPrize.image;
       if (prizeFile) {
@@ -151,24 +437,18 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
         imageUrl = resp.url;
       }
       const created = await prizesClient.createPrize({ ...newPrize, image: imageUrl });
+      await refetchPrizes();
       const next = Array.from(new Set([...selectedIds, created._id]));
       setValue('prizeIds', next, { shouldValidate: true });
       setOpenPrizeDialog(false);
       setNewPrize({ name: '', description: '', value: undefined, image: '' });
       setPrizeFile(null);
-      setSnack({ open: true, msg: 'Premio creado ✨', sev: 'success' });
+      setSnack({ open: true, msg: '¡Premio creado y seleccionado! ✨', sev: 'success' });
     } catch {
       setSnack({ open: true, msg: 'No se pudo crear el premio', sev: 'error' });
+    } finally {
+      setCreatingPrize(false);
     }
-  };
-
-  // Select premios
-  const handlePrizeChange = (e: SelectChangeEvent<string[]>) => {
-    setValue('prizeIds', (e.target.value as unknown as string[]) || [], { shouldValidate: true });
-  };
-  const handleRemovePrize = (id: string) => {
-    const next = (getValues('prizeIds') || []).filter((x) => x !== id);
-    setValue('prizeIds', next, { shouldValidate: true });
   };
 
   // Submit
@@ -200,440 +480,686 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
     await onSubmit(payload);
   };
 
+  const sectionPaperSx = {
+    p: 2.5,
+    borderRadius: 3,
+    border: '1px solid',
+    borderColor: 'divider',
+    bgcolor: alpha(theme.palette.background.paper, 0.6),
+    backdropFilter: 'blur(8px)',
+  };
+
   return (
     <>
-      <form
-        onSubmit={handleSubmit(handleFormSubmit)}
-        noValidate
-      >
-        <Stack gap={2}>
-          <Grid
-            container
-            spacing={2}
-          >
-            {/* Nombre */}
-            <Grid
-              item
-              xs={12}
-              md={6}
+      <LocalizationProvider dateAdapter={AdapterDateFns}>
+        <form
+          onSubmit={handleSubmit(handleFormSubmit)}
+          noValidate
+        >
+          <Stack gap={3}>
+            {/* ===== SECCIÓN 1: Información básica ===== */}
+            <Paper
+              elevation={0}
+              sx={sectionPaperSx}
             >
-              <Controller
-                name="name"
-                control={control}
-                rules={{ required: 'Requerido' }}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Nombre del sorteo"
-                    fullWidth
-                    required
-                    error={!!errors.name}
-                    helperText={errors.name?.message}
-                  />
-                )}
+              <SectionHeader
+                icon={<InfoOutlinedIcon fontSize="small" />}
+                title="Información básica"
+                subtitle="Nombre, fechas y configuración del sorteo"
               />
-            </Grid>
+              <Grid
+                container
+                spacing={2.5}
+              >
+                {/* Nombre */}
+                <Grid
+                  item
+                  xs={12}
+                  md={8}
+                >
+                  <Controller
+                    name="name"
+                    control={control}
+                    rules={{ required: 'Requerido' }}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="Nombre del sorteo"
+                        fullWidth
+                        required
+                        error={!!errors.name}
+                        helperText={errors.name?.message}
+                      />
+                    )}
+                  />
+                </Grid>
 
-            {/* Premios + Crear */}
-            <Grid
-              item
-              xs={12}
-              md={5}
+                {/* Cantidad de ganadores */}
+                <Grid
+                  item
+                  xs={12}
+                  md={4}
+                >
+                  <Controller
+                    name="winnersCount"
+                    control={control}
+                    rules={{
+                      required: 'Requerida',
+                      min: { value: 1, message: 'Debe ser ≥ 1' },
+                    }}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        type="number"
+                        label="Cantidad de ganadores"
+                        fullWidth
+                        inputProps={{ min: 1, step: 1 }}
+                        error={!!errors.winnersCount}
+                        helperText={errors.winnersCount?.message}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          const num = raw === '' ? 1 : Number(raw);
+                          field.onChange(Number.isFinite(num) ? num : 1);
+                        }}
+                      />
+                    )}
+                  />
+                </Grid>
+
+                {/* Fecha inicio */}
+                <Grid
+                  item
+                  xs={12}
+                  md={6}
+                >
+                  <Controller
+                    name="startDate"
+                    control={control}
+                    rules={{ required: 'Requerida' }}
+                    render={({ field }) => {
+                      const valueDate = field.value ? new Date(field.value) : null;
+                      const DateCmp = isSmall ? MobileDatePicker : DatePicker;
+                      return (
+                        <DateCmp
+                          label="Fecha de inicio"
+                          value={valueDate}
+                          onChange={(val) =>
+                            field.onChange(val ? new Date(val).toISOString() : null)
+                          }
+                          slotProps={{
+                            textField: {
+                              fullWidth: true,
+                              error: !!errors.startDate,
+                              helperText: errors.startDate?.message,
+                            },
+                          }}
+                        />
+                      );
+                    }}
+                  />
+                </Grid>
+
+                {/* Fecha fin */}
+                <Grid
+                  item
+                  xs={12}
+                  md={6}
+                >
+                  <Controller
+                    name="endDate"
+                    control={control}
+                    rules={{
+                      required: 'Requerida',
+                      validate: (v) => {
+                        const s = getValues('startDate');
+                        if (s && v && new Date(v) < new Date(s))
+                          return 'La fecha fin debe ser ≥ inicio';
+                        return true;
+                      },
+                    }}
+                    render={({ field }) => {
+                      const valueDate = field.value ? new Date(field.value) : null;
+                      const DateCmp = isSmall ? MobileDatePicker : DatePicker;
+                      return (
+                        <DateCmp
+                          label="Fecha de fin"
+                          value={valueDate}
+                          onChange={(val) =>
+                            field.onChange(val ? new Date(val).toISOString() : null)
+                          }
+                          slotProps={{
+                            textField: {
+                              fullWidth: true,
+                              error: !!errors.endDate,
+                              helperText: errors.endDate?.message,
+                            },
+                          }}
+                        />
+                      );
+                    }}
+                  />
+                </Grid>
+
+                {/* Descripción */}
+                <Grid
+                  item
+                  xs={12}
+                >
+                  <Controller
+                    name="description"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="Descripción corta"
+                        fullWidth
+                        multiline
+                        minRows={2}
+                        placeholder="Breve descripción del sorteo..."
+                      />
+                    )}
+                  />
+                </Grid>
+
+                {/* QR Switch */}
+                <Grid
+                  item
+                  xs={12}
+                >
+                  <Controller
+                    name="hasQr"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={field.value}
+                            onChange={(e) => field.onChange(e.target.checked)}
+                            color="primary"
+                          />
+                        }
+                        label="¿Tiene QR en Ticket?"
+                      />
+                    )}
+                  />
+                </Grid>
+              </Grid>
+            </Paper>
+
+            {/* ===== SECCIÓN 2: Premios ===== */}
+            <Paper
+              elevation={0}
+              sx={sectionPaperSx}
             >
+              <SectionHeader
+                icon={<EmojiEventsOutlinedIcon fontSize="small" />}
+                title="Premios"
+                subtitle="Selecciona o crea los premios del sorteo"
+              />
+
               <Controller
                 name="prizeIds"
                 control={control}
                 rules={{ validate: (v) => (v?.length ? true : 'Selecciona al menos un premio') }}
                 render={({ field }) => (
-                  <FormControl
-                    fullWidth
-                    error={!!errors.prizeIds}
-                  >
-                    <InputLabel id="prize-label">Premios (obligatorio)</InputLabel>
-                    <Select
-                      labelId="prize-label"
-                      label="Premios (obligatorio)"
-                      multiple
-                      value={field.value}
-                      onChange={(e) => {
-                        handlePrizeChange(e);
-                        field.onChange(e.target.value as unknown as string[]);
-                      }}
-                      renderValue={(selected) => (
-                        <Stack
-                          direction="row"
-                          gap={0.5}
-                          flexWrap="wrap"
+                  <Autocomplete
+                    multiple
+                    options={prizes}
+                    loading={loadingPrizes}
+                    value={selectedPrizeObjects}
+                    getOptionLabel={(option) =>
+                      `${option.name}${option.value ? ` — $${option.value}` : ''}`
+                    }
+                    isOptionEqualToValue={(option, value) => option._id === value._id}
+                    onChange={(_, newValues) => {
+                      const ids = newValues.map((p) => p._id as string);
+                      field.onChange(ids);
+                      setValue('prizeIds', ids, { shouldValidate: true });
+                    }}
+                    renderTags={(value, getTagProps) =>
+                      value.map((option, index) => {
+                        const { key, ...tagProps } = getTagProps({ index });
+                        return (
+                          <Chip
+                            key={key}
+                            {...tagProps}
+                            label={
+                              <Stack
+                                direction="row"
+                                alignItems="center"
+                                gap={0.5}
+                              >
+                                <EmojiEventsOutlinedIcon sx={{ fontSize: 14 }} />
+                                <span>{option.name}</span>
+                                {option.value ? (
+                                  <Typography
+                                    component="span"
+                                    variant="caption"
+                                    sx={{ opacity: 0.7 }}
+                                  >
+                                    ${option.value}
+                                  </Typography>
+                                ) : null}
+                              </Stack>
+                            }
+                            color="primary"
+                            variant="outlined"
+                            size="small"
+                            sx={{ borderRadius: '8px' }}
+                          />
+                        );
+                      })
+                    }
+                    renderOption={(props, option) => {
+                      const { key, ...rest } = props as any;
+                      return (
+                        <Box
+                          component="li"
+                          key={option._id || key}
+                          {...rest}
                         >
-                          {(selected as string[]).map((id) => {
-                            const p = prizes.find((x) => x._id === id);
-                            return (
-                              <Chip
-                                key={id}
-                                label={p?.name || id}
-                                size="small"
-                                onDelete={() => handleRemovePrize(id)}
+                          <Stack
+                            direction="row"
+                            alignItems="center"
+                            gap={1.5}
+                            width="100%"
+                          >
+                            {option.image ? (
+                              <Box
+                                component="img"
+                                src={option.image}
+                                alt={option.name}
+                                sx={{ width: 36, height: 36, borderRadius: 1, objectFit: 'cover' }}
                               />
-                            );
-                          })}
-                        </Stack>
-                      )}
-                      disabled={loadingPrizes}
-                    >
-                      {(prizes || []).map((p) => (
-                        <MenuItem
-                          key={p._id}
-                          value={p._id}
-                        >
-                          {p.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {errors.prizeIds && (
-                      <Typography
-                        variant="caption"
-                        color="error"
-                        sx={{ mt: 0.5 }}
-                      >
-                        {String(errors.prizeIds.message)}
-                      </Typography>
+                            ) : (
+                              <EmojiEventsOutlinedIcon
+                                sx={{ fontSize: 24, color: 'warning.main', opacity: 0.5 }}
+                              />
+                            )}
+                            <Box flex={1}>
+                              <Typography variant="body2">{option.name}</Typography>
+                              {option.description && (
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  {option.description}
+                                </Typography>
+                              )}
+                            </Box>
+                            {option.value && (
+                              <Chip
+                                size="small"
+                                label={`$${option.value}`}
+                                color="success"
+                                sx={{ borderRadius: 1 }}
+                              />
+                            )}
+                          </Stack>
+                        </Box>
+                      );
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Buscar y seleccionar premios *"
+                        error={!!errors.prizeIds}
+                        helperText={errors.prizeIds ? String(errors.prizeIds.message) : undefined}
+                        InputProps={{
+                          ...params.InputProps,
+                          endAdornment: (
+                            <>
+                              {loadingPrizes ? <CircularProgress size={16} /> : null}
+                              {params.InputProps.endAdornment}
+                            </>
+                          ),
+                        }}
+                      />
                     )}
-                  </FormControl>
+                    noOptionsText={
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        justifyContent="space-between"
+                        px={1}
+                      >
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                        >
+                          No hay premios creados
+                        </Typography>
+                        <Button
+                          size="small"
+                          startIcon={<AddCircleOutlineIcon />}
+                          onClick={() => setOpenPrizeDialog(true)}
+                        >
+                          Crear premio
+                        </Button>
+                      </Stack>
+                    }
+                  />
                 )}
               />
-            </Grid>
 
-            <Grid
-              item
-              xs={12}
-              md="auto"
-              sx={{ display: 'flex', alignItems: 'center' }}
+              <Box sx={{ mt: 1.5 }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<AddCircleOutlineIcon />}
+                  onClick={() => setOpenPrizeDialog(true)}
+                  sx={{ borderRadius: 2 }}
+                >
+                  Crear nuevo premio
+                </Button>
+              </Box>
+            </Paper>
+
+            {/* ===== SECCIÓN 3: Contenido ===== */}
+            <Paper
+              elevation={0}
+              sx={sectionPaperSx}
             >
-              <Tooltip
-                title={
-                  missingPrizeSelected
-                    ? 'Algún premio seleccionado no está en la lista. Crea uno nuevo.'
-                    : 'Crear premio'
+              <SectionHeader
+                icon={<MessageOutlinedIcon fontSize="small" />}
+                title="Contenido"
+                subtitle="Reglas, mensaje de participación e imagen principal"
+              />
+
+              <Grid
+                container
+                spacing={2.5}
+              >
+                {/* Imagen principal */}
+                <Grid
+                  item
+                  xs={12}
+                >
+                  <AvatarUploadLogo
+                    label="Imagen principal del sorteo"
+                    initialUrl={initialValues?.image}
+                    onSelect={(file) => {
+                      if (file) {
+                        const dt = new DataTransfer();
+                        dt.items.add(file);
+                        setValue('image', dt.files as any, { shouldValidate: true });
+                      } else {
+                        setValue('image', '', { shouldValidate: true });
+                      }
+                    }}
+                  />
+                </Grid>
+
+                {/* Reglas */}
+                <Grid
+                  item
+                  xs={12}
+                >
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ mb: 0.5 }}
+                  >
+                    Reglas del sorteo
+                  </Typography>
+                  <Controller
+                    name="rules"
+                    control={control}
+                    render={({ field }) => (
+                      <QuillEditor
+                        quillTheme="snow"
+                        value={field.value || ''}
+                        onChange={(val) => field.onChange(val)}
+                        modules={{
+                          toolbar: [
+                            [{ header: [1, 2, 3, false] }],
+                            ['bold', 'italic', 'underline', 'strike'],
+                            [{ list: 'ordered' }, { list: 'bullet' }],
+                            [{ color: [] }, { background: [] }],
+                            [{ align: [] }],
+                            ['link', 'clean'],
+                          ],
+                        }}
+                        style={{ background: 'white', borderRadius: 8 }}
+                      />
+                    )}
+                  />
+                </Grid>
+
+                {/* Participation Message */}
+                <Grid
+                  item
+                  xs={12}
+                  md={8}
+                >
+                  <Controller
+                    name="participationMessage"
+                    control={control}
+                    rules={{
+                      validate: (v) =>
+                        (v?.includes('#StoreName') && v?.includes('#Codigo')) ||
+                        'Debe incluir #StoreName y #Codigo',
+                    }}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="Mensaje de participación (SMS/WhatsApp)"
+                        fullWidth
+                        multiline
+                        rows={3}
+                        inputRef={participationRef}
+                        error={!!errors.participationMessage}
+                        helperText={
+                          errors.participationMessage?.message ||
+                          'Usa los botones de abajo para insertar variables'
+                        }
+                        InputProps={{
+                          sx: { fontFamily: 'monospace', fontSize: 13 },
+                        }}
+                      />
+                    )}
+                  />
+                </Grid>
+
+                {/* Tokens */}
+                <Grid
+                  item
+                  xs={12}
+                  md={4}
+                >
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    display="block"
+                    gutterBottom
+                  >
+                    Insertar variables:
+                  </Typography>
+                  <Stack
+                    gap={1}
+                    flexWrap="wrap"
+                    direction={{ xs: 'row', md: 'column' }}
+                  >
+                    <Tooltip title="Insertar nombre de tienda en la posición del cursor">
+                      <Chip
+                        label="#StoreName"
+                        variant="outlined"
+                        color={hasStore ? 'success' : 'default'}
+                        icon={hasStore ? <CheckCircleIcon /> : undefined}
+                        onClick={() => insertAtCaret('#StoreName')}
+                        clickable
+                        sx={{ borderRadius: 2 }}
+                      />
+                    </Tooltip>
+                    <Tooltip title="Insertar código de participación en la posición del cursor">
+                      <Chip
+                        label="#Codigo"
+                        variant="outlined"
+                        color={hasCode ? 'success' : 'default'}
+                        icon={hasCode ? <CheckCircleIcon /> : undefined}
+                        onClick={() => insertAtCaret('#Codigo')}
+                        clickable
+                        sx={{ borderRadius: 2 }}
+                      />
+                    </Tooltip>
+                    <Tooltip title="Restaurar mensaje predeterminado">
+                      <Chip
+                        label="Restaurar plantilla"
+                        onClick={restoreTemplate}
+                        color="primary"
+                        clickable
+                        sx={{ borderRadius: 2 }}
+                      />
+                    </Tooltip>
+                  </Stack>
+                </Grid>
+              </Grid>
+            </Paper>
+
+            {/* ===== SECCIÓN 4: Branding (opcional) ===== */}
+            <Paper
+              elevation={0}
+              sx={sectionPaperSx}
+            >
+              <SectionHeader
+                icon={<ColorLensOutlinedIcon fontSize="small" />}
+                title="Branding"
+                subtitle="Banners y colores de la campaña — todos opcionales"
+              />
+
+              <Grid
+                container
+                spacing={2.5}
+              >
+                {/* colores */}
+                <Grid
+                  item
+                  xs={12}
+                  sm={6}
+                >
+                  <Controller
+                    name="mainColor"
+                    control={control}
+                    render={({ field }) => (
+                      <ColorPickerField
+                        label="Color principal"
+                        value={field.value || ''}
+                        onChange={(v) => field.onChange(v)}
+                      />
+                    )}
+                  />
+                </Grid>
+                <Grid
+                  item
+                  xs={12}
+                  sm={6}
+                >
+                  <Controller
+                    name="secondaryColor"
+                    control={control}
+                    render={({ field }) => (
+                      <ColorPickerField
+                        label="Color secundario"
+                        value={field.value || ''}
+                        onChange={(v) => field.onChange(v)}
+                      />
+                    )}
+                  />
+                </Grid>
+
+                {/* banners */}
+                <Grid
+                  item
+                  xs={12}
+                  md={6}
+                >
+                  <Controller
+                    name="bannerDesktop"
+                    control={control}
+                    render={({ field }) => (
+                      <BannerUpload
+                        label="Banner Desktop (recomendado 1920×600)"
+                        value={field.value}
+                        onChange={(url) => field.onChange(url)}
+                      />
+                    )}
+                  />
+                </Grid>
+                <Grid
+                  item
+                  xs={12}
+                  md={6}
+                >
+                  <Controller
+                    name="bannerMobile"
+                    control={control}
+                    render={({ field }) => (
+                      <BannerUpload
+                        label="Banner Mobile (recomendado 640×360)"
+                        value={field.value}
+                        onChange={(url) => field.onChange(url)}
+                      />
+                    )}
+                  />
+                </Grid>
+              </Grid>
+            </Paper>
+
+            {/* ===== Footer ===== */}
+            <Divider />
+            <Stack
+              direction="row"
+              gap={2}
+              justifyContent="flex-end"
+              alignItems="center"
+              pb={1}
+            >
+              <Button
+                variant="outlined"
+                onClick={() =>
+                  reset({
+                    name: '',
+                    description: '',
+                    startDate: null,
+                    endDate: null,
+                    image: '',
+                    hasQr: false,
+                    rules: '',
+                    participationMessage: DEFAULT_MSG,
+                    sweeptakeDescription: '',
+                    prizeIds: [],
+                    bannerDesktop: '',
+                    bannerMobile: '',
+                    mainColor: '',
+                    secondaryColor: '',
+                  })
                 }
               >
-                <IconButton
-                  color={missingPrizeSelected ? 'warning' : 'primary'}
-                  onClick={() => setOpenPrizeDialog(true)}
-                  aria-label="Crear premio"
-                >
-                  <AddIcon />
-                </IconButton>
-              </Tooltip>
-            </Grid>
-
-            {/* Descripción */}
-            <Grid
-              item
-              xs={12}
-            >
-              <Controller
-                name="description"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Descripción"
-                    fullWidth
-                    multiline
-                    minRows={2}
-                  />
-                )}
-              />
-            </Grid>
-
-            {/* Fechas */}
-            <Grid
-              item
-              xs={12}
-              md={6}
-            >
-              <Controller
-                name="startDate"
-                control={control}
-                rules={{ required: 'Requerida' }}
-                render={({ field }) => {
-                  const valueDate = field.value ? new Date(field.value) : null;
-                  const DateCmp = isSmall ? MobileDatePicker : DatePicker;
-                  return (
-                    <DateCmp
-                      label="Fecha de inicio"
-                      value={valueDate}
-                      onChange={(val) => field.onChange(val ? new Date(val).toISOString() : null)}
-                      slotProps={{
-                        textField: {
-                          fullWidth: true,
-                          error: !!errors.startDate,
-                          helperText: errors.startDate?.message,
-                        },
-                      }}
-                    />
-                  );
-                }}
-              />
-            </Grid>
-            <Grid
-              item
-              xs={12}
-              md={6}
-            >
-              <Controller
-                name="endDate"
-                control={control}
-                rules={{
-                  required: 'Requerida',
-                  validate: (v) => {
-                    const s = getValues('startDate');
-                    if (s && v && new Date(v) < new Date(s))
-                      return 'La fecha fin debe ser ≥ inicio';
-                    return true;
-                  },
-                }}
-                render={({ field }) => {
-                  const valueDate = field.value ? new Date(field.value) : null;
-                  const DateCmp = isSmall ? MobileDatePicker : DatePicker;
-                  return (
-                    <DateCmp
-                      label="Fecha de fin"
-                      value={valueDate}
-                      onChange={(val) => field.onChange(val ? new Date(val).toISOString() : null)}
-                      slotProps={{
-                        textField: {
-                          fullWidth: true,
-                          error: !!errors.endDate,
-                          helperText: errors.endDate?.message,
-                        },
-                      }}
-                    />
-                  );
-                }}
-              />
-            </Grid>
-
-            {/* Cantidad de ganadores */}
-            <Grid
-              item
-              xs={12}
-              md={2}
-            >
-              <Controller
-                name="winnersCount"
-                control={control}
-                rules={{
-                  required: 'Requerida',
-                  min: { value: 1, message: 'Debe ser mayor o igual a 1' },
-                }}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    type="number"
-                    label="Cantidad de ganadores"
-                    fullWidth
-                    inputProps={{ min: 1, step: 1 }}
-                    error={!!errors.winnersCount}
-                    helperText={errors.winnersCount?.message}
-                    onChange={(e) => {
-                      const raw = e.target.value;
-                      const num = raw === '' ? 1 : Number(raw);
-                      field.onChange(Number.isFinite(num) ? num : 1);
-                    }}
-                  />
-                )}
-              />
-            </Grid>
-
-            {/* Imagen + QR bonito */}
-            <Grid
-              item
-              xs={12}
-            >
-              <Stack
-                direction={{ xs: 'column', sm: 'row' }}
-                gap={2}
-                alignItems={{ sm: 'center' }}
+                Limpiar
+              </Button>
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={isSubmitting}
+                startIcon={isSubmitting ? <CircularProgress size={16} color="inherit" /> : <CheckCircleIcon />}
+                sx={{ px: 4, borderRadius: 2 }}
               >
-                <AvatarUploadLogo
-                  label="Imagen de Sweepstake"
-                  initialUrl={initialValues?.image}
-                  onSelect={(file) => {
-                    if (file) {
-                      const dt = new DataTransfer();
-                      dt.items.add(file);
-                      setValue('image', dt.files as any, { shouldValidate: true });
-                    } else {
-                      setValue('image', '', { shouldValidate: true });
-                    }
-                  }}
-                />
-                <Controller
-                  name="hasQr"
-                  control={control}
-                  render={({ field }) => (
-                    <FormControlLabel
-                      sx={{ ml: { sm: 'auto' } }}
-                      control={
-                        <Switch
-                          checked={field.value}
-                          onChange={(e) => field.onChange(e.target.checked)}
-                          color="primary"
-                        />
-                      }
-                      label="¿Tiene QR en Ticket?"
-                    />
-                  )}
-                />
-              </Stack>
-            </Grid>
-
-            {/* Reglas */}
-            <Grid
-              item
-              xs={12}
-            >
-              <Typography
-                variant="subtitle2"
-                sx={{ mb: 0.5 }}
-              >
-                Reglas del sorteo
-              </Typography>
-              <Controller
-                name="rules"
-                control={control}
-                render={({ field }) => (
-                  <QuillEditor
-                    quillTheme="snow"
-                    value={field.value || ''}
-                    onChange={(val) => field.onChange(val)}
-                    modules={{
-                      toolbar: [
-                        [{ header: [1, 2, 3, false] }],
-                        ['bold', 'italic', 'underline', 'strike'],
-                        [{ list: 'ordered' }, { list: 'bullet' }],
-                        [{ color: [] }, { background: [] }],
-                        [{ align: [] }],
-                        ['link', 'clean'],
-                      ],
-                    }}
-                    style={{ background: 'white', borderRadius: 8 }}
-                  />
-                )}
-              />
-            </Grid>
-
-            {/* Participation Message + chips */}
-            <Grid
-              item
-              xs={12}
-              md={8}
-            >
-              <Controller
-                name="participationMessage"
-                control={control}
-                rules={{
-                  validate: (v) =>
-                    (v?.includes('#StoreName') && v?.includes('#Codigo')) ||
-                    'Debe incluir #StoreName y #Codigo',
-                }}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Mensaje de participación"
-                    fullWidth
-                    inputRef={participationRef}
-                    error={!!errors.participationMessage}
-                    helperText={
-                      errors.participationMessage?.message || 'Debe incluir #StoreName y #Codigo'
-                    }
-                  />
-                )}
-              />
-            </Grid>
-            <Grid
-              item
-              xs={12}
-              md={4}
-            >
-              <Stack
-                direction="row"
-                gap={1}
-                flexWrap="wrap"
-              >
-                <Tooltip title="Insertar #StoreName en el cursor">
-                  <Chip
-                    label="#StoreName"
-                    variant="outlined"
-                    onClick={() => insertAtCaret('#StoreName')}
-                  />
-                </Tooltip>
-                <Tooltip title="Insertar #Codigo en el cursor">
-                  <Chip
-                    label="#Codigo"
-                    variant="outlined"
-                    onClick={() => insertAtCaret('#Codigo')}
-                  />
-                </Tooltip>
-                <Tooltip title="Restaurar plantilla base">
-                  <Chip
-                    label="Plantilla base"
-                    onClick={restoreTemplate}
-                    color="primary"
-                  />
-                </Tooltip>
-              </Stack>
-            </Grid>
-          </Grid>
-
-          {/* Footer */}
-          <Stack
-            direction="row"
-            gap={2}
-            justifyContent="flex-end"
-            alignItems="center"
-          >
-            <Button
-              variant="outlined"
-              onClick={() =>
-                reset({
-                  name: '',
-                  description: '',
-                  startDate: null,
-                  endDate: null,
-                  image: '',
-                  hasQr: false,
-                  rules: '',
-                  participationMessage: defaultMsg,
-                  sweeptakeDescription: '',
-                  prizeIds: [],
-                })
-              }
-            >
-              Limpiar
-            </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={isSubmitting}
-              startIcon={<CheckCircleIcon />}
-            >
-              {mode === 'create' ? 'Crear sweepstake' : 'Guardar cambios'}
-            </Button>
+                {mode === 'create' ? 'Crear sweepstake' : 'Guardar cambios'}
+              </Button>
+            </Stack>
           </Stack>
-        </Stack>
-      </form>
+        </form>
+      </LocalizationProvider>
 
-      {/* Modal Crear Premio */}
+      {/* ===== Dialog: Crear Premio ===== */}
       <Dialog
         open={openPrizeDialog}
         onClose={() => setOpenPrizeDialog(false)}
         fullWidth
         maxWidth="sm"
+        PaperProps={{ sx: { borderRadius: 3 } }}
       >
-        <DialogTitle sx={{ pr: 6 }}>
-          Crear premio
+        <DialogTitle sx={{ pr: 6, fontWeight: 800 }}>
+          🏆 Crear nuevo premio
           <IconButton
             onClick={() => setOpenPrizeDialog(false)}
             size="small"
@@ -645,14 +1171,15 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
         </DialogTitle>
         <DialogContent>
           <Stack
-            gap={2}
+            gap={2.5}
             sx={{ mt: 1 }}
           >
             <TextField
-              label="Nombre"
+              label="Nombre del premio *"
               value={newPrize.name}
               onChange={(e) => setNewPrize((p) => ({ ...p, name: e.target.value }))}
               fullWidth
+              autoFocus
             />
             <TextField
               label="Descripción"
@@ -664,44 +1191,68 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
             />
             <TextField
               type="number"
-              label="Valor (opcional)"
+              label="Valor estimado (opcional)"
               value={newPrize.value ?? ''}
-              onChange={(e) => setNewPrize((p) => ({ ...p, value: Number(e.target.value) }))}
+              onChange={(e) =>
+                setNewPrize((p) => ({ ...p, value: e.target.value ? Number(e.target.value) : undefined }))
+              }
               fullWidth
-            />
-            <AvatarUploadLogo
-              label="Imagen del premio"
-              initialUrl={newPrize.image || undefined}
-              onSelect={(file) => {
-                setPrizeFile(file || null);
-                if (!file) setNewPrize((p) => ({ ...p, image: '' }));
+              InputProps={{
+                startAdornment: <InputAdornment position="start">$</InputAdornment>,
               }}
             />
+            <Box>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                gutterBottom
+              >
+                Imagen del premio (opcional)
+              </Typography>
+              <AvatarUploadLogo
+                label="Imagen del premio"
+                initialUrl={newPrize.image || undefined}
+                onSelect={(file) => {
+                  setPrizeFile(file || null);
+                  if (!file) setNewPrize((p) => ({ ...p, image: '' }));
+                }}
+              />
+            </Box>
           </Stack>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenPrizeDialog(false)}>Cancelar</Button>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setOpenPrizeDialog(false)}
+            disabled={creatingPrize}
+          >
+            Cancelar
+          </Button>
           <Button
             variant="contained"
-            disabled={!newPrize.name}
+            disabled={!newPrize.name.trim() || creatingPrize}
             onClick={handleCreatePrize}
-            startIcon={<AddIcon />}
+            startIcon={
+              creatingPrize ? <CircularProgress size={16} color="inherit" /> : <AddCircleOutlineIcon />
+            }
+            sx={{ borderRadius: 2 }}
           >
-            Crear premio
+            {creatingPrize ? 'Creando...' : 'Crear premio'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar */}
+      {/* ===== Snackbar ===== */}
       <Snackbar
         open={!!snack?.open}
         autoHideDuration={3500}
         onClose={() => setSnack(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
         <Alert
           onClose={() => setSnack(null)}
           severity={snack?.sev || 'info'}
           variant="filled"
+          sx={{ borderRadius: 2 }}
         >
           {snack?.msg}
         </Alert>

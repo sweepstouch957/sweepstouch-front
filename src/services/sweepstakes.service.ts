@@ -104,6 +104,11 @@ export interface Sweepstakes {
   hasOptinLink?: boolean;
   confirmationLink?: string | null;
   createdAt?: string;
+  // Branding fields (optional)
+  bannerDesktop?: string;
+  bannerMobile?: string;
+  mainColor?: string;
+  secondaryColor?: string;
 }
 
 /** ===== Audience Windows ===== */
