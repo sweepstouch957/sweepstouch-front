@@ -23,6 +23,7 @@ import {
   Skeleton,
   Stack,
   Typography,
+  Grid,
   useTheme,
   Avatar,
 } from '@mui/material';
@@ -133,11 +134,17 @@ export default function SweepstakesBalance({
     return percent >= 0.05 ? `${(percent * 100).toFixed(0)}%` : '';
   };
 
+  const getAvatarSrc = (img: string | undefined | null) => {
+    if (!img || img === 'no-image.jpg' || img === 'no-image.png' || img === 'n/a') return undefined;
+    if (img.startsWith('http') || img.startsWith('data:')) return img;
+    return `${process.env.NEXT_PUBLIC_API_URL}/files/images/${img}`;
+  };
+
   return (
     <>
-      <Card sx={{ borderRadius: 4, overflow: 'hidden', p: { xs: 1, sm: 3 } }} elevation={0} variant="outlined">
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center">
-          <Stack flex={1} spacing={2} p={{ xs: 1, md: 2 }}>
+      <Card sx={{ borderRadius: 4, overflow: 'hidden', p: { xs: 1, sm: 2 } }} elevation={0} variant="outlined">
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="stretch" sx={{ width: '100%' }}>
+          <Stack flex={1} spacing={2} p={{ xs: 1, sm: 1.5 }} sx={{ minWidth: 0 }}>
             <SweepstakeMiniHeader sweepstakeId={sweepstakeId} />
             <Typography variant="h4" fontWeight={700} sx={{ letterSpacing: 0.5 }}>
               Resumen del sorteo
@@ -176,14 +183,16 @@ export default function SweepstakesBalance({
             spacing={3}
             justifyContent="space-between"
             sx={{
+              minWidth: 0,
+              width: '100%',
               background: theme.palette.mode === 'dark' ? alpha(theme.palette.neutral[25] || '#222', 0.02) : '#f8fafc',
               borderRadius: 3,
-              px: { xs: 1, md: 2 },
-              py: 2,
+              px: { xs: 1, sm: 1.5 },
+              py: 1.5,
               border: `1px solid ${theme.palette.divider}`
             }}
           >
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
               <DatePicker
                 label="Fecha inicio"
                 value={startDate}
@@ -196,9 +205,9 @@ export default function SweepstakesBalance({
                 value={endDate}
                 onChange={(newValue) => setEndDate(newValue)}
                 slotProps={{ textField: { size: 'small', fullWidth: true, variant: 'outlined' } }}
-                sx={{ flex: 1, bgcolor: 'background.paper' }}
+                sx={{ flex: 1, bgcolor: 'background.paper', minWidth: 0 }}
               />
-              <FormControl size="small" sx={{ minWidth: 160, flex: 1, bgcolor: 'background.paper' }}>
+              <FormControl size="small" sx={{ minWidth: 100, flex: 1, bgcolor: 'background.paper' }}>
                 <InputLabel id="method-select-label">Método</InputLabel>
                 <Select
                   labelId="method-select-label"
@@ -216,25 +225,25 @@ export default function SweepstakesBalance({
               </FormControl>
             </Stack>
 
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={4} alignItems="center" justifyContent="center">
-              <Box minWidth={isLoading ? 280 : 280} display="flex" justifyContent="center" mx="auto">
+            <Grid container spacing={2} alignItems="center" justifyContent="center" sx={{ width: '100%', m: 0 }}>
+              <Grid item xs={12} md={5} lg={5} display="flex" justifyContent="center">
                 {isLoading ? (
                   <Skeleton variant="circular" width={260} height={260} />
                 ) : (
                   <PieChart
                     series={[{
                       data: grouped,
-                      innerRadius: 80,
-                      outerRadius: 130,
+                      innerRadius: 60,
+                      outerRadius: 100,
                       paddingAngle: 3,
-                      cornerRadius: 6,
+                      cornerRadius: 4,
                       cx: '50%',
                       cy: '50%',
                       highlightScope: { fade: 'global', highlight: 'item' },
                       arcLabel: getArcLabel,
                     }]}
-                    height={280}
-                    width={280}
+                    height={220}
+                    width={220}
                     margin={{ right: 0, top: 0, bottom: 0, left: 0 }}
                     hideLegend
                     sx={{
@@ -247,14 +256,15 @@ export default function SweepstakesBalance({
                     }}
                   />
                 )}
-              </Box>
+              </Grid>
 
-              <Card
+              <Grid item xs={12} md={7} lg={7} sx={{ width: '100%', minWidth: 0, overflow: 'hidden' }}>
+                <Card
                 variant="outlined"
                 elevation={0}
                 sx={{
                   flex: 1,
-                  maxHeight: { xs: 260, md: 330 },
+                  maxHeight: { xs: 260, md: 300 },
                   overflowY: 'auto',
                   width: '100%',
                   minWidth: 0,
@@ -272,14 +282,14 @@ export default function SweepstakesBalance({
                     ))
                     : visibleData.map((item: any, index: number) => (
                       <Fragment key={item.storeId || index}>
-                        <ListItem sx={{ py: 1.5, '&:hover': { bgcolor: 'action.hover' } }}>
-                          <ListItemAvatar>
+                        <ListItem sx={{ py: 1, px: 2, '&:hover': { bgcolor: 'action.hover' } }}>
+                          <ListItemAvatar sx={{ minWidth: 44 }}>
                             <Avatar
-                              src={item.storeImage}
+                              src={getAvatarSrc(item.storeImage)}
                               variant="rounded"
                               sx={{
-                                width: 44,
-                                height: 46,
+                                width: 34,
+                                height: 34,
                                 borderRadius: 3,
                                 bgcolor: 'action.hover',
                                 border: `1px solid ${theme.palette.divider}`,
@@ -292,14 +302,14 @@ export default function SweepstakesBalance({
                             primary={item.storeName}
                             primaryTypographyProps={{ variant: 'subtitle2', fontWeight: 600, noWrap: true }}
                             secondary={`${item.totalRegistrations} registros`}
-                            secondaryTypographyProps={{ variant: 'body2' }}
-                            sx={{ ml: 1, pr: 2 }}
+                            secondaryTypographyProps={{ variant: 'caption' }}
+                            sx={{ ml: 1, pr: 1 }}
                           />
-                          <Box textAlign="right">
-                            <Typography variant="body2" color="text.secondary" noWrap>
+                          <Box textAlign="right" sx={{ flexShrink: 0 }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: -0.5 }}>
                               Customers
                             </Typography>
-                            <Typography variant="h6" fontWeight={700}>
+                            <Typography variant="subtitle2" fontWeight={700}>
                               {item.storeCustomerCount}
                             </Typography>
                           </Box>
@@ -316,8 +326,9 @@ export default function SweepstakesBalance({
                   </Box>
                 )}
               </Card>
-            </Stack>
-          </Stack>
+            </Grid>
+          </Grid>
+        </Stack>
         </Stack>
       </Card >
 
@@ -345,7 +356,7 @@ export default function SweepstakesBalance({
                 <ListItem sx={{ py: 2 }}>
                   <ListItemAvatar>
                     <Avatar
-                      src={item.storeImage}
+                      src={getAvatarSrc(item.storeImage)}
                       variant="rounded"
                       sx={{ width: 52, height: 52, borderRadius: 3, bgcolor: 'action.hover' }}
                     >

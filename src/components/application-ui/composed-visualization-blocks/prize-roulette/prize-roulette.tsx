@@ -156,9 +156,11 @@ export default function PrizeRouletteCard({ sweepstakeId }: Props) {
         dynamicInterval = 70;
       }
       
-      if (isSpinning) {
-         phoneTimerRef.current = window.setTimeout(cyclePhoneText, dynamicInterval);
+      if (stoppingRef.current && velRef.current < 2) {
+        return;
       }
+      
+      phoneTimerRef.current = window.setTimeout(cyclePhoneText, dynamicInterval);
     };
     
     phoneTimerRef.current = window.setTimeout(cyclePhoneText, dynamicInterval);
