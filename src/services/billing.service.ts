@@ -527,7 +527,17 @@ export class BillingService {
   ): Promise<AxiosResponse<BulkImportPaymentsResponse>> {
     const formData = new FormData();
     formData.append('file', file); // multer upload.single("file")
-    return api.post('/billing/invoices/payments/bulk-import', formData, {
+    return api.post('/billing/payments/bulk-import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  }
+
+  async importInvoicesBulkExcel(
+    file: File
+  ): Promise<AxiosResponse<BulkImportPaymentsResponse>> { // Assuming BulkImportPaymentsResponse for now, adjust if a specific BulkImportInvoicesResponse is defined
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/billing/invoices/bulk-import', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   }

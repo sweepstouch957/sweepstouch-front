@@ -18,10 +18,14 @@ import {
   CircularProgress,
   Divider,
   LinearProgress,
-  Skeleton,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
   Stack,
   Tooltip,
   Typography,
+  Skeleton,
 } from '@mui/material';
 import { PieChart } from '@mui/x-charts/PieChart';
 import numeral from 'numeral';
@@ -45,10 +49,10 @@ export default function BulkPaymentsImportCard() {
   const [invoicedTotal, setInvoicedTotal] = useState<number>(0);
   const [paidTotal, setPaidTotal] = useState<number>(0);
 
-  // import
+  const [importType, setImportType] = useState<'payments' | 'invoices'>('payments');
   const [isImporting, setIsImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
-  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [importResult, setImportResult] = useState<any | null>(null);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     multiple: false,
@@ -102,7 +106,12 @@ export default function BulkPaymentsImportCard() {
       setImportError(null);
       setImportResult(null);
 
-      const res = await billingService.importPaymentsBulkExcel(file);
+      let res;
+      if (importType === 'payments') {
+        res = await billingService.importPaymentsBulkExcel(file);
+      } else {
+        res = await billingService.importInvoicesBulkExcel(file);
+      }
       setImportResult(res.data);
 
       await loadBalances();
@@ -341,14 +350,25 @@ export default function BulkPaymentsImportCard() {
           </Box>
         </Stack>
 
-        {/* Upload area */}
         <Box sx={{ mt: 2 }}>
-          <Typography
-            variant="subtitle2"
-            sx={{ fontWeight: 900, mb: 1 }}
-          >
-            Upload Excel
-          </Typography>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+            <Typography
+              variant="subtitle2"
+              sx={{ fontWeight: 900 }}
+            >
+              Upload Excel
+            </Typography>
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <Select
+                value={importType}
+                onChange={(e) => setImportType(e.target.value as any)}
+                disabled={isImporting}
+              >
+                <MenuItem value="invoices">Invoices (Open Balances)</MenuItem>
+                <MenuItem value="payments">Payments</MenuItem>
+              </Select>
+            </FormControl>
+          </Stack>
 
           <Box
             {...getRootProps()}
@@ -406,7 +426,10 @@ export default function BulkPaymentsImportCard() {
                 <Tooltip title={file ? 'Ready to import' : 'Select a file first'}>
                   <span>
                     <Button
-                      onClick={onImport}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onImport();
+                      }}
                       variant="contained"
                       disabled={!file || isImporting}
                       startIcon={
@@ -425,7 +448,8 @@ export default function BulkPaymentsImportCard() {
 
                 {file && (
                   <Button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setFile(null);
                       setImportResult(null);
                       setImportError(null);
