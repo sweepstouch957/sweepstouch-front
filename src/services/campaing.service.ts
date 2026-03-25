@@ -15,6 +15,7 @@ export interface FilterCampaignParams {
   title?: string;
   storeName?: string;
   type?: string;
+  deliveryRate?: string;
 }
 
 export type MessageLogStatus = 'queued' | 'failed' | 'sent' | 'delivered' | 'undelivered';
@@ -440,10 +441,11 @@ class CampaignClient {
       title,
       storeName, // ✅
       type, // ✅
+      deliveryRate,
     } = params;
 
     const res = await api.get('/campaigns/filter', {
-      params: { page, limit, status, startDate, endDate, storeId, title, storeName, type },
+      params: { page, limit, status, startDate, endDate, storeId, title, storeName, type, deliveryRate },
     });
 
     return res.data;

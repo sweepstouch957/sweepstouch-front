@@ -17,9 +17,9 @@ import {
   useTheme,
 } from '@mui/material';
 import Autocomplete from '@mui/material/Autocomplete';
-import { DatePicker } from '@mui/x-date-pickers';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import RangePickerField from 'src/components/base/range-picker-field';
 
 type CampaignFilters = {
   status?: string;
@@ -29,6 +29,7 @@ type CampaignFilters = {
   page?: number;
   limit?: number;
   storeId?: string;
+  deliveryRate?: string;
 };
 
 type Props = {
@@ -74,39 +75,24 @@ export default function CampaignsFilters({ filters, setFilters, storeId }: Props
         justifyContent="space-between"
       >
         <Stack
-          direction={isMobile ? 'column' : 'row'}
+          direction="row"
+          useFlexGap
+          flexWrap="wrap"
           spacing={1.5}
-          sx={{ width: { xs: '100%', sm: 'auto' } }}
+          sx={{ width: '100%', flex: 1 }}
         >
-          <DatePicker
-            label={t('Start Date')}
-            value={filters.startDate ? new Date(filters.startDate) : null}
-            onChange={(v) => patch({ startDate: v ? v.toISOString() : '' })}
-            slotProps={{
-              textField: {
-                size: 'small',
-                fullWidth: isMobile,
-                sx: { minWidth: { sm: 180 } },
-              },
-            }}
-          />
+          <Box sx={{ flex: { xs: '1 1 100%', sm: '0 0 250px' } }}>
+            <RangePickerField
+              label={t('Date Range')}
+              value={{ startYmd: filters.startDate || '', endYmd: filters.endDate || '' }}
+              onChange={({ startYmd, endYmd }) => patch({ startDate: startYmd, endDate: endYmd })}
+            />
+          </Box>
 
-          <DatePicker
-            label={t('End Date')}
-            value={filters.endDate ? new Date(filters.endDate) : null}
-            onChange={(v) => patch({ endDate: v ? v.toISOString() : '' })}
-            slotProps={{
-              textField: {
-                size: 'small',
-                fullWidth: isMobile,
-                sx: { minWidth: { sm: 180 } },
-              },
-            }}
-          />
 
           <FormControl
             size="small"
-            sx={{ minWidth: { xs: '100%', sm: 170 } }}
+            sx={{ flex: { xs: '1 1 100%', sm: '0 0 130px' } }}
           >
             <Select
               value={filters.status || 'all'}
@@ -127,7 +113,7 @@ export default function CampaignsFilters({ filters, setFilters, storeId }: Props
 
           <FormControl
             size="small"
-            sx={{ minWidth: { xs: '100%', sm: 140 } }}
+            sx={{ flex: { xs: '1 1 100%', sm: '0 0 100px' } }}
           >
             <Select
               value={filters.type || 'all'}
@@ -146,9 +132,28 @@ export default function CampaignsFilters({ filters, setFilters, storeId }: Props
             </Select>
           </FormControl>
 
+          <FormControl size="small" sx={{ flex: { xs: '1 1 100%', sm: '0 0 100px' } }}>
+            <Select
+              value={filters.deliveryRate || 'all'}
+              displayEmpty
+              onChange={(e) =>
+                patch({ deliveryRate: e.target.value === 'all' ? '' : String(e.target.value) })
+              }
+            >
+              <MenuItem value="all">{t('All Rates')}</MenuItem>
+              <MenuItem value="0">0%</MenuItem>
+              <MenuItem value="lt_20">&lt; 20%</MenuItem>
+              <MenuItem value="lt_50">&lt; 50%</MenuItem>
+              <MenuItem value="gt_50">&gt; 50%</MenuItem>
+              <MenuItem value="gt_80">&gt; 80%</MenuItem>
+              <MenuItem value="100">100%</MenuItem>
+            </Select>
+          </FormControl>
+
           {/* ✅ Store Autocomplete => setea filters.storeId */}
           {shouldShowStorePicker && (
             <Autocomplete
+              sx={{ flex: { xs: '1 1 100%', sm: 1 }, minWidth: { sm: 150 } }}
               options={stores}
               value={selectedStore}
               loading={loadingStores}
@@ -209,8 +214,7 @@ export default function CampaignsFilters({ filters, setFilters, storeId }: Props
                   size="small"
                   label={t('Store')}
                   placeholder={t('Select store')}
-                  fullWidth={isMobile}
-                  sx={{ minWidth: { sm: 320 } }}
+                  fullWidth
                   InputProps={{
                     ...params.InputProps,
                     endAdornment: (
