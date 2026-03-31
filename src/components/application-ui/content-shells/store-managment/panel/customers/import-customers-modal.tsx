@@ -37,6 +37,7 @@ export const ImportCustomersModal: FC<ImportCustomersModalProps> = ({
 }) => {
   const theme = useTheme();
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [parsedCustomers, setParsedCustomers] = useState<ParsedCustomer[] | null>(null);
 
   const [results, setResults] = useState<{
@@ -51,9 +52,13 @@ export const ImportCustomersModal: FC<ImportCustomersModalProps> = ({
     if (!parsedCustomers || parsedCustomers.length === 0) return;
     
     setLoading(true);
+    setProgress(0);
     setResults(null);
     try {
-      const response = await customerClient.importCustomers(storeId, parsedCustomers);
+      const response = await customerClient.importCustomers(storeId, parsedCustomers, (curr, tot) => {
+        setProgress(Math.round((curr / tot) * 100));
+      });
+      
       setResults(response);
       
       if (response.inserted > 0 || response.updated > 0) {
@@ -67,6 +72,7 @@ export const ImportCustomersModal: FC<ImportCustomersModalProps> = ({
       toast.error('Error al enviar la información al servidor.');
     } finally {
       setLoading(false);
+      setProgress(0);
     }
   };
 

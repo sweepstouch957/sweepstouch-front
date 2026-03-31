@@ -26,7 +26,6 @@ import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
-import { ExcelCustomerDropzone } from '@/components/shared/ExcelCustomerDropzone';
 
 type InventoryItem = {
   id: string;
@@ -186,7 +185,6 @@ type Props = {
     tabletImei?: Record<string, string[]>;
     printerQty?: QtyMap;
     sectionB?: BItem[];
-    customersImport?: any[];
   };
 };
 
@@ -249,11 +247,6 @@ export default function CreateStoreStep2({
     0,
   );
 
-  /** ===== Sección C (Import customers) ===== */
-  const [customersImport, setCustomersImport] = React.useState<any[]>(
-    initialData?.customersImport ?? [],
-  );
-
   const handleSave = async () => {
     // Build { tablets, printers } object matching the backend Store schema
     const tablets = tabletInventory
@@ -289,7 +282,6 @@ export default function CreateStoreStep2({
       equipmentTotal,
       sectionBTotal,
       grandTotal: equipmentTotal + sectionBTotal,
-      customersImport,
     };
 
     await onSubmit?.(payload);
@@ -876,21 +868,6 @@ export default function CreateStoreStep2({
       >
         Total Sección B: <strong>${sectionBTotal}</strong>
       </Typography>
-
-      <Divider sx={{ my: 3 }} />
-
-      {/* ===== Sección C: Importar Clientes ===== */}
-      <Typography
-        variant="h6"
-        sx={{ mb: 1, fontWeight: 600 }}
-      >
-        Sección C: Base de Datos Inicial de Clientes (Opcional)
-      </Typography>
-      <Box sx={{ mb: 3 }}>
-        <ExcelCustomerDropzone 
-          onExtracted={(data) => setCustomersImport(data)}
-        />
-      </Box>
 
       {/* Footer acciones del Step 2 */}
       <Box

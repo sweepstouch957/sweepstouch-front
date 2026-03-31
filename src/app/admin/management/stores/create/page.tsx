@@ -7,6 +7,7 @@ import storeService from '@/services/store.service';
 import { useBrands } from '@/hooks/fetching/brands/useBrands';
 import { useSweepstakes } from '@/hooks/fetching/sweepstakes/useSweepstakes';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import {
   Avatar,
   Box,
@@ -35,6 +36,7 @@ import toast from 'react-hot-toast';
 import { customerClient } from '@/services/customerService';
 import LocationPickerMap from '@/components/application-ui/map/LocationPickerMap';
 import PhoneMaskInput from '@/components/PhoneMaskInput';
+import { ExcelCustomerDropzone, ParsedCustomer } from '@/components/shared/ExcelCustomerDropzone';
 
 const pinkTheme = createTheme({
   palette: {
@@ -237,6 +239,7 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
 
   const [touched, setTouched] = React.useState(false);
   const [tabValue, setTabValue] = React.useState(0);
+  const [createdStore, setCreatedStore] = React.useState<any>(null);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     // Evitamos avanzar a la segunda pestaña si la vista 1 no es válida
@@ -319,27 +322,9 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
 
     try {
       const newStore: any = await storeService.createStore(completeData as any);
-
-      // Importar los clientes extraídos en el Step 2 (si los subió)
-      if (step2Data.customersImport && step2Data.customersImport.length > 0) {
-        try {
-          await customerClient.importCustomers(
-            String(newStore._id || newStore.id), 
-            step2Data.customersImport
-          );
-          toast.success(`Tienda creada.\nImportados ${step2Data.customersImport.length} clientes exitosamente.`);
-        } catch (importErr) {
-          console.error('Error importing base customers:', importErr);
-          toast.success('Tienda creada exitosamente, pero hubo un error subiendo los clientes.');
-        }
-      } else {
-        toast.success('Tienda y usuario creados exitosamente');
-      }
-
+      setCreatedStore(newStore);
+      toast.success('Tienda y usuario creados exitosamente');
       setState({});
-      setTimeout(() => {
-        router.push('/admin/management/stores');
-      }, 1500);
     } catch (error: any) {
       console.error('Error al crear la tienda:', error);
       toast.error(error.response?.data?.error || 'Error al crear la tienda. Por favor, intenta en unos minutos.');
@@ -348,6 +333,52 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
 
   const err = (cond: boolean) => (touched && !cond ? true : false);
   const helper = (cond: boolean) => (touched && !cond ? t("Required field") : '');
+
+  if (createdStore) {
+    return (
+      <ThemeProvider theme={pinkTheme}>
+        <Container maxWidth="md" sx={{ py: { xs: 4, md: 8 }, textAlign: 'center' }}>
+          <Card sx={{ p: { xs: 3, md: 6 }, borderRadius: 4, boxShadow: '0 12px 40px rgba(0,0,0,0.08)' }}>
+            <CheckCircleOutlineIcon color="success" sx={{ fontSize: 90, mb: 2 }} />
+            <Typography variant="h3" fontWeight="bold" gutterBottom>
+              ¡Tienda Creada!
+            </Typography>
+            <Typography variant="body1" color="text.secondary" mb={5} fontSize="1.1rem">
+              La tienda <strong>{createdStore.name}</strong> ha sido configurada y ya está lista en el sistema.
+            </Typography>
+
+            <Divider sx={{ my: 4 }} />
+
+            <Typography variant="h5" fontWeight={600} mb={1}>
+              Paso Opcional: Importar Directorio
+            </Typography>
+            <Typography variant="body2" color="text.secondary" mb={4}>
+              Sube tu Excel o CSV aquí para llenar la base de clientes de esta tienda automáticamente.
+            </Typography>
+
+            <Box sx={{ maxWidth: 550, mx: 'auto', textAlign: 'left' }}>
+               <SuccessImportSection 
+                 storeId={String(createdStore._id || createdStore.id)} 
+                 onFinish={() => router.push('/admin/management/stores')}
+               />
+            </Box>
+
+            <Box mt={6}>
+              <Button
+                variant="text"
+                color="inherit"
+                size="large"
+                onClick={() => router.push('/admin/management/stores')}
+                sx={{ px: 5, color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
+              >
+                No importar nada, salir al listado
+              </Button>
+            </Box>
+          </Card>
+        </Container>
+      </ThemeProvider>
+    );
+  }
 
   return (
     <ThemeProvider theme={pinkTheme}>
@@ -790,5 +821,81 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
         />
       </Container>
     </ThemeProvider>
+  );
+}
+
+function SuccessImportSection({ storeId, onFinish }: { storeId: string; onFinish: () => void }) {
+  const [parsedCustomers, setParsedCustomers] = React.useState<ParsedCustomer[] | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [progress, setProgress] = React.useState(0);
+  const [results, setResults] = React.useState<any>(null);
+
+  const handleImport = async () => {
+    if (!parsedCustomers || parsedCustomers.length === 0) return;
+    setLoading(true);
+    setProgress(0);
+    try {
+      const response = await customerClient.importCustomers(storeId, parsedCustomers, (curr, tot) => {
+        setProgress(Math.round((curr / tot) * 100));
+      });
+      setResults(response);
+      toast.success('Proceso de importación finalizado.');
+    } catch (err) {
+      toast.error('Ocurrió un error en la importación. Intenta de nuevo.');
+    } finally {
+      setLoading(false);
+      setProgress(0);
+    }
+  };
+
+  if (results) {
+    return (
+      <Box textAlign="center" p={3} border="1px solid" borderColor="divider" borderRadius={2} bgcolor="background.paper">
+         <Typography variant="h6" gutterBottom color="success.main">
+            ¡Importación exitosa!
+         </Typography>
+         <Box display="flex" gap={2} mb={3} mt={3}>
+            <Box flex={1}>
+              <Typography variant="h4" fontWeight="bold" color="success.main">{results.inserted}</Typography>
+              <Typography variant="body2" color="text.secondary">Nuevos</Typography>
+            </Box>
+            <Box flex={1}>
+              <Typography variant="h4" fontWeight="bold" color="info.main">{results.updated}</Typography>
+              <Typography variant="body2" color="text.secondary">Actualizados</Typography>
+            </Box>
+            <Box flex={1}>
+              <Typography variant="h4" fontWeight="bold" color="error.main">{results.failed}</Typography>
+              <Typography variant="body2" color="text.secondary">Errores</Typography>
+            </Box>
+         </Box>
+         <Button variant="contained" color="primary" onClick={onFinish} size="large" fullWidth>
+           Ir a panel de la tienda
+         </Button>
+      </Box>
+    );
+  }
+
+  return (
+    <Box>
+      <ExcelCustomerDropzone 
+        onExtracted={(data) => setParsedCustomers(data.length > 0 ? data : null)} 
+        isLoading={loading} 
+      />
+      {parsedCustomers && parsedCustomers.length > 0 && (
+         <Box mt={3} display="flex" justifyContent="center">
+           <Button 
+             variant="contained" 
+             color="primary" 
+             size="large" 
+             onClick={handleImport} 
+             disabled={loading}
+             fullWidth
+             sx={{ py: 1.5, fontSize: '1.05rem', fontWeight: 'bold' }}
+           >
+             {loading ? (progress > 0 ? `Subiendo datos (${progress}%)...` : 'Iniciando subida...') : 'Confirmar e Importar al Servidor'}
+           </Button>
+         </Box>
+      )}
+    </Box>
   );
 }
