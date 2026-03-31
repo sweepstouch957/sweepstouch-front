@@ -74,11 +74,26 @@ export const ExcelCustomerDropzone: FC<ExcelCustomerDropzoneProps> = ({
                 const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
                 newRow[normalizedKey] = String(row[key] || '').trim();
               }
+
+              // Extraer fullName en caso de que todo venga en una sola columna
+              const fullName = newRow.full_name || newRow.fullname || newRow.name || newRow.nombre_completo || newRow.nombrecompleto || '';
+              let extractedFirstName = newRow.first_name || newRow.firstname || newRow.nombre || '';
+              let extractedLastName = newRow.last_name || newRow.lastname || newRow.apellido || '';
+
+              // Si existe un fullName, pero no vinieron first/last individuales, hacemos el split
+              if (fullName && !extractedFirstName && !extractedLastName) {
+                const parts = fullName.split(' ').filter(Boolean);
+                if (parts.length > 0) {
+                  extractedFirstName = parts[0];
+                  extractedLastName = parts.slice(1).join(' ');
+                }
+              }
+
               // Mapeo seguro a los campos esperados del backend
               return {
                 phone: newRow.phone || newRow.telefono || newRow.number || newRow.phonenumber || '',
-                firstName: newRow.first_name || newRow.firstname || newRow.nombre || '',
-                lastName: newRow.last_name || newRow.lastname || newRow.apellido || '',
+                firstName: extractedFirstName,
+                lastName: extractedLastName,
                 email: newRow.email || newRow.correo || '',
               };
             });
@@ -126,7 +141,7 @@ export const ExcelCustomerDropzone: FC<ExcelCustomerDropzoneProps> = ({
         <Box>
           <Alert severity="info" sx={{ mb: 2 }}>
             Sube un archivo <strong>Excel o CSV</strong>. Las columnas recomendadas son: 
-            <em> phone, first_name, last_name, email </em>. 
+            <em> phone, first_name, last_name, full_name, email </em>. 
             El campo <strong>phone</strong> es el único obligatorio.
           </Alert>
 
