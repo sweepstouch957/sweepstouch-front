@@ -32,6 +32,7 @@ import { useRouter } from 'next/navigation';
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
+import { customerClient } from '@/services/customerService';
 import LocationPickerMap from '@/components/application-ui/map/LocationPickerMap';
 import PhoneMaskInput from '@/components/PhoneMaskInput';
 
@@ -317,8 +318,24 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
     };
 
     try {
-      await storeService.createStore(completeData as any);
-      toast.success('Tienda y usuario creados exitosamente');
+      const newStore: any = await storeService.createStore(completeData as any);
+
+      // Importar los clientes extraídos en el Step 2 (si los subió)
+      if (step2Data.customersImport && step2Data.customersImport.length > 0) {
+        try {
+          await customerClient.importCustomers(
+            String(newStore._id || newStore.id), 
+            step2Data.customersImport
+          );
+          toast.success(`Tienda creada.\nImportados ${step2Data.customersImport.length} clientes exitosamente.`);
+        } catch (importErr) {
+          console.error('Error importing base customers:', importErr);
+          toast.success('Tienda creada exitosamente, pero hubo un error subiendo los clientes.');
+        }
+      } else {
+        toast.success('Tienda y usuario creados exitosamente');
+      }
+
       setState({});
       setTimeout(() => {
         router.push('/admin/management/stores');

@@ -51,6 +51,17 @@ class CustomerClient {
     return res.data;
   }
 
+  async importCustomers(storeId: string, customers: any[]): Promise<{
+    total: number;
+    inserted: number;
+    updated: number;
+    failed: number;
+    errors: { row: number; reason: string; data?: any }[];
+  }> {
+    const res = await api.post(`/customers/import/${storeId}`, { customers });
+    return res.data;
+  }
+
   // Obtener conteo total de clientes
   async getCustomerCount(): Promise<number> {
     const res = await api.get('/customers/count');

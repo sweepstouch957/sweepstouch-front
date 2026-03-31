@@ -32,6 +32,9 @@ export type CreateStoreState = {
     type: string;
     coordinates: number[];
   };
+
+  // Import customers feature
+  customersImport?: any[];
 };
 
 const KEY = 'create-store-form-v2';

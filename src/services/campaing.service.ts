@@ -561,6 +561,20 @@ class CampaignClient {
     const res = await api.get(`${AUDIENCE_BASE}/stores-growth`, { params });
     return res.data as AudienceStoresGrowthResponse;
   }
+
+  /* ===================== ✅ RESEND ===================== */
+
+  /** Preview de cuántos mensajes fallidos se reenviarán (dry-run, sin enviar nada). */
+  async getResendPreview(campaignId: string) {
+    const res = await api.get(`/tracking/campaigns/${campaignId}/resend-preview`);
+    return res.data;
+  }
+
+  /** Reenvía los mensajes en error de una campaña. Anti-duplicados en backend. */
+  async resendCampaignErrors(campaignId: string) {
+    const res = await api.post(`/tracking/campaigns/${campaignId}/resend-errors`);
+    return res.data;
+  }
 }
 
 export const campaignClient = new CampaignClient();
