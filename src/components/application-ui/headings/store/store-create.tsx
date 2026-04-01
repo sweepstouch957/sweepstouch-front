@@ -90,7 +90,7 @@ export default function StoreHeader({
 
   // Construir href con slug
   const qrHref = slug
-    ? `https://sweepstakes.tech-touch.com/?slug=${encodeURIComponent(slug)}`
+    ? `https://st.sweepstouch.com/?slug=${encodeURIComponent(slug)}`
     : undefined;
 
   // Fallback si no hay imagen del backend (usa servicio público para generar QR)
