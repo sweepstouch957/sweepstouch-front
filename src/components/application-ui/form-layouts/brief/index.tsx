@@ -145,7 +145,7 @@ function BannerUpload({
   const handleFile = async (file: File) => {
     setUploading(true);
     try {
-      const { url } = await uploadCampaignImage(file, 'banners');
+      const { url } = await uploadCampaignImage(file, 'sweepstakes');
       setPreview(url);
       onChange(url);
     } finally {
@@ -875,11 +875,22 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
                   item
                   xs={12}
                 >
+                  <Alert severity="warning" sx={{ mb: 2 }}>
+                    El tamaño máximo permitido para la imagen principal es de 500 KB para asegurar la entrega del MMS de confirmación.
+                  </Alert>
                   <AvatarUploadLogo
                     label="Imagen principal del sorteo"
                     initialUrl={initialValues?.image}
                     onSelect={(file) => {
                       if (file) {
+                        if (file.size > 500 * 1024) {
+                          setSnack({
+                            open: true,
+                            msg: 'La imagen no puede superar los 500 KB. Por favor usa una más ligera.',
+                            sev: 'error',
+                          });
+                          return;
+                        }
                         const dt = new DataTransfer();
                         dt.items.add(file);
                         setValue('image', dt.files as any, { shouldValidate: true });
@@ -1077,7 +1088,7 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
                     control={control}
                     render={({ field }) => (
                       <BannerUpload
-                        label="Banner Desktop (recomendado 1920×600)"
+                        label="Banner Desktop (Medida Ideal: 1920 x 860 píxeles, Alta resolución)"
                         value={field.value}
                         onChange={(url) => field.onChange(url)}
                       />
@@ -1094,7 +1105,7 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
                     control={control}
                     render={({ field }) => (
                       <BannerUpload
-                        label="Banner Mobile (recomendado 640×360)"
+                        label="Banner Mobile (Medida Ideal: 1080 x 1200 píxeles, Ligeramente más vertical que horizontal)"
                         value={field.value}
                         onChange={(url) => field.onChange(url)}
                       />

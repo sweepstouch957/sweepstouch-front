@@ -24,6 +24,7 @@ import {
 import { DateTimePicker } from '@mui/x-date-pickers';
 import { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { Snackbar } from '@mui/material';
 import CampaignResume from './campaing-resume';
 
 interface CampaignFormInputs {
@@ -93,6 +94,12 @@ export default function CreateCampaignForm({
 
   const [useFullAudience, setUseFullAudience] = useState(!initialValues?.customAudience);
   const contentRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const [snackState, setSnackState] = useState<{ open: boolean; message: string; severity: 'error' | 'warning' | 'info' | 'success' }>({
+    open: false,
+    message: '',
+    severity: 'error'
+  });
 
   const isPhoneMissing = !phoneNumber || phoneNumber.trim() === '';
 
@@ -217,7 +224,11 @@ export default function CreateCampaignForm({
                         const handleChange = (e: any) => {
                           const value = e.target.value || '';
                           if (value.length > 2047) {
-                            alert('Message content cannot exceed 2047 characters (max 2047).');
+                            setSnackState({
+                              open: true,
+                              message: 'Message content cannot exceed 2047 characters (max 2047).',
+                              severity: 'error'
+                            });
                             return;
                           }
                           field.onChange(e);
@@ -296,9 +307,11 @@ export default function CreateCampaignForm({
                                   ` ${ph.key} `
                                 );
                                 if (updatedText.length > 2047) {
-                                  alert(
-                                    'Message content cannot exceed 2047 characters (max 2047).'
-                                  );
+                                  setSnackState({
+                                    open: true,
+                                    message: 'Message content cannot exceed 2047 characters (max 2047).',
+                                    severity: 'error'
+                                  });
                                   // revertimos visualmente al valor anterior del form
                                   contentRef.current.value = content || '';
                                   return;
@@ -337,11 +350,22 @@ export default function CreateCampaignForm({
                     item
                     xs={12}
                   >
+                    <Alert severity="warning" sx={{ mb: 2 }}>
+                      El tamaño máximo permitido para la imagen de campaña es de 500 KB para asegurar la entrega del MMS.
+                    </Alert>
                     <AvatarUploadLogo
                       label="Imagen de campaña"
                       initialUrl={initialValues?.image}
                       onSelect={(file) => {
                         if (file) {
+                          if (file.size > 500 * 1024) {
+                            setSnackState({
+                              open: true,
+                              message: 'La imagen no puede superar los 500 KB. Por favor usa una más ligera.',
+                              severity: 'error'
+                            });
+                            return;
+                          }
                           const dt = new DataTransfer();
                           dt.items.add(file);
                           setValue('image', dt.files as any, { shouldValidate: true });
@@ -474,6 +498,21 @@ export default function CreateCampaignForm({
           </Grid>
         </Grid>
       </Container>
+      <Snackbar
+        open={snackState.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackState((s) => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setSnackState((s) => ({ ...s, open: false }))}
+          severity={snackState.severity}
+          variant="filled"
+          sx={{ width: '100%', borderRadius: 2 }}
+        >
+          {snackState.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
