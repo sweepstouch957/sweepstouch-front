@@ -150,6 +150,9 @@ export const routes = {
         listing: '/admin/management/users-listing',
         profile: '/admin/management/users-profile',
       },
+      merchants: {
+        listing: '/admin/management/merchants',
+      },
       projects: '/admin/management/projects',
       stores: {
         listing: '/admin/management/stores',

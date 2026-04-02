@@ -5,7 +5,11 @@ import { Box, CircularProgress, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import Results from './results';
 
-function Component() {
+interface UsersTableListingProps {
+  onEditUser?: (user: any) => void;
+}
+
+function Component({ onEditUser }: UsersTableListingProps) {
   const {
     data: users,
     isLoading,
@@ -41,7 +45,7 @@ function Component() {
     );
   }
 
-  return <Results users={users || []} />;
+  return <Results users={users || []} onEditUser={onEditUser} />;
 }
 
 export default Component;

@@ -65,6 +65,14 @@ export const CardWrapper = styled(Card)(
   ({ theme }) => `
   position: relative;
   overflow: visible;
+  transition: box-shadow 0.25s ease, transform 0.2s ease;
+  border: 1px solid ${theme.palette.divider};
+  border-radius: 16px;
+
+  &:hover {
+    box-shadow: 0 8px 32px ${alpha(theme.palette.common.black, 0.12)};
+    transform: translateY(-2px);
+  }
 
   &::after {
     content: '';
@@ -75,6 +83,7 @@ export const CardWrapper = styled(Card)(
     left: 0;
     border-radius: inherit;
     z-index: 1;
+    pointer-events: none;
   }
 
   &.Mui-selected::after {
@@ -83,9 +92,26 @@ export const CardWrapper = styled(Card)(
 `
 );
 
+// ---------- Avatar color helper ----------
+const AVATAR_COLORS = [
+  '#6C63FF', '#FF6584', '#43A8D0', '#F7B731', '#26de81',
+  '#FC5C65', '#45AAF2', '#FD9644', '#2BCB9B', '#A55EEA',
+];
+const getAvatarColor = (id = '') => {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) & 0xffff;
+  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+};
+const getInitials = (u: any) => {
+  const f = u.firstName?.[0] ?? '';
+  const l = u.lastName?.[0] ?? '';
+  return (f + l).toUpperCase() || '?';
+};
+
 // ---------- Tipos ----------
 interface ResultsProps {
   users: User[];
+  onEditUser?: (user: any) => void;
 }
 
 interface Filters {
@@ -152,7 +178,7 @@ const ROLE_TABS_LABEL: Record<string, string> = {
   promotor_owner: 'Promotor Owners',
   cashier: 'Cashiers',
   general_manager: 'General Managers',
-  merchant_manager: 'Merchant Manager'
+  merchant_manager: 'Merchant Managers'
 };
 
 const toTitle = (k: string) =>
@@ -245,7 +271,7 @@ const buildExportRows = (rows: User[]) =>
     };
   });
 
-const Results: FC<ResultsProps> = ({ users }) => {
+const Results: FC<ResultsProps> = ({ users, onEditUser }) => {
   const [selectedItems, setSelectedUsers] = useState<string[]>([]);
   const { t } = useTranslation();
   const theme = useTheme();
@@ -264,20 +290,19 @@ const Results: FC<ResultsProps> = ({ users }) => {
 
   const ROLE_ORDER = [
     'admin',
+    'merchant_manager',
     'merchant',
-    'promotor',
     'promotor_owner',
-    'cashier',
+    'promotor',
     'general_manager',
-    'merchant_manager'
+    'cashier'
   ];
 
   const tabs: UITabItem[] = useMemo(() => {
-    const knownFirst = ROLE_ORDER.filter((k) => roleCounts[k]);
     const unknownAfter = Object.keys(roleCounts).filter(
       (k) => !ROLE_ORDER.includes(k)
     );
-    const keys = [...knownFirst, ...unknownAfter];
+    const keys = [...ROLE_ORDER, ...unknownAfter];
 
     return [
       {
@@ -410,50 +435,76 @@ const Results: FC<ResultsProps> = ({ users }) => {
 
   return (
     <>
+      <Card
+        elevation={0}
+        sx={{
+          mb: 3,
+          px: 1,
+          background: 'transparent',
+          border: 'none',
+        }}
+      >
+        <Box
+          sx={{
+            py: 1,
+            px: 0.5,
+            bgcolor: alpha(theme.palette.background.paper, 0.4),
+            borderRadius: 3,
+            border: `1px solid ${theme.palette.divider}`,
+            backdropFilter: 'blur(8px)',
+          }}
+        >
       {smUp ? (
         <TabsShadow
           sx={{
+            minHeight: 40,
+            '& .MuiTabs-indicator': { display: 'none' },
+            '& .MuiTabs-flexContainer': { gap: 0.5 },
             '& .MuiTab-root': {
+              minHeight: 34,
+              py: 0.5,
+              px: 1.5,
+              borderRadius: 1.5,
+              textTransform: 'none',
+              fontWeight: 500,
+              fontSize: '0.85rem',
+              color: 'text.secondary',
+              transition: 'all 0.2s ease-in-out',
+              border: '1px solid transparent',
               flexDirection: 'row',
-              pr: 1,
-              '& .MuiChip-root': {
-                ml: 1,
-                transition: theme.transitions.create(['background', 'color'], {
-                  duration: theme.transitions.duration.complex
-                })
+              gap: 1,
+              '&:hover': {
+                bgcolor: alpha(theme.palette.text.primary, 0.04),
+                color: 'text.primary',
               },
               '&.Mui-selected': {
+                bgcolor: theme.palette.background.paper,
+                color: 'primary.main',
+                boxShadow: `0 1px 4px ${alpha(theme.palette.common.black, 0.06)}`,
+                border: `1px solid ${theme.palette.divider}`,
+                fontWeight: 600,
                 '& .MuiChip-root': {
-                  backgroundColor: alpha(
-                    theme.palette.primary.contrastText,
-                    0.12
-                  ),
-                  color: 'primary.contrastText'
+                  bgcolor: alpha(theme.palette.primary.main, 0.08),
+                  color: 'primary.main',
+                  fontWeight: 700,
                 }
               },
-              '&:first-child': {
-                ml: 0
+              '& .MuiChip-root': {
+                height: 20,
+                fontSize: '0.7rem',
+                minWidth: 24,
+                bgcolor: alpha(theme.palette.action.disabledBackground, 0.3),
+                color: 'text.secondary',
+                transition: 'all 0.2s',
               }
             }
           }}
           onChange={handleTabsChange}
           scrollButtons="auto"
-          textColor="secondary"
           value={filters.role || 'all'}
           variant="scrollable"
         >
-          {[
-            {
-              value: 'all',
-              label: 'All users',
-              count: users.length
-            },
-            ...Object.keys(roleCounts).map((k) => ({
-              value: k,
-              label: ROLE_TABS_LABEL[k] ?? toTitle(ROLE_META[k]?.text ?? k),
-              count: roleCounts[k] ?? 0
-            }))
-          ].map((tab) => (
+          {tabs.map((tab) => (
             <Tab
               key={tab.value}
               value={tab.value}
@@ -470,25 +521,23 @@ const Results: FC<ResultsProps> = ({ users }) => {
           ))}
         </TabsShadow>
       ) : (
+        <Box px={1.5} pb={1.5}>
         <Select
           value={(filters.role || 'all') as any}
           onChange={handleSelectChange as any}
           fullWidth
+          size="small"
         >
-          <MenuItem value="all">
-            All users
-          </MenuItem>
-          {Object.keys(roleCounts).map((k) => (
-            <MenuItem
-              key={k}
-              value={k}
-            >
-              {ROLE_TABS_LABEL[k] ?? toTitle(ROLE_META[k]?.text ?? k)}
+          {tabs.map((tab) => (
+            <MenuItem key={tab.value} value={tab.value}>
+              {tab.label} ({tab.count})
             </MenuItem>
           ))}
         </Select>
+        </Box>
       )}
-
+        </Box>
+      </Card>
       <Box
         display="flex"
         justifyContent="space-between"
@@ -761,108 +810,110 @@ const Results: FC<ResultsProps> = ({ users }) => {
                 {paginatedUsers.map((user: any) => {
                   const isUserSelected = selectedItems.includes(user.id);
                   const roleKey = getRoleKey(user.role);
-                  const emailDisplay = user.email || '';
-                  const username =
-                    roleKey === 'merchant'
-                      ? user.phoneNumber || user.firstName
-                      : user.firstName;
+                  const accentColor = getAvatarColor(user.id || user._id || '');
+                  const initials = getInitials(user);
+                  const isMerchant = roleKey === 'merchant';
+                  const contactLine = user.email || user.phoneNumber || '';
 
                   return (
-                    <Grid
-                      xs={12}
-                      sm={6}
-                      lg={4}
-                      key={user.id}
-                    >
-                      <CardWrapper
-                        className={`${isUserSelected ? 'Mui-selected' : ''}`}
-                      >
-                        <Box sx={{ position: 'relative', zIndex: '2' }}>
+                    <Grid xs={12} sm={6} lg={4} key={user.id}>
+                      <CardWrapper className={isUserSelected ? 'Mui-selected' : ''} elevation={0}>
+                        <Box sx={{ position: 'relative', zIndex: 2 }}>
+
+                          {/* ── Top bar: role chip + actions ── */}
                           <Box
-                            px={2}
-                            pt={2}
+                            px={2} pt={1.5} pb={0}
                             display="flex"
-                            alignItems="flex-start"
+                            alignItems="center"
                             justifyContent="space-between"
                           >
                             {getUserRoleLabel(user.role)}
-                            <IconButton
-                              color="primary"
-                              sx={{ p: 0.5 }}
-                            >
-                              <MoreVertTwoToneIcon />
-                            </IconButton>
-                          </Box>
-                          <Box
-                            p={2}
-                            display="flex"
-                            flexDirection={{ xs: 'column', md: 'row' }}
-                            alignItems="flex-start"
-                          >
-                            <Avatar
-                              variant="rounded"
-                              sx={{
-                                width: 50,
-                                height: 50,
-                                mr: 1.5,
-                                mb: { xs: 2, md: 0 }
-                              }}
-                              src={user.avatar}
-                            />
-                            <Box>
-                              <Box>
-                                <Link
-                                  variant="h6"
-                                  href=""
-                                  onClick={(e) => e.preventDefault()}
-                                  underline="hover"
+                            <Stack direction="row" spacing={0.5}>
+                              <Tooltip title="Edit user" arrow>
+                                <IconButton
+                                  size="small"
+                                  sx={{
+                                    color: 'text.secondary',
+                                    '&:hover': { color: accentColor, bgcolor: alpha(accentColor, 0.08) },
+                                  }}
+                                  onClick={() => onEditUser?.(user)}
                                 >
-                                  {user.firstName}
-                                </Link>{' '}
+                                  <LaunchTwoToneIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="More" arrow>
+                                <IconButton size="small" sx={{ color: 'text.disabled' }}>
+                                  <MoreVertTwoToneIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </Stack>
+                          </Box>
+
+                          {/* ── Avatar + Name block ── */}
+                          <Box px={2} pt={1.5} pb={2} display="flex" alignItems="center" gap={1.5}>
+                            <Avatar
+                              src={user.avatar}
+                              sx={{
+                                width: 52,
+                                height: 52,
+                                bgcolor: accentColor,
+                                fontSize: 18,
+                                fontWeight: 700,
+                                flexShrink: 0,
+                                boxShadow: `0 4px 14px ${alpha(accentColor, 0.4)}`,
+                              }}
+                            >
+                              {initials}
+                            </Avatar>
+
+                            <Box minWidth={0} flex={1}>
+                              <Typography variant="subtitle1" fontWeight={700} noWrap>
+                                {user.firstName}{user.lastName ? ` ${user.lastName}` : ''}
+                              </Typography>
+                              <Tooltip title={contactLine}>
                                 <Typography
-                                  component="span"
                                   variant="body2"
                                   color="text.secondary"
-                                >
-                                  ({user.lastName})
-                                </Typography>
-                              </Box>
-
-                              {/* Username si es merchant */}
-                              {roleKey === 'merchant' && (
-                                <Typography
-                                  sx={{ pt: 0.3 }}
-                                  variant="caption"
-                                  color="text.secondary"
-                                >
-                                  <b>Username </b>: {username}
-                                </Typography>
-                              )}
-                              <br />
-                              {/* Access code si es merchant */}
-                              {roleKey === 'merchant' && user.accessCode && (
-                                <Typography
-                                  sx={{ pt: 0.3 }}
-                                  variant="caption"
-                                  color="text.secondary"
-                                >
-                                  <b>Access code </b>: {user.accessCode}
-                                </Typography>
-                              )}
-
-                              {/* Email truncado */}
-                              <Tooltip title={emailDisplay}>
-                                <Typography
-                                  sx={{ pt: 1, maxWidth: 260 }}
-                                  variant="h6"
-                                  fontWeight={500}
                                   noWrap
+                                  sx={{ maxWidth: '100%' }}
                                 >
-                                  {emailDisplay}
+                                  {contactLine || '—'}
                                 </Typography>
                               </Tooltip>
                             </Box>
                           </Box>
+
+                          {/* ── Footer: access code / phone badges ── */}
+                          {(isMerchant && (user.phoneNumber || user.accessCode)) && (
+                            <Box
+                              px={2} pb={1.5}
+                              display="flex"
+                              flexWrap="wrap"
+                              gap={0.75}
+                              sx={{
+                                borderTop: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                                pt: 1,
+                              }}
+                            >
+                              {user.phoneNumber && (
+                                <Chip
+                                  label={user.phoneNumber}
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{ fontSize: 11, borderRadius: 1 }}
+                                />
+                              )}
+                              {user.accessCode && (
+                                <Chip
+                                  label={`Code: ${user.accessCode}`}
+                                  size="small"
+                                  color="primary"
+                                  sx={{ fontSize: 11, borderRadius: 1 }}
+                                />
+                              )}
+                            </Box>
+                          )}
+
                         </Box>
                       </CardWrapper>
                     </Grid>

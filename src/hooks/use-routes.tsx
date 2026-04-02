@@ -6,6 +6,7 @@ import {
   Person2Outlined,
   Redeem,
   Store,
+  StorefrontOutlined,
 } from '@mui/icons-material';
 import AppsRoundedIcon from '@mui/icons-material/AppsRounded';
 import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
@@ -47,7 +48,13 @@ const applicationsMenu = (t: (token: string) => string): MenuItem =>
 const usersMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Users'), <PeopleRoundedIcon />, [
     { title: t('Listing'), route: routes.admin.management.users.listing },
+    { title: t('Merchants'), route: routes.admin.management.merchants.listing },
     //{ title: t('User profile'), route: routes.admin.management.users.profile },
+  ]);
+
+const merchantsMenu = (t: (token: string) => string): MenuItem =>
+  buildMenu(t('Merchants'), <StorefrontOutlined />, [
+    { title: t('Listing'), route: routes.admin.management.merchants.listing },
   ]);
 
 const campaignsMenu = (t: (token: string) => string): MenuItem =>
