@@ -318,6 +318,7 @@ const StoreManagementPage = () => {
         parentContainer={pageRef.current}
         storeName={store?.name || ''}
         storeId={store?.id || ''}
+        storeSlug={store?.slug}
         image={store?.image || ''}
         accessCode={store?.accessCode}
       />

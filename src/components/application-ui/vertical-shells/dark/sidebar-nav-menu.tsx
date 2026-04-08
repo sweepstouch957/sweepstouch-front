@@ -88,30 +88,49 @@ export const ListItemButtonWrapper = styled(ListItemButton)(({ theme }) => ({
 
 const SubMenu = styled(List)<ListProps<'div', { component: 'div' }>>(({ theme }) => ({
   paddingTop: theme.spacing(0.5),
+  paddingBottom: theme.spacing(0.5),
+  position: 'relative',
+
+  // Draw a subtle vertical line to act as a tree stem
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    left: theme.spacing(3.5),
+    top: 0,
+    bottom: 0,
+    width: 1,
+    background: alpha(neutral[700], 0.5),
+    zIndex: 1,
+  },
 
   '& .MuiListItemButton-root': {
-    padding: theme.spacing(0.8, 2, 0.8, 7),
+    padding: theme.spacing(0.6, 2, 0.6, 6.5),
     fontWeight: 500,
+    fontSize: 13, // Slightly smaller text for hierarchy
+    minHeight: 36,
+    color: neutral[400],
 
     '&::before': {
-      content: '" "',
-      background: neutral[100],
-      opacity: 0,
+      content: '""',
+      background: neutral[300],
+      opacity: 0.5,
       position: 'absolute',
-      left: theme.spacing(2.8),
-      borderRadius: 4,
+      left: theme.spacing(3.5), // Connects to the vertical line
       top: '50%',
-      height: '6px',
-      width: '6px',
-      transform: 'scale(0)',
-      marginTop: '-3px',
-      transition: theme.transitions.create(['transform', 'opacity']),
+      height: 1,
+      width: theme.spacing(1.5),
+      transition: theme.transitions.create(['background', 'opacity', 'width']),
+      zIndex: 2,
     },
 
     '&.Mui-selected, &:hover': {
+      color: neutral[50], // brighter text
+      background: alpha(neutral[700], 0.1),
+
       '&::before': {
         opacity: 1,
-        transform: 'scale(1)',
+        background: neutral[50], // brighter branch indicator
+        width: theme.spacing(2),
       },
     },
 

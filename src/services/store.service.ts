@@ -58,6 +58,13 @@ export interface Store {
   lat?: number | null;
   email?: string;
 
+  // 🆕 Social Links
+  socialLinks?: {
+    facebook?: string;
+    instagram?: string;
+    website?: string;
+  };
+
   // 🆕 Tablet / Kiosko
   kioskTabletStatus?: 'instalada' | 'desinstalada' | 'sin_instalar';
   kioskTabletDate?: string | null; // YYYY-MM-DD o ISO
@@ -88,6 +95,16 @@ export interface UpdateStoreBody {
   membershipType?: 'mensual' | 'semanal' | 'especial';
   paymentMethod?: 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
   startContractDate?: string | null; // ISO o null
+
+  // 🆕 Social Links
+  socialLinks?: {
+    facebook?: string;
+    instagram?: string;
+    website?: string;
+  };
+
+  // 🆕 Slug (editable by admin)
+  slug?: string;
 
   // 🆕 Tablet / Kiosko
   kioskTabletStatus?: 'instalada' | 'desinstalada' | 'sin_instalar';

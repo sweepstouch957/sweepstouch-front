@@ -10,9 +10,10 @@ import { neutral } from 'src/theme/colors';
 interface TooltipProps {
   icon: React.ReactNode;
   tooltipText: string;
+  onClick?: () => void;
 }
 
-const FooterButton: FC<TooltipProps> = ({ icon, tooltipText }) => {
+const FooterButton: FC<TooltipProps> = ({ icon, tooltipText, onClick }) => {
   const { t } = useTranslation();
 
   return (
@@ -22,6 +23,7 @@ const FooterButton: FC<TooltipProps> = ({ icon, tooltipText }) => {
       title={t(tooltipText)}
     >
       <IconButton
+        onClick={onClick}
         sx={{
           background: alpha(neutral[800], 0.1),
           color: neutral[400],
@@ -42,7 +44,18 @@ const FooterButton: FC<TooltipProps> = ({ icon, tooltipText }) => {
   );
 };
 
+import { authClient } from 'src/utils/auth/custom/client';
+
 const SidebarFooter: FC = () => {
+  const handleLogout = async () => {
+    try {
+      await authClient.signOut();
+      window.location.href = '/auth/custom/login'; // Redirect to login
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
   return (
     <Stack
       direction="row"
@@ -65,6 +78,7 @@ const SidebarFooter: FC = () => {
       <FooterButton
         icon={<PowerSettingsNewTwoToneIcon fontSize="small" />}
         tooltipText="Logout"
+        onClick={handleLogout}
       />
     </Stack>
   );

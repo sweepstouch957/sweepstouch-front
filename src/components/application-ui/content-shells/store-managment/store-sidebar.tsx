@@ -18,7 +18,7 @@ import {
   RedeemTwoTone as RewardIcon,
   ConfirmationNumberTwoTone as CouponIcon,
   Web as WebIcon,
-
+  OpenInNewRounded as KioskIcon,
   Woman2,
   DevicesOtherTwoTone as DevicesIcon,
 } from '@mui/icons-material';
@@ -45,6 +45,7 @@ interface StoreSidebarProps {
   storeName?: string;
   image?: string;
   storeId: string;
+  storeSlug?: string;
   accessCode: string;
   portalRedirectPath?: string;
   portalOpenInNewTab?: boolean;
@@ -75,6 +76,7 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
   storeName,
   image,
   storeId,
+  storeSlug,
   portalOpenInNewTab = true,
   accessCode,
 }) => {
@@ -94,24 +96,25 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
     else window.location.href = url;
   };
 
-  const handleSectionClick = async (id: string) => {
-    if (id === 'portal') {
-      openPortal();
-      await runStoreManagementThunk(closeSidebar());
-      return;
-    }
+  const openKiosk = () => {
+    const kioskBase = process.env.NEXT_PUBLIC_KIOSK_ORIGIN || 'https://kiosko.sweepstouch.com';
+    const target = storeSlug ? `${kioskBase}/?slug=${encodeURIComponent(storeSlug)}` : `${kioskBase}/?ac=${storeId}`;
+    window.open(target, '_blank');
+  };
 
+  const handleSectionClick = async (id: string) => {
     await runStoreManagementThunk(setActiveSection(id));
     await runStoreManagementThunk(closeSidebar());
   };
 
   const sidebarContent = (
     <Box p={{ xs: 2, sm: 3 }}>
+      {/* Store identity */}
       <Box
         display="flex"
         flexDirection="column"
         alignItems="center"
-        mb={3}
+        mb={2}
         textAlign="center"
       >
         <Box
@@ -119,8 +122,8 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
           src={image || '/no-image.jpg'}
           alt={storeName}
           sx={{
-            width: 84,
-            height: 84,
+            width: 76,
+            height: 76,
             borderRadius: '50%',
             objectFit: 'cover',
             mb: 1,
@@ -132,33 +135,59 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
           component="span"
           sx={{
             fontWeight: 700,
-            fontSize: '0.98rem',
+            fontSize: '0.9rem',
             color: theme.palette.text.primary,
             wordBreak: 'break-word',
+            lineHeight: 1.3,
+            mb: 1.5,
           }}
           title={storeName}
         >
           {storeName}
         </Box>
 
-        <Grid2
-          container
-          spacing={1.5}
-          sx={{ mt: 1.5 }}
+        {/* Merchant + Kiosk buttons: row on desktop, column on mobile */}
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: 1,
+            width: '100%',
+          }}
         >
-          <Grid2 xs={12}>
-            <Button
-              fullWidth
-              variant="contained"
-              size="small"
-              startIcon={<WebIcon />}
-              onClick={openPortal}
-              sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2 }}
-            >
-              Open Portal
-            </Button>
-          </Grid2>
-        </Grid2>
+          <Button
+            fullWidth
+            variant="contained"
+            size="small"
+            startIcon={<WebIcon sx={{ fontSize: '1rem !important' }} />}
+            onClick={openPortal}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 700,
+              borderRadius: 2,
+              fontSize: '0.78rem',
+              py: 0.75,
+            }}
+          >
+            Merchant
+          </Button>
+          <Button
+            fullWidth
+            variant="outlined"
+            size="small"
+            startIcon={<KioskIcon sx={{ fontSize: '1rem !important' }} />}
+            onClick={openKiosk}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 700,
+              borderRadius: 2,
+              fontSize: '0.78rem',
+              py: 0.75,
+            }}
+          >
+            Kiosk
+          </Button>
+        </Box>
       </Box>
 
       <List disablePadding>

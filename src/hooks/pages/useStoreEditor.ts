@@ -1,5 +1,5 @@
 // src/hooks/useStoreEditor.js
-import { Store, updateStore } from '@/services/store.service';
+import { Store, updateStorePatch } from '@/services/store.service';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 
@@ -50,6 +50,7 @@ export function useStoreEditor(store) {
     zipCode: store.zipCode || '',
     type: store.type || 'free',
     active: !!store.active,
+    email: store.email || '',
     phoneNumber: store.phoneNumber || '',
     provider: store.provider || 'twilio',
     bandwidthPhoneNumber: store.bandwidthPhoneNumber || '',
@@ -70,12 +71,19 @@ export function useStoreEditor(store) {
     startContractDate: store.startContractDate ?? null,
 
     // 🆕 Tablet / Kiosko
-    // 'instalada' | 'desinstalada' | 'sin_instalar'
     kioskTabletStatus: store.kioskTabletStatus ?? 'sin_instalar',
-    // Fecha (YYYY-MM-DD) o null
     kioskTabletDate: store.kioskTabletDate ?? null,
-    // Cantidad de tablets (number) o null
     kioskTabletQuantity: store.kioskTabletQuantity ?? null,
+
+    // 🆕 Social Links
+    socialLinks: {
+      facebook: store.socialLinks?.facebook ?? '',
+      instagram: store.socialLinks?.instagram ?? '',
+      website: store.socialLinks?.website ?? '',
+    },
+
+    // 🆕 Slug (editable)
+    slug: store.slug ?? '',
   });
 
   const kioskUrl = useMemo(
@@ -105,8 +113,16 @@ export function useStoreEditor(store) {
   };
 
   const handleChange = (key) => (e) => {
-    const val =
-      e?.target?.type === 'checkbox' ? !!e.target.checked : e?.target?.value ?? e?.value ?? e;
+    // When an e?.value is present (e.g. for nested objects like socialLinks or location),
+    // use it directly instead of e.target.value
+    let val: any;
+    if (e?.target?.type === 'checkbox') {
+      val = !!e.target.checked;
+    } else if (e?.value !== undefined && e?.target === undefined) {
+      val = e.value;
+    } else {
+      val = e?.target?.value ?? e?.value ?? e;
+    }
     setForm((s) => ({ ...s, [key]: val }));
   };
 
@@ -120,6 +136,7 @@ export function useStoreEditor(store) {
       'zipCode',
       'type',
       'active',
+      'email',
       'phoneNumber',
       'provider',
       'bandwidthPhoneNumber',
@@ -134,6 +151,7 @@ export function useStoreEditor(store) {
       'kioskTabletStatus',
       'kioskTabletDate',
       'kioskTabletQuantity',
+      'slug',
     ];
 
     keys.forEach((k) => {
@@ -153,6 +171,21 @@ export function useStoreEditor(store) {
       };
     }
 
+    // socialLinks: solo si cambió algún campo
+    const origSL = orig?.socialLinks || {};
+    const currSL = curr?.socialLinks || {};
+    if (
+      origSL.facebook !== currSL.facebook ||
+      origSL.instagram !== currSL.instagram ||
+      origSL.website !== currSL.website
+    ) {
+      patch.socialLinks = {
+        facebook: currSL.facebook || '',
+        instagram: currSL.instagram || '',
+        website: currSL.website || '',
+      };
+    }
+
     // Limpia undefined explícitos
     Object.keys(patch).forEach((k) => {
       if (patch[k] === undefined) delete patch[k];
@@ -163,7 +196,7 @@ export function useStoreEditor(store) {
 
   const queryClient = useQueryClient();
   const mutation = useMutation({
-    mutationFn: (body: Store) => updateStore(store._id, body),
+    mutationFn: (body: any) => updateStorePatch(store._id, body),
     onSuccess: (resp) => {
       const updated: any = resp;
 
@@ -209,6 +242,7 @@ export function useStoreEditor(store) {
       zipCode: store.zipCode || '',
       type: store.type || 'free',
       active: !!store.active,
+      email: store.email || '',
       phoneNumber: store.phoneNumber || '',
       provider: store.provider || 'twilio',
       bandwidthPhoneNumber: store.bandwidthPhoneNumber || '',
@@ -228,11 +262,21 @@ export function useStoreEditor(store) {
       paymentMethod: store.paymentMethod ?? 'card',
       startContractDate: store.startContractDate ?? null,
 
-      // 🆕 Tablet / Kiosko
-      kioskTabletStatus: store.kioskTabletStatus ?? 'sin_instalar',
-      kioskTabletDate: store.kioskTabletDate ?? null,
-      kioskTabletQuantity: store.kioskTabletQuantity ?? null,
-    });
+    // 🆕 Tablet / Kiosko
+    kioskTabletStatus: store.kioskTabletStatus ?? 'sin_instalar',
+    kioskTabletDate: store.kioskTabletDate ?? null,
+    kioskTabletQuantity: store.kioskTabletQuantity ?? null,
+
+    // 🆕 Social Links
+    socialLinks: {
+      facebook: store.socialLinks?.facebook ?? '',
+      instagram: store.socialLinks?.instagram ?? '',
+      website: store.socialLinks?.website ?? '',
+    },
+
+    // 🆕 Slug
+    slug: store.slug ?? '',
+  });
 
     setEdit(false);
   };

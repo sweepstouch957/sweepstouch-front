@@ -27,7 +27,13 @@ import {
   TextField,
   Tooltip,
   Typography,
+  Fab,
+  Zoom,
+  CircularProgress,
 } from '@mui/material';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import SaveRoundedIcon from '@mui/icons-material/SaveRounded';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import StoreKioskCard from '../application-ui/composed-blocks/kiosk';
@@ -115,7 +121,7 @@ export default function StoreInfo({ store }: { store: Store }) {
   });
 
   const handleCopySlug = async () => {
-    const slug = (store as any)?.slug || '';
+    const slug = form?.slug || (store as any)?.slug || '';
     if (!slug) return;
 
     try {
@@ -527,7 +533,7 @@ export default function StoreInfo({ store }: { store: Store }) {
 
           <Divider sx={{ my: 2 }} />
 
-          {/* Info + Mapa */}
+          {/* Info + Mapa + Kiosk */}
           <Grid
             container
             spacing={3}
@@ -549,6 +555,9 @@ export default function StoreInfo({ store }: { store: Store }) {
               item
               xs={12}
               md={6}
+              display="flex"
+              flexDirection="column"
+              gap={2}
             >
               <StoreMap
                 mapboxToken={MAPBOX_TOKEN}
@@ -563,20 +572,73 @@ export default function StoreInfo({ store }: { store: Store }) {
                 onClick={onMapClick}
                 onMarkerDragEnd={onMarkerDragEnd}
               />
+              <StoreKioskCard
+                kioskUrl={kioskUrl}
+                storeId={store._id}
+                edit={edit}
+                form={form as any}
+                setForm={setForm as any}
+              />
             </Grid>
           </Grid>
-
-          <Divider sx={{ my: 2 }} />
-
-          <StoreKioskCard
-            kioskUrl={kioskUrl}
-            storeId={store._id}
-            edit={edit}
-            form={form as any}
-            setForm={setForm as any}
-          />
         </CardContent>
       </Card>
+
+      {/* Floating Action Buttons for Edit/Save/Cancel */}
+      <Box
+        sx={{
+          position: 'fixed',
+          bottom: { xs: 24, md: 40 },
+          right: { xs: 24, md: 40 },
+          zIndex: 1000,
+          display: 'flex',
+          flexDirection: 'row-reverse',
+          gap: 2,
+          alignItems: 'center',
+        }}
+      >
+        <Zoom in={true}>
+          <Fab
+            color={edit ? 'success' : 'primary'}
+            onClick={edit ? handleSave : () => setEdit(true)}
+            disabled={saving}
+            sx={{
+              boxShadow: (theme) => theme.shadows[8],
+              '&:hover': {
+                transform: 'scale(1.05)',
+              },
+              transition: 'transform 0.2s',
+            }}
+          >
+            {saving ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : edit ? (
+              <SaveRoundedIcon />
+            ) : (
+              <EditRoundedIcon />
+            )}
+          </Fab>
+        </Zoom>
+
+        <Zoom in={edit}>
+          <Fab
+            color="default"
+            size="medium"
+            onClick={handleCancel}
+            disabled={saving}
+            sx={{
+              boxShadow: (theme) => theme.shadows[4],
+              '&:hover': {
+                transform: 'scale(1.05)',
+              },
+              transition: 'transform 0.2s',
+              bgcolor: 'background.paper',
+            }}
+          >
+            <CloseRoundedIcon />
+          </Fab>
+        </Zoom>
+      </Box>
 
       <Snackbar
         open={snack.open}
