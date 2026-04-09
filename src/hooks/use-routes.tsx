@@ -28,6 +28,11 @@ const dashboardsMenu = (t: (token: string) => string): MenuItem =>
     buildMenu(t('Metrics'), undefined, [
       { title: t('Reports'), icon: <List />, route: routes.admin.dashboards.reports },
       {
+        title: t('Sweepstakes'),
+        icon: <List />,
+        route: routes.admin.dashboards.sweepstakes,
+      },
+      {
         title: t('Messages sent'),
         icon: <List />,
         route: routes.admin.dashboards['messages-sent'],

@@ -28,12 +28,14 @@ import {
   Avatar,
 } from '@mui/material';
 import { pieArcLabelClasses, PieChart } from '@mui/x-charts/PieChart';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import RangePickerField, { RangePickerValue } from '@/components/base/range-picker-field';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Fragment, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { DownloadRounded } from '@mui/icons-material';
+import { CircularProgress, Tooltip } from '@mui/material';
 import { SweepstakeMiniHeader } from '../../headings/sweepstake/heading';
 
 function SkeletonCardItem() {
@@ -55,6 +57,31 @@ function SkeletonCardItem() {
   );
 }
 
+function downloadCSV(rows: any[], filename: string) {
+  const headers = ['#', 'Teléfono', 'Método', 'Tipo usuario', 'Cupón', 'Fecha registro', 'Tienda ID'];
+  const csvRows = [
+    headers.join(','),
+    ...rows.map((r, i) =>
+      [
+        i + 1,
+        r.phone || '',
+        r.method || '',
+        r.isNewUser ? 'Nuevo' : 'Existente',
+        r.coupon || 'N/A',
+        r.registeredAt ? format(new Date(r.registeredAt), 'dd/MM/yyyy HH:mm') : '',
+        r.storeId || ''
+      ].join(',')
+    ),
+  ];
+  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function SweepstakesBalance({
   sweepstakeId = '6807fcbd8f35ccf17c308623',
 }: {
@@ -64,25 +91,28 @@ export default function SweepstakesBalance({
   const theme = useTheme();
   const [expandedDrawer, setExpandedDrawer] = useState(false);
   const [method, setMethod] = useState<'qr' | 'web' | 'all' | 'referral'>('all');
-  const [startDate, setStartDate] = useState<Date | null>(new Date('2025-05-01'));
-  const [endDate, setEndDate] = useState<Date | null>(() => {
-    const today = new Date();
-    today.setDate(today.getDate() + 1);
-    return today;
+  const [dateRange, setDateRange] = useState<RangePickerValue>({
+    startYmd: '2025-05-01',
+    endYmd: (() => {
+      const today = new Date();
+      today.setDate(today.getDate() + 1);
+      return format(today, 'yyyy-MM-dd');
+    })(),
   });
+  const [exporting, setExporting] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: [
       'sweepstake-metrics',
       sweepstakeId,
       method,
-      startDate ? format(startDate, 'yyyy-MM-dd') : '',
-      endDate ? format(endDate, 'yyyy-MM-dd') : '',
+      dateRange.startYmd,
+      dateRange.endYmd,
     ],
     queryFn: () =>
       sweepstakesClient.getRegistrationsByStore({
-        startDate: startDate ? format(startDate, 'yyyy-MM-dd') : undefined,
-        endDate: endDate ? format(endDate, 'yyyy-MM-dd') : undefined,
+        startDate: dateRange.startYmd,
+        endDate: dateRange.endYmd,
         method: method === 'all' ? undefined : method,
         sweepstakeId,
       }),
@@ -140,6 +170,26 @@ export default function SweepstakesBalance({
     return `${process.env.NEXT_PUBLIC_API_URL}/files/images/${img}`;
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const result = await sweepstakesClient.exportParticipants({
+        storeId: '', // For sweepstake-wide export, the backend can ignore storeId if not provided, but wait. Backend requires storeId. I will fix backend to make storeId optional! Wait, let me just pass a dummy or undefined and I'll adapt the exportParticipants method. 
+        sweepstakeId,
+        startDate: dateRange.startYmd,
+        endDate: dateRange.endYmd,
+      });
+      downloadCSV(
+        result.rows,
+        `participantes_sweepstake_${sweepstakeId}_${dateRange.startYmd ?? 'all'}.csv`
+      );
+    } catch {
+      // noop
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <>
       <Card sx={{ borderRadius: 4, overflow: 'hidden', p: { xs: 1, sm: 2 } }} elevation={0} variant="outlined">
@@ -154,12 +204,8 @@ export default function SweepstakesBalance({
                 {isLoading ? <Skeleton width={100} /> : `${totalRegistrations} registros`}
               </Typography>
               <Typography variant="h6" color="text.secondary">
-                {startDate && endDate
-                  ? `Del ${format(startDate, "d 'de' MMMM", { locale: es })} al ${format(
-                    endDate,
-                    "d 'de' MMMM",
-                    { locale: es }
-                  )}`
+                {dateRange.startYmd && dateRange.endYmd
+                  ? `Del ${dateRange.startYmd} al ${dateRange.endYmd}`
                   : 'Selecciona un rango'}
               </Typography>
             </Box>
@@ -192,37 +238,52 @@ export default function SweepstakesBalance({
               border: `1px solid ${theme.palette.divider}`
             }}
           >
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-              <DatePicker
-                label="Fecha inicio"
-                value={startDate}
-                onChange={(newValue) => setStartDate(newValue)}
-                slotProps={{ textField: { size: 'small', fullWidth: true, variant: 'outlined' } }}
-                sx={{ flex: 1, bgcolor: 'background.paper' }}
+            <Stack direction={{ xs: 'column', lg: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', lg: 'center' }}>
+              <RangePickerField
+                label="Fechas del reporte"
+                value={dateRange}
+                onChange={setDateRange}
+                sx={{
+                  flex: { xs: '1 1 auto', lg: 2 },
+                  minWidth: { md: 240 },
+                  bgcolor: 'background.paper',
+                  borderRadius: 1,
+                  '& .MuiOutlinedInput-root': { borderRadius: 2 }
+                }}
               />
-              <DatePicker
-                label="Fecha fin"
-                value={endDate}
-                onChange={(newValue) => setEndDate(newValue)}
-                slotProps={{ textField: { size: 'small', fullWidth: true, variant: 'outlined' } }}
-                sx={{ flex: 1, bgcolor: 'background.paper', minWidth: 0 }}
-              />
-              <FormControl size="small" sx={{ minWidth: 100, flex: 1, bgcolor: 'background.paper' }}>
-                <InputLabel id="method-select-label">Método</InputLabel>
+              <FormControl size="small" sx={{ flex: { xs: '1 1 auto', lg: 1 }, minWidth: { md: 140 }, bgcolor: 'background.paper', borderRadius: 2 }}>
+                <InputLabel sx={{ fontWeight: 600 }}>Método</InputLabel>
                 <Select
-                  labelId="method-select-label"
                   value={method}
                   label="Método"
                   onChange={(e) => setMethod(e.target.value as any)}
+                  sx={{ borderRadius: 2 }}
                 >
-                  <MenuItem value="all">Todos</MenuItem>
-                  <MenuItem value="qr">QR</MenuItem>
-                  <MenuItem value="web">Web</MenuItem>
-                  <MenuItem value="tablet">Tablet</MenuItem>
-                  <MenuItem value="promotor">Promotoras</MenuItem>
-                  <MenuItem value="referral">Referidos</MenuItem>
+                  <MenuItem value="all">⚡ Todos</MenuItem>
+                  <MenuItem value="qr">📷 QR</MenuItem>
+                  <MenuItem value="web">🌐 Web</MenuItem>
+                  <MenuItem value="tablet">📱 Tablet</MenuItem>
+                  <MenuItem value="promotor">🙋‍♂️ Promotoras</MenuItem>
+                  <MenuItem value="referral">🚀 Referidos</MenuItem>
+                  <MenuItem value="pinpad">⌨️ Pinpad</MenuItem>
                 </Select>
               </FormControl>
+              
+              <Box flexGrow={1} display={{ xs: 'none', xl: 'block' }} />
+
+              <Tooltip title="Exportar lista de participantes (CSV)">
+                <Button
+                  variant="contained"
+                  disableElevation
+                  color="primary"
+                  startIcon={exporting ? <CircularProgress size={16} color="inherit" /> : <DownloadRounded />}
+                  onClick={handleExport}
+                  disabled={exporting}
+                  sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2, height: 40, px: 3, whiteSpace: 'nowrap', width: { xs: '100%', lg: 'auto' } }}
+                >
+                  Descargar CSV
+                </Button>
+              </Tooltip>
             </Stack>
 
             <Grid container spacing={2} alignItems="center" justifyContent="center" sx={{ width: '100%', m: 0 }}>

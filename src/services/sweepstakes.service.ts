@@ -137,6 +137,39 @@ export interface SweepstakeRegistrationsCountResponse {
 
 /* ===================== SWEEPSTAKES CLIENT ===================== */
 
+/** Exported participant row (for Excel) */
+export interface ExportedParticipant {
+  phone: string;
+  method: string;
+  isNewUser: boolean;
+  registeredAt: string;
+  participantNumber: number | null;
+  coupon: string | null;
+}
+
+export interface DailyMetric {
+  date: string;
+  total: number;
+  newUsers: number;
+  existingUsers: number;
+  methodBreakdown: Record<string, number>;
+}
+
+export interface StoreMetricsResponse {
+  storeId: string;
+  storeInfo: any | null;
+  metrics: {
+    total: number;
+    newUsers: number;
+    existingUsers: number;
+    byMethod: Record<string, number>;
+    bySweepstake: Record<string, number>;
+    recentParticipations: any[];
+  };
+  participants: any[];
+}
+
+
 export class SweepstakesClient {
   /* ------------ Participants ------------ */
   async registerParticipant(data: RegisterParticipantPayload): Promise<AxiosResponse> {
@@ -306,6 +339,54 @@ export class SweepstakesClient {
       { params }
     );
 
+    return res.data;
+  }
+  /* ====== Export participants (for Excel download) ======
+     GET /sweepstakes/participants/export?storeId=&sweepstakeId=&startDate=&endDate=
+  */
+  async exportParticipants(params: {
+    storeId?: string;
+    sweepstakeId?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<{ total: number; rows: ExportedParticipant[] }> {
+    const res = await api.get('/sweepstakes/participants/export', { params });
+    return res.data;
+  }
+
+  /* ====== Store-level metrics for a sweepstake ======
+     GET /sweepstakes/metrics/participants/store/:storeId
+  */
+  async getStoreMetrics(
+    storeId: string,
+    params?: { startDate?: string; endDate?: string; method?: string; sweepstakeId?: string }
+  ): Promise<StoreMetricsResponse> {
+    const res = await api.get(`/sweepstakes/metrics/participants/store/${storeId}`, { params });
+    return res.data;
+  }
+
+  /* ====== Daily metrics ======
+     GET /sweepstakes/metrics/participants/daily
+  */
+  async getDailyMetrics(params?: {
+    storeId?: string;
+    sweepstakeId?: string;
+    days?: number;
+  }): Promise<{ dailyMetrics: DailyMetric[]; period: { startDate: string; endDate: string; days: number } }> {
+    const res = await api.get('/sweepstakes/metrics/participants/daily', { params });
+    return res.data;
+  }
+
+  /* ====== CEO Dashboard ======
+     GET /sweepstakes/metrics/ceo-dashboard
+  */
+  async getCeoDashboard(params?: {
+    startDate?: string;
+    endDate?: string;
+    status?: string;
+    method?: string;
+  }): Promise<{ success: boolean; data: any[]; globalTrend?: any[]; globalMethods?: any[] }> {
+    const res = await api.get('/sweepstakes/metrics/ceo-dashboard', { params });
     return res.data;
   }
 }
