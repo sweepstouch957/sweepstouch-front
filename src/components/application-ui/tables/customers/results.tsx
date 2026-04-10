@@ -27,12 +27,63 @@ interface ResultsProps {
   onSearchChange: (s: string) => void;
   onPageChange: (p: number) => void;
   onLimitChange: (l: number) => void;
+  stats?: {
+    total: number;
+    active: number;
+    inactive: number;
+  };
 }
 
 export default function Results(props: ResultsProps) {
-  const { customers, total, page, limit, isLoading, search, onSearchChange, onPageChange, onLimitChange, onExportPdf, exporting } = props;
+  const { 
+    customers, total, page, limit, isLoading, 
+    search, onSearchChange, onPageChange, onLimitChange, 
+    onExportPdf, exporting, stats 
+  } = props;
+
   return (
-    <Card>
+    <Card sx={{ border: 'none', boxShadow: 'none' }}>
+      {/* Summary Cards */}
+      <Box 
+        display="grid" 
+        gridTemplateColumns={{ xs: '1fr', sm: 'repeat(3, 1fr)' }} 
+        gap={2} 
+        mb={3}
+      >
+        <Card sx={{ 
+          p: 2, 
+          background: 'linear-gradient(135deg, #1a1a1a 0%, #333 100%)', 
+          color: '#fff',
+          borderRadius: 2,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+        }}>
+          <Typography variant="overline" sx={{ opacity: 0.7, fontWeight: 700 }}>Total Clientes</Typography>
+          <Typography variant="h3" fontWeight={800}>{stats?.total || 0}</Typography>
+        </Card>
+        
+        <Card sx={{ 
+          p: 2, 
+          background: 'linear-gradient(135deg, #0d4d1a 0%, #15803d 100%)', 
+          color: '#fff',
+          borderRadius: 2,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+        }}>
+          <Typography variant="overline" sx={{ opacity: 0.8, fontWeight: 700 }}>Activos</Typography>
+          <Typography variant="h3" fontWeight={800}>{stats?.active || 0}</Typography>
+        </Card>
+
+        <Card sx={{ 
+          p: 2, 
+          background: 'linear-gradient(135deg, #4d0d0d 0%, #991b1b 100%)', 
+          color: '#fff',
+          borderRadius: 2,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+        }}>
+          <Typography variant="overline" sx={{ opacity: 0.8, fontWeight: 700 }}>Inactivos</Typography>
+          <Typography variant="h3" fontWeight={800}>{stats?.inactive || 0}</Typography>
+        </Card>
+      </Box>
+
       <Box
         p={2}
         display="flex"
@@ -40,18 +91,34 @@ export default function Results(props: ResultsProps) {
         gap={2}>
         <Typography
           variant="h5"
-          sx={{ flex: 1 }}>Customers</Typography>
+          fontWeight={700}
+          sx={{ flex: 1 }}>Directorio</Typography>
+        <TextField
+          size="small"
+          placeholder="Buscar cliente..."
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          sx={{ width: 300 }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchTwoTone fontSize="small" />
+              </InputAdornment>
+            ),
+          }}
+        />
         {onExportPdf && (
           <Button
             size="small"
             startIcon={<PictureAsPdf />}
             variant="outlined"
             onClick={onExportPdf}
-            disabled={exporting}>
-            {exporting ? 'Generando…' : 'Export PDF'}
+            disabled={exporting}
+            sx={{ borderRadius: '8px', px: 2 }}
+          >
+            {exporting ? 'Generando…' : 'Exportar PDF'}
           </Button>
         )}
-
       </Box>
       <Divider />
       <TableContainer>

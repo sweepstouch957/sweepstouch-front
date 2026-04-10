@@ -257,6 +257,7 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
           exporting={exporting}
           customers={data?.data || []}
           total={data?.total || 0}
+          stats={data?.stats}
           page={data?.page || page}
           limit={limit}
           onPageChange={(p) => setPage(p)}
