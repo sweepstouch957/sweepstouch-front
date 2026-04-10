@@ -9,14 +9,19 @@ import ReportIcon from '@mui/icons-material/Report';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { Box, Skeleton } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import KpiCard from '../../card-shells/kpi-card';
+import AdjustBudgetModal from '../../dialogs/budget/modal';
+import { useAuth } from '@/hooks/use-auth';
 
 interface KpiCardsProps {
   totalToPay?: number;
 }
 export default function KpiCards(props: KpiCardsProps) {
   const { totalToPay } = props;
+  const { user } = useAuth();
+  const canEditBudget = user?.role === 'admin' || user?.role === 'promotor_manager';
+
   // Turnos
   const { data: shiftData, isLoading: isShiftsLoading } = useQuery({
     queryKey: ['shift-metrics'],
@@ -42,14 +47,17 @@ export default function KpiCards(props: KpiCardsProps) {
 
   const isLoading = isShiftsLoading || isBudgetLoading;
 
+  const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
+
   const kpis = [
     {
       icon: <AccountBalanceWalletIcon sx={{ fontSize: 24 }} />,
       label: 'Disponible (USD)',
-      // si no hay data aún, muestra "-" (evita NaN)
       value: budgetData?.availableUsd != null ? fmtUsd.format(budgetData.availableUsd) : '—',
       variant: 'success' as const,
       descriptions: totalToPay ? `A pagar: ${fmtUsd.format(totalToPay)}` : undefined,
+      tooltip: canEditBudget ? 'Haz clic para ajustar el presupuesto semanal' : undefined,
+      onClick: canEditBudget ? () => setIsAdjustModalOpen(true) : undefined,
     },
     {
       icon: <CalendarMonthIcon sx={{ fontSize: 24 }} />,
@@ -74,37 +82,47 @@ export default function KpiCards(props: KpiCardsProps) {
   ];
 
   return (
-    <Box
-      sx={{
-        display: 'grid',
-        gridTemplateColumns: {
-          xs: 'repeat(2, 1fr)',
-          sm: 'repeat(3, 1fr)',
-          md: 'repeat(5, 1fr)',
-        },
-        gap: 2,
-        mb: 3,
-      }}
-    >
-      {isLoading
-        ? Array.from({ length: 5 }).map((_, idx) => (
-            <Skeleton
-              key={idx}
-              variant="rounded"
-              height={120}
-              animation="wave"
-            />
-          ))
-        : kpis.map((kpi) => (
-            <KpiCard
-              key={kpi.label}
-              icon={kpi.icon}
-              label={kpi.label}
-              value={kpi.value}
-              variant={kpi.variant}
-              descriptions={kpi.descriptions}
-            />
-          ))}
-    </Box>
+    <>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: 'repeat(2, 1fr)',
+            sm: 'repeat(3, 1fr)',
+            md: 'repeat(5, 1fr)',
+          },
+          gap: 2,
+          mb: 3,
+        }}
+      >
+        {isLoading
+          ? Array.from({ length: 5 }).map((_, idx) => (
+              <Skeleton
+                key={idx}
+                variant="rounded"
+                height={120}
+                animation="wave"
+              />
+            ))
+          : kpis.map((kpi) => (
+              <KpiCard
+                key={kpi.label}
+                icon={kpi.icon}
+                label={kpi.label}
+                value={kpi.value}
+                variant={kpi.variant}
+                descriptions={kpi.descriptions}
+                tooltip={kpi.tooltip}
+                onClick={kpi.onClick}
+              />
+            ))}
+      </Box>
+
+      <AdjustBudgetModal
+        open={isAdjustModalOpen}
+        onClose={() => setIsAdjustModalOpen(false)}
+        currentBudget={budgetData?.budgetUsd}
+      />
+    </>
   );
 }
