@@ -41,10 +41,12 @@ import { StoreBillingPanel } from './panel/billing/StoreBillingPanel';
 import CajerasPanel from './panel/cajeras/cajeras-panel';
 import CampaignsPanel from './panel/campaigns/campaign-panel';
 import CreateCampaignContainer from './panel/campaigns/createCampaignContainer';
+import QuickCampaignDialog from './panel/campaigns/QuickCampaignDialog';
 import CustomersPanel from './panel/customers/customers-panel';
 import QrDuetMUI from './panel/qr/QrContainer';
 import { StoreSidebar } from './store-sidebar';
 import { StoreEquipmentPanel } from './panel/equipment/StoreEquipmentPanel';
+import FlashOnRoundedIcon from '@mui/icons-material/FlashOnRounded';
 import WelcomeCouponsPanel from './panel/welcome-coupons/WelcomeCouponsPanel';
 
 
@@ -67,6 +69,7 @@ const StoreManagementPage = () => {
   const { data: store, isLoading, error } = useStoreById(storeId);
 
   const [openInactiveModal, setOpenInactiveModal] = useState(false);
+  const [quickOpen, setQuickOpen] = useState(false);
 
   useEffect(() => {
     // ✅ set active section + tags (zustand)
@@ -106,60 +109,119 @@ const StoreManagementPage = () => {
 
   const renderHeader = () => (
     <Box
-      px={{ xs: 1, md: 3 }}
-      pt={2}
+      px={{ xs: 2, md: 4 }}
+      py={2.5}
       display="flex"
       alignItems="center"
       justifyContent="space-between"
       flexWrap="wrap"
+      gap={2}
+      sx={{
+        borderBottom: (t) => `1px solid ${t.palette.divider}`,
+        mb: 1,
+      }}
     >
-      <Stack
-        direction="row"
-        alignItems="center"
-        spacing={1}
-      >
+      {/* ── Left: back + breadcrumb */}
+      <Stack direction="row" alignItems="center" spacing={1.5} minWidth={0}>
         <IconButton
           onClick={handleBack}
           size="small"
           color="primary"
+          sx={{
+            border: (t) => `1px solid ${t.palette.divider}`,
+            borderRadius: 1.5,
+            flexShrink: 0,
+          }}
         >
-          <ArrowBackIosNewRoundedIcon fontSize="small" />
+          <ArrowBackIosNewRoundedIcon sx={{ fontSize: 14 }} />
         </IconButton>
 
-        <Breadcrumbs aria-label="breadcrumb">
-          <Typography color="text.secondary">Tiendas</Typography>
-          <Typography color="text.primary">{store?.name}</Typography>
-          <Typography color="text.primary">{tag}</Typography>
-          {action && <Typography color="text.primary">{action}</Typography>}
+        <Breadcrumbs
+          aria-label="breadcrumb"
+          sx={{
+            '& .MuiBreadcrumbs-ol': { flexWrap: 'nowrap' },
+            '& .MuiBreadcrumbs-li': {
+              overflow: 'hidden',
+              maxWidth: { xs: 100, sm: 180, md: 'none' },
+            },
+          }}
+        >
+          <Typography
+            color="text.secondary"
+            variant="body2"
+            noWrap
+          >
+            Tiendas
+          </Typography>
+          <Typography
+            color="text.primary"
+            variant="body2"
+            fontWeight={500}
+            noWrap
+            sx={{ maxWidth: { xs: 120, sm: 220, md: 400 } }}
+          >
+            {store?.name}
+          </Typography>
+          <Typography
+            color="primary"
+            variant="body2"
+            fontWeight={600}
+            noWrap
+            sx={{ textTransform: 'capitalize' }}
+          >
+            {tag}
+          </Typography>
+          {action && (
+            <Typography color="text.primary" variant="body2" noWrap>
+              {action}
+            </Typography>
+          )}
         </Breadcrumbs>
       </Stack>
 
+      {/* ── Right: action buttons */}
       {tag === 'campaigns' && (
-        <Stack
-          direction="row"
-          spacing={2}
-          mt={{ xs: 2, sm: 0 }}
-        >
+        <Stack direction="row" spacing={1.5} flexShrink={0}>
           {action === 'create' ? (
             <Button
               variant="contained"
               color="secondary"
               onClick={handleBack}
+              size="small"
             >
               Ver campañas
             </Button>
           ) : (
-            <Button
-              variant="contained"
-              startIcon={<AddCircleOutlineRoundedIcon />}
-              onClick={handleGoToCreateCampaign}
-              sx={{
-                opacity: store?.active ? 1 : 0.5,
-                cursor: store?.active ? 'pointer' : 'not-allowed',
-              }}
-            >
-              Crear campaña
-            </Button>
+            <>
+              {/* ⚡ Quick Campaign */}
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<FlashOnRoundedIcon fontSize="small" />}
+                onClick={() => {
+                  if (store?.active) setQuickOpen(true);
+                  else setOpenInactiveModal(true);
+                }}
+                sx={{
+                  opacity: store?.active ? 1 : 0.5,
+                  borderStyle: 'dashed',
+                  px: 2,
+                }}
+              >
+                Quick
+              </Button>
+
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<AddCircleOutlineRoundedIcon fontSize="small" />}
+                onClick={handleGoToCreateCampaign}
+                disabled={!store?.active}
+                sx={{ px: 2 }}
+              >
+                Crear campaña
+              </Button>
+            </>
           )}
         </Stack>
       )}
@@ -376,6 +438,19 @@ const StoreManagementPage = () => {
             <Button onClick={() => setOpenInactiveModal(false)}>Cerrar</Button>
           </DialogActions>
         </Dialog>
+
+        {/* ⚡ Quick Campaign Dialog */}
+        {store && (
+          <QuickCampaignDialog
+            open={quickOpen}
+            onClose={() => setQuickOpen(false)}
+            storeId={storeId}
+            provider={store.provider || ''}
+            phoneNumber={store.bandwidthPhoneNumber || ''}
+            totalAudience={store.customerCount || 0}
+            onCreated={() => setQuickOpen(false)}
+          />
+        )}
       </Box>
     </Box>
   );

@@ -13,11 +13,13 @@ import {
   useTheme,
 } from '@mui/material';
 
-import { FC } from 'react';
+import { FC, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import NotificationTabsLine from 'src/components/application-ui/tabs/line/line';
 import { ButtonSoft } from 'src/components/base/styles/button-soft';
 import DrawerContent from './drawer-content';
+import { useNotificationsStore } from 'src/store/notificationsStore';
+import { useAuth } from 'src/hooks/use-auth';
 
 interface NotificationsHeaderProps {
   onOpen?: () => void;
@@ -31,6 +33,17 @@ export const NotificationsHeader: FC<NotificationsHeaderProps> = (props) => {
   const smUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('sm'));
   const theme = useTheme();
   const { t } = useTranslation();
+
+  const { connect, disconnect, markAllAsRead } = useNotificationsStore();
+  const { user } = useAuth();
+  const room = user?.role === 'admin' ? 'admin' : `store_${user?.storeId || 'unknown'}`;
+
+  // Conectar cuando el drawer abra y estemos logueados (o a nivel global si prefieres en un Layout)
+  useEffect(() => {
+    if (user?.id) {
+       connect(room);
+    }
+  }, [user?.id, room, connect]);
 
   const handleDrawerClose = () => {
     if (onClose) {
@@ -84,6 +97,7 @@ export const NotificationsHeader: FC<NotificationsHeaderProps> = (props) => {
             >
               <ButtonSoft
                 color="error"
+                onClick={() => markAllAsRead(room)}
                 sx={{
                   minWidth: 0,
                   p: 0.5,
@@ -143,4 +157,3 @@ export const NotificationsHeader: FC<NotificationsHeaderProps> = (props) => {
     </SwipeableDrawer>
   );
 };
-

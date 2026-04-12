@@ -11,10 +11,12 @@ import {
   useTheme,
 } from '@mui/material';
 import React from 'react';
+import { useNotificationsStore } from 'src/store/notificationsStore';
 
 const Component = () => {
   const theme = useTheme();
   const smUp = useMediaQuery(theme.breakpoints.up('sm'));
+  const { notifications, unreadCount } = useNotificationsStore();
 
   const [value, setValue] = React.useState('0');
 
@@ -81,7 +83,7 @@ const Component = () => {
                     All
                     <Chip
                       color="primary"
-                      label={0}
+                      label={notifications.length}
                       size="small"
                     />
                   </>
@@ -93,7 +95,7 @@ const Component = () => {
                     Unread
                     <Chip
                       color="warning"
-                      label={0}
+                      label={unreadCount}
                       size="small"
                     />
                   </>

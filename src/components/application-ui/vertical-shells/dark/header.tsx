@@ -48,6 +48,8 @@ interface HeaderProps {
   onMobileNav?: () => void;
 }
 
+import { useNotificationsStore } from 'src/store/notificationsStore';
+
 export const Header: FC<HeaderProps> = (props) => {
   const { onMobileNav } = props;
   const scroll = useScrollDirection();
@@ -60,6 +62,8 @@ export const Header: FC<HeaderProps> = (props) => {
   const notifications = useDialog();
   const widgets = useDialog();
   const popoverChat = usePopover<HTMLButtonElement>();
+  
+  const { unreadCount } = useNotificationsStore();
 
   const user = {
     avatar: '/avatars/1.png',
@@ -188,8 +192,9 @@ export const Header: FC<HeaderProps> = (props) => {
                     }}
                     overlap="rectangular"
                     anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-                    variant="dot"
-                    color="success"
+                    variant={unreadCount > 0 ? "standard" : "dot"}
+                    badgeContent={unreadCount > 0 ? unreadCount : 0}
+                    color={unreadCount > 0 ? "error" : "success"}
                   >
                     <NotificationsNoneRoundedIcon />
                   </PulseBadge>
