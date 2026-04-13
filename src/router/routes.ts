@@ -159,10 +159,13 @@ export const routes = {
         create: '/admin/management/stores/create',
         brands: '/admin/management/brands',
         appointments: '/admin/management/stores/appointments',
+        contracts: '/admin/management/stores/contracts',
+        'contracts-create': '/admin/management/stores/contracts/create',
       },
       campaings: {
         listing: '/admin/management/campaings',
         create: '/admin/management/campaings/create',
+        'send-test': '/admin/management/campaings/send-test',
       },
       promos: {
         listing: '/admin/management/ads',

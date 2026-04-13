@@ -354,6 +354,95 @@ export const getStoreRequests = async (params?: { status?: string }): Promise<an
   return res.data;
 };
 
+/* ===================== Store Contracts ===================== */
+export type ContractStatus = 'pending' | 'contract_created' | 'signed' | 'cancelled';
+
+export interface StoreContract {
+  _id: string;
+  storeName: string;
+  address: string;
+  phone: string;
+  email: string;
+  cashRegisters: number;
+  tabletType: 'large' | 'small' | 'none';
+  tabletCount: number;
+  tabletCostEach: number;
+  hasPrinters: boolean;
+  printerCount: number;
+  installationCost: number;
+  notes?: string;
+  status: ContractStatus;
+  storeId?: string;
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateContractBody {
+  storeName: string;
+  address: string;
+  phone: string;
+  email: string;
+  cashRegisters: number;
+  tabletType: 'large' | 'small' | 'none';
+  tabletCount: number;
+  tabletCostEach: number;
+  hasPrinters: boolean;
+  printerCount: number;
+  installationCost: number;
+  notes?: string;
+  storeId?: string;
+}
+
+export interface ContractListResponse {
+  data: StoreContract[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+export interface ContractStatsResponse {
+  total: number;
+  pending: number;
+  created: number;
+  signed: number;
+  cancelled: number;
+}
+
+export const getContracts = async (params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+}): Promise<ContractListResponse> => {
+  const res = await api.get('/store/contracts', { params });
+  return res.data;
+};
+
+export const getContractStats = async (): Promise<ContractStatsResponse> => {
+  const res = await api.get('/store/contracts/stats');
+  return res.data;
+};
+
+export const getContractById = async (id: string): Promise<StoreContract> => {
+  const res = await api.get(`/store/contracts/${id}`);
+  return res.data;
+};
+
+export const createContractApi = async (body: CreateContractBody): Promise<StoreContract> => {
+  const res = await api.post('/store/contracts', body);
+  return res.data;
+};
+
+export const patchContract = async (id: string, body: Partial<StoreContract>): Promise<StoreContract> => {
+  const res = await api.patch(`/store/contracts/${id}`, body);
+  return res.data;
+};
+
+export const deleteContractApi = async (id: string): Promise<void> => {
+  await api.delete(`/store/contracts/${id}`);
+};
+
 const storesService = {
   getStores,
   getStoresBillingSummary,
@@ -374,6 +463,12 @@ const storesService = {
   getStoreByDescription,
   getStoreByIdAndOwnerId,
   getStoreRequests,
+  getContracts,
+  getContractStats,
+  getContractById: getContractById,
+  createContract: createContractApi,
+  patchContract,
+  deleteContract: deleteContractApi,
 };
 
 export default storesService;

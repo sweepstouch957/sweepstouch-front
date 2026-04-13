@@ -65,6 +65,7 @@ const merchantsMenu = (t: (token: string) => string): MenuItem =>
 const campaignsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Campaigns'), <Campaign />, [
     { title: t('Listing'), route: routes.admin.management.campaings.listing },
+    { title: t('Send Test'), route: routes.admin.management.campaings['send-test'], roles: ['admin'] },
   ]);
 
 const promotorsMenu = (t: (token: string) => string): MenuItem =>
@@ -118,6 +119,8 @@ const storesMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Create Store'), route: routes.admin.management.stores.create },
     { title: t('Brands'), route: routes.admin.management.stores.brands },
     { title: t('Appointments & Schedule'), route: routes.admin.management.stores.appointments },
+    { title: t('Contracts'), route: routes.admin.management.stores.contracts },
+    { title: t('New Contract'), route: routes.admin.management.stores['contracts-create'] },
   ]);
 
 const addsMenu = (t: (token: string) => string): MenuItem =>

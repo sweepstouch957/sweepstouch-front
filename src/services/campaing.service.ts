@@ -575,6 +575,36 @@ class CampaignClient {
     const res = await api.post(`/tracking/campaigns/${campaignId}/resend-errors`);
     return res.data;
   }
+  /* ===================== ✅ SEND TEST MESSAGE ===================== */
+
+  /**
+   * Send a single test message to a phone number via the SMS worker.
+   * Does NOT create a campaign — just fires one message.
+   */
+  async sendTestMessage(params: {
+    phone: string;
+    message: string;
+    image?: string | null;
+    provider: string;
+    phoneNumber: string; // sourceTn / from number (bandwidthPhoneNumber)
+    id?: string;         // bandwidthId
+  }) {
+    const { phone, message, image, provider, phoneNumber, id } = params;
+    const uid = () => crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
+    const res = await api.post('/send', {
+      phone,
+      message,
+      image: image || undefined,
+      provider,
+      phoneNumber,
+      id: id || undefined,
+      type: image ? 'MMS' : 'SMS',
+      campaignId: `test-${uid()}`,
+      origin: 'manual-test',
+      originId: uid(),
+    });
+    return res.data;
+  }
 }
 
 export const campaignClient = new CampaignClient();
