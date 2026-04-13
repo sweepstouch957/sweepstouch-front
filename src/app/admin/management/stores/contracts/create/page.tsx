@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createContractApi, type CreateContractBody } from '@/services/store.service';
 import { routes } from '@/router/routes';
+import { useAuth } from '@/hooks/use-auth';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import PrintRoundedIcon from '@mui/icons-material/PrintRounded';
@@ -68,6 +69,7 @@ export default function CreateContractPage() {
   const theme = useTheme();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const [f, setF] = useState({
     storeName: '', address: '', phone: '', email: '',
@@ -130,6 +132,8 @@ export default function CreateContractPage() {
       printerCount: f.hasPrinters ? Number(f.printerCount) : 0,
       installationCost: Number(f.installationCost) || 0,
       notes: f.notes.trim(),
+      createdBy: { name: user?.name || '', email: user?.email || '' },
+      source: 'admin_panel' as const,
     });
   };
 

@@ -373,7 +373,8 @@ export interface StoreContract {
   notes?: string;
   status: ContractStatus;
   storeId?: string;
-  createdBy?: string;
+  createdBy?: { name: string; email: string };
+  source?: 'admin_panel' | 'landing' | 'other';
   createdAt: string;
   updatedAt: string;
 }
@@ -392,6 +393,8 @@ export interface CreateContractBody {
   installationCost: number;
   notes?: string;
   storeId?: string;
+  createdBy?: { name: string; email: string };
+  source?: 'admin_panel' | 'landing' | 'other';
 }
 
 export interface ContractListResponse {
