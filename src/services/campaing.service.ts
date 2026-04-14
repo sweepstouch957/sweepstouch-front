@@ -599,7 +599,7 @@ class CampaignClient {
       phoneNumber,
       id: id || undefined,
       type: image ? 'MMS' : 'SMS',
-      campaignId: `test-${uid()}`,
+      campaignId: `test-camaing-${uid()}`,
       origin: 'manual-test',
       originId: uid(),
     });
