@@ -48,6 +48,8 @@ import { StoreSidebar } from './store-sidebar';
 import { StoreEquipmentPanel } from './panel/equipment/StoreEquipmentPanel';
 import FlashOnRoundedIcon from '@mui/icons-material/FlashOnRounded';
 import WelcomeCouponsPanel from './panel/welcome-coupons/WelcomeCouponsPanel';
+import StoreAudienceOverview from './panel/sweepstakes/StoreAudienceOverview';
+import StoreSweepstakeStats from './panel/sweepstakes/StoreSweepstakeStats';
 
 
 const StoreManagementPage = () => {
@@ -345,6 +347,14 @@ const StoreManagementPage = () => {
               Sorteo
             </Typography>
             <ActiveSweepstakeCard storeId={storeId} />
+
+            <Box mt={4}>
+              <StoreAudienceOverview storeId={storeId} />
+            </Box>
+
+            <Box mt={4}>
+              <StoreSweepstakeStats storeId={storeId} />
+            </Box>
           </Box>
         );
 

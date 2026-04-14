@@ -169,6 +169,130 @@ export interface StoreMetricsResponse {
   participants: any[];
 }
 
+/* ===================== AUDIENCE TYPES ===================== */
+
+/** /audience/by-store row */
+export interface AudienceStoreRow {
+  storeId: string;
+  storeName: string;
+  storeImage: string;
+  storeType: string;
+  active: boolean;
+  customerCount: number;
+  tabletStatus: string;
+  dailyAverage: number;
+  totalContacts30d: number;
+  daysWithData: number;
+  activationDaysExcluded: number;
+  yesterday: {
+    date: string;
+    total: number;
+    newUsers: number;
+    existingUsers: number;
+    deltaVsAverage: number;
+    aboveAverage: boolean;
+  };
+  byMethod: Record<string, number>;
+  lastCalculatedAt: string | null;
+}
+
+export interface AudienceByStoreResponse {
+  success: boolean;
+  count: number;
+  data: AudienceStoreRow[];
+  generatedAt: string;
+}
+
+/** /audience/daily-total */
+export interface AudienceDailyTotalResponse {
+  success: boolean;
+  date: string;
+  today: {
+    total: number;
+    newUsers: number;
+    existingUsers: number;
+    byMethod: Record<string, number>;
+  };
+  comparisons: {
+    vsYesterday: { total: number; delta: number; deltaPercent: number };
+    vsLastWeek: { total: number; delta: number; deltaPercent: number };
+  };
+  topStores: Array<{
+    storeId: string;
+    storeName: string;
+    storeImage: string;
+    count: number;
+    newUsers: number;
+  }>;
+  activeStoresCount: number;
+  generatedAt: string;
+}
+
+/** /audience/stores-status */
+export interface ActiveStoreStatusRow {
+  storeId: string;
+  storeName: string;
+  storeImage: string;
+  storeType: string;
+  customerCount: number;
+  tabletStatus: string;
+  tabletQuantity: number;
+  tabletDate: string | null;
+  lastParticipation: string | null;
+  lastMethod: string | null;
+  hoursSinceLastActivity: number;
+  todayContacts: number;
+  dailyAverage: number;
+  status: 'ok' | 'offline' | 'no_data_today' | 'below_average';
+  alerts: {
+    offline: boolean;
+    noDataToday: boolean;
+    belowAverage: boolean;
+  };
+}
+
+export interface ActiveStoresStatusResponse {
+  success: boolean;
+  summary: {
+    totalActive: number;
+    online: number;
+    offline: number;
+    noDataToday: number;
+    belowAverage: number;
+  };
+  data: ActiveStoreStatusRow[];
+  generatedAt: string;
+}
+
+/** /audience/history */
+export interface AudienceWeeklySnapshot {
+  year: number;
+  week: number;
+  weekStart: string;
+  weekEnd: string;
+  total: number;
+  newUsers: number;
+  existingUsers: number;
+  dailyAvg: number;
+  byMethod: Record<string, number>;
+}
+
+export interface AudienceHistoryResponse {
+  success: boolean;
+  storeId: string;
+  storeInfo: any | null;
+  weeks: number;
+  totalWeeksReturned: number;
+  trend: {
+    firstWeekTotal: number;
+    lastWeekTotal: number;
+    growthPercent: number;
+  } | null;
+  data: AudienceWeeklySnapshot[];
+  generatedAt: string;
+}
+
+
 
 export class SweepstakesClient {
   /* ------------ Participants ------------ */
@@ -387,6 +511,44 @@ export class SweepstakesClient {
     method?: string;
   }): Promise<{ success: boolean; data: any[]; globalTrend?: any[]; globalMethods?: any[] }> {
     const res = await api.get('/sweepstakes/metrics/ceo-dashboard', { params });
+    return res.data;
+  }
+
+  /* ====== Audience: By Store (Daniela) ======
+     GET /sweepstakes/audience/by-store
+  */
+  async getAudienceByStore(params?: {
+    storeId?: string;
+    sweepstakeId?: string;
+  }): Promise<AudienceByStoreResponse> {
+    const res = await api.get('/sweepstakes/audience/by-store', { params });
+    return res.data;
+  }
+
+  /* ====== Audience: Daily Total (Carolina) ======
+     GET /sweepstakes/audience/daily-total
+  */
+  async getAudienceDailyTotal(): Promise<AudienceDailyTotalResponse> {
+    const res = await api.get('/sweepstakes/audience/daily-total');
+    return res.data;
+  }
+
+  /* ====== Audience: Active Stores Status (Katherin) ======
+     GET /sweepstakes/audience/stores-status
+  */
+  async getActiveStoresStatus(): Promise<ActiveStoresStatusResponse> {
+    const res = await api.get('/sweepstakes/audience/stores-status');
+    return res.data;
+  }
+
+  /* ====== Audience: History (Juan Carlos / Paola) ======
+     GET /sweepstakes/audience/history
+  */
+  async getAudienceHistory(params?: {
+    storeId?: string;
+    weeks?: number;
+  }): Promise<AudienceHistoryResponse> {
+    const res = await api.get('/sweepstakes/audience/history', { params });
     return res.data;
   }
 }

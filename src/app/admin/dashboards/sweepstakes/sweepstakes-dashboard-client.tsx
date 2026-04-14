@@ -34,6 +34,13 @@ import {
   WarningRounded,
   GroupsRounded,
   ChevronRightRounded,
+  TodayRounded,
+  WifiOffRounded,
+  CheckCircleRounded,
+  ErrorRounded,
+  TrendingDownRounded,
+  PersonAddRounded,
+  TabletRounded,
 } from '@mui/icons-material';
 import RangePickerField from 'src/components/base/range-picker-field';
 import { sweepstakesClient } from 'src/services/sweepstakes.service';
@@ -44,6 +51,7 @@ import { BarChart } from '@mui/x-charts/BarChart';
 import { PieChart } from '@mui/x-charts/PieChart';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { useQuery } from '@tanstack/react-query';
+import type { AudienceDailyTotalResponse, ActiveStoreStatusRow } from 'src/services/sweepstakes.service';
 
 export default function SweepstakesDashboardClient(): React.JSX.Element {
   const { t } = useTranslation();
@@ -96,6 +104,24 @@ export default function SweepstakesDashboardClient(): React.JSX.Element {
   const handleSweepstatsGlobal = (sweepstakeId: string) => {
     router.push(`/admin/management/sweepstakes/${sweepstakeId}/stats`);
   };
+
+  // ── Audience Daily Total (Carolina) ──
+  const { data: dailyTotalData, isLoading: loadingDailyTotal } = useQuery({
+    queryKey: ['audience', 'daily-total'],
+    queryFn: () => sweepstakesClient.getAudienceDailyTotal(),
+    staleTime: 1000 * 60 * 2,
+  });
+
+  // ── Active Stores Status (Katherin) ──
+  const { data: storesStatusData, isLoading: loadingStoresStatus } = useQuery({
+    queryKey: ['audience', 'stores-status'],
+    queryFn: () => sweepstakesClient.getActiveStoresStatus(),
+    staleTime: 1000 * 60 * 2,
+  });
+
+  const dailyTotal = dailyTotalData;
+  const storesStatus = storesStatusData;
+  const alertStores = (storesStatus?.data ?? []).filter((s: ActiveStoreStatusRow) => s.status !== 'ok').slice(0, 8);
 
   return (
     <>
@@ -234,6 +260,161 @@ export default function SweepstakesDashboardClient(): React.JSX.Element {
             </Card>
           ) : (
             <>
+              {/* ── Audience Daily KPIs (Carolina / Katherin) ── */}
+              <Grid container spacing={2} mb={3}>
+                {/* Today's total */}
+                <Grid item xs={6} sm={3}>
+                  <Card variant="outlined" sx={{ borderRadius: 3, borderLeft: `4px solid ${theme.palette.primary.main}`, height: '100%' }}>
+                    <CardContent sx={{ py: 2, px: 2.5 }}>
+                      <Stack direction="row" alignItems="flex-start" justifyContent="space-between" mb={0.5}>
+                        <Typography variant="caption" color="text.secondary" fontWeight={600} textTransform="uppercase" letterSpacing={0.5}>
+                          Contactos hoy
+                        </Typography>
+                        <Avatar sx={{ width: 30, height: 30, bgcolor: alpha(theme.palette.primary.main, 0.12), color: theme.palette.primary.main }}>
+                          <TodayRounded sx={{ fontSize: 18 }} />
+                        </Avatar>
+                      </Stack>
+                      <Typography variant="h3" fontWeight={800} color="text.primary">
+                        {loadingDailyTotal ? '...' : (dailyTotal?.today?.total ?? 0).toLocaleString()}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {dailyTotal?.today?.newUsers ?? 0} nuevos · {dailyTotal?.today?.existingUsers ?? 0} existentes
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                {/* vs Yesterday */}
+                <Grid item xs={6} sm={3}>
+                  <Card variant="outlined" sx={{ borderRadius: 3, borderLeft: `4px solid ${(dailyTotal?.comparisons?.vsYesterday?.delta ?? 0) >= 0 ? '#10b981' : '#ef4444'}`, height: '100%' }}>
+                    <CardContent sx={{ py: 2, px: 2.5 }}>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600} textTransform="uppercase" letterSpacing={0.5}>
+                        vs Ayer
+                      </Typography>
+                      <Stack direction="row" alignItems="center" spacing={1} mt={0.5}>
+                        {(dailyTotal?.comparisons?.vsYesterday?.delta ?? 0) >= 0
+                          ? <TrendingUpRounded color="success" />
+                          : <TrendingDownRounded color="error" />}
+                        <Typography variant="h4" fontWeight={800} color={(dailyTotal?.comparisons?.vsYesterday?.delta ?? 0) >= 0 ? 'success.main' : 'error.main'}>
+                          {loadingDailyTotal ? '...' : `${(dailyTotal?.comparisons?.vsYesterday?.deltaPercent ?? 0) >= 0 ? '+' : ''}${(dailyTotal?.comparisons?.vsYesterday?.deltaPercent ?? 0).toFixed(1)}%`}
+                        </Typography>
+                      </Stack>
+                      <Typography variant="caption" color="text.secondary">
+                        Ayer: {dailyTotal?.comparisons?.vsYesterday?.total ?? 0}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                {/* Active stores */}
+                <Grid item xs={6} sm={3}>
+                  <Card variant="outlined" sx={{ borderRadius: 3, borderLeft: `4px solid #10b981`, height: '100%' }}>
+                    <CardContent sx={{ py: 2, px: 2.5 }}>
+                      <Stack direction="row" alignItems="flex-start" justifyContent="space-between" mb={0.5}>
+                        <Typography variant="caption" color="text.secondary" fontWeight={600} textTransform="uppercase" letterSpacing={0.5}>
+                          Tiendas online
+                        </Typography>
+                        <Avatar sx={{ width: 30, height: 30, bgcolor: alpha('#10b981', 0.12), color: '#10b981' }}>
+                          <CheckCircleRounded sx={{ fontSize: 18 }} />
+                        </Avatar>
+                      </Stack>
+                      <Typography variant="h3" fontWeight={800} color="text.primary">
+                        {loadingStoresStatus ? '...' : storesStatus?.summary?.online ?? 0}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        de {storesStatus?.summary?.totalActive ?? 0} activas
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                {/* Alerts */}
+                <Grid item xs={6} sm={3}>
+                  <Card variant="outlined" sx={{
+                    borderRadius: 3,
+                    borderLeft: `4px solid ${(storesStatus?.summary?.offline ?? 0) > 0 ? '#ef4444' : '#f59e0b'}`,
+                    height: '100%',
+                  }}>
+                    <CardContent sx={{ py: 2, px: 2.5 }}>
+                      <Stack direction="row" alignItems="flex-start" justifyContent="space-between" mb={0.5}>
+                        <Typography variant="caption" color="text.secondary" fontWeight={600} textTransform="uppercase" letterSpacing={0.5}>
+                          Alertas
+                        </Typography>
+                        <Avatar sx={{ width: 30, height: 30, bgcolor: alpha('#ef4444', 0.12), color: '#ef4444' }}>
+                          <WifiOffRounded sx={{ fontSize: 18 }} />
+                        </Avatar>
+                      </Stack>
+                      <Typography variant="h3" fontWeight={800} color={(storesStatus?.summary?.offline ?? 0) > 0 ? 'error.main' : 'text.primary'}>
+                        {loadingStoresStatus ? '...' : (storesStatus?.summary?.offline ?? 0) + (storesStatus?.summary?.noDataToday ?? 0)}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {storesStatus?.summary?.offline ?? 0} offline · {storesStatus?.summary?.noDataToday ?? 0} sin datos
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+
+              {/* ── Alert Stores Table (Katherin) ── */}
+              {alertStores.length > 0 && (
+                <Card variant="outlined" sx={{ borderRadius: 3, mb: 3, border: `1px solid ${alpha(theme.palette.warning.main, 0.3)}` }}>
+                  <Box p={2} borderBottom={(t) => `1px solid ${t.palette.divider}`} bgcolor={alpha(theme.palette.warning.main, 0.04)}>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <WarningRounded color="warning" fontSize="small" />
+                      <Typography variant="subtitle2" fontWeight={800}>
+                        Tiendas que requieren atención
+                      </Typography>
+                      <Chip label={`${alertStores.length}`} size="small" color="warning" sx={{ fontWeight: 700 }} />
+                    </Stack>
+                  </Box>
+                  <Box p={1}>
+                    <Grid container spacing={1}>
+                      {alertStores.map((store: ActiveStoreStatusRow) => (
+                        <Grid item xs={12} sm={6} md={3} key={store.storeId}>
+                          <Card
+                            variant="outlined"
+                            onClick={() => router.push(`/admin/management/stores/edit/${store.storeId}?tag=sweepstakes`)}
+                            sx={{
+                              borderRadius: 2,
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                              borderColor: store.status === 'offline' ? 'error.main' : store.status === 'no_data_today' ? 'warning.main' : 'divider',
+                              '&:hover': {
+                                borderColor: 'primary.main',
+                                boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.15)}`,
+                                transform: 'translateY(-1px)',
+                              },
+                            }}
+                          >
+                            <CardContent sx={{ py: 1.5, px: 2 }}>
+                              <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
+                                <Chip
+                                  size="small"
+                                  label={store.status === 'offline' ? '🔴 Offline' : store.status === 'no_data_today' ? '🟡 Sin datos' : '🟠 Bajo promedio'}
+                                  color={store.status === 'offline' ? 'error' : 'warning'}
+                                  variant="outlined"
+                                  sx={{ fontWeight: 700, fontSize: '0.65rem', height: 20 }}
+                                />
+                                {store.tabletStatus === 'instalada' && (
+                                  <Tooltip title="Tablet instalada">
+                                    <TabletRounded sx={{ fontSize: 14, color: 'text.secondary' }} />
+                                  </Tooltip>
+                                )}
+                              </Stack>
+                              <Typography variant="body2" fontWeight={700} noWrap>
+                                {store.storeName}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                Última actividad: {store.hoursSinceLastActivity === Infinity ? 'Nunca' : `hace ${Math.round(store.hoursSinceLastActivity)}h`}
+                              </Typography>
+                            </CardContent>
+                          </Card>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  </Box>
+                </Card>
+              )}
               {/* ── Global Charts ── */}
 
               {globalTrend.length > 0 && (
