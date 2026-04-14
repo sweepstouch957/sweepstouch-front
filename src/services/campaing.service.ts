@@ -591,7 +591,7 @@ class CampaignClient {
   }) {
     const { phone, message, image, provider, phoneNumber, id } = params;
     const uid = () => crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
-    const res = await api.post('/send', {
+    const res = await api.post('/send/api/send', {
       phone,
       message,
       image: image || undefined,
