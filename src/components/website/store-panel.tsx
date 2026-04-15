@@ -82,6 +82,7 @@ export default function StoreInfo({ store }: { store: Store }) {
   const queryClient = useQueryClient();
   const [zoom, setZoom] = useState(12);
   const [showPassword, setShowPassword] = useState(false);
+  const [backfillResult, setBackfillResult] = useState<any>(null);
 
   const {
     form,
@@ -147,16 +148,27 @@ export default function StoreInfo({ store }: { store: Store }) {
       return res.data;
     },
     onSuccess: (data) => {
+      setBackfillResult(data);
       // Refrescar tanto el store (para el nuevo accessCode) como el usuario merchant
       queryClient.invalidateQueries({ queryKey: ['store-merchant-user', store._id] });
       queryClient.invalidateQueries({ queryKey: ['store', store._id] });
+
+      // Mensaje según la acción
+      const msgs: Record<string, string> = {
+        created_user: 'Usuario merchant creado exitosamente.',
+        updated_existing_merchant: 'Se actualizó el usuario merchant existente (accessCode, password, etc.).',
+        updated_merchant_no_phone_due_conflict: 'Merchant actualizado. El teléfono se omitió por conflicto con otro usuario.',
+        attached_store_updated_role_accessCode_email_and_password: 'Se vinculó un usuario existente como merchant de esta tienda.',
+        conflict_store_already_taken: 'Ya existe un usuario asignado a esta tienda (conflicto de índice único).',
+      };
       setSnack({
         open: true,
-        msg: `Usuario merchant creado exitosamente (${data?.action || 'created'}).`,
-        type: 'success',
+        msg: msgs[data?.action] || `Proceso completado (${data?.action || 'ok'}).`,
+        type: data?.action === 'conflict_store_already_taken' ? 'warning' : 'success',
       });
     },
     onError: (err: any) => {
+      setBackfillResult(null);
       setSnack({
         open: true,
         msg: err?.response?.data?.error || 'Error al crear el usuario merchant.',
@@ -514,7 +526,7 @@ export default function StoreInfo({ store }: { store: Store }) {
                   )}
 
                   {/* Warning si no hay accessCode */}
-                  {!hasAccessCode && (
+                  {!hasAccessCode && !backfillResult && (
                     <Alert
                       severity="warning"
                       icon={<WarningAmberRounded fontSize="small" />}
@@ -525,10 +537,69 @@ export default function StoreInfo({ store }: { store: Store }) {
                     </Alert>
                   )}
 
-                  {/* Mutation success feedback */}
-                  {createMerchantMutation.isSuccess && (
-                    <Alert severity="success" sx={{ borderRadius: 2 }}>
-                      ¡Usuario merchant creado correctamente! Las credenciales ya se muestran abajo.
+                  {/* Resultado detallado del backfill */}
+                  {backfillResult && (
+                    <Alert
+                      severity={
+                        backfillResult.action === 'conflict_store_already_taken'
+                          ? 'warning'
+                          : 'success'
+                      }
+                      sx={{ borderRadius: 2 }}
+                    >
+                      {backfillResult.action === 'created_user' && (
+                        <>
+                          ✅ <strong>Usuario creado.</strong> Se generó un nuevo merchant para esta tienda.
+                          {backfillResult.phoneConflictBypassed && (
+                            <Typography variant="caption" display="block" mt={0.5}>
+                              ⚠️ El teléfono de la tienda ya estaba en uso — se asignó un número sintético.
+                            </Typography>
+                          )}
+                          {backfillResult.email && (
+                            <Typography variant="caption" display="block" mt={0.5}>
+                              📧 Email: <strong>{backfillResult.email}</strong>
+                            </Typography>
+                          )}
+                        </>
+                      )}
+
+                      {backfillResult.action === 'updated_existing_merchant' && (
+                        <>
+                          🔄 <strong>Merchant actualizado.</strong> Ya existía un usuario merchant para esta store — se sincronizó accessCode, email y password.
+                        </>
+                      )}
+
+                      {backfillResult.action === 'updated_merchant_no_phone_due_conflict' && (
+                        <>
+                          🔄 <strong>Merchant actualizado (sin teléfono).</strong> Se actualizó el usuario pero el teléfono se omitió porque genera conflicto con otro usuario.
+                        </>
+                      )}
+
+                      {backfillResult.action === 'attached_store_updated_role_accessCode_email_and_password' && (
+                        <>
+                          🔗 <strong>Usuario vinculado.</strong> Se encontró un usuario existente por su teléfono y se le asignó esta tienda como merchant.
+                        </>
+                      )}
+
+                      {backfillResult.action === 'conflict_store_already_taken' && (
+                        <>
+                          ⚠️ <strong>Conflicto.</strong> Ya existe un usuario asignado a esta tienda en la base de datos (índice único). Verifica manualmente en la sección de usuarios.
+                        </>
+                      )}
+
+                      {backfillResult.action === 'none' && (
+                        <>
+                          ℹ️ El usuario merchant ya estaba actualizado, no hubo cambios.
+                        </>
+                      )}
+                    </Alert>
+                  )}
+
+                  {/* Error del mutation */}
+                  {createMerchantMutation.isError && (
+                    <Alert severity="error" sx={{ borderRadius: 2 }}>
+                      {(createMerchantMutation.error as any)?.response?.data?.error
+                        || 'Error inesperado al crear el usuario merchant.'}
                     </Alert>
                   )}
 
@@ -542,7 +613,10 @@ export default function StoreInfo({ store }: { store: Store }) {
                           : <PersonAddRounded />
                       }
                       disabled={createMerchantMutation.isPending}
-                      onClick={() => createMerchantMutation.mutate()}
+                      onClick={() => {
+                        setBackfillResult(null);
+                        createMerchantMutation.mutate();
+                      }}
                       sx={{
                         borderRadius: 2,
                         textTransform: 'none',
