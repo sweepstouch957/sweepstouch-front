@@ -164,7 +164,7 @@ export default function StoreInfo({ store }: { store: Store }) {
       setSnack({
         open: true,
         msg: msgs[data?.action] || `Proceso completado (${data?.action || 'ok'}).`,
-        type: data?.action === 'conflict_store_already_taken' ? 'warning' : 'success',
+        type: data?.action === 'conflict_store_already_taken' ? 'info' : 'success',
       });
     },
     onError: (err: any) => {
