@@ -3,9 +3,10 @@
 
 import { useStoreEditor } from '@/hooks/pages/useStoreEditor';
 import { usersApi } from '@/mocks/users'; // 👈 ajusta si luego apuntas al service real
+import { api } from '@/libs/axios';
 import { Store } from '@/services/store.service';
 import { getTierColor } from '@/utils/ui/store.page';
-import { PaymentOutlined } from '@mui/icons-material';
+import { PaymentOutlined, PersonAddRounded, WarningAmberRounded } from '@mui/icons-material';
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
 import ContentCopyOutlinedIcon from '@mui/icons-material/ContentCopyOutlined';
 import GroupsIcon from '@mui/icons-material/Groups';
@@ -15,6 +16,7 @@ import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import {
   Alert,
   Box,
+  Button,
   Card,
   CardContent,
   Divider,
@@ -34,7 +36,7 @@ import {
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import SaveRoundedIcon from '@mui/icons-material/SaveRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import StoreKioskCard from '../application-ui/composed-blocks/kiosk';
 import StatItem from '../application-ui/composed-blocks/my-cards/store-item';
@@ -70,7 +72,14 @@ const toInputDate = (value: any): string => {
   return d.toISOString().slice(0, 10);
 };
 
+/** Genera un accessCode aleatorio con formato ANTILLAN-XXXXX */
+const generateAccessCode = (): string => {
+  const num = Math.floor(10000 + Math.random() * 90000); // 10000‑99999
+  return `ANTILLAN-${num}`;
+};
+
 export default function StoreInfo({ store }: { store: Store }) {
+  const queryClient = useQueryClient();
   const [zoom, setZoom] = useState(12);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -117,6 +126,42 @@ export default function StoreInfo({ store }: { store: Store }) {
       const merchant = users.find((u: any) => String(u.role || '').toLowerCase() === 'merchant');
 
       return (merchant || users[0]) as any;
+    },
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  //  Mutation: crear usuario merchant automáticamente vía backfill
+  //  Si la store no tiene accessCode, lo genera y patchea primero.
+  // ─────────────────────────────────────────────────────────────
+  const hasAccessCode = Boolean((store as any)?.accessCode);
+
+  const createMerchantMutation = useMutation({
+    mutationFn: async () => {
+      // 1. Si no tiene accessCode, generar uno y patchear la store
+      if (!(store as any)?.accessCode) {
+        const newCode = generateAccessCode();
+        await api.patch(`/store/${store._id}`, { accessCode: newCode });
+      }
+      // 2. Crear / actualizar el usuario merchant via backfill
+      const res = await api.post(`/auth/admin/backfill-from-store/${store._id}`);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      // Refrescar tanto el store (para el nuevo accessCode) como el usuario merchant
+      queryClient.invalidateQueries({ queryKey: ['store-merchant-user', store._id] });
+      queryClient.invalidateQueries({ queryKey: ['store', store._id] });
+      setSnack({
+        open: true,
+        msg: `Usuario merchant creado exitosamente (${data?.action || 'created'}).`,
+        type: 'success',
+      });
+    },
+    onError: (err: any) => {
+      setSnack({
+        open: true,
+        msg: err?.response?.data?.error || 'Error al crear el usuario merchant.',
+        type: 'error',
+      });
     },
   });
 
@@ -456,22 +501,63 @@ export default function StoreInfo({ store }: { store: Store }) {
                 </Typography>
               )}
 
-              {errorMerchant && (
-                <Typography
-                  variant="body2"
-                  color="error"
-                >
-                  No se pudo cargar el usuario asociado a esta tienda.
-                </Typography>
-              )}
+              {(errorMerchant || (!loadingMerchant && !merchantUser)) && (
+                <Stack spacing={1.5} mt={1}>
+                  {errorMerchant ? (
+                    <Typography variant="body2" color="error">
+                      No se pudo cargar el usuario asociado a esta tienda.
+                    </Typography>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      No hay un usuario asociado a esta tienda.
+                    </Typography>
+                  )}
 
-              {!loadingMerchant && !errorMerchant && !merchantUser && (
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                >
-                  No hay un usuario asociado a esta tienda.
-                </Typography>
+                  {/* Warning si no hay accessCode */}
+                  {!hasAccessCode && (
+                    <Alert
+                      severity="warning"
+                      icon={<WarningAmberRounded fontSize="small" />}
+                      sx={{ borderRadius: 2 }}
+                    >
+                      Esta tienda no tiene un <strong>accessCode</strong>. Se generará uno
+                      automáticamente al crear el usuario (ej. ANTILLAN-10034).
+                    </Alert>
+                  )}
+
+                  {/* Mutation success feedback */}
+                  {createMerchantMutation.isSuccess && (
+                    <Alert severity="success" sx={{ borderRadius: 2 }}>
+                      ¡Usuario merchant creado correctamente! Las credenciales ya se muestran abajo.
+                    </Alert>
+                  )}
+
+                  <Box>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      startIcon={
+                        createMerchantMutation.isPending
+                          ? <CircularProgress size={16} color="inherit" />
+                          : <PersonAddRounded />
+                      }
+                      disabled={createMerchantMutation.isPending}
+                      onClick={() => createMerchantMutation.mutate()}
+                      sx={{
+                        borderRadius: 2,
+                        textTransform: 'none',
+                        px: 2.5,
+                      }}
+                    >
+                      {createMerchantMutation.isPending
+                        ? 'Creando...'
+                        : hasAccessCode
+                          ? 'Crear usuario merchant'
+                          : 'Generar accessCode y crear usuario'
+                      }
+                    </Button>
+                  </Box>
+                </Stack>
               )}
 
               {merchantUser && (
