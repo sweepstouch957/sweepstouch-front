@@ -2,7 +2,9 @@ import CustomersGrid from '@/components/application-ui/tables/customers/customer
 import { Box, Button, Typography } from '@mui/material';
 import { useState, type FC } from 'react';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import CleaningServicesRoundedIcon from '@mui/icons-material/CleaningServicesRounded';
 import { ImportCustomersModal } from './import-customers-modal';
+import DepurarPhonesModal from './depurar-phones-modal';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface CustomersPanelProps {
@@ -12,6 +14,7 @@ interface CustomersPanelProps {
 
 const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName }) => {
   const [openImport, setOpenImport] = useState(false);
+  const [openDepurar, setOpenDepurar] = useState(false);
   const queryClient = useQueryClient();
 
   const handleImportSuccess = () => {
@@ -19,28 +22,49 @@ const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName }) => {
     queryClient.invalidateQueries({ queryKey: ['customers', storeId] });
   };
 
+  const handleDepurarSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['customers', storeId] });
+  };
+
   return (
     <Box p={3}>
-      {/* Header con título y botón de importación */}
+      {/* Header con título y botones */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} gap={2}>
         <Typography variant="h4" fontWeight="600" color="text.primary">
           Directorio de Clientes
         </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          sx={{
-             borderRadius: '8px',
-             textTransform: 'none',
-             fontWeight: 600,
-             px: 3,
-             py: 1,
-          }}
-          startIcon={<CloudUploadIcon />}
-          onClick={() => setOpenImport(true)}
-        >
-          Importar Excel
-        </Button>
+        <Box display="flex" gap={1.5}>
+          <Button
+            variant="outlined"
+            color="error"
+            sx={{
+               borderRadius: '8px',
+               textTransform: 'none',
+               fontWeight: 600,
+               px: 2.5,
+               py: 1,
+            }}
+            startIcon={<CleaningServicesRoundedIcon />}
+            onClick={() => setOpenDepurar(true)}
+          >
+            Depurar Números
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            sx={{
+               borderRadius: '8px',
+               textTransform: 'none',
+               fontWeight: 600,
+               px: 3,
+               py: 1,
+            }}
+            startIcon={<CloudUploadIcon />}
+            onClick={() => setOpenImport(true)}
+          >
+            Importar Excel
+          </Button>
+        </Box>
       </Box>
 
       {/* Grid Principal */}
@@ -56,8 +80,18 @@ const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName }) => {
         storeId={storeId}
         onSuccess={handleImportSuccess}
       />
+
+      {/* Modal de Depuración */}
+      <DepurarPhonesModal
+        open={openDepurar}
+        onClose={() => setOpenDepurar(false)}
+        storeId={storeId}
+        storeName={storeName}
+        onSuccess={handleDepurarSuccess}
+      />
     </Box>
   );
 };
 
 export default CustomersPanel;
+
