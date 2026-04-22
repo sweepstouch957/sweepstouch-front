@@ -1,7 +1,7 @@
 // src/utils/store-ui.tsx
 import SimCardIcon from '@mui/icons-material/SimCard';
 
-export const getTierColor = (type: 'elite'|'basic'|'free') => {
+export const getTierColor = (type: 'elite' | 'basic' | 'free') => {
   switch (type) {
     case 'elite':
       return { bg: 'linear-gradient(135deg,#ff5bbd,#6b5cff)', text: '#fff' };
@@ -12,13 +12,22 @@ export const getTierColor = (type: 'elite'|'basic'|'free') => {
   }
 };
 
-export const getProviderChip = (provider: 'twilio'|'bandwidth') =>
-  provider === 'twilio'
-    ? { label: 'Twilio', color: 'secondary' as const, icon: <SimCardIcon fontSize="small" /> }
-    : { label: 'Bandwidth', color: 'primary' as const, icon: <SimCardIcon fontSize="small" /> };
+
+export const getProviderChip = (provider: 'twilio' | 'bandwidth' | 'infobip') => {
+  switch (provider) {
+    case 'twilio':
+      return { label: 'Twilio', color: 'secondary' as const, icon: <SimCardIcon fontSize="small" /> };
+    case 'bandwidth':
+      return { label: 'Bandwidth', color: 'primary' as const, icon: <SimCardIcon fontSize="small" /> };
+    case 'infobip':
+      return { label: 'Infobip', color: 'success' as const, icon: <SimCardIcon fontSize="small" /> };
+    default:
+      return { label: 'Unknown', color: 'default' as const, icon: <SimCardIcon fontSize="small" /> };
+  }
+};
 
 export const formatPhone = (p?: string) => (p ? p : 'No disponible');
 
 export const copyToClipboard = async (text: string) => {
-  try { await navigator.clipboard.writeText(text); } catch {}
+  try { await navigator.clipboard.writeText(text); } catch { }
 };

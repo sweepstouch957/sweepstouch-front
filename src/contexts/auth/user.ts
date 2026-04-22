@@ -24,4 +24,8 @@ export interface User {
   storeId?: string;
   departmentId?: string;
   department?: { _id: string; name: string; color: string; icon: string };
+  active?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  lastLogin?: string;
 }

@@ -668,7 +668,7 @@ export default function SweepstakesDashboardClient(): React.JSX.Element {
                           height={220}
                           width={220}
                           margin={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                          slotProps={{ legend: { hidden: true } }}
+                          sx={{ '& .MuiChartsLegend-root': { display: 'none' } }}
                         />
                       </Box>
 

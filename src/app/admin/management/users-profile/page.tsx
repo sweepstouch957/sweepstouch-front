@@ -529,7 +529,7 @@ export default function UserProfilePage() {
                       Recent Activity
                     </Typography>
                     <Stack spacing={2}>
-                      {user.lastLogin && (
+                      {user?.lastLogin && (
                         <Stack direction="row" spacing={1.5} alignItems="center">
                           <AccessTimeRoundedIcon fontSize="small" color="action" />
                           <Box>
