@@ -477,7 +477,6 @@ export default function BillingPage() {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         py: 1.25,
-                        px: 0.5,
                         borderRadius: row.highlight ? 1.5 : 0,
                         bgcolor: row.highlight
                           ? isDark
