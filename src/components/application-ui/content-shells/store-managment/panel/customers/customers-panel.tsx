@@ -5,7 +5,9 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import CleaningServicesRoundedIcon from '@mui/icons-material/CleaningServicesRounded';
 import { ImportCustomersModal } from './import-customers-modal';
 import DepurarPhonesModal from './depurar-phones-modal';
+import ReactivarPhonesModal from './reactivar-phones-modal';
 import { useQueryClient } from '@tanstack/react-query';
+import { SettingsBackupRestoreRounded } from '@mui/icons-material';
 
 interface CustomersPanelProps {
   storeId: string;
@@ -15,6 +17,7 @@ interface CustomersPanelProps {
 const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName }) => {
   const [openImport, setOpenImport] = useState(false);
   const [openDepurar, setOpenDepurar] = useState(false);
+  const [openReactivar, setOpenReactivar] = useState(false);
   const queryClient = useQueryClient();
 
   const handleImportSuccess = () => {
@@ -26,6 +29,10 @@ const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName }) => {
     queryClient.invalidateQueries({ queryKey: ['customers', storeId] });
   };
 
+  const handleReactivarSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['customers', storeId] });
+  };
+
   return (
     <Box p={3}>
       {/* Header con título y botones */}
@@ -34,6 +41,21 @@ const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName }) => {
           Directorio de Clientes
         </Typography>
         <Box display="flex" gap={1.5}>
+          <Button
+            variant="outlined"
+            color="success"
+            sx={{
+               borderRadius: '8px',
+               textTransform: 'none',
+               fontWeight: 600,
+               px: 2.5,
+               py: 1,
+            }}
+            startIcon={<SettingsBackupRestoreRounded />}
+            onClick={() => setOpenReactivar(true)}
+          >
+            Reactivar Opt-out/Apagados
+          </Button>
           <Button
             variant="outlined"
             color="error"
@@ -88,6 +110,15 @@ const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName }) => {
         storeId={storeId}
         storeName={storeName}
         onSuccess={handleDepurarSuccess}
+      />
+
+      {/* Modal de Reactivación */}
+      <ReactivarPhonesModal
+        open={openReactivar}
+        onClose={() => setOpenReactivar(false)}
+        storeId={storeId}
+        storeName={storeName}
+        onSuccess={handleReactivarSuccess}
       />
     </Box>
   );

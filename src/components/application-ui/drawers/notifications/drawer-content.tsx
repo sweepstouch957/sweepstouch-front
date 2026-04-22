@@ -16,6 +16,7 @@ import NextLink from 'next/link';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
+import AssignmentIndRoundedIcon from '@mui/icons-material/AssignmentIndRounded';
 import { t } from 'i18next';
 import { Scrollbar } from 'src/components/base/scrollbar';
 import { AvatarState } from 'src/components/base/styles/avatar';
@@ -35,6 +36,13 @@ const Component = () => {
       return (
         <AvatarState useShadow state="primary" sx={{ width: 38, height: 38 }}>
           <EventAvailableIcon fontSize="small" />
+        </AvatarState>
+      );
+    }
+    if (type === 'task_assigned') {
+      return (
+        <AvatarState useShadow state="warning" sx={{ width: 38, height: 38 }}>
+          <AssignmentIndRoundedIcon fontSize="small" />
         </AvatarState>
       );
     }

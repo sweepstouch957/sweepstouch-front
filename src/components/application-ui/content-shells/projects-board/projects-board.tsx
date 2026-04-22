@@ -21,7 +21,7 @@ import {
   useTheme,
 } from '@mui/material';
 import React, { Fragment, useEffect } from 'react';
-import { DragDropContext, DropResult } from 'react-beautiful-dnd';
+import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import BaseButtonTab from 'src/components/base/styles/button-tab';

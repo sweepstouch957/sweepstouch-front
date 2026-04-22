@@ -37,6 +37,7 @@ export interface Store {
   ownerId: string;
   description?: string;
   slug?: string;
+  mmsTheme?: any;
   image: string;
   active: boolean;
   subscription?: string;
@@ -47,7 +48,7 @@ export interface Store {
   verifiedByTwilio?: boolean;
   bandwidthPhoneNumber?: string;
   customerCount: number;
-  provider: 'twilio' | 'bandwidth';
+  provider: 'twilio' | 'bandwidth' | 'infobip';
   createdAt: string;
   updatedAt: string;
   accessCode?: string;
@@ -57,6 +58,7 @@ export interface Store {
   lng?: number | null;
   lat?: number | null;
   email?: string;
+  infobipSenderId?: string;
 
   // 🆕 Social Links
   socialLinks?: {
@@ -85,7 +87,8 @@ export interface UpdateStoreBody {
   type?: 'elite' | 'basic' | 'free';
   active?: boolean;
   phoneNumber?: string;
-  provider?: 'twilio' | 'bandwidth';
+  provider?: 'twilio' | 'bandwidth' | 'infobip';
+  infobipSenderId?: string;
   bandwidthPhoneNumber?: string;
   twilioPhoneNumber?: string;
   twilioPhoneNumberSid?: string;

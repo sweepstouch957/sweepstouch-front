@@ -40,6 +40,7 @@ type Props = {
     twilioPhoneNumber: string;
     twilioPhoneNumberSid: string;
     twilioPhoneNumberFriendlyName: string;
+    infobipSenderId?: string;
     verifiedByTwilio: boolean;
     address: string;
     zipCode: string;
@@ -403,7 +404,20 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat }: Pro
           >
             <MenuItem value="twilio">📞 Twilio</MenuItem>
             <MenuItem value="bandwidth">📡 Bandwidth</MenuItem>
+            <MenuItem value="infobip">⚡ Infobip</MenuItem>
           </TextField>
+
+          {form.provider === 'infobip' && (
+            <TextField
+              fullWidth
+              size="small"
+              label="Infobip Sender ID / Number"
+              value={form.infobipSenderId || ''}
+              onChange={onChange('infobipSenderId')}
+              disabled={!edit}
+              helperText="Si se deja vacío, utilizará el número predeterminado del sistema."
+            />
+          )}
 
           {form.provider === 'bandwidth' && (
             <TextField

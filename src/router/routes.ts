@@ -134,6 +134,8 @@ export const routes = {
 
     },
     applications: {
+      'ai-assistant': '/admin/applications/ai-assistant',
+      'ai-config': '/admin/applications/ai-assistant/config',
       calendar: '/admin/applications/calendar',
       'file-manager': '/admin/applications/file-manager',
       'jobs-platform': '/admin/applications/jobs-platform',
@@ -154,6 +156,7 @@ export const routes = {
         listing: '/admin/management/merchants',
       },
       projects: '/admin/management/projects',
+      account: '/admin/management/account',
       stores: {
         listing: '/admin/management/stores',
         create: '/admin/management/stores/create',
@@ -166,6 +169,7 @@ export const routes = {
         listing: '/admin/management/campaings',
         create: '/admin/management/campaings/create',
         'send-test': '/admin/management/campaings/send-test',
+        mms: '/admin/management/mms',
       },
       promos: {
         listing: '/admin/management/ads',

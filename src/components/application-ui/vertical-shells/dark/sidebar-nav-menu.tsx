@@ -28,29 +28,31 @@ const ListSubheaderWrapper = styled(ListSubheader)<ListProps<'div', { component:
   ({ theme }) => ({
     background: neutral[900],
     textTransform: 'uppercase',
-    fontWeight: 500,
-    fontSize: 13,
-    color: neutral[400],
-    lineHeight: theme.spacing(5),
-    padding: theme.spacing(0, 2),
+    fontWeight: 700,
+    fontSize: 10,
+    letterSpacing: '0.08em',
+    color: alpha(neutral[400], 0.6),
+    lineHeight: theme.spacing(4),
+    padding: theme.spacing(1, 2, 0.25),
   })
 );
 
 export const ListItemButtonWrapper = styled(ListItemButton)(({ theme }) => ({
-  color: neutral[300],
-  borderRadius: theme.shape.borderRadius,
-  transition: 'none',
-  fontWeight: 600,
-  fontSize: 14,
-  marginBottom: '2px',
-  borderWidth: 1,
-  borderStyle: 'solid',
-  borderColor: 'transparent',
-  padding: theme.spacing(0.8, 1, 0.8, 2),
+  color: neutral[400],
+  borderRadius: theme.spacing(1),
+  transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
+  fontWeight: 500,
+  fontSize: 13,
+  marginBottom: '1px',
+  border: 'none',
+  padding: theme.spacing(0.7, 1, 0.7, 1.5),
 
   '& .MuiListItemIcon-root': {
     color: neutral[500],
-    minWidth: 44,
+    minWidth: 36,
+    '& .MuiSvgIcon-root': {
+      fontSize: 20,
+    },
   },
 
   '& .MuiListItemText-root': {
@@ -59,78 +61,76 @@ export const ListItemButtonWrapper = styled(ListItemButton)(({ theme }) => ({
 
   '&:hover': {
     color: neutral[100],
-    background: alpha(neutral[700], 0.08),
-    borderColor: alpha(neutral[600], 0.08),
+    background: alpha(neutral[500], 0.06),
 
     '& .MuiListItemIcon-root': {
-      color: neutral[100],
+      color: neutral[200],
     },
 
     '& .MuiListItemText-root': {
-      color: neutral[100],
+      color: neutral[200],
     },
   },
 
   '&.Mui-selected, &.Mui-selected:hover': {
-    color: neutral[50],
-    background: alpha(neutral[500], 0.1),
-    borderColor: alpha(neutral[700], 0.15),
+    color: '#fff',
+    background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.15)} 0%, ${alpha(theme.palette.primary.dark, 0.08)} 100%)`,
 
     '& .MuiListItemIcon-root': {
-      color: neutral[50],
+      color: theme.palette.primary.light,
     },
 
     '& .MuiListItemText-root': {
-      color: neutral[50],
+      color: '#fff',
     },
   },
 }));
 
 const SubMenu = styled(List)<ListProps<'div', { component: 'div' }>>(({ theme }) => ({
-  paddingTop: theme.spacing(0.5),
-  paddingBottom: theme.spacing(0.5),
+  paddingTop: theme.spacing(0.25),
+  paddingBottom: theme.spacing(0.25),
   position: 'relative',
 
-  // Draw a subtle vertical line to act as a tree stem
   '&::before': {
     content: '""',
     position: 'absolute',
-    left: theme.spacing(3.5),
+    left: theme.spacing(3.2),
     top: 0,
     bottom: 0,
     width: 1,
-    background: alpha(neutral[700], 0.5),
+    background: alpha(neutral[600], 0.2),
     zIndex: 1,
   },
 
   '& .MuiListItemButton-root': {
-    padding: theme.spacing(0.6, 2, 0.6, 6.5),
-    fontWeight: 500,
-    fontSize: 13, // Slightly smaller text for hierarchy
-    minHeight: 36,
-    color: neutral[400],
+    padding: theme.spacing(0.5, 2, 0.5, 6),
+    fontWeight: 400,
+    fontSize: 13,
+    minHeight: 34,
+    color: neutral[500],
+    borderRadius: theme.spacing(0.75),
 
     '&::before': {
       content: '""',
-      background: neutral[300],
-      opacity: 0.5,
+      background: neutral[600],
+      opacity: 0.3,
       position: 'absolute',
-      left: theme.spacing(3.5), // Connects to the vertical line
+      left: theme.spacing(3.2),
       top: '50%',
       height: 1,
-      width: theme.spacing(1.5),
+      width: theme.spacing(1.2),
       transition: theme.transitions.create(['background', 'opacity', 'width']),
       zIndex: 2,
     },
 
     '&.Mui-selected, &:hover': {
-      color: neutral[50], // brighter text
-      background: alpha(neutral[700], 0.1),
+      color: neutral[100],
+      background: alpha(neutral[500], 0.05),
 
       '&::before': {
         opacity: 1,
-        background: neutral[50], // brighter branch indicator
-        width: theme.spacing(2),
+        background: theme.palette.primary.main,
+        width: theme.spacing(1.5),
       },
     },
 
@@ -155,7 +155,7 @@ const NavItem: React.FC<NavItemProps> = ({ item }) => {
   };
 
   return (
-    <Box px={2}>
+    <Box px={1.5}>
       <ListItemButtonWrapper
         selected={isActive || isSubMenuActive}
         onClick={handleToggle}
@@ -171,12 +171,12 @@ const NavItem: React.FC<NavItemProps> = ({ item }) => {
         {subMenu && (
           <Box
             sx={{
-
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
               transform: open ? 'rotate(90deg)' : 'rotate(0deg)',
               transition: (theme) => theme.transitions.create(['transform']),
+              '& .MuiSvgIcon-root': { fontSize: 16, opacity: 0.5 },
             }}
           >
             <KeyboardArrowRightTwoToneIcon fontSize="small" />
@@ -187,7 +187,7 @@ const NavItem: React.FC<NavItemProps> = ({ item }) => {
         <Collapse in={open}>
           <SubMenu
             component="div"
-            sx={{ mx: -2 }}
+            sx={{ mx: -1.5 }}
             disablePadding
           >
             {subMenu.map((subItem) => (
@@ -237,4 +237,3 @@ export const SidebarNavMenu: FC<SidebarNavMenuProps> = ({ menuItems = [] }) => {
     </Box>
   );
 };
-

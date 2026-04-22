@@ -4,13 +4,20 @@ import { customerClient } from '@/services/customerService';
 import { sweepstakesClient } from '@/services/sweepstakes.service';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import GridViewRoundedIcon from '@mui/icons-material/GridViewRounded';
+import PeopleAltRoundedIcon from '@mui/icons-material/PeopleAltRounded';
+import EmojiEventsRoundedIcon from '@mui/icons-material/EmojiEventsRounded';
+import MessageRoundedIcon from '@mui/icons-material/MessageRounded';
+import BarChartRoundedIcon from '@mui/icons-material/BarChartRounded';
+import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import {
   alpha,
+  Avatar,
   Box,
   Button,
   Chip,
   Divider,
   MenuItem,
+  Paper,
   Skeleton,
   Stack,
   TextField,
@@ -53,6 +60,20 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
   const { t } = useTranslation();
   const theme = useTheme();
   const smUp = useMediaQuery(theme.breakpoints.up('sm'));
+  const isDark = theme.palette.mode === 'dark';
+  const { common } = theme.palette;
+
+  const cardHeaderSx = {
+    px: 2.5,
+    py: 2,
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    bgcolor: isDark ? alpha(common.black, 0.15) : alpha(common.black, 0.015),
+  } as const;
+
+  const cardSx = {
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: 3,
+  } as const;
 
   // =====================
   //  Queries generales (no dependen del año)
@@ -97,7 +118,7 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
   // =====================
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
-  const currentMonthNumber = currentDate.getMonth() + 1; // 0-based → 1-based
+  const currentMonthNumber = currentDate.getMonth() + 1;
 
   const messagesCurrentYearQ = useQuery<YtdMonthlyResponse>({
     queryKey: [
@@ -169,7 +190,6 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
       68
     );
 
-    // Audience (participants)
     doc.setTextColor(20);
     doc.setFontSize(13);
     doc.text(`${t('Crecimiento de Audiencia')}`, 40, 104);
@@ -202,7 +222,6 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
       headStyles: { fillColor: [20, 20, 20] },
     });
 
-    // Audience via mensajes (YTD)
     const afterAudienceY = (doc as any).lastAutoTable?.finalY
       ? (doc as any).lastAutoTable.finalY + 22
       : 420;
@@ -296,318 +315,454 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
     years.push(y);
   }
 
-  const generalBoxStyles = {
-    flex: 1,
-    p: 2,
-    borderRadius: 3,
-    border: '1px solid rgba(0,0,0,0.08)',
-    backgroundColor: '#fff',
-    minWidth: 0,
-  } as const;
-
   const formatInt = (v: any) =>
     typeof v === 'number' ? v.toLocaleString() : typeof v === 'string' ? v : '—';
 
+  const chartAxisSx = {
+    '.MuiBarElement-root': {
+      fillOpacity: 1,
+      rx: theme.shape.borderRadius / 1.35,
+      ry: theme.shape.borderRadius / 1.35,
+    },
+    '.MuiChartsAxis-left': { display: { xs: 'none', sm: 'block' } },
+    '.MuiChartsAxis-tickLabel': {
+      fill: theme.palette.text.secondary,
+      fontWeight: 600,
+    },
+    '.MuiChartsAxis-line': { stroke: theme.palette.divider },
+    '.MuiChartsAxis-tick': { stroke: theme.palette.divider },
+    '.MuiChartsLegend-label': {
+      fill: theme.palette.text.secondary,
+      fontWeight: 700,
+    },
+    '.MuiChartsTooltip-table tr th': { fontWeight: 800 },
+    '.MuiChartsGrid-line': { stroke: theme.palette.divider },
+  } as const;
+
   return (
-    <Box
-      sx={{
-        mb: 3,
-        p: { xs: 2, sm: 3 },
-        borderRadius: 3,
-        border: '1px solid rgba(0,0,0,0.08)',
-        backgroundColor: '#fff',
-      }}
-    >
-      {/* Header: año + export + scope */}
-      <Stack
-        direction={{ xs: 'column', md: 'row' }}
-        spacing={2}
-        alignItems={{ xs: 'flex-start', md: 'center' }}
-        justifyContent="space-between"
-        sx={{ mb: 2 }}
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+      {/* Header card */}
+      <Paper
+        elevation={0}
+        sx={cardSx}
       >
         <Stack
-          direction="row"
-          spacing={1.5}
-          alignItems="center"
-          flexWrap="wrap"
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={2}
+          alignItems={{ xs: 'flex-start', md: 'center' }}
+          justifyContent="space-between"
+          sx={cardHeaderSx}
         >
-          <Typography
-            variant="h5"
-            sx={{ fontWeight: 900, color: '#111' }}
-          >
-            {t('Resumen anual')} · {year}
-          </Typography>
-          <Chip
-            size="small"
-            label={storeId ? t('Por tienda') : t('Todas las tiendas')}
-            sx={{
-              fontWeight: 800,
-              borderRadius: 2,
-              color: SWEEP_PINK,
-              backgroundColor: alpha(SWEEP_PINK, 0.1),
-            }}
-          />
-        </Stack>
-
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          spacing={1.5}
-          alignItems={{ xs: 'stretch', sm: 'center' }}
-        >
-          <TextField
-            select
-            size="small"
-            label={t('Año')}
-            value={year}
-            onChange={(e) => onYearChange(Number(e.target.value))}
-            sx={{ minWidth: 120 }}
-          >
-            {years.map((y) => (
-              <MenuItem
-                key={y}
-                value={y}
-              >
-                {y}
-              </MenuItem>
-            ))}
-          </TextField>
-
           <Stack
             direction="row"
-            spacing={1}
+            spacing={1.5}
+            alignItems="center"
+            flexWrap="wrap"
           >
-            <Button
-              variant="outlined"
-              startIcon={<GridViewRoundedIcon />}
-              onClick={exportExcel}
-              disabled={isLoading || audienceQ.isError || messagesQ.isError}
+            <Avatar
               sx={{
-                borderRadius: 2,
-                borderColor: alpha(SWEEP_PINK, 0.35),
+                width: 36,
+                height: 36,
+                bgcolor: alpha(SWEEP_PINK, 0.12),
                 color: SWEEP_PINK,
-                '&:hover': {
-                  borderColor: SWEEP_PINK,
-                  backgroundColor: alpha(SWEEP_PINK, 0.06),
-                },
+                borderRadius: 1.5,
               }}
             >
-              {t('Excel')}
-            </Button>
-
-            <Button
-              variant="contained"
-              startIcon={<DescriptionOutlinedIcon />}
-              onClick={exportPdf}
-              disabled={isLoading || audienceQ.isError || messagesQ.isError}
-              sx={{
-                borderRadius: 2,
-                backgroundColor: SWEEP_PINK,
-                color: '#fff',
-                '&:hover': { backgroundColor: SWEEP_PINK },
-              }}
-            >
-              {t('PDF')}
-            </Button>
-          </Stack>
-        </Stack>
-      </Stack>
-
-      {/* 🔥 Resumen general global (no depende del año) */}
-      <Stack
-        direction={{ xs: 'column', md: 'row' }}
-        spacing={2}
-        sx={{ mb: 3 }}
-      >
-        {/* Total Customers */}
-        <Box sx={generalBoxStyles}>
-          <Typography
-            variant="overline"
-            sx={{ color: 'rgba(0,0,0,0.65)', letterSpacing: 1 }}
-          >
-            {t('Total Customers')}
-          </Typography>
-          {loadingCustomers ? (
-            <Skeleton
-              height={40}
-              width={140}
-            />
-          ) : (
-            <Typography
-              variant="h4"
-              sx={{ fontWeight: 900, color: '#111', mt: 0.5 }}
-            >
-              {errorCustomers ? '—' : formatInt(customersCount)}
-            </Typography>
-          )}
-        </Box>
-
-        {/* Sweepstakes Participants */}
-        <Box sx={generalBoxStyles}>
-          <Typography
-            variant="overline"
-            sx={{ color: 'rgba(0,0,0,0.65)', letterSpacing: 1 }}
-          >
-            {t('Sweepstakes participants')}
-          </Typography>
-          {loadingSweepstakes ? (
-            <Skeleton
-              height={40}
-              width={140}
-            />
-          ) : (
-            <Typography
-              variant="h4"
-              sx={{ fontWeight: 900, color: '#111', mt: 0.5 }}
-            >
-              {errorSweepstakes ? '—' : formatInt(sweepstakesCount)}
-            </Typography>
-          )}
-        </Box>
-
-        {/* Mensajes del mes actual */}
-        <Box sx={generalBoxStyles}>
-          <Typography
-            variant="overline"
-            sx={{ color: 'rgba(0,0,0,0.65)', letterSpacing: 1 }}
-          >
-            {t('Mensajes del mes actual')}
-          </Typography>
-          {isLoadingCurrentMonth ? (
-            <Skeleton
-              height={40}
-              width={160}
-            />
-          ) : (
-            <Stack
-              spacing={0.5}
-              alignItems="flex-start"
-            >
+              <BarChartRoundedIcon sx={{ fontSize: 18 }} />
+            </Avatar>
+            <Box>
               <Typography
-                variant="h4"
-                sx={{ fontWeight: 900, color: '#111' }}
+                variant="subtitle1"
+                sx={{ fontWeight: 700, lineHeight: 1.2 }}
               >
-                {formatInt(currentMonthSentTotal)}
+                {t('Resumen anual')} · {year}
               </Typography>
               <Typography
                 variant="caption"
-                sx={{ color: 'rgba(0,0,0,0.65)' }}
+                color="text.secondary"
               >
-                SMS: {formatInt(currentMonthSentSms)} · MMS: {formatInt(currentMonthSentMms)}
+                {storeId ? t('Por tienda') : t('Todas las tiendas')}
               </Typography>
-            </Stack>
-          )}
-        </Box>
-      </Stack>
+            </Box>
+            <Chip
+              size="small"
+              label={storeId ? t('Por tienda') : t('Todas las tiendas')}
+              sx={{
+                fontWeight: 700,
+                borderRadius: 2,
+                color: SWEEP_PINK,
+                bgcolor: alpha(SWEEP_PINK, 0.1),
+              }}
+            />
+          </Stack>
 
-      {/* KPIs por año */}
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={1.5}
+            alignItems={{ xs: 'stretch', sm: 'center' }}
+          >
+            <TextField
+              select
+              size="small"
+              label={t('Año')}
+              value={year}
+              onChange={(e) => onYearChange(Number(e.target.value))}
+              sx={{ minWidth: 120 }}
+            >
+              {years.map((y) => (
+                <MenuItem
+                  key={y}
+                  value={y}
+                >
+                  {y}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <Stack
+              direction="row"
+              spacing={1}
+            >
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<GridViewRoundedIcon />}
+                onClick={exportExcel}
+                disabled={isLoading || audienceQ.isError || messagesQ.isError}
+                sx={{
+                  borderRadius: 2,
+                  borderColor: alpha(SWEEP_PINK, 0.35),
+                  color: SWEEP_PINK,
+                  '&:hover': {
+                    borderColor: SWEEP_PINK,
+                    bgcolor: alpha(SWEEP_PINK, 0.06),
+                  },
+                }}
+              >
+                {t('Excel')}
+              </Button>
+
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<DescriptionOutlinedIcon />}
+                onClick={exportPdf}
+                disabled={isLoading || audienceQ.isError || messagesQ.isError}
+                sx={{
+                  borderRadius: 2,
+                  bgcolor: SWEEP_PINK,
+                  color: '#fff',
+                  '&:hover': { bgcolor: SWEEP_PINK },
+                }}
+              >
+                {t('PDF')}
+              </Button>
+            </Stack>
+          </Stack>
+        </Stack>
+      </Paper>
+
+      {/* Global KPI cards */}
       <Stack
         direction={{ xs: 'column', md: 'row' }}
         spacing={2}
-        sx={{
-          mb: 2,
-          p: 2,
-          borderRadius: 3,
-          border: '1px solid rgba(0,0,0,0.10)',
-          backgroundColor: '#fff',
-        }}
       >
-        <Box sx={{ flex: 1 }}>
-          <Typography
-            variant="overline"
-            sx={{ color: 'rgba(0,0,0,0.65)', letterSpacing: 1 }}
+        {/* Total Customers */}
+        <Paper
+          elevation={0}
+          sx={{ ...cardSx, flex: 1 }}
+        >
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1}
+            sx={cardHeaderSx}
           >
-            {t('Crecimiento de Audiencia')}
-          </Typography>
-
-          {audienceQ.isLoading ? (
-            <Skeleton
-              height={44}
-              width={240}
-            />
-          ) : (
-            <Stack
-              direction="row"
-              spacing={2}
-              alignItems="baseline"
-              flexWrap="wrap"
+            <Avatar
+              sx={{
+                width: 30,
+                height: 30,
+                bgcolor: alpha(theme.palette.primary.main, 0.12),
+                color: theme.palette.primary.main,
+                borderRadius: 1,
+              }}
             >
+              <PeopleAltRoundedIcon sx={{ fontSize: 16 }} />
+            </Avatar>
+            <Typography
+              variant="subtitle2"
+              fontWeight={700}
+            >
+              {t('Total Customers')}
+            </Typography>
+          </Stack>
+          <Box sx={{ p: 2.5 }}>
+            {loadingCustomers ? (
+              <Skeleton
+                height={44}
+                width={140}
+              />
+            ) : (
               <Typography
-                variant="h3"
-                sx={{ fontWeight: 950, color: '#111' }}
+                variant="h4"
+                sx={{ fontWeight: 900 }}
               >
-                {sumAudience.toLocaleString()}
+                {errorCustomers ? '—' : formatInt(customersCount)}
               </Typography>
-              <Typography
-                variant="body2"
-                sx={{ color: 'rgba(0,0,0,0.65)' }}
-              >
-                {t('Nuevos')}: {pctNew.toFixed(1)}% · {t('Existentes')}: {pctExisting.toFixed(1)}%
-              </Typography>
-            </Stack>
-          )}
-        </Box>
+            )}
+          </Box>
+        </Paper>
 
-        <Box sx={{ flex: 1 }}>
-          <Typography
-            variant="overline"
-            sx={{ color: 'rgba(0,0,0,0.65)', letterSpacing: 1 }}
+        {/* Sweepstakes Participants */}
+        <Paper
+          elevation={0}
+          sx={{ ...cardSx, flex: 1 }}
+        >
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1}
+            sx={cardHeaderSx}
           >
-            {t('Mensajes enviados en el año')}
-          </Typography>
-
-          {messagesQ.isLoading ? (
-            <Skeleton
-              height={44}
-              width={240}
-            />
-          ) : (
-            <Stack
-              direction="row"
-              spacing={2}
-              alignItems="baseline"
-              flexWrap="wrap"
+            <Avatar
+              sx={{
+                width: 30,
+                height: 30,
+                bgcolor: alpha(SWEEP_PINK, 0.12),
+                color: SWEEP_PINK,
+                borderRadius: 1,
+              }}
             >
+              <EmojiEventsRoundedIcon sx={{ fontSize: 16 }} />
+            </Avatar>
+            <Typography
+              variant="subtitle2"
+              fontWeight={700}
+            >
+              {t('Sweepstakes participants')}
+            </Typography>
+          </Stack>
+          <Box sx={{ p: 2.5 }}>
+            {loadingSweepstakes ? (
+              <Skeleton
+                height={44}
+                width={140}
+              />
+            ) : (
               <Typography
-                variant="h3"
-                sx={{ fontWeight: 950, color: '#111' }}
+                variant="h4"
+                sx={{ fontWeight: 900 }}
               >
-                {totalYtdAudience.toLocaleString()}
+                {errorSweepstakes ? '—' : formatInt(sweepstakesCount)}
               </Typography>
-              <Typography
-                variant="body2"
-                sx={{ color: 'rgba(0,0,0,0.65)' }}
+            )}
+          </Box>
+        </Paper>
+
+        {/* Mensajes del mes actual */}
+        <Paper
+          elevation={0}
+          sx={{ ...cardSx, flex: 1 }}
+        >
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1}
+            sx={cardHeaderSx}
+          >
+            <Avatar
+              sx={{
+                width: 30,
+                height: 30,
+                bgcolor: alpha(theme.palette.success.main, 0.12),
+                color: theme.palette.success.main,
+                borderRadius: 1,
+              }}
+            >
+              <MessageRoundedIcon sx={{ fontSize: 16 }} />
+            </Avatar>
+            <Typography
+              variant="subtitle2"
+              fontWeight={700}
+            >
+              {t('Mensajes del mes actual')}
+            </Typography>
+          </Stack>
+          <Box sx={{ p: 2.5 }}>
+            {isLoadingCurrentMonth ? (
+              <Skeleton
+                height={44}
+                width={160}
+              />
+            ) : (
+              <Stack
+                spacing={0.5}
+                alignItems="flex-start"
               >
-                SMS: {totalYtdAudienceSms.toLocaleString()} · MMS:{' '}
-                {totalYtdAudienceMms.toLocaleString()}
-              </Typography>
-            </Stack>
-          )}
-        </Box>
+                <Typography
+                  variant="h4"
+                  sx={{ fontWeight: 900 }}
+                >
+                  {formatInt(currentMonthSentTotal)}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                >
+                  SMS: {formatInt(currentMonthSentSms)} · MMS: {formatInt(currentMonthSentMms)}
+                </Typography>
+              </Stack>
+            )}
+          </Box>
+        </Paper>
       </Stack>
 
-      {/* Charts */}
-      <Stack spacing={2}>
-        <Box
-          sx={{
-            p: 2,
-            borderRadius: 3,
-            border: '1px solid rgba(0,0,0,0.10)',
-            backgroundColor: '#fff',
-          }}
+      {/* Annual KPI summary */}
+      <Paper
+        elevation={0}
+        sx={cardSx}
+      >
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1}
+          sx={cardHeaderSx}
         >
+          <Avatar
+            sx={{
+              width: 30,
+              height: 30,
+              bgcolor: alpha(theme.palette.info.main, 0.12),
+              color: theme.palette.info.main,
+              borderRadius: 1,
+            }}
+          >
+            <GroupsRoundedIcon sx={{ fontSize: 16 }} />
+          </Avatar>
           <Typography
-            variant="h5"
-            sx={{ fontWeight: 900, color: '#111', mb: 1 }}
+            variant="subtitle2"
+            fontWeight={700}
+          >
+            {t('Resumen del año')} · {year}
+          </Typography>
+        </Stack>
+        <Box sx={{ p: 2.5 }}>
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            spacing={3}
+          >
+            <Box sx={{ flex: 1 }}>
+              <Typography
+                variant="overline"
+                color="text.secondary"
+                sx={{ letterSpacing: 1 }}
+              >
+                {t('Crecimiento de Audiencia')}
+              </Typography>
+              {audienceQ.isLoading ? (
+                <Skeleton
+                  height={44}
+                  width={240}
+                />
+              ) : (
+                <Stack
+                  direction="row"
+                  spacing={2}
+                  alignItems="baseline"
+                  flexWrap="wrap"
+                >
+                  <Typography
+                    variant="h3"
+                    sx={{ fontWeight: 950 }}
+                  >
+                    {sumAudience.toLocaleString()}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                  >
+                    {t('Nuevos')}: {pctNew.toFixed(1)}% · {t('Existentes')}:{' '}
+                    {pctExisting.toFixed(1)}%
+                  </Typography>
+                </Stack>
+              )}
+            </Box>
+
+            <Divider
+              orientation="vertical"
+              flexItem
+              sx={{ display: { xs: 'none', md: 'block' } }}
+            />
+
+            <Box sx={{ flex: 1 }}>
+              <Typography
+                variant="overline"
+                color="text.secondary"
+                sx={{ letterSpacing: 1 }}
+              >
+                {t('Mensajes enviados en el año')}
+              </Typography>
+              {messagesQ.isLoading ? (
+                <Skeleton
+                  height={44}
+                  width={240}
+                />
+              ) : (
+                <Stack
+                  direction="row"
+                  spacing={2}
+                  alignItems="baseline"
+                  flexWrap="wrap"
+                >
+                  <Typography
+                    variant="h3"
+                    sx={{ fontWeight: 950 }}
+                  >
+                    {totalYtdAudience.toLocaleString()}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                  >
+                    SMS: {totalYtdAudienceSms.toLocaleString()} · MMS:{' '}
+                    {totalYtdAudienceMms.toLocaleString()}
+                  </Typography>
+                </Stack>
+              )}
+            </Box>
+          </Stack>
+        </Box>
+      </Paper>
+
+      {/* Messages chart */}
+      <Paper
+        elevation={0}
+        sx={cardSx}
+      >
+        <Box sx={cardHeaderSx}>
+          <Typography
+            variant="subtitle2"
+            fontWeight={700}
           >
             {t('Mensajes enviados en el año')} · {year}
           </Typography>
-
+          <Typography
+            variant="caption"
+            color="text.secondary"
+          >
+            Audience SMS · Audience MMS · Audience total
+          </Typography>
+        </Box>
+        <Box sx={{ p: 2.5 }}>
           {messagesQ.isLoading ? (
             <Skeleton
               variant="rectangular"
               height={360}
             />
+          ) : mLabels.length === 0 ? (
+            <Box sx={{ height: 360, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Typography color="text.secondary" variant="body2">No hay datos de mensajes para {year}</Typography>
+            </Box>
           ) : (
             <BarChart
               height={360}
@@ -616,27 +771,19 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
                 {
                   scaleType: 'band',
                   data: mLabels,
-                  tickLabelStyle: { fontSize: 12, fontWeight: 700, fill: 'rgba(0,0,0,0.75)' },
+                  tickLabelStyle: {
+                    fontSize: 12,
+                    fontWeight: 700,
+                    fill: theme.palette.text.secondary as string,
+                  },
                 },
               ]}
               series={[
-                { label: 'Audiencia SMS', data: mSmsAudience, color: theme.palette.grey[400] },
-                { label: 'Audiencia MMS', data: mMmsAudience, color: theme.palette.grey[700] },
+                { label: 'Audiencia SMS', data: mSmsAudience, color: isDark ? theme.palette.grey[300] : theme.palette.grey[500] },
+                { label: 'Audiencia MMS', data: mMmsAudience, color: isDark ? theme.palette.grey[500] : theme.palette.grey[700] },
                 { label: 'Audiencia total', data: mTotalAudience, color: SWEEP_PINK },
               ]}
-              sx={{
-                '.MuiBarElement-root': {
-                  fillOpacity: 1,
-                  rx: theme.shape.borderRadius / 1.35,
-                  ry: theme.shape.borderRadius / 1.35,
-                },
-                '.MuiChartsAxis-left': { display: { xs: 'none', sm: 'block' } },
-                '.MuiChartsAxis-tickLabel': { fill: 'rgba(0,0,0,0.7)', fontWeight: 600 },
-                '.MuiChartsAxis-line': { stroke: 'rgba(0,0,0,0.15)' },
-                '.MuiChartsAxis-tick': { stroke: 'rgba(0,0,0,0.15)' },
-                '.MuiChartsLegend-label': { fill: 'rgba(0,0,0,0.7)', fontWeight: 700 },
-                '.MuiChartsTooltip-table tr th': { fontWeight: 800 },
-              }}
+              sx={chartAxisSx}
             />
           )}
 
@@ -647,39 +794,49 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
               mt: 1.5,
               p: 1.5,
               borderRadius: 2,
-              backgroundColor: alpha(SWEEP_PINK, 0.05),
-              border: `1px solid ${alpha(SWEEP_PINK, 0.15)}`,
+              bgcolor: isDark ? alpha(SWEEP_PINK, 0.08) : alpha(SWEEP_PINK, 0.05),
+              border: `1px solid ${alpha(SWEEP_PINK, 0.18)}`,
             }}
           >
             <Typography
               variant="body2"
-              sx={{ fontWeight: 800, color: 'rgba(0,0,0,0.75)' }}
+              sx={{ fontWeight: 800, color: SWEEP_PINK }}
             >
               {`Total YTD Audience: ${totalYtdAudience.toLocaleString()} · SMS: ${totalYtdAudienceSms.toLocaleString()} · MMS: ${totalYtdAudienceMms.toLocaleString()}`}
             </Typography>
           </Box>
         </Box>
-        {/* Audience chart */}
-        <Box
-          sx={{
-            p: 2,
-            borderRadius: 3,
-            border: '1px solid rgba(0,0,0,0.10)',
-            backgroundColor: '#fff',
-          }}
-        >
+      </Paper>
+
+      {/* Audience growth chart */}
+      <Paper
+        elevation={0}
+        sx={cardSx}
+      >
+        <Box sx={cardHeaderSx}>
           <Typography
-            variant="h5"
-            sx={{ fontWeight: 900, color: '#111', mb: 1 }}
+            variant="subtitle2"
+            fontWeight={700}
           >
             {t('Crecimiento de Audiencia')} · {year}
           </Typography>
-
+          <Typography
+            variant="caption"
+            color="text.secondary"
+          >
+            {t('Nuevos')} · {t('Existentes')}
+          </Typography>
+        </Box>
+        <Box sx={{ p: 2.5 }}>
           {audienceQ.isLoading ? (
             <Skeleton
               variant="rectangular"
               height={320}
             />
+          ) : aLabels.length === 0 ? (
+            <Box sx={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Typography color="text.secondary" variant="body2">No hay datos de audiencia para {year}</Typography>
+            </Box>
           ) : (
             <BarChart
               height={320}
@@ -688,31 +845,21 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
                 {
                   scaleType: 'band',
                   data: aLabels,
-                  tickLabelStyle: { fill: 'rgba(0,0,0,0.7)', fontWeight: 600 },
+                  tickLabelStyle: {
+                    fill: theme.palette.text.secondary as string,
+                    fontWeight: 600,
+                  },
                 },
               ]}
               series={[
                 { label: t('Nuevos'), data: aNew, color: SWEEP_PINK },
                 { label: t('Existentes'), data: aExisting, color: theme.palette.grey[500] },
               ]}
-              sx={{
-                '.MuiBarElement-root': {
-                  fillOpacity: 1,
-                  rx: theme.shape.borderRadius / 1.35,
-                  ry: theme.shape.borderRadius / 1.35,
-                },
-                '.MuiChartsAxis-left': { display: { xs: 'none', sm: 'block' } },
-                '.MuiChartsAxis-tickLabel': { fill: 'rgba(0,0,0,0.7)', fontWeight: 600 },
-                '.MuiChartsAxis-line': { stroke: 'rgba(0,0,0,0.15)' },
-                '.MuiChartsAxis-tick': { stroke: 'rgba(0,0,0,0.15)' },
-                '.MuiChartsLegend-label': { fill: 'rgba(0,0,0,0.7)', fontWeight: 700 },
-              }}
+              sx={chartAxisSx}
             />
           )}
         </Box>
-
-        {/* Audience via messages chart */}
-      </Stack>
+      </Paper>
     </Box>
   );
 }

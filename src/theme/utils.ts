@@ -22,7 +22,7 @@ export const getPrimary = (preset?: ColorPreset): PaletteColor => {
 
 // Extended Sidebar Layout
 
-export const SIDEBAR_WIDTH = 288;
+export const SIDEBAR_WIDTH = 260;
 export const SIDEBAR_WIDTH_COLLAPSED = 98;
 export const HEADER_HEIGHT = 54;
 

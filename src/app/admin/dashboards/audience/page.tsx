@@ -3,8 +3,7 @@
 
 import { AudienceCharts } from '@/components/audience/AudienceCharts';
 import { AudienceKpis } from '@/components/audience/AudienceKpis';
-import { AudienceSummaryExecutive } from '@/components/audience/AudienceSummaryExecutive'; // ✅ NEW
-import { GlassCard, MetricPill } from '@/components/audience/ui';
+import { AudienceSummaryExecutive } from '@/components/audience/AudienceSummaryExecutive';
 import {
   useAudienceAlerts,
   useAudienceSeries,
@@ -22,15 +21,19 @@ import type {
 } from '@/services/campaing.service';
 import AutoGraphRoundedIcon from '@mui/icons-material/AutoGraphRounded';
 import BubbleChartRoundedIcon from '@mui/icons-material/BubbleChartRounded';
+import FilterAltRoundedIcon from '@mui/icons-material/FilterAltRounded';
 import InsightsRoundedIcon from '@mui/icons-material/InsightsRounded';
 import {
   alpha,
+  Avatar,
   Box,
   Chip,
+  Divider,
   FormControl,
   InputLabel,
   LinearProgress,
   MenuItem,
+  Paper,
   Select,
   Stack,
   TextField,
@@ -56,6 +59,9 @@ function defaultCustomRange() {
 export default function AudienceInsightsPage() {
   const theme = useTheme();
   const mdDown = useMediaQuery(theme.breakpoints.down('md'));
+  const isDark = theme.palette.mode === 'dark';
+  const accent = theme.palette.primary.main;
+  const { common } = theme.palette;
 
   const [period, setPeriod] = useState<AudiencePeriod>('30d');
   const [year, setYear] = useState<number>(new Date().getFullYear());
@@ -137,100 +143,141 @@ export default function AudienceInsightsPage() {
   const nonSenders = summary.data?.nonSenders;
 
   return (
-    <Box
-      sx={(t) => ({
-        p: { xs: 2, md: 3 },
-        borderRadius: 4,
-        background: `radial-gradient(1200px circle at 20% 0%, ${alpha(
-          t.palette.primary.main,
-          0.12
-        )}, transparent 55%),
-        radial-gradient(900px circle at 90% 10%, ${alpha(
-          t.palette.info.main,
-          0.1
-        )}, transparent 55%)`,
-      })}
-    >
+    <Box sx={{ p: { xs: 2, md: 3 } }}>
       {/* Header */}
       <Stack
-        spacing={1.2}
+        direction="row"
+        alignItems="flex-start"
+        justifyContent="space-between"
+        gap={2}
         sx={{ mb: 2 }}
       >
         <Stack
           direction="row"
           alignItems="center"
-          justifyContent="space-between"
-          gap={2}
+          spacing={1.5}
         >
-          <Stack spacing={0.25}>
+          <Avatar
+            sx={{
+              width: 40,
+              height: 40,
+              bgcolor: alpha(accent, 0.12),
+              color: accent,
+              borderRadius: 2,
+            }}
+          >
+            <InsightsRoundedIcon fontSize="small" />
+          </Avatar>
+          <Box>
             <Typography
-              variant={mdDown ? 'h5' : 'h4'}
-              sx={{ fontWeight: 980, letterSpacing: -0.4 }}
+              variant="h5"
+              sx={{ fontWeight: 700, letterSpacing: -0.3, lineHeight: 1.2 }}
             >
               Audience Intelligence
             </Typography>
             <Typography
               variant="body2"
-              sx={{ color: 'text.secondary' }}
+              sx={{ color: 'text.secondary', mt: 0.25 }}
             >
               Executive-ready split of growth: <b>senders</b> vs <b>non-senders</b>, churn, trends,
               and scenario planning.
             </Typography>
-          </Stack>
-
-          <Stack
-            direction="row"
-            spacing={1}
-            sx={{ display: { xs: 'none', md: 'flex' } }}
-          >
-            <Chip
-              icon={<InsightsRoundedIcon />}
-              label={period === 'custom' ? `${customStart} → ${customEnd}` : period.toUpperCase()}
-              sx={(t) => ({
-                fontWeight: 950,
-                bgcolor: alpha(t.palette.primary.main, 0.1),
-                color: t.palette.primary.dark,
-                borderRadius: 999,
-              })}
-            />
-            <Chip
-              icon={<BubbleChartRoundedIcon />}
-              label="Leadership view"
-              sx={(t) => ({
-                fontWeight: 900,
-                bgcolor: alpha(t.palette.success.main, 0.12),
-                color: t.palette.success.dark,
-                borderRadius: 999,
-              })}
-            />
-          </Stack>
+          </Box>
         </Stack>
 
-        {isLoadingAny ? <LinearProgress /> : null}
+        <Stack
+          direction="row"
+          spacing={1}
+          alignItems="center"
+          sx={{ display: { xs: 'none', md: 'flex' }, flexShrink: 0 }}
+        >
+          <Chip
+            icon={<InsightsRoundedIcon />}
+            label={period === 'custom' ? `${customStart} → ${customEnd}` : period.toUpperCase()}
+            size="small"
+            sx={{
+              fontWeight: 700,
+              bgcolor: alpha(accent, 0.1),
+              color: theme.palette.primary.dark,
+              borderRadius: 999,
+            }}
+          />
+          <Chip
+            icon={<BubbleChartRoundedIcon />}
+            label="Leadership view"
+            size="small"
+            sx={{
+              fontWeight: 700,
+              bgcolor: alpha(theme.palette.success.main, 0.12),
+              color: theme.palette.success.dark,
+              borderRadius: 999,
+            }}
+          />
+        </Stack>
       </Stack>
 
-      {/* Filters */}
-      <GlassCard
-        title="Filters"
-        right={
+      {/* Loading bar */}
+      {isLoadingAny && <LinearProgress sx={{ mb: 2, borderRadius: 1 }} />}
+
+      {/* Filter card */}
+      <Paper
+        elevation={0}
+        sx={{
+          border: `1px solid ${theme.palette.divider}`,
+          borderRadius: 3,
+          overflow: 'hidden',
+        }}
+      >
+        {/* Card header */}
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{
+            px: 2.5,
+            py: 2,
+            borderBottom: `1px solid ${theme.palette.divider}`,
+            bgcolor: isDark ? alpha(common.black, 0.15) : alpha(common.black, 0.015),
+          }}
+        >
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1}
+          >
+            <Avatar
+              sx={{
+                width: 32,
+                height: 32,
+                bgcolor: alpha(accent, 0.12),
+                color: accent,
+                borderRadius: 1,
+              }}
+            >
+              <FilterAltRoundedIcon sx={{ fontSize: 17 }} />
+            </Avatar>
+            <Typography
+              variant="subtitle2"
+              sx={{ fontWeight: 700 }}
+            >
+              Filters
+            </Typography>
+          </Stack>
+
           <Chip
             size="small"
             icon={<AutoGraphRoundedIcon />}
             label="Realtime metrics"
-            sx={(t) => ({
-              fontWeight: 900,
-              bgcolor: alpha(t.palette.info.main, 0.12),
-              color: t.palette.info.dark,
-            })}
+            sx={{
+              fontWeight: 700,
+              bgcolor: alpha(theme.palette.info.main, 0.12),
+              color: theme.palette.info.dark,
+            }}
           />
-        }
-      >
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          spacing={1.5}
-          alignItems={{ xs: 'stretch', md: 'center' }}
-          justifyContent="space-between"
-        >
+        </Stack>
+
+        {/* Card body */}
+        <Box sx={{ p: 2.5 }}>
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
             spacing={1.5}
@@ -303,28 +350,11 @@ export default function AudienceInsightsPage() {
               </Select>
             </FormControl>
           </Stack>
-
-          <Stack
-            direction="row"
-            spacing={1}
-            alignItems="center"
-          >
-            <MetricPill
-              label="Deck-ready"
-              tone="success"
-            />
-            <MetricPill
-              label="KPI-first"
-              tone="primary"
-            />
-          </Stack>
-        </Stack>
-      </GlassCard>
-
-      {/* ✅ NEW: Executive Summary (usa el response que pegaste) */}
+        </Box>
+      </Paper>
 
       {/* KPIs */}
-      <Box sx={{ mt: 2.25 }}>
+      <Box sx={{ mt: 3 }}>
         <AudienceKpis
           senders={senders}
           nonSenders={nonSenders}
@@ -332,7 +362,7 @@ export default function AudienceInsightsPage() {
       </Box>
 
       {/* Charts */}
-      <Box sx={{ mt: 2.25 }}>
+      <Box sx={{ mt: 3 }}>
         <AudienceCharts
           summary={summary.data}
           weekly={weekly.data}
@@ -340,7 +370,9 @@ export default function AudienceInsightsPage() {
           weeklyError={weekly.isError}
         />
       </Box>
-      <Box sx={{ mt: 2.25 }}>
+
+      {/* Executive Summary */}
+      <Box sx={{ mt: 3 }}>
         <AudienceSummaryExecutive
           data={summary.data}
           loading={summary.isLoading}
@@ -348,6 +380,7 @@ export default function AudienceInsightsPage() {
         />
       </Box>
 
+      {/* Error display */}
       {(summary.isError || weekly.isError || series.isError) && (
         <Box sx={{ mt: 2 }}>
           <Typography

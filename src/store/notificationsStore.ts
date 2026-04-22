@@ -25,7 +25,7 @@ interface NotificationsState {
   notifications: AppNotification[];
   unreadCount: number;
   connected: boolean;
-  connect: (room: string) => void;
+  connect: (room: string, userId?: string) => void;
   disconnect: () => void;
   markAsRead: (id: string, room: string) => void;
   markAllAsRead: (room: string) => void;
@@ -36,8 +36,8 @@ let _socket: Socket | null = null;
 let _currentRoom: string | null = null;
 
 function getSocketUrl(): string {
-  // En dev apunta al gateway local; en prod cambia NEXT_PUBLIC_API_URL
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3010';
+  // Connect directly to notification-service (WebSocket can't go through HTTP proxy)
+  return process.env.NEXT_PUBLIC_NOTIFICATION_URL || 'http://localhost:4008';
 }
 
 // ─── Store

@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 
 import { FC } from 'react';
-import { NotificationsHeader } from 'src/components/application-ui/drawers/notifications/notifications-header';
+import { NotificationsDropdown } from 'src/components/application-ui/dropdowns/notifications/notifications-dropdown';
 import { WidgetsHeader } from 'src/components/application-ui/drawers/widgets/widgets-header';
 import { ComposedDropdown } from 'src/components/application-ui/dropdowns/composed/composed-dropdown';
 import LanguageDropdown from 'src/components/application-ui/dropdowns/language/language-dropdown';
@@ -141,30 +141,7 @@ export const Header: FC<HeaderProps> = (props) => {
                 >
                   <ChatBubbleOutlineRoundedIcon />
                 </IconButton>
-                <IconButton
-                  sx={{
-                    '&:hover': {
-                      background: theme.palette.neutral[900],
-                      color: theme.palette.neutral[100],
-                    },
-                  }}
-                  color="inherit"
-                  onClick={notifications.handleOpen}
-                >
-                  <PulseBadge
-                    sx={{
-                      '& .MuiBadge-badge': {
-                        boxShadow: 'none',
-                      },
-                    }}
-                    overlap="rectangular"
-                    anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-                    variant="dot"
-                    color="success"
-                  >
-                    <NotificationsNoneRoundedIcon />
-                  </PulseBadge>
-                </IconButton>
+                <NotificationsDropdown />
                 <LanguageDropdown
                   sx={{
                     '&:hover': {
@@ -235,11 +212,7 @@ export const Header: FC<HeaderProps> = (props) => {
         onOpen={widgets.handleOpen}
         open={widgets.open}
       />
-      <NotificationsHeader
-        onClose={notifications.handleClose}
-        onOpen={notifications.handleOpen}
-        open={notifications.open}
-      />
+
       <ProfileDropdown
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
         transformOrigin={{ vertical: 'top', horizontal: 'center' }}

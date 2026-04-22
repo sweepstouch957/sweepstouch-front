@@ -71,35 +71,6 @@ export const Sidebar: FC<SidebarProps> = (props) => {
               ? SIDEBAR_WIDTH
               : SIDEBAR_WIDTH_COLLAPSED
             : SIDEBAR_WIDTH,
-
-        '&::before': {
-          content: '""',
-          backgroundImage: `radial-gradient(circle, ${alpha(
-            theme.palette.primary.main,
-            0.06
-          )} 0%, transparent 65%)`,
-          width: '280px',
-
-          height: '250px',
-          position: 'absolute',
-          top: '-95px',
-          left: '-85px',
-          display: 'block',
-        },
-        '&::after': {
-          content: '""',
-          backgroundImage: `radial-gradient(circle, ${alpha(
-            theme.palette.primary.main,
-            0.08
-          )} 0%, transparent 65%)`,
-          width: '280px',
-
-          height: '250px',
-          position: 'absolute',
-          bottom: '-95px',
-          right: '-85px',
-          display: 'block',
-        },
       }}
     >
       <Box

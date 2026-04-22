@@ -7,9 +7,10 @@ import Results from './results';
 
 interface UsersTableListingProps {
   onEditUser?: (user: any) => void;
+  onAssignDepartment?: (user: any) => void;
 }
 
-function Component({ onEditUser }: UsersTableListingProps) {
+function Component({ onEditUser, onAssignDepartment }: UsersTableListingProps) {
   const {
     data: users,
     isLoading,
@@ -45,7 +46,7 @@ function Component({ onEditUser }: UsersTableListingProps) {
     );
   }
 
-  return <Results users={users || []} onEditUser={onEditUser} />;
+  return <Results users={users || []} onEditUser={onEditUser} onAssignDepartment={onAssignDepartment} />;
 }
 
 export default Component;

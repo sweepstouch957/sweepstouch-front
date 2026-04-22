@@ -26,6 +26,10 @@ import { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Snackbar } from '@mui/material';
 import CampaignResume from './campaing-resume';
+import ProviderImageConstraints, {
+  isValidImageSizeForProvider,
+  getProviderImageErrorMessage,
+} from './provider-image-constraints';
 
 interface CampaignFormInputs {
   title: string;
@@ -350,18 +354,16 @@ export default function CreateCampaignForm({
                     item
                     xs={12}
                   >
-                    <Alert severity="warning" sx={{ mb: 2 }}>
-                      El tamaño máximo permitido para la imagen de campaña es de 500 KB para asegurar la entrega del MMS.
-                    </Alert>
+                    <ProviderImageConstraints provider={provider} />
                     <AvatarUploadLogo
                       label="Imagen de campaña"
                       initialUrl={initialValues?.image}
                       onSelect={(file) => {
                         if (file) {
-                          if (file.size > 500 * 1024) {
+                          if (!isValidImageSizeForProvider(file.size, provider)) {
                             setSnackState({
                               open: true,
-                              message: 'La imagen no puede superar los 500 KB. Por favor usa una más ligera.',
+                              message: getProviderImageErrorMessage(provider),
                               severity: 'error'
                             });
                             return;

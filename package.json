@@ -26,6 +26,7 @@
     "@fullcalendar/react": "6.1.19",
     "@fullcalendar/timegrid": "6.1.19",
     "@fullcalendar/timeline": "6.1.19",
+    "@hello-pangea/dnd": "^18.0.1",
     "@heroicons/react": "2.1.1",
     "@hookform/resolvers": "3.9.0",
     "@lexical/html": "^0.39.0",

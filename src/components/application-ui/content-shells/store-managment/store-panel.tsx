@@ -47,6 +47,7 @@ import QrDuetMUI from './panel/qr/QrContainer';
 import { StoreSidebar } from './store-sidebar';
 import { StoreEquipmentPanel } from './panel/equipment/StoreEquipmentPanel';
 import FlashOnRoundedIcon from '@mui/icons-material/FlashOnRounded';
+import MailOutlineRoundedIcon from '@mui/icons-material/MailOutlineRounded';
 import WelcomeCouponsPanel from './panel/welcome-coupons/WelcomeCouponsPanel';
 import StoreAudienceOverview from './panel/sweepstakes/StoreAudienceOverview';
 import StoreSweepstakeStats from './panel/sweepstakes/StoreSweepstakeStats';
@@ -214,6 +215,22 @@ const StoreManagementPage = () => {
               </Button>
 
               <Button
+                variant="outlined"
+                size="small"
+                startIcon={<MailOutlineRoundedIcon fontSize="small" />}
+                onClick={() => router.push(`/admin/management/mms?storeId=${storeId}`)}
+                disabled={!store?.active}
+                sx={{
+                  px: 2,
+                  borderColor: '#DC1F26',
+                  color: '#DC1F26',
+                  '&:hover': { borderColor: '#b01820', background: 'rgba(220,31,38,0.04)' },
+                }}
+              >
+                MMS
+              </Button>
+
+              <Button
                 variant="contained"
                 size="small"
                 startIcon={<AddCircleOutlineRoundedIcon fontSize="small" />}
@@ -269,7 +286,13 @@ const StoreManagementPage = () => {
           >
             <CreateCampaignContainer
               provider={store.provider}
-              phoneNumber={store.bandwidthPhoneNumber || ''}
+              phoneNumber={
+                store.provider === 'bandwidth'
+                  ? store.bandwidthPhoneNumber || ''
+                  : store.provider === 'infobip'
+                  ? store.infobipSenderId || store.phoneNumber || 'Número global del sistema'
+                  : store.phoneNumber || ''
+              }
               totalAudience={store.customerCount || 0}
               storeId={storeId}
               onCreate={handleBack}

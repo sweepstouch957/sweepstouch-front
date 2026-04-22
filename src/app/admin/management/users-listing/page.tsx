@@ -2,6 +2,7 @@
 
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import PersonAddRounded from '@mui/icons-material/PersonAddRounded';
+import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import { Box, Button, Container, Stack, alpha, useTheme } from '@mui/material';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +12,8 @@ import PageHeading from 'src/components/base/page-heading';
 import { useCustomization } from 'src/hooks/use-customization';
 import CreateUserDialog from 'src/components/merchants/CreateUserDialog';
 import EditUserDialog from 'src/components/merchants/EditUserDialog';
+import DepartmentManager from 'src/components/departments/DepartmentManager';
+import AssignDepartmentDialog from 'src/components/departments/AssignDepartmentDialog';
 
 function Page(): React.JSX.Element {
   const customization = useCustomization();
@@ -19,10 +22,12 @@ function Page(): React.JSX.Element {
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [editUser, setEditUser] = useState<any | null>(null);
+  const [deptManagerOpen, setDeptManagerOpen] = useState(false);
+  const [assignDeptUser, setAssignDeptUser] = useState<any | null>(null);
 
   const pageMeta = {
     title: 'Users',
-    description: 'Manage user accounts and permissions',
+    description: 'Manage user accounts, roles and department assignments',
   };
 
   const triggerExport = (
@@ -58,11 +63,18 @@ function Page(): React.JSX.Element {
                 <Button
                   variant="outlined"
                   size="small"
-                  startIcon={<FileDownloadOutlinedIcon />}
-                  onClick={() => triggerExport('page')}
-                  sx={{ borderRadius: 2 }}
+                  startIcon={<GroupsRoundedIcon />}
+                  onClick={() => setDeptManagerOpen(true)}
+                  sx={{
+                    borderRadius: 2,
+                    borderColor: alpha(theme.palette.primary.main, 0.3),
+                    '&:hover': {
+                      borderColor: theme.palette.primary.main,
+                      bgcolor: alpha(theme.palette.primary.main, 0.04),
+                    },
+                  }}
                 >
-                  {t('Export page')}
+                  {t('Departments')}
                 </Button>
                 <Button
                   variant="outlined"
@@ -71,16 +83,7 @@ function Page(): React.JSX.Element {
                   onClick={() => triggerExport('all')}
                   sx={{ borderRadius: 2 }}
                 >
-                  {t('Export all')}
-                </Button>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<FileDownloadOutlinedIcon />}
-                  onClick={() => triggerExport('filtered')}
-                  sx={{ borderRadius: 2 }}
-                >
-                  {t('Export filtered')}
+                  {t('Export')}
                 </Button>
                 <Button
                   variant="contained"
@@ -107,7 +110,10 @@ function Page(): React.JSX.Element {
         }}
       >
         <Container maxWidth={customization.stretch ? false : 'xl'}>
-          <UsersTableListing onEditUser={(u: any) => setEditUser(u)} />
+          <UsersTableListing
+            onEditUser={(u: any) => setEditUser(u)}
+            onAssignDepartment={(u: any) => setAssignDeptUser(u)}
+          />
         </Container>
       </Box>
 
@@ -129,6 +135,22 @@ function Page(): React.JSX.Element {
           onUpdated={() => {
             queryClient.invalidateQueries({ queryKey: ['users'] });
             setEditUser(null);
+          }}
+        />
+      )}
+
+      <DepartmentManager
+        open={deptManagerOpen}
+        onClose={() => setDeptManagerOpen(false)}
+      />
+
+      {assignDeptUser && (
+        <AssignDepartmentDialog
+          open={!!assignDeptUser}
+          user={assignDeptUser}
+          onClose={() => setAssignDeptUser(null)}
+          onUpdated={() => {
+            queryClient.invalidateQueries({ queryKey: ['users'] });
           }}
         />
       )}

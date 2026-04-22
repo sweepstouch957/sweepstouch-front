@@ -6,6 +6,7 @@ import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
 import GridViewTwoToneIcon from '@mui/icons-material/GridViewTwoTone';
 import LaunchTwoToneIcon from '@mui/icons-material/LaunchTwoTone';
 import MoreVertTwoToneIcon from '@mui/icons-material/MoreVertTwoTone';
+import GroupWorkRoundedIcon from '@mui/icons-material/GroupWorkRounded';
 import SearchTwoToneIcon from '@mui/icons-material/SearchTwoTone';
 import TableRowsTwoToneIcon from '@mui/icons-material/TableRowsTwoTone';
 import {
@@ -50,6 +51,7 @@ import React, {
   useState
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useRouter } from 'next/navigation';
 import { TabsShadow } from 'src/components/base/styles/tabs';
 import BulkDelete from './bulk-delete';
 
@@ -112,6 +114,7 @@ const getInitials = (u: any) => {
 interface ResultsProps {
   users: User[];
   onEditUser?: (user: any) => void;
+  onAssignDepartment?: (user: any) => void;
 }
 
 interface Filters {
@@ -167,7 +170,10 @@ const ROLE_META: Record<
   promotor_owner: { text: 'Promotor Owner', color: 'warning' },
   cashier: { text: 'Cashier', color: 'secondary' },
   general_manager: { text: 'General Manager', color: 'success' },
-  merchant_manager: { text: 'Merchant Manager', color: 'info' }
+  merchant_manager: { text: 'Merchant Manager', color: 'info' },
+  design: { text: 'Design', color: 'primary' },
+  campaign_manager: { text: 'Campaign Manager', color: 'success' },
+  promotor_manager: { text: 'Promotor Manager', color: 'warning' },
 };
 
 // Tabs plural labels
@@ -187,7 +193,7 @@ const toTitle = (k: string) =>
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
 // ---------- Helpers de UI ----------
-const getUserRoleLabel = (userRole?: string): React.JSX.Element  => {
+const getUserRoleLabel = (userRole?: string): React.JSX.Element => {
   const roleKey = getRoleKey(userRole);
   const item =
     ROLE_META[roleKey] ?? {
@@ -271,11 +277,12 @@ const buildExportRows = (rows: User[]) =>
     };
   });
 
-const Results: FC<ResultsProps> = ({ users, onEditUser }) => {
+const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment }) => {
   const [selectedItems, setSelectedUsers] = useState<string[]>([]);
   const { t } = useTranslation();
   const theme = useTheme();
   const smUp = useMediaQuery(theme.breakpoints.up('sm'));
+  const router = useRouter();
 
   // Dynamic counts
   const roleCounts = useMemo(() => {
@@ -454,88 +461,88 @@ const Results: FC<ResultsProps> = ({ users, onEditUser }) => {
             backdropFilter: 'blur(8px)',
           }}
         >
-      {smUp ? (
-        <TabsShadow
-          sx={{
-            minHeight: 40,
-            '& .MuiTabs-indicator': { display: 'none' },
-            '& .MuiTabs-flexContainer': { gap: 0.5 },
-            '& .MuiTab-root': {
-              minHeight: 34,
-              py: 0.5,
-              px: 1.5,
-              borderRadius: 1.5,
-              textTransform: 'none',
-              fontWeight: 500,
-              fontSize: '0.85rem',
-              color: 'text.secondary',
-              transition: 'all 0.2s ease-in-out',
-              border: '1px solid transparent',
-              flexDirection: 'row',
-              gap: 1,
-              '&:hover': {
-                bgcolor: alpha(theme.palette.text.primary, 0.04),
-                color: 'text.primary',
-              },
-              '&.Mui-selected': {
-                bgcolor: theme.palette.background.paper,
-                color: 'primary.main',
-                boxShadow: `0 1px 4px ${alpha(theme.palette.common.black, 0.06)}`,
-                border: `1px solid ${theme.palette.divider}`,
-                fontWeight: 600,
-                '& .MuiChip-root': {
-                  bgcolor: alpha(theme.palette.primary.main, 0.08),
-                  color: 'primary.main',
-                  fontWeight: 700,
+          {smUp ? (
+            <TabsShadow
+              sx={{
+                minHeight: 40,
+                '& .MuiTabs-indicator': { display: 'none' },
+                '& .MuiTabs-flexContainer': { gap: 0.5 },
+                '& .MuiTab-root': {
+                  minHeight: 34,
+                  py: 0.5,
+                  px: 1.5,
+                  borderRadius: 1.5,
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  fontSize: '0.85rem',
+                  color: 'text.secondary',
+                  transition: 'all 0.2s ease-in-out',
+                  border: '1px solid transparent',
+                  flexDirection: 'row',
+                  gap: 1,
+                  '&:hover': {
+                    bgcolor: alpha(theme.palette.text.primary, 0.04),
+                    color: 'text.primary',
+                  },
+                  '&.Mui-selected': {
+                    bgcolor: theme.palette.background.paper,
+                    color: 'primary.main',
+                    boxShadow: `0 1px 4px ${alpha(theme.palette.common.black, 0.06)}`,
+                    border: `1px solid ${theme.palette.divider}`,
+                    fontWeight: 600,
+                    '& .MuiChip-root': {
+                      bgcolor: alpha(theme.palette.primary.main, 0.08),
+                      color: 'primary.main',
+                      fontWeight: 700,
+                    }
+                  },
+                  '& .MuiChip-root': {
+                    height: 20,
+                    fontSize: '0.7rem',
+                    minWidth: 24,
+                    bgcolor: alpha(theme.palette.action.disabledBackground, 0.3),
+                    color: 'text.secondary',
+                    transition: 'all 0.2s',
+                  }
                 }
-              },
-              '& .MuiChip-root': {
-                height: 20,
-                fontSize: '0.7rem',
-                minWidth: 24,
-                bgcolor: alpha(theme.palette.action.disabledBackground, 0.3),
-                color: 'text.secondary',
-                transition: 'all 0.2s',
-              }
-            }
-          }}
-          onChange={handleTabsChange}
-          scrollButtons="auto"
-          value={filters.role || 'all'}
-          variant="scrollable"
-        >
-          {tabs.map((tab) => (
-            <Tab
-              key={tab.value}
-              value={tab.value}
-              label={
-                <>
-                  {tab.label}
-                  <Chip
-                    label={tab.count}
-                    size="small"
-                  />
-                </>
-              }
-            />
-          ))}
-        </TabsShadow>
-      ) : (
-        <Box px={1.5} pb={1.5}>
-        <Select
-          value={(filters.role || 'all') as any}
-          onChange={handleSelectChange as any}
-          fullWidth
-          size="small"
-        >
-          {tabs.map((tab) => (
-            <MenuItem key={tab.value} value={tab.value}>
-              {tab.label} ({tab.count})
-            </MenuItem>
-          ))}
-        </Select>
-        </Box>
-      )}
+              }}
+              onChange={handleTabsChange}
+              scrollButtons="auto"
+              value={filters.role || 'all'}
+              variant="scrollable"
+            >
+              {tabs.map((tab) => (
+                <Tab
+                  key={tab.value}
+                  value={tab.value}
+                  label={
+                    <>
+                      {tab.label}
+                      <Chip
+                        label={tab.count}
+                        size="small"
+                      />
+                    </>
+                  }
+                />
+              ))}
+            </TabsShadow>
+          ) : (
+            <Box px={1.5} pb={1.5}>
+              <Select
+                value={(filters.role || 'all') as any}
+                onChange={handleSelectChange as any}
+                fullWidth
+                size="small"
+              >
+                {tabs.map((tab) => (
+                  <MenuItem key={tab.value} value={tab.value}>
+                    {tab.label} ({tab.count})
+                  </MenuItem>
+                ))}
+              </Select>
+            </Box>
+          )}
         </Box>
       </Card>
       <Box
@@ -663,6 +670,9 @@ const Results: FC<ResultsProps> = ({ users, onEditUser }) => {
                         <TableCell>
                           Role
                         </TableCell>
+                        <TableCell>
+                          Department
+                        </TableCell>
                         <TableCell align="center">
                           Actions
                         </TableCell>
@@ -681,7 +691,7 @@ const Results: FC<ResultsProps> = ({ users, onEditUser }) => {
                         return (
                           <TableRow
                             hover
-                            key={user.id}
+                            key={user._id}
                             selected={isUserSelected}
                           >
                             <TableCell padding="checkbox">
@@ -750,13 +760,31 @@ const Results: FC<ResultsProps> = ({ users, onEditUser }) => {
                             <TableCell>
                               {getUserRoleLabel(user.role)}
                             </TableCell>
+                            <TableCell>
+                              {user.department ? (
+                                <Chip
+                                  label={user.department.name || user.departmentId}
+                                  size="small"
+                                  sx={{
+                                    bgcolor: alpha(user.department.color || '#666', 0.12),
+                                    color: user.department.color || 'text.primary',
+                                    fontWeight: 600,
+                                    fontSize: 11,
+                                    borderRadius: 1,
+                                    border: `1px solid ${alpha(user.department.color || '#666', 0.2)}`,
+                                  }}
+                                />
+                              ) : (
+                                <Typography variant="caption" color="text.disabled">—</Typography>
+                              )}
+                            </TableCell>
                             <TableCell align="center">
                               <Typography noWrap>
                                 <Tooltip
-                                  title={'View'}
+                                  title={'View Profile'}
                                   arrow
                                 >
-                                  <IconButton color="secondary">
+                                  <IconButton color="secondary" onClick={() => router.push(`/admin/management/users-profile?id=${user._id || user.id}`)}>
                                     <LaunchTwoToneIcon fontSize="small" />
                                   </IconButton>
                                 </Tooltip>
@@ -805,8 +833,8 @@ const Results: FC<ResultsProps> = ({ users, onEditUser }) => {
           {toggleView === 'grid_view' && (
             <>
               <Grid container
-               spacing={{ xs: 2, sm: 3 }}
-               >
+                spacing={{ xs: 2, sm: 3 }}
+              >
                 {paginatedUsers.map((user: any) => {
                   const isUserSelected = selectedItems.includes(user.id);
                   const roleKey = getRoleKey(user.role);
@@ -816,7 +844,7 @@ const Results: FC<ResultsProps> = ({ users, onEditUser }) => {
                   const contactLine = user.email || user.phoneNumber || '';
 
                   return (
-                    <Grid xs={12} sm={6} lg={4} key={user.id}>
+                    <Grid xs={12} sm={6} lg={4} key={user._id}>
                       <CardWrapper className={isUserSelected ? 'Mui-selected' : ''} elevation={0}>
                         <Box sx={{ position: 'relative', zIndex: 2 }}>
 
@@ -829,14 +857,26 @@ const Results: FC<ResultsProps> = ({ users, onEditUser }) => {
                           >
                             {getUserRoleLabel(user.role)}
                             <Stack direction="row" spacing={0.5}>
-                              <Tooltip title="Edit user" arrow>
+                              <Tooltip title="Assign Department" arrow>
+                                <IconButton
+                                  size="small"
+                                  sx={{
+                                    color: 'text.secondary',
+                                    '&:hover': { color: '#9C27B0', bgcolor: alpha('#9C27B0', 0.08) },
+                                  }}
+                                  onClick={() => onAssignDepartment?.(user)}
+                                >
+                                  <GroupWorkRoundedIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="View Profile" arrow>
                                 <IconButton
                                   size="small"
                                   sx={{
                                     color: 'text.secondary',
                                     '&:hover': { color: accentColor, bgcolor: alpha(accentColor, 0.08) },
                                   }}
-                                  onClick={() => onEditUser?.(user)}
+                                  onClick={() => router.push(`/admin/management/users-profile?id=${user._id || user.id}`)}
                                 >
                                   <LaunchTwoToneIcon fontSize="small" />
                                 </IconButton>
@@ -880,6 +920,22 @@ const Results: FC<ResultsProps> = ({ users, onEditUser }) => {
                                   {contactLine || '—'}
                                 </Typography>
                               </Tooltip>
+                              {user.department && (
+                                <Chip
+                                  label={user.department.name}
+                                  size="small"
+                                  sx={{
+                                    mt: 0.5,
+                                    height: 20,
+                                    bgcolor: alpha(user.department.color || '#666', 0.12),
+                                    color: user.department.color || 'text.primary',
+                                    fontWeight: 600,
+                                    fontSize: 10,
+                                    borderRadius: 0.75,
+                                    border: `1px solid ${alpha(user.department.color || '#666', 0.2)}`,
+                                  }}
+                                />
+                              )}
                             </Box>
                           </Box>
 

@@ -25,6 +25,7 @@ export interface UploadCircularPayload {
   startDate?: string;
   endDate?: string;
   title?: string;
+  overridePassword?: string;
 }
 
 export interface ScheduleCircularPayload {
@@ -71,6 +72,7 @@ export class CircularService {
     if (payload.startDate) form.append('startDate', payload.startDate);
     if (payload.endDate) form.append('endDate', payload.endDate);
     if (payload.title) form.append('title', payload.title);
+    if (payload.overridePassword) form.append('overridePassword', payload.overridePassword);
 
     const res = await api.post('/circulars/upload', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -99,6 +101,11 @@ export class CircularService {
     const res = await api.patch(`/circulars/${circularId}/attach`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
+    return res.data;
+  }
+
+  async extractProducts(circularId: string): Promise<any> {
+    const res = await api.post(`/circulars/${circularId}/extract-products`);
     return res.data;
   }
 

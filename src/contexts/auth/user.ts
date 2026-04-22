@@ -18,4 +18,10 @@ export interface User {
   phone?: string;
   role: UserRole;
   phoneNumber?: string;
+  countryCode?: string;
+  profileImage?: string;
+  address?: string;
+  storeId?: string;
+  departmentId?: string;
+  department?: { _id: string; name: string; color: string; icon: string };
 }

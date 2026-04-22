@@ -10,6 +10,8 @@ import {
 } from '@mui/icons-material';
 import AppsRoundedIcon from '@mui/icons-material/AppsRounded';
 import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
+import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded';
+import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import { List } from '@mui/material';
 import { MenuItem } from 'src/router/menuItem';
 import { routes } from 'src/router/routes';
@@ -43,6 +45,8 @@ const dashboardsMenu = (t: (token: string) => string): MenuItem =>
 
 const applicationsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Applications'), <AppsRoundedIcon />, [
+    { title: t('Projects Board'), route: routes.admin.applications['projects-board'] },
+    { title: t('Tasks'), route: routes.admin.applications.tasks },
     { title: t('Store Maps'), route: routes.admin.applications.maps },
     { title: t('Calendar'), route: routes.admin.applications.calendar },
     //{ title: t('debug'), route: routes.admin.applications['debug-numbers'] },
@@ -66,6 +70,7 @@ const campaignsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Campaigns'), <Campaign />, [
     { title: t('Listing'), route: routes.admin.management.campaings.listing },
     { title: t('Send Test'), route: routes.admin.management.campaings['send-test'], roles: ['admin'] },
+    { title: t('MMS Generator'), route: routes.admin.management.campaings.mms, roles: ['admin'] },
   ]);
 
 const promotorsMenu = (t: (token: string) => string): MenuItem =>
@@ -137,9 +142,21 @@ export const useMenuItemsCollapsedShells = (
   t: (token: string) => string,
   role: UserRole
 ): MenuItem[] => {
-  const general: MenuItem[] = [dashboardsMenu(t)];
+  const aiSubItems: MenuItem[] = [
+    { title: t('Chat'), route: routes.admin.applications['ai-assistant'] },
+    ...(role === 'admin'
+      ? [{ title: t('Configuration'), route: routes.admin.applications['ai-config'] }]
+      : []),
+  ];
+  const aiMenu: MenuItem[] = [
+    buildMenu(t('AI Assistant'), <SmartToyRoundedIcon />, aiSubItems),
+  ];
 
-  const others: MenuItem[] = [applicationsMenu(t)];
+  const general: MenuItem[] = [
+    ...aiMenu,
+    dashboardsMenu(t),
+    applicationsMenu(t),
+  ];
 
   const roleMenus: Record<UserRole, MenuItem[]> = {
     admin: [
@@ -166,7 +183,6 @@ export const useMenuItemsCollapsedShells = (
   return [
     { title: t('General'), subMenu: general },
     ...(management.length > 0 ? [{ title: t('Management'), subMenu: management }] : []),
-    ...(management.length > 0 ? [{ title: t('Others'), subMenu: others }] : []),
   ];
 };
 

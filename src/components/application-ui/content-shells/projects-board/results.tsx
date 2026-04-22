@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 import type { ChangeEvent, FC } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import { Draggable, Droppable } from 'react-beautiful-dnd';
+import { Draggable, Droppable } from '@hello-pangea/dnd';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { ButtonIcon } from 'src/components/base/styles/button-icon';

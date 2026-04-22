@@ -25,6 +25,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
 import { format } from 'date-fns';
 import numeral from 'numeral';
 import React, { useState } from 'react';
@@ -32,6 +33,7 @@ import type { FC } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SkeletonTableRow } from '../../skeleton/table/table';
 import CampaignsFilters from './CampaignsFilters';
+import TestCampaignModal from '@/components/application-ui/dialogs/test-campaign-modal';
 
 interface ResultsProps {
   campaigns: Campaing[];
@@ -154,6 +156,9 @@ const Results: FC<ResultsProps> = ({
 
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [selectedToDelete, setSelectedToDelete] = useState<string | null>(null);
+
+  const [testModalOpen, setTestModalOpen] = useState(false);
+  const [selectedCampaignForTest, setSelectedCampaignForTest] = useState<Campaing | null>(null);
 
   const handleDelete = () => {
     if (!selectedToDelete) return;
@@ -398,6 +403,23 @@ const Results: FC<ResultsProps> = ({
 
                           {campaign.status !== 'completed' && (
                             <Tooltip
+                              title={t('Test Internal')}
+                              arrow
+                            >
+                              <IconButton
+                                onClick={() => {
+                                  setSelectedCampaignForTest(campaign);
+                                  setTestModalOpen(true);
+                                }}
+                                color="warning"
+                              >
+                                <BugReportRoundedIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+
+                          {campaign.status !== 'completed' && (
+                            <Tooltip
                               title={t('Edit Campaign')}
                               arrow
                             >
@@ -471,6 +493,15 @@ const Results: FC<ResultsProps> = ({
           </Button>
         </DialogActions>
       </Dialog>
+
+      <TestCampaignModal
+        open={testModalOpen}
+        onClose={() => setTestModalOpen(false)}
+        campaignId={selectedCampaignForTest?._id || null}
+        campaignContent={selectedCampaignForTest?.content || ''}
+        campaignImage={selectedCampaignForTest?.image}
+        storeName={selectedCampaignForTest?.store?.name}
+      />
     </Card>
   );
 };

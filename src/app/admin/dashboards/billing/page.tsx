@@ -4,25 +4,29 @@ import SmsCampaignsModal from '@/components/billing/SmsCampaignsModal';
 import { SmsLogsModal } from '@/components/SmsLogsModal';
 import { MembershipType } from '@/services/billing.service';
 import { useRangeBilling, useStoresRangeReport } from '@hooks/fetching/billing/useBilling';
+import AccountBalanceWalletRoundedIcon from '@mui/icons-material/AccountBalanceWalletRounded';
+import GroupRoundedIcon from '@mui/icons-material/GroupRounded';
+import HowToRegRoundedIcon from '@mui/icons-material/HowToRegRounded';
+import MessageRoundedIcon from '@mui/icons-material/MessageRounded';
 import {
   alpha,
+  Avatar,
   Box,
-  Card,
-  CardContent,
-  CardHeader,
-  Container,
+  Chip,
+  colors,
   Divider,
   Grid,
+  LinearProgress,
+  Paper,
   Skeleton,
   Stack,
   Typography,
-  useMediaQuery,
   useTheme,
 } from '@mui/material';
 import { useMemo, useState } from 'react';
 import BulkPaymentsImportCard from './BulkPaymentsImportCard';
 import BillingFilters, { PaymentMethod } from './filters';
-import { KpiBlock, PieWithLegend, StatusChip } from './utils';
+import { PieWithLegend } from './utils';
 
 // Util: YYYY-MM-DD
 const toYYYYMMDD = (d: Date | null | undefined) =>
@@ -32,9 +36,14 @@ const toYYYYMMDD = (d: Date | null | undefined) =>
       ).padStart(2, '0')}`
     : '';
 
+// Currency formatter
+const fmt = (v: number) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
+
 export default function BillingPage() {
   const theme = useTheme();
-  const smUp = useMediaQuery(theme.breakpoints.up('sm'));
+  const isDark = theme.palette.mode === 'dark';
+  const { common } = colors;
 
   // Estado del modal de logs de SMS
   const [isSmsModalOpen, setIsSmsModalOpen] = useState(false);
@@ -96,383 +105,414 @@ export default function BillingPage() {
   const optinUnit = range.data?.breakdown.optin?.unitPrice ?? 0;
   const grandTotal = range.data?.total ?? 0;
 
-  const bgSoft =
-    theme.palette.mode === 'dark'
-      ? alpha(theme.palette.neutral?.[25] ?? '#fff', 0.04)
-      : 'neutral.25';
+  const cardSx = {
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: 3,
+  } as const;
+
+  const cardHeaderSx = {
+    px: 2.5,
+    py: 2,
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    bgcolor: isDark ? alpha(common.black, 0.15) : alpha(common.black, 0.015),
+  } as const;
+
+  const cardBodySx = { p: 2.5 } as const;
+
+  const iconAvatarSx = (color: string) => ({
+    width: 38,
+    height: 38,
+    bgcolor: alpha(color, 0.12),
+    color,
+    borderRadius: 1.5,
+  });
+
+  const kpiLabelSx = {
+    variant: 'caption' as const,
+    fontWeight: 600,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.5,
+    color: 'text.secondary',
+  };
+
+  // KPI cards data
+  const kpis = [
+    {
+      label: 'Grand Total',
+      value: range.isLoading ? undefined : fmt(grandTotal),
+      hint: `${startStr} → ${endStr}`,
+      icon: <AccountBalanceWalletRoundedIcon fontSize="small" />,
+      color: theme.palette.primary.main,
+    },
+    {
+      label: 'Campaigns SMS + MMS',
+      value: range.isLoading ? undefined : fmt(sms + mms),
+      hint: 'Click to view logs',
+      icon: <MessageRoundedIcon fontSize="small" />,
+      color: theme.palette.success.main,
+      onClick: handleOpenSmsModal,
+    },
+    {
+      label: 'Memberships',
+      value: range.isLoading ? undefined : fmt(storesFee),
+      hint: `Periods ×${periods || 0}`,
+      icon: <GroupRoundedIcon fontSize="small" />,
+      color: theme.palette.secondary.main,
+    },
+    {
+      label: 'Opt-in',
+      value: range.isLoading ? undefined : fmt(optinCost),
+      hint: `${optinCount} × ${fmt(optinUnit)}`,
+      icon: <HowToRegRoundedIcon fontSize="small" />,
+      color: theme.palette.warning.main,
+    },
+  ];
+
+  // Store summary rows
+  const storeRows: { label: string; value: string | number; highlight?: boolean }[] = [
+    {
+      label: 'Stores included',
+      value: storesReport.data?.stores.length ?? 0,
+    },
+    {
+      label: 'Total Campaigns',
+      value: fmt(storesReport.data?.totals.campaigns.total ?? 0),
+    },
+    {
+      label: 'Total Memberships',
+      value: fmt(storesReport.data?.totals.membership ?? 0),
+    },
+    {
+      label: 'Total Opt-in cost',
+      value: fmt(storesReport.data?.totals.optin?.cost ?? 0),
+    },
+    {
+      label: 'Opt-in signups',
+      value: storesReport.data?.totals.optin?.count ?? 0,
+    },
+    {
+      label: 'Grand Total',
+      value: fmt(storesReport.data?.totals.grandTotal ?? 0),
+      highlight: true,
+    },
+  ];
 
   return (
-    <Container
-      maxWidth="xl"
-      sx={{ py: { xs: 2, md: 3 } }}
-    >
+    <Box sx={{ p: { xs: 2, md: 3 } }}>
+      {/* Modals */}
       <SmsLogsModal
         open={isSmsModalOpen}
         onClose={handleCloseSmsModal}
         start={startStr}
         end={endStr}
       />
-      {/* Header */}
+      <SmsCampaignsModal
+        open={isSmsModalOpen}
+        onClose={() => setIsSmsModalOpen(false)}
+        startDate={startStr}
+        endDate={endStr}
+      />
+
+      {/* Page Header */}
       <Stack
         direction="row"
         alignItems="center"
-        justifyContent="space-between"
-        sx={{ mb: 2 }}
+        flexWrap="wrap"
+        gap={2}
+        sx={{ mb: 3 }}
       >
-        <Typography
-          variant="h4"
-          fontWeight={800}
+        <Avatar
+          sx={{
+            width: 44,
+            height: 44,
+            bgcolor: alpha(theme.palette.primary.main, 0.12),
+            color: theme.palette.primary.main,
+            borderRadius: 2,
+          }}
         >
-          Facturación · Sweepstouch
-        </Typography>
+          <AccountBalanceWalletRoundedIcon />
+        </Avatar>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography
+            variant="h5"
+            fontWeight={800}
+            letterSpacing={-0.5}
+            lineHeight={1.2}
+          >
+            Billing · Sweepstouch
+          </Typography>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            fontWeight={500}
+          >
+            {startStr} → {endStr}
+          </Typography>
+        </Box>
+        {!range.isLoading && grandTotal > 0 && (
+          <Chip
+            label={fmt(grandTotal)}
+            size="medium"
+            sx={{
+              fontWeight: 800,
+              fontSize: 14,
+              bgcolor: alpha(theme.palette.primary.main, 0.1),
+              color: theme.palette.primary.main,
+              borderRadius: 2,
+              px: 0.5,
+            }}
+          />
+        )}
       </Stack>
 
-      {/* Filtros */}
-      <BillingFilters
-        startDate={startDate}
-        endDate={endDate}
-        onChangeDates={(s, e) => {
-          setStartDate(s);
-          setEndDate(e);
-        }}
-        membershipType={membershipType}
-        onMembershipChange={setMembershipType}
-        paymentMethod={paymentMethod}
-        onPaymentMethodChange={setPaymentMethod}
-        periods={periods}
-        onPeriodsChange={setPeriods}
-      />
+      {/* Filters Card */}
+      <Paper
+        elevation={0}
+        sx={{ ...cardSx, borderRadius: 2.5, mb: 2.5 }}
+      >
+        <Box sx={cardHeaderSx}>
+          <Typography
+            variant="subtitle2"
+            fontWeight={700}
+          >
+            Filters
+          </Typography>
+        </Box>
+        <Box sx={cardBodySx}>
+          <BillingFilters
+            startDate={startDate}
+            endDate={endDate}
+            onChangeDates={(s, e) => {
+              setStartDate(s);
+              setEndDate(e);
+            }}
+            membershipType={membershipType}
+            onMembershipChange={setMembershipType}
+            paymentMethod={paymentMethod}
+            onPaymentMethodChange={setPaymentMethod}
+            periods={periods}
+            onPeriodsChange={setPeriods}
+          />
+        </Box>
+      </Paper>
 
-      {/* Layout 3 columnas */}
+      {/* Loading bar */}
+      {(range.isLoading || storesReport.isLoading) && (
+        <LinearProgress
+          sx={{ borderRadius: 1, mb: 2 }}
+        />
+      )}
+
+      {/* KPI Grid — 4 columns */}
       <Grid
         container
-        columnSpacing={{ xs: 1, sm: 1.25, md: 1.5 }}
-        rowSpacing={{ xs: 1, md: 1.25 }}
-        sx={{ flexWrap: { xs: 'wrap', md: 'nowrap' } }}
+        spacing={2}
+        sx={{ mb: 2.5 }}
       >
-        {/* KPIs (izquierda) — RESUMEN */}
-        <Grid
-          item
-          xs={12}
-          md={4}
-          lg={4}
-          sx={{ minWidth: 0 }}
-        >
-          <Card
-            variant="outlined"
-            sx={{ borderRadius: 3 }}
+        {kpis.map((kpi) => (
+          <Grid
+            item
+            xs={12}
+            sm={6}
+            md={3}
+            key={kpi.label}
           >
-            <CardContent sx={{ textAlign: 'left', py: { xs: 1, md: 1 } }}>
-              <CardHeader
-                title="Resumen"
-                subheader="Total de rango seleccionado"
-                sx={{ pb: { xs: 0.5, md: 0.75 } }}
-              />
-              <Stack
-                direction="column"
-                justifyContent="flex-start"
-                alignItems="stretch"
-                sx={{ backgroundColor: bgSoft }}
-                divider={
-                  <Divider
-                    orientation="horizontal"
-                    flexItem
-                  />
-                }
-              >
-                <KpiBlock
-                  title="Rango seleccionado"
-                  value={
-                    range.isLoading
-                      ? undefined
-                      : new Intl.NumberFormat('en-US', {
-                          style: 'currency',
-                          currency: 'USD',
-                        }).format(grandTotal)
-                  }
-                  hint={`${startStr} → ${endStr}`}
-                />
-                <KpiBlock
-                  title="Campañas"
-                  value={
-                    range.isLoading
-                      ? undefined
-                      : new Intl.NumberFormat('en-US', {
-                          style: 'currency',
-                          currency: 'USD',
-                        }).format(sms + mms)
-                  }
-                  hint="SMS + MMS"
-                  onClick={() => setIsSmsModalOpen(true)}
-                />
-                <KpiBlock
-                  title="Membresías"
-                  value={
-                    range.isLoading
-                      ? undefined
-                      : new Intl.NumberFormat('en-US', {
-                          style: 'currency',
-                          currency: 'USD',
-                        }).format(storesFee)
-                  }
-                  hint={`PERIODS x${periods || 0}`}
-                />
-                {/* 🚀 NUEVO: OPT-IN (global) */}
-                <KpiBlock
-                  title="Opt-in (global)"
-                  value={
-                    range.isLoading
-                      ? undefined
-                      : new Intl.NumberFormat('en-US', {
-                          style: 'currency',
-                          currency: 'USD',
-                        }).format(optinCost)
-                  }
-                  hint={`${optinCount} × ${new Intl.NumberFormat('en-US', {
-                    style: 'currency',
-                    currency: 'USD',
-                  }).format(optinUnit)}`}
-                />
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-        <SmsCampaignsModal
-          open={isSmsModalOpen}
-          onClose={() => setIsSmsModalOpen(false)}
-          startDate={startStr}
-          endDate={endStr}
-        />
+            <Paper
+              elevation={0}
+              onClick={kpi.onClick}
+              sx={{
+                ...cardSx,
+                borderRadius: 2.5,
+                cursor: kpi.onClick ? 'pointer' : 'default',
+                transition: 'box-shadow 0.15s',
+                '&:hover': kpi.onClick
+                  ? { boxShadow: `0 0 0 2px ${alpha(kpi.color, 0.35)}` }
+                  : undefined,
+              }}
+            >
+              <Box sx={{ ...cardBodySx, display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+                <Avatar sx={iconAvatarSx(kpi.color)}>{kpi.icon}</Avatar>
+                <Box sx={{ minWidth: 0, flex: 1 }}>
+                  <Typography {...kpiLabelSx}>{kpi.label}</Typography>
+                  {kpi.value === undefined ? (
+                    <Skeleton
+                      width={90}
+                      height={32}
+                    />
+                  ) : (
+                    <Typography
+                      variant="h5"
+                      fontWeight={800}
+                      letterSpacing={-0.5}
+                      lineHeight={1.2}
+                    >
+                      {kpi.value}
+                    </Typography>
+                  )}
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                  >
+                    {kpi.hint}
+                  </Typography>
+                </Box>
+              </Box>
+            </Paper>
+          </Grid>
+        ))}
+      </Grid>
 
-        {/* Composición (centro) */}
+      {/* Bottom two-column grid: Pie chart + Stores summary */}
+      <Grid
+        container
+        spacing={2}
+        sx={{ mb: 2.5 }}
+      >
+        {/* Left: Composition Pie */}
         <Grid
           item
           xs={12}
-          md={4}
-          lg={4}
-          sx={{ minWidth: 0 }}
+          md={5}
         >
-          <Card
-            variant="outlined"
-            sx={{ borderRadius: 3, height: '100%' }}
+          <Paper
+            elevation={0}
+            sx={{ ...cardSx, borderRadius: 3, height: '100%' }}
           >
-            <CardHeader
-              title="Composición"
-              subheader="Campañas vs Membresías vs Opt-in"
-              sx={{ pb: { xs: 0.5, md: 0.75 } }}
-            />
-            <Divider sx={{ mb: { xs: 0.75, md: 0.75 } }} />
-            <CardContent>
+            <Box sx={cardHeaderSx}>
+              <Typography
+                variant="subtitle2"
+                fontWeight={700}
+              >
+                Composition
+              </Typography>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                Campaigns vs Memberships vs Opt-in
+              </Typography>
+            </Box>
+            <Box sx={cardBodySx}>
               {range.isLoading ? (
                 <Skeleton
                   variant="rounded"
-                  height={220}
+                  height={260}
                 />
               ) : (
-                <>
-                  <Box
-                    sx={{
-                      height: { xs: 200, sm: 210, md: 200, lg: 230 },
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      mb: { xs: 0.75, md: 1 },
-                    }}
-                  >
-                    <PieWithLegend
-                      smsValue={sms}
-                      mmsValue={mms}
-                      storesValue={storesFee}
-                      optinValue={optinCost}
-                      colorSMS={colorSMS}
-                      colorMMS={colorMMS}
-                      colorStores={colorStoreFees}
-                      /* nuevo color para Opt-in */
-                      colorOptin={theme.palette.warning.light}
-                      grandTotal={grandTotal}
-                      onClickSMS={handleOpenSmsModal} // <--- NUEVO: Evento de clic
-                    />
-                  </Box>
-
-                  {/* Totales bajo el gráfico */}
-                  <Stack
-                    spacing={1.25}
-                    sx={{ mt: 0.5 }}
-                  >
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                      <Typography sx={{ flex: 1, fontSize: { xs: 13, md: 12 } }}>
-                        Campañas (SMS+MMS):
-                      </Typography>
-                      <Typography
-                        sx={{
-                          textAlign: 'right',
-                          minWidth: 120,
-                          fontWeight: 700,
-                          fontSize: { xs: 13, md: 12 },
-                        }}
-                      >
-                        {new Intl.NumberFormat('en-US', {
-                          style: 'currency',
-                          currency: 'USD',
-                        }).format(sms + mms)}
-                      </Typography>
-                    </Box>
-
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                      <Typography sx={{ flex: 1, fontSize: { xs: 13, md: 12 } }}>
-                        Membresías:
-                      </Typography>
-                      <Typography
-                        sx={{
-                          textAlign: 'right',
-                          minWidth: 120,
-                          fontWeight: 700,
-                          fontSize: { xs: 13, md: 12 },
-                        }}
-                      >
-                        {new Intl.NumberFormat('en-US', {
-                          style: 'currency',
-                          currency: 'USD',
-                        }).format(storesFee)}
-                      </Typography>
-                    </Box>
-
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                      <Typography sx={{ flex: 1, fontSize: { xs: 13, md: 12 } }}>
-                        Opt-in:
-                      </Typography>
-                      <Typography
-                        sx={{
-                          textAlign: 'right',
-                          minWidth: 120,
-                          fontWeight: 700,
-                          fontSize: { xs: 13, md: 12 },
-                        }}
-                      >
-                        {new Intl.NumberFormat('en-US', {
-                          style: 'currency',
-                          currency: 'USD',
-                        }).format(optinCost)}
-                      </Typography>
-                    </Box>
-
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                      <Typography sx={{ flex: 1, fontSize: { xs: 13, md: 12 } }}>TOTAL:</Typography>
-                      <Typography
-                        sx={{
-                          textAlign: 'right',
-                          minWidth: 120,
-                          fontWeight: 700,
-                          fontSize: { xs: 13, md: 12 },
-                        }}
-                      >
-                        {new Intl.NumberFormat('en-US', {
-                          style: 'currency',
-                          currency: 'USD',
-                        }).format(grandTotal)}
-                      </Typography>
-                    </Box>
-                  </Stack>
-                </>
+                <Box
+                  sx={{
+                    height: { xs: 220, sm: 240, md: 260 },
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <PieWithLegend
+                    smsValue={sms}
+                    mmsValue={mms}
+                    storesValue={storesFee}
+                    optinValue={optinCost}
+                    colorSMS={colorSMS}
+                    colorMMS={colorMMS}
+                    colorStores={colorStoreFees}
+                    colorOptin={theme.palette.warning.light}
+                    grandTotal={grandTotal}
+                    onClickSMS={handleOpenSmsModal}
+                  />
+                </Box>
               )}
-            </CardContent>
-          </Card>
+            </Box>
+          </Paper>
         </Grid>
 
-        {/* Resumen por tiendas (derecha) */}
+        {/* Right: Stores Summary */}
         <Grid
           item
           xs={12}
-          md={4}
-          lg={4}
-          sx={{ minWidth: 0 }}
+          md={7}
         >
-          <Card
-            variant="outlined"
-            sx={{ borderRadius: 3, height: '100%' }}
+          <Paper
+            elevation={0}
+            sx={{ ...cardSx, borderRadius: 3, height: '100%' }}
           >
-            <CardHeader
-              title="Resumen por tiendas"
-              subheader={`${startStr} → ${endStr}`}
-              action={
-                <StatusChip
-                  loading={storesReport.isLoading}
-                  error={!!storesReport.isError}
-                />
-              }
-            />
-            <Divider />
-            <CardContent>
+            <Box sx={cardHeaderSx}>
+              <Typography
+                variant="subtitle2"
+                fontWeight={700}
+              >
+                Stores Summary
+              </Typography>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                {startStr} → {endStr}
+              </Typography>
+            </Box>
+            <Box sx={cardBodySx}>
               {storesReport.isLoading ? (
-                <Skeleton
-                  variant="rounded"
-                  height={320}
-                />
+                <Stack spacing={1.5}>
+                  {[...Array(6)].map((_, i) => (
+                    <Skeleton
+                      key={i}
+                      variant="rounded"
+                      height={36}
+                    />
+                  ))}
+                </Stack>
               ) : (
-                <Stack spacing={1}>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                  >
-                    Tiendas incluidas: {storesReport.data?.stores.length ?? 0}
-                  </Typography>
-
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                  >
-                    Total campañas (global):{' '}
-                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
-                      storesReport.data?.totals.campaigns.total ?? 0
-                    )}
-                  </Typography>
-
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                  >
-                    Total membresía:{' '}
-                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
-                      storesReport.data?.totals.membership ?? 0
-                    )}
-                  </Typography>
-
-                  {/* 🚀 NUEVO: Opt-in totales por tiendas */}
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                  >
-                    Total opt-in (costo):{' '}
-                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
-                      storesReport.data?.totals.optin?.cost ?? 0
-                    )}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                  >
-                    Total opt-in (cantidad): {storesReport.data?.totals.optin?.count ?? 0}
-                  </Typography>
-
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                  >
-                    Grand total:{' '}
-                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
-                      storesReport.data?.totals.grandTotal ?? 0
-                    )}
-                  </Typography>
+                <Stack
+                  divider={
+                    <Divider
+                      orientation="horizontal"
+                      flexItem
+                    />
+                  }
+                >
+                  {storeRows.map((row) => (
+                    <Box
+                      key={row.label}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        py: 1.25,
+                        px: 0.5,
+                        borderRadius: row.highlight ? 1.5 : 0,
+                        bgcolor: row.highlight
+                          ? isDark
+                            ? alpha(theme.palette.primary.main, 0.1)
+                            : alpha(theme.palette.primary.main, 0.06)
+                          : 'transparent',
+                        mx: row.highlight ? -0.5 : 0,
+                        px: row.highlight ? 1 : 0.5,
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        color={row.highlight ? 'text.primary' : 'text.secondary'}
+                        fontWeight={row.highlight ? 700 : 400}
+                      >
+                        {row.label}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        fontWeight={row.highlight ? 800 : 600}
+                        color={row.highlight ? 'primary.main' : 'text.primary'}
+                      >
+                        {row.value}
+                      </Typography>
+                    </Box>
+                  ))}
                 </Stack>
               )}
-            </CardContent>
-          </Card>
+            </Box>
+          </Paper>
         </Grid>
       </Grid>
 
-      <Box sx={{ mt: { xs: 1.5, md: 2 } }}>
-        <BulkPaymentsImportCard />
-      </Box>
-    </Container>
+      {/* Bulk Payments */}
+      <BulkPaymentsImportCard />
+    </Box>
   );
 }
