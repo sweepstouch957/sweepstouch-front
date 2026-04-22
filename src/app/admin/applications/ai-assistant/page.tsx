@@ -75,15 +75,15 @@ const SIcon: React.FC<{
 
   const animationStyle = spin
     ? {
-        animation: 'sIconSpin 1.8s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite',
-        '@keyframes sIconSpin': {
-          '0%': { transform: 'rotate(0deg)' },
-          '100%': { transform: 'rotate(360deg)' },
-        },
-        '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-      }
+      animation: 'sIconSpin 1.8s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite',
+      '@keyframes sIconSpin': {
+        '0%': { transform: 'rotate(0deg)' },
+        '100%': { transform: 'rotate(360deg)' },
+      },
+      '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
+    }
     : pulse
-    ? {
+      ? {
         animation: 'sIconPulse 1.4s ease-in-out infinite',
         '@keyframes sIconPulse': {
           '0%, 100%': { opacity: 0.5, transform: 'scale(0.85)' },
@@ -91,7 +91,7 @@ const SIcon: React.FC<{
         },
         '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
       }
-    : {};
+      : {};
 
   return (
     <Box
@@ -108,6 +108,39 @@ const SIcon: React.FC<{
 };
 
 /* ─── Markdown rendering ─── */
+type AIModel = 'openai' | 'claude' | 'gemini';
+
+const MODEL_META: Record<AIModel, { label: string; icon: string }> = {
+  openai: { label: 'ChatGPT', icon: '/chatgpt.png' },
+  claude: { label: 'Claude', icon: '/claude.png' },
+  gemini: { label: 'Gemini', icon: '/gemini.png' },
+};
+
+const ModelIcon: React.FC<{ model: AIModel; size?: number }> = ({ model, size = 16 }) => {
+  return (
+    <Box
+      component="img"
+      src={MODEL_META[model].icon}
+      alt={MODEL_META[model].label}
+      sx={{
+        width: size,
+        height: size,
+        display: 'block',
+        flexShrink: 0,
+        objectFit: 'contain',
+        borderRadius: 0.5,
+      }}
+    />
+  );
+};
+
+const ModelOption: React.FC<{ model: AIModel }> = ({ model }) => (
+  <Stack direction="row" spacing={1} alignItems="center">
+    <ModelIcon model={model} />
+    <Box component="span">{MODEL_META[model].label}</Box>
+  </Stack>
+);
+
 function renderMarkdown(text: string) {
   const codeBlocks: string[] = [];
   let processed = text.replace(/```([\s\S]*?)```/g, (_, code) => {
@@ -290,7 +323,7 @@ export default function AIAssistantPage() {
   const [uploading, setUploading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(mdUp);
   const [loadingConvs, setLoadingConvs] = useState(true);
-  const [selectedModel, setSelectedModel] = useState<'claude' | 'gemini'>('claude');
+  const [selectedModel, setSelectedModel] = useState<'openai' | 'claude' | 'gemini'>('openai');
   const [attachAnchor, setAttachAnchor] = useState<null | HTMLElement>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [imageMode, setImageMode] = useState(false);
@@ -463,7 +496,7 @@ export default function AIAssistantPage() {
       let fullText = '';
 
       await generateImage(
-        { prompt: trimmed, signal: controller.signal },
+        { prompt: trimmed, provider: selectedModel, signal: controller.signal },
         (text) => { fullText += text; streamingTextRef.current = fullText; setStreamingText(fullText); },
         (img) => { fullText += `\n\n![Generated Image](${img.url})\n\n`; streamingTextRef.current = fullText; setStreamingText(fullText); },
         () => {
@@ -677,44 +710,12 @@ export default function AIAssistantPage() {
             <Box>
               <Typography variant="subtitle2" fontWeight={700} fontSize={13}>Sweepstouch AI</Typography>
               <Typography variant="caption" color="text.secondary" fontSize={10}>
-                {selectedModel === 'claude' ? '⚡ Claude' : '✨ Gemini'} • {streaming ? 'Thinking...' : 'Online'}
+                {selectedModel === 'openai' ? 'OpenAI' : selectedModel === 'claude' ? 'Claude' : 'Gemini'} • {streaming ? 'Thinking...' : 'Online'}
               </Typography>
             </Box>
           </Stack>
 
           <Stack direction="row" spacing={0.5} alignItems="center">
-            {/* Model selector — always enabled, switching mid-stream is fine */}
-            <Chip
-              label="Claude"
-              size="small"
-              onClick={() => setSelectedModel('claude')}
-              icon={<Box component="span" sx={{ fontSize: 13, ml: 0.5 }}>⚡</Box>}
-              sx={{
-                height: 28, fontSize: 11, fontWeight: 700,
-                borderRadius: 1.5, cursor: 'pointer',
-                bgcolor: selectedModel === 'claude' ? alpha(accent, 0.12) : 'transparent',
-                color: selectedModel === 'claude' ? accent : 'text.secondary',
-                border: selectedModel === 'claude' ? `1.5px solid ${alpha(accent, 0.4)}` : '1.5px solid transparent',
-                '&:hover': { bgcolor: alpha(accent, 0.08) },
-                transition: 'all 0.2s',
-              }}
-            />
-            <Chip
-              label="Gemini"
-              size="small"
-              onClick={() => setSelectedModel('gemini')}
-              icon={<Box component="span" sx={{ fontSize: 13, ml: 0.5 }}>✨</Box>}
-              sx={{
-                height: 28, fontSize: 11, fontWeight: 700,
-                borderRadius: 1.5, cursor: 'pointer',
-                bgcolor: selectedModel === 'gemini' ? alpha('#8E24AA', 0.12) : 'transparent',
-                color: selectedModel === 'gemini' ? '#8E24AA' : 'text.secondary',
-                border: selectedModel === 'gemini' ? `1.5px solid ${alpha('#8E24AA', 0.4)}` : '1.5px solid transparent',
-                '&:hover': { bgcolor: alpha('#8E24AA', 0.08) },
-                transition: 'all 0.2s',
-              }}
-            />
-
             {activeConvId && (
               <Tooltip title="Refresh context">
                 <IconButton size="small" onClick={() => { refreshConversationContext(activeConvId); toast.success('Context refreshed!'); }}>
@@ -876,10 +877,10 @@ export default function AIAssistantPage() {
               maxRows={4}
               placeholder={
                 recording ? '🎙 Listening...' :
-                transcribing ? '⏳ Transcribing...' :
-                streaming ? 'Generating...' :
-                imageMode ? 'Describe the image you want to create...' :
-                'Ask anything about Sweepstouch...'
+                  transcribing ? '⏳ Transcribing...' :
+                    streaming ? 'Generating...' :
+                      imageMode ? 'Describe the image you want to create...' :
+                        'Ask anything about Sweepstouch...'
               }
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -898,6 +899,58 @@ export default function AIAssistantPage() {
                 },
               }}
             />
+
+            <TextField
+              select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value as AIModel)}
+              disabled={streaming || transcribing}
+              size="small"
+              SelectProps={{
+                renderValue: (value) => <ModelOption model={value as AIModel} />,
+                MenuProps: {
+                  disablePortal: true,
+                  anchorOrigin: { vertical: 'top', horizontal: 'left' },
+                  transformOrigin: { vertical: 'bottom', horizontal: 'left' },
+                  slotProps: {
+                    paper: {
+                      sx: {
+                        mb: 0.75,
+                        borderRadius: 2,
+                        boxShadow: theme.shadows[6],
+                        border: `1px solid ${alpha(theme.palette.divider, 0.9)}`,
+                        overflow: 'hidden',
+                      },
+                    },
+                  },
+                },
+              }}
+              sx={{
+                minWidth: { xs: 118, sm: 132 },
+                '& .MuiOutlinedInput-root': {
+                  height: 40,
+                  borderRadius: 2,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  bgcolor: isDark ? alpha(theme.palette.common.white, 0.04) : alpha(theme.palette.common.black, 0.03),
+                },
+                '& .MuiSelect-select': {
+                  display: 'flex',
+                  alignItems: 'center',
+                  py: 1,
+                },
+              }}
+            >
+              <MenuItem value="openai" sx={{ fontSize: 12, fontWeight: 600 }}>
+                <ModelOption model="openai" />
+              </MenuItem>
+              <MenuItem value="claude" sx={{ fontSize: 12, fontWeight: 600 }}>
+                <ModelOption model="claude" />
+              </MenuItem>
+              <MenuItem value="gemini" sx={{ fontSize: 12, fontWeight: 600 }}>
+                <ModelOption model="gemini" />
+              </MenuItem>
+            </TextField>
 
             {/* Mic button */}
             <Tooltip title={recording ? 'Stop recording' : 'Voice input'}>

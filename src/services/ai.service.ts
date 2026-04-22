@@ -66,7 +66,7 @@ export async function sendChatMessage(
     userId: string;
     userName: string;
     userRole: string;
-    model?: 'claude' | 'gemini';
+    model?: 'openai' | 'claude' | 'gemini';
     signal?: AbortSignal;
   },
   onText: (text: string) => void,
@@ -232,7 +232,7 @@ export async function previewContext() {
 /* ─── Image Generation (SSE stream, same pattern as sendChatMessage) ─── */
 
 export async function generateImage(
-  params: { prompt: string; style?: string; signal?: AbortSignal },
+  params: { prompt: string; style?: string; provider?: 'openai' | 'claude' | 'gemini'; signal?: AbortSignal },
   onText: (text: string) => void,
   onImage: (data: { url: string; name: string }) => void,
   onDone: (meta: { images?: any[] }) => void,
