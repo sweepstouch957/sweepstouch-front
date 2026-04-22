@@ -13,7 +13,7 @@ function Page(): React.JSX.Element {
   const { t } = useTranslation();
   const pageMeta = {
     title: 'Projects',
-    description: 'Overview of ongoing projects',
+    description: 'Overview of projects',
   };
   return (
     <>
