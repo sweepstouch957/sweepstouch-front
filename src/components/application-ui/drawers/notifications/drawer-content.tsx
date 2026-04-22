@@ -28,8 +28,9 @@ const Component = () => {
   const { notifications, markAsRead } = useNotificationsStore();
   const { user } = useAuth();
 
-  // El room será 'admin' si es admin, o 'store_ID'
-  const room = user?.role === 'admin' ? 'admin' : `store_${user?.storeId || 'unknown'}`;
+  // Use user-specific room for marking as read
+  const userId = user?._id || user?.id;
+  const room = userId ? `user_${userId}` : 'admin';
 
   const renderIcon = (type: string) => {
     if (type === 'appointment_booked') {

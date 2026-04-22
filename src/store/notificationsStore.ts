@@ -25,7 +25,7 @@ interface NotificationsState {
   notifications: AppNotification[];
   unreadCount: number;
   connected: boolean;
-  connect: (room: string, userId?: string) => void;
+  connect: (room: string, additionalRooms?: string[]) => void;
   disconnect: () => void;
   markAsRead: (id: string, room: string) => void;
   markAllAsRead: (room: string) => void;
@@ -53,9 +53,15 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => {
     connected: false,
 
     // ─── Conectar al servidor Socket.IO y unirse a la sala
-    connect: (room: string) => {
-      // Si ya estamos conectados a esa sala, no hacer nada
-      if (_socket?.connected && _currentRoom === room) return;
+    connect: (room: string, additionalRooms?: string[]) => {
+      // Si ya estamos conectados a esa sala, just join extra rooms
+      if (_socket?.connected && _currentRoom === room) {
+        // Join any additional rooms on the existing socket
+        if (additionalRooms?.length) {
+          additionalRooms.forEach((r) => _socket?.emit('join_room', { room: r }));
+        }
+        return;
+      }
 
       // Desconectar socket anterior si cambió la sala
       if (_socket) {
@@ -84,6 +90,10 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => {
         console.log('✅ Socket.IO conectado:', socket.id);
         set({ connected: true });
         socket.emit('join_room', { room });
+        // Join any additional rooms (e.g. 'admin')
+        if (additionalRooms?.length) {
+          additionalRooms.forEach((r) => socket.emit('join_room', { room: r }));
+        }
       });
 
       socket.on('disconnect', (reason) => {

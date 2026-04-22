@@ -13,7 +13,7 @@ import {
   useTheme,
 } from '@mui/material';
 
-import { FC, useEffect } from 'react';
+import { FC } from 'react';
 import { useTranslation } from 'react-i18next';
 import NotificationTabsLine from 'src/components/application-ui/tabs/line/line';
 import { ButtonSoft } from 'src/components/base/styles/button-soft';
@@ -36,14 +36,8 @@ export const NotificationsHeader: FC<NotificationsHeaderProps> = (props) => {
 
   const { connect, disconnect, markAllAsRead } = useNotificationsStore();
   const { user } = useAuth();
-  const room = user?.role === 'admin' ? 'admin' : `store_${user?.storeId || 'unknown'}`;
-
-  // Conectar cuando el drawer abra y estemos logueados (o a nivel global si prefieres en un Layout)
-  useEffect(() => {
-    if (user?.id) {
-       connect(room);
-    }
-  }, [user?.id, room, connect]);
+  const userId = user?._id || user?.id;
+  const room = userId ? `user_${userId}` : 'admin';
 
   const handleDrawerClose = () => {
     if (onClose) {

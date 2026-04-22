@@ -54,6 +54,7 @@ import SubdirectoryArrowRightRoundedIcon from '@mui/icons-material/SubdirectoryA
 import TagRoundedIcon from '@mui/icons-material/TagRounded';
 import MoreHorizRoundedIcon from '@mui/icons-material/MoreHorizRounded';
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
+import AssignmentIndRoundedIcon from '@mui/icons-material/AssignmentIndRounded';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDistance, format, isAfter } from 'date-fns';
@@ -64,6 +65,7 @@ import { departmentService, Department } from '@/services/department.service';
 import { usersApi } from '@/mocks/users';
 import { useCustomization } from 'src/hooks/use-customization';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/use-auth';
 
 /* ──────────────────────────── Constants ──────────────────────────── */
 
@@ -540,6 +542,9 @@ function TasksPage(): React.JSX.Element {
   const [selectedDepts, setSelectedDepts] = useState<Department[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [viewTab, setViewTab] = useState<'board' | 'my_tasks'>('board');
+  const [onlyMine, setOnlyMine] = useState(false);
+  const { user: authUser } = useAuth();
 
   /* ── Project ── */
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -605,11 +610,16 @@ function TasksPage(): React.JSX.Element {
     [selectedUsers]);
 
   const { data: board, isLoading: loadingBoard } = useQuery({
-    queryKey: ['board', selectedProjectId, activeDeptIds, activeUserIds],
-    queryFn: () => taskClient.getBoard(selectedProjectId!, {
-      assigneeIds: activeUserIds.length > 0 ? activeUserIds : undefined,
-      departmentIds: activeDeptIds.length > 0 ? activeDeptIds : undefined,
-    }),
+    queryKey: ['board', selectedProjectId, activeDeptIds, activeUserIds, onlyMine],
+    queryFn: () => {
+      const filterIds = onlyMine && myUserId
+        ? [myUserId, ...activeUserIds].filter((v, i, a) => a.indexOf(v) === i)
+        : activeUserIds;
+      return taskClient.getBoard(selectedProjectId!, {
+        assigneeIds: filterIds.length > 0 ? filterIds : undefined,
+        departmentIds: activeDeptIds.length > 0 ? activeDeptIds : undefined,
+      });
+    },
     enabled: !!selectedProjectId,
   });
 
@@ -617,6 +627,15 @@ function TasksPage(): React.JSX.Element {
     queryKey: ['ai-context'],
     queryFn: () => taskClient.getAiContext(),
     enabled: aiDialogOpen,
+  });
+
+  /* ── My Tasks query ── */
+  const myUserId = authUser?._id || authUser?.id;
+  const { data: myTasks = [], isLoading: loadingMyTasks } = useQuery({
+    queryKey: ['my-tasks', myUserId],
+    queryFn: () => taskClient.getMyTasks(myUserId!),
+    enabled: viewTab === 'my_tasks' && !!myUserId,
+    staleTime: 30_000,
   });
 
   /* ── Client-side filter: search + priority only (dept/user handled by backend) ── */
@@ -775,90 +794,67 @@ function TasksPage(): React.JSX.Element {
     <Box
       display="flex" flex={1} position="relative" flexDirection="column" overflow="hidden"
       sx={{ bgcolor: isDark ? alpha(theme.palette.common.black, 0.2) : alpha(theme.palette.common.black, 0.015) }}
-      p={{ xs: 2, sm: 2.5 }}
+      p={{ xs: 1.5, sm: 2 }}
     >
-      {/* ═══ Breadcrumb ═══ */}
-      <Container sx={{ mb: 1 }} disableGutters={!mdUp} maxWidth={customization.stretch ? false : 'xl'}>
-        <Button
-          size="small"
-          startIcon={<ArrowBackRoundedIcon sx={{ fontSize: 14 }} />}
-          onClick={() => router.push('/admin/applications/projects-board')}
-          sx={{
-            textTransform: 'none', fontWeight: 600, fontSize: 12,
-            color: 'text.secondary', borderRadius: 1.5, px: 1,
-            '&:hover': { color: 'text.primary', bgcolor: alpha(theme.palette.text.primary, 0.05) },
-          }}
-        >
-          All Projects
-        </Button>
-        {selectedProject && (
-          <Typography component="span" variant="caption" color="text.disabled" sx={{ ml: 0.5, fontSize: 12 }}>
-            / {selectedProject.name}
-            {selectedProject.identifier && (
-              <Typography component="span" sx={{ fontFamily: 'monospace', ml: 0.5, fontSize: 11, opacity: 0.6 }}>
-                {selectedProject.identifier}
+      {/* ═══ Compact Header ═══ */}
+      <Container sx={{ mb: 0.75 }} disableGutters={!mdUp} maxWidth={customization.stretch ? false : 'xl'}>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
+          <Stack direction="row" alignItems="center" spacing={1} flex={1} minWidth={0}>
+            <IconButton
+              size="small"
+              onClick={() => router.push('/admin/applications/projects-board')}
+              sx={{ p: 0.5 }}
+            >
+              <ArrowBackRoundedIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+            <Typography variant="h5" fontWeight={800} letterSpacing={-0.5} noWrap>
+              {selectedProject?.name || 'Tasks'}
+            </Typography>
+            {selectedProject?.identifier && (
+              <Chip
+                label={selectedProject.identifier}
+                size="small"
+                sx={{
+                  fontFamily: 'monospace', fontWeight: 700, fontSize: 10,
+                  bgcolor: alpha(selectedProject.color || theme.palette.primary.main, 0.12),
+                  color: selectedProject.color || theme.palette.primary.main,
+                  height: 20,
+                }}
+              />
+            )}
+            {totalTasks > 0 && (
+              <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5, fontSize: 11, whiteSpace: 'nowrap' }}>
+                {doneTasks}/{totalTasks} done · {projectProgress}%
               </Typography>
             )}
-          </Typography>
-        )}
-      </Container>
-
-      {/* ═══ Header ═══ */}
-      <Container sx={{ mb: 2 }} disableGutters={!mdUp} maxWidth={customization.stretch ? false : 'xl'}>
-        <Stack direction="row" alignItems="flex-start" justifyContent="space-between" flexWrap="wrap" gap={1.5}>
-          <Box>
-            <Stack direction="row" alignItems="center" spacing={1.5} mb={0.25}>
-              <Typography variant="h4" fontWeight={800} letterSpacing={-0.5}>
-                {selectedProject?.name || 'Tasks'}
-              </Typography>
-              {selectedProject?.identifier && (
-                <Chip
-                  label={selectedProject.identifier}
-                  size="small"
-                  sx={{
-                    fontFamily: 'monospace',
-                    fontWeight: 700,
-                    fontSize: 11,
-                    bgcolor: alpha(selectedProject.color || theme.palette.primary.main, 0.12),
-                    color: selectedProject.color || theme.palette.primary.main,
-                    height: 22,
-                  }}
-                />
-              )}
-            </Stack>
-            <Typography variant="body2" color="text.secondary" fontSize={12.5}>
-              {totalTasks > 0
-                ? `${doneTasks} of ${totalTasks} tasks done · ${projectProgress}% complete`
-                : 'No tasks yet — add your first task'}
-            </Typography>
-          </Box>
-          <Stack direction="row" spacing={1} flexWrap="wrap">
+          </Stack>
+          <Stack direction="row" spacing={0.75} flexShrink={0}>
             <Button
               variant="outlined" size="small" color="warning"
-              startIcon={<SmartToyRoundedIcon sx={{ fontSize: 15 }} />}
+              startIcon={<SmartToyRoundedIcon sx={{ fontSize: 13 }} />}
               onClick={() => setAiDialogOpen(true)}
-              sx={{ borderRadius: 1.5, textTransform: 'none', fontWeight: 600, fontSize: 12 }}
+              sx={{ borderRadius: 1.5, textTransform: 'none', fontWeight: 600, fontSize: 11, py: 0.3, px: 1.25 }}
             >
-              AI Context
+              AI
             </Button>
             <Button
               variant="outlined" size="small"
-              startIcon={<AddRoundedIcon sx={{ fontSize: 15 }} />}
+              startIcon={<AddRoundedIcon sx={{ fontSize: 13 }} />}
               onClick={() => setNewProjectOpen(true)}
-              sx={{ borderRadius: 1.5, textTransform: 'none', fontWeight: 600, fontSize: 12 }}
+              sx={{ borderRadius: 1.5, textTransform: 'none', fontWeight: 600, fontSize: 11, py: 0.3, px: 1.25 }}
             >
-              New Project
+              Project
             </Button>
             <Button
               variant="contained" size="small" disableElevation
-              startIcon={<AddRoundedIcon sx={{ fontSize: 15 }} />}
+              startIcon={<AddRoundedIcon sx={{ fontSize: 13 }} />}
               onClick={() => handleOpenNewTask('todo')}
               sx={{
-                borderRadius: 1.5, textTransform: 'none', fontWeight: 700, fontSize: 12,
+                borderRadius: 1.5, textTransform: 'none', fontWeight: 700, fontSize: 11, py: 0.3, px: 1.25,
                 background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
               }}
             >
-              New Task
+              Task
             </Button>
           </Stack>
         </Stack>
@@ -866,12 +862,12 @@ function TasksPage(): React.JSX.Element {
 
       {/* ═══ Project progress bar ═══ */}
       {totalTasks > 0 && (
-        <Container disableGutters={!mdUp} maxWidth={customization.stretch ? false : 'xl'} sx={{ mb: 1.5 }}>
+        <Container disableGutters={!mdUp} maxWidth={customization.stretch ? false : 'xl'} sx={{ mb: 0.5 }}>
           <LinearProgress
             variant="determinate"
             value={projectProgress}
             sx={{
-              height: 4,
+              height: 3,
               borderRadius: 2,
               bgcolor: alpha(theme.palette.divider, 0.15),
               '& .MuiLinearProgress-bar': {
@@ -882,6 +878,143 @@ function TasksPage(): React.JSX.Element {
           />
         </Container>
       )}
+
+      {/* ═══ View Toggle: Board vs My Tasks ═══ */}
+      <Container disableGutters={!mdUp} maxWidth={customization.stretch ? false : 'xl'} sx={{ mb: 1 }}>
+        <Tabs
+          value={viewTab}
+          onChange={(_, v) => setViewTab(v)}
+          sx={{
+            minHeight: 36,
+            '& .MuiTabs-indicator': {
+              height: 3,
+              borderRadius: '3px 3px 0 0',
+            },
+            '& .MuiTab-root': {
+              minHeight: 32, py: 0, px: 1.5, textTransform: 'none',
+              fontWeight: 700, fontSize: 12, gap: 0.5,
+            },
+          }}
+        >
+          <Tab
+            value="board"
+            icon={<ViewKanbanRoundedIcon sx={{ fontSize: 15 }} />}
+            iconPosition="start"
+            label="Board"
+          />
+          <Tab
+            value="my_tasks"
+            icon={<AssignmentIndRoundedIcon sx={{ fontSize: 15 }} />}
+            iconPosition="start"
+            label={`My Tasks${myTasks.length > 0 ? ` (${myTasks.length})` : ''}`}
+          />
+        </Tabs>
+      </Container>
+
+      {/* ═══ MY TASKS VIEW ═══ */}
+      {viewTab === 'my_tasks' && (
+        <Container disableGutters={!mdUp} maxWidth={customization.stretch ? false : 'xl'} sx={{ flex: 1, overflow: 'auto', pb: 4 }}>
+          {loadingMyTasks ? (
+            <Box display="flex" justifyContent="center" py={6}><CircularProgress /></Box>
+          ) : myTasks.length === 0 ? (
+            <Card sx={{ borderRadius: 3, mt: 2 }}>
+              <CardContent sx={{ textAlign: 'center', py: 6 }}>
+                <AssignmentIndRoundedIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+                <Typography variant="h6" fontWeight={700} gutterBottom>No pending tasks</Typography>
+                <Typography variant="body2" color="text.secondary">You're all caught up! 🎉</Typography>
+              </CardContent>
+            </Card>
+          ) : (
+            <Stack spacing={1.5} mt={1}>
+              {Object.entries(STATUS_META).filter(([key]) => key !== 'done').map(([statusKey, meta]) => {
+                const tasksInStatus = myTasks.filter((t) => t.status === statusKey);
+                if (tasksInStatus.length === 0) return null;
+                return (
+                  <Card key={statusKey} sx={{ borderRadius: 2.5, border: `1px solid ${alpha(meta.color, 0.2)}`, overflow: 'visible' }}>
+                    <Box px={2} py={1} sx={{ borderBottom: `1px solid ${alpha(meta.color, 0.12)}`, bgcolor: alpha(meta.color, 0.04) }}>
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: meta.color }} />
+                        <Typography variant="subtitle2" fontWeight={800} fontSize={13}>{meta.label}</Typography>
+                        <Chip label={tasksInStatus.length} size="small" sx={{ height: 20, fontSize: 10, fontWeight: 800, bgcolor: alpha(meta.color, 0.15), color: meta.color }} />
+                      </Stack>
+                    </Box>
+                    <Stack divider={<Box sx={{ borderBottom: `1px solid ${alpha(theme.palette.divider, 0.06)}` }} />}>
+                      {tasksInStatus.map((task) => {
+                        const pri = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium;
+                        const isOverdue = task.dueDate && task.status !== 'done' && isAfter(new Date(), new Date(task.dueDate));
+                        return (
+                          <Box
+                            key={task._id}
+                            px={2} py={1.5}
+                            sx={{
+                              cursor: 'pointer',
+                              transition: 'all 0.15s',
+                              '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.04) },
+                              borderLeft: `3px solid ${pri.color}`,
+                            }}
+                            onClick={() => {
+                              if (task.projectId) setSelectedProjectId(task.projectId);
+                              setViewTab('board');
+                              handleEditTask(task);
+                            }}
+                          >
+                            <Stack direction="row" alignItems="center" justifyContent="space-between">
+                              <Stack direction="row" alignItems="center" spacing={1.5} flex={1} minWidth={0}>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    fontFamily: 'monospace', fontWeight: 700, fontSize: 10,
+                                    color: alpha(theme.palette.text.secondary, 0.7),
+                                    bgcolor: isDark ? alpha(theme.palette.common.white, 0.05) : alpha(theme.palette.common.black, 0.04),
+                                    px: 0.75, py: 0.2, borderRadius: 0.75, flexShrink: 0,
+                                  }}
+                                >
+                                  {task.identifier}
+                                </Typography>
+                                <Typography variant="body2" fontWeight={600} fontSize={13} noWrap sx={{ flex: 1 }}>
+                                  {task.title}
+                                </Typography>
+                              </Stack>
+                              <Stack direction="row" alignItems="center" spacing={1} flexShrink={0}>
+                                <Chip
+                                  label={pri.label}
+                                  size="small"
+                                  sx={{
+                                    height: 20, fontSize: 10, fontWeight: 800,
+                                    bgcolor: alpha(pri.color, 0.12), color: pri.color,
+                                    '& .MuiChip-label': { px: 0.75 },
+                                  }}
+                                />
+                                {task.dueDate && (
+                                  <Stack direction="row" alignItems="center" spacing={0.3}>
+                                    <CalendarTodayRoundedIcon sx={{ fontSize: 12, color: isOverdue ? 'error.main' : 'text.disabled' }} />
+                                    <Typography variant="caption" sx={{ fontSize: 11, color: isOverdue ? 'error.main' : 'text.secondary', fontWeight: isOverdue ? 700 : 400 }}>
+                                      {format(new Date(task.dueDate), 'MMM d')}
+                                    </Typography>
+                                  </Stack>
+                                )}
+                                <ArrowForwardRoundedIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
+                              </Stack>
+                            </Stack>
+                            {task.description && (
+                              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.25, display: 'block', fontSize: 11, opacity: 0.7, pl: 7 }}>
+                                {task.description.slice(0, 120)}{task.description.length > 120 ? '…' : ''}
+                              </Typography>
+                            )}
+                          </Box>
+                        );
+                      })}
+                    </Stack>
+                  </Card>
+                );
+              })}
+            </Stack>
+          )}
+        </Container>
+      )}
+
+      {/* ═══ BOARD VIEW: Project Tabs + Kanban ═══ */}
+      {viewTab === 'board' && (<>
 
       {/* ═══ Project Tabs ═══ */}
       <Container disableGutters={!mdUp} maxWidth={customization.stretch ? false : 'xl'}>
@@ -956,12 +1089,12 @@ function TasksPage(): React.JSX.Element {
           bgcolor: isDark ? lighten(theme.palette.neutral[900], 0.03) : 'common.white',
           border: `1px solid ${isDark ? alpha(theme.palette.common.white, 0.06) : alpha(theme.palette.common.black, 0.08)}`,
           borderRadius: '0 8px 8px 8px',
-          pt: 2,
+          pt: 1.25,
         }}
       >
         <Container maxWidth={customization.stretch ? false : 'xl'}>
           {/* ── Filters ── */}
-          <Grid container spacing={1.5} mb={2}>
+          <Grid container spacing={1} mb={1}>
             <Grid xs={12} md={4}>
               <Autocomplete
                 multiple limitTags={2} size="small" options={departments}
@@ -1012,9 +1145,23 @@ function TasksPage(): React.JSX.Element {
               />
             </Grid>
             <Grid xs={12} md={4}>
-              <Stack direction="row" spacing={1}>
+              <Stack direction="row" spacing={0.75} alignItems="center">
+                <Chip
+                  icon={<PersonOutlineRoundedIcon sx={{ fontSize: '14px !important' }} />}
+                  label="Only mine"
+                  size="small"
+                  variant={onlyMine ? 'filled' : 'outlined'}
+                  color={onlyMine ? 'primary' : 'default'}
+                  onClick={() => setOnlyMine(!onlyMine)}
+                  sx={{
+                    height: 28, fontWeight: 700, fontSize: 11,
+                    borderRadius: 1.5,
+                    transition: 'all 0.15s',
+                    cursor: 'pointer',
+                  }}
+                />
                 <TextField
-                  size="small" placeholder="Search tasks…" value={search}
+                  size="small" placeholder="Search…" value={search}
                   onChange={(e) => setSearch(e.target.value)} fullWidth
                   InputProps={{
                     startAdornment: <InputAdornment position="start"><SearchRoundedIcon sx={{ fontSize: 16, opacity: 0.4 }} /></InputAdornment>,
@@ -1024,7 +1171,7 @@ function TasksPage(): React.JSX.Element {
                 <Select
                   size="small" value={priorityFilter}
                   onChange={(e) => setPriorityFilter(e.target.value)}
-                  sx={{ minWidth: 120, borderRadius: 1.5, fontSize: 12 }}
+                  sx={{ minWidth: 110, borderRadius: 1.5, fontSize: 11 }}
                 >
                   <MenuItem value="all">All priority</MenuItem>
                   {Object.entries(PRIORITY_CONFIG).map(([k, c]) => (
@@ -1123,6 +1270,8 @@ function TasksPage(): React.JSX.Element {
           </Container>
         </Box>
       </Box>
+
+      </>)} {/* end viewTab === 'board' */}
 
       {/* ═══ Task Detail Dialog ═══ */}
       <Dialog
