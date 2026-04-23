@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   alpha,
   Avatar,
@@ -15,7 +15,11 @@ import {
   Divider,
   Grid,
   IconButton,
+  ListItemIcon,
+  ListItemText,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   TextField,
   Tooltip,
@@ -40,10 +44,21 @@ import toast from 'react-hot-toast';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
+const COUNTRY_CODES = [
+  { code: '+504', label: 'Honduras', flag: '🇭🇳' },
+  { code: '+1', label: 'USA', flag: '🇺🇸' },
+  { code: '+52', label: 'México', flag: '🇲🇽' },
+  { code: '+502', label: 'Guatemala', flag: '🇬🇹' },
+  { code: '+503', label: 'El Salvador', flag: '🇸🇻' },
+  { code: '+505', label: 'Nicaragua', flag: '🇳🇮' },
+  { code: '+506', label: 'Costa Rica', flag: '🇨🇷' },
+  { code: '+507', label: 'Panamá', flag: '🇵🇦' },
+] as const;
+
 export default function AccountPage() {
   const theme = useTheme();
   const customization = useCustomization();
-  const { user } = useAuth();
+  const { user, checkSession } = useAuth();
   const isDark = theme.palette.mode === 'dark';
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -57,7 +72,7 @@ export default function AccountPage() {
     lastName: '',
     email: '',
     phoneNumber: '',
-    countryCode: '+1',
+    countryCode: '+504',
     address: '',
     profileImage: '',
   });
@@ -71,26 +86,31 @@ export default function AccountPage() {
         lastName: user.lastName || '',
         email: user.email || '',
         phoneNumber: user.phoneNumber || '',
-        countryCode: user.countryCode || '+1',
+        countryCode: user.countryCode || '+504',
         address: user.address || '',
         profileImage: user.profileImage || '',
       });
     }
   }, [user]);
 
+  const userId = useMemo(() => user?.id || (user as any)?._id, [user]);
+
   // My tasks query
   const { data: myTasks = [] } = useQuery({
-    queryKey: ['my-tasks', user?.id],
-    queryFn: () => taskClient.getMyTasks(user?.id),
-    enabled: !!user?.id,
+    queryKey: ['my-tasks', userId],
+    queryFn: () => taskClient.getMyTasks(userId!),
+    enabled: !!userId,
   });
 
   // ── Save profile
   const handleSave = async () => {
-    if (!user?.id) return;
+    if (!userId) {
+      toast.error('User ID not available');
+      return;
+    }
     setSaving(true);
     try {
-      await api.patch(`/auth/users/profile/${user.id}`, {
+      await api.patch(`/auth/users/profile/${userId}`, {
         firstName: form.firstName,
         lastName: form.lastName,
         phoneNumber: form.phoneNumber,
@@ -98,8 +118,10 @@ export default function AccountPage() {
         address: form.address,
       });
       toast.success('Profile updated!');
+      // Refresh the auth session so sidebar/header reflect changes
+      checkSession?.();
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to update');
+      toast.error(err.response?.data?.message || err.response?.data?.error || 'Failed to update');
     } finally {
       setSaving(false);
     }
@@ -108,7 +130,7 @@ export default function AccountPage() {
   // ── Upload profile image
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user?.id) return;
+    if (!file || !userId) return;
 
     setUploadingImage(true);
     try {
@@ -119,9 +141,10 @@ export default function AccountPage() {
       });
       const imageUrl = data.url || data.secure_url || data.result?.secure_url;
       if (imageUrl) {
-        await api.patch(`/auth/users/profile/${user.id}`, { profileImage: imageUrl });
+        await api.patch(`/auth/users/profile/${userId}`, { profileImage: imageUrl });
         setForm((f) => ({ ...f, profileImage: imageUrl }));
         toast.success('Profile photo updated!');
+        checkSession?.();
       }
     } catch (err: any) {
       toast.error('Failed to upload image');
@@ -259,7 +282,9 @@ export default function AccountPage() {
                   </Stack>
                   <Stack direction="row" alignItems="center" spacing={1}>
                     <PhoneRoundedIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                    <Typography variant="caption">{form.countryCode} {form.phoneNumber}</Typography>
+                    <Typography variant="caption">
+                      {COUNTRY_CODES.find((c) => c.code === form.countryCode)?.flag || ''} {form.countryCode} {form.phoneNumber}
+                    </Typography>
                   </Stack>
                 </Stack>
 
@@ -385,13 +410,31 @@ export default function AccountPage() {
                     />
                   </Grid>
                   <Grid item xs={4} sm={3}>
-                    <TextField
-                      label="Country Code"
-                      fullWidth
+                    <Select
                       value={form.countryCode}
-                      onChange={(e) => setForm({ ...form, countryCode: e.target.value })}
-                      placeholder="+1"
-                    />
+                      onChange={(e) => setForm({ ...form, countryCode: e.target.value as string })}
+                      fullWidth
+                      renderValue={(val) => {
+                        const c = COUNTRY_CODES.find((cc) => cc.code === val);
+                        return c ? `${c.flag} ${c.code}` : val;
+                      }}
+                      sx={{
+                        height: 56,
+                        '.MuiSelect-select': { display: 'flex', alignItems: 'center', gap: 0.5 },
+                      }}
+                    >
+                      {COUNTRY_CODES.map((cc) => (
+                        <MenuItem key={cc.code} value={cc.code}>
+                          <ListItemIcon sx={{ minWidth: 32, fontSize: 20 }}>{cc.flag}</ListItemIcon>
+                          <ListItemText
+                            primary={cc.label}
+                            secondary={cc.code}
+                            primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}
+                            secondaryTypographyProps={{ variant: 'caption' }}
+                          />
+                        </MenuItem>
+                      ))}
+                    </Select>
                   </Grid>
                   <Grid item xs={8} sm={9}>
                     <TextField
