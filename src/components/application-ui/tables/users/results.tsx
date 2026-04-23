@@ -174,6 +174,7 @@ const ROLE_META: Record<
   design: { text: 'Design', color: 'primary' },
   campaign_manager: { text: 'Campaign Manager', color: 'success' },
   promotor_manager: { text: 'Promotor Manager', color: 'warning' },
+  marketing: { text: 'Marketing', color: 'primary' },
 };
 
 // Tabs plural labels
@@ -184,7 +185,8 @@ const ROLE_TABS_LABEL: Record<string, string> = {
   promotor_owner: 'Promotor Owners',
   cashier: 'Cashiers',
   general_manager: 'General Managers',
-  merchant_manager: 'Merchant Managers'
+  merchant_manager: 'Merchant Managers',
+  marketing: 'Marketing'
 };
 
 const toTitle = (k: string) =>
@@ -302,7 +304,8 @@ const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment }) =>
     'promotor_owner',
     'promotor',
     'general_manager',
-    'cashier'
+    'cashier',
+    'marketing'
   ];
 
   const tabs: UITabItem[] = useMemo(() => {

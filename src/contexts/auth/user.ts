@@ -6,7 +6,9 @@ export type UserRole =
   | 'promotor'
   | 'campaign_manager'
   | 'promotor_manager'
-  | 'general_manager';
+  | 'general_manager'
+  | 'merchant_manager'
+  | 'marketing';
 
 
 export interface User {

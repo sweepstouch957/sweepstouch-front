@@ -51,6 +51,7 @@ const STAFF_ROLES = [
   { value: 'campaign_manager', label: 'Campaign Manager', desc: 'Manages marketing campaigns' },
   { value: 'promotor_manager', label: 'Promotor Manager', desc: 'Manages field promotors' },
   { value: 'merchant_manager', label: 'Merchant Manager', desc: 'Manages merchant accounts' },
+  { value: 'marketing', label: 'Marketing', desc: 'Marketing team' },
 ];
 
 const EXTERNAL_ROLES = [

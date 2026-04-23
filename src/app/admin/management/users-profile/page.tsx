@@ -84,6 +84,7 @@ const ROLE_META: Record<string, { label: string; color: string }> = {
   merchant: { label: 'Merchant', color: '#4CAF50' },
   cashier: { label: 'Cashier', color: '#FF5722' },
   promotor: { label: 'Promotor', color: '#795548' },
+  marketing: { label: 'Marketing', color: '#3F51B5' },
 };
 
 /* ─── Info Row ─── */
