@@ -192,8 +192,8 @@ export function ResetPasswordForm(): React.JSX.Element {
               alignItems: 'center',
               justifyContent: 'center',
               mb: 2,
-              background: 'linear-gradient(135deg, #DC1F26 0%, #ff6b6b 100%)',
-              boxShadow: '0 8px 24px rgba(220,31,38,0.3)',
+              background: 'linear-gradient(135deg, #ff0aa2 0%, #ff5cb9 100%)',
+              boxShadow: '0 8px 24px rgba(255,10,162,0.3)',
             }}
           >
             <LockResetRoundedIcon sx={{ fontSize: 28, color: 'white' }} />
@@ -218,7 +218,7 @@ export function ResetPasswordForm(): React.JSX.Element {
             sx={{
               mb: 3,
               '.MuiStepLabel-label': { fontSize: 11, fontWeight: 600 },
-              '.MuiStepIcon-root.Mui-active': { color: '#DC1F26' },
+              '.MuiStepIcon-root.Mui-active': { color: '#ff0aa2' },
               '.MuiStepIcon-root.Mui-completed': { color: '#22C55E' },
             }}
           >
@@ -275,8 +275,8 @@ export function ResetPasswordForm(): React.JSX.Element {
                 borderRadius: 2,
                 fontWeight: 700,
                 py: 1.5,
-                background: 'linear-gradient(135deg, #DC1F26 0%, #ff6b6b 100%)',
-                '&:hover': { background: 'linear-gradient(135deg, #b01820 0%, #e55 100%)' },
+                background: 'linear-gradient(135deg, #ff0aa2 0%, #ff5cb9 100%)',
+                '&:hover': { background: 'linear-gradient(135deg, #e0008d 0%, #ff3baf 100%)' },
               }}
             >
               {loading ? (
@@ -338,8 +338,8 @@ export function ResetPasswordForm(): React.JSX.Element {
                 borderRadius: 2,
                 fontWeight: 700,
                 py: 1.5,
-                background: 'linear-gradient(135deg, #DC1F26 0%, #ff6b6b 100%)',
-                '&:hover': { background: 'linear-gradient(135deg, #b01820 0%, #e55 100%)' },
+                background: 'linear-gradient(135deg, #ff0aa2 0%, #ff5cb9 100%)',
+                '&:hover': { background: 'linear-gradient(135deg, #e0008d 0%, #ff3baf 100%)' },
               }}
             >
               {loading ? <CircularProgress size={22} color="inherit" /> : 'Verificar código'}
@@ -413,8 +413,8 @@ export function ResetPasswordForm(): React.JSX.Element {
                 borderRadius: 2,
                 fontWeight: 700,
                 py: 1.5,
-                background: 'linear-gradient(135deg, #DC1F26 0%, #ff6b6b 100%)',
-                '&:hover': { background: 'linear-gradient(135deg, #b01820 0%, #e55 100%)' },
+                background: 'linear-gradient(135deg, #ff0aa2 0%, #ff5cb9 100%)',
+                '&:hover': { background: 'linear-gradient(135deg, #e0008d 0%, #ff3baf 100%)' },
               }}
             >
               {loading ? <CircularProgress size={22} color="inherit" /> : 'Cambiar contraseña'}
@@ -455,8 +455,8 @@ export function ResetPasswordForm(): React.JSX.Element {
                 borderRadius: 2,
                 fontWeight: 700,
                 py: 1.5,
-                background: 'linear-gradient(135deg, #DC1F26 0%, #ff6b6b 100%)',
-                '&:hover': { background: 'linear-gradient(135deg, #b01820 0%, #e55 100%)' },
+                background: 'linear-gradient(135deg, #ff0aa2 0%, #ff5cb9 100%)',
+                '&:hover': { background: 'linear-gradient(135deg, #e0008d 0%, #ff3baf 100%)' },
               }}
             >
               Ir a iniciar sesión
