@@ -564,6 +564,11 @@ export default function AIAssistantPage() {
           create_task: `🔧 Creating task: "${data.input?.title || ''}"...`,
           get_member_tasks: `🔍 Looking up tasks for ${data.input?.memberName || ''}...`,
           navigate: `🔗 Finding route...`,
+          create_user: `👤 Creating user: ${data.input?.firstName || ''} ${data.input?.lastName || ''}...`,
+          update_user: `✏️ Updating user: ${data.input?.userName || data.input?.userId || ''}...`,
+          search_users: `🔍 Searching users${data.input?.q ? `: "${data.input.q}"` : ''}...`,
+          search_campaigns: `📊 Searching campaigns${data.input?.q ? `: "${data.input.q}"` : ''}...`,
+          search_stores: `🏪 Searching stores${data.input?.q ? `: "${data.input.q}"` : ''}...`,
         };
         const label = toolLabels[data.tool] || `⚙️ Running ${data.tool}...`;
         fullText += `\n\n${label}\n`;
@@ -577,6 +582,8 @@ export default function AIAssistantPage() {
           fullText += `❌ ${data.result.error}\n\n`;
         } else if (data.result?.totalTasks !== undefined) {
           fullText += `📋 Found ${data.result.totalTasks} tasks for ${data.result.member}\n\n`;
+        } else if (data.result?.user) {
+          fullText += `✅ User created: ${data.result.user.firstName} ${data.result.user.lastName}\n\n`;
         }
         streamingTextRef.current = fullText;
         setStreamingText(fullText);
