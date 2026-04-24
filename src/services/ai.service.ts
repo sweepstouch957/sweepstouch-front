@@ -335,3 +335,15 @@ export async function searchWithAI(query: string): Promise<AISearchResult> {
   const { data } = await api.post('/ai/search', { query });
   return data;
 }
+
+/* ─── MMS Text Generation (one-shot) ─── */
+
+export async function generateMmsText(params: {
+  storeName: string;
+  products: { name: string; price: string }[];
+  headline?: string;
+  link?: string;
+}): Promise<string> {
+  const { data } = await api.post('/ai/generate-mms-text', params);
+  return data.text || '';
+}

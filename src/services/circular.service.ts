@@ -104,8 +104,10 @@ export class CircularService {
     return res.data;
   }
 
-  async extractProducts(circularId: string): Promise<any> {
-    const res = await api.post(`/circulars/${circularId}/extract-products`);
+  async extractProducts(circularId: string, maxProducts?: number): Promise<any> {
+    const res = await api.post(`/circulars/${circularId}/extract-products`, {
+      maxProducts: maxProducts || 0,
+    });
     return res.data;
   }
 
@@ -122,6 +124,18 @@ export class CircularService {
 
   async getAlerts(hours = 48) {
     const res = await api.get('/circulars/alerts', { params: { hours } });
+    return res.data;
+  }
+
+  /** Save edited products and headline to a circular */
+  async saveProducts(circularId: string, products: any[], headline?: string): Promise<any> {
+    const res = await api.put(`/circulars/${circularId}/products`, { products, headline });
+    return res.data;
+  }
+
+  /** Generate MMS barcodes for all customers of a store */
+  async generateMms(circularId: string, storeSlug: string, campaignCode: string): Promise<{ generated: number; skipped: number }> {
+    const res = await api.post('/mms-generator/generate', { circularId, storeSlug, campaignCode });
     return res.data;
   }
 }

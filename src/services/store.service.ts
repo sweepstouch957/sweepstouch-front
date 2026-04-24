@@ -351,6 +351,11 @@ export const getStoreBySlug = async (slug: string): Promise<Store> => {
   return res.data;
 };
 
+export const updateStoreBySlug = async (slug: string, body: Partial<UpdateStoreBody & { mmsTheme?: any }>): Promise<Store> => {
+  const res = await api.patch<Store>(`/store/by-slug/${slug}`, body);
+  return res.data;
+};
+
 // 🆕 Obtener StoreRequests (Leads)
 export const getStoreRequests = async (params?: { status?: string }): Promise<any[]> => {
   const res = await api.get('/store/request', { params });

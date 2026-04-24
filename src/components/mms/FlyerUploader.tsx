@@ -21,7 +21,7 @@ import { circularService } from '@/services/circular.service';
 interface Props {
   storeSlug?: string;
   onCircularCreated: (circular: { _id: string; storeSlug: string; startDate: string; endDate: string }) => void;
-  onExtracted: (data: { products: any[]; headline: string }) => void;
+  onExtracted: (data: { products: any[]; headline: string; validDates?: string; hasMore?: boolean }) => void;
   extractionStatus: string;
   onExtractionStatusChange: (status: string) => void;
 }
@@ -45,6 +45,8 @@ export default function FlyerUploader({
   const [circularId, setCircularId] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [maxProducts, setMaxProducts] = useState<number>(6);
+  const [extractedCount, setExtractedCount] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
@@ -110,20 +112,25 @@ export default function FlyerUploader({
     }
   }, [file, localStoreSlug, schedule, overridePass, onCircularCreated]);
 
-  const handleExtract = useCallback(async () => {
+  const handleExtract = useCallback(async (limit?: number) => {
     if (!circularId) {
       setError('Upload a flyer first');
       return;
     }
+    const useLimit = limit !== undefined ? limit : maxProducts;
     setIsExtracting(true);
     onExtractionStatusChange('processing');
     setError('');
     try {
-      const data = await circularService.extractProducts(circularId);
+      const data = await circularService.extractProducts(circularId, useLimit || undefined);
       const circular = data.circular;
+      const products = circular.products || [];
+      setExtractedCount(products.length);
       onExtracted({
-        products: circular.products || [],
+        products,
         headline: circular.headline || '',
+        validDates: data.extractedMeta?.validDates || circular.validDates || '',
+        hasMore: useLimit > 0 && products.length >= useLimit,
       });
       onExtractionStatusChange('completed');
     } catch (err: any) {
@@ -132,7 +139,7 @@ export default function FlyerUploader({
     } finally {
       setIsExtracting(false);
     }
-  }, [circularId, onExtracted, onExtractionStatusChange]);
+  }, [circularId, maxProducts, onExtracted, onExtractionStatusChange]);
 
   return (
     <Box>
@@ -266,7 +273,7 @@ export default function FlyerUploader({
       )}
 
       {/* Actions */}
-      <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+      <Stack direction="row" spacing={2} sx={{ mt: 2 }} alignItems="center">
         <Button
           variant="contained"
           onClick={handleUpload}
@@ -280,9 +287,26 @@ export default function FlyerUploader({
           {isUploading ? 'Uploading...' : 'Upload Flyer'}
         </Button>
 
+        {/* Product limit selector */}
+        <TextField
+          label="Max Products"
+          value={maxProducts}
+          onChange={(e) => setMaxProducts(Number(e.target.value))}
+          size="small"
+          select
+          sx={{ minWidth: 130 }}
+          disabled={!circularId || isExtracting}
+        >
+          <MenuItem value={6}>Top 6 ⚡</MenuItem>
+          <MenuItem value={10}>Top 10</MenuItem>
+          <MenuItem value={15}>Top 15</MenuItem>
+          <MenuItem value={20}>Top 20</MenuItem>
+          <MenuItem value={0}>All (slow)</MenuItem>
+        </TextField>
+
         <Button
           variant="contained"
-          onClick={handleExtract}
+          onClick={() => handleExtract()}
           disabled={!circularId || isExtracting}
           startIcon={isExtracting ? <CircularProgress size={18} /> : <AutoAwesomeIcon />}
           sx={{
@@ -290,14 +314,28 @@ export default function FlyerUploader({
             '&:hover': { background: 'linear-gradient(135deg, #b01820 0%, #e55 100%)' },
           }}
         >
-          {isExtracting ? 'AI Extracting...' : '🤖 Extract Products with AI'}
+          {isExtracting ? 'AI Extracting...' : `🤖 Extract${maxProducts ? ` Top ${maxProducts}` : ' All'}`}
         </Button>
+
+        {extractionStatus === 'completed' && extractedCount > 0 && maxProducts > 0 && (
+          <Button
+            variant="outlined"
+            onClick={() => handleExtract(0)}
+            disabled={isExtracting}
+            size="small"
+            sx={{ textTransform: 'none', borderColor: '#f43789', color: '#f43789' }}
+          >
+            📦 Load All Products
+          </Button>
+        )}
       </Stack>
 
       {isExtracting && (
         <Box sx={{ mt: 2 }}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            GPT Vision is analyzing the flyer... This may take 10-30 seconds.
+            {maxProducts
+              ? `Extracting top ${maxProducts} products... (~5-15 seconds)`
+              : 'Extracting ALL products... This may take 1-3 minutes.'}
           </Typography>
           <Box sx={{ width: '100%' }}>
             <Box

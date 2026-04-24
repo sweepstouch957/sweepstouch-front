@@ -45,6 +45,8 @@ export interface ExtractedProduct {
   isHero?: boolean;
 }
 
+const MAX_MMS_PRODUCTS = 6;
+
 // ─── Page Component ─────────────────────────────────────
 function MmsGeneratorPage(): React.JSX.Element {
   const customization = useCustomization();
@@ -65,6 +67,7 @@ function MmsGeneratorPage(): React.JSX.Element {
   const [validDates, setValidDates] = useState('');
   const [generationResult, setGenerationResult] = useState<{ generated: number; skipped: number } | null>(null);
   const [mmsTheme, setMmsTheme] = useState<Record<string, any>>({});
+  const [circularFileUrl, setCircularFileUrl] = useState('');
 
   // Load stores on mount
   useEffect(() => {
@@ -106,19 +109,33 @@ function MmsGeneratorPage(): React.JSX.Element {
   const storeSlug = selectedStore?.slug || '';
 
   // After circular upload
-  const handleCircularCreated = useCallback((circular: { _id: string; storeSlug: string; startDate: string; endDate: string }) => {
+  const handleCircularCreated = useCallback((circular: { _id: string; storeSlug: string; startDate: string; endDate: string; fileUrl?: string }) => {
     setCircularId(circular._id);
+    if (circular.fileUrl) setCircularFileUrl(circular.fileUrl);
     const start = new Date(circular.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const end = new Date(circular.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     setValidDates(`${start} - ${end}`);
   }, []);
 
-  // After AI extraction
-  const handleExtracted = useCallback((extracted: { products: ExtractedProduct[]; headline: string }) => {
-    setProducts(extracted.products);
+  // After AI extraction — limit to MAX_MMS_PRODUCTS and use extracted dates
+  const handleExtracted = useCallback((extracted: { products: ExtractedProduct[]; headline: string; validDates?: string }) => {
+    // Sort: hero products first, then by price desc
+    const sorted = [...extracted.products].sort((a, b) => {
+      if (a.isHero && !b.isHero) return -1;
+      if (!a.isHero && b.isHero) return 1;
+      return 0;
+    });
+    setProducts(sorted);
     setHeadline(extracted.headline);
     setExtractionStatus('completed');
+    // Use the AI-extracted valid dates if available
+    if (extracted.validDates) {
+      setValidDates(extracted.validDates);
+    }
   }, []);
+
+  // Products limited to 6 for MMS
+  const mmsProducts = useMemo(() => products.slice(0, MAX_MMS_PRODUCTS), [products]);
 
   // Product edit
   const handleProductsChange = useCallback((updated: ExtractedProduct[]) => {
@@ -167,12 +184,22 @@ function MmsGeneratorPage(): React.JSX.Element {
                 />
               )}
               {extractionStatus === 'completed' && (
-                <Chip
-                  icon={<AutoAwesomeIcon />}
-                  label={`${products.length} products extracted`}
-                  color="success"
-                  variant="outlined"
-                />
+                <>
+                  <Chip
+                    icon={<AutoAwesomeIcon />}
+                    label={`${products.length} products extracted`}
+                    color="success"
+                    variant="outlined"
+                  />
+                  {products.length > MAX_MMS_PRODUCTS && (
+                    <Chip
+                      label={`${MAX_MMS_PRODUCTS} will be sent in MMS`}
+                      color="warning"
+                      size="small"
+                      variant="outlined"
+                    />
+                  )}
+                </>
               )}
             </Stack>
           }
@@ -352,7 +379,7 @@ function MmsGeneratorPage(): React.JSX.Element {
                     }}
                   >
                     <CardContent>
-                      <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                         <StepBadge num={2} />
                         Extracted Products
                         <Chip
@@ -361,6 +388,14 @@ function MmsGeneratorPage(): React.JSX.Element {
                           color={extractionStatus === 'completed' ? 'info' : 'default'}
                           sx={{ ml: 1 }}
                         />
+                        {products.length > MAX_MMS_PRODUCTS && (
+                          <Chip
+                            size="small"
+                            label={`⚠️ Only first ${MAX_MMS_PRODUCTS} of ${products.length} will be in MMS`}
+                            color="warning"
+                            variant="outlined"
+                          />
+                        )}
                       </Typography>
 
                       <TextField
@@ -407,11 +442,16 @@ function MmsGeneratorPage(): React.JSX.Element {
 
                       <MmsActionBar
                         circularId={circularId}
+                        storeId={selectedStore._id || selectedStore.id || ''}
                         storeSlug={storeSlug}
+                        storeName={selectedStore.name}
                         campaignCode={campaignCode}
-                        products={products}
+                        products={mmsProducts}
                         headline={headline}
+                        circularFileUrl={circularFileUrl}
                         onGenerated={setGenerationResult}
+                        storeProvider={selectedStore.provider}
+                        storeBandwidthPhone={selectedStore.bandwidthPhoneNumber}
                       />
 
                       {generationResult && (
@@ -442,7 +482,7 @@ function MmsGeneratorPage(): React.JSX.Element {
                         MMS Preview
                       </Typography>
                       <MmsPreviewPhone
-                        products={products}
+                        products={mmsProducts}
                         headline={headline}
                         campaignCode={campaignCode || 'PREVIEW'}
                         storeName={selectedStore.name}
@@ -462,6 +502,7 @@ function MmsGeneratorPage(): React.JSX.Element {
                   >
                     <CardContent>
                       <MmsThemeEditor
+                        storeId={selectedStore?._id || ''}
                         storeSlug={storeSlug}
                         theme={mmsTheme}
                         onThemeChange={setMmsTheme}

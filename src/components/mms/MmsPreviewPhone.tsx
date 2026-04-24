@@ -8,8 +8,10 @@ interface Product {
   price: string;
   unit?: string;
   emoji?: string;
+  imageUrl?: string;
   isHero?: boolean;
   savings?: string;
+  category?: string;
 }
 
 interface MmsTheme {
@@ -39,12 +41,35 @@ const DEFAULT: MmsTheme = {
   primaryDark: '#B01820',
   accentColor: '#FFD700',
   textOnPrimary: '#FFFFFF',
-  footerBg: '#333333',
+  footerBg: '#1a1a2e',
   ctaText: 'SHOW THIS AT CHECKOUT:',
   footerText: 'Powered by Sweepstouch',
   showBarcode: true,
   showQr: true,
 };
+
+/** Category-based fallback emoji icons */
+const CATEGORY_ICONS: Record<string, string> = {
+  meat: '🥩',
+  seafood: '🦐',
+  produce: '🥬',
+  dairy: '🧀',
+  bakery: '🍞',
+  frozen: '🧊',
+  pantry: '🥫',
+  beverages: '🥤',
+  deli: '🥪',
+  other: '🛒',
+};
+
+/** Get the best visual for a product: image URL, emoji, or category fallback */
+function getProductVisual(p: Product): { type: 'image' | 'emoji'; value: string } {
+  if (p.imageUrl && p.imageUrl !== 'no-image.jpg' && p.imageUrl !== '') {
+    return { type: 'image', value: p.imageUrl };
+  }
+  const emoji = p.emoji || CATEGORY_ICONS[p.category || 'other'] || '🛒';
+  return { type: 'emoji', value: emoji };
+}
 
 export default function MmsPreviewPhone({
   products,
@@ -64,6 +89,8 @@ export default function MmsPreviewPhone({
     [products, heroProduct]
   );
 
+  const heroVisual = heroProduct ? getProductVisual(heroProduct) : null;
+
   return (
     <Box
       sx={{
@@ -71,22 +98,22 @@ export default function MmsPreviewPhone({
         maxWidth: 320,
         borderRadius: '28px',
         overflow: 'hidden',
-        border: '8px solid #222',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-        background: '#222',
+        border: '8px solid #1a1a2e',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.4), 0 0 30px rgba(220,31,38,0.1)',
+        background: '#1a1a2e',
       }}
     >
       {/* Phone Notch */}
       <Box
         sx={{
           height: 24,
-          background: '#222',
+          background: '#1a1a2e',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
         }}
       >
-        <Box sx={{ width: 80, height: 6, borderRadius: 3, background: '#444' }} />
+        <Box sx={{ width: 80, height: 6, borderRadius: 3, background: '#333' }} />
       </Box>
 
       {/* Content */}
@@ -95,145 +122,324 @@ export default function MmsPreviewPhone({
           maxHeight: 520,
           overflowY: 'auto',
           background: 'white',
-          '&::-webkit-scrollbar': { width: 4 },
-          '&::-webkit-scrollbar-thumb': { background: '#ccc', borderRadius: 4 },
+          '&::-webkit-scrollbar': { width: 3 },
+          '&::-webkit-scrollbar-thumb': { background: '#ddd', borderRadius: 3 },
         }}
       >
-        {/* Header */}
-        <Box sx={{ background: t.primaryColor, color: t.textOnPrimary, textAlign: 'center', p: 1.5 }}>
+        {/* ─── Header ─────────────────────────── */}
+        <Box
+          sx={{
+            background: `linear-gradient(135deg, ${t.primaryColor} 0%, ${t.primaryDark} 100%)`,
+            color: t.textOnPrimary,
+            textAlign: 'center',
+            p: 2,
+            position: 'relative',
+            overflow: 'hidden',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: -20,
+              right: -20,
+              width: 80,
+              height: 80,
+              borderRadius: '50%',
+              background: 'rgba(255,255,255,0.05)',
+            },
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              bottom: -30,
+              left: -10,
+              width: 60,
+              height: 60,
+              borderRadius: '50%',
+              background: 'rgba(255,255,255,0.03)',
+            },
+          }}
+        >
           {t.logoUrl && (
             <Box sx={{ mb: 0.5 }}>
               <img
                 src={t.logoUrl}
                 alt={storeName}
-                style={{ maxHeight: 32, maxWidth: 150, objectFit: 'contain' }}
+                style={{ maxHeight: 36, maxWidth: 160, objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}
               />
             </Box>
           )}
-          <Typography sx={{ fontSize: 15, fontWeight: 'bold', mb: 0.3 }}>
-            🔴 VIP CUSTOMER SALE 🔴
+          <Typography sx={{ fontSize: 16, fontWeight: 900, letterSpacing: 1.5, textTransform: 'uppercase', textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
+            ⭐ VIP CUSTOMER SALE ⭐
           </Typography>
-          <Typography sx={{ fontSize: 11 }}>
+          <Typography sx={{ fontSize: 11, opacity: 0.9, mt: 0.3, fontWeight: 500 }}>
             {headline || 'EXCLUSIVE MEMBER PRICING'}
           </Typography>
           <Box
             sx={{
               background: t.accentColor,
-              color: t.primaryColor,
-              px: 1.5,
+              color: '#1a1a1a',
+              px: 2,
               py: 0.5,
               mt: 1,
-              fontWeight: 'bold',
+              fontWeight: 800,
               fontSize: 11,
-              borderRadius: 0.5,
+              borderRadius: 1,
               display: 'inline-block',
+              boxShadow: '0 2px 8px rgba(255,215,0,0.4)',
             }}
           >
             {validDates}
           </Box>
         </Box>
 
-        {/* Hero Product */}
+        {/* ─── Hero Product ───────────────────── */}
         {heroProduct && (
           <Box
             sx={{
-              background: `linear-gradient(to bottom, ${t.primaryColor}, ${t.primaryDark})`,
-              p: 2,
+              background: `linear-gradient(180deg, ${t.primaryColor} 0%, ${t.primaryDark} 70%, #fff 100%)`,
               textAlign: 'center',
               color: t.textOnPrimary,
+              pb: 3,
+              pt: 2,
+              px: 2,
+              position: 'relative',
             }}
           >
-            <Typography sx={{ fontSize: 14, fontWeight: 'bold', mb: 0.5 }}>
-              {heroProduct.emoji} {heroProduct.name}
+            {/* Hero image or emoji */}
+            {heroVisual && heroVisual.type === 'image' ? (
+              <Box
+                sx={{
+                  width: 100,
+                  height: 100,
+                  mx: 'auto',
+                  mb: 1.5,
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  border: '3px solid rgba(255,255,255,0.3)',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                  bgcolor: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <img
+                  src={heroVisual.value}
+                  alt={heroProduct.name}
+                  style={{ width: '85%', height: '85%', objectFit: 'contain' }}
+                />
+              </Box>
+            ) : heroVisual ? (
+              <Typography sx={{ fontSize: 48, mb: 1, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }}>
+                {heroVisual.value}
+              </Typography>
+            ) : null}
+
+            <Typography sx={{ fontSize: 14, fontWeight: 700, mb: 0.5, textShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
+              {heroProduct.name}
             </Typography>
             <Typography
-              sx={{ fontSize: 32, fontWeight: 'bold', color: t.accentColor, lineHeight: 1 }}
+              sx={{
+                fontSize: 40,
+                fontWeight: 900,
+                color: t.accentColor,
+                lineHeight: 1,
+                textShadow: '0 3px 6px rgba(0,0,0,0.3)',
+                letterSpacing: -1,
+              }}
             >
               {heroProduct.price}
             </Typography>
             {heroProduct.unit && (
-              <Typography sx={{ fontSize: 11, opacity: 0.9 }}>{heroProduct.unit}</Typography>
+              <Typography sx={{ fontSize: 12, opacity: 0.85, fontWeight: 500, mt: 0.3 }}>
+                {heroProduct.unit}
+              </Typography>
             )}
             {heroProduct.savings && (
               <Box
                 component="span"
                 sx={{
                   background: t.accentColor,
-                  color: t.primaryColor,
-                  px: 1,
-                  py: 0.25,
+                  color: '#1a1a1a',
+                  px: 1.5,
+                  py: 0.3,
                   borderRadius: 10,
                   display: 'inline-block',
-                  mt: 0.5,
-                  fontWeight: 'bold',
+                  mt: 1,
+                  fontWeight: 800,
                   fontSize: 10,
+                  boxShadow: '0 2px 8px rgba(255,215,0,0.4)',
+                  letterSpacing: 0.5,
                 }}
               >
-                SAVE {heroProduct.savings}!
+                🔥 SAVE {heroProduct.savings}!
               </Box>
             )}
           </Box>
         )}
 
-        {/* Secondary Products */}
+        {/* ─── Secondary Products ─────────────── */}
         {secondaryProducts.length > 0 && (
-          <Box sx={{ p: 1.5 }}>
+          <Box sx={{ px: 1.5, pt: 1.5, pb: 1 }}>
             <Typography
-              sx={{ fontSize: 13, color: t.primaryColor, textAlign: 'center', fontWeight: 'bold', mb: 1 }}
+              sx={{
+                fontSize: 13,
+                color: t.primaryColor,
+                textAlign: 'center',
+                fontWeight: 800,
+                mb: 1.5,
+                letterSpacing: 1,
+                textTransform: 'uppercase',
+              }}
             >
-              MORE VIP DEALS:
+              🔥 MORE VIP DEALS:
             </Typography>
-            {secondaryProducts.slice(0, 5).map((p, i) => (
-              <Box
-                key={i}
+            {secondaryProducts.slice(0, 5).map((p, i) => {
+              const visual = getProductVisual(p);
+              return (
+                <Box
+                  key={i}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    py: 0.8,
+                    px: 0.5,
+                    borderBottom: i < Math.min(secondaryProducts.length, 5) - 1 ? '1px solid #f0f0f0' : 'none',
+                    borderRadius: 1,
+                    transition: 'background 0.15s',
+                    '&:hover': { background: '#fafafa' },
+                  }}
+                >
+                  {/* Product image or emoji */}
+                  {visual.type === 'image' ? (
+                    <Box
+                      sx={{
+                        width: 40,
+                        height: 40,
+                        minWidth: 40,
+                        borderRadius: 1.5,
+                        overflow: 'hidden',
+                        mr: 1,
+                        border: '1px solid #eee',
+                        bgcolor: '#fafafa',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <img
+                        src={visual.value}
+                        alt={p.name}
+                        style={{ width: '90%', height: '90%', objectFit: 'contain' }}
+                      />
+                    </Box>
+                  ) : (
+                    <Box
+                      sx={{
+                        width: 40,
+                        height: 40,
+                        minWidth: 40,
+                        borderRadius: 1.5,
+                        mr: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'linear-gradient(135deg, #f8f9fa 0%, #eee 100%)',
+                        fontSize: 20,
+                      }}
+                    >
+                      {visual.value}
+                    </Box>
+                  )}
+
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography
+                      sx={{
+                        fontWeight: 600,
+                        fontSize: 11,
+                        color: '#2d2d2d',
+                        lineHeight: 1.3,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {p.name}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        color: t.primaryColor,
+                        fontWeight: 800,
+                        fontSize: 14,
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {p.price}
+                    </Typography>
+                  </Box>
+
+                  {/* Savings badge */}
+                  {p.savings && (
+                    <Box
+                      sx={{
+                        background: `linear-gradient(135deg, ${t.primaryColor}, ${t.primaryDark})`,
+                        color: 'white',
+                        px: 0.8,
+                        py: 0.2,
+                        borderRadius: 0.5,
+                        fontSize: 8,
+                        fontWeight: 700,
+                        ml: 0.5,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      -{p.savings}
+                    </Box>
+                  )}
+                </Box>
+              );
+            })}
+            {secondaryProducts.length > 5 && (
+              <Typography
                 sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  py: 0.8,
-                  borderBottom:
-                    i < secondaryProducts.length - 1 ? '1px solid #eee' : 'none',
+                  textAlign: 'center',
+                  fontSize: 10,
+                  color: t.primaryColor,
+                  fontWeight: 600,
+                  mt: 1,
+                  opacity: 0.7,
                 }}
               >
-                <Typography sx={{ fontSize: 20, mr: 1, minWidth: 28, textAlign: 'center' }}>
-                  {p.emoji || '🛒'}
-                </Typography>
-                <Box sx={{ flex: 1 }}>
-                  <Typography sx={{ fontWeight: 'bold', fontSize: 11, color: '#333' }}>
-                    {p.name}
-                  </Typography>
-                  <Typography sx={{ color: t.primaryColor, fontWeight: 'bold', fontSize: 13 }}>
-                    {p.price}
-                  </Typography>
-                </Box>
-              </Box>
-            ))}
+                + {secondaryProducts.length - 5} more deals inside...
+              </Typography>
+            )}
           </Box>
         )}
 
-        {/* Barcode Preview */}
+        {/* ─── Barcode / Coupon ────────────────── */}
         <Box
           sx={{
-            background: '#FFF9E6',
+            background: 'linear-gradient(135deg, #FFFDF0 0%, #FFF9E6 100%)',
             borderTop: `2px solid ${t.primaryColor}`,
             borderBottom: `2px solid ${t.primaryColor}`,
             p: 1.5,
             textAlign: 'center',
           }}
         >
-          <Typography sx={{ fontSize: 10, fontWeight: 'bold', color: '#333', mb: 0.5 }}>
+          <Typography sx={{ fontSize: 10, fontWeight: 800, color: '#333', mb: 0.5, letterSpacing: 0.5, textTransform: 'uppercase' }}>
             {t.ctaText}
           </Typography>
           <Box
             sx={{
               background: 'white',
               color: t.primaryColor,
-              px: 2,
-              py: 0.8,
-              borderRadius: 1,
-              fontSize: 14,
-              fontWeight: 'bold',
+              px: 2.5,
+              py: 1,
+              borderRadius: 1.5,
+              fontSize: 16,
+              fontWeight: 900,
               display: 'inline-block',
-              border: `1.5px dashed ${t.primaryColor}`,
+              border: `2px dashed ${t.primaryColor}`,
+              letterSpacing: 2,
+              boxShadow: '0 2px 8px rgba(220,31,38,0.1)',
             }}
           >
             {campaignCode}
@@ -242,41 +448,51 @@ export default function MmsPreviewPhone({
             {t.showBarcode !== false && (
               <Box
                 sx={{
-                  background: '#f0f0f0',
+                  background: '#f8f8f8',
                   height: 40,
-                  borderRadius: 0.5,
+                  borderRadius: 1,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   mx: 'auto',
                   maxWidth: 200,
+                  border: '1px solid #eee',
                 }}
               >
-                <Typography sx={{ fontSize: 8, fontFamily: 'monospace', letterSpacing: 1 }}>
+                <Typography sx={{ fontSize: 8, fontFamily: 'monospace', letterSpacing: 1, color: '#333' }}>
                   ▌▐▌▌▐▌▐▌▌▐▐▌▌▐▌▐▌▌▐▐▌▌▐▌
                 </Typography>
               </Box>
             )}
-            <Typography sx={{ fontSize: 8, color: '#666', mt: 0.5, fontFamily: 'monospace' }}>
+            <Typography sx={{ fontSize: 8, color: '#888', mt: 0.5, fontFamily: 'monospace', letterSpacing: 0.5 }}>
               SUPER-{campaignCode}-XXXXXX
             </Typography>
           </Box>
         </Box>
 
-        {/* Footer */}
-        <Box sx={{ background: t.footerBg, color: 'white', p: 1, textAlign: 'center' }}>
-          <Typography sx={{ fontSize: 12, fontWeight: 'bold' }}>{storeName}</Typography>
-          <Typography sx={{ fontSize: 10, color: t.accentColor, mt: 0.3 }}>
+        {/* ─── Footer ─────────────────────────── */}
+        <Box
+          sx={{
+            background: `linear-gradient(135deg, ${t.footerBg} 0%, #0f0f23 100%)`,
+            color: 'white',
+            p: 1.5,
+            textAlign: 'center',
+          }}
+        >
+          <Typography sx={{ fontSize: 13, fontWeight: 800, letterSpacing: 0.5 }}>
+            {storeName}
+          </Typography>
+          <Typography sx={{ fontSize: 10, color: t.accentColor, mt: 0.3, fontWeight: 600 }}>
             {validDates}
           </Typography>
-          <Typography sx={{ fontSize: 7, opacity: 0.5, mt: 0.5 }}>
+          <Typography sx={{ fontSize: 7, opacity: 0.4, mt: 0.5, letterSpacing: 0.3 }}>
             {t.footerText}
           </Typography>
         </Box>
       </Box>
 
       {/* Phone Bottom */}
-      <Box sx={{ height: 20, background: '#222' }} />
+      <Box sx={{ height: 20, background: '#1a1a2e' }} />
     </Box>
   );
 }

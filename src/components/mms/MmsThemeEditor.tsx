@@ -17,7 +17,7 @@ import {
 import PaletteIcon from '@mui/icons-material/Palette';
 import SaveIcon from '@mui/icons-material/Save';
 import RestoreIcon from '@mui/icons-material/Restore';
-import axios from 'axios';
+import { updateStorePatch } from '@/services/store.service';
 
 export interface MmsTheme {
   primaryColor: string;
@@ -62,14 +62,13 @@ const PRESETS = [
 ];
 
 interface Props {
+  storeId: string;
   storeSlug: string;
   theme: Partial<MmsTheme>;
   onThemeChange: (theme: Partial<MmsTheme>) => void;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
-
-export default function MmsThemeEditor({ storeSlug, theme, onThemeChange }: Props) {
+export default function MmsThemeEditor({ storeId, storeSlug, theme, onThemeChange }: Props) {
   const [localTheme, setLocalTheme] = useState<MmsTheme>({ ...DEFAULT_THEME, ...theme });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -110,18 +109,13 @@ export default function MmsThemeEditor({ storeSlug, theme, onThemeChange }: Prop
   }, [onThemeChange]);
 
   const handleSave = useCallback(async () => {
-    if (!storeSlug) return;
+    if (!storeId) return;
     setSaving(true);
     setError('');
     setSaved(false);
 
     try {
-      const token = localStorage.getItem('uifort-authentication');
-      await axios.patch(
-        `${API_URL}/store/by-slug/${storeSlug}`,
-        { mmsTheme: localTheme },
-        { headers: token ? { Authorization: `Bearer ${token}` } : {} }
-      );
+      await updateStorePatch(storeId, { mmsTheme: localTheme } as any);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err: any) {
@@ -129,7 +123,7 @@ export default function MmsThemeEditor({ storeSlug, theme, onThemeChange }: Prop
     } finally {
       setSaving(false);
     }
-  }, [storeSlug, localTheme]);
+  }, [storeId, localTheme]);
 
   return (
     <Box>
