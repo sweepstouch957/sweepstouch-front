@@ -71,6 +71,7 @@ const campaignsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Listing'), route: routes.admin.management.campaings.listing },
     { title: t('Send Test'), route: routes.admin.management.campaings['send-test'], roles: ['admin'] },
     { title: t('MMS Generator'), route: routes.admin.management.campaings.mms, roles: ['admin'] },
+    { title: t('Solicitudes de Campaña'), route: routes.admin.management['campaign-requests'].listing, roles: ['admin', 'campaign_manager', 'design', 'general_manager'] },
   ]);
 
 const promotorsMenu = (t: (token: string) => string): MenuItem =>

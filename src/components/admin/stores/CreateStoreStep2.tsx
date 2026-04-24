@@ -248,36 +248,36 @@ export default function CreateStoreStep2({
   );
 
   const handleSave = async () => {
-    // Build { tablets, printers } object matching the backend Store schema
-    const tablets = tabletInventory
-      .filter((i) => (tabletQty[i.id] ?? 0) > 0)
-      .map((i) => ({
-        id: i.id,
-        label: i.label,
-        description: i.description,
-        qty: tabletQty[i.id],
-        price: i.price,
-        imei: (tabletImei[i.id] ?? []).filter(Boolean),
-      }));
+    const equipment = [
+      ...tabletInventory
+        .filter((i) => (tabletQty[i.id] ?? 0) > 0)
+        .map((i) => ({
+          id: i.id,
+          label: i.label,
+          description: i.description,
+          qty: tabletQty[i.id],
+          price: i.price,
+          type: 'tablet' as const,
+          imei: (tabletImei[i.id] ?? []).filter(Boolean),
+        })),
+      ...printerInventory
+        .filter((i) => (printerQty[i.id] ?? 0) > 0)
+        .map((i) => ({
+          id: i.id,
+          label: i.label,
+          description: i.description,
+          qty: printerQty[i.id],
+          price: i.price,
+          type: 'printer' as const,
+        })),
+    ];
 
-    const printers = printerInventory
-      .filter((i) => (printerQty[i.id] ?? 0) > 0)
-      .map((i) => ({
-        id: i.id,
-        label: i.label,
-        description: i.description,
-        qty: printerQty[i.id],
-        price: i.price,
-      }));
-
-    // Materiales adicionales (sección B) sólo los seleccionados
     const materials = sectionB
       .filter((it) => it.checked && it.qty > 0)
       .map(({ id, name, material, price, qty }) => ({ id, name, material, price, qty }));
 
     const payload = {
-      // Backend format: { tablets: [...], printers: [...] }
-      equipment: { tablets, printers },
+      equipment,
       materials,
       equipmentTotal,
       sectionBTotal,

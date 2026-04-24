@@ -243,7 +243,7 @@ export default function StoreInfo({ store }: { store: Store }) {
                 value={
                   <Box component="span">
                     {store.customerCount?.toLocaleString?.() ?? 0}{' '}
-                    <span style={{ color: 'rgba(0,0,0,.6)', fontSize: 12 }}>usuarios</span>
+                    <Box component="span" sx={{ color: 'text.secondary', fontSize: 12 }}>usuarios</Box>
                   </Box>
                 }
                 help="Total de clientes registrados"
@@ -295,7 +295,7 @@ export default function StoreInfo({ store }: { store: Store }) {
             sx={{
               borderRadius: 2,
               mb: 2,
-              backgroundColor: (t) => t.palette.grey[50],
+              backgroundColor: (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : t.palette.grey[50],
             }}
           >
             <CardContent>
@@ -428,7 +428,7 @@ export default function StoreInfo({ store }: { store: Store }) {
             sx={{
               borderRadius: 2,
               mb: 2,
-              backgroundColor: (t) => t.palette.grey[50],
+              backgroundColor: (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : t.palette.grey[50],
             }}
           >
             <CardContent>
@@ -478,8 +478,8 @@ export default function StoreInfo({ store }: { store: Store }) {
                         py: 0.4,
                         borderRadius: 1,
                         fontSize: 12,
-                        bgcolor: 'grey.100',
-                        border: (t) => `1px dashed ${t.palette.grey[300]}`,
+                        bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'grey.100',
+                        border: (t) => `1px dashed ${t.palette.mode === 'dark' ? t.palette.grey[700] : t.palette.grey[300]}`,
                         maxWidth: 220,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',

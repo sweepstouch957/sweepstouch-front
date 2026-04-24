@@ -16,6 +16,7 @@ import {
   Chip,
   Divider,
   IconButton,
+  Skeleton,
   Stack,
   Table,
   TableBody,
@@ -99,22 +100,17 @@ function toneLabel(tone: PaymentTone) {
   }
 }
 
-function toneColor(tone: PaymentTone) {
+type MuiChipColor = 'default' | 'success' | 'info' | 'warning' | 'error' | 'primary' | 'secondary';
+
+function toneChipColor(tone: PaymentTone): MuiChipColor {
   switch (tone) {
-    case 'ok':
-      return '#10B981';
-    case 'min_low':
-      return '#A3A3A3';
-    case 'low':
-      return '#FACC15';
-    case 'mid':
-      return '#FB923C';
-    case 'high':
-      return '#F43F5E';
-    case 'critical':
-      return '#7F1D1D';
-    default:
-      return undefined;
+    case 'ok': return 'success';
+    case 'min_low': return 'default';
+    case 'low': return 'info';
+    case 'mid': return 'warning';
+    case 'high': return 'error';
+    case 'critical': return 'error';
+    default: return 'default';
   }
 }
 
@@ -163,6 +159,7 @@ interface ResultsProps {
   onSortChange: (sortBy: string) => void;
 
   loading?: boolean;
+  fetching?: boolean;
   error?: string | null;
 }
 
@@ -202,15 +199,9 @@ const ActiveBadge: FC<{ active: boolean }> = ({ active }) => (
       }}
     >
       {active ? (
-        <CheckCircleRounded
-          fontSize="small"
-          sx={{ color: '#10B981' }}
-        />
+        <CheckCircleRounded fontSize="small" color="success" />
       ) : (
-        <CancelRounded
-          fontSize="small"
-          sx={{ color: '#EF4444' }}
-        />
+        <CancelRounded fontSize="small" color="error" />
       )}
     </Box>
   </Tooltip>
@@ -228,6 +219,7 @@ const Results: FC<ResultsProps> = ({
   onLimitChange,
   onSortChange,
   loading,
+  fetching,
   error,
 }) => {
   const theme = useTheme();
@@ -254,20 +246,16 @@ const Results: FC<ResultsProps> = ({
   const openTech = (store: any) => {
     const id = String(store._id || store.id || '');
     if (!id) return;
-    console.log({
-      store
-    });
-    
- setTechStore({
+    setTechStore({
       id,
-      slug:store.slug || '',
+      slug: store.slug || '',
       name: store.name,
       image: store.image,
       audience: store.customerCount,
       email: store.email,
       phone: store.phoneNumber,
-      lng: store.location.coordinates?.[0] || store.lng,
-      lat: store.location.coordinates?.[1] || store.lat,
+      lng: store.location?.coordinates?.[0] || store.lng,
+      lat: store.location?.coordinates?.[1] || store.lat,
       startContractDate: store.startContractDate,
     });
     setTechOpen(true);
@@ -356,18 +344,13 @@ const Results: FC<ResultsProps> = ({
                     sx={{ height: 22, fontSize: 11, fontWeight: 800 }}
                   />
 
-                  <Typography
-                    sx={{
-                      fontSize: 12,
-                      fontWeight: 900,
-                      letterSpacing: 0.4,
-                      textTransform: 'uppercase',
-                      color: toneColor(tone),
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {toneLabel(tone)}
-                  </Typography>
+                  <Chip
+                    size="small"
+                    label={toneLabel(tone)}
+                    color={toneChipColor(tone)}
+                    variant={tone === 'critical' ? 'filled' : 'outlined'}
+                    sx={{ fontSize: 10, fontWeight: 800, height: 20, letterSpacing: 0.4, '& .MuiChip-label': { px: 0.75 } }}
+                  />
                 </Stack>
               </Stack>
 
@@ -522,11 +505,29 @@ const Results: FC<ResultsProps> = ({
 
   if (loading) {
     return (
-      <Card
-        variant="outlined"
-        sx={{ p: 3, borderRadius: 2.5 }}
-      >
-        <Typography color="text.secondary">Loading...</Typography>
+      <Card variant="outlined" sx={{ borderRadius: 2.5, overflow: 'hidden' }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              {['Store', 'Customers', 'Weekly', 'Balance', 'Installments', 'Status', 'Method', ''].map((h) => (
+                <TableCell key={h} sx={{ py: 1 }}>
+                  <Skeleton variant="text" width={h ? '80%' : 40} height={16} />
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <TableRow key={i}>
+                <TableCell><Skeleton variant="rectangular" width={180} height={32} sx={{ borderRadius: 1 }} /></TableCell>
+                {Array.from({ length: 6 }).map((__, j) => (
+                  <TableCell key={j}><Skeleton variant="text" width="70%" height={16} /></TableCell>
+                ))}
+                <TableCell><Skeleton variant="circular" width={28} height={28} /></TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </Card>
     );
   }
@@ -565,8 +566,12 @@ const Results: FC<ResultsProps> = ({
         <MobileList />
       ) : (
         <Card>
+          {fetching && !loading && (
+            <Box sx={{ height: 2, bgcolor: 'primary.main', opacity: 0.5, transition: 'opacity 0.3s' }} />
+          )}
           <TableContainer>
             <Table
+              size="small"
               sx={{
                 tableLayout: 'fixed',
                 width: '100%',
@@ -591,14 +596,14 @@ const Results: FC<ResultsProps> = ({
               }}
             >
               <TableHead>
-                <TableRow>
+                <TableRow sx={{ '& th': { fontSize: 11, fontWeight: 700, color: 'text.secondary', letterSpacing: '0.05em', py: 1 } }}>
                   <TableCell>
                     <TableSortLabel
                       active={sortBy === 'name'}
                       direction={sortBy === 'name' ? order : 'asc'}
                       onClick={() => onSortChange('name')}
                     >
-                      Store
+                      STORE
                     </TableSortLabel>
                   </TableCell>
 
@@ -608,26 +613,24 @@ const Results: FC<ResultsProps> = ({
                       direction={sortBy === 'customerCount' ? order : 'asc'}
                       onClick={() => onSortChange('customerCount')}
                     >
-                      Customers
+                      CUSTOMERS
                     </TableSortLabel>
                   </TableCell>
 
-                  <TableCell align="right">Weekly</TableCell>
-                  <TableCell align="right">Balance</TableCell>
-                  <TableCell align="right">Installments</TableCell>
-                  <TableCell align="center">Payment status</TableCell>
-
-                  <TableCell align="center">
+                  <TableCell align="right">WEEKLY</TableCell>
+                  <TableCell align="right">BALANCE</TableCell>
+                  <TableCell align="right">
                     <TableSortLabel
-                      active={sortBy === 'active'}
-                      direction={sortBy === 'active' ? order : 'asc'}
-                      onClick={() => onSortChange('active')}
+                      active={sortBy === 'maxDaysOverdue'}
+                      direction={sortBy === 'maxDaysOverdue' ? order : 'asc'}
+                      onClick={() => onSortChange('maxDaysOverdue')}
                     >
-                      Payment Method
+                      CUOTAS
                     </TableSortLabel>
                   </TableCell>
-
-                  <TableCell align="center">Actions</TableCell>
+                  <TableCell align="center">ESTADO</TableCell>
+                  <TableCell align="center">PAGO</TableCell>
+                  <TableCell align="center">ACCIONES</TableCell>
                 </TableRow>
               </TableHead>
 
@@ -732,17 +735,13 @@ const Results: FC<ResultsProps> = ({
 
                       {/* Payment status */}
                       <TableCell align="center">
-                        <Typography
-                          sx={{
-                            fontSize: 12,
-                            fontWeight: 950,
-                            letterSpacing: 0.5,
-                            textTransform: 'uppercase',
-                            color: toneColor(tone),
-                          }}
-                        >
-                          {toneLabel(tone)}
-                        </Typography>
+                        <Chip
+                          size="small"
+                          label={toneLabel(tone)}
+                          color={toneChipColor(tone)}
+                          variant={tone === 'critical' ? 'filled' : 'outlined'}
+                          sx={{ fontSize: 10, fontWeight: 800, height: 20, letterSpacing: 0.4, '& .MuiChip-label': { px: 0.75 } }}
+                        />
                       </TableCell>
 
                       {/* Payment method */}

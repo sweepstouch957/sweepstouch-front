@@ -213,6 +213,10 @@ export const routes = {
         'invoices-listing': '/admin/management/invoices-listing',
         'invoices-details': '/admin/management/invoices-details',
       },
+      'campaign-requests': {
+        listing: '/admin/management/campaign-requests',
+        detail: (id: string) => `/admin/management/campaign-requests/${id}`,
+      },
     },
   },
 

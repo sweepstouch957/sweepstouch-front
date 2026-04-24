@@ -16,7 +16,6 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import ImageIcon from '@mui/icons-material/Image';
-import { useMutation } from '@tanstack/react-query';
 import { circularService } from '@/services/circular.service';
 
 interface Props {
@@ -44,6 +43,8 @@ export default function FlyerUploader({
   const [overridePass, setOverridePass] = useState('');
   const [showOverride, setShowOverride] = useState(false);
   const [circularId, setCircularId] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [isExtracting, setIsExtracting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
@@ -80,64 +81,58 @@ export default function FlyerUploader({
     }
   }, []);
 
-  const uploadMutation = useMutation({
-    mutationFn: async () => {
-      if (!file || !localStoreSlug) {
-        throw new Error('Please select a file and enter store slug');
-      }
-      return circularService.upload({
+  const handleUpload = useCallback(async () => {
+    if (!file || !localStoreSlug) {
+      setError('Please select a file and enter store slug');
+      return;
+    }
+    setIsUploading(true);
+    setError('');
+    try {
+      const data = await circularService.upload({
         file,
         storeSlug: localStoreSlug,
         schedule,
         overridePassword: overridePass || undefined,
       });
-    },
-    onSuccess: (data) => {
       setCircularId(data.circular._id);
       onCircularCreated(data.circular as any);
-      setError('');
       setShowOverride(false);
       setOverridePass('');
-    },
-    onError: (err: any) => {
+    } catch (err: any) {
       const errMsg = err.response?.data?.error || err.message || 'Upload failed';
       setError(errMsg);
       if (errMsg.toLowerCase().includes('solapado')) {
         setShowOverride(true);
       }
-    },
-  });
+    } finally {
+      setIsUploading(false);
+    }
+  }, [file, localStoreSlug, schedule, overridePass, onCircularCreated]);
 
-  const extractMutation = useMutation({
-    mutationFn: async () => {
-      if (!circularId) {
-        throw new Error('Upload a flyer first');
-      }
-      onExtractionStatusChange('processing');
-      return circularService.extractProducts(circularId);
-    },
-    onSuccess: (data) => {
+  const handleExtract = useCallback(async () => {
+    if (!circularId) {
+      setError('Upload a flyer first');
+      return;
+    }
+    setIsExtracting(true);
+    onExtractionStatusChange('processing');
+    setError('');
+    try {
+      const data = await circularService.extractProducts(circularId);
       const circular = data.circular;
       onExtracted({
         products: circular.products || [],
         headline: circular.headline || '',
       });
       onExtractionStatusChange('completed');
-      setError('');
-    },
-    onError: (err: any) => {
+    } catch (err: any) {
       setError(err.response?.data?.error || err.message || 'Extraction failed');
       onExtractionStatusChange('failed');
-    },
-  });
-
-  const handleUpload = useCallback(() => {
-    uploadMutation.mutate();
-  }, [uploadMutation]);
-
-  const handleExtract = useCallback(() => {
-    extractMutation.mutate();
-  }, [extractMutation]);
+    } finally {
+      setIsExtracting(false);
+    }
+  }, [circularId, onExtracted, onExtractionStatusChange]);
 
   return (
     <Box>
@@ -262,7 +257,7 @@ export default function FlyerUploader({
               variant="contained"
               color="error"
               onClick={handleUpload}
-              disabled={!overridePass || uploadMutation.isPending}
+              disabled={!overridePass || isUploading}
             >
               Forzar Override
             </Button>
@@ -275,31 +270,31 @@ export default function FlyerUploader({
         <Button
           variant="contained"
           onClick={handleUpload}
-          disabled={!file || !localStoreSlug || uploadMutation.isPending}
-          startIcon={uploadMutation.isPending ? <CircularProgress size={18} /> : <CloudUploadIcon />}
+          disabled={!file || !localStoreSlug || isUploading}
+          startIcon={isUploading ? <CircularProgress size={18} /> : <CloudUploadIcon />}
           sx={{
             background: 'linear-gradient(135deg, #333 0%, #555 100%)',
             '&:hover': { background: 'linear-gradient(135deg, #222 0%, #444 100%)' },
           }}
         >
-          {uploadMutation.isPending ? 'Uploading...' : 'Upload Flyer'}
+          {isUploading ? 'Uploading...' : 'Upload Flyer'}
         </Button>
 
         <Button
           variant="contained"
           onClick={handleExtract}
-          disabled={!circularId || extractMutation.isPending}
-          startIcon={extractMutation.isPending ? <CircularProgress size={18} /> : <AutoAwesomeIcon />}
+          disabled={!circularId || isExtracting}
+          startIcon={isExtracting ? <CircularProgress size={18} /> : <AutoAwesomeIcon />}
           sx={{
             background: 'linear-gradient(135deg, #DC1F26 0%, #ff6b6b 100%)',
             '&:hover': { background: 'linear-gradient(135deg, #b01820 0%, #e55 100%)' },
           }}
         >
-          {extractMutation.isPending ? 'AI Extracting...' : '🤖 Extract Products with AI'}
+          {isExtracting ? 'AI Extracting...' : '🤖 Extract Products with AI'}
         </Button>
       </Stack>
 
-      {extractMutation.isPending && (
+      {isExtracting && (
         <Box sx={{ mt: 2 }}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
             GPT Vision is analyzing the flyer... This may take 10-30 seconds.

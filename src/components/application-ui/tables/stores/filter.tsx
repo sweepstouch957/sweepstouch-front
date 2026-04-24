@@ -302,88 +302,58 @@ export default function StoreFilters({
               sx={chipSx}
             />
 
-            {/* ok (al día) - verde esmeralda */}
             <Chip
               size="small"
               label={t('OK')}
+              color="success"
               variant={debtStatus === 'ok' ? 'filled' : 'outlined'}
               onClick={() => onDebtStatusChange('ok')}
-              sx={{
-                ...chipSx,
-                bgcolor: debtStatus === 'ok' ? '#10B981' : undefined,
-                borderColor: '#10B981',
-                color: debtStatus === 'ok' ? '#fff' : '#10B981',
-              }}
+              sx={chipSx}
             />
 
-            {/* min_low = 1 semana (amarillo suave) */}
             <Chip
               size="small"
               label={t('Min low')}
+              color="default"
               variant={debtStatus === 'min_low' ? 'filled' : 'outlined'}
               onClick={() => onDebtStatusChange('min_low')}
-              sx={{
-                ...chipSx,
-                bgcolor: debtStatus === 'min_low' ? '#FDE68A' : undefined,
-                borderColor: '#FDE68A',
-                color: debtStatus === 'min_low' ? '#111827' : '#B45309',
-              }}
+              sx={chipSx}
             />
 
-            {/* low = 2 semanas (amarillo) */}
             <Chip
               size="small"
               label={t('Low debt')}
+              color="info"
               variant={debtStatus === 'low' ? 'filled' : 'outlined'}
               onClick={() => onDebtStatusChange('low')}
-              sx={{
-                ...chipSx,
-                bgcolor: debtStatus === 'low' ? '#FACC15' : undefined,
-                borderColor: '#FACC15',
-                color: debtStatus === 'low' ? '#111827' : '#A16207',
-              }}
+              sx={chipSx}
             />
 
-            {/* mid = 3 semanas (naranja) */}
             <Chip
               size="small"
               label={t('Mid')}
+              color="warning"
               variant={debtStatus === 'mid' ? 'filled' : 'outlined'}
               onClick={() => onDebtStatusChange('mid')}
-              sx={{
-                ...chipSx,
-                bgcolor: debtStatus === 'mid' ? '#FB923C' : undefined,
-                borderColor: '#FB923C',
-                color: debtStatus === 'mid' ? '#111827' : '#9A3412',
-              }}
+              sx={chipSx}
             />
 
-            {/* high = 4 semanas (rojo coral) */}
             <Chip
               size="small"
               label={t('High debt')}
+              color="error"
               variant={debtStatus === 'high' ? 'filled' : 'outlined'}
               onClick={() => onDebtStatusChange('high')}
-              sx={{
-                ...chipSx,
-                bgcolor: debtStatus === 'high' ? '#F43F5E' : undefined,
-                borderColor: '#F43F5E',
-                color: debtStatus === 'high' ? '#fff' : '#BE123C',
-              }}
+              sx={chipSx}
             />
 
-            {/* critical = 5+ semanas (tinto) */}
             <Chip
               size="small"
               label={t('Critical')}
+              color="error"
               variant={debtStatus === 'critical' ? 'filled' : 'outlined'}
               onClick={() => onDebtStatusChange('critical')}
-              sx={{
-                ...chipSx,
-                bgcolor: debtStatus === 'critical' ? '#7F1D1D' : undefined,
-                borderColor: '#7F1D1D',
-                color: debtStatus === 'critical' ? '#fff' : '#7F1D1D',
-              }}
+              sx={{ ...chipSx, ...(debtStatus !== 'critical' && { opacity: 0.85 }) }}
             />
           </Stack>
 

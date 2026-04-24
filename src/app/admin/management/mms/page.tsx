@@ -217,11 +217,13 @@ function MmsGeneratorPage(): React.JSX.Element {
                 loading={loadingStores}
                 getOptionLabel={(option) => option.name}
                 isOptionEqualToValue={(option, value) => option._id === value._id}
-                renderOption={({ key: _key, ...rest }, option) => (
+                renderOption={(props, option) => {
+                  const { key, ...rest } = props as any;
+                  return (
                   <Box
                     component="li"
+                    key={key || option._id}
                     {...rest}
-                    key={option._id}
                     sx={{
                       display: 'flex',
                       alignItems: 'center',
@@ -267,7 +269,8 @@ function MmsGeneratorPage(): React.JSX.Element {
                       }}
                     />
                   </Box>
-                )}
+                  );
+                }}
                 renderInput={(params) => (
                   <TextField
                     {...params}

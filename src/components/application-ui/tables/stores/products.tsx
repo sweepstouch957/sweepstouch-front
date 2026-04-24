@@ -10,6 +10,7 @@ function Component() {
     stores,
     total,
     loading,
+    fetching,
     error,
     page,
     limit,
@@ -148,6 +149,7 @@ function Component() {
         onPageChange={handlePageChange}
         onLimitChange={handleLimitChange}
         loading={loading}
+        fetching={fetching}
         error={error}
       />
     </>
