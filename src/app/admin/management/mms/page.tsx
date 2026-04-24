@@ -41,6 +41,7 @@ export interface ExtractedProduct {
   savings?: string;
   category?: string;
   emoji?: string;
+  imageUrl?: string;
   isHero?: boolean;
 }
 
