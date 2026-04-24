@@ -533,6 +533,49 @@ export const createComponents = (): Components => {
             margin: 0,
             padding: 0,
           },
+
+          [muiTheme.breakpoints.down('sm')]: {
+            width: '100%',
+            overflow: 'hidden',
+
+            '.MuiTablePagination-toolbar': {
+              justifyContent: 'center',
+              flexWrap: 'wrap',
+              columnGap: SPACING_UNIT,
+              rowGap: SPACING_UNIT / 2,
+              width: '100%',
+            },
+
+            '.MuiTablePagination-spacer': {
+              display: 'none',
+            },
+
+            '.MuiTablePagination-selectLabel': {
+              order: 1,
+              margin: 0,
+              fontSize: 12,
+              flex: '0 0 auto',
+            },
+
+            '.MuiInputBase-root': {
+              order: 2,
+              marginRight: 0,
+              flex: '0 0 auto',
+            },
+
+            '.MuiTablePagination-displayedRows': {
+              order: 3,
+              width: '100%',
+              margin: 0,
+              textAlign: 'center',
+              fontSize: 12,
+            },
+
+            '.MuiTablePagination-actions': {
+              order: 4,
+              marginLeft: 0,
+            },
+          },
         },
 
         actions: {

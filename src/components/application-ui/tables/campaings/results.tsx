@@ -1,6 +1,8 @@
+import TestCampaignModal from '@/components/application-ui/dialogs/test-campaign-modal';
 import { Campaing, CampaingStatus } from '@/models/campaing';
 import { campaignClient } from '@/services/campaing.service';
 import { DeleteRounded, Edit, OpenInNewRounded } from '@mui/icons-material';
+import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
 import {
   Avatar,
   Box,
@@ -11,6 +13,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   IconButton,
   Stack,
   Table,
@@ -25,7 +28,6 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
 import { format } from 'date-fns';
 import numeral from 'numeral';
 import React, { useState } from 'react';
@@ -33,7 +35,6 @@ import type { FC } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SkeletonTableRow } from '../../skeleton/table/table';
 import CampaignsFilters from './CampaignsFilters';
-import TestCampaignModal from '@/components/application-ui/dialogs/test-campaign-modal';
 
 interface ResultsProps {
   campaigns: Campaing[];
@@ -189,6 +190,229 @@ const Results: FC<ResultsProps> = ({
     window.open(`/admin/management/campaings/edit/${id}`);
   };
 
+  const MobileList = () => (
+    <Stack
+      spacing={1.25}
+      sx={{ p: 1.25 }}
+    >
+      {isLoading
+        ? Array.from({ length: 4 }).map((_, i) => (
+            <Card
+              key={i}
+              variant="outlined"
+              sx={{ borderRadius: 2.5, p: 1.5 }}
+            >
+              <Stack spacing={1}>
+                <Box sx={{ height: 18, width: '72%', bgcolor: 'action.hover', borderRadius: 1 }} />
+                <Box sx={{ height: 14, width: '48%', bgcolor: 'action.hover', borderRadius: 1 }} />
+                <Box sx={{ height: 42, bgcolor: 'action.hover', borderRadius: 1.5 }} />
+              </Stack>
+            </Card>
+          ))
+        : campaigns.map((campaign) => {
+            const sent = campaign?.sent ?? 0;
+            const audience = campaign?.audience ?? 0;
+            const rate = audience > 0 ? Math.round((sent / audience) * 100) : 0;
+            const rateColor = rate >= 90 ? '#04b410ff' : rate >= 85 ? '#FB8C00' : '#FF4F4F';
+
+            return (
+              <Card
+                key={campaign._id}
+                variant="outlined"
+                sx={{ borderRadius: 2.5, overflow: 'hidden' }}
+              >
+                <Box sx={{ p: 1.5 }}>
+                  <Stack
+                    direction="row"
+                    spacing={1.25}
+                    alignItems="center"
+                  >
+                    <Avatar
+                      src={campaign.store?.image}
+                      sx={{
+                        width: 42,
+                        height: 42,
+                        cursor: 'pointer',
+                        border: `1px solid ${theme.palette.divider}`,
+                        flex: '0 0 auto',
+                      }}
+                      onClick={() => handleStoreRedirect(campaign.store?._id || '')}
+                    />
+
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      <Typography
+                        fontWeight={900}
+                        title={campaign.store?.name || ''}
+                        onClick={() => handleStoreRedirect(campaign.store?._id || '')}
+                        sx={{
+                          cursor: 'pointer',
+                          fontSize: 14,
+                          lineHeight: 1.15,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {campaign.store?.name || '-'}
+                      </Typography>
+
+                      <Stack
+                        direction="row"
+                        spacing={0.75}
+                        alignItems="center"
+                        sx={{ mt: 0.5 }}
+                      >
+                        <Chip
+                          size="small"
+                          label={campaign.type || '-'}
+                          variant="outlined"
+                          sx={{ height: 22, fontSize: 11, fontWeight: 900 }}
+                        />
+                        {getInvoiceStatusLabel(campaign.status)}
+                      </Stack>
+                    </Box>
+                  </Stack>
+
+                  <Divider sx={{ my: 1.25 }} />
+
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+                    <Box>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                      >
+                        {t('Start Date')}
+                      </Typography>
+                      <Typography
+                        fontWeight={900}
+                        sx={{ fontSize: 13 }}
+                      >
+                        {campaign.startDate
+                          ? format(new Date(campaign.startDate), 'dd/MM/yyyy')
+                          : '-'}
+                      </Typography>
+                    </Box>
+
+                    <Box>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                      >
+                        {t('Audience')}
+                      </Typography>
+                      <Typography
+                        fontWeight={900}
+                        sx={{ fontSize: 13 }}
+                      >
+                        {numeral(campaign.audience ?? 0).format('0,0')}
+                      </Typography>
+                    </Box>
+
+                    <Box>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                      >
+                        {t('Cost')}
+                      </Typography>
+                      <Typography
+                        fontWeight={900}
+                        sx={{ fontSize: 13 }}
+                      >
+                        {numeral(campaign.cost || 0).format(`$0,0.00`)}
+                      </Typography>
+                    </Box>
+
+                    <Box>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                      >
+                        ENTREGA
+                      </Typography>
+                      <Typography
+                        fontWeight={900}
+                        sx={{ fontSize: 13, color: rateColor }}
+                      >
+                        {`${rate}%`}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    justifyContent="flex-end"
+                    sx={{ mt: 1.25 }}
+                  >
+                    <Tooltip
+                      title={t('Go to Stats')}
+                      arrow
+                    >
+                      <IconButton
+                        size="small"
+                        onClick={() => handleCampaingRedirect(campaign._id || '')}
+                        color="info"
+                      >
+                        <OpenInNewRounded fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+
+                    {campaign.status !== 'completed' && (
+                      <Tooltip
+                        title={t('Test Internal')}
+                        arrow
+                      >
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setSelectedCampaignForTest(campaign);
+                            setTestModalOpen(true);
+                          }}
+                          color="warning"
+                        >
+                          <BugReportRoundedIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+
+                    {campaign.status !== 'completed' && (
+                      <Tooltip
+                        title={t('Edit Campaign')}
+                        arrow
+                      >
+                        <IconButton
+                          size="small"
+                          onClick={() => handleCampaingEditRedirect(campaign._id || '')}
+                          color="primary"
+                        >
+                          <Edit fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+
+                    {campaign.status === 'scheduled' && (
+                      <Tooltip
+                        title={t('Delete Campaign')}
+                        arrow
+                      >
+                        <IconButton
+                          size="small"
+                          onClick={() => setSelectedToDelete(campaign._id)}
+                          color="error"
+                        >
+                          <DeleteRounded fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                  </Stack>
+                </Box>
+              </Card>
+            );
+          })}
+    </Stack>
+  );
+
   return (
     <Card
       sx={{
@@ -204,260 +428,266 @@ const Results: FC<ResultsProps> = ({
         storeId={storeId}
       />
 
-      <TableContainer sx={{ maxHeight: isMobile ? 520 : 720 }}>
-        <Table
-          stickyHeader
-          size="small"
-          sx={{
-            '& .MuiTableCell-root': { py: 1.05 }, // ✅ compact rows
-            '& .MuiTableCell-head': { py: 1 }, // ✅ compact header
-          }}
-        >
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 90 }}>
-                {t('Type')}
-              </TableCell>
-
-              <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 120 }}>
-                {t('Start Date')}
-              </TableCell>
-
-              <TableCell
-                sx={{
-                  fontWeight: 900,
-                  color: 'text.secondary',
-                  width: { xs: 260, sm: 420, md: 560 },
-                  maxWidth: { xs: 260, sm: 420, md: 560 },
-                }}
-              >
-                {t('Store')}
-              </TableCell>
-
-              {!isMobile && (
-                <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 110 }}>
-                  {t('Audience')}
+      {isMobile ? (
+        <MobileList />
+      ) : (
+        <TableContainer sx={{ maxHeight: 720 }}>
+          <Table
+            stickyHeader
+            size="small"
+            sx={{
+              '& .MuiTableCell-root': { py: 1.05 }, // ✅ compact rows
+              '& .MuiTableCell-head': { py: 1 }, // ✅ compact header
+            }}
+          >
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 90 }}>
+                  {t('Type')}
                 </TableCell>
-              )}
 
-              <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 110 }}>
-                {t('Cost')}
-              </TableCell>
-
-              {!isMobile && (
-                <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 110 }}>
-                  ENTREGA
+                <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 120 }}>
+                  {t('Start Date')}
                 </TableCell>
-              )}
 
-              <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 130 }}>
-                {t('Status')}
-              </TableCell>
+                <TableCell
+                  sx={{
+                    fontWeight: 900,
+                    color: 'text.secondary',
+                    width: { xs: 260, sm: 420, md: 560 },
+                    maxWidth: { xs: 260, sm: 420, md: 560 },
+                  }}
+                >
+                  {t('Store')}
+                </TableCell>
 
-              <TableCell
-                align="center"
-                sx={{ fontWeight: 900, color: 'text.secondary', width: 120 }}
-              >
-                {t('Actions')}
-              </TableCell>
-            </TableRow>
-          </TableHead>
+                {!isMobile && (
+                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 110 }}>
+                    {t('Audience')}
+                  </TableCell>
+                )}
 
-          <TableBody>
-            {isLoading
-              ? Array.from({ length: 6 }).map((_, i) => <SkeletonTableRow key={i} />)
-              : campaigns.map((campaign) => {
-                  const selected = selectedItems.includes(campaign._id);
+                <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 110 }}>
+                  {t('Cost')}
+                </TableCell>
 
-                  const sent = campaign?.sent ?? 0;
-                  const audience = campaign?.audience ?? 0;
-                  const rate = audience > 0 ? Math.round((sent / audience) * 100) : 0;
-                  const rateColor = rate >= 90 ? '#04b410ff' : rate >= 85 ? '#FB8C00' : '#FF4F4F';
+                {!isMobile && (
+                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 110 }}>
+                    ENTREGA
+                  </TableCell>
+                )}
 
-                  return (
-                    <TableRow
-                      key={campaign._id}
-                      selected={selected}
-                      hover
-                      sx={{
-                        '&:hover': { backgroundColor: theme.palette.action.hover },
-                      }}
-                    >
-                      <TableCell>
-                        <Chip
-                          size="small"
-                          label={campaign.type}
-                          variant="outlined"
-                          sx={{ fontWeight: 900 }}
-                        />
-                      </TableCell>
+                <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 130 }}>
+                  {t('Status')}
+                </TableCell>
 
-                      <TableCell>
-                        <Typography
-                          noWrap
-                          variant="body2"
-                          fontWeight={600}
-                        >
-                          {campaign.startDate
-                            ? format(new Date(campaign.startDate), 'dd/MM/yyyy')
-                            : '-'}
-                        </Typography>
-                      </TableCell>
+                <TableCell
+                  align="center"
+                  sx={{ fontWeight: 900, color: 'text.secondary', width: 120 }}
+                >
+                  {t('Actions')}
+                </TableCell>
+              </TableRow>
+            </TableHead>
 
-                      {/* ✅ Store cell: 2 lines clamp (NO SLUG, NO H-scroll) */}
-                      <TableCell sx={{ maxWidth: { xs: 260, sm: 420, md: 560 } }}>
-                        <Box
-                          display="flex"
-                          alignItems="center"
-                          gap={1.25}
-                          sx={{ minWidth: 0 }}
-                        >
-                          <Avatar
-                            sx={{
-                              width: 34,
-                              height: 34,
-                              cursor: 'pointer',
-                              border: `1px solid ${theme.palette.divider}`,
-                              flex: '0 0 auto',
-                            }}
-                            src={campaign.store?.image}
-                            onClick={() => handleStoreRedirect(campaign.store?._id || '')}
+            <TableBody>
+              {isLoading
+                ? Array.from({ length: 6 }).map((_, i) => <SkeletonTableRow key={i} />)
+                : campaigns.map((campaign) => {
+                    const selected = selectedItems.includes(campaign._id);
+
+                    const sent = campaign?.sent ?? 0;
+                    const audience = campaign?.audience ?? 0;
+                    const rate = audience > 0 ? Math.round((sent / audience) * 100) : 0;
+                    const rateColor = rate >= 90 ? '#04b410ff' : rate >= 85 ? '#FB8C00' : '#FF4F4F';
+
+                    return (
+                      <TableRow
+                        key={campaign._id}
+                        selected={selected}
+                        hover
+                        sx={{
+                          '&:hover': { backgroundColor: theme.palette.action.hover },
+                        }}
+                      >
+                        <TableCell>
+                          <Chip
+                            size="small"
+                            label={campaign.type}
+                            variant="outlined"
+                            sx={{ fontWeight: 900 }}
                           />
+                        </TableCell>
 
-                          <Typography
-                            variant="subtitle2"
-                            fontWeight={800}
-                            onClick={() => handleStoreRedirect(campaign.store?._id || '')}
-                            title={campaign.store?.name || ''}
-                            sx={{
-                              cursor: 'pointer',
-                              lineHeight: 1.2,
-                              minWidth: 0,
-
-                              // ✅ clamp 2 lines
-                              display: '-webkit-box',
-                              WebkitBoxOrient: 'vertical',
-                              WebkitLineClamp: 2,
-
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              wordBreak: 'break-word',
-                            }}
-                          >
-                            {campaign.store?.name || '-'}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-
-                      {!isMobile && (
                         <TableCell>
                           <Typography
                             noWrap
                             variant="body2"
+                            fontWeight={600}
                           >
-                            {campaign.audience ?? 0}
+                            {campaign.startDate
+                              ? format(new Date(campaign.startDate), 'dd/MM/yyyy')
+                              : '-'}
                           </Typography>
                         </TableCell>
-                      )}
 
-                      <TableCell>
-                        <Typography
-                          variant="body2"
-                          fontWeight={900}
-                        >
-                          {numeral(campaign.cost || 0).format(`$0,0.00`)}
-                        </Typography>
-                      </TableCell>
+                        {/* ✅ Store cell: 2 lines clamp (NO SLUG, NO H-scroll) */}
+                        <TableCell sx={{ maxWidth: { xs: 260, sm: 420, md: 560 } }}>
+                          <Box
+                            display="flex"
+                            alignItems="center"
+                            gap={1.25}
+                            sx={{ minWidth: 0 }}
+                          >
+                            <Avatar
+                              sx={{
+                                width: 34,
+                                height: 34,
+                                cursor: 'pointer',
+                                border: `1px solid ${theme.palette.divider}`,
+                                flex: '0 0 auto',
+                              }}
+                              src={campaign.store?.image}
+                              onClick={() => handleStoreRedirect(campaign.store?._id || '')}
+                            />
 
-                      {!isMobile && (
+                            <Typography
+                              variant="subtitle2"
+                              fontWeight={800}
+                              onClick={() => handleStoreRedirect(campaign.store?._id || '')}
+                              title={campaign.store?.name || ''}
+                              sx={{
+                                cursor: 'pointer',
+                                lineHeight: 1.2,
+                                minWidth: 0,
+
+                                // ✅ clamp 2 lines
+                                display: '-webkit-box',
+                                WebkitBoxOrient: 'vertical',
+                                WebkitLineClamp: 2,
+
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                wordBreak: 'break-word',
+                              }}
+                            >
+                              {campaign.store?.name || '-'}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+
+                        {!isMobile && (
+                          <TableCell>
+                            <Typography
+                              noWrap
+                              variant="body2"
+                            >
+                              {campaign.audience ?? 0}
+                            </Typography>
+                          </TableCell>
+                        )}
+
                         <TableCell>
                           <Typography
                             variant="body2"
                             fontWeight={900}
-                            sx={{ color: rateColor }}
                           >
-                            {`${rate}%`}
+                            {numeral(campaign.cost || 0).format(`$0,0.00`)}
                           </Typography>
                         </TableCell>
-                      )}
 
-                      <TableCell>{getInvoiceStatusLabel(campaign.status)}</TableCell>
+                        {!isMobile && (
+                          <TableCell>
+                            <Typography
+                              variant="body2"
+                              fontWeight={900}
+                              sx={{ color: rateColor }}
+                            >
+                              {`${rate}%`}
+                            </Typography>
+                          </TableCell>
+                        )}
 
-                      <TableCell align="center">
-                        <Stack
-                          direction="row"
-                          spacing={1}
-                          justifyContent="center"
-                        >
-                          <Tooltip
-                            title={t('Go to Stats')}
-                            arrow
+                        <TableCell>{getInvoiceStatusLabel(campaign.status)}</TableCell>
+
+                        <TableCell align="center">
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            justifyContent="center"
                           >
-                            <IconButton
-                              onClick={() => handleCampaingRedirect(campaign._id || '')}
-                              color="info"
-                            >
-                              <OpenInNewRounded fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-
-                          {campaign.status !== 'completed' && (
                             <Tooltip
-                              title={t('Test Internal')}
+                              title={t('Go to Stats')}
                               arrow
                             >
                               <IconButton
-                                onClick={() => {
-                                  setSelectedCampaignForTest(campaign);
-                                  setTestModalOpen(true);
-                                }}
-                                color="warning"
+                                onClick={() => handleCampaingRedirect(campaign._id || '')}
+                                color="info"
                               >
-                                <BugReportRoundedIcon fontSize="small" />
+                                <OpenInNewRounded fontSize="small" />
                               </IconButton>
                             </Tooltip>
-                          )}
 
-                          {campaign.status !== 'completed' && (
-                            <Tooltip
-                              title={t('Edit Campaign')}
-                              arrow
-                            >
-                              <IconButton
-                                onClick={() => handleCampaingEditRedirect(campaign._id || '')}
-                                color="primary"
+                            {campaign.status !== 'completed' && (
+                              <Tooltip
+                                title={t('Test Internal')}
+                                arrow
                               >
-                                <Edit fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
+                                <IconButton
+                                  onClick={() => {
+                                    setSelectedCampaignForTest(campaign);
+                                    setTestModalOpen(true);
+                                  }}
+                                  color="warning"
+                                >
+                                  <BugReportRoundedIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
 
-                          {campaign.status === 'scheduled' && (
-                            <Tooltip
-                              title={t('Delete Campaign')}
-                              arrow
-                            >
-                              <IconButton
-                                onClick={() => setSelectedToDelete(campaign._id)}
-                                color="error"
+                            {campaign.status !== 'completed' && (
+                              <Tooltip
+                                title={t('Edit Campaign')}
+                                arrow
                               >
-                                <DeleteRounded fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-          </TableBody>
-        </Table>
-      </TableContainer>
+                                <IconButton
+                                  onClick={() => handleCampaingEditRedirect(campaign._id || '')}
+                                  color="primary"
+                                >
+                                  <Edit fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+
+                            {campaign.status === 'scheduled' && (
+                              <Tooltip
+                                title={t('Delete Campaign')}
+                                arrow
+                              >
+                                <IconButton
+                                  onClick={() => setSelectedToDelete(campaign._id)}
+                                  color="error"
+                                >
+                                  <DeleteRounded fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
       <Box
-        p={2}
-        display="flex"
-        justifyContent="flex-end"
+        sx={{
+          p: { xs: 1.25, sm: 2 },
+          display: 'flex',
+          justifyContent: { xs: 'center', sm: 'flex-end' },
+        }}
       >
         <TablePagination
           component="div"
