@@ -58,7 +58,7 @@ const Layout = async (props: LayoutProps) => {
         <link rel="shortcut icon" href="/sweeps.ico" />
       </head>
 
-      <body>
+      <body suppressHydrationWarning>
         <DocumentLayout customization={customization}>
           {children}
           <NProgress />

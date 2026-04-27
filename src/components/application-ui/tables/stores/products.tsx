@@ -43,6 +43,7 @@ function Component() {
     handlePaymentMethodChange,
     paymentMethod,
     handleMaxDebtChange,
+    refetch,
   } = useStores();
 
   async function exportAll() {
@@ -160,6 +161,7 @@ function Component() {
         onSortChange={handleSortChange}
         onPageChange={handlePageChange}
         onLimitChange={handleLimitChange}
+        onRefresh={refetch}
         loading={loading}
         fetching={fetching}
         error={error}

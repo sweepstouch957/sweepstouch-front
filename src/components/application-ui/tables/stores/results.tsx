@@ -2,18 +2,29 @@
 'use client';
 
 import { Store } from '@/services/store.service';
+import { duplicateStore } from '@/services/store.service';
+import { useAuth } from '@/hooks/use-auth';
 import {
   AccountCircle,
   CancelRounded,
   CheckCircleRounded,
+  ContentCopyRounded,
   PaymentsRounded,
   Settings,
   Web,
 } from '@mui/icons-material';
 import {
+  Alert,
   Box,
+  Button,
   Card,
   Chip,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Divider,
   IconButton,
   Skeleton,
@@ -26,14 +37,16 @@ import {
   TablePagination,
   TableRow,
   TableSortLabel,
+  TextField,
   Tooltip,
   Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
 import Link from 'next/link';
-import React, { ChangeEvent, FC, useMemo } from 'react';
+import React, { ChangeEvent, FC, useMemo, useState, useCallback } from 'react';
 import StoreTechModal from './StoreInfoSimplified';
+import toast from 'react-hot-toast';
 
 /* ------------------------------- helper split ------------------------------ */
 function splitByFirstNumber(raw: string, fallbackAddress?: string) {
@@ -157,6 +170,7 @@ interface ResultsProps {
   onPageChange: (page: number) => void;
   onLimitChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onSortChange: (sortBy: string) => void;
+  onRefresh?: () => void;
 
   loading?: boolean;
   fetching?: boolean;
@@ -218,14 +232,55 @@ const Results: FC<ResultsProps> = ({
   onPageChange,
   onLimitChange,
   onSortChange,
+  onRefresh,
   loading,
   fetching,
   error,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
   const rowsPerPageOptions = useMemo(() => [5, 10, 25, 50, 100], []);
+
+  // ✅ Duplicate dialog state
+  const [dupDialogOpen, setDupDialogOpen] = useState(false);
+  const [dupStore, setDupStore] = useState<{ id: string; name: string } | null>(null);
+  const [dupName, setDupName] = useState('');
+  const [dupLoading, setDupLoading] = useState(false);
+
+  const openDuplicateDialog = useCallback((store: any) => {
+    const id = String(store._id || store.id || '');
+    if (!id) return;
+    setDupStore({ id, name: store.name || '' });
+    setDupName(`${store.name || 'Store'} (Copy)`);
+    setDupDialogOpen(true);
+  }, []);
+
+  const closeDuplicateDialog = useCallback(() => {
+    setDupDialogOpen(false);
+    setDupStore(null);
+    setDupName('');
+  }, []);
+
+  const handleDuplicate = useCallback(async () => {
+    if (!dupStore) return;
+    setDupLoading(true);
+    try {
+      const result = await duplicateStore(dupStore.id, {
+        name: dupName.trim() || undefined,
+      });
+      toast.success(result.message || 'Tienda duplicada exitosamente');
+      closeDuplicateDialog();
+      onRefresh?.();
+    } catch (err: any) {
+      console.error('❌ Error duplicating store:', err);
+      toast.error(err?.response?.data?.error || 'Error al duplicar tienda');
+    } finally {
+      setDupLoading(false);
+    }
+  }, [dupStore, dupName, closeDuplicateDialog, onRefresh]);
 
   // ✅ Modal state (Ficha técnica)
   const [techOpen, setTechOpen] = React.useState(false);
@@ -776,45 +831,15 @@ const Results: FC<ResultsProps> = ({
                       </TableCell>
 
                       {/* Actions */}
-                      <TableCell align="center">
-                        <Tooltip
-                          title="View"
-                          arrow
-                        >
-                          <Link
-                            href={`/admin/management/stores/edit/${id}`}
-                            passHref
-                          >
-                            <IconButton color="primary">
-                              <Settings fontSize="small" />
-                            </IconButton>
-                          </Link>
-                        </Tooltip>
-
-                        <Tooltip
-                          title="Merchant"
-                          arrow
-                        >
-                          <IconButton
-                            color="secondary"
-                            onClick={() => window.open(buildSwitchUrl(store.accessCode), '_blank')}
-                          >
-                            <Web fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-
-                        {/* ✅ Details -> opens Tech Modal */}
-                        <Tooltip
-                          title="Ficha técnica"
-                          arrow
-                        >
-                          <IconButton
-                            color="primary"
-                            onClick={() => openTech(store)}
-                          >
-                            <AccountCircle fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                      <TableCell align="center" sx={{ px: 0.5 }}>
+                        <Stack direction="row" spacing={0} justifyContent="center" sx={{ '& .MuiIconButton-root': { p: 0.4 }, '& .MuiSvgIcon-root': { fontSize: 16 } }}>
+                          <Tooltip title="Editar" arrow><Link href={`/admin/management/stores/edit/${id}`} passHref><IconButton color="primary"><Settings /></IconButton></Link></Tooltip>
+                          <Tooltip title="Merchant" arrow><IconButton color="secondary" onClick={() => window.open(buildSwitchUrl(store.accessCode), '_blank')}><Web /></IconButton></Tooltip>
+                          <Tooltip title="Ficha" arrow><IconButton color="primary" onClick={() => openTech(store)}><AccountCircle /></IconButton></Tooltip>
+                          {isAdmin && (
+                            <Tooltip title="Duplicar (sin deuda)" arrow><IconButton color="warning" onClick={() => openDuplicateDialog(store)}><ContentCopyRounded /></IconButton></Tooltip>
+                          )}
+                        </Stack>
                       </TableCell>
                     </TableRow>
                   );
@@ -857,6 +882,61 @@ const Results: FC<ResultsProps> = ({
           contactInfo={techStore.contactInfo}
         />
       ) : null}
+
+      {/* ✅ Duplicate Store Confirmation Dialog */}
+      <Dialog
+        open={dupDialogOpen}
+        onClose={closeDuplicateDialog}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <ContentCopyRounded color="warning" />
+          Duplicar Tienda
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            Se creará una copia de <strong>{dupStore?.name}</strong> con toda la información
+            de contacto y clientes, pero <strong>sin deuda ni campañas previas</strong>.
+            Un nuevo slug será generado automáticamente.
+          </DialogContentText>
+          <TextField
+            autoFocus
+            fullWidth
+            label="Nombre de la nueva tienda"
+            value={dupName}
+            onChange={(e) => setDupName(e.target.value)}
+            variant="outlined"
+            sx={{ mt: 1 }}
+            helperText="Puedes cambiar el nombre o dejar el sugerido"
+          />
+          <Alert severity="info" sx={{ mt: 2, borderRadius: 2 }}>
+            • Se copian: info general, contactos, dirección, teléfonos, equipos, branding MMS
+            <br />• Se transfieren los clientes (aparecerán en ambas tiendas)
+            <br />• NO se copian: campañas, facturas, pagos ni QR
+          </Alert>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button
+            onClick={closeDuplicateDialog}
+            color="inherit"
+            disabled={dupLoading}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleDuplicate}
+            variant="contained"
+            color="warning"
+            disabled={dupLoading || !dupName.trim()}
+            startIcon={dupLoading ? <CircularProgress size={16} color="inherit" /> : <ContentCopyRounded />}
+            sx={{ fontWeight: 700, borderRadius: 2 }}
+          >
+            {dupLoading ? 'Duplicando...' : 'Duplicar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };

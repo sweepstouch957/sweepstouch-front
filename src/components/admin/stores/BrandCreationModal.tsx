@@ -1,5 +1,5 @@
 import { useBrands } from '@/hooks/fetching/brands/useBrands';
-import { api } from '@/libs/axios';
+import { uploadCampaignImage } from '@/services/upload.service';
 import brandService, { Brand } from '@/services/brand.service';
 import {
   Box,
@@ -63,15 +63,8 @@ export const BrandCreationModal: React.FC<BrandCreationModalProps> = ({
       // 1. Upload image if exists
       let finalImageUrl = imageUrl || 'no-image.jpg';
       if (imageFile) {
-        const formData = new FormData();
-        formData.append('image', imageFile);
-        formData.append('folder', 'brands');
-
-        const uploadRes = await api.post('/upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-
-        finalImageUrl = uploadRes.data?.url || uploadRes.data?.imageUrl || finalImageUrl;
+        const uploadRes = await uploadCampaignImage(imageFile, 'brands');
+        finalImageUrl = uploadRes.url || finalImageUrl;
       }
 
       // 2. Create or Update Brand

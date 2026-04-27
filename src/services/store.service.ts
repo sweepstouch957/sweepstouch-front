@@ -466,6 +466,26 @@ export const deleteContractApi = async (id: string): Promise<void> => {
   await api.delete(`/store/contracts/${id}`);
 };
 
+// ── Duplicate Store (admin-only) ──────────────────────────────────────────────
+export interface DuplicateStorePayload {
+  name?: string; // optional new name (default: "Original (Copy)")
+}
+
+export interface DuplicateStoreResponse {
+  ok: boolean;
+  store: Store;
+  customersCopied: number;
+  message: string;
+}
+
+export const duplicateStore = async (
+  storeId: string,
+  payload?: DuplicateStorePayload
+): Promise<DuplicateStoreResponse> => {
+  const res = await api.post(`/store/${storeId}/duplicate`, payload || {});
+  return res.data;
+};
+
 const storesService = {
   getStores,
   getStoresBillingSummary,
@@ -492,6 +512,7 @@ const storesService = {
   createContract: createContractApi,
   patchContract,
   deleteContract: deleteContractApi,
+  duplicateStore,
 };
 
 export default storesService;
