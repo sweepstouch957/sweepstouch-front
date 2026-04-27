@@ -2,9 +2,9 @@
 
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import PeopleIcon from '@mui/icons-material/People';
+import PersonPinCircleRoundedIcon from '@mui/icons-material/PersonPinCircleRounded';
 import StarIcon from '@mui/icons-material/Star';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { Box, CircularProgress, Tooltip, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import KpiCard from '../../card-shells/kpi-card';
 import { promoterService } from '@/services/promotor.service';
@@ -17,10 +17,7 @@ const KpiSection = () => {
 
   if (isLoading) {
     return (
-      <Box
-        py={4}
-        textAlign="center"
-      >
+      <Box py={4} textAlign="center">
         <CircularProgress />
       </Box>
     );
@@ -28,11 +25,7 @@ const KpiSection = () => {
 
   if (isError || !data) {
     return (
-      <Typography
-        color="error"
-        textAlign="center"
-        py={4}
-      >
+      <Typography color="error" textAlign="center" py={4}>
         No se pudieron cargar las estadísticas.
       </Typography>
     );
@@ -55,11 +48,22 @@ const KpiSection = () => {
         label="Total Impulsadoras"
         value={data.totalPromoters}
       />
-      <KpiCard
-        icon={<TrendingUpIcon />}
-        label="Activas"
-        value={data.activePromoters}
-      />
+
+      {/* Promotoras con turno activo = disponibles para trabajar */}
+      <Tooltip
+        title={`${data.enabledPromoters ?? data.totalPromoters} cuentas habilitadas en total`}
+        arrow
+        placement="top"
+      >
+        <span>
+          <KpiCard
+            icon={<PersonPinCircleRoundedIcon />}
+            label="Activas"
+            value={data.activePromoters}
+          />
+        </span>
+      </Tooltip>
+
       <KpiCard
         icon={<CalendarMonthIcon />}
         label="Total Turnos"

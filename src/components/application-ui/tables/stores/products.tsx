@@ -1,11 +1,15 @@
 import { useStores } from '@/hooks/stores/useStores';
+import ExportButton from '@/components/application-ui/buttons/export-button';
+import PageHeading from '@/components/base/page-heading';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import * as XLSX from 'xlsx';
 import StoreFilter from './filter';
 import { StoresBillingHeader } from './header';
 import Results from './results';
 
 function Component() {
+  const { t } = useTranslation();
   const {
     stores,
     total,
@@ -113,10 +117,18 @@ function Component() {
 
   return (
     <>
-      <StoresBillingHeader />
+      <PageHeading
+        title={t('Stores')}
+        description={t('Overview of all stores')}
+        actions={<ExportButton eventName="stores:export" emitOnly />}
+      />
+
+      <StoresBillingHeader
+        onFilterByDebt={(ds) => handleDebtStatusChange(ds as any)}
+        activeDebtStatus={debtStatus}
+      />
 
       <StoreFilter
-        t={(k) => k}
         search={search}
         total={total}
         status={status}
@@ -124,7 +136,7 @@ function Component() {
         debtStatus={debtStatus as any}
         minDebt={minDebt}
         maxDebt={maxDebt}
-        handleSearchChange={(e) => handleSearchChange(e.target.value)}
+        handleSearchChange={(v) => handleSearchChange(v)}
         onStatusChange={onStatusChange}
         onAudienceLtChange={handleAudienceLtChange}
         onDebtStatusChange={handleDebtStatusChange as any}

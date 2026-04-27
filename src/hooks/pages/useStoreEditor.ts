@@ -84,6 +84,9 @@ export function useStoreEditor(store) {
 
     // 🆕 Slug (editable)
     slug: store.slug ?? '',
+
+    // 🆕 Contact Info
+    contactInfo: store.contactInfo ?? [],
   });
 
   const kioskUrl = useMemo(
@@ -153,6 +156,13 @@ export function useStoreEditor(store) {
       'kioskTabletQuantity',
       'slug',
     ];
+
+    // contactInfo: array comparison via JSON
+    const origCI = JSON.stringify(orig?.contactInfo ?? []);
+    const currCI = JSON.stringify(curr?.contactInfo ?? []);
+    if (origCI !== currCI) {
+      patch.contactInfo = curr?.contactInfo ?? [];
+    }
 
     keys.forEach((k) => {
       const o = orig?.[k];
@@ -276,6 +286,9 @@ export function useStoreEditor(store) {
 
     // 🆕 Slug
     slug: store.slug ?? '',
+
+    // 🆕 Contact Info
+    contactInfo: store.contactInfo ?? [],
   });
 
     setEdit(false);

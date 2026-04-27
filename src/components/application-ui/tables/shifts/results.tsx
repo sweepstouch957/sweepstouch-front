@@ -286,10 +286,10 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({
               onChange={(e) => setStatus(e.target.value as any)}
             >
               <MenuItem value="all">Todos</MenuItem>
-              <MenuItem value="available">available</MenuItem>
-              <MenuItem value="assigned">assigned</MenuItem>
-              <MenuItem value="active">active</MenuItem>
-              <MenuItem value="completed">completed</MenuItem>
+              <MenuItem value="available">Disponible</MenuItem>
+              <MenuItem value="assigned">Asignado</MenuItem>
+              <MenuItem value="active">Activo</MenuItem>
+              <MenuItem value="completed">Completado</MenuItem>
             </Select>
           </FormControl>
 
@@ -324,9 +324,9 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({
       ) : (
         <>
           {/* ===== Tabla agrupada por promotora ===== */}
-          <TableContainer sx={{ borderRadius: 4, background: '#f9f9f9' }}>
+          <TableContainer sx={{ borderRadius: 4, background: 'background.paper' }}>
             <Table>
-              <TableHead sx={{ backgroundColor: theme.palette.grey[200] }}>
+              <TableHead sx={{ backgroundColor: 'action.hover' }}>
                 <TableRow>
                   <TableCell width={56} />
                   <TableCell>Impulsadora</TableCell>

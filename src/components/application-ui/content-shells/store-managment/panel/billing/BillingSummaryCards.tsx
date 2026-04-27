@@ -4,7 +4,7 @@
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import { Box, Card, CardContent, LinearProgress, Stack, Typography } from '@mui/material';
+import { alpha, Box, Card, CardContent, LinearProgress, Stack, Typography, useTheme } from '@mui/material';
 import { formatMoney } from './utils/billingFormatters';
 
 type Props = {
@@ -21,6 +21,7 @@ export function BillingSummaryCards({
   totalPending,
   currency = 'USD',
 }: Props) {
+  const theme = useTheme();
   const ratio = totalInvoiced ? Math.min(100, (totalPending / totalInvoiced) * 100) : 0;
 
   type CardItemProps = {
@@ -37,8 +38,8 @@ export function BillingSummaryCards({
       sx={{
         flex: 1,
         borderRadius: 3,
-        border: '1px solid #E5E7EB',
-        bgcolor: '#FFFFFF',
+        border: `1px solid ${theme.palette.divider}`,
+        bgcolor: 'background.paper',
         minHeight: 112,
       }}
     >
@@ -56,20 +57,20 @@ export function BillingSummaryCards({
                 textTransform: 'uppercase',
                 letterSpacing: '.08em',
                 fontWeight: 600,
-                color: '#6B7280',
+                color: 'text.secondary',
               }}
             >
               {label}
             </Typography>
             <Typography
               variant="h6"
-              sx={{ mt: 0.5, fontWeight: 700, color: '#111827' }}
+              sx={{ mt: 0.5, fontWeight: 700, color: 'text.primary' }}
             >
               {value}
             </Typography>
             <Typography
               variant="caption"
-              sx={{ mt: 0.5, display: 'block', color: '#9CA3AF' }}
+              sx={{ mt: 0.5, display: 'block', color: 'text.disabled' }}
             >
               {caption}
             </Typography>
@@ -102,16 +103,16 @@ export function BillingSummaryCards({
         label="Total facturado"
         value={formatMoney(totalInvoiced, currency)}
         caption="Histórico de facturas (no canceladas)"
-        icon={<ReceiptLongIcon sx={{ color: '#1D4ED8' }} />}
-        iconBg="rgba(37, 99, 235, 0.06)"
+        icon={<ReceiptLongIcon color="primary" />}
+        iconBg={alpha(theme.palette.primary.main, 0.08)}
       />
 
       <CardItem
         label="Total pagado"
         value={formatMoney(totalPaid, currency)}
         caption="Pagos registrados"
-        icon={<AttachMoneyIcon sx={{ color: '#16A34A' }} />}
-        iconBg="rgba(22, 163, 74, 0.08)"
+        icon={<AttachMoneyIcon color="success" />}
+        iconBg={alpha(theme.palette.success.main, 0.08)}
       />
 
       <Card
@@ -119,8 +120,8 @@ export function BillingSummaryCards({
         sx={{
           flex: 1,
           borderRadius: 3,
-          border: '1px solid #E5E7EB',
-          bgcolor: '#FFFFFF',
+          border: `1px solid ${theme.palette.divider}`,
+          bgcolor: 'background.paper',
           minHeight: 112,
         }}
       >
@@ -138,21 +139,21 @@ export function BillingSummaryCards({
                   textTransform: 'uppercase',
                   letterSpacing: '.08em',
                   fontWeight: 600,
-                  color: '#6B7280',
+                  color: 'text.secondary',
                 }}
               >
                 Pendiente
               </Typography>
               <Typography
                 variant="h6"
-                sx={{ mt: 0.5, fontWeight: 700, color: '#111827' }}
+                sx={{ mt: 0.5, fontWeight: 700, color: 'text.primary' }}
               >
                 {formatMoney(totalPending, currency)}
               </Typography>
 
               <Typography
                 variant="caption"
-                sx={{ mt: 1, display: 'block', color: '#9CA3AF' }}
+                sx={{ mt: 1, display: 'block', color: 'text.disabled' }}
               >
                 Saldo vencido / pendiente
               </Typography>
@@ -163,7 +164,7 @@ export function BillingSummaryCards({
                   mt: 1,
                   height: 6,
                   borderRadius: 999,
-                  bgcolor: '#E5E7EB',
+                  bgcolor: alpha(theme.palette.text.primary, 0.08),
                   '& .MuiLinearProgress-bar': {
                     borderRadius: 999,
                   },
@@ -179,10 +180,10 @@ export function BillingSummaryCards({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                bgcolor: 'rgba(17, 24, 39, 0.04)',
+                bgcolor: alpha(theme.palette.text.primary, 0.04),
               }}
             >
-              <PaymentsIcon sx={{ color: '#4B5563' }} />
+              <PaymentsIcon color="action" />
             </Box>
           </Stack>
         </CardContent>

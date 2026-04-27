@@ -14,6 +14,7 @@ import AddCircleOutlineRoundedIcon from '@mui/icons-material/AddCircleOutlineRou
 import ArrowBackIosNewRoundedIcon from '@mui/icons-material/ArrowBackIosNewRounded';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import {
+  alpha,
   Box,
   Breadcrumbs,
   Button,
@@ -222,9 +223,9 @@ const StoreManagementPage = () => {
                 disabled={!store?.active}
                 sx={{
                   px: 2,
-                  borderColor: '#DC1F26',
-                  color: '#DC1F26',
-                  '&:hover': { borderColor: '#b01820', background: 'rgba(220,31,38,0.04)' },
+                  borderColor: 'error.main',
+                  color: 'error.main',
+                  '&:hover': { borderColor: 'error.dark', bgcolor: alpha(theme.palette.error.main, 0.04) },
                 }}
               >
                 MMS

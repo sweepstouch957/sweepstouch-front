@@ -1,9 +1,11 @@
 // src/components/stores/StoreGeneralForm.tsx
 'use client';
 
-import { Store } from '@/services/store.service';
+import { ContactInfoItem, Store } from '@/services/store.service';
 import {
+  AddCircleOutline,
   AlternateEmail,
+  DeleteOutline,
   Facebook,
   Instagram,
   Language,
@@ -12,18 +14,26 @@ import {
   LocalPhone,
   LocationOn,
   MarkunreadMailbox,
+  PeopleAlt,
   SensorsRounded,
 } from '@mui/icons-material';
 import {
+  Avatar,
   Box,
+  Button,
   Card,
   CardHeader,
   Chip,
+  FormControl,
+  IconButton,
   InputAdornment,
+  InputLabel,
   MenuItem,
+  Select,
   Stack,
   Switch,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
@@ -55,11 +65,13 @@ type Props = {
       instagram?: string;
       website?: string;
     };
+    contactInfo?: ContactInfoItem[];
   };
   edit: boolean;
   onChange: (key: keyof Props['form']) => (e: any) => void;
   lng: number;
   lat: number;
+  onRequestEdit?: () => void;
 };
 
 /** Section divider with icon + label */
@@ -96,15 +108,47 @@ const SectionLabel = ({ icon, label }: { icon: React.ReactNode; label: string })
   </Stack>
 );
 
-export default function StoreGeneralForm({ form, edit, onChange, lng, lat }: Props) {
+export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onRequestEdit }: Props) {
   const hasCoords = !!form.location?.coordinates;
   const isEmailValid = !form.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email);
   const toDate = (iso: string | null) => (iso ? new Date(iso) : null);
 
-  // Handler for nested socialLinks fields
   const onSocialChange = (key: 'facebook' | 'instagram' | 'website') => (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e?.target?.value ?? '';
     onChange('socialLinks' as any)({ value: { ...(form.socialLinks || {}), [key]: val } });
+  };
+
+  const contacts: ContactInfoItem[] = form.contactInfo ?? [];
+
+  const updateContact = (idx: number, field: keyof ContactInfoItem, val: string) => {
+    const next = contacts.map((c, i) => (i === idx ? { ...c, [field]: val } : c));
+    onChange('contactInfo' as any)({ value: next });
+  };
+
+  const addContact = () => {
+    const next: ContactInfoItem[] = [...contacts, { type: 'other', name: '', phone: '' }];
+    onChange('contactInfo' as any)({ value: next });
+  };
+
+  const removeContact = (idx: number) => {
+    const next = contacts.filter((_, i) => i !== idx);
+    onChange('contactInfo' as any)({ value: next });
+  };
+
+  const CONTACT_TYPE_LABELS: Record<ContactInfoItem['type'], string> = {
+    manager: 'Gerente',
+    owner: 'Dueño',
+    secretary: 'Secretaria',
+    assistant: 'Asistente',
+    other: 'Otro',
+  };
+
+  const CONTACT_TYPE_COLORS: Record<ContactInfoItem['type'], string> = {
+    manager: '#4f46e5',
+    owner: '#0891b2',
+    secretary: '#7c3aed',
+    assistant: '#059669',
+    other: '#9ca3af',
   };
 
   return (
@@ -550,6 +594,158 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat }: Pro
             />
           </LocalizationProvider>
         </Stack>
+
+        {/* ── Contactos ───────────────────────── */}
+        <Box mt={3}>
+          <SectionLabel icon={<PeopleAlt />} label="Contactos" />
+
+          <Stack spacing={1.5}>
+            {contacts.map((c, idx) => (
+              <Box
+                key={idx}
+                sx={{
+                  p: 1.5,
+                  borderRadius: 1.5,
+                  border: (t) => `1px solid ${t.palette.divider}`,
+                  bgcolor: (t) => (t.palette.mode === 'dark' ? 'neutral.800' : 'grey.50'),
+                }}
+              >
+                <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                  <Avatar
+                    sx={{
+                      width: 28,
+                      height: 28,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      bgcolor: CONTACT_TYPE_COLORS[c.type] ?? '#9ca3af',
+                    }}
+                  >
+                    {(c.name || '?')[0].toUpperCase()}
+                  </Avatar>
+                  <Typography variant="caption" fontWeight={600} flex={1} color="text.secondary">
+                    Contacto #{idx + 1}
+                  </Typography>
+                  {edit && (
+                    <Tooltip title="Eliminar contacto">
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => removeContact(idx)}
+                        sx={{ p: 0.5 }}
+                      >
+                        <DeleteOutline fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                </Stack>
+
+                <Stack spacing={1}>
+                  <FormControl size="small" fullWidth disabled={!edit}>
+                    <InputLabel>Tipo</InputLabel>
+                    <Select
+                      label="Tipo"
+                      value={c.type}
+                      onChange={(e) => updateContact(idx, 'type', e.target.value as ContactInfoItem['type'])}
+                    >
+                      {(Object.entries(CONTACT_TYPE_LABELS) as [ContactInfoItem['type'], string][]).map(([val, label]) => (
+                        <MenuItem key={val} value={val}>
+                          {label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  <TextField
+                    size="small"
+                    fullWidth
+                    label="Nombre"
+                    value={c.name}
+                    onChange={(e) => updateContact(idx, 'name', e.target.value)}
+                    disabled={!edit}
+                    placeholder="Ej. Juan Pérez"
+                  />
+
+                  <TextField
+                    size="small"
+                    fullWidth
+                    label="Teléfono"
+                    value={c.phone}
+                    onChange={(e) => updateContact(idx, 'phone', e.target.value)}
+                    disabled={!edit}
+                    placeholder="+1 (555) 000-0000"
+                    inputProps={{ inputMode: 'tel' }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <LocalPhone fontSize="small" color="disabled" />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Stack>
+              </Box>
+            ))}
+
+            {edit && (
+              <Box
+                onClick={addContact}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 1,
+                  py: 1.5,
+                  borderRadius: 1.5,
+                  border: (t) => `1.5px dashed ${t.palette.primary.main}`,
+                  color: 'primary.main',
+                  cursor: 'pointer',
+                  typography: 'body2',
+                  fontWeight: 600,
+                  '&:hover': { bgcolor: (t) => (t.palette.mode === 'dark' ? 'primary.900' : 'primary.50') },
+                }}
+              >
+                <AddCircleOutline fontSize="small" />
+                Agregar Contacto
+              </Box>
+            )}
+
+            {!edit && contacts.length === 0 && (
+              <Box
+                sx={{
+                  border: (t) => `1.5px dashed ${t.palette.divider}`,
+                  borderRadius: 2,
+                  px: 3,
+                  py: 2.5,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                  gap: 1,
+                  bgcolor: (t) => t.palette.mode === 'dark' ? 'transparent' : 'grey.50',
+                }}
+              >
+                <PeopleAlt sx={{ fontSize: 36, color: 'text.disabled', opacity: 0.5 }} />
+                <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                  Sin contactos registrados
+                </Typography>
+                <Typography variant="caption" color="text.disabled">
+                  Agrega el manager, dueño u otros contactos clave de la tienda.
+                </Typography>
+                {onRequestEdit && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<AddCircleOutline />}
+                    onClick={onRequestEdit}
+                    sx={{ mt: 0.5, borderRadius: 2, textTransform: 'none' }}
+                  >
+                    Agregar contacto
+                  </Button>
+                )}
+              </Box>
+            )}
+          </Stack>
+        </Box>
       </Box>
     </Card>
   );

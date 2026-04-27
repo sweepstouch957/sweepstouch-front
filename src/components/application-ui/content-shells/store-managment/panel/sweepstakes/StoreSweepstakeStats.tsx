@@ -62,14 +62,6 @@ const METHOD_ICONS: Record<string, React.ReactNode> = {
   pinpad: <PersonAddRounded fontSize="small" />,
 };
 
-const METHOD_COLORS: Record<string, string> = {
-  qr: '#7c3aed',
-  web: '#0ea5e9',
-  tablet: '#f59e0b',
-  promotor: '#10b981',
-  referral: '#ef4444',
-  pinpad: '#ec4899',
-};
 
 function StatCard({
   label,
@@ -154,6 +146,15 @@ interface Props {
 
 export default function StoreSweepstakeStats({ storeId, sweepstakeId }: Props) {
   const theme = useTheme();
+
+  const METHOD_COLORS: Record<string, string> = {
+    qr: theme.palette.primary.main,
+    web: theme.palette.info.main,
+    tablet: theme.palette.warning.main,
+    promotor: theme.palette.success.main,
+    referral: theme.palette.error.main,
+    pinpad: '#ec4899',
+  };
 
   const [dateRange, setDateRange] = useState<RangePickerValue>({
     startYmd: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
@@ -316,17 +317,17 @@ export default function StoreSweepstakeStats({ storeId, sweepstakeId }: Props) {
             <StatCard label="Total participantes" value={metrics?.total ?? 0} icon={<GroupRounded fontSize="small" />} color={theme.palette.primary.main} loading={loadingMetrics} sub="En el período seleccionado" />
           </Grid>
           <Grid item xs={6} md={3}>
-            <StatCard label="Usuarios nuevos" value={metrics?.newUsers ?? 0} icon={<PersonAddRounded fontSize="small" />} color="#10b981" loading={loadingMetrics}
+            <StatCard label="Usuarios nuevos" value={metrics?.newUsers ?? 0} icon={<PersonAddRounded fontSize="small" />} color={theme.palette.success.main} loading={loadingMetrics}
               sub={metrics?.total ? `${((metrics.newUsers / metrics.total) * 100).toFixed(0)}% del total` : undefined}
             />
           </Grid>
           <Grid item xs={6} md={3}>
-            <StatCard label="Usuarios existentes" value={metrics?.existingUsers ?? 0} icon={<PersonRounded fontSize="small" />} color="#f59e0b" loading={loadingMetrics}
+            <StatCard label="Usuarios existentes" value={metrics?.existingUsers ?? 0} icon={<PersonRounded fontSize="small" />} color={theme.palette.warning.main} loading={loadingMetrics}
               sub={metrics?.total ? `${((metrics.existingUsers / metrics.total) * 100).toFixed(0)}% del total` : undefined}
             />
           </Grid>
           <Grid item xs={6} md={3}>
-            <StatCard label="Métodos utilizados" value={byMethodEntries.length} icon={<TrendingUpRounded fontSize="small" />} color="#8b5cf6" loading={loadingMetrics} sub="Canales de registro" />
+            <StatCard label="Métodos utilizados" value={byMethodEntries.length} icon={<TrendingUpRounded fontSize="small" />} color={theme.palette.primary.dark} loading={loadingMetrics} sub="Canales de registro" />
           </Grid>
         </Grid>
 
@@ -350,7 +351,7 @@ export default function StoreSweepstakeStats({ storeId, sweepstakeId }: Props) {
                     xAxis={[{ data: lineLabels, scaleType: 'band' }]}
                     series={[
                       { data: lineTotals, label: 'Total', color: theme.palette.primary.main, area: true, showMark: false },
-                      { data: lineNew, label: 'Nuevos', color: '#10b981', showMark: false },
+                      { data: lineNew, label: 'Nuevos', color: theme.palette.success.main, showMark: false },
                     ]}
                     height={220}
                     sx={{ '& .MuiLineElement-root': { strokeWidth: 2.5 } }}

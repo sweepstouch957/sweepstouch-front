@@ -61,11 +61,19 @@ export interface SweepstakeQr {
   sweepstake: string | { _id: string; [k: string]: any };
   store: string | { _id: string; [k: string]: any };
   slug: string;
-  baseLink: string; // confirmationLink base (sin slug)
-  link: string;     // base + ?slug=<slug>
+  baseLink: string;
+  link: string;
   qr: QrImage;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface SweepstakeQrResponse {
+  success: boolean;
+  data: SweepstakeQr | null;
+  isFallback?: boolean;
+  fallbackLink?: string;
+  slug?: string;
 }
 
 /* ====== Endpoints ====== */
@@ -94,15 +102,27 @@ export const getStoreGenericQr = async (
   return data.data as StoreQr;
 };
 
-// GET /qr/sweepstake/:sweepstakeId/store/:storeId → SweepstakeQr completo
+// GET /qr/sweepstake/:sweepstakeId/store/:storeId → SweepstakeQr o fallback (nunca 404)
 export const getSweepstakeOptinQr = async (
   sweepstakeId: string,
   storeId: string,
   opts?: { populate?: boolean }
-): Promise<SweepstakeQr> => {
+): Promise<SweepstakeQrResponse> => {
   const { data } = await api.get(
     `${basePath}/sweepstake/${sweepstakeId}/store/${storeId}`,
     { params: { populate: opts?.populate ? 1 : undefined } }
   );
-  return data.data as SweepstakeQr;
+  return data as SweepstakeQrResponse;
+};
+
+// POST /qr/stores/:storeId/generic → genera/actualiza QR genérico de tienda
+export const upsertStoreGenericQr = async (storeId: string): Promise<{ success: boolean; generic: StoreQr }> => {
+  const { data } = await api.post(`${basePath}/stores/${storeId}/generic`);
+  return data;
+};
+
+// POST /qr/sweepstake/:sweepstakeId/store/ → genera QR opt-in del sorteo para una tienda
+export const upsertSweepstakeOptinQr = async (sweepstakeId: string, storeId: string): Promise<{ success: boolean; optin: SweepstakeQr }> => {
+  const { data } = await api.post(`${basePath}/sweepstake/${sweepstakeId}/store/`, { storeId });
+  return data;
 };

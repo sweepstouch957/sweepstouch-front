@@ -7,6 +7,12 @@ import { AxiosResponse } from 'axios';
 /* ===================== Types ===================== */
 export type DebtStatus = 'all' | 'ok' | 'min_low' | 'low' | 'mid' | 'high' | 'critical';
 
+export interface ContactInfoItem {
+  type: 'manager' | 'owner' | 'secretary' | 'assistant' | 'other';
+  name: string;
+  phone: string;
+}
+
 export interface EquipmentItem {
   id: string;
   label: string;
@@ -78,6 +84,9 @@ export interface Store {
   equipmentTotal?: number;
   sectionBTotal?: number;
   grandTotal?: number;
+
+  // 🆕 Contact Info
+  contactInfo?: ContactInfoItem[];
 }
 
 export interface UpdateStoreBody {
@@ -120,6 +129,9 @@ export interface UpdateStoreBody {
   equipmentTotal?: number;
   sectionBTotal?: number;
   grandTotal?: number;
+
+  // 🆕 Contact Info
+  contactInfo?: ContactInfoItem[];
 }
 
 export interface GetStoresResponse {

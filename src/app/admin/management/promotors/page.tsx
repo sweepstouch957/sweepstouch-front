@@ -3,107 +3,100 @@
 import NewPromoterModal from '@/components/application-ui/dialogs/promotor/modal';
 import KpiSection from '@/components/application-ui/section-headings/kpis/kpis';
 import PromoterTable from '@/components/application-ui/tables/kpi/results';
-import { promoterService } from '@/services/promotor.service';
+import { promoterService, type PromoterFilters } from '@/services/promotor.service';
 import AddIcon from '@mui/icons-material/Add';
-import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
-import { Box, Button, Container } from '@mui/material';
+import { Button, Container } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useCallback, useState } from 'react';
 import PageHeading from 'src/components/base/page-heading';
 import { useCustomization } from 'src/hooks/use-customization';
 
-function Page(): React.JSX.Element {
+const DEFAULT_LIMIT = 25;
+
+function Page() {
   const customization = useCustomization();
   const [modalOpen, setModalOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(4);
 
-  const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['promoters'],
-    queryFn: () => promoterService.getAllPromoters(),
+  const [filters, setFilters] = useState<PromoterFilters>({
+    page: 1,
+    limit: DEFAULT_LIMIT,
+    order: 'desc',
+    sortBy: 'totalRegistrations',
   });
-  const { t } = useTranslation();
-  const pageMeta = {
-    title: 'Promotors',
-    description: 'Gestión de Impulsadoras',
-    icon: <FileDownloadOutlinedIcon />,
-  };
+
+  const { data, isLoading, isFetching, isError, refetch } = useQuery({
+    queryKey: ['promoters', filters],
+    queryFn: () => promoterService.getAllPromoters(filters),
+    staleTime: 30_000,
+  });
+
+  const handleFilterChange = useCallback((next: Partial<PromoterFilters>) => {
+    setFilters((prev) => ({ ...prev, ...next, page: 1 }));
+  }, []);
+
+  const handlePageChange = useCallback((page: number) => {
+    setFilters((prev) => ({ ...prev, page }));
+  }, []);
+
+  const handleLimitChange = useCallback((limit: number) => {
+    setFilters((prev) => ({ ...prev, limit, page: 1 }));
+  }, []);
+
   return (
     <>
-      {pageMeta.title && (
-        <Container
-          sx={{
-            py: {
-              xs: 2,
-              sm: 3,
-            },
-          }}
-          maxWidth={customization.stretch ? false : 'xl'}
-        >
-          <PageHeading
-            sx={{
-              px: 0,
-            }}
-            title={t(pageMeta.title)}
-            description={pageMeta.description && pageMeta.description}
-            actions={
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                sx={{
-                  borderRadius: 10,
-                  fontWeight: 600,
-                  textTransform: 'none',
-                }}
-                onClick={() => setModalOpen(true)}
-              >
-                Nueva Impulsadora
-              </Button>
-            }
-          />
-        </Container>
-      )}
-      <Box
-        pb={{
-          xs: 2,
-          sm: 3,
-        }}
+      <Container
+        sx={{ py: { xs: 2, sm: 3 } }}
+        maxWidth={customization.stretch ? false : 'xl'}
       >
-        <Container maxWidth={customization.stretch ? false : 'xl'}>
-          <KpiSection />
-          <Box
-            sx={{
-              mt: 2,
-              mb: 3,
-            }}
-          >
-            <PromoterTable
-              promoters={data || []}
-              isLoading={isLoading}
-              isError={isError}
-              refetch={refetch}
-              search={search}
-              setSearch={setSearch}
-              page={page}
-              setPage={setPage}
-              rowsPerPage={rowsPerPage}
-              setRowsPerPage={setRowsPerPage}
-            />{' '}
-          </Box>
-        </Container>
-      </Box>
+        <PageHeading
+          sx={{ px: 0 }}
+          title="Impulsadoras"
+          description="Gestión y seguimiento de promotoras"
+          actions={
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              disableElevation
+              sx={{ borderRadius: 10, fontWeight: 600, textTransform: 'none' }}
+              onClick={() => setModalOpen(true)}
+            >
+              Nueva Impulsadora
+            </Button>
+          }
+        />
+      </Container>
+
+      <Container
+        maxWidth={customization.stretch ? false : 'xl'}
+        sx={{ pb: { xs: 2, sm: 3 } }}
+      >
+        <KpiSection />
+
+        <PromoterTable
+          promoters={data?.data ?? []}
+          total={data?.pagination?.total ?? 0}
+          totalPages={data?.pagination?.pages ?? 1}
+          isLoading={isLoading}
+          isFetching={isFetching}
+          isError={isError}
+          refetch={refetch}
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          onPageChange={handlePageChange}
+          onLimitChange={handleLimitChange}
+        />
+      </Container>
+
       <NewPromoterModal
         open={modalOpen}
         onCreated={() => {
           setModalOpen(false);
-          refetch();
-
+          void refetch();
         }}
         onClose={() => setModalOpen(false)}
       />
     </>
   );
 }
+
 export default Page;

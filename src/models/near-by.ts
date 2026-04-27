@@ -32,7 +32,7 @@ export type StoreInfo = {
   lng?: number;
   imageUrl?: string;
   customerCount?: number;
-  canImpulse?: boolean; // 👈 backend la manda
+  canImpulse?: boolean;
 };
 
 export type StoresNearby = {
@@ -40,11 +40,13 @@ export type StoresNearby = {
   promoters: PromoterBrief[];
 };
 
+export type SortByOption = 'nearest' | 'promoters' | 'name' | 'customers';
+
 export type StoresNearbyTableProps = {
   // datos
-  radiusKm?: number; // sigues llamándole "km", pero es en millas; lo respeto
+  radiusKm?: number;
   stores: StoresNearby[];
-  total?: number; // total global del backend (para paginación)
+  total?: number;
   isLoading?: boolean;
   isError?: boolean;
 
@@ -52,16 +54,21 @@ export type StoresNearbyTableProps = {
   onRetry?: () => void;
   changeRadius?: (newRadius: number) => void;
 
-  // CONTROLADOS desde la página:
-  page: number; // 0-based para TablePagination
+  // paginación controlada desde la página (0-based UI / 1-based backend)
+  page: number;
   rowsPerPage: number;
   onChangePage: (nextPage: number) => void;
   onChangeRowsPerPage: (nextRpp: number) => void;
 
-  // búsqueda y audiencia (UI controlada)
+  // filtros controlados
   searchTerm: string;
   onSearchTermChange: (v: string) => void;
-
-  audienceMax: string; // string controlada (solo dígitos)
+  audienceMax: string;
   onAudienceMaxChange: (v: string) => void;
+
+  // radio y sort (nuevos)
+  radiusMi?: number;
+  onChangeRadius?: (r: number) => void;
+  sortBy?: SortByOption;
+  onSortChange?: (s: SortByOption) => void;
 };

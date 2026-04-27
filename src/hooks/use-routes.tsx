@@ -104,7 +104,7 @@ const promotorsMenu = (t: (token: string) => string): MenuItem =>
       },
     ]),
 
-    { title: t('featured stores'), route: routes.admin.management.promotors.featuredStores },
+    { title: t('Tiendas Candidatas'), route: routes.admin.management.promotors.featuredStores },
   ]);
 
 //const requestMenu = (t: (token: string) => string): MenuItem =>

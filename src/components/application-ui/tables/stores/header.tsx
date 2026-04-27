@@ -1,27 +1,29 @@
-// src/components/stores/StoresBillingHeader.tsx
 'use client';
 
 import storesService from '@/services/store.service';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
+import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
+import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import {
+  alpha,
   Box,
+  Chip,
+  Collapse,
+  Divider,
   FormControlLabel,
+  IconButton,
   LinearProgress,
   Paper,
+  Skeleton,
   Stack,
   Switch,
+  Tooltip,
   Typography,
-  useMediaQuery,
   useTheme,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 
-/** ⬇️ NUEVO RESPONSE */
 export type BillingBucketSummary = {
   count: number;
   totalPending: number;
@@ -43,271 +45,227 @@ export type BillingSummaryResponse = {
 
 type Props = {
   status?: 'all' | 'active' | 'inactive';
+  onFilterByDebt?: (debtStatus: string) => void;
+  activeDebtStatus?: string;
 };
 
 function formatMoney(value: number) {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 0,
   }).format(value || 0);
 }
 
-export function StoresBillingHeader({ status = 'all' }: Props) {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+const BUCKET_CONFIGS = [
+  { key: 'ok',       label: 'OK',       subtitle: '0 sem', color: '#10B981', tooltip: 'Tiendas al día — sin semanas de retraso' },
+  { key: 'min_low',  label: 'MIN LOW',  subtitle: '1 sem', color: '#64748B', tooltip: '1 semana de retraso — deuda mínima, monitorear' },
+  { key: 'low',      label: 'LOW',      subtitle: '2 sem', color: '#D97706', tooltip: '2 semanas de retraso — deuda baja, contactar pronto' },
+  { key: 'mid',      label: 'MID',      subtitle: '3 sem', color: '#EA580C', tooltip: '3 semanas de retraso — atención recomendada' },
+  { key: 'high',     label: 'HIGH',     subtitle: '4 sem', color: '#E11D48', tooltip: '4 semanas de retraso — acción urgente requerida' },
+  { key: 'critical', label: 'CRITICAL', subtitle: '5+',    color: '#7F1D1D', tooltip: '5 o más semanas — deuda crítica, acción inmediata' },
+] as const;
 
-  // 🔀 Toggle: ON = incluye inactivas (all), OFF = solo activas
-  const [showInactive, setShowInactive] = useState(status !== 'active');
+export function StoresBillingHeader({ status = 'all', onFilterByDebt, activeDebtStatus }: Props) {
+  const theme = useTheme();
+  const [showInactive, setShowInactive] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const effectiveStatus: 'all' | 'active' | 'inactive' = showInactive ? 'all' : 'active';
 
-  const { data, isLoading, isError, error, isFetching } = useQuery<BillingSummaryResponse>({
+  const { data, isLoading, isFetching } = useQuery<BillingSummaryResponse>({
     queryKey: ['stores', 'billing-summary', effectiveStatus],
     queryFn: () => storesService.getStoresBillingSummary({ status: effectiveStatus }) as any,
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
   });
 
-  const loading = isLoading || isFetching;
-
-  const overallPending = data?.overall?.totalPending || 0;
-  const totalWithDebt = data?.overall?.totalWithDebt ?? 0;
-
-  const cards = useMemo(() => {
-    const d = data;
-    if (!d) return [];
-
-    return [
-      {
-        key: 'ok',
-        title: 'OK · Al día',
-        subtitle: '0 SEM',
-        count: d.ok.count,
-        pending: d.ok.totalPending,
-        bg: '#10B981',
-        color: '#FFFFFF',
-        icon: <CheckCircleOutlineIcon fontSize="small" />,
-        shadow: '0 14px 35px rgba(16,185,129,0.35)',
-      },
-      {
-        key: 'min_low',
-        title: 'MIN LOW',
-        subtitle: '1 SEM',
-        count: d.min_low.count,
-        pending: d.min_low.totalPending,
-        bg: '#E5E7EB',
-        color: '#111827',
-        icon: <InfoOutlinedIcon fontSize="small" />,
-        shadow: '0 14px 35px rgba(17,24,39,0.08)',
-      },
-      {
-        key: 'low',
-        title: 'LOW',
-        subtitle: '2 SEM',
-        count: d.low.count,
-        pending: d.low.totalPending,
-        bg: '#FACC15',
-        color: '#111827',
-        icon: <WarningAmberIcon fontSize="small" />,
-        shadow: '0 14px 35px rgba(250,204,21,0.25)',
-      },
-      {
-        key: 'mid',
-        title: 'MID',
-        subtitle: '3 SEM',
-        count: d.mid.count,
-        pending: d.mid.totalPending,
-        bg: '#FB923C',
-        color: '#111827',
-        icon: <ReportProblemOutlinedIcon fontSize="small" />,
-        shadow: '0 14px 35px rgba(251,146,60,0.25)',
-      },
-      {
-        key: 'high',
-        title: 'HIGH',
-        subtitle: '4 SEM',
-        count: d.high.count,
-        pending: d.high.totalPending,
-        bg: '#F43F5E',
-        color: '#FFFFFF',
-        icon: <ErrorOutlineIcon fontSize="small" />,
-        shadow: '0 14px 35px rgba(244,63,94,0.30)',
-      },
-      {
-        key: 'critical',
-        title: 'CRITICAL',
-        subtitle: '5+ SEM',
-        count: d.critical.count,
-        pending: d.critical.totalPending,
-        bg: '#7F1D1D',
-        color: '#FFFFFF',
-        icon: <ErrorOutlineIcon fontSize="small" />,
-        shadow: '0 14px 35px rgba(127,29,29,0.35)',
-      },
-    ];
-  }, [data]);
+  const issueCount = useMemo(
+    () => (data ? data.low.count + data.mid.count + data.high.count + data.critical.count : 0),
+    [data]
+  );
+  const overallPending = data?.overall?.totalPending ?? 0;
+  const totalStores = data?.overall?.totalStores ?? 0;
+  const okCount = data?.ok.count ?? 0;
 
   return (
-    <Box sx={{ width: '100%', mb: 1.5 }}>
-      <Paper
-        elevation={0}
-        sx={{
-          width: '100%',
-          p: { xs: 1.75, sm: 2.25 },
-          borderRadius: 3,
-          border: `1px solid ${theme.palette.divider}`,
-          background: `linear-gradient(135deg, ${theme.palette.background.paper} 0%, ${theme.palette.background.default} 65%, ${theme.palette.grey[900]}08 100%)`,
-        }}
+    <Paper
+      elevation={0}
+      sx={{
+        mb: 1.5,
+        borderRadius: 2.5,
+        border: '1px solid',
+        borderColor: 'divider',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Compact summary bar */}
+      <Stack
+        direction="row"
+        alignItems="center"
+        sx={{ px: { xs: 1.5, sm: 2 }, py: 1, gap: 1, minHeight: 52, flexWrap: 'wrap' }}
       >
-        {/* Header título + toggle */}
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-          spacing={2}
-          mb={1.5}
-        >
-          <Box>
-            <Typography
-              variant="subtitle1"
-              fontWeight={800}
-            >
-              Resumen de facturación &amp; morosidad
-            </Typography>
+        <FormControlLabel
+          sx={{
+            m: 0,
+            flexShrink: 0,
+            '& .MuiFormControlLabel-label': { fontSize: '0.72rem', color: 'text.secondary' },
+          }}
+          control={
+            <Switch
+              size="small"
+              checked={showInactive}
+              onChange={(_, v) => setShowInactive(v)}
+            />
+          }
+          label={showInactive ? 'Todas' : 'Activas'}
+        />
+
+        <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
+
+        {isLoading ? (
+          <Stack direction="row" spacing={1} sx={{ flex: 1 }}>
+            <Skeleton width={80} height={24} sx={{ borderRadius: 1 }} />
+            <Skeleton width={70} height={24} sx={{ borderRadius: 1 }} />
+            <Skeleton width={100} height={24} sx={{ borderRadius: 1 }} />
+          </Stack>
+        ) : (
+          <Stack
+            direction="row"
+            spacing={0.75}
+            alignItems="center"
+            sx={{ flex: 1, minWidth: 0, flexWrap: 'wrap', rowGap: 0.5 }}
+          >
+            <Chip
+              size="small"
+              label={`${totalStores} tiendas`}
+              variant="outlined"
+              sx={{ fontSize: 11, fontWeight: 700, height: 24 }}
+            />
+            <Chip
+              size="small"
+              icon={<CheckCircleOutlineRoundedIcon sx={{ fontSize: '13px !important', color: '#10B981 !important' }} />}
+              label={`${okCount} al día`}
+              sx={{
+                fontSize: 11, fontWeight: 700, height: 24,
+                bgcolor: alpha('#10B981', theme.palette.mode === 'dark' ? 0.18 : 0.1),
+                color: '#10B981',
+                border: '1px solid', borderColor: alpha('#10B981', 0.35),
+              }}
+            />
+            {issueCount > 0 && (
+              <Chip
+                size="small"
+                icon={<WarningAmberRoundedIcon sx={{ fontSize: '13px !important', color: '#E11D48 !important' }} />}
+                label={`${issueCount} con deuda`}
+                sx={{
+                  fontSize: 11, fontWeight: 700, height: 24,
+                  bgcolor: alpha('#E11D48', theme.palette.mode === 'dark' ? 0.18 : 0.08),
+                  color: '#E11D48',
+                  border: '1px solid', borderColor: alpha('#E11D48', 0.3),
+                }}
+              />
+            )}
             <Typography
               variant="caption"
               color="text.secondary"
+              fontWeight={700}
+              sx={{ ml: 'auto', display: { xs: 'none', md: 'block' }, fontVariantNumeric: 'tabular-nums' }}
             >
-              Estado global ·{' '}
-              {effectiveStatus === 'all'
-                ? 'Todas'
-                : effectiveStatus === 'active'
-                  ? 'Solo activas'
-                  : 'Solo inactivas'}
+              {formatMoney(overallPending)}
             </Typography>
-          </Box>
-
-          <Stack
-            direction="row"
-            spacing={1.5}
-            alignItems="center"
-          >
-            {loading && (
-              <Typography
-                variant="caption"
-                color="text.secondary"
-              >
-                Actualizando…
-              </Typography>
-            )}
-
-            <FormControlLabel
-              sx={{
-                m: 0,
-                '& .MuiFormControlLabel-label': { fontSize: '0.72rem' },
-              }}
-              control={
-                <Switch
-                  size="small"
-                  checked={showInactive}
-                  onChange={(_, checked) => setShowInactive(checked)}
-                />
-              }
-              label={showInactive ? 'Incluye inactivas' : 'Solo activas'}
-            />
           </Stack>
-        </Stack>
-
-        {loading && (
-          <Box mb={1.5}>
-            <LinearProgress />
-          </Box>
         )}
 
-        {isError && (
-          <Typography
-            variant="body2"
-            color="error"
+        <Tooltip title={expanded ? 'Ocultar detalle' : 'Ver por categoría'}>
+          <IconButton
+            size="small"
+            onClick={() => setExpanded(!expanded)}
+            sx={{
+              border: '1px solid', borderColor: 'divider', borderRadius: 1.5,
+              width: 30, height: 30, flexShrink: 0,
+            }}
           >
-            Error cargando resumen: {error instanceof Error ? error.message : 'Error desconocido'}
-          </Typography>
-        )}
-
-        {!isError && data && (
-          <>
-            {/* ✅ Grid responsive */}
-            <Box
+            <ExpandMoreRoundedIcon
               sx={{
-                display: 'grid',
-                gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))',
-                gap: 2,
+                fontSize: 18,
+                transition: 'transform 0.25s ease',
+                transform: expanded ? 'rotate(180deg)' : 'none',
               }}
-            >
-              {cards.map((c) => (
+            />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+
+      {isFetching && <LinearProgress sx={{ height: 2 }} />}
+
+      {/* Expanded: 6 status buckets as compact chips */}
+      <Collapse in={expanded && !!data}>
+        <Divider />
+        <Box
+          sx={{
+            px: { xs: 1.5, sm: 2 },
+            py: 1.5,
+            display: 'flex',
+            gap: 1,
+            flexWrap: 'wrap',
+          }}
+        >
+          {BUCKET_CONFIGS.map((cfg) => {
+            const bucket = data?.[cfg.key] as BillingBucketSummary | undefined;
+            const isActive = activeDebtStatus === cfg.key;
+            return (
+              <Tooltip key={cfg.key} title={cfg.tooltip} placement="top" arrow>
                 <Box
-                  key={c.key}
+                  onClick={() => onFilterByDebt?.(isActive ? 'all' : cfg.key)}
                   sx={{
-                    p: 1.75,
-                    borderRadius: 2.5,
-                    bgcolor: c.bg,
-                    color: c.color,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 0.35,
-                    boxShadow: c.shadow,
+                    display: 'flex', flexDirection: 'column', gap: 0.5,
+                    px: 2, py: 1.5, borderRadius: 2.5, minWidth: 96,
+                    bgcolor: isActive
+                      ? alpha(cfg.color, theme.palette.mode === 'dark' ? 0.32 : 0.18)
+                      : alpha(cfg.color, theme.palette.mode === 'dark' ? 0.14 : 0.07),
+                    border: '2px solid',
+                    borderColor: isActive ? cfg.color : alpha(cfg.color, 0.3),
+                    cursor: onFilterByDebt ? 'pointer' : 'default',
+                    transition: 'box-shadow 0.15s, transform 0.15s, border-color 0.15s',
+                    '&:hover': onFilterByDebt ? {
+                      boxShadow: `0 4px 14px ${alpha(cfg.color, 0.35)}`,
+                      transform: 'translateY(-1px)',
+                    } : {},
                   }}
                 >
-                  <Stack
-                    direction="row"
-                    alignItems="center"
-                    spacing={0.75}
-                  >
-                    {c.icon}
+                  <Stack direction="row" alignItems="center" spacing={0.6}>
+                    <Box
+                      sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: cfg.color, flexShrink: 0 }}
+                    />
                     <Typography
-                      variant="subtitle2"
-                      sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 900 }}
+                      sx={{
+                        fontSize: 10, fontWeight: 900, textTransform: 'uppercase',
+                        letterSpacing: 0.7, color: cfg.color, lineHeight: 1,
+                      }}
                     >
-                      {c.title}
+                      {cfg.label}
                     </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{ ml: 'auto', opacity: 0.95, fontWeight: 900 }}
-                    >
-                      {c.subtitle}
+                    <Typography sx={{ fontSize: 10, color: 'text.secondary', ml: 'auto' }}>
+                      {cfg.subtitle}
                     </Typography>
                   </Stack>
-
                   <Typography
-                    variant="h6"
-                    fontWeight={900}
+                    sx={{
+                      fontSize: 22, fontWeight: 800, lineHeight: 1.1,
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
                   >
-                    {c.count} tiendas
+                    {bucket?.count ?? 0}
                   </Typography>
-
-                  <Typography
-                    variant="caption"
-                    sx={{ opacity: 0.9 }}
-                  >
-                    Deuda: {formatMoney(c.pending)}
+                  <Typography color="text.secondary" sx={{ fontSize: 11, fontWeight: 600 }}>
+                    {formatMoney(bucket?.totalPending ?? 0)}
                   </Typography>
                 </Box>
-              ))}
-            </Box>
-
-            {/* Footer */}
-            <Box mt={1.75}>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-              >
-                Total tiendas: <strong>{data.overall.totalStores}</strong> · Deuda acumulada:{' '}
-                <strong>{formatMoney(overallPending)}</strong> · Tiendas con deuda:{' '}
-                <strong>{totalWithDebt}</strong>
-              </Typography>
-            </Box>
-          </>
-        )}
-      </Paper>
-    </Box>
+              </Tooltip>
+            );
+          })}
+        </Box>
+      </Collapse>
+    </Paper>
   );
 }

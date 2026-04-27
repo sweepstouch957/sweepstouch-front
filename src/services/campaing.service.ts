@@ -16,6 +16,7 @@ export interface FilterCampaignParams {
   storeName?: string;
   type?: string;
   deliveryRate?: string;
+  platform?: string;
 }
 
 export type MessageLogStatus = 'queued' | 'failed' | 'sent' | 'delivered' | 'undelivered';
@@ -439,13 +440,14 @@ class CampaignClient {
       endDate,
       storeId,
       title,
-      storeName, // ✅
-      type, // ✅
+      storeName,
+      type,
       deliveryRate,
+      platform,
     } = params;
 
     const res = await api.get('/campaigns/filter', {
-      params: { page, limit, status, startDate, endDate, storeId, title, storeName, type, deliveryRate },
+      params: { page, limit, status, startDate, endDate, storeId, title, storeName, type, deliveryRate, platform },
     });
 
     return res.data;
@@ -602,6 +604,28 @@ class CampaignClient {
       campaignId: `test-camaing-${uid()}`,
       origin: 'manual-test',
       originId: uid(),
+    });
+    return res.data;
+  }
+
+  /* ===================== ✅ SYNC INFOBIP/BW METRICS ===================== */
+
+  /**
+   * Trigger campaign metrics sync from Infobip/Bandwidth logs.
+   * Calls the tracking-service endpoint that fetches delivery reports
+   * and updates campaign sent/errors/cost/deliveryRate.
+   */
+  async syncCampaignMetrics(params?: {
+    campaignId?: string;
+    startDate?: string; // ISO date
+    endDate?: string;   // ISO date
+    includeZeroSent?: boolean;
+  }) {
+    const res = await api.post('/tracking/bandwidth/campaigns/update', {
+      campaignId: params?.campaignId || null,
+      startDate: params?.startDate || null,
+      endDate: params?.endDate || null,
+      includeZeroSent: params?.includeZeroSent ? 'true' : 'false',
     });
     return res.data;
   }

@@ -177,7 +177,7 @@ export const routes = {
       },
       promotors: {
         listing: '/admin/management/promotors',
-        featuredStores: '/admin/management/promotors/featuredStores',
+        featuredStores: '/admin/management/work-stores',
         turnos: '/admin/management/turnos',
       },
       solicitudes: {

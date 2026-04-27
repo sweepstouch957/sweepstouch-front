@@ -178,11 +178,19 @@ export default function FlyerUploader({
               <PictureAsPdfIcon sx={{ fontSize: 48, color: 'error.main' }} />
             )}
             <Typography fontWeight="bold">{file.name}</Typography>
-            <Chip
-              label={`${(file.size / 1024 / 1024).toFixed(1)} MB`}
-              size="small"
-              color="default"
-            />
+            <Stack direction="row" spacing={0.75}>
+              <Chip
+                label={`${(file.size / 1024 / 1024).toFixed(1)} MB`}
+                size="small"
+                color="default"
+              />
+              <Chip
+                label={file.type.includes('pdf') ? '☁️ S3' : '🖼 Cloudinary'}
+                size="small"
+                color={file.type.includes('pdf') ? 'warning' : 'info'}
+                variant="outlined"
+              />
+            </Stack>
           </Stack>
         ) : (
           <Stack alignItems="center" spacing={1}>

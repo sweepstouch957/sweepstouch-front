@@ -240,7 +240,9 @@ const Results: FC<ResultsProps> = ({
     lng?: number;
     lat?: number;
     startContractDate?: string;
-
+    address?: string;
+    equipment?: any[];
+    contactInfo?: any[];
   } | null>(null);
 
   const openTech = (store: any) => {
@@ -257,6 +259,9 @@ const Results: FC<ResultsProps> = ({
       lng: store.location?.coordinates?.[0] || store.lng,
       lat: store.location?.coordinates?.[1] || store.lat,
       startContractDate: store.startContractDate,
+      address: store.address,
+      equipment: store.equipment,
+      contactInfo: store.contactInfo,
     });
     setTechOpen(true);
   };
@@ -847,6 +852,9 @@ const Results: FC<ResultsProps> = ({
           lng={techStore.lng}
           lat={techStore.lat}
           startContractDate={techStore.startContractDate}
+          address={techStore.address}
+          equipment={techStore.equipment}
+          contactInfo={techStore.contactInfo}
         />
       ) : null}
     </>

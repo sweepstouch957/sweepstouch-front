@@ -148,11 +148,11 @@ export default function StoreAudienceOverview({ storeId }: Props) {
   const methodValues = byMethodEntries.map(([, v]) => v);
 
   const METHOD_COLORS: Record<string, string> = {
-    qr: '#7c3aed',
-    web: '#0ea5e9',
-    tablet: '#f59e0b',
-    promotor: '#10b981',
-    referral: '#ef4444',
+    qr: theme.palette.primary.main,
+    web: theme.palette.info.main,
+    tablet: theme.palette.warning.main,
+    promotor: theme.palette.success.main,
+    referral: theme.palette.error.main,
     pinpad: '#ec4899',
   };
 
@@ -210,7 +210,7 @@ export default function StoreAudienceOverview({ storeId }: Props) {
             label="Ayer"
             value={store?.yesterday?.total ?? 0}
             icon={<CalendarTodayRounded sx={{ fontSize: 18 }} />}
-            color={(store?.yesterday?.aboveAverage ?? false) ? '#10b981' : '#f59e0b'}
+            color={(store?.yesterday?.aboveAverage ?? false) ? theme.palette.success.main : theme.palette.warning.main}
             loading={loading}
             sub={
               store?.yesterday
@@ -224,7 +224,7 @@ export default function StoreAudienceOverview({ storeId }: Props) {
             label="Total 30 días"
             value={store?.totalContacts30d ?? 0}
             icon={<GroupRounded sx={{ fontSize: 18 }} />}
-            color="#8b5cf6"
+            color={theme.palette.primary.dark}
             loading={loading}
             sub={`${store?.activationDaysExcluded ?? 0} días excluidos`}
           />
@@ -234,7 +234,7 @@ export default function StoreAudienceOverview({ storeId }: Props) {
             label="Clientes totales"
             value={store?.customerCount ?? 0}
             icon={<PersonAddRounded sx={{ fontSize: 18 }} />}
-            color="#0ea5e9"
+            color={theme.palette.info.main}
             loading={loading}
             sub={`Tipo: ${store?.storeType ?? '—'}`}
           />
@@ -249,11 +249,11 @@ export default function StoreAudienceOverview({ storeId }: Props) {
             borderRadius: 3,
             mb: 3,
             bgcolor: store.yesterday.aboveAverage
-              ? alpha('#10b981', 0.04)
-              : alpha('#f59e0b', 0.04),
+              ? alpha(theme.palette.success.main, 0.04)
+              : alpha(theme.palette.warning.main, 0.04),
             borderColor: store.yesterday.aboveAverage
-              ? alpha('#10b981', 0.3)
-              : alpha('#f59e0b', 0.3),
+              ? alpha(theme.palette.success.main, 0.3)
+              : alpha(theme.palette.warning.main, 0.3),
           }}
         >
           <CardContent sx={{ py: 1.5, px: 2.5 }}>

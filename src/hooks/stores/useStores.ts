@@ -55,7 +55,7 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
   );
 
   const [searchInput, setSearchInput] = useState(search);
-  const debouncedSearch = useMemo(() => debounce((val: string) => setSearch(val), 500), []);
+  const debouncedSearch = useMemo(() => debounce((val: string) => setSearch(val), 150), []);
 
   const onStatusChange = useCallback((value: 'all' | 'active' | 'inactive') => {
     setStatus(value);

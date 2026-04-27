@@ -53,7 +53,7 @@ const Layout = async (props: LayoutProps) => {
   const customization = await restoreCustomization();
 
   return (
-    <html>
+    <html suppressHydrationWarning>
       <head>
         <link rel="shortcut icon" href="/sweeps.ico" />
       </head>

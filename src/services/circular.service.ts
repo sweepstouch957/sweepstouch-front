@@ -74,9 +74,7 @@ export class CircularService {
     if (payload.title) form.append('title', payload.title);
     if (payload.overridePassword) form.append('overridePassword', payload.overridePassword);
 
-    const res = await api.post('/circulars/upload', form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const res = await api.post('/circulars/upload', form);
     return res.data;
   }
 
@@ -98,9 +96,7 @@ export class CircularService {
   ): Promise<{ ok: boolean; circular: Circular }> {
     const form = new FormData();
     form.append('file', file);
-    const res = await api.patch(`/circulars/${circularId}/attach`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const res = await api.patch(`/circulars/${circularId}/attach`, form);
     return res.data;
   }
 

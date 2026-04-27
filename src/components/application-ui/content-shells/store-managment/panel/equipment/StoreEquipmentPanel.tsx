@@ -2,39 +2,36 @@
 
 import * as React from 'react';
 import {
+  alpha,
   Box,
-  Breadcrumbs,
-  Button,
-  Card,
-  CardContent,
   Chip,
-  Dialog,
-  DialogContent,
-  DialogTitle,
   Divider,
   Grid,
-  IconButton,
+  Paper,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   Typography,
   useTheme,
 } from '@mui/material';
-import DevicesIcon from '@mui/icons-material/Devices';
-import PrintIcon from '@mui/icons-material/Print';
-import EditIcon from '@mui/icons-material/Edit';
-import CloseIcon from '@mui/icons-material/Close';
-import InventoryIcon from '@mui/icons-material/Inventory2Outlined';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import {
+  AddCircleOutlineRounded,
+  DevicesRounded,
+  EditRounded,
+  Inventory2Outlined,
+  PrintRounded,
+} from '@mui/icons-material';
 import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 
 import type { EquipmentItem, MaterialItem, Store } from '@/services/store.service';
 import { updateStorePatch } from '@/services/store.service';
-import CreateStoreStep2 from '@/components/admin/stores/CreateStoreStep2';
+import {
+  type BItem,
+  type EquipmentSection,
+  EquipmentSectionModal,
+  materialCatalogDefault,
+  printerCatalog,
+  tabletCatalog,
+} from './EquipmentSectionModal';
 
 /* ─── Props ─────────────────────────────────────────────────────────────── */
 interface Props {
@@ -42,191 +39,216 @@ interface Props {
   storeId: string;
 }
 
-/* ─────────────────────────────────────────────────────────────────────────
- * Normaliza el campo equipment que puede venir de 2 formatos desde el backend:
- *   A) Array plano (nuevo):  [{ id, label, qty, price, type }, ...]
- *   B) Objeto (viejo):        { tablets: [...], printers: [...] }
- * ─────────────────────────────────────────────────────────────────────── */
+/* ─── normalize equipment (array or { tablets, printers } object) ────── */
 function normalizeEquipment(raw: any): EquipmentItem[] {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw as EquipmentItem[];
-
-  // Formato objeto { tablets, printers }
   const tablets: EquipmentItem[] = (raw.tablets ?? []).map((t: any) => ({
-    ...t,
-    type: 'tablet' as const,
-    imei: Array.isArray(t.imei) ? t.imei : [],
+    ...t, type: 'tablet' as const, imei: Array.isArray(t.imei) ? t.imei : [],
   }));
   const printers: EquipmentItem[] = (raw.printers ?? []).map((p: any) => ({
-    ...p,
-    type: 'printer' as const,
+    ...p, type: 'printer' as const,
   }));
   return [...tablets, ...printers];
 }
 
-/* ─── Device summary card ──────────────────────────────────────────────── */
-function DeviceCard({
+/* ─── Section category card ─────────────────────────────────────────────── */
+function EquipmentCard({
   icon,
   label,
+  accent,
+  gradient,
   items,
+  total,
+  onClick,
 }: {
   icon: React.ReactNode;
   label: string;
-  items: EquipmentItem[];
+  accent: string;
+  gradient: string;
+  items: { label: string; qty: number; detail?: string; imeis?: string[] }[];
+  total: number;
+  onClick: () => void;
 }) {
   const theme = useTheme();
-  const totalQty = items.reduce((s, i) => s + (i.qty ?? 0), 0);
-  const totalPrice = items.reduce((s, i) => s + (i.qty ?? 0) * (i.price ?? 0), 0);
-
-  if (totalQty === 0) return null;
+  const isEmpty = items.length === 0;
 
   return (
-    <Card
+    <Paper
+      component="button"
+      onClick={onClick}
       variant="outlined"
       sx={{
-        borderRadius: 2,
-        background:
-          theme.palette.mode === 'dark'
-            ? 'rgba(255,255,255,0.04)'
-            : 'rgba(0,0,0,0.02)',
+        all: 'unset',
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100%',
+        boxSizing: 'border-box',
+        borderRadius: 3,
+        overflow: 'hidden',
+        cursor: 'pointer',
+        border: `1px solid ${isEmpty ? alpha(accent, 0.2) : alpha(accent, 0.38)}`,
+        transition: 'all 0.2s ease',
+        bgcolor: 'background.paper',
+        '&:hover': {
+          borderColor: accent,
+          boxShadow: `0 6px 28px ${alpha(accent, 0.18)}`,
+          transform: 'translateY(-3px)',
+        },
+        '&:focus-visible': {
+          outline: `2px solid ${accent}`,
+          outlineOffset: 2,
+        },
       }}
     >
-      <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
-        <Stack direction="row" spacing={1.5} alignItems="center" mb={1.5}>
+      {/* Top gradient bar */}
+      <Box sx={{ height: 4, background: gradient, flexShrink: 0 }} />
+
+      {/* Header */}
+      <Box px={2.25} pt={2} pb={1.25}>
+        <Stack direction="row" alignItems="center" spacing={1.5}>
+          {/* Icon box */}
           <Box
             sx={{
-              width: 40,
-              height: 40,
-              borderRadius: 1.5,
-              bgcolor: 'primary.main',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
+              width: 46, height: 46, borderRadius: 2, flexShrink: 0,
+              bgcolor: isEmpty ? alpha(accent, 0.07) : alpha(accent, 0.12),
+              border: isEmpty ? `1.5px dashed ${alpha(accent, 0.3)}` : `1.5px solid ${alpha(accent, 0.28)}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: accent,
             }}
           >
             {icon}
           </Box>
-          <Box>
-            <Typography variant="subtitle2" fontWeight={700}>
+
+          <Box flex={1} minWidth={0}>
+            <Typography variant="subtitle1" fontWeight={800} lineHeight={1.2}>
               {label}
             </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {totalQty} unid. &nbsp;·&nbsp; ${totalPrice.toLocaleString()} total
+            <Typography variant="caption" color={isEmpty ? 'text.disabled' : 'text.secondary'} sx={{ lineHeight: 1.3, display: 'block' }}>
+              {isEmpty
+                ? 'Sin asignar'
+                : `${items.reduce((s, i) => s + i.qty, 0)} unidades`}
             </Typography>
           </Box>
-        </Stack>
 
-        <Stack spacing={0.75}>
-          {items.map((it, idx) => {
-            const imeis: string[] = Array.isArray((it as any).imei) ? (it as any).imei : [];
-            return (
-              <Box key={it.id ?? idx}>
+          {!isEmpty && (
+            <Chip
+              label={`$${total.toLocaleString()}`}
+              size="small"
+              sx={{
+                height: 22, fontSize: 11, fontWeight: 700,
+                bgcolor: alpha(accent, 0.1),
+                color: accent,
+                border: `1px solid ${alpha(accent, 0.25)}`,
+                '& .MuiChip-label': { px: 1 },
+                flexShrink: 0,
+              }}
+            />
+          )}
+        </Stack>
+      </Box>
+
+      <Divider sx={{ mx: 2.25, borderColor: alpha(accent, 0.12) }} />
+
+      {/* Body */}
+      <Box px={2.25} py={1.75} flex={1}>
+        {isEmpty ? (
+          <Stack alignItems="center" justifyContent="center" py={1.5} spacing={1}>
+            <Typography variant="body2" color="text.disabled" textAlign="center" fontSize={13}>
+              Ningún elemento asignado
+            </Typography>
+            <Box
+              sx={{
+                display: 'inline-flex', alignItems: 'center', gap: 0.5,
+                color: accent, fontWeight: 700, fontSize: '0.8rem',
+                px: 1.5, py: 0.4, borderRadius: 99,
+                border: `1px solid ${alpha(accent, 0.3)}`,
+                bgcolor: alpha(accent, 0.06),
+              }}
+            >
+              <AddCircleOutlineRounded sx={{ fontSize: 14 }} />
+              Agregar
+            </Box>
+          </Stack>
+        ) : (
+          <Stack spacing={0.6}>
+            {items.map((item, i) => (
+              <Box key={i}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography variant="body2" color="text.secondary">
-                    {it.label ?? it.id ?? '—'}
+                  <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: '65%', fontSize: 13 }}>
+                    {item.label}
                   </Typography>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Chip label={`x${it.qty}`} size="small" />
-                    <Typography variant="caption" color="text.secondary">
-                      ${((it.qty ?? 0) * (it.price ?? 0)).toLocaleString()}
-                    </Typography>
+                  <Stack direction="row" spacing={0.75} alignItems="center">
+                    {item.detail && (
+                      <Typography variant="caption" color="text.disabled">{item.detail}</Typography>
+                    )}
+                    <Chip
+                      label={`×${item.qty}`}
+                      size="small"
+                      sx={{
+                        height: 18, fontSize: 10, fontWeight: 700,
+                        bgcolor: alpha(accent, 0.1), color: accent,
+                        '& .MuiChip-label': { px: 0.75 },
+                      }}
+                    />
                   </Stack>
                 </Stack>
-                {imeis.filter(Boolean).length > 0 && (
-                  <Stack direction="row" flexWrap="wrap" gap={0.5} mt={0.5}>
-                    {imeis.filter(Boolean).map((imei, i) => (
+                {item.imeis && item.imeis.filter(Boolean).length > 0 && (
+                  <Stack direction="row" flexWrap="wrap" gap={0.5} mt={0.4}>
+                    {item.imeis.filter(Boolean).slice(0, 2).map((imei, j) => (
                       <Chip
-                        key={i}
-                        label={`IMEI: ${imei}`}
+                        key={j}
+                        label={`${imei.slice(0, 12)}…`}
                         size="small"
                         variant="outlined"
-                        sx={{ fontSize: '0.68rem', fontFamily: 'monospace' }}
+                        sx={{ fontSize: '0.6rem', fontFamily: 'monospace', height: 17, '& .MuiChip-label': { px: 0.5 } }}
                       />
                     ))}
+                    {item.imeis.filter(Boolean).length > 2 && (
+                      <Typography variant="caption" color="text.disabled" fontSize={10}>
+                        +{item.imeis.filter(Boolean).length - 2} más
+                      </Typography>
+                    )}
                   </Stack>
                 )}
               </Box>
-            );
-          })}
-        </Stack>
-      </CardContent>
-    </Card>
-  );
-}
+            ))}
+          </Stack>
+        )}
+      </Box>
 
-/* ─── Empty-state hint card ─────────────────────────────────────────────── */
-function EmptyHint({
-  icon,
-  title,
-  description,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  onClick: () => void;
-}) {
-  const theme = useTheme();
-  return (
-    <Card
-      variant="outlined"
-      onClick={onClick}
-      sx={{
-        borderRadius: 2,
-        borderStyle: 'dashed',
-        cursor: 'pointer',
-        transition: 'border-color 0.2s, box-shadow 0.2s',
-        '&:hover': {
-          borderColor: 'primary.main',
-          boxShadow: `0 0 0 2px ${theme.palette.primary.main}22`,
-        },
-      }}
-    >
-      <CardContent
-        sx={{
-          p: 3,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          textAlign: 'center',
-          gap: 1,
-          '&:last-child': { pb: 3 },
-        }}
-      >
-        <Box sx={{ color: 'text.disabled', fontSize: 40, lineHeight: 1 }}>{icon}</Box>
-        <Typography variant="subtitle2" fontWeight={700} color="text.secondary">
-          {title}
-        </Typography>
-        <Typography variant="caption" color="text.disabled">
-          {description}
-        </Typography>
+      {/* Footer */}
+      {!isEmpty && (
         <Box
           sx={{
-            mt: 0.5,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.5,
-            color: 'primary.main',
-            fontWeight: 600,
-            fontSize: '0.8rem',
+            px: 2.25, py: 1.1, flexShrink: 0,
+            borderTop: `1px solid ${alpha(accent, 0.1)}`,
+            bgcolor: alpha(accent, 0.03),
+            display: 'flex', justifyContent: 'flex-end', alignItems: 'center',
           }}
         >
-          <AddCircleOutlineIcon fontSize="small" />
-          Agregar
+          <Box
+            sx={{
+              display: 'inline-flex', alignItems: 'center', gap: 0.5,
+              color: accent, fontWeight: 600, fontSize: '0.78rem',
+            }}
+          >
+            <EditRounded sx={{ fontSize: 13 }} />
+            Editar
+          </Box>
         </Box>
-      </CardContent>
-    </Card>
+      )}
+    </Paper>
   );
 }
 
 /* ─── Main panel ────────────────────────────────────────────────────────── */
 export function StoreEquipmentPanel({ store, storeId }: Props) {
+  const theme = useTheme();
   const queryClient = useQueryClient();
-  const [editOpen, setEditOpen] = React.useState(false);
-  const [saving, setSaving] = React.useState(false);
+  const [openModal, setOpenModal] = React.useState<EquipmentSection | null>(null);
 
-  // Normalizar equipment (puede ser array o { tablets, printers })
+  /* normalize data */
   const equipment: EquipmentItem[] = React.useMemo(
     () => normalizeEquipment((store as any).equipment),
     [store],
@@ -239,269 +261,200 @@ export function StoreEquipmentPanel({ store, storeId }: Props) {
   const tablets = equipment.filter((e) => e.type === 'tablet');
   const printers = equipment.filter((e) => e.type === 'printer');
 
-  const hasTablets = tablets.length > 0 && tablets.some((t) => t.qty > 0);
-  const hasPrinters = printers.length > 0 && printers.some((p) => p.qty > 0);
-  const hasMaterials = materials.length > 0;
-  const hasData = hasTablets || hasPrinters || hasMaterials;
+  /* Build initialData for modal */
+  const initialTabletQty = React.useMemo(() => {
+    const map: Record<string, number> = {};
+    tablets.forEach((t) => { map[t.id] = t.qty ?? 0; });
+    return map;
+  }, [tablets]);
 
-  /* Build initialData for CreateStoreStep2 */
-  const step2InitialData = React.useMemo(() => {
-    const tabletQty: Record<string, number> = {};
-    const printerQty: Record<string, number> = {};
-    const tabletImei: Record<string, string[]> = {};
-
-    equipment.forEach((e) => {
-      if (e.type === 'tablet') {
-        tabletQty[e.id] = e.qty ?? 0;
-        const imeis = (e as any).imei;
-        if (Array.isArray(imeis) && imeis.length) tabletImei[e.id] = imeis;
-      } else {
-        printerQty[e.id] = e.qty ?? 0;
-      }
+  const initialTabletImei = React.useMemo(() => {
+    const map: Record<string, string[]> = {};
+    tablets.forEach((t) => {
+      const imeis = (t as any).imei;
+      if (Array.isArray(imeis) && imeis.length) map[t.id] = imeis;
     });
+    return map;
+  }, [tablets]);
 
-    const initialBIds = [
-      'b-5x5', 'b-2x3', 'b-4x5', 'b-3x5', 'b-5x7',
-      'b-7x10', 'b-a-sm', 'b-a-lg', 'b-stand', 'b-deliv', 'b-setup',
-    ];
-    const matMap: Record<string, MaterialItem> = {};
-    materials.forEach((m) => { matMap[m.id] = m; });
+  const initialPrinterQty = React.useMemo(() => {
+    const map: Record<string, number> = {};
+    printers.forEach((p) => { map[p.id] = p.qty ?? 0; });
+    return map;
+  }, [printers]);
 
-    const sectionB = initialBIds.map((id) => {
-      const found = matMap[id];
-      return {
-        id,
-        name: found?.name ?? id,
-        material: found?.material ?? '—',
-        price: found?.price ?? 0,
-        checked: !!found,
-        qty: found?.qty ?? 0,
-      };
-    });
+  /* Card items */
+  const tabletCardItems = tablets
+    .filter((t) => (t.qty ?? 0) > 0)
+    .map((t) => ({ label: t.label ?? t.id, qty: t.qty, detail: `$${t.price}`, imeis: (t as any).imei }));
 
-    return { tabletQty, tabletImei, printerQty, sectionB };
-  }, [equipment, materials]);
+  const printerCardItems = printers
+    .filter((p) => (p.qty ?? 0) > 0)
+    .map((p) => ({ label: p.label ?? p.id, qty: p.qty, detail: `$${p.price}` }));
 
-  const handleSave = async (step2Data: any) => {
-    setSaving(true);
-    try {
-      await updateStorePatch(storeId, {
-        equipment: step2Data.equipment,
-        materials: step2Data.materials,
-        equipmentTotal: step2Data.equipmentTotal,
-        sectionBTotal: step2Data.sectionBTotal,
-        grandTotal: step2Data.grandTotal,
-      });
-      await queryClient.invalidateQueries({ queryKey: ['store', storeId] });
-      toast.success('Equipamiento actualizado');
-      setEditOpen(false);
-    } catch (err: any) {
-      toast.error(err?.response?.data?.error ?? 'Error al actualizar equipamiento');
-    } finally {
-      setSaving(false);
+  const materialCardItems = materials.map((m) => ({
+    label: m.name, qty: m.qty, detail: m.material,
+  }));
+
+  const equipmentTotal = equipment.reduce((s, e) => s + (e.qty ?? 0) * (e.price ?? 0), 0);
+  const materialsTotal = materials.reduce((s, m) => s + m.qty * m.price, 0);
+  const tabletTotal = tablets.reduce((s, t) => s + (t.qty ?? 0) * (t.price ?? 0), 0);
+  const printerTotal = printers.reduce((s, p) => s + (p.qty ?? 0) * (p.price ?? 0), 0);
+
+  /* Save handler */
+  const handleSectionSave = async (
+    section: EquipmentSection,
+    data: { tabletQty: Record<string, number>; tabletImei: Record<string, string[]>; printerQty: Record<string, number>; materials: BItem[] },
+  ) => {
+    let newEquipment = [...equipment];
+    let newMaterials = materials;
+
+    if (section === 'tablets') {
+      const nonTablets = equipment.filter((e) => e.type === 'printer');
+      const newTablets = tabletCatalog
+        .filter((t) => (data.tabletQty[t.id] ?? 0) > 0)
+        .map((t) => ({
+          id: t.id, label: t.label, description: t.description,
+          qty: data.tabletQty[t.id], price: t.price,
+          type: 'tablet' as const,
+          imei: (data.tabletImei[t.id] ?? []).filter(Boolean),
+        }));
+      newEquipment = [...nonTablets, ...newTablets];
+    } else if (section === 'printers') {
+      const nonPrinters = equipment.filter((e) => e.type === 'tablet');
+      const newPrinters = printerCatalog
+        .filter((p) => (data.printerQty[p.id] ?? 0) > 0)
+        .map((p) => ({
+          id: p.id, label: p.label, description: p.description,
+          qty: data.printerQty[p.id], price: p.price,
+          type: 'printer' as const,
+        }));
+      newEquipment = [...nonPrinters, ...newPrinters];
+    } else {
+      newMaterials = data.materials
+        .filter((m) => m.checked && m.qty > 0)
+        .map(({ id, name, material, price, qty }) => ({ id, name, material, price, qty }));
     }
+
+    const newEquipmentTotal = newEquipment.reduce((s, e) => s + (e.qty ?? 0) * (e.price ?? 0), 0);
+    const newSectionBTotal = newMaterials.reduce((s, m) => s + m.qty * m.price, 0);
+
+    await updateStorePatch(storeId, {
+      equipment: newEquipment,
+      materials: newMaterials,
+      equipmentTotal: newEquipmentTotal,
+      sectionBTotal: newSectionBTotal,
+      grandTotal: newEquipmentTotal + newSectionBTotal,
+    });
+    await queryClient.invalidateQueries({ queryKey: ['store', storeId] });
+
+    const labels = { tablets: 'Tablets', printers: 'Impresoras', materials: 'Materiales' };
+    toast.success(`${labels[section]} actualizados`);
+    setOpenModal(null);
   };
 
-  return (
-    <Box p={3}>
-      {/* ── Breadcrumbs ─────────────────────────────────────── */}
-      <Breadcrumbs sx={{ mb: 2 }} aria-label="breadcrumb">
-        <Typography variant="caption" color="text.secondary">
-          {store.name}
-        </Typography>
-        <Typography variant="caption" color="text.primary" fontWeight={600}>
-          Equipamiento
-        </Typography>
-      </Breadcrumbs>
+  /* Accent colors */
+  const tabletAccent  = theme.palette.primary.main;
+  const printerAccent = theme.palette.info.main;
+  const matAccent     = theme.palette.success.main;
 
-      {/* ── Header ──────────────────────────────────────────── */}
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3}>
+  const tabletGrad  = `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`;
+  const printerGrad = `linear-gradient(135deg, ${theme.palette.info.dark}, ${theme.palette.info.main})`;
+  const matGrad     = `linear-gradient(135deg, ${theme.palette.success.dark}, ${theme.palette.success.main})`;
+
+  const grandTotal = equipmentTotal + materialsTotal;
+
+  return (
+    <Box p={{ xs: 2, md: 3 }}>
+
+      {/* ── Page title ───────────────────────── */}
+      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2.5} flexWrap="wrap" gap={1}>
         <Box>
-          <Typography variant="h5" fontWeight={700}>
+          <Typography variant="subtitle1" fontWeight={800} lineHeight={1.2}>
             Equipamiento
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Tablets, impresoras y materiales asignados a esta tienda
+          <Typography variant="caption" color="text.secondary">
+            Toca una tarjeta para agregar o editar
           </Typography>
         </Box>
-        {hasData && (
-          <Button
-            variant="contained"
-            startIcon={<EditIcon />}
-            onClick={() => setEditOpen(true)}
-            sx={{ borderRadius: 2, textTransform: 'none' }}
-          >
-            Editar
-          </Button>
+        {grandTotal > 0 && (
+          <Chip
+            label={`Grand Total $${grandTotal.toLocaleString()}`}
+            variant="outlined"
+            size="small"
+            sx={{ fontWeight: 700, fontSize: 12, borderRadius: 99 }}
+          />
         )}
       </Stack>
 
-      {/* ── Empty state: hint cards ───────────────────────────── */}
-      {!hasData && (
-        <Grid container spacing={2} mb={3}>
-          <Grid item xs={12} sm={4}>
-            <EmptyHint
-              icon={<DevicesIcon fontSize="inherit" />}
-              title="Sin tablets"
-              description={"No hay tablets asignadas. Agrega Tablet 9\" o 14\" desde el catálogo."} onClick={() => setEditOpen(true)}
-            />
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <EmptyHint
-              icon={<PrintIcon fontSize="inherit" />}
-              title="Sin impresoras"
-              description="No hay impresoras térmicas asignadas a esta tienda."
-              onClick={() => setEditOpen(true)}
-            />
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <EmptyHint
-              icon={<InventoryIcon fontSize="inherit" />}
-              title="Sin materiales"
-              description="No hay posters, ánforas ni stands asignados."
-              onClick={() => setEditOpen(true)}
-            />
-          </Grid>
-        </Grid>
-      )}
-
-      {/* ── Section A: Devices ──────────────────────────────── */}
-      {(hasTablets || hasPrinters) && (
-        <>
-          <Typography
-            variant="subtitle1"
-            fontWeight={700}
-            mb={1.5}
-            sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-          >
-            <DevicesIcon fontSize="small" /> Dispositivos
-          </Typography>
-
-          <Grid container spacing={2} mb={3}>
-            {hasTablets && (
-              <Grid item xs={12} sm={6}>
-                <DeviceCard
-                  icon={<DevicesIcon fontSize="small" />}
-                  label="Tablets"
-                  items={tablets}
-                />
-              </Grid>
-            )}
-            {hasPrinters && (
-              <Grid item xs={12} sm={6}>
-                <DeviceCard
-                  icon={<PrintIcon fontSize="small" />}
-                  label="Impresoras"
-                  items={printers}
-                />
-              </Grid>
-            )}
-          </Grid>
-        </>
-      )}
-
-      {/* ── Section B: Materials ────────────────────────────── */}
-      {hasMaterials && (
-        <>
-          <Divider sx={{ mb: 2.5 }} />
-          <Typography
-            variant="subtitle1"
-            fontWeight={700}
-            mb={1.5}
-            sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-          >
-            <InventoryIcon fontSize="small" /> Materiales adicionales
-          </Typography>
-
-          <Box
-            sx={{
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 2,
-              overflow: 'hidden',
-            }}
-          >
-            <Table size="small">
-              <TableHead>
-                <TableRow sx={{ bgcolor: 'action.hover' }}>
-                  <TableCell sx={{ fontWeight: 700 }}>Producto</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Material</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700 }}>P/U</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700 }}>Cant.</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700 }}>Total</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {materials.map((m, idx) => (
-                  <TableRow key={m.id ?? idx} hover>
-                    <TableCell>{m.name}</TableCell>
-                    <TableCell>{m.material}</TableCell>
-                    <TableCell align="right">${m.price}</TableCell>
-                    <TableCell align="right">{m.qty}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600 }}>
-                      ${(m.qty * m.price).toLocaleString()}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Box>
-        </>
-      )}
-
-      {/* ── Totals ──────────────────────────────────────────── */}
-      {hasData && (
-        <Stack
-          direction="row"
-          justifyContent="flex-end"
-          spacing={3}
-          mt={2.5}
-          flexWrap="wrap"
-        >
-          {(store.equipmentTotal ?? 0) > 0 && (
-            <Typography variant="body2" color="text.secondary">
-              Equipos: <strong>${(store.equipmentTotal ?? 0).toLocaleString()}</strong>
-            </Typography>
-          )}
-          {(store.sectionBTotal ?? 0) > 0 && (
-            <Typography variant="body2" color="text.secondary">
-              Materiales: <strong>${(store.sectionBTotal ?? 0).toLocaleString()}</strong>
-            </Typography>
-          )}
-          {(store.grandTotal ?? 0) > 0 && (
-            <Typography variant="body2" fontWeight={700}>
-              Grand Total: ${(store.grandTotal ?? 0).toLocaleString()}
-            </Typography>
-          )}
-        </Stack>
-      )}
-
-      {/* ── Edit Dialog ─────────────────────────────────────── */}
-      <Dialog
-        open={editOpen}
-        onClose={() => !saving && setEditOpen(false)}
-        maxWidth="lg"
-        fullWidth
-        scroll="paper"
-      >
-        <DialogTitle sx={{ pr: 6, fontWeight: 700 }}>
-          {hasData ? 'Editar equipamiento' : 'Agregar equipamiento'}
-        </DialogTitle>
-        <IconButton
-          onClick={() => setEditOpen(false)}
-          disabled={saving}
-          sx={{ position: 'absolute', right: 8, top: 8 }}
-        >
-          <CloseIcon />
-        </IconButton>
-        <DialogContent dividers sx={{ p: 0 }}>
-          <CreateStoreStep2
-            initialData={step2InitialData}
-            onBack={() => setEditOpen(false)}
-            onSubmit={handleSave}
+      {/* ── 3 cards ──────────────────────────── */}
+      <Grid container spacing={2}>
+        <Grid item xs={12} sm={4}>
+          <EquipmentCard
+            icon={<DevicesRounded sx={{ fontSize: 22 }} />}
+            label="Tablets"
+            accent={tabletAccent}
+            gradient={tabletGrad}
+            items={tabletCardItems}
+            total={tabletTotal}
+            onClick={() => setOpenModal('tablets')}
           />
-        </DialogContent>
-      </Dialog>
+        </Grid>
+        <Grid item xs={12} sm={4}>
+          <EquipmentCard
+            icon={<PrintRounded sx={{ fontSize: 22 }} />}
+            label="Impresoras"
+            accent={printerAccent}
+            gradient={printerGrad}
+            items={printerCardItems}
+            total={printerTotal}
+            onClick={() => setOpenModal('printers')}
+          />
+        </Grid>
+        <Grid item xs={12} sm={4}>
+          <EquipmentCard
+            icon={<Inventory2Outlined sx={{ fontSize: 22 }} />}
+            label="Materiales"
+            accent={matAccent}
+            gradient={matGrad}
+            items={materialCardItems}
+            total={materialsTotal}
+            onClick={() => setOpenModal('materials')}
+          />
+        </Grid>
+      </Grid>
+
+      {/* ── Modals ───────────────────────────── */}
+      <EquipmentSectionModal
+        open={openModal === 'tablets'}
+        section="tablets"
+        onClose={() => setOpenModal(null)}
+        onSave={handleSectionSave}
+        initialTabletQty={initialTabletQty}
+        initialTabletImei={initialTabletImei}
+        initialPrinterQty={initialPrinterQty}
+        initialMaterials={materials}
+      />
+      <EquipmentSectionModal
+        open={openModal === 'printers'}
+        section="printers"
+        onClose={() => setOpenModal(null)}
+        onSave={handleSectionSave}
+        initialTabletQty={initialTabletQty}
+        initialTabletImei={initialTabletImei}
+        initialPrinterQty={initialPrinterQty}
+        initialMaterials={materials}
+      />
+      <EquipmentSectionModal
+        open={openModal === 'materials'}
+        section="materials"
+        onClose={() => setOpenModal(null)}
+        onSave={handleSectionSave}
+        initialTabletQty={initialTabletQty}
+        initialTabletImei={initialTabletImei}
+        initialPrinterQty={initialPrinterQty}
+        initialMaterials={materials}
+      />
     </Box>
   );
 }

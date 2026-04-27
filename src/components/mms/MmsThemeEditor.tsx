@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -13,11 +13,17 @@ import {
   Divider,
   Stack,
   Chip,
+  CircularProgress,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import PaletteIcon from '@mui/icons-material/Palette';
 import SaveIcon from '@mui/icons-material/Save';
 import RestoreIcon from '@mui/icons-material/Restore';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import ClearIcon from '@mui/icons-material/Clear';
 import { updateStorePatch } from '@/services/store.service';
+import { uploadCampaignImage } from '@/services/upload.service';
 
 export interface MmsTheme {
   primaryColor: string;
@@ -73,6 +79,9 @@ export default function MmsThemeEditor({ storeId, storeSlug, theme, onThemeChang
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoUploadError, setLogoUploadError] = useState('');
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   // Sync parent changes
   useEffect(() => {
@@ -107,6 +116,22 @@ export default function MmsThemeEditor({ storeId, storeSlug, theme, onThemeChang
     setLocalTheme({ ...DEFAULT_THEME });
     onThemeChange(DEFAULT_THEME);
   }, [onThemeChange]);
+
+  const handleLogoUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoUploading(true);
+    setLogoUploadError('');
+    try {
+      const { url } = await uploadCampaignImage(file, 'store-logos');
+      updateField('logoUrl', url);
+    } catch (err: any) {
+      setLogoUploadError(err.response?.data?.error || 'Upload failed');
+    } finally {
+      setLogoUploading(false);
+      if (logoInputRef.current) logoInputRef.current.value = '';
+    }
+  }, [updateField]);
 
   const handleSave = useCallback(async () => {
     if (!storeId) return;
@@ -245,16 +270,66 @@ export default function MmsThemeEditor({ storeId, storeSlug, theme, onThemeChang
 
       <Divider sx={{ my: 2 }} />
 
-      {/* Text & Logo */}
-      <TextField
-        fullWidth
-        label="Store Logo URL"
-        value={localTheme.logoUrl}
-        onChange={(e) => updateField('logoUrl', e.target.value)}
-        size="small"
-        sx={{ mb: 2 }}
-        placeholder="https://example.com/logo.png"
+      {/* Logo upload */}
+      <input
+        ref={logoInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        style={{ display: 'none' }}
+        onChange={handleLogoUpload}
       />
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.75 }}>
+          Store Logo
+        </Typography>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <TextField
+            fullWidth
+            label="Logo URL"
+            value={localTheme.logoUrl}
+            onChange={(e) => updateField('logoUrl', e.target.value)}
+            size="small"
+            placeholder="https://… or upload →"
+            InputProps={{
+              endAdornment: localTheme.logoUrl ? (
+                <Tooltip title="Clear logo">
+                  <IconButton size="small" onClick={() => updateField('logoUrl', '')} edge="end">
+                    <ClearIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              ) : null,
+            }}
+          />
+          <Tooltip title="Upload image to Cloudinary">
+            <span>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => logoInputRef.current?.click()}
+                disabled={logoUploading}
+                startIcon={logoUploading ? <CircularProgress size={14} /> : <CloudUploadIcon fontSize="small" />}
+                sx={{ whiteSpace: 'nowrap', minWidth: 100 }}
+              >
+                {logoUploading ? 'Uploading…' : 'Upload'}
+              </Button>
+            </span>
+          </Tooltip>
+        </Stack>
+        {localTheme.logoUrl && (
+          <Box
+            component="img"
+            src={localTheme.logoUrl}
+            alt="Logo preview"
+            sx={{ mt: 1, maxHeight: 48, maxWidth: 160, objectFit: 'contain', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}
+            onError={(e: any) => { e.target.style.display = 'none'; }}
+          />
+        )}
+        {logoUploadError && (
+          <Alert severity="error" sx={{ mt: 0.75, py: 0.25 }} onClose={() => setLogoUploadError('')}>
+            {logoUploadError}
+          </Alert>
+        )}
+      </Box>
       <TextField
         fullWidth
         label="CTA Text"

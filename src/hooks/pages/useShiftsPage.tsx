@@ -68,6 +68,8 @@ export type UseShiftsTableResult = {
   setStatus: (s: StatusFilter) => void;
   dateRange: DateRangeValue;
   setDateRange: (r: DateRangeValue) => void;
+  promoterId: string;
+  setPromoterId: (id: string) => void;
 
   // paging
   page: number;
@@ -127,6 +129,7 @@ export function useShiftsTable(options: UseShiftsTableOptions = {}): UseShiftsTa
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(options.defaultRowsPerPage ?? 12);
   const [dateRange, setDateRange] = useState<DateRangeValue>({ startDate: null, endDate: null });
+  const [promoterId, setPromoterIdState] = useState<string>("");
 
   // derived dates
   const startISO = useMemo(
@@ -140,7 +143,7 @@ export function useShiftsTable(options: UseShiftsTableOptions = {}): UseShiftsTa
 
   // fetch
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ["shifts", page, rowsPerPage, startISO, endISO, status],
+    queryKey: ["shifts", page, rowsPerPage, startISO, endISO, status, promoterId],
     queryFn: () =>
       shiftService.getAllShifts({
         page,
@@ -148,6 +151,7 @@ export function useShiftsTable(options: UseShiftsTableOptions = {}): UseShiftsTa
         startTime: startISO,
         endTime: endISO,
         status: status === "all" ? undefined : status,
+        promoterId: promoterId || undefined,
       }),
   });
 
@@ -311,6 +315,11 @@ export function useShiftsTable(options: UseShiftsTableOptions = {}): UseShiftsTa
     dateRange,
     setDateRange: (r) => {
       setDateRange(r);
+      setPage(1);
+    },
+    promoterId,
+    setPromoterId: (id: string) => {
+      setPromoterIdState(id);
       setPage(1);
     },
 

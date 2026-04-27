@@ -50,19 +50,14 @@ interface WelcomeCouponsPanelProps {
    storeId: string;
 }
 
-// ─── Compact Tokens ────────────────────────────────────────────────────────
-const SP_PINK = '#d7006e';
-const SP_VIBRANT = '#ff4b9b';
-const SP_GRADIENT = `linear-gradient(135deg, ${SP_PINK} 0%, ${SP_VIBRANT} 100%)`;
-
 const compactCardSx = (theme: any) => ({
    borderRadius: 3,
    border: `1px solid ${theme.palette.divider}`,
-   background: theme.palette.mode === 'dark' ? alpha(theme.palette.neutral[900], 0.5) : '#fff',
+   background: theme.palette.mode === 'dark' ? alpha(theme.palette.background.default, 0.5) : theme.palette.background.paper,
    transition: 'all 0.2s ease-in-out',
    boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
    '&:hover': {
-      borderColor: alpha(SP_PINK, 0.3),
+      borderColor: alpha(theme.palette.primary.main, 0.3),
       boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
    },
 });
@@ -71,6 +66,9 @@ const compactCardSx = (theme: any) => ({
 
 const WelcomeCouponsPanel = ({ storeId }: WelcomeCouponsPanelProps) => {
    const theme = useTheme();
+   const SP_PINK = theme.palette.primary.main;
+   const SP_VIBRANT = theme.palette.primary.light;
+   const SP_GRADIENT = `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${SP_VIBRANT} 100%)`;
    const queryClient = useQueryClient();
    const { isOpen, currentImage, openViewer, closeViewer } = useImageViewer();
 
@@ -176,7 +174,7 @@ const WelcomeCouponsPanel = ({ storeId }: WelcomeCouponsPanelProps) => {
             <Fade in timeout={400}>
                <Box>
                   {/* 🏹 Compact Header */}
-                  <Paper elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, p: 2, mb: 3, borderRadius: 2.5, bgcolor: '#fff' }}>
+                  <Paper elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, p: 2, mb: 3, borderRadius: 2.5, bgcolor: 'background.paper' }}>
                      <Stack direction="row" justifyContent="space-between" alignItems="center">
                         <Box>
                            <Stack direction="row" alignItems="center" spacing={1}>
@@ -208,13 +206,13 @@ const WelcomeCouponsPanel = ({ storeId }: WelcomeCouponsPanelProps) => {
                               title="New Leads"
                               value={metrics?.totalNewCustomers || 0}
                               icon={<PersonAddIcon sx={{ fontSize: 18 }} />}
-                              color="#10b981"
+                              color={theme.palette.success.main}
                            />
                            <CompactMetric
                               title="Recurring"
                               value={metrics?.totalExisting || 0}
                               icon={<ReplayIcon sx={{ fontSize: 18 }} />}
-                              color="#3b82f6"
+                              color={theme.palette.info.main}
                            />
                         </Stack>
                      </Grid>

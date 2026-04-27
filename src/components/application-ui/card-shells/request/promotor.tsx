@@ -5,6 +5,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
 import ReportGmailerrorredRoundedIcon from '@mui/icons-material/ReportGmailerrorredRounded';
@@ -27,7 +28,6 @@ import {
 import { alpha, useTheme } from '@mui/material/styles';
 import { format } from 'date-fns';
 import es from 'date-fns/locale/es';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 
 type Props = {
   request: ActivationRequest;
@@ -43,7 +43,7 @@ const getDangerCount = (r?: ActivationRequest) =>
   r?.inDangerStores
     ? typeof r.inDangerStores.count === 'number'
       ? r.inDangerStores.count
-      : r.inDangerStores.data?.length ?? 0
+      : (r.inDangerStores.data?.length ?? 0)
     : 0;
 
 const InfoRow = ({ icon, text }: { icon: React.ReactNode; text: React.ReactNode }) => (
@@ -60,13 +60,15 @@ const InfoRow = ({ icon, text }: { icon: React.ReactNode; text: React.ReactNode 
         placeItems: 'center',
         borderRadius: '6px',
         bgcolor: 'action.hover',
+        flexShrink: 0,
       }}
     >
       {icon}
     </Box>
     <Typography
       variant="body2"
-      sx={{ wordBreak: 'break-word' }}
+      color="text.secondary"
+      sx={{ wordBreak: 'break-word', lineHeight: 1.4 }}
     >
       {text}
     </Typography>
@@ -112,7 +114,8 @@ export default function ActivationRequestCard({
     '';
 
   const userPhone =
-    (typeof request.userId === 'object' && (request.userId as ActivationUserSummary)?.phoneNumber) ||
+    (typeof request.userId === 'object' &&
+      (request.userId as ActivationUserSummary)?.phoneNumber) ||
     request.payload.phoneNumber ||
     '';
 
@@ -128,7 +131,6 @@ export default function ActivationRequestCard({
       ? request.userId
       : (request.userId as ActivationUserSummary)?._id;
 
-  // 🔴 Conflicto de ZIP (resaltado)
   const dangerCount = getDangerCount(request);
   const hasDanger = !!dangerCount;
 
@@ -146,15 +148,17 @@ export default function ActivationRequestCard({
       sx={{
         borderRadius: 3,
         overflow: 'hidden',
-        border: `1px solid ${hasDanger ?  alpha(theme.palette.primary.main, 0.08) : theme.palette.divider}`,
+        border: `1px solid ${
+          hasDanger ? alpha(theme.palette.error.main, 0.25) : theme.palette.divider
+        }`,
         boxShadow: hasDanger
-          ? `0 0 0 2px ${alpha(theme.palette.error.main, 0.15)}`
-          : `0 1px 2px ${alpha(theme.palette.common.black, 0.05)}`,
-        transition: 'transform 120ms ease, box-shadow 120ms ease',
+          ? `0 0 0 2px ${alpha(theme.palette.error.main, 0.1)}`
+          : `0 1px 3px ${alpha(theme.palette.common.black, 0.04)}`,
+        transition: 'transform 150ms ease, box-shadow 150ms ease',
         '&:hover': {
           transform: 'translateY(-2px)',
           boxShadow: hasDanger
-            ? `0 0 0 2px ${alpha(theme.palette.error.main, 0.2)}, 0 8px 24px ${alpha(
+            ? `0 0 0 2px ${alpha(theme.palette.error.main, 0.18)}, 0 8px 24px ${alpha(
                 theme.palette.common.black,
                 0.08
               )}`
@@ -163,16 +167,9 @@ export default function ActivationRequestCard({
         position: 'relative',
       }}
     >
-      {/* Ribbon de alerta arriba cuando hay conflicto */}
+      {/* Danger badge */}
       {hasDanger && (
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 12,
-            right: 12,
-            zIndex: 2,
-          }}
-        >
+        <Box sx={{ position: 'absolute', top: 12, right: 12, zIndex: 2 }}>
           <Tooltip
             title={
               dangerStoresTooltip
@@ -182,19 +179,17 @@ export default function ActivationRequestCard({
           >
             <Chip
               size="small"
-              icon={<ReportGmailerrorredRoundedIcon sx={{ fontSize: 18, }} />}
+              color="error"
+              icon={<ReportGmailerrorredRoundedIcon sx={{ fontSize: 15 }} />}
               label={`${dangerCount}`}
-              sx={{
-                fontWeight: 700,
-                borderRadius: '999px',
-              }}
+              sx={{ fontWeight: 700, borderRadius: '999px', height: 24 }}
             />
           </Tooltip>
         </Box>
       )}
 
       <CardContent sx={{ p: 2.25 }}>
-        {/* Header */}
+        {/* Header: avatar + name + role/zip chips + status */}
         <Stack
           direction="row"
           spacing={1.5}
@@ -219,8 +214,8 @@ export default function ActivationRequestCard({
               sx={{
                 width: 48,
                 height: 48,
-                bgcolor: '#eeeeee',
-                color: '#000',
+                bgcolor: alpha(theme.palette.primary.main, 0.12),
+                color: theme.palette.primary.main,
                 fontWeight: 700,
               }}
             >
@@ -232,7 +227,7 @@ export default function ActivationRequestCard({
             <Typography
               variant="subtitle1"
               fontWeight={700}
-              sx={{ lineHeight: 1.2, mb: 0.5, pr: 6 }}
+              sx={{ lineHeight: 1.2, mb: 0.5, pr: hasDanger ? 6 : 0 }}
               noWrap
               title={fullName}
             >
@@ -241,14 +236,17 @@ export default function ActivationRequestCard({
 
             <Stack
               direction="row"
-              spacing={1}
+              spacing={0.75}
               flexWrap="wrap"
+              alignItems="center"
             >
               <Chip
                 label={role?.toUpperCase() || 'PROMOTOR'}
                 size="small"
                 sx={{
                   fontWeight: 700,
+                  fontSize: 10,
+                  height: 20,
                   bgcolor: alpha(theme.palette.primary.main, 0.08),
                   color: theme.palette.primary.main,
                 }}
@@ -257,26 +255,62 @@ export default function ActivationRequestCard({
                 label={`ZIP ${zip}`}
                 size="small"
                 sx={{
-                  fontWeight: 700,
+                  fontWeight: 600,
+                  fontSize: 10,
+                  height: 20,
                   bgcolor: alpha(theme.palette.grey[900], 0.06),
                   color: theme.palette.text.secondary,
                 }}
               />
-              {/* Estado como ícono en lugar de chip */}
+
+              {/* Status indicator */}
               <Box sx={{ ml: 'auto' }}>
                 {request.status === 'aprobado' && (
                   <Tooltip title="Aprobado">
-                    <CheckCircleOutlineIcon sx={{ color: theme.palette.success.main }}  />
+                    <Box
+                      sx={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: '50%',
+                        display: 'grid',
+                        placeItems: 'center',
+                        bgcolor: alpha(theme.palette.success.main, 0.12),
+                      }}
+                    >
+                      <CheckCircleOutlineIcon sx={{ fontSize: 15, color: 'success.main' }} />
+                    </Box>
                   </Tooltip>
                 )}
                 {request.status === 'rechazado' && (
                   <Tooltip title="Rechazado">
-                    <CancelIcon sx={{ color: theme.palette.error.main }} />
+                    <Box
+                      sx={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: '50%',
+                        display: 'grid',
+                        placeItems: 'center',
+                        bgcolor: alpha(theme.palette.error.main, 0.12),
+                      }}
+                    >
+                      <CancelIcon sx={{ fontSize: 15, color: 'error.main' }} />
+                    </Box>
                   </Tooltip>
                 )}
                 {request.status === 'pendiente' && (
-                  <Tooltip title="Pendiente">
-                    <WarningAmberRoundedIcon sx={{ color: theme.palette.warning.main }} />
+                  <Tooltip title="Pendiente de revisión">
+                    <Box
+                      sx={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: '50%',
+                        display: 'grid',
+                        placeItems: 'center',
+                        bgcolor: alpha(theme.palette.warning.main, 0.12),
+                      }}
+                    >
+                      <WarningAmberRoundedIcon sx={{ fontSize: 15, color: 'warning.main' }} />
+                    </Box>
                   </Tooltip>
                 )}
               </Box>
@@ -286,14 +320,14 @@ export default function ActivationRequestCard({
 
         <Divider sx={{ my: 1.5 }} />
 
-        {/* Datos alineados en columna */}
-        <Stack spacing={1.25}>
+        {/* Contact + dates */}
+        <Stack spacing={1.1}>
           <InfoRow
-            icon={<MailOutlineIcon fontSize="small" />}
+            icon={<MailOutlineIcon sx={{ fontSize: 13 }} />}
             text={userEmail || '—'}
           />
           <InfoRow
-            icon={<PhoneIphoneIcon fontSize="small" />}
+            icon={<PhoneIphoneIcon sx={{ fontSize: 13 }} />}
             text={userPhone || '—'}
           />
 
@@ -303,15 +337,11 @@ export default function ActivationRequestCard({
             flexWrap="wrap"
           >
             <InfoRow
-              icon={<CalendarMonthIcon fontSize="small" />}
-              text={
-                created
-                  ? `Creada: ${format(created, 'EEE, d LLL yyyy', { locale: es })}`
-                  : 'Creada: —'
-              }
+              icon={<CalendarMonthIcon sx={{ fontSize: 13 }} />}
+              text={created ? format(created, 'EEE, d LLL yyyy', { locale: es }) : '—'}
             />
             <InfoRow
-              icon={<AccessTimeIcon fontSize="small" />}
+              icon={<AccessTimeIcon sx={{ fontSize: 13 }} />}
               text={created ? format(created, 'HH:mm', { locale: es }) : '—'}
             />
           </Stack>
@@ -319,7 +349,8 @@ export default function ActivationRequestCard({
           {approvedAt && (
             <Typography
               variant="caption"
-              color="text.secondary"
+              color="success.main"
+              sx={{ fontWeight: 500 }}
             >
               Aprobada: {format(approvedAt, 'EEE, d LLL yyyy HH:mm', { locale: es })}
             </Typography>
@@ -328,75 +359,53 @@ export default function ActivationRequestCard({
           {request.status === 'rechazado' && !!request.rejectionReason && (
             <Box
               sx={{
-                mt: 0.5,
-                backgroundColor: alpha(theme.palette.error.main, 0.06),
-                borderRadius: 1.5,
+                mt: 0.25,
                 px: 1.25,
                 py: 0.9,
+                borderRadius: 1.5,
+                bgcolor: alpha(theme.palette.error.main, 0.06),
                 border: `1px solid ${alpha(theme.palette.error.main, 0.12)}`,
               }}
             >
               <Typography
                 variant="caption"
-                sx={{ opacity: 0.95, color: theme.palette.error.main }}
+                color="error.main"
+                sx={{ opacity: 0.95 }}
               >
-                Motivo: “{request.rejectionReason}”
-              </Typography>
-            </Box>
-          )}
-
-          {!!request.statusHistory?.length && (
-            <Box
-              sx={{
-                mt: 0.5,
-                backgroundColor: alpha(theme.palette.grey[900], 0.04),
-                borderRadius: 1.5,
-                px: 1.25,
-                py: 0.75,
-              }}
-            >
-              <Typography
-                variant="caption"
-                sx={{ opacity: 0.9 }}
-              >
-                ESTADO: “
-                {request.status === 'aprobado'
-                  ? 'APROBADO'
-                  : request.status === 'rechazado'
-                    ? 'RECHAZADO'
-                    : 'PENDIENTE'}”
+                Motivo: "{request.rejectionReason}"
               </Typography>
             </Box>
           )}
         </Stack>
 
-        {/* Acciones */}
+        {/* Actions */}
         <Stack
           direction="row"
           spacing={1}
           mt={2}
           alignItems="center"
           justifyContent="space-between"
-          sx={{ flexWrap: 'wrap' }}
+          flexWrap="wrap"
         >
           <Stack
             direction="row"
-            spacing={1}
+            spacing={0.75}
             alignItems="center"
-            sx={{ mb: { xs: 1, sm: 0 } }}
           >
             <Button
-              variant="outlined" // si usas MUI v6; si no, cámbialo a "outlined"
+              size="small"
               onClick={() => onView(request._id)}
-              startIcon={<VisibilityRoundedIcon />}
+              startIcon={<VisibilityRoundedIcon sx={{ fontSize: 15 }} />}
               sx={{
-                bgcolor: alpha(theme.palette.primary.main, 0.08),
+                bgcolor: alpha(theme.palette.primary.main, 0.07),
                 color: theme.palette.primary.main,
                 '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.12) },
                 textTransform: 'none',
                 borderRadius: 999,
                 px: 1.5,
                 py: 0.5,
+                fontWeight: 600,
+                fontSize: 12,
               }}
             >
               Ver
@@ -406,20 +415,23 @@ export default function ActivationRequestCard({
               <Tooltip title="Reenviar correo de credenciales">
                 <span>
                   <Button
+                    size="small"
                     onClick={() => userIdForResend && onResendLink(userIdForResend)}
                     disabled={!userIdForResend}
-                    startIcon={<SendRoundedIcon />}
+                    startIcon={<SendRoundedIcon sx={{ fontSize: 14 }} />}
                     sx={{
-                      bgcolor: alpha(theme.palette.secondary.main, 0.12),
+                      bgcolor: alpha(theme.palette.secondary.main, 0.08),
                       color: theme.palette.secondary.main,
-                      '&:hover': { bgcolor: alpha(theme.palette.secondary.main, 0.18) },
+                      '&:hover': { bgcolor: alpha(theme.palette.secondary.main, 0.14) },
                       textTransform: 'none',
                       borderRadius: 999,
                       px: 1.5,
                       py: 0.5,
+                      fontWeight: 600,
+                      fontSize: 12,
                     }}
                   >
-                    Reenviar correo
+                    Reenviar
                   </Button>
                 </span>
               </Tooltip>
@@ -429,16 +441,17 @@ export default function ActivationRequestCard({
           {request.status === 'pendiente' && (
             <Stack
               direction="row"
-              spacing={1}
+              spacing={0.75}
             >
               <Button
                 variant="contained"
                 color="success"
                 size="small"
-                startIcon={<CheckCircleIcon />}
+                startIcon={<CheckCircleIcon sx={{ fontSize: 14 }} />}
                 onClick={() => onApprove(request._id)}
                 disabled={approving}
-                sx={{ textTransform: 'none', borderRadius: 999 }}
+                disableElevation
+                sx={{ textTransform: 'none', borderRadius: 999, fontWeight: 600, fontSize: 12 }}
               >
                 Aprobar
               </Button>
@@ -446,10 +459,10 @@ export default function ActivationRequestCard({
                 variant="outlined"
                 color="error"
                 size="small"
-                startIcon={<CancelIcon />}
+                startIcon={<CancelIcon sx={{ fontSize: 14 }} />}
                 onClick={() => onReject(request._id, '')}
                 disabled={rejecting}
-                sx={{ textTransform: 'none', borderRadius: 999 }}
+                sx={{ textTransform: 'none', borderRadius: 999, fontWeight: 600, fontSize: 12 }}
               >
                 Rechazar
               </Button>
