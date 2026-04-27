@@ -467,8 +467,8 @@ export class BillingService {
 
     return api.post(`/billing/invoices/stores/${storeId}/payments`, formData, {
       headers: {
-        // importante para que NO lo trate como JSON
-        'Content-Type': 'multipart/form-data',
+        // let axios auto-set Content-Type with correct boundary
+        'Content-Type': undefined,
       },
     });
   }
@@ -528,7 +528,7 @@ export class BillingService {
     const formData = new FormData();
     formData.append('file', file); // multer upload.single("file")
     return api.post('/billing/payments/bulk-import', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { 'Content-Type': undefined },
     });
   }
 
@@ -538,7 +538,7 @@ export class BillingService {
     const formData = new FormData();
     formData.append('file', file);
     return api.post('/billing/invoices/bulk-import', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { 'Content-Type': undefined },
     });
   }
 

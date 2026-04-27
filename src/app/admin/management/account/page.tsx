@@ -35,8 +35,12 @@ import BadgeRoundedIcon from '@mui/icons-material/BadgeRounded';
 import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
 import AssignmentTurnedInRoundedIcon from '@mui/icons-material/AssignmentTurnedInRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
+import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
+import PictureAsPdfRoundedIcon from '@mui/icons-material/PictureAsPdfRounded';
+import InsertDriveFileRoundedIcon from '@mui/icons-material/InsertDriveFileRounded';
 import { useAuth } from 'src/hooks/use-auth';
 import { useCustomization } from 'src/hooks/use-customization';
+import { uploadCampaignImage, uploadPdfToS3 } from '@/services/upload.service';
 import { api } from '@/libs/axios';
 import { useQuery } from '@tanstack/react-query';
 import { taskClient } from '@/services/task.service';
@@ -77,6 +81,7 @@ export default function AccountPage() {
     profileImage: '',
   });
   const [cvUrl, setCvUrl] = useState<string | null>(null);
+  const [cvFileName, setCvFileName] = useState<string | null>(null);
 
   // Load user data
   useEffect(() => {
@@ -127,19 +132,15 @@ export default function AccountPage() {
     }
   };
 
-  // ── Upload profile image
+  // ── Upload profile image (Cloudinary via upload-service)
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !userId) return;
 
     setUploadingImage(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const { data } = await api.post('/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      const imageUrl = data.url || data.secure_url || data.result?.secure_url;
+      const result = await uploadCampaignImage(file, 'profile-images');
+      const imageUrl = result.url;
       if (imageUrl) {
         await api.patch(`/auth/users/profile/${userId}`, { profileImage: imageUrl });
         setForm((f) => ({ ...f, profileImage: imageUrl }));
@@ -147,34 +148,29 @@ export default function AccountPage() {
         checkSession?.();
       }
     } catch (err: any) {
-      toast.error('Failed to upload image');
+      console.error('Image upload error:', err);
+      toast.error(err?.response?.data?.message || 'Failed to upload image');
     } finally {
       setUploadingImage(false);
     }
   };
 
-  // ── Upload CV to S3
+  // ── Upload CV/Resume to S3
   const handleCvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user?.id) return;
+    if (!file || !userId) return;
 
     setUploadingCv(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('prefix', `resumes/${user.id}`);
-      formData.append('fileName', `cv-${user.firstName || 'user'}-${Date.now()}.pdf`);
-
-      const { data } = await api.post('/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      const url = data.url || data.secure_url || data.result?.secure_url;
-      if (url) {
-        setCvUrl(url);
+      const result = await uploadPdfToS3(file);
+      if (result.url) {
+        setCvUrl(result.url);
+        setCvFileName(file.name);
         toast.success('CV uploaded successfully!');
       }
     } catch (err: any) {
-      toast.error('Failed to upload CV');
+      console.error('CV upload error:', err);
+      toast.error(err?.response?.data?.message || 'Failed to upload CV');
     } finally {
       setUploadingCv(false);
     }
@@ -308,19 +304,86 @@ export default function AccountPage() {
                   accept=".pdf,.doc,.docx"
                   onChange={handleCvUpload}
                 />
+
+                {/* CV Preview Card */}
                 {cvUrl && (
-                  <Stack direction="row" alignItems="center" spacing={0.5} mt={1} justifyContent="center">
-                    <CheckCircleRoundedIcon sx={{ fontSize: 14, color: 'success.main' }} />
-                    <Typography
-                      variant="caption"
-                      component="a"
-                      href={cvUrl}
-                      target="_blank"
-                      sx={{ color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
-                    >
-                      View uploaded CV
-                    </Typography>
-                  </Stack>
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      mt: 2,
+                      p: 0,
+                      borderRadius: 2.5,
+                      overflow: 'hidden',
+                      border: '1px solid',
+                      borderColor: alpha(theme.palette.success.main, 0.3),
+                      bgcolor: alpha(theme.palette.success.main, 0.04),
+                      transition: 'all 0.2s',
+                      '&:hover': { borderColor: 'success.main', boxShadow: `0 4px 16px ${alpha(theme.palette.success.main, 0.12)}` },
+                    }}
+                  >
+                    {/* PDF inline preview */}
+                    {cvUrl.toLowerCase().endsWith('.pdf') && (
+                      <Box sx={{ width: '100%', height: 160, bgcolor: 'grey.100', overflow: 'hidden', position: 'relative' }}>
+                        <iframe
+                          src={`${cvUrl}#toolbar=0&navpanes=0&view=FitH`}
+                          title="CV Preview"
+                          style={{ width: '100%', height: '100%', border: 'none', pointerEvents: 'none' }}
+                        />
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            inset: 0,
+                            background: 'linear-gradient(to bottom, transparent 60%, rgba(255,255,255,0.9) 100%)',
+                          }}
+                        />
+                      </Box>
+                    )}
+                    <Stack direction="row" alignItems="center" spacing={1.5} sx={{ p: 1.75 }}>
+                      <Box
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 2,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          bgcolor: alpha(theme.palette.error.main, 0.1),
+                          flexShrink: 0,
+                        }}
+                      >
+                        {cvUrl.toLowerCase().endsWith('.pdf') ? (
+                          <PictureAsPdfRoundedIcon sx={{ color: 'error.main', fontSize: 22 }} />
+                        ) : (
+                          <InsertDriveFileRoundedIcon sx={{ color: 'info.main', fontSize: 22 }} />
+                        )}
+                      </Box>
+                      <Box flex={1} minWidth={0}>
+                        <Typography variant="caption" fontWeight={700} noWrap display="block">
+                          {cvFileName || 'Document uploaded'}
+                        </Typography>
+                        <Stack direction="row" alignItems="center" spacing={0.5}>
+                          <CheckCircleRoundedIcon sx={{ fontSize: 12, color: 'success.main' }} />
+                          <Typography variant="caption" color="success.main" fontWeight={600} sx={{ fontSize: 10 }}>
+                            Uploaded successfully
+                          </Typography>
+                        </Stack>
+                      </Box>
+                      <Tooltip title="Open document">
+                        <IconButton
+                          size="small"
+                          component="a"
+                          href={cvUrl}
+                          target="_blank"
+                          sx={{
+                            bgcolor: alpha(theme.palette.primary.main, 0.08),
+                            '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.16) },
+                          }}
+                        >
+                          <OpenInNewRoundedIcon sx={{ fontSize: 16, color: 'primary.main' }} />
+                        </IconButton>
+                      </Tooltip>
+                    </Stack>
+                  </Paper>
                 )}
               </CardContent>
             </Card>

@@ -12,7 +12,8 @@ export interface S3UploadResponse {
 }
 
 // Cloudinary — field name must be "image" (matches multer.single("image") on the service)
-// Do NOT set Content-Type manually: axios auto-adds multipart/form-data + boundary from FormData
+// Content-Type must be undefined so axios auto-adds multipart/form-data + boundary from FormData
+// (the api instance defaults to application/json which would break FormData uploads)
 export const uploadCampaignImage = async (
   image: File,
   folder: string = 'campaigns'
@@ -20,7 +21,9 @@ export const uploadCampaignImage = async (
   const formData = new FormData();
   formData.append('image', image);
   formData.append('folder', folder);
-  const response = await api.post('/upload', formData);
+  const response = await api.post('/upload', formData, {
+    headers: { 'Content-Type': undefined },
+  });
   return response.data;
 };
 
@@ -29,6 +32,8 @@ export const uploadCampaignImage = async (
 export const uploadPdfToS3 = async (file: File): Promise<S3UploadResponse> => {
   const formData = new FormData();
   formData.append('file', file);
-  const response = await api.post('/s3-upload', formData);
+  const response = await api.post('/s3-upload', formData, {
+    headers: { 'Content-Type': undefined },
+  });
   return response.data;
 };
