@@ -424,39 +424,42 @@ const CompactMetric = ({ title, value, icon, color }: any) => (
    </Paper>
 );
 
-const MiniPhone = ({ title, discount, message, imageUrl, onViewImage }: any) => (
-   <Box sx={{ width: 190, height: 380, bgcolor: '#121212', borderRadius: '32px', border: '5px solid #2d2d30', position: 'relative', overflow: 'hidden' }}>
-      <Box sx={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 70, height: 18, bgcolor: '#2d2d30', borderBottomLeftRadius: 10, borderBottomRightRadius: 10, zIndex: 1 }} />
-      <Box sx={{ height: '100%', bgcolor: '#fff', mt: 3, pt: 2, px: 1.5, overflowY: 'auto' }}>
-         <Box sx={{ alignSelf: 'flex-start', maxWidth: '100%', p: 1, bgcolor: '#f0f0f0', borderRadius: '12px 12px 12px 3px', border: '1px solid #e0e0e0' }}>
-            {title && <Typography sx={{ fontSize: '0.6rem', fontWeight: 900, color: SP_PINK, textTransform: 'uppercase', mb: 0.5 }}>{title}</Typography>}
-            {discount && <Typography sx={{ fontSize: '1rem', fontWeight: 900, color: '#000', mb: 0.5 }}>{discount} OFF</Typography>}
-            {imageUrl && (
-               <Box sx={{ position: 'relative', width: '100%', mb: 0.5 }}>
-                  <Box
-                     component="img"
-                     src={imageUrl}
-                     sx={{ width: '100%', borderRadius: '8px', display: 'block', cursor: 'pointer' }}
-                     onClick={onViewImage}
-                  />
-                  <ViewImageIcon
-                     onClick={(e: React.MouseEvent) => {
-                        e.stopPropagation();
-                        onViewImage();
-                     }}
-                     sx={{
-                        position: 'absolute',
-                        bottom: 4,
-                        right: 4,
-                        transform: 'scale(0.6)',
-                     }}
-                  />
-               </Box>
-            )}
-            <Typography sx={{ fontSize: '0.65rem', color: '#333', wordBreak: 'break-word', whiteSpace: 'pre-wrap', lineHeight: 1.2 }}>{message || 'Preview...'}</Typography>
+const MiniPhone = ({ title, discount, message, imageUrl, onViewImage }: any) => {
+   const theme = useTheme();
+   return (
+      <Box sx={{ width: 190, height: 380, bgcolor: theme.palette.grey[900], borderRadius: '32px', border: `5px solid ${theme.palette.grey[800]}`, position: 'relative', overflow: 'hidden' }}>
+         <Box sx={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 70, height: 18, bgcolor: theme.palette.grey[800], borderBottomLeftRadius: 10, borderBottomRightRadius: 10, zIndex: 1 }} />
+         <Box sx={{ height: '100%', bgcolor: theme.palette.common.white, mt: 3, pt: 2, px: 1.5, overflowY: 'auto' }}>
+            <Box sx={{ alignSelf: 'flex-start', maxWidth: '100%', p: 1, bgcolor: theme.palette.grey[100], borderRadius: '12px 12px 12px 3px', border: `1px solid ${theme.palette.divider}` }}>
+               {title && <Typography sx={{ fontSize: '0.6rem', fontWeight: 900, color: theme.palette.primary.main, textTransform: 'uppercase', mb: 0.5 }}>{title}</Typography>}
+               {discount && <Typography sx={{ fontSize: '1rem', fontWeight: 900, color: theme.palette.text.primary, mb: 0.5 }}>{discount} OFF</Typography>}
+               {imageUrl && (
+                  <Box sx={{ position: 'relative', width: '100%', mb: 0.5 }}>
+                     <Box
+                        component="img"
+                        src={imageUrl}
+                        sx={{ width: '100%', borderRadius: '8px', display: 'block', cursor: 'pointer' }}
+                        onClick={onViewImage}
+                     />
+                     <ViewImageIcon
+                        onClick={(e: React.MouseEvent) => {
+                           e.stopPropagation();
+                           onViewImage();
+                        }}
+                        sx={{
+                           position: 'absolute',
+                           bottom: 4,
+                           right: 4,
+                           transform: 'scale(0.6)',
+                        }}
+                     />
+                  </Box>
+               )}
+               <Typography sx={{ fontSize: '0.65rem', color: theme.palette.text.secondary, wordBreak: 'break-word', whiteSpace: 'pre-wrap', lineHeight: 1.2 }}>{message || 'Preview...'}</Typography>
+            </Box>
          </Box>
       </Box>
-   </Box>
-);
+   );
+};
 
 export default WelcomeCouponsPanel;

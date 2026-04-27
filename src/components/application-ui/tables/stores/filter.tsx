@@ -177,7 +177,6 @@ export default function StoreFilters({
 
   const handleClearAll = () => {
     setSearchInput('');
-    setSuggestionQuery('');
     clearAI();
     handleSearchChange('');
     onStatusChange('all');

@@ -269,7 +269,7 @@ export default function StoreHeader({
               <Chip
                 size="small"
                 color={providerChip.color}
-                icon={React.cloneElement(providerChip.icon as React.ReactElement, { style: { fontSize: 11 } })}
+                icon={React.cloneElement(providerChip.icon as React.ReactElement<{ style?: React.CSSProperties }>, { style: { fontSize: 11 } })}
                 label={providerChip.label}
                 sx={{ height: 19, fontSize: 10, fontWeight: 600, '& .MuiChip-label': { px: 0.75 } }}
               />

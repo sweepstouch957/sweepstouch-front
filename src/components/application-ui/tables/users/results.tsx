@@ -45,6 +45,7 @@ import {
   Typography,
   useMediaQuery,
   useTheme,
+  Theme,
 } from '@mui/material';
 import React, {
   ChangeEvent,
@@ -89,7 +90,7 @@ const ROLE_PALETTE_KEY: Record<string, string> = {
   marketing: 'primary',
 };
 
-const getRolePalette = (roleKey: string, theme: ReturnType<typeof useTheme>) => {
+const getRolePalette = (roleKey: string, theme: Theme) => {
   const key = (ROLE_PALETTE_KEY[roleKey] ?? 'primary') as keyof typeof theme.palette;
   return (theme.palette[key] as any) ?? theme.palette.primary;
 };
