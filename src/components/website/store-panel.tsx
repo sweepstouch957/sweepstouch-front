@@ -235,10 +235,7 @@ export default function StoreInfo({ store }: { store: Store }) {
 
   const createMerchantMutation = useMutation({
     mutationFn: async () => {
-      if (!(store as any)?.accessCode) {
-        const newCode = generateAccessCode();
-        await api.patch(`/store/${store._id}`, { accessCode: newCode });
-      }
+      // Backend auto-generates accessCode if the store doesn't have one
       const res = await api.post(`/auth/admin/backfill-from-store/${store._id}`);
       return res.data;
     },
@@ -246,9 +243,10 @@ export default function StoreInfo({ store }: { store: Store }) {
       setBackfillResult(data);
       queryClient.invalidateQueries({ queryKey: ['store-merchant-user', store._id] });
       queryClient.invalidateQueries({ queryKey: ['store', store._id] });
+      queryClient.invalidateQueries({ queryKey: ['store-detail'] });
       const msgs: Record<string, string> = {
-        created_user: 'Usuario merchant creado.',
-        updated_existing_merchant: 'Merchant actualizado.',
+        created_user: 'Usuario merchant creado exitosamente.',
+        updated_existing_merchant: 'Merchant actualizado correctamente.',
         updated_merchant_no_phone_due_conflict: 'Merchant actualizado (sin teléfono — conflicto).',
         attached_store_updated_role_accessCode_email_and_password: 'Usuario vinculado como merchant.',
         conflict_store_already_taken: 'Conflicto: ya existe un usuario asignado.',
@@ -508,6 +506,21 @@ export default function StoreInfo({ store }: { store: Store }) {
                       }}
                       helperText="Solo lectura"
                     />
+                    {/* Show sync button if accessCode is missing on either store or user */}
+                    {(!merchantUser.accessCode || !(store as any)?.accessCode) && (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        fullWidth
+                        color="warning"
+                        startIcon={createMerchantMutation.isPending ? <CircularProgress size={14} color="inherit" /> : <CheckRounded />}
+                        disabled={createMerchantMutation.isPending}
+                        onClick={() => { setBackfillResult(null); createMerchantMutation.mutate(); }}
+                        sx={{ borderRadius: 2, textTransform: 'none' }}
+                      >
+                        {createMerchantMutation.isPending ? 'Sincronizando...' : 'Generar accessCode y sincronizar'}
+                      </Button>
+                    )}
                   </Stack>
                 )}
               </SidebarSection>
