@@ -72,16 +72,6 @@ const getStatusChip = (status: CampaingStatus) => {
 const getRateColor = (rate: number) =>
   rate >= 90 ? '#10b981' : rate >= 75 ? '#f59e0b' : '#ef4444';
 
-const getPlatformDot = (platform?: string) => {
-  if (!platform) return null;
-  const color = PLATFORM_COLORS[platform] ?? '#9e9e9e';
-  return (
-    <Tooltip title={platform}>
-      <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: color, flexShrink: 0 }} />
-    </Tooltip>
-  );
-};
-
 // ─── Mobile Campaign Card ────────────────────────────────────────────────────
 
 interface CampaignCardProps {
@@ -309,7 +299,7 @@ const Results: FC<ResultsProps> = ({
       window.addEventListener('campaigns:export', handler);
       return () => window.removeEventListener('campaigns:export', handler);
     }
-    return () => {};
+    return () => { };
   }, []);
 
   const [selectedToDelete, setSelectedToDelete] = useState<string | null>(null);
@@ -364,14 +354,14 @@ const Results: FC<ResultsProps> = ({
             {isLoading
               ? Array.from({ length: 6 }).map((_, i) => <SkeletonCampaignCard key={i} />)
               : campaigns.map((campaign) => (
-                  <CampaignCard
-                    key={campaign._id}
-                    campaign={campaign}
-                    onStats={handleStats}
-                    onEdit={handleEdit}
-                    onDelete={(id) => setSelectedToDelete(id)}
-                  />
-                ))}
+                <CampaignCard
+                  key={campaign._id}
+                  campaign={campaign}
+                  onStats={handleStats}
+                  onEdit={handleEdit}
+                  onDelete={(id) => setSelectedToDelete(id)}
+                />
+              ))}
           </Box>
           {!isLoading && campaigns.length === 0 && (
             <Box textAlign="center" py={6}>
@@ -409,107 +399,107 @@ const Results: FC<ResultsProps> = ({
                 {isLoading
                   ? Array.from({ length: 6 }).map((_, i) => <SkeletonTableRow key={i} />)
                   : campaigns.map((campaign) => {
-                      const sent = campaign?.sent ?? 0;
-                      const audience = campaign?.audience ?? 0;
-                      const rate = audience > 0 ? Math.round((sent / audience) * 100) : 0;
-                      const rateColor = getRateColor(rate);
-                      const localDate = campaign.startDate ? format(new Date(campaign.startDate), 'dd/MM/yy') : '-';
-                      const nyTime = campaign.startDate
-                        ? formatInTimeZone(new Date(campaign.startDate), 'America/New_York', 'hh:mm a')
-                        : null;
-                      const platformColor = campaign.platform ? (PLATFORM_COLORS[campaign.platform] ?? '#9e9e9e') : null;
+                    const sent = campaign?.sent ?? 0;
+                    const audience = campaign?.audience ?? 0;
+                    const rate = audience > 0 ? Math.round((sent / audience) * 100) : 0;
+                    const rateColor = getRateColor(rate);
+                    const localDate = campaign.startDate ? format(new Date(campaign.startDate), 'dd/MM/yy') : '-';
+                    const nyTime = campaign.startDate
+                      ? formatInTimeZone(new Date(campaign.startDate), 'America/New_York', 'hh:mm a')
+                      : null;
+                    const platformColor = campaign.platform ? (PLATFORM_COLORS[campaign.platform] ?? '#9e9e9e') : null;
 
-                      return (
-                        <TableRow key={campaign._id} hover sx={{ '&:hover': { bgcolor: theme.palette.action.hover } }}>
-                          <TableCell>
-                            <Chip size="small" label={campaign.type} variant="outlined" sx={{ fontWeight: 900 }} />
-                          </TableCell>
+                    return (
+                      <TableRow key={campaign._id} hover sx={{ '&:hover': { bgcolor: theme.palette.action.hover } }}>
+                        <TableCell>
+                          <Chip size="small" label={campaign.type} variant="outlined" sx={{ fontWeight: 900 }} />
+                        </TableCell>
 
-                          <TableCell>
-                            <Typography variant="body2" fontWeight={600} noWrap>{localDate}</Typography>
-                            {nyTime && (
-                              <Typography variant="caption" color="info.main" fontWeight={600} noWrap display="block">
-                                {nyTime} NY
+                        <TableCell>
+                          <Typography variant="body2" fontWeight={600} noWrap>{localDate}</Typography>
+                          {nyTime && (
+                            <Typography variant="caption" color="info.main" fontWeight={600} noWrap display="block">
+                              {nyTime} NY
+                            </Typography>
+                          )}
+                        </TableCell>
+
+                        <TableCell sx={{ maxWidth: 360 }}>
+                          <Box display="flex" alignItems="center" gap={1.25} sx={{ minWidth: 0 }}>
+                            <Avatar
+                              sx={{ width: 34, height: 34, cursor: 'pointer', border: `1px solid ${theme.palette.divider}`, flexShrink: 0 }}
+                              src={campaign.store?.image}
+                              onClick={() => campaign.store?._id && window.open(`/admin/management/stores/edit/${campaign.store._id}`, '_blank')}
+                            />
+                            <Typography
+                              variant="subtitle2"
+                              fontWeight={800}
+                              onClick={() => campaign.store?._id && window.open(`/admin/management/stores/edit/${campaign.store._id}`, '_blank')}
+                              title={campaign.store?.name || ''}
+                              sx={{
+                                cursor: 'pointer', lineHeight: 1.2, minWidth: 0,
+                                display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2,
+                                overflow: 'hidden', textOverflow: 'ellipsis', wordBreak: 'break-word',
+                              }}
+                            >
+                              {campaign.store?.name || '-'}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+
+                        <TableCell>
+                          {campaign.platform ? (
+                            <Stack direction="row" spacing={0.75} alignItems="center">
+                              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: platformColor ?? '#9e9e9e', flexShrink: 0 }} />
+                              <Typography variant="caption" fontWeight={700} textTransform="capitalize" noWrap>
+                                {campaign.platform}
                               </Typography>
-                            )}
-                          </TableCell>
+                            </Stack>
+                          ) : (
+                            <Typography variant="caption" color="text.disabled">—</Typography>
+                          )}
+                        </TableCell>
 
-                          <TableCell sx={{ maxWidth: 360 }}>
-                            <Box display="flex" alignItems="center" gap={1.25} sx={{ minWidth: 0 }}>
-                              <Avatar
-                                sx={{ width: 34, height: 34, cursor: 'pointer', border: `1px solid ${theme.palette.divider}`, flexShrink: 0 }}
-                                src={campaign.store?.image}
-                                onClick={() => campaign.store?._id && window.open(`/admin/management/stores/edit/${campaign.store._id}`, '_blank')}
-                              />
-                              <Typography
-                                variant="subtitle2"
-                                fontWeight={800}
-                                onClick={() => campaign.store?._id && window.open(`/admin/management/stores/edit/${campaign.store._id}`, '_blank')}
-                                title={campaign.store?.name || ''}
-                                sx={{
-                                  cursor: 'pointer', lineHeight: 1.2, minWidth: 0,
-                                  display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2,
-                                  overflow: 'hidden', textOverflow: 'ellipsis', wordBreak: 'break-word',
-                                }}
-                              >
-                                {campaign.store?.name || '-'}
-                              </Typography>
-                            </Box>
-                          </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" noWrap>{(campaign.audience ?? 0).toLocaleString()}</Typography>
+                        </TableCell>
 
-                          <TableCell>
-                            {campaign.platform ? (
-                              <Stack direction="row" spacing={0.75} alignItems="center">
-                                <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: platformColor ?? '#9e9e9e', flexShrink: 0 }} />
-                                <Typography variant="caption" fontWeight={700} textTransform="capitalize" noWrap>
-                                  {campaign.platform}
-                                </Typography>
-                              </Stack>
-                            ) : (
-                              <Typography variant="caption" color="text.disabled">—</Typography>
-                            )}
-                          </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight={900}>{numeral(campaign.cost || 0).format('$0,0.00')}</Typography>
+                        </TableCell>
 
-                          <TableCell>
-                            <Typography variant="body2" noWrap>{(campaign.audience ?? 0).toLocaleString()}</Typography>
-                          </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight={900} sx={{ color: rateColor }}>{`${rate}%`}</Typography>
+                        </TableCell>
 
-                          <TableCell>
-                            <Typography variant="body2" fontWeight={900}>{numeral(campaign.cost || 0).format('$0,0.00')}</Typography>
-                          </TableCell>
+                        <TableCell>{getStatusChip(campaign.status)}</TableCell>
 
-                          <TableCell>
-                            <Typography variant="body2" fontWeight={900} sx={{ color: rateColor }}>{`${rate}%`}</Typography>
-                          </TableCell>
-
-                          <TableCell>{getStatusChip(campaign.status)}</TableCell>
-
-                          <TableCell align="center">
-                            <Stack direction="row" spacing={0.5} justifyContent="center">
-                              <Tooltip title={t('Go to Stats')} arrow>
-                                <IconButton onClick={() => handleStats(campaign._id)} color="info" size="small">
-                                  <OpenInNewRounded fontSize="small" />
+                        <TableCell align="center">
+                          <Stack direction="row" spacing={0.5} justifyContent="center">
+                            <Tooltip title={t('Go to Stats')} arrow>
+                              <IconButton onClick={() => handleStats(campaign._id)} color="info" size="small">
+                                <OpenInNewRounded fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            {campaign.status !== 'completed' && (
+                              <Tooltip title={t('Edit Campaign')} arrow>
+                                <IconButton onClick={() => handleEdit(campaign._id)} color="primary" size="small">
+                                  <Edit fontSize="small" />
                                 </IconButton>
                               </Tooltip>
-                              {campaign.status !== 'completed' && (
-                                <Tooltip title={t('Edit Campaign')} arrow>
-                                  <IconButton onClick={() => handleEdit(campaign._id)} color="primary" size="small">
-                                    <Edit fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                              )}
-                              {campaign.status === 'scheduled' && (
-                                <Tooltip title={t('Delete Campaign')} arrow>
-                                  <IconButton onClick={() => setSelectedToDelete(campaign._id)} color="error" size="small">
-                                    <DeleteRounded fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                              )}
-                            </Stack>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                            )}
+                            {campaign.status === 'scheduled' && (
+                              <Tooltip title={t('Delete Campaign')} arrow>
+                                <IconButton onClick={() => setSelectedToDelete(campaign._id)} color="error" size="small">
+                                  <DeleteRounded fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
               </TableBody>
             </Table>
           </TableContainer>

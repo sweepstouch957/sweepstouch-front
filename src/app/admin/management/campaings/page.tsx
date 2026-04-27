@@ -14,7 +14,6 @@ const CampaignsPage = () => {
         sx={{ py: { xs: 1, sm: 2 } }}
         maxWidth={customization.stretch ? false : 'xl'}
       >
-
         {/* Si tu tabla necesita los datos, pásalos aquí */}
         <ApplicationUiTablesInvoices />
       </Container>
