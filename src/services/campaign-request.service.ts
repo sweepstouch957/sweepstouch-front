@@ -101,7 +101,7 @@ export interface AIBriefResponse {
   products: CampaignProduct[];
 }
 
-const BASE = '/api/campaign-requests';
+const BASE = '/campaign-requests';
 
 export const campaignRequestService = {
   async list(params: ListRequestsParams = {}) {

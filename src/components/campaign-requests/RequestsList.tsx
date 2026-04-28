@@ -8,6 +8,7 @@ import {
   STATUS_COLORS,
   ListRequestsParams,
 } from '@/services/campaign-request.service';
+import { getStores, Store } from '@/services/store.service';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
@@ -18,9 +19,11 @@ import SmartToyIcon from '@mui/icons-material/SmartToy';
 import StoreIcon from '@mui/icons-material/Store';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import {
+  Autocomplete,
   Box,
   Card,
   Chip,
+  CircularProgress,
   FormControl,
   IconButton,
   InputLabel,
@@ -40,7 +43,7 @@ import {
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Todos' },
@@ -251,13 +254,23 @@ export default function RequestsList() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [statusFilter, setStatusFilter] = useState('');
-  const [storeFilter, setStoreFilter] = useState('');
+  const [selectedStore, setSelectedStore] = useState<Store | null>(null);
+  const [storeSearch, setStoreSearch] = useState('');
+
+  /* ── Debounced store search ─────────────────────────────────── */
+  const { data: storeOptions, isFetching: storesFetching } = useQuery({
+    queryKey: ['stores-autocomplete', storeSearch],
+    queryFn: () => getStores({ search: storeSearch, limit: 15, page: 1, status: 'all' }),
+    enabled: storeSearch.length >= 2,
+    staleTime: 30_000,
+    select: (d) => d.data ?? [],
+  });
 
   const params: ListRequestsParams = {
     page,
     limit: rowsPerPage,
     ...(statusFilter && { status: statusFilter as CampaignRequestStatus }),
-    ...(storeFilter && { store: storeFilter }),
+    ...(selectedStore && { store: selectedStore._id }),
   };
 
   const { data, isLoading } = useQuery({
@@ -287,11 +300,48 @@ export default function RequestsList() {
             ))}
           </Select>
         </FormControl>
-        <TextField size="small" label="Tienda (slug / ID)" value={storeFilter}
-          onChange={(e) => { setStoreFilter(e.target.value); setPage(0); }}
-          sx={{ minWidth: 200, '& input': { fontSize: 13 }, '& label': { fontSize: 13 } }} />
-        {(statusFilter || storeFilter) && (
-          <Chip label="Limpiar" onDelete={() => { setStatusFilter(''); setStoreFilter(''); }} size="small" />
+
+        <Autocomplete
+          size="small"
+          sx={{ minWidth: 280 }}
+          options={storeOptions ?? []}
+          getOptionLabel={(o) => o.name || ''}
+          isOptionEqualToValue={(a, b) => a._id === b._id}
+          value={selectedStore}
+          onChange={(_, v) => { setSelectedStore(v); setPage(0); }}
+          onInputChange={(_, v, reason) => { if (reason === 'input') setStoreSearch(v); }}
+          loading={storesFetching}
+          noOptionsText={storeSearch.length < 2 ? 'Escribe 2+ letras...' : 'Sin resultados'}
+          renderOption={(props, option) => (
+            <Box component="li" {...props} key={option._id} sx={{ display: 'flex', alignItems: 'center', gap: 1, '& .MuiAutocomplete-option': { py: 0.5 } }}>
+              <StoreIcon sx={{ fontSize: 14, color: 'primary.main', flexShrink: 0 }} />
+              <Box>
+                <Typography variant="body2" fontWeight={600} fontSize={12} lineHeight={1.3}>{option.name}</Typography>
+                <Typography variant="caption" color="text.secondary" fontSize={10}>{option.address} · {option.customerCount ?? 0} clientes</Typography>
+              </Box>
+            </Box>
+          )}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Tienda"
+              InputProps={{
+                ...params.InputProps,
+                sx: { fontSize: 13 },
+                endAdornment: (
+                  <>
+                    {storesFetching ? <CircularProgress color="inherit" size={16} /> : null}
+                    {params.InputProps.endAdornment}
+                  </>
+                ),
+              }}
+              InputLabelProps={{ sx: { fontSize: 13 } }}
+            />
+          )}
+        />
+
+        {(statusFilter || selectedStore) && (
+          <Chip label="Limpiar" onDelete={() => { setStatusFilter(''); setSelectedStore(null); setStoreSearch(''); }} size="small" />
         )}
       </Stack>
 
