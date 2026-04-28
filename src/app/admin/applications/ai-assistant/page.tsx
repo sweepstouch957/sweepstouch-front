@@ -108,15 +108,151 @@ const SIcon: React.FC<{
 };
 
 /* ─── Markdown rendering ─── */
-type AIModel = 'openai' | 'claude' | 'gemini';
+type BaseAIModel = 'openai' | 'claude' | 'gemini';
+type AIModel = BaseAIModel | 'combined';
 
-const MODEL_META: Record<AIModel, { label: string; icon: string }> = {
+const BASE_AI_MODELS: BaseAIModel[] = ['openai', 'claude', 'gemini'];
+
+const MODEL_META: Record<BaseAIModel, { label: string; icon: string }> = {
   openai: { label: 'ChatGPT', icon: '/chatgpt.png' },
   claude: { label: 'Claude', icon: '/claude.png' },
   gemini: { label: 'Gemini', icon: '/gemini.png' },
 };
 
-const ModelIcon: React.FC<{ model: AIModel; size?: number }> = ({ model, size = 16 }) => {
+type CombinedResponse = {
+  content: string;
+  status: 'loading' | 'done' | 'error';
+  error?: string;
+  tokens?: number;
+};
+
+type CombinedResponses = Record<BaseAIModel, CombinedResponse>;
+type RunModelOptions = {
+  timeoutMs?: number;
+  keepLoadingOnTimeout?: boolean;
+  retryLabel?: string;
+};
+
+type RunModelResult = {
+  completed: boolean;
+  timedOut: boolean;
+  errored: boolean;
+};
+
+const createCombinedResponses = (): CombinedResponses => ({
+  openai: { content: '', status: 'loading' },
+  claude: { content: '', status: 'loading' },
+  gemini: { content: '', status: 'loading' },
+});
+
+const getModelLabel = (model: AIModel) =>
+  model === 'combined' ? 'Combinado' : MODEL_META[model].label;
+
+const buildCombinedContent = (responses: CombinedResponses) =>
+  BASE_AI_MODELS.map((model) => {
+    const response = responses[model];
+    const title = `## Respuesta de: ${MODEL_META[model].label}`;
+
+    if (response.status === 'error') {
+      return `${title}\n\nError: ${response.error || 'No se pudo obtener la respuesta.'}`;
+    }
+
+    return `${title}\n\n${response.content || 'Cargando respuesta...'}`;
+  }).join('\n\n---\n\n');
+
+const COMBINED_MODEL_CACHE_KEY = 'sweepstouch-ai-combined-response-models';
+const COMBINED_FIRST_PASS_TIMEOUT_MS = 30000;
+const COMBINED_CONVERSATION_LOOKUP_ATTEMPTS = 12;
+const COMBINED_CONVERSATION_LOOKUP_DELAY_MS = 750;
+
+const getResponseCacheKey = (content: string) => content.trim().slice(0, 5000);
+
+const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+const getCachedCombinedModel = (content: string): BaseAIModel | null => {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const cache = JSON.parse(localStorage.getItem(COMBINED_MODEL_CACHE_KEY) || '{}') as Record<
+      string,
+      BaseAIModel
+    >;
+    return cache[getResponseCacheKey(content)] || null;
+  } catch {
+    return null;
+  }
+};
+
+const cacheCombinedModel = (model: BaseAIModel, content: string) => {
+  if (typeof window === 'undefined' || !content.trim()) return;
+
+  try {
+    const cache = JSON.parse(localStorage.getItem(COMBINED_MODEL_CACHE_KEY) || '{}') as Record<
+      string,
+      BaseAIModel
+    >;
+    const entries = Object.entries({ ...cache, [getResponseCacheKey(content)]: model }).slice(-120);
+    localStorage.setItem(COMBINED_MODEL_CACHE_KEY, JSON.stringify(Object.fromEntries(entries)));
+  } catch {
+    /* localStorage can be unavailable in private or restricted contexts */
+  }
+};
+
+const buildCombinedContentFromMessages = (assistantMessages: Message[]) => {
+  const usedModels = new Set<BaseAIModel>();
+
+  return assistantMessages
+    .map((message, index) => {
+      let model = getCachedCombinedModel(message.content);
+
+      if (!model || usedModels.has(model)) {
+        model = BASE_AI_MODELS.find((candidate) => !usedModels.has(candidate)) || BASE_AI_MODELS[index];
+      }
+
+      usedModels.add(model);
+      return `## Respuesta de: ${MODEL_META[model].label}\n\n${message.content}`;
+    })
+    .join('\n\n---\n\n');
+};
+
+const normalizeCombinedMessages = (rawMessages: Message[]) => {
+  const messages = rawMessages.filter((m: Message) => m.role !== 'system');
+  const normalized: Message[] = [];
+
+  for (let i = 0; i < messages.length; i += 1) {
+    const userMessage = messages[i];
+    const assistantMessages: Message[] = [];
+    let cursor = i;
+
+    while (
+      messages[cursor]?.role === 'user' &&
+      messages[cursor + 1]?.role === 'assistant' &&
+      messages[cursor].content === userMessage?.content &&
+      assistantMessages.length < BASE_AI_MODELS.length
+    ) {
+      assistantMessages.push(messages[cursor + 1]);
+      cursor += 2;
+    }
+
+    if (userMessage?.role === 'user' && assistantMessages.length >= 2) {
+      normalized.push(userMessage);
+      normalized.push({
+        role: 'assistant',
+        content: buildCombinedContentFromMessages(assistantMessages),
+        tokens: assistantMessages.reduce((total, message) => total + (message.tokens || 0), 0) || undefined,
+        timestamp: assistantMessages[assistantMessages.length - 1].timestamp || assistantMessages[0].timestamp,
+      });
+      i = cursor - 1;
+      continue;
+    }
+
+    normalized.push(userMessage);
+  }
+
+  return normalized;
+};
+
+const ModelIcon: React.FC<{ model: BaseAIModel; size?: number }> = ({ model, size = 16 }) => {
   return (
     <Box
       component="img"
@@ -140,8 +276,8 @@ const ModelOption: React.FC<{ model: AIModel }> = ({ model }) => (
     spacing={1}
     alignItems="center"
   >
-    <ModelIcon model={model} />
-    <Box component="span">{MODEL_META[model].label}</Box>
+    {model === 'combined' ? <SIcon size={16} /> : <ModelIcon model={model} />}
+    <Box component="span">{getModelLabel(model)}</Box>
   </Stack>
 );
 
@@ -183,6 +319,10 @@ function renderMarkdown(text: string) {
   processed = processed.replace(
     /^### (.+)$/gm,
     '<h4 style="margin:10px 0 4px;font-size:14px;font-weight:600">$1</h4>'
+  );
+  processed = processed.replace(
+    /^## (Respuesta de: .+)$/gm,
+    '<h3 style="margin:10px 0 8px;font-size:15px;font-weight:800;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px;display:flex;align-items:center;gap:8px"><span style="font-size:13px;color:currentColor">✦</span><span>$1</span><span style="font-size:13px;color:currentColor">✦</span></h3>'
   );
   processed = processed.replace(
     /^## (.+)$/gm,
@@ -373,6 +513,119 @@ const MessageBubble: React.FC<{ msg: Message; isUser: boolean }> = ({ msg, isUse
 };
 
 /* ─── Streaming indicator ─── */
+const CombinedStreamingResponses: React.FC<{ responses: CombinedResponses }> = ({ responses }) => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+  const accent = theme.palette.primary.main;
+
+  return (
+    <Box sx={{ display: 'flex', gap: 1.5, mb: 2.5, alignItems: 'flex-start' }}>
+      <Avatar sx={{ width: 32, height: 32, bgcolor: alpha(accent, 0.12) }}>
+        <SIcon
+          size={18}
+          color={accent}
+          pulse
+        />
+      </Avatar>
+      <Stack
+        spacing={1}
+        sx={{ maxWidth: { xs: 'calc(100% - 44px)', sm: '82%', md: '75%' }, minWidth: 0 }}
+      >
+        {BASE_AI_MODELS.map((model) => {
+          const response = responses[model];
+          const isLoading = response.status === 'loading' && !response.content;
+
+          return (
+            <Paper
+              key={model}
+              elevation={0}
+              sx={{
+                px: { xs: 1.5, sm: 2 },
+                py: { xs: 1.25, sm: 1.5 },
+                borderRadius: 2.5,
+                bgcolor: isDark
+                  ? alpha(theme.palette.common.white, 0.06)
+                  : alpha(theme.palette.common.black, 0.04),
+                border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+                overflow: 'hidden',
+              }}
+            >
+              <Stack
+                direction="row"
+                spacing={1}
+                alignItems="center"
+                mb={response.content || response.error || isLoading ? 1 : 0}
+                sx={{ width: '100%' }}
+              >
+                <ModelIcon
+                  model={model}
+                  size={18}
+                />
+                <Typography
+                  variant="subtitle2"
+                  fontWeight={800}
+                  fontSize={12}
+                  sx={{
+                    textDecoration: 'underline',
+                    textDecorationThickness: 2,
+                    textUnderlineOffset: 4,
+                  }}
+                >
+                  Respuesta de: {MODEL_META[model].label}
+                </Typography>
+                <ModelIcon
+                  model={model}
+                  size={18}
+                />
+                {response.status === 'loading' && (
+                  <CircularProgress
+                    size={13}
+                    thickness={5}
+                    sx={{ ml: 'auto' }}
+                  />
+                )}
+              </Stack>
+
+              {response.error ? (
+                <Typography
+                  variant="body2"
+                  color="error.main"
+                  sx={{ fontSize: 13, lineHeight: 1.65, overflowWrap: 'anywhere' }}
+                >
+                  {response.error}
+                </Typography>
+              ) : isLoading ? (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ fontSize: 13 }}
+                >
+                  Cargando respuesta...
+                </Typography>
+              ) : (
+                <Typography
+                  variant="body2"
+                  component="div"
+                  sx={{
+                    fontSize: 13,
+                    lineHeight: 1.65,
+                    overflowWrap: 'anywhere',
+                    '& pre': { my: 1, maxWidth: '100%' },
+                    '& code': { fontFamily: 'monospace', whiteSpace: 'pre-wrap' },
+                    '& table': { display: 'block', maxWidth: '100%', overflowX: 'auto' },
+                    '& img': { height: 'auto' },
+                  }}
+                  dangerouslySetInnerHTML={{ __html: renderMarkdown(response.content) }}
+                />
+              )}
+            </Paper>
+          );
+        })}
+      </Stack>
+    </Box>
+  );
+};
+
 const StreamingIndicator: React.FC = () => {
   const theme = useTheme();
   const accent = theme.palette.primary.main;
@@ -440,11 +693,12 @@ export default function AIAssistantPage() {
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [streamingText, setStreamingText] = useState('');
+  const [combinedResponses, setCombinedResponses] = useState<CombinedResponses | null>(null);
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(mdUp);
   const [loadingConvs, setLoadingConvs] = useState(true);
-  const [selectedModel, setSelectedModel] = useState<'openai' | 'claude' | 'gemini'>('openai');
+  const [selectedModel, setSelectedModel] = useState<AIModel>('openai');
   const [attachAnchor, setAttachAnchor] = useState<null | HTMLElement>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [imageMode, setImageMode] = useState(false);
@@ -457,6 +711,7 @@ export default function AIAssistantPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const streamingTextRef = useRef('');
+  const combinedResponsesRef = useRef<CombinedResponses>(createCombinedResponses());
   const recognitionRef = useRef<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
@@ -465,9 +720,25 @@ export default function AIAssistantPage() {
   const userRole = user?.role || 'admin';
   const isAdmin = userRole === 'admin';
 
+  const updateCombinedResponse = useCallback(
+    (model: BaseAIModel, updates: Partial<CombinedResponse>) => {
+      setCombinedResponses((prev) => {
+        const current = prev || createCombinedResponses();
+        const next: CombinedResponses = {
+          ...current,
+          [model]: { ...current[model], ...updates },
+        };
+        combinedResponsesRef.current = next;
+        streamingTextRef.current = buildCombinedContent(next);
+        return next;
+      });
+    },
+    []
+  );
+
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages, streamingText]);
+  }, [messages, streamingText, combinedResponses]);
 
   const loadConversations = useCallback(async () => {
     try {
@@ -488,7 +759,9 @@ export default function AIAssistantPage() {
     try {
       const conv = await getConversation(id);
       setActiveConvId(id);
-      setMessages(conv.messages.filter((m: Message) => m.role !== 'system'));
+      setMessages(normalizeCombinedMessages(conv.messages));
+      setCombinedResponses(null);
+      streamingTextRef.current = '';
     } catch {
       toast.error('Failed to load conversation');
     }
@@ -499,6 +772,8 @@ export default function AIAssistantPage() {
     setMessages([]);
     setInput('');
     setStreamingText('');
+    setCombinedResponses(null);
+    streamingTextRef.current = '';
     setPendingAttachments([]);
     inputRef.current?.focus();
   };
@@ -617,6 +892,7 @@ export default function AIAssistantPage() {
     }
     streamingTextRef.current = '';
     setStreamingText('');
+    setCombinedResponses(null);
     setStreaming(false);
   };
 
@@ -638,8 +914,10 @@ export default function AIAssistantPage() {
       abortRef.current = controller;
       let fullText = '';
 
+      const imageProvider: BaseAIModel = selectedModel === 'combined' ? 'openai' : selectedModel;
+
       await generateImage(
-        { prompt: trimmed, provider: selectedModel, signal: controller.signal },
+        { prompt: trimmed, provider: imageProvider, signal: controller.signal },
         (text) => {
           fullText += text;
           streamingTextRef.current = fullText;
@@ -683,6 +961,220 @@ export default function AIAssistantPage() {
 
     const controller = new AbortController();
     abortRef.current = controller;
+
+    if (selectedModel === 'combined') {
+      const initialResponses = createCombinedResponses();
+      combinedResponsesRef.current = initialResponses;
+      setCombinedResponses(initialResponses);
+      streamingTextRef.current = buildCombinedContent(initialResponses);
+
+      let combinedConversationId = activeConvId;
+      const knownConversationIds = new Set(conversations.map((conversation) => conversation._id));
+
+      const refreshConversationList = async () => {
+        const data = await getConversations(userId);
+        const nextConversations = data.data || [];
+        setConversations(nextConversations);
+        return nextConversations as Conversation[];
+      };
+
+      const ensureCombinedConversation = async () => {
+        if (combinedConversationId || controller.signal.aborted) return combinedConversationId;
+
+        for (let attempt = 0; attempt < COMBINED_CONVERSATION_LOOKUP_ATTEMPTS; attempt += 1) {
+          const nextConversations = await refreshConversationList();
+          const createdConversation = nextConversations.find(
+            (conversation) => !knownConversationIds.has(conversation._id)
+          );
+
+          if (createdConversation?._id) {
+            combinedConversationId = createdConversation._id;
+            knownConversationIds.add(createdConversation._id);
+            setActiveConvId(createdConversation._id);
+            return combinedConversationId;
+          }
+
+          if (attempt < COMBINED_CONVERSATION_LOOKUP_ATTEMPTS - 1) {
+            await wait(COMBINED_CONVERSATION_LOOKUP_DELAY_MS);
+          }
+        }
+
+        return combinedConversationId;
+      };
+
+      const runModel = async (
+        model: BaseAIModel,
+        conversationId?: string | null,
+        options: RunModelOptions = {}
+      ): Promise<RunModelResult> => {
+        let modelText = '';
+        let completed = false;
+        let timedOut = false;
+        let errored = false;
+        const modelController = new AbortController();
+        const abortModel = () => modelController.abort();
+        const timeoutId =
+          options.timeoutMs && options.timeoutMs > 0
+            ? window.setTimeout(() => {
+          if (completed) return;
+          timedOut = true;
+          modelController.abort();
+          updateCombinedResponse(model, {
+            content: options.keepLoadingOnTimeout ? options.retryLabel || '' : modelText,
+            status: options.keepLoadingOnTimeout ? 'loading' : modelText.trim() ? 'done' : 'error',
+            error: options.keepLoadingOnTimeout
+              ? undefined
+              : modelText.trim()
+              ? undefined
+              : 'Tiempo de espera agotado. El modelo no respondió a tiempo.',
+          });
+              }, options.timeoutMs)
+            : null;
+
+        if (controller.signal.aborted) {
+          modelController.abort();
+        } else {
+          controller.signal.addEventListener('abort', abortModel, { once: true });
+        }
+
+        try {
+          await sendChatMessage(
+            {
+              conversationId: conversationId || undefined,
+              message: trimmed,
+              attachments: userMsg.attachments,
+              userId,
+              userName,
+              userRole,
+              model,
+              signal: modelController.signal,
+            },
+            (text) => {
+              modelText += text;
+              updateCombinedResponse(model, { content: modelText, status: 'loading' });
+            },
+            (meta) => {
+              completed = true;
+              if (timeoutId) window.clearTimeout(timeoutId);
+              cacheCombinedModel(model, modelText);
+              updateCombinedResponse(model, {
+                content: modelText,
+                status: 'done',
+                tokens: meta.outputTokens,
+              });
+            },
+            (error) => {
+              errored = true;
+              completed = true;
+              if (timeoutId) window.clearTimeout(timeoutId);
+              updateCombinedResponse(model, {
+                content: options.keepLoadingOnTimeout ? options.retryLabel || '' : modelText,
+                status: options.keepLoadingOnTimeout ? 'loading' : 'error',
+                error: options.keepLoadingOnTimeout
+                  ? undefined
+                  : error === 'Failed to fetch'
+                    ? 'No se pudo conectar con el servidor de IA. Revisa conexión, CORS o disponibilidad del backend.'
+                    : error,
+              });
+            },
+            (data) => {
+              const toolLabels: Record<string, string> = {
+                create_task: `Creating task: "${data.input?.title || ''}"...`,
+                get_member_tasks: `Looking up tasks for ${data.input?.memberName || ''}...`,
+                navigate: `Finding route...`,
+                create_user: `Creating user: ${data.input?.firstName || ''} ${
+                  data.input?.lastName || ''
+                }...`,
+                update_user: `Updating user: ${data.input?.userName || data.input?.userId || ''}...`,
+                search_users: `Searching users${data.input?.q ? `: "${data.input.q}"` : ''}...`,
+                search_campaigns: `Searching campaigns${
+                  data.input?.q ? `: "${data.input.q}"` : ''
+                }...`,
+                search_stores: `Searching stores${data.input?.q ? `: "${data.input.q}"` : ''}...`,
+              };
+              modelText += `\n\n${toolLabels[data.tool] || `Running ${data.tool}...`}\n`;
+              updateCombinedResponse(model, { content: modelText, status: 'loading' });
+            },
+            (data) => {
+              if (data.result?.success) {
+                modelText += `${data.result.message}\n\n`;
+              } else if (data.result?.error) {
+                modelText += `${data.result.error}\n\n`;
+              } else if (data.result?.totalTasks !== undefined) {
+                modelText += `Found ${data.result.totalTasks} tasks for ${data.result.member}\n\n`;
+              } else if (data.result?.user) {
+                modelText += `User created: ${data.result.user.firstName} ${data.result.user.lastName}\n\n`;
+              }
+              updateCombinedResponse(model, { content: modelText, status: 'loading' });
+            },
+            (data) => {
+              modelText += `\n\n![${data.name}](${data.url})\n\n`;
+              updateCombinedResponse(model, { content: modelText, status: 'loading' });
+            }
+          );
+        } finally {
+          if (timeoutId) window.clearTimeout(timeoutId);
+          controller.signal.removeEventListener('abort', abortModel);
+        }
+
+        if (timedOut || controller.signal.aborted) {
+          return { completed: false, timedOut, errored };
+        }
+
+        if (!controller.signal.aborted && combinedResponsesRef.current[model].status === 'loading') {
+          cacheCombinedModel(model, modelText);
+          updateCombinedResponse(model, { content: modelText, status: 'done' });
+          completed = true;
+        }
+
+        return { completed, timedOut, errored };
+      };
+
+      if (!combinedConversationId) {
+        const currentConversations = await refreshConversationList();
+        currentConversations.forEach((conversation) => knownConversationIds.add(conversation._id));
+      }
+
+      const pendingModels = new Set<BaseAIModel>(BASE_AI_MODELS);
+      const keepPendingIfNeeded = (model: BaseAIModel, result: RunModelResult) => {
+        if (result.completed && !result.errored && combinedResponsesRef.current[model].status === 'done') {
+          pendingModels.delete(model);
+        }
+      };
+      for (const model of BASE_AI_MODELS) {
+        if (controller.signal.aborted) return;
+        const result = await runModel(model, combinedConversationId, {
+          timeoutMs: COMBINED_FIRST_PASS_TIMEOUT_MS,
+          keepLoadingOnTimeout: true,
+          retryLabel: '',
+        });
+        keepPendingIfNeeded(model, result);
+        if (!combinedConversationId) await ensureCombinedConversation();
+      }
+
+      for (const model of Array.from(pendingModels)) {
+        if (controller.signal.aborted) return;
+        const result = await runModel(model, combinedConversationId);
+        keepPendingIfNeeded(model, result);
+        if (!combinedConversationId) await ensureCombinedConversation();
+      }
+
+      if (controller.signal.aborted) return;
+
+      const finalContent = buildCombinedContent(combinedResponsesRef.current);
+      abortRef.current = null;
+      setMessages((prev) => [...prev, { role: 'assistant', content: finalContent }]);
+      streamingTextRef.current = '';
+      setStreamingText('');
+      setCombinedResponses(null);
+      setStreaming(false);
+      refreshConversationList().then((nextConversations) => {
+        if (!combinedConversationId && nextConversations[0]?._id) {
+          setActiveConvId(nextConversations[0]._id);
+        }
+      });
+      return;
+    }
 
     let fullText = '';
 
@@ -1026,11 +1518,7 @@ export default function AIAssistantPage() {
                 color="text.secondary"
                 fontSize={10}
               >
-                {selectedModel === 'openai'
-                  ? 'OpenAI'
-                  : selectedModel === 'claude'
-                    ? 'Claude'
-                    : 'Gemini'}{' '}
+                {getModelLabel(selectedModel)}{' '}
                 • {streaming ? 'Thinking...' : 'Online'}
               </Typography>
             </Box>
@@ -1069,7 +1557,7 @@ export default function AIAssistantPage() {
             flexDirection: 'column',
           }}
         >
-          {messages.length === 0 && !streamingText ? (
+          {messages.length === 0 && !streamingText && !combinedResponses ? (
             <Box
               sx={{
                 flex: 1,
@@ -1185,13 +1673,14 @@ export default function AIAssistantPage() {
                   isUser={msg.role === 'user'}
                 />
               ))}
-              {streamingText && (
+              {combinedResponses && <CombinedStreamingResponses responses={combinedResponses} />}
+              {streamingText && !combinedResponses && (
                 <MessageBubble
                   msg={{ role: 'assistant', content: streamingText }}
                   isUser={false}
                 />
               )}
-              {streaming && !streamingText && <StreamingIndicator />}
+              {streaming && !streamingText && !combinedResponses && <StreamingIndicator />}
             </>
           )}
         </Box>
@@ -1466,6 +1955,12 @@ export default function AIAssistantPage() {
                 sx={{ fontSize: 12, fontWeight: 600 }}
               >
                 <ModelOption model="gemini" />
+              </MenuItem>
+              <MenuItem
+                value="combined"
+                sx={{ fontSize: 12, fontWeight: 600 }}
+              >
+                <ModelOption model="combined" />
               </MenuItem>
             </TextField>
 
