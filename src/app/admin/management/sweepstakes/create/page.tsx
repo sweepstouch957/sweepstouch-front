@@ -61,8 +61,8 @@ function Page(): React.JSX.Element {
     prizeIds: [] as string[],
     bannerDesktop: '',
     bannerMobile: '',
-    mainColor: '',
-    secondaryColor: '',
+    mainColor: '#D4AF37',
+    secondaryColor: '#C1121F',
   };
 
   const pageMeta = {
