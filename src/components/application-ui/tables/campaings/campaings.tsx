@@ -196,16 +196,17 @@ function MessagingPanel({ stats, loading }: { stats: FilterStatsResponse; loadin
     isCurrency?: boolean;
   }) => (
     <Stack
-      spacing={0.5}
+      spacing={0.25}
       sx={{
         flex: 1,
         minWidth: 0,
-        p: 2,
-        transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        '&:hover': { transform: 'translateY(-2px)' }
+        px: 2,
+        py: 1.25,
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        '&:hover': { transform: 'translateY(-2px)', bgcolor: isDark ? alpha('#fff', 0.02) : alpha('#000', 0.02) }
       }}
     >
-      <Stack direction="row" alignItems="center" spacing={0.75}>
+      <Stack direction="row" alignItems="center" spacing={0.75} mb={0.25}>
         <Box sx={{ color, display: 'flex', opacity: 0.9 }}>{icon}</Box>
         <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'text.secondary' }}>
           {label}
@@ -235,7 +236,7 @@ function MessagingPanel({ stats, loading }: { stats: FilterStatsResponse; loadin
           {isCurrency && <Typography sx={{ fontSize: 16, fontWeight: 700, color: 'text.secondary' }}>$</Typography>}
           <Typography
             sx={{
-              fontSize: 26,
+              fontSize: 22,
               fontWeight: 800,
               lineHeight: 1,
               color,
@@ -280,14 +281,15 @@ function MessagingPanel({ stats, loading }: { stats: FilterStatsResponse; loadin
       {/* Header */}
       <Box
         sx={{
-          px: 2.5,
-          py: 1,
+          px: 2,
+          py: 0.75,
           borderBottom: '1px solid',
           borderColor: 'divider',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 1,
+          bgcolor: isDark ? alpha('#fff', 0.02) : alpha('#000', 0.015),
         }}
       >
         <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'text.secondary' }}>
@@ -301,14 +303,14 @@ function MessagingPanel({ stats, loading }: { stats: FilterStatsResponse; loadin
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(5, 1fr)' },
           gap: 0,
           flex: 1,
         }}
       >
         {/* SMS */}
-        <Box sx={{ position: 'relative', borderRight: { sm: '1px solid' }, borderBottom: '1px solid', borderColor: 'divider' }}>
-          <Box sx={{ position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 3, bgcolor: theme.palette.info.main, borderRadius: 2 }} />
+        <Box sx={{ position: 'relative', borderRight: { sm: '1px solid', lg: '1px solid' }, borderBottom: { xs: '1px solid', md: '1px solid', lg: 'none' }, borderColor: 'divider' }}>
+          <Box sx={{ position: 'absolute', left: 0, top: '25%', bottom: '25%', width: 3, bgcolor: theme.palette.info.main, borderRadius: 2 }} />
           <StatCell
             icon={<SmsRoundedIcon sx={{ fontSize: 16 }} />}
             color={theme.palette.info.main}
@@ -321,8 +323,8 @@ function MessagingPanel({ stats, loading }: { stats: FilterStatsResponse; loadin
         </Box>
 
         {/* MMS */}
-        <Box sx={{ position: 'relative', borderRight: { md: '1px solid' }, borderBottom: '1px solid', borderColor: 'divider' }}>
-          <Box sx={{ position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 3, bgcolor: theme.palette.secondary.main, borderRadius: 2 }} />
+        <Box sx={{ position: 'relative', borderRight: { md: '1px solid', lg: '1px solid' }, borderBottom: { xs: '1px solid', md: '1px solid', lg: 'none' }, borderColor: 'divider' }}>
+          <Box sx={{ position: 'absolute', left: 0, top: '25%', bottom: '25%', width: 3, bgcolor: theme.palette.secondary.main, borderRadius: 2 }} />
           <StatCell
             icon={<ImageRoundedIcon sx={{ fontSize: 16 }} />}
             color={theme.palette.secondary.main}
@@ -335,8 +337,8 @@ function MessagingPanel({ stats, loading }: { stats: FilterStatsResponse; loadin
         </Box>
 
         {/* Audiencia */}
-        <Box sx={{ position: 'relative', borderRight: { sm: '1px solid', md: 'none' }, borderBottom: '1px solid', borderColor: 'divider' }}>
-          <Box sx={{ position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 3, bgcolor: theme.palette.success.main, borderRadius: 2 }} />
+        <Box sx={{ position: 'relative', borderRight: { sm: '1px solid', md: 'none', lg: '1px solid' }, borderBottom: { xs: '1px solid', md: '1px solid', lg: 'none' }, borderColor: 'divider' }}>
+          <Box sx={{ position: 'absolute', left: 0, top: '25%', bottom: '25%', width: 3, bgcolor: theme.palette.success.main, borderRadius: 2 }} />
           <StatCell
             icon={<PeopleOutlineRoundedIcon sx={{ fontSize: 16 }} />}
             color={theme.palette.success.main}
@@ -348,8 +350,8 @@ function MessagingPanel({ stats, loading }: { stats: FilterStatsResponse; loadin
         </Box>
 
         {/* Entregados */}
-        <Box sx={{ position: 'relative', borderRight: { sm: '1px solid', md: '1px solid' }, borderBottom: { xs: '1px solid', sm: '1px solid', md: 'none' }, borderColor: 'divider' }}>
-          <Box sx={{ position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 3, bgcolor: theme.palette.warning.main, borderRadius: 2 }} />
+        <Box sx={{ position: 'relative', borderRight: { sm: '1px solid', md: '1px solid', lg: '1px solid' }, borderBottom: { xs: '1px solid', sm: '1px solid', md: 'none', lg: 'none' }, borderColor: 'divider' }}>
+          <Box sx={{ position: 'absolute', left: 0, top: '25%', bottom: '25%', width: 3, bgcolor: theme.palette.warning.main, borderRadius: 2 }} />
           <StatCell
             icon={<CheckCircleOutlineRoundedIcon sx={{ fontSize: 16 }} />}
             color={theme.palette.warning.main}
@@ -360,8 +362,8 @@ function MessagingPanel({ stats, loading }: { stats: FilterStatsResponse; loadin
         </Box>
 
         {/* Costo */}
-        <Box sx={{ position: 'relative', borderRight: { sm: 'none', md: '1px solid' }, borderBottom: { xs: '1px solid', sm: 'none' }, borderColor: 'divider' }}>
-          <Box sx={{ position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 3, bgcolor: theme.palette.error.main, borderRadius: 2 }} />
+        <Box sx={{ position: 'relative', borderRight: 'none', borderBottom: 'none', borderColor: 'divider' }}>
+          <Box sx={{ position: 'absolute', left: 0, top: '25%', bottom: '25%', width: 3, bgcolor: theme.palette.error.main, borderRadius: 2 }} />
           <StatCell
             icon={<MonetizationOnRoundedIcon sx={{ fontSize: 16 }} />}
             color={theme.palette.error.main}
