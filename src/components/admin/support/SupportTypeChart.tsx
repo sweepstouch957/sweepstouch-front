@@ -92,7 +92,6 @@ export default function SupportTypeChart({ distribution, loading }: Props) {
                 ]}
                 width={200}
                 height={200}
-                legend={{ hidden: true }}
                 sx={{ '& .MuiChartsLegend-root': { display: 'none' } }}
               />
             </Box>
