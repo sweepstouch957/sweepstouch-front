@@ -447,7 +447,7 @@ const EMPTY_STATS: FilterStatsResponse = {
    MAIN GRID
 ───────────────────────────────────────────*/
 function CampaignsGrid({ storeId }: CampaignsGridProps) {
-  const [showMetrics, setShowMetrics] = useState(true);
+  const [showMetrics, setShowMetrics] = useState(false);
   const [filters, setFilters] = useState({
     status: '',
     title: '',
