@@ -2,6 +2,7 @@ import type { UserRole } from '@/contexts/auth/user';
 import {
   AdsClickOutlined,
   BookOutlined,
+  BuildRounded,
   Campaign,
   Person2Outlined,
   Redeem,
@@ -139,6 +140,13 @@ const circularsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Schedule Circulars'), route: routes.admin.management.circulars.schedule },
   ]);
 
+const supportMenu = (t: (token: string) => string): MenuItem =>
+  buildMenu(t('Soporte Técnico'), <BuildRounded />, [
+    { title: t('Dashboard'), route: routes.admin.management.support.dashboard },
+    { title: t('Tickets'), route: routes.admin.management.support.tickets },
+    { title: t('Visitas'), route: routes.admin.management.support.visits },
+  ]);
+
 export const useMenuItemsCollapsedShells = (
   t: (token: string) => string,
   role: UserRole
@@ -168,9 +176,10 @@ export const useMenuItemsCollapsedShells = (
       promotorsMenu(t),
       addsMenu(t),
       circularsMenu(t),
+      supportMenu(t),
       //requestMenu(t),
     ],
-    general_manager: [campaignsMenu(t), promotorsMenu(t), storesMenu(t)],
+    general_manager: [campaignsMenu(t), promotorsMenu(t), storesMenu(t), supportMenu(t)],
     promotor_manager: [sweepstakesMenu(t), promotorsMenu(t), storesMenu(t), circularsMenu(t)],
     campaign_manager: [campaignsMenu(t), circularsMenu(t), storesMenu(t)],
     marketing: [campaignsMenu(t), circularsMenu(t), storesMenu(t), addsMenu(t)],
@@ -179,6 +188,7 @@ export const useMenuItemsCollapsedShells = (
     promotor: [storesMenu(t)],
     design: [storesMenu(t), circularsMenu(t)],
     merchant_manager: [storesMenu(t)],
+    tecnico: [supportMenu(t)],
   };
 
   const management = roleMenus[role] || [];

@@ -19,6 +19,26 @@ export interface FilterCampaignParams {
   platform?: string;
 }
 
+export interface FilterStatsResponse {
+  ok: boolean;
+  total: number;
+  byStatus: Record<string, number>;
+  byType: Record<string, number>;
+  byPlatform: Record<string, number>;
+  messages: {
+    totalSent: number;
+    totalQueued: number;
+    totalNotSent: number;
+    totalErrors: number;
+    totalAudience: number;
+    avgDeliveryRate: number;
+    totalCost?: number;
+    totalDelivered?: number;
+    totalSmsSent?: number;
+    totalMmsSent?: number;
+  };
+}
+
 export type MessageLogStatus = 'queued' | 'failed' | 'sent' | 'delivered' | 'undelivered';
 
 export interface CampaignLog {
@@ -429,6 +449,14 @@ class CampaignClient {
   async getCampaigns(page: number = 1, limit: number = 10): Promise<PaginatedResponse<Campaing>> {
     const res = await api.get(`/campaigns/filter`, { params: { page, limit } });
     return res.data as PaginatedResponse<Campaing>;
+  }
+
+  async getFilterStats(params: Omit<FilterCampaignParams, 'page' | 'limit'>): Promise<FilterStatsResponse> {
+    const { status, startDate, endDate, storeId, title, type, deliveryRate, platform } = params;
+    const res = await api.get('/campaigns/filter/stats', {
+      params: { status, startDate, endDate, storeId, title, type, deliveryRate, platform },
+    });
+    return res.data as FilterStatsResponse;
   }
 
   async getFilteredCampaigns(params: FilterCampaignParams) {

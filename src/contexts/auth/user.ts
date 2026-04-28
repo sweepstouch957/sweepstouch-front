@@ -8,7 +8,8 @@ export type UserRole =
   | 'promotor_manager'
   | 'general_manager'
   | 'merchant_manager'
-  | 'marketing';
+  | 'marketing'
+  | 'tecnico';
 
 
 export interface User {

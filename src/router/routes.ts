@@ -217,6 +217,11 @@ export const routes = {
         listing: '/admin/management/campaign-requests',
         detail: (id: string) => `/admin/management/campaign-requests/${id}`,
       },
+      support: {
+        dashboard: '/admin/dashboards/support',
+        tickets: '/admin/management/support/tickets',
+        visits: '/admin/management/support/visits',
+      },
     },
   },
 
