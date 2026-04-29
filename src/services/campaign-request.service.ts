@@ -101,7 +101,19 @@ export interface AIBriefResponse {
   products: CampaignProduct[];
 }
 
+export interface RepositoryProduct {
+  id_product?: number;
+  desc_full_product: string;
+  brand?: string;
+  url_image?: string;
+  has_image?: boolean;
+  regular_price?: number;
+  sale_price?: number;
+  search_text?: string;
+}
+
 const BASE = '/campaign-requests';
+const PRODUCTS_BASE = '/products'; // proxied to campaign-request-service /products
 
 export const campaignRequestService = {
   async list(params: ListRequestsParams = {}) {
@@ -133,6 +145,18 @@ export const campaignRequestService = {
     const res = await api.get<CampaignRequestStats>(`${BASE}/stats`);
     return res.data;
   },
+
+  /** Search from the global product repository (Supabase) */
+  async searchProducts(params: { q?: string; brand?: string; page?: number; limit?: number }) {
+    const res = await api.get<{ data: RepositoryProduct[]; pagination: any }>(PRODUCTS_BASE, { params: { ...params, hasImage: true } });
+    return res.data;
+  },
+
+  /** Get brands from repository */
+  async getBrands(letter = 'A') {
+    const res = await api.get<any[]>(`${PRODUCTS_BASE}/brands`, { params: { letter } });
+    return res.data;
+  },
 };
 
 export const STATUS_LABELS: Record<CampaignRequestStatus, string> = {
@@ -158,3 +182,4 @@ export const STATUS_COLORS: Record<CampaignRequestStatus, 'default' | 'primary' 
   completed: 'default',
   cancelled: 'error',
 };
+

@@ -7,16 +7,21 @@ import {
   STATUS_LABELS,
   STATUS_COLORS,
 } from '@/services/campaign-request.service';
+import ProductSearchDialog from './ProductSearchDialog';
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ImageIcon from '@mui/icons-material/Image';
+import InventoryIcon from '@mui/icons-material/Inventory';
 import PersonIcon from '@mui/icons-material/Person';
+import SaveIcon from '@mui/icons-material/Save';
+import SearchIcon from '@mui/icons-material/Search';
 import SendIcon from '@mui/icons-material/Send';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
@@ -323,6 +328,9 @@ function AIBriefPanel({ requestId }: { requestId: string }) {
 export default function RequestDetail({ id }: { id: string }) {
   const queryClient = useQueryClient();
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [productSearchOpen, setProductSearchOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editData, setEditData] = useState<Partial<CampaignRequest>>({});
   const [snack, setSnack] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
 
   const { data: req, isLoading } = useQuery({
@@ -341,21 +349,45 @@ export default function RequestDetail({ id }: { id: string }) {
     onError: () => setSnack({ open: true, message: 'Error al enviar propuesta', severity: 'error' }),
   });
 
+  const updateMutation = useMutation({
+    mutationFn: (body: Partial<CampaignRequest>) => campaignRequestService.update(id, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaign-request', id] });
+      setEditing(false);
+      setEditData({});
+      setSnack({ open: true, message: 'Solicitud actualizada', severity: 'success' });
+    },
+    onError: () => setSnack({ open: true, message: 'Error al guardar', severity: 'error' }),
+  });
+
+  const startEditing = () => {
+    if (!req) return;
+    setEditData({ title: req.title, startDate: req.startDate?.slice(0, 10), endDate: req.endDate?.slice(0, 10), specialNotes: req.specialNotes, products: [...(req.products || [])] });
+    setEditing(true);
+  };
+
+  const handleSave = () => updateMutation.mutate(editData);
+
+  const handleDeleteProduct = (idx: number) => {
+    const prods = [...(editData.products || [])];
+    prods.splice(idx, 1);
+    setEditData(d => ({ ...d, products: prods }));
+  };
+
+  const handleAddProducts = (newProds: CampaignProduct[]) => {
+    setEditData(d => ({ ...d, products: [...(d.products || req?.products || []), ...newProds] }));
+  };
+
   if (isLoading) {
-    return (
-      <Box display="flex" justifyContent="center" py={8}>
-        <CircularProgress />
-      </Box>
-    );
+    return (<Box display="flex" justifyContent="center" py={8}><CircularProgress /></Box>);
   }
 
   if (!req) {
-    return (
-      <Alert severity="error">Solicitud no encontrada</Alert>
-    );
+    return (<Alert severity="error">Solicitud no encontrada</Alert>);
   }
 
   const latestProposalIdx = req.proposals.length - 1;
+  const displayProducts = editing ? (editData.products || []) : (req.products || []);
 
   return (
     <Box>
@@ -363,25 +395,31 @@ export default function RequestDetail({ id }: { id: string }) {
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={2} mb={3}>
         <Box>
           <Stack direction="row" spacing={1.5} alignItems="center">
-            <Typography variant="h5" fontWeight={700}>{req.title ?? 'Sin título'}</Typography>
-            <Chip
-              label={STATUS_LABELS[req.status] ?? req.status}
-              color={STATUS_COLORS[req.status] ?? 'default'}
-              sx={{ fontWeight: 700 }}
-            />
+            {editing ? (
+              <TextField size="small" value={editData.title || ''} onChange={e => setEditData(d => ({ ...d, title: e.target.value }))}
+                sx={{ minWidth: 300, '& input': { fontSize: 20, fontWeight: 700 } }} />
+            ) : (
+              <Typography variant="h5" fontWeight={700}>{req.title ?? 'Sin título'}</Typography>
+            )}
+            <Chip label={STATUS_LABELS[req.status] ?? req.status} color={STATUS_COLORS[req.status] ?? 'default'} sx={{ fontWeight: 700 }} />
           </Stack>
           <Typography variant="body2" color="text.secondary" mt={0.5}>
             #{id.slice(-8).toUpperCase()} · Creado {formatDate(req.createdAt)}
           </Typography>
         </Box>
         <Stack direction="row" spacing={1}>
+          {editing ? (
+            <>
+              <Button variant="outlined" onClick={() => { setEditing(false); setEditData({}); }}>Cancelar</Button>
+              <Button variant="contained" startIcon={updateMutation.isPending ? <CircularProgress size={16} /> : <SaveIcon />}
+                onClick={handleSave} disabled={updateMutation.isPending}>Guardar</Button>
+            </>
+          ) : (
+            <Button variant="outlined" startIcon={<EditIcon />} onClick={startEditing}>Editar</Button>
+          )}
           <AIBriefPanel requestId={id} />
-          <Button
-            variant="contained"
-            startIcon={<AddPhotoAlternateIcon />}
-            onClick={() => setUploadOpen(true)}
-            disabled={['approved', 'active', 'completed', 'cancelled'].includes(req.status)}
-          >
+          <Button variant="contained" startIcon={<AddPhotoAlternateIcon />} onClick={() => setUploadOpen(true)}
+            disabled={['approved', 'active', 'completed', 'cancelled'].includes(req.status)}>
             Enviar propuesta
           </Button>
         </Stack>
@@ -424,19 +462,34 @@ export default function RequestDetail({ id }: { id: string }) {
               </Stack>
               <List dense disablePadding>
                 <ListItem disableGutters>
-                  <ListItemText primary="Inicio" secondary={formatDate(req.startDate)} />
+                  {editing ? (
+                    <TextField fullWidth size="small" type="date" label="Inicio" value={editData.startDate || ''}
+                      onChange={e => setEditData(d => ({ ...d, startDate: e.target.value }))} InputLabelProps={{ shrink: true }} />
+                  ) : (
+                    <ListItemText primary="Inicio" secondary={formatDate(req.startDate)} />
+                  )}
                 </ListItem>
                 <ListItem disableGutters>
-                  <ListItemText primary="Fin" secondary={formatDate(req.endDate)} />
+                  {editing ? (
+                    <TextField fullWidth size="small" type="date" label="Fin" value={editData.endDate || ''}
+                      onChange={e => setEditData(d => ({ ...d, endDate: e.target.value }))} InputLabelProps={{ shrink: true }} sx={{ mt: 1 }} />
+                  ) : (
+                    <ListItemText primary="Fin" secondary={formatDate(req.endDate)} />
+                  )}
                 </ListItem>
                 <ListItem disableGutters>
                   <ListItemText primary="Duración" secondary={req.durationDays ? `${req.durationDays} días` : '—'} />
                 </ListItem>
-                {req.specialNotes && (
+                {editing ? (
+                  <ListItem disableGutters>
+                    <TextField fullWidth size="small" multiline rows={2} label="Notas especiales" value={editData.specialNotes || ''}
+                      onChange={e => setEditData(d => ({ ...d, specialNotes: e.target.value }))} sx={{ mt: 1 }} />
+                  </ListItem>
+                ) : req.specialNotes ? (
                   <ListItem disableGutters>
                     <ListItemText primary="Notas especiales" secondary={req.specialNotes} secondaryTypographyProps={{ color: 'warning.main', fontWeight: 500 }} />
                   </ListItem>
-                )}
+                ) : null}
               </List>
             </CardContent>
           </Card>
@@ -487,17 +540,40 @@ export default function RequestDetail({ id }: { id: string }) {
           {/* Products */}
           <Accordion defaultExpanded>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Stack direction="row" spacing={1} alignItems="center">
+              <Stack direction="row" spacing={1} alignItems="center" flex={1}>
                 <ShoppingCartIcon fontSize="small" />
-                <Typography fontWeight={600}>Productos ({req.products?.length ?? 0})</Typography>
+                <Typography fontWeight={600}>Productos ({displayProducts.length})</Typography>
+                {editing && (
+                  <Button size="small" startIcon={<InventoryIcon />} onClick={() => setProductSearchOpen(true)}
+                    sx={{ ml: 'auto', mr: 2 }} variant="outlined">
+                    Buscar del repositorio
+                  </Button>
+                )}
               </Stack>
             </AccordionSummary>
             <AccordionDetails>
-              {(!req.products || req.products.length === 0) ? (
-                <Typography color="text.secondary" variant="body2">Sin productos registrados</Typography>
+              {displayProducts.length === 0 ? (
+                <Box textAlign="center" py={2}>
+                  <Typography color="text.secondary" variant="body2">Sin productos registrados</Typography>
+                  {editing && (
+                    <Button startIcon={<InventoryIcon />} onClick={() => setProductSearchOpen(true)} sx={{ mt: 1 }}>
+                      Agregar desde repositorio
+                    </Button>
+                  )}
+                </Box>
               ) : (
                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 2 }}>
-                  {req.products.map((p, i) => <ProductCard key={i} product={p} />)}
+                  {displayProducts.map((p, i) => (
+                    <Box key={i} sx={{ position: 'relative' }}>
+                      <ProductCard product={p} />
+                      {editing && (
+                        <IconButton size="small" onClick={() => handleDeleteProduct(i)}
+                          sx={{ position: 'absolute', top: 4, right: 4, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' }, width: 22, height: 22 }}>
+                          <DeleteIcon sx={{ fontSize: 14 }} />
+                        </IconButton>
+                      )}
+                    </Box>
+                  ))}
                 </Box>
               )}
             </AccordionDetails>
@@ -579,6 +655,14 @@ export default function RequestDetail({ id }: { id: string }) {
         onClose={() => setUploadOpen(false)}
         onSubmit={(url) => uploadMutation.mutate(url)}
         loading={uploadMutation.isPending}
+      />
+
+      {/* ── Product Search Dialog ── */}
+      <ProductSearchDialog
+        open={productSearchOpen}
+        onClose={() => setProductSearchOpen(false)}
+        onAdd={handleAddProducts}
+        existingNames={displayProducts.map(p => p.name)}
       />
 
       {/* ── Snackbar ── */}
