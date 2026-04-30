@@ -126,6 +126,7 @@ export const routes = {
       statistics: '/admin/dashboards/statistics',
       automation: '/admin/dashboards/automation',
       analytics: '/admin/dashboards/analytics',
+      'campaign-analytics': '/admin/dashboards/campaign-analytics',
       hospital: '/admin/dashboards/hospital',
       helpdesk: '/admin/dashboards/helpdesk',
       monitoring: '/admin/dashboards/monitoring',
