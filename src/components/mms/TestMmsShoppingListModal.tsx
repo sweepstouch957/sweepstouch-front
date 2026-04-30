@@ -16,10 +16,16 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import SearchIcon from '@mui/icons-material/Search';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import EditIcon from '@mui/icons-material/Edit';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
 import axios from 'axios';
 import { customerClient, type Customer } from '@/services/customerService';
 import { generateMmsText } from '@/services/ai.service';
 import { campaignClient } from '@/services/campaing.service';
+import { uploadCampaignImage } from '@/services/upload.service';
+
+const isPdfUrl = (url?: string | null): boolean =>
+  !!url && /\.pdf(\?.*)?$/i.test(url);
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
 const TRACKING_URL = (process.env.NEXT_PUBLIC_TRACKING_URL || API_URL).replace(/\/+$/, '');
@@ -84,6 +90,15 @@ export default function TestMmsShoppingListModal({
 
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+
+  // MMS image upload (when circular is PDF)
+  const [mmsImageFile, setMmsImageFile] = useState<File | null>(null);
+  const [uploadedMmsUrl, setUploadedMmsUrl] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const circularIsPdf = isPdfUrl(circularFileUrl);
+  const effectiveImage = uploadedMmsUrl || (circularIsPdf ? null : circularFileUrl) || null;
 
   // Load customers when modal opens
   useEffect(() => {
@@ -175,10 +190,20 @@ export default function TestMmsShoppingListModal({
     setError('');
 
     try {
+      // Upload image file if user selected one
+      let imgToSend = effectiveImage;
+      if (mmsImageFile && !uploadedMmsUrl) {
+        setUploadingImage(true);
+        const up = await uploadCampaignImage(mmsImageFile);
+        imgToSend = up.url;
+        setUploadedMmsUrl(up.url);
+        setUploadingImage(false);
+      }
+
       await campaignClient.sendTestMessage({
         phone: selectedCustomer.phoneNumber.replace(/\D/g, ''),
         message: smsText,
-        image: null, // NO MANDAR IMAGE POR AHORA SEGUN REQUEST
+        image: imgToSend,
         provider: 'bandwidth', // HARDCODED AS REQUESTED
         phoneNumber: storeBandwidthPhone || TEST_BW_PHONE,
         id: storeBandwidthId || TEST_BW_ID,
@@ -208,6 +233,8 @@ export default function TestMmsShoppingListModal({
     setEditingText(false);
     setError('');
     setCopied(false);
+    setMmsImageFile(null);
+    setUploadedMmsUrl(null);
     setStep('select');
     setSentSuccess(false);
     onClose();
@@ -405,10 +432,75 @@ export default function TestMmsShoppingListModal({
               )}
             </Box>
 
+            {/* ── MMS Image Upload (when PDF detected) ── */}
+            {circularIsPdf && (
+              <Box sx={{
+                p: 2, borderRadius: 2,
+                border: '1px dashed',
+                borderColor: 'warning.main',
+                bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(255,152,0,0.06)' : 'rgba(255,152,0,0.04)',
+              }}>
+                <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                  <ImageRoundedIcon sx={{ fontSize: 18, color: 'warning.main' }} />
+                  <Typography variant="subtitle2" fontWeight={700} color="warning.main">
+                    PDF Detected — Upload MMS Image
+                  </Typography>
+                </Stack>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: 12 }}>
+                  The circular file is a PDF and cannot be sent via MMS. Upload a JPG/PNG image to include in the message.
+                </Typography>
+
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  hidden
+                  ref={fileInputRef}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      setMmsImageFile(f);
+                      setUploadedMmsUrl(null);
+                    }
+                  }}
+                />
+
+                {mmsImageFile ? (
+                  <Stack direction="row" alignItems="center" spacing={2}>
+                    <Avatar
+                      variant="rounded"
+                      src={URL.createObjectURL(mmsImageFile)}
+                      sx={{ width: 56, height: 56 }}
+                    />
+                    <Box flex={1}>
+                      <Typography variant="body2" fontWeight={600}>{mmsImageFile.name}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {(mmsImageFile.size / 1024).toFixed(0)} KB
+                      </Typography>
+                    </Box>
+                    <Button size="small" variant="outlined" color="warning" onClick={() => fileInputRef.current?.click()}>
+                      Change
+                    </Button>
+                  </Stack>
+                ) : (
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    color="warning"
+                    startIcon={<CloudUploadIcon />}
+                    onClick={() => fileInputRef.current?.click()}
+                    sx={{ fontWeight: 600 }}
+                  >
+                    Upload Campaign Image
+                  </Button>
+                )}
+              </Box>
+            )}
+
             {/* Recipient */}
             <Alert severity="success" variant="outlined" icon={<PhoneIphoneRoundedIcon />} sx={{ fontSize: 13 }}>
               Will send to: <strong>{selectedCustomer?.phoneNumber}</strong> ({selectedCustomer?.firstName || 'Unknown'})
-              {circularFileUrl && <><br />📎 MMS with flyer image attached</>}
+              {effectiveImage && <><br />📎 MMS with image attached</>}
+              {circularIsPdf && !mmsImageFile && <><br />⚠️ No image uploaded — will send as SMS only</>}
             </Alert>
 
             {error && <Alert severity="error">{error}</Alert>}
