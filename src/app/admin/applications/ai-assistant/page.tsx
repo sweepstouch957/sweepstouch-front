@@ -59,7 +59,7 @@ import {
 } from '@mui/material';
 import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'next/navigation';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { HEADER_HEIGHT } from 'src/theme/utils';
 
@@ -164,6 +164,7 @@ const COMBINED_MODEL_CACHE_KEY = 'sweepstouch-ai-combined-response-models';
 const COMBINED_FIRST_PASS_TIMEOUT_MS = 30000;
 const COMBINED_CONVERSATION_LOOKUP_ATTEMPTS = 12;
 const COMBINED_CONVERSATION_LOOKUP_DELAY_MS = 750;
+const STREAMING_TEXT_FLUSH_MS = 75;
 
 const getResponseCacheKey = (content: string) => content.trim().slice(0, 5000);
 
@@ -206,7 +207,8 @@ const buildCombinedContentFromMessages = (assistantMessages: Message[]) => {
       let model = getCachedCombinedModel(message.content);
 
       if (!model || usedModels.has(model)) {
-        model = BASE_AI_MODELS.find((candidate) => !usedModels.has(candidate)) || BASE_AI_MODELS[index];
+        model =
+          BASE_AI_MODELS.find((candidate) => !usedModels.has(candidate)) || BASE_AI_MODELS[index];
       }
 
       usedModels.add(model);
@@ -239,8 +241,12 @@ const normalizeCombinedMessages = (rawMessages: Message[]) => {
       normalized.push({
         role: 'assistant',
         content: buildCombinedContentFromMessages(assistantMessages),
-        tokens: assistantMessages.reduce((total, message) => total + (message.tokens || 0), 0) || undefined,
-        timestamp: assistantMessages[assistantMessages.length - 1].timestamp || assistantMessages[0].timestamp,
+        tokens:
+          assistantMessages.reduce((total, message) => total + (message.tokens || 0), 0) ||
+          undefined,
+        timestamp:
+          assistantMessages[assistantMessages.length - 1].timestamp ||
+          assistantMessages[0].timestamp,
       });
       i = cursor - 1;
       continue;
@@ -252,7 +258,13 @@ const normalizeCombinedMessages = (rawMessages: Message[]) => {
   return normalized;
 };
 
-const ModelIcon: React.FC<{ model: BaseAIModel; size?: number }> = ({ model, size = 16 }) => {
+const ModelIcon = React.memo(function ModelIcon({
+  model,
+  size = 16,
+}: {
+  model: BaseAIModel;
+  size?: number;
+}) {
   return (
     <Box
       component="img"
@@ -268,18 +280,26 @@ const ModelIcon: React.FC<{ model: BaseAIModel; size?: number }> = ({ model, siz
       }}
     />
   );
-};
+});
 
-const ModelOption: React.FC<{ model: AIModel }> = ({ model }) => (
-  <Stack
-    direction="row"
-    spacing={1}
-    alignItems="center"
-  >
-    {model === 'combined' ? <SIcon size={16} /> : <ModelIcon model={model} />}
-    <Box component="span">{getModelLabel(model)}</Box>
-  </Stack>
-);
+const ModelOption = React.memo(function ModelOption({ model }: { model: AIModel }) {
+  return (
+    <Stack
+      direction="row"
+      spacing={1}
+      alignItems="center"
+    >
+      {model === 'combined' ? <SIcon size={16} /> : <ModelIcon model={model} />}
+      <Box component="span">{getModelLabel(model)}</Box>
+    </Stack>
+  );
+});
+
+const getMessageKey = (message: Message, index: number) => {
+  const timestamp = message.timestamp || '';
+  const contentKey = message.content?.slice(0, 48) || '';
+  return `${message.role}-${timestamp}-${index}-${contentKey}`;
+};
 
 function renderMarkdown(text: string) {
   const codeBlocks: string[] = [];
@@ -366,11 +386,42 @@ function renderMarkdown(text: string) {
   return processed;
 }
 
+const MarkdownContent = React.memo(function MarkdownContent({ content }: { content: string }) {
+  const html = useMemo(() => renderMarkdown(content), [content]);
+
+  return (
+    <Typography
+      variant="body2"
+      component="div"
+      sx={{
+        fontSize: 13,
+        lineHeight: 1.65,
+        overflowWrap: 'anywhere',
+        '& pre': { my: 1, maxWidth: '100%' },
+        '& code': { fontFamily: 'monospace', whiteSpace: 'pre-wrap' },
+        '& table': { display: 'block', maxWidth: '100%', overflowX: 'auto' },
+        '& img': { height: 'auto' },
+      }}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+});
+
 /* ─── Message Bubble ─── */
-const MessageBubble: React.FC<{ msg: Message; isUser: boolean }> = ({ msg, isUser }) => {
+const MessageBubble = React.memo(function MessageBubble({
+  msg,
+  isUser,
+}: {
+  msg: Message;
+  isUser: boolean;
+}) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const accent = theme.palette.primary.main;
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(msg.content);
+    toast.success('Copied!');
+  }, [msg.content]);
 
   return (
     <Box
@@ -474,20 +525,7 @@ const MessageBubble: React.FC<{ msg: Message; isUser: boolean }> = ({ msg, isUse
               {msg.content}
             </Typography>
           ) : (
-            <Typography
-              variant="body2"
-              component="div"
-              sx={{
-                fontSize: 13,
-                lineHeight: 1.65,
-                overflowWrap: 'anywhere',
-                '& pre': { my: 1, maxWidth: '100%' },
-                '& code': { fontFamily: 'monospace', whiteSpace: 'pre-wrap' },
-                '& table': { display: 'block', maxWidth: '100%', overflowX: 'auto' },
-                '& img': { height: 'auto' },
-              }}
-              dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }}
-            />
+            <MarkdownContent content={msg.content} />
           )}
         </Paper>
 
@@ -496,10 +534,7 @@ const MessageBubble: React.FC<{ msg: Message; isUser: boolean }> = ({ msg, isUse
             <Tooltip title="Copy">
               <IconButton
                 size="small"
-                onClick={() => {
-                  navigator.clipboard.writeText(msg.content);
-                  toast.success('Copied!');
-                }}
+                onClick={handleCopy}
                 sx={{ opacity: 0.4, '&:hover': { opacity: 1 }, p: 0.3 }}
               >
                 <ContentCopyRoundedIcon sx={{ fontSize: 13 }} />
@@ -510,10 +545,14 @@ const MessageBubble: React.FC<{ msg: Message; isUser: boolean }> = ({ msg, isUse
       </Box>
     </Box>
   );
-};
+});
 
 /* ─── Streaming indicator ─── */
-const CombinedStreamingResponses: React.FC<{ responses: CombinedResponses }> = ({ responses }) => {
+const CombinedStreamingResponses = React.memo(function CombinedStreamingResponses({
+  responses,
+}: {
+  responses: CombinedResponses;
+}) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const accent = theme.palette.primary.main;
@@ -603,20 +642,7 @@ const CombinedStreamingResponses: React.FC<{ responses: CombinedResponses }> = (
                   Cargando respuesta...
                 </Typography>
               ) : (
-                <Typography
-                  variant="body2"
-                  component="div"
-                  sx={{
-                    fontSize: 13,
-                    lineHeight: 1.65,
-                    overflowWrap: 'anywhere',
-                    '& pre': { my: 1, maxWidth: '100%' },
-                    '& code': { fontFamily: 'monospace', whiteSpace: 'pre-wrap' },
-                    '& table': { display: 'block', maxWidth: '100%', overflowX: 'auto' },
-                    '& img': { height: 'auto' },
-                  }}
-                  dangerouslySetInnerHTML={{ __html: renderMarkdown(response.content) }}
-                />
+                <MarkdownContent content={response.content} />
               )}
             </Paper>
           );
@@ -624,7 +650,7 @@ const CombinedStreamingResponses: React.FC<{ responses: CombinedResponses }> = (
       </Stack>
     </Box>
   );
-};
+});
 
 const StreamingIndicator: React.FC = () => {
   const theme = useTheme();
@@ -711,6 +737,8 @@ export default function AIAssistantPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const streamingTextRef = useRef('');
+  const streamingFlushTimeoutRef = useRef<number | null>(null);
+  const pendingStreamingTextRef = useRef('');
   const combinedResponsesRef = useRef<CombinedResponses>(createCombinedResponses());
   const recognitionRef = useRef<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -719,6 +747,25 @@ export default function AIAssistantPage() {
   const userName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'User';
   const userRole = user?.role || 'admin';
   const isAdmin = userRole === 'admin';
+
+  const clearStreamingFlush = useCallback(() => {
+    if (streamingFlushTimeoutRef.current) {
+      window.clearTimeout(streamingFlushTimeoutRef.current);
+      streamingFlushTimeoutRef.current = null;
+    }
+    pendingStreamingTextRef.current = '';
+  }, []);
+
+  const queueStreamingText = useCallback((nextText: string) => {
+    pendingStreamingTextRef.current = nextText;
+    if (streamingFlushTimeoutRef.current) return;
+
+    streamingFlushTimeoutRef.current = window.setTimeout(() => {
+      streamingFlushTimeoutRef.current = null;
+      setStreamingText(pendingStreamingTextRef.current);
+      pendingStreamingTextRef.current = '';
+    }, STREAMING_TEXT_FLUSH_MS);
+  }, []);
 
   const updateCombinedResponse = useCallback(
     (model: BaseAIModel, updates: Partial<CombinedResponse>) => {
@@ -735,6 +782,8 @@ export default function AIAssistantPage() {
     },
     []
   );
+
+  useEffect(() => () => clearStreamingFlush(), [clearStreamingFlush]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -761,6 +810,7 @@ export default function AIAssistantPage() {
       setActiveConvId(id);
       setMessages(normalizeCombinedMessages(conv.messages));
       setCombinedResponses(null);
+      clearStreamingFlush();
       streamingTextRef.current = '';
     } catch {
       toast.error('Failed to load conversation');
@@ -771,6 +821,7 @@ export default function AIAssistantPage() {
     setActiveConvId(null);
     setMessages([]);
     setInput('');
+    clearStreamingFlush();
     setStreamingText('');
     setCombinedResponses(null);
     streamingTextRef.current = '';
@@ -891,6 +942,7 @@ export default function AIAssistantPage() {
       setMessages((prev) => [...prev, { role: 'assistant', content: streamingTextRef.current }]);
     }
     streamingTextRef.current = '';
+    clearStreamingFlush();
     setStreamingText('');
     setCombinedResponses(null);
     setStreaming(false);
@@ -907,6 +959,7 @@ export default function AIAssistantPage() {
       setMessages((prev) => [...prev, userMsg]);
       setInput('');
       setStreaming(true);
+      clearStreamingFlush();
       setStreamingText('');
       streamingTextRef.current = '';
 
@@ -921,17 +974,18 @@ export default function AIAssistantPage() {
         (text) => {
           fullText += text;
           streamingTextRef.current = fullText;
-          setStreamingText(fullText);
+          queueStreamingText(fullText);
         },
         (img) => {
           fullText += `\n\n![Generated Image](${img.url})\n\n`;
           streamingTextRef.current = fullText;
-          setStreamingText(fullText);
+          queueStreamingText(fullText);
         },
         () => {
           abortRef.current = null;
           setMessages((prev) => [...prev, { role: 'assistant', content: fullText }]);
           streamingTextRef.current = '';
+          clearStreamingFlush();
           setStreamingText('');
           setStreaming(false);
         },
@@ -939,6 +993,7 @@ export default function AIAssistantPage() {
           abortRef.current = null;
           toast.error(`Image error: ${error}`);
           setStreaming(false);
+          clearStreamingFlush();
           setStreamingText('');
           streamingTextRef.current = '';
         }
@@ -956,6 +1011,7 @@ export default function AIAssistantPage() {
     setInput('');
     setPendingAttachments([]);
     setStreaming(true);
+    clearStreamingFlush();
     setStreamingText('');
     streamingTextRef.current = '';
 
@@ -1016,18 +1072,22 @@ export default function AIAssistantPage() {
         const timeoutId =
           options.timeoutMs && options.timeoutMs > 0
             ? window.setTimeout(() => {
-          if (completed) return;
-          timedOut = true;
-          modelController.abort();
-          updateCombinedResponse(model, {
-            content: options.keepLoadingOnTimeout ? options.retryLabel || '' : modelText,
-            status: options.keepLoadingOnTimeout ? 'loading' : modelText.trim() ? 'done' : 'error',
-            error: options.keepLoadingOnTimeout
-              ? undefined
-              : modelText.trim()
-              ? undefined
-              : 'Tiempo de espera agotado. El modelo no respondió a tiempo.',
-          });
+                if (completed) return;
+                timedOut = true;
+                modelController.abort();
+                updateCombinedResponse(model, {
+                  content: options.keepLoadingOnTimeout ? options.retryLabel || '' : modelText,
+                  status: options.keepLoadingOnTimeout
+                    ? 'loading'
+                    : modelText.trim()
+                      ? 'done'
+                      : 'error',
+                  error: options.keepLoadingOnTimeout
+                    ? undefined
+                    : modelText.trim()
+                      ? undefined
+                      : 'Tiempo de espera agotado. El modelo no respondió a tiempo.',
+                });
               }, options.timeoutMs)
             : null;
 
@@ -1085,7 +1145,9 @@ export default function AIAssistantPage() {
                 create_user: `Creating user: ${data.input?.firstName || ''} ${
                   data.input?.lastName || ''
                 }...`,
-                update_user: `Updating user: ${data.input?.userName || data.input?.userId || ''}...`,
+                update_user: `Updating user: ${
+                  data.input?.userName || data.input?.userId || ''
+                }...`,
                 search_users: `Searching users${data.input?.q ? `: "${data.input.q}"` : ''}...`,
                 search_campaigns: `Searching campaigns${
                   data.input?.q ? `: "${data.input.q}"` : ''
@@ -1121,7 +1183,10 @@ export default function AIAssistantPage() {
           return { completed: false, timedOut, errored };
         }
 
-        if (!controller.signal.aborted && combinedResponsesRef.current[model].status === 'loading') {
+        if (
+          !controller.signal.aborted &&
+          combinedResponsesRef.current[model].status === 'loading'
+        ) {
           cacheCombinedModel(model, modelText);
           updateCombinedResponse(model, { content: modelText, status: 'done' });
           completed = true;
@@ -1137,7 +1202,11 @@ export default function AIAssistantPage() {
 
       const pendingModels = new Set<BaseAIModel>(BASE_AI_MODELS);
       const keepPendingIfNeeded = (model: BaseAIModel, result: RunModelResult) => {
-        if (result.completed && !result.errored && combinedResponsesRef.current[model].status === 'done') {
+        if (
+          result.completed &&
+          !result.errored &&
+          combinedResponsesRef.current[model].status === 'done'
+        ) {
           pendingModels.delete(model);
         }
       };
@@ -1165,6 +1234,7 @@ export default function AIAssistantPage() {
       abortRef.current = null;
       setMessages((prev) => [...prev, { role: 'assistant', content: finalContent }]);
       streamingTextRef.current = '';
+      clearStreamingFlush();
       setStreamingText('');
       setCombinedResponses(null);
       setStreaming(false);
@@ -1192,7 +1262,7 @@ export default function AIAssistantPage() {
       (text) => {
         fullText += text;
         streamingTextRef.current = fullText;
-        setStreamingText(fullText);
+        queueStreamingText(fullText);
       },
       (meta) => {
         abortRef.current = null;
@@ -1201,6 +1271,7 @@ export default function AIAssistantPage() {
           { role: 'assistant', content: fullText, tokens: meta.outputTokens },
         ]);
         streamingTextRef.current = '';
+        clearStreamingFlush();
         setStreamingText('');
         setStreaming(false);
         getConversations(userId).then((data) => {
@@ -1214,6 +1285,7 @@ export default function AIAssistantPage() {
         abortRef.current = null;
         toast.error(`AI Error: ${error}`);
         setStreaming(false);
+        clearStreamingFlush();
         setStreamingText('');
         streamingTextRef.current = '';
       },
@@ -1235,7 +1307,7 @@ export default function AIAssistantPage() {
         const label = toolLabels[data.tool] || `⚙️ Running ${data.tool}...`;
         fullText += `\n\n${label}\n`;
         streamingTextRef.current = fullText;
-        setStreamingText(fullText);
+        queueStreamingText(fullText);
       },
       (data) => {
         if (data.result?.success) {
@@ -1248,12 +1320,12 @@ export default function AIAssistantPage() {
           fullText += `✅ User created: ${data.result.user.firstName} ${data.result.user.lastName}\n\n`;
         }
         streamingTextRef.current = fullText;
-        setStreamingText(fullText);
+        queueStreamingText(fullText);
       },
       (data) => {
         fullText += `\n\n![${data.name}](${data.url})\n\n`;
         streamingTextRef.current = fullText;
-        setStreamingText(fullText);
+        queueStreamingText(fullText);
       }
     );
   };
@@ -1518,8 +1590,7 @@ export default function AIAssistantPage() {
                 color="text.secondary"
                 fontSize={10}
               >
-                {getModelLabel(selectedModel)}{' '}
-                • {streaming ? 'Thinking...' : 'Online'}
+                {getModelLabel(selectedModel)} • {streaming ? 'Thinking...' : 'Online'}
               </Typography>
             </Box>
           </Stack>
@@ -1668,7 +1739,7 @@ export default function AIAssistantPage() {
             <>
               {messages.map((msg, i) => (
                 <MessageBubble
-                  key={i}
+                  key={getMessageKey(msg, i)}
                   msg={msg}
                   isUser={msg.role === 'user'}
                 />
@@ -2075,43 +2146,45 @@ export default function AIAssistantPage() {
       </Box>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={Boolean(deleteTarget)}
-        onClose={() => setDeleteTarget(null)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
-      >
-        <DialogTitle sx={{ fontWeight: 700, fontSize: 16, pb: 0.5 }}>
-          Delete conversation?
-        </DialogTitle>
-        <DialogContent>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            fontSize={13}
-          >
-            This action cannot be undone. The conversation and all its messages will be permanently
-            removed.
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button
-            onClick={() => setDeleteTarget(null)}
-            sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5, fontSize: 13 }}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={handleDeleteConfirm}
-            sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5, fontSize: 13 }}
-          >
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {deleteTarget && (
+        <Dialog
+          open
+          onClose={() => setDeleteTarget(null)}
+          maxWidth="xs"
+          fullWidth
+          PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+        >
+          <DialogTitle sx={{ fontWeight: 700, fontSize: 16, pb: 0.5 }}>
+            Delete conversation?
+          </DialogTitle>
+          <DialogContent>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              fontSize={13}
+            >
+              This action cannot be undone. The conversation and all its messages will be
+              permanently removed.
+            </Typography>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button
+              onClick={() => setDeleteTarget(null)}
+              sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5, fontSize: 13 }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              onClick={handleDeleteConfirm}
+              sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5, fontSize: 13 }}
+            >
+              Delete
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
     </Box>
   );
 }
