@@ -117,8 +117,9 @@ export default function ProductChart({ data, campaignProducts, isLoading }: Prop
   ];
 
   // Deduplicate by product name and sum quantities
-  const dedup = (arr: typeof purchased) => {
-    const map = new Map<string, (typeof arr)[0]>();
+  type ProdItem = { product: string; category: string; price: string; imageUrl: string; quantity: number; uniqueCustomers: number; source: string };
+  const dedup = (arr: ProdItem[]) => {
+    const map = new Map<string, ProdItem>();
     for (const p of arr) {
       const existing = map.get(p.product);
       if (existing) {
