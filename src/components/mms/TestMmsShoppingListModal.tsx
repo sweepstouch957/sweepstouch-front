@@ -23,7 +23,7 @@ import { campaignClient } from '@/services/campaing.service';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
 const TRACKING_URL = (process.env.NEXT_PUBLIC_TRACKING_URL || API_URL).replace(/\/+$/, '');
-const LINKTREE_URL = (process.env.NEXT_PUBLIC_LINKTREE_URL || 'http://localhost:3001').replace(/\/+$/, '');
+const LINKTREE_URL = (process.env.NEXT_PUBLIC_LINKTREE_URL || 'https://links.sweepstouch.com').replace(/\/+$/, '');
 const TEST_BW_PHONE = process.env.NEXT_PUBLIC_TEST_BW_PHONE || '18332197926';
 const TEST_BW_ID = process.env.NEXT_PUBLIC_TEST_BW_ID || 'c3799660-ff17-4e29-a41a-e53f2d8b3859';
 
@@ -151,18 +151,11 @@ export default function TestMmsShoppingListModal({
       // Now generate AI text
       setGeneratingText(true);
       try {
-        const aiText = await generateMmsText({
-          storeName,
-          products: products.slice(0, 6).map(p => ({ name: p.name, price: p.price })),
-          headline: headline || undefined,
-          link,
-        });
-        setSmsText(aiText || `🛒 ${storeName} — Your personalized deals are ready!\n\n${link}\n\nReply STOP to unsubscribe.`);
+        // HARDCODED COPY FOR MANUAL TEST AS REQUESTED
+        const hardcodedCopy = `🔥 VIP DEAL ALERT! This week only: Pork Chops $1.99, Chicken Legs $0.99, Plantains 3/$2, King Fish $8.99, Eggo Waffles 2/$5 & OJ 2/$6! Hurry, limited time! 🛒\n\n${link}\n\nReply STOP to unsubscribe.`;
+        setSmsText(hardcodedCopy);
       } catch (aiErr) {
-        console.warn('AI text generation failed, using fallback', aiErr);
-        // Fallback text
-        const productList = products.slice(0, 3).map(p => `• ${p.name} ${p.price}`).join('\n');
-        setSmsText(`🛒 ${storeName}\n${headline || 'Your VIP Deals Are Ready!'}\n\n${productList}\n\n👉 ${link}\n\nReply STOP to opt out.`);
+        setSmsText(`🛒 ${storeName} — Your personalized deals are ready!\n\n${link}\n\nReply STOP to unsubscribe.`);
       } finally {
         setGeneratingText(false);
       }
@@ -185,8 +178,8 @@ export default function TestMmsShoppingListModal({
       await campaignClient.sendTestMessage({
         phone: selectedCustomer.phoneNumber.replace(/\D/g, ''),
         message: smsText,
-        image: circularFileUrl || null,
-        provider: storeProvider || 'bandwidth',
+        image: null, // NO MANDAR IMAGE POR AHORA SEGUN REQUEST
+        provider: 'bandwidth', // HARDCODED AS REQUESTED
         phoneNumber: storeBandwidthPhone || TEST_BW_PHONE,
         id: storeBandwidthId || TEST_BW_ID,
       });

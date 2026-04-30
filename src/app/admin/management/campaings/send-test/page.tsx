@@ -63,6 +63,10 @@ const formatPhone = (p: string) => {
   return `+${d}`;
 };
 
+/** Returns true if the URL points to a PDF (can't be sent as MMS image) */
+const isPdfUrl = (url?: string | null): boolean =>
+  !!url && /\.pdf(\?.*)?$/i.test(url);
+
 /* ────────────── Customer type (minimal) ────────────── */
 interface CustomerHit {
   _id: string;
@@ -178,8 +182,12 @@ export default function SendTestMessagePage() {
   }, [lastCampaign]);
 
   /* ── Derived ───────────────────────────────────── */
+  const lastCampaignImage: string | null = (lastCampaign as any)?.image ?? null;
+  const lastImageIsPdf = isPdfUrl(lastCampaignImage);
+  // Never use a PDF as the MMS image — it won't deliver
+  const safeCampaignImage = lastImageIsPdf ? null : lastCampaignImage;
   const previewImage: File | string | null =
-    newImage ?? uploadedImageUrl ?? (lastCampaign as any)?.image ?? null;
+    newImage ?? uploadedImageUrl ?? safeCampaignImage ?? null;
   const messageType = previewImage ? 'MMS' : 'SMS';
   const charCount = copyText.length;
   const destinationPhone = selectedCustomer?.phoneNumber || '';
@@ -189,7 +197,8 @@ export default function SendTestMessagePage() {
   /* ── Send mutation ─────────────────────────────── */
   const sendMutation = useMutation({
     mutationFn: async () => {
-      let imgUrl = uploadedImageUrl ?? (lastCampaign as any)?.image ?? null;
+      // Never send a PDF as the MMS image
+      let imgUrl = uploadedImageUrl ?? safeCampaignImage ?? null;
       if (newImage) {
         const up = await uploadCampaignImage(newImage);
         imgUrl = up.url;
@@ -741,9 +750,16 @@ export default function SendTestMessagePage() {
                 Max {MAX_IMAGE_KB} KB for MMS delivery. Leave empty for SMS only.
               </Alert>
 
+              {lastImageIsPdf && (
+                <Alert severity="error" sx={{ borderRadius: 2, py: 0.5, mb: 2, fontSize: 12 }}>
+                  ⚠️ The last campaign image is a <strong>PDF</strong> and cannot be sent via MMS.
+                  Please upload a JPG/PNG image below.
+                </Alert>
+              )}
+
               <AvatarUploadLogo
                 label="Upload image"
-                initialUrl={(lastCampaign as any)?.image}
+                initialUrl={safeCampaignImage}
                 onSelect={(file) => {
                   if (!file) { setNewImage(null); return; }
                   if (file.size > MAX_IMAGE_KB * 1024) {
