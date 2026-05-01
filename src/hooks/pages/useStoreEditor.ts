@@ -57,6 +57,7 @@ export function useStoreEditor(store) {
     twilioPhoneNumber: store.twilioPhoneNumber || '',
     twilioPhoneNumberSid: store.twilioPhoneNumberSid || '',
     twilioPhoneNumberFriendlyName: store.twilioPhoneNumberFriendlyName || '',
+    infobipSenderId: store.infobipSenderId || '',
     verifiedByTwilio: !!store.verifiedByTwilio,
 
     // 🆕 opcional: circulars url (lo mandamos al backend si cambia)
@@ -146,6 +147,7 @@ export function useStoreEditor(store) {
       'twilioPhoneNumber',
       'twilioPhoneNumberSid',
       'twilioPhoneNumberFriendlyName',
+      'infobipSenderId',
       'verifiedByTwilio',
       'membershipType',
       'paymentMethod',
@@ -259,6 +261,7 @@ export function useStoreEditor(store) {
       twilioPhoneNumber: store.twilioPhoneNumber || '',
       twilioPhoneNumberSid: store.twilioPhoneNumberSid || '',
       twilioPhoneNumberFriendlyName: store.twilioPhoneNumberFriendlyName || '',
+      infobipSenderId: store.infobipSenderId || '',
       verifiedByTwilio: !!store.verifiedByTwilio,
 
       // 🆕 opcional
