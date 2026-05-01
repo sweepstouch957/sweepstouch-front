@@ -9,7 +9,6 @@ import EmailRoundedIcon from '@mui/icons-material/EmailRounded';
 import GridViewTwoToneIcon from '@mui/icons-material/GridViewTwoTone';
 import GroupWorkRoundedIcon from '@mui/icons-material/GroupWorkRounded';
 import LaunchTwoToneIcon from '@mui/icons-material/LaunchTwoTone';
-import MoreVertTwoToneIcon from '@mui/icons-material/MoreVertTwoTone';
 import PeopleAltRoundedIcon from '@mui/icons-material/PeopleAltRounded';
 import PhoneRoundedIcon from '@mui/icons-material/PhoneRounded';
 import RecordVoiceOverRoundedIcon from '@mui/icons-material/RecordVoiceOverRounded';
@@ -20,9 +19,16 @@ import {
   alpha,
   Avatar,
   Box,
+  Button,
   Card,
   Checkbox,
   Chip,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Unstable_Grid2 as Grid,
   IconButton,
   InputAdornment,
@@ -60,6 +66,8 @@ import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
 import { TabsShadow } from 'src/components/base/styles/tabs';
 import BulkDelete from './bulk-delete';
+import toast from 'react-hot-toast';
+import { usersApi } from '@/mocks/users';
 
 export const CardWrapper = styled(Card)(
   ({ theme }) => `
@@ -113,6 +121,7 @@ interface ResultsProps {
   users: User[];
   onEditUser?: (user: any) => void;
   onAssignDepartment?: (user: any) => void;
+  onDeleteUser?: (userId: string) => void;
 }
 interface Filters { role: string | null }
 interface UITabItem { value: string; label: string; count: number }
@@ -239,12 +248,17 @@ const StatsRow: FC<{ users: User[]; roleCounts: Record<string, number> }> = ({
 };
 
 // ---------- Main ----------
-const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment }) => {
+const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment, onDeleteUser }) => {
   const [selectedItems, setSelectedUsers] = useState<string[]>([]);
   const { t } = useTranslation();
   const theme = useTheme();
   const smUp = useMediaQuery(theme.breakpoints.up('sm'));
   const router = useRouter();
+
+  // Delete confirmation dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const roleCounts = useMemo(() => {
     const acc: Record<string, number> = {};
@@ -506,7 +520,7 @@ const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment }) =>
                                 <Tooltip title="Edit" arrow><IconButton size="small" onClick={() => onEditUser?.(user)} sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main', bgcolor: alpha(theme.palette.primary.main, 0.08) } }}><EditRoundedIcon fontSize="small" /></IconButton></Tooltip>
                                 <Tooltip title="View Profile" arrow><IconButton size="small" onClick={() => router.push(`/admin/management/users-profile?id=${user._id || user.id}`)} sx={{ color: 'text.secondary', '&:hover': { color: 'info.main', bgcolor: alpha(theme.palette.info.main, 0.08) } }}><LaunchTwoToneIcon fontSize="small" /></IconButton></Tooltip>
                                 <Tooltip title="Assign Dept" arrow><IconButton size="small" onClick={() => onAssignDepartment?.(user)} sx={{ color: 'text.secondary', '&:hover': { color: '#9C27B0', bgcolor: alpha('#9C27B0', 0.08) } }}><GroupWorkRoundedIcon fontSize="small" /></IconButton></Tooltip>
-                                <Tooltip title="Delete" arrow><IconButton size="small" sx={{ color: 'text.secondary', '&:hover': { color: 'error.main', bgcolor: alpha(theme.palette.error.main, 0.08) } }}><DeleteTwoToneIcon fontSize="small" /></IconButton></Tooltip>
+                                <Tooltip title="Delete" arrow><IconButton size="small" onClick={() => { setDeleteTarget(user); setDeleteDialogOpen(true); }} sx={{ color: 'text.secondary', '&:hover': { color: 'error.main', bgcolor: alpha(theme.palette.error.main, 0.08) } }}><DeleteTwoToneIcon fontSize="small" /></IconButton></Tooltip>
                               </Stack>
                             </TableCell>
                           </TableRow>
@@ -613,8 +627,9 @@ const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment }) =>
                             </Tooltip>
                             <Tooltip title="More" arrow>
                               <IconButton size="small"
+                                onClick={() => { setDeleteTarget(user); setDeleteDialogOpen(true); }}
                                 sx={{ color: alpha('#fff', 0.9), '&:hover': { bgcolor: alpha('#fff', 0.18), color: '#fff' } }}>
-                                <MoreVertTwoToneIcon sx={{ fontSize: 16 }} />
+                                <DeleteTwoToneIcon sx={{ fontSize: 16 }} />
                               </IconButton>
                             </Tooltip>
                           </Stack>
@@ -817,6 +832,79 @@ const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment }) =>
           )}
         </>
       )}
+
+      {/* ── Delete Confirmation Dialog ── */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => { if (!deleteLoading) { setDeleteDialogOpen(false); setDeleteTarget(null); } }}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <DeleteTwoToneIcon color="error" />
+          Eliminar Usuario
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 1.5 }}>
+            ¿Estás seguro de que deseas eliminar permanentemente a este usuario?
+          </DialogContentText>
+          {deleteTarget && (
+            <Box sx={{ p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.error.main, 0.04), border: `1px solid ${alpha(theme.palette.error.main, 0.15)}` }}>
+              <Typography variant="subtitle2" fontWeight={700}>
+                {deleteTarget.firstName} {deleteTarget.lastName || ''}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block">
+                {deleteTarget.email || 'Sin email'}
+              </Typography>
+              {deleteTarget.role && (
+                <Chip
+                  label={ROLE_META[getRoleKey(deleteTarget.role)]?.text || deleteTarget.role}
+                  size="small"
+                  color="error"
+                  variant="outlined"
+                  sx={{ mt: 1, height: 22, fontSize: 11, fontWeight: 700 }}
+                />
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button
+            onClick={() => { setDeleteDialogOpen(false); setDeleteTarget(null); }}
+            color="inherit"
+            disabled={deleteLoading}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            disabled={deleteLoading}
+            startIcon={deleteLoading ? <CircularProgress size={16} color="inherit" /> : <DeleteTwoToneIcon />}
+            onClick={async () => {
+              if (!deleteTarget) return;
+              const userId = deleteTarget._id || deleteTarget.id;
+              setDeleteLoading(true);
+              try {
+                await usersApi.deleteUser(userId);
+                toast.success(`Usuario ${deleteTarget.firstName || ''} eliminado exitosamente`);
+                setDeleteDialogOpen(false);
+                setDeleteTarget(null);
+                onDeleteUser?.(userId);
+              } catch (err: any) {
+                console.error('❌ Error deleting user:', err);
+                toast.error(err?.response?.data?.message || 'Error al eliminar usuario');
+              } finally {
+                setDeleteLoading(false);
+              }
+            }}
+            sx={{ fontWeight: 700, borderRadius: 2 }}
+          >
+            {deleteLoading ? 'Eliminando...' : 'Eliminar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };

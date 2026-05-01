@@ -75,6 +75,12 @@ class UsersApi {
     // const res = await api.get(`/auth/users/role/${role}`);
     // return res.data;
   }
+
+  // Eliminar usuario por ID
+  async deleteUser(userId: string): Promise<{ message: string; userId: string }> {
+    const res = await api.delete(`/auth/users/${userId}`);
+    return res.data;
+  }
 }
 
 export const usersApi = new UsersApi();
