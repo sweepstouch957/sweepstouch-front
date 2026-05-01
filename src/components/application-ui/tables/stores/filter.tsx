@@ -102,6 +102,8 @@ export default function StoreFilters({
   maxDebt,
   paymentMethod,
   onPaymentMethodChange,
+  provider,
+  onProviderChange,
   sortBy,
   order,
   onSortChange,
@@ -122,6 +124,8 @@ export default function StoreFilters({
   maxDebt: string;
   paymentMethod: string;
   onPaymentMethodChange: (v: string) => void;
+  provider: string;
+  onProviderChange: (v: string) => void;
   sortBy: string;
   order: 'asc' | 'desc';
   onSortChange: (v: string) => void;
@@ -173,6 +177,7 @@ export default function StoreFilters({
     !!searchProp ||
     status !== 'all' ||
     paymentMethod !== 'all' ||
+    provider !== 'all' ||
     hasAdvancedFilters;
 
   const handleClearAll = () => {
@@ -181,6 +186,7 @@ export default function StoreFilters({
     handleSearchChange('');
     onStatusChange('all');
     onPaymentMethodChange('all');
+    onProviderChange('all');
     onAudienceLtChange('');
     onDebtStatusChange('all');
     onMinDebtChange('');
@@ -267,6 +273,28 @@ export default function StoreFilters({
             <MenuItem value="ach" sx={{ fontSize: 13 }}>ACH</MenuItem>
             <MenuItem value="wire" sx={{ fontSize: 13 }}>Wire</MenuItem>
             <MenuItem value="cash" sx={{ fontSize: 13 }}>Cash</MenuItem>
+          </Select>
+        </FormControl>
+
+        {/* Provider SMS */}
+        <FormControl
+          size="small"
+          sx={{ ...selectSx, flex: { xs: '1 1 calc(50% - 4px)', sm: '0 0 128px' } }}
+        >
+          <Select
+            value={provider}
+            displayEmpty
+            onChange={(e) => onProviderChange(e.target.value)}
+            renderValue={(val) => (
+              <Typography fontSize={13} color={!val || val === 'all' ? 'text.secondary' : 'text.primary'}>
+                {!val || val === 'all' ? 'Provider' : val === 'twilio' ? '📞 Twilio' : val === 'bandwidth' ? '📡 Bandwidth' : '⚡ Infobip'}
+              </Typography>
+            )}
+          >
+            <MenuItem value="all" sx={{ fontSize: 13 }}>Todos</MenuItem>
+            <MenuItem value="twilio" sx={{ fontSize: 13 }}>📞 Twilio</MenuItem>
+            <MenuItem value="bandwidth" sx={{ fontSize: 13 }}>📡 Bandwidth</MenuItem>
+            <MenuItem value="infobip" sx={{ fontSize: 13 }}>⚡ Infobip</MenuItem>
           </Select>
         </FormControl>
 

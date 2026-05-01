@@ -209,6 +209,9 @@ export interface GetStoresParams {
 
   audienceLt?: string;
 
+  // ⭐ filtro por proveedor SMS
+  provider?: 'all' | 'twilio' | 'bandwidth' | 'infobip';
+
   paymentMethod?: 'all' | 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
 }
 
@@ -233,6 +236,7 @@ export const getStores = async ({
   minDebt = '',
   maxDebt = '',
   paymentMethod = 'all',
+  provider = 'all',
 }: GetStoresParams): Promise<GetStoresResponse> => {
   const params: Record<string, any> = {
     page,
@@ -244,6 +248,7 @@ export const getStores = async ({
     maxDebt,
     order,
     paymentMethod,
+    provider,
   };
 
   if (type) params.type = type;

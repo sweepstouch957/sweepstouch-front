@@ -43,6 +43,8 @@ function Component() {
     handlePaymentMethodChange,
     paymentMethod,
     handleMaxDebtChange,
+    provider,
+    handleProviderChange,
     refetch,
   } = useStores();
 
@@ -62,6 +64,7 @@ function Component() {
       minDebt,
       maxDebt,
       paymentMethod,
+      provider,
     };
 
     // eslint-disable-next-line no-constant-condition
@@ -78,6 +81,7 @@ function Component() {
         minDebt: current.minDebt || '',
         maxDebt: current.maxDebt || '',
         paymentMethod: current.paymentMethod || 'all',
+        provider: current.provider || 'all',
       });
 
       const data = res?.data || [];
@@ -114,7 +118,7 @@ function Component() {
       return () => window.removeEventListener('stores:export', handler);
     }
     return () => {};
-  }, [search, status, sortBy, order, audienceLt, debtStatus, minDebt, maxDebt, paymentMethod]);
+  }, [search, status, sortBy, order, audienceLt, debtStatus, minDebt, maxDebt, paymentMethod, provider]);
 
   return (
     <>
@@ -145,6 +149,8 @@ function Component() {
         onMaxDebtChange={handleMaxDebtChange}
         paymentMethod={paymentMethod}
         onPaymentMethodChange={handlePaymentMethodChange}
+        provider={provider}
+        onProviderChange={handleProviderChange}
         sortBy={sortBy}
         order={order}
         onSortChange={handleSortChange}

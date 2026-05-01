@@ -118,7 +118,12 @@ export default function EditCampaignPage() {
         totalAudience={store.customerCount}
         initialData={campaign}
         onCreate={() => {
-          router.push('/admin/management/campaigns');
+          // Stay on the current edit page — don't redirect to the campaigns list
+          if (window.history.length > 1) {
+            router.back();
+          } else {
+            router.push('/admin/management/campaings');
+          }
         }}
       />
     </Container>

@@ -154,6 +154,20 @@ function paymentMethodLabel(method?: Store['paymentMethod']) {
   }
 }
 
+/* --------------------------- provider helper ------------------------------ */
+function providerInfo(store: any): { label: string; emoji: string; sender: string; color: string } {
+  const p = store.provider || 'twilio';
+  switch (p) {
+    case 'infobip':
+      return { label: 'Infobip', emoji: '⚡', sender: store.infobipSenderId || '—', color: '#FF6B00' };
+    case 'bandwidth':
+      return { label: 'Bandwidth', emoji: '📡', sender: store.bandwidthPhoneNumber || '—', color: '#0066CC' };
+    case 'twilio':
+    default:
+      return { label: 'Twilio', emoji: '📞', sender: store.twilioPhoneNumber || '—', color: '#F22F46' };
+  }
+}
+
 /* --------------------------------- props ---------------------------------- */
 type StatusFilter = 'all' | 'active' | 'inactive';
 type DebtStatus = 'all' | 'ok' | 'min_low' | 'low' | 'mid' | 'high' | 'critical';
@@ -638,21 +652,23 @@ const Results: FC<ResultsProps> = ({
                 '& th, & td': { whiteSpace: 'nowrap' },
 
                 // STORE
-                '& th:nth-of-type(1), & td:nth-of-type(1)': { width: '26%' },
+                '& th:nth-of-type(1), & td:nth-of-type(1)': { width: '23%' },
                 // CUSTOMERS
                 '& th:nth-of-type(2), & td:nth-of-type(2)': { width: '6%' },
                 // WEEKLY
-                '& th:nth-of-type(3), & td:nth-of-type(3)': { width: '10%' },
+                '& th:nth-of-type(3), & td:nth-of-type(3)': { width: '9%' },
                 // BALANCE
-                '& th:nth-of-type(4), & td:nth-of-type(4)': { width: '13%' },
+                '& th:nth-of-type(4), & td:nth-of-type(4)': { width: '10%' },
                 // INSTALLMENTS
-                '& th:nth-of-type(5), & td:nth-of-type(5)': { width: '11%' },
+                '& th:nth-of-type(5), & td:nth-of-type(5)': { width: '9%' },
                 // PAYMENT STATUS
-                '& th:nth-of-type(6), & td:nth-of-type(6)': { width: '12%' },
+                '& th:nth-of-type(6), & td:nth-of-type(6)': { width: '10%' },
                 // PAYMENT METHOD
-                '& th:nth-of-type(7), & td:nth-of-type(7)': { width: '10%' },
+                '& th:nth-of-type(7), & td:nth-of-type(7)': { width: '9%' },
+                // PROVIDER
+                '& th:nth-of-type(8), & td:nth-of-type(8)': { width: '13%' },
                 // ACTIONS
-                '& th:nth-of-type(8), & td:nth-of-type(8)': { width: '12%' },
+                '& th:nth-of-type(9), & td:nth-of-type(9)': { width: '11%' },
               }}
             >
               <TableHead>
@@ -690,6 +706,7 @@ const Results: FC<ResultsProps> = ({
                   </TableCell>
                   <TableCell align="center">ESTADO</TableCell>
                   <TableCell align="center">PAGO</TableCell>
+                  <TableCell align="center">PROVIDER</TableCell>
                   <TableCell align="center">ACCIONES</TableCell>
                 </TableRow>
               </TableHead>
@@ -828,6 +845,44 @@ const Results: FC<ResultsProps> = ({
                             />
                           </Tooltip>
                         </Stack>
+                      </TableCell>
+
+                      {/* Provider + Sender */}
+                      <TableCell align="center">
+                        {(() => {
+                          const pi = providerInfo(store);
+                          return (
+                            <Stack spacing={0.25} alignItems="center">
+                              <Chip
+                                size="small"
+                                label={`${pi.emoji} ${pi.label}`}
+                                variant="outlined"
+                                sx={{
+                                  height: 22,
+                                  fontSize: 11,
+                                  fontWeight: 800,
+                                  borderColor: pi.color,
+                                  color: pi.color,
+                                  '& .MuiChip-label': { px: 0.75 },
+                                }}
+                              />
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  fontSize: 10,
+                                  color: 'text.secondary',
+                                  maxWidth: 110,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }}
+                                title={pi.sender}
+                              >
+                                {pi.sender}
+                              </Typography>
+                            </Stack>
+                          );
+                        })()}
                       </TableCell>
 
                       {/* Actions */}

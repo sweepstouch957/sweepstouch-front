@@ -12,6 +12,8 @@ export type PaymentMethodFilter =
   | 'wire'
   | 'cash';
 
+export type ProviderFilter = 'all' | 'twilio' | 'bandwidth' | 'infobip';
+
 export interface UseStoresOptions {
   search?: string;
   page?: number;
@@ -28,6 +30,9 @@ export interface UseStoresOptions {
 
   // ⭐ nuevo: filtro por método de pago
   paymentMethod?: PaymentMethodFilter;
+
+  // ⭐ nuevo: filtro por proveedor SMS
+  provider?: ProviderFilter;
 }
 
 export const useStores = (initialOptions: UseStoresOptions = {}) => {
@@ -52,6 +57,11 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
   // ⭐ payment method
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodFilter>(
     initialOptions.paymentMethod ?? 'all'
+  );
+
+  // ⭐ provider
+  const [provider, setProvider] = useState<ProviderFilter>(
+    initialOptions.provider ?? 'all'
   );
 
   const [searchInput, setSearchInput] = useState(search);
@@ -84,6 +94,7 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
       minDebt,
       maxDebt,
       paymentMethod, // ⭐ entra al cache key
+      provider,      // ⭐ entra al cache key
     ],
     queryFn: () =>
       storesService.getStores({
@@ -98,6 +109,7 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
         minDebt,
         maxDebt,
         paymentMethod, // ⭐ se manda al backend
+        provider,      // ⭐ se manda al backend
       }),
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
@@ -160,6 +172,12 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
     setPage(0);
   };
 
+  // ⭐ handler provider
+  const handleProviderChange = (value: ProviderFilter) => {
+    setProvider(value);
+    setPage(0);
+  };
+
   return {
     stores: data?.data || [],
     total: data?.total || 0,
@@ -208,5 +226,9 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
 
     // ⭐ nuevo handler expuesto
     handlePaymentMethodChange,
+
+    // ⭐ provider
+    provider,
+    handleProviderChange,
   };
 };
