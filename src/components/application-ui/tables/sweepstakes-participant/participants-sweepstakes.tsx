@@ -23,7 +23,9 @@ import {
   useMediaQuery,
   useTheme,
   Stack,
+  Tooltip,
 } from '@mui/material';
+import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -104,6 +106,12 @@ function SweepstakeStoresTable({ sweepstakeId }: Props) {
                   <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>{t('Type')}</TableCell>
                   <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>{t('Customers')}</TableCell>
                   <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                      <PersonAddAlt1Icon sx={{ fontSize: 16, color: 'success.main' }} />
+                      <span>{t('Nuevos')}</span>
+                    </Stack>
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>
                     <TableSortLabel
                       active={true}
                       direction={sortOrder}
@@ -138,6 +146,7 @@ function SweepstakeStoresTable({ sweepstakeId }: Props) {
                           </Stack>
                         </TableCell>
                         <TableCell><Skeleton variant="text" width={60} /></TableCell>
+                        <TableCell><Skeleton variant="text" width={40} /></TableCell>
                         <TableCell><Skeleton variant="text" width={40} /></TableCell>
                         <TableCell><Skeleton variant="text" width={60} /></TableCell>
                       </>
@@ -188,6 +197,13 @@ function SweepstakeStoresTable({ sweepstakeId }: Props) {
                               variant="outlined"
                               sx={{ fontWeight: 600, fontSize: '0.7rem' }}
                             />
+                            <Chip
+                              icon={<PersonAddAlt1Icon sx={{ fontSize: 12 }} />}
+                              label={`${store.newNumbers || 0} nuevos`}
+                              size="small"
+                              color="success"
+                              sx={{ fontWeight: 700, fontSize: '0.7rem' }}
+                            />
                           </Stack>
                         </Box>
                       </Stack>
@@ -224,6 +240,15 @@ function SweepstakeStoresTable({ sweepstakeId }: Props) {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" fontWeight={500}>{store.storeCustomerCount}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        icon={<PersonAddAlt1Icon sx={{ fontSize: 14 }} />}
+                        label={store.newNumbers || 0}
+                        size="small"
+                        color="success"
+                        sx={{ fontWeight: 800, fontSize: '0.8rem' }}
+                      />
                     </TableCell>
                     <TableCell>
                       <Typography fontWeight={700} color="primary.main">

@@ -5,6 +5,9 @@ import { sweepstakesClient } from '@/services/sweepstakes.service';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import TrendingUp from '@mui/icons-material/TrendingUp';
+import FiberNewIcon from '@mui/icons-material/FiberNew';
+import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
+import PeopleIcon from '@mui/icons-material/People';
 import {
   alpha,
   Box,
@@ -125,6 +128,8 @@ export default function SweepstakesBalance({
   // Usar participaciones reales para UI coherente
   const totalParticipations = stores.reduce((acc: number, item: any) => acc + item.totalParticipations, 0);
   const totalRegistrations = data?.totalRegistrations || 0;
+  const totalNewNumbers = data?.totalNewNumbers || 0;
+  const totalExistingNumbers = data?.totalExistingNumbers || 0;
 
   const colors = [
     theme.palette.primary.main,
@@ -222,6 +227,45 @@ export default function SweepstakesBalance({
                 </Typography>
               </Box>
             </Box>
+
+            {/* New vs Existing numbers */}
+            <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
+              <Box sx={{
+                display: 'flex', alignItems: 'center', gap: 1.5,
+                bgcolor: 'success.main', color: '#fff',
+                borderRadius: 3, px: 2, py: 1.2,
+                boxShadow: '0 4px 16px rgba(76,175,80,0.25)',
+                flex: 1,
+              }}>
+                <PersonAddAlt1Icon sx={{ fontSize: 28 }} />
+                <Box>
+                  <Typography variant="h5" fontWeight={900} sx={{ lineHeight: 1 }}>
+                    {isLoading ? <Skeleton width={50} /> : totalNewNumbers}
+                  </Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 600, opacity: 0.9 }}>
+                    Números nuevos
+                  </Typography>
+                </Box>
+              </Box>
+              <Box sx={{
+                display: 'flex', alignItems: 'center', gap: 1.5,
+                bgcolor: 'action.hover',
+                borderRadius: 3, px: 2, py: 1.2,
+                border: `1px solid`,
+                borderColor: 'divider',
+                flex: 1,
+              }}>
+                <PeopleIcon sx={{ fontSize: 28, color: 'text.secondary' }} />
+                <Box>
+                  <Typography variant="h5" fontWeight={900} sx={{ lineHeight: 1 }}>
+                    {isLoading ? <Skeleton width={50} /> : totalExistingNumbers}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                    Ya existentes
+                  </Typography>
+                </Box>
+              </Box>
+            </Stack>
           </Stack>
 
           <Stack
@@ -366,14 +410,28 @@ export default function SweepstakesBalance({
                             secondaryTypographyProps={{ variant: 'caption' }}
                             sx={{ ml: 1, pr: 1 }}
                           />
-                          <Box textAlign="right" sx={{ flexShrink: 0 }}>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: -0.5 }}>
-                              Customers
-                            </Typography>
-                            <Typography variant="subtitle2" fontWeight={700}>
-                              {item.storeCustomerCount}
-                            </Typography>
-                          </Box>
+                          <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
+                            <Box textAlign="center" sx={{
+                              bgcolor: 'success.main', color: '#fff',
+                              borderRadius: 2, px: 1, py: 0.4,
+                              minWidth: 48,
+                            }}>
+                              <Typography variant="caption" sx={{ fontWeight: 700, fontSize: 10, display: 'block', lineHeight: 1, mb: 0.2 }}>
+                                Nuevos
+                              </Typography>
+                              <Typography variant="subtitle2" fontWeight={900} sx={{ lineHeight: 1 }}>
+                                {item.newNumbers || 0}
+                              </Typography>
+                            </Box>
+                            <Box textAlign="center" sx={{ minWidth: 48 }}>
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1, mb: 0.2, fontSize: 10 }}>
+                                Existing
+                              </Typography>
+                              <Typography variant="subtitle2" fontWeight={700} sx={{ lineHeight: 1 }}>
+                                {item.existingNumbers || 0}
+                              </Typography>
+                            </Box>
+                          </Stack>
                         </ListItem>
                         {index !== visibleData.length - 1 && <Divider />}
                       </Fragment>
@@ -430,14 +488,28 @@ export default function SweepstakesBalance({
                     primaryTypographyProps={{ fontWeight: 700, variant: 'subtitle1' }}
                     secondary={`${item.totalRegistrations} números registrados`}
                   />
-                  <Box ml={2} textAlign="right">
-                    <Typography variant="body2" color="text.secondary">
-                      Customers
-                    </Typography>
-                    <Typography variant="h6" fontWeight={700}>
-                      {item.storeCustomerCount}
-                    </Typography>
-                  </Box>
+                  <Stack direction="row" spacing={1.5} alignItems="center" ml={2}>
+                    <Box textAlign="center" sx={{
+                      bgcolor: 'success.main', color: '#fff',
+                      borderRadius: 2, px: 1.5, py: 0.8,
+                      minWidth: 60,
+                    }}>
+                      <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', lineHeight: 1, mb: 0.3, fontSize: 10 }}>
+                        Nuevos
+                      </Typography>
+                      <Typography variant="h6" fontWeight={900} sx={{ lineHeight: 1 }}>
+                        {item.newNumbers || 0}
+                      </Typography>
+                    </Box>
+                    <Box textAlign="center" sx={{ minWidth: 60 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1, mb: 0.3, fontSize: 10 }}>
+                        Existentes
+                      </Typography>
+                      <Typography variant="h6" fontWeight={700} sx={{ lineHeight: 1 }}>
+                        {item.existingNumbers || 0}
+                      </Typography>
+                    </Box>
+                  </Stack>
                 </ListItem>
                 <Divider />
               </Fragment>
