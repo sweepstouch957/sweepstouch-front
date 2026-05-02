@@ -33,7 +33,7 @@ export interface ExtractedProduct {
   isHero?: boolean;
 }
 
-const MAX_MMS_PRODUCTS = 6;
+const MAX_MMS_PRODUCTS = 10;
 
 // ─── Step Badge ─────────────────────────────────────────
 const StepBadge = React.memo(({ num }: { num: number }) => (

@@ -154,7 +154,7 @@ export function useMmsSend(opts: {
     setError('');
 
     try {
-      const items = products.slice(0, 6).map((p) => ({
+      const items = products.slice(0, 10).map((p) => ({
         name: p.name, price: p.price, quantity: 1,
         unit: p.unit || 'each', category: p.category || 'other',
         imageUrl: p.imageUrl || '',
