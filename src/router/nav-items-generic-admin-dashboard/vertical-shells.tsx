@@ -76,8 +76,12 @@ const menuConfig: MenuConfig = {
               route: (r: typeof routes, role: UserRole) => r.admin.management.users.listing,
             },
             {
-              title: 'User profile',
-              route: (r: typeof routes, role: UserRole) => r.admin.management.users.profile,
+              title: 'Merchants',
+              route: (r: typeof routes, role: UserRole) => r.admin.management.merchants.listing,
+            },
+            {
+              title: 'Departments',
+              route: (r: typeof routes, role: UserRole) => r.admin.management.departments.listing,
             },
           ],
         },

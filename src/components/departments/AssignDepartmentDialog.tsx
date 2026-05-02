@@ -1,6 +1,6 @@
 'use client';
 
-import React, { FC, useState } from 'react';
+import React, { FC, useEffect, useState } from 'react';
 import {
   alpha,
   Avatar,
@@ -35,7 +35,19 @@ interface AssignDepartmentDialogProps {
 const AssignDepartmentDialog: FC<AssignDepartmentDialogProps> = ({ open, onClose, user, onUpdated }) => {
   const theme = useTheme();
   const queryClient = useQueryClient();
-  const [selected, setSelected] = useState<string | null>(user?.departmentId || null);
+  const normalizeDeptId = (u: any): string | null => {
+    if (!u) return null;
+    if (u.departmentId && typeof u.departmentId === 'string') return u.departmentId;
+    if (u.department?._id) return u.department._id;
+    if (u.departmentId?._id) return u.departmentId._id;
+    return null;
+  };
+
+  const [selected, setSelected] = useState<string | null>(normalizeDeptId(user));
+
+  useEffect(() => {
+    setSelected(normalizeDeptId(user));
+  }, [user?.id, user?._id]);
 
   const { data: departments = [] } = useQuery({
     queryKey: ['departments'],
@@ -48,7 +60,7 @@ const AssignDepartmentDialog: FC<AssignDepartmentDialogProps> = ({ open, onClose
       await api.patch(`/auth/users/profile/${user.id || user._id}`, { departmentId });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.refetchQueries({ queryKey: ['users'] });
       toast.success(`Department ${selected ? 'assigned' : 'removed'} for ${user.firstName}`);
       onUpdated?.();
       onClose();
@@ -154,7 +166,7 @@ const AssignDepartmentDialog: FC<AssignDepartmentDialogProps> = ({ open, onClose
           variant="contained"
           disableElevation
           onClick={() => assignMutation.mutate(selected)}
-          disabled={assignMutation.isPending || selected === (user?.departmentId || null)}
+          disabled={assignMutation.isPending || selected === normalizeDeptId(user)}
           sx={{ borderRadius: 1.5 }}
         >
           {assignMutation.isPending ? 'Saving...' : 'Assign'}

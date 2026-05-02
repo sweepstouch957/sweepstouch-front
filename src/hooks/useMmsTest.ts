@@ -182,7 +182,7 @@ export function useMmsSend(opts: {
       setGeneratingText(true);
       const linkForSms = shortLink || longLink;
       setSmsText(
-        `🔥 VIP DEAL ALERT! This week only: Pork Chops $1.99, Chicken Legs $0.99, Plantains 3/$2, King Fish $8.99, Eggo Waffles 2/$5 & OJ 2/$6! Hurry, limited time! 🛒\n\n${linkForSms}\n\nReply STOP to unsubscribe.`
+        `⭐ Earn points with every purchase! Each product = 1 point you can redeem for exclusive rewards 🎁\n\nYour personalized deals are ready 👇\n${linkForSms}\n\nReply STOP to unsubscribe.`
       );
       setGeneratingText(false);
 
