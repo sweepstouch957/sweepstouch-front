@@ -59,6 +59,7 @@ const usersMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Users'), <PeopleRoundedIcon />, [
     { title: t('Listing'), route: routes.admin.management.users.listing },
     { title: t('Merchants'), route: routes.admin.management.merchants.listing },
+    { title: t('Departments'), route: routes.admin.management.departments.listing },
     //{ title: t('User profile'), route: routes.admin.management.users.profile },
   ]);
 
