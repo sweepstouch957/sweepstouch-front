@@ -1,11 +1,11 @@
 'use client';
 
-import { AvatarState } from '@/components/base/styles/avatar';
+
 import { sweepstakesClient } from '@/services/sweepstakes.service';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import TrendingUp from '@mui/icons-material/TrendingUp';
-import FiberNewIcon from '@mui/icons-material/FiberNew';
+
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import PeopleIcon from '@mui/icons-material/People';
 import {
@@ -13,6 +13,7 @@ import {
   Box,
   Button,
   Card,
+  Collapse,
   Divider,
   Drawer,
   FormControl,
@@ -29,6 +30,8 @@ import {
   Grid,
   useTheme,
   Avatar,
+
+  Chip,
 } from '@mui/material';
 import { pieArcLabelClasses, PieChart } from '@mui/x-charts/PieChart';
 import RangePickerField, { RangePickerValue } from '@/components/base/range-picker-field';
@@ -93,6 +96,7 @@ export default function SweepstakesBalance({
   const { t } = useTranslation();
   const theme = useTheme();
   const [expandedDrawer, setExpandedDrawer] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const [method, setMethod] = useState<'qr' | 'web' | 'all' | 'referral'>('all');
   const [dateRange, setDateRange] = useState<RangePickerValue>({
     startYmd: '2025-05-01',
@@ -204,68 +208,127 @@ export default function SweepstakesBalance({
             <Typography variant="h4" fontWeight={700} sx={{ letterSpacing: 0.5 }}>
               Resumen del sorteo
             </Typography>
-            <Box>
-              <Typography variant="h2" fontWeight={800} color="primary.main">
-                {isLoading ? <Skeleton width={100} /> : `${totalRegistrations} registros`}
-              </Typography>
-              <Typography variant="h6" color="text.secondary">
-                {dateRange.startYmd && dateRange.endYmd
-                  ? `Del ${dateRange.startYmd} al ${dateRange.endYmd}`
-                  : 'Selecciona un rango'}
-              </Typography>
-            </Box>
-            <Box display="flex" alignItems="center">
-              <AvatarState state="success" useShadow sx={{ mr: 2, width: 58, height: 58 }} variant="rounded">
-                <TrendingUp />
-              </AvatarState>
-              <Box>
-                <Typography variant="h4" fontWeight={700}>
-                  {isLoading ? <Skeleton width={80} /> : `${totalParticipations} participaciones`}
-                </Typography>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Participaciones totales
-                </Typography>
-              </Box>
-            </Box>
 
-            {/* New vs Existing numbers */}
-            <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
+            {/* ★ PRIMARY HEROES: New Numbers + Participations */}
+            <Stack direction="row" spacing={2}>
+              {/* New Numbers — THE STAR */}
               <Box sx={{
-                display: 'flex', alignItems: 'center', gap: 1.5,
-                bgcolor: 'success.main', color: '#fff',
-                borderRadius: 3, px: 2, py: 1.2,
-                boxShadow: '0 4px 16px rgba(76,175,80,0.25)',
                 flex: 1,
+                background: 'linear-gradient(135deg, #2e7d32 0%, #43a047 100%)',
+                color: '#fff',
+                borderRadius: 3, p: 2,
+                boxShadow: '0 8px 24px rgba(46,125,50,0.3)',
+                position: 'relative',
+                overflow: 'hidden',
               }}>
-                <PersonAddAlt1Icon sx={{ fontSize: 28 }} />
-                <Box>
-                  <Typography variant="h5" fontWeight={900} sx={{ lineHeight: 1 }}>
-                    {isLoading ? <Skeleton width={50} /> : totalNewNumbers}
-                  </Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 600, opacity: 0.9 }}>
+                <Box sx={{ position: 'absolute', top: -10, right: -10, opacity: 0.1 }}>
+                  <PersonAddAlt1Icon sx={{ fontSize: 100 }} />
+                </Box>
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+                  <PersonAddAlt1Icon sx={{ fontSize: 22 }} />
+                  <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, opacity: 0.9 }}>
                     Números nuevos
                   </Typography>
-                </Box>
+                </Stack>
+                <Typography variant="h2" fontWeight={900} sx={{ lineHeight: 1, letterSpacing: -1 }}>
+                  {isLoading ? <Skeleton width={80} sx={{ bgcolor: 'rgba(255,255,255,0.3)' }} /> : totalNewNumbers.toLocaleString()}
+                </Typography>
+                {!isLoading && totalRegistrations > 0 && (
+                  <Typography variant="caption" sx={{ opacity: 0.8, fontWeight: 600, mt: 0.5, display: 'block' }}>
+                    {Math.round((totalNewNumbers / totalRegistrations) * 100)}% del total
+                  </Typography>
+                )}
               </Box>
+
+              {/* Participations — THE STAR */}
               <Box sx={{
-                display: 'flex', alignItems: 'center', gap: 1.5,
-                bgcolor: 'action.hover',
-                borderRadius: 3, px: 2, py: 1.2,
-                border: `1px solid`,
-                borderColor: 'divider',
                 flex: 1,
+                background: (theme) => `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+                color: '#fff',
+                borderRadius: 3, p: 2,
+                boxShadow: (theme) => `0 8px 24px ${alpha(theme.palette.primary.main, 0.3)}`,
+                position: 'relative',
+                overflow: 'hidden',
               }}>
-                <PeopleIcon sx={{ fontSize: 28, color: 'text.secondary' }} />
-                <Box>
-                  <Typography variant="h5" fontWeight={900} sx={{ lineHeight: 1 }}>
-                    {isLoading ? <Skeleton width={50} /> : totalExistingNumbers}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                    Ya existentes
-                  </Typography>
+                <Box sx={{ position: 'absolute', top: -10, right: -10, opacity: 0.1 }}>
+                  <TrendingUp sx={{ fontSize: 100 }} />
                 </Box>
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+                  <TrendingUp sx={{ fontSize: 22 }} />
+                  <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, opacity: 0.9 }}>
+                    Participaciones
+                  </Typography>
+                </Stack>
+                <Typography variant="h2" fontWeight={900} sx={{ lineHeight: 1, letterSpacing: -1 }}>
+                  {isLoading ? <Skeleton width={80} sx={{ bgcolor: 'rgba(255,255,255,0.3)' }} /> : totalParticipations.toLocaleString()}
+                </Typography>
+                {!isLoading && totalRegistrations > 0 && (
+                  <Typography variant="caption" sx={{ opacity: 0.8, fontWeight: 600, mt: 0.5, display: 'block' }}>
+                    ~{(totalParticipations / totalRegistrations).toFixed(1)} por registro
+                  </Typography>
+                )}
               </Box>
             </Stack>
+
+            {/* ▼ SECONDARY: Registros + Existentes — Collapsible */}
+            <Box>
+              <Button
+                size="small"
+                onClick={() => setShowDetails(!showDetails)}
+                endIcon={<ExpandMoreIcon sx={{ transform: showDetails ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s' }} />}
+                sx={{ textTransform: 'none', fontWeight: 600, color: 'text.secondary', fontSize: 13, px: 1 }}
+              >
+                {showDetails ? 'Ocultar detalles' : 'Más detalles'}
+                <Chip label={isLoading ? '...' : `${totalRegistrations.toLocaleString()} registros`} size="small" sx={{ ml: 1, fontWeight: 700, fontSize: 11 }} />
+              </Button>
+              <Collapse in={showDetails}>
+                <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
+                  <Box sx={{
+                    display: 'flex', alignItems: 'center', gap: 1.5,
+                    bgcolor: 'action.hover',
+                    borderRadius: 2, px: 2, py: 1,
+                    border: `1px solid`,
+                    borderColor: 'divider',
+                    flex: 1,
+                  }}>
+                    <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: 'primary.main', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Typography variant="caption" fontWeight={900}>ALL</Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="h6" fontWeight={800} sx={{ lineHeight: 1 }}>
+                        {isLoading ? <Skeleton width={60} /> : totalRegistrations.toLocaleString()}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                        Registros totales
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Box sx={{
+                    display: 'flex', alignItems: 'center', gap: 1.5,
+                    bgcolor: 'action.hover',
+                    borderRadius: 2, px: 2, py: 1,
+                    border: `1px solid`,
+                    borderColor: 'divider',
+                    flex: 1,
+                  }}>
+                    <PeopleIcon sx={{ fontSize: 28, color: 'text.secondary' }} />
+                    <Box>
+                      <Typography variant="h6" fontWeight={800} sx={{ lineHeight: 1 }}>
+                        {isLoading ? <Skeleton width={50} /> : totalExistingNumbers.toLocaleString()}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                        Ya existentes
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Stack>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                  {dateRange.startYmd && dateRange.endYmd
+                    ? `Del ${dateRange.startYmd} al ${dateRange.endYmd}`
+                    : 'Selecciona un rango'}
+                </Typography>
+              </Collapse>
+            </Box>
           </Stack>
 
           <Stack
@@ -420,15 +483,19 @@ export default function SweepstakesBalance({
                                 Nuevos
                               </Typography>
                               <Typography variant="subtitle2" fontWeight={900} sx={{ lineHeight: 1 }}>
-                                {item.newNumbers || 0}
+                                {(item.newNumbers || 0).toLocaleString()}
                               </Typography>
                             </Box>
-                            <Box textAlign="center" sx={{ minWidth: 48 }}>
-                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1, mb: 0.2, fontSize: 10 }}>
-                                Existing
+                            <Box textAlign="center" sx={{
+                              bgcolor: 'primary.main', color: '#fff',
+                              borderRadius: 2, px: 1, py: 0.4,
+                              minWidth: 48,
+                            }}>
+                              <Typography variant="caption" sx={{ display: 'block', lineHeight: 1, mb: 0.2, fontSize: 10, fontWeight: 700 }}>
+                                Particip.
                               </Typography>
-                              <Typography variant="subtitle2" fontWeight={700} sx={{ lineHeight: 1 }}>
-                                {item.existingNumbers || 0}
+                              <Typography variant="subtitle2" fontWeight={900} sx={{ lineHeight: 1 }}>
+                                {(item.totalParticipations || 0).toLocaleString()}
                               </Typography>
                             </Box>
                           </Stack>
@@ -498,15 +565,19 @@ export default function SweepstakesBalance({
                         Nuevos
                       </Typography>
                       <Typography variant="h6" fontWeight={900} sx={{ lineHeight: 1 }}>
-                        {item.newNumbers || 0}
+                        {(item.newNumbers || 0).toLocaleString()}
                       </Typography>
                     </Box>
-                    <Box textAlign="center" sx={{ minWidth: 60 }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1, mb: 0.3, fontSize: 10 }}>
-                        Existentes
+                    <Box textAlign="center" sx={{
+                      bgcolor: 'primary.main', color: '#fff',
+                      borderRadius: 2, px: 1.5, py: 0.8,
+                      minWidth: 60,
+                    }}>
+                      <Typography variant="caption" sx={{ display: 'block', lineHeight: 1, mb: 0.3, fontSize: 10, fontWeight: 700 }}>
+                        Particip.
                       </Typography>
-                      <Typography variant="h6" fontWeight={700} sx={{ lineHeight: 1 }}>
-                        {item.existingNumbers || 0}
+                      <Typography variant="h6" fontWeight={900} sx={{ lineHeight: 1 }}>
+                        {(item.totalParticipations || 0).toLocaleString()}
                       </Typography>
                     </Box>
                   </Stack>
