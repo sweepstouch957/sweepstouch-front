@@ -30,8 +30,7 @@ const isPdfUrl = (url?: string | null): boolean =>
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
 const TRACKING_URL = (process.env.NEXT_PUBLIC_TRACKING_URL || API_URL).replace(/\/+$/, '');
 const LINKTREE_URL = (process.env.NEXT_PUBLIC_LINKTREE_URL || 'https://links.sweepstouch.com').replace(/\/+$/, '');
-const TEST_BW_PHONE = process.env.NEXT_PUBLIC_TEST_BW_PHONE || '18332197926';
-const TEST_BW_ID = process.env.NEXT_PUBLIC_TEST_BW_ID || 'c3799660-ff17-4e29-a41a-e53f2d8b3859';
+
 
 interface Product {
   name: string;
@@ -58,6 +57,8 @@ interface Props {
   storeProvider?: string;
   storeBandwidthPhone?: string;
   storeBandwidthId?: string;
+  storeInfobipSenderId?: string;
+  storeTwilioPhone?: string;
 }
 
 type Step = 'select' | 'compose' | 'sent';
@@ -65,6 +66,7 @@ type Step = 'select' | 'compose' | 'sent';
 export default function TestMmsShoppingListModal({
   open, onClose, storeId, storeSlug, storeName, products, headline, circularId,
   circularFileUrl, storeProvider, storeBandwidthPhone, storeBandwidthId,
+  storeInfobipSenderId, storeTwilioPhone,
 }: Props) {
   // Customer search
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -77,7 +79,7 @@ export default function TestMmsShoppingListModal({
 
   // Shopping list result
   const [creatingList, setCreatingList] = useState(false);
-  const [listResult, setListResult] = useState<{ qrCode: string; link: string; totalItems: number } | null>(null);
+  const [listResult, setListResult] = useState<{ qrCode: string; link: string; shortLink?: string; totalItems: number } | null>(null);
 
   // AI text generation
   const [generatingText, setGeneratingText] = useState(false);
@@ -160,17 +162,29 @@ export default function TestMmsShoppingListModal({
       );
 
       const { qrCode, totalItems } = res.data;
-      const link = `${LINKTREE_URL}?slug=${storeSlug}&sl=${qrCode}`;
-      setListResult({ qrCode, link, totalItems });
+      const longLink = `${LINKTREE_URL}?slug=${storeSlug}&sl=${qrCode}`;
+
+      // Try to shorten the URL via the linktree short-link API
+      let shortLink = longLink;
+      try {
+        const shortenRes = await axios.post(`${LINKTREE_URL}/api/shorten`, { url: longLink });
+        if (shortenRes.data?.shortUrl) {
+          shortLink = shortenRes.data.shortUrl;
+        }
+      } catch (shortenErr) {
+        console.warn('[TestMms] Short link failed, using long URL:', shortenErr);
+      }
+
+      setListResult({ qrCode, link: longLink, shortLink, totalItems });
 
       // Now generate AI text
       setGeneratingText(true);
       try {
         // HARDCODED COPY FOR MANUAL TEST AS REQUESTED
-        const hardcodedCopy = `🔥 VIP DEAL ALERT! This week only: Pork Chops $1.99, Chicken Legs $0.99, Plantains 3/$2, King Fish $8.99, Eggo Waffles 2/$5 & OJ 2/$6! Hurry, limited time! 🛒\n\n${link}\n\nReply STOP to unsubscribe.`;
+        const hardcodedCopy = `🔥 VIP DEAL ALERT! This week only: Pork Chops $1.99, Chicken Legs $0.99, Plantains 3/$2, King Fish $8.99, Eggo Waffles 2/$5 & OJ 2/$6! Hurry, limited time! 🛒\n\n${shortLink}\n\nReply STOP to unsubscribe.`;
         setSmsText(hardcodedCopy);
       } catch (aiErr) {
-        setSmsText(`🛒 ${storeName} — Your personalized deals are ready!\n\n${link}\n\nReply STOP to unsubscribe.`);
+        setSmsText(`🛒 ${storeName} — Your personalized deals are ready!\n\n${shortLink}\n\nReply STOP to unsubscribe.`);
       } finally {
         setGeneratingText(false);
       }
@@ -200,13 +214,30 @@ export default function TestMmsShoppingListModal({
         setUploadingImage(false);
       }
 
+      // Resolve provider-specific sender from the store
+      const provider = storeProvider || 'bandwidth';
+      let senderPhone = storeBandwidthPhone || '';
+      let senderId: string | undefined = storeBandwidthId;
+
+      if (provider === 'infobip') {
+        senderPhone = storeInfobipSenderId || '';
+        senderId = undefined;
+      } else if (provider === 'twilio') {
+        senderPhone = storeTwilioPhone || '';
+        senderId = undefined;
+      }
+
+      if (!senderPhone) {
+        throw new Error(`Store "${storeName}" has no sender configured for provider "${provider}". Check store settings.`);
+      }
+
       await campaignClient.sendTestMessage({
         phone: selectedCustomer.phoneNumber.replace(/\D/g, ''),
         message: smsText,
         image: imgToSend,
-        provider: 'bandwidth', // HARDCODED AS REQUESTED
-        phoneNumber: storeBandwidthPhone || TEST_BW_PHONE,
-        id: storeBandwidthId || TEST_BW_ID,
+        provider,
+        phoneNumber: senderPhone,
+        id: senderId,
       });
       setSentSuccess(true);
       setStep('sent');
@@ -217,9 +248,10 @@ export default function TestMmsShoppingListModal({
     }
   }, [selectedCustomer, smsText, circularFileUrl, storeProvider, storeBandwidthPhone, storeBandwidthId]);
 
-  const handleCopy = () => {
-    if (listResult?.link) {
-      navigator.clipboard.writeText(listResult.link);
+  const handleCopy = (text?: string) => {
+    const copyUrl = text || listResult?.shortLink || listResult?.link;
+    if (copyUrl) {
+      navigator.clipboard.writeText(copyUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -357,6 +389,30 @@ export default function TestMmsShoppingListModal({
                   </Box>
                   <Chip label={`${listResult.totalItems} items`} size="small" color="success" />
                 </Stack>
+                {/* Short link (if available) */}
+                {listResult.shortLink && (
+                  <Box sx={{
+                    p: 1.5, borderRadius: 1.5,
+                    bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(76,175,80,0.08)' : 'rgba(76,175,80,0.05)',
+                    border: '1px solid rgba(76,175,80,0.3)',
+                    display: 'flex', alignItems: 'center', gap: 1,
+                  }}>
+                    <LinkIcon sx={{ color: '#4caf50', fontSize: 18 }} />
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="caption" fontWeight={700} color="success.main" sx={{ display: 'block', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        Short Link (used in SMS)
+                      </Typography>
+                      <Typography sx={{ fontSize: 13, fontFamily: 'monospace', fontWeight: 700 }}>
+                        {listResult.shortLink}
+                      </Typography>
+                    </Box>
+                    <IconButton size="small" onClick={() => handleCopy(listResult.shortLink)}>
+                      {copied ? <CheckCircleIcon sx={{ fontSize: 16, color: '#4caf50' }} /> : <ContentCopyIcon sx={{ fontSize: 16 }} />}
+                    </IconButton>
+                  </Box>
+                )}
+
+                {/* Original link */}
                 <Box sx={{
                   p: 1, borderRadius: 1.5,
                   bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(244,55,137,0.08)' : 'rgba(244,55,137,0.05)',
@@ -364,11 +420,18 @@ export default function TestMmsShoppingListModal({
                   display: 'flex', alignItems: 'center', gap: 1,
                 }}>
                   <LinkIcon sx={{ color: '#f43789', fontSize: 16 }} />
-                  <Typography sx={{ flex: 1, fontSize: 11, fontFamily: 'monospace', wordBreak: 'break-all' }}>
-                    {listResult.link}
-                  </Typography>
-                  <IconButton size="small" onClick={handleCopy}>
-                    {copied ? <CheckCircleIcon sx={{ fontSize: 16, color: '#4caf50' }} /> : <ContentCopyIcon sx={{ fontSize: 16 }} />}
+                  <Box sx={{ flex: 1 }}>
+                    {listResult.shortLink && (
+                      <Typography variant="caption" color="text.disabled" sx={{ display: 'block', fontSize: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        Original URL
+                      </Typography>
+                    )}
+                    <Typography sx={{ flex: 1, fontSize: 10, fontFamily: 'monospace', wordBreak: 'break-all', color: 'text.secondary' }}>
+                      {listResult.link}
+                    </Typography>
+                  </Box>
+                  <IconButton size="small" onClick={() => handleCopy(listResult.link)}>
+                    <ContentCopyIcon sx={{ fontSize: 14 }} />
                   </IconButton>
                 </Box>
               </Stack>
@@ -531,21 +594,42 @@ export default function TestMmsShoppingListModal({
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" fontWeight={700} color="text.secondary">LINK</Typography>
+                  <Typography variant="caption" fontWeight={700} color="text.secondary">
+                    {listResult.shortLink ? 'SHORT LINK' : 'LINK'}
+                  </Typography>
+                  {listResult.shortLink && (
+                    <Box sx={{
+                      mt: 0.5, p: 1.5, borderRadius: 1.5,
+                      bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(76,175,80,0.08)' : 'rgba(76,175,80,0.05)',
+                      border: '1px solid rgba(76,175,80,0.3)',
+                      display: 'flex', alignItems: 'center', gap: 1,
+                      mb: 1,
+                    }}>
+                      <LinkIcon sx={{ color: '#4caf50', fontSize: 18 }} />
+                      <Typography sx={{ flex: 1, fontSize: 14, fontFamily: 'monospace', fontWeight: 700 }}>
+                        {listResult.shortLink}
+                      </Typography>
+                      <Button size="small" onClick={() => handleCopy(listResult.shortLink)}
+                        startIcon={copied ? <CheckCircleIcon /> : <ContentCopyIcon />}
+                        sx={{ minWidth: 'auto', textTransform: 'none', fontSize: 12 }}>
+                        {copied ? 'Copied!' : 'Copy'}
+                      </Button>
+                    </Box>
+                  )}
                   <Box sx={{
                     mt: 0.5, p: 1.5, borderRadius: 1.5,
                     bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(244,55,137,0.08)' : 'rgba(244,55,137,0.05)',
                     border: '1px solid rgba(244,55,137,0.2)',
                     display: 'flex', alignItems: 'center', gap: 1,
                   }}>
-                    <LinkIcon sx={{ color: '#f43789', fontSize: 18 }} />
-                    <Typography sx={{ flex: 1, fontSize: 12, fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                    <LinkIcon sx={{ color: '#f43789', fontSize: 16 }} />
+                    <Typography sx={{ flex: 1, fontSize: 10, fontFamily: 'monospace', wordBreak: 'break-all', color: 'text.secondary' }}>
                       {listResult.link}
                     </Typography>
-                    <Button size="small" onClick={handleCopy}
-                      startIcon={copied ? <CheckCircleIcon /> : <ContentCopyIcon />}
-                      sx={{ minWidth: 'auto', textTransform: 'none', fontSize: 12 }}>
-                      {copied ? 'Copied!' : 'Copy'}
+                    <Button size="small" onClick={() => handleCopy(listResult.link)}
+                      startIcon={<ContentCopyIcon />}
+                      sx={{ minWidth: 'auto', textTransform: 'none', fontSize: 11 }}>
+                      Copy
                     </Button>
                   </Box>
                 </Box>
@@ -555,7 +639,7 @@ export default function TestMmsShoppingListModal({
             <Button
               variant="outlined" size="small"
               startIcon={<OpenInNewIcon />}
-              onClick={() => window.open(listResult.link, '_blank')}
+              onClick={() => window.open(listResult.shortLink || listResult.link, '_blank')}
               sx={{ textTransform: 'none' }}
             >
               Open in new tab

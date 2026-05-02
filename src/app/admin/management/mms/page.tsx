@@ -452,6 +452,9 @@ function MmsGeneratorPage(): React.JSX.Element {
                         onGenerated={setGenerationResult}
                         storeProvider={selectedStore.provider}
                         storeBandwidthPhone={selectedStore.bandwidthPhoneNumber}
+                        storeBandwidthId={selectedStore.bandwithId}
+                        storeInfobipSenderId={selectedStore.infobipSenderId}
+                        storeTwilioPhone={selectedStore.twilioPhoneNumber}
                       />
 
                       {generationResult && (

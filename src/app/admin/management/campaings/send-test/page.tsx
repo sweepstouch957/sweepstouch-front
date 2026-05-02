@@ -49,8 +49,6 @@ import {
 import { useMutation, useQuery } from '@tanstack/react-query';
 
 /* ────────────────────────────── constants ────────────────────────────── */
-const TEST_BW_PHONE = process.env.NEXT_PUBLIC_TEST_BW_PHONE || '18332197926';
-const TEST_BW_ID = process.env.NEXT_PUBLIC_TEST_BW_ID || 'c3799660-ff17-4e29-a41a-e53f2d8b3859';
 const KIOSK_BASE = 'https://kiosko.sweepstouch.com';
 const MAX_IMAGE_KB = 500;
 
@@ -197,6 +195,8 @@ export default function SendTestMessagePage() {
   /* ── Send mutation ─────────────────────────────── */
   const sendMutation = useMutation({
     mutationFn: async () => {
+      if (!selectedStore) throw new Error('No store selected');
+
       // Never send a PDF as the MMS image
       let imgUrl = uploadedImageUrl ?? safeCampaignImage ?? null;
       if (newImage) {
@@ -204,13 +204,40 @@ export default function SendTestMessagePage() {
         imgUrl = up.url;
         setUploadedImageUrl(up.url);
       }
+
+      // Resolve provider-specific sender based on the store's provider
+      const storeProvider = selectedStore.provider || 'bandwidth';
+      let senderPhone: string;
+      let senderId: string | undefined;
+
+      switch (storeProvider) {
+        case 'infobip':
+          senderPhone = selectedStore.infobipSenderId || '';
+          break;
+        case 'twilio':
+          senderPhone = selectedStore.twilioPhoneNumber || '';
+          break;
+        case 'bandwidth':
+        default:
+          senderPhone = selectedStore.bandwidthPhoneNumber || '';
+          senderId = selectedStore.bandwithId || undefined;
+          break;
+      }
+
+      if (!senderPhone) {
+        throw new Error(
+          `Store "${selectedStore.name}" has no sender configured for provider "${storeProvider}". ` +
+          `Please set the ${storeProvider === 'infobip' ? 'Infobip Sender ID' : storeProvider === 'twilio' ? 'Twilio Phone Number' : 'Bandwidth Phone Number'} in store settings.`
+        );
+      }
+
       return campaignClient.sendTestMessage({
         phone: destinationPhone.replace(/\D/g, ''),
         message: copyText,
         image: imgUrl,
-        provider: 'bandwidth',
-        phoneNumber: TEST_BW_PHONE,
-        id: TEST_BW_ID,
+        provider: storeProvider,
+        phoneNumber: senderPhone,
+        id: senderId,
       });
     },
     onSuccess: () => {
@@ -356,7 +383,7 @@ export default function SendTestMessagePage() {
                           {option.name}
                         </Typography>
                         <Typography variant="caption" color="text.disabled">
-                          {option.provider} · +{option.bandwidthPhoneNumber || option.twilioPhoneNumber || 'N/A'}
+                          {option.provider} · {option.provider === 'infobip' ? option.infobipSenderId : option.provider === 'bandwidth' ? `+${option.bandwidthPhoneNumber || 'N/A'}` : `+${option.twilioPhoneNumber || 'N/A'}`}
                         </Typography>
                       </Box>
                     </Stack>
@@ -396,7 +423,7 @@ export default function SendTestMessagePage() {
                         sx={{ fontSize: 10, height: 20, textTransform: 'uppercase' }}
                       />
                       <Typography variant="caption" color="text.disabled" sx={{ fontFamily: 'monospace' }}>
-                        +{selectedStore.bandwidthPhoneNumber || selectedStore.twilioPhoneNumber}
+                        {selectedStore.provider === 'infobip' ? selectedStore.infobipSenderId : `+${selectedStore.bandwidthPhoneNumber || selectedStore.twilioPhoneNumber || 'N/A'}`}
                       </Typography>
                     </Stack>
                   </Box>
@@ -961,12 +988,27 @@ export default function SendTestMessagePage() {
               isDark={isDark}
               even={true}
             />
-            <SummaryRow label="From" value={`+${TEST_BW_PHONE}`} isDark={isDark} even={false} />
+            <SummaryRow
+              label="From"
+              value={
+                selectedStore
+                  ? selectedStore.provider === 'infobip'
+                    ? selectedStore.infobipSenderId || '—'
+                    : `+${selectedStore.bandwidthPhoneNumber || selectedStore.twilioPhoneNumber || '—'}`
+                  : '—'
+              }
+              isDark={isDark}
+              even={false}
+            />
             <SummaryRow label="Store" value={selectedStore?.name || '—'} isDark={isDark} even={true} />
             <SummaryRow label="Type" value={messageType} isDark={isDark} even={false} />
-            <SummaryRow label="Provider" value="BANDWIDTH" isDark={isDark} even={true} />
-            <SummaryRow label="BW ID" value={TEST_BW_ID.slice(0, 8) + '…'} isDark={isDark} even={false} />
-            <SummaryRow label="Characters" value={`${charCount}`} isDark={isDark} even={true} />
+            <SummaryRow
+              label="Provider"
+              value={(selectedStore?.provider || '—').toUpperCase()}
+              isDark={isDark}
+              even={true}
+            />
+            <SummaryRow label="Characters" value={`${charCount}`} isDark={isDark} even={false} />
           </Paper>
 
           {/* ── Kiosk CTA (when no customers and search active) ── */}
@@ -1052,10 +1094,10 @@ export default function SendTestMessagePage() {
             {[
               ['To', selectedCustomer ? formatPhone(selectedCustomer.phoneNumber) : '—'],
               ['Customer', selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName || ''}` : '—'],
-              ['From', `+${TEST_BW_PHONE}`],
+              ['From', selectedStore ? (selectedStore.provider === 'infobip' ? (selectedStore.infobipSenderId || '—') : `+${selectedStore.bandwidthPhoneNumber || selectedStore.twilioPhoneNumber || '—'}`) : '—'],
               ['Store', selectedStore?.name || '—'],
               ['Type', messageType],
-              ['Provider', 'BANDWIDTH'],
+              ['Provider', (selectedStore?.provider || '—').toUpperCase()],
             ].map(([label, value], i) => (
               <SummaryRow key={label as string} label={label as string} value={value as string} isDark={isDark} even={i % 2 === 1} />
             ))}

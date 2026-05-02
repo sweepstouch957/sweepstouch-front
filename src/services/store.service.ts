@@ -53,6 +53,7 @@ export interface Store {
   twilioPhoneNumberFriendlyName?: string;
   verifiedByTwilio?: boolean;
   bandwidthPhoneNumber?: string;
+  bandwithId?: string;
   customerCount: number;
   provider: 'twilio' | 'bandwidth' | 'infobip';
   createdAt: string;

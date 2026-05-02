@@ -25,27 +25,47 @@ interface TestCampaignModalProps {
   campaignContent: string;
   campaignImage?: string;
   storeName?: string;
+  storeProvider?: string;
+  storeBandwidthPhone?: string;
+  storeBandwidthId?: string;
+  storeInfobipSenderId?: string;
+  storeTwilioPhone?: string;
 }
 
-export default function TestCampaignModal({ open, onClose, campaignId, campaignContent, campaignImage, storeName }: TestCampaignModalProps) {
+export default function TestCampaignModal({
+  open, onClose, campaignId, campaignContent, campaignImage, storeName,
+  storeProvider, storeBandwidthPhone, storeBandwidthId, storeInfobipSenderId, storeTwilioPhone,
+}: TestCampaignModalProps) {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [sentSuccess, setSentSuccess] = useState(false);
   const [errorStr, setErrorStr] = useState('');
-
-  const TEST_BW_PHONE = process.env.NEXT_PUBLIC_TEST_BW_PHONE || '18332197926';
 
   const handleSend = async () => {
     if (!phone) return;
     setLoading(true);
     setErrorStr('');
     try {
+      // Resolve sender based on store provider
+      const provider = storeProvider || 'bandwidth';
+      let senderPhone = storeBandwidthPhone || '';
+      let senderId: string | undefined = storeBandwidthId;
+
+      if (provider === 'infobip') {
+        senderPhone = storeInfobipSenderId || '';
+        senderId = undefined;
+      } else if (provider === 'twilio') {
+        senderPhone = storeTwilioPhone || '';
+        senderId = undefined;
+      }
+
       await campaignClient.sendTestMessage({
         phone: phone.replace(/\D/g, ''),
         message: campaignContent,
         image: campaignImage,
-        provider: 'bandwidth',
-        phoneNumber: TEST_BW_PHONE,
+        provider,
+        phoneNumber: senderPhone,
+        id: senderId,
       });
       setSentSuccess(true);
     } catch (err: any) {
