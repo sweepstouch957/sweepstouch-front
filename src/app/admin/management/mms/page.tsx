@@ -1,22 +1,10 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
-  Box,
-  Container,
-  Grid,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  Alert,
-  Chip,
-  Stack,
-  TextField,
-  Autocomplete,
-  Avatar,
-  CircularProgress,
+  Box, Container, Grid, Card, CardContent, Typography, Button,
+  Alert, Chip, Stack, TextField, Autocomplete, Avatar, CircularProgress,
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -29,7 +17,7 @@ import ExtractedProductsTable from '@/components/mms/ExtractedProductsTable';
 import MmsPreviewPhone from '@/components/mms/MmsPreviewPhone';
 import MmsActionBar from '@/components/mms/MmsActionBar';
 import MmsThemeEditor from '@/components/mms/MmsThemeEditor';
-import { getAllStores, type Store } from '@/services/store.service';
+import { useStores } from '@/hooks/useStores';
 
 // ─── Types ──────────────────────────────────────────────
 export interface ExtractedProduct {
@@ -47,68 +35,71 @@ export interface ExtractedProduct {
 
 const MAX_MMS_PRODUCTS = 6;
 
+// ─── Step Badge ─────────────────────────────────────────
+const StepBadge = React.memo(({ num }: { num: number }) => (
+  <Box
+    component="span"
+    sx={{
+      width: 28, height: 28, borderRadius: '50%',
+      background: 'linear-gradient(135deg, #DC1F26 0%, #ff6b6b 100%)',
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      color: 'white', fontSize: 14, fontWeight: 'bold',
+    }}
+  >
+    {num}
+  </Box>
+));
+StepBadge.displayName = 'StepBadge';
+
 // ─── Page Component ─────────────────────────────────────
 function MmsGeneratorPage(): React.JSX.Element {
   const customization = useCustomization();
   const { t } = useTranslation();
   const searchParams = useSearchParams();
+  const preselectedId = searchParams.get('storeId');
 
-  // Store selection
-  const [stores, setStores] = useState<Store[]>([]);
-  const [loadingStores, setLoadingStores] = useState(true);
-  const [selectedStore, setSelectedStore] = useState<Store | null>(null);
+  // ─── Store loading via hook (no infinite loops) ───
+  const { stores, loading: loadingStores, selectedStore, setSelectedStore } = useStores(preselectedId);
 
-  // MMS state
-  const [circularId, setCircularId] = useState<string>('');
+  // ─── MMS state ───
+  const [circularId, setCircularId] = useState('');
   const [products, setProducts] = useState<ExtractedProduct[]>([]);
   const [headline, setHeadline] = useState('');
-  const [extractionStatus, setExtractionStatus] = useState<string>('idle');
+  const [extractionStatus, setExtractionStatus] = useState('idle');
   const [campaignCode, setCampaignCode] = useState('');
   const [validDates, setValidDates] = useState('');
   const [generationResult, setGenerationResult] = useState<{ generated: number; skipped: number } | null>(null);
-  const [mmsTheme, setMmsTheme] = useState<Record<string, any>>({});
   const [circularFileUrl, setCircularFileUrl] = useState('');
 
-  // Load stores on mount
-  useEffect(() => {
-    (async () => {
-      try {
-        const data = await getAllStores();
-        const sorted = (data || [])
-          .filter((s: Store) => s.active)
-          .sort((a: Store, b: Store) => (b.customerCount || 0) - (a.customerCount || 0));
-        setStores(sorted);
-
-        // Pre-select store from URL
-        const preselectedId = searchParams.get('storeId');
-        if (preselectedId) {
-          const found = sorted.find((s: Store) => s._id === preselectedId || s.id === preselectedId);
-          if (found) setSelectedStore(found);
-        }
-      } catch (err) {
-        console.error('Failed to load stores:', err);
-      } finally {
-        setLoadingStores(false);
-      }
-    })();
-  }, [searchParams]);
-
-  // React to selectedStore changes
-  useEffect(() => {
-    if (selectedStore) {
-      const theme = selectedStore.mmsTheme || {};
-      if (!theme.logoUrl && selectedStore.image && selectedStore.image !== 'no-image.jpg') {
-        theme.logoUrl = selectedStore.image;
-      }
-      setMmsTheme(theme);
-    } else {
-      setMmsTheme({});
+  // ─── Theme (derived, no extra effect) ───
+  const mmsTheme = useMemo(() => {
+    if (!selectedStore) return {};
+    const theme = { ...(selectedStore.mmsTheme || {}) };
+    if (!theme.logoUrl && selectedStore.image && selectedStore.image !== 'no-image.jpg') {
+      theme.logoUrl = selectedStore.image;
     }
+    return theme;
   }, [selectedStore]);
+
+  const [themeOverride, setThemeOverride] = useState<Record<string, any> | null>(null);
+  const activeTheme = themeOverride ?? mmsTheme;
 
   const storeSlug = selectedStore?.slug || '';
 
-  // After circular upload
+  // ─── Handlers (stable refs) ───
+  const handleStoreChange = useCallback((_e: any, newValue: any) => {
+    setSelectedStore(newValue);
+    setCircularId('');
+    setProducts([]);
+    setHeadline('');
+    setExtractionStatus('idle');
+    setCampaignCode('');
+    setValidDates('');
+    setGenerationResult(null);
+    setThemeOverride(null);
+    setCircularFileUrl('');
+  }, [setSelectedStore]);
+
   const handleCircularCreated = useCallback((circular: { _id: string; storeSlug: string; startDate: string; endDate: string; fileUrl?: string }) => {
     setCircularId(circular._id);
     if (circular.fileUrl) setCircularFileUrl(circular.fileUrl);
@@ -117,9 +108,7 @@ function MmsGeneratorPage(): React.JSX.Element {
     setValidDates(`${start} - ${end}`);
   }, []);
 
-  // After AI extraction — limit to MAX_MMS_PRODUCTS and use extracted dates
   const handleExtracted = useCallback((extracted: { products: ExtractedProduct[]; headline: string; validDates?: string }) => {
-    // Sort: hero products first, then by price desc
     const sorted = [...extracted.products].sort((a, b) => {
       if (a.isHero && !b.isHero) return -1;
       if (!a.isHero && b.isHero) return 1;
@@ -128,47 +117,19 @@ function MmsGeneratorPage(): React.JSX.Element {
     setProducts(sorted);
     setHeadline(extracted.headline);
     setExtractionStatus('completed');
-    // Use the AI-extracted valid dates if available
-    if (extracted.validDates) {
-      setValidDates(extracted.validDates);
-    }
+    if (extracted.validDates) setValidDates(extracted.validDates);
+  }, []);
+
+  const handleProductsChange = useCallback((updated: ExtractedProduct[]) => {
+    setProducts(updated);
   }, []);
 
   // Products limited to 6 for MMS
   const mmsProducts = useMemo(() => products.slice(0, MAX_MMS_PRODUCTS), [products]);
 
-  // Product edit
-  const handleProductsChange = useCallback((updated: ExtractedProduct[]) => {
-    setProducts(updated);
-  }, []);
-
-  // Step number badge
-  const StepBadge = ({ num }: { num: number }) => (
-    <Box
-      component="span"
-      sx={{
-        width: 28,
-        height: 28,
-        borderRadius: '50%',
-        background: 'linear-gradient(135deg, #DC1F26 0%, #ff6b6b 100%)',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'white',
-        fontSize: 14,
-        fontWeight: 'bold',
-      }}
-    >
-      {num}
-    </Box>
-  );
-
   return (
     <>
-      <Container
-        sx={{ py: { xs: 2, sm: 3 } }}
-        maxWidth={customization.stretch ? false : 'xl'}
-      >
+      <Container sx={{ py: { xs: 2, sm: 3 } }} maxWidth={customization.stretch ? false : 'xl'}>
         <PageHeading
           sx={{ px: 0 }}
           title={t('MMS Generator')}
@@ -176,28 +137,13 @@ function MmsGeneratorPage(): React.JSX.Element {
           actions={
             <Stack direction="row" spacing={1}>
               {selectedStore && (
-                <Chip
-                  icon={<StorefrontIcon />}
-                  label={selectedStore.name}
-                  color="primary"
-                  variant="outlined"
-                />
+                <Chip icon={<StorefrontIcon />} label={selectedStore.name} color="primary" variant="outlined" />
               )}
               {extractionStatus === 'completed' && (
                 <>
-                  <Chip
-                    icon={<AutoAwesomeIcon />}
-                    label={`${products.length} products extracted`}
-                    color="success"
-                    variant="outlined"
-                  />
+                  <Chip icon={<AutoAwesomeIcon />} label={`${products.length} products extracted`} color="success" variant="outlined" />
                   {products.length > MAX_MMS_PRODUCTS && (
-                    <Chip
-                      label={`${MAX_MMS_PRODUCTS} will be sent in MMS`}
-                      color="warning"
-                      size="small"
-                      variant="outlined"
-                    />
+                    <Chip label={`${MAX_MMS_PRODUCTS} will be sent in MMS`} color="warning" size="small" variant="outlined" />
                   )}
                 </>
               )}
@@ -211,10 +157,7 @@ function MmsGeneratorPage(): React.JSX.Element {
           {/* ─── Store Selector ────────────────────────────── */}
           <Card
             sx={{
-              mb: 3,
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 2,
+              mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2,
               background: (theme) =>
                 theme.palette.mode === 'dark'
                   ? 'linear-gradient(135deg, rgba(25,25,40,0.9) 0%, rgba(35,35,55,0.9) 100%)'
@@ -229,18 +172,7 @@ function MmsGeneratorPage(): React.JSX.Element {
 
               <Autocomplete
                 value={selectedStore}
-                onChange={(_e, newValue) => {
-                  setSelectedStore(newValue);
-                  // Reset MMS state when store changes
-                  setCircularId('');
-                  setProducts([]);
-                  setHeadline('');
-                  setExtractionStatus('idle');
-                  setCampaignCode('');
-                  setValidDates('');
-                  setGenerationResult(null);
-                  // setMmsTheme({}); // Removed because useEffect handles it
-                }}
+                onChange={handleStoreChange}
                 options={stores}
                 loading={loadingStores}
                 getOptionLabel={(option) => option.name}
@@ -248,52 +180,29 @@ function MmsGeneratorPage(): React.JSX.Element {
                 renderOption={(props, option) => {
                   const { key, ...rest } = props as any;
                   return (
-                  <Box
-                    component="li"
-                    key={key || option._id}
-                    {...rest}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1.5,
-                      py: 1.5,
+                  <Box component="li" key={key || option._id} {...rest}
+                    sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.5,
                       '&:hover': { background: 'rgba(220, 31, 38, 0.04) !important' },
                     }}
                   >
                     <Avatar
                       src={option.image !== 'no-image.jpg' ? option.image : undefined}
-                      sx={{
-                        width: 36,
-                        height: 36,
-                        bgcolor: '#DC1F26',
-                        fontSize: 14,
-                        fontWeight: 'bold',
-                      }}
+                      sx={{ width: 36, height: 36, bgcolor: '#DC1F26', fontSize: 14, fontWeight: 'bold' }}
                     >
                       {option.name?.charAt(0)?.toUpperCase()}
                     </Avatar>
                     <Box sx={{ flex: 1 }}>
-                      <Typography sx={{ fontWeight: 600, fontSize: 14 }}>
-                        {option.name}
-                      </Typography>
+                      <Typography sx={{ fontWeight: 600, fontSize: 14 }}>{option.name}</Typography>
                       <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
                         {option.slug} · {option.customerCount || 0} customers · {option.type}
                       </Typography>
                     </Box>
                     <Chip
-                      label={option.type}
-                      size="small"
+                      label={option.type} size="small"
                       sx={{
-                        height: 22,
-                        fontSize: 11,
-                        fontWeight: 'bold',
-                        bgcolor:
-                          option.type === 'elite'
-                            ? '#FFD700'
-                            : option.type === 'basic'
-                              ? '#90CAF9'
-                              : '#E0E0E0',
-                        color: option.type === 'elite' ? '#333' : '#333',
+                        height: 22, fontSize: 11, fontWeight: 'bold',
+                        bgcolor: option.type === 'elite' ? '#FFD700' : option.type === 'basic' ? '#90CAF9' : '#E0E0E0',
+                        color: '#333',
                       }}
                     />
                   </Box>
@@ -319,12 +228,7 @@ function MmsGeneratorPage(): React.JSX.Element {
                         </>
                       ),
                     }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        fontSize: 15,
-                      },
-                    }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, fontSize: 15 } }}
                   />
                 )}
                 noOptionsText="No stores found"
@@ -345,14 +249,7 @@ function MmsGeneratorPage(): React.JSX.Element {
               {/* Left Column — Upload + Products Table */}
               <Grid item xs={12} lg={7}>
                 {/* Step 1: Upload Flyer */}
-                <Card
-                  sx={{
-                    mb: 3,
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    borderRadius: 2,
-                  }}
-                >
+                <Card sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                   <CardContent>
                     <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                       <StepBadge num={1} />
@@ -370,75 +267,38 @@ function MmsGeneratorPage(): React.JSX.Element {
 
                 {/* Step 2: Extracted Products Table */}
                 {products.length > 0 && (
-                  <Card
-                    sx={{
-                      mb: 3,
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: 2,
-                    }}
-                  >
+                  <Card sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                     <CardContent>
                       <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                         <StepBadge num={2} />
                         Extracted Products
-                        <Chip
-                          size="small"
-                          label={extractionStatus === 'completed' ? 'AI Extracted' : 'Manual'}
-                          color={extractionStatus === 'completed' ? 'info' : 'default'}
-                          sx={{ ml: 1 }}
-                        />
+                        <Chip size="small" label={extractionStatus === 'completed' ? 'AI Extracted' : 'Manual'}
+                          color={extractionStatus === 'completed' ? 'info' : 'default'} sx={{ ml: 1 }} />
                         {products.length > MAX_MMS_PRODUCTS && (
-                          <Chip
-                            size="small"
-                            label={`⚠️ Only first ${MAX_MMS_PRODUCTS} of ${products.length} will be in MMS`}
-                            color="warning"
-                            variant="outlined"
-                          />
+                          <Chip size="small" label={`⚠️ Only first ${MAX_MMS_PRODUCTS} of ${products.length} will be in MMS`}
+                            color="warning" variant="outlined" />
                         )}
                       </Typography>
 
-                      <TextField
-                        fullWidth
-                        label="Headline"
-                        value={headline}
-                        onChange={(e) => setHeadline(e.target.value)}
-                        size="small"
-                        sx={{ mb: 2 }}
-                      />
+                      <TextField fullWidth label="Headline" value={headline}
+                        onChange={(e) => setHeadline(e.target.value)} size="small" sx={{ mb: 2 }} />
 
-                      <ExtractedProductsTable
-                        products={products}
-                        onChange={handleProductsChange}
-                      />
+                      <ExtractedProductsTable products={products} onChange={handleProductsChange} />
                     </CardContent>
                   </Card>
                 )}
 
                 {/* Step 3: Generate & Send */}
                 {products.length > 0 && (
-                  <Card
-                    sx={{
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: 2,
-                    }}
-                  >
+                  <Card sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                     <CardContent>
                       <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                         <StepBadge num={3} />
                         Generate & Send MMS
                       </Typography>
 
-                      <TextField
-                        fullWidth
-                        label="Campaign Code (e.g. VIP0411)"
-                        value={campaignCode}
-                        onChange={(e) => setCampaignCode(e.target.value.toUpperCase())}
-                        size="small"
-                        sx={{ mb: 2 }}
-                        placeholder="VIP0411"
-                      />
+                      <TextField fullWidth label="Campaign Code (e.g. VIP0411)" value={campaignCode}
+                        onChange={(e) => setCampaignCode(e.target.value.toUpperCase())} size="small" sx={{ mb: 2 }} placeholder="VIP0411" />
 
                       <MmsActionBar
                         circularId={circularId}
@@ -471,14 +331,7 @@ function MmsGeneratorPage(): React.JSX.Element {
               {/* Right Column — Phone Preview + Theme Editor */}
               <Grid item xs={12} lg={5}>
                 <Box sx={{ position: 'sticky', top: 24 }}>
-                  <Card
-                    sx={{
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: 2,
-                      mb: 3,
-                    }}
-                  >
+                  <Card sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, mb: 3 }}>
                     <CardContent>
                       <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                         <VisibilityIcon fontSize="small" />
@@ -490,25 +343,19 @@ function MmsGeneratorPage(): React.JSX.Element {
                         campaignCode={campaignCode || 'PREVIEW'}
                         storeName={selectedStore.name}
                         validDates={validDates || 'This Week Only'}
-                        theme={mmsTheme}
+                        theme={activeTheme}
                       />
                     </CardContent>
                   </Card>
 
                   {/* Theme Editor */}
-                  <Card
-                    sx={{
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: 2,
-                    }}
-                  >
+                  <Card sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                     <CardContent>
                       <MmsThemeEditor
                         storeId={selectedStore?._id || ''}
                         storeSlug={storeSlug}
-                        theme={mmsTheme}
-                        onThemeChange={setMmsTheme}
+                        theme={activeTheme}
+                        onThemeChange={setThemeOverride}
                       />
                     </CardContent>
                   </Card>

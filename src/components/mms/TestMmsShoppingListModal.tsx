@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
-  Typography, CircularProgress, Stack, Box, Divider, Chip, Alert,
+  Typography, CircularProgress, Stack, Box, Chip, Alert,
   Autocomplete, InputAdornment, Avatar, IconButton,
 } from '@mui/material';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
@@ -18,19 +18,11 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import EditIcon from '@mui/icons-material/Edit';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
-import axios from 'axios';
-import { customerClient, type Customer } from '@/services/customerService';
-import { generateMmsText } from '@/services/ai.service';
-import { campaignClient } from '@/services/campaing.service';
-import { uploadCampaignImage } from '@/services/upload.service';
+import { useCustomerSearch, useMmsSend } from '@/hooks/useMmsTest';
 
+// ─── Types ──────────────────────────────────────────────
 const isPdfUrl = (url?: string | null): boolean =>
   !!url && /\.pdf(\?.*)?$/i.test(url);
-
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
-const TRACKING_URL = (process.env.NEXT_PUBLIC_TRACKING_URL || API_URL).replace(/\/+$/, '');
-const LINKTREE_URL = (process.env.NEXT_PUBLIC_LINKTREE_URL || 'https://links.sweepstouch.com').replace(/\/+$/, '');
-
 
 interface Product {
   name: string;
@@ -53,7 +45,6 @@ interface Props {
   headline: string;
   circularId?: string;
   circularFileUrl?: string;
-  // Store provider info for sending
   storeProvider?: string;
   storeBandwidthPhone?: string;
   storeBandwidthId?: string;
@@ -63,319 +54,235 @@ interface Props {
 
 type Step = 'select' | 'compose' | 'sent';
 
+// ─── Clipboard helper ───────────────────────────────────
+function useCopy() {
+  const [copied, setCopied] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const copy = useCallback((text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => setCopied(false), 2000);
+  }, []);
+  return { copied, copy };
+}
+
+// ─── Link Display ───────────────────────────────────────
+const LinkDisplay = React.memo(({ link, shortLink, copy, copied }: {
+  link: string; shortLink?: string; copy: (t: string) => void; copied: boolean;
+}) => (
+  <Stack spacing={1}>
+    {shortLink && (
+      <Box sx={{
+        p: 1.5, borderRadius: 1.5,
+        bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(76,175,80,0.08)' : 'rgba(76,175,80,0.05)',
+        border: '1px solid rgba(76,175,80,0.3)',
+        display: 'flex', alignItems: 'center', gap: 1,
+      }}>
+        <LinkIcon sx={{ color: '#4caf50', fontSize: 18 }} />
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="caption" fontWeight={700} color="success.main"
+            sx={{ display: 'block', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            Short Link (used in SMS)
+          </Typography>
+          <Typography sx={{ fontSize: 13, fontFamily: 'monospace', fontWeight: 700 }}>
+            {shortLink}
+          </Typography>
+        </Box>
+        <IconButton size="small" onClick={() => copy(shortLink)}>
+          {copied ? <CheckCircleIcon sx={{ fontSize: 16, color: '#4caf50' }} /> : <ContentCopyIcon sx={{ fontSize: 16 }} />}
+        </IconButton>
+      </Box>
+    )}
+    <Box sx={{
+      p: 1, borderRadius: 1.5,
+      bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(244,55,137,0.08)' : 'rgba(244,55,137,0.05)',
+      border: '1px solid rgba(244,55,137,0.2)',
+      display: 'flex', alignItems: 'center', gap: 1,
+    }}>
+      <LinkIcon sx={{ color: '#f43789', fontSize: 16 }} />
+      <Box sx={{ flex: 1 }}>
+        {shortLink && (
+          <Typography variant="caption" color="text.disabled"
+            sx={{ display: 'block', fontSize: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            Original URL
+          </Typography>
+        )}
+        <Typography sx={{ fontSize: 10, fontFamily: 'monospace', wordBreak: 'break-all', color: 'text.secondary' }}>
+          {link}
+        </Typography>
+      </Box>
+      <IconButton size="small" onClick={() => copy(link)}>
+        <ContentCopyIcon sx={{ fontSize: 14 }} />
+      </IconButton>
+    </Box>
+  </Stack>
+));
+LinkDisplay.displayName = 'LinkDisplay';
+
+// ─── Main Modal ─────────────────────────────────────────
 export default function TestMmsShoppingListModal({
   open, onClose, storeId, storeSlug, storeName, products, headline, circularId,
   circularFileUrl, storeProvider, storeBandwidthPhone, storeBandwidthId,
   storeInfobipSenderId, storeTwilioPhone,
 }: Props) {
-  // Customer search
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loadingCustomers, setLoadingCustomers] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [phoneSearch, setPhoneSearch] = useState('');
-
-  // Step management
   const [step, setStep] = useState<Step>('select');
-
-  // Shopping list result
-  const [creatingList, setCreatingList] = useState(false);
-  const [listResult, setListResult] = useState<{ qrCode: string; link: string; shortLink?: string; totalItems: number } | null>(null);
-
-  // AI text generation
-  const [generatingText, setGeneratingText] = useState(false);
-  const [smsText, setSmsText] = useState('');
   const [editingText, setEditingText] = useState(false);
-
-  // Sending
-  const [sending, setSending] = useState(false);
-  const [sentSuccess, setSentSuccess] = useState(false);
-
-  const [error, setError] = useState('');
-  const [copied, setCopied] = useState(false);
-
-  // MMS image upload (when circular is PDF)
   const [mmsImageFile, setMmsImageFile] = useState<File | null>(null);
   const [uploadedMmsUrl, setUploadedMmsUrl] = useState<string | null>(null);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { copied, copy } = useCopy();
 
   const circularIsPdf = isPdfUrl(circularFileUrl);
   const effectiveImage = uploadedMmsUrl || (circularIsPdf ? null : circularFileUrl) || null;
 
-  // Load customers when modal opens
-  useEffect(() => {
-    if (!open || !storeId) return;
-    (async () => {
-      setLoadingCustomers(true);
-      try {
-        const res = await customerClient.getCustomersByStore(storeId, 1, 200);
-        setCustomers(res.data || []);
-      } catch (err) {
-        console.error('Failed to load customers', err);
-      } finally {
-        setLoadingCustomers(false);
-      }
-    })();
-  }, [open, storeId]);
+  // ─── Hooks ───
+  const customerSearch = useCustomerSearch(storeId, open);
+  const mmsSend = useMmsSend({
+    storeSlug, storeName, circularId,
+    storeProvider, storeBandwidthPhone, storeBandwidthId,
+    storeInfobipSenderId, storeTwilioPhone,
+  });
 
-  // Filtered customers by phone search
-  const filteredCustomers = useMemo(() => {
-    if (!phoneSearch) return customers;
-    const q = phoneSearch.replace(/\D/g, '');
-    return customers.filter((c) =>
-      c.phoneNumber.includes(q) || c.firstName?.toLowerCase().includes(phoneSearch.toLowerCase())
-    );
-  }, [customers, phoneSearch]);
-
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('uifort-authentication');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  };
-
-  // Step 1: Create shopping list + AI text
+  // ─── Handlers ───
   const handleCreateAndCompose = useCallback(async () => {
-    if (!selectedCustomer) return;
-    setCreatingList(true);
-    setError('');
+    if (!customerSearch.selected) return;
+    const ok = await mmsSend.createShoppingList(customerSearch.selected, products);
+    if (ok) setStep('compose');
+  }, [customerSearch.selected, products, mmsSend]);
 
-    try {
-      // Build items from products (max 6)
-      const items = products.slice(0, 6).map((p) => ({
-        name: p.name,
-        price: p.price,
-        quantity: 1,
-        unit: p.unit || 'each',
-        category: p.category || 'other',
-        imageUrl: p.imageUrl || '',
-      }));
-
-      // Create shopping list via tracking-service
-      const res = await axios.post(
-        `${TRACKING_URL}/tracking/shopping-list`,
-        {
-          customerId: selectedCustomer.phoneNumber,
-          storeSlug,
-          circularId: circularId || undefined,
-          items,
-        },
-        { headers: getAuthHeaders() }
-      );
-
-      const { qrCode, totalItems } = res.data;
-      const longLink = `${LINKTREE_URL}?slug=${storeSlug}&sl=${qrCode}`;
-
-      // Try to shorten the URL via tracking-service (same gateway, no CORS issues)
-      let shortLink = longLink;
-      try {
-        const shortenRes = await axios.post(
-          `${TRACKING_URL}/tracking/short-link`,
-          { url: longLink },
-          { headers: getAuthHeaders() }
-        );
-        if (shortenRes.data?.shortUrl) {
-          shortLink = shortenRes.data.shortUrl;
-        }
-      } catch (shortenErr) {
-        console.warn('[TestMms] Short link failed, using long URL:', shortenErr);
-      }
-
-      setListResult({ qrCode, link: longLink, shortLink, totalItems });
-
-      // Now generate AI text
-      setGeneratingText(true);
-      try {
-        // HARDCODED COPY FOR MANUAL TEST AS REQUESTED
-        const hardcodedCopy = `🔥 VIP DEAL ALERT! This week only: Pork Chops $1.99, Chicken Legs $0.99, Plantains 3/$2, King Fish $8.99, Eggo Waffles 2/$5 & OJ 2/$6! Hurry, limited time! 🛒\n\n${shortLink}\n\nReply STOP to unsubscribe.`;
-        setSmsText(hardcodedCopy);
-      } catch (aiErr) {
-        setSmsText(`🛒 ${storeName} — Your personalized deals are ready!\n\n${shortLink}\n\nReply STOP to unsubscribe.`);
-      } finally {
-        setGeneratingText(false);
-      }
-
-      setStep('compose');
-    } catch (err: any) {
-      setError(err.response?.data?.error || err.message || 'Failed to create shopping list');
-    } finally {
-      setCreatingList(false);
-    }
-  }, [selectedCustomer, products, storeSlug, circularId, storeName, headline]);
-
-  // Step 2: Send the SMS
   const handleSend = useCallback(async () => {
-    if (!selectedCustomer || !smsText.trim()) return;
-    setSending(true);
-    setError('');
+    if (!customerSearch.selected) return;
+    const ok = await mmsSend.sendMessage(customerSearch.selected, effectiveImage, mmsImageFile);
+    if (ok) setStep('sent');
+  }, [customerSearch.selected, effectiveImage, mmsImageFile, mmsSend]);
 
-    try {
-      // Upload image file if user selected one
-      let imgToSend = effectiveImage;
-      if (mmsImageFile && !uploadedMmsUrl) {
-        setUploadingImage(true);
-        const up = await uploadCampaignImage(mmsImageFile);
-        imgToSend = up.url;
-        setUploadedMmsUrl(up.url);
-        setUploadingImage(false);
-      }
-
-      // Resolve provider-specific sender from the store
-      const provider = storeProvider || 'bandwidth';
-      let senderPhone = storeBandwidthPhone || '';
-      let senderId: string | undefined = storeBandwidthId;
-
-      if (provider === 'infobip') {
-        senderPhone = storeInfobipSenderId || '';
-        senderId = undefined;
-      } else if (provider === 'twilio') {
-        senderPhone = storeTwilioPhone || '';
-        senderId = undefined;
-      }
-
-      if (!senderPhone) {
-        throw new Error(`Store "${storeName}" has no sender configured for provider "${provider}". Check store settings.`);
-      }
-
-      await campaignClient.sendTestMessage({
-        phone: selectedCustomer.phoneNumber.replace(/\D/g, ''),
-        message: smsText,
-        image: imgToSend,
-        provider,
-        phoneNumber: senderPhone,
-        id: senderId,
-      });
-      setSentSuccess(true);
-      setStep('sent');
-    } catch (err: any) {
-      setError(err.response?.data?.error || err.message || 'Failed to send message');
-    } finally {
-      setSending(false);
+  const handleImageFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setMmsImageFile(file);
+      setUploadedMmsUrl(null);
     }
-  }, [selectedCustomer, smsText, circularFileUrl, storeProvider, storeBandwidthPhone, storeBandwidthId]);
+  }, []);
 
-  const handleCopy = (text?: string) => {
-    const copyUrl = text || listResult?.shortLink || listResult?.link;
-    if (copyUrl) {
-      navigator.clipboard.writeText(copyUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const resetState = () => {
-    setSelectedCustomer(null);
-    setPhoneSearch('');
-    setListResult(null);
-    setSmsText('');
+  const resetState = useCallback(() => {
+    customerSearch.reset();
+    mmsSend.reset();
+    setStep('select');
     setEditingText(false);
-    setError('');
-    setCopied(false);
     setMmsImageFile(null);
     setUploadedMmsUrl(null);
-    setStep('select');
-    setSentSuccess(false);
     onClose();
-  };
+  }, [customerSearch, mmsSend, onClose]);
 
-  const charCount = smsText.length;
+  // Char count
+  const charCount = mmsSend.smsText.length;
+  const charColor = charCount > 320 ? '#f44336' : charCount > 160 ? '#ff9800' : '#4caf50';
+
+  // Product summary
+  const productSummary = useMemo(() =>
+    products.slice(0, 3).map(p => p.name).join(', ') + (products.length > 3 ? ` +${products.length - 3} more` : ''),
+    [products]
+  );
+
+  if (!open) return null;
 
   return (
-    <Dialog open={open} onClose={resetState} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <QrCodeIcon sx={{ color: '#f43789' }} />
-          <Typography variant="h6" fontWeight={700}>
-            {step === 'select' && 'Test MMS — Send to Customer'}
-            {step === 'compose' && '✨ AI Message Ready — Review & Send'}
-            {step === 'sent' && '✅ Message Sent!'}
-          </Typography>
-        </Stack>
+    <Dialog open={open} onClose={resetState} maxWidth="sm" fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 3,
+          border: '1px solid rgba(255,255,255,0.08)',
+          background: (t) => t.palette.mode === 'dark'
+            ? 'linear-gradient(145deg, rgba(28,28,45,0.98) 0%, rgba(18,18,32,0.99) 100%)'
+            : 'linear-gradient(145deg, rgba(255,255,255,0.99) 0%, rgba(248,249,252,0.99) 100%)',
+        },
+      }}
+    >
+      <DialogTitle sx={{
+        display: 'flex', alignItems: 'center', gap: 1, py: 2,
+        borderBottom: '1px solid', borderColor: 'divider',
+      }}>
+        <QrCodeIcon sx={{ color: '#f43789' }} />
+        <Typography variant="h6" fontWeight={700} sx={{ flex: 1 }}>
+          {step === 'select' ? '📱 Test MMS — Select Customer' :
+           step === 'compose' ? '✨ AI Message Ready — Review & Send' :
+           '✅ Message Sent!'}
+        </Typography>
+        {step === 'compose' && (
+          <Chip label={products.length + ' items'} size="small"
+            sx={{ bgcolor: 'rgba(76,175,80,0.15)', color: '#4caf50', fontWeight: 700 }} />
+        )}
       </DialogTitle>
 
-      <DialogContent dividers>
+      <DialogContent sx={{ pt: 2, pb: 1 }}>
         {/* ─── STEP 1: Select Customer ─── */}
         {step === 'select' && (
-          <Box display="flex" flexDirection="column" gap={2.5}>
-            <Typography variant="body2" color="text.secondary">
-              Select a customer from <strong>{storeName}</strong>. We'll create a shopping list,
-              generate an AI message, and send it directly to their phone.
-            </Typography>
+          <Box display="flex" flexDirection="column" gap={2}>
+            <Alert severity="info" variant="outlined" sx={{ fontSize: 13 }}>
+              Select a customer to send a personalized MMS with {products.length} deal{products.length !== 1 ? 's' : ''}
+              from <strong>{storeName}</strong>
+            </Alert>
 
-            {/* Store + Products info */}
-            <Stack direction="row" spacing={1} flexWrap="wrap">
-              <Chip label={storeName} size="small" color="primary" variant="outlined" />
-              <Chip label={`${Math.min(products.length, 6)} products`} size="small" color="success" variant="outlined" />
-              {headline && <Chip label={headline} size="small" variant="outlined" />}
-            </Stack>
-
-            {/* Customer search */}
             <Autocomplete
-              value={selectedCustomer}
-              onChange={(_e, v) => setSelectedCustomer(v)}
-              inputValue={phoneSearch}
-              onInputChange={(_e, v) => setPhoneSearch(v)}
-              options={filteredCustomers}
-              loading={loadingCustomers}
-              getOptionLabel={(opt) => `${opt.phoneNumber} — ${opt.firstName || 'No name'}`}
-              isOptionEqualToValue={(o, v) => o._id === v._id}
+              value={customerSearch.selected}
+              onChange={(_, v) => customerSearch.setSelected(v)}
+              options={customerSearch.customers}
+              loading={customerSearch.loading}
+              getOptionLabel={(o) => `${o.phoneNumber} — ${o.firstName || 'Unknown'}`}
+              isOptionEqualToValue={(a, b) => a.phoneNumber === b.phoneNumber}
+              inputValue={customerSearch.search}
+              onInputChange={(_, v) => customerSearch.setSearch(v)}
               renderOption={(props, option) => {
                 const { key, ...rest } = props as any;
                 return (
-                  <Box component="li" key={key || option._id} {...rest}
-                    sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1 }}>
-                    <Avatar sx={{ width: 32, height: 32, bgcolor: '#f43789', fontSize: 13, fontWeight: 'bold' }}>
-                      {option.firstName?.charAt(0)?.toUpperCase() || '?'}
-                    </Avatar>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography sx={{ fontWeight: 600, fontSize: 14 }}>
-                        {option.phoneNumber}
-                      </Typography>
-                      <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
-                        {option.firstName || 'Unknown'} · {option.countryCode || 'US'}
-                      </Typography>
-                    </Box>
+                <Box component="li" key={key || option.phoneNumber} {...rest}
+                  sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.5 }}>
+                  <Avatar sx={{ width: 32, height: 32, bgcolor: '#DC1F26', fontSize: 13, fontWeight: 'bold' }}>
+                    {(option.firstName?.[0] || '?').toUpperCase()}
+                  </Avatar>
+                  <Box>
+                    <Typography sx={{ fontWeight: 600, fontSize: 14 }}>{option.phoneNumber}</Typography>
+                    <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>
+                      {option.firstName || 'Unknown'} {option.lastName || ''}
+                    </Typography>
                   </Box>
+                </Box>
                 );
               }}
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="Search customer by phone or name"
-                  placeholder="Enter phone number..."
+                  placeholder="Search by phone number or name..."
+                  variant="outlined"
                   InputProps={{
                     ...params.InputProps,
                     startAdornment: (
-                      <>
-                        <InputAdornment position="start">
-                          <SearchIcon sx={{ color: 'text.secondary' }} />
-                        </InputAdornment>
-                        {params.InputProps.startAdornment}
-                      </>
+                      <InputAdornment position="start"><SearchIcon sx={{ color: 'text.secondary' }} /></InputAdornment>
                     ),
                     endAdornment: (
                       <>
-                        {loadingCustomers ? <CircularProgress size={18} /> : null}
+                        {customerSearch.loading ? <CircularProgress size={18} /> : null}
                         {params.InputProps.endAdornment}
                       </>
                     ),
                   }}
                 />
               )}
-              noOptionsText="No customers found for this store"
             />
 
-            {selectedCustomer && (
-              <Alert severity="info" variant="outlined" sx={{ fontSize: 13 }}>
-                📱 Will create shopping list & send SMS to <strong>{selectedCustomer.phoneNumber}</strong> ({selectedCustomer.firstName || 'Unknown'})
-                with <strong>{Math.min(products.length, 6)}</strong> products.
+            {customerSearch.selected && (
+              <Alert severity="success" variant="outlined" icon={<PhoneIphoneRoundedIcon />} sx={{ fontSize: 13 }}>
+                📦 Will create a shopping list with {products.length} products: {productSummary}
               </Alert>
             )}
 
-            {error && <Alert severity="error">{error}</Alert>}
+            {mmsSend.error && <Alert severity="error">{mmsSend.error}</Alert>}
           </Box>
         )}
 
         {/* ─── STEP 2: Compose / Review AI Text ─── */}
-        {step === 'compose' && listResult && (
+        {step === 'compose' && mmsSend.listResult && (
           <Box display="flex" flexDirection="column" gap={2}>
             {/* Link info */}
             <Box sx={{
@@ -388,201 +295,98 @@ export default function TestMmsShoppingListModal({
                   <Box>
                     <Typography variant="caption" fontWeight={700} color="text.secondary">QR CODE</Typography>
                     <Typography fontWeight="bold" fontFamily="monospace" color="primary">
-                      {listResult.qrCode}
+                      {mmsSend.listResult.qrCode}
                     </Typography>
                   </Box>
-                  <Chip label={`${listResult.totalItems} items`} size="small" color="success" />
+                  <Chip label={`${mmsSend.listResult.totalItems} items`} size="small" color="success" />
                 </Stack>
-                {/* Short link (if available) */}
-                {listResult.shortLink && (
-                  <Box sx={{
-                    p: 1.5, borderRadius: 1.5,
-                    bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(76,175,80,0.08)' : 'rgba(76,175,80,0.05)',
-                    border: '1px solid rgba(76,175,80,0.3)',
-                    display: 'flex', alignItems: 'center', gap: 1,
-                  }}>
-                    <LinkIcon sx={{ color: '#4caf50', fontSize: 18 }} />
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="caption" fontWeight={700} color="success.main" sx={{ display: 'block', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                        Short Link (used in SMS)
-                      </Typography>
-                      <Typography sx={{ fontSize: 13, fontFamily: 'monospace', fontWeight: 700 }}>
-                        {listResult.shortLink}
-                      </Typography>
-                    </Box>
-                    <IconButton size="small" onClick={() => handleCopy(listResult.shortLink)}>
-                      {copied ? <CheckCircleIcon sx={{ fontSize: 16, color: '#4caf50' }} /> : <ContentCopyIcon sx={{ fontSize: 16 }} />}
-                    </IconButton>
-                  </Box>
-                )}
-
-                {/* Original link */}
-                <Box sx={{
-                  p: 1, borderRadius: 1.5,
-                  bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(244,55,137,0.08)' : 'rgba(244,55,137,0.05)',
-                  border: '1px solid rgba(244,55,137,0.2)',
-                  display: 'flex', alignItems: 'center', gap: 1,
-                }}>
-                  <LinkIcon sx={{ color: '#f43789', fontSize: 16 }} />
-                  <Box sx={{ flex: 1 }}>
-                    {listResult.shortLink && (
-                      <Typography variant="caption" color="text.disabled" sx={{ display: 'block', fontSize: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                        Original URL
-                      </Typography>
-                    )}
-                    <Typography sx={{ flex: 1, fontSize: 10, fontFamily: 'monospace', wordBreak: 'break-all', color: 'text.secondary' }}>
-                      {listResult.link}
-                    </Typography>
-                  </Box>
-                  <IconButton size="small" onClick={() => handleCopy(listResult.link)}>
-                    <ContentCopyIcon sx={{ fontSize: 14 }} />
-                  </IconButton>
-                </Box>
+                <LinkDisplay
+                  link={mmsSend.listResult.link}
+                  shortLink={mmsSend.listResult.shortLink}
+                  copy={copy}
+                  copied={copied}
+                />
               </Stack>
             </Box>
 
-            <Divider />
-
-            {/* AI-generated text */}
+            {/* SMS Text */}
             <Box>
-              <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  <AutoAwesomeIcon sx={{ fontSize: 18, color: '#f43789' }} />
-                  <Typography variant="subtitle2" fontWeight={700}>
-                    {generatingText ? 'AI is writing your message...' : 'AI-Generated Message'}
-                  </Typography>
-                </Stack>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <AutoAwesomeIcon fontSize="small" sx={{ color: '#f43789' }} />
+                  {mmsSend.generatingText ? 'Generating...' : 'AI-Generated Message'}
+                </Typography>
                 <Stack direction="row" spacing={1} alignItems="center">
-                  <Chip label={`${charCount} chars`} size="small" variant="outlined"
-                    color={charCount > 160 ? 'warning' : 'default'} sx={{ fontSize: 10, height: 22 }} />
-                  {!generatingText && (
-                    <IconButton size="small" onClick={() => setEditingText(!editingText)}>
-                      <EditIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  )}
+                  <Chip label={`${charCount} chars`} size="small"
+                    sx={{ height: 22, fontSize: 11, bgcolor: `${charColor}22`, color: charColor, fontWeight: 700 }} />
+                  <IconButton size="small" onClick={() => setEditingText(!editingText)}>
+                    <EditIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
                 </Stack>
               </Stack>
 
-              {generatingText ? (
-                <Box display="flex" alignItems="center" gap={1.5} py={3} justifyContent="center">
-                  <CircularProgress size={24} sx={{ color: '#f43789' }} />
-                  <Typography variant="body2" color="text.secondary">
-                    Generating personalized message with AI...
-                  </Typography>
+              {mmsSend.generatingText ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                  <CircularProgress size={28} />
                 </Box>
               ) : editingText ? (
                 <TextField
-                  multiline
-                  minRows={4}
-                  maxRows={8}
-                  fullWidth
-                  value={smsText}
-                  onChange={(e) => setSmsText(e.target.value)}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                      fontFamily: 'monospace',
-                      fontSize: 13,
-                      lineHeight: 1.7,
-                    },
-                  }}
+                  multiline rows={6} fullWidth value={mmsSend.smsText}
+                  onChange={(e) => mmsSend.setSmsText(e.target.value)}
+                  sx={{ '& .MuiInputBase-root': { fontSize: 13, fontFamily: 'monospace' } }}
                 />
               ) : (
                 <Box sx={{
-                  p: 2, borderRadius: 2,
-                  bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : '#f9fafb',
+                  p: 2, borderRadius: 2, fontSize: 13, lineHeight: 1.7, whiteSpace: 'pre-wrap',
+                  bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
                   border: '1px solid', borderColor: 'divider',
-                  fontFamily: 'monospace', fontSize: 13, lineHeight: 1.7, whiteSpace: 'pre-wrap',
                 }}>
-                  {smsText}
+                  {mmsSend.smsText}
                 </Box>
               )}
             </Box>
 
-            {/* ── MMS Image Upload (when PDF detected) ── */}
+            {/* MMS Image Upload for PDFs */}
             {circularIsPdf && (
-              <Box sx={{
-                p: 2, borderRadius: 2,
-                border: '1px dashed',
-                borderColor: 'warning.main',
-                bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(255,152,0,0.06)' : 'rgba(255,152,0,0.04)',
-              }}>
-                <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                  <ImageRoundedIcon sx={{ fontSize: 18, color: 'warning.main' }} />
-                  <Typography variant="subtitle2" fontWeight={700} color="warning.main">
-                    PDF Detected — Upload MMS Image
-                  </Typography>
-                </Stack>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: 12 }}>
-                  The circular file is a PDF and cannot be sent via MMS. Upload a JPG/PNG image to include in the message.
-                </Typography>
-
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/jpg,image/webp"
-                  hidden
-                  ref={fileInputRef}
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) {
-                      setMmsImageFile(f);
-                      setUploadedMmsUrl(null);
-                    }
-                  }}
-                />
-
-                {mmsImageFile ? (
-                  <Stack direction="row" alignItems="center" spacing={2}>
-                    <Avatar
-                      variant="rounded"
-                      src={URL.createObjectURL(mmsImageFile)}
-                      sx={{ width: 56, height: 56 }}
-                    />
-                    <Box flex={1}>
-                      <Typography variant="body2" fontWeight={600}>{mmsImageFile.name}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {(mmsImageFile.size / 1024).toFixed(0)} KB
-                      </Typography>
-                    </Box>
-                    <Button size="small" variant="outlined" color="warning" onClick={() => fileInputRef.current?.click()}>
-                      Change
-                    </Button>
-                  </Stack>
-                ) : (
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    color="warning"
-                    startIcon={<CloudUploadIcon />}
-                    onClick={() => fileInputRef.current?.click()}
-                    sx={{ fontWeight: 600 }}
-                  >
-                    Upload Campaign Image
+              <Box>
+                <input type="file" ref={fileInputRef} accept="image/*"
+                  style={{ display: 'none' }} onChange={handleImageFile} />
+                <Alert severity="warning" variant="outlined" sx={{ mb: 1 }}>
+                  <strong>PDF Detected</strong> — Upload an image for MMS attachment.
+                </Alert>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  {mmsImageFile && (
+                    <Chip icon={<ImageRoundedIcon />} label={mmsImageFile.name}
+                      size="small" onDelete={() => { setMmsImageFile(null); setUploadedMmsUrl(null); }} />
+                  )}
+                  <Button size="small" variant="outlined" startIcon={<CloudUploadIcon />}
+                    onClick={() => fileInputRef.current?.click()}>
+                    {mmsImageFile ? 'Change Image' : 'Upload Campaign Image'}
                   </Button>
-                )}
+                </Stack>
               </Box>
             )}
 
             {/* Recipient */}
             <Alert severity="success" variant="outlined" icon={<PhoneIphoneRoundedIcon />} sx={{ fontSize: 13 }}>
-              Will send to: <strong>{selectedCustomer?.phoneNumber}</strong> ({selectedCustomer?.firstName || 'Unknown'})
+              Will send to: <strong>{customerSearch.selected?.phoneNumber}</strong> ({customerSearch.selected?.firstName || 'Unknown'})
               {effectiveImage && <><br />📎 MMS with image attached</>}
               {circularIsPdf && !mmsImageFile && <><br />⚠️ No image uploaded — will send as SMS only</>}
             </Alert>
 
-            {error && <Alert severity="error">{error}</Alert>}
+            {mmsSend.error && <Alert severity="error">{mmsSend.error}</Alert>}
           </Box>
         )}
 
         {/* ─── STEP 3: Sent Success ─── */}
-        {step === 'sent' && listResult && (
+        {step === 'sent' && mmsSend.listResult && (
           <Box display="flex" flexDirection="column" alignItems="center" gap={2} py={2}>
             <CheckCircleIcon sx={{ fontSize: 64, color: '#4caf50' }} />
             <Typography variant="h6" fontWeight={700} color="success.main">
               Message Sent Successfully!
             </Typography>
             <Typography variant="body2" color="text.secondary" textAlign="center">
-              SMS sent to <strong>{selectedCustomer?.phoneNumber}</strong> with the shopping list link.
+              SMS sent to <strong>{customerSearch.selected?.phoneNumber}</strong> with the shopping list link.
             </Typography>
 
             <Box sx={{
@@ -594,56 +398,26 @@ export default function TestMmsShoppingListModal({
                 <Box>
                   <Typography variant="caption" fontWeight={700} color="text.secondary">QR CODE</Typography>
                   <Typography variant="h5" fontWeight="bold" fontFamily="monospace" color="primary">
-                    {listResult.qrCode}
+                    {mmsSend.listResult.qrCode}
                   </Typography>
                 </Box>
                 <Box>
                   <Typography variant="caption" fontWeight={700} color="text.secondary">
-                    {listResult.shortLink ? 'SHORT LINK' : 'LINK'}
+                    {mmsSend.listResult.shortLink ? 'SHORT LINK' : 'LINK'}
                   </Typography>
-                  {listResult.shortLink && (
-                    <Box sx={{
-                      mt: 0.5, p: 1.5, borderRadius: 1.5,
-                      bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(76,175,80,0.08)' : 'rgba(76,175,80,0.05)',
-                      border: '1px solid rgba(76,175,80,0.3)',
-                      display: 'flex', alignItems: 'center', gap: 1,
-                      mb: 1,
-                    }}>
-                      <LinkIcon sx={{ color: '#4caf50', fontSize: 18 }} />
-                      <Typography sx={{ flex: 1, fontSize: 14, fontFamily: 'monospace', fontWeight: 700 }}>
-                        {listResult.shortLink}
-                      </Typography>
-                      <Button size="small" onClick={() => handleCopy(listResult.shortLink)}
-                        startIcon={copied ? <CheckCircleIcon /> : <ContentCopyIcon />}
-                        sx={{ minWidth: 'auto', textTransform: 'none', fontSize: 12 }}>
-                        {copied ? 'Copied!' : 'Copy'}
-                      </Button>
-                    </Box>
-                  )}
-                  <Box sx={{
-                    mt: 0.5, p: 1.5, borderRadius: 1.5,
-                    bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(244,55,137,0.08)' : 'rgba(244,55,137,0.05)',
-                    border: '1px solid rgba(244,55,137,0.2)',
-                    display: 'flex', alignItems: 'center', gap: 1,
-                  }}>
-                    <LinkIcon sx={{ color: '#f43789', fontSize: 16 }} />
-                    <Typography sx={{ flex: 1, fontSize: 10, fontFamily: 'monospace', wordBreak: 'break-all', color: 'text.secondary' }}>
-                      {listResult.link}
-                    </Typography>
-                    <Button size="small" onClick={() => handleCopy(listResult.link)}
-                      startIcon={<ContentCopyIcon />}
-                      sx={{ minWidth: 'auto', textTransform: 'none', fontSize: 11 }}>
-                      Copy
-                    </Button>
-                  </Box>
+                  <LinkDisplay
+                    link={mmsSend.listResult.link}
+                    shortLink={mmsSend.listResult.shortLink}
+                    copy={copy}
+                    copied={copied}
+                  />
                 </Box>
               </Stack>
             </Box>
 
             <Button
-              variant="outlined" size="small"
-              startIcon={<OpenInNewIcon />}
-              onClick={() => window.open(listResult.shortLink || listResult.link, '_blank')}
+              variant="outlined" size="small" startIcon={<OpenInNewIcon />}
+              onClick={() => window.open(mmsSend.listResult?.shortLink || mmsSend.listResult?.link, '_blank')}
               sx={{ textTransform: 'none' }}
             >
               Open in new tab
@@ -659,15 +433,15 @@ export default function TestMmsShoppingListModal({
             <Button
               onClick={handleCreateAndCompose}
               variant="contained"
-              disabled={!selectedCustomer || creatingList}
-              startIcon={creatingList ? <CircularProgress size={16} /> : <AutoAwesomeIcon />}
+              disabled={!customerSearch.selected || mmsSend.creatingList}
+              startIcon={mmsSend.creatingList ? <CircularProgress size={16} /> : <AutoAwesomeIcon />}
               sx={{
-                background: 'linear-gradient(135deg, #f43789 0%, #ff6b9d 100%)',
-                fontWeight: 'bold',
-                '&:hover': { background: 'linear-gradient(135deg, #d42f78 0%, #f43789 100%)' },
+                borderRadius: 2, textTransform: 'none', fontWeight: 700,
+                background: 'linear-gradient(135deg, #f43789 0%, #DC1F26 100%)',
+                '&:hover': { background: 'linear-gradient(135deg, #DC1F26 0%, #b71c1c 100%)' },
               }}
             >
-              {creatingList ? 'Creating...' : '✨ Generate AI Message'}
+              {mmsSend.creatingList ? 'Creating...' : 'Create List & Generate AI Text'}
             </Button>
           </>
         )}
@@ -677,20 +451,25 @@ export default function TestMmsShoppingListModal({
             <Button
               onClick={handleSend}
               variant="contained"
-              disabled={sending || !smsText.trim()}
-              startIcon={sending ? <CircularProgress size={16} color="inherit" /> : <SendRoundedIcon />}
+              disabled={mmsSend.sending || !mmsSend.smsText.trim()}
+              startIcon={mmsSend.sending
+                ? <CircularProgress size={16} sx={{ color: 'white' }} />
+                : <SendRoundedIcon />
+              }
               sx={{
-                background: 'linear-gradient(135deg, #DC1F26 0%, #ff6b6b 100%)',
-                fontWeight: 'bold',
-                '&:hover': { background: 'linear-gradient(135deg, #b01820 0%, #e55 100%)' },
+                borderRadius: 2, textTransform: 'none', fontWeight: 700,
+                background: 'linear-gradient(135deg, #DC1F26 0%, #8B0000 100%)',
+                '&:hover': { background: 'linear-gradient(135deg, #b71c1c 0%, #6d0000 100%)' },
               }}
             >
-              {sending ? 'Sending...' : `📤 Send SMS to ${selectedCustomer?.phoneNumber || 'Customer'}`}
+              {mmsSend.sending ? 'Sending...' : `Send SMS to ${customerSearch.selected?.phoneNumber}`}
             </Button>
           </>
         )}
         {step === 'sent' && (
-          <Button onClick={resetState} variant="contained">Done</Button>
+          <Button onClick={resetState} variant="contained" sx={{ borderRadius: 2, textTransform: 'none' }}>
+            Close
+          </Button>
         )}
       </DialogActions>
     </Dialog>
