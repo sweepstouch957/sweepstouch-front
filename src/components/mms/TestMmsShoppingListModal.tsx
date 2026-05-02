@@ -164,10 +164,14 @@ export default function TestMmsShoppingListModal({
       const { qrCode, totalItems } = res.data;
       const longLink = `${LINKTREE_URL}?slug=${storeSlug}&sl=${qrCode}`;
 
-      // Try to shorten the URL via the linktree short-link API
+      // Try to shorten the URL via tracking-service (same gateway, no CORS issues)
       let shortLink = longLink;
       try {
-        const shortenRes = await axios.post(`${LINKTREE_URL}/api/shorten`, { url: longLink });
+        const shortenRes = await axios.post(
+          `${TRACKING_URL}/tracking/short-link`,
+          { url: longLink },
+          { headers: getAuthHeaders() }
+        );
         if (shortenRes.data?.shortUrl) {
           shortLink = shortenRes.data.shortUrl;
         }
