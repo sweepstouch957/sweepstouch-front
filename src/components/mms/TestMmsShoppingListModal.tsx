@@ -244,7 +244,7 @@ export default function TestMmsShoppingListModal({
                   <Box>
                     <Typography sx={{ fontWeight: 600, fontSize: 14 }}>{option.phoneNumber}</Typography>
                     <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>
-                      {option.firstName || 'Unknown'} {option.lastName || ''}
+                      {option.firstName || 'Unknown'}
                     </Typography>
                   </Box>
                 </Box>
