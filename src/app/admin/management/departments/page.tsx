@@ -1,11 +1,6 @@
 'use client';
 
-import React, {
-  FC,
-  useCallback,
-  useMemo,
-  useState,
-} from 'react';
+import React, { FC, memo, useMemo, useState } from 'react';
 import {
   alpha,
   Autocomplete,
@@ -28,10 +23,7 @@ import {
   DragDropContext,
   Draggable,
   Droppable,
-  DropResult,
 } from '@hello-pangea/dnd';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import toast from 'react-hot-toast';
 
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
@@ -42,45 +34,12 @@ import PersonOffRoundedIcon from '@mui/icons-material/PersonOffRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import PeopleAltRoundedIcon from '@mui/icons-material/PeopleAltRounded';
 
-import { Department, departmentService } from '@/services/department.service';
-import { usersApi } from '@/mocks/users';
+import { Department } from '@/services/department.service';
 import { User } from '@/contexts/auth/user';
-import { api } from '@/libs/axios';
 import DepartmentManager from 'src/components/departments/DepartmentManager';
+import { useDepartmentBoard, getUserId, getInitials, ROLE_STYLE } from '@/hooks/useDepartmentBoard';
 
-// ─── Role styling ─────────────────────────────────────────────────────────────
-const ROLE_STYLE: Record<string, { label: string; color: string }> = {
-  admin: { label: 'Admin', color: '#f44336' },
-  design: { label: 'Design', color: '#e91e63' },
-  campaign_manager: { label: 'Campaign Mgr', color: '#9c27b0' },
-  general_manager: { label: 'General Mgr', color: '#3f51b5' },
-  marketing: { label: 'Marketing', color: '#ff9800' },
-  merchant_manager: { label: 'Merchant Mgr', color: '#009688' },
-  promotor_manager: { label: 'Promotor Mgr', color: '#00bcd4' },
-  tecnico: { label: 'Técnico', color: '#607d8b' },
-  cashier: { label: 'Cashier', color: '#795548' },
-  merchant: { label: 'Merchant', color: '#4caf50' },
-  promotor: { label: 'Promotor', color: '#8bc34a' },
-};
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function getUserId(user: any): string {
-  return user.id || user._id || '';
-}
-
-function getInitials(user: User): string {
-  return `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase();
-}
-
-function normalizeDeptId(user: any): string | null {
-  if (!user) return null;
-  if (user.departmentId && typeof user.departmentId === 'string') return user.departmentId;
-  if (user.department?._id) return user.department._id;
-  if (user.departmentId?._id) return user.departmentId._id;
-  return null;
-}
-
-// ─── UserCard ────────────────────────────────────────────────────────────────
+// ─── UserCard (memoized) ─────────────────────────────────────────────────────
 interface UserCardProps {
   user: User;
   isDragging: boolean;
@@ -89,7 +48,7 @@ interface UserCardProps {
   dragHandleProps: any;
 }
 
-const UserCard: FC<UserCardProps> = ({ user, isDragging, innerRef, draggableProps, dragHandleProps }) => {
+const UserCard: FC<UserCardProps> = memo(({ user, isDragging, innerRef, draggableProps, dragHandleProps }) => {
   const theme = useTheme();
   const role = ROLE_STYLE[user.role] ?? { label: user.role, color: '#78909c' };
 
@@ -165,7 +124,9 @@ const UserCard: FC<UserCardProps> = ({ user, isDragging, innerRef, draggableProp
       </Stack>
     </Card>
   );
-};
+});
+
+UserCard.displayName = 'UserCard';
 
 // ─── AddMemberSearch ──────────────────────────────────────────────────────────
 interface AddMemberSearchProps {
@@ -175,7 +136,7 @@ interface AddMemberSearchProps {
   accentColor: string;
 }
 
-const AddMemberSearch: FC<AddMemberSearchProps> = ({ options, onAssign, onClose, accentColor }) => (
+const AddMemberSearch: FC<AddMemberSearchProps> = memo(({ options, onAssign, onClose }) => (
   <Box sx={{ mt: 1 }}>
     <Autocomplete
       options={options}
@@ -225,9 +186,11 @@ const AddMemberSearch: FC<AddMemberSearchProps> = ({ options, onAssign, onClose,
       Cancel
     </Button>
   </Box>
-);
+));
 
-// ─── DeptColumn ───────────────────────────────────────────────────────────────
+AddMemberSearch.displayName = 'AddMemberSearch';
+
+// ─── DeptColumn (memoized) ───────────────────────────────────────────────────
 interface DeptColumnProps {
   deptId: string;
   dept: Department | null;
@@ -237,7 +200,7 @@ interface DeptColumnProps {
   search: string;
 }
 
-const DeptColumn: FC<DeptColumnProps> = ({ deptId, dept, users, searchableUsers, onAddMember, search }) => {
+const DeptColumn: FC<DeptColumnProps> = memo(({ deptId, dept, users, searchableUsers, onAddMember, search }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const [addingMember, setAddingMember] = useState(false);
@@ -252,7 +215,6 @@ const DeptColumn: FC<DeptColumnProps> = ({ deptId, dept, users, searchableUsers,
   }, [users, search]);
 
   return (
-    // Column must fill parent height via flex
     <Box sx={{ width: 262, flexShrink: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* ── Column header (fixed) ── */}
       <Paper
@@ -348,7 +310,7 @@ const DeptColumn: FC<DeptColumnProps> = ({ deptId, dept, users, searchableUsers,
             {...provided.droppableProps}
             sx={{
               flex: 1,
-              minHeight: 0,          // ← critical: allows flex child to shrink + scroll
+              minHeight: 0,
               overflowY: 'auto',
               overflowX: 'hidden',
               p: 1.25,
@@ -359,7 +321,6 @@ const DeptColumn: FC<DeptColumnProps> = ({ deptId, dept, users, searchableUsers,
               borderTop: 'none',
               borderRadius: '0 0 14px 14px',
               transition: 'background-color 0.18s, border-color 0.18s',
-              // Scrollbar styling
               '&::-webkit-scrollbar': { width: 4 },
               '&::-webkit-scrollbar-track': { bgcolor: 'transparent' },
               '&::-webkit-scrollbar-thumb': {
@@ -397,109 +358,35 @@ const DeptColumn: FC<DeptColumnProps> = ({ deptId, dept, users, searchableUsers,
       </Droppable>
     </Box>
   );
-};
+});
+
+DeptColumn.displayName = 'DeptColumn';
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 function Page() {
   const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
-  const queryClient = useQueryClient();
-  const [search, setSearch] = useState('');
-  const [deptManagerOpen, setDeptManagerOpen] = useState(false);
-  const [localAssignments, setLocalAssignments] = useState<Record<string, string | null>>({});
-
-  const { data: departments = [], refetch: refetchDepts } = useQuery({
-    queryKey: ['departments'],
-    queryFn: departmentService.list,
-    staleTime: 60_000,
-  });
-
-  const { data: users = [], isLoading, refetch: refetchUsers } = useQuery({
-    queryKey: ['users'],
-    queryFn: () => usersApi.getUsers(),
-    staleTime: 30_000,
-    refetchOnMount: true,
-  });
-
-  const assignMutation = useMutation({
-    mutationFn: ({ userId, departmentId }: { userId: string; departmentId: string | null }) =>
-      api.patch(`/auth/users/profile/${userId}`, { departmentId }),
-  });
-
-  const getEffectiveDeptId = useCallback(
-    (user: any): string | null => {
-      const uid = getUserId(user);
-      if (uid in localAssignments) return localAssignments[uid];
-      return normalizeDeptId(user);
-    },
-    [localAssignments]
-  );
-
-  const { columnUsers, unassignedUsers } = useMemo(() => {
-    const deptMap: Record<string, User[]> = {};
-    departments.forEach((d) => { deptMap[d._id] = []; });
-    const unassigned: User[] = [];
-    users.forEach((u) => {
-      const dId = getEffectiveDeptId(u);
-      if (dId && deptMap[dId]) deptMap[dId].push(u);
-      else unassigned.push(u);
-    });
-    return { columnUsers: deptMap, unassignedUsers: unassigned };
-  }, [users, departments, getEffectiveDeptId]);
-
-  const doAssign = useCallback(
-    (userId: string, toId: string | null, fromId: string | null) => {
-      if (toId === fromId) return;
-      setLocalAssignments((prev) => ({ ...prev, [userId]: toId }));
-      assignMutation.mutate(
-        { userId, departmentId: toId },
-        {
-          onSuccess: () => {
-            refetchUsers().then(() => {
-              setLocalAssignments((prev) => { const n = { ...prev }; delete n[userId]; return n; });
-            });
-            queryClient.refetchQueries({ queryKey: ['users'] });
-            toast.success('Department updated');
-          },
-          onError: () => {
-            setLocalAssignments((prev) => { const n = { ...prev }; delete n[userId]; return n; });
-            toast.error('Failed to update department');
-          },
-        }
-      );
-    },
-    [assignMutation, refetchUsers, queryClient]
-  );
-
-  const handleDragEnd = useCallback(
-    (result: DropResult) => {
-      if (!result.destination) return;
-      const userId = result.draggableId;
-      const fromId = result.source.droppableId === 'unassigned' ? null : result.source.droppableId;
-      const toId = result.destination.droppableId === 'unassigned' ? null : result.destination.droppableId;
-      doAssign(userId, toId, fromId);
-    },
-    [doAssign]
-  );
-
-  const handleAddMember = useCallback(
-    (userId: string, deptId: string | null) => {
-      const user = users.find((u) => getUserId(u) === userId);
-      const fromId = user ? getEffectiveDeptId(user) : null;
-      doAssign(userId, deptId, fromId);
-    },
-    [users, getEffectiveDeptId, doAssign]
-  );
-
-  const totalUsers = users.length;
+  const {
+    search,
+    setSearch,
+    deptManagerOpen,
+    departments,
+    isLoading,
+    columnUsers,
+    unassignedUsers,
+    totalUsers,
+    handleDragEnd,
+    handleAddMember,
+    refresh,
+    openDeptManager,
+    closeDeptManager,
+  } = useDepartmentBoard();
 
   return (
-    // ── Outer wrapper: fills all available height, no page scroll ──
     <Box
       sx={{
-        flex: 1,           // fills remaining space in parent flex column (Shell layout)
-        height: '100%',    // fallback for non-flex parents
-        minHeight: 0,      // allows flex shrink + internal scroll
+        flex: 1,
+        height: '100%',
+        minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -572,7 +459,7 @@ function Page() {
         <Tooltip title="Refresh">
           <IconButton
             size="small"
-            onClick={() => { refetchUsers(); refetchDepts(); }}
+            onClick={refresh}
             sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 2, width: 34, height: 34 }}
           >
             <RefreshRoundedIcon sx={{ fontSize: 17 }} />
@@ -584,7 +471,7 @@ function Page() {
           variant="outlined"
           size="small"
           startIcon={<GroupsRoundedIcon sx={{ fontSize: 15 }} />}
-          onClick={() => setDeptManagerOpen(true)}
+          onClick={openDeptManager}
           sx={{
             borderRadius: 2,
             height: 34,
@@ -597,17 +484,16 @@ function Page() {
         </Button>
       </Box>
 
-      {/* ── Kanban board area: fills remaining height, horizontal scroll only ── */}
+      {/* ── Kanban board area ── */}
       <Box
         sx={{
           flex: 1,
-          minHeight: 0,          // critical for flex scroll
+          minHeight: 0,
           overflowX: 'auto',
           overflowY: 'hidden',
           px: { xs: 2, sm: 3 },
           pt: 2,
           pb: 2,
-          // Horizontal scrollbar
           '&::-webkit-scrollbar': { height: 6 },
           '&::-webkit-scrollbar-track': { bgcolor: 'transparent' },
           '&::-webkit-scrollbar-thumb': {
@@ -617,7 +503,6 @@ function Page() {
         }}
       >
         {isLoading ? (
-          // Skeleton columns
           <Box sx={{ display: 'flex', gap: 2.5, height: '100%', minWidth: 'max-content', alignItems: 'flex-start' }}>
             {[0, 1, 2, 3].map((i) => (
               <Skeleton
@@ -631,7 +516,6 @@ function Page() {
           </Box>
         ) : (
           <DragDropContext onDragEnd={handleDragEnd}>
-            {/* Row of columns — fills the full board height */}
             <Box
               sx={{
                 display: 'flex',
@@ -639,7 +523,7 @@ function Page() {
                 gap: 2.5,
                 height: '100%',
                 minWidth: 'max-content',
-                alignItems: 'stretch',   // columns all same height
+                alignItems: 'stretch',
               }}
             >
               {/* Unassigned column */}
@@ -672,11 +556,7 @@ function Page() {
       {/* ── Department Manager Dialog ── */}
       <DepartmentManager
         open={deptManagerOpen}
-        onClose={() => {
-          setDeptManagerOpen(false);
-          refetchDepts();
-          refetchUsers();
-        }}
+        onClose={closeDeptManager}
       />
     </Box>
   );
