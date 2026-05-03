@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { DropResult } from '@hello-pangea/dnd';
@@ -13,20 +13,22 @@ import { User } from '@/contexts/auth/user';
 
 /** Stable user ID extraction */
 export function getUserId(user: any): string {
-  return user.id || user._id || '';
+  return user._id || user.id || '';
 }
 
 /** Initials from user name */
-export function getInitials(user: User): string {
+export function getInitials(user: any): string {
   return `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase();
 }
 
-/** Normalize department ID from different user shapes */
+/** Normalize department ID — handles all possible shapes from the API */
 function normalizeDeptId(user: any): string | null {
   if (!user) return null;
-  if (user.departmentId && typeof user.departmentId === 'string') return user.departmentId;
-  if (user.department?._id) return user.department._id;
-  if (user.departmentId?._id) return user.departmentId._id;
+  // departmentId is a plain string ObjectId in the User model
+  const did = user.departmentId;
+  if (did && typeof did === 'string') return did;
+  // In case it's populated as an object
+  if (did && typeof did === 'object' && did._id) return did._id;
   return null;
 }
 
@@ -46,28 +48,39 @@ export const ROLE_STYLE: Record<string, { label: string; color: string }> = {
   promotor: { label: 'Promotor', color: '#8bc34a' },
 };
 
+/**
+ * Only staff roles — we don't show merchants/cashiers/promotors in the department board.
+ * This drastically reduces the number of users fetched + rendered.
+ */
+const STAFF_ROLES = [
+  'admin', 'design', 'campaign_manager', 'general_manager',
+  'marketing', 'merchant_manager', 'promotor_manager', 'tecnico',
+];
+
 // ─── Slim user type (only fields we actually need) ────────────────────────────
 
-type SlimUser = Pick<User, 'firstName' | 'lastName' | 'role' | 'profileImage'> & {
-  id?: string;
-  _id?: string;
+interface SlimUser {
+  id: string;
+  _id: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  profileImage?: string;
   avatar?: string;
-  departmentId?: any;
-  department?: any;
-};
+  departmentId?: string | null;
+}
 
-/** Select only the fields we need to avoid holding full user objects in memory */
-function selectSlimUsers(users: User[]): SlimUser[] {
-  return users.map((u: any) => ({
-    id: u.id || u._id,
+/** Select only the fields we need — avoids holding populated store objects etc. */
+function selectSlimUsers(rawUsers: any[]): SlimUser[] {
+  return rawUsers.map((u: any) => ({
+    id: u._id || u.id,
     _id: u._id || u.id,
-    firstName: u.firstName,
-    lastName: u.lastName,
-    role: u.role,
-    profileImage: u.profileImage,
-    avatar: u.avatar,
-    departmentId: u.departmentId,
-    department: u.department,
+    firstName: u.firstName || '',
+    lastName: u.lastName || '',
+    role: u.role || '',
+    profileImage: u.profileImage || u.avatar || undefined,
+    avatar: u.avatar || undefined,
+    departmentId: normalizeDeptId(u),
   }));
 }
 
@@ -78,6 +91,7 @@ export function useDepartmentBoard() {
   const [search, setSearch] = useState('');
   const [deptManagerOpen, setDeptManagerOpen] = useState(false);
   const [localAssignments, setLocalAssignments] = useState<Record<string, string | null>>({});
+  const mutatingRef = useRef(false);
 
   // ── Queries ──────────────────────────────────────────────────────
 
@@ -95,13 +109,22 @@ export function useDepartmentBoard() {
     isLoading,
     refetch: refetchUsers,
   } = useQuery({
-    queryKey: ['users-departments'],
+    queryKey: ['dept-board-users'],
     queryFn: async () => {
-      const res = await api.get('/auth/users');
-      return selectSlimUsers(res.data);
+      // Server-side: only staff roles, lean (no store populate), minimal fields
+      const res = await api.get('/auth/users', {
+        params: {
+          role: STAFF_ROLES.join(','),
+          lean: 'true',
+          select: 'firstName,lastName,role,profileImage,departmentId',
+        },
+      });
+      const allUsers: any[] = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+      return selectSlimUsers(allUsers);
     },
-    staleTime: 30_000,
+    staleTime: 60_000,
     refetchOnWindowFocus: false,
+    refetchOnMount: 'always',
   });
 
   // ── Mutations ────────────────────────────────────────────────────
@@ -114,10 +137,10 @@ export function useDepartmentBoard() {
   // ── Derived state ────────────────────────────────────────────────
 
   const getEffectiveDeptId = useCallback(
-    (user: any): string | null => {
+    (user: SlimUser): string | null => {
       const uid = getUserId(user);
       if (uid in localAssignments) return localAssignments[uid];
-      return normalizeDeptId(user);
+      return user.departmentId ?? null;
     },
     [localAssignments]
   );
@@ -145,31 +168,37 @@ export function useDepartmentBoard() {
   const doAssign = useCallback(
     (userId: string, toId: string | null, fromId: string | null) => {
       if (toId === fromId) return;
-      // Optimistic local update
+      if (mutatingRef.current) return; // Prevent double-clicks
+      mutatingRef.current = true;
+
+      // Optimistic local update — move card immediately
       setLocalAssignments((prev) => ({ ...prev, [userId]: toId }));
 
       assignMutation.mutate(
         { userId, departmentId: toId },
         {
           onSuccess: () => {
-            // Refetch ONCE (not twice like before)
-            refetchUsers().then(() => {
+            toast.success('Departamento actualizado');
+            // Refetch server data, then clear local override
+            refetchUsers().finally(() => {
               setLocalAssignments((prev) => {
                 const next = { ...prev };
                 delete next[userId];
                 return next;
               });
+              mutatingRef.current = false;
             });
-            toast.success('Department updated');
           },
-          onError: () => {
+          onError: (err: any) => {
+            console.error('[dept] Assignment failed:', err);
             // Rollback optimistic update
             setLocalAssignments((prev) => {
               const next = { ...prev };
               delete next[userId];
               return next;
             });
-            toast.error('Failed to update department');
+            toast.error(err?.response?.data?.message || 'Error al actualizar departamento');
+            mutatingRef.current = false;
           },
         }
       );
@@ -217,10 +246,10 @@ export function useDepartmentBoard() {
 
     // Data
     departments,
-    users: users as User[],
+    users: users as unknown as User[],
     isLoading,
-    columnUsers: columnUsers as Record<string, User[]>,
-    unassignedUsers: unassignedUsers as User[],
+    columnUsers: columnUsers as unknown as Record<string, User[]>,
+    unassignedUsers: unassignedUsers as unknown as User[],
     totalUsers: users.length,
 
     // Actions
