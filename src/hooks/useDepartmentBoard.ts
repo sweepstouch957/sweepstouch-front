@@ -111,16 +111,31 @@ export function useDepartmentBoard() {
   } = useQuery({
     queryKey: ['dept-board-users'],
     queryFn: async () => {
-      // Server-side: only staff roles, lean (no store populate), minimal fields
-      const res = await api.get('/auth/users', {
-        params: {
-          role: STAFF_ROLES.join(','),
-          lean: 'true',
-          select: 'firstName,lastName,role,profileImage,departmentId',
-        },
-      });
-      const allUsers: any[] = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
-      return selectSlimUsers(allUsers);
+      try {
+        // Optimized: server-side role filter + lean mode + field projection
+        const res = await api.get('/auth/users', {
+          params: {
+            role: STAFF_ROLES.join(','),
+            lean: 'true',
+            select: 'firstName,lastName,role,profileImage,departmentId',
+          },
+        });
+        const allUsers: any[] = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+
+        // Fallback: if server doesn't support comma-separated roles yet,
+        // it returns 0 results — retry without filters and filter client-side
+        if (allUsers.length === 0) {
+          const fallback = await api.get('/auth/users');
+          const fbUsers: any[] = Array.isArray(fallback.data) ? fallback.data : (fallback.data?.data ?? []);
+          const staffOnly = fbUsers.filter((u: any) => STAFF_ROLES.includes(u.role));
+          return selectSlimUsers(staffOnly);
+        }
+
+        return selectSlimUsers(allUsers);
+      } catch (err) {
+        console.error('[dept-board] Failed to fetch users:', err);
+        return [];
+      }
     },
     staleTime: 60_000,
     refetchOnWindowFocus: false,
