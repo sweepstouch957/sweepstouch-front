@@ -13,6 +13,7 @@ import AppsRoundedIcon from '@mui/icons-material/AppsRounded';
 import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
 import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded';
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
+import TabletMacRoundedIcon from '@mui/icons-material/TabletMacRounded';
 import { List } from '@mui/material';
 import { MenuItem } from 'src/router/menuItem';
 import { routes } from 'src/router/routes';
@@ -164,6 +165,12 @@ export const useMenuItemsCollapsedShells = (
   ];
 
   const general: MenuItem[] = [
+    buildMenu(
+      t('Optin Cashiers'),
+      <TabletMacRoundedIcon />,
+      [],
+      routes.admin.applications['optin-cashiers']
+    ),
     ...aiMenu,
     dashboardsMenu(t),
     applicationsMenu(t),
