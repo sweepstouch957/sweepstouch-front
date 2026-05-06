@@ -836,8 +836,12 @@ function TasksPage(): React.JSX.Element {
     [selectedUsers]
   );
 
+  // Stabilize array keys with JSON.stringify to prevent reference-change refetches
+  const deptKey = JSON.stringify(activeDeptIds);
+  const userKey = JSON.stringify(activeUserIds);
+
   const { data: board, isLoading: loadingBoard } = useQuery({
-    queryKey: ['board', selectedProjectId, activeDeptIds, activeUserIds, onlyMine],
+    queryKey: ['board', selectedProjectId, deptKey, userKey, onlyMine],
     queryFn: () => {
       const filterIds =
         onlyMine && myUserId
@@ -849,6 +853,7 @@ function TasksPage(): React.JSX.Element {
       });
     },
     enabled: !!selectedProjectId,
+    staleTime: 30_000,
   });
 
   const { data: aiContext } = useQuery({
@@ -958,7 +963,7 @@ function TasksPage(): React.JSX.Element {
         return;
 
       const destStatus = destination.droppableId as Task['status'];
-      const qKey = ['board', selectedProjectId, activeDeptIds, activeUserIds, onlyMine];
+      const qKey = ['board', selectedProjectId, deptKey, userKey, onlyMine];
 
       // Snapshot for rollback and stop ongoing fetches to avoid race conditions (snap-back)
       await queryClient.cancelQueries({ queryKey: qKey });
@@ -980,15 +985,13 @@ function TasksPage(): React.JSX.Element {
 
       try {
         await taskClient.moveTask(draggableId, destStatus, destination.index);
-        // Optional: sync server quietly
-        queryClient.invalidateQueries({ queryKey: ['board', selectedProjectId] });
       } catch {
         // Rollback
         if (previousBoard) queryClient.setQueryData(qKey, previousBoard);
         toast.error('Failed to move task');
       }
     },
-    [queryClient, selectedProjectId, activeDeptIds, activeUserIds, onlyMine]
+    [queryClient, selectedProjectId, deptKey, userKey, onlyMine]
   );
 
   /* ── Dialog helpers ── */
@@ -2012,7 +2015,7 @@ function TasksPage(): React.JSX.Element {
                 autoFocus
                 required
                 value={taskForm.title}
-                onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
+                onChange={(e) => { const v = e.target.value; setTaskForm(prev => ({ ...prev, title: v })); }}
                 placeholder="What needs to be done?"
                 sx={{ '& .MuiOutlinedInput-root': { fontWeight: 600 } }}
               />
@@ -2024,7 +2027,7 @@ function TasksPage(): React.JSX.Element {
                 multiline
                 rows={3}
                 value={taskForm.description}
-                onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
+                onChange={(e) => { const v = e.target.value; setTaskForm(prev => ({ ...prev, description: v })); }}
                 placeholder="Add more details…"
               />
 
@@ -2039,7 +2042,7 @@ function TasksPage(): React.JSX.Element {
                   fullWidth
                   size="small"
                   value={taskForm.priority}
-                  onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value })}
+                  onChange={(e) => { const v = e.target.value; setTaskForm(prev => ({ ...prev, priority: v })); }}
                 >
                   {Object.entries(PRIORITY_CONFIG).map(([k, c]) => (
                     <MenuItem
@@ -2095,19 +2098,19 @@ function TasksPage(): React.JSX.Element {
                   value={selectedAssignee || null}
                   onChange={(_, v: any) => {
                     if (v) {
-                      setTaskForm({
-                        ...taskForm,
+                      setTaskForm(prev => ({
+                        ...prev,
                         assigneeId: v.id || v._id,
                         assigneeName: `${v.firstName} ${v.lastName || ''}`.trim(),
                         assigneeAvatar: v.profileImage || '',
-                      });
+                      }));
                     } else {
-                      setTaskForm({
-                        ...taskForm,
+                      setTaskForm(prev => ({
+                        ...prev,
                         assigneeId: '',
                         assigneeName: '',
                         assigneeAvatar: '',
-                      });
+                      }));
                     }
                   }}
                   getOptionLabel={(o: any) => `${o.firstName} ${o.lastName || ''}`.trim()}
@@ -2146,7 +2149,7 @@ function TasksPage(): React.JSX.Element {
                   size="small"
                   fullWidth
                   value={taskForm.dueDate}
-                  onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })}
+                  onChange={(e) => { const v = e.target.value; setTaskForm(prev => ({ ...prev, dueDate: v })); }}
                   InputLabelProps={{ shrink: true }}
                 />
               </Stack>
@@ -2157,7 +2160,7 @@ function TasksPage(): React.JSX.Element {
                 size="small"
                 fullWidth
                 value={taskForm.tags}
-                onChange={(e) => setTaskForm({ ...taskForm, tags: e.target.value })}
+                onChange={(e) => { const v = e.target.value; setTaskForm(prev => ({ ...prev, tags: v })); }}
                 placeholder="frontend, bug, ux  (comma-separated)"
                 InputProps={{
                   startAdornment: (
@@ -2193,7 +2196,7 @@ function TasksPage(): React.JSX.Element {
                 </Stack>
                 <Slider
                   value={taskForm.progress}
-                  onChange={(_, v) => setTaskForm({ ...taskForm, progress: v as number })}
+                  onChange={(_, v) => setTaskForm(prev => ({ ...prev, progress: v as number }))}
                   min={0}
                   max={100}
                   step={5}
@@ -2215,7 +2218,7 @@ function TasksPage(): React.JSX.Element {
                 rows={2}
                 size="small"
                 value={taskForm.aiContext}
-                onChange={(e) => setTaskForm({ ...taskForm, aiContext: e.target.value })}
+                onChange={(e) => { const v = e.target.value; setTaskForm(prev => ({ ...prev, aiContext: v })); }}
                 placeholder="Describe what this task involves so AI can learn your team's work…"
                 helperText="AI training context — helps the assistant understand team activities"
               />
@@ -2267,7 +2270,7 @@ function TasksPage(): React.JSX.Element {
                 autoFocus
                 required
                 value={projectForm.name}
-                onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })}
+                onChange={(e) => { const v = e.target.value; setProjectForm(prev => ({ ...prev, name: v })); }}
               />
               <TextField
                 label="Description"
@@ -2275,7 +2278,7 @@ function TasksPage(): React.JSX.Element {
                 multiline
                 rows={2}
                 value={projectForm.description}
-                onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })}
+                onChange={(e) => { const v = e.target.value; setProjectForm(prev => ({ ...prev, description: v })); }}
               />
               <Box>
                 <Typography
@@ -2295,7 +2298,7 @@ function TasksPage(): React.JSX.Element {
                   {PROJECT_COLORS.map((c) => (
                     <Box
                       key={c}
-                      onClick={() => setProjectForm({ ...projectForm, color: c })}
+                      onClick={() => setProjectForm(prev => ({ ...prev, color: c }))}
                       sx={{
                         width: 30,
                         height: 30,
