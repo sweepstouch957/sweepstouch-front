@@ -142,6 +142,7 @@ export const routes = {
       'jobs-platform': '/admin/applications/jobs-platform',
       mailbox: '/admin/applications/mailbox',
       maps: '/admin/applications/maps',
+      'optin-cashiers': '/admin/applications/optin-cashiers',
 
       messenger: '/admin/applications/messenger',
       'debug-numbers': '/admin/applications/debug-numbers',

@@ -112,7 +112,13 @@ const SummaryRow = ({
 /* ══════════════════════════════════════════════════════════════════════ */
 /*                              PAGE                                    */
 /* ══════════════════════════════════════════════════════════════════════ */
-export default function SendTestMessagePage() {
+interface SendTestMessagePageProps {
+  defaultStoreName?: string;
+}
+
+export default function SendTestMessagePage({
+  defaultStoreName,
+}: SendTestMessagePageProps = {}) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const customization = useCustomization();
@@ -138,6 +144,19 @@ export default function SendTestMessagePage() {
     queryFn: () => getAllStores(),
     staleTime: 5 * 60_000,
   });
+
+  useEffect(() => {
+    if (!defaultStoreName || selectedStore || stores.length === 0) return;
+
+    const normalizedDefault = defaultStoreName.trim().toLowerCase();
+    const defaultStore = stores.find(
+      (store) => store.active && store.name.trim().toLowerCase() === normalizedDefault
+    );
+
+    if (defaultStore) {
+      setSelectedStore(defaultStore);
+    }
+  }, [defaultStoreName, selectedStore, stores]);
 
   /* ── Customer search query (debounced via queryKey) ── */
   const [debouncedSearch, setDebouncedSearch] = useState('');
