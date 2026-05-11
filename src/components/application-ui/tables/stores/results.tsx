@@ -2,7 +2,7 @@
 'use client';
 
 import { Store } from '@/services/store.service';
-import { duplicateStore } from '@/services/store.service';
+import { duplicateStore, getStoreById } from '@/services/store.service';
 import { useAuth } from '@/hooks/use-auth';
 import {
   AccountCircle,
@@ -168,6 +168,64 @@ function providerInfo(store: any): { label: string; emoji: string; sender: strin
   }
 }
 
+type TechStore = {
+  id: string;
+  slug: string;
+  name?: string;
+  image?: string;
+  audience?: number;
+  email?: string;
+  phone?: string;
+  lng?: number;
+  lat?: number;
+  startContractDate?: string;
+  address?: string;
+  equipment?: any[];
+  contactInfo?: any[];
+};
+
+function extractSlugFromUrl(value?: string | null) {
+  if (!value) return '';
+  try {
+    return new URL(value).searchParams.get('slug') || '';
+  } catch {
+    return '';
+  }
+}
+
+function getStoreSlug(store: any) {
+  return (
+    store?.slug ||
+    store?.storeSlug ||
+    store?.kioskSlug ||
+    extractSlugFromUrl(store?.kioskUrl) ||
+    extractSlugFromUrl(store?.linkTreeUrl) ||
+    ''
+  );
+}
+
+function toTechStore(store: any, fallbackId?: string): TechStore | null {
+  const source = store?.data ?? store;
+  const id = String(source?._id || source?.id || fallbackId || '');
+  if (!id) return null;
+
+  return {
+    id,
+    slug: getStoreSlug(source),
+    name: source.name,
+    image: source.image,
+    audience: source.customerCount,
+    email: source.email,
+    phone: source.phoneNumber,
+    lng: source.location?.coordinates?.[0] ?? source.lng,
+    lat: source.location?.coordinates?.[1] ?? source.lat,
+    startContractDate: source.startContractDate,
+    address: source.address,
+    equipment: source.equipment,
+    contactInfo: source.contactInfo,
+  };
+}
+
 /* --------------------------------- props ---------------------------------- */
 type StatusFilter = 'all' | 'active' | 'inactive';
 type DebtStatus = 'all' | 'ok' | 'min_low' | 'low' | 'mid' | 'high' | 'critical';
@@ -298,44 +356,37 @@ const Results: FC<ResultsProps> = ({
 
   // ✅ Modal state (Ficha técnica)
   const [techOpen, setTechOpen] = React.useState(false);
-  const [techStore, setTechStore] = React.useState<{
-    id: string;
-    slug: string;
-    name?: string;
-    image?: string;
-    audience?: number;
-    email?: string;
-    phone?: string;
-    lng?: number;
-    lat?: number;
-    startContractDate?: string;
-    address?: string;
-    equipment?: any[];
-    contactInfo?: any[];
-  } | null>(null);
+  const [techStore, setTechStore] = React.useState<TechStore | null>(null);
+  const techRequestId = React.useRef(0);
 
-  const openTech = (store: any) => {
+  const openTech = async (store: any) => {
     const id = String(store._id || store.id || '');
     if (!id) return;
-    setTechStore({
-      id,
-      slug: store.slug || '',
-      name: store.name,
-      image: store.image,
-      audience: store.customerCount,
-      email: store.email,
-      phone: store.phoneNumber,
-      lng: store.location?.coordinates?.[0] || store.lng,
-      lat: store.location?.coordinates?.[1] || store.lat,
-      startContractDate: store.startContractDate,
-      address: store.address,
-      equipment: store.equipment,
-      contactInfo: store.contactInfo,
-    });
+
+    const requestId = techRequestId.current + 1;
+    techRequestId.current = requestId;
+
+    const summaryStore = toTechStore(store, id);
+    setTechStore(summaryStore);
     setTechOpen(true);
+
+    if (summaryStore?.slug) return;
+
+    try {
+      const fullStore = await getStoreById(id);
+      if (techRequestId.current !== requestId) return;
+
+      const hydratedStore = toTechStore(fullStore, id);
+      if (hydratedStore) {
+        setTechStore((current) => (current ? { ...current, ...hydratedStore } : hydratedStore));
+      }
+    } catch (err) {
+      console.error('Error loading full store info:', err);
+    }
   };
 
   const closeTech = () => {
+    techRequestId.current += 1;
     setTechOpen(false);
     setTechStore(null);
   };
@@ -404,6 +455,28 @@ const Results: FC<ResultsProps> = ({
                   >
                     {displayAddress}
                   </Typography>
+
+                  {store.accessCode ? (
+                    <Chip
+                      size="small"
+                      label={`Codigo: ${store.accessCode}`}
+                      variant="outlined"
+                      sx={{
+                        mt: 0.5,
+                        height: 20,
+                        maxWidth: '100%',
+                        color: '#ff0080',
+                        borderColor: '#ff0080',
+                        fontSize: 10,
+                        fontWeight: 800,
+                        '& .MuiChip-label': {
+                          px: 0.75,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        },
+                      }}
+                    />
+                  ) : null}
                 </Box>
 
                 <Stack
@@ -773,6 +846,28 @@ const Results: FC<ResultsProps> = ({
                             >
                               {displayAddress}
                             </Typography>
+
+                            {store.accessCode ? (
+                              <Chip
+                                size="small"
+                                label={`Codigo: ${store.accessCode}`}
+                                variant="outlined"
+                                sx={{
+                                  mt: 0.5,
+                                  height: 20,
+                                  maxWidth: 260,
+                                  color: '#ff0080',
+                                  borderColor: '#ff0080',
+                                  fontSize: 10,
+                                  fontWeight: 800,
+                                  '& .MuiChip-label': {
+                                    px: 0.75,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                  },
+                                }}
+                              />
+                            ) : null}
                           </Box>
                         </Box>
                       </TableCell>
