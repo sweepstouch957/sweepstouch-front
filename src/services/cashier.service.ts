@@ -69,6 +69,13 @@ export interface CashierRankingItem {
   count: number; // total (fuente ranking)
   newNumbers?: number; // opcional si el backend lo incluye
   existingNumbers?: number; // opcional si el backend lo incluye
+  phoneAudit?: {
+    totalRegistered: number;
+    validPhones: number;
+    invalidPhones: number;
+    unknownPhones: number;
+    invalidPercent: number;
+  } | null;
 }
 
 export interface CashierRankingResponse {
@@ -83,6 +90,13 @@ export interface CashierRankingResponse {
     participantsFromListedCashiers?: number;
   };
   warning?: string | null;
+  phoneAudit?: {
+    totalRegistered: number;
+    validPhones: number;
+    invalidPhones: number;
+    unknownPhones: number;
+    invalidPercent: number;
+  };
   data: CashierRankingItem[];
 }
 
