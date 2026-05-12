@@ -3,7 +3,6 @@
 import { useCashierRanking, useCashierStats, useCreateCashier } from '@/services/cashier.service';
 import AddIcon from '@mui/icons-material/Add';
 import EmojiEventsTwoToneIcon from '@mui/icons-material/EmojiEventsTwoTone';
-import PhoneDisabledIcon from '@mui/icons-material/PhoneDisabled';
 import SearchIcon from '@mui/icons-material/Search';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import {
@@ -272,6 +271,7 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
     name?: string | null;
     email?: string | null;
     accessCode?: string | null;
+    phoneAudit?: PhoneAudit | null;
   }>({ id: null });
 
   return (
@@ -355,7 +355,6 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
                   label={`❌ Inválidos: ${data.phoneAudit.invalidPhones} (${data.phoneAudit.invalidPercent}%)`}
                   color={data.phoneAudit.invalidPercent > 10 ? 'error' : 'warning'}
                   variant="outlined"
-                  icon={<PhoneDisabledIcon />}
                 />
                 {data.phoneAudit.unknownPhones > 0 && (
                   <Chip
@@ -397,17 +396,15 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
           <Divider sx={{ my: 2 }} />
 
           <TableContainer component={Paper}>
-            <Table stickyHeader>
+            <Table stickyHeader size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>#</TableCell>
-                  <TableCell>First name</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Access code</TableCell>
-                  <TableCell align="right">Participaciones</TableCell>
-                  <TableCell align="right">✅ Válidos</TableCell>
-                  <TableCell align="right">❌ Inválidos</TableCell>
-                  <TableCell align="center">Acciones</TableCell>
+                  <TableCell sx={{ width: 50 }}>#</TableCell>
+                  <TableCell>Nombre</TableCell>
+                  <TableCell>Código</TableCell>
+                  <TableCell align="right">Registros</TableCell>
+                  <TableCell align="right">📱 Tel. Audit</TableCell>
+                  <TableCell align="center" sx={{ width: 80 }}></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -425,49 +422,37 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
                       />
                     </TableCell>
                     <TableCell>{getFirstName(r.name)}</TableCell>
-                    <TableCell>{r.email ?? '—'}</TableCell>
-                    <TableCell>{r.accessCode ?? '—'}</TableCell>
-                    <TableCell align="right">{toInt(r.count, 0)}</TableCell>
+                    <TableCell>
+                      <Typography variant="caption" color="text.secondary">{r.accessCode ?? '—'}</Typography>
+                    </TableCell>
                     <TableCell align="right">
-                      {r.phoneAudit ? (
-                        <Chip
-                          size="small"
-                          label={r.phoneAudit.validPhones}
-                          color="success"
-                          variant="outlined"
-                        />
-                      ) : '—'}
+                      <Typography variant="body2" fontWeight={700}>{toInt(r.count, 0)}</Typography>
                     </TableCell>
                     <TableCell align="right">
                       {r.phoneAudit ? (
-                        <Chip
-                          size="small"
-                          label={`${r.phoneAudit.invalidPhones} (${r.phoneAudit.invalidPercent}%)`}
-                          color={r.phoneAudit.invalidPercent > 15 ? 'error' : r.phoneAudit.invalidPercent > 5 ? 'warning' : 'default'}
-                          variant="outlined"
-                          icon={r.phoneAudit.invalidPercent > 15 ? <PhoneDisabledIcon /> : undefined}
-                        />
+                        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                          <Chip size="small" label={`✅${r.phoneAudit.validPhones}`} color="success" variant="outlined" sx={{ height: 22, '& .MuiChip-label': { px: 0.75, fontSize: '0.7rem' } }} />
+                          <Chip size="small" label={`❌${r.phoneAudit.invalidPhones}`} color={r.phoneAudit.invalidPercent > 15 ? 'error' : r.phoneAudit.invalidPercent > 5 ? 'warning' : 'default'} variant="outlined" sx={{ height: 22, '& .MuiChip-label': { px: 0.75, fontSize: '0.7rem' } }} />
+                        </Stack>
                       ) : '—'}
                     </TableCell>
-                    <TableCell
-                      align="center"
-                      width={140}
-                    >
+                    <TableCell align="center">
                       <Button
                         size="small"
-                        variant="outlined"
-                        startIcon={<VisibilityIcon />}
+                        variant="text"
                         onClick={() => {
                           setSelected({
                             id: r.cashierId,
                             name: r.name,
                             email: r.email,
                             accessCode: r.accessCode,
+                            phoneAudit: r.phoneAudit || null,
                           });
                           setDetailsOpen(true);
                         }}
+                        sx={{ minWidth: 0 }}
                       >
-                        Ver
+                        <VisibilityIcon fontSize="small" />
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -475,7 +460,7 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
 
                 {!ranked.length && !isLoading && !isFetching && (
                   <TableRow>
-                    <TableCell colSpan={9}>
+                    <TableCell colSpan={6}>
                       <Typography
                         textAlign="center"
                         py={3}
@@ -488,7 +473,7 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
               </TableBody>
               <TableFooter>
                 <TableRow>
-                  <TableCell colSpan={9}>
+                  <TableCell colSpan={6}>
                     <Stack
                       direction="row"
                       alignItems="center"
@@ -622,6 +607,7 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
         startDateYMD={startDateYMD}
         endDateYMD={endDateYMD}
         storeId={storeId}
+        phoneAudit={selected.phoneAudit || undefined}
       />
     </>
   );
