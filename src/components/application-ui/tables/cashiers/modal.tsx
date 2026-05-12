@@ -12,6 +12,8 @@ import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import PaidIcon from '@mui/icons-material/Paid';
 import PhoneIcon from '@mui/icons-material/Phone';
 import PhoneDisabledIcon from '@mui/icons-material/PhoneDisabled';
+import DownloadIcon from '@mui/icons-material/Download';
+import { sweepstakesClient } from '@/services/sweepstakes.service';
 import {
   Avatar,
   Box,
@@ -139,6 +141,47 @@ export default function CashierDetailsDialog({
     }
     return undefined;
   }, [progress]);
+
+  const [isExporting, setIsExporting] = React.useState(false);
+
+  const onExportCSV = async () => {
+    if (!cashierId || !startDateYMD || !endDateYMD) return;
+    setIsExporting(true);
+    try {
+      const res = await sweepstakesClient.getParticipantsByPromotor({
+        promotorId: cashierId,
+        startDate: startDateYMD,
+        endDate: endDateYMD,
+        storeId
+      });
+      const participants = res?.participants || [];
+      
+      let csvContent = "data:text/csv;charset=utf-8,";
+      csvContent += "Telefono,Nuevo,Metodo,Valido,Status SMS,Fecha\n";
+      
+      participants.forEach((p: any) => {
+        const phone = p.customer?.phoneNumber || p.customerPhone || "";
+        const isNew = p.isNewUser ? "Si" : "No";
+        const valid = p.isPhoneValid === true ? "Bueno" : (p.isPhoneValid === false ? "Malo" : "Pendiente");
+        const status = p.smsStatus || "pending";
+        const date = new Date(p.registeredAt).toLocaleString('es-ES');
+        csvContent += `${phone},${isNew},${p.method},${valid},${status},${date}\n`;
+      });
+      
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `Numeros_${cashierName}_${startDateYMD}_${endDateYMD}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      console.error(e);
+      alert("Error al exportar");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Etiqueta de fecha base (si viene del backend)
   const sinceLabel = progress?.since
@@ -726,8 +769,16 @@ export default function CashierDetailsDialog({
           )}
         </Stack>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Cerrar</Button>
+      <DialogActions sx={{ justifyContent: 'space-between', px: 3, pb: 2 }}>
+        <Button 
+          variant="outlined" 
+          startIcon={isExporting ? <CircularProgress size={16} /> : <DownloadIcon />} 
+          onClick={onExportCSV}
+          disabled={isExporting}
+        >
+          {isExporting ? 'Exportando...' : 'Exportar Números (CSV)'}
+        </Button>
+        <Button onClick={onClose} variant="contained" color="inherit">Cerrar</Button>
       </DialogActions>
     </Dialog>
   );
