@@ -542,6 +542,16 @@ export class BillingService {
     });
   }
 
+  /**
+   * Import manually resolved rows (from autocomplete matching).
+   * Called after the initial bulk import returns notFound rows.
+   */
+  async importResolvedInvoices(
+    resolvedRows: Array<{ storeId: string; openBalance: number; daysOverdue?: number }>
+  ): Promise<AxiosResponse<{ ok: boolean; inserted: number; message: string }>> {
+    return api.post('/billing/invoices/bulk-import/resolve', { resolvedRows });
+  }
+
   /* ===== [DEPRECATED] Métodos anteriores (eliminados del backend) =====
    * Si los tenías usados en UI, cámbialos a getRangeBilling o getStoresRangeReport.
    */

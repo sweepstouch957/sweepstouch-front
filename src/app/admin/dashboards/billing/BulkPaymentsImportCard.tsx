@@ -1,14 +1,17 @@
 'use client';
 
 import { billingService } from '@/services/billing.service';
+import { getStores, type Store } from '@/services/store.service';
 import AutorenewOutlinedIcon from '@mui/icons-material/AutorenewOutlined';
 import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
 import ErrorOutlineOutlinedIcon from '@mui/icons-material/ErrorOutlineOutlined';
 import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutlined';
 import MarkEmailReadOutlinedIcon from '@mui/icons-material/MarkEmailReadOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
+import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Card,
@@ -21,21 +24,56 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel,
   Stack,
+  TextField,
   Tooltip,
   Typography,
   Skeleton,
 } from '@mui/material';
 import { PieChart } from '@mui/x-charts/PieChart';
 import numeral from 'numeral';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 
 type ImportResult = Awaited<ReturnType<typeof billingService.importPaymentsBulkExcel>>['data'];
 
+interface NotFoundRow {
+  row: number;
+  reason: string;
+  slug: string;
+  displayName: string;
+  openBalance: number;
+  daysOverdue: number;
+  // User-selected store
+  selectedStore?: Store | null;
+}
+
 function money(v: number) {
   return numeral(v || 0).format('$0,0.00');
+}
+
+/* ─── Store search debounced ─────────────────────────────── */
+function useStoreSearch() {
+  const [options, setOptions] = useState<Store[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const search = useCallback(async (q: string) => {
+    if (!q || q.length < 2) {
+      setOptions([]);
+      return;
+    }
+    try {
+      setLoading(true);
+      const res = await getStores({ search: q, status: 'active', limit: 10 });
+      setOptions(res.data || []);
+    } catch {
+      setOptions([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { options, loading, search };
 }
 
 export default function BulkPaymentsImportCard() {
@@ -54,6 +92,11 @@ export default function BulkPaymentsImportCard() {
   const [importError, setImportError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<any | null>(null);
 
+  // Not found rows for resolution
+  const [notFoundRows, setNotFoundRows] = useState<NotFoundRow[]>([]);
+  const [isResolving, setIsResolving] = useState(false);
+  const [resolveResult, setResolveResult] = useState<any | null>(null);
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     multiple: false,
     accept: {
@@ -65,6 +108,8 @@ export default function BulkPaymentsImportCard() {
       setFile(f);
       setImportResult(null);
       setImportError(null);
+      setNotFoundRows([]);
+      setResolveResult(null);
     },
   });
 
@@ -105,6 +150,8 @@ export default function BulkPaymentsImportCard() {
       setIsImporting(true);
       setImportError(null);
       setImportResult(null);
+      setNotFoundRows([]);
+      setResolveResult(null);
 
       let res;
       if (importType === 'payments') {
@@ -114,11 +161,56 @@ export default function BulkPaymentsImportCard() {
       }
       setImportResult(res.data);
 
+      // If invoice import has notFound rows, populate for resolution
+      if (importType === 'invoices' && res.data?.notFound?.length > 0) {
+        setNotFoundRows(
+          res.data.notFound.map((nf: any) => ({
+            ...nf,
+            selectedStore: null,
+          }))
+        );
+      }
+
       await loadBalances();
     } catch (e: any) {
-      setImportError(e?.response?.data?.error || e?.message || 'Error importing payments');
+      setImportError(e?.response?.data?.error || e?.message || 'Error importing');
     } finally {
       setIsImporting(false);
+    }
+  }
+
+  function handleStoreSelect(idx: number, store: Store | null) {
+    setNotFoundRows((prev) => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], selectedStore: store };
+      return next;
+    });
+  }
+
+  const resolvedCount = notFoundRows.filter((r) => r.selectedStore).length;
+
+  async function onResolve() {
+    const toResolve = notFoundRows
+      .filter((r) => r.selectedStore)
+      .map((r) => ({
+        storeId: r.selectedStore!._id,
+        openBalance: r.openBalance,
+        daysOverdue: r.daysOverdue,
+      }));
+
+    if (toResolve.length === 0) return;
+
+    try {
+      setIsResolving(true);
+      const res = await billingService.importResolvedInvoices(toResolve);
+      setResolveResult(res.data);
+      // Remove resolved rows
+      setNotFoundRows((prev) => prev.filter((r) => !r.selectedStore));
+      await loadBalances();
+    } catch (e: any) {
+      setImportError(e?.response?.data?.error || e?.message || 'Error resolving');
+    } finally {
+      setIsResolving(false);
     }
   }
 
@@ -453,6 +545,8 @@ export default function BulkPaymentsImportCard() {
                       setFile(null);
                       setImportResult(null);
                       setImportError(null);
+                      setNotFoundRows([]);
+                      setResolveResult(null);
                     }}
                     variant="text"
                     sx={{ borderRadius: 999 }}
@@ -496,29 +590,53 @@ export default function BulkPaymentsImportCard() {
                       size="small"
                       label={`Inserted: ${importResult.inserted}`}
                     />
-                    <Chip
-                      size="small"
-                      label={`Emails sent: ${emailStats.sent}/${emailStats.total}`}
-                    />
-                    <Chip
-                      size="small"
-                      label={`Thanks: ${emailStats.thanks}`}
-                    />
-                    <Chip
-                      size="small"
-                      label={`Reminders: ${emailStats.reminder}`}
-                    />
-                    {emailStats.failed > 0 && (
+                    {importResult.deletedPrevious != null && (
+                      <Chip
+                        size="small"
+                        label={`Previous deleted: ${importResult.deletedPrevious}`}
+                      />
+                    )}
+                    {importResult.notFoundCount > 0 && (
                       <Chip
                         size="small"
                         color="warning"
                         icon={<ErrorOutlineOutlinedIcon />}
-                        label={`Failed: ${emailStats.failed}`}
+                        label={`Unmatched: ${importResult.notFoundCount}`}
                       />
+                    )}
+                    {importResult.emails?.length > 0 && (
+                      <>
+                        <Chip
+                          size="small"
+                          label={`Emails sent: ${emailStats.sent}/${emailStats.total}`}
+                        />
+                        <Chip
+                          size="small"
+                          label={`Thanks: ${emailStats.thanks}`}
+                        />
+                        <Chip
+                          size="small"
+                          label={`Reminders: ${emailStats.reminder}`}
+                        />
+                        {emailStats.failed > 0 && (
+                          <Chip
+                            size="small"
+                            color="warning"
+                            icon={<ErrorOutlineOutlinedIcon />}
+                            label={`Failed: ${emailStats.failed}`}
+                          />
+                        )}
+                      </>
                     )}
                   </Stack>
 
-                  {/* nicer preview list */}
+                  {importResult.message && (
+                    <Typography variant="body2" color="text.secondary">
+                      {importResult.message}
+                    </Typography>
+                  )}
+
+                  {/* Email preview list */}
                   {importResult.emails?.length > 0 && (
                     <Box sx={{ mt: 1 }}>
                       <Typography
@@ -596,8 +714,144 @@ export default function BulkPaymentsImportCard() {
               </Alert>
             </Box>
           )}
+
+          {/* ─── Not Found Rows: Store Autocomplete Resolution ─── */}
+          {notFoundRows.length > 0 && (
+            <Box sx={{ mt: 2 }}>
+              <Alert severity="warning" sx={{ borderRadius: 3, mb: 1.5 }}>
+                <Typography sx={{ fontWeight: 900 }}>
+                  {notFoundRows.length} row{notFoundRows.length > 1 ? 's' : ''} sin tienda asignada
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Selecciona la tienda correcta para cada fila usando el buscador. Solo las que selecciones serán importadas.
+                </Typography>
+              </Alert>
+
+              <Stack
+                spacing={1.5}
+                sx={{ maxHeight: 400, overflow: 'auto', pr: 0.5 }}
+              >
+                {notFoundRows.map((nf, idx) => (
+                  <NotFoundRowItem
+                    key={`${nf.slug || nf.displayName}-${idx}`}
+                    row={nf}
+                    onChange={(store) => handleStoreSelect(idx, store)}
+                  />
+                ))}
+              </Stack>
+
+              <Stack direction="row" spacing={1.5} sx={{ mt: 2 }}>
+                <Button
+                  variant="contained"
+                  startIcon={isResolving ? <CircularProgress size={16} /> : <SendOutlinedIcon />}
+                  disabled={resolvedCount === 0 || isResolving}
+                  onClick={onResolve}
+                  sx={{ borderRadius: 999, px: 2.5 }}
+                >
+                  Import {resolvedCount} resolved
+                </Button>
+                <Button
+                  variant="text"
+                  onClick={() => setNotFoundRows([])}
+                  disabled={isResolving}
+                  sx={{ borderRadius: 999 }}
+                >
+                  Dismiss
+                </Button>
+              </Stack>
+            </Box>
+          )}
+
+          {/* Resolve result */}
+          {resolveResult && (
+            <Box sx={{ mt: 1.5 }}>
+              <Alert severity="success" sx={{ borderRadius: 3 }}>
+                <Typography sx={{ fontWeight: 900 }}>{resolveResult.message}</Typography>
+              </Alert>
+            </Box>
+          )}
         </Box>
       </CardContent>
     </Card>
+  );
+}
+
+/* ─── Individual Row with Autocomplete ────────────────────── */
+
+function NotFoundRowItem({
+  row,
+  onChange,
+}: {
+  row: NotFoundRow;
+  onChange: (store: Store | null) => void;
+}) {
+  const { options, loading, search } = useStoreSearch();
+
+  return (
+    <Box
+      sx={{
+        p: 1.5,
+        borderRadius: 2,
+        bgcolor: 'background.default',
+        border: (t) => `1px solid ${t.palette.divider}`,
+      }}
+    >
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="center">
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Typography variant="body2" sx={{ fontWeight: 900 }} noWrap>
+            {row.displayName || row.slug || `Row ${row.row}`}
+          </Typography>
+          <Stack direction="row" spacing={0.5} sx={{ mt: 0.25 }}>
+            <Chip size="small" label={money(row.openBalance)} />
+            {row.daysOverdue > 0 && (
+              <Chip size="small" label={`${row.daysOverdue}d overdue`} color="warning" />
+            )}
+            {row.slug && (
+              <Chip size="small" variant="outlined" label={`slug: ${row.slug}`} />
+            )}
+          </Stack>
+        </Box>
+
+        <Autocomplete
+          size="small"
+          sx={{ minWidth: 280 }}
+          options={options}
+          loading={loading}
+          getOptionLabel={(opt) => opt.name || ''}
+          isOptionEqualToValue={(a, b) => a._id === b._id}
+          value={row.selectedStore || null}
+          onInputChange={(_e, val) => search(val)}
+          onChange={(_e, val) => onChange(val)}
+          renderOption={(props, opt) => (
+            <li {...props} key={opt._id}>
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                  {opt.name}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {opt.accessCode || opt.slug || ''} • {opt.customerCount?.toLocaleString() || 0} clients
+                </Typography>
+              </Box>
+            </li>
+          )}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              placeholder="Buscar tienda..."
+              InputProps={{
+                ...params.InputProps,
+                endAdornment: (
+                  <>
+                    {loading ? <CircularProgress size={16} /> : null}
+                    {params.InputProps.endAdornment}
+                  </>
+                ),
+              }}
+            />
+          )}
+          noOptionsText="No stores found"
+        />
+      </Stack>
+    </Box>
   );
 }
