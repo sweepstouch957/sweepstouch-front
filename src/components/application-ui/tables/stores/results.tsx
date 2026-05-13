@@ -293,7 +293,182 @@ const ActiveBadge: FC<{ active: boolean }> = ({ active }) => (
   </Tooltip>
 );
 
+/* ✅ MobileList extracted to module scope — was defined inside Results which created
+   a new component class every render, causing full remount and state destruction. */
+interface MobileListProps {
+  stores: Store[];
+  openTech: (store: any) => void;
+}
+
+const MobileList: FC<MobileListProps> = ({ stores, openTech }) => (
+  <Stack spacing={1.25}>
+    {stores.map((store: any) => {
+      const id = store._id || store.id;
+      const { displayName, displayAddress } = splitByFirstNumber(store.name, store.address);
+      const pending = store.billing?.totalPending || 0;
+      const weeklyCost = store.billing?.lastWeekCampaignCost || 0;
+      const installmentsNeeded = store.billing?.installmentsNeeded ?? null;
+      const tone = paymentTone(pending, installmentsNeeded);
+      const payMethod = paymentMethodLabel(store.paymentMethod);
+
+      return (
+        <Card
+          key={id}
+          variant="outlined"
+          sx={{ borderRadius: 2.5, overflow: 'hidden' }}
+        >
+          <Box sx={{ p: 1.5 }}>
+            <Stack
+              direction="row"
+              spacing={1.25}
+              alignItems="center"
+            >
+              <LogoImg src={store.image} />
+
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Link
+                  href={`/admin/management/stores/edit/${id}`}
+                  style={{ textDecoration: 'none', color: 'inherit' }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
+                    <Typography
+                      fontWeight={900}
+                      sx={{
+                        fontSize: 14,
+                        lineHeight: 1.15,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {displayName}
+                    </Typography>
+                    <ActiveBadge active={!!store.active} />
+                  </Box>
+                </Link>
+
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{
+                    display: 'block',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    mt: 0.25,
+                  }}
+                >
+                  {displayAddress}
+                </Typography>
+
+                {store.accessCode ? (
+                  <Chip
+                    size="small"
+                    label={`Codigo: ${store.accessCode}`}
+                    variant="outlined"
+                    sx={{
+                      mt: 0.5,
+                      height: 20,
+                      maxWidth: '100%',
+                      color: '#ff0080',
+                      borderColor: '#ff0080',
+                      fontSize: 10,
+                      fontWeight: 800,
+                      '& .MuiChip-label': {
+                        px: 0.75,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      },
+                    }}
+                  />
+                ) : null}
+              </Box>
+
+              <Stack
+                spacing={0.5}
+                alignItems="flex-end"
+              >
+                <Chip
+                  size="small"
+                  label={store.active ? 'Active' : 'Inactive'}
+                  color={store.active ? 'success' : 'error'}
+                  variant="outlined"
+                  sx={{ height: 22, fontSize: 11, fontWeight: 800 }}
+                />
+                <Chip
+                  size="small"
+                  label={toneLabel(tone)}
+                  color={toneChipColor(tone)}
+                  variant={tone === 'critical' ? 'filled' : 'outlined'}
+                  sx={{ fontSize: 10, fontWeight: 800, height: 20, letterSpacing: 0.4, '& .MuiChip-label': { px: 0.75 } }}
+                />
+              </Stack>
+            </Stack>
+
+            <Divider sx={{ my: 1.25 }} />
+
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Customers</Typography>
+                <Typography fontWeight={900} sx={{ fontSize: 13 }}>{store.customerCount}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Weekly</Typography>
+                <Typography fontWeight={900} sx={{ fontSize: 13 }} color={weeklyCost > 0 ? 'primary.main' : 'text.secondary'}>
+                  {formatMoney(weeklyCost)}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Balance</Typography>
+                <Typography fontWeight={900} sx={{ fontSize: 13 }} color={pending > 0 ? 'error.main' : 'success.main'}>
+                  {formatMoney(pending)}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Installments</Typography>
+                <Typography fontWeight={900} sx={{ fontSize: 13 }}>
+                  {installmentsLabel(pending, installmentsNeeded)}
+                </Typography>
+              </Box>
+              <Box sx={{ gridColumn: '1 / -1' }}>
+                <Typography variant="caption" color="text.secondary">Payment method</Typography>
+                <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 0.25 }}>
+                  <PaymentsRounded fontSize="small" sx={{ color: 'text.secondary' }} />
+                  <Typography fontWeight={900} sx={{ fontSize: 13 }}>{payMethod}</Typography>
+                </Stack>
+              </Box>
+            </Box>
+
+            <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ mt: 1.25 }}>
+              <Tooltip title="View" arrow>
+                <Link href={`/admin/management/stores/edit/${id}`} passHref>
+                  <IconButton size="small" color="primary">
+                    <Settings fontSize="small" />
+                  </IconButton>
+                </Link>
+              </Tooltip>
+              <Tooltip title="Merchant" arrow>
+                <IconButton size="small" color="secondary"
+                  onClick={() => window.open(buildSwitchUrl(store.accessCode), '_blank')}
+                >
+                  <Web fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Ficha t\u00e9cnica" arrow>
+                <IconButton size="small" color="primary" onClick={() => openTech(store)}>
+                  <AccountCircle fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Stack>
+          </Box>
+        </Card>
+      );
+    })}
+  </Stack>
+);
+
 /* -------------------------------- component -------------------------------- */
+
 const Results: FC<ResultsProps> = ({
   stores,
   page,
@@ -391,264 +566,8 @@ const Results: FC<ResultsProps> = ({
     setTechStore(null);
   };
 
-  const MobileList = () => (
-    <Stack spacing={1.25}>
-      {stores.map((store: any) => {
-        const id = store._id || store.id;
+  // replaced by module-scope MobileList
 
-        const { displayName, displayAddress } = splitByFirstNumber(store.name, store.address);
-
-        const pending = store.billing?.totalPending || 0;
-        const weeklyCost = store.billing?.lastWeekCampaignCost || 0;
-        const installmentsNeeded = store.billing?.installmentsNeeded ?? null;
-
-        const tone = paymentTone(pending, installmentsNeeded);
-        const payMethod = paymentMethodLabel(store.paymentMethod);
-
-        return (
-          <Card
-            key={id}
-            variant="outlined"
-            sx={{ borderRadius: 2.5, overflow: 'hidden' }}
-          >
-            <Box sx={{ p: 1.5 }}>
-              <Stack
-                direction="row"
-                spacing={1.25}
-                alignItems="center"
-              >
-                <LogoImg src={store.image} />
-
-                <Box sx={{ minWidth: 0, flex: 1 }}>
-                  <Link
-                    href={`/admin/management/stores/edit/${id}`}
-                    style={{ textDecoration: 'none', color: 'inherit' }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
-                      <Typography
-                        fontWeight={900}
-                        sx={{
-                          fontSize: 14,
-                          lineHeight: 1.15,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {displayName}
-                      </Typography>
-
-                      <ActiveBadge active={!!store.active} />
-                    </Box>
-                  </Link>
-
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{
-                      display: 'block',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      mt: 0.25,
-                    }}
-                  >
-                    {displayAddress}
-                  </Typography>
-
-                  {store.accessCode ? (
-                    <Chip
-                      size="small"
-                      label={`Codigo: ${store.accessCode}`}
-                      variant="outlined"
-                      sx={{
-                        mt: 0.5,
-                        height: 20,
-                        maxWidth: '100%',
-                        color: '#ff0080',
-                        borderColor: '#ff0080',
-                        fontSize: 10,
-                        fontWeight: 800,
-                        '& .MuiChip-label': {
-                          px: 0.75,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        },
-                      }}
-                    />
-                  ) : null}
-                </Box>
-
-                <Stack
-                  spacing={0.5}
-                  alignItems="flex-end"
-                >
-                  <Chip
-                    size="small"
-                    label={store.active ? 'Active' : 'Inactive'}
-                    color={store.active ? 'success' : 'error'}
-                    variant="outlined"
-                    sx={{ height: 22, fontSize: 11, fontWeight: 800 }}
-                  />
-
-                  <Chip
-                    size="small"
-                    label={toneLabel(tone)}
-                    color={toneChipColor(tone)}
-                    variant={tone === 'critical' ? 'filled' : 'outlined'}
-                    sx={{ fontSize: 10, fontWeight: 800, height: 20, letterSpacing: 0.4, '& .MuiChip-label': { px: 0.75 } }}
-                  />
-                </Stack>
-              </Stack>
-
-              <Divider sx={{ my: 1.25 }} />
-
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
-                <Box>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                  >
-                    Customers
-                  </Typography>
-                  <Typography
-                    fontWeight={900}
-                    sx={{ fontSize: 13 }}
-                  >
-                    {store.customerCount}
-                  </Typography>
-                </Box>
-
-                <Box>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                  >
-                    Weekly
-                  </Typography>
-                  <Typography
-                    fontWeight={900}
-                    sx={{ fontSize: 13 }}
-                    color={weeklyCost > 0 ? 'primary.main' : 'text.secondary'}
-                  >
-                    {formatMoney(weeklyCost)}
-                  </Typography>
-                </Box>
-
-                <Box>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                  >
-                    Balance
-                  </Typography>
-                  <Typography
-                    fontWeight={900}
-                    sx={{ fontSize: 13 }}
-                    color={pending > 0 ? 'error.main' : 'success.main'}
-                  >
-                    {formatMoney(pending)}
-                  </Typography>
-                </Box>
-
-                <Box>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                  >
-                    Installments
-                  </Typography>
-                  <Typography
-                    fontWeight={900}
-                    sx={{ fontSize: 13 }}
-                  >
-                    {installmentsLabel(pending, installmentsNeeded)}
-                  </Typography>
-                </Box>
-
-                <Box sx={{ gridColumn: '1 / -1' }}>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                  >
-                    Payment method
-                  </Typography>
-                  <Stack
-                    direction="row"
-                    spacing={0.75}
-                    alignItems="center"
-                    sx={{ mt: 0.25 }}
-                  >
-                    <PaymentsRounded
-                      fontSize="small"
-                      sx={{ color: 'text.secondary' }}
-                    />
-                    <Typography
-                      fontWeight={900}
-                      sx={{ fontSize: 13 }}
-                    >
-                      {payMethod}
-                    </Typography>
-                  </Stack>
-                </Box>
-              </Box>
-
-              <Stack
-                direction="row"
-                spacing={1}
-                justifyContent="flex-end"
-                sx={{ mt: 1.25 }}
-              >
-                <Tooltip
-                  title="View"
-                  arrow
-                >
-                  <Link
-                    href={`/admin/management/stores/edit/${id}`}
-                    passHref
-                  >
-                    <IconButton
-                      size="small"
-                      color="primary"
-                    >
-                      <Settings fontSize="small" />
-                    </IconButton>
-                  </Link>
-                </Tooltip>
-
-                <Tooltip
-                  title="Merchant"
-                  arrow
-                >
-                  <IconButton
-                    size="small"
-                    color="secondary"
-                    onClick={() => window.open(buildSwitchUrl(store.accessCode), '_blank')}
-                  >
-                    <Web fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-
-                {/* ✅ Details -> opens Tech Modal */}
-                <Tooltip
-                  title="Ficha técnica"
-                  arrow
-                >
-                  <IconButton
-                    size="small"
-                    color="primary"
-                    onClick={() => openTech(store)}
-                  >
-                    <AccountCircle fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </Stack>
-            </Box>
-          </Card>
-        );
-      })}
-    </Stack>
-  );
 
   if (loading) {
     return (
@@ -710,7 +629,7 @@ const Results: FC<ResultsProps> = ({
   return (
     <>
       {isMobile ? (
-        <MobileList />
+        <MobileList stores={stores} openTech={openTech} />
       ) : (
         <Card>
           {fetching && !loading && (
