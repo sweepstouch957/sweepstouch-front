@@ -134,6 +134,127 @@ const prettyMembership = (t?: string) => {
   }
 };
 
+/** Fila expandible — ✅ module scope: defining inside StoresReportModal would reset
+ *  the openRow state on every parent render (new component class reference). */
+const RowItem: React.FC<{ row: Row }> = ({ row }) => {
+  const [openRow, setOpenRow] = React.useState(false);
+
+  return (
+    <>
+      <TableRow
+        hover
+        onClick={() => setOpenRow((v) => !v)}
+        sx={{ cursor: 'pointer' }}
+      >
+        <TableCell sx={{ pl: 1 }}>
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+          >
+            <ExpandMoreTwoToneIcon
+              sx={{
+                transform: openRow ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: '0.2s',
+              }}
+            />
+            <Typography fontWeight={600}>{row.name}</Typography>
+          </Stack>
+        </TableCell>
+        <TableCell align="right">${numberFmt(row.sms)}</TableCell>
+        <TableCell align="right">${numberFmt(row.mms)}</TableCell>
+        <TableCell align="right">${numberFmt(row.totalSmsMms)}</TableCell>
+        <TableCell align="right">${numberFmt(row.optinCost)}</TableCell>
+        <TableCell align="right">${numberFmt(row.membershipSubtotal)}</TableCell>
+        <TableCell align="right">${numberFmt(row.grandTotal)}</TableCell>
+      </TableRow>
+
+      <TableRow>
+        <TableCell
+          colSpan={7}
+          sx={{ py: 0, border: 0 }}
+        >
+          <Collapse
+            in={openRow}
+            timeout="auto"
+            unmountOnExit
+          >
+            <Box sx={{ px: 1, py: 1 }}>
+              <Grid
+                container
+                columns={{ xs: 1, md: 12 }}
+                columnSpacing={{ xs: 2, md: 3 }}
+                rowSpacing={{ xs: 1, md: 0.75 }}
+                alignItems="flex-start"
+              >
+                {/* Campañas */}
+                <Grid item xs={1} md={2}>
+                  <Stack spacing={0.75}>
+                    <Typography variant="subtitle2">Campañas</Typography>
+                    <Stack direction="row" spacing={0.75} alignItems="center">
+                      <Typography variant="body2">SMS:</Typography>
+                      <strong>${numberFmt(row.detail.campaigns.sms)}</strong>
+                    </Stack>
+                    <Stack direction="row" spacing={0.75} alignItems="center">
+                      <Typography variant="body2">MMS:</Typography>
+                      <strong>${numberFmt(row.detail.campaigns.mms)}</strong>
+                    </Stack>
+                    <Stack direction="row" spacing={0.75} alignItems="center">
+                      <Typography variant="body2">Total (SMS + MMS):</Typography>
+                      <strong>${numberFmt(row.detail.campaigns.total)}</strong>
+                      {row.detail.campaigns.hasRules && (
+                        <Tooltip title="Este total puede aplicar reglas de cálculo">
+                          <Typography variant="caption" color="text.secondary">(i)</Typography>
+                        </Tooltip>
+                      )}
+                    </Stack>
+                  </Stack>
+                </Grid>
+
+                {/* Opt-in */}
+                <Grid item xs={1} md={2}>
+                  <Stack spacing={0.75}>
+                    <Typography variant="subtitle2">Opt-in</Typography>
+                    <Typography variant="body2">
+                      Audiencia: <strong>{row.detail.optin.count}</strong>
+                    </Typography>
+                    <Typography variant="body2">
+                      Costo por Mensaje: <strong>${numberFmt(row.detail.optin.unitPrice)}</strong>
+                    </Typography>
+                    <Typography variant="body2">
+                      Total: <strong>${numberFmt(row.detail.optin.cost)}</strong>
+                    </Typography>
+                  </Stack>
+                </Grid>
+
+                {/* Membresía */}
+                <Grid item xs={1} md={2}>
+                  <Stack spacing={0.75}>
+                    <Typography variant="subtitle2">Membresía</Typography>
+                    <Typography variant="body2">
+                      Tipo:{' '}
+                      <Chip size="small" label={prettyMembership(row.detail.membership.type)} />
+                    </Typography>
+                    <Typography variant="body2">
+                      Costo: <strong>${numberFmt(row.detail.membership.unitFee)}</strong>
+                    </Typography>
+                    <Typography variant="body2">
+                      Periodos: <strong>{row.detail.membership.periods}</strong>
+                    </Typography>
+                    <Typography variant="body2">
+                      Total: <strong>${numberFmt(row.detail.membership.subtotal)}</strong>
+                    </Typography>
+                  </Stack>
+                </Grid>
+              </Grid>
+            </Box>
+          </Collapse>
+        </TableCell>
+      </TableRow>
+    </>
+  );
+};
+
 export default function StoresReportModal({
   open,
   onClose,
@@ -273,171 +394,7 @@ export default function StoresReportModal({
     );
   }, [filtered]);
 
-  // Fila expandible
-  const RowItem: React.FC<{ row: Row }> = ({ row }) => {
-    const [openRow, setOpenRow] = React.useState(false);
-
-    return (
-      <>
-        <TableRow
-          hover
-          onClick={() => setOpenRow((v) => !v)}
-          sx={{ cursor: 'pointer' }}
-        >
-          <TableCell sx={{ pl: 1 }}>
-            <Stack
-              direction="row"
-              spacing={1}
-              alignItems="center"
-            >
-              <ExpandMoreTwoToneIcon
-                sx={{
-                  transform: openRow ? 'rotate(180deg)' : 'rotate(0deg)',
-                  transition: '0.2s',
-                }}
-              />
-              <Typography fontWeight={600}>{row.name}</Typography>
-            </Stack>
-          </TableCell>
-          <TableCell align="right">${numberFmt(row.sms)}</TableCell>
-          <TableCell align="right">${numberFmt(row.mms)}</TableCell>
-          <TableCell align="right">${numberFmt(row.totalSmsMms)}</TableCell>
-          <TableCell align="right">${numberFmt(row.optinCost)}</TableCell>
-          <TableCell align="right">${numberFmt(row.membershipSubtotal)}</TableCell>
-          <TableCell align="right">${numberFmt(row.grandTotal)}</TableCell>
-        </TableRow>
-
-        <TableRow>
-          <TableCell
-            colSpan={7}
-            sx={{ py: 0, border: 0 }}
-          >
-            <Collapse
-              in={openRow}
-              timeout="auto"
-              unmountOnExit
-            >
-              <Box sx={{ px: 1, py: 1 }}>
-                <Grid
-                  container
-                  columns={{ xs: 1, md: 12 }}
-                  columnSpacing={{ xs: 2, md: 3 }}
-                  rowSpacing={{ xs: 1, md: 0.75 }}
-                  alignItems="flex-start"
-                >
-                  {/* Campañas */}
-                  <Grid
-                    item
-                    xs={1}
-                    md={2}
-                  >
-                    <Stack spacing={0.75}>
-                      <Typography variant="subtitle2">Campañas</Typography>
-
-                      <Stack
-                        direction="row"
-                        spacing={0.75}
-                        alignItems="center"
-                      >
-                        <Typography variant="body2">SMS:</Typography>
-                        <strong>${numberFmt(row.detail.campaigns.sms)}</strong>
-                      </Stack>
-
-                      <Stack
-                        direction="row"
-                        spacing={0.75}
-                        alignItems="center"
-                      >
-                        <Typography variant="body2">MMS:</Typography>
-                        <strong>${numberFmt(row.detail.campaigns.mms)}</strong>
-                      </Stack>
-
-                      <Stack
-                        direction="row"
-                        spacing={0.75}
-                        alignItems="center"
-                      >
-                        <Typography variant="body2">Total (SMS + MMS):</Typography>
-                        <strong>${numberFmt(row.detail.campaigns.total)}</strong>
-
-                        {row.detail.campaigns.hasRules && (
-                          <Tooltip title="Este total puede aplicar reglas de cálculo">
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
-                              (i)
-                            </Typography>
-                          </Tooltip>
-                        )}
-                      </Stack>
-                    </Stack>
-                  </Grid>
-
-                  {/* Opt-in */}
-                  <Grid
-                    item
-                    xs={1}
-                    md={2}
-                  >
-                    <Stack spacing={0.75}>
-                      <Typography variant="subtitle2">Opt-in</Typography>
-
-                      <Typography variant="body2">
-                        Audiencia: <strong>{row.detail.optin.count}</strong>
-                      </Typography>
-
-                      <Typography variant="body2">
-                        Costo por Mensaje:{' '}
-                        <strong>${numberFmt(row.detail.optin.unitPrice)}</strong>
-                      </Typography>
-
-                      <Typography variant="body2">
-                        Total: <strong>${numberFmt(row.detail.optin.cost)}</strong>
-                      </Typography>
-                    </Stack>
-                  </Grid>
-
-                  {/* Membresía */}
-                  <Grid
-                    item
-                    xs={1}
-                    md={2}
-                  >
-                    <Stack spacing={0.75}>
-                      <Typography variant="subtitle2">Membresía</Typography>
-
-                      <Typography variant="body2">
-                        Tipo:{' '}
-                        <Chip
-                          size="small"
-                          label={prettyMembership(row.detail.membership.type)}
-                        />
-                      </Typography>
-
-                      <Typography variant="body2">
-                        Costo:{' '}
-                        <strong>${numberFmt(row.detail.membership.unitFee)}</strong>
-                      </Typography>
-
-                      <Typography variant="body2">
-                        Periodos: <strong>{row.detail.membership.periods}</strong>
-                      </Typography>
-
-                      <Typography variant="body2">
-                        Total:{' '}
-                        <strong>${numberFmt(row.detail.membership.subtotal)}</strong>
-                      </Typography>
-                    </Stack>
-                  </Grid>
-                </Grid>
-              </Box>
-            </Collapse>
-          </TableCell>
-        </TableRow>
-      </>
-    );
-  };
+  // RowItem is now at module scope above — no inline definition needed
 
   return (
     <Dialog
