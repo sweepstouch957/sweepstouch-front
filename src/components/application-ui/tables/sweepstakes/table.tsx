@@ -39,7 +39,7 @@ import {
   Skeleton,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import React from 'react';
 
 const statusOptions = [
   { value: '', label: 'All Statuses' },
@@ -83,20 +83,57 @@ const getStatusChip = (status?: string) => {
 
 type SortField = 'participants' | 'createdAt' | 'status' | '';
 
+// ✅ useReducer: consolidates 6 related useState calls (react-doctor: UseReducer warning)
+type TableState = {
+  preview: { url: string; name: string } | null;
+  filters: { status: string; name: string; createdFrom: string; createdTo: string };
+  page: number;
+  limit: number;
+  sortBy: SortField;
+  sortOrder: 'asc' | 'desc';
+};
+
+type TableAction =
+  | { type: 'SET_PREVIEW'; payload: { url: string; name: string } | null }
+  | { type: 'SET_FILTER'; field: 'status' | 'name' | 'createdFrom' | 'createdTo'; value: string }
+  | { type: 'SET_PAGE'; payload: number }
+  | { type: 'SET_LIMIT'; payload: number }
+  | { type: 'SET_SORT'; sortBy: SortField; sortOrder: 'asc' | 'desc' };
+
+function tableReducer(state: TableState, action: TableAction): TableState {
+  switch (action.type) {
+    case 'SET_PREVIEW':
+      return { ...state, preview: action.payload };
+    case 'SET_FILTER':
+      return { ...state, filters: { ...state.filters, [action.field]: action.value }, page: 0 };
+    case 'SET_PAGE':
+      return { ...state, page: action.payload };
+    case 'SET_LIMIT':
+      return { ...state, limit: action.payload, page: 0 };
+    case 'SET_SORT':
+      return { ...state, sortBy: action.sortBy, sortOrder: action.sortOrder, page: 0 };
+    default:
+      return state;
+  }
+}
+
 export default function SweepstakesTable() {
-  const [preview, setPreview] = useState<{ url: string; name: string } | null>(null);
-  const [filters, setFilters] = useState({ status: '', name: '', createdFrom: '', createdTo: '' });
-  
-  // Pagination & Sorting state
-  const [page, setPage] = useState(0); // MUI is 0-based
-  const [limit, setLimit] = useState(10);
-  const [sortBy, setSortBy] = useState<SortField>('');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [state, dispatch] = React.useReducer(tableReducer, {
+    preview: null,
+    filters: { status: '', name: '', createdFrom: '', createdTo: '' },
+    page: 0,
+    limit: 10,
+    sortBy: '' as SortField,
+    sortOrder: 'desc',
+  } satisfies TableState);
+
+  const { preview, filters, page, limit, sortBy, sortOrder } = state;
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const router = useRouter();
-  
+  // ✅ Destructure push — easier for React Compiler to memoize (react-doctor: compiler hint)
+  const { push } = useRouter();
+
   const { data: response, isLoading, error, isFetching } = usePaginatedSweepstakes({
     ...filters,
     page: page + 1, // backend is 1-based
@@ -108,22 +145,16 @@ export default function SweepstakesTable() {
   const total = response?.total ?? 0;
 
   // Handlers
-  const handleStatusChange = (e: any) => { setFilters((f) => ({ ...f, status: e.target.value })); setPage(0); };
-  const handleNameChange = (e: any) => { setFilters((f) => ({ ...f, name: e.target.value })); setPage(0); };
-  const handleDateChange = (field: 'createdFrom' | 'createdTo') => (e: any) => {
-    setFilters((f) => ({ ...f, [field]: e.target.value }));
-    setPage(0);
-  };
-  const handleChangePage = (e: unknown, newPage: number) => setPage(newPage);
-  const handleChangeRowsPerPage = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLimit(parseInt(e.target.value, 10));
-    setPage(0);
-  };
+  const handleStatusChange = (e: any) => dispatch({ type: 'SET_FILTER', field: 'status', value: e.target.value });
+  const handleNameChange = (e: any) => dispatch({ type: 'SET_FILTER', field: 'name', value: e.target.value });
+  const handleDateChange = (field: 'createdFrom' | 'createdTo') => (e: any) =>
+    dispatch({ type: 'SET_FILTER', field, value: e.target.value });
+  const handleChangePage = (_e: unknown, newPage: number) => dispatch({ type: 'SET_PAGE', payload: newPage });
+  const handleChangeRowsPerPage = (e: React.ChangeEvent<HTMLInputElement>) =>
+    dispatch({ type: 'SET_LIMIT', payload: parseInt(e.target.value, 10) });
   const handleSort = (field: SortField) => {
     const isAsc = sortBy === field && sortOrder === 'asc';
-    setSortOrder(isAsc ? 'desc' : 'asc');
-    setSortBy(field);
-    setPage(0);
+    dispatch({ type: 'SET_SORT', sortBy: field, sortOrder: isAsc ? 'desc' : 'asc' });
   };
 
   const showSkeletons = isLoading || (isFetching && sweepstakes.length === 0);
@@ -167,9 +198,7 @@ export default function SweepstakesTable() {
             displayEmpty
             value={sortBy === 'createdAt' ? sortOrder : 'desc'}
             onChange={(e) => {
-              setSortBy('createdAt');
-              setSortOrder(e.target.value as 'asc' | 'desc');
-              setPage(0);
+              dispatch({ type: 'SET_SORT', sortBy: 'createdAt', sortOrder: e.target.value as 'asc' | 'desc' });
             }}
             size="small"
             sx={{
@@ -299,7 +328,7 @@ export default function SweepstakesTable() {
                             <Stack direction="row" spacing={2} alignItems="center">
                               {sw.image ? (
                                 <Tooltip title="View Image">
-                                  <ButtonBase onClick={() => setPreview({ url: sw.image, name: sw.name })} sx={{ borderRadius: 2 }}>
+                                  <ButtonBase onClick={() => dispatch({ type: 'SET_PREVIEW', payload: { url: sw.image, name: sw.name } })} sx={{ borderRadius: 2 }}>
                                     <Avatar src={sw.image} variant="rounded" sx={{ width: 56, height: 56, boxShadow: 1, borderRadius: 2 }} />
                                   </ButtonBase>
                                 </Tooltip>
@@ -359,12 +388,12 @@ export default function SweepstakesTable() {
                           <TableCell sx={{ textAlign: 'right' }}>
                             <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                               <Tooltip title="View Stats">
-                                <IconButton color="primary" onClick={() => router.push(`/admin/management/sweepstakes/${sw.id}/stats`)} size="small" sx={{ bgcolor: 'action.hover' }}>
+                                <IconButton color="primary" onClick={() => push(`/admin/management/sweepstakes/${sw.id}/stats`)} size="small" sx={{ bgcolor: 'action.hover' }}>
                                   <VisibilityIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
                               <Tooltip title="Edit Checklist">
-                                <IconButton color="info" onClick={() => router.push(`/admin/management/sweepstakes/${sw.id}/checklist`)} size="small" sx={{ bgcolor: 'action.hover' }}>
+                                <IconButton color="info" onClick={() => push(`/admin/management/sweepstakes/${sw.id}/checklist`)} size="small" sx={{ bgcolor: 'action.hover' }}>
                                   <EditIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
@@ -419,7 +448,7 @@ export default function SweepstakesTable() {
         </Box>
       </Fade>
 
-      <Dialog open={!!preview} onClose={() => setPreview(null)} fullWidth maxWidth="sm">
+      <Dialog open={!!preview} onClose={() => dispatch({ type: 'SET_PREVIEW', payload: null })} fullWidth maxWidth="sm">
         <DialogTitle>{preview?.name ?? 'Image Preview'}</DialogTitle>
         <DialogContent sx={{ p: 0, bgcolor: 'background.default' }}>
           <Box component="img" src={preview?.url ?? ''} alt={preview?.name ?? 'preview'} sx={{ width: '100%', height: 'auto', display: 'block', borderBottomLeftRadius: 8, borderBottomRightRadius: 8 }} />

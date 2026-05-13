@@ -158,43 +158,24 @@ function KpiCard({
 }
 
 /* ─────────────────────────────────────────
-   MESSAGING INTELLIGENCE PANEL
-   Unified card: SMS · MMS · Audiencia · Plataformas
+   STAT CELL  — ✅ module scope extract: defining inside MessagingPanel created
+   a new component class every render (react-doctor: Nested component definition)
 ───────────────────────────────────────────*/
-function MessagingPanel({ stats, loading }: { stats: FilterStatsResponse; loading: boolean }) {
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
-  const { messages, byPlatform, byType, total } = stats;
+interface StatCellProps {
+  icon: ReactNode;
+  color: string;
+  label: string;
+  sublabel: string;
+  value: number;
+  pct?: number;
+  extraInfo?: ReactNode;
+  isCurrency?: boolean;
+  loading?: boolean;
+  isDark?: boolean;
+}
 
-  const sms = byType['SMS'] ?? 0;
-  const mms = byType['MMS'] ?? 0;
-  const total_typed = sms + mms;
-  const sms_pct = total_typed > 0 ? Math.round((sms / total_typed) * 100) : 0;
-  const mms_pct = total_typed > 0 ? Math.round((mms / total_typed) * 100) : 0;
-
-  const platforms = Object.entries(byPlatform)
-    .filter(([key, count]) => count > 0 && key !== 'unknown' && key !== '')
-    .sort(([, a], [, b]) => b - a);
-
-  const StatCell = ({
-    icon,
-    color,
-    label,
-    sublabel,
-    value,
-    pct,
-    extraInfo,
-    isCurrency,
-  }: {
-    icon: ReactNode;
-    color: string;
-    label: string;
-    sublabel: string;
-    value: number;
-    pct?: number;
-    extraInfo?: ReactNode;
-    isCurrency?: boolean;
-  }) => (
+function StatCell({ icon, color, label, sublabel, value, pct, extraInfo, isCurrency, loading, isDark }: StatCellProps) {
+  return (
     <Stack
       spacing={0.25}
       sx={{
@@ -259,6 +240,27 @@ function MessagingPanel({ stats, loading }: { stats: FilterStatsResponse; loadin
       )}
     </Stack>
   );
+}
+
+/* ─────────────────────────────────────────
+   MESSAGING INTELLIGENCE PANEL
+   Unified card: SMS · MMS · Audiencia · Plataformas
+───────────────────────────────────────────*/
+function MessagingPanel({ stats, loading }: { stats: FilterStatsResponse; loading: boolean }) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+  const { messages, byPlatform, byType, total } = stats;
+
+  const sms = byType['SMS'] ?? 0;
+  const mms = byType['MMS'] ?? 0;
+  const total_typed = sms + mms;
+  const sms_pct = total_typed > 0 ? Math.round((sms / total_typed) * 100) : 0;
+  const mms_pct = total_typed > 0 ? Math.round((mms / total_typed) * 100) : 0;
+
+  const platforms = Object.entries(byPlatform)
+    .filter(([key, count]) => count > 0 && key !== 'unknown' && key !== '')
+    .sort(([, a], [, b]) => b - a);
+
 
   return (
     <Box

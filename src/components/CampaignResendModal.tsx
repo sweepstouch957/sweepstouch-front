@@ -92,46 +92,79 @@ interface Props {
   campaignId: string;
 }
 
+// ─── Reducer ─────────────────────────────────────────────────────────────────
+// ✅ useReducer: replaces 4 useState + 4-8 cascading setState calls in a single useEffect
+type ModalState = {
+  step: Step;
+  preview: ResendPreview | null;
+  result: ResendResult | null;
+  errorMsg: string;
+};
+
+type ModalAction =
+  | { type: 'RESET' }
+  | { type: 'SET_PREVIEW'; payload: ResendPreview }
+  | { type: 'SET_RESULT'; payload: ResendResult }
+  | { type: 'SET_STEP'; payload: Step }
+  | { type: 'SET_ERROR'; payload: string };
+
+function modalReducer(state: ModalState, action: ModalAction): ModalState {
+  switch (action.type) {
+    case 'RESET':
+      return { step: 'loading-preview', preview: null, result: null, errorMsg: '' };
+    case 'SET_PREVIEW':
+      return { ...state, preview: action.payload, step: 'confirm' };
+    case 'SET_RESULT':
+      return { ...state, result: action.payload, step: 'done' };
+    case 'SET_STEP':
+      return { ...state, step: action.payload };
+    case 'SET_ERROR':
+      return { ...state, errorMsg: action.payload, step: 'error' };
+    default:
+      return state;
+  }
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 const CampaignResendModal: React.FC<Props> = ({ open, onClose, campaignId }) => {
-  const [step, setStep] = React.useState<Step>('loading-preview');
-  const [preview, setPreview] = React.useState<ResendPreview | null>(null);
-  const [result, setResult] = React.useState<ResendResult | null>(null);
-  const [errorMsg, setErrorMsg] = React.useState('');
+  const [state, dispatch] = React.useReducer(modalReducer, {
+    step: 'loading-preview',
+    preview: null,
+    result: null,
+    errorMsg: '',
+  } satisfies ModalState);
+
+  const { step, preview, result, errorMsg } = state;
 
   // Cargar preview cada vez que se abre el modal
   React.useEffect(() => {
     if (!open) return;
-    setStep('loading-preview');
-    setPreview(null);
-    setResult(null);
-    setErrorMsg('');
+    // ✅ single dispatch replaces 4 cascading setStates
+    dispatch({ type: 'RESET' });
 
     fetchResendPreview(campaignId)
-      .then((data) => {
-        setPreview(data);
-        setStep('confirm');
-      })
-      .catch((e) => {
-        setErrorMsg(e?.response?.data?.error || e?.message || 'Error al cargar el preview');
-        setStep('error');
-      });
+      .then((data) => dispatch({ type: 'SET_PREVIEW', payload: data }))
+      .catch((e) => dispatch({
+        type: 'SET_ERROR',
+        payload: e?.response?.data?.error || e?.message || 'Error al cargar el preview',
+      }));
   }, [open, campaignId]);
 
   const handleResend = async () => {
-    setStep('sending');
+    dispatch({ type: 'SET_STEP', payload: 'sending' });
     try {
       const data = await executeResend(campaignId);
-      setResult(data);
-      setStep('done');
+      dispatch({ type: 'SET_RESULT', payload: data });
     } catch (e: any) {
-      setErrorMsg(e?.response?.data?.error || e?.message || 'Error al reenviar');
-      setStep('error');
+      dispatch({
+        type: 'SET_ERROR',
+        payload: e?.response?.data?.error || e?.message || 'Error al reenviar',
+      });
     }
   };
 
   const handleClose = () => {
-    if (step === 'sending') return; // No cerrar mientras envía
+    if (step === 'sending') return;
     onClose();
   };
 
