@@ -317,3 +317,81 @@ export function useCashierStats(
     ...(options ?? {}),
   });
 }
+
+// ─── SMS Audit ────────────────────────────────────────────────────────────────
+
+export interface SmsAuditRow {
+  participantId: string;
+  phone: string;
+  cashierName: string;
+  cashierId: string;
+  registeredAt: string;
+  smsStatus: 'pending' | 'delivered' | 'failed' | 'undelivered' | 'no_sms';
+  smsMessageId: string | null;
+  /** Reason why smsMessageId is null (no SMS sent at all) */
+  noSmsReason: 'no_message_id' | null;
+  isPhoneValid: boolean | null;
+  phoneValidationReason: string | null;
+  isNewUser: boolean;
+  method: string;
+  auditedAt: string | null;
+}
+
+export interface SmsAuditSummary {
+  total: number;
+  delivered: number;
+  pending: number;
+  failed: number;
+  noSms: number;
+  invalid: number;
+  unknown: number;
+  deliveredPct: number;
+  failedPct: number;
+  noSmsPct: number;
+  invalidPct: number;
+}
+
+export interface SmsAuditResponse {
+  storeId: string;
+  sweepstakeId: string | null;
+  dateRange: { startDate: string; endDate: string };
+  summary: SmsAuditSummary;
+  rows: SmsAuditRow[];
+}
+
+/** GET /sweepstakes/participants/sms-audit?storeId=&startDate=&endDate=&cashierId= */
+export async function getSmsAudit(params: {
+  storeId: string;
+  startDate: string;
+  endDate: string;
+  cashierId?: string;
+  sweepstakeId?: string;
+}): Promise<SmsAuditResponse> {
+  const res = await api.get<SmsAuditResponse>('/sweepstakes/participants/sms-audit', {
+    params,
+    withCredentials: true,
+  });
+  return res.data;
+}
+
+export function useSmsAudit(
+  params: {
+    storeId: string;
+    startDate: string;
+    endDate: string;
+    cashierId?: string;
+    sweepstakeId?: string;
+  },
+  options?: any
+) {
+  const enabled = Boolean(params?.storeId && params?.startDate && params?.endDate);
+  const key: QueryKey = ['sms-audit', params] as const;
+  return useQuery({
+    queryKey: key,
+    queryFn: () => getSmsAudit(params),
+    enabled,
+    staleTime: 30_000,
+    ...(options ?? {}),
+  });
+}
+
