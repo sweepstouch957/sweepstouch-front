@@ -69,6 +69,53 @@ type RangePickerValue = {
   endYmd: string;
 };
 
+// ✅ CustomDay extracted to module scope — defining inside RangePickerField created a
+// new component instance every render, destroying DateCalendar's internal day state.
+interface CustomDayProps extends PickersDayProps<Date> {
+  draftStart: Date | null;
+  draftEnd: Date | null;
+}
+
+function CustomDay({ day, outsideCurrentMonth, draftStart, draftEnd, ...other }: CustomDayProps) {
+  const s = draftStart;
+  const e = draftEnd ?? draftStart;
+  const time = new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime();
+  const startTime = s ? new Date(s.getFullYear(), s.getMonth(), s.getDate()).getTime() : null;
+  const endTime = e ? new Date(e.getFullYear(), e.getMonth(), e.getDate()).getTime() : null;
+
+  const inRange =
+    startTime != null &&
+    endTime != null &&
+    time >= Math.min(startTime, endTime) &&
+    time <= Math.max(startTime, endTime);
+
+  const isStart = startTime != null && time === startTime;
+  const isEnd = endTime != null && time === endTime;
+
+  return (
+    <PickersDay
+      {...(other as any)}
+      day={day}
+      outsideCurrentMonth={outsideCurrentMonth}
+      sx={{
+        ...(inRange && {
+          bgcolor: 'action.selected',
+          borderRadius: 0,
+          '&:hover': { bgcolor: 'action.selected' },
+        }),
+        ...(isStart && {
+          borderTopLeftRadius: 16,
+          borderBottomLeftRadius: 16,
+        }),
+        ...(isEnd && {
+          borderTopRightRadius: 16,
+          borderBottomRightRadius: 16,
+        }),
+      }}
+    />
+  );
+}
+
 function RangePickerField({
   label,
   value,
@@ -110,47 +157,6 @@ function RangePickerField({
   };
 
   const display = startYmd && endYmd ? `${startYmd} — ${endYmd}` : '';
-
-  const CustomDay = (props: PickersDayProps<Date>) => {
-    const { day, outsideCurrentMonth, ...other } = props;
-    const s = draftStart;
-    const e = draftEnd ?? draftStart;
-    const time = new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime();
-    const startTime = s ? new Date(s.getFullYear(), s.getMonth(), s.getDate()).getTime() : null;
-    const endTime = e ? new Date(e.getFullYear(), e.getMonth(), e.getDate()).getTime() : null;
-
-    const inRange =
-      startTime != null &&
-      endTime != null &&
-      time >= Math.min(startTime, endTime) &&
-      time <= Math.max(startTime, endTime);
-
-    const isStart = startTime != null && time === startTime;
-    const isEnd = endTime != null && time === endTime;
-
-    return (
-      <PickersDay
-        {...(other as any)}
-        day={day}
-        outsideCurrentMonth={outsideCurrentMonth}
-        sx={{
-          ...(inRange && {
-            bgcolor: 'action.selected',
-            borderRadius: 0,
-            '&:hover': { bgcolor: 'action.selected' },
-          }),
-          ...(isStart && {
-            borderTopLeftRadius: 16,
-            borderBottomLeftRadius: 16,
-          }),
-          ...(isEnd && {
-            borderTopRightRadius: 16,
-            borderBottomRightRadius: 16,
-          }),
-        }}
-      />
-    );
-  };
 
   const onPick = (date: Date | null) => {
     if (!date || Number.isNaN(date.getTime())) return;
@@ -209,7 +215,11 @@ function RangePickerField({
                   onPick(v);
                 }
               }}
-              slots={{ day: CustomDay as any }}
+              slots={{
+                day: (props: PickersDayProps<Date>) => (
+                  <CustomDay {...props} draftStart={draftStart} draftEnd={draftEnd} />
+                ),
+              }}
               referenceDate={anchorMonth}
             />
           </Stack>
@@ -224,6 +234,7 @@ function RangePickerField({
     </>
   );
 }
+
 
 function startOfMonthIso(year: number, month1to12: number) {
   // IMPORTANT: match the same format the Campaigns filters use (toISOString())

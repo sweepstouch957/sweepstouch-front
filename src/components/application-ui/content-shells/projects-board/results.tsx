@@ -37,16 +37,18 @@ const Results: FC<ResultsProps> = ({ listId }) => {
     useMemo(() => (state) => state.lists.byId[listId] as ListType, [listId])
   );
 
-  // ✅ por si el board todavía no ha cargado
-  if (!list) return null;
-
-  const [name, setName] = useState<string>(list.name);
+  // ✅ Hooks ALWAYS called unconditionally — before any early return (Rules of Hooks)
+  const [name, setName] = useState<string>(list?.name ?? '');
   const [isRenaming, setRename] = useState<boolean>(false);
 
   // ✅ si cambia el nombre en el store (ej: refresh / remote update)
   useEffect(() => {
-    setName(list.name);
-  }, [list.name]);
+    if (list?.name !== undefined) setName(list.name);
+  }, [list?.name]);
+
+  // ✅ por si el board todavía no ha cargado
+  if (!list) return null;
+
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>): void => {
     setName(event.target.value);

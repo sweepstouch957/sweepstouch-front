@@ -42,17 +42,23 @@ import * as React from 'react';
 
 /* ---------------- helpers (reutilizados de CampaignLogsModal) ---------------- */
 
+/* ────────────────── module-scope formatters (hoisted for perf) ────────────────── */
+// ✅ Hoisted: Intl constructors allocate many objects per locale lookup.
+// Creating them inside render/formatDateTime fires on every row re-render.
+const DATE_FMT = new Intl.DateTimeFormat(undefined, {
+  year: '2-digit',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+const CURRENCY_FMT = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
 const formatDateTime = (iso?: string) => {
   if (!iso) return '-';
   try {
-    const d = new Date(iso);
-    return new Intl.DateTimeFormat(undefined, {
-      year: '2-digit',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(d);
+    return DATE_FMT.format(new Date(iso));
   } catch {
     return iso;
   }
@@ -140,6 +146,45 @@ type Props = {
   defaultStatus?: MessageLogStatus | 'any';
 };
 
+type ModalState = {
+  page: number;
+  limit: number;
+  sort: 'asc' | 'desc';
+  query: string;
+  search: string;
+  status: MessageLogStatus | 'any';
+  exporting: boolean;
+};
+
+type ModalAction =
+  | { type: 'SET_PAGE'; payload: number }
+  | { type: 'SET_SORT'; payload: 'asc' | 'desc' }
+  | { type: 'SET_QUERY'; payload: string }
+  | { type: 'SET_SEARCH'; payload: string }
+  | { type: 'SET_STATUS'; payload: MessageLogStatus | 'any' }
+  | { type: 'SET_EXPORTING'; payload: boolean }
+  | { type: 'RESET'; payload: { defaultStatus: MessageLogStatus | 'any' } };
+
+function modalReducer(state: ModalState, action: ModalAction): ModalState {
+  switch (action.type) {
+    case 'SET_PAGE':      return { ...state, page: action.payload };
+    case 'SET_SORT':      return { ...state, sort: action.payload };
+    case 'SET_QUERY':     return { ...state, query: action.payload };
+    case 'SET_SEARCH':    return { ...state, search: action.payload };
+    case 'SET_STATUS':    return { ...state, status: action.payload, page: 1 };
+    case 'SET_EXPORTING': return { ...state, exporting: action.payload };
+    case 'RESET': return {
+      ...state,
+      page: 1,
+      query: '',
+      search: '',
+      sort: 'desc',
+      status: action.payload.defaultStatus,
+    };
+    default: return state;
+  }
+}
+
 export const SmsLogsModal: React.FC<Props> = ({
   open,
   onClose,
@@ -147,16 +192,19 @@ export const SmsLogsModal: React.FC<Props> = ({
   end,
   defaultStatus = 'any',
 }) => {
-  // ui state
-  const [page, setPage] = React.useState(1);
-  const [limit, setLimit] = React.useState(20);
-  const [sort, setSort] = React.useState<'asc' | 'desc'>('desc');
-  const [query, setQuery] = React.useState('');
-  const [search, setSearch] = React.useState(''); // debounced value
-  const [status, setStatus] = React.useState<MessageLogStatus | 'any'>(defaultStatus);
+  // ✅ useReducer: consolidates 7 related useState calls (react-doctor: UseReducer warning)
+  // ✅ `satisfies ModalState` preserves literal types — without it TS widens 'desc' → string
+  const [state, dispatch] = React.useReducer(modalReducer, {
+    page: 1,
+    limit: 20,
+    sort: 'desc',
+    query: '',
+    search: '',
+    status: defaultStatus,
+    exporting: false,
+  } satisfies ModalState);
 
-  // estado exportación
-  const [exporting, setExporting] = React.useState(false);
+  const { page, limit, sort, query, search, status, exporting } = state;
 
   // mantener filtros actuales en una ref para la exportación
   const filtersRef = React.useRef({ search, sort, status });
@@ -164,9 +212,9 @@ export const SmsLogsModal: React.FC<Props> = ({
     filtersRef.current = { search, sort, status };
   }, [search, sort, status]);
 
-  // debounce search
+  // debounce search — ✅ cleanup already present (clearTimeout)
   React.useEffect(() => {
-    const t = setTimeout(() => setSearch(query.trim()), 350);
+    const t = setTimeout(() => dispatch({ type: 'SET_SEARCH', payload: query.trim() }), 350);
     return () => clearTimeout(t);
   }, [query]);
 
@@ -191,13 +239,7 @@ export const SmsLogsModal: React.FC<Props> = ({
 
   // reset al abrir/cambiar rango
   React.useEffect(() => {
-    if (open) {
-      setPage(1);
-      setQuery('');
-      setSearch('');
-      setSort('desc');
-      setStatus(defaultStatus);
-    }
+    if (open) dispatch({ type: 'RESET', payload: { defaultStatus } });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, start, end]);
 
@@ -215,9 +257,9 @@ export const SmsLogsModal: React.FC<Props> = ({
 
   /* --------- Exportar TODAS las filas según filtros vigentes (simplificado) --------- */
   const exportAllLogs = async () => {
-    setExporting(true);
+    dispatch({ type: 'SET_EXPORTING', payload: true });
     alert('Funcionalidad de exportación no implementada para logs de Billing.');
-    setExporting(false);
+    dispatch({ type: 'SET_EXPORTING', payload: false });
   };
 
   /* ------------------------------------------------------------------------- */
@@ -262,7 +304,7 @@ export const SmsLogsModal: React.FC<Props> = ({
             size="small"
             placeholder="Buscar por teléfono o SID"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => dispatch({ type: 'SET_QUERY', payload: e.target.value })}
             sx={{ flexGrow: 1, minWidth: 200 }}
             InputProps={{
               startAdornment: (
@@ -272,7 +314,7 @@ export const SmsLogsModal: React.FC<Props> = ({
               ),
               endAdornment: query ? (
                 <InputAdornment position="end">
-                  <IconButton onClick={() => setQuery('')}>
+                  <IconButton onClick={() => dispatch({ type: 'SET_QUERY', payload: '' })}>
                     <ClearIcon fontSize="small" />
                   </IconButton>
                 </InputAdornment>
@@ -293,25 +335,25 @@ export const SmsLogsModal: React.FC<Props> = ({
 
             <Chip
               label="Todos"
-              onClick={() => setStatus('any')}
+              onClick={() => dispatch({ type: 'SET_STATUS', payload: 'any' })}
               color={status === 'any' ? 'primary' : 'default'}
               variant={status === 'any' ? 'filled' : 'outlined'}
             />
             <Chip
               label="Enviados"
-              onClick={() => setStatus('delivered')}
+              onClick={() => dispatch({ type: 'SET_STATUS', payload: 'delivered' })}
               color={status === 'delivered' ? 'primary' : 'default'}
               variant={status === 'delivered' ? 'filled' : 'outlined'}
             />
             <Chip
               label="Fallidos"
-              onClick={() => setStatus('failed')}
+              onClick={() => dispatch({ type: 'SET_STATUS', payload: 'failed' })}
               color={status === 'failed' ? 'primary' : 'default'}
               variant={status === 'failed' ? 'filled' : 'outlined'}
             />
             <Chip
               label="Pendientes"
-              onClick={() => setStatus('queued')}
+              onClick={() => dispatch({ type: 'SET_STATUS', payload: 'queued' })}
               color={status === 'queued' ? 'primary' : 'default'}
               variant={status === 'queued' ? 'filled' : 'outlined'}
             />
@@ -424,9 +466,7 @@ export const SmsLogsModal: React.FC<Props> = ({
                     )}
                   </TableCell>
                   <TableCell>
-                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
-                      row.price || 0
-                    )}
+                    {CURRENCY_FMT.format(row.price || 0)}
                   </TableCell>
                 </TableRow>
               ))}
@@ -440,7 +480,7 @@ export const SmsLogsModal: React.FC<Props> = ({
             <Pagination
               count={totalPages}
               page={page}
-              onChange={(_, value) => setPage(value)}
+              onChange={(_, value) => dispatch({ type: 'SET_PAGE', payload: value })}
               color="primary"
             />
           </Box>
