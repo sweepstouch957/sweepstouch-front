@@ -32,6 +32,8 @@ import {
   printerCatalog,
   tabletCatalog,
 } from './EquipmentSectionModal';
+import { KioskTabletPanel } from './KioskTabletPanel';
+
 
 /* ─── Props ─────────────────────────────────────────────────────────────── */
 interface Props {
@@ -455,6 +457,12 @@ export function StoreEquipmentPanel({ store, storeId }: Props) {
         initialPrinterQty={initialPrinterQty}
         initialMaterials={materials}
       />
+
+      {/* ── Kiosk Remote Management ──────────── */}
+      <Box mt={3}>
+        <Divider sx={{ mb: 3 }} />
+        <KioskTabletPanel storeId={storeId} />
+      </Box>
     </Box>
   );
 }
