@@ -386,7 +386,7 @@ export function useSmsAudit(
 ) {
   const enabled = Boolean(params?.storeId && params?.startDate && params?.endDate);
   const key: QueryKey = ['sms-audit', params] as const;
-  return useQuery({
+  return useQuery<SmsAuditResponse, Error>({
     queryKey: key,
     queryFn: () => getSmsAudit(params),
     enabled,
