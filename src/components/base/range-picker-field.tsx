@@ -33,6 +33,63 @@ export type RangePickerValue = {
   endYmd: string;
 };
 
+// ── CustomDay ─ module scope ───────────────────────────────────────────────────
+// ✅ Extracted from inside RangePickerField — defining inside the parent creates
+// a new component class on every render, so MUI DateCalendar remounts all day
+// cells unnecessarily. (react-doctor: Nested component definition ×2)
+//
+// draftStart/draftEnd passed via slotProps so highlighting stays correct
+// without relying on stale closure capture.
+type CustomDayProps = PickersDayProps<Date> & {
+  draftStart?: Date | null;
+  draftEnd?: Date | null;
+};
+
+function CustomDay(props: CustomDayProps) {
+  const { day, outsideCurrentMonth, draftStart, draftEnd, ...other } = props;
+  const s = draftStart ?? null;
+  const e = draftEnd ?? draftStart ?? null;
+
+  // Normalize times to avoid microsecond drift
+  const time      = new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime();
+  const startTime = s ? new Date(s.getFullYear(), s.getMonth(), s.getDate()).getTime() : null;
+  const endTime   = e ? new Date(e.getFullYear(), e.getMonth(), e.getDate()).getTime() : null;
+
+  const inRange =
+    startTime != null &&
+    endTime   != null &&
+    time >= Math.min(startTime, endTime) &&
+    time <= Math.max(startTime, endTime);
+
+  const isStart = startTime != null && time === startTime;
+  const isEnd   = endTime   != null && time === endTime;
+
+  return (
+    <PickersDay
+      {...(other as any)}
+      day={day}
+      outsideCurrentMonth={outsideCurrentMonth}
+      sx={{
+        ...(inRange && {
+          bgcolor: 'action.selected',
+          borderRadius: 0,
+          '&:hover': { bgcolor: 'action.selected' },
+        }),
+        ...(isStart && {
+          borderTopLeftRadius: 16,
+          borderBottomLeftRadius: 16,
+        }),
+        ...(isEnd && {
+          borderTopRightRadius: 16,
+          borderBottomRightRadius: 16,
+        }),
+      }}
+    />
+  );
+}
+
+// ── RangePickerField ───────────────────────────────────────────────────────────
+
 export default function RangePickerField({
   label,
   value,
@@ -52,18 +109,17 @@ export default function RangePickerField({
   const { startYmd, endYmd } = value;
   const [open, setOpen] = useState(false);
 
-  // Mapear strings (ej: 2024-01-01) a Date locales (sin problemas de UTC/Timezone)
-  // ya que si nos dan la fecha exacta queremos que el picker la refleje correctamente.
-  // Sin embargo si vienen strings con horas (ISO full) podemos simplemente cortar 'T'.
+  // Map strings (e.g. 2024-01-01) to local Dates (without UTC/timezone issues).
+  // If ISO full strings come in we just cut at 'T'.
   const startYmdClean = typeof startYmd === 'string' ? startYmd.split('T')[0] : '';
-  const endYmdClean = typeof endYmd === 'string' ? endYmd.split('T')[0] : '';
+  const endYmdClean   = typeof endYmd   === 'string' ? endYmd.split('T')[0]   : '';
 
   const startDate = ymdToLocalDate(startYmdClean);
-  const endDate = ymdToLocalDate(endYmdClean);
+  const endDate   = ymdToLocalDate(endYmdClean);
 
-  const [draftStart, setDraftStart] = useState<Date | null>(startDate);
-  const [draftEnd, setDraftEnd] = useState<Date | null>(endDate);
-  const [anchorMonth, setAnchorMonth] = useState<Date>(() => startDate ?? new Date());
+  const [draftStart,   setDraftStart]   = useState<Date | null>(startDate);
+  const [draftEnd,     setDraftEnd]     = useState<Date | null>(endDate);
+  const [anchorMonth, setAnchorMonth]   = useState<Date>(() => startDate ?? new Date());
 
   const openDialog = () => {
     setDraftStart(startDate);
@@ -80,57 +136,9 @@ export default function RangePickerField({
     if (!s) return;
     if (!e) return;
     const nextStart = s <= e ? s : e;
-    const nextEnd = s <= e ? e : s;
-    // Agregamos tiempo completo de base ISO para integrarse bien con filtros traseros.
-    // Usualmente el backend filtra StartDate <= .. etc.. 
-    // Para no romper la compatibilidad, devolvemos el YMD si eso se espera.
+    const nextEnd   = s <= e ? e : s;
     onChange({ startYmd: nextStart, endYmd: nextEnd });
     setOpen(false);
-  };
-
-  const display = startYmdClean && endYmdClean ? `${startYmdClean} — ${endYmdClean}` : '';
-
-  const CustomDay = (props: PickersDayProps<Date>) => {
-    const { day, outsideCurrentMonth, ...other } = props;
-    const s = draftStart;
-    const e = draftEnd ?? draftStart;
-    
-    // Normalizamos tiempos para no lidiar con microsegundos
-    const time = new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime();
-    const startTime = s ? new Date(s.getFullYear(), s.getMonth(), s.getDate()).getTime() : null;
-    const endTime = e ? new Date(e.getFullYear(), e.getMonth(), e.getDate()).getTime() : null;
-
-    const inRange =
-      startTime != null &&
-      endTime != null &&
-      time >= Math.min(startTime, endTime) &&
-      time <= Math.max(startTime, endTime);
-
-    const isStart = startTime != null && time === startTime;
-    const isEnd = endTime != null && time === endTime;
-
-    return (
-      <PickersDay
-        {...(other as any)}
-        day={day}
-        outsideCurrentMonth={outsideCurrentMonth}
-        sx={{
-          ...(inRange && {
-            bgcolor: 'action.selected',
-            borderRadius: 0,
-            '&:hover': { bgcolor: 'action.selected' },
-          }),
-          ...(isStart && {
-            borderTopLeftRadius: 16,
-            borderBottomLeftRadius: 16,
-          }),
-          ...(isEnd && {
-            borderTopRightRadius: 16,
-            borderBottomRightRadius: 16,
-          }),
-        }}
-      />
-    );
   };
 
   const onPick = (date: Date | null) => {
@@ -142,6 +150,8 @@ export default function RangePickerField({
     }
     setDraftEnd(date);
   };
+
+  const display = startYmdClean && endYmdClean ? `${startYmdClean} / ${endYmdClean}` : '';
 
   return (
     <>
@@ -192,6 +202,9 @@ export default function RangePickerField({
                 }
               }}
               slots={{ day: CustomDay as any }}
+              slotProps={{
+                day: { draftStart, draftEnd } as any,
+              }}
               referenceDate={anchorMonth}
             />
           </Stack>
