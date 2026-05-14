@@ -14,7 +14,6 @@ import {
 } from '@mui/material';
 import {
   AddCircleOutlineRounded,
-  DevicesRounded,
   EditRounded,
   Inventory2Outlined,
   PrintRounded,
@@ -355,54 +354,37 @@ export function StoreEquipmentPanel({ store, storeId }: Props) {
     setOpenModal(null);
   };
 
-  /* Accent colors */
-  const tabletAccent  = theme.palette.primary.main;
   const printerAccent = theme.palette.info.main;
   const matAccent     = theme.palette.success.main;
 
-  const tabletGrad  = `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`;
   const printerGrad = `linear-gradient(135deg, ${theme.palette.info.dark}, ${theme.palette.info.main})`;
   const matGrad     = `linear-gradient(135deg, ${theme.palette.success.dark}, ${theme.palette.success.main})`;
-
-  const grandTotal = equipmentTotal + materialsTotal;
 
   return (
     <Box p={{ xs: 2, md: 3 }}>
 
-      {/* ── Page title ───────────────────────── */}
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2.5} flexWrap="wrap" gap={1}>
+      {/* ── Kiosk Tablet Control (primario) ─── */}
+      <KioskTabletPanel storeId={storeId} />
+
+      {/* ── Sección B: Impresoras + Materiales ─ */}
+      <Divider sx={{ my: 3 }} />
+
+      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2} flexWrap="wrap" gap={1}>
         <Box>
-          <Typography variant="subtitle1" fontWeight={800} lineHeight={1.2}>
-            Equipamiento
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Toca una tarjeta para agregar o editar
-          </Typography>
+          <Typography variant="subtitle2" fontWeight={800}>Inventario Físico</Typography>
+          <Typography variant="caption" color="text.secondary">Impresoras y materiales de la tienda</Typography>
         </Box>
-        {grandTotal > 0 && (
+        {(equipmentTotal + materialsTotal) > 0 && (
           <Chip
-            label={`Grand Total $${grandTotal.toLocaleString()}`}
-            variant="outlined"
-            size="small"
-            sx={{ fontWeight: 700, fontSize: 12, borderRadius: 99 }}
+            label={`Total $${(equipmentTotal + materialsTotal).toLocaleString()}`}
+            variant="outlined" size="small"
+            sx={{ fontWeight: 700, fontSize: 11, borderRadius: 99 }}
           />
         )}
       </Stack>
 
-      {/* ── 3 cards ──────────────────────────── */}
       <Grid container spacing={2}>
-        <Grid item xs={12} sm={4}>
-          <EquipmentCard
-            icon={<DevicesRounded sx={{ fontSize: 22 }} />}
-            label="Tablets"
-            accent={tabletAccent}
-            gradient={tabletGrad}
-            items={tabletCardItems}
-            total={tabletTotal}
-            onClick={() => setOpenModal('tablets')}
-          />
-        </Grid>
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={6}>
           <EquipmentCard
             icon={<PrintRounded sx={{ fontSize: 22 }} />}
             label="Impresoras"
@@ -413,7 +395,7 @@ export function StoreEquipmentPanel({ store, storeId }: Props) {
             onClick={() => setOpenModal('printers')}
           />
         </Grid>
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={6}>
           <EquipmentCard
             icon={<Inventory2Outlined sx={{ fontSize: 22 }} />}
             label="Materiales"
@@ -427,16 +409,6 @@ export function StoreEquipmentPanel({ store, storeId }: Props) {
       </Grid>
 
       {/* ── Modals ───────────────────────────── */}
-      <EquipmentSectionModal
-        open={openModal === 'tablets'}
-        section="tablets"
-        onClose={() => setOpenModal(null)}
-        onSave={handleSectionSave}
-        initialTabletQty={initialTabletQty}
-        initialTabletImei={initialTabletImei}
-        initialPrinterQty={initialPrinterQty}
-        initialMaterials={materials}
-      />
       <EquipmentSectionModal
         open={openModal === 'printers'}
         section="printers"
@@ -457,12 +429,6 @@ export function StoreEquipmentPanel({ store, storeId }: Props) {
         initialPrinterQty={initialPrinterQty}
         initialMaterials={materials}
       />
-
-      {/* ── Kiosk Remote Management ──────────── */}
-      <Box mt={3}>
-        <Divider sx={{ mb: 3 }} />
-        <KioskTabletPanel storeId={storeId} />
-      </Box>
     </Box>
   );
 }

@@ -98,7 +98,13 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
 
   const openKiosk = () => {
     const kioskBase = process.env.NEXT_PUBLIC_KIOSK_ORIGIN || 'https://kiosko.sweepstouch.com';
-    const target = storeSlug ? `${kioskBase}/?slug=${encodeURIComponent(storeSlug)}` : `${kioskBase}/?ac=${storeId}`;
+    // Normalizar: quitar comas y "_" final (formato ConfigurationName de tablets)
+    const cleanSlug = storeSlug
+      ? storeSlug.replace(/,/g, '').replace(/_+$/, '')
+      : null;
+    const target = cleanSlug
+      ? `${kioskBase}/?slug=${encodeURIComponent(cleanSlug)}`
+      : `${kioskBase}/?ac=${storeId}`;
     window.open(target, '_blank');
   };
 
