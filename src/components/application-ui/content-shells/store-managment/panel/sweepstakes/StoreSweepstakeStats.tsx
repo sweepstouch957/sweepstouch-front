@@ -190,24 +190,30 @@ export default function StoreSweepstakeStats({ storeId, sweepstakeId }: Props) {
   const daily = dailyData?.dailyMetrics ?? [];
 
   const byMethodEntries = Object.entries(metrics?.byMethod ?? {});
-  const totalMethods = byMethodEntries.reduce((s, [, v]) => s + v, 0);
+  // ✅ Sanitize: ensure all values are finite numbers (MUI X Charts v8 crashes on undefined)
+  const sanitizedEntries: [string, number][] = byMethodEntries.map(
+    ([m, v]) => [m, Number.isFinite(Number(v)) ? Number(v) : 0]
+  );
+  const totalMethods = sanitizedEntries.reduce((s, [, v]) => s + v, 0);
 
-  // Pie data
-  const pieData = byMethodEntries.map(([m, count]) => ({
-    id: m,
-    label: m.charAt(0).toUpperCase() + m.slice(1),
-    value: count,
-    color: METHOD_COLORS[m] || theme.palette.primary.main,
-  }));
+  // Pie data — value must be > 0, MUI X Charts throws on value=0 or undefined
+  const pieData = sanitizedEntries
+    .filter(([, count]) => count > 0)
+    .map(([m, count]) => ({
+      id: m,
+      label: m.charAt(0).toUpperCase() + m.slice(1),
+      value: count,
+      color: METHOD_COLORS[m] ?? theme.palette.primary.main,
+    }));
 
   // Bar data for methods
-  const barLabels = byMethodEntries.map(([m]) => m);
-  const barValues = byMethodEntries.map(([, v]) => v);
+  const barLabels = sanitizedEntries.map(([m]) => m);
+  const barValues = sanitizedEntries.map(([, v]) => v);
 
-  // Line chart
-  const lineLabels = daily.map((d) => d.date.slice(5)); // MM-DD
-  const lineTotals = daily.map((d) => d.total);
-  const lineNew = daily.map((d) => d.newUsers);
+  // Line chart — replace undefined/null with 0
+  const lineLabels = daily.map((d) => d.date?.slice(5) ?? '');
+  const lineTotals = daily.map((d) => Number(d.total) || 0);
+  const lineNew    = daily.map((d) => Number(d.newUsers) || 0);
 
   // Export
   const handleExport = async () => {
@@ -388,10 +394,10 @@ export default function StoreSweepstakeStats({ storeId, sweepstakeId }: Props) {
                       hideLegend
                     />
                     <Stack spacing={0.75} mt={1}>
-                      {byMethodEntries.map(([m, count]) => (
+                      {sanitizedEntries.map(([m, count]) => (
                         <Stack key={m} direction="row" alignItems="center" justifyContent="space-between">
                           <Stack direction="row" alignItems="center" spacing={0.75}>
-                            <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: METHOD_COLORS[m] || '#888' }} />
+                            <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: METHOD_COLORS[m] ?? '#888' }} />
                             <Typography variant="caption" color="text.secondary" textTransform="capitalize">{m}</Typography>
                           </Stack>
                           <Typography variant="caption" fontWeight={700}>

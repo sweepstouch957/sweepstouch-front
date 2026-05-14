@@ -499,6 +499,11 @@ function CampaignsGrid({ storeId }: CampaignsGridProps) {
     placeholderData: (prev) => prev ?? EMPTY_STATS,
   });
 
+  // ✅ MUST be before any early return — Rules of Hooks
+  const handleSetFilters = useCallback((next: typeof filters) => {
+    setFilters(next);
+  }, []);
+
   if (isPending) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" height="300px">
@@ -517,10 +522,6 @@ function CampaignsGrid({ storeId }: CampaignsGridProps) {
 
   const s = stats ?? EMPTY_STATS;
   const isLoading = statsFetching && !stats;
-
-  const handleSetFilters = useCallback((next: typeof filters) => {
-    setFilters(next);
-  }, []);
 
   return (
     <>
