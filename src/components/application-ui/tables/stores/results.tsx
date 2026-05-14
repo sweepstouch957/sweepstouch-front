@@ -44,9 +44,16 @@ import {
   useTheme,
 } from '@mui/material';
 import Link from 'next/link';
+import NextImage from 'next/image';
+import dynamic from 'next/dynamic';
 import React, { ChangeEvent, FC, useMemo, useState, useCallback } from 'react';
-import StoreTechModal from './StoreInfoSimplified';
 import toast from 'react-hot-toast';
+
+// ✅ Dynamic import — StoreTechModal is heavy (~24KB) and only opened on demand
+const StoreTechModal = dynamic(() => import('./StoreInfoSimplified'), {
+  ssr: false,
+  loading: () => null,
+});
 
 /* ------------------------------- helper split ------------------------------ */
 function splitByFirstNumber(raw: string, fallbackAddress?: string) {
@@ -353,21 +360,58 @@ interface ResultsProps {
 }
 
 /* ----------------------------- tiny components ---------------------------- */
+
+/**
+ * ✅ PERFORMANCE: Transforms Cloudinary URLs to serve smaller, optimized images.
+ * Store logos are displayed at 40x40px — no need to download 100-150KB originals.
+ * Transformation: auto quality, auto format, fit to 80x80 (2x for retina).
+ */
+function getOptimizedCloudinaryUrl(src: string, size = 80): string {
+  if (!src || !src.includes('res.cloudinary.com')) return src;
+  // Insert Cloudinary transformation before the version or upload segment
+  return src.replace(
+    /(\/image\/upload\/)/,
+    `$1w_${size},h_${size},c_fit,f_auto,q_auto/`
+  );
+}
+
 const LogoImg: FC<{ src?: string }> = ({ src }) => {
-  if (!src) return null;
-  return (
+  if (!src) return (
     <Box
-      component="img"
-      src={src}
-      alt="store logo"
       sx={{
         width: 40,
         height: 40,
-        objectFit: 'contain',
         borderRadius: 1,
         flex: '0 0 auto',
+        bgcolor: 'action.hover',
       }}
     />
+  );
+
+  const optimizedSrc = getOptimizedCloudinaryUrl(src, 80);
+
+  return (
+    <Box
+      sx={{
+        width: 40,
+        height: 40,
+        borderRadius: 1,
+        flex: '0 0 auto',
+        overflow: 'hidden',
+        position: 'relative',
+        bgcolor: 'action.hover',
+      }}
+    >
+      <NextImage
+        src={optimizedSrc}
+        alt="store logo"
+        fill
+        loading="lazy"
+        sizes="40px"
+        style={{ objectFit: 'contain' }}
+        unoptimized={!src.includes('res.cloudinary.com')}
+      />
+    </Box>
   );
 };
 
@@ -665,30 +709,33 @@ const Results: FC<ResultsProps> = ({
 
   if (loading) {
     return (
-      <Card variant="outlined" sx={{ borderRadius: 2.5, overflow: 'hidden' }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              {['Store', 'Customers', 'Weekly', 'Balance', 'Installments', 'Status', 'Method', ''].map((h) => (
-                <TableCell key={h} sx={{ py: 1 }}>
-                  <Skeleton variant="text" width={h ? '80%' : 40} height={16} />
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {Array.from({ length: 8 }).map((_, i) => (
-              <TableRow key={i}>
-                <TableCell><Skeleton variant="rectangular" width={180} height={32} sx={{ borderRadius: 1 }} /></TableCell>
-                {Array.from({ length: 6 }).map((__, j) => (
-                  <TableCell key={j}><Skeleton variant="text" width="70%" height={16} /></TableCell>
+      // ✅ CLS FIX: minHeight matches approximate content height so layout doesn't shift
+      <Box sx={{ minHeight: 480 }}>
+        <Card variant="outlined" sx={{ borderRadius: 2.5, overflow: 'hidden' }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                {['Store', 'Customers', 'Weekly', 'Balance', 'Installments', 'Status', 'Method', ''].map((h) => (
+                  <TableCell key={h} sx={{ py: 1 }}>
+                    <Skeleton variant="text" width={h ? '80%' : 40} height={16} />
+                  </TableCell>
                 ))}
-                <TableCell><Skeleton variant="circular" width={28} height={28} /></TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+            </TableHead>
+            <TableBody>
+              {Array.from({ length: 8 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton variant="rectangular" width={180} height={32} sx={{ borderRadius: 1 }} /></TableCell>
+                  {Array.from({ length: 6 }).map((__, j) => (
+                    <TableCell key={j}><Skeleton variant="text" width="70%" height={16} /></TableCell>
+                  ))}
+                  <TableCell><Skeleton variant="circular" width={28} height={28} /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      </Box>
     );
   }
 

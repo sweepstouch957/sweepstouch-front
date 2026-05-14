@@ -1,7 +1,16 @@
 /** @type {import('next').NextConfig} */
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
 const config = {
   reactStrictMode: false,
   transpilePackages: ['@mui/x-charts'],
+
+  // ✅ Remove console.log in production builds
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
+  },
 
   async rewrites() {
     const API = process.env.NEXT_PUBLIC_API_URL || 'https://api2.sweepstouch.com/api';
@@ -15,6 +24,14 @@ const config = {
   },
 
   images: {
+    // ✅ Optimized device sizes — removes unnecessary large breakpoints for admin panel
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    // ✅ Image sizes for smaller UI elements (logos, avatars)
+    imageSizes: [16, 32, 48, 64, 96, 128, 200, 256],
+    // ✅ Longer cache TTL for store logos (they rarely change)
+    minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
+    // ✅ Prefer AVIF for better compression, fallback to WebP
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       {
         protocol: 'https',
@@ -26,6 +43,7 @@ const config = {
       },
     ],
   },
+
   webpack(config) {
     config.module.rules.push({
       test: /\.svg$/,
@@ -35,4 +53,4 @@ const config = {
   },
 };
 
-module.exports = config;
+module.exports = withBundleAnalyzer(config);

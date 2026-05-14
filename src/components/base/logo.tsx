@@ -50,11 +50,15 @@ export const Logo = ({ dark = false, isLinkStatic = false, isCollapsed }: LogoPr
         }}
       >
         {isCollapsed || isMobile ? (
+          // ✅ FIX: Natural dimensions are 68×80, displayed at ~32px wide
+          // Use height=auto to maintain aspect ratio and avoid distortion
           <Image
             src={LogoIcon.src}
             alt="logo"
-            width={32}
-            height={32}
+            width={38}
+            height={45}
+            priority
+            style={{ width: 32, height: 'auto' }}
           />
         ) : (
           <Image

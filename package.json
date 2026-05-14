@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
+    "analyze": "cross-env ANALYZE=true next build --webpack",
     "start": "next start ",
     "lint": "next lint",
     "lint-fix": "next lint --fix",
@@ -114,6 +115,7 @@
     "@types/react-simple-maps": "3.0.4",
     "@types/react-syntax-highlighter": "15.5.11",
     "@vercel/style-guide": "5.1.0",
+    "cross-env": "^10.1.0",
     "eslint": "8.56.0",
     "eslint-config-next": "14.0.4",
     "eslint-config-prettier": "9.1.0",
