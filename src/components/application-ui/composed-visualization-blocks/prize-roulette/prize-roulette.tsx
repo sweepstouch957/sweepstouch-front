@@ -7,7 +7,7 @@ import StorefrontIcon from '@mui/icons-material/Storefront';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import StopRoundedIcon from '@mui/icons-material/StopRounded';
 import EmojiEventsRoundedIcon from '@mui/icons-material/EmojiEventsRounded';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useReducer, useRef } from 'react';
 import { WheelSvg } from './wheel';
 
 /* ===================== Types ===================== */
@@ -38,6 +38,38 @@ function randomUSPhone(): string {
 
 const INITIAL_PHONE = 'LISTO PARA JUGAR';
 const INITIAL_STORE = 'Esperando sorteo...';
+
+// ✅ useReducer: consolidates 5 related useState (react-doctor: UseReducer ×56)
+// All fields update together on spin start, tick finish, and winner selection.
+type RouletteState = {
+  displayPhone: string;
+  displayStore: string;
+  displayImage: string | undefined;
+  isSpinning: boolean;
+  hasWinner: boolean;
+};
+
+type RouletteAction =
+  | { type: 'START' }
+  | { type: 'CYCLE'; phone: string; store: string; image?: string }
+  | { type: 'WINNER'; phone: string; store: string; image?: string }
+  | { type: 'STOPPED' };
+
+function rouletteReducer(state: RouletteState, action: RouletteAction): RouletteState {
+  switch (action.type) {
+    case 'START':
+      return { ...state, isSpinning: true, hasWinner: false };
+    case 'CYCLE':
+      return { ...state, displayPhone: action.phone, displayStore: action.store, displayImage: action.image };
+    case 'WINNER':
+      return { isSpinning: false, hasWinner: true, displayPhone: action.phone, displayStore: action.store, displayImage: action.image };
+    case 'STOPPED':
+      return { ...state, isSpinning: false };
+    default:
+      return state;
+  }
+}
+
 
 /* ===================== Component ===================== */
 export default function PrizeRouletteCard({ sweepstakeId }: Props) {
@@ -89,11 +121,16 @@ export default function PrizeRouletteCard({ sweepstakeId }: Props) {
 
   const spinList = useMemo(() => [...realList, ...fillerList], [realList, fillerList]);
 
-  const [displayPhone, setDisplayPhone] = useState<string>(INITIAL_PHONE);
-  const [displayStore, setDisplayStore] = useState<string>(INITIAL_STORE);
-  const [displayImage, setDisplayImage] = useState<string | undefined>(undefined);
-  const [isSpinning, setIsSpinning] = useState(false);
-  const [hasWinner, setHasWinner] = useState(false);
+  const [{ displayPhone, displayStore, displayImage, isSpinning, hasWinner }, dispatch] = useReducer(
+    rouletteReducer,
+    {
+      displayPhone : INITIAL_PHONE,
+      displayStore : INITIAL_STORE,
+      displayImage : undefined,
+      isSpinning   : false,
+      hasWinner    : false,
+    }
+  );
 
   const rotationRef = useRef(0);
   const wheelWrapRef = useRef<HTMLDivElement | null>(null);
@@ -126,8 +163,7 @@ export default function PrizeRouletteCard({ sweepstakeId }: Props) {
 
   const start = () => {
     if (isSpinning) return;
-    setIsSpinning(true);
-    setHasWinner(false);
+    dispatch({ type: 'START' });
 
     stoppingRef.current = false;
     stopAtRef.current = null;
@@ -146,9 +182,12 @@ export default function PrizeRouletteCard({ sweepstakeId }: Props) {
         storeImage: undefined,
       };
       
-      setDisplayPhone(pick.phoneNumber);
-      setDisplayStore(pick.storeName || '—');
-      setDisplayImage(pick.storeImage);
+      dispatch({
+        type : 'CYCLE',
+        phone: pick.phoneNumber,
+        store: pick.storeName || '—',
+        image: pick.storeImage,
+      });
 
       if (stoppingRef.current && velRef.current < 300) {
         dynamicInterval = Math.min(400, 20000 / Math.max(velRef.current, 10));
@@ -191,8 +230,6 @@ export default function PrizeRouletteCard({ sweepstakeId }: Props) {
 
       if (stoppingRef.current && velRef.current < 2) {
         cleanupTimers();
-        setIsSpinning(false);
-        setHasWinner(true);
         stoppingRef.current = false;
         stopAtRef.current = null;
         lastTickRef.current = null;
@@ -207,9 +244,12 @@ export default function PrizeRouletteCard({ sweepstakeId }: Props) {
                 storeImage: undefined,
               };
 
-        setDisplayPhone(pick.phoneNumber);
-        setDisplayStore(pick.storeName || '—');
-        setDisplayImage(pick.storeImage);
+        dispatch({
+          type : 'WINNER',
+          phone: pick.phoneNumber,
+          store: pick.storeName || '—',
+          image: pick.storeImage,
+        });
         burst();
         return;
       }

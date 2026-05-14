@@ -75,6 +75,15 @@ export function useNotifications() {
     });
 
     return () => {
+      // ✅ Explicit off() for each on() — satisfies react-doctor cleanup rule
+      // socket.disconnect() closes the connection, but off() prevents listener
+      // accumulation if the socket is reused across reconnect cycles.
+      socket.off('connect');
+      socket.off('disconnect');
+      socket.off('bulk_notifications');
+      socket.off('new_notification');
+      socket.off('notification_read');
+      socket.off('all_read');
       socket.disconnect();
       socketRef.current = null;
     };

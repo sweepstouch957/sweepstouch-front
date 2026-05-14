@@ -335,6 +335,12 @@ export interface SmsAuditRow {
   isNewUser: boolean;
   method: string;
   auditedAt: string | null;
+  // 🆕 Last-campaign cross-reference
+  lastCampaignId    : string | null;
+  lastCampaignTitle : string | null;
+  campaignStatus    : 'delivered' | 'failed' | 'sent' | 'unknown' | null;
+  campaignErrorCode : string | null;
+  campaignErrorMsg  : string | null;
 }
 
 export interface SmsAuditSummary {
@@ -349,6 +355,14 @@ export interface SmsAuditSummary {
   failedPct: number;
   noSmsPct: number;
   invalidPct: number;
+  // 🆕 Campaign cross-reference
+  lastCampaignId       : string | null;
+  lastCampaignTitle    : string | null;
+  campaignDelivered    : number;
+  campaignFailed       : number;
+  campaignFound        : number;
+  campaignDeliveredPct : number;
+  campaignFailedPct    : number;
 }
 
 export interface SmsAuditResponse {

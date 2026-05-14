@@ -63,6 +63,9 @@ const STATUS_CONFIG: Record<string, { label: string; color: 'success' | 'error' 
   failed     : { label: 'Fallido',     color: 'error',   icon: <SmsFailed    sx={{ fontSize: 14 }} /> },
   undelivered: { label: 'No entregado',color: 'error',   icon: <SmsFailed    sx={{ fontSize: 14 }} /> },
   no_sms     : { label: 'Sin SMS',     color: 'default', icon: <PhoneDisabled sx={{ fontSize: 14 }} /> },
+  // Campaign cross-ref statuses
+  sent       : { label: 'Enviado',     color: 'info',    icon: <SmsOutlined  sx={{ fontSize: 14 }} /> },
+  unknown    : { label: 'Desconocido', color: 'default', icon: <HelpOutline  sx={{ fontSize: 14 }} /> },
 };
 
 // ── Summary card ──────────────────────────────────────────────────────────────
@@ -131,43 +134,81 @@ export default function SmsAuditPanel({ storeId, startDate, endDate }: Props) {
   // ── Export XLSX ──────────────────────────────────────────────────────────────
   const handleExport = async () => {
     const { utils, writeFile } = await import('xlsx');
-
     if (!data) return;
 
-    const summary = data.summary;
+    const summary   = data.summary;
     const dateLabel = `${startDate}_${endDate}`;
 
-    // Summary sheet rows
-    const summarySheet = utils.aoa_to_sheet([
+    // ── Summary sheet ─────────────────────────────────────────────────────────
+    const summaryRows: any[][] = [
       ['Auditoría SMS — Reporte de Validación'],
-      [`Tienda ID: ${data.storeId}`],
-      [`Rango: ${startDate} → ${endDate}`],
       [],
-      ['Métrica',            'Cantidad', '%'],
-      ['Total registros',    summary.total,     '100%'],
-      ['Entregados ✅',       summary.delivered, `${summary.deliveredPct}%`],
-      ['Pendientes ⏳',       summary.pending,   '–'],
-      ['Fallidos ❌',         summary.failed,    `${summary.failedPct}%`],
-      ['Sin SMS 📵',          summary.noSms,     `${summary.noSmsPct}%`],
-      ['Núm. inválidos',      summary.invalid,   `${summary.invalidPct}%`],
-      ['Estado desconocido',  summary.unknown,   '–'],
-    ]);
+      ['Tienda ID',        data.storeId],
+      ['Rango de fechas',  `${startDate} → ${endDate}`],
+      ...(summary.lastCampaignTitle
+        ? [['Última campaña cruzada', summary.lastCampaignTitle]]
+        : []),
+      [],
+      ['─── REGISTRO SMS (Participaciones) ───'],
+      ['Métrica',               'Cantidad',          '%'],
+      ['Total registros',        summary.total,       '100%'],
+      ['✅ Entregados',           summary.delivered,   `${summary.deliveredPct}%`],
+      ['⏳ Pendientes',           summary.pending,     '–'],
+      ['❌ Fallidos',             summary.failed,      `${summary.failedPct}%`],
+      ['📵 Sin SMS',              summary.noSms,       `${summary.noSmsPct}%`],
+      ['🚫 Núm. inválidos',       summary.invalid,     `${summary.invalidPct}%`],
+      ['❓ Estado desconocido',   summary.unknown,     '–'],
+      [],
+      ...(summary.lastCampaignTitle ? [
+        ['─── ÚLTIMA CAMPAÑA (cruce de entrega) ───'],
+        ['Métrica',                       'Cantidad',                '%'],
+        ['Nums encontrados en campaña',    summary.campaignFound,    '–'],
+        ['Entregados por campaña',         summary.campaignDelivered, `${summary.campaignDeliveredPct}%`],
+        ['Fallidos por campaña',           summary.campaignFailed,    `${summary.campaignFailedPct}%`],
+      ] : []),
+    ];
 
-    // Detail rows
-    const detailSheet = utils.json_to_sheet(
-      (data.rows).map((r) => ({
-        'Teléfono'           : r.phone,
-        'Cajera'             : r.cashierName,
-        'Estado SMS'         : STATUS_CONFIG[r.smsStatus]?.label ?? r.smsStatus,
-        'Message ID'         : r.smsMessageId ?? 'N/A',
-        'Núm. válido'        : r.isPhoneValid === true ? 'Sí' : r.isPhoneValid === false ? 'No' : 'Desconocido',
-        'Razón validación'   : r.phoneValidationReason ?? '–',
-        'Método registro'    : r.method,
-        'Es nuevo'           : r.isNewUser ? 'Sí' : 'No',
-        'Fecha registro'     : r.registeredAt ? format(new Date(r.registeredAt), 'yyyy-MM-dd HH:mm') : '–',
-        'Fecha auditoría'    : r.auditedAt    ? format(new Date(r.auditedAt),    'yyyy-MM-dd HH:mm') : '–',
-      }))
-    );
+    const summarySheet = utils.aoa_to_sheet(summaryRows);
+    summarySheet['!cols'] = [{ wch: 36 }, { wch: 14 }, { wch: 8 }];
+
+    // ── Detail sheet ──────────────────────────────────────────────────────────
+    const detailData = (data.rows).map((r) => ({
+      'Teléfono'              : r.phone,
+      'Cajera'                : r.cashierName,
+      'Estado SMS (registro)' : STATUS_CONFIG[r.smsStatus]?.label ?? r.smsStatus,
+      'Núm. válido'           : r.isPhoneValid === true  ? 'Sí'
+                              : r.isPhoneValid === false ? 'No'
+                              : 'Desconocido',
+      'Razón validación'      : r.phoneValidationReason ?? '–',
+      'Estado última campaña' : r.campaignStatus
+                                ? (STATUS_CONFIG[r.campaignStatus]?.label ?? r.campaignStatus)
+                                : '–',
+      'Error campaña'         : r.campaignErrorMsg ?? '–',
+      'Message ID'            : r.smsMessageId ?? 'N/A',
+      'Es nuevo'              : r.isNewUser ? 'Sí' : 'No',
+      'Fecha registro'        : r.registeredAt ? format(new Date(r.registeredAt), 'yyyy-MM-dd HH:mm') : '–',
+      'Campaña cruzada'       : r.lastCampaignTitle ?? '–',
+    }));
+
+    const detailSheet = utils.json_to_sheet(detailData);
+
+    // Column widths
+    detailSheet['!cols'] = [
+      { wch: 16 }, // Teléfono
+      { wch: 22 }, // Cajera
+      { wch: 22 }, // Estado SMS
+      { wch: 14 }, // Núm. válido
+      { wch: 30 }, // Razón validación
+      { wch: 22 }, // Estado última campaña
+      { wch: 34 }, // Error campaña
+      { wch: 36 }, // Message ID
+      { wch: 10 }, // Es nuevo
+      { wch: 18 }, // Fecha registro
+      { wch: 28 }, // Campaña cruzada
+    ];
+
+    // Freeze header row
+    detailSheet['!freeze'] = { xSplit: 0, ySplit: 1 };
 
     const wb = utils.book_new();
     utils.book_append_sheet(wb, summarySheet, 'Resumen');
@@ -253,6 +294,36 @@ export default function SmsAuditPanel({ storeId, startDate, endDate }: Props) {
         </Stack>
       )}
 
+      {/* Campaign cross-ref banner */}
+      {summary?.lastCampaignTitle && (
+        <Box
+          sx={{
+            mb: 2,
+            px: 2,
+            py: 1,
+            borderRadius: 1.5,
+            bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(99,179,237,0.08)' : 'rgba(66,153,225,0.06)',
+            border: '1px solid',
+            borderColor: (t) => t.palette.mode === 'dark' ? 'rgba(99,179,237,0.2)' : 'rgba(66,153,225,0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            flexWrap: 'wrap',
+          }}
+        >
+          <SmsOutlined sx={{ fontSize: 15, color: 'info.main' }} />
+          <Typography variant="caption" color="text.secondary">
+            Cruce con última campaña:
+          </Typography>
+          <Typography variant="caption" fontWeight={700} color="info.main">
+            {summary.lastCampaignTitle}
+          </Typography>
+          <Typography variant="caption" color="text.disabled" sx={{ ml: 'auto' }}>
+            {summary.campaignFound} nums encontrados · {summary.campaignDelivered} entregados · {summary.campaignFailed} fallidos
+          </Typography>
+        </Box>
+      )}
+
       <Divider sx={{ mb: 2 }} />
 
       {/* Filters row */}
@@ -307,9 +378,9 @@ export default function SmsAuditPanel({ storeId, startDate, endDate }: Props) {
               <TableCell sx={{ fontWeight: 700 }}>Teléfono</TableCell>
               <TableCell sx={{ fontWeight: 700 }}>Cajera</TableCell>
               <TableCell sx={{ fontWeight: 700 }}>Estado SMS</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>Estado Campaña</TableCell>
               <TableCell sx={{ fontWeight: 700 }}>Núm. válido</TableCell>
               <TableCell sx={{ fontWeight: 700 }}>Fecha registro</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Message ID</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -355,6 +426,22 @@ export default function SmsAuditPanel({ storeId, startDate, endDate }: Props) {
                         </Typography>
                       )}
                     </TableCell>
+                    {/* Campaign cross-reference status */}
+                    <TableCell>
+                      {row.campaignStatus ? (
+                        <Tooltip title={row.campaignErrorMsg ?? row.campaignStatus} placement="top">
+                          <Chip
+                            label={STATUS_CONFIG[row.campaignStatus]?.label ?? row.campaignStatus}
+                            color={STATUS_CONFIG[row.campaignStatus]?.color ?? 'default'}
+                            icon={STATUS_CONFIG[row.campaignStatus]?.icon as any}
+                            size="small"
+                            sx={{ fontWeight: 600, fontSize: 11 }}
+                          />
+                        </Tooltip>
+                      ) : (
+                        <Typography variant="caption" color="text.disabled">–</Typography>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <Tooltip title={row.phoneValidationReason ?? ''} placement="top">
                         <Box display="flex" alignItems="center" gap={0.5}>
@@ -372,15 +459,6 @@ export default function SmsAuditPanel({ storeId, startDate, endDate }: Props) {
                           ? format(new Date(row.registeredAt), 'MM/dd/yy HH:mm')
                           : '–'}
                       </Typography>
-                    </TableCell>
-                    <TableCell>
-                      {row.smsMessageId ? (
-                        <Typography variant="caption" fontFamily="monospace" color="text.secondary" sx={{ fontSize: 10 }}>
-                          {row.smsMessageId.slice(0, 20)}…
-                        </Typography>
-                      ) : (
-                        <Typography variant="caption" color="text.disabled">–</Typography>
-                      )}
                     </TableCell>
                   </TableRow>
                 );

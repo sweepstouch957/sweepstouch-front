@@ -14,7 +14,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useEffect, useReducer } from 'react';
 
 interface ShiftPreviewModalProps {
   open: boolean;
@@ -22,20 +22,36 @@ interface ShiftPreviewModalProps {
   shiftId: string | null;
 }
 
+// ✅ useReducer: replaces 2 useState + cascading setLoading/setShift in one useEffect
+// (react-doctor: Cascading set state ×18)
+type ModalState = { shift: Shift | null; loading: boolean };
+type ModalAction =
+  | { type: 'LOADING' }
+  | { type: 'LOADED'; payload: Shift }
+  | { type: 'DONE' };
+
+function modalReducer(state: ModalState, action: ModalAction): ModalState {
+  switch (action.type) {
+    case 'LOADING': return { shift: null, loading: true };
+    case 'LOADED':  return { shift: action.payload, loading: false };
+    case 'DONE':    return { ...state, loading: false };
+    default:        return state;
+  }
+}
+
 export default function ShiftPreviewModal({ open, onClose, shiftId }: ShiftPreviewModalProps) {
-  const [shift, setShift] = useState<Shift | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [{ shift, loading }, dispatch] = useReducer(modalReducer, { shift: null, loading: false });
 
   useEffect(() => {
     if (!shiftId) return;
-    setLoading(true);
+    dispatch({ type: 'LOADING' });
     shiftService
       .getShiftById(shiftId)
       .then((res) => {
         console.log(res);
-        setShift(res.shift);
+        dispatch({ type: 'LOADED', payload: res.shift });
       })
-      .finally(() => setLoading(false));
+      .catch(() => dispatch({ type: 'DONE' }));
   }, [shiftId]);
 
   return (
