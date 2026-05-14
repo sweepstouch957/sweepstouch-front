@@ -37,17 +37,13 @@ function VirtualServers() {
   });
 
   const serverActivate1 = (event: ChangeEvent<HTMLInputElement>) => {
-    setState1({
-      ...state1,
-      [event.target.name]: event.target.checked,
-    });
+    const { name, checked } = event.target;
+    setState1((prev) => ({ ...prev, [name]: checked }));
   };
 
   const serverActivate2 = (event: ChangeEvent<HTMLInputElement>) => {
-    setState2({
-      ...state2,
-      [event.target.name]: event.target.checked,
-    });
+    const { name, checked } = event.target;
+    setState2((prev) => ({ ...prev, [name]: checked }));
   };
 
   return (

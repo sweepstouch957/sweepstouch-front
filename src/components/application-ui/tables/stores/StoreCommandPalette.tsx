@@ -170,12 +170,12 @@ export const StoreCommandPalette: FC<Props> = ({ open, onClose, onSelectSearch }
 
   /* Focus input when opens */
   useEffect(() => {
-    if (open) {
-      setTimeout(() => inputRef.current?.focus(), 60);
-      setQuery('');
-      setResults([]);
-      setActiveIdx(0);
-    }
+    if (!open) return;
+    const id = setTimeout(() => inputRef.current?.focus(), 60);
+    setQuery('');
+    setResults([]);
+    setActiveIdx(0);
+    return () => clearTimeout(id);
   }, [open]);
 
   /* Fetch from AI search endpoint */

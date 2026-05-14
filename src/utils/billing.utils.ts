@@ -20,8 +20,9 @@ export function startOfWeekMon(d: Date) {
   return date;
 }
 
-export const usd = (n: number | undefined) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n ?? 0);
+const USD_FORMATTER = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
+export const usd = (n: number | undefined) => USD_FORMATTER.format(n ?? 0);
 
 // Preferimos los totales de `range`; si no hay, usamos los de `byMonth`.
 export function pickTotalsForUI(

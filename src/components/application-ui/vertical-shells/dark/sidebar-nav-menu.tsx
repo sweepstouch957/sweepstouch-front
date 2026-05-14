@@ -207,7 +207,9 @@ interface SidebarNavMenuProps {
   menuItems?: MenuItem[];
 }
 
-export const SidebarNavMenu: FC<SidebarNavMenuProps> = ({ menuItems = [] }) => {
+const EMPTY_MENU_ITEMS: MenuItem[] = [];
+
+export const SidebarNavMenu: FC<SidebarNavMenuProps> = ({ menuItems = EMPTY_MENU_ITEMS }) => {
   const mdUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('md'));
 
   return (
