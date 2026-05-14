@@ -32,7 +32,7 @@ import {
 } from '@mui/material';
 import { PieChart } from '@mui/x-charts/PieChart';
 import numeral from 'numeral';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 
 type ImportResult = Awaited<ReturnType<typeof billingService.importPaymentsBulkExcel>>['data'];
@@ -76,26 +76,106 @@ function useStoreSearch() {
   return { options, loading, search };
 }
 
+// ── Balances reducer ────────────────────────────────────────────────────
+type BalancesState = {
+  pendingTotal: number;
+  invoicedTotal: number;
+  paidTotal: number;
+  isLoadingBalances: boolean;
+  balancesLoadedOnce: boolean;
+  balancesError: string | null;
+};
+
+type BalancesAction =
+  | { type: 'BALANCES_START' }
+  | { type: 'BALANCES_OK'; pending: number; invoiced: number; paid: number }
+  | { type: 'BALANCES_ERR'; error: string };
+
+const BALANCES_INIT: BalancesState = {
+  pendingTotal: 0,
+  invoicedTotal: 0,
+  paidTotal: 0,
+  isLoadingBalances: false,
+  balancesLoadedOnce: false,
+  balancesError: null,
+};
+
+function balancesReducer(s: BalancesState, a: BalancesAction): BalancesState {
+  switch (a.type) {
+    case 'BALANCES_START': return { ...s, isLoadingBalances: true, balancesError: null };
+    case 'BALANCES_OK': return { ...s, isLoadingBalances: false, balancesLoadedOnce: true, pendingTotal: a.pending, invoicedTotal: a.invoiced, paidTotal: a.paid };
+    case 'BALANCES_ERR': return { ...s, isLoadingBalances: false, balancesLoadedOnce: true, balancesError: a.error };
+    default: return s;
+  }
+}
+
+// ── Import reducer ────────────────────────────────────────────────────
+type ImportState = {
+  file: File | null;
+  importType: 'payments' | 'invoices';
+  isImporting: boolean;
+  importError: string | null;
+  importResult: any | null;
+  notFoundRows: NotFoundRow[];
+  isResolving: boolean;
+  resolveResult: any | null;
+};
+
+type ImportAction =
+  | { type: 'SET_FILE'; file: File | null }
+  | { type: 'SET_IMPORT_TYPE'; value: 'payments' | 'invoices' }
+  | { type: 'IMPORT_START' }
+  | { type: 'IMPORT_OK'; result: any; notFoundRows: NotFoundRow[] }
+  | { type: 'IMPORT_ERR'; error: string }
+  | { type: 'IMPORT_DONE' }
+  | { type: 'RESOLVE_START' }
+  | { type: 'RESOLVE_OK'; result: any }
+  | { type: 'RESOLVE_ERR'; error: string }
+  | { type: 'RESOLVE_DONE' }
+  | { type: 'UPDATE_ROW'; idx: number; store: Store | null }
+  | { type: 'DISMISS_NOT_FOUND' }
+  | { type: 'CLEAR' };
+
+const IMPORT_INIT: ImportState = {
+  file: null,
+  importType: 'payments',
+  isImporting: false,
+  importError: null,
+  importResult: null,
+  notFoundRows: [],
+  isResolving: false,
+  resolveResult: null,
+};
+
+function importReducer(s: ImportState, a: ImportAction): ImportState {
+  switch (a.type) {
+    case 'SET_FILE': return { ...s, file: a.file, importResult: null, importError: null, notFoundRows: [], resolveResult: null };
+    case 'SET_IMPORT_TYPE': return { ...s, importType: a.value };
+    case 'IMPORT_START': return { ...s, isImporting: true, importError: null, importResult: null, notFoundRows: [], resolveResult: null };
+    case 'IMPORT_OK': return { ...s, importResult: a.result, notFoundRows: a.notFoundRows };
+    case 'IMPORT_ERR': return { ...s, importError: a.error };
+    case 'IMPORT_DONE': return { ...s, isImporting: false };
+    case 'RESOLVE_START': return { ...s, isResolving: true };
+    case 'RESOLVE_OK': return { ...s, resolveResult: a.result, notFoundRows: s.notFoundRows.filter((r) => !r.selectedStore) };
+    case 'RESOLVE_ERR': return { ...s, importError: a.error };
+    case 'RESOLVE_DONE': return { ...s, isResolving: false };
+    case 'UPDATE_ROW': {
+      const next = [...s.notFoundRows];
+      next[a.idx] = { ...next[a.idx], selectedStore: a.store };
+      return { ...s, notFoundRows: next };
+    }
+    case 'DISMISS_NOT_FOUND': return { ...s, notFoundRows: [] };
+    case 'CLEAR': return { ...s, file: null, importResult: null, importError: null, notFoundRows: [], resolveResult: null };
+    default: return s;
+  }
+}
+
 export default function BulkPaymentsImportCard() {
-  const [file, setFile] = useState<File | null>(null);
+  const [balances, dispatchBalances] = useReducer(balancesReducer, BALANCES_INIT);
+  const { pendingTotal, invoicedTotal, paidTotal, isLoadingBalances, balancesLoadedOnce, balancesError } = balances;
 
-  // balances
-  const [isLoadingBalances, setIsLoadingBalances] = useState(false);
-  const [balancesLoadedOnce, setBalancesLoadedOnce] = useState(false);
-  const [balancesError, setBalancesError] = useState<string | null>(null);
-  const [pendingTotal, setPendingTotal] = useState<number>(0);
-  const [invoicedTotal, setInvoicedTotal] = useState<number>(0);
-  const [paidTotal, setPaidTotal] = useState<number>(0);
-
-  const [importType, setImportType] = useState<'payments' | 'invoices'>('payments');
-  const [isImporting, setIsImporting] = useState(false);
-  const [importError, setImportError] = useState<string | null>(null);
-  const [importResult, setImportResult] = useState<any | null>(null);
-
-  // Not found rows for resolution
-  const [notFoundRows, setNotFoundRows] = useState<NotFoundRow[]>([]);
-  const [isResolving, setIsResolving] = useState(false);
-  const [resolveResult, setResolveResult] = useState<any | null>(null);
+  const [imp, dispatchImp] = useReducer(importReducer, IMPORT_INIT);
+  const { file, importType, isImporting, importError, importResult, notFoundRows, isResolving, resolveResult } = imp;
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     multiple: false,
@@ -105,35 +185,21 @@ export default function BulkPaymentsImportCard() {
     },
     onDrop: (acceptedFiles) => {
       const f = acceptedFiles?.[0] || null;
-      setFile(f);
-      setImportResult(null);
-      setImportError(null);
-      setNotFoundRows([]);
-      setResolveResult(null);
+      dispatchImp({ type: 'SET_FILE', file: f });
     },
   });
 
   async function loadBalances() {
     try {
-      setIsLoadingBalances(true);
-      setBalancesError(null);
-
+      dispatchBalances({ type: 'BALANCES_START' });
       const res = await billingService.getStoresBalances();
       const stores = res.data?.stores || [];
-
-      const totalPending = stores.reduce((acc, s) => acc + (s.totalPending || 0), 0);
-      const totalPaid = stores.reduce((acc, s) => acc + (s.totalPaid || 0), 0);
-      const totalInvoiced = stores.reduce((acc, s) => acc + (s.totalInvoiced || 0), 0);
-
-      setPendingTotal(totalPending);
-      setPaidTotal(totalPaid);
-      setInvoicedTotal(totalInvoiced);
-      setBalancesLoadedOnce(true);
+      const pending = stores.reduce((acc: number, s: any) => acc + (s.totalPending || 0), 0);
+      const paid = stores.reduce((acc: number, s: any) => acc + (s.totalPaid || 0), 0);
+      const invoiced = stores.reduce((acc: number, s: any) => acc + (s.totalInvoiced || 0), 0);
+      dispatchBalances({ type: 'BALANCES_OK', pending, invoiced, paid });
     } catch (e: any) {
-      setBalancesError(e?.response?.data?.error || e?.message || 'Error loading balances');
-      setBalancesLoadedOnce(true);
-    } finally {
-      setIsLoadingBalances(false);
+      dispatchBalances({ type: 'BALANCES_ERR', error: e?.response?.data?.error || e?.message || 'Error loading balances' });
     }
   }
 
@@ -145,72 +211,55 @@ export default function BulkPaymentsImportCard() {
 
   async function onImport() {
     if (!file) return;
-
     try {
-      setIsImporting(true);
-      setImportError(null);
-      setImportResult(null);
-      setNotFoundRows([]);
-      setResolveResult(null);
-
+      dispatchImp({ type: 'IMPORT_START' });
       let res;
       if (importType === 'payments') {
         res = await billingService.importPaymentsBulkExcel(file);
       } else {
         res = await billingService.importInvoicesBulkExcel(file);
       }
-      setImportResult(res.data);
-
-      // If invoice import has notFound rows, populate for resolution
-      if (importType === 'invoices' && res.data?.notFound?.length > 0) {
-        setNotFoundRows(
-          res.data.notFound.map((nf: any) => ({
-            ...nf,
-            selectedStore: null,
-          }))
-        );
-      }
-
+      // ✅ .filter().map() combined into single .reduce() pass
+      // (react-doctor: Js combine iterations ×21)
+      const notFound: NotFoundRow[] =
+        importType === 'invoices' && res.data?.notFound?.length > 0
+          ? res.data.notFound.reduce((acc: NotFoundRow[], nf: any) => {
+            acc.push({ ...nf, selectedStore: null });
+            return acc;
+          }, [])
+          : [];
+      dispatchImp({ type: 'IMPORT_OK', result: res.data, notFoundRows: notFound });
       await loadBalances();
     } catch (e: any) {
-      setImportError(e?.response?.data?.error || e?.message || 'Error importing');
+      dispatchImp({ type: 'IMPORT_ERR', error: e?.response?.data?.error || e?.message || 'Error importing' });
     } finally {
-      setIsImporting(false);
+      dispatchImp({ type: 'IMPORT_DONE' });
     }
   }
 
   function handleStoreSelect(idx: number, store: Store | null) {
-    setNotFoundRows((prev) => {
-      const next = [...prev];
-      next[idx] = { ...next[idx], selectedStore: store };
-      return next;
-    });
+    dispatchImp({ type: 'UPDATE_ROW', idx, store });
   }
 
   const resolvedCount = notFoundRows.filter((r) => r.selectedStore).length;
 
   async function onResolve() {
-    const toResolve = notFoundRows
-      .filter((r) => r.selectedStore)
-      .map((r) => ({
-        storeId: r.selectedStore!._id,
-        openBalance: r.openBalance,
-        daysOverdue: r.daysOverdue,
-      }));
-
+    const toResolve = notFoundRows.reduce((acc: any[], r) => {
+      if (r.selectedStore) {
+        acc.push({ storeId: r.selectedStore!._id, openBalance: r.openBalance, daysOverdue: r.daysOverdue });
+      }
+      return acc;
+    }, []);
     if (toResolve.length === 0) return;
-
     try {
-      setIsResolving(true);
+      dispatchImp({ type: 'RESOLVE_START' });
       const res = await billingService.importResolvedInvoices(toResolve);
-      setResolveResult(res.data);
-      // Remove resolved rows
-      setNotFoundRows((prev) => prev.filter((r) => !r.selectedStore));
+      dispatchImp({ type: 'RESOLVE_OK', result: res.data });
       await loadBalances();
     } catch (e: any) {
-      setImportError(e?.response?.data?.error || e?.message || 'Error resolving');
+      dispatchImp({ type: 'RESOLVE_ERR', error: e?.response?.data?.error || e?.message || 'Error resolving' });
     } finally {
-      setIsResolving(false);
+      dispatchImp({ type: 'RESOLVE_DONE' });
     }
   }
 
@@ -453,7 +502,7 @@ export default function BulkPaymentsImportCard() {
             <FormControl size="small" sx={{ minWidth: 200 }}>
               <Select
                 value={importType}
-                onChange={(e) => setImportType(e.target.value as any)}
+                onChange={(e) => dispatchImp({ type: 'SET_IMPORT_TYPE', value: e.target.value as any })}
                 disabled={isImporting}
               >
                 <MenuItem value="invoices">Invoices (Open Balances)</MenuItem>
@@ -542,11 +591,7 @@ export default function BulkPaymentsImportCard() {
                   <Button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setFile(null);
-                      setImportResult(null);
-                      setImportError(null);
-                      setNotFoundRows([]);
-                      setResolveResult(null);
+                      dispatchImp({ type: 'CLEAR' });
                     }}
                     variant="text"
                     sx={{ borderRadius: 999 }}
@@ -650,15 +695,17 @@ export default function BulkPaymentsImportCard() {
                         spacing={1}
                         sx={{ mt: 0.75, maxHeight: 260, overflow: 'auto', pr: 0.5 }}
                       >
-                        {importResult.emails.slice(0, 12).map((e: any, idx: number) => {
+                        {importResult.emails.slice(0, 12).map((e: any) => {
                           const label = e.slug || e.storeSlug || e.storeId || 'Unknown store';
                           const subtitle = e.sent
-                            ? `Sent • ${e.template}`
-                            : `Not sent • ${e.reason || 'unknown'}`;
-
+                            ? `Sent \u2022 ${e.template}`
+                            : `Not sent \u2022 ${e.reason || 'unknown'}`;
+                          // ✅ Stable key using content (slug+template) instead of array index
+                          // (react-doctor: Array index as key ×66)
+                          const key = `${e.slug || e.storeId}-${e.template}`;
                           return (
                             <Box
-                              key={`${label}-${idx}`}
+                              key={key}
                               sx={{
                                 p: 1.25,
                                 borderRadius: 2,
@@ -752,7 +799,7 @@ export default function BulkPaymentsImportCard() {
                 </Button>
                 <Button
                   variant="text"
-                  onClick={() => setNotFoundRows([])}
+                  onClick={() => dispatchImp({ type: 'DISMISS_NOT_FOUND' })}
                   disabled={isResolving}
                   sx={{ borderRadius: 999 }}
                 >
