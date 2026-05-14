@@ -1,8 +1,8 @@
 'use client';
 
-import React, { FC, memo, useMemo, useState } from 'react';
+import React, { FC, memo, useCallback, useMemo, useRef, useState } from 'react';
 import {
-  alpha, Avatar, Box, Button, Card, Chip, Collapse, IconButton,
+  alpha, Avatar, Box, Card, Chip, Collapse, IconButton,
   InputAdornment, Stack, TextField, Tooltip, Typography, useMediaQuery, useTheme,
 } from '@mui/material';
 import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
@@ -24,7 +24,18 @@ import { User } from '@/contexts/auth/user';
 import DepartmentManager from 'src/components/departments/DepartmentManager';
 import { useDepartmentBoard, getUserId, getInitials, ROLE_STYLE } from '@/hooks/useDepartmentBoard';
 
-/* ─── Compact user row ─────────────────────────────────────────────────────── */
+/* ─── useDebounce ──────────────────────────────────────────────────────────── */
+function useDebounce(value: string, delay = 180): string {
+  const [debounced, setDebounced] = useState(value);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  React.useEffect(() => {
+    timer.current = setTimeout(() => setDebounced(value), delay);
+    return () => { if (timer.current) clearTimeout(timer.current); };
+  }, [value, delay]);
+  return debounced;
+}
+
+/* ─── UserRow ─────────────────────────────────────────────────────────────── */
 const UserRow: FC<{
   user: User; isDragging: boolean; innerRef: any; draggableProps: any; dragHandleProps: any;
 }> = memo(({ user, isDragging, innerRef, draggableProps, dragHandleProps }) => {
@@ -37,7 +48,8 @@ const UserRow: FC<{
       bgcolor: isDragging ? alpha(r.color, 0.06) : theme.palette.background.paper,
       boxShadow: isDragging ? `0 8px 24px ${alpha('#000', 0.18)}` : 'none',
       '&:hover': { borderColor: alpha(r.color, 0.35), boxShadow: `0 2px 8px ${alpha('#000', 0.06)}` },
-      transition: 'all 0.15s',
+      transition: 'border-color 0.15s, box-shadow 0.15s',
+      willChange: isDragging ? 'transform' : 'auto',
     }}>
       <Stack direction="row" alignItems="center" spacing={0.75} sx={{ px: 0.75, py: 0.5 }}>
         <Box {...dragHandleProps} sx={{ color: alpha(theme.palette.text.primary, 0.15), cursor: 'grab', display: 'flex', flexShrink: 0 }}>
@@ -62,10 +74,15 @@ const UserRow: FC<{
 });
 UserRow.displayName = 'UserRow';
 
-/* ─── Department accordion section ─────────────────────────────────────────── */
-const DeptSection: FC<{
-  dept: Department; users: User[]; search: string; defaultOpen?: boolean;
-}> = memo(({ dept, users, search, defaultOpen = false }) => {
+/* ─── DeptSection ─────────────────────────────────────────────────────────── */
+interface DeptSectionProps {
+  dept: Department;
+  users: User[];
+  search: string;
+  defaultOpen?: boolean;
+}
+
+const DeptSection: FC<DeptSectionProps> = memo(({ dept, users, search, defaultOpen = false }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const [open, setOpen] = useState(defaultOpen);
@@ -77,17 +94,18 @@ const DeptSection: FC<{
     return users.filter(u => `${u.firstName} ${u.lastName}`.toLowerCase().includes(q));
   }, [users, search]);
 
+  const toggle = useCallback(() => setOpen(v => !v), []);
+
   return (
     <Box sx={{ mb: 1 }}>
-      {/* Header — always visible */}
-      <Box onClick={() => setOpen(v => !v)} sx={{
+      <Box onClick={toggle} sx={{
         cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 1,
         px: 1.25, py: 0.75, borderRadius: open ? '10px 10px 0 0' : 2,
         background: `linear-gradient(135deg, ${alpha(c, isDark ? 0.16 : 0.07)} 0%, ${alpha(c, isDark ? 0.06 : 0.02)} 100%)`,
         border: `1px solid ${alpha(c, isDark ? 0.22 : 0.12)}`,
         borderBottom: open ? `1px solid ${alpha(c, isDark ? 0.15 : 0.08)}` : undefined,
         '&:hover': { background: `linear-gradient(135deg, ${alpha(c, isDark ? 0.22 : 0.1)} 0%, ${alpha(c, isDark ? 0.1 : 0.04)} 100%)` },
-        userSelect: 'none', transition: 'all 0.15s',
+        userSelect: 'none', transition: 'background 0.15s',
       }}>
         <Avatar sx={{
           width: 26, height: 26, fontSize: 11, fontWeight: 800,
@@ -108,7 +126,6 @@ const DeptSection: FC<{
         {open ? <ExpandLessRoundedIcon sx={{ fontSize: 16, color: 'text.secondary' }} /> : <ExpandMoreRoundedIcon sx={{ fontSize: 16, color: 'text.secondary' }} />}
       </Box>
 
-      {/* Droppable body */}
       <Collapse in={open} unmountOnExit>
         <Droppable droppableId={dept._id}>
           {(provided, snapshot) => (
@@ -139,6 +156,32 @@ const DeptSection: FC<{
 });
 DeptSection.displayName = 'DeptSection';
 
+/* ─── SearchField ──────────────────────────────────────────────────────────── */
+const SearchField: FC<{ value: string; onChange: (v: string) => void; placeholder: string }> = memo(
+  ({ value, onChange, placeholder }) => {
+    const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value), [onChange]);
+    const handleClear = useCallback(() => onChange(''), [onChange]);
+    return (
+      <TextField
+        size="small" placeholder={placeholder} fullWidth
+        value={value} onChange={handleChange}
+        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5, fontSize: 11, height: 30 } }}
+        InputProps={{
+          startAdornment: <InputAdornment position="start"><SearchRoundedIcon sx={{ fontSize: 13, color: 'text.secondary' }} /></InputAdornment>,
+          endAdornment: value ? (
+            <InputAdornment position="end">
+              <IconButton size="small" onClick={handleClear} sx={{ p: 0.15 }}>
+                <CloseRoundedIcon sx={{ fontSize: 11 }} />
+              </IconButton>
+            </InputAdornment>
+          ) : null,
+        }}
+      />
+    );
+  }
+);
+SearchField.displayName = 'SearchField';
+
 /* ─── Mobile tab type ──────────────────────────────────────────────────────── */
 type MobileTab = 'users' | 'depts';
 
@@ -148,8 +191,12 @@ function Page() {
   const isDark = theme.palette.mode === 'dark';
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileTab, setMobileTab] = useState<MobileTab>('users');
-  const [userSearch, setUserSearch] = useState('');
-  const [deptSearch, setDeptSearch] = useState('');
+  const [userSearchRaw, setUserSearchRaw] = useState('');
+  const [deptSearchRaw, setDeptSearchRaw] = useState('');
+
+  // Debounce searches — no re-render on every keystroke
+  const userSearch = useDebounce(userSearchRaw);
+  const deptSearch = useDebounce(deptSearchRaw);
 
   const {
     deptManagerOpen, departments, isLoading,
@@ -158,14 +205,12 @@ function Page() {
     openDeptManager, closeDeptManager,
   } = useDepartmentBoard();
 
-  // Filter unassigned users
   const filteredUnassigned = useMemo(() => {
     if (!userSearch) return unassignedUsers;
     const q = userSearch.toLowerCase();
     return unassignedUsers.filter(u => `${u.firstName} ${u.lastName}`.toLowerCase().includes(q));
   }, [unassignedUsers, userSearch]);
 
-  // Filter departments
   const filteredDepts = useMemo(() => {
     if (!deptSearch) return departments;
     const q = deptSearch.toLowerCase();
@@ -174,39 +219,28 @@ function Page() {
 
   const assignedCount = totalUsers - unassignedUsers.length;
 
-  /* ── Left panel: Unassigned users ── */
-  const usersPanel = (
+  // Stable tab switch handler
+  const switchToUsers = useCallback(() => setMobileTab('users'), []);
+  const switchToDepts = useCallback(() => setMobileTab('depts'), []);
+
+  /* ── Left panel — memo so it doesn't rebuild when mobileTab changes ── */
+  const usersPanel = useMemo(() => (
     <Box sx={{
       display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0,
       borderRight: isMobile ? 'none' : `1px solid ${theme.palette.divider}`,
     }}>
-      {/* Panel header */}
       <Box sx={{ px: 1.5, py: 1.25, borderBottom: `1px solid ${theme.palette.divider}`, flexShrink: 0 }}>
         <Stack direction="row" alignItems="center" spacing={0.75} mb={0.75}>
           <PersonOffRoundedIcon sx={{ fontSize: 16, color: 'warning.main' }} />
           <Typography fontWeight={700} fontSize={13} flex={1}>Sin Asignar</Typography>
           <Chip label={unassignedUsers.length} size="small" sx={{
             height: 20, fontSize: 10, fontWeight: 700,
-            bgcolor: alpha(theme.palette.warning.main, 0.12),
-            color: 'warning.main',
+            bgcolor: alpha(theme.palette.warning.main, 0.12), color: 'warning.main',
           }} />
         </Stack>
-        <TextField
-          size="small" placeholder="Buscar usuario..." fullWidth
-          value={userSearch} onChange={e => setUserSearch(e.target.value)}
-          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5, fontSize: 11, height: 30 } }}
-          InputProps={{
-            startAdornment: <InputAdornment position="start"><SearchRoundedIcon sx={{ fontSize: 13, color: 'text.secondary' }} /></InputAdornment>,
-            endAdornment: userSearch ? <InputAdornment position="end">
-              <IconButton size="small" onClick={() => setUserSearch('')} sx={{ p: 0.15 }}>
-                <CloseRoundedIcon sx={{ fontSize: 11 }} />
-              </IconButton>
-            </InputAdornment> : null,
-          }}
-        />
+        <SearchField value={userSearchRaw} onChange={setUserSearchRaw} placeholder="Buscar usuario..." />
       </Box>
 
-      {/* Droppable user list */}
       <Droppable droppableId="unassigned">
         {(provided, snapshot) => (
           <Box ref={provided.innerRef} {...provided.droppableProps} sx={{
@@ -230,38 +264,24 @@ function Page() {
         )}
       </Droppable>
     </Box>
-  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ), [filteredUnassigned, unassignedUsers.length, userSearchRaw, userSearch, isMobile, isDark]);
 
-  /* ── Right panel: Departments ── */
-  const deptsPanel = (
+  /* ── Right panel ── */
+  const deptsPanel = useMemo(() => (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      {/* Panel header */}
       <Box sx={{ px: 1.5, py: 1.25, borderBottom: `1px solid ${theme.palette.divider}`, flexShrink: 0 }}>
         <Stack direction="row" alignItems="center" spacing={0.75} mb={0.75}>
           <FolderRoundedIcon sx={{ fontSize: 16, color: 'primary.main' }} />
           <Typography fontWeight={700} fontSize={13} flex={1}>Departamentos</Typography>
           <Chip label={`${assignedCount} asignados`} size="small" sx={{
             height: 20, fontSize: 10, fontWeight: 600,
-            bgcolor: alpha(theme.palette.success.main, 0.12),
-            color: 'success.main',
+            bgcolor: alpha(theme.palette.success.main, 0.12), color: 'success.main',
           }} />
         </Stack>
-        <TextField
-          size="small" placeholder="Buscar departamento..." fullWidth
-          value={deptSearch} onChange={e => setDeptSearch(e.target.value)}
-          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5, fontSize: 11, height: 30 } }}
-          InputProps={{
-            startAdornment: <InputAdornment position="start"><SearchRoundedIcon sx={{ fontSize: 13, color: 'text.secondary' }} /></InputAdornment>,
-            endAdornment: deptSearch ? <InputAdornment position="end">
-              <IconButton size="small" onClick={() => setDeptSearch('')} sx={{ p: 0.15 }}>
-                <CloseRoundedIcon sx={{ fontSize: 11 }} />
-              </IconButton>
-            </InputAdornment> : null,
-          }}
-        />
+        <SearchField value={deptSearchRaw} onChange={setDeptSearchRaw} placeholder="Buscar departamento..." />
       </Box>
 
-      {/* Department accordion list */}
       <Box sx={{
         flex: 1, minHeight: 0, overflowY: 'auto', px: 1.25, py: 0.75,
         '&::-webkit-scrollbar': { width: 3 },
@@ -283,11 +303,12 @@ function Page() {
         )}
       </Box>
     </Box>
-  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ), [filteredDepts, columnUsers, deptSearchRaw, deptSearch, userSearch, assignedCount, isDark]);
 
   return (
     <Box sx={{ flex: 1, height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {/* ── Top bar ── */}
+      {/* Top bar */}
       <Box sx={{
         flexShrink: 0, px: { xs: 1.5, sm: 2 }, py: 1,
         borderBottom: `1px solid ${theme.palette.divider}`,
@@ -305,25 +326,32 @@ function Page() {
             {isLoading ? 'Cargando...' : `${totalUsers} usuarios · ${departments.length} departamentos · ${assignedCount} asignados`}
           </Typography>
         </Box>
-        <Tooltip title="Actualizar"><IconButton size="small" onClick={refresh} sx={{
-          border: `1px solid ${theme.palette.divider}`, borderRadius: 1.5, width: 28, height: 28,
-        }}><RefreshRoundedIcon sx={{ fontSize: 14 }} /></IconButton></Tooltip>
-        <Tooltip title="Administrar"><IconButton size="small" onClick={openDeptManager} sx={{
-          border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`, borderRadius: 1.5,
-          width: 28, height: 28, color: theme.palette.primary.main,
-        }}><SettingsRoundedIcon sx={{ fontSize: 14 }} /></IconButton></Tooltip>
+        <Tooltip title="Actualizar">
+          <IconButton size="small" onClick={refresh} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1.5, width: 28, height: 28 }}>
+            <RefreshRoundedIcon sx={{ fontSize: 14 }} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Administrar">
+          <IconButton size="small" onClick={openDeptManager} sx={{
+            border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`, borderRadius: 1.5,
+            width: 28, height: 28, color: theme.palette.primary.main,
+          }}><SettingsRoundedIcon sx={{ fontSize: 14 }} /></IconButton>
+        </Tooltip>
       </Box>
 
-      {/* ── Mobile tabs ── */}
+      {/* Mobile tabs */}
       {isMobile && (
         <Stack direction="row" sx={{ borderBottom: `1px solid ${theme.palette.divider}`, flexShrink: 0 }}>
-          {([['users', 'Usuarios', PeopleRoundedIcon, unassignedUsers.length], ['depts', 'Departamentos', FolderRoundedIcon, departments.length]] as const).map(([key, label, Icon, count]) => (
-            <Box key={key} onClick={() => setMobileTab(key as MobileTab)} sx={{
+          {([
+            { key: 'users' as MobileTab, label: 'Usuarios', Icon: PeopleRoundedIcon, count: unassignedUsers.length, onClick: switchToUsers },
+            { key: 'depts' as MobileTab, label: 'Departamentos', Icon: FolderRoundedIcon, count: departments.length, onClick: switchToDepts },
+          ]).map(({ key, label, Icon, count, onClick }) => (
+            <Box key={key} onClick={onClick} sx={{
               flex: 1, py: 1, cursor: 'pointer', textAlign: 'center', userSelect: 'none',
               borderBottom: mobileTab === key ? `2px solid ${theme.palette.primary.main}` : '2px solid transparent',
               bgcolor: mobileTab === key ? alpha(theme.palette.primary.main, 0.04) : 'transparent',
               '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.03) },
-              transition: 'all 0.15s',
+              transition: 'border-color 0.15s, background 0.15s',
             }}>
               <Stack direction="row" alignItems="center" justifyContent="center" spacing={0.5}>
                 <Icon sx={{ fontSize: 14, color: mobileTab === key ? 'primary.main' : 'text.secondary' }} />
@@ -337,7 +365,7 @@ function Page() {
         </Stack>
       )}
 
-      {/* ── Main content: two-panel layout ── */}
+      {/* Main drag-drop layout */}
       <DragDropContext onDragEnd={handleDragEnd}>
         {isMobile ? (
           <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>

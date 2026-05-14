@@ -114,6 +114,7 @@ export default function StoreFilters({
   onDebtStatusChange,
   onMinDebtChange,
   onMaxDebtChange,
+  onOpenCommandPalette,
 }: {
   search: string;
   status: 'all' | 'active' | 'inactive';
@@ -136,10 +137,16 @@ export default function StoreFilters({
   onDebtStatusChange: (v: DebtStatus) => void;
   onMinDebtChange: (v: string) => void;
   onMaxDebtChange: (v: string) => void;
+  onOpenCommandPalette?: () => void;
 }) {
   const theme = useTheme();
   const { t } = useTranslation();
   const { user } = useAuth();
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 600;
+
+  // Detect Ctrl+K shortcut
+  const isMac = typeof navigator !== 'undefined' && /mac/i.test(navigator.platform);
+  const kbdHint = isMac ? '⌘K' : 'Ctrl K';
 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [searchInput, setSearchInput] = useState(searchProp);
@@ -216,12 +223,19 @@ export default function StoreFilters({
         alignItems={{ xs: 'stretch', sm: 'center' }}
         sx={{ px: { xs: 1.5, sm: 2 }, py: 1.25, gap: 1, flexWrap: 'wrap' }}
       >
-        {/* Search field */}
+        {/* Search field — desktop: live search, mobile: opens command palette */}
         <TextField
           size="small"
           value={searchInput}
           onChange={(e) => onSearchInput(e.target.value)}
           placeholder="Buscar tienda..."
+          onClick={onOpenCommandPalette ? (e) => {
+            // On small screens, tap opens command palette
+            if (window.innerWidth < 600 && onOpenCommandPalette) {
+              e.preventDefault();
+              onOpenCommandPalette();
+            }
+          } : undefined}
           sx={{
             flex: { xs: '1 1 100%', sm: '1 1 180px' },
             '& .MuiOutlinedInput-root': { height: 36, fontSize: 13, borderRadius: 2 },
@@ -232,6 +246,29 @@ export default function StoreFilters({
                 <SearchRoundedIcon sx={{ fontSize: 17, color: 'text.secondary' }} />
               </InputAdornment>
             ),
+            endAdornment: onOpenCommandPalette ? (
+              <InputAdornment position="end">
+                <Tooltip title={`Búsqueda AI (${kbdHint})`}>
+                  <Box
+                    component="button"
+                    onClick={(e) => { e.stopPropagation(); onOpenCommandPalette(); }}
+                    sx={{
+                      all: 'unset', display: 'flex', alignItems: 'center', gap: 0.3,
+                      px: 0.6, py: 0.15, borderRadius: 1, cursor: 'pointer',
+                      border: `1px solid ${alpha(theme.palette.text.primary, 0.15)}`,
+                      bgcolor: alpha(theme.palette.text.primary, 0.04),
+                      '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08), borderColor: alpha(theme.palette.primary.main, 0.3) },
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <AutoAwesomeRoundedIcon sx={{ fontSize: 10, color: 'primary.main' }} />
+                    <Typography fontSize={10} fontWeight={700} color="text.secondary" sx={{ letterSpacing: '0.02em' }}>
+                      {kbdHint}
+                    </Typography>
+                  </Box>
+                </Tooltip>
+              </InputAdornment>
+            ) : null,
           }}
         />
 

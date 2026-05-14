@@ -115,68 +115,65 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
     refetchOnWindowFocus: false,
   });
 
-  const handlePageChange = (newPage: number) => setPage(newPage);
+  const handlePageChange = useCallback((newPage: number) => setPage(newPage), []);
 
-  const handleLimitChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleLimitChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     setLimit(parseInt(e.target.value, 10));
     setPage(0);
-  };
+  }, []);
 
-  const handleSearchChange = (value: string) => {
+  const handleSearchChange = useCallback((value: string) => {
     setSearchInput(value);
     debouncedSearch(value);
     setPage(0);
-  };
+  }, [debouncedSearch]);
 
-  const handleTypeChange = (value: string) => {
+  const handleTypeChange = useCallback((value: string) => {
     setType(value as UseStoresOptions['type']);
     setPage(0);
-  };
+  }, []);
 
-  const handleSortChange = (
+  const handleSortChange = useCallback((
     value: 'customerCount' | 'name' | 'active' | 'maxDaysOverdue' | string
   ) => {
     setSortBy(value);
     setPage(0);
-  };
+  }, []);
 
-  const handleOrderChange = (value: 'asc' | 'desc') => {
+  const handleOrderChange = useCallback((value: 'asc' | 'desc') => {
     setOrder(value);
     setPage(0);
-  };
+  }, []);
 
-  const handleAudienceLtChange = (value: string) => {
+  const handleAudienceLtChange = useCallback((value: string) => {
     setAudienceLt(value);
     setPage(0);
-  };
+  }, []);
 
-  // morosidad
-  const handleDebtStatusChange = (value: 'all' | 'ok' | 'low' | 'high') => {
+  const handleDebtStatusChange = useCallback((value: 'all' | 'ok' | 'low' | 'high') => {
     setDebtStatus(value);
     setPage(0);
-  };
+  }, []);
 
-  const handleMinDebtChange = (value: string) => {
+  const handleMinDebtChange = useCallback((value: string) => {
     setMinDebt(value);
     setPage(0);
-  };
+  }, []);
 
-  const handleMaxDebtChange = (value: string) => {
+  const handleMaxDebtChange = useCallback((value: string) => {
     setMaxDebt(value);
     setPage(0);
-  };
+  }, []);
 
-  // ⭐ handler paymentMethod
-  const handlePaymentMethodChange = (value: PaymentMethodFilter) => {
+  const handlePaymentMethodChange = useCallback((value: PaymentMethodFilter) => {
     setPaymentMethod(value);
     setPage(0);
-  };
+  }, []);
 
-  // ⭐ handler provider
-  const handleProviderChange = (value: ProviderFilter) => {
+  const handleProviderChange = useCallback((value: ProviderFilter) => {
     setProvider(value);
     setPage(0);
-  };
+  }, []);
 
   return {
     stores: data?.data || [],

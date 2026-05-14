@@ -226,6 +226,112 @@ function toTechStore(store: any, fallbackId?: string): TechStore | null {
   };
 }
 
+/* ─── Memoized StoreRow ──────────────────────────────────────────────────────
+   Extracted to module scope so React never remounts it when parent re-renders.
+   Each row only updates if its own `store` prop changes (Object.is comparison). */
+interface StoreRowProps {
+  store: any;
+  isAdmin: boolean;
+  onOpenTech: (store: any) => void;
+  onDuplicate: (store: any) => void;
+}
+
+const StoreRow: FC<StoreRowProps> = React.memo(({ store, isAdmin, onOpenTech, onDuplicate }) => {
+  const id = store._id || store.id;
+  const { displayName, displayAddress } = splitByFirstNumber(store.name, store.address);
+  const pending = store.billing?.totalPending || 0;
+  const weeklyCost = store.billing?.lastWeekCampaignCost || 0;
+  const installmentsNeeded = store.billing?.installmentsNeeded ?? null;
+  const tone = paymentTone(pending, installmentsNeeded);
+  const payMethod = paymentMethodLabel(store.paymentMethod);
+  const pi = providerInfo(store);
+
+  return (
+    <TableRow key={id} hover>
+      {/* STORE */}
+      <TableCell>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <LogoImg src={store.image} />
+          <Box sx={{ minWidth: 0 }}>
+            <Link href={`/admin/management/stores/edit/${id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
+                <Typography variant="subtitle1" fontWeight={900} sx={{ fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 260, whiteSpace: 'nowrap' }}>
+                  {displayName}
+                </Typography>
+                <ActiveBadge active={!!store.active} />
+              </Box>
+            </Link>
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 280, whiteSpace: 'nowrap' }}>
+              {displayAddress}
+            </Typography>
+            {store.accessCode ? (
+              <Chip size="small" label={`Codigo: ${store.accessCode}`} variant="outlined"
+                sx={{ mt: 0.5, height: 20, maxWidth: 260, color: '#ff0080', borderColor: '#ff0080', fontSize: 10, fontWeight: 800, '& .MuiChip-label': { px: 0.75, overflow: 'hidden', textOverflow: 'ellipsis' } }}
+              />
+            ) : null}
+          </Box>
+        </Box>
+      </TableCell>
+      {/* Customers */}
+      <TableCell>{store.customerCount}</TableCell>
+      {/* Weekly */}
+      <TableCell align="right">
+        <Typography fontWeight={900} color={weeklyCost > 0 ? 'primary.main' : 'text.secondary'}>
+          {formatMoney(weeklyCost)}
+        </Typography>
+      </TableCell>
+      {/* Balance */}
+      <TableCell align="right">
+        <Typography fontWeight={900} color={pending > 0 ? 'error.main' : 'success.main'}>
+          {formatMoney(pending)}
+        </Typography>
+      </TableCell>
+      {/* Installments */}
+      <TableCell align="right" sx={{ position: 'relative' }}>
+        <Typography fontWeight={900}>{installmentsLabel(pending, installmentsNeeded)}</Typography>
+      </TableCell>
+      {/* Payment status */}
+      <TableCell align="center">
+        <Chip size="small" label={toneLabel(tone)} color={toneChipColor(tone)}
+          variant={tone === 'critical' ? 'filled' : 'outlined'}
+          sx={{ fontSize: 10, fontWeight: 800, height: 20, letterSpacing: 0.4, '& .MuiChip-label': { px: 0.75 } }}
+        />
+      </TableCell>
+      {/* Payment method */}
+      <TableCell align="center">
+        <Tooltip title={payMethod} arrow>
+          <Chip size="small" icon={<PaymentsRounded sx={{ fontSize: 16 }} />} label={payMethod} variant="outlined"
+            sx={{ height: 24, fontSize: 11, fontWeight: 900, '& .MuiChip-label': { px: 0.75 } }}
+          />
+        </Tooltip>
+      </TableCell>
+      {/* Provider */}
+      <TableCell align="center">
+        <Stack spacing={0.25} alignItems="center">
+          <Chip size="small" label={`${pi.emoji} ${pi.label}`} variant="outlined"
+            sx={{ height: 22, fontSize: 11, fontWeight: 800, borderColor: pi.color, color: pi.color, '& .MuiChip-label': { px: 0.75 } }}
+          />
+          <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary', maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={pi.sender}>
+            {pi.sender}
+          </Typography>
+        </Stack>
+      </TableCell>
+      {/* Actions */}
+      <TableCell align="center" sx={{ px: 0.5 }}>
+        <Stack direction="row" spacing={0} justifyContent="center" sx={{ '& .MuiIconButton-root': { p: 0.4 }, '& .MuiSvgIcon-root': { fontSize: 16 } }}>
+          <Tooltip title="Editar" arrow><Link href={`/admin/management/stores/edit/${id}`} passHref><IconButton color="primary"><Settings /></IconButton></Link></Tooltip>
+          <Tooltip title="Merchant" arrow><IconButton color="secondary" onClick={() => window.open(buildSwitchUrl(store.accessCode), '_blank')}><Web /></IconButton></Tooltip>
+          <Tooltip title="Ficha" arrow><IconButton color="primary" onClick={() => onOpenTech(store)}><AccountCircle /></IconButton></Tooltip>
+          {isAdmin && (
+            <Tooltip title="Duplicar (sin deuda)" arrow><IconButton color="warning" onClick={() => onDuplicate(store)}><ContentCopyRounded /></IconButton></Tooltip>
+          )}
+        </Stack>
+      </TableCell>
+    </TableRow>
+  );
+});
+StoreRow.displayName = 'StoreRow';
+
 /* --------------------------------- props ---------------------------------- */
 type StatusFilter = 'all' | 'active' | 'inactive';
 type DebtStatus = 'all' | 'ok' | 'min_low' | 'low' | 'mid' | 'high' | 'critical';
@@ -235,15 +341,12 @@ interface ResultsProps {
   page: number;
   limit: number;
   total: number;
-
   sortBy: string;
   order: 'asc' | 'desc';
-
   onPageChange: (page: number) => void;
   onLimitChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onSortChange: (sortBy: string) => void;
   onRefresh?: () => void;
-
   loading?: boolean;
   fetching?: boolean;
   error?: string | null;
@@ -534,37 +637,28 @@ const Results: FC<ResultsProps> = ({
   const [techStore, setTechStore] = React.useState<TechStore | null>(null);
   const techRequestId = React.useRef(0);
 
-  const openTech = async (store: any) => {
+  const openTech = useCallback(async (store: any) => {
     const id = String(store._id || store.id || '');
     if (!id) return;
-
     const requestId = techRequestId.current + 1;
     techRequestId.current = requestId;
-
     const summaryStore = toTechStore(store, id);
     setTechStore(summaryStore);
     setTechOpen(true);
-
     if (summaryStore?.slug) return;
-
     try {
       const fullStore = await getStoreById(id);
       if (techRequestId.current !== requestId) return;
-
       const hydratedStore = toTechStore(fullStore, id);
-      if (hydratedStore) {
-        setTechStore((current) => (current ? { ...current, ...hydratedStore } : hydratedStore));
-      }
-    } catch (err) {
-      console.error('Error loading full store info:', err);
-    }
-  };
+      if (hydratedStore) setTechStore((cur) => (cur ? { ...cur, ...hydratedStore } : hydratedStore));
+    } catch (err) { console.error('Error loading full store info:', err); }
+  }, []);
 
-  const closeTech = () => {
+  const closeTech = useCallback(() => {
     techRequestId.current += 1;
     setTechOpen(false);
     setTechStore(null);
-  };
+  }, []);
 
   // replaced by module-scope MobileList
 
@@ -704,215 +798,16 @@ const Results: FC<ResultsProps> = ({
               </TableHead>
 
               <TableBody>
-                {stores.map((store: any) => {
-                  const id = store._id || store.id;
+                {stores.map((store: any) => (
+                  <StoreRow
+                    key={store._id || store.id}
+                    store={store}
+                    isAdmin={isAdmin}
+                    onOpenTech={openTech}
+                    onDuplicate={openDuplicateDialog}
+                  />
+                ))}
 
-                  const { displayName, displayAddress } = splitByFirstNumber(
-                    store.name,
-                    store.address
-                  );
-
-                  const pending = store.billing?.totalPending || 0;
-                  const weeklyCost = store.billing?.lastWeekCampaignCost || 0;
-                  const installmentsNeeded = store.billing?.installmentsNeeded ?? null;
-
-                  const tone = paymentTone(pending, installmentsNeeded);
-                  const payMethod = paymentMethodLabel(store.paymentMethod);
-
-                  return (
-                    <TableRow
-                      key={id}
-                      hover
-                    >
-                      {/* STORE */}
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                          <LogoImg src={store.image} />
-                          <Box sx={{ minWidth: 0 }}>
-                            <Link
-                              href={`/admin/management/stores/edit/${id}`}
-                              style={{ textDecoration: 'none', color: 'inherit' }}
-                            >
-                              <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
-                                <Typography
-                                  variant="subtitle1"
-                                  fontWeight={900}
-                                  sx={{
-                                    fontSize: 15,
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    maxWidth: 260,
-                                    whiteSpace: 'nowrap',
-                                  }}
-                                >
-                                  {displayName}
-                                </Typography>
-
-                                <ActiveBadge active={!!store.active} />
-                              </Box>
-                            </Link>
-
-                            <Typography
-                              variant="body2"
-                              color="text.secondary"
-                              sx={{
-                                fontSize: 12,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                maxWidth: 280,
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
-                              {displayAddress}
-                            </Typography>
-
-                            {store.accessCode ? (
-                              <Chip
-                                size="small"
-                                label={`Codigo: ${store.accessCode}`}
-                                variant="outlined"
-                                sx={{
-                                  mt: 0.5,
-                                  height: 20,
-                                  maxWidth: 260,
-                                  color: '#ff0080',
-                                  borderColor: '#ff0080',
-                                  fontSize: 10,
-                                  fontWeight: 800,
-                                  '& .MuiChip-label': {
-                                    px: 0.75,
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                  },
-                                }}
-                              />
-                            ) : null}
-                          </Box>
-                        </Box>
-                      </TableCell>
-
-                      {/* Customers */}
-                      <TableCell>{store.customerCount}</TableCell>
-
-                      {/* Weekly */}
-                      <TableCell align="right">
-                        <Typography
-                          fontWeight={900}
-                          color={weeklyCost > 0 ? 'primary.main' : 'text.secondary'}
-                        >
-                          {formatMoney(weeklyCost)}
-                        </Typography>
-                      </TableCell>
-
-                      {/* Balance */}
-                      <TableCell align="right">
-                        <Typography
-                          fontWeight={900}
-                          color={pending > 0 ? 'error.main' : 'success.main'}
-                        >
-                          {formatMoney(pending)}
-                        </Typography>
-                      </TableCell>
-
-                      {/* Installments */}
-                      <TableCell
-                        align="right"
-                        sx={{ position: 'relative' }}
-                      >
-                        <Typography fontWeight={900}>
-                          {installmentsLabel(pending, installmentsNeeded)}
-                        </Typography>
-                      </TableCell>
-
-                      {/* Payment status */}
-                      <TableCell align="center">
-                        <Chip
-                          size="small"
-                          label={toneLabel(tone)}
-                          color={toneChipColor(tone)}
-                          variant={tone === 'critical' ? 'filled' : 'outlined'}
-                          sx={{ fontSize: 10, fontWeight: 800, height: 20, letterSpacing: 0.4, '& .MuiChip-label': { px: 0.75 } }}
-                        />
-                      </TableCell>
-
-                      {/* Payment method */}
-                      <TableCell align="center">
-                        <Stack
-                          spacing={0.5}
-                          alignItems="center"
-                        >
-                          <Tooltip
-                            title={payMethod}
-                            arrow
-                          >
-                            <Chip
-                              size="small"
-                              icon={<PaymentsRounded sx={{ fontSize: 16 }} />}
-                              label={payMethod}
-                              variant="outlined"
-                              sx={{
-                                height: 24,
-                                fontSize: 11,
-                                fontWeight: 900,
-                                '& .MuiChip-label': { px: 0.75 },
-                              }}
-                            />
-                          </Tooltip>
-                        </Stack>
-                      </TableCell>
-
-                      {/* Provider + Sender */}
-                      <TableCell align="center">
-                        {(() => {
-                          const pi = providerInfo(store);
-                          return (
-                            <Stack spacing={0.25} alignItems="center">
-                              <Chip
-                                size="small"
-                                label={`${pi.emoji} ${pi.label}`}
-                                variant="outlined"
-                                sx={{
-                                  height: 22,
-                                  fontSize: 11,
-                                  fontWeight: 800,
-                                  borderColor: pi.color,
-                                  color: pi.color,
-                                  '& .MuiChip-label': { px: 0.75 },
-                                }}
-                              />
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  fontSize: 10,
-                                  color: 'text.secondary',
-                                  maxWidth: 110,
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                }}
-                                title={pi.sender}
-                              >
-                                {pi.sender}
-                              </Typography>
-                            </Stack>
-                          );
-                        })()}
-                      </TableCell>
-
-                      {/* Actions */}
-                      <TableCell align="center" sx={{ px: 0.5 }}>
-                        <Stack direction="row" spacing={0} justifyContent="center" sx={{ '& .MuiIconButton-root': { p: 0.4 }, '& .MuiSvgIcon-root': { fontSize: 16 } }}>
-                          <Tooltip title="Editar" arrow><Link href={`/admin/management/stores/edit/${id}`} passHref><IconButton color="primary"><Settings /></IconButton></Link></Tooltip>
-                          <Tooltip title="Merchant" arrow><IconButton color="secondary" onClick={() => window.open(buildSwitchUrl(store.accessCode), '_blank')}><Web /></IconButton></Tooltip>
-                          <Tooltip title="Ficha" arrow><IconButton color="primary" onClick={() => openTech(store)}><AccountCircle /></IconButton></Tooltip>
-                          {isAdmin && (
-                            <Tooltip title="Duplicar (sin deuda)" arrow><IconButton color="warning" onClick={() => openDuplicateDialog(store)}><ContentCopyRounded /></IconButton></Tooltip>
-                          )}
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
               </TableBody>
             </Table>
           </TableContainer>

@@ -7,6 +7,7 @@ import * as XLSX from 'xlsx';
 import StoreFilter from './filter';
 import { StoresBillingHeader } from './header';
 import Results from './results';
+import { StoreCommandPalette, useCommandPalette } from './StoreCommandPalette';
 
 function Component() {
   const { t } = useTranslation();
@@ -47,6 +48,8 @@ function Component() {
     handleProviderChange,
     refetch,
   } = useStores();
+
+  const { open: paletteOpen, openPalette, closePalette } = useCommandPalette();
 
   async function exportAll() {
     const limitPage = 500;
@@ -155,6 +158,7 @@ function Component() {
         order={order}
         onSortChange={handleSortChange}
         onOrderChange={handleOrderChange}
+        onOpenCommandPalette={openPalette}
       />
 
       <Results
@@ -171,6 +175,12 @@ function Component() {
         loading={loading}
         fetching={fetching}
         error={error}
+      />
+
+      <StoreCommandPalette
+        open={paletteOpen}
+        onClose={closePalette}
+        onSelectSearch={handleSearchChange}
       />
     </>
   );
