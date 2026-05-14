@@ -1051,14 +1051,16 @@ export function KioskTabletPanel({ storeId }: Props) {
             sx={{ fontWeight: 700, fontSize: '0.68rem', height: 24, bgcolor: 'rgba(51,65,85,0.25)', color: '#475569', border: '1px solid rgba(51,65,85,0.4)' }}
           />
           <Tooltip title="Actualizar dispositivos">
-            <IconButton size="small" onClick={() => refetch()} disabled={isFetching}
-              sx={{ border: '1px solid rgba(255,255,255,0.06)', borderRadius: 1.5, width: 32, height: 32 }}>
-              <Refresh sx={{
-                fontSize: 16,
-                animation: isFetching ? 'spin-refresh 1s linear infinite' : 'none',
-                '@keyframes spin-refresh': { '100%': { transform: 'rotate(360deg)' } },
-              }} />
-            </IconButton>
+            <span style={{ display: 'inline-flex' }}>
+              <IconButton size="small" onClick={() => refetch()} disabled={isFetching}
+                sx={{ border: '1px solid rgba(255,255,255,0.06)', borderRadius: 1.5, width: 32, height: 32 }}>
+                <Refresh sx={{
+                  fontSize: 16,
+                  animation: isFetching ? 'spin-refresh 1s linear infinite' : 'none',
+                  '@keyframes spin-refresh': { '100%': { transform: 'rotate(360deg)' } },
+                }} />
+              </IconButton>
+            </span>
           </Tooltip>
         </Stack>
       </Stack>
