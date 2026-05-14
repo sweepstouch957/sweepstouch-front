@@ -33,7 +33,7 @@ import {
 import { format } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import numeral from 'numeral';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import type { FC } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SkeletonTableRow } from '../../skeleton/table/table';
@@ -312,8 +312,8 @@ const Results: FC<ResultsProps> = ({
     }).catch((err) => console.error('Error deleting campaign:', err));
   };
 
-  const handleStats = (id: string) => window.open(`/admin/management/campaings/stats/${id}`, '_blank');
-  const handleEdit = (id: string) => window.open(`/admin/management/campaings/edit/${id}`);
+  const handleStats = useCallback((id: string) => window.open(`/admin/management/campaings/stats/${id}`, '_blank'), []);
+  const handleEdit = useCallback((id: string) => window.open(`/admin/management/campaings/edit/${id}`), []);
 
   const pagination = (
     <Box p={2} display="flex" justifyContent="flex-end">

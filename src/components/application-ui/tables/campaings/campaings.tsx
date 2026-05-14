@@ -29,7 +29,7 @@ import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
 import RouterRoundedIcon from '@mui/icons-material/RouterRounded';
 import MonetizationOnRoundedIcon from '@mui/icons-material/MonetizationOnRounded';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
 import ExportButton from '../../buttons/export-button';
@@ -472,7 +472,8 @@ function CampaignsGrid({ storeId }: CampaignsGridProps) {
     placeholderData: (prev) => prev,
   });
 
-  const statsKey = {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const statsKey = useMemo(() => ({
     status: filters.status,
     title: filters.title,
     type: filters.type,
@@ -480,7 +481,7 @@ function CampaignsGrid({ storeId }: CampaignsGridProps) {
     startDate: filters.startDate,
     endDate: filters.endDate,
     storeId: filters.storeId,
-  };
+  }), [filters.status, filters.title, filters.type, filters.platform, filters.startDate, filters.endDate, filters.storeId]);
 
   const { data: stats, isFetching: statsFetching } = useQuery({
     queryKey: ['campaigns-stats', statsKey],
@@ -516,6 +517,10 @@ function CampaignsGrid({ storeId }: CampaignsGridProps) {
 
   const s = stats ?? EMPTY_STATS;
   const isLoading = statsFetching && !stats;
+
+  const handleSetFilters = useCallback((next: typeof filters) => {
+    setFilters(next);
+  }, []);
 
   return (
     <>
@@ -650,7 +655,7 @@ function CampaignsGrid({ storeId }: CampaignsGridProps) {
           <Results
             campaigns={data?.data || []}
             filters={filters}
-            setFilters={setFilters}
+            setFilters={handleSetFilters}
             total={data?.total || 0}
             refetch={refetch}
             storeId={storeId}

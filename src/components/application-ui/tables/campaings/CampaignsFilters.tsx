@@ -88,7 +88,7 @@ export default function CampaignsFilters({ filters, setFilters, storeId }: Props
   };
 
   const shouldShowStorePicker = !storeId;
-  const { data: stores = [], isLoading: loadingStores } = useStoresWithoutFilters();
+  const { data: stores = [], isLoading: loadingStores } = useStoresWithoutFilters({ enabled: !storeId });
 
   const selectedStore: Store | null = React.useMemo(() => {
     if (!shouldShowStorePicker) return null;

@@ -33,7 +33,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ButtonIcon } from 'src/components/base/styles/button-icon';
 import { useSearchParams } from 'src/hooks/use-search-params';
 import { ActiveSweepstakeCard } from '../../active-sweeptake';
@@ -53,6 +53,15 @@ import WelcomeCouponsPanel from './panel/welcome-coupons/WelcomeCouponsPanel';
 import StoreAudienceOverview from './panel/sweepstakes/StoreAudienceOverview';
 import StoreSweepstakeStats from './panel/sweepstakes/StoreSweepstakeStats';
 
+// ── Tags estáticas (module scope = cero re-creación)
+const STORE_MANAGEMENT_TAGS = [
+  { id: 'campaigns', label: 'Campaigns' },
+  { id: 'general-info', label: 'General Info' },
+  { id: 'sweepstakes', label: 'Sweepstakes' },
+  { id: 'welcome-coupons', label: 'Welcome Coupons' },
+  { id: 'ads', label: 'Ads' },
+  { id: 'qr', label: 'QR' },
+];
 
 const StoreManagementPage = () => {
   const router = useRouter();
@@ -75,43 +84,38 @@ const StoreManagementPage = () => {
   const [openInactiveModal, setOpenInactiveModal] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
 
+  // ── Inicializar tags UNA sola vez (son estáticas, no dependen de tag)
   useEffect(() => {
-    // ✅ set active section + tags (zustand)
-    runStoreManagementThunk(setActiveSection(tag));
+    runStoreManagementThunk(setTags(STORE_MANAGEMENT_TAGS));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    runStoreManagementThunk(
-      setTags([
-        { id: 'campaigns', label: 'Campaigns' },
-        { id: 'general-info', label: 'General Info' },
-        { id: 'sweepstakes', label: 'Sweepstakes' },
-        { id: 'welcome-coupons', label: 'Welcome Coupons' },
-        { id: 'ads', label: 'Ads' },
-        { id: 'qr', label: 'QR' },
-      ])
-    );
+  // ── Sincronizar sección activa cuando el tag de URL cambia
+  useEffect(() => {
+    useStoreManagementStore.setState({ activeSection: tag });
   }, [tag]);
 
-  const handleDrawerToggle = () => {
+  const handleDrawerToggle = useCallback(() => {
     if (sidebarOpen) {
       runStoreManagementThunk(closeSidebar());
     } else {
       runStoreManagementThunk(openSidebar());
     }
-  };
+  }, [sidebarOpen]);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     router.push(`/admin/management/stores/edit/${storeId}?tag=campaigns`);
-  };
+  }, [router, storeId]);
 
-  const handleGoToCreateCampaign = () => {
+  const handleGoToCreateCampaign = useCallback(() => {
     if (store?.active) {
       window.open(`/admin/management/stores/edit/${storeId}?tag=campaigns&action=create`, '_blank');
     } else {
       setOpenInactiveModal(true);
     }
-  };
+  }, [store?.active, storeId]);
 
-  const renderHeader = () => (
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const renderHeader = useMemo(() => (
     <Box
       px={{ xs: 2, md: 4 }}
       py={2.5}
@@ -246,9 +250,10 @@ const StoreManagementPage = () => {
         </Stack>
       )}
     </Box>
-  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ), [store?.name, tag, action, storeId, handleBack, handleGoToCreateCampaign]);
 
-  const renderContent = () => {
+  const renderContent = useMemo(() => {
     if (isLoading) {
       return (
         <Box p={3}>
@@ -399,7 +404,8 @@ const StoreManagementPage = () => {
           </Box>
         );
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tag, action, isLoading, error, store, storeId]);
 
   return (
     <Box
@@ -455,8 +461,8 @@ const StoreManagementPage = () => {
           </>
         )}
 
-        {renderHeader()}
-        {renderContent()}
+        {renderHeader}
+        {renderContent}
 
         <Dialog
           open={openInactiveModal}

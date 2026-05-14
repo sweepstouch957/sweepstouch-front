@@ -36,7 +36,7 @@ import {
 } from '@mui/material';
 import Grid2 from '@mui/material/Unstable_Grid2';
 import type { FC } from 'react';
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Scrollbar } from 'src/components/base/scrollbar';
 import { StoreSidebarItem } from './store-sidebar-item';
 
@@ -102,10 +102,21 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
     window.open(target, '_blank');
   };
 
-  const handleSectionClick = async (id: string) => {
+  const handleSectionClick = useCallback(async (id: string) => {
     await runStoreManagementThunk(setActiveSection(id));
     await runStoreManagementThunk(closeSidebar());
-  };
+  }, []);
+
+  const visibleSections = useMemo(
+    () =>
+      STORE_SECTIONS.filter(
+        (s) =>
+          (s.id !== 'customers' && s.id !== 'cajeras') ||
+          userRole === 'admin' ||
+          userRole === 'promotor_manager'
+      ),
+    [userRole]
+  );
 
   const sidebarContent = (
     <Box p={{ xs: 2, sm: 3 }}>
@@ -191,12 +202,7 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
       </Box>
 
       <List disablePadding>
-        {STORE_SECTIONS.filter(
-          (s) =>
-            (s.id !== 'customers' && s.id !== 'cajeras') ||
-            userRole === 'admin' ||
-            userRole === 'promotor_manager'
-        ).map((section) => (
+        {visibleSections.map((section) => (
           <StoreSidebarItem
             key={section.id}
             section={section}
