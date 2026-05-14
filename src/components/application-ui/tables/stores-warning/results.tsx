@@ -39,6 +39,30 @@ import QuickImpulseDialog from '../../dialogs/near-by-promotor/QuickImpulse';
 import FiltersBar from './filters';
 import { TableSkeletonRows } from './skelleton';
 
+// ─── SortHeader ─ module scope ────────────────────────────────────────────────
+// ✅ Extracted from inside StoresNearbyTable — nested component definition creates
+// a new class every render, destroying TableSortLabel ripple state.
+// (react-doctor: Nested component definition ×1)
+interface SortHeaderProps {
+  field: SortByOption;
+  activeSortBy: SortByOption;
+  onSort: (s: SortByOption) => void;
+  children: React.ReactNode;
+}
+
+function SortHeader({ field, activeSortBy, onSort, children }: SortHeaderProps) {
+  return (
+    <TableSortLabel
+      active={activeSortBy === field}
+      direction="asc"
+      onClick={() => onSort(field)}
+      sx={{ fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap' }}
+    >
+      {children}
+    </TableSortLabel>
+  );
+}
+
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 const getClosestDistance = (promoters: PromoterBrief[]): number | null => {
@@ -315,23 +339,6 @@ const StoresNearbyTable: React.FC<StoresNearbyTableProps> = ({
     });
   }, [stores, sortBy]);
 
-  const SortHeader = ({
-    field,
-    children,
-  }: {
-    field: SortByOption;
-    children: React.ReactNode;
-  }) => (
-    <TableSortLabel
-      active={sortBy === field}
-      direction="asc"
-      onClick={() => handleSort(field)}
-      sx={{ fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap' }}
-    >
-      {children}
-    </TableSortLabel>
-  );
-
   return (
     <Box>
       <FiltersBar
@@ -433,16 +440,16 @@ const StoresNearbyTable: React.FC<StoresNearbyTableProps> = ({
                 }}
               >
                 <TableCell sx={{ pl: 2.5 }}>
-                  <SortHeader field="name">Tienda</SortHeader>
+                  <SortHeader field="name" activeSortBy={sortBy} onSort={handleSort}>Tienda</SortHeader>
                 </TableCell>
                 <TableCell width={160}>
-                  <SortHeader field="customers">Tráfico</SortHeader>
+                  <SortHeader field="customers" activeSortBy={sortBy} onSort={handleSort}>Tráfico</SortHeader>
                 </TableCell>
                 <TableCell width={180}>
-                  <SortHeader field="promoters">Promotoras</SortHeader>
+                  <SortHeader field="promoters" activeSortBy={sortBy} onSort={handleSort}>Promotoras</SortHeader>
                 </TableCell>
                 <TableCell width={140}>
-                  <SortHeader field="nearest">Distancia</SortHeader>
+                  <SortHeader field="nearest" activeSortBy={sortBy} onSort={handleSort}>Distancia</SortHeader>
                 </TableCell>
                 <TableCell align="right" width={220} sx={{ pr: 2.5 }}>
                   Acciones

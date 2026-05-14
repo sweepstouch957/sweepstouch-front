@@ -48,7 +48,7 @@ import {
 } from '@mui/material';
 import { PieChart } from '@mui/x-charts/PieChart';
 import { formatInTimeZone } from 'date-fns-tz';
-import { FC, useRef, useState } from 'react';
+import { FC, useReducer, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface CampaignOverviewProps {
@@ -118,8 +118,8 @@ const DeliveryHero: FC<{ rate: number; color: string; isLoading?: boolean }> = (
         background: isExcellent
           ? `linear-gradient(135deg, ${alpha('#10b981', 0.12)}, ${alpha('#10b981', 0.06)})`
           : isGood
-          ? `linear-gradient(135deg, ${alpha('#f59e0b', 0.12)}, ${alpha('#f59e0b', 0.06)})`
-          : `linear-gradient(135deg, ${alpha('#ef4444', 0.12)}, ${alpha('#ef4444', 0.06)})`,
+            ? `linear-gradient(135deg, ${alpha('#f59e0b', 0.12)}, ${alpha('#f59e0b', 0.06)})`
+            : `linear-gradient(135deg, ${alpha('#ef4444', 0.12)}, ${alpha('#ef4444', 0.06)})`,
         border: `1.5px solid ${alpha(color, 0.3)}`,
         display: 'flex',
         alignItems: 'center',
@@ -155,8 +155,8 @@ const DeliveryHero: FC<{ rate: number; color: string; isLoading?: boolean }> = (
           {isExcellent
             ? 'Entrega excelente — campaña muy exitosa'
             : isGood
-            ? 'Buena entrega — hay margen de mejora'
-            : 'Entrega baja — revisa configuración y usa IA para tips'}
+              ? 'Buena entrega — hay margen de mejora'
+              : 'Entrega baja — revisa configuración y usa IA para tips'}
         </Typography>
       </Box>
       <Chip
@@ -341,29 +341,57 @@ Dame 5 recomendaciones específicas y accionables para mejorar la tasa de entreg
 
 // ─── Main CampaignOverview ───────────────────────────────────────────────────
 
+// ── useReducer: consolidates 5 useState (react-doctor: UseReducer ×53) ────────
+// imageOpen, logsOpen, successOpen, resendOpen are co-dependent dialog open states;
+// snack is the feedback notification tied to mutations.
+type OverviewModal = 'image' | 'logs' | 'success' | 'resend' | null;
+
+type OverviewState = {
+  modal: OverviewModal;
+  snack: { open: boolean; msg: string; sev: 'success' | 'error' };
+};
+
+type OverviewAction =
+  | { type: 'OPEN_MODAL'; modal: OverviewModal }
+  | { type: 'CLOSE_MODAL' }
+  | { type: 'SNACK'; msg: string; sev: 'success' | 'error' }
+  | { type: 'CLOSE_SNACK' };
+
+function overviewReducer(state: OverviewState, action: OverviewAction): OverviewState {
+  switch (action.type) {
+    case 'OPEN_MODAL': return { ...state, modal: action.modal };
+    case 'CLOSE_MODAL': return { ...state, modal: null };
+    case 'SNACK': return { ...state, snack: { open: true, msg: action.msg, sev: action.sev } };
+    case 'CLOSE_SNACK': return { ...state, snack: { ...state.snack, open: false } };
+    default: return state;
+  }
+}
+
 const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
   const { t } = useTranslation();
   const { data: campaign, isLoading, refetch } = useCampaignById(campaignId);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  const [imageOpen, setImageOpen] = useState(false);
-  const [logsOpen, setLogsOpen] = useState(false);
-  const [successOpen, setSuccessOpen] = useState(false);
-  const [resendOpen, setResendOpen] = useState(false);
-  const [snack, setSnack] = useState<{ open: boolean; msg: string; sev: 'success' | 'error' }>({
-    open: false, msg: '', sev: 'success',
+  const [{ modal, snack }, dispatch] = useReducer(overviewReducer, {
+    modal: null,
+    snack: { open: false, msg: '', sev: 'success' },
   });
+
+  const imageOpen = modal === 'image';
+  const logsOpen = modal === 'logs';
+  const successOpen = modal === 'success';
+  const resendOpen = modal === 'resend';
 
   const syncMutation = useMutation({
     mutationFn: () =>
       campaignClient.syncCampaignMetrics({ campaignId, includeZeroSent: true }),
     onSuccess: (res) => {
-      setSnack({ open: true, msg: `Métricas actualizadas — ${res?.details?.reduce((s: number, d: any) => s + (d.updatedLogs || 0), 0) || 0} logs`, sev: 'success' });
+      dispatch({ type: 'SNACK', msg: `Métricas actualizadas — ${res?.details?.reduce((s: number, d: any) => s + (d.updatedLogs || 0), 0) || 0} logs`, sev: 'success' });
       setTimeout(() => refetch(), 600);
     },
     onError: (err: any) => {
-      setSnack({ open: true, msg: err?.response?.data?.message || 'Error al sincronizar', sev: 'error' });
+      dispatch({ type: 'SNACK', msg: err?.response?.data?.message || 'Error al sincronizar', sev: 'error' });
     },
   });
 
@@ -390,7 +418,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
   };
 
   const handleResendClose = () => {
-    setResendOpen(false);
+    dispatch({ type: 'CLOSE_MODAL' });
     setTimeout(() => refetch(), 1000);
   };
 
@@ -403,7 +431,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
             campaign?.image ? (
               <Box
                 sx={{ position: 'relative', width: 56, height: 56, cursor: 'pointer', flexShrink: 0 }}
-                onClick={() => setImageOpen(true)}
+                onClick={() => dispatch({ type: 'OPEN_MODAL', modal: 'image' })}
               >
                 <Box
                   component="img"
@@ -480,9 +508,9 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                         syncMutation.isPending
                           ? <CircularProgress size={14} color="inherit" />
                           : <SyncRoundedIcon fontSize="small" sx={{
-                              transition: 'transform 0.6s ease',
-                              ...(syncMutation.isPending && { animation: 'spin 1s linear infinite', '@keyframes spin': { from: { transform: 'rotate(0deg)' }, to: { transform: 'rotate(360deg)' } } }),
-                            }} />
+                            transition: 'transform 0.6s ease',
+                            ...(syncMutation.isPending && { animation: 'spin 1s linear infinite', '@keyframes spin': { from: { transform: 'rotate(0deg)' }, to: { transform: 'rotate(360deg)' } } }),
+                          }} />
                       }
                       sx={{
                         fontWeight: 700,
@@ -509,7 +537,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                       color="warning"
                       size="small"
                       startIcon={<ReplayIcon />}
-                      onClick={() => setResendOpen(true)}
+                      onClick={() => dispatch({ type: 'OPEN_MODAL', modal: 'resend' })}
                       sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}
                     >
                       Resend ({errors.toLocaleString()})
@@ -550,7 +578,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                 value={sent.toLocaleString()}
                 icon={<SendIcon fontSize="small" />}
                 color="#10b981"
-                onClick={() => setSuccessOpen(true)}
+                onClick={() => dispatch({ type: 'OPEN_MODAL', modal: 'success' })}
                 tooltip="Ver logs entregados"
               />
               <KpiCard
@@ -558,7 +586,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                 value={errors.toLocaleString()}
                 icon={<ErrorIcon fontSize="small" />}
                 color="#ef4444"
-                onClick={() => setLogsOpen(true)}
+                onClick={() => dispatch({ type: 'OPEN_MODAL', modal: 'logs' })}
                 tooltip="Ver logs de errores"
               />
               <KpiCard
@@ -575,7 +603,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                 severity="warning"
                 icon={<WarningAmberRounded />}
                 action={
-                  <Button color="warning" size="small" startIcon={<ReplayIcon />} onClick={() => setResendOpen(true)} sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+                  <Button color="warning" size="small" startIcon={<ReplayIcon />} onClick={() => dispatch({ type: 'OPEN_MODAL', modal: 'resend' })} sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
                     Resend
                   </Button>
                 }
@@ -706,11 +734,11 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
 
                 {/* Clickable legends */}
                 <Stack direction="row" justifyContent="center" flexWrap="wrap" gap={1.5}>
-                  <Stack direction="row" spacing={0.8} alignItems="center" sx={{ cursor: 'pointer' }} onClick={() => setSuccessOpen(true)}>
+                  <Stack direction="row" spacing={0.8} alignItems="center" sx={{ cursor: 'pointer' }} onClick={() => dispatch({ type: 'OPEN_MODAL', modal: 'success' })}>
                     <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#10b981' }} />
                     <Typography variant="body2" fontWeight={600}>Delivered ({sent.toLocaleString()})</Typography>
                   </Stack>
-                  <Stack direction="row" spacing={0.8} alignItems="center" sx={{ cursor: 'pointer' }} onClick={() => setLogsOpen(true)}>
+                  <Stack direction="row" spacing={0.8} alignItems="center" sx={{ cursor: 'pointer' }} onClick={() => dispatch({ type: 'OPEN_MODAL', modal: 'logs' })}>
                     <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#ef4444' }} />
                     <Typography variant="body2" fontWeight={600}>Errors ({errors.toLocaleString()})</Typography>
                   </Stack>
@@ -726,7 +754,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                     variant="contained"
                     color="warning"
                     startIcon={<ReplayIcon />}
-                    onClick={() => setResendOpen(true)}
+                    onClick={() => dispatch({ type: 'OPEN_MODAL', modal: 'resend' })}
                     fullWidth
                     sx={{ fontWeight: 700, borderRadius: 2, mt: 1 }}
                   >
@@ -742,7 +770,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
       {/* ─── Image Zoom Dialog ──────────────────────────────────── */}
       <Dialog
         open={imageOpen}
-        onClose={() => setImageOpen(false)}
+        onClose={() => dispatch({ type: 'CLOSE_MODAL' })}
         maxWidth="md"
         fullWidth
         PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden', bgcolor: 'transparent', boxShadow: 'none' } }}
@@ -765,7 +793,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
               borderRadius: '50%',
             }}
           >
-            <IconButton onClick={() => setImageOpen(false)} sx={{ color: 'white' }} size="small">
+            <IconButton onClick={() => dispatch({ type: 'CLOSE_MODAL' })} sx={{ color: 'white' }} size="small">
               <CloseIcon fontSize="small" />
             </IconButton>
           </Box>
@@ -783,17 +811,17 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
         </Box>
       </Dialog>
 
-      <CampaignLogsModal open={logsOpen} onClose={() => setLogsOpen(false)} campaignId={campaignId} defaultStatus="failed" />
-      <CampaignLogsModal open={successOpen} onClose={() => setSuccessOpen(false)} campaignId={campaignId} defaultStatus="sent" />
+      <CampaignLogsModal open={logsOpen} onClose={() => dispatch({ type: 'CLOSE_MODAL' })} campaignId={campaignId} defaultStatus="failed" />
+      <CampaignLogsModal open={successOpen} onClose={() => dispatch({ type: 'CLOSE_MODAL' })} campaignId={campaignId} defaultStatus="sent" />
       <CampaignResendModal open={resendOpen} onClose={handleResendClose} campaignId={campaignId} />
 
       <Snackbar
         open={snack.open}
         autoHideDuration={4000}
-        onClose={() => setSnack((s) => ({ ...s, open: false }))}
+        onClose={() => dispatch({ type: 'CLOSE_SNACK' })}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert severity={snack.sev} onClose={() => setSnack((s) => ({ ...s, open: false }))} sx={{ width: '100%', borderRadius: 2 }}>
+        <Alert severity={snack.sev} onClose={() => dispatch({ type: 'CLOSE_SNACK' })} sx={{ width: '100%', borderRadius: 2 }}>
           {snack.msg}
         </Alert>
       </Snackbar>
