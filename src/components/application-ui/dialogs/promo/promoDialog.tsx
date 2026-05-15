@@ -88,11 +88,19 @@ export const CreateOrEditPromoModal: React.FC<CreateOrEditPromoModalProps> = ({
           endDate: promo.endDate ? parseISO(promo.endDate) : new Date(),
         });
       } else {
-        setFormData((prev) => ({
-          ...prev,
+        // Full reset so stale values from a previous session don't bleed in
+        setFormData({
+          title: '',
+          imageMobile: '',
+          imageDesktop: '',
+          link: '',
+          type: 'tablet',
           category: storeId ? 'custom' : 'generic',
+          sweepstakeId: '',
           storeId: storeId || '',
-        }));
+          startDate: new Date(),
+          endDate: new Date(),
+        });
       }
     }
   }, [open, promo, storeId]);
@@ -141,10 +149,10 @@ export const CreateOrEditPromoModal: React.FC<CreateOrEditPromoModalProps> = ({
         imageMobile: '',
         imageDesktop: '',
         link: '',
-        type: '',
-        category: '',
+        type: 'tablet',
+        category: storeId ? 'custom' : 'generic',
         sweepstakeId: '',
-        storeId: '',
+        storeId: storeId || '',
         startDate: new Date(),
         endDate: new Date(),
       });
