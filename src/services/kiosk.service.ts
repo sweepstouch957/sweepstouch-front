@@ -214,3 +214,59 @@ export async function getKioskFileSets(
   const result = res.data?.data ?? res.data;
   return Array.isArray(result) ? result : result ? [result] : [];
 }
+
+// ─── Group Actions API ────────────────────────────────────────────────────────
+
+/** Send a named action to ALL devices of this store at once via pushbytag */
+export async function groupDeviceAction(
+  storeId: string,
+  action: DeviceActionName,
+): Promise<{ ok: boolean; action: string; type: number; tag: string; devicesTargeted: number }> {
+  const res = await api.post(`/store/${storeId}/kiosk/actions/${action}/all`, {});
+  return res.data;
+}
+
+// ─── Battery Report API ───────────────────────────────────────────────────────
+
+export interface BatteryReportDevice {
+  identifier: string;
+  name: string;
+  online: boolean;
+  batteryLevel: number;
+  isCharging: boolean;
+  screenOn: boolean;
+  wiFiNetwork: string;
+  lastSeen: string;
+  alert: boolean;
+  alertReason: string | null;
+}
+
+export interface BatteryReport {
+  ok: boolean;
+  storeId: string;
+  tag: string;
+  total: number;
+  online: number;
+  offline: number;
+  charging: number;
+  alertCount: number;
+  alerts: BatteryReportDevice[];
+  devices: BatteryReportDevice[];
+  generatedAt: string;
+}
+
+export async function getBatteryReport(storeId: string, threshold = 40): Promise<BatteryReport> {
+  const res = await api.get(`/store/${storeId}/kiosk/battery-report`, {
+    params: { threshold },
+  });
+  return res.data;
+}
+
+/** Trigger WhatsApp notification to a phone number listing the battery alerts */
+export async function notifyBatteryAlerts(
+  storeId: string,
+  phoneNumber: string,
+): Promise<{ ok: boolean; sent: boolean; alertCount: number }> {
+  const res = await api.post(`/store/${storeId}/kiosk/notify-battery-alerts`, { phoneNumber });
+  return res.data;
+}

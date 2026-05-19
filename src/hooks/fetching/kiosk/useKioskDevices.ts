@@ -18,9 +18,12 @@ import {
   patchKioskConfiguration,
   pushToDevice,
   deviceAction,
+  groupDeviceAction,
+  getBatteryReport,
   type KioskDevice,
   type KioskConfiguration,
   type KioskFileset,
+  type BatteryReport,
   type PushType,
   type DeviceActionName,
 } from '@/services/kiosk.service';
@@ -32,6 +35,7 @@ export const kioskKeys = {
   device:         (storeId: string, id: string) => ['kiosk', storeId, 'device', id] as const,
   configurations: (storeId: string) => ['kiosk', storeId, 'configurations'] as const,
   filesets:       (storeId: string) => ['kiosk', storeId, 'filesets']       as const,
+  batteryReport:  (storeId: string) => ['kiosk', storeId, 'battery-report'] as const,
 };
 
 // ─── Devices ─────────────────────────────────────────────────────────────────
@@ -94,6 +98,35 @@ export function useDeviceAction(storeId: string) {
         qc.invalidateQueries({ queryKey: kioskKeys.device(storeId, identifier) });
       }, 4000);
     },
+  });
+}
+
+// ─── Group Actions ────────────────────────────────────────────────────────────
+
+/** Send a named action to ALL devices of this store at once (pushbytag) */
+export function useGroupDeviceAction(storeId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ action }: { action: DeviceActionName }) =>
+      groupDeviceAction(storeId, action),
+    onSuccess: () => {
+      setTimeout(() => {
+        qc.invalidateQueries({ queryKey: kioskKeys.devices(storeId) });
+      }, 4000);
+    },
+  });
+}
+
+// ─── Battery Report ───────────────────────────────────────────────────────────
+
+/** Polls battery status report every 5 minutes; flags devices below threshold not charging */
+export function useBatteryReport(storeId: string) {
+  return useQuery<BatteryReport>({
+    queryKey: kioskKeys.batteryReport(storeId),
+    queryFn:  () => getBatteryReport(storeId),
+    enabled:  !!storeId,
+    staleTime: 1000 * 60 * 5,
+    refetchInterval: 1000 * 60 * 5,
   });
 }
 

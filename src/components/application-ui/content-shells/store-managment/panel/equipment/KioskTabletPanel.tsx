@@ -2,22 +2,23 @@
 
 import * as React from 'react';
 import {
-  alpha, Box, Button, Chip, CircularProgress, Collapse, Dialog,
+  Alert, alpha, Box, Button, Chip, CircularProgress, Collapse, Dialog,
   DialogActions, DialogContent, DialogTitle, Divider, Grid, IconButton,
-  LinearProgress, Paper, Skeleton, Stack, Tooltip, Typography,
-  useMediaQuery, useTheme,
+  InputAdornment, LinearProgress, Paper, Skeleton, Stack, TextField,
+  Tooltip, Typography, useMediaQuery, useTheme,
 } from '@mui/material';
 import {
   BatteryAlert, BatteryChargingFull, BatteryFull, Battery50, Battery20,
-  CheckCircle, ClearRounded, Close, DeviceHub, ErrorOutline, FiberManualRecord, History,
-  LockOpen, MoreHoriz, PhoneAndroid, PowerSettingsNew, Refresh, Router,
-  Screenshot, SettingsRemote, SignalCellularAlt, SmartScreen,
-  SpeakerNotesOff, SpeakerPhone, SystemUpdate, TouchApp, VolumeUp,
-  Wifi, WifiOff,
+  CheckCircle, ClearRounded, Close, DeviceHub, Download, ErrorOutline,
+  FiberManualRecord, FlashOn, FlashOff, GetApp, GroupWork, History,
+  LockOpen, MoreHoriz, NotificationsActive, PhoneAndroid, PhoneIphone,
+  PowerSettingsNew, Refresh, Router, Screenshot, SettingsRemote,
+  SignalCellularAlt, SmartScreen, SpeakerNotesOff, SpeakerPhone,
+  SystemUpdate, TouchApp, VolumeUp, Wifi, WifiOff,
 } from '@mui/icons-material';
 import toast from 'react-hot-toast';
-import { useKioskDevices, useDeviceAction } from '@/hooks/fetching/kiosk/useKioskDevices';
-import { type KioskDevice, type DeviceActionName } from '@/services/kiosk.service';
+import { useKioskDevices, useDeviceAction, useGroupDeviceAction, useBatteryReport } from '@/hooks/fetching/kiosk/useKioskDevices';
+import { type KioskDevice, type DeviceActionName, notifyBatteryAlerts } from '@/services/kiosk.service';
 import { api } from '@/libs/axios';
 
 interface Props { storeId: string; }
@@ -873,6 +874,296 @@ function DeviceDetailView({ device, onAction, loadingAction, activityLog, screen
   );
 }
 
+/* ─── Fleet Actions Bar ───────────────────────────────────────────────────── */
+const GROUP_ACTIONS: ActionDef[] = [
+  { label: 'Estado',        icon: <Refresh sx={{ fontSize: 13 }} />,          action: 'request-status', color: '#60a5fa' },
+  { label: 'Pantalla ON',   icon: <SmartScreen sx={{ fontSize: 13 }} />,      action: 'screen-on',      color: '#4ade80' },
+  { label: 'Pantalla OFF',  icon: <SpeakerNotesOff sx={{ fontSize: 13 }} />,  action: 'screen-off',     color: '#fbbf24' },
+  { label: 'Reiniciar App', icon: <Refresh sx={{ fontSize: 13 }} />,          action: 'restart-app',    color: '#f97316', confirm: '¿Reiniciar la app kiosko en TODAS las tablets?' },
+  { label: 'Limpiar Caché', icon: <LockOpen sx={{ fontSize: 13 }} />,         action: 'clear-cache',    color: '#f97316', confirm: '¿Limpiar caché en TODAS las tablets?' },
+  { label: 'REINICIAR',     icon: <PowerSettingsNew sx={{ fontSize: 13 }} />, action: 'reboot',         color: '#f87171', confirm: '⚠️ ¿Reiniciar (reboot) TODOS los dispositivos?', danger: true },
+];
+
+function FleetActionsBar({
+  storeId,
+  deviceCount,
+}: {
+  storeId: string;
+  deviceCount: number;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const [confirmState, setConfirmState] = React.useState<{ action: DeviceActionName; message: string } | null>(null);
+  const [loadingAction, setLoadingAction] = React.useState<DeviceActionName | null>(null);
+  const groupMutation = useGroupDeviceAction(storeId);
+
+  const run = (action: DeviceActionName) => {
+    setLoadingAction(action);
+    groupMutation.mutate({ action }, {
+      onSuccess: (data) => {
+        toast.success(`Enviado a ${data.devicesTargeted ?? deviceCount} tablets ✓`);
+        setLoadingAction(null);
+      },
+      onError: (err: any) => {
+        toast.error(err?.response?.data?.error ?? 'Error al enviar acción grupal');
+        setLoadingAction(null);
+      },
+    });
+  };
+
+  const handleClick = (def: ActionDef) => {
+    if (def.confirm) { setConfirmState({ action: def.action, message: def.confirm }); return; }
+    run(def.action);
+  };
+
+  return (
+    <Box sx={{ borderRadius: 2.5, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden', mb: 2 }}>
+      <Box
+        component="button"
+        onClick={() => setOpen(p => !p)}
+        sx={{
+          all: 'unset', width: '100%', boxSizing: 'border-box',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          px: 1.75, py: 1.25, cursor: 'pointer',
+          background: 'rgba(99,102,241,0.05)',
+          transition: 'background 0.15s',
+          '&:hover': { background: 'rgba(99,102,241,0.09)' },
+        }}
+      >
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <GroupWork sx={{ fontSize: 15, color: '#818cf8' }} />
+          <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: '#818cf8', letterSpacing: '0.08em' }}>
+            ACCIONES EN GRUPO
+          </Typography>
+          <Chip
+            label={`${deviceCount} tablets`}
+            size="small"
+            sx={{ height: 16, fontSize: '0.56rem', fontWeight: 700, bgcolor: alpha('#818cf8', 0.12), color: '#818cf8', '& .MuiChip-label': { px: 0.65 } }}
+          />
+        </Stack>
+        <MoreHoriz sx={{ fontSize: 15, color: '#334155', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+      </Box>
+
+      <Collapse in={open}>
+        <Box sx={{ px: 1.75, pb: 1.5, pt: 1.25, background: 'rgba(0,0,0,0.2)', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+          <Typography sx={{ fontSize: '0.58rem', color: '#334155', mb: 1, letterSpacing: '0.06em' }}>
+            Se aplicará a todas las tablets de esta tienda
+          </Typography>
+          <Stack direction="row" flexWrap="wrap" gap={0.75}>
+            {GROUP_ACTIONS.map((a) => (
+              <ActionPill
+                key={a.action} def={a}
+                loading={loadingAction === a.action}
+                disabled={loadingAction !== null}
+                onClick={() => handleClick(a)}
+              />
+            ))}
+          </Stack>
+        </Box>
+      </Collapse>
+
+      {confirmState && (
+        <ConfirmDialog
+          open={true}
+          message={confirmState.message}
+          onConfirm={() => { run(confirmState.action); setConfirmState(null); }}
+          onClose={() => setConfirmState(null)}
+        />
+      )}
+    </Box>
+  );
+}
+
+/* ─── Battery Alert Banner ────────────────────────────────────────────────── */
+function BatteryAlertBanner({ storeId }: { storeId: string }) {
+  const { data: report, isLoading, refetch } = useBatteryReport(storeId);
+  const [notifyOpen, setNotifyOpen] = React.useState(false);
+  const [phone, setPhone] = React.useState('');
+  const [sending, setSending] = React.useState(false);
+
+  const alerts = report?.alerts ?? [];
+  const devices = report?.devices ?? [];
+  const charging = report?.charging ?? 0;
+  const online = report?.online ?? 0;
+  const offline = report?.offline ?? 0;
+
+  const handleExport = () => {
+    if (!devices.length) return;
+    const rows = [
+      ['Nombre', 'Online', 'Batería %', 'Cargando', 'Pantalla', 'WiFi', 'Última conexión', 'Alerta'],
+      ...devices.map(d => [
+        d.name, d.online ? 'Sí' : 'No', String(d.batteryLevel),
+        d.isCharging ? 'Sí' : 'No', d.screenOn ? 'ON' : 'OFF',
+        d.wiFiNetwork || '—', d.lastSeen ? new Date(d.lastSeen).toLocaleString('es-HN') : '—',
+        d.alert ? d.alertReason ?? 'Alerta' : '',
+      ]),
+    ];
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `battery-report-${storeId}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
+  const handleNotify = async () => {
+    if (!phone.trim()) { toast.error('Ingresa un número de teléfono'); return; }
+    setSending(true);
+    try {
+      const result = await notifyBatteryAlerts(storeId, phone.trim());
+      if (result.sent) toast.success(`Notificación enviada — ${result.alertCount} alertas`);
+      else toast(`Sin alertas activas en este momento`);
+      setNotifyOpen(false);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error ?? 'Error al enviar notificación');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <Box sx={{ mb: 2 }}>
+      {/* Fleet summary strip */}
+      <Box sx={{
+        borderRadius: 2, border: '1px solid rgba(255,255,255,0.05)',
+        background: 'rgba(255,255,255,0.015)',
+        px: 1.75, py: 1,
+        display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap',
+        justifyContent: 'space-between',
+      }}>
+        <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap">
+          {isLoading ? (
+            <Stack direction="row" spacing={1}>{[1,2,3,4].map(i => <Skeleton key={i} width={60} height={20} sx={{ borderRadius: 1 }} />)}</Stack>
+          ) : (
+            <>
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <PhoneAndroid sx={{ fontSize: 13, color: '#60a5fa' }} />
+                <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#60a5fa' }}>{(report?.total ?? 0)} total</Typography>
+              </Stack>
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <FiberManualRecord sx={{ fontSize: 8, color: '#4ade80' }} />
+                <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#4ade80' }}>{online} online</Typography>
+              </Stack>
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <FiberManualRecord sx={{ fontSize: 8, color: '#334155' }} />
+                <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#475569' }}>{offline} offline</Typography>
+              </Stack>
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <BatteryChargingFull sx={{ fontSize: 13, color: '#4ade80' }} />
+                <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#4ade80' }}>{charging} cargando</Typography>
+              </Stack>
+              {alerts.length > 0 && (
+                <Stack direction="row" alignItems="center" spacing={0.5}>
+                  <BatteryAlert sx={{ fontSize: 13, color: '#f87171' }} />
+                  <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#f87171' }}>
+                    {alerts.length} alerta{alerts.length > 1 ? 's' : ''}
+                  </Typography>
+                </Stack>
+              )}
+            </>
+          )}
+        </Stack>
+
+        <Stack direction="row" alignItems="center" spacing={0.75}>
+          <Tooltip title="Actualizar reporte de batería">
+            <IconButton size="small" onClick={() => refetch()} disabled={isLoading}
+              sx={{ width: 26, height: 26, border: '1px solid rgba(255,255,255,0.06)', borderRadius: 1 }}>
+              <Refresh sx={{ fontSize: 13 }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Exportar reporte CSV">
+            <IconButton size="small" onClick={handleExport} disabled={!devices.length}
+              sx={{ width: 26, height: 26, border: '1px solid rgba(255,255,255,0.06)', borderRadius: 1 }}>
+              <Download sx={{ fontSize: 13 }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Enviar alerta por WhatsApp">
+            <IconButton size="small" onClick={() => setNotifyOpen(true)}
+              sx={{
+                width: 26, height: 26, borderRadius: 1,
+                border: `1px solid ${alpha('#f87171', alerts.length > 0 ? 0.4 : 0.1)}`,
+                color: alerts.length > 0 ? '#f87171' : '#334155',
+                bgcolor: alerts.length > 0 ? alpha('#f87171', 0.08) : 'transparent',
+              }}>
+              <NotificationsActive sx={{ fontSize: 13 }} />
+            </IconButton>
+          </Tooltip>
+        </Stack>
+      </Box>
+
+      {/* Alert rows */}
+      {alerts.length > 0 && (
+        <Box sx={{ mt: 0.75, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          {alerts.map(d => (
+            <Box key={d.identifier} sx={{
+              display: 'flex', alignItems: 'center', gap: 1,
+              px: 1.5, py: 0.75, borderRadius: 1.5,
+              border: `1px solid ${alpha('#f87171', 0.2)}`,
+              background: alpha('#f87171', 0.04),
+            }}>
+              <BatteryAlert sx={{ fontSize: 14, color: '#f87171', flexShrink: 0 }} />
+              <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#f87171', flex: 1 }}>
+                {d.name}
+              </Typography>
+              <Chip
+                label={`${d.batteryLevel}%`}
+                size="small"
+                sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800, bgcolor: alpha('#f87171', 0.12), color: '#f87171', '& .MuiChip-label': { px: 0.65 } }}
+              />
+              <Typography sx={{ fontSize: '0.6rem', color: '#475569' }}>sin carga</Typography>
+            </Box>
+          ))}
+        </Box>
+      )}
+
+      {/* Notify dialog */}
+      <Dialog open={notifyOpen} onClose={() => setNotifyOpen(false)} maxWidth="xs" fullWidth
+        PaperProps={{ sx: { borderRadius: 3, border: `1px solid ${alpha('#f87171', 0.2)}`, bgcolor: '#0f172a' } }}>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <NotificationsActive sx={{ color: '#f87171', fontSize: 18 }} />
+            <Typography fontWeight={700} fontSize="0.9rem">Notificar alerta de batería</Typography>
+          </Stack>
+          <IconButton size="small" onClick={() => setNotifyOpen(false)}><Close fontSize="small" /></IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" mb={2}>
+            {alerts.length > 0
+              ? `${alerts.length} tablet${alerts.length > 1 ? 's' : ''} con batería baja y sin carga. Se enviará un WhatsApp de alerta.`
+              : 'No hay alertas activas en este momento. Aún puedes enviar un reporte de estado.'}
+          </Typography>
+          <TextField
+            fullWidth
+            size="small"
+            label="Número de WhatsApp"
+            placeholder="+15551234567"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            InputProps={{
+              startAdornment: <InputAdornment position="start"><PhoneIphone sx={{ fontSize: 16, color: '#475569' }} /></InputAdornment>,
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': { borderRadius: 2 },
+              '& .MuiInputLabel-root': { fontSize: '0.82rem' },
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setNotifyOpen(false)} size="small" variant="outlined" sx={{ borderRadius: 2 }}>Cancelar</Button>
+          <Button
+            onClick={handleNotify}
+            variant="contained" color="error" size="small"
+            disabled={sending || !phone.trim()}
+            startIcon={sending ? <CircularProgress size={12} color="inherit" /> : <NotificationsActive sx={{ fontSize: 14 }} />}
+            sx={{ borderRadius: 2 }}
+          >
+            {sending ? 'Enviando…' : 'Notificar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+}
+
 /* ─── Main Panel ──────────────────────────────────────────────────────────── */
 export function KioskTabletPanel({ storeId }: Props) {
   const theme = useTheme();
@@ -897,6 +1188,18 @@ export function KioskTabletPanel({ storeId }: Props) {
     }
   }, [devices, selectedId]);
 
+  // Auto-populate screenshot from applicationScreenshot on device select
+  React.useEffect(() => {
+    if (!selectedId || !devices) return;
+    const device = devices.find(d => d.identifier === selectedId);
+    if (device?.applicationScreenshot && !screenshots[selectedId]) {
+      setScreenshots(prev => ({
+        ...prev,
+        [selectedId]: { status: 'ready', url: device.applicationScreenshot },
+      }));
+    }
+  }, [selectedId, devices]);
+
   const filteredDevices = React.useMemo(() => {
     if (!devices) return [];
     if (filter === 'online')  return devices.filter(d => d.online);
@@ -908,6 +1211,7 @@ export function KioskTabletPanel({ storeId }: Props) {
   const online  = (devices ?? []).filter(d => d.online).length;
   const offline = (devices ?? []).filter(d => !d.online).length;
 
+  /* ── Screenshot: fix — poll GET /screenshot/:identifier ~15s after action ── */
   const runAction = React.useCallback((identifier: string, action: DeviceActionName) => {
     const entryId = `${Date.now()}-${Math.random()}`;
     const entry: ActivityEntry = {
@@ -924,7 +1228,7 @@ export function KioskTabletPanel({ storeId }: Props) {
     setLoadingDevice(p => ({ ...p, [identifier]: action }));
 
     actionMutation.mutate({ action, identifier }, {
-      onSuccess: (response) => {
+      onSuccess: () => {
         toast.success(`${ACTION_LABELS[action] ?? action} enviado ✓`);
         setLoadingDevice(p => ({ ...p, [identifier]: null }));
         setActivityLog(prev => ({
@@ -934,18 +1238,23 @@ export function KioskTabletPanel({ storeId }: Props) {
           ),
         }));
 
-        // Screenshot: capture the ImageURL and display after ~12s upload delay
+        // Screenshot fix: poll GET /screenshot/:identifier after 15s to get applicationScreenshot URL
         if (action === 'screenshot') {
-          const imageUrl: string | undefined =
-            (response as any)?.data?.ImageURL ??
-            (response as any)?.data?.imageUrl ??
-            (response as any)?.ImageURL;
-          if (imageUrl) {
-            setScreenshots(prev => ({ ...prev, [identifier]: { status: 'capturing', url: imageUrl } }));
-            setTimeout(() => {
-              setScreenshots(prev => ({ ...prev, [identifier]: { status: 'ready', url: imageUrl } }));
-            }, 12000);
-          }
+          setScreenshots(prev => ({ ...prev, [identifier]: { status: 'capturing' } }));
+          setTimeout(async () => {
+            try {
+              const resp = await api.get(`/store/${storeId}/kiosk/screenshot/${encodeURIComponent(identifier)}`);
+              const url: string | null = resp.data?.screenshotUrl ?? null;
+              if (url) {
+                setScreenshots(prev => ({ ...prev, [identifier]: { status: 'ready', url } }));
+              } else {
+                setScreenshots(prev => ({ ...prev, [identifier]: { status: 'idle' } }));
+                toast.error('Captura no disponible aún — intenta de nuevo en unos segundos');
+              }
+            } catch {
+              setScreenshots(prev => ({ ...prev, [identifier]: { status: 'idle' } }));
+            }
+          }, 15000);
         }
       },
       onError: (err: any) => {
@@ -960,7 +1269,7 @@ export function KioskTabletPanel({ storeId }: Props) {
         }));
       },
     });
-  }, [actionMutation]);
+  }, [actionMutation, storeId]);
 
   const handleAction = React.useCallback((identifier: string, action: DeviceActionName, confirmMsg?: string) => {
     if (confirmMsg) { setConfirmState({ open: true, identifier, action, message: confirmMsg }); return; }
@@ -1101,6 +1410,12 @@ export function KioskTabletPanel({ storeId }: Props) {
           </Tooltip>
         </Stack>
       </Stack>
+
+      {/* ── Battery Alert Banner ── */}
+      <BatteryAlertBanner storeId={storeId} />
+
+      {/* ── Fleet Actions Bar ── */}
+      <FleetActionsBar storeId={storeId} deviceCount={devices?.length ?? 0} />
 
       {/* ── Main Layout ── */}
       <Box sx={{ display: 'flex', gap: 2, flexDirection: isMobile ? 'column' : 'row' }}>
