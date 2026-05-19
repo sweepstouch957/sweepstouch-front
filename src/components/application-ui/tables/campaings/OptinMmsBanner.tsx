@@ -111,7 +111,7 @@ export default function OptinMmsBanner({ storeId }: OptinMmsBannerProps) {
         }}
       >
         {/* Left: icon + label */}
-        <Stack direction="row" alignItems="center" spacing={1.5}>
+        <Stack direction="row" alignItems="center" spacing={1.5} flex={1} minWidth={0}>
           {/* Accent bar */}
           <Box
             sx={{
@@ -129,9 +129,9 @@ export default function OptinMmsBanner({ storeId }: OptinMmsBannerProps) {
           >
             <ContactMailRoundedIcon sx={{ fontSize: 18 }} />
           </Box>
-          <Box>
+          <Box minWidth={0} overflow="hidden">
             <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+              <Typography noWrap sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
                 Opt-in MMS — Registro de Sorteos
               </Typography>
               <Tooltip
@@ -149,7 +149,7 @@ export default function OptinMmsBanner({ storeId }: OptinMmsBannerProps) {
         </Stack>
 
         {/* Right: summary chips + expand */}
-        <Stack direction="row" alignItems="center" spacing={1.5}>
+        <Stack direction="row" alignItems="center" spacing={1.5} flexShrink={0}>
           {isLoading ? (
             <Skeleton width={160} height={24} sx={{ borderRadius: 1 }} />
           ) : (

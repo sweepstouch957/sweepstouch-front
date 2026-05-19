@@ -9,7 +9,7 @@ import {
 } from '@mui/material';
 import {
   BatteryAlert, BatteryChargingFull, BatteryFull, Battery50, Battery20,
-  CheckCircle, Close, DeviceHub, ErrorOutline, FiberManualRecord, History,
+  CheckCircle, ClearRounded, Close, DeviceHub, ErrorOutline, FiberManualRecord, History,
   LockOpen, MoreHoriz, PhoneAndroid, PowerSettingsNew, Refresh, Router,
   Screenshot, SettingsRemote, SignalCellularAlt, SmartScreen,
   SpeakerNotesOff, SpeakerPhone, SystemUpdate, TouchApp, VolumeUp,
@@ -18,6 +18,7 @@ import {
 import toast from 'react-hot-toast';
 import { useKioskDevices, useDeviceAction } from '@/hooks/fetching/kiosk/useKioskDevices';
 import { type KioskDevice, type DeviceActionName } from '@/services/kiosk.service';
+import { api } from '@/libs/axios';
 
 interface Props { storeId: string; }
 
@@ -992,9 +993,27 @@ export function KioskTabletPanel({ storeId }: Props) {
         <SettingsRemote sx={{ fontSize: 40, color: 'error.main', mb: 1.5 }} />
         <Typography variant="h6" color="error" fontWeight={700} gutterBottom>Sin conexión al Kiosk Manager</Typography>
         <Typography variant="body2" color="text.secondary" mb={2.5}>{errMsg}</Typography>
-        <Button variant="outlined" color="error" size="small" onClick={() => refetch()} startIcon={<Refresh />} sx={{ borderRadius: 2 }}>
-          Reintentar
-        </Button>
+        <Stack direction="row" justifyContent="center" spacing={1.5} flexWrap="wrap">
+          <Button variant="outlined" color="error" size="small" onClick={() => refetch()} startIcon={<Refresh />} sx={{ borderRadius: 2 }}>
+            Reintentar
+          </Button>
+          <Tooltip title="Limpia el tag de kiosk guardado y fuerza re-detección automática. Úsalo si aparecen tablets de otra tienda." arrow>
+            <Button
+              variant="outlined"
+              color="warning"
+              size="small"
+              startIcon={<ClearRounded />}
+              sx={{ borderRadius: 2 }}
+              onClick={() => {
+                api.delete(`/api/store/${storeId}/kiosk/clear-tag`)
+                  .then(() => { toast.success('Tag reseteado — se re-detectará automáticamente'); refetch(); })
+                  .catch(() => toast.error('Error al resetear el tag'));
+              }}
+            >
+              Resetear tag kiosk
+            </Button>
+          </Tooltip>
+        </Stack>
       </Paper>
     );
   }
@@ -1061,6 +1080,24 @@ export function KioskTabletPanel({ storeId }: Props) {
                 }} />
               </IconButton>
             </span>
+          </Tooltip>
+          <Tooltip title="Resetear tag kiosk — limpia la detección automática si aparecen tablets de otra tienda" arrow>
+            <IconButton
+              size="small"
+              sx={{
+                border: '1px solid rgba(251,191,36,0.25)',
+                borderRadius: 1.5, width: 32, height: 32,
+                color: '#fbbf24',
+                '&:hover': { bgcolor: alpha('#fbbf24', 0.08) },
+              }}
+              onClick={() => {
+                api.delete(`/api/store/${storeId}/kiosk/clear-tag`)
+                  .then(() => { toast.success('Tag kiosk reseteado — se re-detectará automáticamente'); refetch(); })
+                  .catch(() => toast.error('Error al resetear el tag'));
+              }}
+            >
+              <ClearRounded sx={{ fontSize: 16 }} />
+            </IconButton>
           </Tooltip>
         </Stack>
       </Stack>

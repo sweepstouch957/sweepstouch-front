@@ -119,6 +119,7 @@ function KpiCard({
             {icon}
           </Box>
           <Typography
+            noWrap
             sx={{
               fontSize: 10,
               fontWeight: 700,
@@ -190,7 +191,7 @@ function StatCell({ icon, color, label, sublabel, value, pct, extraInfo, isCurre
     >
       <Stack direction="row" alignItems="center" spacing={0.75} mb={0.25}>
         <Box sx={{ color, display: 'flex', opacity: 0.9 }}>{icon}</Box>
-        <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'text.secondary' }}>
+        <Typography noWrap sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'text.secondary' }}>
           {label}
         </Typography>
         {pct !== undefined && (
@@ -378,51 +379,54 @@ function MessagingPanel({ stats, loading }: { stats: FilterStatsResponse; loadin
           />
         </Box>
 
-        {/* Platforms */}
-        <Box sx={{ p: 2, position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <Stack direction="row" alignItems="center" spacing={0.75} mb={1.5}>
+        {/* Platforms — full-width bottom strip */}
+        <Box
+          sx={{
+            gridColumn: '1 / -1',
+            borderTop: '1px solid',
+            borderColor: 'divider',
+            px: 2,
+            py: 1.25,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            flexWrap: 'wrap',
+            bgcolor: isDark ? alpha('#fff', 0.01) : alpha('#000', 0.01),
+          }}
+        >
+          <Stack direction="row" alignItems="center" spacing={0.75} flexShrink={0}>
             <RouterRoundedIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
             <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'text.secondary' }}>
               Plataformas
             </Typography>
           </Stack>
+          <Divider orientation="vertical" flexItem sx={{ height: 16, alignSelf: 'center' }} />
           {loading ? (
-            <Stack spacing={1}>
-              <Skeleton width="100%" height={24} sx={{ borderRadius: 1 }} />
-              <Skeleton width="80%" height={24} sx={{ borderRadius: 1 }} />
+            <Stack direction="row" spacing={2}>
+              <Skeleton width={80} height={20} sx={{ borderRadius: 1 }} />
+              <Skeleton width={60} height={20} sx={{ borderRadius: 1 }} />
             </Stack>
           ) : platforms.length === 0 ? (
             <Typography sx={{ fontSize: 12, color: 'text.disabled' }}>Sin datos de plataforma</Typography>
           ) : (
-            <Stack spacing={1}>
+            <Stack direction="row" spacing={3} flexWrap="wrap">
               {platforms.map(([key, count]) => {
                 const meta = PLATFORM_META[key] ?? { label: key, color: '#9e9e9e' };
                 const pct = total > 0 ? Math.round((count / total) * 100) : 0;
                 return (
-                  <Tooltip key={key} title={`${count} campañas · ${pct}% del total`} arrow placement="left">
-                    <Box>
-                      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={0.4}>
-                        <Stack direction="row" alignItems="center" spacing={0.75}>
-                          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: meta.color, flexShrink: 0 }} />
-                          <Typography sx={{ fontSize: 12, fontWeight: 700, color: meta.color }}>
-                            {meta.label}
-                          </Typography>
-                        </Stack>
-                        <Typography sx={{ fontSize: 12, fontWeight: 800, color: meta.color, fontVariantNumeric: 'tabular-nums' }}>
-                          {count.toLocaleString()}
-                        </Typography>
-                      </Stack>
-                      <LinearProgress
-                        variant="determinate"
-                        value={pct}
-                        sx={{
-                          height: 4,
-                          borderRadius: 2,
-                          bgcolor: alpha(meta.color, 0.15),
-                          '& .MuiLinearProgress-bar': { borderRadius: 2, bgcolor: meta.color },
-                        }}
-                      />
-                    </Box>
+                  <Tooltip key={key} title={`${count} campañas · ${pct}% del total`} arrow placement="top">
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: meta.color, flexShrink: 0 }} />
+                      <Typography sx={{ fontSize: 12, fontWeight: 700, color: meta.color }}>
+                        {meta.label}
+                      </Typography>
+                      <Typography sx={{ fontSize: 12, fontWeight: 800, color: meta.color, fontVariantNumeric: 'tabular-nums' }}>
+                        {count.toLocaleString()}
+                      </Typography>
+                      <Box sx={{ width: 48, height: 4, borderRadius: 2, bgcolor: alpha(meta.color, 0.15), overflow: 'hidden' }}>
+                        <Box sx={{ width: `${pct}%`, height: '100%', bgcolor: meta.color, borderRadius: 2 }} />
+                      </Box>
+                    </Stack>
                   </Tooltip>
                 );
               })}
@@ -450,7 +454,7 @@ const EMPTY_STATS: FilterStatsResponse = {
    MAIN GRID
 ───────────────────────────────────────────*/
 function CampaignsGrid({ storeId }: CampaignsGridProps) {
-  const [showMetrics, setShowMetrics] = useState(true);
+  const [showMetrics, setShowMetrics] = useState(false);
   const [filters, setFilters] = useState({
     status: '',
     title: '',
