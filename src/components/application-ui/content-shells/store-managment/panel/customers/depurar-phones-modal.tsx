@@ -32,19 +32,24 @@ interface DepurarPhonesModalProps {
   onClose: () => void;
   storeId: string;
   storeName?: string;
+  provider?: string; // 'bandwidth' | 'infobip' | 'all'
   onSuccess?: () => void;
 }
 
 interface DepurarResult {
   dryRun: boolean;
+  provider?: string;
   totalLogs: number;
   uniquePhones: number;
   samplePhones?: string[];
   preview?: Array<{
     phone: string;
     code: string;
+    provider?: string;
     reason: string;
     class: string;
+    permanent?: boolean;
+    isOptOut?: boolean;
     comment: string;
   }>;
   updated?: number;
@@ -59,9 +64,15 @@ export default function DepurarPhonesModal({
   onClose,
   storeId,
   storeName,
+  provider: storeProv,
   onSuccess,
 }: DepurarPhonesModalProps) {
   const theme = useTheme();
+
+  // Normalize provider: infobip | bandwidth | all (default: bandwidth)
+  const provider = storeProv === 'infobip' ? 'infobip' : storeProv === 'all' ? 'all' : 'bandwidth';
+  const providerLabel = provider === 'infobip' ? 'Infobip' : provider === 'all' ? 'Todos' : 'Bandwidth';
+  const providerColor = provider === 'infobip' ? 'warning' : provider === 'all' ? 'secondary' : 'primary';
 
   // Date range state
   const today = new Date().toISOString().slice(0, 10);
@@ -100,6 +111,7 @@ export default function DepurarPhonesModal({
         storeId,
         from,
         to,
+        provider,
         dryRun: true,
       });
       setPreviewResult(res.data);
@@ -120,6 +132,7 @@ export default function DepurarPhonesModal({
         storeId,
         from,
         to,
+        provider,
         dryRun: false,
       });
       setExecResult(res.data);
@@ -168,9 +181,18 @@ export default function DepurarPhonesModal({
             <Typography variant="h6" fontWeight={700}>
               Depurar Números
             </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {storeName || storeId} — Identificar y desactivar números inválidos
-            </Typography>
+            <Stack direction="row" alignItems="center" spacing={1} mt={0.25}>
+              <Typography variant="caption" color="text.secondary">
+                {storeName || storeId}
+              </Typography>
+              <Chip
+                label={providerLabel}
+                size="small"
+                color={providerColor as any}
+                variant="outlined"
+                sx={{ height: 18, fontSize: 10, fontWeight: 700 }}
+              />
+            </Stack>
           </Box>
           <IconButton size="small" onClick={handleClose} disabled={loading}>
             <CloseRounded />
@@ -254,6 +276,12 @@ export default function DepurarPhonesModal({
             {/* Stats */}
             <Stack direction="row" spacing={2} flexWrap="wrap">
               <Chip
+                label={providerLabel}
+                color={providerColor as any}
+                variant="filled"
+                size="small"
+              />
+              <Chip
                 label={`${previewResult.totalLogs} logs encontrados`}
                 color="default"
                 variant="outlined"
@@ -289,6 +317,7 @@ export default function DepurarPhonesModal({
                       <Box component="th" sx={{ p: 1, textAlign: 'left', fontWeight: 600 }}>Teléfono</Box>
                       <Box component="th" sx={{ p: 1, textAlign: 'left', fontWeight: 600 }}>Código</Box>
                       <Box component="th" sx={{ p: 1, textAlign: 'left', fontWeight: 600 }}>Razón</Box>
+                      <Box component="th" sx={{ p: 1, textAlign: 'left', fontWeight: 600 }}>Tipo</Box>
                     </Box>
                   </Box>
                   <Box component="tbody">
@@ -307,6 +336,13 @@ export default function DepurarPhonesModal({
                           <Chip label={p.code} size="small" color="error" variant="outlined" sx={{ fontSize: 11 }} />
                         </Box>
                         <Box component="td" sx={{ p: 1 }}>{p.reason}</Box>
+                        <Box component="td" sx={{ p: 1 }}>
+                          {p.isOptOut ? (
+                            <Chip label="Opt-out" size="small" color="warning" sx={{ fontSize: 10 }} />
+                          ) : (
+                            <Chip label="Inválido" size="small" color="error" variant="outlined" sx={{ fontSize: 10 }} />
+                          )}
+                        </Box>
                       </Box>
                     ))}
                   </Box>

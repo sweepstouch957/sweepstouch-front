@@ -324,6 +324,7 @@ const StoreManagementPage = () => {
           <CustomersPanel
             storeId={storeId || ''}
             storeName={store?.name}
+            provider={store?.provider}
           />
         );
 

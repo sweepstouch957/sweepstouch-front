@@ -12,9 +12,10 @@ import { SettingsBackupRestoreRounded } from '@mui/icons-material';
 interface CustomersPanelProps {
   storeId: string;
   storeName?: string;
+  provider?: string;
 }
 
-const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName }) => {
+const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName, provider }) => {
   const [openImport, setOpenImport] = useState(false);
   const [openDepurar, setOpenDepurar] = useState(false);
   const [openReactivar, setOpenReactivar] = useState(false);
@@ -109,6 +110,7 @@ const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName }) => {
         onClose={() => setOpenDepurar(false)}
         storeId={storeId}
         storeName={storeName}
+        provider={provider}
         onSuccess={handleDepurarSuccess}
       />
 
