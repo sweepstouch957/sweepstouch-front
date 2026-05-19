@@ -119,6 +119,20 @@ function TabletFramePreview({
     new Date().toLocaleTimeString('es-HN', { hour: '2-digit', minute: '2-digit' }),
   );
   const [countdown, setCountdown] = React.useState<number | null>(null);
+  const [imgOrientation, setImgOrientation] = React.useState<'portrait' | 'landscape'>('portrait');
+
+  // Detect screenshot orientation when URL changes
+  React.useEffect(() => {
+    if (screenshot?.status === 'ready' && screenshot.url) {
+      const img = new Image();
+      img.onload = () => {
+        setImgOrientation(img.naturalWidth > img.naturalHeight ? 'landscape' : 'portrait');
+      };
+      img.src = screenshot.url;
+    } else {
+      setImgOrientation('portrait');
+    }
+  }, [screenshot?.url, screenshot?.status]);
 
   React.useEffect(() => {
     const t = setInterval(() => {
@@ -142,13 +156,18 @@ function TabletFramePreview({
   const isOnlineOn  = device.online && device.screenOn;
   const isOnlineOff = device.online && !device.screenOn;
 
+  const isLandscape = imgOrientation === 'landscape';
+  // Portrait: 210×300 | Landscape: 320×220 — swap frame dims to match real orientation
+  const frameW = isLandscape ? 320 : 210;
+  const frameH = isLandscape ? 220 : 300;
+
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+    <Box sx={{ display: 'flex', justifyContent: 'center', py: 2, transition: 'all 0.3s ease' }}>
       {/* Tablet body */}
       <Box sx={{
         position: 'relative',
-        width: 210,
-        height: 300,
+        width: frameW,
+        height: frameH,
         borderRadius: '22px',
         background: 'linear-gradient(155deg, #1a1f2e 0%, #12151f 100%)',
         boxShadow: [
@@ -157,37 +176,52 @@ function TabletFramePreview({
           '0 28px 56px rgba(0,0,0,0.55)',
           isOnlineOn ? '0 0 50px rgba(74,222,128,0.06)' : '',
         ].filter(Boolean).join(', '),
-        transition: 'box-shadow 0.6s ease',
+        transition: 'width 0.3s ease, height 0.3s ease, box-shadow 0.6s ease',
       }}>
-        {/* Camera */}
-        <Box sx={{
+        {/* Camera — top-center (portrait) or left-center (landscape) */}
+        <Box sx={isLandscape ? {
+          position: 'absolute', left: 9, top: '50%',
+          transform: 'translateY(-50%)',
+          width: 7, height: 7, borderRadius: '50%',
+          background: '#0a0c12',
+          border: '1px solid rgba(255,255,255,0.05)',
+          '&::after': { content: '""', position: 'absolute', top: 1.5, left: 1.5, width: 3, height: 3, borderRadius: '50%', background: 'rgba(96,165,250,0.2)' },
+        } : {
           position: 'absolute', top: 9, left: '50%',
           transform: 'translateX(-50%)',
           width: 7, height: 7, borderRadius: '50%',
           background: '#0a0c12',
           border: '1px solid rgba(255,255,255,0.05)',
-          '&::after': {
-            content: '""', position: 'absolute',
-            top: 1.5, left: 1.5, width: 3, height: 3,
-            borderRadius: '50%', background: 'rgba(96,165,250,0.2)',
-          },
+          '&::after': { content: '""', position: 'absolute', top: 1.5, left: 1.5, width: 3, height: 3, borderRadius: '50%', background: 'rgba(96,165,250,0.2)' },
         }} />
 
-        {/* Power button */}
-        <Box sx={{ position: 'absolute', right: -3, top: 64, width: 3, height: 26, borderRadius: '0 3px 3px 0', background: '#1e2538' }} />
-        {/* Vol up */}
-        <Box sx={{ position: 'absolute', right: -3, top: 108, width: 3, height: 18, borderRadius: '0 3px 3px 0', background: '#1e2538' }} />
-        {/* Vol down */}
-        <Box sx={{ position: 'absolute', right: -3, top: 134, width: 3, height: 18, borderRadius: '0 3px 3px 0', background: '#1e2538' }} />
+        {/* Buttons — landscape: top edge | portrait: right edge */}
+        {isLandscape ? (
+          <>
+            <Box sx={{ position: 'absolute', top: -3, right: 64, height: 3, width: 26, borderRadius: '3px 3px 0 0', background: '#1e2538' }} />
+            <Box sx={{ position: 'absolute', top: -3, right: 108, height: 3, width: 18, borderRadius: '3px 3px 0 0', background: '#1e2538' }} />
+            <Box sx={{ position: 'absolute', top: -3, right: 134, height: 3, width: 18, borderRadius: '3px 3px 0 0', background: '#1e2538' }} />
+          </>
+        ) : (
+          <>
+            <Box sx={{ position: 'absolute', right: -3, top: 64, width: 3, height: 26, borderRadius: '0 3px 3px 0', background: '#1e2538' }} />
+            <Box sx={{ position: 'absolute', right: -3, top: 108, width: 3, height: 18, borderRadius: '0 3px 3px 0', background: '#1e2538' }} />
+            <Box sx={{ position: 'absolute', right: -3, top: 134, width: 3, height: 18, borderRadius: '0 3px 3px 0', background: '#1e2538' }} />
+          </>
+        )}
 
         {/* Screen bezel */}
         <Box sx={{
           position: 'absolute',
-          top: 20, left: 10, right: 10, bottom: 14,
+          top: isLandscape ? 10 : 20,
+          left: isLandscape ? 20 : 10,
+          right: isLandscape ? 14 : 10,
+          bottom: isLandscape ? 10 : 14,
           borderRadius: '14px',
           overflow: 'hidden',
           background: '#000',
           boxShadow: 'inset 0 0 14px rgba(0,0,0,0.9)',
+          transition: 'top 0.3s, left 0.3s, right 0.3s, bottom 0.3s',
         }}>
 
           {/* ── SCREENSHOT READY ── */}
@@ -197,7 +231,7 @@ function TabletFramePreview({
               <img
                 src={screenshot.url}
                 alt="Captura de pantalla"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
               />
               {onClearScreenshot && (
                 <Tooltip title="Cerrar captura">
@@ -406,6 +440,7 @@ function TabletFramePreview({
 
 /* ─── Device Stats Grid ───────────────────────────────────────────────────── */
 function DeviceStatsGrid({ device }: { device: KioskDevice }) {
+  const t = useTheme();
   const bColor = batteryColor(device.batteryLevel, device.isCharging);
   const hasWifi = !!(device.wiFiNetwork && device.wiFiNetwork !== '<unknown ssid>');
 
@@ -454,12 +489,12 @@ function DeviceStatsGrid({ device }: { device: KioskDevice }) {
         <Grid item xs={6} key={i}>
           <Box sx={{
             p: 1.25, borderRadius: 2,
-            border: '1px solid rgba(255,255,255,0.05)',
-            background: 'rgba(255,255,255,0.02)',
+            border: `1px solid ${t.palette.divider}`,
+            background: alpha(t.palette.text.primary, 0.025),
           }}>
             <Stack direction="row" alignItems="center" spacing={0.5} mb={0.35}>
               {s.icon}
-              <Typography sx={{ fontSize: '0.58rem', color: '#4b5563', fontWeight: 700, letterSpacing: '0.06em' }}>
+              <Typography sx={{ fontSize: '0.58rem', color: t.palette.text.disabled, fontWeight: 700, letterSpacing: '0.06em' }}>
                 {s.label.toUpperCase()}
               </Typography>
             </Stack>
@@ -514,6 +549,7 @@ function SectionToggle({ label, icon, open, onToggle, badge }: {
   open: boolean; onToggle: () => void;
   badge?: number;
 }) {
+  const t = useTheme();
   return (
     <Box
       component="button"
@@ -522,13 +558,13 @@ function SectionToggle({ label, icon, open, onToggle, badge }: {
         all: 'unset', width: '100%', boxSizing: 'border-box',
         display: 'flex', alignItems: 'center', gap: 1,
         px: 1.75, py: 1.25, cursor: 'pointer',
-        background: 'rgba(255,255,255,0.02)',
+        background: alpha(t.palette.text.primary, 0.025),
         transition: 'background 0.15s',
-        '&:hover': { background: 'rgba(255,255,255,0.04)' },
+        '&:hover': { background: alpha(t.palette.text.primary, 0.045) },
       }}
     >
-      <Box sx={{ color: '#475569', display: 'flex', alignItems: 'center' }}>{icon}</Box>
-      <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: '#475569', letterSpacing: '0.08em', flex: 1 }}>
+      <Box sx={{ color: t.palette.text.secondary, display: 'flex', alignItems: 'center' }}>{icon}</Box>
+      <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: t.palette.text.secondary, letterSpacing: '0.08em', flex: 1 }}>
         {label}
       </Typography>
       {badge !== undefined && badge > 0 && (
@@ -539,7 +575,7 @@ function SectionToggle({ label, icon, open, onToggle, badge }: {
         }} />
       )}
       <MoreHoriz sx={{
-        fontSize: 15, color: '#334155',
+        fontSize: 15, color: t.palette.text.disabled,
         transform: open ? 'rotate(90deg)' : 'none',
         transition: 'transform 0.2s ease',
       }} />
@@ -549,11 +585,12 @@ function SectionToggle({ label, icon, open, onToggle, badge }: {
 
 /* ─── Activity Log ────────────────────────────────────────────────────────── */
 function ActivityLogPanel({ entries }: { entries: ActivityEntry[] }) {
+  const t = useTheme();
   if (entries.length === 0) {
     return (
       <Box sx={{ py: 2.5, textAlign: 'center' }}>
-        <History sx={{ fontSize: 20, color: '#1e293b', mb: 0.5 }} />
-        <Typography sx={{ fontSize: '0.7rem', color: '#334155' }}>
+        <History sx={{ fontSize: 20, color: t.palette.text.disabled, mb: 0.5 }} />
+        <Typography sx={{ fontSize: '0.7rem', color: t.palette.text.disabled }}>
           Sin acciones recientes
         </Typography>
       </Box>
@@ -566,8 +603,8 @@ function ActivityLogPanel({ entries }: { entries: ActivityEntry[] }) {
         <Box key={e.id} sx={{
           display: 'flex', alignItems: 'center', gap: 1,
           px: 1.25, py: 0.75, borderRadius: 1.5,
-          background: 'rgba(255,255,255,0.015)',
-          border: '1px solid rgba(255,255,255,0.04)',
+          background: alpha(t.palette.text.primary, 0.02),
+          border: `1px solid ${t.palette.divider}`,
           transition: 'background 0.1s',
         }}>
           {e.status === 'pending' && <CircularProgress size={12} sx={{ color: '#60a5fa', flexShrink: 0 }} />}
@@ -575,7 +612,7 @@ function ActivityLogPanel({ entries }: { entries: ActivityEntry[] }) {
           {e.status === 'error'   && <ErrorOutline sx={{ fontSize: 14, color: '#f87171', flexShrink: 0 }} />}
 
           <Box flex={1} minWidth={0}>
-            <Typography noWrap sx={{ fontSize: '0.68rem', fontWeight: 600, color: '#94a3b8' }}>
+            <Typography noWrap sx={{ fontSize: '0.68rem', fontWeight: 600, color: t.palette.text.secondary }}>
               {e.label}
             </Typography>
             {e.errorMsg && (
@@ -583,7 +620,7 @@ function ActivityLogPanel({ entries }: { entries: ActivityEntry[] }) {
             )}
           </Box>
 
-          <Typography sx={{ fontSize: '0.58rem', color: '#334155', flexShrink: 0, fontFamily: 'monospace' }}>
+          <Typography sx={{ fontSize: '0.58rem', color: t.palette.text.disabled, flexShrink: 0, fontFamily: 'monospace' }}>
             {e.timestamp.toLocaleTimeString('es-HN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </Typography>
         </Box>
@@ -596,8 +633,9 @@ function ActivityLogPanel({ entries }: { entries: ActivityEntry[] }) {
 function DeviceListItem({ device, selected, onClick }: {
   device: KioskDevice; selected: boolean; onClick: () => void;
 }) {
+  const t = useTheme();
   const bColor = batteryColor(device.batteryLevel, device.isCharging);
-  const accentColor = device.online ? '#4ade80' : '#334155';
+  const accentColor = device.online ? '#4ade80' : t.palette.text.secondary;
 
   return (
     <Box
@@ -607,7 +645,7 @@ function DeviceListItem({ device, selected, onClick }: {
         all: 'unset', display: 'flex', flexDirection: 'column',
         width: '100%', boxSizing: 'border-box',
         cursor: 'pointer', px: 1.5, py: 1.25, borderRadius: 2,
-        border: `1px solid ${selected ? alpha(accentColor, 0.4) : 'rgba(255,255,255,0.04)'}`,
+        border: `1px solid ${selected ? alpha(accentColor, 0.4) : t.palette.divider}`,
         background: selected ? alpha(accentColor, 0.06) : 'transparent',
         transition: 'all 0.15s ease',
         '&:hover': { background: alpha(accentColor, 0.04), borderColor: alpha(accentColor, 0.2) },
@@ -615,12 +653,12 @@ function DeviceListItem({ device, selected, onClick }: {
     >
       <Stack direction="row" alignItems="center" spacing={1}>
         <Box sx={{ position: 'relative', flexShrink: 0 }}>
-          <PhoneAndroid sx={{ fontSize: 17, color: device.online ? '#4ade80' : '#1e293b' }} />
+          <PhoneAndroid sx={{ fontSize: 17, color: device.online ? '#4ade80' : t.palette.text.disabled }} />
           <Box sx={{
             position: 'absolute', bottom: -1, right: -2,
             width: 7, height: 7, borderRadius: '50%',
-            bgcolor: device.online ? '#4ade80' : '#1e293b',
-            border: '1.5px solid rgba(0,0,0,0.6)',
+            bgcolor: device.online ? '#4ade80' : t.palette.text.disabled,
+            border: `1.5px solid ${t.palette.background.paper}`,
             ...(device.online && {
               animation: 'pulse-dot 2.5s ease-in-out infinite',
               '@keyframes pulse-dot': {
@@ -634,11 +672,11 @@ function DeviceListItem({ device, selected, onClick }: {
         <Box flex={1} minWidth={0}>
           <Typography noWrap sx={{
             fontSize: '0.73rem', fontWeight: 700,
-            color: selected ? (device.online ? '#4ade80' : '#64748b') : '#94a3b8',
+            color: selected ? (device.online ? '#4ade80' : t.palette.text.secondary) : t.palette.text.secondary,
           }}>
             {device.name || 'Sin nombre'}
           </Typography>
-          <Typography noWrap sx={{ fontSize: '0.6rem', color: '#1e293b' }}>
+          <Typography noWrap sx={{ fontSize: '0.6rem', color: t.palette.text.disabled }}>
             {device.model || device.brand || device.identifier.slice(0, 10)}
           </Typography>
         </Box>
@@ -656,7 +694,7 @@ function DeviceListItem({ device, selected, onClick }: {
           </Stack>
           <Typography sx={{
             fontSize: '0.58rem', fontWeight: 700,
-            color: device.screenOn ? '#60a5fa' : '#1e293b',
+            color: device.screenOn ? '#60a5fa' : t.palette.text.disabled,
           }}>
             {device.screenOn ? 'ON' : 'OFF'}
           </Typography>
@@ -664,7 +702,7 @@ function DeviceListItem({ device, selected, onClick }: {
       )}
 
       {!device.online && device.lastSeen && (
-        <Typography sx={{ fontSize: '0.56rem', color: '#1e293b', mt: 0.35 }}>
+        <Typography sx={{ fontSize: '0.56rem', color: t.palette.text.disabled, mt: 0.35 }}>
           {new Date(device.lastSeen).toLocaleString('es-HN', { dateStyle: 'short', timeStyle: 'short' })}
         </Typography>
       )}
@@ -678,7 +716,7 @@ function ConfirmDialog({ open, message, onConfirm, onClose }: {
 }) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth
-      PaperProps={{ sx: { borderRadius: 3, border: `1px solid ${alpha('#f87171', 0.25)}`, bgcolor: '#0f172a' } }}>
+      PaperProps={{ sx: { borderRadius: 3, border: `1px solid ${alpha('#f87171', 0.25)}` } }}>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
         <Stack direction="row" alignItems="center" spacing={1}>
           <PowerSettingsNew sx={{ color: 'error.main', fontSize: 18 }} />
@@ -708,6 +746,7 @@ function DeviceDetailView({ device, onAction, loadingAction, activityLog, screen
   screenshot?: ScreenshotState;
   onClearScreenshot?: () => void;
 }) {
+  const t = useTheme();
   const [showAdvanced, setShowAdvanced] = React.useState(false);
   const [showLog, setShowLog] = React.useState(true);
   const bColor = batteryColor(device.batteryLevel, device.isCharging);
@@ -718,8 +757,8 @@ function DeviceDetailView({ device, onAction, loadingAction, activityLog, screen
       {/* Device header */}
       <Box sx={{
         p: 2, borderRadius: 2.5,
-        border: '1px solid rgba(255,255,255,0.05)',
-        background: 'rgba(255,255,255,0.02)',
+        border: `1px solid ${t.palette.divider}`,
+        background: alpha(t.palette.text.primary, 0.025),
         backgroundImage: device.online
           ? `radial-gradient(ellipse at top right, ${alpha('#4ade80', 0.04)} 0%, transparent 60%)`
           : 'none',
@@ -729,18 +768,18 @@ function DeviceDetailView({ device, onAction, loadingAction, activityLog, screen
             width: 44, height: 44, borderRadius: 2, flexShrink: 0,
             background: device.online
               ? `linear-gradient(135deg, ${alpha('#4ade80', 0.18)}, ${alpha('#22d3ee', 0.1)})`
-              : alpha('#334155', 0.3),
-            border: `1.5px solid ${device.online ? alpha('#4ade80', 0.3) : 'rgba(51,65,85,0.5)'}`,
+              : alpha(t.palette.text.primary, 0.06),
+            border: `1.5px solid ${device.online ? alpha('#4ade80', 0.3) : t.palette.divider}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: device.online ? '#4ade80' : '#334155',
+            color: device.online ? '#4ade80' : t.palette.text.secondary,
           }}>
             <PhoneAndroid sx={{ fontSize: 24 }} />
           </Box>
           <Box flex={1} minWidth={0}>
-            <Typography variant="subtitle1" fontWeight={800} noWrap sx={{ letterSpacing: '-0.02em', color: '#e2e8f0' }}>
+            <Typography variant="subtitle1" fontWeight={800} noWrap sx={{ letterSpacing: '-0.02em', color: t.palette.text.primary }}>
               {device.name || 'Sin nombre'}
             </Typography>
-            <Typography noWrap sx={{ fontSize: '0.72rem', color: '#475569' }}>
+            <Typography noWrap sx={{ fontSize: '0.72rem', color: t.palette.text.secondary }}>
               {[device.model, device.brand].filter(Boolean).join(' · ')}
             </Typography>
           </Box>
@@ -749,9 +788,9 @@ function DeviceDetailView({ device, onAction, loadingAction, activityLog, screen
             size="small"
             sx={{
               height: 24, fontSize: '0.68rem', fontWeight: 700, flexShrink: 0,
-              bgcolor: device.online ? alpha('#4ade80', 0.1) : alpha('#334155', 0.4),
-              color: device.online ? '#4ade80' : '#475569',
-              border: `1px solid ${device.online ? alpha('#4ade80', 0.3) : 'rgba(51,65,85,0.5)'}`,
+              bgcolor: device.online ? alpha('#4ade80', 0.1) : alpha(t.palette.text.primary, 0.06),
+              color: device.online ? '#4ade80' : t.palette.text.secondary,
+              border: `1px solid ${device.online ? alpha('#4ade80', 0.3) : t.palette.divider}`,
             }}
           />
         </Stack>
@@ -762,8 +801,10 @@ function DeviceDetailView({ device, onAction, loadingAction, activityLog, screen
         <Grid item xs={12} sm={5}>
           <Box sx={{
             borderRadius: 2.5,
-            border: '1px solid rgba(255,255,255,0.04)',
-            background: 'radial-gradient(ellipse at center, rgba(15,23,42,0.8) 0%, rgba(8,12,24,0.95) 100%)',
+            border: `1px solid ${t.palette.divider}`,
+            background: t.palette.mode === 'dark'
+              ? 'radial-gradient(ellipse at center, rgba(15,23,42,0.8) 0%, rgba(8,12,24,0.95) 100%)'
+              : alpha(t.palette.common.black, 0.03),
           }}>
             <TabletFramePreview device={device} screenshot={screenshot} onClearScreenshot={onClearScreenshot} />
           </Box>
@@ -772,21 +813,21 @@ function DeviceDetailView({ device, onAction, loadingAction, activityLog, screen
         <Grid item xs={12} sm={7}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pt: { xs: 0, sm: 0.5 } }}>
             {/* Stats */}
-            <Box sx={{ p: 1.75, borderRadius: 2.5, border: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.02)' }}>
-              <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: '#334155', letterSpacing: '0.08em', mb: 1.25 }}>
+            <Box sx={{ p: 1.75, borderRadius: 2.5, border: `1px solid ${t.palette.divider}`, background: alpha(t.palette.text.primary, 0.025) }}>
+              <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: t.palette.text.secondary, letterSpacing: '0.08em', mb: 1.25 }}>
                 ESTADO DEL DISPOSITIVO
               </Typography>
               <DeviceStatsGrid device={device} />
             </Box>
 
             {/* Battery bar */}
-            <Box sx={{ p: 1.75, borderRadius: 2.5, border: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.02)' }}>
+            <Box sx={{ p: 1.75, borderRadius: 2.5, border: `1px solid ${t.palette.divider}`, background: alpha(t.palette.text.primary, 0.025) }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
                 <Stack direction="row" alignItems="center" spacing={0.5}>
                   <Box sx={{ color: bColor, display: 'flex', alignItems: 'center' }}>
                     <BatteryIcon level={device.batteryLevel} charging={device.isCharging} size={13} />
                   </Box>
-                  <Typography sx={{ fontSize: '0.62rem', color: '#334155', fontWeight: 600 }}>
+                  <Typography sx={{ fontSize: '0.62rem', color: t.palette.text.secondary, fontWeight: 600 }}>
                     Nivel de batería{device.isCharging ? ' — Cargando' : ''}
                   </Typography>
                 </Stack>
@@ -813,9 +854,9 @@ function DeviceDetailView({ device, onAction, loadingAction, activityLog, screen
       </Grid>
 
       {/* Quick Actions */}
-      <Box sx={{ borderRadius: 2.5, border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden' }}>
-        <Box sx={{ px: 1.75, pt: 1.5, pb: 1.25, background: 'rgba(255,255,255,0.02)' }}>
-          <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: '#334155', letterSpacing: '0.08em', mb: 1.25 }}>
+      <Box sx={{ borderRadius: 2.5, border: `1px solid ${t.palette.divider}`, overflow: 'hidden' }}>
+        <Box sx={{ px: 1.75, pt: 1.5, pb: 1.25, background: alpha(t.palette.text.primary, 0.025) }}>
+          <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: t.palette.text.secondary, letterSpacing: '0.08em', mb: 1.25 }}>
             ACCIONES RÁPIDAS
           </Typography>
           <Stack direction="row" flexWrap="wrap" gap={0.75}>
@@ -832,7 +873,7 @@ function DeviceDetailView({ device, onAction, loadingAction, activityLog, screen
       </Box>
 
       {/* Advanced Actions */}
-      <Box sx={{ borderRadius: 2.5, border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden' }}>
+      <Box sx={{ borderRadius: 2.5, border: `1px solid ${t.palette.divider}`, overflow: 'hidden' }}>
         <SectionToggle
           label="ACCIONES AVANZADAS"
           icon={<SettingsRemote sx={{ fontSize: 14 }} />}
@@ -840,7 +881,7 @@ function DeviceDetailView({ device, onAction, loadingAction, activityLog, screen
           onToggle={() => setShowAdvanced(p => !p)}
         />
         <Collapse in={showAdvanced}>
-          <Box sx={{ px: 1.75, pb: 1.5, pt: 1.25, background: 'rgba(0,0,0,0.2)', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+          <Box sx={{ px: 1.75, pb: 1.5, pt: 1.25, background: alpha(t.palette.common.black, t.palette.mode === 'dark' ? 0.2 : 0.03), borderTop: `1px solid ${t.palette.divider}` }}>
             <Stack direction="row" flexWrap="wrap" gap={0.75}>
               {ADVANCED.map((a) => (
                 <ActionPill
@@ -856,7 +897,7 @@ function DeviceDetailView({ device, onAction, loadingAction, activityLog, screen
       </Box>
 
       {/* Activity Log */}
-      <Box sx={{ borderRadius: 2.5, border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden' }}>
+      <Box sx={{ borderRadius: 2.5, border: `1px solid ${t.palette.divider}`, overflow: 'hidden' }}>
         <SectionToggle
           label="REGISTRO DE ACCIONES"
           icon={<History sx={{ fontSize: 14 }} />}
@@ -865,7 +906,7 @@ function DeviceDetailView({ device, onAction, loadingAction, activityLog, screen
           badge={activityLog.length}
         />
         <Collapse in={showLog}>
-          <Box sx={{ px: 1.5, pb: 1.5, pt: 1, background: 'rgba(0,0,0,0.2)', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+          <Box sx={{ px: 1.5, pb: 1.5, pt: 1, background: alpha(t.palette.common.black, t.palette.mode === 'dark' ? 0.2 : 0.03), borderTop: `1px solid ${t.palette.divider}` }}>
             <ActivityLogPanel entries={activityLog} />
           </Box>
         </Collapse>
@@ -910,13 +951,14 @@ function FleetActionsBar({
     });
   };
 
+  const t = useTheme();
   const handleClick = (def: ActionDef) => {
     if (def.confirm) { setConfirmState({ action: def.action, message: def.confirm }); return; }
     run(def.action);
   };
 
   return (
-    <Box sx={{ borderRadius: 2.5, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden', mb: 2 }}>
+    <Box sx={{ borderRadius: 2.5, border: `1px solid ${t.palette.divider}`, overflow: 'hidden', mb: 2 }}>
       <Box
         component="button"
         onClick={() => setOpen(p => !p)}
@@ -924,9 +966,9 @@ function FleetActionsBar({
           all: 'unset', width: '100%', boxSizing: 'border-box',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           px: 1.75, py: 1.25, cursor: 'pointer',
-          background: 'rgba(99,102,241,0.05)',
+          background: alpha('#818cf8', 0.05),
           transition: 'background 0.15s',
-          '&:hover': { background: 'rgba(99,102,241,0.09)' },
+          '&:hover': { background: alpha('#818cf8', 0.09) },
         }}
       >
         <Stack direction="row" alignItems="center" spacing={1}>
@@ -940,12 +982,12 @@ function FleetActionsBar({
             sx={{ height: 16, fontSize: '0.56rem', fontWeight: 700, bgcolor: alpha('#818cf8', 0.12), color: '#818cf8', '& .MuiChip-label': { px: 0.65 } }}
           />
         </Stack>
-        <MoreHoriz sx={{ fontSize: 15, color: '#334155', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+        <MoreHoriz sx={{ fontSize: 15, color: t.palette.text.disabled, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
       </Box>
 
       <Collapse in={open}>
-        <Box sx={{ px: 1.75, pb: 1.5, pt: 1.25, background: 'rgba(0,0,0,0.2)', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-          <Typography sx={{ fontSize: '0.58rem', color: '#334155', mb: 1, letterSpacing: '0.06em' }}>
+        <Box sx={{ px: 1.75, pb: 1.5, pt: 1.25, background: alpha(t.palette.common.black, t.palette.mode === 'dark' ? 0.2 : 0.03), borderTop: `1px solid ${t.palette.divider}` }}>
+          <Typography sx={{ fontSize: '0.58rem', color: t.palette.text.secondary, mb: 1, letterSpacing: '0.06em' }}>
             Se aplicará a todas las tablets de esta tienda
           </Typography>
           <Stack direction="row" flexWrap="wrap" gap={0.75}>
@@ -975,6 +1017,7 @@ function FleetActionsBar({
 
 /* ─── Battery Alert Banner ────────────────────────────────────────────────── */
 function BatteryAlertBanner({ storeId }: { storeId: string }) {
+  const t = useTheme();
   const { data: report, isLoading, refetch } = useBatteryReport(storeId);
   const [notifyOpen, setNotifyOpen] = React.useState(false);
   const [phone, setPhone] = React.useState('');
@@ -1024,8 +1067,8 @@ function BatteryAlertBanner({ storeId }: { storeId: string }) {
     <Box sx={{ mb: 2 }}>
       {/* Fleet summary strip */}
       <Box sx={{
-        borderRadius: 2, border: '1px solid rgba(255,255,255,0.05)',
-        background: 'rgba(255,255,255,0.015)',
+        borderRadius: 2, border: `1px solid ${t.palette.divider}`,
+        background: alpha(t.palette.text.primary, 0.02),
         px: 1.75, py: 1,
         display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap',
         justifyContent: 'space-between',
@@ -1044,8 +1087,8 @@ function BatteryAlertBanner({ storeId }: { storeId: string }) {
                 <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#4ade80' }}>{online} online</Typography>
               </Stack>
               <Stack direction="row" alignItems="center" spacing={0.5}>
-                <FiberManualRecord sx={{ fontSize: 8, color: '#334155' }} />
-                <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#475569' }}>{offline} offline</Typography>
+                <FiberManualRecord sx={{ fontSize: 8, color: t.palette.text.disabled }} />
+                <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: t.palette.text.disabled }}>{offline} offline</Typography>
               </Stack>
               <Stack direction="row" alignItems="center" spacing={0.5}>
                 <BatteryChargingFull sx={{ fontSize: 13, color: '#4ade80' }} />
@@ -1066,13 +1109,13 @@ function BatteryAlertBanner({ storeId }: { storeId: string }) {
         <Stack direction="row" alignItems="center" spacing={0.75}>
           <Tooltip title="Actualizar reporte de batería">
             <IconButton size="small" onClick={() => refetch()} disabled={isLoading}
-              sx={{ width: 26, height: 26, border: '1px solid rgba(255,255,255,0.06)', borderRadius: 1 }}>
+              sx={{ width: 26, height: 26, border: `1px solid ${t.palette.divider}`, borderRadius: 1 }}>
               <Refresh sx={{ fontSize: 13 }} />
             </IconButton>
           </Tooltip>
           <Tooltip title="Exportar reporte CSV">
             <IconButton size="small" onClick={handleExport} disabled={!devices.length}
-              sx={{ width: 26, height: 26, border: '1px solid rgba(255,255,255,0.06)', borderRadius: 1 }}>
+              sx={{ width: 26, height: 26, border: `1px solid ${t.palette.divider}`, borderRadius: 1 }}>
               <Download sx={{ fontSize: 13 }} />
             </IconButton>
           </Tooltip>
@@ -1080,8 +1123,8 @@ function BatteryAlertBanner({ storeId }: { storeId: string }) {
             <IconButton size="small" onClick={() => setNotifyOpen(true)}
               sx={{
                 width: 26, height: 26, borderRadius: 1,
-                border: `1px solid ${alpha('#f87171', alerts.length > 0 ? 0.4 : 0.1)}`,
-                color: alerts.length > 0 ? '#f87171' : '#334155',
+                border: `1px solid ${alpha('#f87171', alerts.length > 0 ? 0.4 : 0.15)}`,
+                color: alerts.length > 0 ? '#f87171' : t.palette.text.secondary,
                 bgcolor: alerts.length > 0 ? alpha('#f87171', 0.08) : 'transparent',
               }}>
               <NotificationsActive sx={{ fontSize: 13 }} />
@@ -1109,7 +1152,7 @@ function BatteryAlertBanner({ storeId }: { storeId: string }) {
                 size="small"
                 sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800, bgcolor: alpha('#f87171', 0.12), color: '#f87171', '& .MuiChip-label': { px: 0.65 } }}
               />
-              <Typography sx={{ fontSize: '0.6rem', color: '#475569' }}>sin carga</Typography>
+              <Typography sx={{ fontSize: '0.6rem', color: t.palette.text.secondary }}>sin carga</Typography>
             </Box>
           ))}
         </Box>
@@ -1117,7 +1160,7 @@ function BatteryAlertBanner({ storeId }: { storeId: string }) {
 
       {/* Notify dialog */}
       <Dialog open={notifyOpen} onClose={() => setNotifyOpen(false)} maxWidth="xs" fullWidth
-        PaperProps={{ sx: { borderRadius: 3, border: `1px solid ${alpha('#f87171', 0.2)}`, bgcolor: '#0f172a' } }}>
+        PaperProps={{ sx: { borderRadius: 3, border: `1px solid ${alpha('#f87171', 0.2)}` } }}>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
           <Stack direction="row" alignItems="center" spacing={1}>
             <NotificationsActive sx={{ color: '#f87171', fontSize: 18 }} />
@@ -1361,7 +1404,7 @@ export function KioskTabletPanel({ storeId }: Props) {
               </Typography>
               {isFetching && <CircularProgress size={12} sx={{ color: '#60a5fa' }} />}
             </Stack>
-            <Typography sx={{ fontSize: '0.7rem', color: '#334155' }}>
+            <Typography sx={{ fontSize: '0.7rem', color: theme.palette.text.disabled }}>
               Gestión remota · Control en tiempo real
             </Typography>
           </Box>
@@ -1374,14 +1417,14 @@ export function KioskTabletPanel({ storeId }: Props) {
             sx={{ fontWeight: 700, fontSize: '0.68rem', height: 24, bgcolor: alpha('#4ade80', 0.08), color: '#4ade80', border: `1px solid ${alpha('#4ade80', 0.18)}` }}
           />
           <Chip
-            icon={<FiberManualRecord sx={{ fontSize: '8px !important', color: '#334155 !important' }} />}
+            icon={<FiberManualRecord sx={{ fontSize: '8px !important', color: `${theme.palette.text.disabled} !important` }} />}
             label={`${offline} offline`} size="small"
-            sx={{ fontWeight: 700, fontSize: '0.68rem', height: 24, bgcolor: 'rgba(51,65,85,0.25)', color: '#475569', border: '1px solid rgba(51,65,85,0.4)' }}
+            sx={{ fontWeight: 700, fontSize: '0.68rem', height: 24, bgcolor: alpha(theme.palette.text.primary, 0.06), color: theme.palette.text.secondary, border: `1px solid ${theme.palette.divider}` }}
           />
           <Tooltip title="Actualizar dispositivos">
             <span style={{ display: 'inline-flex' }}>
               <IconButton size="small" onClick={() => refetch()} disabled={isFetching}
-                sx={{ border: '1px solid rgba(255,255,255,0.06)', borderRadius: 1.5, width: 32, height: 32 }}>
+                sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1.5, width: 32, height: 32 }}>
                 <Refresh sx={{
                   fontSize: 16,
                   animation: isFetching ? 'spin-refresh 1s linear infinite' : 'none',
@@ -1425,8 +1468,8 @@ export function KioskTabletPanel({ storeId }: Props) {
           {/* Filter */}
           <Box sx={{
             display: 'flex', p: 0.5, mb: 1.25,
-            borderRadius: 2, border: '1px solid rgba(255,255,255,0.05)',
-            background: 'rgba(255,255,255,0.02)',
+            borderRadius: 2, border: `1px solid ${theme.palette.divider}`,
+            background: alpha(theme.palette.text.primary, 0.025),
           }}>
             {(['all', 'online', 'offline'] as const).map((f) => (
               <Box
@@ -1438,13 +1481,13 @@ export function KioskTabletPanel({ storeId }: Props) {
                   py: 0.45, borderRadius: 1.5,
                   cursor: 'pointer', fontSize: '0.65rem', fontWeight: 700,
                   transition: 'all 0.15s',
-                  background: filter === f ? 'rgba(255,255,255,0.07)' : 'transparent',
+                  background: filter === f ? alpha(theme.palette.text.primary, 0.07) : 'transparent',
                   color: filter === f
                     ? f === 'online'  ? '#4ade80'
-                    : f === 'offline' ? '#475569'
-                    : '#94a3b8'
-                    : '#334155',
-                  boxShadow: filter === f ? '0 1px 3px rgba(0,0,0,0.3)' : 'none',
+                    : f === 'offline' ? theme.palette.text.secondary
+                    : theme.palette.text.primary
+                    : theme.palette.text.disabled,
+                  boxShadow: filter === f ? theme.shadows[1] : 'none',
                 }}
               >
                 {f === 'all' ? 'Todos' : f === 'online' ? 'Online' : 'Offline'}
@@ -1472,7 +1515,7 @@ export function KioskTabletPanel({ storeId }: Props) {
               </Box>
             ))}
             {filteredDevices.length === 0 && (
-              <Typography sx={{ fontSize: '0.7rem', color: '#334155', py: 3, textAlign: 'center' }}>
+              <Typography sx={{ fontSize: '0.7rem', color: theme.palette.text.disabled, py: 3, textAlign: 'center' }}>
                 Sin dispositivos
               </Typography>
             )}
@@ -1481,7 +1524,7 @@ export function KioskTabletPanel({ storeId }: Props) {
 
         {/* Divider */}
         {!isMobile && (
-          <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+          <Divider orientation="vertical" flexItem />
         )}
 
         {/* Right: detail */}
@@ -1501,11 +1544,11 @@ export function KioskTabletPanel({ storeId }: Props) {
             <Box sx={{
               height: 400, display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexDirection: 'column', gap: 1.5, borderRadius: 3,
-              border: '1px dashed rgba(255,255,255,0.05)',
-              background: 'rgba(255,255,255,0.01)',
+              border: `1px dashed ${theme.palette.divider}`,
+              background: alpha(theme.palette.text.primary, 0.01),
             }}>
-              <PhoneAndroid sx={{ fontSize: 40, color: '#1e293b' }} />
-              <Typography sx={{ fontSize: '0.8rem', color: '#334155' }}>
+              <PhoneAndroid sx={{ fontSize: 40, color: theme.palette.text.disabled }} />
+              <Typography sx={{ fontSize: '0.8rem', color: theme.palette.text.disabled }}>
                 Selecciona un dispositivo
               </Typography>
             </Box>
