@@ -80,7 +80,7 @@ function KpiCard({
         borderColor: alpha(color, isDark ? 0.22 : 0.18),
         bgcolor: alpha(color, isDark ? 0.06 : 0.03),
         overflow: 'hidden',
-        p: 2,
+        p: 1.25,
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         '&:hover': {
           boxShadow: `0 0 0 1px ${alpha(color, 0.4)}, 0 8px 24px ${alpha(color, 0.15)}`,
@@ -100,14 +100,14 @@ function KpiCard({
         }}
       />
 
-      <Stack spacing={0.75} sx={{ pl: 0.5 }}>
+      <Stack spacing={0.5} sx={{ pl: 0.5 }}>
         {/* Icon + label row */}
-        <Stack direction="row" alignItems="center" spacing={1}>
+        <Stack direction="row" alignItems="center" spacing={0.75}>
           <Box
             sx={{
-              width: 30,
-              height: 30,
-              borderRadius: 1.5,
+              width: 24,
+              height: 24,
+              borderRadius: 1,
               bgcolor: alpha(color, isDark ? 0.18 : 0.12),
               display: 'flex',
               alignItems: 'center',
@@ -123,7 +123,7 @@ function KpiCard({
             sx={{
               fontSize: 10,
               fontWeight: 700,
-              letterSpacing: '0.06em',
+              letterSpacing: '0.05em',
               textTransform: 'uppercase',
               color: 'text.secondary',
             }}
@@ -132,13 +132,13 @@ function KpiCard({
           </Typography>
         </Stack>
 
-        {/* Big number */}
+        {/* Number */}
         {loading ? (
-          <Skeleton width={72} height={36} sx={{ borderRadius: 1 }} />
+          <Skeleton width={56} height={28} sx={{ borderRadius: 1 }} />
         ) : (
           <Typography
             sx={{
-              fontSize: 30,
+              fontSize: 22,
               fontWeight: 800,
               lineHeight: 1,
               fontVariantNumeric: 'tabular-nums',
@@ -151,7 +151,7 @@ function KpiCard({
         )}
 
         {/* Description */}
-        <Typography sx={{ fontSize: 11, color: 'text.disabled', lineHeight: 1.3 }}>
+        <Typography sx={{ fontSize: 10, color: 'text.disabled', lineHeight: 1.2 }}>
           {description}
         </Typography>
       </Stack>
@@ -183,8 +183,8 @@ function StatCell({ icon, color, label, sublabel, value, pct, extraInfo, isCurre
       sx={{
         flex: 1,
         minWidth: 0,
-        px: 2,
-        py: 1.25,
+        px: 1.5,
+        py: 1,
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         '&:hover': { transform: 'translateY(-2px)', bgcolor: isDark ? alpha('#fff', 0.02) : alpha('#000', 0.02) }
       }}
@@ -219,7 +219,7 @@ function StatCell({ icon, color, label, sublabel, value, pct, extraInfo, isCurre
           {isCurrency && <Typography sx={{ fontSize: 16, fontWeight: 700, color: 'text.secondary' }}>$</Typography>}
           <Typography
             sx={{
-              fontSize: 22,
+              fontSize: 18,
               fontWeight: 800,
               lineHeight: 1,
               color,

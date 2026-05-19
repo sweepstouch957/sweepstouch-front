@@ -498,28 +498,16 @@ const Results: FC<ResultsProps> = ({
                           <Typography variant="body2" fontWeight={900}>{numeral(campaign.cost || 0).format('$0,0.00')}</Typography>
                         </TableCell>
 
-                        {/* Delivery Rate with mini progress bar */}
+                        {/* Delivery Rate */}
                         <TableCell>
-                          <Box sx={{ minWidth: 80 }}>
-                            <Stack direction="row" alignItems="baseline" spacing={0.5} mb={0.4}>
-                              <Typography variant="body2" fontWeight={900} sx={{ color: rateColor, fontVariantNumeric: 'tabular-nums' }}>
-                                {rate}%
-                              </Typography>
-                              <Typography variant="caption" color="text.disabled">
-                                {sent.toLocaleString()}/{audience.toLocaleString()}
-                              </Typography>
-                            </Stack>
-                            <LinearProgress
-                              variant="determinate"
-                              value={Math.min(rate, 100)}
-                              sx={{
-                                height: 4,
-                                borderRadius: 2,
-                                bgcolor: alpha(rateColor, 0.15),
-                                '& .MuiLinearProgress-bar': { borderRadius: 2, bgcolor: rateColor },
-                              }}
-                            />
-                          </Box>
+                          <Stack direction="row" alignItems="baseline" spacing={0.5}>
+                            <Typography variant="body2" fontWeight={900} sx={{ color: rateColor, fontVariantNumeric: 'tabular-nums' }}>
+                              {rate}%
+                            </Typography>
+                            <Typography variant="caption" color="text.disabled">
+                              {sent.toLocaleString()}/{audience.toLocaleString()}
+                            </Typography>
+                          </Stack>
                         </TableCell>
 
                         <TableCell onClick={(e) => e.stopPropagation()}>{getStatusChip(campaign.status)}</TableCell>
