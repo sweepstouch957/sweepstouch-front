@@ -38,4 +38,8 @@ export interface Campaing {
   campaignType: string;
   platform?: string;
   sourceTn?: string;
+  /** Mensajes en cola (typo del backend preservado) */
+  quequed?: number;
+  /** Mensajes en proceso de envío activo */
+  sending?: number;
 }
