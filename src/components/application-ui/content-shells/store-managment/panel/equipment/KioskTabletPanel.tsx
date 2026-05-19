@@ -1005,7 +1005,7 @@ export function KioskTabletPanel({ storeId }: Props) {
               startIcon={<ClearRounded />}
               sx={{ borderRadius: 2 }}
               onClick={() => {
-                api.delete(`/api/store/${storeId}/kiosk/clear-tag`)
+                api.delete(`/store/${storeId}/kiosk/clear-tag`)
                   .then(() => { toast.success('Tag reseteado — se re-detectará automáticamente'); refetch(); })
                   .catch(() => toast.error('Error al resetear el tag'));
               }}
@@ -1091,7 +1091,7 @@ export function KioskTabletPanel({ storeId }: Props) {
                 '&:hover': { bgcolor: alpha('#fbbf24', 0.08) },
               }}
               onClick={() => {
-                api.delete(`/api/store/${storeId}/kiosk/clear-tag`)
+                api.delete(`/store/${storeId}/kiosk/clear-tag`)
                   .then(() => { toast.success('Tag kiosk reseteado — se re-detectará automáticamente'); refetch(); })
                   .catch(() => toast.error('Error al resetear el tag'));
               }}
