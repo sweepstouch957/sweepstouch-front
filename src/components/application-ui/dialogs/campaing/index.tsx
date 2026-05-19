@@ -10,6 +10,8 @@ import { useMutation } from '@tanstack/react-query';
 import {
   AutoFixHighRounded,
   EmojiEventsRounded,
+  HourglassEmptyRounded,
+  PhonelinkRingRounded,
   ReportProblemRounded,
   TrendingUpRounded,
   WarningAmberRounded,
@@ -395,10 +397,12 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
     },
   });
 
-  const sent = campaign?.sent ?? 0;
-  const errors = campaign?.errors ?? 0;
+  const sent    = campaign?.sent    ?? 0;
+  const errors  = campaign?.errors  ?? 0;
   const audience = campaign?.audience ?? 0;
-  const notSent = campaign?.notSent ?? 0;
+  const notSent  = campaign?.notSent  ?? 0;
+  const queued   = campaign?.quequed  ?? 0;  // typo in model preserved
+  const sending  = campaign?.sending  ?? 0;
   const cost = campaign?.cost ? Number(campaign.cost).toFixed(2) : '0.00';
 
   const deliveryRate = audience > 0 ? Math.round((sent / audience) * 100) : 0;
@@ -572,6 +576,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                 value={audience.toLocaleString()}
                 icon={<PeopleIcon fontSize="small" />}
                 color={theme.palette.info.main}
+                sub={`${((sent / (audience || 1)) * 100).toFixed(1)}% alcanzado`}
               />
               <KpiCard
                 label="Delivered"
@@ -580,6 +585,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                 color="#10b981"
                 onClick={() => dispatch({ type: 'OPEN_MODAL', modal: 'success' })}
                 tooltip="Ver logs entregados"
+                sub={`${((sent / (audience || 1)) * 100).toFixed(1)}% del audience`}
               />
               <KpiCard
                 label={`Errors (${errorRate}%)`}
@@ -589,11 +595,32 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                 onClick={() => dispatch({ type: 'OPEN_MODAL', modal: 'logs' })}
                 tooltip="Ver logs de errores"
               />
+              {queued > 0 && (
+                <KpiCard
+                  label="En Cola"
+                  value={queued.toLocaleString()}
+                  icon={<HourglassEmptyRounded fontSize="small" />}
+                  color="#f59e0b"
+                  tooltip="Mensajes pendientes de envío"
+                  sub="esperando despacho"
+                />
+              )}
+              {sending > 0 && (
+                <KpiCard
+                  label="Enviando"
+                  value={sending.toLocaleString()}
+                  icon={<PhonelinkRingRounded fontSize="small" />}
+                  color="#8b5cf6"
+                  tooltip="Mensajes en proceso de envío ahora mismo"
+                  sub="en tránsito"
+                />
+              )}
               <KpiCard
                 label="Cost"
                 value={`$${cost}`}
                 icon={<AttachMoneyIcon fontSize="small" />}
                 color={theme.palette.text.secondary as string}
+                sub={audience > 0 ? `$${(Number(cost) / audience).toFixed(4)}/msg` : undefined}
               />
             </Stack>
 
@@ -704,6 +731,8 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                           { id: 0, label: 'Delivered', value: sent, color: '#10b981' },
                           { id: 1, label: 'Not Sent', value: errors, color: '#ef4444' },
                           { id: 2, label: 'Pending', value: notSent, color: '#4DA8DA' },
+                          ...(queued  > 0 ? [{ id: 3, label: 'Queued',  value: queued,  color: '#f59e0b' }] : []),
+                          ...(sending > 0 ? [{ id: 4, label: 'Sending', value: sending, color: '#8b5cf6' }] : []),
                         ],
                         innerRadius: isMobile ? 60 : 90,
                         outerRadius: isMobile ? 100 : 140,
@@ -729,6 +758,9 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                     <Typography variant="h4" fontWeight={900} sx={{ color: deliveryColor, lineHeight: 1 }}>
                       {deliveryRate}%
                     </Typography>
+                    <Typography variant="caption" color="text.disabled">
+                      {sent.toLocaleString()}/{audience.toLocaleString()}
+                    </Typography>
                   </Box>
                 </Box>
 
@@ -746,6 +778,18 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                     <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#4DA8DA' }} />
                     <Typography variant="body2" fontWeight={600}>Pending ({notSent.toLocaleString()})</Typography>
                   </Stack>
+                  {queued > 0 && (
+                    <Stack direction="row" spacing={0.8} alignItems="center">
+                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#f59e0b' }} />
+                      <Typography variant="body2" fontWeight={600}>Queued ({queued.toLocaleString()})</Typography>
+                    </Stack>
+                  )}
+                  {sending > 0 && (
+                    <Stack direction="row" spacing={0.8} alignItems="center">
+                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#8b5cf6' }} />
+                      <Typography variant="body2" fontWeight={600}>Sending ({sending.toLocaleString()})</Typography>
+                    </Stack>
+                  )}
                 </Stack>
 
                 {/* Resend button */}

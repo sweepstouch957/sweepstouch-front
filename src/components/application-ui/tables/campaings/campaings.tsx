@@ -34,6 +34,7 @@ import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
 import ExportButton from '../../buttons/export-button';
 import Results from './results';
+import OptinMmsBanner from './OptinMmsBanner';
 
 interface CampaignsGridProps {
   storeId?: string;
@@ -449,7 +450,7 @@ const EMPTY_STATS: FilterStatsResponse = {
    MAIN GRID
 ───────────────────────────────────────────*/
 function CampaignsGrid({ storeId }: CampaignsGridProps) {
-  const [showMetrics, setShowMetrics] = useState(false);
+  const [showMetrics, setShowMetrics] = useState(true);
   const [filters, setFilters] = useState({
     status: '',
     title: '',
@@ -650,6 +651,9 @@ function CampaignsGrid({ storeId }: CampaignsGridProps) {
           </Grid>
         </Collapse>
       </Box>
+
+      {/* ── Opt-in MMS Billing Banner ── */}
+      <OptinMmsBanner storeId={storeId} />
 
       <Grid container mt={0} spacing={{ xs: 2, sm: 3 }}>
         <Grid xs={12}>

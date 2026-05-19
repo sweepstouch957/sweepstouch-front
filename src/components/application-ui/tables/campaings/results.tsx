@@ -16,6 +16,7 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  LinearProgress,
   Skeleton,
   Stack,
   Table,
@@ -387,10 +388,11 @@ const Results: FC<ResultsProps> = ({
                   <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 90 }}>{t('Type')}</TableCell>
                   <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 150 }}>{t('Start Date')} (NY)</TableCell>
                   <TableCell sx={{ fontWeight: 900, color: 'text.secondary' }}>{t('Store')}</TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', minWidth: 140 }}>Campaña</TableCell>
                   <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 90 }}>Provider</TableCell>
                   <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 110 }}>{t('Audience')}</TableCell>
                   <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 110 }}>{t('Cost')}</TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 90 }}>ENTREGA</TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 120 }}>ENTREGA</TableCell>
                   <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 130 }}>{t('Status')}</TableCell>
                   <TableCell align="center" sx={{ fontWeight: 900, color: 'text.secondary', width: 100 }}>{t('Actions')}</TableCell>
                 </TableRow>
@@ -410,12 +412,20 @@ const Results: FC<ResultsProps> = ({
                     const platformColor = campaign.platform ? (PLATFORM_COLORS[campaign.platform] ?? '#9e9e9e') : null;
 
                     return (
-                      <TableRow key={campaign._id} hover sx={{ '&:hover': { bgcolor: theme.palette.action.hover } }}>
-                        <TableCell>
+                      <TableRow
+                        key={campaign._id}
+                        hover
+                        sx={{
+                          cursor: 'pointer',
+                          '&:hover': { bgcolor: theme.palette.action.hover },
+                        }}
+                        onClick={() => handleStats(campaign._id)}
+                      >
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <Chip size="small" label={campaign.type} variant="outlined" sx={{ fontWeight: 900 }} />
                         </TableCell>
 
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <Typography variant="body2" fontWeight={600} noWrap>{localDate}</Typography>
                           {nyTime && (
                             <Typography variant="caption" color="info.main" fontWeight={600} noWrap display="block">
@@ -424,17 +434,17 @@ const Results: FC<ResultsProps> = ({
                           )}
                         </TableCell>
 
-                        <TableCell sx={{ maxWidth: 360 }}>
+                        <TableCell sx={{ maxWidth: 220 }} onClick={(e) => e.stopPropagation()}>
                           <Box display="flex" alignItems="center" gap={1.25} sx={{ minWidth: 0 }}>
                             <Avatar
                               sx={{ width: 34, height: 34, cursor: 'pointer', border: `1px solid ${theme.palette.divider}`, flexShrink: 0 }}
                               src={campaign.store?.image}
-                              onClick={() => campaign.store?._id && window.open(`/admin/management/stores/edit/${campaign.store._id}`, '_blank')}
+                              onClick={(e) => { e.stopPropagation(); campaign.store?._id && window.open(`/admin/management/stores/edit/${campaign.store._id}`, '_blank'); }}
                             />
                             <Typography
                               variant="subtitle2"
                               fontWeight={800}
-                              onClick={() => campaign.store?._id && window.open(`/admin/management/stores/edit/${campaign.store._id}`, '_blank')}
+                              onClick={(e) => { e.stopPropagation(); campaign.store?._id && window.open(`/admin/management/stores/edit/${campaign.store._id}`, '_blank'); }}
                               title={campaign.store?.name || ''}
                               sx={{
                                 cursor: 'pointer', lineHeight: 1.2, minWidth: 0,
@@ -447,7 +457,27 @@ const Results: FC<ResultsProps> = ({
                           </Box>
                         </TableCell>
 
-                        <TableCell>
+                        {/* Campaign Title */}
+                        <TableCell sx={{ maxWidth: 180 }}>
+                          <Tooltip title={campaign.title || ''} placement="top" arrow>
+                            <Typography
+                              variant="body2"
+                              fontWeight={700}
+                              sx={{
+                                display: '-webkit-box',
+                                WebkitBoxOrient: 'vertical',
+                                WebkitLineClamp: 2,
+                                overflow: 'hidden',
+                                lineHeight: 1.3,
+                                fontSize: 12,
+                              }}
+                            >
+                              {campaign.title || <Typography component="span" variant="caption" color="text.disabled">Sin título</Typography>}
+                            </Typography>
+                          </Tooltip>
+                        </TableCell>
+
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           {campaign.platform ? (
                             <Stack direction="row" spacing={0.75} alignItems="center">
                               <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: platformColor ?? '#9e9e9e', flexShrink: 0 }} />
@@ -468,13 +498,33 @@ const Results: FC<ResultsProps> = ({
                           <Typography variant="body2" fontWeight={900}>{numeral(campaign.cost || 0).format('$0,0.00')}</Typography>
                         </TableCell>
 
+                        {/* Delivery Rate with mini progress bar */}
                         <TableCell>
-                          <Typography variant="body2" fontWeight={900} sx={{ color: rateColor }}>{`${rate}%`}</Typography>
+                          <Box sx={{ minWidth: 80 }}>
+                            <Stack direction="row" alignItems="baseline" spacing={0.5} mb={0.4}>
+                              <Typography variant="body2" fontWeight={900} sx={{ color: rateColor, fontVariantNumeric: 'tabular-nums' }}>
+                                {rate}%
+                              </Typography>
+                              <Typography variant="caption" color="text.disabled">
+                                {sent.toLocaleString()}/{audience.toLocaleString()}
+                              </Typography>
+                            </Stack>
+                            <LinearProgress
+                              variant="determinate"
+                              value={Math.min(rate, 100)}
+                              sx={{
+                                height: 4,
+                                borderRadius: 2,
+                                bgcolor: alpha(rateColor, 0.15),
+                                '& .MuiLinearProgress-bar': { borderRadius: 2, bgcolor: rateColor },
+                              }}
+                            />
+                          </Box>
                         </TableCell>
 
-                        <TableCell>{getStatusChip(campaign.status)}</TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>{getStatusChip(campaign.status)}</TableCell>
 
-                        <TableCell align="center">
+                        <TableCell align="center" onClick={(e) => e.stopPropagation()}>
                           <Stack direction="row" spacing={0.5} justifyContent="center">
                             <Tooltip title={t('Go to Stats')} arrow>
                               <IconButton onClick={() => handleStats(campaign._id)} color="info" size="small">

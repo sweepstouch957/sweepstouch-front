@@ -657,6 +657,37 @@ class CampaignClient {
     });
     return res.data;
   }
+
+  /* ===================== ✅ OPT-IN MMS BILLING ===================== */
+
+  /**
+   * Cuenta los MMS de opt-in enviados vs omitidos en un periodo.
+   * Permite mostrar en la página de campañas el cargo "oculto" de opt-ins ($0.085/msg).
+   *
+   * Endpoint: GET /sweepstakes/participants/optin-mms-count
+   *   → { sent, skipped, total }
+   */
+  async getOptinMmsCount(params: {
+    startDate: string;
+    endDate:   string;
+    storeId?:  string;
+  }): Promise<{ sent: number; skipped: number; total: number; estimatedCost: number }> {
+    const res = await api.get('/api/sweepstakes/participants/optin-mms-count', {
+      params: {
+        startDate: params.startDate,
+        endDate:   params.endDate,
+        ...(params.storeId ? { storeId: params.storeId } : {}),
+      },
+    });
+    const data = res.data as { sent?: number; skipped?: number; total?: number };
+    const sent = data.sent ?? 0;
+    return {
+      sent,
+      skipped:       data.skipped       ?? 0,
+      total:         data.total         ?? 0,
+      estimatedCost: sent * 0.085,
+    };
+  }
 }
 
 export const campaignClient = new CampaignClient();
