@@ -379,6 +379,7 @@ const Results: FC<ResultsProps> = ({
               stickyHeader
               size="small"
               sx={{
+                minWidth: 1250,
                 '& .MuiTableCell-root': { py: 1.05 },
                 '& .MuiTableCell-head': { py: 1 },
               }}
@@ -387,7 +388,11 @@ const Results: FC<ResultsProps> = ({
                 <TableRow>
                   <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 90 }}>{t('Type')}</TableCell>
                   <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 150 }}>{t('Start Date')} (NY)</TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary' }}>{t('Store')}</TableCell>
+                  <TableCell
+                    sx={{ fontWeight: 900, color: 'text.secondary', width: 300, minWidth: 300 }}
+                  >
+                    {t('Store')}
+                  </TableCell>
                   <TableCell sx={{ fontWeight: 900, color: 'text.secondary', minWidth: 140 }}>Campaña</TableCell>
                   <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 90 }}>Provider</TableCell>
                   <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 110 }}>{t('Audience')}</TableCell>
@@ -434,7 +439,10 @@ const Results: FC<ResultsProps> = ({
                           )}
                         </TableCell>
 
-                        <TableCell sx={{ maxWidth: 220 }} onClick={(e) => e.stopPropagation()}>
+                        <TableCell
+                          sx={{ width: 300, minWidth: 300, maxWidth: 340 }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <Box display="flex" alignItems="center" gap={1.25} sx={{ minWidth: 0 }}>
                             <Avatar
                               sx={{ width: 34, height: 34, cursor: 'pointer', border: `1px solid ${theme.palette.divider}`, flexShrink: 0 }}
@@ -447,9 +455,12 @@ const Results: FC<ResultsProps> = ({
                               onClick={(e) => { e.stopPropagation(); campaign.store?._id && window.open(`/admin/management/stores/edit/${campaign.store._id}`, '_blank'); }}
                               title={campaign.store?.name || ''}
                               sx={{
-                                cursor: 'pointer', lineHeight: 1.2, minWidth: 0,
-                                display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2,
-                                overflow: 'hidden', textOverflow: 'ellipsis', wordBreak: 'break-word',
+                                cursor: 'pointer',
+                                lineHeight: 1.25,
+                                minWidth: 0,
+                                whiteSpace: 'normal',
+                                overflowWrap: 'anywhere',
+                                wordBreak: 'normal',
                               }}
                             >
                               {campaign.store?.name || '-'}
