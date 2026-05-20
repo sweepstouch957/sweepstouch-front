@@ -11,16 +11,19 @@
 
 import {
   getPromoterSmsAudit,
+  validatePromoterPhone,
   type PromoterSmsAuditResponse,
   type PromoterSmsAuditRow,
 } from '@/services/promotor.service';
 import {
   alpha,
+  Autocomplete,
   Box,
   Button,
   Chip,
   CircularProgress,
   Divider,
+  IconButton,
   InputAdornment,
   Paper,
   Stack,
@@ -46,6 +49,7 @@ import {
   Search,
   SmsFailed,
   SmsOutlined,
+  Store,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { useMemo, useState } from 'react';
@@ -116,6 +120,8 @@ export default function PromoterSmsAuditPanel({ promoterId, promoterName, startD
 
   const [search, setSearch]   = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedStore, setSelectedStore] = useState<{ id: string; name: string } | null>(null);
+  const [validatingId, setValidatingId] = useState<string | null>(null);
   const [page, setPage]       = useState(0);
   const [rowsPerPage]         = useState(25);
 
@@ -126,17 +132,52 @@ export default function PromoterSmsAuditPanel({ promoterId, promoterName, startD
     staleTime: 30_000,
   });
 
-  // Filter + search
-  const filtered = useMemo(() => {
+  // Extract unique stores where the promoter has registered participants
+  const storeOptions = useMemo(() => {
     if (!data?.rows) return [];
-    return data.rows.filter((r) => {
+    const storeMap = new Map<string, string>();
+    data.rows.forEach((r) => {
+      if (r.storeId && r.storeName) {
+        storeMap.set(r.storeId, r.storeName);
+      }
+    });
+    return Array.from(storeMap.entries()).map(([id, name]) => ({ id, name }));
+  }, [data?.rows]);
+
+  // Handle phone validation via Infobip lookup
+  const handleValidatePhone = async (participantId: string) => {
+    setValidatingId(participantId);
+    try {
+      const res = await validatePromoterPhone(participantId);
+      if (res.success) {
+        refetch();
+      } else {
+        alert('No se pudo validar el número.');
+      }
+    } catch (err: any) {
+      console.error('Error validating phone:', err);
+      alert('Error al validar número: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setValidatingId(null);
+    }
+  };
+
+  // Filter rows based on selected store first (so counts match)
+  const storeFiltered = useMemo(() => {
+    if (!data?.rows) return [];
+    return data.rows.filter((r) => !selectedStore || r.storeId === selectedStore.id);
+  }, [data?.rows, selectedStore]);
+
+  // Apply search and status filtering on storeFiltered rows
+  const filtered = useMemo(() => {
+    return storeFiltered.filter((r) => {
       const matchSearch = !search ||
         r.phone.includes(search) ||
         r.storeName.toLowerCase().includes(search.toLowerCase());
       const matchStatus = statusFilter === 'all' || r.smsStatus === statusFilter;
       return matchSearch && matchStatus;
     });
-  }, [data?.rows, search, statusFilter]);
+  }, [storeFiltered, search, statusFilter]);
 
   const paginated = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
@@ -226,7 +267,37 @@ export default function PromoterSmsAuditPanel({ promoterId, promoterName, startD
     );
   }
 
-  const summary = data?.summary;
+  // Dynamically compute summary stats based on the selected store (for all statuses)
+  const summary = useMemo(() => {
+    if (!data?.rows) return null;
+    const storeRows = selectedStore
+      ? data.rows.filter((r) => r.storeId === selectedStore.id)
+      : data.rows;
+
+    const total = storeRows.length;
+    const delivered = storeRows.filter((r) => r.smsStatus === 'delivered').length;
+    const pending = storeRows.filter((r) => r.smsStatus === 'pending').length;
+    const failed = storeRows.filter((r) => ['failed', 'undelivered'].includes(r.smsStatus)).length;
+    const noSms = storeRows.filter((r) => r.smsStatus === 'no_sms').length;
+    const invalid = storeRows.filter((r) => r.isPhoneValid === false).length;
+    const unknown = storeRows.filter((r) => r.isPhoneValid === null && r.smsStatus !== 'delivered').length;
+
+    const pct = (n: number) => (total > 0 ? Math.round((n / total) * 100) : 0);
+
+    return {
+      total,
+      delivered,
+      pending,
+      failed,
+      noSms,
+      invalid,
+      unknown,
+      deliveredPct: pct(delivered),
+      failedPct: pct(failed),
+      noSmsPct: pct(noSms),
+      invalidPct: pct(invalid),
+    };
+  }, [data?.rows, selectedStore]);
 
   return (
     <Box>
@@ -305,13 +376,43 @@ export default function PromoterSmsAuditPanel({ promoterId, promoterName, startD
             ),
           }}
         />
+
+        <Autocomplete
+          size="small"
+          sx={{ minWidth: 220 }}
+          options={storeOptions}
+          getOptionLabel={(option) => option.name}
+          value={selectedStore}
+          onChange={(_, newValue) => {
+            setSelectedStore(newValue);
+            setPage(0);
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Filtrar por Tienda"
+              placeholder="Seleccionar tienda"
+              InputProps={{
+                ...params.InputProps,
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Store fontSize="small" color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          )}
+          noOptionsText="Sin tiendas registradas"
+        />
+
         <Stack direction="row" gap={0.5} flexWrap="wrap">
           {statuses.map((s) => {
             const cfg = s === 'all' ? null : STATUS_CONFIG[s];
+            const count = s === 'all' ? storeFiltered.length : storeFiltered.filter(r => r.smsStatus === s).length;
             return (
               <Chip
                 key={s}
-                label={s === 'all' ? `Todos (${data?.rows?.length ?? 0})` : cfg?.label ?? s}
+                label={s === 'all' ? `Todos (${storeFiltered.length})` : `${cfg?.label ?? s} (${count})`}
                 color={statusFilter === s ? (cfg?.color ?? 'primary') : 'default'}
                 variant={statusFilter === s ? 'filled' : 'outlined'}
                 size="small"
@@ -344,12 +445,13 @@ export default function PromoterSmsAuditPanel({ promoterId, promoterName, startD
               <TableCell sx={{ fontWeight: 700 }}>Núm. válido</TableCell>
               <TableCell sx={{ fontWeight: 700 }}>Nuevo</TableCell>
               <TableCell sx={{ fontWeight: 700 }}>Fecha registro</TableCell>
+              <TableCell sx={{ fontWeight: 700 }} align="right">Acciones</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                <TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                   No hay registros con los filtros aplicados.
                 </TableCell>
               </TableRow>
@@ -416,6 +518,23 @@ export default function PromoterSmsAuditPanel({ promoterId, promoterName, startD
                           ? format(new Date(row.registeredAt), 'MM/dd/yy HH:mm')
                           : '–'}
                       </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Tooltip title="Validar número con Infobip" placement="left">
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          disabled={validatingId === row.participantId}
+                          onClick={() => handleValidatePhone(row.participantId)}
+                          sx={{ p: 0.5 }}
+                        >
+                          {validatingId === row.participantId ? (
+                            <CircularProgress size={16} color="inherit" />
+                          ) : (
+                            <Refresh sx={{ fontSize: 16 }} />
+                          )}
+                        </IconButton>
+                      </Tooltip>
                     </TableCell>
                   </TableRow>
                 );

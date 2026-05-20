@@ -299,9 +299,26 @@ export async function getPromoterSmsAudit(params: {
   promoterId: string;
   startDate?: string;
   endDate?: string;
+  storeId?: string;
 }): Promise<PromoterSmsAuditResponse> {
   const res = await api.get<PromoterSmsAuditResponse>('/promoter/participations/sms-audit', {
     params,
+    withCredentials: true,
+  });
+  return res.data;
+}
+
+export interface ValidatePhoneResponse {
+  success: boolean;
+  isPhoneValid: boolean;
+  reason: string;
+  lookupDetails?: any;
+}
+
+export async function validatePromoterPhone(participantId: string): Promise<ValidatePhoneResponse> {
+  const res = await api.post<ValidatePhoneResponse>('/promoter/participations/sms-audit/validate-phone', {
+    participantId,
+  }, {
     withCredentials: true,
   });
   return res.data;
