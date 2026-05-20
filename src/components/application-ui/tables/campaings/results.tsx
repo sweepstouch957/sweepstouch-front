@@ -381,26 +381,26 @@ const Results: FC<ResultsProps> = ({
               sx={{
                 tableLayout: 'fixed',
                 width: '100%',
-                '& .MuiTableCell-root': { py: 1.05, px: 1 },
-                '& .MuiTableCell-head': { py: 1 },
+                '& .MuiTableCell-root': { py: 0.75, px: 0.75 },
+                '& .MuiTableCell-head': { py: 0.75 },
               }}
             >
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 72 }}>{t('Type')}</TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 132 }}>{t('Start Date')} (NY)</TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 68 }}>{t('Type')}</TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 120 }}>{t('Start Date')} (NY)</TableCell>
                   <TableCell
-                    sx={{ fontWeight: 900, color: 'text.secondary', width: '24%' }}
+                    sx={{ fontWeight: 900, color: 'text.secondary', width: '20%' }}
                   >
                     {t('Store')}
                   </TableCell>
                   <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: '15%' }}>Campaña</TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 92 }}>Provider</TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 84 }}>{t('Audience')}</TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 94 }}>{t('Cost')}</TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 108 }}>ENTREGA</TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 112 }}>{t('Status')}</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 900, color: 'text.secondary', width: 96 }}>{t('Actions')}</TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 88 }}>Provider</TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 78 }}>{t('Audience')}</TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 88 }}>{t('Cost')}</TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 64 }}>ENTREGA</TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 108 }}>{t('Status')}</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 900, color: 'text.secondary', width: 80 }}>{t('Actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -441,31 +441,33 @@ const Results: FC<ResultsProps> = ({
                         </TableCell>
 
                         <TableCell
-                          sx={{ width: '24%' }}
+                          sx={{ width: '20%' }}
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <Box display="flex" alignItems="center" gap={1.25} sx={{ minWidth: 0 }}>
+                          <Box display="flex" alignItems="center" gap={1} sx={{ minWidth: 0 }}>
                             <Avatar
-                              sx={{ width: 34, height: 34, cursor: 'pointer', border: `1px solid ${theme.palette.divider}`, flexShrink: 0 }}
+                              sx={{ width: 28, height: 28, cursor: 'pointer', border: `1px solid ${theme.palette.divider}`, flexShrink: 0 }}
                               src={campaign.store?.image}
                               onClick={(e) => { e.stopPropagation(); campaign.store?._id && window.open(`/admin/management/stores/edit/${campaign.store._id}`, '_blank'); }}
                             />
-                            <Typography
-                              variant="subtitle2"
-                              fontWeight={800}
-                              onClick={(e) => { e.stopPropagation(); campaign.store?._id && window.open(`/admin/management/stores/edit/${campaign.store._id}`, '_blank'); }}
-                              title={campaign.store?.name || ''}
-                              sx={{
-                                cursor: 'pointer',
-                                lineHeight: 1.25,
-                                minWidth: 0,
-                                whiteSpace: 'normal',
-                                overflowWrap: 'anywhere',
-                                wordBreak: 'normal',
-                              }}
-                            >
-                              {campaign.store?.name || '-'}
-                            </Typography>
+                            <Tooltip title={campaign.store?.name || ''} placement="top" arrow>
+                              <Typography
+                                variant="subtitle2"
+                                fontWeight={800}
+                                noWrap
+                                onClick={(e) => { e.stopPropagation(); campaign.store?._id && window.open(`/admin/management/stores/edit/${campaign.store._id}`, '_blank'); }}
+                                sx={{
+                                  cursor: 'pointer',
+                                  lineHeight: 1.25,
+                                  minWidth: 0,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  display: 'block',
+                                }}
+                              >
+                                {campaign.store?.name || '-'}
+                              </Typography>
+                            </Tooltip>
                           </Box>
                         </TableCell>
 
@@ -512,14 +514,11 @@ const Results: FC<ResultsProps> = ({
 
                         {/* Delivery Rate */}
                         <TableCell>
-                          <Stack spacing={0.1}>
+                          <Tooltip title={`${sent.toLocaleString()} / ${audience.toLocaleString()}`} placement="top" arrow>
                             <Typography variant="body2" fontWeight={900} sx={{ color: rateColor, fontVariantNumeric: 'tabular-nums' }}>
                               {rate}%
                             </Typography>
-                            <Typography variant="caption" color="text.disabled" noWrap>
-                              {sent.toLocaleString()}/{audience.toLocaleString()}
-                            </Typography>
-                          </Stack>
+                          </Tooltip>
                         </TableCell>
 
                         <TableCell onClick={(e) => e.stopPropagation()}>{getStatusChip(campaign.status)}</TableCell>

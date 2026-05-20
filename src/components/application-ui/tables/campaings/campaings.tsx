@@ -80,7 +80,7 @@ function KpiCard({
         borderColor: alpha(color, isDark ? 0.22 : 0.18),
         bgcolor: alpha(color, isDark ? 0.06 : 0.03),
         overflow: 'hidden',
-        p: 1.25,
+        p: 1,
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         '&:hover': {
           boxShadow: `0 0 0 1px ${alpha(color, 0.4)}, 0 8px 24px ${alpha(color, 0.15)}`,
@@ -105,8 +105,8 @@ function KpiCard({
         <Stack direction="row" alignItems="center" spacing={0.75}>
           <Box
             sx={{
-              width: 24,
-              height: 24,
+              width: 20,
+              height: 20,
               borderRadius: 1,
               bgcolor: alpha(color, isDark ? 0.18 : 0.12),
               display: 'flex',
@@ -138,7 +138,7 @@ function KpiCard({
         ) : (
           <Typography
             sx={{
-              fontSize: 22,
+              fontSize: 18,
               fontWeight: 800,
               lineHeight: 1,
               fontVariantNumeric: 'tabular-nums',
@@ -183,8 +183,8 @@ function StatCell({ icon, color, label, sublabel, value, pct, extraInfo, isCurre
       sx={{
         flex: 1,
         minWidth: 0,
-        px: 1.5,
-        py: 1,
+        px: 1,
+        py: 0.75,
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         '&:hover': { transform: 'translateY(-2px)', bgcolor: isDark ? alpha('#fff', 0.02) : alpha('#000', 0.02) }
       }}
@@ -219,7 +219,7 @@ function StatCell({ icon, color, label, sublabel, value, pct, extraInfo, isCurre
           {isCurrency && <Typography sx={{ fontSize: 16, fontWeight: 700, color: 'text.secondary' }}>$</Typography>}
           <Typography
             sx={{
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: 800,
               lineHeight: 1,
               color,
@@ -307,7 +307,7 @@ function MessagingPanel({ stats, loading }: { stats: FilterStatsResponse; loadin
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(5, 1fr)' },
+          gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(5, 1fr)' },
           gap: 0,
           flex: 1,
         }}
@@ -602,14 +602,14 @@ function CampaignsGrid({ storeId }: CampaignsGridProps) {
         </Box>
 
         <Collapse in={showMetrics} unmountOnExit>
-          <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
+          <Grid container spacing={1} sx={{ mb: 1.5 }}>
             {/* ── KPI Cards ── */}
             <Grid xs={12} lg={5} xl={4}>
               <Box
                 sx={{
                   display: 'grid',
                   gridTemplateColumns: { xs: 'repeat(2, 1fr)' },
-                  gap: 1.5,
+                  gap: 1,
                   height: '100%',
                 }}
               >
