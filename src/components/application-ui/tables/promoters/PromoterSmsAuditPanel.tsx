@@ -15,6 +15,7 @@ import {
   type PromoterSmsAuditRow,
 } from '@/services/promotor.service';
 import {
+  alpha,
   Box,
   Button,
   Chip,
@@ -74,32 +75,36 @@ const STATUS_CONFIG: Record<string, { label: string; color: 'success' | 'error' 
 
 function SummaryCard({ label, value, pct, color }: { label: string; value: number; pct?: number; color: string }) {
   return (
-    <Paper
-      elevation={0}
+    <Box
       sx={{
-        flex           : '1 1 140px',
-        p              : 2,
-        borderRadius   : 2,
-        border         : '1px solid',
-        borderColor    : 'divider',
-        background     : (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
-        textAlign      : 'center',
-        transition     : 'box-shadow .2s',
-        '&:hover'      : { boxShadow: 3 },
+        flex: '1 1 120px',
+        p: 1.75,
+        borderRadius: 2,
+        border: '1px solid',
+        borderColor: (t) => alpha(color === 'text.primary' ? t.palette.text.primary : color, 0.15),
+        bgcolor: (t) => alpha(color === 'text.primary' ? t.palette.text.primary : color, t.palette.mode === 'dark' ? 0.06 : 0.04),
+        transition: 'all 0.2s ease-out',
+        '&:hover': {
+          borderColor: (t) => alpha(color === 'text.primary' ? t.palette.text.primary : color, 0.3),
+          transform: 'translateY(-1px)',
+        },
       }}
     >
-      <Typography variant="h4" fontWeight={800} color={color}>
-        {value}
+      <Typography
+        sx={{ fontSize: 26, fontWeight: 900, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}
+        color={color}
+      >
+        {value.toLocaleString()}
       </Typography>
-      <Typography variant="caption" color="text.secondary" display="block">
+      <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'text.secondary', mt: 0.5, lineHeight: 1.3 }}>
         {label}
       </Typography>
       {pct !== undefined && (
-        <Typography variant="caption" sx={{ fontWeight: 600, color }}>
+        <Typography sx={{ fontSize: 11, fontWeight: 700, color, mt: 0.25, fontVariantNumeric: 'tabular-nums' }}>
           {pct}%
         </Typography>
       )}
-    </Paper>
+    </Box>
   );
 }
 
@@ -261,10 +266,8 @@ export default function PromoterSmsAuditPanel({ promoterId, promoterName, startD
             onClick={handleExport}
             disabled={!data?.rows?.length}
             sx={{
-              background : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color      : '#fff',
               fontWeight : 700,
-              '&:hover'  : { background: 'linear-gradient(135deg, #5a6fd6 0%, #6a4194 100%)' },
+              textTransform: 'none',
             }}
           >
             Exportar XLSX
