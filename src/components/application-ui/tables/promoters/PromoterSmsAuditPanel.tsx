@@ -168,6 +168,38 @@ export default function PromoterSmsAuditPanel({ promoterId, promoterName, startD
     return data.rows.filter((r) => !selectedStore || r.storeId === selectedStore.id);
   }, [data?.rows, selectedStore]);
 
+  // Dynamically compute summary stats based on the selected store (for all statuses)
+  const summary = useMemo(() => {
+    if (!data?.rows) return null;
+    const storeRows = selectedStore
+      ? data.rows.filter((r) => r.storeId === selectedStore.id)
+      : data.rows;
+
+    const total = storeRows.length;
+    const delivered = storeRows.filter((r) => r.smsStatus === 'delivered').length;
+    const pending = storeRows.filter((r) => r.smsStatus === 'pending').length;
+    const failed = storeRows.filter((r) => ['failed', 'undelivered'].includes(r.smsStatus)).length;
+    const noSms = storeRows.filter((r) => r.smsStatus === 'no_sms').length;
+    const invalid = storeRows.filter((r) => r.isPhoneValid === false).length;
+    const unknown = storeRows.filter((r) => r.isPhoneValid === null && r.smsStatus !== 'delivered').length;
+
+    const pct = (n: number) => (total > 0 ? Math.round((n / total) * 100) : 0);
+
+    return {
+      total,
+      delivered,
+      pending,
+      failed,
+      noSms,
+      invalid,
+      unknown,
+      deliveredPct: pct(delivered),
+      failedPct: pct(failed),
+      noSmsPct: pct(noSms),
+      invalidPct: pct(invalid),
+    };
+  }, [data?.rows, selectedStore]);
+
   // Apply search and status filtering on storeFiltered rows
   const filtered = useMemo(() => {
     return storeFiltered.filter((r) => {
@@ -266,38 +298,6 @@ export default function PromoterSmsAuditPanel({ promoterId, promoterName, startD
       </Box>
     );
   }
-
-  // Dynamically compute summary stats based on the selected store (for all statuses)
-  const summary = useMemo(() => {
-    if (!data?.rows) return null;
-    const storeRows = selectedStore
-      ? data.rows.filter((r) => r.storeId === selectedStore.id)
-      : data.rows;
-
-    const total = storeRows.length;
-    const delivered = storeRows.filter((r) => r.smsStatus === 'delivered').length;
-    const pending = storeRows.filter((r) => r.smsStatus === 'pending').length;
-    const failed = storeRows.filter((r) => ['failed', 'undelivered'].includes(r.smsStatus)).length;
-    const noSms = storeRows.filter((r) => r.smsStatus === 'no_sms').length;
-    const invalid = storeRows.filter((r) => r.isPhoneValid === false).length;
-    const unknown = storeRows.filter((r) => r.isPhoneValid === null && r.smsStatus !== 'delivered').length;
-
-    const pct = (n: number) => (total > 0 ? Math.round((n / total) * 100) : 0);
-
-    return {
-      total,
-      delivered,
-      pending,
-      failed,
-      noSms,
-      invalid,
-      unknown,
-      deliveredPct: pct(delivered),
-      failedPct: pct(failed),
-      noSmsPct: pct(noSms),
-      invalidPct: pct(invalid),
-    };
-  }, [data?.rows, selectedStore]);
 
   return (
     <Box>
