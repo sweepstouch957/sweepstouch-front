@@ -1182,7 +1182,7 @@ function BatteryAlertBanner({ storeId }: { storeId: string }) {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             InputProps={{
-              startAdornment: <InputAdornment position="start"><PhoneIphone sx={{ fontSize: 16, color: '#475569' }} /></InputAdornment>,
+              startAdornment: <InputAdornment position="start"><PhoneAndroid sx={{ fontSize: 16, color: '#475569' }} /></InputAdornment>,
             }}
             sx={{
               '& .MuiOutlinedInput-root': { borderRadius: 2 },
@@ -1399,7 +1399,7 @@ export function KioskTabletPanel({ storeId }: Props) {
           </Box>
           <Box>
             <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography variant="subtitle1" fontWeight={800} sx={{ letterSpacing: '-0.02em', color: '#e2e8f0' }}>
+              <Typography variant="subtitle1" fontWeight={800} sx={{ letterSpacing: '-0.02em', color: theme.palette.mode === 'dark' ? '#e2e8f0' : 'text.primary' }}>
                 Kiosk Manager Pro
               </Typography>
               {isFetching && <CircularProgress size={12} sx={{ color: '#60a5fa' }} />}
