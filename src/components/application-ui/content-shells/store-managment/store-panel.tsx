@@ -6,7 +6,6 @@ import {
   closeSidebar,
   openSidebar,
   runStoreManagementThunk,
-  setActiveSection,
   setTags,
   useStoreManagementStore,
 } from '@/slices/store_managment';
@@ -52,7 +51,7 @@ import MailOutlineRoundedIcon from '@mui/icons-material/MailOutlineRounded';
 import WelcomeCouponsPanel from './panel/welcome-coupons/WelcomeCouponsPanel';
 import StoreAudienceOverview from './panel/sweepstakes/StoreAudienceOverview';
 import StoreSweepstakeStats from './panel/sweepstakes/StoreSweepstakeStats';
-import OptinMmsBanner from '../tables/campaings/OptinMmsBanner';
+import OptinMmsBanner from '../../tables/campaings/OptinMmsBanner';
 
 // ── Tags estáticas (module scope = cero re-creación)
 const STORE_MANAGEMENT_TAGS = [
@@ -252,7 +251,7 @@ const StoreManagementPage = () => {
         </Stack>
       )}
     </Box>
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   ), [store?.name, tag, action, storeId, handleBack, handleGoToCreateCampaign]);
 
   const renderContent = useMemo(() => {
@@ -298,8 +297,8 @@ const StoreManagementPage = () => {
                 store.provider === 'bandwidth'
                   ? store.bandwidthPhoneNumber || ''
                   : store.provider === 'infobip'
-                  ? store.infobipSenderId || store.phoneNumber || 'Número global del sistema'
-                  : store.phoneNumber || ''
+                    ? store.infobipSenderId || store.phoneNumber || 'Número global del sistema'
+                    : store.phoneNumber || ''
               }
               totalAudience={store.customerCount || 0}
               storeId={storeId}
@@ -414,7 +413,7 @@ const StoreManagementPage = () => {
           </Box>
         );
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tag, action, isLoading, error, store, storeId]);
 
   return (
@@ -443,13 +442,13 @@ const StoreManagementPage = () => {
         sx={{
           transition: sidebarOpen
             ? theme.transitions.create('margin', {
-                easing: theme.transitions.easing.easeOut,
-                duration: theme.transitions.duration.enteringScreen,
-              })
+              easing: theme.transitions.easing.easeOut,
+              duration: theme.transitions.duration.enteringScreen,
+            })
             : theme.transitions.create('margin', {
-                easing: theme.transitions.easing.sharp,
-                duration: theme.transitions.duration.leavingScreen,
-              }),
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.leavingScreen,
+            }),
         }}
       >
         {!lgUp && (
