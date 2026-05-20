@@ -672,7 +672,7 @@ class CampaignClient {
     endDate:   string;
     storeId?:  string;
   }): Promise<{ sent: number; skipped: number; total: number; estimatedCost: number }> {
-    const res = await api.get('/api/sweepstakes/participants/optin-mms-count', {
+    const res = await api.get('/sweepstakes/participants/optin-mms-count', {
       params: {
         startDate: params.startDate,
         endDate:   params.endDate,

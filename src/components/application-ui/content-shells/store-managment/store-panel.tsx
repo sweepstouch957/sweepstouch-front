@@ -52,6 +52,7 @@ import MailOutlineRoundedIcon from '@mui/icons-material/MailOutlineRounded';
 import WelcomeCouponsPanel from './panel/welcome-coupons/WelcomeCouponsPanel';
 import StoreAudienceOverview from './panel/sweepstakes/StoreAudienceOverview';
 import StoreSweepstakeStats from './panel/sweepstakes/StoreSweepstakeStats';
+import OptinMmsBanner from '../tables/campaings/OptinMmsBanner';
 
 // ── Tags estáticas (module scope = cero re-creación)
 const STORE_MANAGEMENT_TAGS = [
@@ -59,6 +60,7 @@ const STORE_MANAGEMENT_TAGS = [
   { id: 'general-info', label: 'General Info' },
   { id: 'sweepstakes', label: 'Sweepstakes' },
   { id: 'welcome-coupons', label: 'Welcome Coupons' },
+  { id: 'optin', label: 'Opt-in MMS' },
   { id: 'ads', label: 'Ads' },
   { id: 'qr', label: 'QR' },
 ];
@@ -390,6 +392,13 @@ const StoreManagementPage = () => {
 
       case 'welcome-coupons':
         return <WelcomeCouponsPanel storeId={storeId} />;
+
+      case 'optin':
+        return (
+          <Box p={3}>
+            <OptinMmsBanner storeId={storeId} />
+          </Box>
+        );
 
       case 'qr':
         return (

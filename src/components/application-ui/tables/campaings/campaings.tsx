@@ -34,7 +34,6 @@ import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
 import ExportButton from '../../buttons/export-button';
 import Results from './results';
-import OptinMmsBanner from './OptinMmsBanner';
 
 interface CampaignsGridProps {
   storeId?: string;
@@ -655,9 +654,6 @@ function CampaignsGrid({ storeId }: CampaignsGridProps) {
           </Grid>
         </Collapse>
       </Box>
-
-      {/* ── Opt-in MMS Billing Banner ── */}
-      <OptinMmsBanner storeId={storeId} />
 
       <Grid container mt={0} spacing={{ xs: 2, sm: 3 }}>
         <Grid xs={12}>
