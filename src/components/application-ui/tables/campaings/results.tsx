@@ -48,6 +48,7 @@ interface ResultsProps {
   refetch: () => void;
   isLoading: boolean;
   storeId?: string;
+  forceCards?: boolean;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: 'warning' | 'success' | 'info' | 'primary' | 'error' | 'default' }> = {
@@ -251,10 +252,12 @@ const Results: FC<ResultsProps> = ({
   isLoading,
   refetch,
   storeId,
+  forceCards = false,
 }) => {
   const { t } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
+  const showCards = forceCards || isMobile;
 
   const filtersRef = React.useRef<any>(filters);
   React.useEffect(() => { filtersRef.current = filters; }, [filters]);
@@ -348,7 +351,7 @@ const Results: FC<ResultsProps> = ({
       <CampaignsFilters filters={filters} setFilters={setFilters} storeId={storeId} />
 
       {/* Mobile: card grid */}
-      {isMobile ? (
+      {showCards ? (
         <Box sx={{ p: 2 }}>
           <Box
             sx={{
