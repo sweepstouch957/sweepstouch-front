@@ -254,3 +254,55 @@ export class PromoterService {
 }
 
 export const promoterService = new PromoterService();
+
+// ─── Promoter SMS Audit ──────────────────────────────────────────────────────
+
+export interface PromoterSmsAuditRow {
+  participantId: string;
+  phone: string;
+  registeredAt: string;
+  smsStatus: 'pending' | 'delivered' | 'failed' | 'undelivered' | 'no_sms';
+  smsMessageId: string | null;
+  noSmsReason: 'no_message_id' | null;
+  smsDeliveredAt: string | null;
+  isPhoneValid: boolean | null;
+  phoneValidationReason: string | null;
+  isNewUser: boolean;
+  method: string;
+  auditedAt: string | null;
+  storeId: string | null;
+  storeName: string;
+}
+
+export interface PromoterSmsAuditSummary {
+  total: number;
+  delivered: number;
+  pending: number;
+  failed: number;
+  noSms: number;
+  invalid: number;
+  unknown: number;
+  deliveredPct: number;
+  failedPct: number;
+  noSmsPct: number;
+  invalidPct: number;
+}
+
+export interface PromoterSmsAuditResponse {
+  promoterId: string;
+  dateRange: { startDate: string; endDate: string };
+  summary: PromoterSmsAuditSummary;
+  rows: PromoterSmsAuditRow[];
+}
+
+export async function getPromoterSmsAudit(params: {
+  promoterId: string;
+  startDate: string;
+  endDate: string;
+}): Promise<PromoterSmsAuditResponse> {
+  const res = await api.get<PromoterSmsAuditResponse>('/promoter/participations/sms-audit', {
+    params,
+    withCredentials: true,
+  });
+  return res.data;
+}
