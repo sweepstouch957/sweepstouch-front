@@ -17,6 +17,8 @@ import {
   Tab,
   Tabs,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
@@ -65,6 +67,7 @@ function Page() {
 
   const [auditStartDate, setAuditStartDate] = useState(formatISO(s0, { representation: 'date' }));
   const [auditEndDate, setAuditEndDate]     = useState(formatISO(e0, { representation: 'date' }));
+  const [auditUseDateRange, setAuditUseDateRange] = useState(true);
   const [selectedPromoter, setSelectedPromoter] = useState<Promoter | null>(null);
 
   // Fetch all promoters for autocomplete (lightweight, cached)
@@ -182,24 +185,46 @@ function Page() {
                 isOptionEqualToValue={(opt, val) => opt._id === val._id}
               />
 
-              <TextField
-                label="Fecha inicio"
-                type="date"
+              <ToggleButtonGroup
+                value={auditUseDateRange ? 'range' : 'all'}
+                exclusive
+                onChange={(_, v) => {
+                  if (v !== null) setAuditUseDateRange(v === 'range');
+                }}
                 size="small"
-                value={auditStartDate}
-                onChange={(e) => setAuditStartDate(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                sx={{ minWidth: 160 }}
-              />
-              <TextField
-                label="Fecha fin"
-                type="date"
-                size="small"
-                value={auditEndDate}
-                onChange={(e) => setAuditEndDate(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                sx={{ minWidth: 160 }}
-              />
+                color="primary"
+                sx={{ height: 40 }}
+              >
+                <ToggleButton value="all" sx={{ textTransform: 'none', fontWeight: 700 }}>
+                  Histórico (Todo)
+                </ToggleButton>
+                <ToggleButton value="range" sx={{ textTransform: 'none', fontWeight: 700 }}>
+                  Rango de Fechas
+                </ToggleButton>
+              </ToggleButtonGroup>
+
+              {auditUseDateRange && (
+                <>
+                  <TextField
+                    label="Fecha inicio"
+                    type="date"
+                    size="small"
+                    value={auditStartDate}
+                    onChange={(e) => setAuditStartDate(e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ minWidth: 160 }}
+                  />
+                  <TextField
+                    label="Fecha fin"
+                    type="date"
+                    size="small"
+                    value={auditEndDate}
+                    onChange={(e) => setAuditEndDate(e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ minWidth: 160 }}
+                  />
+                </>
+              )}
             </Stack>
 
             {/* Audit panel */}
@@ -207,8 +232,8 @@ function Page() {
               <PromoterSmsAuditPanel
                 promoterId={selectedPromoter._id}
                 promoterName={`${selectedPromoter.firstName} ${selectedPromoter.lastName}`}
-                startDate={auditStartDate}
-                endDate={auditEndDate}
+                startDate={auditUseDateRange ? auditStartDate : undefined}
+                endDate={auditUseDateRange ? auditEndDate : undefined}
               />
             ) : (
               <Box

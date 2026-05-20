@@ -46,9 +46,13 @@ import {
   Tooltip,
   Typography,
   useTheme,
+  Tab,
+  Tabs,
 } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
 import { promoterService } from '@/services/promotor.service';
+import SmsRoundedIcon from '@mui/icons-material/SmsRounded';
+import PromoterSmsAuditPanel from '../promoters/PromoterSmsAuditPanel';
 
 const fmtMoney = (n?: number) => (typeof n === 'number' ? `$${n.toFixed(2)}` : '$0.00');
 const fmtNum = (n?: number) => (typeof n === 'number' ? n.toLocaleString() : '0');
@@ -207,6 +211,17 @@ const PromoterTable = ({
   const [openDetails, setOpenDetails] = useState(false);
   const [openPhoto, setOpenPhoto] = useState(false);
 
+  const [detailTab, setDetailTab] = useState(0);
+  const [detailStartDate, setDetailStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30); // Default to last 30 days
+    return d.toISOString().slice(0, 10);
+  });
+  const [detailEndDate, setDetailEndDate] = useState(() => {
+    return new Date().toISOString().slice(0, 10);
+  });
+  const [detailUseDateRange, setDetailUseDateRange] = useState(true);
+
   const [commentText, setCommentText] = useState('');
   const [savingComment, setSavingComment] = useState(false);
   const [commentError, setCommentError] = useState<string | null>(null);
@@ -226,10 +241,11 @@ const PromoterTable = ({
     };
   }, [localSearch]);
 
-  const handleOpenDetails = (p: Promoter) => {
+  const handleOpenDetails = (p: Promoter, tabIndex = 0) => {
     setSelected(p);
     setCommentText('');
     setCommentError(null);
+    setDetailTab(tabIndex);
     setOpenDetails(true);
   };
 
@@ -611,22 +627,39 @@ const PromoterTable = ({
 
                   {/* Actions */}
                   <TableCell align="right" sx={{ py: 1.25 }}>
-                    <Button
-                      size="small"
-                      onClick={() => handleOpenDetails(p)}
-                      sx={{
-                        textTransform: 'none',
-                        fontWeight: 600,
-                        fontSize: 12,
-                        borderRadius: 999,
-                        px: 1.5,
-                        bgcolor: alpha(theme.palette.primary.main, 0.07),
-                        color: theme.palette.primary.main,
-                        '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.12) },
-                      }}
-                    >
-                      Ver detalle
-                    </Button>
+                    <Stack direction="row" spacing={1} justifyContent="flex-end">
+                      <Button
+                        size="small"
+                        onClick={() => handleOpenDetails(p, 0)}
+                        sx={{
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          fontSize: 12,
+                          borderRadius: 999,
+                          px: 1.5,
+                          bgcolor: alpha(theme.palette.primary.main, 0.07),
+                          color: theme.palette.primary.main,
+                          '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.12) },
+                        }}
+                      >
+                        Ver detalle
+                      </Button>
+                      <Button
+                        size="small"
+                        onClick={() => handleOpenDetails(p, 1)}
+                        variant="outlined"
+                        startIcon={<SmsRoundedIcon sx={{ fontSize: 14 }} />}
+                        sx={{
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          fontSize: 12,
+                          borderRadius: 999,
+                          px: 1.5,
+                        }}
+                      >
+                        Auditar SMS
+                      </Button>
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))
@@ -669,7 +702,7 @@ const PromoterTable = ({
             borderBottom: `1px solid ${theme.palette.divider}`,
             px: 3,
             pt: 3,
-            pb: 2.5,
+            pb: 0,
             position: 'relative',
             overflow: 'hidden',
           }}
@@ -826,13 +859,39 @@ const PromoterTable = ({
               <CloseRoundedIcon fontSize="small" />
             </IconButton>
           </Stack>
+
+          {/* Detail Tabs */}
+          <Tabs
+            value={detailTab}
+            onChange={(_, v) => setDetailTab(v)}
+            sx={{
+              mt: 2.5,
+              '& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0' }
+            }}
+          >
+            <Tab
+              label="Información General"
+              icon={<GroupsRoundedIcon sx={{ fontSize: 16 }} />}
+              iconPosition="start"
+              sx={{ minHeight: 48, fontSize: 12, fontWeight: 700, textTransform: 'none' }}
+            />
+            <Tab
+              label="Auditoría SMS"
+              icon={<SmsRoundedIcon sx={{ fontSize: 16 }} />}
+              iconPosition="start"
+              sx={{ minHeight: 48, fontSize: 12, fontWeight: 700, textTransform: 'none' }}
+            />
+          </Tabs>
         </Box>
 
         <DialogContent sx={{ p: 0, overflowX: 'hidden' }}>
           {selected ? (
             <>
-              {/* ── Body: two-column ── */}
-              <Box
+              {/* ── Tab 0: Information General ── */}
+              {detailTab === 0 && (
+                <>
+                  {/* ── Body: two-column ── */}
+                  <Box
                 sx={{
                   display: 'grid',
                   gridTemplateColumns: { xs: '1fr', md: '220px 1fr' },
@@ -1134,6 +1193,61 @@ const PromoterTable = ({
                 )}
               </Box>
             </>
+          )}
+
+          {/* ── Tab 1: SMS Audit ── */}
+          {detailTab === 1 && (
+            <Box sx={{ p: 3 }}>
+              {/* Date pickers and toggle */}
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }} alignItems="center">
+                <ToggleButtonGroup
+                  value={detailUseDateRange ? 'range' : 'all'}
+                  exclusive
+                  onChange={(_, v) => {
+                    if (v !== null) setDetailUseDateRange(v === 'range');
+                  }}
+                  size="small"
+                  color="primary"
+                >
+                  <ToggleButton value="all" sx={{ textTransform: 'none', fontWeight: 700 }}>
+                    Histórico (Todo)
+                  </ToggleButton>
+                  <ToggleButton value="range" sx={{ textTransform: 'none', fontWeight: 700 }}>
+                    Rango de Fechas
+                  </ToggleButton>
+                </ToggleButtonGroup>
+
+                {detailUseDateRange && (
+                  <Stack direction="row" spacing={1.5} alignItems="center">
+                    <TextField
+                      label="Fecha inicio"
+                      type="date"
+                      size="small"
+                      value={detailStartDate}
+                      onChange={(e) => setDetailStartDate(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                    <TextField
+                      label="Fecha fin"
+                      type="date"
+                      size="small"
+                      value={detailEndDate}
+                      onChange={(e) => setDetailEndDate(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  </Stack>
+                )}
+              </Stack>
+
+              <PromoterSmsAuditPanel
+                promoterId={selected._id}
+                promoterName={`${selected.firstName} ${selected.lastName}`}
+                startDate={detailUseDateRange ? detailStartDate : undefined}
+                endDate={detailUseDateRange ? detailEndDate : undefined}
+              />
+            </Box>
+          )}
+        </>
           ) : (
             <Box sx={{ p: 4, textAlign: 'center' }}>
               <Typography color="text.secondary">Sin datos.</Typography>

@@ -297,8 +297,8 @@ export interface PromoterSmsAuditResponse {
 
 export async function getPromoterSmsAudit(params: {
   promoterId: string;
-  startDate: string;
-  endDate: string;
+  startDate?: string;
+  endDate?: string;
 }): Promise<PromoterSmsAuditResponse> {
   const res = await api.get<PromoterSmsAuditResponse>('/promoter/participations/sms-audit', {
     params,

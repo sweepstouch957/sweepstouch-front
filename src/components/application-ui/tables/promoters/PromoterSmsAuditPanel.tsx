@@ -55,8 +55,8 @@ import { useQuery } from '@tanstack/react-query';
 interface Props {
   promoterId: string;
   promoterName?: string;
-  startDate: string; // 'YYYY-MM-DD'
-  endDate: string;   // 'YYYY-MM-DD'
+  startDate?: string; // 'YYYY-MM-DD'
+  endDate?: string;   // 'YYYY-MM-DD'
 }
 
 // ── Status config ─────────────────────────────────────────────────────────────
@@ -117,7 +117,7 @@ export default function PromoterSmsAuditPanel({ promoterId, promoterName, startD
   const { data, isLoading, isError, refetch, isFetching } = useQuery<PromoterSmsAuditResponse, Error>({
     queryKey: ['promoter-sms-audit', { promoterId, startDate, endDate }],
     queryFn: () => getPromoterSmsAudit({ promoterId, startDate, endDate }),
-    enabled: Boolean(promoterId && startDate && endDate),
+    enabled: Boolean(promoterId),
     staleTime: 30_000,
   });
 
@@ -141,7 +141,7 @@ export default function PromoterSmsAuditPanel({ promoterId, promoterName, startD
     if (!data) return;
 
     const summary   = data.summary;
-    const dateLabel = `${startDate}_${endDate}`;
+    const dateLabel = startDate && endDate ? `${startDate}_${endDate}` : 'todos';
     const safeName  = (promoterName || 'promotora').replace(/[^a-zA-Z0-9_-]/g, '_');
 
     // ── Summary sheet ─────────────────────────────────────────────────────────
@@ -149,7 +149,7 @@ export default function PromoterSmsAuditPanel({ promoterId, promoterName, startD
       ['Auditoría SMS — Promotora'],
       [],
       ['Promotora',        promoterName || promoterId],
-      ['Rango de fechas',  `${startDate} → ${endDate}`],
+      ['Rango de fechas',  startDate && endDate ? `${startDate} → ${endDate}` : 'Todos los registros (histórico)'],
       [],
       ['─── REGISTRO SMS (Participaciones) ───'],
       ['Métrica',               'Cantidad',          '%'],
@@ -232,7 +232,13 @@ export default function PromoterSmsAuditPanel({ promoterId, promoterName, startD
             Auditoría de SMS — {promoterName || 'Promotora'}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Números registrados del <strong>{startDate}</strong> al <strong>{endDate}</strong>.
+            {startDate && endDate ? (
+              <>
+                Números registrados del <strong>{startDate}</strong> al <strong>{endDate}</strong>.
+              </>
+            ) : (
+              'Todos los números registrados históricamente. '
+            )}
             Verifica si recibieron su mensaje SMS vía Infobip.
           </Typography>
         </Box>
