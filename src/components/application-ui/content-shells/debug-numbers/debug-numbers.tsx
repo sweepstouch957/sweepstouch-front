@@ -1,11 +1,18 @@
 'use client';
 
+import { useStores } from '@/hooks/fetching/stores/useStores';
+import { customerClient } from '@/services/customerService';
+import FileUploadRoundedIcon from '@mui/icons-material/FileUploadRounded';
+import ManageSearchRoundedIcon from '@mui/icons-material/ManageSearchRounded';
 import {
   Alert,
+  alpha,
+  Autocomplete,
   Box,
   Button,
   Card,
   CardContent,
+  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -29,11 +36,10 @@ import {
   TableRow,
   TextField,
   Typography,
+  useTheme,
 } from '@mui/material';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useStores } from '@/hooks/fetching/stores/useStores';
-import { customerClient } from '@/services/customerService';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 type ParsedCsv = {
   rawLines: string[];
@@ -158,6 +164,8 @@ async function runWithConcurrency<T>(tasks: (() => Promise<T>)[], concurrency = 
 }
 
 export default function DebugNumbers(): React.JSX.Element {
+  const theme = useTheme();
+  const brandPink = '#e91e63';
   const qc = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -175,8 +183,14 @@ export default function DebugNumbers(): React.JSX.Element {
     });
   }, [stores, storeSearch]);
 
+  const selectedStore = useMemo(
+    () => (stores || []).find((s) => (s?._id || '').toString() === storeId) || null,
+    [stores, storeId]
+  );
+
   const [numberSearch, setNumberSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [duplicatesOnly, setDuplicatesOnly] = useState(false);
   const customersQuery = useQuery({
     queryKey: ['debug-customers-by-store', storeId],
     enabled: !!storeId,
@@ -185,6 +199,62 @@ export default function DebugNumbers(): React.JSX.Element {
   });
 
   const customers = customersQuery.data || [];
+  const duplicatePhones = useMemo(() => {
+    const groups = new Map<string, any[]>();
+    for (const c of customers) {
+      const normalized = normalizePhone(c?.phoneNumber ?? '');
+      if (!normalized) continue;
+      const group = groups.get(normalized) || [];
+      group.push(c);
+      groups.set(normalized, group);
+    }
+
+    const duplicates = new Map<string, any[]>();
+    groups.forEach((group, normalized) => {
+      if (group.length > 1) duplicates.set(normalized, group);
+    });
+    return duplicates;
+  }, [customers]);
+
+  const duplicateCustomerCount = useMemo(
+    () => Array.from(duplicatePhones.values()).reduce((total, group) => total + group.length, 0),
+    [duplicatePhones]
+  );
+
+  const filteredDuplicateGroups = useMemo(() => {
+    const raw = numberSearch.trim();
+    const normQ = normalizePhone(raw);
+    const qLower = raw.toLowerCase();
+
+    return Array.from(duplicatePhones.entries())
+      .map(([normalizedPhone, group]) => {
+        const visibleCustomers = group
+          .filter((c: any) => {
+            if (activeFilter === 'all') return true;
+            if (activeFilter === 'active') return !!c?.active;
+            return !c?.active;
+          })
+          .filter((c: any) => {
+            if (!raw) return true;
+            const p = (c?.phoneNumber || '').toString();
+            const normP = normalizePhone(p);
+            return (
+              normalizedPhone.includes(normQ) ||
+              (normQ && normP.includes(normQ)) ||
+              p.toLowerCase().includes(qLower)
+            );
+          });
+
+        return {
+          normalizedPhone,
+          visibleCustomers,
+          totalCustomers: group.length,
+        };
+      })
+      .filter((group) => group.visibleCustomers.length > 0)
+      .sort((a, b) => b.totalCustomers - a.totalCustomers);
+  }, [activeFilter, duplicatePhones, numberSearch]);
+
   const filteredCustomers = useMemo(() => {
     const raw = numberSearch.trim();
     const normQ = normalizePhone(raw);
@@ -197,12 +267,17 @@ export default function DebugNumbers(): React.JSX.Element {
         return !c?.active;
       })
       .filter((c: any) => {
+        if (!duplicatesOnly) return true;
+        const normalized = normalizePhone(c?.phoneNumber ?? '');
+        return !!normalized && duplicatePhones.has(normalized);
+      })
+      .filter((c: any) => {
         if (!raw) return true;
         const p = (c?.phoneNumber || '').toString();
         const normP = normalizePhone(p);
         return (normQ && normP.includes(normQ)) || p.toLowerCase().includes(qLower);
       });
-  }, [customers, numberSearch, activeFilter]);
+  }, [customers, numberSearch, activeFilter, duplicatesOnly, duplicatePhones]);
 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(50);
@@ -212,11 +287,15 @@ export default function DebugNumbers(): React.JSX.Element {
     return filteredCustomers.slice(start, start + rowsPerPage);
   }, [filteredCustomers, page, rowsPerPage]);
 
+  const pagedDuplicateGroups = useMemo(() => {
+    const start = page * rowsPerPage;
+    return filteredDuplicateGroups.slice(start, start + rowsPerPage);
+  }, [filteredDuplicateGroups, page, rowsPerPage]);
+
   useEffect(() => {
     // reset paginación cuando cambian filtros / tienda
     setPage(0);
-  }, [storeId, numberSearch, activeFilter, rowsPerPage]);
-
+  }, [storeId, numberSearch, activeFilter, duplicatesOnly, rowsPerPage]);
 
   const [csvOpen, setCsvOpen] = useState(false);
   const [csv, setCsv] = useState<ParsedCsv | null>(null);
@@ -229,9 +308,10 @@ export default function DebugNumbers(): React.JSX.Element {
 
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
-  const [message, setMessage] = useState<null | { type: 'success' | 'error' | 'info'; text: string }>(
-    null
-  );
+  const [message, setMessage] = useState<null | {
+    type: 'success' | 'error' | 'info';
+    text: string;
+  }>(null);
 
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
 
@@ -242,7 +322,12 @@ export default function DebugNumbers(): React.JSX.Element {
     mutationFn: ({ customer, active }: { customer: any; active: boolean }) => {
       const phoneNumber = (customer?.phoneNumber || '').toString();
       const countryCode = (customer?.countryCode || '').toString() || '1';
-      const storesArr = Array.isArray(customer?.stores) && customer.stores.length ? customer.stores : storeId ? [storeId] : [];
+      const storesArr =
+        Array.isArray(customer?.stores) && customer.stores.length
+          ? customer.stores
+          : storeId
+            ? [storeId]
+            : [];
 
       return customerClient.upsertCustomer({
         phoneNumber,
@@ -425,163 +510,518 @@ export default function DebugNumbers(): React.JSX.Element {
     }
   }
 
+  async function handleDeactivateDuplicates() {
+    if (!storeId || duplicatePhones.size === 0) return;
+    setMessage(null);
+    setProcessing(true);
+    setProgress({ done: 0, total: 0 });
+
+    try {
+      const tasks: (() => Promise<any>)[] = [];
+      let groupsWithoutNormalized = 0;
+
+      duplicatePhones.forEach((group, normalizedPhone) => {
+        const keeper =
+          group.find((c: any) => (c?.phoneNumber || '').toString().trim() === normalizedPhone) ||
+          group[0];
+        const keeperId = getCustomerId(keeper);
+
+        if (keeperId && !keeper?.active) {
+          tasks.push(async () => {
+            const res = await updateActive.mutateAsync({ customer: keeper, active: true });
+            setProgress((prev) => ({ ...prev, done: prev.done + 1 }));
+            return res;
+          });
+        }
+
+        if ((keeper?.phoneNumber || '').toString().trim() !== normalizedPhone) {
+          groupsWithoutNormalized += 1;
+        }
+
+        group.forEach((customer: any) => {
+          const id = getCustomerId(customer);
+          if (!id || id === keeperId || !customer?.active) return;
+          tasks.push(async () => {
+            const res = await updateActive.mutateAsync({ customer, active: false });
+            setProgress((prev) => ({ ...prev, done: prev.done + 1 }));
+            return res;
+          });
+        });
+      });
+
+      if (tasks.length === 0) {
+        setMessage({
+          type: 'info',
+          text: 'Los duplicados ya estaban inactivos o solo quedaba activo el numero principal.',
+        });
+        return;
+      }
+
+      setProgress({ done: 0, total: tasks.length });
+      const settled = await runWithConcurrency(tasks, 8);
+      const ok = settled.filter((r) => r.status === 'fulfilled').length;
+      const bad = settled.filter((r) => r.status === 'rejected').length;
+
+      qc.invalidateQueries({ queryKey: ['debug-customers-by-store', storeId] });
+      qc.invalidateQueries({ queryKey: ['customers', storeId] });
+
+      setMessage({
+        type: bad ? 'error' : 'success',
+        text: bad
+          ? `Proceso terminado con errores. Exitos: ${ok}, Fallos: ${bad}.`
+          : groupsWithoutNormalized
+            ? `Listo. Se actualizaron ${ok} customer(s). ${groupsWithoutNormalized} grupo(s) no tenian un numero escrito exactamente normalizado, asi que se conservo uno como principal.`
+            : `Listo. Se desactivaron duplicados y se dejo activo el numero normalizado.`,
+      });
+    } catch (e) {
+      console.error(e);
+      setMessage({
+        type: 'error',
+        text: 'No se pudieron desactivar los duplicados. Revisa la consola.',
+      });
+    } finally {
+      setProcessing(false);
+    }
+  }
+
   return (
-    <Box>
-      <Card>
+    <Box sx={{ px: { xs: 2, sm: 3 }, py: 3 }}>
+      <Card
+        variant="outlined"
+        sx={{
+          borderRadius: 3,
+          bgcolor: 'background.paper',
+          borderColor: 'divider',
+          boxShadow: 'none',
+        }}
+      >
         <CardContent>
           <Stack spacing={2}>
-            <Typography variant="h5">Debug numbers</Typography>
-            <Typography color="text.secondary" variant="body2">
-              Selecciona una tienda, revisa los customers y opcionalmente sube un CSV con números para
-              inactivar en lote.
-            </Typography>
 
-            <Divider />
-
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
-              <TextField
-                size="small"
-                label="Buscar tienda"
-                value={storeSearch}
-                onChange={(e) => {
-                  setStoreSearch(e.target.value);
-                }}
-                sx={{ minWidth: 260 }}
-                disabled={storesPending}
-              />
-
-              <FormControl size="small" sx={{ minWidth: 260 }} disabled={storesPending}>
-                <InputLabel id="debug-store-select">Store</InputLabel>
-                <Select
-                  labelId="debug-store-select"
-                  label="Store"
-                  value={storeId}
-                  onChange={(e) => {
-                    setStoreId(e.target.value);
+            <Stack spacing={1.5}>
+              <Stack
+                direction={{ xs: 'column', md: 'row' }}
+                spacing={2}
+                alignItems={{ md: 'center' }}
+              >
+                <Autocomplete
+                  size="small"
+                  options={filteredStores}
+                  value={selectedStore}
+                  inputValue={storeSearch}
+                  loading={storesPending}
+                  disabled={storesPending}
+                  getOptionLabel={(option: any) => (option?.name || '').toString()}
+                  isOptionEqualToValue={(option: any, value: any) => option?._id === value?._id}
+                  noOptionsText="Sin coincidencias"
+                  loadingText="Cargando tiendas..."
+                  onInputChange={(_, value) => {
+                    setStoreSearch(value);
+                  }}
+                  onChange={(_, value: any | null) => {
+                    setStoreId(value?._id || '');
+                    setStoreSearch(value?.name || '');
+                    setDuplicatesOnly(false);
                     setMessage(null);
                     setCsv(null);
                     setSummary(null);
                   }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Buscar tienda"
+                      placeholder="Escribe el nombre de la tienda"
+                    />
+                  )}
+                  sx={{ minWidth: { xs: '100%', md: 420 }, flex: { md: '1.8 1 420px' } }}
+                />
+
+                <TextField
+                  size="small"
+                  label="Buscar número"
+                  value={numberSearch}
+                  onChange={(e) => setNumberSearch(e.target.value)}
+                  sx={{ minWidth: { xs: '100%', md: 240 }, flex: { md: '1 1 240px' } }}
+                  disabled={!storeId || customersQuery.isPending}
+                />
+
+                <FormControl
+                  size="small"
+                  sx={{ minWidth: { xs: '100%', md: 200 }, flex: { md: '0 0 200px' } }}
+                  disabled={!storeId || customersQuery.isPending}
                 >
-                  {filteredStores.map((s) => (
-                    <MenuItem key={s._id} value={s._id}>
-                      {s.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                  <InputLabel id="debug-active-filter">Estado</InputLabel>
+                  <Select
+                    labelId="debug-active-filter"
+                    label="Estado"
+                    value={activeFilter}
+                    onChange={(e) => setActiveFilter(e.target.value as any)}
+                  >
+                    <MenuItem value="all">Todos</MenuItem>
+                    <MenuItem value="active">Activos</MenuItem>
+                    <MenuItem value="inactive">Inactivos</MenuItem>
+                  </Select>
+                </FormControl>
+              </Stack>
 
-              <TextField
-                size="small"
-                label="Buscar número"
-                value={numberSearch}
-                onChange={(e) => setNumberSearch(e.target.value)}
-                sx={{ minWidth: 220 }}
-                disabled={!storeId || customersQuery.isPending}
-              />
-
-              <FormControl size="small" sx={{ minWidth: 200 }} disabled={!storeId || customersQuery.isPending}>
-                <InputLabel id="debug-active-filter">Estado</InputLabel>
-                <Select
-                  labelId="debug-active-filter"
-                  label="Estado"
-                  value={activeFilter}
-                  onChange={(e) => setActiveFilter(e.target.value as any)}
-                >
-                  <MenuItem value="all">Todos</MenuItem>
-                  <MenuItem value="active">Activos</MenuItem>
-                  <MenuItem value="inactive">Inactivos</MenuItem>
-                </Select>
-              </FormControl>
-
-              <Box flex={1} />
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv,text/csv"
-                hidden
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) {
-                    setCsvOpen(true);
-                    void handlePickCsvFile(f);
-                  }
-                  // permitir volver a subir el mismo archivo
-                  if (fileInputRef.current) fileInputRef.current.value = '';
-                }}
-              />
-
-              <Button
-                variant="contained"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={!storeId || processing}
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1.5}
+                justifyContent="flex-end"
+                alignItems={{ xs: 'stretch', sm: 'center' }}
               >
-                Subir CSV
-              </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  hidden
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      setCsvOpen(true);
+                      void handlePickCsvFile(f);
+                    }
+                    // permitir volver a subir el mismo archivo
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                  }}
+                />
+
+                <Button
+                  startIcon={<ManageSearchRoundedIcon />}
+                  variant={duplicatesOnly ? 'contained' : 'outlined'}
+                  onClick={() => {
+                    if (!duplicatesOnly && duplicatePhones.size === 0) {
+                      setMessage({
+                        type: 'info',
+                        text: 'No se encontraron telefonos repetidos en los customers cargados de esta tienda.',
+                      });
+                      return;
+                    } else {
+                      setMessage(null);
+                    }
+                    setDuplicatesOnly((value) => !value);
+                  }}
+                  disabled={!storeId || customersQuery.isPending || customersQuery.isFetching}
+                  sx={{
+                    whiteSpace: 'nowrap',
+                    color: duplicatesOnly ? '#fff' : brandPink,
+                    bgcolor: duplicatesOnly ? brandPink : 'transparent',
+                    borderColor: alpha(brandPink, 0.55),
+                    '&:hover': {
+                      bgcolor: duplicatesOnly ? '#c2185b' : alpha(brandPink, 0.08),
+                      borderColor: brandPink,
+                    },
+                  }}
+                >
+                  {duplicatesOnly ? 'Ver todos' : 'Buscar repetidos'}
+                </Button>
+
+                <Button
+                  variant="contained"
+                  onClick={() => void handleDeactivateDuplicates()}
+                  disabled={!storeId || processing || duplicatePhones.size === 0}
+                  sx={{
+                    bgcolor: brandPink,
+                    boxShadow: 'none',
+                    whiteSpace: 'nowrap',
+                    '&:hover': {
+                      bgcolor: '#c2185b',
+                      boxShadow: 'none',
+                    },
+                  }}
+                >
+                  Desactivar duplicados
+                </Button>
+
+                <Button
+                  startIcon={<FileUploadRoundedIcon />}
+                  variant="contained"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={!storeId || processing}
+                  sx={{
+                    bgcolor: brandPink,
+                    boxShadow: 'none',
+                    '&:hover': {
+                      bgcolor: '#c2185b',
+                      boxShadow: 'none',
+                    },
+                  }}
+                >
+                  Desactivar desde CSV
+                </Button>
+              </Stack>
             </Stack>
 
-            {message ? (
-              <Alert severity={message.type}>{message.text}</Alert>
-            ) : null}
+            {message ? <Alert severity={message.type}>{message.text}</Alert> : null}
 
             {processing ? <LinearProgress /> : null}
 
             {storeId ? (
               <Box mt={1}>
                 {customersQuery.isPending ? (
-                  <Box display="flex" alignItems="center" gap={2} py={2}>
+                  <Box
+                    display="flex"
+                    alignItems="center"
+                    gap={2}
+                    py={2}
+                  >
                     <CircularProgress size={20} />
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                    >
                       Cargando customers…
                     </Typography>
                   </Box>
                 ) : customersQuery.isError ? (
-                  <Alert severity="error">No se pudieron cargar los customers de esta tienda.</Alert>
+                  <Alert severity="error">
+                    No se pudieron cargar los customers de esta tienda.
+                  </Alert>
                 ) : (
-                  <Card variant="outlined">
+                  <Card
+                    variant="outlined"
+                    sx={{
+                      borderRadius: 2.5,
+                      bgcolor: 'background.paper',
+                      borderColor: 'divider',
+                    }}
+                  >
                     <CardContent>
                       <Stack spacing={1.5}>
-                        <Typography variant="subtitle2" color="text.secondary">
-                          Mostrando {filteredCustomers.length} customer(s)
-                          {numberSearch ? ' (filtrado)' : ''}
-                        </Typography>
+                        <Stack
+                          direction={{ xs: 'column', sm: 'row' }}
+                          spacing={1}
+                          alignItems={{ xs: 'flex-start', sm: 'center' }}
+                          justifyContent="space-between"
+                        >
+                          <Box>
+                            <Typography
+                              variant="subtitle2"
+                              color="text.primary"
+                            >
+                              {duplicatesOnly
+                                ? `Mostrando ${filteredDuplicateGroups.length} grupo(s) repetido(s)`
+                                : `Mostrando ${filteredCustomers.length} customer(s)`}
+                              {numberSearch || duplicatesOnly ? ' filtrado(s)' : ''}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {customers.length} cargados de la tienda
+                            </Typography>
+                          </Box>
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            flexWrap="wrap"
+                            useFlexGap
+                          >
+                            <Chip
+                              color={duplicatePhones.size ? 'warning' : 'default'}
+                              variant="outlined"
+                              label={`${duplicatePhones.size} telefono(s) repetido(s)`}
+                              sx={{
+                                minHeight: 34,
+                                px: 1,
+                                bgcolor: alpha(brandPink, 0.08),
+                                borderColor: alpha(brandPink, 0.45),
+                                color: brandPink,
+                                fontSize: 15,
+                                fontWeight: 800,
+                                '& .MuiChip-label': {
+                                  px: 1.25,
+                                },
+                              }}
+                            />
+                            {duplicatesOnly ? (
+                              <Chip
+                                size="small"
+                                color="warning"
+                                variant="outlined"
+                                label={`${filteredDuplicateGroups.length} grupo(s), ${duplicateCustomerCount} customer(s)`}
+                              />
+                            ) : null}
+                          </Stack>
+                        </Stack>
 
-                        <TableContainer component={Paper} variant="outlined">
+                        <TableContainer
+                          component={Paper}
+                          variant="outlined"
+                          sx={{ borderRadius: 2, borderColor: 'divider' }}
+                        >
                           <Table size="small">
                             <TableHead>
                               <TableRow>
                                 <TableCell>Phone</TableCell>
+                                <TableCell>Normalizado</TableCell>
                                 <TableCell>Active</TableCell>
                                 <TableCell>Created At</TableCell>
                               </TableRow>
                             </TableHead>
                             <TableBody>
-                              {pagedCustomers.map((c: any) => {
-                                const id = getCustomerId(c);
-                                return (
-                                <TableRow key={id || c?.phoneNumber}>
-                                  <TableCell>{c?.phoneNumber || '—'}</TableCell>
-                                  <TableCell>
-                                    <Switch
-                                      checked={!!c?.active}
-                                      onChange={(e) =>
-                                        id ? void handleToggleActive(c, e.target.checked) : undefined
+                              {duplicatesOnly
+                                ? pagedDuplicateGroups.map((group) => (
+                                  <React.Fragment key={group.normalizedPhone}>
+                                    <TableRow
+                                      sx={{
+                                        bgcolor: alpha(theme.palette.warning.main, 0.12),
+                                      }}
+                                    >
+                                      <TableCell colSpan={4}>
+                                        <Stack
+                                          direction={{ xs: 'column', sm: 'row' }}
+                                          spacing={1}
+                                          alignItems={{ xs: 'flex-start', sm: 'center' }}
+                                          justifyContent="space-between"
+                                        >
+                                          <Stack
+                                            direction="row"
+                                            spacing={1}
+                                            alignItems="center"
+                                            flexWrap="wrap"
+                                            useFlexGap
+                                          >
+                                            <Typography
+                                              variant="subtitle2"
+                                              fontFamily="monospace"
+                                            >
+                                              {group.normalizedPhone}
+                                            </Typography>
+                                            <Chip
+                                              size="small"
+                                              color="warning"
+                                              label={`${group.totalCustomers} repetidos`}
+                                              sx={{ fontWeight: 800 }}
+                                            />
+                                          </Stack>
+                                          <Typography
+                                            variant="caption"
+                                            color="text.secondary"
+                                          >
+                                            Mostrando {group.visibleCustomers.length} de{' '}
+                                            {group.totalCustomers}
+                                          </Typography>
+                                        </Stack>
+                                      </TableCell>
+                                    </TableRow>
+                                    {group.visibleCustomers.map((c: any) => {
+                                      const id = getCustomerId(c);
+                                      return (
+                                        <TableRow
+                                          key={id || `${group.normalizedPhone}-${c?.phoneNumber}`}
+                                          hover
+                                          sx={{
+                                            bgcolor: alpha(theme.palette.warning.main, 0.04),
+                                          }}
+                                        >
+                                          <TableCell sx={{ pl: { xs: 2, sm: 4 } }}>
+                                            {c?.phoneNumber || '-'}
+                                          </TableCell>
+                                          <TableCell>
+                                            <Typography
+                                              variant="body2"
+                                              fontFamily="monospace"
+                                            >
+                                              {group.normalizedPhone}
+                                            </Typography>
+                                          </TableCell>
+                                          <TableCell>
+                                            <Switch
+                                              checked={!!c?.active}
+                                              onChange={(e) =>
+                                                id
+                                                  ? void handleToggleActive(c, e.target.checked)
+                                                  : undefined
+                                              }
+                                              disabled={!id || isToggling(id) || processing}
+                                              inputProps={{ 'aria-label': 'toggle active' }}
+                                            />
+                                          </TableCell>
+                                          <TableCell>
+                                            {c?.createdAt
+                                              ? new Date(c.createdAt).toLocaleString()
+                                              : '-'}
+                                          </TableCell>
+                                        </TableRow>
+                                      );
+                                    })}
+                                  </React.Fragment>
+                                ))
+                                : pagedCustomers.map((c: any) => {
+                                  const id = getCustomerId(c);
+                                  const normalizedPhone = normalizePhone(c?.phoneNumber ?? '');
+                                  const duplicateCount =
+                                    duplicatePhones.get(normalizedPhone)?.length || 0;
+                                  return (
+                                    <TableRow
+                                      key={id || c?.phoneNumber}
+                                      hover
+                                      sx={
+                                        duplicateCount > 1
+                                          ? {
+                                            bgcolor: alpha(theme.palette.warning.main, 0.08),
+                                            '&:hover': {
+                                              bgcolor: alpha(theme.palette.warning.main, 0.14),
+                                            },
+                                          }
+                                          : undefined
                                       }
-                                      disabled={!id || isToggling(id) || processing}
-                                      inputProps={{ 'aria-label': 'toggle active' }}
-                                    />
-                                  </TableCell>
-                                  <TableCell>
-                                    {c?.createdAt ? new Date(c.createdAt).toLocaleString() : '—'}
-                                  </TableCell>
-                                </TableRow>
-                              );
-                              })}
-                              {pagedCustomers.length === 0 ? (
+                                    >
+                                      <TableCell>{c?.phoneNumber || '—'}</TableCell>
+                                      <TableCell>
+                                        <Stack
+                                          direction="row"
+                                          spacing={1}
+                                          alignItems="center"
+                                        >
+                                          <Typography
+                                            variant="body2"
+                                            fontFamily="monospace"
+                                          >
+                                            {normalizedPhone || '-'}
+                                          </Typography>
+                                          {duplicateCount > 1 ? (
+                                            <Chip
+                                              size="small"
+                                              color="warning"
+                                              label={`${duplicateCount}x`}
+                                              sx={{ height: 22, fontWeight: 800 }}
+                                            />
+                                          ) : null}
+                                        </Stack>
+                                      </TableCell>
+                                      <TableCell>
+                                        <Switch
+                                          checked={!!c?.active}
+                                          onChange={(e) =>
+                                            id
+                                              ? void handleToggleActive(c, e.target.checked)
+                                              : undefined
+                                          }
+                                          disabled={!id || isToggling(id) || processing}
+                                          inputProps={{ 'aria-label': 'toggle active' }}
+                                        />
+                                      </TableCell>
+                                      <TableCell>
+                                        {c?.createdAt
+                                          ? new Date(c.createdAt).toLocaleString()
+                                          : '—'}
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                              {(
+                                duplicatesOnly
+                                  ? pagedDuplicateGroups.length === 0
+                                  : pagedCustomers.length === 0
+                              ) ? (
                                 <TableRow>
-                                  <TableCell colSpan={3}>
-                                    <Typography variant="body2" color="text.secondary">
+                                  <TableCell colSpan={4}>
+                                    <Typography
+                                      variant="body2"
+                                      color="text.secondary"
+                                    >
                                       No hay resultados.
                                     </Typography>
                                   </TableCell>
@@ -593,7 +1033,11 @@ export default function DebugNumbers(): React.JSX.Element {
 
                         <TablePagination
                           component="div"
-                          count={filteredCustomers.length}
+                          count={
+                            duplicatesOnly
+                              ? filteredDuplicateGroups.length
+                              : filteredCustomers.length
+                          }
                           page={page}
                           onPageChange={(_, p) => setPage(p)}
                           rowsPerPage={rowsPerPage}
@@ -610,26 +1054,44 @@ export default function DebugNumbers(): React.JSX.Element {
                 )}
               </Box>
             ) : (
-              <Box py={6} textAlign="center">
-                <Typography color="text.secondary">Selecciona una tienda para ver sus customers.</Typography>
+              <Box
+                py={6}
+                textAlign="center"
+              >
+                <Typography color="text.secondary">
+                  Selecciona una tienda para ver sus customers.
+                </Typography>
               </Box>
             )}
           </Stack>
         </CardContent>
       </Card>
 
-      <Dialog open={csvOpen} onClose={() => setCsvOpen(false)} fullWidth maxWidth="sm">
+      <Dialog
+        open={csvOpen}
+        onClose={() => setCsvOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
         <DialogTitle>Inactivar por CSV</DialogTitle>
         <DialogContent>
-          <Stack spacing={2} mt={1}>
-            {!storeId ? (
-              <Alert severity="warning">Selecciona una tienda primero.</Alert>
-            ) : null}
+          <Stack
+            spacing={2}
+            mt={1}
+          >
+            {!storeId ? <Alert severity="warning">Selecciona una tienda primero.</Alert> : null}
 
             {processing && !summary ? (
-              <Box display="flex" alignItems="center" gap={2}>
+              <Box
+                display="flex"
+                alignItems="center"
+                gap={2}
+              >
                 <CircularProgress size={20} />
-                <Typography variant="body2" color="text.secondary">
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                >
                   Procesando CSV…
                 </Typography>
               </Box>
@@ -640,16 +1102,28 @@ export default function DebugNumbers(): React.JSX.Element {
                 <CardContent>
                   <Stack spacing={1}>
                     <Typography variant="subtitle1">Resumen</Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                    >
                       Números únicos en CSV: <b>{summary.totalCsv}</b>
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                    >
                       Números encontrados (match por phoneNumber): <b>{summary.found}</b>
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                    >
                       Números no encontrados: <b>{summary.notFound}</b>
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                    >
                       Customers a inactivar (IDs únicos): <b>{summary.toDeactivate}</b>
                     </Typography>
                   </Stack>
@@ -658,14 +1132,20 @@ export default function DebugNumbers(): React.JSX.Element {
             ) : null}
 
             {progress.total > 0 ? (
-              <Typography variant="body2" color="text.secondary">
+              <Typography
+                variant="body2"
+                color="text.secondary"
+              >
                 Progreso: {progress.done}/{progress.total}
               </Typography>
             ) : null}
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCsvOpen(false)} disabled={processing}>
+          <Button
+            onClick={() => setCsvOpen(false)}
+            disabled={processing}
+          >
             Cerrar
           </Button>
           <Button

@@ -51,7 +51,7 @@ const applicationsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Tasks'), route: routes.admin.applications.tasks },
     { title: t('Store Maps'), route: routes.admin.applications.maps },
     { title: t('Calendar'), route: routes.admin.applications.calendar },
-    //{ title: t('debug'), route: routes.admin.applications['debug-numbers'] },
+    { title: t('Depurar Numeros'), route: routes.admin.applications['debug-numbers'] },
     //{ title: t('File manager'), route: routes.admin.applications['file-manager'] },
     //{ title: t('Messenger'), route: routes.admin.applications.messenger },
   ]);
