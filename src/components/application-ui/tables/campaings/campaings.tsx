@@ -37,6 +37,7 @@ import Results from './results';
 
 interface CampaignsGridProps {
   storeId?: string;
+  forceCards?: boolean;
 }
 
 /* ─── Platform color map ─── */
@@ -452,7 +453,7 @@ const EMPTY_STATS: FilterStatsResponse = {
 /* ─────────────────────────────────────────
    MAIN GRID
 ───────────────────────────────────────────*/
-function CampaignsGrid({ storeId }: CampaignsGridProps) {
+function CampaignsGrid({ storeId, forceCards = false }: CampaignsGridProps) {
   const [showMetrics, setShowMetrics] = useState(false);
   const [filters, setFilters] = useState({
     status: '',
@@ -665,6 +666,7 @@ function CampaignsGrid({ storeId }: CampaignsGridProps) {
             refetch={refetch}
             storeId={storeId}
             isLoading={isFetching}
+            forceCards={forceCards}
           />
         </Grid>
       </Grid>

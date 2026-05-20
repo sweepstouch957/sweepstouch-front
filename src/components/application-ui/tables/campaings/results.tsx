@@ -48,6 +48,7 @@ interface ResultsProps {
   refetch: () => void;
   isLoading: boolean;
   storeId?: string;
+  forceCards?: boolean;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: 'warning' | 'success' | 'info' | 'primary' | 'error' | 'default' }> = {
@@ -121,8 +122,13 @@ const CampaignCard: FC<CampaignCardProps> = ({ campaign, onStats, onEdit, onDele
             <Typography
               variant="subtitle2"
               fontWeight={800}
-              noWrap
-              sx={{ cursor: 'pointer', fontSize: 13 }}
+              sx={{
+                cursor: 'pointer',
+                fontSize: 13,
+                lineHeight: 1.25,
+                whiteSpace: 'normal',
+                overflowWrap: 'break-word',
+              }}
               onClick={() => campaign.store?._id && window.open(`/admin/management/stores/edit/${campaign.store._id}`, '_blank')}
             >
               {campaign.store?.name || '-'}
@@ -246,10 +252,12 @@ const Results: FC<ResultsProps> = ({
   isLoading,
   refetch,
   storeId,
+  forceCards = false,
 }) => {
   const { t } = useTranslation();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
+  const showCards = forceCards || isMobile;
 
   const filtersRef = React.useRef<any>(filters);
   React.useEffect(() => { filtersRef.current = filters; }, [filters]);
@@ -343,7 +351,7 @@ const Results: FC<ResultsProps> = ({
       <CampaignsFilters filters={filters} setFilters={setFilters} storeId={storeId} />
 
       {/* Mobile: card grid */}
-      {isMobile ? (
+      {showCards ? (
         <Box sx={{ p: 2 }}>
           <Box
             sx={{
@@ -472,7 +480,7 @@ const Results: FC<ResultsProps> = ({
                         </TableCell>
 
                         {/* Campaign Title */}
-                        <TableCell>
+                        <TableCell sx={{ display: { lg: 'none', xl: 'table-cell' } }}>
                           <Tooltip title={campaign.title || ''} placement="top" arrow>
                             <Typography
                               variant="body2"
