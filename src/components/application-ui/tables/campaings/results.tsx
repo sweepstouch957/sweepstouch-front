@@ -121,8 +121,13 @@ const CampaignCard: FC<CampaignCardProps> = ({ campaign, onStats, onEdit, onDele
             <Typography
               variant="subtitle2"
               fontWeight={800}
-              noWrap
-              sx={{ cursor: 'pointer', fontSize: 13 }}
+              sx={{
+                cursor: 'pointer',
+                fontSize: 13,
+                lineHeight: 1.25,
+                whiteSpace: 'normal',
+                overflowWrap: 'break-word',
+              }}
               onClick={() => campaign.store?._id && window.open(`/admin/management/stores/edit/${campaign.store._id}`, '_blank')}
             >
               {campaign.store?.name || '-'}
@@ -249,7 +254,7 @@ const Results: FC<ResultsProps> = ({
 }) => {
   const { t } = useTranslation();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
 
   const filtersRef = React.useRef<any>(filters);
   React.useEffect(() => { filtersRef.current = filters; }, [filters]);
@@ -390,11 +395,11 @@ const Results: FC<ResultsProps> = ({
                   <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 72 }}>{t('Type')}</TableCell>
                   <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 132 }}>{t('Start Date')} (NY)</TableCell>
                   <TableCell
-                    sx={{ fontWeight: 900, color: 'text.secondary', width: '24%' }}
+                    sx={{ fontWeight: 900, color: 'text.secondary', width: { lg: '26%', xl: '24%' } }}
                   >
                     {t('Store')}
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: '15%' }}>Campaña</TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: '15%', display: { lg: 'none', xl: 'table-cell' } }}>Campaña</TableCell>
                   <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 92 }}>Provider</TableCell>
                   <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 84 }}>{t('Audience')}</TableCell>
                   <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 94 }}>{t('Cost')}</TableCell>
@@ -441,10 +446,10 @@ const Results: FC<ResultsProps> = ({
                         </TableCell>
 
                         <TableCell
-                          sx={{ width: '24%' }}
+                          sx={{ width: { lg: '26%', xl: '24%' } }}
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <Box display="flex" alignItems="center" gap={1.25} sx={{ minWidth: 0 }}>
+                          <Box display="flex" alignItems="flex-start" gap={1.25} sx={{ minWidth: 0 }}>
                             <Avatar
                               sx={{ width: 34, height: 34, cursor: 'pointer', border: `1px solid ${theme.palette.divider}`, flexShrink: 0 }}
                               src={campaign.store?.image}
@@ -460,17 +465,32 @@ const Results: FC<ResultsProps> = ({
                                 lineHeight: 1.25,
                                 minWidth: 0,
                                 whiteSpace: 'normal',
-                                overflowWrap: 'anywhere',
+                                overflowWrap: 'break-word',
                                 wordBreak: 'normal',
                               }}
                             >
                               {campaign.store?.name || '-'}
                             </Typography>
+                            <Typography
+                              variant="caption"
+                              fontWeight={700}
+                              color="text.secondary"
+                              sx={{
+                                display: { lg: '-webkit-box', xl: 'none' },
+                                mt: 0.4,
+                                lineHeight: 1.2,
+                                WebkitBoxOrient: 'vertical',
+                                WebkitLineClamp: 2,
+                                overflow: 'hidden',
+                              }}
+                            >
+                              {campaign.title || 'Sin titulo'}
+                            </Typography>
                           </Box>
                         </TableCell>
 
                         {/* Campaign Title */}
-                        <TableCell>
+                        <TableCell sx={{ display: { lg: 'none', xl: 'table-cell' } }}>
                           <Tooltip title={campaign.title || ''} placement="top" arrow>
                             <Typography
                               variant="body2"
