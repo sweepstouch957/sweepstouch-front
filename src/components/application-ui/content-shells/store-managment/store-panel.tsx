@@ -51,7 +51,7 @@ import MailOutlineRoundedIcon from '@mui/icons-material/MailOutlineRounded';
 import WelcomeCouponsPanel from './panel/welcome-coupons/WelcomeCouponsPanel';
 import StoreAudienceOverview from './panel/sweepstakes/StoreAudienceOverview';
 import StoreSweepstakeStats from './panel/sweepstakes/StoreSweepstakeStats';
-import OptinMmsBanner from '../../tables/campaings/OptinMmsBanner';
+import StoreOptinPanel from './panel/optin/StoreOptinPanel';
 
 // ── Tags estáticas (module scope = cero re-creación)
 const STORE_MANAGEMENT_TAGS = [
@@ -393,11 +393,7 @@ const StoreManagementPage = () => {
         return <WelcomeCouponsPanel storeId={storeId} />;
 
       case 'optin':
-        return (
-          <Box p={3}>
-            <OptinMmsBanner storeId={storeId} />
-          </Box>
-        );
+        return <StoreOptinPanel storeId={storeId} />;
 
       case 'qr':
         return (

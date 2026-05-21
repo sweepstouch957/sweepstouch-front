@@ -685,7 +685,7 @@ class CampaignClient {
       sent,
       skipped:       data.skipped       ?? 0,
       total:         data.total         ?? 0,
-      estimatedCost: sent * 0.085,
+      estimatedCost: sent * 0.0585,
     };
   }
 }
