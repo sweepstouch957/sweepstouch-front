@@ -688,6 +688,31 @@ class CampaignClient {
       estimatedCost: sent * 0.0585,
     };
   }
+
+  async getOptinMmsCountGrouped(params: {
+    startDate: string;
+    endDate:   string;
+  }): Promise<Record<string, { sent: number; skipped: number; total: number; estimatedCost: number }>> {
+    const res = await api.get('/sweepstakes/participants/optin-mms-count', {
+      params: {
+        startDate: params.startDate,
+        endDate:   params.endDate,
+        groupByStore: true,
+      },
+    });
+    const storesMap = res.data?.stores || {};
+    const result: Record<string, { sent: number; skipped: number; total: number; estimatedCost: number }> = {};
+    for (const [storeId, data] of Object.entries(storesMap)) {
+      const sent = (data as any).sent ?? 0;
+      result[storeId] = {
+        sent,
+        skipped:       (data as any).skipped       ?? 0,
+        total:         (data as any).total         ?? 0,
+        estimatedCost: sent * 0.0585,
+      };
+    }
+    return result;
+  }
 }
 
 export const campaignClient = new CampaignClient();

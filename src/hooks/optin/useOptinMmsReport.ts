@@ -8,8 +8,6 @@ import { useCallback, useMemo } from 'react';
 
 export const OPTIN_PRICE = 0.0585;
 
-const BATCH_SIZE = 4;
-
 export type SortField = 'name' | 'sent' | 'skipped' | 'total' | 'cost' | 'rate';
 export type SortDir = 'asc' | 'desc';
 
@@ -50,38 +48,6 @@ export interface UseOptinMmsReportParams {
   showOnlyWithData: boolean;
 }
 
-type StoreOptinResult = {
-  sent: number;
-  skipped: number;
-  total: number;
-  estimatedCost: number;
-};
-
-// Sequential batches — avoids sending N requests simultaneously and hitting rate limits.
-async function fetchAllStoresOptin(
-  stores: Array<{ _id?: string; id: string }>,
-  startDate: string,
-  endDate: string,
-): Promise<Record<string, StoreOptinResult>> {
-  const results: Record<string, StoreOptinResult> = {};
-  for (let i = 0; i < stores.length; i += BATCH_SIZE) {
-    const batch = stores.slice(i, i + BATCH_SIZE);
-    const batchResults = await Promise.all(
-      batch.map((store) =>
-        campaignClient.getOptinMmsCount({
-          startDate,
-          endDate,
-          storeId: (store._id ?? store.id) as string,
-        }),
-      ),
-    );
-    batch.forEach((store, j) => {
-      results[(store._id ?? store.id) as string] = batchResults[j];
-    });
-  }
-  return results;
-}
-
 export function useOptinMmsReport({
   startDate,
   endDate,
@@ -115,21 +81,15 @@ export function useOptinMmsReport({
     retry: false,
   });
 
-  // ── Per-store batched query ───────────────────────────────────────────────
-  // Single cache entry, fetches stores in BATCH_SIZE groups to avoid rate limits.
-  const storeIdsKey = useMemo(
-    () => stores.map((s) => (s._id ?? s.id) as string).join(','),
-    [stores],
-  );
-
+  // ── Per-store grouped query ───────────────────────────────────────────────
+  // Single request, fetches all store metrics grouped in the backend.
   const {
     data: storeDataMap,
     isLoading: isBatchLoading,
     isFetching: isBatchFetching,
   } = useQuery({
-    queryKey: ['optin-stores-batch', startISO, endISO, storeIdsKey],
-    queryFn: () => fetchAllStoresOptin(stores, startISO, endISO),
-    enabled: !storesLoading && stores.length > 0,
+    queryKey: ['optin-stores-grouped', startISO, endISO],
+    queryFn: () => campaignClient.getOptinMmsCountGrouped({ startDate: startISO, endDate: endISO }),
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,
     placeholderData: (prev) => prev,
