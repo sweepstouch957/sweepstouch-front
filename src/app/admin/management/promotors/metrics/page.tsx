@@ -230,12 +230,12 @@ function GoalTable({ promoters, threshold, loading }: { promoters: any[]; thresh
                   </Stack>
                 </TableCell>
                 <TableCell align="right">
-                  <Typography fontSize={13} fontWeight={700} fontVariantNumeric="tabular-nums">
+                  <Typography sx={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
                     {regs.toLocaleString()}
                   </Typography>
                 </TableCell>
                 <TableCell align="right">
-                  <Typography fontSize={13} color="text.secondary" fontVariantNumeric="tabular-nums">
+                  <Typography sx={{ fontSize: 13, color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
                     {threshold}
                   </Typography>
                 </TableCell>
@@ -447,7 +447,7 @@ export default function PromoterMetricsPage() {
                   <Typography fontSize={10} fontWeight={700} textTransform="uppercase" letterSpacing="0.06em" color="text.secondary">
                     {label}
                   </Typography>
-                  <Typography fontSize={15} fontWeight={800} fontVariantNumeric="tabular-nums">
+                  <Typography sx={{ fontSize: 15, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
                     {value}
                   </Typography>
                 </Box>
@@ -513,17 +513,17 @@ export default function PromoterMetricsPage() {
                         </Stack>
                       </TableCell>
                       <TableCell align="right">
-                        <Typography fontSize={13} fontWeight={700} fontVariantNumeric="tabular-nums">
+                        <Typography sx={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
                           {r.totalParticipations}
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
-                        <Typography fontSize={12} color="success.main" fontVariantNumeric="tabular-nums">
+                        <Typography sx={{ fontSize: 12, color: 'success.main', fontVariantNumeric: 'tabular-nums' }}>
                           {r.newCustomers}
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
-                        <Typography fontSize={12} color="warning.main" fontVariantNumeric="tabular-nums">
+                        <Typography sx={{ fontSize: 12, color: 'warning.main', fontVariantNumeric: 'tabular-nums' }}>
                           ${r.totalEarnings.toFixed(2)}
                         </Typography>
                       </TableCell>
@@ -629,7 +629,7 @@ export default function PromoterMetricsPage() {
                   </Typography>
                   <Stack direction="row" alignItems="center" spacing={0.5}>
                     {i < 3 && <EmojiEventsRoundedIcon sx={{ fontSize: 11, color: '#f59e0b' }} />}
-                    <Typography fontSize={11} color="text.secondary" fontVariantNumeric="tabular-nums">
+                    <Typography sx={{ fontSize: 11, color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
                       {(p.totalRegistrations ?? 0).toLocaleString()} reg.
                     </Typography>
                   </Stack>
