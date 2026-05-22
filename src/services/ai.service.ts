@@ -6,6 +6,7 @@
  * auth headers, baseURL, and error handling.
  */
 import { api } from '@/libs/axios';
+import { getAuthToken } from 'src/utils/auth/custom/storage';
 
 /* ─── Types ─── */
 
@@ -77,7 +78,7 @@ export async function sendChatMessage(
   onImage?: (data: { url: string; name: string }) => void,
 ): Promise<void> {
   const { signal, ...bodyParams } = params;
-  const token = typeof window !== 'undefined' ? localStorage.getItem('uifort-authentication') : null;
+  const token = getAuthToken();
   const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3010/api/';
 
   let response: Response;
@@ -239,7 +240,7 @@ export async function generateImage(
   onError: (error: string) => void,
 ): Promise<void> {
   const { signal, ...bodyParams } = params;
-  const token = typeof window !== 'undefined' ? localStorage.getItem('uifort-authentication') : null;
+  const token = getAuthToken();
   const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3010/api/';
 
   let response: Response;
@@ -300,7 +301,7 @@ export async function generateImage(
 /* ─── Audio Transcription ─── */
 
 export async function transcribeAudio(audioBlob: Blob): Promise<string> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('uifort-authentication') : null;
+  const token = getAuthToken();
   const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3010/api/';
   const formData = new FormData();
   formData.append('audio', audioBlob, 'recording.webm');

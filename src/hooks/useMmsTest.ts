@@ -5,13 +5,14 @@ import axios from 'axios';
 import { customerClient, type Customer } from '@/services/customerService';
 import { campaignClient } from '@/services/campaing.service';
 import { uploadCampaignImage } from '@/services/upload.service';
+import { getAuthToken } from 'src/utils/auth/custom/storage';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
 const TRACKING_URL = (process.env.NEXT_PUBLIC_TRACKING_URL || API_URL).replace(/\/+$/, '');
 const LINKTREE_URL = (process.env.NEXT_PUBLIC_LINKTREE_URL || 'https://links.sweepstouch.com').replace(/\/+$/, '');
 
 function getAuthHeaders() {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('uifort-authentication') : null;
+  const token = getAuthToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 

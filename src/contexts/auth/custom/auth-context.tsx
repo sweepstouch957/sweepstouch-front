@@ -3,6 +3,7 @@ import type { User } from 'src/contexts/auth/user';
 import { authClient } from 'src/utils/auth/custom/client';
 import type { AuthContextValue } from '../types';
 import { api } from '@/libs/axios';
+import { removeAuthToken } from 'src/utils/auth/custom/storage';
 
 export const UserContext = React.createContext<AuthContextValue | undefined>(undefined);
 
@@ -28,7 +29,7 @@ export function AuthProvider({ children }: AuthProviderProps): React.JSX.Element
       if (error) {
         console.error(error);
         setState((prev) => ({ ...prev, user: null, error: 'Something went wrong' }));
-        window.localStorage.removeItem('uifort-authentication');
+        removeAuthToken();
         delete api.defaults.headers.common['Authorization'];
         window.location.href = '/auth/custom/login';
         return;
