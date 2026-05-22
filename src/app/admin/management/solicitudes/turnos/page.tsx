@@ -98,7 +98,7 @@ const StatCard = ({
         {loading ? (
           <Skeleton width={40} height={28} />
         ) : (
-          <Typography fontWeight={800} fontSize={22} lineHeight={1.2} fontVariantNumeric="tabular-nums">
+          <Typography sx={{ fontWeight: 800, fontSize: 22, lineHeight: 1.2, fontVariantNumeric: 'tabular-nums' }}>
             {value}
           </Typography>
         )}
