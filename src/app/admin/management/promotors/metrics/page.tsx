@@ -1,7 +1,7 @@
 'use client';
 
 import { usePromotorsMetrics, type MetricsPeriod } from '@/hooks/promotors/usePromotorsMetrics';
-import type { RankedPromoter } from '@/services/promotor.service';
+import type { RankedPromoter, DailyRegistration } from '@/services/promotor.service';
 import EmojiEventsRoundedIcon from '@mui/icons-material/EmojiEventsRounded';
 import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import PersonAddAlt1RoundedIcon from '@mui/icons-material/PersonAddAlt1Rounded';
@@ -141,25 +141,49 @@ function RankingChart({ ranking, loading }: { ranking: RankedPromoter[]; loading
   );
 }
 
-// ── Earnings bar chart ────────────────────────────────────────────────────────
-function EarningsChart({ ranking, loading }: { ranking: RankedPromoter[]; loading: boolean }) {
+// ── Daily Registrations bar chart ────────────────────────────────────────────────
+function DailyRegistrationsChart({ data, loading }: { data: DailyRegistration[]; loading: boolean }) {
   const theme = useTheme();
+  const primary = theme.palette.primary.main;
+  const secondary = theme.palette.success.main;
 
   if (loading) return <Skeleton variant="rectangular" height={260} sx={{ borderRadius: 2 }} />;
-  if (!ranking.length) return null;
+  
+  if (!data.length) {
+    return (
+      <Box sx={{ py: 6, textAlign: 'center', color: 'text.disabled' }}>
+        <TrendingUpRoundedIcon sx={{ fontSize: 40, mb: 1 }} />
+        <Typography>Sin registros para el período</Typography>
+      </Box>
+    );
+  }
 
-  const top = ranking.slice(0, 8);
-  const names = top.map((r) => r.promoterName.split(' ')[0]);
-  const vals = top.map((r) => Number(r.totalEarnings.toFixed(2)));
+  const dates = data.map((d) => {
+    try {
+      const parts = d.date.split('-');
+      if (parts.length === 3) {
+        return `${parts[1]}-${parts[2]}`; // MM-DD
+      }
+    } catch (e) {}
+    return d.date;
+  });
+  const newVals = data.map((d) => d.newCustomers);
+  const existingVals = data.map((d) => d.existingCustomers);
 
   return (
     <BarChart
       height={260}
-      series={[{ data: vals, label: 'Ganancias ($)', color: theme.palette.warning.main }]}
-      xAxis={[{ scaleType: 'band', data: names, categoryGapRatio: 0.4 }]}
-      yAxis={[{ label: '$' }]}
-      sx={{ '.MuiBarElement-root': { ry: theme.shape.borderRadius / 1.5 } }}
-      margin={{ left: 52, right: 16, top: 16, bottom: 40 }}
+      series={[
+        { data: newVals, label: 'Nuevos', stack: 'total', color: primary },
+        { data: existingVals, label: 'Recurrentes', stack: 'total', color: secondary },
+      ]}
+      xAxis={[{ scaleType: 'band', data: dates, categoryGapRatio: 0.4 }]}
+      yAxis={[{ label: 'Registros' }]}
+      sx={{
+        '.MuiBarElement-root': { ry: theme.shape.borderRadius / 1.5 },
+        '.MuiChartsLegend-root': { fontSize: 11 },
+      }}
+      margin={{ left: 48, right: 16, top: 16, bottom: 40 }}
     />
   );
 }
@@ -281,6 +305,7 @@ export default function PromoterMetricsPage() {
     goalReached,
     delta,
     GOAL_THRESHOLD,
+    dailyRegistrations,
   } = usePromotorsMetrics({ period });
 
   const PERIOD_LABELS: Record<MetricsPeriod, string> = {
@@ -319,7 +344,13 @@ export default function PromoterMetricsPage() {
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)', lg: 'repeat(8, 1fr)' },
+          gridTemplateColumns: {
+            xs: 'repeat(1, 1fr)',
+            sm: 'repeat(2, 1fr)',
+            md: 'repeat(3, 1fr)',
+            lg: 'repeat(4, 1fr)',
+            xl: 'repeat(7, 1fr)',
+          },
           gap: 2,
           mb: 3,
         }}
@@ -348,14 +379,6 @@ export default function PromoterMetricsPage() {
           color="#6366f1"
           loading={isLoading}
           sub={`${overview.totalParticipations > 0 ? Math.round((overview.existingUsers / overview.totalParticipations) * 100) : 0}% del total`}
-        />
-        <KpiTile
-          label="Ganancias est."
-          value={`$${(totals?.grandTotalEarnings ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          icon={<StarRoundedIcon sx={{ fontSize: 18 }} />}
-          color="#f59e0b"
-          loading={isLoading}
-          sub="para promotoras"
         />
         <KpiTile
           label="Total Pagado"
@@ -424,7 +447,7 @@ export default function PromoterMetricsPage() {
           <RankingChart ranking={ranking} loading={isLoading} />
         </Box>
 
-        {/* Earnings chart */}
+        {/* Daily Registrations chart */}
         <Box
           sx={{
             borderRadius: 3,
@@ -435,12 +458,12 @@ export default function PromoterMetricsPage() {
           }}
         >
           <Stack direction="row" alignItems="center" spacing={1} mb={2}>
-            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: theme.palette.warning.main }} />
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: primary }} />
             <Typography fontWeight={700} fontSize={14}>
-              Top ganancias — {PERIOD_LABELS[period]}
+              Registros por día — {PERIOD_LABELS[period]}
             </Typography>
           </Stack>
-          <EarningsChart ranking={ranking} loading={isLoading} />
+          <DailyRegistrationsChart data={dailyRegistrations} loading={isLoading} />
 
           {/* Totals strip */}
           {!isLoading && totals && (
@@ -451,13 +474,12 @@ export default function PromoterMetricsPage() {
                 borderTop: '1px solid',
                 borderColor: 'divider',
                 display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
+                gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)' },
                 gap: 1.5,
               }}
             >
               {[
                 { label: 'Total registros', value: totals.grandTotalParticipations.toLocaleString() },
-                { label: 'Total ganancias', value: `$${totals.grandTotalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
                 { label: 'Nuevos totales', value: totals.grandTotalNewCustomers.toLocaleString() },
                 { label: 'Recurrentes', value: (totals.grandTotalExistingCustomers ?? 0).toLocaleString() },
                 { label: 'Total pagado', value: `$${(totals.grandTotalPaid ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
@@ -516,7 +538,6 @@ export default function PromoterMetricsPage() {
                     <TableCell sx={{ fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Promotora</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Registros</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Nuevos</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Ganancias</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Pagado</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Campañas</TableCell>
                   </TableRow>
@@ -545,11 +566,6 @@ export default function PromoterMetricsPage() {
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
-                        <Typography sx={{ fontSize: 12, color: 'warning.main', fontVariantNumeric: 'tabular-nums' }}>
-                          ${r.totalEarnings.toFixed(2)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
                         <Typography sx={{ fontSize: 12, color: 'info.main', fontVariantNumeric: 'tabular-nums' }}>
                           ${(r.totalPaid ?? 0).toFixed(2)}
                         </Typography>
@@ -563,7 +579,7 @@ export default function PromoterMetricsPage() {
                   ))}
                   {ranking.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.disabled', fontSize: 13 }}>
+                      <TableCell colSpan={5} align="center" sx={{ py: 4, color: 'text.disabled', fontSize: 13 }}>
                         Sin datos para el período
                       </TableCell>
                     </TableRow>

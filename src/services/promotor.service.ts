@@ -381,3 +381,30 @@ export async function validatePromoterPhone(participantId: string): Promise<Vali
   });
   return res.data;
 }
+
+// ─── Daily Registrations ─────────────────────────────────────────────────────
+
+export interface DailyRegistration {
+  date: string;
+  totalParticipations: number;
+  newCustomers: number;
+  existingCustomers: number;
+}
+
+export interface DailyRegistrationsResponse {
+  dailyStats: DailyRegistration[];
+  period: {
+    startDate: string | null;
+    endDate: string;
+  };
+}
+
+export async function getDailyRegistrations(params?: {
+  startDate?: string;
+  endDate?: string;
+  period?: 'today' | 'week' | 'month';
+}): Promise<DailyRegistrationsResponse> {
+  const res = await api.get<DailyRegistrationsResponse>('/promoter/metrics/daily', { params });
+  return res.data;
+}
+
