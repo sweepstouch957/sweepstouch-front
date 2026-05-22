@@ -37,5 +37,15 @@ export const removeAuthToken = (): void => {
   if (!canUseBrowserStorage()) return;
 
   window.localStorage.removeItem(AUTH_STORAGE_KEY);
-  document.cookie = `${AUTH_STORAGE_KEY}=; Max-Age=0; path=/`;
+
+  const hostParts = window.location.hostname.split('.');
+  const parentDomain = hostParts.length > 2 ? `.${hostParts.slice(-2).join('.')}` : null;
+  const cookieDomains = [undefined, window.location.hostname, parentDomain].filter(Boolean);
+  const expires = 'Expires=Thu, 01 Jan 1970 00:00:00 GMT';
+
+  document.cookie = `${AUTH_STORAGE_KEY}=; Max-Age=0; ${expires}; path=/`;
+
+  for (const domain of cookieDomains) {
+    document.cookie = `${AUTH_STORAGE_KEY}=; Max-Age=0; ${expires}; path=/; domain=${domain}`;
+  }
 };
