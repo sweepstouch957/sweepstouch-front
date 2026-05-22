@@ -119,8 +119,8 @@ export function usePromotorsMetrics({ period }: UsePromotorsMetricsParams) {
 
   const topPromoters = useMemo(() => topPromotersData?.data ?? [], [topPromotersData]);
 
-  // Goal: a promoter "reaches goal" if totalRegistrations >= 50 (configurable threshold)
-  const GOAL_THRESHOLD = 50;
+  // Goal threshold: 200 registrations
+  const GOAL_THRESHOLD = 200;
   const goalReached = useMemo(
     () => topPromoters.filter((p) => (p.totalRegistrations ?? 0) >= GOAL_THRESHOLD),
     [topPromoters],
