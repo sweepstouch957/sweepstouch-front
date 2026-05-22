@@ -255,6 +255,58 @@ export class PromoterService {
 
 export const promoterService = new PromoterService();
 
+// ─── Metrics ─────────────────────────────────────────────────────────────────
+
+export interface RankedPromoter {
+  promoterId: string;
+  promoterName: string;
+  promoterEmail: string;
+  totalEarnings: number;
+  totalParticipations: number;
+  newCustomers: number;
+  existingCustomers: number;
+}
+
+export interface PromoterRankingResponse {
+  ranking: RankedPromoter[];
+  totals: {
+    grandTotalEarnings: number;
+    grandTotalParticipations: number;
+    grandTotalNewCustomers: number;
+    grandTotalExistingCustomers: number;
+  };
+  period: string;
+}
+
+export interface ParticipationOverview {
+  totalParticipations: number;
+  newUsers: number;
+  existingUsers: number;
+  totalPoints: number;
+  totalEarnings: number;
+  uniqueStoresCount: number;
+  uniquePromotersCount: number;
+  uniqueCustomersCount: number;
+}
+
+export async function getPromoterRanking(params?: {
+  period?: 'today' | 'week' | 'month';
+  limit?: number;
+}): Promise<PromoterRankingResponse> {
+  const res = await api.get<PromoterRankingResponse>('/promoter/metrics/ranking', { params });
+  return res.data;
+}
+
+export async function getParticipationOverview(params?: {
+  startDate?: string;
+  endDate?: string;
+  storeId?: string;
+  promoterId?: string;
+}): Promise<ParticipationOverview> {
+  const res = await api.get<ParticipationOverview>('/promoter/participations/stats/overview', { params });
+  return res.data;
+}
+
 // ─── Promoter SMS Audit ──────────────────────────────────────────────────────
 
 export interface PromoterSmsAuditRow {

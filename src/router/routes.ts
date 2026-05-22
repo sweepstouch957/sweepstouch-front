@@ -180,6 +180,7 @@ export const routes = {
       },
       promotors: {
         listing: '/admin/management/promotors',
+        metrics: '/admin/management/promotors/metrics',
         featuredStores: '/admin/management/work-stores',
         turnos: '/admin/management/turnos',
         earningsTiers: '/admin/management/promotors/earnings-tiers',

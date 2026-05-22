@@ -5,7 +5,9 @@ import KpiSection from '@/components/application-ui/section-headings/kpis/kpis';
 import PromoterTable from '@/components/application-ui/tables/kpi/results';
 import PromoterSmsAuditPanel from '@/components/application-ui/tables/promoters/PromoterSmsAuditPanel';
 import { promoterService, type Promoter, type PromoterFilters } from '@/services/promotor.service';
+import { routes } from '@/router/routes';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import BarChartRoundedIcon from '@mui/icons-material/BarChartRounded';
 import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import SmsRoundedIcon from '@mui/icons-material/SmsRounded';
 import {
@@ -13,6 +15,7 @@ import {
   Autocomplete,
   Box,
   Button,
+  Chip,
   Container,
   Stack,
   Tab,
@@ -26,6 +29,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { endOfWeek, formatISO, startOfWeek } from 'date-fns';
 import { useCallback, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import PageHeading from 'src/components/base/page-heading';
 import { useCustomization } from 'src/hooks/use-customization';
 
@@ -36,6 +40,7 @@ function Page() {
   const theme         = useTheme();
   const isDark        = theme.palette.mode === 'dark';
   const primary       = theme.palette.primary.main;
+  const router        = useRouter();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
@@ -81,11 +86,21 @@ function Page() {
   return (
     <>
       <Container sx={{ py: { xs: 2, sm: 3 } }} maxWidth={customization.stretch ? false : 'xl'}>
-        <PageHeading
-          sx={{ px: 0 }}
-          title="Impulsadoras"
-          description="Gestion y seguimiento de promotoras"
-          actions={
+        <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'flex-start', sm: 'center' }} justifyContent="space-between" gap={2}>
+          <PageHeading
+            sx={{ px: 0, mb: 0 }}
+            title="Impulsadoras"
+            description="Gestión y seguimiento de promotoras"
+          />
+          <Stack direction="row" spacing={1.5} flexShrink={0} flexWrap="wrap">
+            <Chip
+              icon={<BarChartRoundedIcon sx={{ fontSize: 14 }} />}
+              label="Ver métricas"
+              onClick={() => router.push(routes.admin.management.promotors.metrics)}
+              variant="outlined"
+              size="small"
+              sx={{ fontWeight: 700, cursor: 'pointer', borderStyle: 'dashed' }}
+            />
             <Button
               variant="contained"
               startIcon={<AddRoundedIcon />}
@@ -95,8 +110,8 @@ function Page() {
             >
               Nueva Impulsadora
             </Button>
-          }
-        />
+          </Stack>
+        </Stack>
       </Container>
 
       <Container maxWidth={customization.stretch ? false : 'xl'} sx={{ pb: { xs: 3, sm: 4 } }}>
@@ -200,7 +215,7 @@ function Page() {
                   '& .MuiToggleButton-root': { px: 1.5, fontSize: 12, fontWeight: 700, textTransform: 'none' },
                 }}
               >
-                <ToggleButton value="all">Historico (Todo)</ToggleButton>
+                <ToggleButton value="all">Histórico (Todo)</ToggleButton>
                 <ToggleButton value="range">Rango de Fechas</ToggleButton>
               </ToggleButtonGroup>
 
@@ -258,7 +273,7 @@ function Page() {
                   Selecciona una promotora
                 </Typography>
                 <Typography variant="body2" color="text.disabled" sx={{ mt: 0.75, maxWidth: 360, mx: 'auto' }}>
-                  Elige una promotora del selector para ver si los numeros que registro recibieron su SMS de confirmacion via Infobip.
+                  Elige una promotora del selector para ver si los números que registró recibieron su SMS de confirmación via Infobip.
                 </Typography>
               </Box>
             )}

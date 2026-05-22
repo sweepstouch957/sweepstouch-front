@@ -20,7 +20,6 @@ import {
   Container,
   FormControl,
   InputLabel,
-  LinearProgress,
   MenuItem,
   Pagination,
   Select,
@@ -61,66 +60,57 @@ const StatCard = ({
   loading: boolean;
 }) => {
   const theme = useTheme();
+  const dark = theme.palette.mode === 'dark';
   return (
-    <Card
+    <Box
       sx={{
         flex: 1,
         minWidth: 0,
-        borderRadius: 3,
+        p: 2.25,
+        borderRadius: 2.5,
         border: '1px solid',
-        borderColor: 'divider',
-        overflow: 'hidden',
-        position: 'relative',
+        borderColor: alpha(color, dark ? 0.2 : 0.15),
+        bgcolor: alpha(color, dark ? 0.05 : 0.03),
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1.5,
       }}
     >
       <Box
         sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 3,
-          bgcolor: color,
+          width: 40,
+          height: 40,
+          borderRadius: 2,
+          bgcolor: alpha(color, dark ? 0.18 : 0.1),
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color,
+          flexShrink: 0,
         }}
-      />
-      <CardContent sx={{ pt: 2.5, pb: '16px !important' }}>
-        <Stack direction="row" alignItems="center" spacing={1.5}>
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: '50%',
-              bgcolor: alpha(color, theme.palette.mode === 'dark' ? 0.15 : 0.1),
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color,
-              flexShrink: 0,
-            }}
-          >
-            {icon}
-          </Box>
-          <Box>
-            <Typography variant="caption" color="text.secondary" display="block">
-              {label}
-            </Typography>
-            {loading ? (
-              <Skeleton width={40} height={28} />
-            ) : (
-              <Typography fontWeight={700} fontSize={22} lineHeight={1.2}>
-                {value}
-              </Typography>
-            )}
-          </Box>
-        </Stack>
-      </CardContent>
-    </Card>
+      >
+        {icon}
+      </Box>
+      <Box>
+        <Typography variant="caption" color="text.secondary" display="block" fontWeight={600} fontSize={11} textTransform="uppercase" letterSpacing="0.05em">
+          {label}
+        </Typography>
+        {loading ? (
+          <Skeleton width={40} height={28} />
+        ) : (
+          <Typography fontWeight={800} fontSize={22} lineHeight={1.2} fontVariantNumeric="tabular-nums">
+            {value}
+          </Typography>
+        )}
+      </Box>
+    </Box>
   );
 };
 
 const RequestsPage = () => {
   const queryClient = useQueryClient();
   const theme = useTheme();
+  const dark = theme.palette.mode === 'dark';
 
   const [status, setStatus] = useState<RequestStatus>('all');
   const [promoterId, setPromoterId] = useState('');
@@ -133,7 +123,6 @@ const RequestsPage = () => {
 
   const resetPage = useCallback(() => setPage(1), []);
 
-  // Stats (total counts from API)
   const { data: statsData, isLoading: statsLoading } = useQuery({
     queryKey: ['shiftRequestStats'],
     queryFn: () => shiftService.getShiftRequestStats(),
@@ -141,7 +130,6 @@ const RequestsPage = () => {
   });
   const stats = statsData?.data;
 
-  // Promotoras for autocomplete
   const { data: promotersData } = useQuery({
     queryKey: ['promoters-autocomplete'],
     queryFn: () => promoterService.getAllPromoters({ limit: 200 }),
@@ -153,7 +141,6 @@ const RequestsPage = () => {
   }));
   const selectedPromoter = promoterOptions.find((o) => o.id === promoterId) ?? null;
 
-  // List with server-side filters
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['shiftRequests', status, promoterId, page],
     queryFn: () =>
@@ -325,9 +312,23 @@ const RequestsPage = () => {
         </FormControl>
       </Stack>
 
-      {/* Fetching bar */}
+      {/* Fetching indicator */}
       {isFetching && !isLoading && (
-        <LinearProgress sx={{ mb: 1.5, borderRadius: 1, height: 2 }} />
+        <Box sx={{ height: 2, mb: 1.5, borderRadius: 1, bgcolor: alpha(theme.palette.primary.main, 0.12), overflow: 'hidden' }}>
+          <Box
+            sx={{
+              height: '100%',
+              width: '40%',
+              bgcolor: 'primary.main',
+              borderRadius: 1,
+              animation: 'slide 1.2s ease-in-out infinite',
+              '@keyframes slide': {
+                '0%': { transform: 'translateX(-100%)' },
+                '100%': { transform: 'translateX(350%)' },
+              },
+            }}
+          />
+        </Box>
       )}
 
       {/* List heading */}
@@ -353,7 +354,6 @@ const RequestsPage = () => {
         {isLoading
           ? Array.from({ length: LIMIT }).map((_, i) => (
               <Card key={i} sx={{ borderRadius: 3, overflow: 'hidden' }}>
-                <Skeleton variant="rectangular" height={4} />
                 <CardContent>
                   <Stack direction="row" justifyContent="space-between" mb={1.5}>
                     <Stack direction="row" spacing={1} alignItems="center">

@@ -42,6 +42,7 @@ const dashboardsMenu = (t: (token: string) => string): MenuItem =>
         route: routes.admin.dashboards['messages-sent'],
       },
       { title: t('Audience'), icon: <List />, route: routes.admin.dashboards.audience },
+      { title: t('Promotoras'), icon: <List />, route: routes.admin.management.promotors.metrics },
     ]),
   ]);
 
@@ -115,6 +116,7 @@ const promotorsMenu = (t: (token: string) => string): MenuItem =>
     ]),
 
     { title: t('Tiendas Candidatas'), route: routes.admin.management.promotors.featuredStores },
+    { title: t('Métricas'), route: routes.admin.management.promotors.metrics },
   ]);
 
 //const requestMenu = (t: (token: string) => string): MenuItem =>
