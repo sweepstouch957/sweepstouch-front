@@ -265,6 +265,8 @@ export interface RankedPromoter {
   totalParticipations: number;
   newCustomers: number;
   existingCustomers: number;
+  totalPaid?: number;
+  campaignSentCount?: number;
 }
 
 export interface PromoterRankingResponse {
@@ -274,6 +276,8 @@ export interface PromoterRankingResponse {
     grandTotalParticipations: number;
     grandTotalNewCustomers: number;
     grandTotalExistingCustomers: number;
+    grandTotalPaid?: number;
+    grandTotalCampaignSent?: number;
   };
   period: string;
 }
@@ -287,6 +291,8 @@ export interface ParticipationOverview {
   uniqueStoresCount: number;
   uniquePromotersCount: number;
   uniqueCustomersCount: number;
+  totalPaid?: number;
+  campaignSentCount?: number;
 }
 
 export async function getPromoterRanking(params?: {

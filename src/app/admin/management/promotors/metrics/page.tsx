@@ -8,6 +8,8 @@ import PersonAddAlt1RoundedIcon from '@mui/icons-material/PersonAddAlt1Rounded';
 import StarRoundedIcon from '@mui/icons-material/StarRounded';
 import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import TrendingUpRoundedIcon from '@mui/icons-material/TrendingUpRounded';
+import MonetizationOnRoundedIcon from '@mui/icons-material/MonetizationOnRounded';
+import CampaignRoundedIcon from '@mui/icons-material/CampaignRounded';
 import {
   alpha,
   Avatar,
@@ -317,7 +319,7 @@ export default function PromoterMetricsPage() {
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(6, 1fr)' },
+          gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)', lg: 'repeat(8, 1fr)' },
           gap: 2,
           mb: 3,
         }}
@@ -354,6 +356,22 @@ export default function PromoterMetricsPage() {
           color="#f59e0b"
           loading={isLoading}
           sub="para promotoras"
+        />
+        <KpiTile
+          label="Total Pagado"
+          value={`$${(overview.totalPaid ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          icon={<MonetizationOnRoundedIcon sx={{ fontSize: 18 }} />}
+          color="#10b981"
+          loading={isLoading}
+          sub="en base a turnos"
+        />
+        <KpiTile
+          label="Campañas enviadas"
+          value={(overview.campaignSentCount ?? 0).toLocaleString()}
+          icon={<CampaignRoundedIcon sx={{ fontSize: 18 }} />}
+          color="#3b82f6"
+          loading={isLoading}
+          sub={`${overview.totalParticipations > 0 ? Math.round(((overview.campaignSentCount ?? 0) / overview.totalParticipations) * 100) : 0}% de cobertura`}
         />
         <KpiTile
           label="Tiendas activas"
@@ -442,6 +460,8 @@ export default function PromoterMetricsPage() {
                 { label: 'Total ganancias', value: `$${totals.grandTotalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
                 { label: 'Nuevos totales', value: totals.grandTotalNewCustomers.toLocaleString() },
                 { label: 'Recurrentes', value: (totals.grandTotalExistingCustomers ?? 0).toLocaleString() },
+                { label: 'Total pagado', value: `$${(totals.grandTotalPaid ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                { label: 'Campañas enviadas', value: (totals.grandTotalCampaignSent ?? 0).toLocaleString() },
               ].map(({ label, value }) => (
                 <Box key={label}>
                   <Typography fontSize={10} fontWeight={700} textTransform="uppercase" letterSpacing="0.06em" color="text.secondary">
@@ -497,6 +517,8 @@ export default function PromoterMetricsPage() {
                     <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Registros</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Nuevos</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Ganancias</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Pagado</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Campañas</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -527,11 +549,21 @@ export default function PromoterMetricsPage() {
                           ${r.totalEarnings.toFixed(2)}
                         </Typography>
                       </TableCell>
+                      <TableCell align="right">
+                        <Typography sx={{ fontSize: 12, color: 'info.main', fontVariantNumeric: 'tabular-nums' }}>
+                          ${(r.totalPaid ?? 0).toFixed(2)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography sx={{ fontSize: 12, color: 'primary.main', fontVariantNumeric: 'tabular-nums' }}>
+                          {r.campaignSentCount ?? 0}
+                        </Typography>
+                      </TableCell>
                     </TableRow>
                   ))}
                   {ranking.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={4} align="center" sx={{ py: 4, color: 'text.disabled', fontSize: 13 }}>
+                      <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.disabled', fontSize: 13 }}>
                         Sin datos para el período
                       </TableCell>
                     </TableRow>

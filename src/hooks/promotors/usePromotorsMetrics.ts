@@ -100,6 +100,8 @@ export function usePromotorsMetrics({ period }: UsePromotorsMetricsParams) {
         uniqueStoresCount: 0,
         uniquePromotersCount: 0,
         uniqueCustomersCount: 0,
+        totalPaid: 0,
+        campaignSentCount: 0,
       },
     [overviewData],
   );
