@@ -370,6 +370,10 @@ function renderMarkdown(text: string) {
     /!\[([^\]]*)\]\(([^)]+)\)/g,
     '<div style="margin:8px 0"><img src="$2" alt="$1" style="max-width:100%;max-height:400px;border-radius:12px;border:1px solid rgba(128,128,128,0.2)" /><div style="font-size:10px;color:rgba(128,128,128,0.7);margin-top:4px">$1</div></div>'
   );
+  processed = processed.replace(
+    /\[([^\]]+)\]\(([^)]+)\)/g,
+    '<a href="$2" target="_blank" rel="noopener noreferrer" style="color:#0284c7;font-weight:600;text-decoration:underline">$1</a>'
+  );
   processed = processed.replace(/\n{3,}/g, '\n\n');
   processed = processed.replace(/\n\n/g, '<br/>');
   processed = processed.replace(/\n/g, '<br/>');
@@ -1153,6 +1157,22 @@ export default function AIAssistantPage() {
                   data.input?.q ? `: "${data.input.q}"` : ''
                 }...`,
                 search_stores: `Searching stores${data.input?.q ? `: "${data.input.q}"` : ''}...`,
+                store_info: `🏬 Consultando información de la tienda: "${data.input?.q || data.input?.storeName || ''}"...`,
+                all_stores_debt: `💰 Analizando la deuda total de todas las tiendas...`,
+                stores_by_filter: `🔍 Filtrando tiendas con los criterios especificados...`,
+                stores_no_campaigns: `⚠️ Buscando tiendas sin campañas activas...`,
+                messaging_stats: `📊 Obteniendo estadísticas de envío de mensajes...`,
+                store_averages: `📈 Calculando promedios generales de las tiendas...`,
+                campaigns_list: `📋 Listando campañas del sistema...`,
+                search_sweepstake: `🎟️ Buscando sorteos/sweepstakes...`,
+                kiosk_status: `🖥️ Verificando el estado de los quioscos...`,
+                forecast_projection: `🔮 Generando proyecciones de volumen y costos...`,
+                sweepstake_analysis: `🔬 Analizando el rendimiento del sorteo...`,
+                audience_overview: `👥 Obteniendo resumen general de la audiencia...`,
+                audience_channels: `📱 Analizando efectividad de canales de comunicación...`,
+                trends_analysis: `📉 Analizando tendencias de registros...`,
+                current_date: `🕒 Consultando fecha y hora actual...`,
+                explore_all: `🧭 Explorando registros de la base de datos...`,
               };
               modelText += `\n\n${toolLabels[data.tool] || `Running ${data.tool}...`}\n`;
               updateCombinedResponse(model, { content: modelText, status: 'loading' });
@@ -1166,6 +1186,15 @@ export default function AIAssistantPage() {
                 modelText += `Found ${data.result.totalTasks} tasks for ${data.result.member}\n\n`;
               } else if (data.result?.user) {
                 modelText += `User created: ${data.result.user.firstName} ${data.result.user.lastName}\n\n`;
+              }
+              if (data.result?._fileUrls) {
+                const { excelUrl, pdfUrl } = data.result._fileUrls;
+                if (excelUrl) {
+                  modelText += `📄 **Reporte Excel Generado:** [Descargar Excel](${excelUrl})\n\n`;
+                }
+                if (pdfUrl) {
+                  modelText += `📄 **Reporte PDF Generado:** [Descargar PDF](${pdfUrl})\n\n`;
+                }
               }
               updateCombinedResponse(model, { content: modelText, status: 'loading' });
             },
@@ -1266,9 +1295,38 @@ export default function AIAssistantPage() {
       },
       (meta) => {
         abortRef.current = null;
+        const assistantAttachments: Attachment[] = [];
+        if (meta.toolResults && Array.isArray(meta.toolResults)) {
+          for (const tr of meta.toolResults) {
+            if (tr.result?._fileUrls) {
+              const { excelUrl, pdfUrl } = tr.result._fileUrls;
+              if (excelUrl) {
+                assistantAttachments.push({
+                  url: excelUrl,
+                  name: `${tr.tool}_report.xlsx`,
+                  type: 'file',
+                  mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                });
+              }
+              if (pdfUrl) {
+                assistantAttachments.push({
+                  url: pdfUrl,
+                  name: `${tr.tool}_report.pdf`,
+                  type: 'document',
+                  mimeType: 'application/pdf',
+                });
+              }
+            }
+          }
+        }
         setMessages((prev) => [
           ...prev,
-          { role: 'assistant', content: fullText, tokens: meta.outputTokens },
+          {
+            role: 'assistant',
+            content: fullText,
+            tokens: meta.outputTokens,
+            attachments: assistantAttachments.length > 0 ? assistantAttachments : undefined,
+          },
         ]);
         streamingTextRef.current = '';
         clearStreamingFlush();
@@ -1278,6 +1336,9 @@ export default function AIAssistantPage() {
           setConversations(data.data || []);
           if (!activeConvId && data.data?.[0]) {
             setActiveConvId(data.data[0]._id);
+            loadConversation(data.data[0]._id);
+          } else if (activeConvId) {
+            loadConversation(activeConvId);
           }
         });
       },
@@ -1303,6 +1364,22 @@ export default function AIAssistantPage() {
             data.input?.q ? `: "${data.input.q}"` : ''
           }...`,
           search_stores: `🏪 Searching stores${data.input?.q ? `: "${data.input.q}"` : ''}...`,
+          store_info: `🏬 Consultando información de la tienda: "${data.input?.q || data.input?.storeName || ''}"...`,
+          all_stores_debt: `💰 Analizando la deuda total de todas las tiendas...`,
+          stores_by_filter: `🔍 Filtrando tiendas con los criterios especificados...`,
+          stores_no_campaigns: `⚠️ Buscando tiendas sin campañas activas...`,
+          messaging_stats: `📊 Obteniendo estadísticas de envío de mensajes...`,
+          store_averages: `📈 Calculando promedios generales de las tiendas...`,
+          campaigns_list: `📋 Listando campañas del sistema...`,
+          search_sweepstake: `🎟️ Buscando sorteos/sweepstakes...`,
+          kiosk_status: `🖥️ Verificando el estado de los quioscos...`,
+          forecast_projection: `🔮 Generando proyecciones de volumen y costos...`,
+          sweepstake_analysis: `🔬 Analizando el rendimiento del sorteo...`,
+          audience_overview: `👥 Obteniendo resumen general de la audiencia...`,
+          audience_channels: `📱 Analizando efectividad de canales de comunicación...`,
+          trends_analysis: `📉 Analizando tendencias de registros...`,
+          current_date: `🕒 Consultando fecha y hora actual...`,
+          explore_all: `🧭 Explorando registros de la base de datos...`,
         };
         const label = toolLabels[data.tool] || `⚙️ Running ${data.tool}...`;
         fullText += `\n\n${label}\n`;
@@ -1318,6 +1395,15 @@ export default function AIAssistantPage() {
           fullText += `📋 Found ${data.result.totalTasks} tasks for ${data.result.member}\n\n`;
         } else if (data.result?.user) {
           fullText += `✅ User created: ${data.result.user.firstName} ${data.result.user.lastName}\n\n`;
+        }
+        if (data.result?._fileUrls) {
+          const { excelUrl, pdfUrl } = data.result._fileUrls;
+          if (excelUrl) {
+            fullText += `📄 **Reporte Excel Generado:** [Descargar Excel](${excelUrl})\n\n`;
+          }
+          if (pdfUrl) {
+            fullText += `📄 **Reporte PDF Generado:** [Descargar PDF](${pdfUrl})\n\n`;
+          }
         }
         streamingTextRef.current = fullText;
         queueStreamingText(fullText);
