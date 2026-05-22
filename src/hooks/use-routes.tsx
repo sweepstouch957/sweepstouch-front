@@ -93,6 +93,11 @@ const promotorsMenu = (t: (token: string) => string): MenuItem =>
         icon: <List />,
         route: routes.admin.management.solicitudes.promotoras,
       },
+      {
+        title: t('Plan de Ganancias'),
+        icon: <List />,
+        route: routes.admin.management.promotors.earningsTiers,
+      },
     ]),
 
     buildMenu(t('shift management'), undefined, [

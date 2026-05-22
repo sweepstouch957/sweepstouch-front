@@ -42,6 +42,7 @@ export const es = {
   "Ongoing": "En curso",
   "Participants": "Participantes",
   "Personnel management": "Gestion de personal",
+  "Plan de Ganancias": "Plan de Ganancias",
   "Product details": "Detalles del producto",
   "Projects board": "Tablero de proyectos",
   "Projects Board": "Tablero de Proyectos",

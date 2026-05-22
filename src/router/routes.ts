@@ -182,6 +182,7 @@ export const routes = {
         listing: '/admin/management/promotors',
         featuredStores: '/admin/management/work-stores',
         turnos: '/admin/management/turnos',
+        earningsTiers: '/admin/management/promotors/earnings-tiers',
       },
       solicitudes: {
         turnos: '/admin/management/solicitudes/turnos',
