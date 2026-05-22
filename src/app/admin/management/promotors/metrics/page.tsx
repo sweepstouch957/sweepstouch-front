@@ -5,6 +5,7 @@ import type { RankedPromoter } from '@/services/promotor.service';
 import EmojiEventsRoundedIcon from '@mui/icons-material/EmojiEventsRounded';
 import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import PersonAddAlt1RoundedIcon from '@mui/icons-material/PersonAddAlt1Rounded';
+import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import TrendingUpRoundedIcon from '@mui/icons-material/TrendingUpRounded';
 import WorkspacePremiumRoundedIcon from '@mui/icons-material/WorkspacePremiumRounded';
@@ -92,18 +93,18 @@ function StatRow({
         {icon}
       </Box>
       <Box flex={1} minWidth={0}>
-        <Typography fontSize={11} fontWeight={700} textTransform="uppercase" letterSpacing="0.05em" color="text.secondary" noWrap>
+        <Typography noWrap sx={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>
           {label}
         </Typography>
         {loading ? (
           <Skeleton width={64} height={26} />
         ) : (
-          <Typography fontSize={22} fontWeight={900} lineHeight={1.1} fontVariantNumeric="tabular-nums" color={color}>
+          <Typography sx={{ fontSize: 22, fontWeight: 900, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums', color }}>
             {value}
           </Typography>
         )}
         {sub && !loading && (
-          <Typography fontSize={11} color="text.disabled" noWrap>{sub}</Typography>
+          <Typography noWrap sx={{ fontSize: 11, color: 'text.disabled' }}>{sub}</Typography>
         )}
       </Box>
       {delta != null && !loading && (
@@ -161,7 +162,7 @@ function SectionCard({
         }}
       >
         <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: dot, flexShrink: 0 }} />
-        <Typography fontWeight={700} fontSize={13}>
+        <Typography sx={{ fontWeight: 700, fontSize: 13 }}>
           {title}
         </Typography>
         {badge}
@@ -180,7 +181,7 @@ function HorizontalRankingChart({ ranking, loading }: { ranking: RankedPromoter[
     return (
       <Box sx={{ py: 5, textAlign: 'center', color: 'text.disabled' }}>
         <TrendingUpRoundedIcon sx={{ fontSize: 36, mb: 0.5 }} />
-        <Typography fontSize={13}>Sin datos para el período</Typography>
+        <Typography sx={{ fontSize: 13 }}>Sin datos para el período</Typography>
       </Box>
     );
   }
@@ -218,38 +219,7 @@ function HorizontalRankingChart({ ranking, loading }: { ranking: RankedPromoter[
   );
 }
 
-// ── Horizontal earnings chart ─────────────────────────────────────────────────
-function HorizontalEarningsChart({ ranking, loading }: { ranking: RankedPromoter[]; loading: boolean }) {
-  const theme = useTheme();
-
-  if (loading) return <Skeleton variant="rectangular" height={240} sx={{ borderRadius: 1.5 }} />;
-  if (!ranking.length) return null;
-
-  const top = ranking.slice(0, 8);
-  const names = top.map((r) => {
-    const parts = r.promoterName.split(' ');
-    return parts.length >= 2 ? `${parts[0]} ${parts[1][0]}.` : parts[0];
-  });
-  const vals = top.map((r) => Number(r.totalEarnings.toFixed(2)));
-  const chartHeight = Math.max(200, top.length * 34 + 48);
-
-  return (
-    <Box sx={{ width: '100%', overflow: 'hidden' }}>
-      <BarChart
-        layout="horizontal"
-        height={chartHeight}
-        series={[{ data: vals, label: 'Ganancias ($)', color: theme.palette.warning.main }]}
-        yAxis={[{ scaleType: 'band', data: names, categoryGapRatio: 0.35 }]}
-        xAxis={[{ label: '$' }]}
-        sx={{
-          width: '100%',
-          '.MuiBarElement-root': { ry: 4 },
-        }}
-        margin={{ left: 90, right: 16, top: 8, bottom: 32 }}
-      />
-    </Box>
-  );
-}
+// Removed HorizontalEarningsChart
 
 // ── Daily registrations chart ─────────────────────────────────────────────────
 function DailyRegistrationsChart({ data, loading }: { data: any[]; loading: boolean }) {
@@ -260,7 +230,7 @@ function DailyRegistrationsChart({ data, loading }: { data: any[]; loading: bool
     return (
       <Box sx={{ py: 5, textAlign: 'center', color: 'text.disabled' }}>
         <TrendingUpRoundedIcon sx={{ fontSize: 36, mb: 0.5 }} />
-        <Typography fontSize={13}>Sin registros para el período</Typography>
+        <Typography sx={{ fontSize: 13 }}>Sin registros para el período</Typography>
       </Box>
     );
   }
@@ -318,10 +288,8 @@ function GoalProgressRow({ promoter, rank, threshold }: { promoter: any; rank: n
     >
       {/* Rank */}
       <Typography
-        fontSize={12}
-        fontWeight={800}
         textAlign="center"
-        sx={{ color: dotColor, lineHeight: 1 }}
+        sx={{ color: dotColor, lineHeight: 1, fontSize: 12, fontWeight: 800 }}
       >
         {rank + 1}
       </Typography>
@@ -335,7 +303,7 @@ function GoalProgressRow({ promoter, rank, threshold }: { promoter: any; rank: n
           >
             {promoter.firstName?.[0]}
           </Avatar>
-          <Typography fontSize={12} fontWeight={700} noWrap>
+          <Typography noWrap sx={{ fontSize: 12, fontWeight: 700 }}>
             {promoter.firstName} {promoter.lastName}
           </Typography>
           {reached && (
@@ -359,10 +327,10 @@ function GoalProgressRow({ promoter, rank, threshold }: { promoter: any; rank: n
 
       {/* Count */}
       <Box textAlign="right">
-        <Typography fontSize={13} fontWeight={800} fontVariantNumeric="tabular-nums" color={reached ? '#10b981' : 'text.primary'}>
+        <Typography sx={{ fontSize: 13, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: reached ? '#10b981' : 'text.primary' }}>
           {regs}
         </Typography>
-        <Typography fontSize={10} color="text.disabled" fontVariantNumeric="tabular-nums">
+        <Typography sx={{ fontSize: 10, color: 'text.disabled', fontVariantNumeric: 'tabular-nums' }}>
           /{threshold}
         </Typography>
       </Box>
@@ -440,8 +408,8 @@ export default function PromoterMetricsPage() {
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
-          gap: 1.75,
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)' },
+          gap: 2,
           mb: 3,
         }}
       >
@@ -486,16 +454,22 @@ export default function PromoterMetricsPage() {
           color="#ec4899"
           loading={isLoading}
         />
-        {totals && (
-          <StatRow
-            icon={<WorkspacePremiumRoundedIcon sx={{ fontSize: 20 }} />}
-            label="Ganancias totales est."
-            value={`$${totals.grandTotalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-            sub="para promotoras"
-            color="#f59e0b"
-            loading={isLoading}
-          />
-        )}
+        <StatRow
+          icon={<WorkspacePremiumRoundedIcon sx={{ fontSize: 20 }} />}
+          label="Total pagado"
+          value={`$${(overview.totalPaid ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          sub="para promotoras"
+          color="#f59e0b"
+          loading={isLoading}
+        />
+        <StatRow
+          icon={<SendRoundedIcon sx={{ fontSize: 20 }} />}
+          label="Campañas enviadas"
+          value={(overview.campaignSentCount ?? 0).toLocaleString()}
+          sub="en el período"
+          color="#a855f7"
+          loading={isLoading}
+        />
       </Box>
 
       {/* ── Charts row ─────────────────────────────────────────────────── */}
@@ -515,33 +489,30 @@ export default function PromoterMetricsPage() {
           <HorizontalRankingChart ranking={ranking} loading={isLoading} />
         </SectionCard>
 
-        {/* Earnings horizontal chart */}
+        {/* Resumen de totales */}
         <SectionCard
-          title={`Top ganancias — ${PERIOD_LABELS[period]}`}
-          dot={theme.palette.warning.main}
+          title={`Resumen de Totales — ${PERIOD_LABELS[period]}`}
+          dot={theme.palette.success.main}
         >
-          <HorizontalEarningsChart ranking={ranking} loading={isLoading} />
           {!isLoading && totals && (
-            <>
-              <Divider sx={{ my: 2 }} />
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5 }}>
-                {[
-                  { label: 'Total registros', value: totals.grandTotalParticipations.toLocaleString() },
-                  { label: 'Nuevos', value: totals.grandTotalNewCustomers.toLocaleString() },
-                  { label: 'Recurrentes', value: (totals.grandTotalExistingCustomers ?? 0).toLocaleString() },
-                  { label: 'Ganancias', value: `$${totals.grandTotalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
-                ].map(({ label, value }) => (
-                  <Box key={label}>
-                    <Typography fontSize={10} fontWeight={700} textTransform="uppercase" letterSpacing="0.06em" color="text.disabled">
-                      {label}
-                    </Typography>
-                    <Typography fontSize={14} fontWeight={800} fontVariantNumeric="tabular-nums">
-                      {value}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
-            </>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2.5, py: 1 }}>
+              {[
+                { label: 'Total registros', value: totals.grandTotalParticipations.toLocaleString() },
+                { label: 'Nuevos', value: totals.grandTotalNewCustomers.toLocaleString() },
+                { label: 'Recurrentes', value: (totals.grandTotalExistingCustomers ?? 0).toLocaleString() },
+                { label: 'Total pagado', value: `$${(totals.grandTotalPaid ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                { label: 'Campañas enviadas', value: (totals.grandTotalCampaignSent ?? 0).toLocaleString() },
+              ].map(({ label, value }) => (
+                <Box key={label}>
+                  <Typography sx={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'text.disabled' }}>
+                    {label}
+                  </Typography>
+                  <Typography sx={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: 'tabular-nums', mt: 0.5 }}>
+                    {value}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
           )}
         </SectionCard>
       </Box>
@@ -577,7 +548,8 @@ export default function PromoterMetricsPage() {
                     <TableCell sx={{ fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', py: 1 }}>Promotora</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', py: 1 }}>Total</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', py: 1 }}>Nuevos</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', py: 1 }}>Ganancias</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', py: 1 }}>Pagado</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', py: 1 }}>Campañas</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -585,38 +557,41 @@ export default function PromoterMetricsPage() {
                     <TableRow key={r.promoterId} hover sx={{ '&:last-child td': { border: 0 } }}>
                       <TableCell sx={{ py: 0.75 }}>
                         <Typography
-                          fontSize={11}
-                          fontWeight={800}
-                          sx={{ color: i === 0 ? '#f59e0b' : i === 1 ? '#9ca3af' : i === 2 ? '#b45309' : 'text.disabled' }}
+                          sx={{ fontSize: 11, fontWeight: 800, color: i === 0 ? '#f59e0b' : i === 1 ? '#9ca3af' : i === 2 ? '#b45309' : 'text.disabled' }}
                         >
                           {i + 1}
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ py: 0.75 }}>
-                        <Typography fontSize={13} fontWeight={600} noWrap sx={{ maxWidth: 160 }}>
+                        <Typography noWrap sx={{ fontSize: 13, fontWeight: 600, maxWidth: 120 }}>
                           {r.promoterName}
                         </Typography>
                       </TableCell>
                       <TableCell align="right" sx={{ py: 0.75 }}>
-                        <Typography fontSize={13} fontWeight={700} fontVariantNumeric="tabular-nums">
+                        <Typography sx={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
                           {r.totalParticipations}
                         </Typography>
                       </TableCell>
                       <TableCell align="right" sx={{ py: 0.75 }}>
-                        <Typography fontSize={12} color="success.main" fontVariantNumeric="tabular-nums">
+                        <Typography sx={{ fontSize: 12, color: 'success.main', fontVariantNumeric: 'tabular-nums' }}>
                           {r.newCustomers}
                         </Typography>
                       </TableCell>
                       <TableCell align="right" sx={{ py: 0.75 }}>
-                        <Typography fontSize={12} color="warning.main" fontVariantNumeric="tabular-nums">
-                          ${r.totalEarnings.toFixed(2)}
+                        <Typography sx={{ fontSize: 12, color: 'warning.main', fontVariantNumeric: 'tabular-nums' }}>
+                          ${(r.totalPaid ?? 0).toFixed(2)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right" sx={{ py: 0.75 }}>
+                        <Typography sx={{ fontSize: 12, color: 'info.main', fontVariantNumeric: 'tabular-nums' }}>
+                          {r.campaignSentCount ?? 0}
                         </Typography>
                       </TableCell>
                     </TableRow>
                   ))}
                   {ranking.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} align="center" sx={{ py: 4, color: 'text.disabled', fontSize: 13 }}>
+                      <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.disabled', fontSize: 13 }}>
                         Sin datos para el período
                       </TableCell>
                     </TableRow>
@@ -658,7 +633,7 @@ export default function PromoterMetricsPage() {
           ) : topPromoters.length === 0 ? (
             <Box sx={{ py: 4, textAlign: 'center', color: 'text.disabled' }}>
               <EmojiEventsRoundedIcon sx={{ fontSize: 36, mb: 0.5, opacity: 0.3 }} />
-              <Typography fontSize={13}>Sin promotoras registradas</Typography>
+              <Typography sx={{ fontSize: 13 }}>Sin promotoras registradas</Typography>
             </Box>
           ) : (
             <Box sx={{ maxHeight: 340, overflowY: 'auto' }}>
@@ -674,7 +649,7 @@ export default function PromoterMetricsPage() {
           title="Historial acumulado"
           dot="#6366f1"
           badge={
-            <Typography fontSize={11} color="text.disabled" sx={{ ml: 0.5 }}>
+            <Typography sx={{ fontSize: 11, color: 'text.disabled', ml: 0.5 }}>
               todos los tiempos
             </Typography>
           }
@@ -718,12 +693,12 @@ export default function PromoterMetricsPage() {
                       {p.firstName?.[0]}
                     </Avatar>
                     <Box minWidth={0} flex={1}>
-                      <Typography fontSize={12} fontWeight={700} noWrap>
+                      <Typography noWrap sx={{ fontSize: 12, fontWeight: 700 }}>
                         {p.firstName} {p.lastName?.split(' ')[0]}
                       </Typography>
                       <Stack direction="row" alignItems="center" spacing={0.4}>
                         {i < 3 && <EmojiEventsRoundedIcon sx={{ fontSize: 11, color: dotColor }} />}
-                        <Typography fontSize={11} color="text.secondary" fontVariantNumeric="tabular-nums">
+                        <Typography sx={{ fontSize: 11, color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
                           {(p.totalRegistrations ?? 0).toLocaleString()}
                         </Typography>
                       </Stack>
