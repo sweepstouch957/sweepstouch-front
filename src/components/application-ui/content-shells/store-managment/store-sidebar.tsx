@@ -21,6 +21,7 @@ import {
   OpenInNewRounded as KioskIcon,
   Woman2,
   DevicesOtherTwoTone as DevicesIcon,
+  SmsTwoTone as SmsIcon,
 } from '@mui/icons-material';
 import PeopleIcon from '@mui/icons-material/People';
 import {
@@ -64,6 +65,7 @@ const STORE_SECTIONS = [
   { id: 'equipment', label: 'Equipment', icon: <DevicesIcon /> },
   { id: 'sweepstakes', label: 'Sweepstakes', icon: <RewardIcon /> },
   { id: 'welcome-coupons', label: 'Welcome Coupons', icon: <CouponIcon /> },
+  { id: 'opt-in', label: 'Opt-in MMS', icon: <SmsIcon /> },
   { id: 'billing', label: 'Billing', icon: <MonetizationOn /> },
   { id: 'qr', label: 'QR', icon: <QrCode2Outlined /> },
   { id: 'customers', label: 'Customers', icon: <PeopleIcon /> },

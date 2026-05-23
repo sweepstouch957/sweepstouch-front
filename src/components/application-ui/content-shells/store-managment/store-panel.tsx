@@ -59,7 +59,7 @@ const STORE_MANAGEMENT_TAGS = [
   { id: 'general-info', label: 'General Info' },
   { id: 'sweepstakes', label: 'Sweepstakes' },
   { id: 'welcome-coupons', label: 'Welcome Coupons' },
-  { id: 'optin', label: 'Opt-in MMS' },
+  { id: 'opt-in', label: 'Opt-in MMS' },
   { id: 'ads', label: 'Ads' },
   { id: 'qr', label: 'QR' },
 ];
@@ -392,7 +392,7 @@ const StoreManagementPage = () => {
       case 'welcome-coupons':
         return <WelcomeCouponsPanel storeId={storeId} />;
 
-      case 'optin':
+      case 'opt-in':
         return <StoreOptinPanel storeId={storeId} />;
 
       case 'qr':
