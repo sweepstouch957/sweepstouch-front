@@ -1,416 +1,39 @@
 'use client';
 
-import StoreInfo from '@/components/website/store-panel';
-import { useStoreById } from '@/hooks/fetching/stores/useStoreById';
-import {
-  closeSidebar,
-  openSidebar,
-  runStoreManagementThunk,
-  setTags,
-  useStoreManagementStore,
-} from '@/slices/store_managment';
-import AddCircleOutlineRoundedIcon from '@mui/icons-material/AddCircleOutlineRounded';
-import ArrowBackIosNewRoundedIcon from '@mui/icons-material/ArrowBackIosNewRounded';
+import { useStoreManagementPage } from '@/hooks/pages/useStoreManagementPage';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
-import {
-  alpha,
-  Box,
-  Breadcrumbs,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Divider,
-  IconButton,
-  Skeleton,
-  Stack,
-  Theme,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
-import { useParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Box, Divider, Theme, useMediaQuery, useTheme } from '@mui/material';
+import { useRef } from 'react';
 import { ButtonIcon } from 'src/components/base/styles/button-icon';
-import { useSearchParams } from 'src/hooks/use-search-params';
-import { ActiveSweepstakeCard } from '../../active-sweeptake';
-import { PromoDashboard } from '../../tables/promos/panel';
-import { StoreBillingPanel } from './panel/billing/StoreBillingPanel';
-import CajerasPanel from './panel/cajeras/cajeras-panel';
-import CampaignsPanel from './panel/campaigns/campaign-panel';
-import CreateCampaignContainer from './panel/campaigns/createCampaignContainer';
+import { InactiveStoreDialog } from './InactiveStoreDialog';
+import { StoreContentRouter } from './StoreContentRouter';
+import { StoreManagementHeader } from './StoreManagementHeader';
 import QuickCampaignDialog from './panel/campaigns/QuickCampaignDialog';
-import CustomersPanel from './panel/customers/customers-panel';
-import QrDuetMUI from './panel/qr/QrContainer';
 import { StoreSidebar } from './store-sidebar';
-import { StoreEquipmentPanel } from './panel/equipment/StoreEquipmentPanel';
-import FlashOnRoundedIcon from '@mui/icons-material/FlashOnRounded';
-import MailOutlineRoundedIcon from '@mui/icons-material/MailOutlineRounded';
-import WelcomeCouponsPanel from './panel/welcome-coupons/WelcomeCouponsPanel';
-import StoreAudienceOverview from './panel/sweepstakes/StoreAudienceOverview';
-import StoreSweepstakeStats from './panel/sweepstakes/StoreSweepstakeStats';
-import StoreOptinPanel from './panel/optin/StoreOptinPanel';
-
-// ── Tags estáticas (module scope = cero re-creación)
-const STORE_MANAGEMENT_TAGS = [
-  { id: 'campaigns', label: 'Campaigns' },
-  { id: 'general-info', label: 'General Info' },
-  { id: 'sweepstakes', label: 'Sweepstakes' },
-  { id: 'welcome-coupons', label: 'Welcome Coupons' },
-  { id: 'opt-in', label: 'Opt-in MMS' },
-  { id: 'ads', label: 'Ads' },
-  { id: 'qr', label: 'QR' },
-];
 
 const StoreManagementPage = () => {
-  const router = useRouter();
   const theme = useTheme();
   const lgUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('lg'));
-
-  // ✅ zustand
-  const sidebarOpen = useStoreManagementStore((s) => s.sidebarOpen);
-
   const pageRef = useRef<HTMLDivElement | null>(null);
-  const searchParams = useSearchParams();
-  const tag = (searchParams.get('tag') as string) || 'campaigns';
-  const action = searchParams.get('action');
 
-  const params = useParams();
-  const storeId = params?.id as string;
-
-  const { data: store, isLoading, error } = useStoreById(storeId);
-
-  const [openInactiveModal, setOpenInactiveModal] = useState(false);
-  const [quickOpen, setQuickOpen] = useState(false);
-
-  // ── Inicializar tags UNA sola vez (son estáticas, no dependen de tag)
-  useEffect(() => {
-    runStoreManagementThunk(setTags(STORE_MANAGEMENT_TAGS));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Sincronizar sección activa cuando el tag de URL cambia
-  useEffect(() => {
-    useStoreManagementStore.setState({ activeSection: tag });
-  }, [tag]);
-
-  const handleDrawerToggle = useCallback(() => {
-    if (sidebarOpen) {
-      runStoreManagementThunk(closeSidebar());
-    } else {
-      runStoreManagementThunk(openSidebar());
-    }
-  }, [sidebarOpen]);
-
-  const handleBack = useCallback(() => {
-    router.push(`/admin/management/stores/edit/${storeId}?tag=campaigns`);
-  }, [router, storeId]);
-
-  const handleGoToCreateCampaign = useCallback(() => {
-    if (store?.active) {
-      window.open(`/admin/management/stores/edit/${storeId}?tag=campaigns&action=create`, '_blank');
-    } else {
-      setOpenInactiveModal(true);
-    }
-  }, [store?.active, storeId]);
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const renderHeader = useMemo(() => (
-    <Box
-      px={{ xs: 2, md: 4 }}
-      py={2.5}
-      display="flex"
-      alignItems="center"
-      justifyContent="space-between"
-      flexWrap="wrap"
-      gap={2}
-      sx={{
-        borderBottom: (t) => `1px solid ${t.palette.divider}`,
-        mb: 1,
-      }}
-    >
-      {/* ── Left: back + breadcrumb */}
-      <Stack direction="row" alignItems="center" spacing={1.5} minWidth={0}>
-        <IconButton
-          onClick={handleBack}
-          size="small"
-          color="primary"
-          sx={{
-            border: (t) => `1px solid ${t.palette.divider}`,
-            borderRadius: 1.5,
-            flexShrink: 0,
-          }}
-        >
-          <ArrowBackIosNewRoundedIcon sx={{ fontSize: 14 }} />
-        </IconButton>
-
-        <Breadcrumbs
-          aria-label="breadcrumb"
-          sx={{
-            '& .MuiBreadcrumbs-ol': { flexWrap: 'nowrap' },
-            '& .MuiBreadcrumbs-li': {
-              overflow: 'hidden',
-              maxWidth: { xs: 100, sm: 180, md: 'none' },
-            },
-          }}
-        >
-          <Typography
-            color="text.secondary"
-            variant="body2"
-            noWrap
-          >
-            Tiendas
-          </Typography>
-          <Typography
-            color="text.primary"
-            variant="body2"
-            fontWeight={500}
-            noWrap
-            sx={{ maxWidth: { xs: 120, sm: 220, md: 400 } }}
-          >
-            {store?.name}
-          </Typography>
-          <Typography
-            color="primary"
-            variant="body2"
-            fontWeight={600}
-            noWrap
-            sx={{ textTransform: 'capitalize' }}
-          >
-            {tag}
-          </Typography>
-          {action && (
-            <Typography color="text.primary" variant="body2" noWrap>
-              {action}
-            </Typography>
-          )}
-        </Breadcrumbs>
-      </Stack>
-
-      {/* ── Right: action buttons */}
-      {tag === 'campaigns' && (
-        <Stack direction="row" spacing={1.5} flexShrink={0}>
-          {action === 'create' ? (
-            <Button
-              variant="contained"
-              color="secondary"
-              onClick={handleBack}
-              size="small"
-            >
-              Ver campañas
-            </Button>
-          ) : (
-            <>
-              {/* ⚡ Quick Campaign */}
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<FlashOnRoundedIcon fontSize="small" />}
-                onClick={() => {
-                  if (store?.active) setQuickOpen(true);
-                  else setOpenInactiveModal(true);
-                }}
-                sx={{
-                  opacity: store?.active ? 1 : 0.5,
-                  borderStyle: 'dashed',
-                  px: 2,
-                }}
-              >
-                Quick
-              </Button>
-
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<MailOutlineRoundedIcon fontSize="small" />}
-                onClick={() => router.push(`/admin/management/mms?storeId=${storeId}`)}
-                disabled={!store?.active}
-                sx={{
-                  px: 2,
-                  borderColor: 'error.main',
-                  color: 'error.main',
-                  '&:hover': { borderColor: 'error.dark', bgcolor: alpha(theme.palette.error.main, 0.04) },
-                }}
-              >
-                MMS
-              </Button>
-
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={<AddCircleOutlineRoundedIcon fontSize="small" />}
-                onClick={handleGoToCreateCampaign}
-                disabled={!store?.active}
-                sx={{ px: 2 }}
-              >
-                Crear campaña
-              </Button>
-            </>
-          )}
-        </Stack>
-      )}
-    </Box>
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  ), [store?.name, tag, action, storeId, handleBack, handleGoToCreateCampaign]);
-
-  const renderContent = useMemo(() => {
-    if (isLoading) {
-      return (
-        <Box p={3}>
-          <Skeleton
-            variant="text"
-            width="40%"
-            height={40}
-          />
-          <Skeleton
-            variant="rectangular"
-            height={200}
-            sx={{ my: 2 }}
-          />
-          <Skeleton
-            variant="text"
-            width="60%"
-          />
-        </Box>
-      );
-    }
-
-    if (error || !store) {
-      return (
-        <Box p={3}>
-          <Typography color="error">No se pudo cargar la tienda.</Typography>
-        </Box>
-      );
-    }
-
-    if (tag === 'campaigns') {
-      if (action === 'create') {
-        return (
-          <Box
-            px={{ xs: 1, md: 2 }}
-            pt={2}
-          >
-            <CreateCampaignContainer
-              provider={store.provider}
-              phoneNumber={
-                store.provider === 'bandwidth'
-                  ? store.bandwidthPhoneNumber || ''
-                  : store.provider === 'infobip'
-                    ? store.infobipSenderId || store.phoneNumber || 'Número global del sistema'
-                    : store.phoneNumber || ''
-              }
-              totalAudience={store.customerCount || 0}
-              storeId={storeId}
-              onCreate={handleBack}
-            />
-          </Box>
-        );
-      }
-
-      return (
-        <CampaignsPanel
-          storeId={storeId || ''}
-          storeName={store?.name || ''}
-        />
-      );
-    }
-
-    switch (tag) {
-      case 'billing':
-        return <StoreBillingPanel storeId={storeId || ''} />;
-
-      case 'customers':
-        return (
-          <CustomersPanel
-            storeId={storeId || ''}
-            storeName={store?.name}
-            provider={store?.provider}
-          />
-        );
-
-      case 'cajeras':
-        return (
-          <CajerasPanel
-            storeId={storeId || ''}
-            storeName={store?.name}
-            customerCount={store?.customerCount}
-          />
-        );
-
-      case 'ads':
-        return <PromoDashboard storeId={storeId || ''} />;
-
-      case 'sms-provider':
-        return (
-          <Box p={3}>
-            <Typography
-              variant="h5"
-              gutterBottom
-            >
-              Proveedor SMS
-            </Typography>
-            <Typography color="text.secondary">
-              {store.provider === 'twilio'
-                ? `Twilio: ${store.twilioPhoneNumber || 'No asignado'}`
-                : `Bandwidth: ${store.bandwidthPhoneNumber || 'No asignado'}`}
-            </Typography>
-          </Box>
-        );
-
-      case 'equipment':
-        return <StoreEquipmentPanel store={store} storeId={storeId} />;
-
-      case 'general-info':
-        return (
-          <Box p={3}>
-            <StoreInfo store={store} />
-          </Box>
-        );
-
-      case 'sweepstakes':
-        return (
-          <Box p={3}>
-            <Typography
-              variant="h5"
-              gutterBottom
-            >
-              Sorteo
-            </Typography>
-            <ActiveSweepstakeCard storeId={storeId} />
-
-            <Box mt={4}>
-              <StoreAudienceOverview storeId={storeId} />
-            </Box>
-
-            <Box mt={4}>
-              <StoreSweepstakeStats storeId={storeId} />
-            </Box>
-          </Box>
-        );
-
-      case 'welcome-coupons':
-        return <WelcomeCouponsPanel storeId={storeId} />;
-
-      case 'opt-in':
-        return <StoreOptinPanel storeId={storeId} />;
-
-      case 'qr':
-        return (
-          <Box p={3}>
-            <QrDuetMUI storeId={storeId} />
-          </Box>
-        );
-
-      default:
-        return (
-          <Box p={3}>
-            <Typography variant="h5">Campañas</Typography>
-          </Box>
-        );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tag, action, isLoading, error, store, storeId]);
+  const {
+    storeId,
+    tag,
+    action,
+    store,
+    isLoading,
+    error,
+    sidebarOpen,
+    openInactiveModal,
+    setOpenInactiveModal,
+    quickOpen,
+    setQuickOpen,
+    handleDrawerToggle,
+    handleBack,
+    handleGoToCreateCampaign,
+    handleMMSNavigate,
+    handleQuickOpen,
+  } = useStoreManagementPage();
 
   return (
     <Box
@@ -438,13 +61,13 @@ const StoreManagementPage = () => {
         sx={{
           transition: sidebarOpen
             ? theme.transitions.create('margin', {
-              easing: theme.transitions.easing.easeOut,
-              duration: theme.transitions.duration.enteringScreen,
-            })
+                easing: theme.transitions.easing.easeOut,
+                duration: theme.transitions.duration.enteringScreen,
+              })
             : theme.transitions.create('margin', {
-              easing: theme.transitions.easing.sharp,
-              duration: theme.transitions.duration.leavingScreen,
-            }),
+                easing: theme.transitions.easing.sharp,
+                duration: theme.transitions.duration.leavingScreen,
+              }),
         }}
       >
         {!lgUp && (
@@ -452,11 +75,8 @@ const StoreManagementPage = () => {
             <ButtonIcon
               variant="outlined"
               color="secondary"
-              sx={{
-                mx: { xs: 2, sm: 3 },
-                my: 2,
-                color: 'primary.main',
-              }}
+              aria-label="Abrir menú de navegación"
+              sx={{ mx: { xs: 2, sm: 3 }, my: 2, color: 'primary.main' }}
               onClick={handleDrawerToggle}
               size="small"
             >
@@ -466,25 +86,32 @@ const StoreManagementPage = () => {
           </>
         )}
 
-        {renderHeader}
-        {renderContent}
+        <StoreManagementHeader
+          storeName={store?.name}
+          tag={tag}
+          action={action}
+          storeActive={store?.active}
+          onBack={handleBack}
+          onCreateCampaign={handleGoToCreateCampaign}
+          onQuickOpen={handleQuickOpen}
+          onMMSNavigate={handleMMSNavigate}
+        />
 
-        <Dialog
+        <StoreContentRouter
+          tag={tag}
+          action={action}
+          storeId={storeId}
+          store={store}
+          isLoading={isLoading}
+          error={error}
+          onBack={handleBack}
+        />
+
+        <InactiveStoreDialog
           open={openInactiveModal}
           onClose={() => setOpenInactiveModal(false)}
-        >
-          <DialogTitle>Tienda inactiva</DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              No se puede crear una campaña porque la tienda está desactivada.
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenInactiveModal(false)}>Cerrar</Button>
-          </DialogActions>
-        </Dialog>
+        />
 
-        {/* ⚡ Quick Campaign Dialog */}
         {store && (
           <QuickCampaignDialog
             open={quickOpen}
