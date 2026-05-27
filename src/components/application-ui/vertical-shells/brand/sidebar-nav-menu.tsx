@@ -19,6 +19,7 @@ import {
 import React, { FC, useState } from 'react';
 import { RouterLink } from 'src/components/base/router-link';
 import { usePathname } from 'src/hooks/use-pathname';
+import { ListItemButtonWrapper } from './sidebar-nav-menu-wrappers';
 import { useRouter } from 'src/hooks/use-router';
 import { MenuItem } from 'src/router/menuItem';
 
@@ -41,50 +42,7 @@ const ListSubheaderWrapper = styled(ListSubheader)<ListProps<'div', { component:
   })
 );
 
-export const ListItemButtonWrapper = styled(ListItemButton)(({ theme }) => ({
-  color: alpha(theme.palette.common.white, 0.8),
-  borderRadius: theme.shape.borderRadius,
-  transition: 'none',
-  fontWeight: 600,
-  fontSize: 14,
-  marginBottom: '2px',
-  padding: theme.spacing(0.8, 1, 0.8, 1.5),
-
-  '& .MuiListItemIcon-root': {
-    minWidth: 38,
-    color: alpha(theme.palette.common.white, 0.6),
-  },
-
-  '& .MuiListItemText-root': {
-    color: alpha(theme.palette.common.white, 0.6),
-  },
-
-  '&:hover': {
-    color: alpha(theme.palette.common.white, 0.95),
-    background: alpha(lighten(theme.palette.primary.main, 0.3), 0.1),
-
-    '& .MuiListItemIcon-root': {
-      color: alpha(theme.palette.common.white, 0.95),
-    },
-
-    '& .MuiListItemText-root': {
-      color: alpha(theme.palette.common.white, 0.95),
-    },
-  },
-
-  '&.Mui-selected, &.Mui-selected:hover': {
-    color: theme.palette.common.white,
-    background: theme.palette.primary.main,
-
-    '& .MuiListItemIcon-root': {
-      color: alpha(theme.palette.common.white, 0.95),
-    },
-
-    '& .MuiListItemText-root': {
-      color: alpha(theme.palette.common.white, 0.95),
-    },
-  },
-}));
+// ListItemButtonWrapper imported from ./sidebar-nav-menu-wrappers
 
 const SubMenu = styled(List)<ListProps<'div', { component: 'div' }>>(({ theme }) => ({
   '& .MuiListItemButton-root': {

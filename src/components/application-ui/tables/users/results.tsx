@@ -65,23 +65,11 @@ import React, {
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
 import { TabsShadow } from 'src/components/base/styles/tabs';
+import { CardWrapper } from './styles';
 import BulkDelete from './bulk-delete';
 import toast from 'react-hot-toast';
 import { usersApi } from '@/mocks/users';
-
-export const CardWrapper = styled(Card)(
-  ({ theme }) => `
-  position: relative;
-  overflow: hidden;
-  transition: box-shadow 0.25s ease, transform 0.2s ease;
-  border: 1px solid ${theme.palette.divider};
-  border-radius: 20px;
-  &:hover {
-    box-shadow: 0 8px 32px ${alpha(theme.palette.common.black, 0.12)};
-    transform: translateY(-2px);
-  }
-`
-);
+// CardWrapper imported from ./styles
 
 // ---------- Role → palette ----------
 const ROLE_PALETTE_KEY: Record<string, string> = {

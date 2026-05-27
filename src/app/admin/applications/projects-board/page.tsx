@@ -70,7 +70,7 @@ import toast from 'react-hot-toast';
 import { taskClient, type Project, type WorkflowStatus } from '@/services/task.service';
 import { useCustomization } from 'src/hooks/use-customization';
 import { LinearProgressSlim } from 'src/components/base/styles/progress-bar';
-import { CardWrapper } from 'src/components/application-ui/tables/users/results';
+import { CardWrapper } from 'src/components/application-ui/tables/users/styles';
 import { usersApi } from '@/mocks/users';
 
 /* ─── Constants ─── */
