@@ -94,7 +94,7 @@ const NotificationItem: React.FC<{
 /* ─── Main Dropdown ─── */
 export const NotificationsDropdown: React.FC = () => {
   const theme = useTheme();
-  const router = useRouter();
+  const { push } = useRouter();
   const { user } = useAuth();
   const {
     notifications, unreadCount,
@@ -123,8 +123,8 @@ export const NotificationsDropdown: React.FC = () => {
 
   const handleNavigate = useCallback((link?: string) => {
     handleClose();
-    if (link) router.push(link);
-  }, [handleClose, router]);
+    if (link) push(link);
+  }, [handleClose, push]);
 
   const handleOpenDrawer = useCallback(() => {
     handleClose();

@@ -213,7 +213,7 @@ export function AudienceSimulator(props: {
               color="error"
               sx={{ display: 'block', mt: 0.75 }}
             >
-              Failed to load stores — verify getStoresWithoutFilters().
+              Failed to load stores. Verify getStoresWithoutFilters().
             </Typography>
           ) : null}
         </Grid>
@@ -320,7 +320,7 @@ export function AudienceSimulator(props: {
               color="error"
               variant="body2"
             >
-              Simulator error — verify /campaigns/audience/simulate and storeId.
+              Simulator error. Verify /campaigns/audience/simulate and storeId.
             </Typography>
           </Grid>
         ) : null}

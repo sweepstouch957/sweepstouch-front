@@ -22,7 +22,7 @@ const MenuItemComponent: FC<{
   item: MenuItem;
   isSub?: boolean;
 }> = ({ item, isSub }) => {
-  const router = useRouter();
+  const { push } = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -66,7 +66,7 @@ const MenuItemComponent: FC<{
           startIcon={item.icon ? item.icon : null}
           fullWidth
           endIcon={item.subMenu ? <ChevronRightTwoToneIcon fontSize="small" /> : null}
-          onClick={() => item.route && router.push(item.route)}
+          onClick={() => item.route && push(item.route)}
           sx={{
             justifyContent: 'space-between',
             fontWeight: 600,
@@ -94,7 +94,7 @@ const MenuItemComponent: FC<{
         <Button
           endIcon={item.subMenu ? <ExpandMoreTwoToneIcon fontSize="small" /> : null}
           startIcon={item.icon ? item.icon : null}
-          onClick={() => item.route && router.push(item.route)}
+          onClick={() => item.route && push(item.route)}
           {...commonProps}
           sx={{
             p: (theme) => theme.spacing(0.9, 1.5, 0.9, 1.8),

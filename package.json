@@ -12,7 +12,8 @@
     "lint": "next lint",
     "lint-fix": "next lint --fix",
     "format:write": "prettier --write \"**/*.{js,jsx,ts,tsx,mdx}\" --cache",
-    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,mdx}\" --cache"
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,mdx}\" --cache",
+    "doctor": "npx react-doctor@latest"
   },
   "dependencies": {
     "@emotion/cache": "11.11.0",
@@ -120,6 +121,7 @@
     "eslint-config-next": "14.0.4",
     "eslint-config-prettier": "9.1.0",
     "prettier": "3.1.1",
+    "react-doctor": "^0.2.9",
     "typescript": "5.3.3"
   }
 }

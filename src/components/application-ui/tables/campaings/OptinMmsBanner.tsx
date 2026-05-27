@@ -89,7 +89,7 @@ export default function OptinMmsBanner({ storeId }: OptinMmsBannerProps) {
           <Box minWidth={0} overflow="hidden">
             <Stack direction="row" alignItems="center" spacing={1}>
               <Typography noWrap sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                Opt-in MMS — Registro de Sorteos
+                Opt-in MMS: Registro de Sorteos
               </Typography>
               <Tooltip title={`Cada cliente que escanea el QR recibe un MMS de confirmación ($${OPTIN_PRICE}/msg). Estos costos se incluyen en la factura mensual como línea "optin".`} arrow placement="top">
                 <InfoOutlinedIcon sx={{ fontSize: 14, color: 'text.disabled', cursor: 'help' }} />

@@ -206,7 +206,7 @@ function LogoPreview({ src }: { src?: string }) {
 
 export default function CreateStoreStepperPage(): React.JSX.Element {
   const { t } = useTranslation();
-  const router = useRouter();
+  const { push } = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -359,7 +359,7 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
             <Box sx={{ maxWidth: 550, mx: 'auto', textAlign: 'left' }}>
                <SuccessImportSection 
                  storeId={String(createdStore._id || createdStore.id)} 
-                 onFinish={() => router.push('/admin/management/stores')}
+                 onFinish={() => push('/admin/management/stores')}
                />
             </Box>
 
@@ -368,7 +368,7 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
                 variant="text"
                 color="inherit"
                 size="large"
-                onClick={() => router.push('/admin/management/stores')}
+                onClick={() => push('/admin/management/stores')}
                 sx={{ px: 5, color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
               >
                 No importar nada, salir al listado
@@ -395,7 +395,7 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
             }}
           >
             <Button
-              onClick={() => router.push('/admin/management/stores')}
+              onClick={() => push('/admin/management/stores')}
               sx={{
                 minWidth: 0,
                 p: 0.5,

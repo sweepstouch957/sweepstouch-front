@@ -358,7 +358,7 @@ type Method = 'all' | 'qr' | 'web' | 'tablet' | 'promotor' | 'referral' | 'pinpa
 function Page() {
   const customization = useCustomization();
   const theme = useTheme();
-  const router = useRouter();
+  const { push } = useRouter();
   const { id: sweepstakeId } = useParams() as { id: string };
   const isDark = theme.palette.mode === 'dark';
 
@@ -556,7 +556,7 @@ function Page() {
           <Tooltip title="Volver a sorteos">
             <IconButton
               onClick={() =>
-                router.push(routes.admin.management.sweepstakes.listing)
+                push(routes.admin.management.sweepstakes.listing)
               }
               size="small"
               sx={{

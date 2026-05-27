@@ -352,7 +352,7 @@ export default function TestMmsShoppingListModal({
                 <input type="file" ref={fileInputRef} accept="image/*"
                   style={{ display: 'none' }} onChange={handleImageFile} />
                 <Alert severity="warning" variant="outlined" sx={{ mb: 1 }}>
-                  <strong>PDF Detected</strong> — Upload an image for MMS attachment.
+                  <strong>PDF Detected:</strong> Upload an image for MMS attachment.
                 </Alert>
                 <Stack direction="row" spacing={1} alignItems="center">
                   {mmsImageFile && (
@@ -371,7 +371,7 @@ export default function TestMmsShoppingListModal({
             <Alert severity="success" variant="outlined" icon={<PhoneIphoneRoundedIcon />} sx={{ fontSize: 13 }}>
               Will send to: <strong>{customerSearch.selected?.phoneNumber}</strong> ({customerSearch.selected?.firstName || 'Unknown'})
               {effectiveImage && <><br />📎 MMS with image attached</>}
-              {circularIsPdf && !mmsImageFile && <><br />⚠️ No image uploaded — will send as SMS only</>}
+              {circularIsPdf && !mmsImageFile && <><br />⚠️ No image uploaded; will send as SMS only</>}
             </Alert>
 
             {mmsSend.error && <Alert severity="error">{mmsSend.error}</Alert>}

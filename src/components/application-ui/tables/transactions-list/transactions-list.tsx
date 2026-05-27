@@ -155,6 +155,7 @@ function Component() {
                         variant="body2"
                         noWrap
                         color="text.secondary"
+                        suppressHydrationWarning
                       >
                         {format(subDays(new Date(), 1), 'MMMM dd yyyy')}
                       </Typography>
@@ -228,6 +229,7 @@ function Component() {
                         variant="body2"
                         noWrap
                         color="text.secondary"
+                        suppressHydrationWarning
                       >
                         {format(subDays(new Date(), 2), 'MMMM dd yyyy')}
                       </Typography>
@@ -301,6 +303,7 @@ function Component() {
                         variant="body2"
                         noWrap
                         color="text.secondary"
+                        suppressHydrationWarning
                       >
                         {format(subDays(new Date(), 3), 'MMMM dd yyyy')}
                       </Typography>
@@ -374,6 +377,7 @@ function Component() {
                         variant="body2"
                         noWrap
                         color="text.secondary"
+                        suppressHydrationWarning
                       >
                         {format(subDays(new Date(), 4), 'MMMM dd yyyy')}
                       </Typography>

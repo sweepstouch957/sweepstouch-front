@@ -36,7 +36,7 @@ const defaultValues = {
 
 export function UpdatePasswordForm(): React.JSX.Element {
   const [supabaseClient] = React.useState(createSupabaseClient());
-  const router = useRouter();
+  const { push } = useRouter();
   const [isPending, setIsPending] = React.useState<boolean>(false);
   const {
     register,
@@ -65,9 +65,9 @@ export function UpdatePasswordForm(): React.JSX.Element {
         return;
       }
 
-      router.push(routes.admin.index);
+      push(routes.admin.index);
     },
-    [supabaseClient, router, setError]
+    [supabaseClient, push, setError]
   );
 
   return (

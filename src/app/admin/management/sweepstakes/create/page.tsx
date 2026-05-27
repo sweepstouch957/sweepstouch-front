@@ -15,7 +15,7 @@ import { useCustomization } from 'src/hooks/use-customization';
 function Page(): React.JSX.Element {
   const customization = useCustomization();
   const { t } = useTranslation();
-  const router = useRouter();
+  const { push } = useRouter();
   const qc = useQueryClient();
 
   const [snack, setSnack] = useState<{
@@ -40,7 +40,7 @@ function Page(): React.JSX.Element {
       // refresca listados si los tienes cacheados
       await qc.invalidateQueries({ queryKey: ['sweepstakes'] });
       // 🚀 redirige al checklist del sweepstake creado
-      router.push(`/admin/management/sweepstakes/${id}/checklist`);
+      push(`/admin/management/sweepstakes/${id}/checklist`);
     },
     onError: () => setSnack({ open: true, msg: 'No se pudo crear el sweepstake', sev: 'error' }),
   });

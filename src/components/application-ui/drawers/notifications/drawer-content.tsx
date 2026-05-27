@@ -93,11 +93,11 @@ const Component = () => {
                       <Typography component="span" variant="subtitle2" fontWeight={600} color="text.primary">
                         {n.title}
                       </Typography>{' '}
-                      — {n.message}
+                      {n.message}
                     </Typography>
                     
                     <Stack flexWrap="wrap" gap={{ xs: 0.5, sm: 1 }} direction="row" alignItems="center" divider={<Box display="inline-flex" sx={{ width: 4, height: 4, borderRadius: 12, backgroundColor: 'text.disabled' }} />}>
-                      <Typography variant="body2" color="text.secondary" noWrap>
+                      <Typography variant="body2" color="text.secondary" noWrap suppressHydrationWarning>
                         {formatDistance(parseISO(n.createdAt), new Date(), { addSuffix: true })}
                       </Typography>
                     </Stack>

@@ -228,6 +228,7 @@ const Component = () => {
                     variant="h6"
                     fontWeight={400}
                     noWrap
+                    suppressHydrationWarning
                   >
                     {formatDistance(row.dateCreated, new Date(), { addSuffix: true })}
                   </Typography>

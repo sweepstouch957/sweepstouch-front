@@ -1,6 +1,6 @@
 'use client';
 
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { Box, Typography } from '@mui/material';
 import { Store } from '@/services/store.service';
 import { StoreListItem } from './StoreListItem';
@@ -34,17 +34,19 @@ export const StoreList = memo(function StoreList({
   return (
     <Box>
       {stores.map((store) => (
-        <StoreListItem
-          key={store._id}
-          store={store}
-          promoterCount={
-            promoterCountMap.size > 0
-              ? (promoterCountMap.get(store._id) ?? promoterCountMap.get(store.id) ?? 0)
-              : undefined
-          }
-          isSelected={selectedId === store._id}
-          onClick={() => onStoreSelect(store)}
-        />
+        // content-visibility: auto skips rendering off-screen items — no library needed
+        <Box key={store._id} sx={{ contentVisibility: 'auto', containIntrinsicSize: '0 72px' }}>
+          <StoreListItem
+            store={store}
+            promoterCount={
+              promoterCountMap.size > 0
+                ? (promoterCountMap.get(store._id) ?? promoterCountMap.get(store.id) ?? 0)
+                : undefined
+            }
+            isSelected={selectedId === store._id}
+            onClick={() => onStoreSelect(store)}
+          />
+        </Box>
       ))}
     </Box>
   );

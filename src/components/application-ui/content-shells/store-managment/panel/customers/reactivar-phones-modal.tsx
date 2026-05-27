@@ -149,7 +149,7 @@ export default function ReactivarPhonesModal({
               Reactivar Números
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              {storeName || storeId} — Recuperar números inactivos válidos
+              {storeName || storeId}: Recuperar números inactivos válidos
             </Typography>
           </Box>
           <IconButton size="small" onClick={handleClose} disabled={loading}>

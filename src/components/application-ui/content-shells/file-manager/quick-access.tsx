@@ -151,6 +151,7 @@ function QuickAccess() {
                     <Typography
                       component="span"
                       variant="subtitle1"
+                      suppressHydrationWarning
                     >
                       {t('Edited')}{' '}
                       {formatDistance(subDays(new Date(), 3), new Date(), {
@@ -214,6 +215,7 @@ function QuickAccess() {
                     <Typography
                       component="span"
                       variant="subtitle1"
+                      suppressHydrationWarning
                     >
                       {t('Edited')}{' '}
                       {formatDistance(subDays(new Date(), 4), new Date(), {

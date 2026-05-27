@@ -262,7 +262,7 @@ export const FilterBar = memo(function FilterBar({
         color="text.secondary"
         lineHeight={1}
       >
-        —
+        to
       </Typography>
       <TextField
         size="small"

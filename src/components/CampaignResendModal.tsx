@@ -263,7 +263,7 @@ const CampaignResendModal: React.FC<Props> = ({ open, onClose, campaignId }) => 
                 {preview.permanentBreakdown.length > 0 && (
                   <Box>
                     <Typography variant="caption" color="error.main" fontWeight={700} mb={0.5} display="block">
-                      ❌ Se omitirán — permanentes ({preview.permanentCount.toLocaleString()} mensajes)
+                      ❌ Se omitirán (permanentes: {preview.permanentCount.toLocaleString()} mensajes)
                     </Typography>
                     <Stack spacing={0.6}>
                       {preview.permanentBreakdown.map(({ code, count }) => (

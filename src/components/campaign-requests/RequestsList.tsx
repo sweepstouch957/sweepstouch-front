@@ -156,7 +156,7 @@ function RequestRow({ req, onClick }: { req: CampaignRequest; onClick: () => voi
       {/* Productos — listado compacto */}
       <TableCell sx={{ minWidth: 180 }}>
         {(!req.products || req.products.length === 0) ? (
-          <Typography variant="caption" color="text.disabled">—</Typography>
+          <Typography variant="caption" color="text.disabled">N/A</Typography>
         ) : (
           <Box component="ul" sx={{ m: 0, pl: 1.5, listStyle: 'none' }}>
             {req.products.slice(0, 4).map((p, i) => (
@@ -250,7 +250,7 @@ function RequestRow({ req, onClick }: { req: CampaignRequest; onClick: () => voi
 
 /* ── Main component ──────────────────────────────────────────── */
 export default function RequestsList() {
-  const router = useRouter();
+  const { push } = useRouter();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [statusFilter, setStatusFilter] = useState('');
@@ -379,7 +379,7 @@ export default function RequestsList() {
                 <RequestRow
                   key={req._id}
                   req={req}
-                  onClick={() => router.push(`/admin/management/campaign-requests/${req._id}`)}
+                  onClick={() => push(`/admin/management/campaign-requests/${req._id}`)}
                 />
               ))}
             </TableBody>

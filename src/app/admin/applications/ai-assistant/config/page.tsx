@@ -59,7 +59,7 @@ export default function AIConfigPage() {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const accent = theme.palette.primary.main;
-  const router = useRouter();
+  const { push } = useRouter();
   const customization = useCustomization();
 
   const [tab, setTab] = useState(0);
@@ -214,7 +214,7 @@ export default function AIConfigPage() {
             <Button
               size="small"
               startIcon={<ArrowBackRoundedIcon sx={{ fontSize: 14 }} />}
-              onClick={() => router.push('/admin/applications/ai-assistant')}
+              onClick={() => push('/admin/applications/ai-assistant')}
               sx={{ textTransform: 'none', fontWeight: 600, fontSize: 12, color: 'text.secondary', borderRadius: 1.5 }}
             >
               Back to Chat
@@ -495,7 +495,7 @@ export default function AIConfigPage() {
                       cursor: 'pointer',
                       '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.06) },
                     }}
-                    onClick={() => router.push(`/admin/applications/ai-assistant?conv=${conv._id}`)}
+                    onClick={() => push(`/admin/applications/ai-assistant?conv=${conv._id}`)}
                   >
                     <ListItemText
                       primary={conv.title}

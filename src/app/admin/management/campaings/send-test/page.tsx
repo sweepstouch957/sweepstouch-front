@@ -645,7 +645,7 @@ export default function SendTestMessagePage({
                                   onClick={() => window.open(kioskUrl, '_blank')}
                                   sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, fontSize: 12 }}
                                 >
-                                  Open Kiosk — {selectedStore.name}
+                                  Open Kiosk: {selectedStore.name}
                                 </Button>
                                 <Box
                                   sx={{
@@ -1063,7 +1063,7 @@ export default function SendTestMessagePage({
                     onClick={() => window.open(kioskUrl, '_blank')}
                     sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700, py: 1 }}
                   >
-                    Open Kiosk — {selectedStore.name}
+                    Open Kiosk: {selectedStore.name}
                   </Button>
                 </Stack>
               </Paper>

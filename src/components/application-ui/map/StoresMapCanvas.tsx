@@ -15,8 +15,9 @@ import {
 } from '@mui/material';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import supercluster from 'supercluster';
+import { cloudinaryThumb } from '@/utils/cloudinary';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
 
@@ -27,6 +28,154 @@ export const audienceColor = (n: number) =>
   n < 1000 ? '#f44336' : n < 5000 ? '#fdd835' : n < 10000 ? '#EE1E7C' : '#4caf50';
 
 export const audienceTextColor = (n: number) => (n >= 1000 && n < 5000 ? '#000' : '#fff');
+
+// ── Memoised marker bodies ─────────────────────────────────────────────────────
+// Extracted so parent re-renders (selectedStoreId change, zoom, pan) only cause
+// the two affected markers to re-render instead of all 500+.
+
+const StoreMarkerBody = memo(function StoreMarkerBody({
+  store,
+  isSelected,
+  onSelect,
+}: {
+  store: Store;
+  isSelected: boolean;
+  onSelect: (s: Store) => void;
+}) {
+  const color = audienceColor(store.customerCount || 0);
+  const textColor = audienceTextColor(store.customerCount || 0);
+  return (
+    <Box textAlign="center" sx={{ cursor: 'pointer' }} onClick={() => onSelect(store)}>
+      <Avatar
+        src={cloudinaryThumb(store.image, 42, 42) || PLACEHOLDER_IMAGE}
+        alt={store.name}
+        sx={{
+          width: isSelected ? 42 : 36,
+          height: isSelected ? 42 : 36,
+          border: `${isSelected ? 3 : 2}px solid ${isSelected ? '#EE1E7C' : color}`,
+          boxShadow: isSelected
+            ? '0 0 0 4px rgba(238,30,124,0.22), 2px 2px 6px rgba(0,0,0,0.2)'
+            : 2,
+          mb: '2px',
+          opacity: store.active === false ? 0.45 : 1,
+          transition: 'all 0.15s ease',
+        }}
+      />
+      <Box
+        sx={{
+          fontSize: 10,
+          px: 1,
+          py: '2px',
+          borderRadius: '8px',
+          fontWeight: 400,
+          backgroundColor: color,
+          color: textColor,
+          display: 'inline-block',
+          minWidth: 50,
+        }}
+      >
+        {store.customerCount || 0}
+      </Box>
+    </Box>
+  );
+});
+
+const PromoterMarkerBody = memo(function PromoterMarkerBody({
+  promoter: p,
+  isHighlighted,
+  onSelect,
+}: {
+  promoter: NearbyPromoter;
+  isHighlighted: boolean;
+  onSelect: (p: NearbyPromoter) => void;
+}) {
+  const size = isHighlighted ? 42 : 34;
+  return (
+    <Box
+      textAlign="center"
+      sx={{ cursor: 'pointer', transition: 'transform 0.2s ease', '&:hover': { transform: 'scale(1.1)' } }}
+      onClick={() => onSelect(p)}
+    >
+      {isHighlighted && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -60%)',
+            width: size + 16,
+            height: size + 16,
+            borderRadius: '50%',
+            border: '2.5px solid #EE1E7C',
+            opacity: 0.5,
+            animation: 'pulse-ring 1.4s ease-out infinite',
+            '@keyframes pulse-ring': {
+              '0%': { transform: 'translate(-50%, -60%) scale(0.85)', opacity: 0.7 },
+              '100%': { transform: 'translate(-50%, -60%) scale(1.4)', opacity: 0 },
+            },
+          }}
+        />
+      )}
+      <Avatar
+        src={cloudinaryThumb(p.profileImage, 32, 32)}
+        alt={p.firstName}
+        sx={{
+          width: size,
+          height: size,
+          border: isHighlighted
+            ? '3px solid #EE1E7C'
+            : `2.5px solid ${p.isOnline ? '#22c55e' : '#9e9e9e'}`,
+          boxShadow: isHighlighted
+            ? '0 0 0 3px rgba(238,30,124,0.25), 0 4px 12px rgba(0,0,0,0.25)'
+            : p.isOnline
+            ? '0 0 8px rgba(34,197,94,0.5), 0 2px 6px rgba(0,0,0,0.15)'
+            : '0 2px 6px rgba(0,0,0,0.12)',
+          opacity: p.isOnline ? 1 : 0.72,
+          transition: 'all 0.2s ease',
+          zIndex: isHighlighted ? 10 : 1,
+          position: 'relative',
+        }}
+      >
+        {p.firstName?.charAt(0)}
+      </Avatar>
+      <Box
+        sx={{
+          position: 'absolute',
+          bottom: 18,
+          right: -2,
+          width: 10,
+          height: 10,
+          borderRadius: '50%',
+          bgcolor: p.isOnline ? '#22c55e' : '#9e9e9e',
+          border: '1.5px solid white',
+          boxShadow: p.isOnline ? '0 0 4px rgba(34,197,94,0.8)' : 'none',
+        }}
+      />
+      <Box
+        sx={{
+          fontSize: 9,
+          px: '5px',
+          py: '1.5px',
+          borderRadius: '4px',
+          fontWeight: 600,
+          backgroundColor: isHighlighted ? '#EE1E7C' : p.isOnline ? '#dcfce7' : '#f5f5f5',
+          color: isHighlighted ? '#fff' : p.isOnline ? '#15803d' : '#616161',
+          display: 'inline-block',
+          mt: '2px',
+          border: `1px solid ${isHighlighted ? '#EE1E7C' : p.isOnline ? '#86efac' : '#e0e0e0'}`,
+          maxWidth: 72,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {p.firstName}
+      </Box>
+    </Box>
+  );
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export interface StoresMapCanvasProps {
   stores: Store[];
@@ -58,6 +207,15 @@ export const StoresMapCanvas = memo(function StoresMapCanvas({
   const [selectedPromoter, setSelectedPromoter] = useState<NearbyPromoter | null>(null);
   const [bounds, setBounds] = useState<[number, number, number, number]>([-180, -85, 180, 85]);
   const [zoom, setZoom] = useState(initialZoom);
+
+  const handleStoreSelect = useCallback((store: Store) => {
+    if (onStoreClick) onStoreClick(store);
+    else setSelected(store);
+  }, [onStoreClick]);
+
+  const handlePromoterSelect = useCallback((p: NearbyPromoter) => {
+    setSelectedPromoter(p);
+  }, []);
 
   // Fly to highlighted promoter and auto-open their popup
   useEffect(() => {
@@ -156,50 +314,11 @@ export const StoresMapCanvas = memo(function StoresMapCanvas({
             }
 
             const store: Store = cluster.properties.store;
-            const color = audienceColor(store.customerCount || 0);
-            const textColor = audienceTextColor(store.customerCount || 0);
             const isSelected = selectedStoreId === store._id;
 
             return (
-              <Marker
-                key={store._id}
-                longitude={lng}
-                latitude={lat}
-                anchor="bottom"
-                onClick={() => (onStoreClick ? onStoreClick(store) : setSelected(store))}
-              >
-                <Box textAlign="center" sx={{ cursor: 'pointer' }}>
-                  <Avatar
-                    src={store.image || PLACEHOLDER_IMAGE}
-                    alt={store.name}
-                    sx={{
-                      width: isSelected ? 42 : 36,
-                      height: isSelected ? 42 : 36,
-                      border: `${isSelected ? 3 : 2}px solid ${isSelected ? '#EE1E7C' : color}`,
-                      boxShadow: isSelected
-                        ? '0 0 0 4px rgba(238,30,124,0.22), 2px 2px 6px rgba(0,0,0,0.2)'
-                        : 2,
-                      mb: '2px',
-                      opacity: store.active === false ? 0.45 : 1,
-                      transition: 'all 0.15s ease',
-                    }}
-                  />
-                  <Box
-                    sx={{
-                      fontSize: 10,
-                      px: 1,
-                      py: '2px',
-                      borderRadius: '8px',
-                      fontWeight: 400,
-                      backgroundColor: color,
-                      color: textColor,
-                      display: 'inline-block',
-                      minWidth: 50,
-                    }}
-                  >
-                    {store.customerCount || 0}
-                  </Box>
-                </Box>
+              <Marker key={store._id} longitude={lng} latitude={lat} anchor="bottom">
+                <StoreMarkerBody store={store} isSelected={isSelected} onSelect={handleStoreSelect} />
               </Marker>
             );
           })}
@@ -213,105 +332,10 @@ export const StoresMapCanvas = memo(function StoresMapCanvas({
             if (isNaN(lng) || isNaN(lat)) return null;
 
             const isHighlighted = highlightedPromoterId === p._id;
-            const size = isHighlighted ? 42 : 34;
 
             return (
-              <Marker
-                key={`promoter-${p._id}`}
-                longitude={lng}
-                latitude={lat}
-                anchor="bottom"
-                onClick={() => setSelectedPromoter(p)}
-              >
-                <Box
-                  textAlign="center"
-                  sx={{ cursor: 'pointer', transition: 'transform 0.2s ease', '&:hover': { transform: 'scale(1.1)' } }}
-                >
-                  {/* Pulsing ring for highlighted promoter */}
-                  {isHighlighted && (
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -60%)',
-                        width: size + 16,
-                        height: size + 16,
-                        borderRadius: '50%',
-                        border: '2.5px solid #EE1E7C',
-                        opacity: 0.5,
-                        animation: 'pulse-ring 1.4s ease-out infinite',
-                        '@keyframes pulse-ring': {
-                          '0%': { transform: 'translate(-50%, -60%) scale(0.85)', opacity: 0.7 },
-                          '100%': { transform: 'translate(-50%, -60%) scale(1.4)', opacity: 0 },
-                        },
-                      }}
-                    />
-                  )}
-                  <Avatar
-                    src={p.profileImage}
-                    alt={p.firstName}
-                    sx={{
-                      width: size,
-                      height: size,
-                      border: isHighlighted
-                        ? '3px solid #EE1E7C'
-                        : `2.5px solid ${p.isOnline ? '#22c55e' : '#9e9e9e'}`,
-                      boxShadow: isHighlighted
-                        ? '0 0 0 3px rgba(238,30,124,0.25), 0 4px 12px rgba(0,0,0,0.25)'
-                        : p.isOnline
-                        ? '0 0 8px rgba(34,197,94,0.5), 0 2px 6px rgba(0,0,0,0.15)'
-                        : '0 2px 6px rgba(0,0,0,0.12)',
-                      opacity: p.isOnline ? 1 : 0.72,
-                      transition: 'all 0.2s ease',
-                      zIndex: isHighlighted ? 10 : 1,
-                      position: 'relative',
-                    }}
-                  >
-                    {p.firstName?.charAt(0)}
-                  </Avatar>
-
-                  {/* Online dot */}
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      bottom: 18,
-                      right: -2,
-                      width: 10,
-                      height: 10,
-                      borderRadius: '50%',
-                      bgcolor: p.isOnline ? '#22c55e' : '#9e9e9e',
-                      border: '1.5px solid white',
-                      boxShadow: p.isOnline ? '0 0 4px rgba(34,197,94,0.8)' : 'none',
-                    }}
-                  />
-
-                  {/* Name label */}
-                  <Box
-                    sx={{
-                      fontSize: 9,
-                      px: '5px',
-                      py: '1.5px',
-                      borderRadius: '4px',
-                      fontWeight: 600,
-                      backgroundColor: isHighlighted
-                        ? '#EE1E7C'
-                        : p.isOnline
-                        ? '#dcfce7'
-                        : '#f5f5f5',
-                      color: isHighlighted ? '#fff' : p.isOnline ? '#15803d' : '#616161',
-                      display: 'inline-block',
-                      mt: '2px',
-                      border: `1px solid ${isHighlighted ? '#EE1E7C' : p.isOnline ? '#86efac' : '#e0e0e0'}`,
-                      maxWidth: 72,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {p.firstName}
-                  </Box>
-                </Box>
+              <Marker key={`promoter-${p._id}`} longitude={lng} latitude={lat} anchor="bottom">
+                <PromoterMarkerBody promoter={p} isHighlighted={isHighlighted} onSelect={handlePromoterSelect} />
               </Marker>
             );
           })}
@@ -336,7 +360,7 @@ export const StoresMapCanvas = memo(function StoresMapCanvas({
           }}
         >
           <Box sx={{ position: 'relative', display: 'inline-block', mb: 2 }}>
-            <Avatar src={selected?.image} alt={selected?.name} sx={{ width: 80, height: 80, mx: 'auto' }} />
+            <Avatar src={cloudinaryThumb(selected?.image, 80, 80)} alt={selected?.name} sx={{ width: 80, height: 80, mx: 'auto' }} />
             <Box
               sx={{
                 position: 'absolute', bottom: 2, right: 2,
@@ -403,7 +427,7 @@ export const StoresMapCanvas = memo(function StoresMapCanvas({
           <Stack direction="row" spacing={2} alignItems="center" mb={2}>
             <Box sx={{ position: 'relative', flexShrink: 0 }}>
               <Avatar
-                src={selectedPromoter?.profileImage}
+                src={cloudinaryThumb(selectedPromoter?.profileImage, 64, 64)}
                 alt={selectedPromoter?.firstName}
                 sx={{ width: 64, height: 64 }}
               >
@@ -560,7 +584,6 @@ function findClosestStore(promoterCoords: [number, number], stores: Store[]) {
 }
 
 function haversineDistanceMiles(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 3958.8;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
   const a =

@@ -207,6 +207,7 @@ function TeamFolders() {
                       fontWeight={600}
                       color="text.primary"
                       variant="subtitle1"
+                      suppressHydrationWarning
                     >
                       {formatDistance(subDays(new Date(), 21), new Date(), {
                         addSuffix: true,
@@ -320,6 +321,7 @@ function TeamFolders() {
                       fontWeight={600}
                       color="text.primary"
                       variant="subtitle1"
+                      suppressHydrationWarning
                     >
                       {formatDistance(subMonths(new Date(), 37), new Date(), {
                         addSuffix: true,
@@ -448,7 +450,7 @@ function TeamFolders() {
                           </AvatarGroup>
                         </Box>
                       </TableCell>
-                      <TableCell>
+                      <TableCell suppressHydrationWarning>
                         {formatDistance(subDays(new Date(), 21), new Date(), {
                           addSuffix: true,
                         })}
@@ -555,7 +557,7 @@ function TeamFolders() {
                           </AvatarGroup>
                         </Box>
                       </TableCell>
-                      <TableCell>
+                      <TableCell suppressHydrationWarning>
                         {formatDistance(subMonths(new Date(), 37), new Date(), {
                           addSuffix: true,
                         })}{' '}

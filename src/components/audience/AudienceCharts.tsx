@@ -516,7 +516,7 @@ export function AudienceCharts(props: Props) {
                 variant="body2"
                 sx={{ mt: 1 }}
               >
-                Weekly breakdown failed — verify /campaigns/audience/weekly.
+                Weekly breakdown failed. Verify /campaigns/audience/weekly.
               </Typography>
             ) : null}
           </GlassCard>

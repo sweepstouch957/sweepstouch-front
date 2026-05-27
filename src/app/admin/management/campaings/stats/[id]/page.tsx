@@ -7,7 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 
 export default function CampaignDetailPage() {
   const params = useParams();
-  const router = useRouter();
+  const { back } = useRouter();
   const id = params?.id;
 
   if (!id || typeof id !== 'string') {
@@ -26,7 +26,7 @@ export default function CampaignDetailPage() {
       <Box mb={1.5} display="flex" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
         <Button
           startIcon={<ArrowBackRoundedIcon />}
-          onClick={() => router.back()}
+          onClick={() => back()}
           sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2 }}
         >
           Volver

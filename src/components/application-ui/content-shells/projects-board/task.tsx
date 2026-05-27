@@ -174,6 +174,7 @@ const Task: FC<TaskProps> = forwardRef<HTMLDivElement, TaskProps>(
               <Typography
                 gutterBottom
                 variant="subtitle2"
+                suppressHydrationWarning
               >
                 {task.due_date && t('Due')}{' '}
                 {task.due_date && formatDistance(task.due_date, new Date(), { addSuffix: true })}

@@ -206,7 +206,7 @@ const MapboxMap = () => {
             color="text.disabled"
             lineHeight={1}
           >
-            —
+            to
           </Typography>
           <TextField
             size="small"

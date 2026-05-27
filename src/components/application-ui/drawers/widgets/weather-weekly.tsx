@@ -127,6 +127,7 @@ function WeatherWeekly() {
                 fontWeight={400}
                 noWrap
                 variant="h6"
+                suppressHydrationWarning
               >
                 Today, {format(new Date(), 'MMM dd yyyy')}
               </Typography>
@@ -176,6 +177,7 @@ function WeatherWeekly() {
                 <Typography
                   fontWeight={400}
                   variant="h5"
+                  suppressHydrationWarning
                 >
                   {format(addDays(new Date(), 1), 'MMM dd')}
                 </Typography>
@@ -225,6 +227,7 @@ function WeatherWeekly() {
                 <Typography
                   fontWeight={400}
                   variant="h5"
+                  suppressHydrationWarning
                 >
                   {format(addDays(new Date(), 2), 'MMM dd')}
                 </Typography>
@@ -274,6 +277,7 @@ function WeatherWeekly() {
                 <Typography
                   fontWeight={400}
                   variant="h5"
+                  suppressHydrationWarning
                 >
                   {format(addDays(new Date(), 3), 'MMM dd')}
                 </Typography>
@@ -323,6 +327,7 @@ function WeatherWeekly() {
                 <Typography
                   fontWeight={400}
                   variant="h5"
+                  suppressHydrationWarning
                 >
                   {format(addDays(new Date(), 4), 'MMM dd')}
                 </Typography>

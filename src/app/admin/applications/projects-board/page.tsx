@@ -523,7 +523,7 @@ export default function ProjectsBoardPage() {
   const theme = useTheme();
   const mdUp = useMediaQuery(theme.breakpoints.up('md'));
   const queryClient = useQueryClient();
-  const router = useRouter();
+  const { push } = useRouter();
   const { t } = useTranslation();
   const isDark = theme.palette.mode === 'dark';
 
@@ -605,7 +605,7 @@ export default function ProjectsBoardPage() {
     : 'All';
 
   function handleOpenBoard(projectId: string) {
-    router.push(`/admin/applications/tasks?projectId=${projectId}`);
+    push(`/admin/applications/tasks?projectId=${projectId}`);
   }
 
   /* ── Summary stats ── */
@@ -628,7 +628,7 @@ export default function ProjectsBoardPage() {
           <Box>
             <Typography variant="h3" fontWeight={800}>Projects</Typography>
             <Typography variant="body2" color="text.secondary">
-              Overview of all projects — progress, status, team members
+              Overview of all projects: progress, status, team members
             </Typography>
           </Box>
           <Stack direction="row" spacing={1.5}>
@@ -817,7 +817,7 @@ export default function ProjectsBoardPage() {
                             <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 700, bgcolor: alpha(project.color || theme.palette.primary.main, 0.1), color: project.color || 'primary.main', px: 0.75, py: 0.3, borderRadius: 1 }}>
                               {project.identifier}
                             </Typography>
-                          ) : <Typography variant="caption" color="text.disabled">—</Typography>}
+                          ) : <Typography variant="caption" color="text.disabled">N/A</Typography>}
                         </TableCell>
                         <TableCell>
                           <Stack direction="row" flexWrap="wrap" gap={0.4}>
@@ -871,7 +871,7 @@ export default function ProjectsBoardPage() {
                               </Typography>
                             </>
                           ) : (
-                            <Typography variant="caption" color="text.disabled">—</Typography>
+                            <Typography variant="caption" color="text.disabled">N/A</Typography>
                           )}
                         </TableCell>
                         <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>

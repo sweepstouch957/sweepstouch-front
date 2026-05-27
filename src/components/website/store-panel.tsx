@@ -444,7 +444,7 @@ export default function StoreInfo({ store }: { store: Store }) {
                     )}
                     {!hasAccessCode && !backfillResult && (
                       <Alert severity="warning" icon={<WarningAmberRounded fontSize="small" />} sx={{ borderRadius: 2, py: 0 }}>
-                        Sin <strong>accessCode</strong> — se generará uno automáticamente.
+                        Sin <strong>accessCode</strong>; se generará uno automáticamente.
                       </Alert>
                     )}
                     {backfillResult && (

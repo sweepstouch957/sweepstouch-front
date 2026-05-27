@@ -47,7 +47,7 @@ import { authClient } from 'src/utils/auth/custom/client';
 import AccountCircleTwoToneIcon from '@mui/icons-material/AccountCircleTwoTone';
 
 const SidebarFooter: FC = () => {
-  const router = useRouter();
+  const { push } = useRouter();
   
   const handleLogout = async () => {
     try {
@@ -75,12 +75,12 @@ const SidebarFooter: FC = () => {
       <FooterButton
         icon={<AccountCircleTwoToneIcon sx={{ fontSize: 18 }} />}
         tooltipText="Account"
-        onClick={() => router.push('/admin/management/account')}
+        onClick={() => push('/admin/management/account')}
       />
       <FooterButton
         icon={<EventTwoToneIcon sx={{ fontSize: 18 }} />}
         tooltipText="Events Calendar"
-        onClick={() => router.push('/admin/applications/calendar')}
+        onClick={() => push('/admin/applications/calendar')}
       />
       <FooterButton
         icon={<SmsTwoToneIcon sx={{ fontSize: 18 }} />}

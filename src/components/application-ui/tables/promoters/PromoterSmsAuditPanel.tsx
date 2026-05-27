@@ -305,7 +305,7 @@ export default function PromoterSmsAuditPanel({ promoterId, promoterName, startD
       <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2} mb={3}>
         <Box>
           <Typography variant="h6" fontWeight={700} gutterBottom>
-            Auditoría de SMS — {promoterName || 'Promotora'}
+            Auditoría de SMS: {promoterName || 'Promotora'}
           </Typography>
           <Typography variant="body2" color="text.secondary">
             {startDate && endDate ? (

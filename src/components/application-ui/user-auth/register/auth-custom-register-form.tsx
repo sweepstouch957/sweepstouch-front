@@ -67,7 +67,7 @@ const defaultValues = {
 } satisfies Values;
 
 export function AuthCustomRegisterForm(): React.JSX.Element {
-  const router = useRouter();
+  const { refresh } = useRouter();
   const { t } = useTranslation();
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
@@ -124,9 +124,9 @@ export function AuthCustomRegisterForm(): React.JSX.Element {
       }
 
       await checkSession();
-      router.refresh();
+      refresh();
     },
-    [router, setError, checkSession]
+    [refresh, setError, checkSession]
   );
 
   const [showPassword, setShowPassword] = useState(false);

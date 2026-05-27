@@ -104,7 +104,7 @@ const AssignDepartmentDialog: FC<AssignDepartmentDialogProps> = ({ open, onClose
             }}
           >
             <ListItemIcon sx={{ minWidth: 36 }}>
-              <Avatar sx={{ width: 28, height: 28, bgcolor: 'action.disabled', fontSize: 12 }}>—</Avatar>
+              <Avatar sx={{ width: 28, height: 28, bgcolor: 'action.disabled', fontSize: 12 }}>?</Avatar>
             </ListItemIcon>
             <ListItemText
               primary="No Department"

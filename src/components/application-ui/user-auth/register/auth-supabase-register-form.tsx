@@ -85,7 +85,7 @@ export function AuthSupabaseRegisterForm(): React.JSX.Element {
         : provider.logo,
   }));
 
-  const router = useRouter();
+  const { push, refresh } = useRouter();
   const { checkSession } = useAuth();
   const [isPending, setIsPending] = React.useState<boolean>(false);
   const {
@@ -150,19 +150,19 @@ export function AuthSupabaseRegisterForm(): React.JSX.Element {
       if (data.session) {
         await checkSession();
 
-        router.refresh();
+        refresh();
         return;
       }
 
       if (data.user) {
         const searchParams = new URLSearchParams({ email: values.email });
-        router.push(`${routes.auth['supabase.register-confirm']}?${searchParams.toString()}`);
+        push(`${routes.auth['supabase.register-confirm']}?${searchParams.toString()}`);
         return;
       }
 
       setIsPending(false);
     },
-    [supabaseClient, router, setError, checkSession]
+    [supabaseClient, push, refresh, setError, checkSession]
   );
 
   const [showPassword, setShowPassword] = React.useState(false);

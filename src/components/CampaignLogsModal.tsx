@@ -455,7 +455,7 @@ const CampaignLogsModal: React.FC<Props> = ({
                               </Tooltip>
                             ) : (
                               <Typography variant="body2" color="text.secondary">
-                                —
+                                N/A
                               </Typography>
                             )}
                           </TableCell>

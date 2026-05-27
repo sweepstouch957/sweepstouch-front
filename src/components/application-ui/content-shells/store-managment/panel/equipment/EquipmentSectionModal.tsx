@@ -197,7 +197,7 @@ function DeviceProductCard({
               display="block"
               mb={1}
             >
-              IMEIs — {qty} unidad{qty > 1 ? 'es' : ''}
+              IMEIs ({qty} unidad{qty > 1 ? 'es' : ''})
             </Typography>
             <Stack spacing={0.75}>
               {Array.from({ length: qty }).map((_, i) => (

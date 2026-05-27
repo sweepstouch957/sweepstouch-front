@@ -714,7 +714,7 @@ export default function AIAssistantPage() {
   const isDark = theme.palette.mode === 'dark';
   const accent = theme.palette.primary.main;
   const mdUp = useMediaQuery(theme.breakpoints.up('md'));
-  const router = useRouter();
+  const { push } = useRouter();
   const { user } = useAuth();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -1562,7 +1562,7 @@ export default function AIAssistantPage() {
               fullWidth
               size="small"
               startIcon={<SettingsRoundedIcon sx={{ fontSize: 16 }} />}
-              onClick={() => router.push('/admin/applications/ai-assistant/config')}
+              onClick={() => push('/admin/applications/ai-assistant/config')}
               sx={{
                 textTransform: 'none',
                 fontSize: 12,
@@ -1928,7 +1928,7 @@ export default function AIAssistantPage() {
                   variant="caption"
                   sx={{ color: '#8E24AA', fontWeight: 600, fontSize: 11, overflowWrap: 'anywhere' }}
                 >
-                  Image Generation Mode — describe what you want to create
+                  Image Generation Mode: describe what you want to create
                 </Typography>
               </Stack>
               <IconButton

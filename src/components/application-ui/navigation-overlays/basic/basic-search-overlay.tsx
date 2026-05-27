@@ -126,7 +126,7 @@ export const BasicSpotlightSearch: FC<BasicSpotlightSearchProps> = (props) => {
   const [aiResult, setAiResult] = useState<AISearchResult | null>(null);
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
-  const router = useRouter();
+  const { push } = useRouter();
   const isDark = theme.palette.mode === 'dark';
   const accent = theme.palette.primary.main;
 
@@ -165,7 +165,7 @@ export const BasicSpotlightSearch: FC<BasicSpotlightSearchProps> = (props) => {
   );
 
   const handleNavigate = (route: string) => {
-    router.push(route);
+    push(route);
     setSearchTerm('');
     setAiResult(null);
     onClose?.();
@@ -303,7 +303,7 @@ export const BasicSpotlightSearch: FC<BasicSpotlightSearchProps> = (props) => {
       {aiMode && (
         <Box sx={{ px: 2, py: 0.5, bgcolor: alpha(accent, 0.04), borderBottom: `1px solid ${alpha(accent, 0.1)}` }}>
           <Typography variant="caption" sx={{ color: accent, fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 }}>
-            🤖 AI Mode — Ask anything or paste meeting notes to create tasks
+            🤖 AI Mode: Ask anything or paste meeting notes to create tasks
           </Typography>
         </Box>
       )}

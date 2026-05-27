@@ -88,12 +88,12 @@ function ResourcesAlarm() {
         title={t('Resources Alarm')}
         subheaderTypographyProps={{ noWrap: true }}
         subheader={
-          <>
+          <span suppressHydrationWarning>
             {t('Server load snapshot from')}{' '}
             {formatDistance(subMinutes(new Date(), 13), new Date(), {
               addSuffix: true,
             })}
-          </>
+          </span>
         }
       />
       <Divider />

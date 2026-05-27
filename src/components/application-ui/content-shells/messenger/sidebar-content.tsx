@@ -420,7 +420,7 @@ function SidebarContent() {
               >
                 10:00 - 11:30
               </Typography>
-              <Typography variant="subtitle1">
+              <Typography variant="subtitle1" suppressHydrationWarning>
                 {formatDistance(subMinutes(new Date(), 12), new Date(), {
                   addSuffix: true,
                 })}
@@ -514,7 +514,7 @@ function SidebarContent() {
               >
                 14:30 - 16:15
               </Typography>
-              <Typography variant="subtitle1">
+              <Typography variant="subtitle1" suppressHydrationWarning>
                 {formatDistance(subHours(new Date(), 4), new Date(), {
                   addSuffix: true,
                 })}

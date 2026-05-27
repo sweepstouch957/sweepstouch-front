@@ -208,7 +208,7 @@ function PrescriptionRequests() {
                 }}
                 secondary={
                   <>
-                    {t('Last Prescribed')}: <b>{format(subDays(new Date(), 15), 'MMMM dd yyyy')}</b>
+                    {t('Last Prescribed')}: <b suppressHydrationWarning>{format(subDays(new Date(), 15), 'MMMM dd yyyy')}</b>
                   </>
                 }
                 secondaryTypographyProps={{ variant: 'body1', noWrap: true }}

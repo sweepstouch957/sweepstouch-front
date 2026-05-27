@@ -40,7 +40,7 @@ function Page() {
   const theme         = useTheme();
   const isDark        = theme.palette.mode === 'dark';
   const primary       = theme.palette.primary.main;
-  const router        = useRouter();
+  const { push }      = useRouter();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
@@ -96,7 +96,7 @@ function Page() {
             <Chip
               icon={<BarChartRoundedIcon sx={{ fontSize: 14 }} />}
               label="Ver métricas"
-              onClick={() => router.push(routes.admin.management.promotors.metrics)}
+              onClick={() => push(routes.admin.management.promotors.metrics)}
               variant="outlined"
               size="small"
               sx={{ fontWeight: 700, cursor: 'pointer', borderStyle: 'dashed' }}
@@ -228,7 +228,7 @@ function Page() {
                     InputLabelProps={{ shrink: true }}
                     sx={{ width: 150, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                   />
-                  <Typography sx={{ fontSize: 12, color: 'text.disabled' }}>—</Typography>
+                  <Typography sx={{ fontSize: 12, color: 'text.disabled' }}>to</Typography>
                   <TextField
                     label="Hasta" type="date" size="small"
                     value={auditEndDate}

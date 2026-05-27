@@ -104,7 +104,7 @@ function DateRangeCell({ row, onChange }: DateRangeCellProps) {
                         Rango activo
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 500, color: '#111827', lineHeight: 1.2 }}>
-                        {formatDate(row.startDate)} — {formatDate(row.endDate)}
+                        {formatDate(row.startDate)} to {formatDate(row.endDate)}
                     </Typography>
                 </Box>
             </Box>
@@ -362,7 +362,7 @@ export function CircularsTable({
                                             <StatusBadge status="scheduled" />
                                         ) : (
                                             <Typography variant="caption" color="text.secondary">
-                                                —
+                                                N/A
                                             </Typography>
                                         )}
                                     </TableCell>

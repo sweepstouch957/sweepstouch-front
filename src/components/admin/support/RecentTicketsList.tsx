@@ -46,7 +46,7 @@ interface Props {
 }
 
 export default function RecentTicketsList({ tickets, loading }: Props) {
-  const router = useRouter();
+  const { push } = useRouter();
 
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -56,7 +56,7 @@ export default function RecentTicketsList({ tickets, loading }: Props) {
         titleTypographyProps={{ variant: 'h6' }}
         action={
           <Tooltip title="Ver todos">
-            <IconButton size="small" onClick={() => router.push(routes.admin.management.support.tickets)}>
+            <IconButton size="small" onClick={() => push(routes.admin.management.support.tickets)}>
               <OpenInNewTwoToneIcon fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -113,7 +113,7 @@ export default function RecentTicketsList({ tickets, loading }: Props) {
                           }}
                         />
                         <Typography variant="body2" fontWeight={600} noWrap>
-                          {ticket.identifier} — {ticket.title}
+                          {ticket.identifier}: {ticket.title}
                         </Typography>
                       </Box>
                     }

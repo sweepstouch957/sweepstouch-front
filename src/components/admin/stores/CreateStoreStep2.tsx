@@ -193,7 +193,7 @@ export default function CreateStoreStep2({
   onSubmit,
   initialData,
 }: Props) {
-  const router = useRouter();
+  const { back } = useRouter();
   const { t } = useTranslation();
   console.log("render");
 
@@ -287,7 +287,7 @@ export default function CreateStoreStep2({
     await onSubmit?.(payload);
   };
 
-  const handleBack = () => (onBack ? onBack() : router.back());
+  const handleBack = () => (onBack ? onBack() : back());
 
   return (
     <Container
@@ -513,7 +513,7 @@ export default function CreateStoreStep2({
                 {(tabletQty[it.id] ?? 0) > 0 && (
                   <Box sx={{ width: '100%', mt: 1 }}>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                      IMEI(s) — ingresa uno por tablet
+                      IMEI(s): ingresa uno por tablet
                     </Typography>
                     <Stack spacing={0.75}>
                       {Array.from({ length: tabletQty[it.id] ?? 0 }).map((_, idx) => (

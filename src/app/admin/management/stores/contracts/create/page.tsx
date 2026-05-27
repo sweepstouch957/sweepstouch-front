@@ -67,7 +67,7 @@ const Label = ({ children }: { children: React.ReactNode }) => (
 /* ══════════ PAGE ══════════ */
 export default function CreateContractPage() {
   const theme = useTheme();
-  const router = useRouter();
+  const { push } = useRouter();
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -109,7 +109,7 @@ export default function CreateContractPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contracts'] });
       setSnack({ open: true, msg: '✅ Contract created!', ok: true });
-      setTimeout(() => router.push(routes.admin.management.stores.contracts), 1000);
+      setTimeout(() => push(routes.admin.management.stores.contracts), 1000);
     },
     onError: (err: any) => {
       setSnack({ open: true, msg: err?.response?.data?.error || err.message, ok: false });
@@ -149,7 +149,7 @@ export default function CreateContractPage() {
           size="small"
           color="inherit"
           startIcon={<ArrowBackRoundedIcon />}
-          onClick={() => router.push(routes.admin.management.stores.contracts)}
+          onClick={() => push(routes.admin.management.stores.contracts)}
           sx={{ borderRadius: 2, textTransform: 'none', minWidth: 'auto' }}
         >
           Back
