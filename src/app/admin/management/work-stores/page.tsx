@@ -1,8 +1,8 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import NewShiftModal from '@/components/application-ui/dialogs/shift/modal';
 import { PromoterSearchBar } from '@/components/application-ui/map/PromoterSearchBar';
-import { StoresMapCanvas } from '@/components/application-ui/map/StoresMapCanvas';
 import PageHeading from '@/components/base/page-heading';
 import { usePromoterMapData } from '@/hooks/fetching/promoter/usePromoterMapData';
 import { usePromotersNearStore } from '@/hooks/fetching/promoter/usePromotersNearStore';
@@ -41,6 +41,36 @@ import { StoreDetailPanel } from './components/StoreDetailPanel';
 import { StoreList } from './components/StoreList';
 import { PANEL_HEIGHT, SKELETON_ROWS } from './constants';
 import { SortBy, StatusFilter } from './types';
+
+// ── Dynamic Components ────────────────────────────────────────────────────────
+
+const StoresMapCanvas = dynamic(
+  () => import('@/components/application-ui/map/StoresMapCanvas').then((mod) => mod.StoresMapCanvas),
+  {
+    ssr: false,
+    loading: () => (
+      <Box
+        sx={{
+          height: '100%',
+          minHeight: 360,
+          borderRadius: 2,
+          bgcolor: 'grey.100',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Skeleton
+          variant="rectangular"
+          width="100%"
+          height="100%"
+          sx={{ borderRadius: 2 }}
+          animation="wave"
+        />
+      </Box>
+    ),
+  }
+);
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -219,7 +249,7 @@ const WorkStoresPage = () => {
       >
         {selectedStore ? (
           <Stack direction="row" alignItems="center" spacing={1}>
-            <IconButton size="small" onClick={clearSelectedStore} sx={{ flexShrink: 0 }}>
+            <IconButton size="small" onClick={clearSelectedStore} aria-label="Volver a la lista de tiendas" sx={{ flexShrink: 0 }}>
               <ArrowBackIcon fontSize="small" />
             </IconButton>
             <Typography variant="body2" fontWeight={600} noWrap flex={1}>
@@ -251,10 +281,11 @@ const WorkStoresPage = () => {
             placeholder="Buscar tienda..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            inputProps={{ 'aria-label': 'Buscar tienda por nombre' }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon fontSize="small" sx={{ color: 'text.disabled' }} />
+                  <SearchIcon fontSize="small" sx={{ color: 'text.secondary' }} />
                 </InputAdornment>
               ),
             }}
@@ -320,7 +351,7 @@ const WorkStoresPage = () => {
   // ── Desktop ───────────────────────────────────────────────────────────────────
   if (!isMobile) {
     return (
-      <Container maxWidth="xl" sx={{ py: 3 }}>
+      <Container component="main" maxWidth="xl" sx={{ py: 3 }}>
         <PageHeading
           title="Tiendas y Asignaciones"
           description="Selecciona una tienda en el mapa para ver promotoras cercanas y crear turnos"
@@ -340,9 +371,9 @@ const WorkStoresPage = () => {
 
   // ── Mobile ────────────────────────────────────────────────────────────────────
   return (
-    <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column' }}>
+    <Box component="main" sx={{ height: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <Box sx={{ px: 2, pt: 2, pb: 0.5, flexShrink: 0 }}>
-        <Typography variant="h6" fontWeight={700}>
+        <Typography component="h1" variant="h6" fontWeight={700}>
           Tiendas y Asignaciones
         </Typography>
       </Box>
@@ -364,7 +395,9 @@ const WorkStoresPage = () => {
           }}
         >
           {mapSearchBar}
-          <Box sx={{ flex: 1, minHeight: 0 }}>{mapCanvas('100%')}</Box>
+          <Box sx={{ flex: 1, minHeight: 0 }}>
+            {activeTab === 0 && mapCanvas('100%')}
+          </Box>
         </Box>
         <Box sx={{ display: activeTab === 1 ? 'flex' : 'none', flexDirection: 'column', height: '100%' }}>
           {panel}

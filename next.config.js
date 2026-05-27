@@ -4,6 +4,43 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
   openAnalyzer: false,
 });
 
+const securityHeaders = [
+  {
+    key: 'Strict-Transport-Security',
+    value: 'max-age=31536000; includeSubDomains; preload',
+  },
+  {
+    key: 'X-Frame-Options',
+    value: 'DENY',
+  },
+  {
+    key: 'X-Content-Type-Options',
+    value: 'nosniff',
+  },
+  {
+    key: 'Referrer-Policy',
+    value: 'strict-origin-when-cross-origin',
+  },
+  {
+    key: 'Cross-Origin-Opener-Policy',
+    value: 'same-origin',
+  },
+  {
+    key: 'Content-Security-Policy',
+    value: [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://api.mapbox.com",
+      "style-src 'self' 'unsafe-inline' https://api.mapbox.com",
+      "img-src 'self' data: blob: https://res.cloudinary.com https://*.cloudinary.com https://*.mapbox.com",
+      "font-src 'self' data: https://api.mapbox.com",
+      "connect-src 'self' http://localhost:* ws://localhost:* https://*.sweepstouch.com wss://*.sweepstouch.com https://api.mapbox.com https://events.mapbox.com",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+    ].join('; '),
+  },
+];
+
 const config = {
   reactStrictMode: false,
   transpilePackages: ['@mui/x-charts'],
@@ -11,6 +48,15 @@ const config = {
   // ✅ Remove console.log in production builds
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
+  },
+
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: securityHeaders,
+      },
+    ];
   },
 
   async rewrites() {

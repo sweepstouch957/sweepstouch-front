@@ -1,6 +1,6 @@
 'use client';
 
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';
 import { Avatar, Box, Chip, Divider, Skeleton, Stack, Typography } from '@mui/material';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
@@ -8,6 +8,7 @@ import { Store } from '@/services/store.service';
 import { NearbyPromoter } from '@/services/promotor.service';
 import { PromoterNearCard } from './PromoterNearCard';
 import { PLACEHOLDER_IMG } from '../constants';
+import { cloudinaryThumb } from '@/utils/cloudinary';
 
 interface StoreDetailPanelProps {
   store: Store;
@@ -25,6 +26,11 @@ export const StoreDetailPanel = memo(function StoreDetailPanel({
   onCreateShift,
 }: StoreDetailPanelProps) {
   const list = promoters ?? [];
+  const [imgFailed, setImgFailed] = useState(false);
+
+  const avatarSrc = imgFailed || !store.image
+    ? PLACEHOLDER_IMG
+    : cloudinaryThumb(store.image, 112, 112, 'fill');
 
   return (
     <Box>
@@ -36,8 +42,13 @@ export const StoreDetailPanel = memo(function StoreDetailPanel({
           alignItems="flex-start"
         >
           <Avatar
-            src={store.image || PLACEHOLDER_IMG}
+            src={avatarSrc}
             variant="rounded"
+            imgProps={{
+              loading: 'lazy',
+              decoding: 'async',
+              onError: () => setImgFailed(true),
+            }}
             sx={{ width: 56, height: 56, borderRadius: 2, flexShrink: 0 }}
           />
           <Box

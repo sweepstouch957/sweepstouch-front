@@ -29,7 +29,7 @@ function FilterLabel({ children }: { children: React.ReactNode }) {
   return (
     <Typography
       variant="caption"
-      color="text.disabled"
+      color="text.secondary"
       sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}
     >
       {children}
@@ -118,6 +118,9 @@ function RadiusInput({ radiusKm, onRadiusChange }: RadiusInputProps) {
         InputProps={{
           readOnly: isLocked,
         }}
+        inputProps={{
+          'aria-label': 'Radio de búsqueda en millas',
+        }}
         sx={{
           width: 42,
           '& .MuiOutlinedInput-root': {
@@ -163,8 +166,9 @@ function RadiusInput({ radiusKm, onRadiusChange }: RadiusInputProps) {
       <IconButton
         size="small"
         onClick={handleToggleLock}
+        aria-label={isLocked ? "Desbloquear radio de búsqueda" : "Bloquear y guardar radio de búsqueda"}
         sx={{
-          color: isLocked ? 'text.disabled' : '#EE1E7C',
+          color: isLocked ? 'text.secondary' : '#EE1E7C',
           p: 0.25,
           transition: 'all 0.2s',
           '&:hover': {
@@ -233,11 +237,11 @@ export const FilterBar = memo(function FilterBar({
         placeholder="Mín"
         value={minCustomers}
         onChange={(e) => onMinChange(e.target.value.replace(/\D/g, ''))}
-        inputProps={{ inputMode: 'numeric' }}
+        inputProps={{ inputMode: 'numeric', 'aria-label': 'Clientes mínimos' }}
         InputProps={{
           startAdornment: (
             <InputAdornment position="start" sx={{ mr: 0.5 }}>
-              <PersonOutlineIcon sx={{ fontSize: 12, color: 'text.disabled' }} />
+              <PersonOutlineIcon sx={{ fontSize: 12, color: 'text.secondary' }} />
             </InputAdornment>
           ),
         }}
@@ -255,7 +259,7 @@ export const FilterBar = memo(function FilterBar({
       />
       <Typography
         variant="body2"
-        color="text.disabled"
+        color="text.secondary"
         lineHeight={1}
       >
         —
@@ -265,7 +269,7 @@ export const FilterBar = memo(function FilterBar({
         placeholder="Máx"
         value={maxCustomers}
         onChange={(e) => onMaxChange(e.target.value.replace(/\D/g, ''))}
-        inputProps={{ inputMode: 'numeric' }}
+        inputProps={{ inputMode: 'numeric', 'aria-label': 'Clientes máximos' }}
         sx={{
           width: wide ? 68 : 60,
           '& .MuiOutlinedInput-root': {
@@ -331,6 +335,7 @@ export const FilterBar = memo(function FilterBar({
               value={statusFilter}
               onChange={(e) => onStatusChange(e.target.value as StatusFilter)}
               size="small"
+              inputProps={{ 'aria-label': 'Filtrar por estado' }}
               sx={{
                 minWidth: 85,
                 height: 26,
@@ -478,6 +483,7 @@ export const FilterBar = memo(function FilterBar({
           <IconButton
             size="small"
             onClick={() => setOpen((p) => !p)}
+            aria-label="Expandir filtros de clientes"
             sx={{
               color: hasActiveFilters ? '#EE1E7C' : 'text.secondary',
               bgcolor: hasActiveFilters ? 'rgba(238,30,124,0.08)' : 'transparent',

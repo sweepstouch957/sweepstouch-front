@@ -1,9 +1,10 @@
 'use client';
 
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';
 import { Avatar, Box, Chip, Stack, Typography } from '@mui/material';
 import { Store } from '@/services/store.service';
 import { PLACEHOLDER_IMG } from '../constants';
+import { cloudinaryThumb } from '@/utils/cloudinary';
 
 interface StoreListItemProps {
   store: Store;
@@ -19,6 +20,11 @@ export const StoreListItem = memo(function StoreListItem({
   onClick,
 }: StoreListItemProps) {
   const hasPromoters = (promoterCount ?? 0) > 0;
+  const [imgFailed, setImgFailed] = useState(false);
+
+  const avatarSrc = imgFailed || !store.image
+    ? PLACEHOLDER_IMG
+    : cloudinaryThumb(store.image, 88, 88, 'fill');
 
   return (
     <Box
@@ -39,8 +45,13 @@ export const StoreListItem = memo(function StoreListItem({
       {/* Avatar with active indicator */}
       <Box sx={{ position: 'relative', flexShrink: 0 }}>
         <Avatar
-          src={store.image || PLACEHOLDER_IMG}
+          src={avatarSrc}
           alt={store.name}
+          imgProps={{
+            loading: 'lazy',
+            decoding: 'async',
+            onError: () => setImgFailed(true),
+          }}
           sx={{
             width: 44,
             height: 44,

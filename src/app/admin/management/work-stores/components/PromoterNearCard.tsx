@@ -1,10 +1,11 @@
 'use client';
 
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';
 import { Avatar, Box, Button, Chip, Stack, Typography } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import StarIcon from '@mui/icons-material/Star';
 import { NearbyPromoter } from '@/services/promotor.service';
+import { cloudinaryThumb } from '@/utils/cloudinary';
 
 interface PromoterNearCardProps {
   promoter: NearbyPromoter;
@@ -19,6 +20,11 @@ export const PromoterNearCard = memo(function PromoterNearCard({
 }: PromoterNearCardProps) {
   const fullName =
     promoter.fullName || `${promoter.firstName ?? ''} ${promoter.lastName ?? ''}`.trim();
+  const [imgFailed, setImgFailed] = useState(false);
+
+  const avatarSrc = imgFailed || !promoter.profileImage
+    ? undefined
+    : cloudinaryThumb(promoter.profileImage, 80, 80, 'fill');
 
   return (
     <Box
@@ -36,8 +42,13 @@ export const PromoterNearCard = memo(function PromoterNearCard({
       }}
     >
       <Avatar
-        src={promoter.profileImage}
+        src={avatarSrc}
         alt={fullName}
+        imgProps={{
+          loading: 'lazy',
+          decoding: 'async',
+          onError: () => setImgFailed(true),
+        }}
         sx={{ width: 40, height: 40, flexShrink: 0 }}
       />
       <Box
