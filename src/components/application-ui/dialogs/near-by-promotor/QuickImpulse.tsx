@@ -226,8 +226,8 @@ const QuickImpulseDialog: React.FC<Props> = ({ open, onClose, store, promoters }
                   getOptionLabel={(p) => `${p?.firstName ?? ''} ${p?.lastName ?? ''}`.trim() || '—'}
                   renderOption={(props, p) => (
                     <li
-                      {...props}
                       key={p._id}
+                      {...props}
                     >
                       <Stack
                         direction="row"

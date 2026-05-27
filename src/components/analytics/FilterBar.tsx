@@ -96,7 +96,7 @@ export default function FilterBar({ filters, onChange }: Props) {
           getOptionLabel={(o) => o.name || ''}
           isOptionEqualToValue={(opt, val) => opt._id === val._id}
           renderOption={(props, option) => (
-            <Box component="li" {...props} key={option._id}>
+            <Box component="li" key={option._id} {...props}>
               <Stack direction="row" spacing={1.5} alignItems="center">
                 <Avatar
                   src={option.image}

@@ -77,7 +77,7 @@ export const PromoterSearchBar = memo(function PromoterSearchBar({
           />
         )}
         renderOption={(props, p) => (
-          <Box component="li" {...props} key={p._id} sx={{ py: 0.75, px: 1.5 }}>
+          <Box component="li" key={p._id} {...props} sx={{ py: 0.75, px: 1.5 }}>
             <Stack direction="row" spacing={1.5} alignItems="center" width="100%">
               <Box sx={{ position: 'relative', flexShrink: 0 }}>
                 <Avatar src={cloudinaryThumb(p.profileImage, 34, 34)} alt={p.firstName} sx={{ width: 34, height: 34 }}>

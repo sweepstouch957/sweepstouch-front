@@ -26,10 +26,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Snackbar } from '@mui/material';
 import CampaignResume from './campaing-resume';
-import ProviderImageConstraints, {
+import ProviderImageConstraints from './provider-image-constraints';
+import {
   isValidImageSizeForProvider,
   getProviderImageErrorMessage,
-} from './provider-image-constraints';
+} from './provider-image-utils';
 
 interface CampaignFormInputs {
   title: string;

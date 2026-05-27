@@ -159,8 +159,8 @@ function RequestRow({ req, onClick }: { req: CampaignRequest; onClick: () => voi
           <Typography variant="caption" color="text.disabled">N/A</Typography>
         ) : (
           <Box component="ul" sx={{ m: 0, pl: 1.5, listStyle: 'none' }}>
-            {req.products.slice(0, 4).map((p, i) => (
-              <Box component="li" key={i} sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, mb: 0.2 }}>
+            {req.products.slice(0, 4).map((p) => (
+              <Box component="li" key={p.name} sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, mb: 0.2 }}>
                 <Typography variant="caption" fontWeight={600} noWrap sx={{ maxWidth: 110 }}>{p.name}</Typography>
                 {p.price != null && (
                   <Typography variant="caption" color="success.main" fontWeight={700} noWrap>
@@ -313,7 +313,7 @@ export default function RequestsList() {
           loading={storesFetching}
           noOptionsText={storeSearch.length < 2 ? 'Escribe 2+ letras...' : 'Sin resultados'}
           renderOption={(props, option) => (
-            <Box component="li" {...props} key={option._id} sx={{ display: 'flex', alignItems: 'center', gap: 1, '& .MuiAutocomplete-option': { py: 0.5 } }}>
+            <Box component="li" key={option._id} {...props} sx={{ display: 'flex', alignItems: 'center', gap: 1, '& .MuiAutocomplete-option': { py: 0.5 } }}>
               <StoreIcon sx={{ fontSize: 14, color: 'primary.main', flexShrink: 0 }} />
               <Box>
                 <Typography variant="body2" fontWeight={600} fontSize={12} lineHeight={1.3}>{option.name}</Typography>
@@ -364,7 +364,7 @@ export default function RequestsList() {
               {isLoading && (
                 <TableRow>
                   <TableCell colSpan={7} align="center" sx={{ py: 3, color: 'text.secondary', fontSize: 13 }}>
-                    Cargando solicitudes...
+                    Cargando solicitudes…
                   </TableCell>
                 </TableRow>
               )}

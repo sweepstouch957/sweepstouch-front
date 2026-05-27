@@ -62,7 +62,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, formatDistance, isAfter } from 'date-fns';
 import { useRouter, useSearchParams } from 'next/navigation';
-import React, { forwardRef, useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useCustomization } from 'src/hooks/use-customization';
@@ -214,17 +214,17 @@ function useDragTiltDom(dragging?: boolean, transformStr?: string) {
 /* ──────────────────────────── Task Card ──────────────────────────── */
 
 const KanbanTaskCard = React.memo(
-  forwardRef<
-    HTMLDivElement,
-    {
-      task: Task;
-      onEdit: (t: Task) => void;
-      onDelete: (id: string) => void;
-      dragging?: boolean;
-      style?: React.CSSProperties;
-      [key: string]: any;
-    }
-  >(({ task, onEdit, onDelete, dragging, style, ...rest }, ref) => {
+  function KanbanTaskCardInner({
+    task, onEdit, onDelete, dragging, style, ref, ...rest
+  }: {
+    task: Task;
+    onEdit: (t: Task) => void;
+    onDelete: (id: string) => void;
+    dragging?: boolean;
+    style?: React.CSSProperties;
+    ref?: React.Ref<HTMLDivElement>;
+    [key: string]: any;
+  }) {
     const theme = useTheme();
     const isDark = theme.palette.mode === 'dark';
     const pri = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium;
@@ -534,7 +534,7 @@ const KanbanTaskCard = React.memo(
         </Paper>
       </Box>
     );
-  })
+  }
 );
 KanbanTaskCard.displayName = 'KanbanTaskCard';
 
@@ -1662,8 +1662,8 @@ function TasksPage(): React.JSX.Element {
                     disableCloseOnSelect
                     renderOption={({ key, ...props }, option, { selected }) => (
                       <li
-                        {...props}
                         key={option._id}
+                        {...props}
                       >
                         <Checkbox
                           icon={cbIcon}

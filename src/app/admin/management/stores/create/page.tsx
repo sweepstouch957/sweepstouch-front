@@ -462,7 +462,7 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
                         }));
                       }}
                       renderOption={(props, option) => (
-                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props} key={"brand-" + option._id}>
+                        <Box component="li" key={"brand-" + option._id} sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
                           {option.id !== 'CREATE_NEW' && (
                             option.image ? (
                               <Avatar src={option.image} variant="rounded" sx={{ width: 32, height: 32, mr: 2 }} />
@@ -673,7 +673,7 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
                         }));
                       }}
                       renderOption={(props, option) => (
-                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props} key={"sweepstake-" + option.id}>
+                        <Box component="li" key={"sweepstake-" + option.id} sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
                           {option.image ? (
                             <Avatar src={option.image} variant="rounded" sx={{ width: 32, height: 32, mr: 2 }} />
                           ) : (

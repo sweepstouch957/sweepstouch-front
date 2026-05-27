@@ -23,14 +23,14 @@ import toast from 'react-hot-toast';
 
 import type { EquipmentItem, MaterialItem, Store } from '@/services/store.service';
 import { updateStorePatch } from '@/services/store.service';
+import { EquipmentSectionModal } from './EquipmentSectionModal';
 import {
   type BItem,
   type EquipmentSection,
-  EquipmentSectionModal,
   materialCatalogDefault,
   printerCatalog,
   tabletCatalog,
-} from './EquipmentSectionModal';
+} from './equipment-catalog';
 import { KioskTabletPanel } from './KioskTabletPanel';
 
 
@@ -173,8 +173,8 @@ function EquipmentCard({
           </Stack>
         ) : (
           <Stack spacing={0.6}>
-            {items.map((item, i) => (
-              <Box key={i}>
+            {items.map((item) => (
+              <Box key={item.label}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
                   <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: '65%', fontSize: 13 }}>
                     {item.label}
@@ -196,9 +196,9 @@ function EquipmentCard({
                 </Stack>
                 {item.imeis && item.imeis.filter(Boolean).length > 0 && (
                   <Stack direction="row" flexWrap="wrap" gap={0.5} mt={0.4}>
-                    {item.imeis.filter(Boolean).slice(0, 2).map((imei, j) => (
+                    {item.imeis.filter(Boolean).slice(0, 2).map((imei) => (
                       <Chip
-                        key={j}
+                        key={imei}
                         label={`${imei.slice(0, 12)}…`}
                         size="small"
                         variant="outlined"

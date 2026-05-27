@@ -216,7 +216,7 @@ export default function CampaignsFilters({ filters, setFilters, storeId }: Props
             isOptionEqualToValue={(opt, val) => opt._id === val._id}
             clearOnEscape
             renderOption={(props, option) => (
-              <li {...props} key={option._id}>
+              <li key={option._id} {...props}>
                 <Stack direction="row" spacing={1.25} alignItems="center" sx={{ py: 0.25 }}>
                   <Avatar src={option.image} sx={{ width: 26, height: 26 }} variant="rounded" />
                   <Box sx={{ minWidth: 0 }}>

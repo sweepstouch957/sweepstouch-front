@@ -8,14 +8,14 @@ const usd = (n: number) =>
     currency: 'USD',
     maximumFractionDigits: 2,
   }).format(Number(n ?? 0));
-export const LegendRow = styled('div')(({ theme }) => ({
+const LegendRow = styled('div')(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   gap: theme.spacing(1),
   fontSize: theme.typography.pxToRem(14),
 }));
 
-export const Dot = styled('span')<{ color: string }>(({ color }) => ({
+const Dot = styled('span')<{ color: string }>(({ color }) => ({
   display: 'inline-block',
   width: 10,
   height: 10,

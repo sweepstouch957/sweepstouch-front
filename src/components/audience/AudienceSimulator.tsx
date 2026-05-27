@@ -21,7 +21,8 @@ import {
   Typography,
 } from '@mui/material';
 import React, { useEffect, useMemo, useState } from 'react';
-import { num, pct, StatCard } from './AudienceKpis';
+import { num, pct } from './audience-utils';
+import { StatCard } from './AudienceKpis';
 import { GlassCard } from './ui';
 
 function storeIdOf(s: Store) {
@@ -136,8 +137,8 @@ export function AudienceSimulator(props: {
             renderOption={(props, option) => (
               <Box
                 component="li"
-                {...props}
                 key={option.id}
+                {...props}
                 sx={{
                   display: 'flex',
                   alignItems: 'center',

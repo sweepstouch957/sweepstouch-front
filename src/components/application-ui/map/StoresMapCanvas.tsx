@@ -24,10 +24,10 @@ const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
 const PLACEHOLDER_IMAGE =
   'https://res.cloudinary.com/proyectos-personales/image/upload/v1679455472/woocommerce-placeholder-600x600_xo2kmv.png';
 
-export const audienceColor = (n: number) =>
+const audienceColor = (n: number) =>
   n < 1000 ? '#f44336' : n < 5000 ? '#fdd835' : n < 10000 ? '#EE1E7C' : '#4caf50';
 
-export const audienceTextColor = (n: number) => (n >= 1000 && n < 5000 ? '#000' : '#fff');
+const audienceTextColor = (n: number) => (n >= 1000 && n < 5000 ? '#000' : '#fff');
 
 // ── Memoised marker bodies ─────────────────────────────────────────────────────
 // Extracted so parent re-renders (selectedStoreId change, zoom, pan) only cause
@@ -224,10 +224,11 @@ export const StoresMapCanvas = memo(function StoresMapCanvas({
     if (!promoter?.lastLocation?.coordinates) return;
     const [lng, lat] = promoter.lastLocation.coordinates;
     mapRef.current.flyTo({ center: [lng, lat], zoom: 13, duration: 1400, essential: true });
-    setTimeout(() => {
+    const t = setTimeout(() => {
       setSelectedPromoter(promoter);
       onHighlightedPromoterOpen?.(promoter);
     }, 800);
+    return () => clearTimeout(t);
   }, [highlightedPromoterId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const points = useMemo(

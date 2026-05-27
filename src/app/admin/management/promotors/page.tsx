@@ -189,7 +189,7 @@ function Page() {
                   />
                 )}
                 renderOption={(props, option) => (
-                  <Box component="li" {...props} key={option._id}>
+                  <Box component="li" key={option._id} {...props}>
                     <Stack>
                       <Typography variant="body2" fontWeight={600}>
                         {option.firstName} {option.lastName}
