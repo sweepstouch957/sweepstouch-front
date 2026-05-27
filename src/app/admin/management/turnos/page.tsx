@@ -37,9 +37,10 @@ const ShiftManagementPage = () => {
 
   // Promotoras para el autocomplete
   const { data: promotersData } = useQuery({
-    queryKey: ['promoters-autocomplete'],
+    queryKey: ['promoters-for-shift-modal'],
     queryFn: () => promoterService.getAllPromoters({ limit: 200 }),
-    staleTime: 60_000,
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false,
   });
   const promoterOptions = (promotersData?.data ?? []).map((p) => ({
     id: p._id,
@@ -108,7 +109,6 @@ const ShiftManagementPage = () => {
       <NewShiftModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        sweepstakes={sweepstakes}
       />
     </Container>
   );

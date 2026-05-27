@@ -1,71 +1,63 @@
 'use client';
 
-import Map, { Marker, NavigationControl } from 'react-map-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
 import { useStores } from '@/hooks/fetching/stores/useStores';
 import {
-  Avatar,
   Box,
   Button,
-  CircularProgress,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Modal,
-  Select,
+  Chip,
+  InputAdornment,
+  Skeleton,
   TextField,
   Typography,
 } from '@mui/material';
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
+import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+import SearchIcon from '@mui/icons-material/Search';
 import { useMemo, useState } from 'react';
-import supercluster from 'supercluster';
 import * as XLSX from 'xlsx';
+import { StoresMapCanvas } from './StoresMapCanvas';
 
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
+type StatusFilter = 'all' | 'active' | 'inactive';
 
-const getColorByAudience = (audience: number) => {
-  if (audience < 1000) return '#f44336';
-  if (audience < 5000) return '#fdd835';
-  if (audience < 10000) return '#EE1E7C';
-  return '#4caf50';
-};
-
-const getColorText = (audience: number) => {
-  if (audience < 1000) return '#ffffff';
-  if (audience < 5000) return '#000000';
-  if (audience < 10000) return '#ffffff';
-  return '#ffffff';
-};
+const STATUS_OPTIONS: { value: StatusFilter; label: string; color?: 'success' | 'error' }[] = [
+  { value: 'all', label: 'Todas' },
+  { value: 'active', label: 'Activas', color: 'success' },
+  { value: 'inactive', label: 'Inactivas', color: 'error' },
+];
 
 const MapboxMap = () => {
   const { data: stores, isLoading, error } = useStores();
-  const [selected, setSelected] = useState<any>(null);
-  const [audienceFilter, setAudienceFilter] = useState('all');
-  const [zipFilter, setZipFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [minCustomers, setMinCustomers] = useState('');
+  const [maxCustomers, setMaxCustomers] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [bounds, setBounds] = useState<[number, number, number, number]>([-180, -85, 180, 85]);
-  const [zoom, setZoom] = useState(9);
 
   const filteredStores = useMemo(() => {
+    const min = minCustomers !== '' ? Number(minCustomers) : null;
+    const max = maxCustomers !== '' ? Number(maxCustomers) : null;
     return (
       stores?.filter((store) => {
         const count = store.customerCount || 0;
-        const zipMatch = zipFilter === 'all' || store.zipCode === zipFilter;
-        const nameMatch = store.name.toLowerCase().includes(searchTerm.toLowerCase());
-
-        if (!zipMatch || !nameMatch) return false;
-
-        if (audienceFilter === 'lt1k') return count < 1000;
-        if (audienceFilter === '1kto10k') return count >= 1000 && count <= 10000;
-        if (audienceFilter === 'gt10k') return count > 10000;
+        if (!store.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+        if (statusFilter === 'active' && !store.active) return false;
+        if (statusFilter === 'inactive' && store.active) return false;
+        if (min !== null && count < min) return false;
+        if (max !== null && count > max) return false;
         return true;
-      }) || []
+      }) ?? []
     );
-  }, [stores, audienceFilter, zipFilter, searchTerm]);
+  }, [stores, statusFilter, minCustomers, maxCustomers, searchTerm]);
+
+  const sumAudience = useMemo(
+    () => filteredStores.reduce((s, st) => s + (st.customerCount || 0), 0),
+    [filteredStores],
+  );
 
   const exportToExcel = () => {
     const data = filteredStores.map((s) => ({
       Tienda: s.name,
-      Audiencia: s.customerCount,
+      Clientes: s.customerCount,
+      Activa: s.active ? 'Sí' : 'No',
       Direccion: s.address,
       CodigoPostal: s.zipCode,
     }));
@@ -75,47 +67,18 @@ const MapboxMap = () => {
     XLSX.writeFile(wb, 'tiendas.xlsx');
   };
 
-  const points: any = useMemo(() => {
-    return filteredStores.map((store) => {
-      const [lng, lat] = store.location?.coordinates || [];
-      return {
-        type: 'Feature',
-        properties: {
-          cluster: false,
-          storeId: store._id,
-          store,
-        },
-        geometry: {
-          type: 'Point',
-          coordinates: [lng, lat],
-        },
-      };
-    });
-  }, [filteredStores]);
-
-  const sumAudienceFiltrered = useMemo(() => {
-    return filteredStores.reduce((sum, store) => sum + (store.customerCount || 0), 0);
-  }, [filteredStores]);
-
-  const clusterIndex = useMemo(() => {
-    const cl = new supercluster({ radius: 60, maxZoom: 20 });
-    cl.load(points);
-    return cl;
-  }, [points]);
-
-  const clusters = useMemo(() => {
-    return clusterIndex.getClusters(bounds, zoom);
-  }, [clusterIndex, bounds, zoom]);
-
   if (isLoading) {
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        height={400}
-      >
-        <CircularProgress />
+      <Box>
+        <Skeleton
+          variant="rounded"
+          height={56}
+          sx={{ mb: 1.5 }}
+        />
+        <Skeleton
+          variant="rounded"
+          height={600}
+        />
       </Box>
     );
   }
@@ -138,230 +101,164 @@ const MapboxMap = () => {
 
   return (
     <Box>
+      {/* Filter bar */}
       <Box
-        mb={2}
-        display="flex"
-        flexWrap="wrap"
-        alignItems="center"
-        gap={2}
+        sx={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: 1.5,
+          mb: 1.5,
+          px: 2,
+          py: 1.5,
+          borderRadius: 2,
+          bgcolor: 'background.paper',
+          border: (t) => `1px solid ${t.palette.divider}`,
+        }}
       >
-        <FormControl size="small">
-          <InputLabel>Audiencia</InputLabel>
-          <Select
-            value={audienceFilter}
-            onChange={(e) => setAudienceFilter(e.target.value)}
-            label="Audiencia"
-          >
-            <MenuItem value="all">Todas</MenuItem>
-            <MenuItem value="lt1k">Menos de 1,000</MenuItem>
-            <MenuItem value="1kto10k">1,000 - 10,000</MenuItem>
-            <MenuItem value="gt10k">Más de 10,000</MenuItem>
-          </Select>
-        </FormControl>
-
         <TextField
           size="small"
-          label="Buscar por nombre"
+          placeholder="Buscar tienda..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon
+                  fontSize="small"
+                  sx={{ color: 'text.disabled' }}
+                />
+              </InputAdornment>
+            ),
+          }}
+          sx={{ width: 200 }}
         />
 
-        <Button
-          variant="outlined"
-          onClick={exportToExcel}
+        <Box
+          sx={{ width: '1px', height: 28, bgcolor: 'divider', display: { xs: 'none', md: 'block' } }}
+        />
+
+        <Box
+          display="flex"
+          alignItems="center"
+          gap={0.75}
         >
-          Exportar a Excel
-        </Button>
-
-        <Typography
-          variant="body1"
-          color="text.primary"
-          fontSize={'1rem'}
-        >
-          <b>{filteredStores.length}</b> tiendas encontradas ({sumAudienceFiltrered})
-        </Typography>
-      </Box>
-
-      <Box
-        width="100%"
-        height="600px"
-        borderRadius={2}
-        overflow="hidden"
-      >
-        <Map
-          initialViewState={{ latitude: 40.72, longitude: -74, zoom: 9 }}
-          mapStyle="mapbox://styles/mapbox/light-v10"
-          mapboxAccessToken={MAPBOX_TOKEN}
-          style={{ width: '100%', height: '100%' }}
-          optimizeForTerrain
-          onMoveEnd={(e) => {
-            const b = e.target.getBounds();
-            setBounds([b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]);
-            setZoom(Math.round(e.viewState.zoom));
-          }}
-        >
-          <NavigationControl position="top-right" />
-
-          {clusters.map((cluster: any) => {
-            const [lng, lat] = cluster.geometry.coordinates;
-            const { cluster: isCluster, point_count: pointCount } = cluster.properties;
-
-            if (isCluster) {
-              return (
-                <Marker
-                  key={`cluster-${cluster.id}`}
-                  longitude={lng}
-                  latitude={lat}
-                  anchor="bottom"
-                >
-                  <Box
-                    sx={{
-                      width: 32,
-                      height: 32,
-                      backgroundColor: '#EE1E7C',
-                      borderRadius: '50%',
-                      color: '#fff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 12,
-                      fontWeight: 'bold',
-                      boxShadow: 2,
-                    }}
-                  >
-                    {pointCount}
-                  </Box>
-                </Marker>
-              );
-            }
-
-            const store = cluster.properties.store;
-            const color = getColorByAudience(store.customerCount || 0);
-            const textColor = getColorText(store.customerCount || 0);
-
-            const imageSrc =
-              store.image ||
-              'https://res.cloudinary.com/proyectos-personales/image/upload/v1679455472/woocommerce-placeholder-600x600_xo2kmv.png';
-
-            return (
-              <Marker
-                key={store._id}
-                longitude={lng}
-                latitude={lat}
-                anchor="bottom"
-                onClick={() => setSelected(store)}
-              >
-                <Box
-                  textAlign="center"
-                  sx={{ cursor: 'pointer' }}
-                >
-                  <Avatar
-                    src={imageSrc}
-                    alt={store.name}
-                    sx={{
-                      width: 36,
-                      height: 36,
-                      border: `2px solid ${color}`,
-                      boxShadow: 2,
-                      mb: '2px',
-                    }}
-                  />
-                  <Box
-                    sx={{
-                      fontSize: 10,
-                      px: 1,
-                      py: '2px',
-                      borderRadius: '8px',
-                      fontWeight: 300,
-                      backgroundColor: color,
-                      color: textColor,
-                      display: 'inline-block',
-                      minWidth: '50px',
-                    }}
-                  >
-                    {store.customerCount || 0}
-                  </Box>
-                </Box>
-              </Marker>
-            );
-          })}
-        </Map>
-
-        <Modal
-          open={!!selected}
-          onClose={() => setSelected(null)}
-        >
-          <Box
-            sx={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              bgcolor: '#fff',
-              borderRadius: 3,
-              p: 4,
-              boxShadow: 24,
-              width: 320,
-              textAlign: 'center',
-            }}
+          <Typography
+            variant="caption"
+            color="text.disabled"
+            sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', mr: 0.25 }}
           >
-            <Avatar
-              src={selected?.image}
-              alt={selected?.name}
-              sx={{ width: 80, height: 80, mx: 'auto', mb: 2 }}
+            Estado
+          </Typography>
+          {STATUS_OPTIONS.map(({ value, label, color }) => (
+            <Chip
+              key={value}
+              label={label}
+              size="small"
+              onClick={() => setStatusFilter(value)}
+              variant={statusFilter === value ? 'filled' : 'outlined'}
+              color={statusFilter === value ? (color ?? 'primary') : 'default'}
+              sx={{
+                cursor: 'pointer',
+                fontWeight: statusFilter === value ? 600 : 400,
+                transition: 'all 150ms ease-out',
+              }}
             />
-            <Typography
-              variant="h6"
-              fontWeight="bold"
-              mb={1}
-            >
-              {selected?.name}
-            </Typography>
+          ))}
+        </Box>
+
+        <Box
+          sx={{ width: '1px', height: 28, bgcolor: 'divider', display: { xs: 'none', md: 'block' } }}
+        />
+
+        <Box
+          display="flex"
+          alignItems="center"
+          gap={1}
+        >
+          <Typography
+            variant="caption"
+            color="text.disabled"
+            sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}
+          >
+            Clientes
+          </Typography>
+          <TextField
+            size="small"
+            placeholder="Mín"
+            value={minCustomers}
+            onChange={(e) => setMinCustomers(e.target.value.replace(/\D/g, ''))}
+            inputProps={{ inputMode: 'numeric' }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <PersonOutlineIcon
+                    fontSize="small"
+                    sx={{ color: 'text.disabled' }}
+                  />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ width: 110 }}
+          />
+          <Typography
+            variant="body2"
+            color="text.disabled"
+            lineHeight={1}
+          >
+            —
+          </Typography>
+          <TextField
+            size="small"
+            placeholder="Máx"
+            value={maxCustomers}
+            onChange={(e) => setMaxCustomers(e.target.value.replace(/\D/g, ''))}
+            inputProps={{ inputMode: 'numeric' }}
+            sx={{ width: 110 }}
+          />
+        </Box>
+
+        <Box flex={1} />
+
+        <Box
+          display="flex"
+          alignItems="center"
+          gap={2}
+        >
+          <Box>
             <Typography
               variant="body2"
-              color="text.secondary"
+              color="text.primary"
+              lineHeight={1.3}
             >
-              Audiencia: <b>{selected?.customerCount}</b> usuarios
+              <b>{filteredStores.length}</b>{' '}
+              <Typography
+                component="span"
+                variant="body2"
+                color="text.secondary"
+              >
+                tiendas
+              </Typography>
             </Typography>
             <Typography
-              variant="body2"
+              variant="caption"
               color="text.secondary"
             >
-              Código Postal: <b>{selected?.zipCode}</b>
+              {sumAudience.toLocaleString()} clientes
             </Typography>
-            <Box
-              mt={3}
-              display="flex"
-              flexDirection="column"
-              gap={1}
-            >
-              <Button
-                variant="contained"
-                color="primary"
-                fullWidth
-                onClick={() => {
-                  window.open(`/admin/management/stores/edit/${selected._id}`, '_blank');
-                }}
-              >
-                Ver tienda
-              </Button>
-              <Button
-                variant="outlined"
-                color="secondary"
-                fullWidth
-                onClick={() => {
-                  const address = encodeURIComponent(selected?.address || '');
-                  const url = `https://www.google.com/maps/search/?api=1&query=${address}`;
-                  window.open(url, '_blank');
-                }}
-                disabled={!selected?.address}
-              >
-                Abrir en Google Maps
-              </Button>
-            </Box>
           </Box>
-        </Modal>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<FileDownloadOutlinedIcon fontSize="small" />}
+            onClick={exportToExcel}
+          >
+            Exportar
+          </Button>
+        </Box>
       </Box>
+
+      <StoresMapCanvas stores={filteredStores} />
     </Box>
   );
 };

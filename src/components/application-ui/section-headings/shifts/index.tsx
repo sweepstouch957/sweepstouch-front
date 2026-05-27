@@ -26,6 +26,8 @@ export default function KpiCards(props: KpiCardsProps) {
   const { data: shiftData, isLoading: isShiftsLoading } = useQuery({
     queryKey: ['shift-metrics'],
     queryFn: () => shiftService.getShiftMetrics(),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   });
 
   // Budget actual

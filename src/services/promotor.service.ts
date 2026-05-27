@@ -16,6 +16,12 @@ export interface Promoter {
   active: boolean;
   createdAt: string;
   lastLogin?: string;
+  lastLocation?: {
+    type: string;
+    coordinates: [number, number];
+  };
+  lastActive?: string;
+  isOnline?: boolean;
   store?: Store;
   accessCode?: string | null;
   totalShifts?: number;
@@ -249,6 +255,11 @@ export class PromoterService {
 
   async getPromotersNearStore(storeId: string, radiusKm = 50): Promise<NearStoreResponse> {
     const res = await api.get(`/promoter/users/near-store/${storeId}`, { params: { radiusKm } });
+    return res.data;
+  }
+
+  async getAllLocatedPromoters(): Promise<{ promoters: NearbyPromoter[] }> {
+    const res = await api.get('/promoter/users/with-location');
     return res.data;
   }
 }

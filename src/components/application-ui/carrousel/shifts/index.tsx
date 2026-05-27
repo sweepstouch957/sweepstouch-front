@@ -318,7 +318,6 @@ const MobileShiftCarousel = ({
       <NewShiftModal
         open={editModalOpen}
         onClose={closeAllModals ?? (() => {})}
-        sweepstakes={sweepstakes}
         shiftId={selectedShiftId}
       />
       <DeleteShiftDialog
