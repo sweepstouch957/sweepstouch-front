@@ -7,6 +7,7 @@
  */
 import { create } from 'zustand';
 import { io, type Socket } from 'socket.io-client';
+import { getAuthToken } from '@/utils/auth/custom/storage';
 
 // ─── Tipos
 
@@ -76,6 +77,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => {
 
       const socket = io(url, {
         path: '/socket.io',          // proxy del API Gateway
+        query: { token: getAuthToken() || '' },
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionAttempts: Infinity,
