@@ -31,7 +31,9 @@ export function useNotifications() {
     if (!user?._id && !user?.id) return;
 
     const userId = user._id || user.id;
-    const socket = io(NOTIFICATION_URL, {
+    const serverUrl = NOTIFICATION_URL.startsWith('http') ? new URL(NOTIFICATION_URL).origin : NOTIFICATION_URL;
+    const socket = io(serverUrl, {
+      path: '/socket.io',
       query: { token: getAuthToken() || '' },
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,

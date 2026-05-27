@@ -1,8 +1,100 @@
 import { IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from '@mui/material';
 import { FC, useCallback, useState } from 'react';
-import ReactCountryFlag from 'react-country-flag';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+
+const LanguageFlag: FC<{ countryCode: string; size?: number }> = ({ countryCode, size = 20 }) => {
+  const code = (countryCode || '').toUpperCase();
+  
+  return (
+    <svg 
+      viewBox="0 0 100 100" 
+      width={size} 
+      height={size} 
+      style={{ display: 'inline-block', verticalAlign: 'middle', borderRadius: '50%' }}
+    >
+      <defs>
+        <clipPath id={`clip-${code}`}>
+          <circle cx="50" cy="50" r="50" />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#clip-${code})`}>
+        {code === 'US' && (
+          <>
+            <rect width="100" height="100" fill="#fff" />
+            <g fill="#b22234">
+              <rect y="0" width="100" height="7.7" />
+              <rect y="15.4" width="100" height="7.7" />
+              <rect y="30.8" width="100" height="7.7" />
+              <rect y="46.2" width="100" height="7.7" />
+              <rect y="61.5" width="100" height="7.7" />
+              <rect y="76.9" width="100" height="7.7" />
+              <rect y="92.3" width="100" height="7.7" />
+            </g>
+            <rect width="45" height="53.8" fill="#3c3b6e" />
+            <g fill="#fff">
+              <circle cx="8" cy="8" r="1.5" />
+              <circle cx="20" cy="8" r="1.5" />
+              <circle cx="32" cy="8" r="1.5" />
+              <circle cx="14" cy="18" r="1.5" />
+              <circle cx="26" cy="18" r="1.5" />
+              <circle cx="38" cy="18" r="1.5" />
+              <circle cx="8" cy="28" r="1.5" />
+              <circle cx="20" cy="28" r="1.5" />
+              <circle cx="32" cy="28" r="1.5" />
+              <circle cx="14" cy="38" r="1.5" />
+              <circle cx="26" cy="38" r="1.5" />
+              <circle cx="38" cy="38" r="1.5" />
+              <circle cx="8" cy="46" r="1.5" />
+              <circle cx="20" cy="46" r="1.5" />
+              <circle cx="32" cy="46" r="1.5" />
+            </g>
+          </>
+        )}
+        {code === 'ES' && (
+          <>
+            <rect width="100" height="100" fill="#c60b1e" />
+            <rect y="25" width="100" height="50" fill="#ffc400" />
+            <circle cx="35" cy="50" r="12" fill="#c60b1e" opacity="0.85" />
+            <circle cx="35" cy="50" r="8" fill="#ffc400" />
+          </>
+        )}
+        {code === 'DE' && (
+          <>
+            <rect width="100" height="33.3" fill="#000" />
+            <rect y="33.3" width="100" height="33.3" fill="#dd0000" />
+            <rect y="66.6" width="100" height="33.4" fill="#ffce00" />
+          </>
+        )}
+        {code === 'FR' && (
+          <>
+            <rect width="33.3" height="100" fill="#002395" />
+            <rect x="33.3" width="33.3" height="100" fill="#fff" />
+            <rect x="66.6" width="33.4" height="100" fill="#ed2939" />
+          </>
+        )}
+        {code === 'AE' && (
+          <>
+            <rect width="100" height="100" fill="#000" />
+            <rect width="100" height="66.6" fill="#fff" />
+            <rect width="100" height="33.3" fill="#00732f" />
+            <rect width="25" height="100" fill="#ff0000" />
+          </>
+        )}
+        {code === 'CN' && (
+          <>
+            <rect width="100" height="100" fill="#ee1c25" />
+            <path d="M25,35L17,40L20,30L12,24L22,24L25,14L28,24L38,24L30,30L33,40Z" fill="#ffff00" />
+            <circle cx="42" cy="18" r="3" fill="#ffff00" />
+            <circle cx="48" cy="26" r="3" fill="#ffff00" />
+            <circle cx="48" cy="38" r="3" fill="#ffff00" />
+            <circle cx="42" cy="46" r="3" fill="#ffff00" />
+          </>
+        )}
+      </g>
+    </svg>
+  );
+};
 
 type Language = 'en' | 'es' | 'de' | 'fr' | 'ae' | 'cn';
 
@@ -98,9 +190,9 @@ const LanguageDropdown: FC<LanguageDropdownProps> = ({ color = 'inherit', sx = {
             ...sx,
           }}
         >
-          <ReactCountryFlag
+          <LanguageFlag
             countryCode={flag}
-            svg
+            size={22}
           />
         </IconButton>
       </Tooltip>
@@ -130,13 +222,9 @@ const LanguageDropdown: FC<LanguageDropdownProps> = ({ color = 'inherit', sx = {
               selected={i18n.language === language}
             >
               <ListItemIcon>
-                <ReactCountryFlag
-                  style={{
-                    width: '2em',
-                    height: '2em',
-                  }}
+                <LanguageFlag
                   countryCode={option.icon}
-                  svg
+                  size={24}
                 />
               </ListItemIcon>
               <ListItemText
