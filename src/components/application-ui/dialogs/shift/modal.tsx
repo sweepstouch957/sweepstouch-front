@@ -41,6 +41,7 @@ type PromoterOption = {
   lastName: string;
   profileImage?: string;
   rating?: number;
+  distanceMiles?: number;
 };
 
 type ShiftState = {
@@ -350,15 +351,36 @@ const NewShiftModal = ({ open, onClose, shiftId, initialStoreId, initialPromoter
   });
   // Stable reference — .map() inside useMemo avoids new array on every render
   const promoterOptions = useMemo<PromoterOption[]>(
-    () =>
-      (promotersData?.data ?? []).map((p) => ({
-        _id: p._id,
-        firstName: p.firstName,
-        lastName: p.lastName,
-        profileImage: p.profileImage,
-        rating: p.rating,
-      })),
-    [promotersData?.data],
+    () => {
+      const nearMap = new Map<string, number>();
+      for (const np of nearPromotersData?.promoters ?? []) {
+        if (np.distanceMiles !== undefined) {
+          nearMap.set(np._id, np.distanceMiles);
+        }
+      }
+
+      return (promotersData?.data ?? [])
+        .map((p) => {
+          const dist = nearMap.get(p._id);
+          return {
+            _id: p._id,
+            firstName: p.firstName,
+            lastName: p.lastName,
+            profileImage: p.profileImage,
+            rating: p.rating,
+            distanceMiles: dist,
+          };
+        })
+        .sort((a, b) => {
+          if (a.distanceMiles !== undefined && b.distanceMiles !== undefined) {
+            return a.distanceMiles - b.distanceMiles;
+          }
+          if (a.distanceMiles !== undefined) return -1;
+          if (b.distanceMiles !== undefined) return 1;
+          return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+        });
+    },
+    [promotersData?.data, nearPromotersData?.promoters],
   );
 
   // Existing shift (edit mode)
@@ -888,14 +910,32 @@ const NewShiftModal = ({ open, onClose, shiftId, initialStoreId, initialPromoter
                     >
                       {option.firstName} {option.lastName}
                     </Typography>
-                    {option.rating !== undefined && (
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                      >
-                        {'★'} {option.rating.toFixed(1)}
-                      </Typography>
-                    )}
+                    <Stack direction="row" spacing={1} alignItems="center" mt={0.25}>
+                      {option.rating !== undefined && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: 'flex', alignItems: 'center' }}
+                        >
+                          {'★'} {option.rating.toFixed(1)}
+                        </Typography>
+                      )}
+                      {option.distanceMiles !== undefined && (
+                        <Chip
+                          label={`${option.distanceMiles.toFixed(1)} mi`}
+                          size="small"
+                          sx={{
+                            height: 14,
+                            fontSize: 8,
+                            fontWeight: 700,
+                            bgcolor: 'rgba(46,125,50,0.08)',
+                            color: 'success.dark',
+                            border: '1px solid rgba(46,125,50,0.2)',
+                            '& .MuiChip-label': { px: 0.5 },
+                          }}
+                        />
+                      )}
+                    </Stack>
                   </Box>
                 </Box>
               )}
