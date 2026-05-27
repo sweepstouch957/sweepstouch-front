@@ -1,11 +1,13 @@
 'use client';
 
 import NewShiftModal from '@/components/application-ui/dialogs/shift/modal';
+import { PromoterSearchBar } from '@/components/application-ui/map/PromoterSearchBar';
 import { StoresMapCanvas } from '@/components/application-ui/map/StoresMapCanvas';
 import PageHeading from '@/components/base/page-heading';
+import { usePromoterMapData } from '@/hooks/fetching/promoter/usePromoterMapData';
 import { usePromotersNearStore } from '@/hooks/fetching/promoter/usePromotersNearStore';
 import { useStores } from '@/hooks/fetching/stores/useStores';
-import { promoterService, NearbyPromoter } from '@/services/promotor.service';
+import { NearbyPromoter } from '@/services/promotor.service';
 import { shiftService } from '@/services/shift.service';
 import { Store } from '@/services/store.service';
 import AddIcon from '@mui/icons-material/Add';
@@ -27,7 +29,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import React, {
+import {
   useCallback,
   useDeferredValue,
   useMemo,
@@ -35,13 +37,12 @@ import React, {
 } from 'react';
 
 import { FilterBar } from './components/FilterBar';
-import { StoreList } from './components/StoreList';
 import { StoreDetailPanel } from './components/StoreDetailPanel';
+import { StoreList } from './components/StoreList';
 import { PANEL_HEIGHT, SKELETON_ROWS } from './constants';
-import { StatusFilter, SortBy } from './types';
+import { SortBy, StatusFilter } from './types';
 
 // ── Page ──────────────────────────────────────────────────────────────────────
-
 
 const WorkStoresPage = () => {
   const theme = useTheme();
@@ -53,58 +54,31 @@ const WorkStoresPage = () => {
   const [maxCustomers, setMaxCustomers] = useState('');
   const [sortBy, setSortBy] = useState<SortBy>('promoters_desc');
 
-  // ── Page state ───────────────────────────────────────────────────────────────
+  // ── UI state ─────────────────────────────────────────────────────────────────
   const [selectedStore, setSelectedStore] = useState<Store | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const deferredSearch = useDeferredValue(searchTerm);   // non-blocking search
+  const deferredSearch = useDeferredValue(searchTerm);
   const [activeTab, setActiveTab] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalStoreId, setModalStoreId] = useState<string | null>(null);
   const [modalPromoterId, setModalPromoterId] = useState<string | null>(null);
-  const [radiusKm, setRadiusKm] = useState(8); // 8 Km = 5 miles default
+  const [radiusKm, setRadiusKm] = useState(8);
+  const [highlightedPromoterId, setHighlightedPromoterId] = useState<string | undefined>();
+  const [promoterSearch, setPromoterSearch] = useState<NearbyPromoter | null>(null);
+  const [onlineOnly, setOnlineOnly] = useState(false);
 
   // ── Data ─────────────────────────────────────────────────────────────────────
-
   const { data: stores, isLoading: loadingStores } = useStores();
 
-  // Batch promoter counts — always on; drives both the count badge and sort
-  const { data: promoterBatchData, isLoading: loadingBatch } = useQuery({
-    queryKey: ['stores-promoter-counts', radiusKm],
-    queryFn: () =>
-      promoterService.getStoresUnderWithNearbyPromoters({
-        limit: 500,
-        radiusMi: Math.round(radiusKm / 1.6),
-        audienceLt: 99999,
-      }),
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
+  const { allPromoters, promoterCountMap, loadingBatch } = usePromoterMapData(radiusKm);
 
-  const promoterCountMap = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const sw of promoterBatchData?.stores ?? []) {
-      map.set(sw.store.id, sw.promoters.length);
-    }
-    return map;
-  }, [promoterBatchData?.stores]);
-
-  // All promoters with GPS — no radius filter, powers global map pins
-  const { data: allLocatedData } = useQuery({
-    queryKey: ['promoters-with-location'],
-    queryFn: () => promoterService.getAllLocatedPromoters(),
-    staleTime: 60_000,
-    refetchOnWindowFocus: false,
-  });
-
-  // Promoters near selected store (lazy)
   const { data: nearData, isLoading: loadingPromoters } = usePromotersNearStore(
     selectedStore?._id,
     radiusKm,
   );
 
-  // Shift status badges for selected store (lazy)
   const { data: storeShiftsData } = useQuery({
-    queryKey: ['shifts', 'by-store', selectedStore?._id],
+    queryKey: ['shifts', 'by-store', selectedStore?._id] as const,
     queryFn: () => shiftService.getAllShifts({ storeId: selectedStore!._id, limit: 100 }),
     enabled: !!selectedStore?._id,
     staleTime: 30_000,
@@ -113,23 +87,16 @@ const WorkStoresPage = () => {
 
   // ── Derived ──────────────────────────────────────────────────────────────────
 
-  const allPromoters = useMemo(() => {
-    const map = new Map<string, NearbyPromoter>();
-    // Global pin layer — every promoter with GPS, regardless of store proximity
-    for (const p of allLocatedData?.promoters ?? []) {
-      map.set(p._id, p);
-    }
-    // Enrich with richer near-under data (distance, etc.) when available
-    for (const sw of promoterBatchData?.stores ?? []) {
-      for (const p of sw.promoters ?? []) {
-        map.set(p._id, p);
-      }
-    }
-    for (const p of nearData?.promoters ?? []) {
-      map.set(p._id, p);
-    }
-    return Array.from(map.values());
-  }, [allLocatedData, promoterBatchData, nearData]);
+  /** Client-side online filter — zero network cost. */
+  const visiblePromoters = useMemo(
+    () => (onlineOnly ? allPromoters.filter((p) => p.isOnline) : allPromoters),
+    [allPromoters, onlineOnly],
+  );
+
+  const onlineCount = useMemo(
+    () => allPromoters.filter((p) => p.isOnline).length,
+    [allPromoters],
+  );
 
   const promoterShiftStatusMap = useMemo(() => {
     const map = new Map<string, 'active' | 'pending'>();
@@ -145,7 +112,6 @@ const WorkStoresPage = () => {
     return map;
   }, [storeShiftsData?.shifts]);
 
-  // Uses deferredSearch so typing doesn't block the UI
   const filteredStores = useMemo(() => {
     const all = stores ?? [];
     const min = minCustomers !== '' ? Number(minCustomers) : null;
@@ -176,7 +142,7 @@ const WorkStoresPage = () => {
     [filteredStores],
   );
 
-  // ── Handlers (stable refs — don't trigger child memo invalidation) ────────────
+  // ── Stable handlers ───────────────────────────────────────────────────────────
 
   const openShiftModal = useCallback((storeId: string, promoterId?: string) => {
     setModalStoreId(storeId);
@@ -200,7 +166,36 @@ const WorkStoresPage = () => {
 
   const clearSelectedStore = useCallback(() => setSelectedStore(null), []);
 
-  // ── Render ───────────────────────────────────────────────────────────────────
+  const handlePromoterSearch = useCallback((p: NearbyPromoter | null) => {
+    setPromoterSearch(p);
+    setHighlightedPromoterId(p?._id);
+  }, []);
+
+  const handleToggleOnlineOnly = useCallback(() => setOnlineOnly((v) => !v), []);
+
+  // ── Shared fragments ──────────────────────────────────────────────────────────
+
+  const mapSearchBar = (
+    <PromoterSearchBar
+      promoters={allPromoters}
+      value={promoterSearch}
+      onlineOnly={onlineOnly}
+      onlineCount={onlineCount}
+      onChange={handlePromoterSearch}
+      onToggleOnlineOnly={handleToggleOnlineOnly}
+    />
+  );
+
+  const mapCanvas = (height: number | string) => (
+    <StoresMapCanvas
+      stores={filteredStores}
+      promoters={visiblePromoters}
+      height={height}
+      onStoreClick={handleStoreClick}
+      selectedStoreId={selectedStore?._id}
+      highlightedPromoterId={highlightedPromoterId}
+    />
+  );
 
   const panel = (
     <Box
@@ -214,7 +209,6 @@ const WorkStoresPage = () => {
         overflow: 'hidden',
       }}
     >
-      {/* Panel header */}
       <Box
         sx={{
           px: 2,
@@ -224,24 +218,11 @@ const WorkStoresPage = () => {
         }}
       >
         {selectedStore ? (
-          <Stack
-            direction="row"
-            alignItems="center"
-            spacing={1}
-          >
-            <IconButton
-              size="small"
-              onClick={clearSelectedStore}
-              sx={{ flexShrink: 0 }}
-            >
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <IconButton size="small" onClick={clearSelectedStore} sx={{ flexShrink: 0 }}>
               <ArrowBackIcon fontSize="small" />
             </IconButton>
-            <Typography
-              variant="body2"
-              fontWeight={600}
-              noWrap
-              flex={1}
-            >
+            <Typography variant="body2" fontWeight={600} noWrap flex={1}>
               {selectedStore.name}
             </Typography>
             <Button
@@ -273,10 +254,7 @@ const WorkStoresPage = () => {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon
-                    fontSize="small"
-                    sx={{ color: 'text.disabled' }}
-                  />
+                  <SearchIcon fontSize="small" sx={{ color: 'text.disabled' }} />
                 </InputAdornment>
               ),
             }}
@@ -284,7 +262,6 @@ const WorkStoresPage = () => {
         )}
       </Box>
 
-      {/* Panel content */}
       <Box sx={{ flex: 1, overflowY: 'auto' }}>
         {selectedStore ? (
           <StoreDetailPanel
@@ -297,12 +274,7 @@ const WorkStoresPage = () => {
         ) : loadingStores ? (
           <Box p={2}>
             {SKELETON_ROWS.map((_, i) => (
-              <Skeleton
-                key={i}
-                height={64}
-                sx={{ mb: 0.5, borderRadius: 1.5 }}
-                animation="wave"
-              />
+              <Skeleton key={i} height={64} sx={{ mb: 0.5, borderRadius: 1.5 }} animation="wave" />
             ))}
           </Box>
         ) : (
@@ -345,25 +317,20 @@ const WorkStoresPage = () => {
     />
   );
 
+  // ── Desktop ───────────────────────────────────────────────────────────────────
   if (!isMobile) {
     return (
-      <Container
-        maxWidth="xl"
-        sx={{ py: 3 }}
-      >
+      <Container maxWidth="xl" sx={{ py: 3 }}>
         <PageHeading
           title="Tiendas y Asignaciones"
           description="Selecciona una tienda en el mapa para ver promotoras cercanas y crear turnos"
         />
         <Box mt={2}>{filterBar}</Box>
         <Box sx={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 2 }}>
-          <StoresMapCanvas
-            stores={filteredStores}
-            promoters={allPromoters}
-            height={PANEL_HEIGHT}
-            onStoreClick={handleStoreClick}
-            selectedStoreId={selectedStore?._id}
-          />
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {mapSearchBar}
+            {mapCanvas(PANEL_HEIGHT)}
+          </Box>
           {panel}
         </Box>
         {modal}
@@ -371,36 +338,33 @@ const WorkStoresPage = () => {
     );
   }
 
+  // ── Mobile ────────────────────────────────────────────────────────────────────
   return (
     <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <Box sx={{ px: 2, pt: 2, pb: 0.5, flexShrink: 0 }}>
-        <Typography
-          variant="h6"
-          fontWeight={700}
-        >
+        <Typography variant="h6" fontWeight={700}>
           Tiendas y Asignaciones
         </Typography>
       </Box>
       <Box sx={{ px: 2, pt: 1, flexShrink: 0 }}>{filterBar}</Box>
       <Box sx={{ borderBottom: (t) => `1px solid ${t.palette.divider}`, flexShrink: 0 }}>
-        <Tabs
-          value={activeTab}
-          onChange={(_, v) => setActiveTab(v)}
-          variant="fullWidth"
-        >
+        <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} variant="fullWidth">
           <Tab label="Mapa" />
           <Tab label="Tiendas" />
         </Tabs>
       </Box>
       <Box sx={{ flex: 1, overflow: 'hidden' }}>
-        <Box sx={{ display: activeTab === 0 ? 'block' : 'none', height: '100%' }}>
-          <StoresMapCanvas
-            stores={filteredStores}
-            promoters={allPromoters}
-            height="100%"
-            onStoreClick={handleStoreClick}
-            selectedStoreId={selectedStore?._id}
-          />
+        <Box
+          sx={{
+            display: activeTab === 0 ? 'flex' : 'none',
+            flexDirection: 'column',
+            height: '100%',
+            gap: 1,
+            p: 1,
+          }}
+        >
+          {mapSearchBar}
+          <Box sx={{ flex: 1, minHeight: 0 }}>{mapCanvas('100%')}</Box>
         </Box>
         <Box sx={{ display: activeTab === 1 ? 'flex' : 'none', flexDirection: 'column', height: '100%' }}>
           {panel}
