@@ -76,6 +76,7 @@ export async function sendChatMessage(
   onToolStart?: (data: { tool: string; input: Record<string, any> }) => void,
   onToolResult?: (data: { tool: string; result: Record<string, any> }) => void,
   onImage?: (data: { url: string; name: string }) => void,
+  onConversationId?: (conversationId: string) => void,
 ): Promise<void> {
   const { signal, ...bodyParams } = params;
   const token = getAuthToken();
@@ -117,6 +118,10 @@ export async function sendChatMessage(
 
     try {
       const data = JSON.parse(trimmedLine.slice(6));
+      const conversationId =
+        data.conversationId || data.conversation?._id || data.conversation?.id;
+      if (conversationId) onConversationId?.(String(conversationId));
+
       if (data.type === 'text') onText(data.text);
       else if (data.type === 'done') onDone(data);
       else if (data.type === 'error') onError(data.error);
