@@ -165,6 +165,7 @@ const COMBINED_FIRST_PASS_TIMEOUT_MS = 30000;
 const COMBINED_CONVERSATION_LOOKUP_ATTEMPTS = 12;
 const COMBINED_CONVERSATION_LOOKUP_DELAY_MS = 750;
 const STREAMING_TEXT_FLUSH_MS = 75;
+const CHAT_RECOVERY_INTERVAL_MS = 8000;
 
 const getResponseCacheKey = (content: string) => content.trim().slice(0, 5000);
 
@@ -1201,6 +1202,11 @@ export default function AIAssistantPage() {
       }
 
       const pendingModels = new Set<BaseAIModel>(BASE_AI_MODELS);
+      const firstPassOptions: RunModelOptions = {
+        timeoutMs: COMBINED_FIRST_PASS_TIMEOUT_MS,
+        keepLoadingOnTimeout: true,
+        retryLabel: '',
+      };
       const keepPendingIfNeeded = (model: BaseAIModel, result: RunModelResult) => {
         if (
           result.completed &&
@@ -1210,22 +1216,44 @@ export default function AIAssistantPage() {
           pendingModels.delete(model);
         }
       };
-      for (const model of BASE_AI_MODELS) {
+
+      while (!combinedConversationId && pendingModels.size > 0) {
         if (controller.signal.aborted) return;
-        const result = await runModel(model, combinedConversationId, {
-          timeoutMs: COMBINED_FIRST_PASS_TIMEOUT_MS,
-          keepLoadingOnTimeout: true,
-          retryLabel: '',
-        });
+        const model = Array.from(pendingModels)[0];
+        const result = await runModel(model, combinedConversationId, firstPassOptions);
         keepPendingIfNeeded(model, result);
-        if (!combinedConversationId) await ensureCombinedConversation();
+        await ensureCombinedConversation();
       }
 
-      for (const model of Array.from(pendingModels)) {
-        if (controller.signal.aborted) return;
-        const result = await runModel(model, combinedConversationId);
-        keepPendingIfNeeded(model, result);
-        if (!combinedConversationId) await ensureCombinedConversation();
+      if (combinedConversationId && pendingModels.size > 0) {
+        const firstPassResults = await Promise.all(
+          Array.from(pendingModels).map(async (model) => ({
+            model,
+            result: await runModel(model, combinedConversationId, firstPassOptions),
+          }))
+        );
+        firstPassResults.forEach(({ model, result }) => keepPendingIfNeeded(model, result));
+      }
+
+      if (controller.signal.aborted) return;
+
+      if (pendingModels.size > 0) {
+        if (combinedConversationId) {
+          const retryResults = await Promise.all(
+            Array.from(pendingModels).map(async (model) => ({
+              model,
+              result: await runModel(model, combinedConversationId),
+            }))
+          );
+          retryResults.forEach(({ model, result }) => keepPendingIfNeeded(model, result));
+        } else {
+          for (const model of Array.from(pendingModels)) {
+            if (controller.signal.aborted) return;
+            const result = await runModel(model, combinedConversationId);
+            keepPendingIfNeeded(model, result);
+            if (!combinedConversationId) await ensureCombinedConversation();
+          }
+        }
       }
 
       if (controller.signal.aborted) return;
@@ -1247,6 +1275,90 @@ export default function AIAssistantPage() {
     }
 
     let fullText = '';
+    let streamFinished = false;
+    let recoveryInFlight = false;
+    let recoveryIntervalId: number | null = null;
+
+    const clearRecoveryInterval = () => {
+      if (recoveryIntervalId) {
+        window.clearInterval(recoveryIntervalId);
+        recoveryIntervalId = null;
+      }
+    };
+
+    const finishSingleResponse = (content: string, outputTokens?: number) => {
+      if (streamFinished) return;
+      streamFinished = true;
+      clearRecoveryInterval();
+      abortRef.current = null;
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content, tokens: outputTokens },
+      ]);
+      streamingTextRef.current = '';
+      clearStreamingFlush();
+      setStreamingText('');
+      setStreaming(false);
+      getConversations(userId).then((data) => {
+        setConversations(data.data || []);
+        if (!activeConvId && data.data?.[0]) {
+          setActiveConvId(data.data[0]._id);
+        }
+      });
+    };
+
+    const recoverSavedSingleResponse = async () => {
+      if (streamFinished || recoveryInFlight || controller.signal.aborted) return false;
+      recoveryInFlight = true;
+
+      try {
+        const data = await getConversations(userId);
+        const nextConversations = (data.data || []) as Conversation[];
+        setConversations(nextConversations);
+
+        const candidate =
+          (activeConvId &&
+            nextConversations.find((conversation) => conversation._id === activeConvId)) ||
+          nextConversations[0];
+
+        if (!candidate?._id) return false;
+
+        const conv = await getConversation(candidate._id);
+        const normalizedMessages = normalizeCombinedMessages(conv.messages);
+        const matchingUserIndex = [...normalizedMessages]
+          .reverse()
+          .findIndex((message) => message.role === 'user' && message.content === trimmed);
+
+        if (matchingUserIndex === -1) return false;
+
+        const userIndex = normalizedMessages.length - 1 - matchingUserIndex;
+        const hasAssistantResponse = normalizedMessages
+          .slice(userIndex + 1)
+          .some((message) => message.role === 'assistant' && message.content.trim());
+
+        if (!hasAssistantResponse) return false;
+
+        streamFinished = true;
+        clearRecoveryInterval();
+        controller.abort();
+        abortRef.current = null;
+        setActiveConvId(conv._id);
+        setMessages(normalizedMessages);
+        streamingTextRef.current = '';
+        clearStreamingFlush();
+        setStreamingText('');
+        setStreaming(false);
+        return true;
+      } catch {
+        return false;
+      } finally {
+        recoveryInFlight = false;
+      }
+    };
+
+    recoveryIntervalId = window.setInterval(() => {
+      recoverSavedSingleResponse();
+    }, CHAT_RECOVERY_INTERVAL_MS);
 
     await sendChatMessage(
       {
@@ -1265,23 +1377,11 @@ export default function AIAssistantPage() {
         queueStreamingText(fullText);
       },
       (meta) => {
-        abortRef.current = null;
-        setMessages((prev) => [
-          ...prev,
-          { role: 'assistant', content: fullText, tokens: meta.outputTokens },
-        ]);
-        streamingTextRef.current = '';
-        clearStreamingFlush();
-        setStreamingText('');
-        setStreaming(false);
-        getConversations(userId).then((data) => {
-          setConversations(data.data || []);
-          if (!activeConvId && data.data?.[0]) {
-            setActiveConvId(data.data[0]._id);
-          }
-        });
+        finishSingleResponse(fullText, meta.outputTokens);
       },
       (error) => {
+        streamFinished = true;
+        clearRecoveryInterval();
         abortRef.current = null;
         toast.error(`AI Error: ${error}`);
         setStreaming(false);
@@ -1328,6 +1428,22 @@ export default function AIAssistantPage() {
         queueStreamingText(fullText);
       }
     );
+
+    clearRecoveryInterval();
+
+    if (!streamFinished && !controller.signal.aborted) {
+      if (fullText.trim()) {
+        finishSingleResponse(fullText);
+      } else {
+        const recovered = await recoverSavedSingleResponse();
+        if (!recovered) {
+          streamFinished = true;
+          abortRef.current = null;
+          setStreaming(false);
+          toast.error('AI response finished without returning text. Please try again.');
+        }
+      }
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
