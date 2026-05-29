@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { CustomizationContext } from 'src/contexts/customization';
+import { CustomizationContext } from 'src/contexts/customization-context';
 
 export const useCustomization = () => {
   const context = useContext(CustomizationContext);

@@ -49,7 +49,7 @@ const AvatarAddWrapper = styled(Avatar)(({ theme }) => ({
   height: theme.spacing(8),
 }));
 
-export const CardAddAction = styled(Card)(({ theme }) => ({
+const CardAddAction = styled(Card)(({ theme }) => ({
   border: `${theme.palette.primary.main} dashed 1px`,
   height: '100%',
   color: theme.palette.primary.main,

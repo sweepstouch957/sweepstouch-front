@@ -65,23 +65,11 @@ import React, {
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
 import { TabsShadow } from 'src/components/base/styles/tabs';
+import { CardWrapper } from './styles';
 import BulkDelete from './bulk-delete';
 import toast from 'react-hot-toast';
 import { usersApi } from '@/mocks/users';
-
-export const CardWrapper = styled(Card)(
-  ({ theme }) => `
-  position: relative;
-  overflow: hidden;
-  transition: box-shadow 0.25s ease, transform 0.2s ease;
-  border: 1px solid ${theme.palette.divider};
-  border-radius: 20px;
-  &:hover {
-    box-shadow: 0 8px 32px ${alpha(theme.palette.common.black, 0.12)};
-    transform: translateY(-2px);
-  }
-`
-);
+// CardWrapper imported from ./styles
 
 // ---------- Role → palette ----------
 const ROLE_PALETTE_KEY: Record<string, string> = {
@@ -253,7 +241,7 @@ const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment, onDe
   const { t } = useTranslation();
   const theme = useTheme();
   const smUp = useMediaQuery(theme.breakpoints.up('sm'));
-  const router = useRouter();
+  const { push } = useRouter();
 
   // Delete confirmation dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -513,12 +501,12 @@ const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment, onDe
                               {user.department ? (
                                 <Chip label={user.department.name || user.departmentId} size="small"
                                   sx={{ bgcolor: alpha(user.department.color || '#666', 0.12), color: user.department.color || 'text.primary', fontWeight: 600, fontSize: 11, borderRadius: 1, border: `1px solid ${alpha(user.department.color || '#666', 0.2)}` }} />
-                              ) : <Typography variant="caption" color="text.disabled">—</Typography>}
+                              ) : <Typography variant="caption" color="text.disabled">N/A</Typography>}
                             </TableCell>
                             <TableCell align="center">
                               <Stack direction="row" spacing={0.5} justifyContent="center">
                                 <Tooltip title="Edit" arrow><IconButton size="small" onClick={() => onEditUser?.(user)} sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main', bgcolor: alpha(theme.palette.primary.main, 0.08) } }}><EditRoundedIcon fontSize="small" /></IconButton></Tooltip>
-                                <Tooltip title="View Profile" arrow><IconButton size="small" onClick={() => router.push(`/admin/management/users-profile?id=${user._id || user.id}`)} sx={{ color: 'text.secondary', '&:hover': { color: 'info.main', bgcolor: alpha(theme.palette.info.main, 0.08) } }}><LaunchTwoToneIcon fontSize="small" /></IconButton></Tooltip>
+                                <Tooltip title="View Profile" arrow><IconButton size="small" onClick={() => push(`/admin/management/users-profile?id=${user._id || user.id}`)} sx={{ color: 'text.secondary', '&:hover': { color: 'info.main', bgcolor: alpha(theme.palette.info.main, 0.08) } }}><LaunchTwoToneIcon fontSize="small" /></IconButton></Tooltip>
                                 <Tooltip title="Assign Dept" arrow><IconButton size="small" onClick={() => onAssignDepartment?.(user)} sx={{ color: 'text.secondary', '&:hover': { color: '#9C27B0', bgcolor: alpha('#9C27B0', 0.08) } }}><GroupWorkRoundedIcon fontSize="small" /></IconButton></Tooltip>
                                 <Tooltip title="Delete" arrow><IconButton size="small" onClick={() => { setDeleteTarget(user); setDeleteDialogOpen(true); }} sx={{ color: 'text.secondary', '&:hover': { color: 'error.main', bgcolor: alpha(theme.palette.error.main, 0.08) } }}><DeleteTwoToneIcon fontSize="small" /></IconButton></Tooltip>
                               </Stack>
@@ -620,7 +608,7 @@ const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment, onDe
                             </Tooltip>
                             <Tooltip title="View Profile" arrow>
                               <IconButton size="small"
-                                onClick={() => router.push(`/admin/management/users-profile?id=${user._id || user.id}`)}
+                                onClick={() => push(`/admin/management/users-profile?id=${user._id || user.id}`)}
                                 sx={{ color: alpha('#fff', 0.9), '&:hover': { bgcolor: alpha('#fff', 0.18), color: '#fff' } }}>
                                 <LaunchTwoToneIcon sx={{ fontSize: 16 }} />
                               </IconButton>
@@ -781,7 +769,7 @@ const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment, onDe
                               <IconButton
                                 size="small"
                                 onClick={() =>
-                                  router.push(`/admin/management/users-profile?id=${user._id || user.id}`)
+                                  push(`/admin/management/users-profile?id=${user._id || user.id}`)
                                 }
                                 sx={{
                                   color: '#fff',

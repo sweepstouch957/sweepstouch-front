@@ -9,9 +9,11 @@ import {
   Card,
   Checkbox,
   Divider,
+  ListItem,
   ListItemAvatar,
   ListItemText,
   Stack,
+  styled,
   Tooltip,
   Typography,
   useTheme,
@@ -20,7 +22,33 @@ import { format } from 'date-fns';
 import NextLink from 'next/link';
 import type { ChangeEvent, FC } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ListItemWrapper } from 'src/components/application-ui/stacked-lists/pricing-plans/pricing-plans';
+const ListItemWrapper = styled(ListItem)(({ theme }) => ({
+  position: 'relative',
+
+  '&:hover': {
+    background: alpha(theme.palette.background.default, 0.5),
+
+    '.MuiActionButtons': {
+      visibility: 'visible',
+      opacity: 1,
+    },
+  },
+
+  '.MuiActionButtons': {
+    borderRadius: theme.shape.borderRadius,
+    boxShadow: theme.shadows[12],
+    opacity: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    visibility: 'hidden',
+    top: '50%',
+    marginTop: theme.spacing(-3.3),
+    position: 'absolute',
+    right: theme.spacing(2),
+    padding: theme.spacing(1),
+  },
+}));
 import { ButtonIcon } from 'src/components/base/styles/button-icon';
 import type { Mail } from 'src/models/mailbox';
 // ✅ zustand store

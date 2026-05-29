@@ -21,7 +21,8 @@ import {
   Typography,
 } from '@mui/material';
 import React, { useEffect, useMemo, useState } from 'react';
-import { num, pct, StatCard } from './AudienceKpis';
+import { num, pct } from './audience-utils';
+import { StatCard } from './AudienceKpis';
 import { GlassCard } from './ui';
 
 function storeIdOf(s: Store) {
@@ -136,8 +137,8 @@ export function AudienceSimulator(props: {
             renderOption={(props, option) => (
               <Box
                 component="li"
-                {...props}
                 key={option.id}
+                {...props}
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
@@ -213,7 +214,7 @@ export function AudienceSimulator(props: {
               color="error"
               sx={{ display: 'block', mt: 0.75 }}
             >
-              Failed to load stores — verify getStoresWithoutFilters().
+              Failed to load stores. Verify getStoresWithoutFilters().
             </Typography>
           ) : null}
         </Grid>
@@ -320,7 +321,7 @@ export function AudienceSimulator(props: {
               color="error"
               variant="body2"
             >
-              Simulator error — verify /campaigns/audience/simulate and storeId.
+              Simulator error. Verify /campaigns/audience/simulate and storeId.
             </Typography>
           </Grid>
         ) : null}

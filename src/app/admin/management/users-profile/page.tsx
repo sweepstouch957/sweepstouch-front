@@ -105,7 +105,7 @@ export default function UserProfilePage() {
   const smUp = useMediaQuery(theme.breakpoints.up('sm'));
   const isDark = theme.palette.mode === 'dark';
   const customization = useCustomization();
-  const router = useRouter();
+  const { push } = useRouter();
   const searchParams = useSearchParams();
   const userId = searchParams.get('id');
   const [currentTab, setCurrentTab] = useState(0);
@@ -187,7 +187,7 @@ export default function UserProfilePage() {
         {!userId ? (
           <Stack alignItems="center" spacing={2}>
             <Typography variant="h5" color="text.secondary">No user selected</Typography>
-            <Button variant="outlined" onClick={() => router.push('/admin/management/users-listing')}>
+            <Button variant="outlined" onClick={() => push('/admin/management/users-listing')}>
               Go to Users
             </Button>
           </Stack>
@@ -217,7 +217,7 @@ export default function UserProfilePage() {
               <Box display="flex" alignItems="center" mb={2}>
                 <Tooltip arrow placement="top" title="Back to users">
                   <IconButton
-                    onClick={() => router.push('/admin/management/users-listing')}
+                    onClick={() => push('/admin/management/users-listing')}
                     sx={{
                       mr: 1.5, width: 40, height: 40,
                       bgcolor: alpha(theme.palette.primary.main, 0.08),

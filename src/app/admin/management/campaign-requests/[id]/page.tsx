@@ -15,7 +15,7 @@ interface Props {
 export default function CampaignRequestDetailPage({ params }: Props) {
   const { id } = use(params);
   const customization = useCustomization();
-  const router = useRouter();
+  const { push } = useRouter();
 
   return (
     <>
@@ -27,7 +27,7 @@ export default function CampaignRequestDetailPage({ params }: Props) {
           actions={
             <Button
               startIcon={<ArrowBackIcon />}
-              onClick={() => router.push('/admin/management/campaign-requests')}
+              onClick={() => push('/admin/management/campaign-requests')}
               variant="outlined"
               size="small"
             >

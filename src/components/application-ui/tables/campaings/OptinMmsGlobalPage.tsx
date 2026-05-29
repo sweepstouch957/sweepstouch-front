@@ -196,7 +196,7 @@ function StoreTableRow({ row, accentColor, onNavigate }: { row: StoreRow; accent
             </Box>
           </Stack>
         ) : (
-          <Typography sx={{ fontSize: 12, color: 'text.disabled' }}>—</Typography>
+          <Typography sx={{ fontSize: 12, color: 'text.disabled' }}>N/A</Typography>
         )}
       </TableCell>
 
@@ -217,7 +217,7 @@ export default function OptinMmsGlobalPage() {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const primary = theme.palette.primary.main;
-  const router = useRouter();
+  const { push } = useRouter();
 
   const [startDate, setStartDate] = useState<Date>(() => startOfMonth(new Date()));
   const [endDate, setEndDate] = useState<Date>(() => endOfDay(new Date()));
@@ -250,8 +250,8 @@ export default function OptinMmsGlobalPage() {
   }, []);
 
   const handleNavigate = useCallback((id: string) => {
-    router.push(`/admin/management/stores/edit/${id}?tag=opt-in`);
-  }, [router]);
+    push(`/admin/management/stores/edit/${id}?tag=opt-in`);
+  }, [push]);
 
   const {
     storesLoading,
@@ -321,7 +321,7 @@ export default function OptinMmsGlobalPage() {
           <Stack direction="row" alignItems="center" spacing={1}>
             <DatePicker label="Desde" value={startDate} onChange={(d) => { if (d) { setStartDate(d); setActivePreset('custom'); } }} maxDate={endDate}
               slotProps={{ textField: { size: 'small', sx: { width: 148, '& .MuiOutlinedInput-root': { borderRadius: 2 } } } }} />
-            <Typography sx={{ fontSize: 12, color: 'text.disabled', userSelect: 'none' }}>—</Typography>
+            <Typography sx={{ fontSize: 12, color: 'text.disabled', userSelect: 'none' }}>to</Typography>
             <DatePicker label="Hasta" value={endDate} onChange={(d) => { if (d) { setEndDate(d); setActivePreset('custom'); } }} minDate={startDate}
               slotProps={{ textField: { size: 'small', sx: { width: 148, '& .MuiOutlinedInput-root': { borderRadius: 2 } } } }} />
           </Stack>

@@ -3,7 +3,7 @@ import FolderOpenTwoToneIcon from '@mui/icons-material/FolderOpenTwoTone';
 import { Box, Card, Unstable_Grid2 as Grid, Pagination, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { AvatarState } from 'src/components/base/styles/avatar';
-import { CardActionAreaWrapper } from './quick-access';
+import { CardActionAreaWrapper } from './styles';
 
 function AllFolders() {
   const { t } = useTranslation();

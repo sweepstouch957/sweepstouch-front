@@ -2,7 +2,7 @@ import { alpha, Box, Card, Typography, useTheme } from '@mui/material';
 import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
 
-export const GaugeChart = dynamic(() => import('react-gauge-chart'), { ssr: false });
+const GaugeChart = dynamic(() => import('react-gauge-chart'), { ssr: false });
 
 function MonthlyGoalsTarget() {
   const { t } = useTranslation();

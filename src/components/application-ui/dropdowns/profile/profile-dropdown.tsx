@@ -53,7 +53,7 @@ export const ProfileDropdown: FC<ProfileDropdownProps> = (props) => {
   const theme = useTheme();
   const { t } = useTranslation();
   const { user } = useAuth();
-  const router = useRouter();
+  const { push } = useRouter();
   const isDark = theme.palette.mode === 'dark';
 
   const handleSignOut = React.useCallback(async (): Promise<void> => {
@@ -185,7 +185,7 @@ export const ProfileDropdown: FC<ProfileDropdownProps> = (props) => {
             key={item.label}
             onClick={() => {
               onClose?.();
-              router.push(item.href);
+              push(item.href);
             }}
             sx={{ py: 1.2 }}
           >

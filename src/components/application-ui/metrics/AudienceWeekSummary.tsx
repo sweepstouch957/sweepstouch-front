@@ -409,7 +409,7 @@ export default function AudienceWeekSummaryCompact({
             Rango libre. Los días sin datos se normalizan a 0 desde el backend. Fechas anteriores
             al 03-nov-2025 están bloqueadas.
           </Typography>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" color="text.secondary" suppressHydrationWarning>
             Última actualización: {format(new Date(), 'dd LLL yyyy, HH:mm', { locale: es })}
           </Typography>
         </Stack>

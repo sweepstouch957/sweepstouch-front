@@ -51,6 +51,7 @@ function Component() {
                 <Tooltip
                   arrow
                   placement="top"
+                  suppressHydrationWarning
                   title={
                     t('Offline since') +
                     ' ' +
@@ -127,6 +128,7 @@ function Component() {
                 <Tooltip
                   arrow
                   placement="top"
+                  suppressHydrationWarning
                   title={
                     t('Online since') +
                     ' ' +
@@ -202,6 +204,7 @@ function Component() {
                 <Tooltip
                   arrow
                   placement="top"
+                  suppressHydrationWarning
                   title={
                     t('Offline since') +
                     ' ' +

@@ -253,7 +253,7 @@ export default function QuickCampaignDialog({
                 {step === 0 && (
                   <>
                     {!(last as any) && (
-                      <Alert severity="info" sx={{ borderRadius: 2, py: 0.5 }}>Sin campaña anterior — copy vacío.</Alert>
+                      <Alert severity="info" sx={{ borderRadius: 2, py: 0.5 }}>Sin campaña anterior; copy vacío.</Alert>
                     )}
 
                     {/* Start */}

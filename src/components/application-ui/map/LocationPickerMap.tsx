@@ -83,7 +83,7 @@ export default function LocationPickerMap({
       <Box sx={{ height: 350, width: '100%', position: 'relative' }}>
         <Map
           {...viewState}
-          onMove={Math.random() > 0 ? (evt) => setViewState(evt.viewState) : undefined} 
+          onMove={(evt) => setViewState(evt.viewState)}
           mapStyle="mapbox://styles/mapbox/light-v10"
           mapboxAccessToken={MAPBOX_TOKEN}
           onClick={onMapClick}

@@ -10,7 +10,7 @@ import { useParams, useRouter } from 'next/navigation';
 
 export default function EditCampaignPage() {
   const params = useParams();
-  const router = useRouter();
+  const { back, push } = useRouter();
   const campaignId = params?.id;
 
   const {
@@ -93,9 +93,9 @@ export default function EditCampaignPage() {
         <IconButton
           onClick={() => {
             if (window.history.length > 1) {
-              router.back(); // volver si hay historial
+              back(); // volver si hay historial
             } else {
-              router.push('/admin/management/campaings'); // fallback
+              push('/admin/management/campaings'); // fallback
             }
           }}
           size="small"
@@ -120,9 +120,9 @@ export default function EditCampaignPage() {
         onCreate={() => {
           // Stay on the current edit page — don't redirect to the campaigns list
           if (window.history.length > 1) {
-            router.back();
+            back();
           } else {
-            router.push('/admin/management/campaings');
+            push('/admin/management/campaings');
           }
         }}
       />

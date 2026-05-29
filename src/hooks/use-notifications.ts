@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '@/hooks/use-auth';
+import { getAuthToken } from '@/utils/auth/custom/storage';
 
 export interface AppNotification {
   id: string;
@@ -30,7 +31,10 @@ export function useNotifications() {
     if (!user?._id && !user?.id) return;
 
     const userId = user._id || user.id;
-    const socket = io(NOTIFICATION_URL, {
+    const serverUrl = NOTIFICATION_URL.startsWith('http') ? new URL(NOTIFICATION_URL).origin : NOTIFICATION_URL;
+    const socket = io(serverUrl, {
+      path: '/socket.io',
+      query: { token: getAuthToken() || '' },
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,
       reconnectionDelay: 3000,

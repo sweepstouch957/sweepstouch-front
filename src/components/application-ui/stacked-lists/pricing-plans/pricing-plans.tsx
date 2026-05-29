@@ -40,7 +40,7 @@ const DotLegend = styled('span')(({ theme }) => ({
   border: `${theme.palette.background.paper} solid 2px`,
 }));
 
-export const ListItemWrapper = styled(ListItem)(({ theme }) => ({
+const ListItemWrapper = styled(ListItem)(({ theme }) => ({
   position: 'relative',
 
   '&:hover': {

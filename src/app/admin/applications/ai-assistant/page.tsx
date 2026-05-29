@@ -75,22 +75,22 @@ const SIcon: React.FC<{
 
   const animationStyle = spin
     ? {
-        animation: 'sIconSpin 1.8s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite',
-        '@keyframes sIconSpin': {
-          '0%': { transform: 'rotate(0deg)' },
-          '100%': { transform: 'rotate(360deg)' },
+      animation: 'sIconSpin 1.8s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite',
+      '@keyframes sIconSpin': {
+        '0%': { transform: 'rotate(0deg)' },
+        '100%': { transform: 'rotate(360deg)' },
+      },
+      '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
+    }
+    : pulse
+      ? {
+        animation: 'sIconPulse 1.4s ease-in-out infinite',
+        '@keyframes sIconPulse': {
+          '0%, 100%': { opacity: 0.5, transform: 'scale(0.85)' },
+          '50%': { opacity: 1, transform: 'scale(1.15)' },
         },
         '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
       }
-    : pulse
-      ? {
-          animation: 'sIconPulse 1.4s ease-in-out infinite',
-          '@keyframes sIconPulse': {
-            '0%, 100%': { opacity: 0.5, transform: 'scale(0.85)' },
-            '50%': { opacity: 1, transform: 'scale(1.15)' },
-          },
-          '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-        }
       : {};
 
   return (
@@ -371,6 +371,10 @@ function renderMarkdown(text: string) {
     /!\[([^\]]*)\]\(([^)]+)\)/g,
     '<div style="margin:8px 0"><img src="$2" alt="$1" style="max-width:100%;max-height:400px;border-radius:12px;border:1px solid rgba(128,128,128,0.2)" /><div style="font-size:10px;color:rgba(128,128,128,0.7);margin-top:4px">$1</div></div>'
   );
+  processed = processed.replace(
+    /\[([^\]]+)\]\(([^)]+)\)/g,
+    '<a href="$2" target="_blank" rel="noopener noreferrer" style="color:#0284c7;font-weight:600;text-decoration:underline">$1</a>'
+  );
   processed = processed.replace(/\n{3,}/g, '\n\n');
   processed = processed.replace(/\n\n/g, '<br/>');
   processed = processed.replace(/\n/g, '<br/>');
@@ -379,8 +383,7 @@ function renderMarkdown(text: string) {
   processed = processed.replace(
     /%%CODE_BLOCK_(\d+)%%/g,
     (_, i) =>
-      `<pre style="background:rgba(0,0,0,0.05);padding:12px;border-radius:8px;overflow-x:auto;font-size:12px;margin:8px 0;line-height:1.5"><code>${
-        codeBlocks[Number(i)]
+      `<pre style="background:rgba(0,0,0,0.05);padding:12px;border-radius:8px;overflow-x:auto;font-size:12px;margin:8px 0;line-height:1.5"><code>${codeBlocks[Number(i)]
       }</code></pre>`
   );
 
@@ -711,7 +714,7 @@ export default function AIAssistantPage() {
   const isDark = theme.palette.mode === 'dark';
   const accent = theme.palette.primary.main;
   const mdUp = useMediaQuery(theme.breakpoints.up('md'));
-  const router = useRouter();
+  const { push } = useRouter();
   const { user } = useAuth();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -1073,23 +1076,23 @@ export default function AIAssistantPage() {
         const timeoutId =
           options.timeoutMs && options.timeoutMs > 0
             ? window.setTimeout(() => {
-                if (completed) return;
-                timedOut = true;
-                modelController.abort();
-                updateCombinedResponse(model, {
-                  content: options.keepLoadingOnTimeout ? options.retryLabel || '' : modelText,
-                  status: options.keepLoadingOnTimeout
-                    ? 'loading'
-                    : modelText.trim()
-                      ? 'done'
-                      : 'error',
-                  error: options.keepLoadingOnTimeout
+              if (completed) return;
+              timedOut = true;
+              modelController.abort();
+              updateCombinedResponse(model, {
+                content: options.keepLoadingOnTimeout ? options.retryLabel || '' : modelText,
+                status: options.keepLoadingOnTimeout
+                  ? 'loading'
+                  : modelText.trim()
+                    ? 'done'
+                    : 'error',
+                error: options.keepLoadingOnTimeout
+                  ? undefined
+                  : modelText.trim()
                     ? undefined
-                    : modelText.trim()
-                      ? undefined
-                      : 'Tiempo de espera agotado. El modelo no respondió a tiempo.',
-                });
-              }, options.timeoutMs)
+                    : 'Tiempo de espera agotado. El modelo no respondió a tiempo.',
+              });
+            }, options.timeoutMs)
             : null;
 
         if (controller.signal.aborted) {
@@ -1143,17 +1146,30 @@ export default function AIAssistantPage() {
                 create_task: `Creating task: "${data.input?.title || ''}"...`,
                 get_member_tasks: `Looking up tasks for ${data.input?.memberName || ''}...`,
                 navigate: `Finding route...`,
-                create_user: `Creating user: ${data.input?.firstName || ''} ${
-                  data.input?.lastName || ''
-                }...`,
-                update_user: `Updating user: ${
-                  data.input?.userName || data.input?.userId || ''
-                }...`,
+                create_user: `Creating user: ${data.input?.firstName || ''} ${data.input?.lastName || ''
+                  }...`,
+                update_user: `Updating user: ${data.input?.userName || data.input?.userId || ''
+                  }...`,
                 search_users: `Searching users${data.input?.q ? `: "${data.input.q}"` : ''}...`,
-                search_campaigns: `Searching campaigns${
-                  data.input?.q ? `: "${data.input.q}"` : ''
-                }...`,
+                search_campaigns: `Searching campaigns${data.input?.q ? `: "${data.input.q}"` : ''
+                  }...`,
                 search_stores: `Searching stores${data.input?.q ? `: "${data.input.q}"` : ''}...`,
+                store_info: `🏬 Consultando información de la tienda: "${data.input?.q || data.input?.storeName || ''}"...`,
+                all_stores_debt: `💰 Analizando la deuda total de todas las tiendas...`,
+                stores_by_filter: `🔍 Filtrando tiendas con los criterios especificados...`,
+                stores_no_campaigns: `⚠️ Buscando tiendas sin campañas activas...`,
+                messaging_stats: `📊 Obteniendo estadísticas de envío de mensajes...`,
+                store_averages: `📈 Calculando promedios generales de las tiendas...`,
+                campaigns_list: `📋 Listando campañas del sistema...`,
+                search_sweepstake: `🎟️ Buscando sorteos/sweepstakes...`,
+                kiosk_status: `🖥️ Verificando el estado de los quioscos...`,
+                forecast_projection: `🔮 Generando proyecciones de volumen y costos...`,
+                sweepstake_analysis: `🔬 Analizando el rendimiento del sorteo...`,
+                audience_overview: `👥 Obteniendo resumen general de la audiencia...`,
+                audience_channels: `📱 Analizando efectividad de canales de comunicación...`,
+                trends_analysis: `📉 Analizando tendencias de registros...`,
+                current_date: `🕒 Consultando fecha y hora actual...`,
+                explore_all: `🧭 Explorando registros de la base de datos...`,
               };
               modelText += `\n\n${toolLabels[data.tool] || `Running ${data.tool}...`}\n`;
               updateCombinedResponse(model, { content: modelText, status: 'loading' });
@@ -1167,6 +1183,15 @@ export default function AIAssistantPage() {
                 modelText += `Found ${data.result.totalTasks} tasks for ${data.result.member}\n\n`;
               } else if (data.result?.user) {
                 modelText += `User created: ${data.result.user.firstName} ${data.result.user.lastName}\n\n`;
+              }
+              if (data.result?._fileUrls) {
+                const { excelUrl, pdfUrl } = data.result._fileUrls;
+                if (excelUrl) {
+                  modelText += `📄 **Reporte Excel Generado:** [Descargar Excel](${excelUrl})\n\n`;
+                }
+                if (pdfUrl) {
+                  modelText += `📄 **Reporte PDF Generado:** [Descargar PDF](${pdfUrl})\n\n`;
+                }
               }
               updateCombinedResponse(model, { content: modelText, status: 'loading' });
             },
@@ -1377,7 +1402,21 @@ export default function AIAssistantPage() {
         queueStreamingText(fullText);
       },
       (meta) => {
-        finishSingleResponse(fullText, meta.outputTokens);
+        abortRef.current = null;
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: fullText, tokens: meta.outputTokens },
+        ]);
+        streamingTextRef.current = '';
+        clearStreamingFlush();
+        setStreamingText('');
+        setStreaming(false);
+        getConversations(userId).then((data) => {
+          setConversations(data.data || []);
+          if (!activeConvId && data.data?.[0]) {
+            setActiveConvId(data.data[0]._id);
+          }
+        });
       },
       (error) => {
         streamFinished = true;
@@ -1394,15 +1433,29 @@ export default function AIAssistantPage() {
           create_task: `🔧 Creating task: "${data.input?.title || ''}"...`,
           get_member_tasks: `🔍 Looking up tasks for ${data.input?.memberName || ''}...`,
           navigate: `🔗 Finding route...`,
-          create_user: `👤 Creating user: ${data.input?.firstName || ''} ${
-            data.input?.lastName || ''
-          }...`,
+          create_user: `👤 Creating user: ${data.input?.firstName || ''} ${data.input?.lastName || ''
+            }...`,
           update_user: `✏️ Updating user: ${data.input?.userName || data.input?.userId || ''}...`,
           search_users: `🔍 Searching users${data.input?.q ? `: "${data.input.q}"` : ''}...`,
-          search_campaigns: `📊 Searching campaigns${
-            data.input?.q ? `: "${data.input.q}"` : ''
-          }...`,
+          search_campaigns: `📊 Searching campaigns${data.input?.q ? `: "${data.input.q}"` : ''
+            }...`,
           search_stores: `🏪 Searching stores${data.input?.q ? `: "${data.input.q}"` : ''}...`,
+          store_info: `🏬 Consultando información de la tienda: "${data.input?.q || data.input?.storeName || ''}"...`,
+          all_stores_debt: `💰 Analizando la deuda total de todas las tiendas...`,
+          stores_by_filter: `🔍 Filtrando tiendas con los criterios especificados...`,
+          stores_no_campaigns: `⚠️ Buscando tiendas sin campañas activas...`,
+          messaging_stats: `📊 Obteniendo estadísticas de envío de mensajes...`,
+          store_averages: `📈 Calculando promedios generales de las tiendas...`,
+          campaigns_list: `📋 Listando campañas del sistema...`,
+          search_sweepstake: `🎟️ Buscando sorteos/sweepstakes...`,
+          kiosk_status: `🖥️ Verificando el estado de los quioscos...`,
+          forecast_projection: `🔮 Generando proyecciones de volumen y costos...`,
+          sweepstake_analysis: `🔬 Analizando el rendimiento del sorteo...`,
+          audience_overview: `👥 Obteniendo resumen general de la audiencia...`,
+          audience_channels: `📱 Analizando efectividad de canales de comunicación...`,
+          trends_analysis: `📉 Analizando tendencias de registros...`,
+          current_date: `🕒 Consultando fecha y hora actual...`,
+          explore_all: `🧭 Explorando registros de la base de datos...`,
         };
         const label = toolLabels[data.tool] || `⚙️ Running ${data.tool}...`;
         fullText += `\n\n${label}\n`;
@@ -1418,6 +1471,15 @@ export default function AIAssistantPage() {
           fullText += `📋 Found ${data.result.totalTasks} tasks for ${data.result.member}\n\n`;
         } else if (data.result?.user) {
           fullText += `✅ User created: ${data.result.user.firstName} ${data.result.user.lastName}\n\n`;
+        }
+        if (data.result?._fileUrls) {
+          const { excelUrl, pdfUrl } = data.result._fileUrls;
+          if (excelUrl) {
+            fullText += `📄 **Reporte Excel Generado:** [Descargar Excel](${excelUrl})\n\n`;
+          }
+          if (pdfUrl) {
+            fullText += `📄 **Reporte PDF Generado:** [Descargar PDF](${pdfUrl})\n\n`;
+          }
         }
         streamingTextRef.current = fullText;
         queueStreamingText(fullText);
@@ -1592,7 +1654,7 @@ export default function AIAssistantPage() {
               fullWidth
               size="small"
               startIcon={<SettingsRoundedIcon sx={{ fontSize: 16 }} />}
-              onClick={() => router.push('/admin/applications/ai-assistant/config')}
+              onClick={() => push('/admin/applications/ai-assistant/config')}
               sx={{
                 textTransform: 'none',
                 fontSize: 12,
@@ -1958,7 +2020,7 @@ export default function AIAssistantPage() {
                   variant="caption"
                   sx={{ color: '#8E24AA', fontWeight: 600, fontSize: 11, overflowWrap: 'anywhere' }}
                 >
-                  Image Generation Mode — describe what you want to create
+                  Image Generation Mode: describe what you want to create
                 </Typography>
               </Stack>
               <IconButton

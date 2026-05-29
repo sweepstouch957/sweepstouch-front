@@ -287,7 +287,7 @@ function StoreMiniCard({ store, rank, sweepId, onNavigate }: StoreMiniCardProps)
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function SweepstakesDashboardClient(): React.JSX.Element {
   const theme = useTheme();
-  const router = useRouter();
+  const { push } = useRouter();
   const isDark = theme.palette.mode === 'dark';
   const accent = theme.palette.primary.main;
 
@@ -361,9 +361,9 @@ export default function SweepstakesDashboardClient(): React.JSX.Element {
   const trendNew = trend14.map((t: any) => t.newUsers);
 
   const handleStoreStats = (sweepstakeId: string, storeId: string) =>
-    router.push(`/admin/management/sweepstakes/${sweepstakeId}/stats?storeId=${storeId}`);
+    push(`/admin/management/sweepstakes/${sweepstakeId}/stats?storeId=${storeId}`);
   const handleSweepStats = (sweepstakeId: string) =>
-    router.push(`/admin/management/sweepstakes/${sweepstakeId}/stats`);
+    push(`/admin/management/sweepstakes/${sweepstakeId}/stats`);
 
   const chartSx = {
     '.MuiChartsAxis-tickLabel': { fill: theme.palette.text.secondary, fontWeight: 600 },
@@ -768,7 +768,7 @@ export default function SweepstakesDashboardClient(): React.JSX.Element {
                         transition: 'background 0.15s',
                         '&:hover': { bgcolor: alpha(accent, 0.04) },
                       }}
-                      onClick={() => router.push(`/admin/management/stores/edit/${store.storeId}?tag=sweepstakes`)}
+                      onClick={() => push(`/admin/management/stores/edit/${store.storeId}?tag=sweepstakes`)}
                       secondaryAction={
                         <Stack direction="row" alignItems="center" spacing={0.5}>
                           <Typography variant="caption" color="text.disabled" fontWeight={600} fontSize={10}>

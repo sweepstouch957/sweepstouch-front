@@ -7,6 +7,7 @@
  */
 import { create } from 'zustand';
 import { io, type Socket } from 'socket.io-client';
+import { getAuthToken } from '@/utils/auth/custom/storage';
 
 // ─── Tipos
 
@@ -72,10 +73,12 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => {
 
       _currentRoom = room;
       const url = getSocketUrl();
-      console.log(`🔌 Conectando Socket.IO a ${url} (sala: ${room})`);
+      const serverUrl = url.startsWith('http') ? new URL(url).origin : url;
+      console.log(`🔌 Conectando Socket.IO a ${serverUrl} (sala: ${room})`);
 
-      const socket = io(url, {
+      const socket = io(serverUrl, {
         path: '/socket.io',          // proxy del API Gateway
+        query: { token: getAuthToken() || '' },
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionAttempts: Infinity,

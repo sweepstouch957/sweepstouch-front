@@ -138,7 +138,7 @@ function QuillEditorBase(props: QuillEditorProps) {
   );
 }
 
-export const QuillEditor = styled(QuillEditorBase, {
+const StyledQuillEditor = styled(QuillEditorBase, {
   // Prevent Quill theme string from colliding with the injected MUI theme prop.
   shouldForwardProp: (prop) => prop !== 'quillTheme',
 })(({ theme }) => ({
@@ -256,3 +256,7 @@ export const QuillEditor = styled(QuillEditorBase, {
     },
   },
 }));
+
+export function QuillEditor(props: QuillEditorProps) {
+  return <StyledQuillEditor {...props} />;
+}

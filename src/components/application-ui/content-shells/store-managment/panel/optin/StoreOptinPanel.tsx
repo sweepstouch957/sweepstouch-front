@@ -246,7 +246,7 @@ export default function StoreOptinPanel({ storeId }: { storeId: string }) {
                 onChange={(d) => { if (d) { setStartDate(d); setActivePreset('custom'); } }}
                 maxDate={endDate}
                 slotProps={{ textField: { size: 'small', sx: { width: 138, '& .MuiOutlinedInput-root': { borderRadius: 2 } } } }} />
-              <Typography sx={{ fontSize: 12, color: 'text.disabled' }}>—</Typography>
+              <Typography sx={{ fontSize: 12, color: 'text.disabled' }}>to</Typography>
               <DatePicker label="Hasta" value={endDate}
                 onChange={(d) => { if (d) { setEndDate(d); setActivePreset('custom'); } }}
                 minDate={startDate}

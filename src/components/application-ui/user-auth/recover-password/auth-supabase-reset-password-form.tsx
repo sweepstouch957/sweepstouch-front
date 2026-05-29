@@ -35,7 +35,7 @@ const defaultValues = {
 
 export function ResetPasswordForm(): React.JSX.Element {
   const [supabaseClient] = React.useState(createSupabaseClient());
-  const router = useRouter();
+  const { push } = useRouter();
   const [isPending, setIsPending] = React.useState<boolean>(false);
   const {
     register,
@@ -68,9 +68,9 @@ export function ResetPasswordForm(): React.JSX.Element {
       }
 
       const searchParams = new URLSearchParams({ email: values.email });
-      router.push(`${routes.auth['supabase.recover-link-sent']}?${searchParams.toString()}`);
+      push(`${routes.auth['supabase.recover-link-sent']}?${searchParams.toString()}`);
     },
-    [supabaseClient, router, setError]
+    [supabaseClient, push, setError]
   );
 
   return (

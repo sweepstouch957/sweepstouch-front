@@ -6,25 +6,13 @@ import {
   backdropClasses,
   createTheme,
   inputLabelClasses,
-  SliderThumb,
   tableCellClasses,
 } from '@mui/material';
 import type { Components } from '@mui/material/styles/components';
 import { BORDER_RADIUS, SPACING_UNIT } from '../utils';
+import { ThumbComponent } from './ThumbComponent';
 
 const muiTheme = createTheme();
-
-interface ThumbComponentProps extends React.HTMLAttributes<unknown> {}
-
-function ThumbComponent(props: ThumbComponentProps) {
-  const { children, ...other } = props;
-  return (
-    <SliderThumb {...other}>
-      {children}
-      <i />
-    </SliderThumb>
-  );
-}
 
 export const createComponents = (): Components => {
   return {

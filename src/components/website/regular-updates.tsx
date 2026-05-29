@@ -291,6 +291,7 @@ const HomepageRegularUpdates = () => {
                                 component="span"
                                 variant="h4"
                                 lineHeight={1}
+                                suppressHydrationWarning
                               >
                                 {formatDistance(new Date('2023-12-21'), new Date(), {
                                   addSuffix: true,

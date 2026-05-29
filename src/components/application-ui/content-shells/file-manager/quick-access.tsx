@@ -28,31 +28,9 @@ import { MouseEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import DrawerContent from 'src/components/application-ui/drawers/file-details/drawer-content';
 import FilesTable from 'src/components/application-ui/tables/files/files';
+import { CardActionAreaWrapper } from './styles';
 
-export const CardActionAreaWrapper = styled(CardActionArea)(({ theme }) => ({
-  height: theme.spacing(20),
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  overflow: 'hidden',
-  borderBottomLeftRadius: 0,
-  borderBottomRightRadius: 0,
-
-  '& .MuiCardMedia-root': {
-    width: '100%',
-    height: '100%',
-  },
-
-  '.MuiTouchRipple-root': {
-    opacity: 0.15,
-  },
-
-  '&:hover': {
-    '.MuiCardActionArea-focusHighlight': {
-      opacity: 0.02,
-    },
-  },
-}));
+// CardActionAreaWrapper imported from ./styles
 
 function QuickAccess() {
   const { t } = useTranslation();
@@ -151,6 +129,7 @@ function QuickAccess() {
                     <Typography
                       component="span"
                       variant="subtitle1"
+                      suppressHydrationWarning
                     >
                       {t('Edited')}{' '}
                       {formatDistance(subDays(new Date(), 3), new Date(), {
@@ -214,6 +193,7 @@ function QuickAccess() {
                     <Typography
                       component="span"
                       variant="subtitle1"
+                      suppressHydrationWarning
                     >
                       {t('Edited')}{' '}
                       {formatDistance(subDays(new Date(), 4), new Date(), {

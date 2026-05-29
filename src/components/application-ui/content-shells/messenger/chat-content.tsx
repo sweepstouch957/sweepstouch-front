@@ -36,7 +36,7 @@ function ChatContent() {
 
   return (
     <Box py={{ xs: 2, sm: 3 }}>
-      <Divider>
+      <Divider suppressHydrationWarning>
         <Chip
           variant="outlined"
           color="secondary"
@@ -73,6 +73,7 @@ function ChatContent() {
           </CardWrapperSecondary>
           <Typography
             variant="subtitle1"
+            suppressHydrationWarning
             sx={{
               pt: 1,
               display: 'flex',
@@ -110,6 +111,7 @@ function ChatContent() {
           </CardWrapperPrimary>
           <Typography
             variant="subtitle1"
+            suppressHydrationWarning
             sx={{
               pt: 1,
               display: 'flex',
@@ -137,7 +139,7 @@ function ChatContent() {
           src={user.avatar}
         />
       </Box>
-      <Divider>
+      <Divider suppressHydrationWarning>
         <Chip
           variant="outlined"
           color="secondary"
@@ -168,6 +170,7 @@ function ChatContent() {
           </CardWrapperPrimary>
           <Typography
             variant="subtitle1"
+            suppressHydrationWarning
             sx={{
               pt: 1,
               display: 'flex',
@@ -240,6 +243,7 @@ function ChatContent() {
           </CardWrapperSecondary>
           <Typography
             variant="subtitle1"
+            suppressHydrationWarning
             sx={{
               pt: 1,
               display: 'flex',
@@ -284,6 +288,7 @@ function ChatContent() {
           </CardWrapperPrimary>
           <Typography
             variant="subtitle1"
+            suppressHydrationWarning
             sx={{
               pt: 1,
               display: 'flex',

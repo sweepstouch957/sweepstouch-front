@@ -3,6 +3,7 @@
 import { shiftService } from '@/services/shift.service';
 import {
   Button,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -10,7 +11,6 @@ import {
   Typography,
 } from '@mui/material';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
 
 interface DeleteShiftDialogProps {
   open: boolean;
@@ -20,21 +20,18 @@ interface DeleteShiftDialogProps {
 
 const DeleteShiftDialog = ({ open, shiftId, onClose }: DeleteShiftDialogProps) => {
   const queryClient = useQueryClient();
-  const [loading, setLoading] = useState(false);
 
-  const handleDelete = async () => {
-    if (!shiftId) return;
-    try {
-      setLoading(true);
-      await shiftService.deleteShift(shiftId);
+  const { mutate: deleteShift, isPending } = useMutation({
+    mutationFn: () => shiftService.deleteShift(shiftId!),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shifts'] });
+      queryClient.invalidateQueries({ queryKey: ['shift-metrics'] });
       onClose();
-    } catch (error) {
-      console.error('❌ Error al eliminar turno:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    onError: (err) => {
+      console.error('Error al eliminar turno:', err);
+    },
+  });
 
   return (
     <Dialog
@@ -43,24 +40,24 @@ const DeleteShiftDialog = ({ open, shiftId, onClose }: DeleteShiftDialogProps) =
     >
       <DialogTitle>¿Eliminar turno?</DialogTitle>
       <DialogContent>
-        <Typography>
-          Esta acción es irreversible. ¿Estás seguro que deseas eliminar el turno?
-        </Typography>
+        <Typography>Esta acción es irreversible. ¿Estás seguro?</Typography>
       </DialogContent>
       <DialogActions>
         <Button
           onClick={onClose}
           variant="outlined"
+          disabled={isPending}
         >
           Cancelar
         </Button>
         <Button
-          onClick={handleDelete}
+          onClick={() => shiftId && deleteShift()}
           variant="contained"
           color="error"
-          disabled={loading}
+          disabled={isPending || !shiftId}
+          startIcon={isPending ? <CircularProgress size={14} color="inherit" /> : undefined}
         >
-          {loading ? 'Eliminando...' : 'Eliminar'}
+          {isPending ? 'Eliminando...' : 'Eliminar'}
         </Button>
       </DialogActions>
     </Dialog>

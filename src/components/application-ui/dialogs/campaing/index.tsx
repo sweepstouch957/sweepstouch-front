@@ -643,7 +643,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
             {/* Success alert */}
             {!isLoading && errors === 0 && sent > 0 && (
               <Alert severity="success" sx={{ borderRadius: 2 }}>
-                Sin errores — {sent.toLocaleString()} mensajes entregados al {deliveryRate}%
+                Sin errores: {sent.toLocaleString()} mensajes entregados al {deliveryRate}%
               </Alert>
             )}
 

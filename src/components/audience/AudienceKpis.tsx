@@ -6,16 +6,7 @@ import TrendingDownRoundedIcon from '@mui/icons-material/TrendingDownRounded';
 import TrendingUpRoundedIcon from '@mui/icons-material/TrendingUpRounded';
 import { alpha, Box, Card, CardContent, Chip, Stack, Typography } from '@mui/material';
 import React from 'react';
-
-export function pct(n: number) {
-  if (!Number.isFinite(n)) return '0%';
-  const v = Math.round(n * 10) / 10;
-  return `${v}%`;
-}
-
-export function num(n: number) {
-  return new Intl.NumberFormat('en-US').format(Math.round(n || 0));
-}
+import { num, pct } from './audience-utils';
 
 export function GrowthChip({ value }: { value: number }) {
   const up = value >= 0;

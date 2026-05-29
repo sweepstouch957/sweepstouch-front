@@ -11,7 +11,7 @@ import { PieChart } from '@mui/x-charts/PieChart';
 import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
 
-export const GaugeChart = dynamic(() => import('react-gauge-chart'), { ssr: false });
+const GaugeChart = dynamic(() => import('react-gauge-chart'), { ssr: false });
 
 function CpuUsage() {
   const { t } = useTranslation();

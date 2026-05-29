@@ -19,7 +19,7 @@ interface MenuProps {
 }
 
 export const Menu: React.FC<MenuProps> = ({ menuItems, setSubMenu }) => {
-  const router = useRouter();
+  const { push } = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
@@ -75,7 +75,7 @@ export const Menu: React.FC<MenuProps> = ({ menuItems, setSubMenu }) => {
                 <IconButtonWrapper
                   onClick={() => {
                     if (menuItem.route) {
-                      router.push(menuItem.route);
+                      push(menuItem.route);
                     }
                   }}
                   sx={{

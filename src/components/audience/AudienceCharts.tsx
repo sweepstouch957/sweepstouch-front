@@ -15,7 +15,7 @@ import {
 import { BarChart } from '@mui/x-charts/BarChart';
 import { PieChart } from '@mui/x-charts/PieChart';
 import React, { useMemo } from 'react';
-import { num } from './AudienceKpis';
+import { num } from './audience-utils';
 import { GlassCard, MetricPill } from './ui';
 
 /* ============================== Types ============================== */
@@ -67,7 +67,7 @@ function fmtSigned(v: number) {
 }
 
 /* ============================== Styled bits ============================== */
-export const Dot = styled('span')<{ color: string }>(({ color }) => ({
+const Dot = styled('span')<{ color: string }>(({ color }) => ({
   display: 'inline-block',
   width: 10,
   height: 10,
@@ -516,7 +516,7 @@ export function AudienceCharts(props: Props) {
                 variant="body2"
                 sx={{ mt: 1 }}
               >
-                Weekly breakdown failed — verify /campaigns/audience/weekly.
+                Weekly breakdown failed. Verify /campaigns/audience/weekly.
               </Typography>
             ) : null}
           </GlassCard>

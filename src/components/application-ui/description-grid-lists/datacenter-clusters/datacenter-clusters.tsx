@@ -5,6 +5,7 @@ import ExpandMoreTwoToneIcon from '@mui/icons-material/ExpandMoreTwoTone';
 import RefreshTwoToneIcon from '@mui/icons-material/RefreshTwoTone';
 import SearchTwoToneIcon from '@mui/icons-material/SearchTwoTone';
 import {
+  alpha,
   Avatar,
   Box,
   Button,
@@ -26,7 +27,26 @@ import {
 } from '@mui/material';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CardAddAction } from 'src/components/application-ui/stats-grid-lists/wallets/wallets';
+const CardAddAction = styled(Card)(({ theme }) => ({
+  border: `${theme.palette.primary.main} dashed 1px`,
+  height: '100%',
+  color: theme.palette.primary.main,
+  transition: theme.transitions.create(['all']),
+
+  '.MuiCardActionArea-root': {
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    display: 'flex',
+  },
+
+  '&:hover': {
+    borderColor:
+      theme.palette.mode === 'dark'
+        ? alpha(theme.palette.neutral[600], 0.7)
+        : alpha(theme.palette.neutral[900], 0.7),
+  },
+}));
 
 const CardIndicatorWrapper = styled(Card)({
   position: 'relative',

@@ -62,7 +62,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, formatDistance, isAfter } from 'date-fns';
 import { useRouter, useSearchParams } from 'next/navigation';
-import React, { forwardRef, useCallback, useDeferredValue, useMemo, useState } from 'react';
+import React, { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useCustomization } from 'src/hooks/use-customization';
@@ -214,22 +214,24 @@ function useDragTiltDom(dragging?: boolean, transformStr?: string) {
 /* ──────────────────────────── Task Card ──────────────────────────── */
 
 const KanbanTaskCard = React.memo(
-  forwardRef<
-    HTMLDivElement,
-    {
-      task: Task;
-      onEdit: (t: Task) => void;
-      onDelete: (id: string) => void;
-      dragging?: boolean;
-      style?: React.CSSProperties;
-      [key: string]: any;
-    }
-  >(({ task, onEdit, onDelete, dragging, style, ...rest }, ref) => {
+  function KanbanTaskCardInner({
+    task, onEdit, onDelete, dragging, style, ref, ...rest
+  }: {
+    task: Task;
+    onEdit: (t: Task) => void;
+    onDelete: (id: string) => void;
+    dragging?: boolean;
+    style?: React.CSSProperties;
+    ref?: React.Ref<HTMLDivElement>;
+    [key: string]: any;
+  }) {
     const theme = useTheme();
     const isDark = theme.palette.mode === 'dark';
     const pri = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium;
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
     const isOverdue =
-      task.dueDate && task.status !== 'done' && isAfter(new Date(), new Date(task.dueDate));
+      mounted && task.dueDate && task.status !== 'done' && isAfter(new Date(), new Date(task.dueDate));
 
     const paperRef = useDragTiltDom(dragging, style?.transform);
 
@@ -532,7 +534,7 @@ const KanbanTaskCard = React.memo(
         </Paper>
       </Box>
     );
-  })
+  }
 );
 KanbanTaskCard.displayName = 'KanbanTaskCard';
 
@@ -747,10 +749,12 @@ function TasksPage(): React.JSX.Element {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
-  const router = useRouter();
+  const { push } = useRouter();
   const urlProjectId = searchParams.get('projectId');
 
   /* ── UI state ── */
+  const [pageMounted, setPageMounted] = useState(false);
+  useEffect(() => setPageMounted(true), []);
   const [search, setSearch] = useState('');
   const deferredSearch = useDeferredValue(search);
   const [selectedDepts, setSelectedDepts] = useState<Department[]>([]);
@@ -1106,7 +1110,7 @@ function TasksPage(): React.JSX.Element {
           >
             <IconButton
               size="small"
-              onClick={() => router.push('/admin/applications/projects-board')}
+              onClick={() => push('/admin/applications/projects-board')}
               sx={{ p: 0.5 }}
             >
               <ArrowBackRoundedIcon sx={{ fontSize: 16 }} />
@@ -1365,6 +1369,7 @@ function TasksPage(): React.JSX.Element {
                         {tasksInStatus.map((task) => {
                           const pri = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium;
                           const isOverdue =
+                            pageMounted &&
                             task.dueDate &&
                             task.status !== 'done' &&
                             isAfter(new Date(), new Date(task.dueDate));
@@ -1657,8 +1662,8 @@ function TasksPage(): React.JSX.Element {
                     disableCloseOnSelect
                     renderOption={({ key, ...props }, option, { selected }) => (
                       <li
-                        {...props}
                         key={option._id}
+                        {...props}
                       >
                         <Checkbox
                           icon={cbIcon}

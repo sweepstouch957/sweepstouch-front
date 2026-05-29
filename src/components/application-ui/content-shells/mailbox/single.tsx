@@ -236,6 +236,7 @@ export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
           <Typography
             variant="subtitle2"
             color="text.secondary"
+            suppressHydrationWarning
           >
             {formatDistance(mailbox.date, new Date(), { addSuffix: true })}
           </Typography>

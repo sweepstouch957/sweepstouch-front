@@ -28,7 +28,7 @@ import { ButtonLight } from 'src/components/base/styles/button';
 import { ListItemButtonWrapper } from 'src/components/base/styles/list-item-button';
 import { PulseBadge } from 'src/components/base/styles/pulse-badge';
 
-export const GaugeChart = dynamic(() => import('react-gauge-chart'), { ssr: false });
+const GaugeChart = dynamic(() => import('react-gauge-chart'), { ssr: false });
 
 const CardActions = styled(Box)(({ theme }) => ({
   position: 'absolute',

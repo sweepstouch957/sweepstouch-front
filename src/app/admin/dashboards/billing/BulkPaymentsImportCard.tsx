@@ -780,7 +780,7 @@ export default function BulkPaymentsImportCard() {
               >
                 {notFoundRows.map((nf, idx) => (
                   <NotFoundRowItem
-                    key={`${nf.slug || nf.displayName}-${idx}`}
+                    key={nf.slug || nf.displayName || String(idx)}
                     row={nf}
                     onChange={(store) => handleStoreSelect(idx, store)}
                   />
@@ -870,7 +870,7 @@ function NotFoundRowItem({
           onInputChange={(_e, val) => search(val)}
           onChange={(_e, val) => onChange(val)}
           renderOption={(props, opt) => (
-            <li {...props} key={opt._id}>
+            <li key={opt._id} {...props}>
               <Box>
                 <Typography variant="body2" sx={{ fontWeight: 700 }}>
                   {opt.name}

@@ -1,26 +1,8 @@
 import { Divider, Stack } from '@mui/material';
 import RadioDotSelector, { DotItem } from './radio-dot-selector';
+import { gradientDots } from './dot-data';
 
-export const gradientDots: DotItem[] = [
-  {
-    id: 1,
-    color: 'linear-gradient(135deg, #ABDCFF 0%, #0396FF 100%)',
-  },
-  {
-    id: 2,
-    color: 'linear-gradient(135deg, #43CBFF 0%, #9708CC 100%)',
-  },
-  {
-    id: 3,
-    color: 'error.main',
-  },
-  {
-    id: 4,
-    color: 'linear-gradient(135deg, #FFD3A5 0%, #FD6585 100%)',
-  },
-];
-
-export const solidDots: DotItem[] = [
+const solidDots: DotItem[] = [
   {
     id: 1,
     color: 'success.main',
@@ -35,7 +17,7 @@ export const solidDots: DotItem[] = [
   },
 ];
 
-export const gradientDotsAlt: DotItem[] = [
+const gradientDotsAlt: DotItem[] = [
   {
     id: 1,
     color: 'linear-gradient(-20deg, #2b5876 0%, #4e4376 100%)',

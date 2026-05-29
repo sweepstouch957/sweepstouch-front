@@ -11,7 +11,7 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children }: AuthGuardProps): React.JSX.Element | null {
-  const router = useRouter();
+  const { push } = useRouter();
   const { user, error, isLoading } = useAuth();
   const [isChecking, setIsChecking] = React.useState<boolean>(true);
 
@@ -29,11 +29,11 @@ export function AuthGuard({ children }: AuthGuardProps): React.JSX.Element | nul
       console.debug('User is not logged in, redirecting to sign in');
       switch (config.auth.strategy) {
         case AuthStrategy.CUSTOM: {
-          router.push(routes.auth['custom.login']);
+          push(routes.auth['custom.login']);
           return;
         }
         case AuthStrategy.SUPABASE: {
-          router.push(routes.auth['supabase.login']);
+          push(routes.auth['supabase.login']);
           return;
         }
       }

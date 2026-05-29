@@ -508,7 +508,7 @@ const Results: FC<ResultsProps> = ({
                               </Typography>
                             </Stack>
                           ) : (
-                            <Typography variant="caption" color="text.disabled">—</Typography>
+                            <Typography variant="caption" color="text.disabled">N/A</Typography>
                           )}
                         </TableCell>
 

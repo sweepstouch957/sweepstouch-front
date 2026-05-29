@@ -179,7 +179,7 @@ export default function AnalyticsDashboard() {
           }}
         >
           <Typography variant="body2" fontWeight={600}>
-            Showing demo data — Real data will populate once campaigns have scans.
+            Showing demo data. Real data will populate once campaigns have scans.
           </Typography>
           <Chip label="DEMO" size="small" color="info" sx={{ fontWeight: 800, height: 22 }} />
         </Alert>
@@ -234,7 +234,7 @@ export default function AnalyticsDashboard() {
             Product Intelligence
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            What's selling and what customers want — granular product-level analytics
+            What's selling and what customers want (granular product-level analytics)
           </Typography>
         </Box>
       </Stack>

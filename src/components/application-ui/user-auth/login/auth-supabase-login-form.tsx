@@ -63,7 +63,7 @@ const defaultValues = {
 
 export function AuthSupabaseLoginForm(): React.JSX.Element {
   const [supabaseClient] = React.useState(createSupabaseClient());
-  const router = useRouter();
+  const { push, refresh } = useRouter();
 
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
@@ -127,7 +127,7 @@ export function AuthSupabaseLoginForm(): React.JSX.Element {
       if (error) {
         if (error.message.includes('Email not confirmed')) {
           const searchParams = new URLSearchParams({ email: values.email });
-          router.push(`${routes.auth['supabase.register-confirm']}?${searchParams.toString()}`);
+          push(`${routes.auth['supabase.register-confirm']}?${searchParams.toString()}`);
         } else {
           setError('root', {
             type: 'server',
@@ -140,9 +140,9 @@ export function AuthSupabaseLoginForm(): React.JSX.Element {
       }
 
       await checkSession();
-      router.refresh();
+      refresh();
     },
-    [supabaseClient, router, setError, checkSession]
+    [supabaseClient, push, refresh, setError, checkSession]
   );
 
   const [showPassword, setShowPassword] = React.useState(false);

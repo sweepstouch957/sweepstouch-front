@@ -49,7 +49,7 @@ import PropTypes from 'prop-types';
 import { ChangeEvent, FC, MouseEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import BulkDelete from 'src/components/application-ui/tables/users/bulk-delete';
-import { CardWrapper } from 'src/components/application-ui/tables/users/results';
+import { CardWrapper } from 'src/components/application-ui/tables/users/styles';
 import { ButtonIcon } from 'src/components/base/styles/button-icon';
 import { ButtonSoft } from 'src/components/base/styles/button-soft';
 import { LinearProgressSlim } from 'src/components/base/styles/progress-bar';

@@ -56,7 +56,7 @@ const defaultValues = {
 } satisfies Values;
 
 export function AuthCustomLoginForm(): React.JSX.Element {
-  const router = useRouter();
+  const { refresh } = useRouter();
   const { checkSession } = useAuth();
   const [isPending, setIsPending] = React.useState<boolean>(false);
   const {
@@ -87,9 +87,9 @@ export function AuthCustomLoginForm(): React.JSX.Element {
 
       await checkSession();
 
-      router.refresh();
+      refresh();
     },
-    [router, setError, checkSession]
+    [refresh, setError, checkSession]
   );
 
   const [showPassword, setShowPassword] = useState(false);

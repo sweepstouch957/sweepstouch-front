@@ -226,6 +226,7 @@ function TaskSearch() {
                 noWrap
                 variant="subtitle2"
                 color="text.secondary"
+                suppressHydrationWarning
               >
                 <TodayTwoToneIcon
                   sx={{
@@ -344,6 +345,7 @@ function TaskSearch() {
                 noWrap
                 variant="subtitle2"
                 color="text.secondary"
+                suppressHydrationWarning
               >
                 <TodayTwoToneIcon
                   sx={{
@@ -462,6 +464,7 @@ function TaskSearch() {
                 noWrap
                 variant="subtitle2"
                 color="text.secondary"
+                suppressHydrationWarning
               >
                 <TodayTwoToneIcon
                   sx={{

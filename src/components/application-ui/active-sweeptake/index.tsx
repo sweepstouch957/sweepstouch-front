@@ -138,7 +138,7 @@ export const ActiveSweepstakeCard = ({ storeId }: ActiveSweepstakeCardProps) => 
           <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
             <CalendarMonthIcon sx={{ color: '#fc066f' }} />
             <Typography variant="body2" color="text.secondary">
-              {new Date(sweepstake.startDate).toLocaleDateString()} —{' '}
+              {new Date(sweepstake.startDate).toLocaleDateString()} to{' '}
               {new Date(sweepstake.endDate).toLocaleDateString()}
             </Typography>
           </Stack>

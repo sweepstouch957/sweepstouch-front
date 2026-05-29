@@ -4,8 +4,10 @@ import {
   getParticipationOverview,
   getPromoterRanking,
   promoterService,
+  getDailyRegistrations,
   type ParticipationOverview,
   type PromoterRankingResponse,
+  type DailyRegistrationsResponse,
 } from '@/services/promotor.service';
 import { useQuery } from '@tanstack/react-query';
 import { endOfDay, startOfDay, startOfMonth, startOfWeek, subDays } from 'date-fns';
@@ -50,6 +52,14 @@ export function usePromotorsMetrics({ period }: UsePromotorsMetricsParams) {
     retry: false,
   });
 
+  const { data: dailyRegistrationsData, isLoading: dailyLoading } = useQuery({
+    queryKey: ['promoter-daily-registrations', startDate, endDate, period],
+    queryFn: () => getDailyRegistrations({ startDate, endDate, period }),
+    staleTime: 2 * 60_000,
+    placeholderData: (prev) => prev,
+    retry: false,
+  });
+
   // Top promoters sorted by registrations (for goal tracking)
   const { data: topPromotersData, isLoading: topLoading } = useQuery({
     queryKey: ['promoters-top', period],
@@ -85,9 +95,10 @@ export function usePromotorsMetrics({ period }: UsePromotorsMetricsParams) {
     retry: false,
   });
 
-  const isLoading = dashLoading || rankingLoading || overviewLoading || topLoading;
+  const isLoading = dashLoading || rankingLoading || overviewLoading || topLoading || dailyLoading;
 
   const ranking = useMemo(() => rankingData?.ranking ?? [], [rankingData]);
+  const dailyRegistrations = useMemo(() => dailyRegistrationsData?.dailyStats ?? [], [dailyRegistrationsData]);
   const totals = useMemo(() => rankingData?.totals, [rankingData]);
   const overview: ParticipationOverview = useMemo(
     () =>
@@ -100,14 +111,16 @@ export function usePromotorsMetrics({ period }: UsePromotorsMetricsParams) {
         uniqueStoresCount: 0,
         uniquePromotersCount: 0,
         uniqueCustomersCount: 0,
+        totalPaid: 0,
+        campaignSentCount: 0,
       },
     [overviewData],
   );
 
   const topPromoters = useMemo(() => topPromotersData?.data ?? [], [topPromotersData]);
 
-  // Goal: a promoter "reaches goal" if totalRegistrations >= 50 (configurable threshold)
-  const GOAL_THRESHOLD = 50;
+  // Goal threshold: 200 registrations
+  const GOAL_THRESHOLD = 200;
   const goalReached = useMemo(
     () => topPromoters.filter((p) => (p.totalRegistrations ?? 0) >= GOAL_THRESHOLD),
     [topPromoters],
@@ -133,5 +146,6 @@ export function usePromotorsMetrics({ period }: UsePromotorsMetricsParams) {
     startDate,
     endDate,
     GOAL_THRESHOLD,
+    dailyRegistrations,
   };
 }

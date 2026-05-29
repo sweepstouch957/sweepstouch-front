@@ -1,224 +1,410 @@
 'use client';
 
-import type { ReactNode } from 'react';
-import StoresNearbyTable from '@/components/application-ui/tables/stores-warning/results';
+import dynamic from 'next/dynamic';
+import NewShiftModal from '@/components/application-ui/dialogs/shift/modal';
+import { PromoterSearchBar } from '@/components/application-ui/map/PromoterSearchBar';
 import PageHeading from '@/components/base/page-heading';
-import { useNearUnderStores } from '@/hooks/fetching/promoter/useInWarningStores';
-import { SortByOption } from '@models/near-by';
-import MyLocationIcon from '@mui/icons-material/MyLocation';
-import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
-import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
-import StorefrontIcon from '@mui/icons-material/Storefront';
+import { usePromoterMapData } from '@/hooks/fetching/promoter/usePromoterMapData';
+import { usePromotersNearStore } from '@/hooks/fetching/promoter/usePromotersNearStore';
+import { useStores } from '@/hooks/fetching/stores/useStores';
+import { NearbyPromoter } from '@/services/promotor.service';
+import { shiftService } from '@/services/shift.service';
+import { Store } from '@/services/store.service';
+import AddIcon from '@mui/icons-material/Add';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import SearchIcon from '@mui/icons-material/Search';
 import {
-  alpha,
   Box,
-  Card,
-  CardContent,
+  Button,
   Container,
-  LinearProgress,
+  IconButton,
+  InputAdornment,
   Skeleton,
   Stack,
+  Tab,
+  Tabs,
+  TextField,
   Typography,
+  useMediaQuery,
   useTheme,
 } from '@mui/material';
-import { useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import {
+  useCallback,
+  useDeferredValue,
+  useMemo,
+  useState,
+} from 'react';
 
-// ─── KPI card ─────────────────────────────────────────────────────────────────
+import { FilterBar } from './components/FilterBar';
+import { StoreDetailPanel } from './components/StoreDetailPanel';
+import { StoreList } from './components/StoreList';
+import { PANEL_HEIGHT, SKELETON_ROWS } from './constants';
+import { SortBy, StatusFilter } from './types';
 
-interface KpiCardProps {
-  icon: ReactNode;
-  label: string;
-  value: string | number;
-  sub?: string;
-  color: string;
-  loading?: boolean;
-}
+// ── Dynamic Components ────────────────────────────────────────────────────────
 
-const KpiCard = ({ icon, label, value, sub, color, loading }: KpiCardProps) => {
-  const theme = useTheme();
-  return (
-    <Card
-      elevation={0}
-      sx={{
-        flex: 1,
-        minWidth: 0,
-        borderRadius: 3,
-        border: '1px solid',
-        borderColor: 'divider',
-        overflow: 'hidden',
-        position: 'relative',
-        transition: 'box-shadow 0.2s',
-        '&:hover': { boxShadow: theme.shadows[4] },
-      }}
-    >
-      <Box sx={{ height: 3, bgcolor: color }} />
-      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-        <Stack direction="row" alignItems="flex-start" spacing={1.5}>
-          <Box
-            sx={{
-              width: 44,
-              height: 44,
-              borderRadius: 2.5,
-              bgcolor: alpha(color, theme.palette.mode === 'dark' ? 0.15 : 0.1),
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color,
-              flexShrink: 0,
-            }}
-          >
-            {icon}
-          </Box>
-          <Box flex={1} minWidth={0}>
-            <Typography variant="caption" color="text.secondary" display="block" mb={0.25} noWrap>
-              {label}
-            </Typography>
-            {loading ? (
-              <Skeleton width={56} height={28} />
-            ) : (
-              <Typography fontWeight={800} fontSize={22} lineHeight={1} sx={{ fontVariantNumeric: 'tabular-nums' }}>
-                {value}
-              </Typography>
-            )}
-            {sub && !loading && (
-              <Typography variant="caption" color="text.disabled" display="block" mt={0.25}>
-                {sub}
-              </Typography>
-            )}
-          </Box>
-        </Stack>
-      </CardContent>
-    </Card>
-  );
-};
+const StoresMapCanvas = dynamic(
+  () => import('@/components/application-ui/map/StoresMapCanvas').then((mod) => mod.StoresMapCanvas),
+  {
+    ssr: false,
+    loading: () => (
+      <Box
+        sx={{
+          height: '100%',
+          minHeight: 360,
+          borderRadius: 2,
+          bgcolor: 'grey.100',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Skeleton
+          variant="rectangular"
+          width="100%"
+          height="100%"
+          sx={{ borderRadius: 2 }}
+          animation="wave"
+        />
+      </Box>
+    ),
+  }
+);
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 const WorkStoresPage = () => {
   const theme = useTheme();
-  const searchParams = useSearchParams();
-  const q = searchParams.get('q') || '';
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  const [radiusMi, setRadiusMi] = useState<number>(20);
-  const [page, setPage] = useState<number>(0);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(25);
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [audienceMax, setAudienceMax] = useState<string>('1500');
-  const [sortBy, setSortBy] = useState<SortByOption>('nearest');
+  // ── Filter state ─────────────────────────────────────────────────────────────
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
+  const [minCustomers, setMinCustomers] = useState('');
+  const [maxCustomers, setMaxCustomers] = useState('');
+  const [sortBy, setSortBy] = useState<SortBy>('promoters_desc');
 
-  useEffect(() => {
-    if (q !== searchTerm) setSearchTerm(q);
-  }, [searchParams, q]);
+  // ── UI state ─────────────────────────────────────────────────────────────────
+  const [selectedStore, setSelectedStore] = useState<Store | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const deferredSearch = useDeferredValue(searchTerm);
+  const [activeTab, setActiveTab] = useState(0);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalStoreId, setModalStoreId] = useState<string | null>(null);
+  const [modalPromoterId, setModalPromoterId] = useState<string | null>(null);
+  const [radiusKm, setRadiusKm] = useState(8);
+  const [highlightedPromoterId, setHighlightedPromoterId] = useState<string | undefined>();
+  const [promoterSearch, setPromoterSearch] = useState<NearbyPromoter | null>(null);
+  const [onlineOnly, setOnlineOnly] = useState(false);
 
-  const { data, isError, isLoading, isFetching, refetch } = useNearUnderStores({
-    audienceLt: Number(audienceMax) > 0 ? Number(audienceMax) : 1500,
-    radiusMi,
-    page: page + 1,
-    limit: rowsPerPage,
-    search: searchTerm,
+  // ── Data ─────────────────────────────────────────────────────────────────────
+  const { data: stores, isLoading: loadingStores } = useStores();
+
+  const { allPromoters, promoterCountMap, loadingBatch } = usePromoterMapData(radiusKm);
+
+  const { data: nearData, isLoading: loadingPromoters } = usePromotersNearStore(
+    selectedStore?._id,
+    radiusKm,
+  );
+
+  const { data: storeShiftsData } = useQuery({
+    queryKey: ['shifts', 'by-store', selectedStore?._id] as const,
+    queryFn: () => shiftService.getAllShifts({ storeId: selectedStore!._id, limit: 100 }),
+    enabled: !!selectedStore?._id,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   });
 
-  // KPI derivations
-  const kpis = useMemo(() => {
-    const allStores = data?.stores ?? [];
-    const withPromoters = allStores.filter((s) => (s.promoters?.length ?? 0) > 0);
-    const available = withPromoters.filter((s) => s.store.canImpulse !== false);
-    const busy = withPromoters.filter((s) => s.store.canImpulse === false);
-    return {
-      total: data?.totalStores ?? 0,
-      withPromoters: withPromoters.length,
-      available: available.length,
-      busy: busy.length,
-    };
-  }, [data]);
+  // ── Derived ──────────────────────────────────────────────────────────────────
 
-  const handleChangeRadius = (r: number) => {
-    setRadiusMi(r);
-    setPage(0);
-  };
+  /** Client-side online filter — zero network cost. */
+  const visiblePromoters = useMemo(
+    () => (onlineOnly ? allPromoters.filter((p) => p.isOnline) : allPromoters),
+    [allPromoters, onlineOnly],
+  );
 
-  return (
-    <Container maxWidth="xl" sx={{ py: { xs: 2, sm: 4 } }}>
-      <PageHeading
-        sx={{ px: 0 }}
-        title="Tiendas Candidatas"
-        description="Tiendas con bajo tráfico que pueden beneficiarse de una impulsadora"
-      />
+  const onlineCount = useMemo(
+    () => allPromoters.filter((p) => p.isOnline).length,
+    [allPromoters],
+  );
 
-      {/* Fetching bar */}
-      {isFetching && !isLoading && (
-        <LinearProgress sx={{ mb: 1, borderRadius: 1, height: 2, opacity: 0.7 }} />
-      )}
+  const promoterShiftStatusMap = useMemo(() => {
+    const map = new Map<string, 'active' | 'pending'>();
+    for (const shift of storeShiftsData?.shifts ?? []) {
+      if (!shift.promoterId) continue;
+      const s = (shift.status ?? '').toLowerCase();
+      if (s === 'active' || s === 'assigned') {
+        map.set(shift.promoterId, 'active');
+      } else if ((s === 'pendiente' || s === 'available') && !map.has(shift.promoterId)) {
+        map.set(shift.promoterId, 'pending');
+      }
+    }
+    return map;
+  }, [storeShiftsData?.shifts]);
 
-      {/* KPI grid */}
+  const filteredStores = useMemo(() => {
+    const all = stores ?? [];
+    const min = minCustomers !== '' ? Number(minCustomers) : null;
+    const max = maxCustomers !== '' ? Number(maxCustomers) : null;
+    const lc = deferredSearch.toLowerCase();
+    return all.filter((s) => {
+      const count = s.customerCount || 0;
+      if (lc && !s.name.toLowerCase().includes(lc)) return false;
+      if (statusFilter === 'active' && !s.active) return false;
+      if (statusFilter === 'inactive' && s.active) return false;
+      if (min !== null && count < min) return false;
+      if (max !== null && count > max) return false;
+      return true;
+    });
+  }, [stores, statusFilter, minCustomers, maxCustomers, deferredSearch]);
+
+  const sortedStores = useMemo(() => {
+    if (sortBy === 'default' || promoterCountMap.size === 0) return filteredStores;
+    return [...filteredStores].sort(
+      (a, b) =>
+        (promoterCountMap.get(b._id) ?? promoterCountMap.get(b.id) ?? 0) -
+        (promoterCountMap.get(a._id) ?? promoterCountMap.get(a.id) ?? 0),
+    );
+  }, [filteredStores, sortBy, promoterCountMap]);
+
+  const totalCustomers = useMemo(
+    () => filteredStores.reduce((acc, s) => acc + (s.customerCount || 0), 0),
+    [filteredStores],
+  );
+
+  // ── Stable handlers ───────────────────────────────────────────────────────────
+
+  const openShiftModal = useCallback((storeId: string, promoterId?: string) => {
+    setModalStoreId(storeId);
+    setModalPromoterId(promoterId ?? null);
+    setModalOpen(true);
+  }, []);
+
+  const closeShiftModal = useCallback(() => {
+    setModalOpen(false);
+    setModalStoreId(null);
+    setModalPromoterId(null);
+  }, []);
+
+  const handleStoreClick = useCallback(
+    (store: Store) => {
+      setSelectedStore(store);
+      if (isMobile) setActiveTab(1);
+    },
+    [isMobile],
+  );
+
+  const clearSelectedStore = useCallback(() => setSelectedStore(null), []);
+
+  const handlePromoterSearch = useCallback((p: NearbyPromoter | null) => {
+    setPromoterSearch(p);
+    setHighlightedPromoterId(p?._id);
+  }, []);
+
+  const handleToggleOnlineOnly = useCallback(() => setOnlineOnly((v) => !v), []);
+
+  // ── Shared fragments ──────────────────────────────────────────────────────────
+
+  const mapSearchBar = (
+    <PromoterSearchBar
+      promoters={allPromoters}
+      value={promoterSearch}
+      onlineOnly={onlineOnly}
+      onlineCount={onlineCount}
+      onChange={handlePromoterSearch}
+      onToggleOnlineOnly={handleToggleOnlineOnly}
+    />
+  );
+
+  const mapCanvas = (height: number | string) => (
+    <StoresMapCanvas
+      stores={filteredStores}
+      promoters={visiblePromoters}
+      height={height}
+      onStoreClick={handleStoreClick}
+      selectedStoreId={selectedStore?._id}
+      highlightedPromoterId={highlightedPromoterId}
+    />
+  );
+
+  const panel = (
+    <Box
+      sx={{
+        height: isMobile ? 'calc(100vh - 160px)' : PANEL_HEIGHT,
+        display: 'flex',
+        flexDirection: 'column',
+        bgcolor: 'background.paper',
+        borderRadius: isMobile ? 0 : 2,
+        border: isMobile ? 'none' : (t) => `1px solid ${t.palette.divider}`,
+        overflow: 'hidden',
+      }}
+    >
       <Box
         sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
-          gap: 2,
-          mb: 3,
-          mt: 1,
+          px: 2,
+          py: 1.5,
+          borderBottom: (t) => `1px solid ${t.palette.divider}`,
+          flexShrink: 0,
         }}
       >
-        <KpiCard
-          icon={<StorefrontIcon />}
-          label="Total tiendas"
-          value={kpis.total}
-          sub="candidatas"
-          color={theme.palette.primary.main}
-          loading={isLoading}
-        />
-        <KpiCard
-          icon={<PeopleAltIcon />}
-          label="Con promotoras"
-          value={kpis.withPromoters}
-          sub="en esta vista"
-          color="#10b981"
-          loading={isLoading}
-        />
-        <KpiCard
-          icon={<RocketLaunchIcon />}
-          label="Listas para impulsar"
-          value={kpis.available}
-          sub="disponibles ahora"
-          color="#6366f1"
-          loading={isLoading}
-        />
-        <KpiCard
-          icon={<MyLocationIcon />}
-          label="Radio activo"
-          value={`${radiusMi} mi`}
-          sub={`audiencia ≤ ${Number(audienceMax) > 0 ? Number(audienceMax).toLocaleString() : '1,500'}`}
-          color="#f59e0b"
-          loading={isLoading}
-        />
+        {selectedStore ? (
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <IconButton size="small" onClick={clearSelectedStore} aria-label="Volver a la lista de tiendas" sx={{ flexShrink: 0 }}>
+              <ArrowBackIcon fontSize="small" />
+            </IconButton>
+            <Typography variant="body2" fontWeight={600} noWrap flex={1}>
+              {selectedStore.name}
+            </Typography>
+            <Button
+              size="small"
+              variant="contained"
+              startIcon={<AddIcon sx={{ fontSize: 13 }} />}
+              onClick={() => openShiftModal(selectedStore._id)}
+              sx={{
+                borderRadius: 8,
+                textTransform: 'none',
+                fontSize: 12,
+                px: 1.5,
+                py: 0.5,
+                flexShrink: 0,
+                bgcolor: '#EE1E7C',
+                '&:hover': { bgcolor: '#d01a6e' },
+              }}
+            >
+              Nuevo turno
+            </Button>
+          </Stack>
+        ) : (
+          <TextField
+            size="small"
+            fullWidth
+            placeholder="Buscar tienda..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            inputProps={{ 'aria-label': 'Buscar tienda por nombre' }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                </InputAdornment>
+              ),
+            }}
+          />
+        )}
       </Box>
 
-      <StoresNearbyTable
-        radiusKm={data?.radiusMi}
-        stores={data?.stores ?? []}
-        total={data?.totalStores ?? 0}
-        isLoading={isLoading}
-        isError={isError}
-        onRetry={refetch}
-        // pagination
-        page={page}
-        rowsPerPage={rowsPerPage}
-        onChangePage={setPage}
-        onChangeRowsPerPage={(n) => { setRowsPerPage(n); setPage(0); }}
-        // filters
-        searchTerm={searchTerm}
-        onSearchTermChange={setSearchTerm}
-        audienceMax={audienceMax}
-        onAudienceMaxChange={(v) => { if (/^\d*$/.test(v)) setAudienceMax(v); }}
-        // new
-        radiusMi={radiusMi}
-        onChangeRadius={handleChangeRadius}
-        sortBy={sortBy}
-        onSortChange={setSortBy}
-      />
-    </Container>
+      <Box sx={{ flex: 1, overflowY: 'auto' }}>
+        {selectedStore ? (
+          <StoreDetailPanel
+            store={selectedStore}
+            promoters={nearData?.promoters}
+            loading={loadingPromoters}
+            statusMap={promoterShiftStatusMap}
+            onCreateShift={openShiftModal}
+          />
+        ) : loadingStores ? (
+          <Box p={2}>
+            {SKELETON_ROWS.map((_, i) => (
+              <Skeleton key={i} height={64} sx={{ mb: 0.5, borderRadius: 1.5 }} animation="wave" />
+            ))}
+          </Box>
+        ) : (
+          <StoreList
+            stores={sortedStores}
+            promoterCountMap={promoterCountMap}
+            onStoreSelect={handleStoreClick}
+            selectedId={selectedStore?._id}
+          />
+        )}
+      </Box>
+    </Box>
+  );
+
+  const filterBar = (
+    <FilterBar
+      statusFilter={statusFilter}
+      onStatusChange={setStatusFilter}
+      minCustomers={minCustomers}
+      onMinChange={setMinCustomers}
+      maxCustomers={maxCustomers}
+      onMaxChange={setMaxCustomers}
+      sortBy={sortBy}
+      onSortChange={setSortBy}
+      filteredCount={filteredStores.length}
+      totalCustomers={totalCustomers}
+      loadingBatch={loadingBatch}
+      isMobile={isMobile}
+      radiusKm={radiusKm}
+      onRadiusChange={setRadiusKm}
+    />
+  );
+
+  const modal = (
+    <NewShiftModal
+      open={modalOpen}
+      onClose={closeShiftModal}
+      initialStoreId={modalStoreId}
+      initialPromoterId={modalPromoterId}
+    />
+  );
+
+  // ── Desktop ───────────────────────────────────────────────────────────────────
+  if (!isMobile) {
+    return (
+      <Container component="main" maxWidth="xl" sx={{ py: 3 }}>
+        <PageHeading
+          title="Tiendas y Asignaciones"
+          description="Selecciona una tienda en el mapa para ver promotoras cercanas y crear turnos"
+        />
+        <Box mt={2}>{filterBar}</Box>
+        <Box sx={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {mapSearchBar}
+            {mapCanvas(PANEL_HEIGHT)}
+          </Box>
+          {panel}
+        </Box>
+        {modal}
+      </Container>
+    );
+  }
+
+  // ── Mobile ────────────────────────────────────────────────────────────────────
+  return (
+    <Box component="main" sx={{ height: '100dvh', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ px: 2, pt: 2, pb: 0.5, flexShrink: 0 }}>
+        <Typography component="h1" variant="h6" fontWeight={700}>
+          Tiendas y Asignaciones
+        </Typography>
+      </Box>
+      <Box sx={{ px: 2, pt: 1, flexShrink: 0 }}>{filterBar}</Box>
+      <Box sx={{ borderBottom: (t) => `1px solid ${t.palette.divider}`, flexShrink: 0 }}>
+        <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} variant="fullWidth">
+          <Tab label="Mapa" />
+          <Tab label="Tiendas" />
+        </Tabs>
+      </Box>
+      <Box sx={{ flex: 1, overflow: 'hidden' }}>
+        <Box
+          sx={{
+            display: activeTab === 0 ? 'flex' : 'none',
+            flexDirection: 'column',
+            height: '100%',
+            gap: 1,
+            p: 1,
+          }}
+        >
+          {mapSearchBar}
+          <Box sx={{ flex: 1, minHeight: 0 }}>
+            {activeTab === 0 && mapCanvas('100%')}
+          </Box>
+        </Box>
+        <Box sx={{ display: activeTab === 1 ? 'flex' : 'none', flexDirection: 'column', height: '100%' }}>
+          {panel}
+        </Box>
+      </Box>
+      {modal}
+    </Box>
   );
 };
 

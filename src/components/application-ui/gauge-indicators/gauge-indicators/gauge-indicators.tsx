@@ -15,7 +15,7 @@ import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-export const GaugeChart = dynamic(() => import('react-gauge-chart'), { ssr: false });
+const GaugeChart = dynamic(() => import('react-gauge-chart'), { ssr: false });
 
 const LabelErrorAlt = styled(Box)(({ theme }) => ({
   display: 'inline-block',

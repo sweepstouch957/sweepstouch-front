@@ -16,6 +16,12 @@ export interface Promoter {
   active: boolean;
   createdAt: string;
   lastLogin?: string;
+  lastLocation?: {
+    type: string;
+    coordinates: [number, number];
+  };
+  lastActive?: string;
+  isOnline?: boolean;
   store?: Store;
   accessCode?: string | null;
   totalShifts?: number;
@@ -251,6 +257,11 @@ export class PromoterService {
     const res = await api.get(`/promoter/users/near-store/${storeId}`, { params: { radiusKm } });
     return res.data;
   }
+
+  async getAllLocatedPromoters(): Promise<{ promoters: NearbyPromoter[] }> {
+    const res = await api.get('/promoter/users/with-location');
+    return res.data;
+  }
 }
 
 export const promoterService = new PromoterService();
@@ -265,6 +276,8 @@ export interface RankedPromoter {
   totalParticipations: number;
   newCustomers: number;
   existingCustomers: number;
+  totalPaid?: number;
+  campaignSentCount?: number;
 }
 
 export interface PromoterRankingResponse {
@@ -274,6 +287,8 @@ export interface PromoterRankingResponse {
     grandTotalParticipations: number;
     grandTotalNewCustomers: number;
     grandTotalExistingCustomers: number;
+    grandTotalPaid?: number;
+    grandTotalCampaignSent?: number;
   };
   period: string;
 }
@@ -287,6 +302,8 @@ export interface ParticipationOverview {
   uniqueStoresCount: number;
   uniquePromotersCount: number;
   uniqueCustomersCount: number;
+  totalPaid?: number;
+  campaignSentCount?: number;
 }
 
 export async function getPromoterRanking(params?: {
@@ -375,3 +392,30 @@ export async function validatePromoterPhone(participantId: string): Promise<Vali
   });
   return res.data;
 }
+
+// ─── Daily Registrations ─────────────────────────────────────────────────────
+
+export interface DailyRegistration {
+  date: string;
+  totalParticipations: number;
+  newCustomers: number;
+  existingCustomers: number;
+}
+
+export interface DailyRegistrationsResponse {
+  dailyStats: DailyRegistration[];
+  period: {
+    startDate: string | null;
+    endDate: string;
+  };
+}
+
+export async function getDailyRegistrations(params?: {
+  startDate?: string;
+  endDate?: string;
+  period?: 'today' | 'week' | 'month';
+}): Promise<DailyRegistrationsResponse> {
+  const res = await api.get<DailyRegistrationsResponse>('/promoter/metrics/daily', { params });
+  return res.data;
+}
+

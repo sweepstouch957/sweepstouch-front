@@ -392,7 +392,7 @@ export default function SendTestMessagePage({
                   setUploadedImageUrl(null);
                 }}
                 renderOption={(props, option) => (
-                  <Box component="li" {...props} key={option.id}>
+                  <Box component="li" key={option.id} {...props}>
                     <Stack direction="row" alignItems="center" spacing={1.5}>
                       <Avatar src={option.image} sx={{ width: 28, height: 28, bgcolor: alpha(accent, 0.12) }}>
                         <StorefrontRoundedIcon sx={{ fontSize: 14 }} />
@@ -506,7 +506,7 @@ export default function SendTestMessagePage({
                         : 'No customers found'
                     }
                     renderOption={(props, option) => (
-                      <Box component="li" {...props} key={option._id}>
+                      <Box component="li" key={option._id} {...props}>
                         <Stack direction="row" alignItems="center" spacing={1.5} sx={{ width: '100%' }}>
                           <Avatar
                             sx={{
@@ -645,7 +645,7 @@ export default function SendTestMessagePage({
                                   onClick={() => window.open(kioskUrl, '_blank')}
                                   sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, fontSize: 12 }}
                                 >
-                                  Open Kiosk — {selectedStore.name}
+                                  Open Kiosk: {selectedStore.name}
                                 </Button>
                                 <Box
                                   sx={{
@@ -1063,7 +1063,7 @@ export default function SendTestMessagePage({
                     onClick={() => window.open(kioskUrl, '_blank')}
                     sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700, py: 1 }}
                   >
-                    Open Kiosk — {selectedStore.name}
+                    Open Kiosk: {selectedStore.name}
                   </Button>
                 </Stack>
               </Paper>

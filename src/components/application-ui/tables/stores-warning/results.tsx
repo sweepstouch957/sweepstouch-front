@@ -73,7 +73,7 @@ const getClosestDistance = (promoters: PromoterBrief[]): number | null => {
 };
 
 const DistanceBadge = ({ mi }: { mi: number | null }) => {
-  if (mi === null) return <Typography variant="caption" color="text.disabled">—</Typography>;
+  if (mi === null) return <Typography variant="caption" color="text.disabled">N/A</Typography>;
   const color = mi < 5 ? 'success' : mi < 15 ? 'warning' : 'default';
   return (
     <Chip

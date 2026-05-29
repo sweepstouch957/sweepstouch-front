@@ -73,7 +73,7 @@ const fmtDate  = (iso?: string) => {
 
 const RatingStars = ({ rating }: { rating?: number }) => {
   if (typeof rating !== 'number')
-    return <Typography variant="caption" color="text.disabled">—</Typography>;
+    return <Typography variant="caption" color="text.disabled">N/A</Typography>;
   return (
     <Stack direction="row" spacing={0.25} alignItems="center">
       <StarRoundedIcon sx={{ fontSize: 14, color: '#f59e0b' }} />
@@ -850,7 +850,7 @@ const PromoterTable = ({
                           InputLabelProps={{ shrink: true }}
                           sx={{ width: 150 }}
                         />
-                        <Typography sx={{ fontSize: 12, color: 'text.disabled' }}>—</Typography>
+                        <Typography sx={{ fontSize: 12, color: 'text.disabled' }}>to</Typography>
                         <TextField
                           label="Hasta" type="date" size="small"
                           value={detailEndDate}

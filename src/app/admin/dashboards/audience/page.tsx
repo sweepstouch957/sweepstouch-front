@@ -387,7 +387,7 @@ export default function AudienceInsightsPage() {
             color="error"
             variant="body2"
           >
-            Some sections failed to load — double check the audience router mounting and params
+            Some sections failed to load. Double check the audience router mounting and params
             mapping.
           </Typography>
         </Box>

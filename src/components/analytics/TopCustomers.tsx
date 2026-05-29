@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import {
   Card,
   Typography,
@@ -34,6 +35,9 @@ const RANK_GRADIENTS = [
 ];
 
 export default function TopCustomers({ data, isLoading }: Props) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   if (isLoading) {
     return (
       <Card sx={{ p: 2, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
@@ -92,7 +96,7 @@ export default function TopCustomers({ data, isLoading }: Props) {
           const isTop3 = i < 3;
           const initial = (c.customerName || c.customerPhone || '?')[0].toUpperCase();
           const pointsPct = (c.totalPoints / maxPoints) * 100;
-          const daysSinceVisit = c.lastVisit
+          const daysSinceVisit = mounted && c.lastVisit
             ? Math.floor((Date.now() - new Date(c.lastVisit).getTime()) / 86400000)
             : null;
 
@@ -150,7 +154,7 @@ export default function TopCustomers({ data, isLoading }: Props) {
 
                   {/* Info */}
                   <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                    <Stack direction="row" alignItems="center" spacing={0.5} suppressHydrationWarning>
                       <Typography variant="body2" fontWeight={800} noWrap>
                         {c.customerName || 'Unknown'}
                       </Typography>

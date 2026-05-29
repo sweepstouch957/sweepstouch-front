@@ -361,7 +361,7 @@ const PromotersDialog: React.FC<{
                             {p.email}
                           </MUILink>
                         ) : (
-                          <Typography variant="body2">—</Typography>
+                          <Typography variant="body2">N/A</Typography>
                         )}
                         {p.email && (
                           <Tooltip title="Copiar email">
@@ -394,7 +394,7 @@ const PromotersDialog: React.FC<{
                             {p.phoneNumber}
                           </MUILink>
                         ) : (
-                          <Typography variant="body2">—</Typography>
+                          <Typography variant="body2">N/A</Typography>
                         )}
                         {p.phoneNumber && (
                           <Tooltip title="Copiar teléfono">

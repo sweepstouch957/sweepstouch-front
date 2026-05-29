@@ -85,7 +85,7 @@ const DetailRow = ({ label, value, isDark }: { label: string; value: React.React
 
 export default function ContractsListingPage() {
   const theme = useTheme();
-  const router = useRouter();
+  const { push } = useRouter();
   const customization = useCustomization();
   const queryClient = useQueryClient();
   const isDark = theme.palette.mode === 'dark';
@@ -181,7 +181,7 @@ export default function ContractsListingPage() {
         <Button
           variant="contained"
           startIcon={<AddCircleRoundedIcon />}
-          onClick={() => router.push(routes.admin.management.stores['contracts-create'])}
+          onClick={() => push(routes.admin.management.stores['contracts-create'])}
           sx={{
             borderRadius: 2,
             textTransform: 'none',

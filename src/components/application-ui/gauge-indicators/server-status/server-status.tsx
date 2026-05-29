@@ -16,7 +16,7 @@ import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
 import { AvatarState } from 'src/components/base/styles/avatar';
 
-export const GaugeChart = dynamic(() => import('react-gauge-chart'), { ssr: false });
+const GaugeChart = dynamic(() => import('react-gauge-chart'), { ssr: false });
 
 const CardActions = styled(Box)(({ theme }) => ({
   position: 'absolute',

@@ -111,7 +111,7 @@ function ColorPickerField({
 
 export default function Page() {
   const { t } = useTranslation();
-  const router = useRouter();
+  const { push, back } = useRouter();
   const customization = useCustomization();
   const { user } = useAuth();
   const [file, setFile] = useState<File | null>(null);
@@ -152,7 +152,7 @@ export default function Page() {
     },
     onSuccess: () => {
       setSnack({ open: true, msg: t('Prize created successfully'), sev: 'success' });
-      router.push('/admin/management/prizes');
+      push('/admin/management/prizes');
     },
     onError: (e: any) => {
       setSnack({ open: true, msg: e?.message || t('Error creating prize'), sev: 'error' });
@@ -490,7 +490,7 @@ export default function Page() {
                 </Button>
                 <Button
                   variant="outlined"
-                  onClick={() => router.back()}>
+                  onClick={() => back()}>
                   {t('Cancel')}
                 </Button>
               </Stack>

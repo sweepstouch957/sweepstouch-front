@@ -33,12 +33,12 @@ const iframeScale = {
 };
 
 export default function OptinCashiersPage() {
-  const router = useRouter();
+  const { push } = useRouter();
   const [activeView, setActiveView] = useState<'kiosk' | 'send-test' | 'linktree'>('kiosk');
   const isPhoneView = activeView === 'linktree';
 
   const handleClose = () => {
-    router.push(routes.admin.dashboards.reports);
+    push(routes.admin.dashboards.reports);
   };
 
   return (

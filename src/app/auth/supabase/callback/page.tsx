@@ -11,7 +11,7 @@ import { createClient as createSupabaseClient } from 'src/utils/supabase/client'
 
 function PageContent(): React.JSX.Element | null {
   const [supabaseClient] = React.useState(createSupabaseClient());
-  const router = useRouter();
+  const { push } = useRouter();
   const { checkSession } = useAuth();
   const executedRef = React.useRef<boolean>(false);
   const [displayError, setDisplayError] = React.useState<string | null>(null);
@@ -41,13 +41,13 @@ function PageContent(): React.JSX.Element | null {
     if (error) {
       console.debug(error.message);
       toast.error('Something went wrong');
-      router.push(routes.auth['supabase.login']);
+      push(routes.auth['supabase.login']);
       return;
     }
     await checkSession();
     const next = searchParams.get('next') || routes.admin.index;
-    router.push(next);
-  }, [supabaseClient, router, checkSession]);
+    push(next);
+  }, [supabaseClient, push, checkSession]);
   React.useEffect((): void => {
     handle().catch(console.error);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Expected

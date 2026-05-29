@@ -223,6 +223,7 @@ function PendingTickets() {
                           <Tooltip
                             arrow
                             placement="top"
+                            suppressHydrationWarning
                             title={
                               t(ticket.tooltipStatusText) +
                               ' ' +

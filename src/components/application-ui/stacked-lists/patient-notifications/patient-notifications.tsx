@@ -136,6 +136,7 @@ function Notifications() {
                     align="right"
                     color="text.secondary"
                     noWrap
+                    suppressHydrationWarning
                   >
                     {formatDistance(notification.postDuration(new Date()), new Date(), {
                       addSuffix: true,

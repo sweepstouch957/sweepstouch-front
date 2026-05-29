@@ -37,7 +37,7 @@ function TopBarContent() {
           ml={1}
         >
           <Typography variant="h5">Zain Baptista</Typography>
-          <Typography variant="subtitle2">
+          <Typography variant="subtitle2" suppressHydrationWarning>
             {formatDistance(subMinutes(new Date(), 8), new Date(), {
               addSuffix: true,
             })}
