@@ -166,11 +166,11 @@ const COMBINED_CONVERSATION_LOOKUP_ATTEMPTS = 12;
 const COMBINED_CONVERSATION_LOOKUP_DELAY_MS = 750;
 const STREAMING_TEXT_FLUSH_MS = 75;
 const CHAT_RECOVERY_INTERVAL_MS = 8000;
-const CHAT_POST_STREAM_RECOVERY_TIMEOUT_MS = 60000;
-const CHAT_SILENT_STREAM_TIMEOUT_MS = 90000;
+const CHAT_POST_STREAM_RECOVERY_TIMEOUT_MS = 120000;
+const CHAT_SILENT_STREAM_TIMEOUT_MS = 240000;
 const NEW_CONVERSATION_LOOKUP_INTERVAL_MS = 1500;
 const EMPTY_RESPONSE_MESSAGE =
-  'No pude obtener una respuesta de la IA para esta consulta. Intenta de nuevo o revisa los logs del backend si vuelve a pasar.';
+  'La API de IA no devolvió una respuesta a tiempo para esta consulta. Intenta de nuevo; si vuelve a pasar, revisa los logs del backend o de las herramientas de datos.';
 
 const getResponseCacheKey = (content: string) => content.trim().slice(0, 5000);
 
