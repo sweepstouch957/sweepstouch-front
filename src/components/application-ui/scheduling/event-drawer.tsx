@@ -12,7 +12,8 @@ import {
     Avatar,
     Collapse,
     useTheme,
-    alpha
+    alpha,
+    MenuItem
 } from '@mui/material';
 import CloseTwoToneIcon from '@mui/icons-material/CloseTwoTone';
 import VideocamTwoToneIcon from '@mui/icons-material/VideocamTwoTone';
@@ -32,24 +33,147 @@ import { es } from 'date-fns/locale';
 interface EventDrawerProps {
     event: any;
     onClose: () => void;
+    onReschedule?: (id: string, data: { date: string; time: string; scheduledAt: string; timezone?: string }) => Promise<unknown>;
+    rescheduling?: boolean;
 }
 
-const EventDrawer: React.FC<EventDrawerProps> = ({ event, onClose }) => {
+const MERIDIEM_OPTIONS = ['AM', 'PM'] as const;
+type Meridiem = (typeof MERIDIEM_OPTIONS)[number];
+
+function parseLocalDate(value?: string) {
+    if (!value) return null;
+    const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (dateOnlyMatch) {
+        const [, year, month, day] = dateOnlyMatch;
+        return new Date(Number(year), Number(month) - 1, Number(day));
+    }
+    return new Date(value);
+}
+
+function getEventDateValue(event: any) {
+    const source = event?.scheduledAt || event?.date;
+    if (!source) return '';
+    try {
+        return format(parseLocalDate(source) || new Date(source), 'yyyy-MM-dd');
+    } catch {
+        return source.split('T')[0] || '';
+    }
+}
+
+function getEventTimeValue(event: any) {
+    if (event?.scheduledAt) {
+        try {
+            return format(new Date(event.scheduledAt), 'HH:mm');
+        } catch {
+            return '';
+        }
+    }
+    return event?.time && event.time !== 'N/A' ? event.time.slice(0, 5) : '';
+}
+
+function getMeridiem(timeValue: string): Meridiem {
+    const hour = Number(timeValue.split(':')[0] || 0);
+    return hour >= 12 ? 'PM' : 'AM';
+}
+
+function toTwelveHourTime(timeValue: string) {
+    if (!timeValue) return '';
+    const [rawHour, minute = '00'] = timeValue.split(':');
+    const hour = Number(rawHour);
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minute.padStart(2, '0')}`;
+}
+
+function applyMeridiem(timeValue: string, meridiem: Meridiem) {
+    if (!timeValue) return '';
+    const [rawHour, minute = '00'] = timeValue.split(':');
+    const displayHour = Number(rawHour) % 12 || 12;
+    let hour = displayHour;
+    if (meridiem === 'PM' && displayHour !== 12) hour += 12;
+    if (meridiem === 'AM' && displayHour === 12) hour = 0;
+    return `${String(hour).padStart(2, '0')}:${minute.padStart(2, '0')}`;
+}
+
+function formatTimeWithMeridiem(timeValue?: string) {
+    if (!timeValue || timeValue === 'N/A') return 'Hora pendiente';
+    return `${toTwelveHourTime(timeValue)} ${getMeridiem(timeValue)}`;
+}
+
+const EventDrawer: React.FC<EventDrawerProps> = ({ event, onClose, onReschedule, rescheduling = false }) => {
     const theme = useTheme();
     const [isRescheduling, setIsRescheduling] = useState(false);
     const [showMoreInfo, setShowMoreInfo] = useState(false);
+    const [rescheduleDate, setRescheduleDate] = useState(() => getEventDateValue(event));
+    const [rescheduleTime, setRescheduleTime] = useState(() => getEventTimeValue(event));
+    const [rescheduleMeridiem, setRescheduleMeridiem] = useState<Meridiem>(() => getMeridiem(getEventTimeValue(event)));
+    const [rescheduleError, setRescheduleError] = useState('');
+
+    const {
+        id,
+        type,
+        name,
+        contact,
+        date,
+        time,
+        status,
+        link,
+        color,
+        phone,
+        email,
+        city,
+        zipCode,
+        estimatedVolume,
+        timezone
+    } = event || {};
 
     // Fallback if event is null
     if (!event) return null;
 
-    const { id, type, name, contact, date, time, status, link, color, phone, email, city, zipCode, estimatedVolume } = event;
+    const handleToggleReschedule = () => {
+        if (!isRescheduling) {
+            setRescheduleDate(getEventDateValue(event));
+            const currentTime = getEventTimeValue(event);
+            setRescheduleTime(currentTime);
+            setRescheduleMeridiem(getMeridiem(currentTime));
+            setRescheduleError('');
+        }
+        setIsRescheduling((value) => !value);
+    };
+
+    const handleConfirmReschedule = async () => {
+        if (!rescheduleDate || !rescheduleTime) {
+            setRescheduleError('Selecciona una nueva fecha y hora.');
+            return;
+        }
+        if (!id) {
+            setRescheduleError('No se pudo identificar la cita a reagendar.');
+            return;
+        }
+        if (!onReschedule) {
+            setRescheduleError('No hay una acciÃ³n de reagendamiento configurada.');
+            return;
+        }
+
+        const normalizedTime = applyMeridiem(rescheduleTime, rescheduleMeridiem);
+        const scheduledAtValue = `${rescheduleDate}T${normalizedTime}:00`;
+        await onReschedule(id, {
+            date: rescheduleDate,
+            time: normalizedTime,
+            scheduledAt: scheduledAtValue,
+            timezone,
+        });
+        setIsRescheduling(false);
+        setRescheduleError('');
+    };
 
     const isLinkDisabled = (dateStr: string, timeStr: string) => {
         if (!dateStr) return true;
         try {
             const rawDate = dateStr.split('T')[0];
             const datetimeStr = timeStr === 'N/A' ? rawDate : `${rawDate}T${timeStr}`;
-            const targetDate = new Date(datetimeStr);
+            const targetDate = timeStr === 'N/A'
+                ? parseLocalDate(rawDate) || new Date(rawDate)
+                : new Date(datetimeStr);
             if (isToday(targetDate)) return false;
             return isPast(targetDate);
         } catch {
@@ -122,10 +246,10 @@ const EventDrawer: React.FC<EventDrawerProps> = ({ event, onClose }) => {
                         Fecha y Hora Programada
                     </Typography>
                     <Typography variant="h6">
-                        {date ? format(new Date(date), 'EEEE, dd MMMM yyyy', { locale: es }) : 'No definida'}
+                        {date ? format(parseLocalDate(date) || new Date(date), 'EEEE, dd MMMM yyyy', { locale: es }) : 'No definida'}
                     </Typography>
                     <Typography variant="body1" color="text.secondary">
-                        {time !== 'N/A' ? `A las ${time} hrs` : 'Hora pendiente'}
+                        {time !== 'N/A' ? `A las ${formatTimeWithMeridiem(time)}` : 'Hora pendiente'}
                     </Typography>
                 </Box>
 
@@ -207,7 +331,7 @@ const EventDrawer: React.FC<EventDrawerProps> = ({ event, onClose }) => {
                         variant="outlined"
                         size="large"
                         startIcon={<EditCalendarTwoToneIcon />}
-                        onClick={() => setIsRescheduling(!isRescheduling)}
+                        onClick={handleToggleReschedule}
                         sx={{ py: 1.5, justifyContent: 'flex-start', px: 3 }}
                     >
                         Reagendar Cita
@@ -225,15 +349,58 @@ const EventDrawer: React.FC<EventDrawerProps> = ({ event, onClose }) => {
                                 fullWidth
                                 InputLabelProps={{ shrink: true }}
                                 label="Nueva Fecha"
+                                value={rescheduleDate}
+                                onChange={(e) => {
+                                    setRescheduleDate(e.target.value);
+                                    setRescheduleError('');
+                                }}
                             />
-                            <TextField
-                                type="time"
+                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                                <TextField
+                                    type="time"
+                                    fullWidth
+                                    InputLabelProps={{ shrink: true }}
+                                    label="Nueva Hora"
+                                    value={rescheduleTime}
+                                    onChange={(e) => {
+                                        setRescheduleTime(e.target.value);
+                                        setRescheduleMeridiem(getMeridiem(e.target.value));
+                                        setRescheduleError('');
+                                    }}
+                                    helperText={rescheduleTime ? `${toTwelveHourTime(rescheduleTime)} ${rescheduleMeridiem}` : ' '}
+                                />
+                                <TextField
+                                    select
+                                    label="AM/PM"
+                                    value={rescheduleMeridiem}
+                                    onChange={(e) => {
+                                        const nextMeridiem = e.target.value as Meridiem;
+                                        setRescheduleMeridiem(nextMeridiem);
+                                        setRescheduleTime((current) => applyMeridiem(current, nextMeridiem));
+                                        setRescheduleError('');
+                                    }}
+                                    sx={{ minWidth: { xs: '100%', sm: 120 } }}
+                                >
+                                    {MERIDIEM_OPTIONS.map((option) => (
+                                        <MenuItem key={option} value={option}>
+                                            {option}
+                                        </MenuItem>
+                                    ))}
+                                </TextField>
+                            </Stack>
+                            {rescheduleError && (
+                                <Typography variant="body2" color="error">
+                                    {rescheduleError}
+                                </Typography>
+                            )}
+                            <Button
+                                variant="contained"
+                                color="warning"
                                 fullWidth
-                                InputLabelProps={{ shrink: true }}
-                                label="Nueva Hora"
-                            />
-                            <Button variant="contained" color="warning" fullWidth>
-                                Confirmar Reagendamiento
+                                onClick={handleConfirmReschedule}
+                                disabled={rescheduling}
+                            >
+                                {rescheduling ? 'Reagendando...' : 'Confirmar Reagendamiento'}
                             </Button>
                         </Stack>
                     </Box>

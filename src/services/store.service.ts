@@ -380,6 +380,11 @@ export const getStoreRequests = async (params?: { status?: string }): Promise<an
   return res.data;
 };
 
+export const updateStoreRequest = async (id: string, body: Record<string, any>): Promise<any> => {
+  const res = await api.patch(`/store/request/${id}`, body);
+  return res.data?.data || res.data;
+};
+
 /* ===================== Store Contracts ===================== */
 export type ContractStatus = 'pending' | 'contract_created' | 'signed' | 'cancelled';
 
@@ -512,6 +517,7 @@ const storesService = {
   getStoreByDescription,
   getStoreByIdAndOwnerId,
   getStoreRequests,
+  updateStoreRequest,
   getContracts,
   getContractStats,
   getContractById: getContractById,

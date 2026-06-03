@@ -39,7 +39,7 @@ import {
 } from '@mui/material';
 import { format, isPast, isToday, addMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
-import schedulingService, { CreateSlotPayload } from 'src/services/scheduling.service';
+import schedulingService, { CreateSlotPayload, RescheduleAppointmentPayload } from 'src/services/scheduling.service';
 import storesService from 'src/services/store.service';
 import { useAuth } from 'src/hooks/use-auth';
 import FullCalendar from '@fullcalendar/react';
@@ -79,6 +79,33 @@ const DURATION_OPTIONS = [
     { value: 90, label: '1h 30min' },
     { value: 120, label: '2 horas' },
 ];
+
+function parseLocalDate(value?: string) {
+    if (!value) return null;
+    const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (dateOnlyMatch) {
+        const [, year, month, day] = dateOnlyMatch;
+        return new Date(Number(year), Number(month) - 1, Number(day));
+    }
+    return new Date(value);
+}
+
+function formatTimeWithMeridiem(timeValue?: string) {
+    if (!timeValue || timeValue === 'N/A') return 'Hora no definida';
+    const [rawHour, minute = '00'] = timeValue.split(':');
+    const hour = Number(rawHour);
+    const displayHour = hour % 12 || 12;
+    const meridiem = hour >= 12 ? 'PM' : 'AM';
+    return `${displayHour}:${minute.padStart(2, '0')} ${meridiem}`;
+}
+
+function getDateTimeValue(dateValue?: string, timeValue?: string) {
+    if (!dateValue) return 0;
+    if (timeValue && timeValue !== 'N/A') {
+        return new Date(`${dateValue.split('T')[0]}T${timeValue}:00`).getTime();
+    }
+    return (parseLocalDate(dateValue) || new Date(dateValue)).getTime();
+}
 
 const AppointmentsList = () => {
     const { user } = useAuth();
@@ -125,6 +152,57 @@ const AppointmentsList = () => {
         },
         onError: (err: any) => {
             toast.error(err?.response?.data?.error || 'Error al eliminar horario');
+        }
+    });
+
+    const rescheduleAppointmentMutation = useMutation({
+        mutationFn: async ({ id, data, source }: { id: string; data: RescheduleAppointmentPayload; source?: string }) => {
+            if (source === 'store-request') {
+                return storesService.updateStoreRequest(id, {
+                    demoDate: data.date,
+                    demoTimeSlot: data.time,
+                });
+            }
+
+            return schedulingService.rescheduleAppointment(id, data);
+        },
+        onSuccess: (updated) => {
+            toast.success('Cita reagendada correctamente');
+            queryClient.invalidateQueries({ queryKey: ['appointments'] });
+            queryClient.invalidateQueries({ queryKey: ['slots'] });
+            queryClient.invalidateQueries({ queryKey: ['storeRequests'] });
+
+            if (updated) {
+                setSelectedEvent((prev: any) => {
+                    if (!prev) return prev;
+
+                    if (prev.source === 'store-request') {
+                        return {
+                            ...prev,
+                            date: updated.demoDate || prev.date,
+                            time: updated.demoTimeSlot || prev.time,
+                            link: updated.meetingLink ?? prev.link,
+                            status: updated.status ?? prev.status,
+                        };
+                    }
+
+                    return prev.id === updated._id
+                        ? {
+                            ...prev,
+                            date: updated.scheduledAt || prev.date,
+                            time: updated.scheduledAt
+                                ? format(new Date(updated.scheduledAt), 'HH:mm')
+                                : prev.time,
+                            scheduledAt: updated.scheduledAt,
+                            link: updated.meetingLink ?? prev.link,
+                            status: updated.status ?? prev.status,
+                        }
+                        : prev;
+                });
+            }
+        },
+        onError: (err: any) => {
+            toast.error(err?.response?.data?.error || err?.response?.data?.message || 'Error al reagendar la cita');
         }
     });
 
@@ -179,6 +257,9 @@ const AppointmentsList = () => {
         setDeleteDialog({ open: false, slotId: null });
     };
 
+    const handleRescheduleAppointment = (id: string, data: RescheduleAppointmentPayload) =>
+        rescheduleAppointmentMutation.mutateAsync({ id, data, source: selectedEvent?.source });
+
     const { data: slots = [], isLoading: loadingSlots } = useQuery({
         queryKey: ['slots', user?._id],
         queryFn: () => schedulingService.getSlots({ agentId: user?._id }),
@@ -201,6 +282,7 @@ const AppointmentsList = () => {
     const combinedList = [
         ...appointments.map((app) => ({
             id: app._id,
+            source: 'appointment',
             type: 'Cita Confirmada',
             name: app.storeName,
             contact: app.contactName,
@@ -220,6 +302,7 @@ const AppointmentsList = () => {
             .filter((req) => !appointments.some((app) => app.leadId === req._id))
             .map((req) => ({
                 id: req._id,
+                source: 'store-request',
                 type: 'Store Request (Lead)',
                 name: req.storeName,
                 contact: req.contactName,
@@ -235,7 +318,7 @@ const AppointmentsList = () => {
                 zipCode: req.zipCode,
                 estimatedVolume: req.estimatedMonthlyMessages
             }))
-    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    ].sort((a, b) => getDateTimeValue(b.date, b.time) - getDateTimeValue(a.date, a.time));
 
     const filteredList = combinedList.filter((item) => {
         if (statusFilter === 'all') return true;
@@ -294,7 +377,9 @@ const AppointmentsList = () => {
         try {
             const rawDate = dateStr.split('T')[0];
             const datetimeStr = timeStr === 'N/A' ? rawDate : `${rawDate}T${timeStr}`;
-            const targetDate = new Date(datetimeStr);
+            const targetDate = timeStr === 'N/A'
+                ? parseLocalDate(rawDate) || new Date(rawDate)
+                : new Date(datetimeStr);
             if (isToday(targetDate)) return false;
             return isPast(targetDate);
         } catch {
@@ -520,10 +605,10 @@ const AppointmentsList = () => {
                                                 <TableCell>
                                                     <Stack>
                                                         <Typography variant="body2" fontWeight="500">
-                                                            {item.date ? format(new Date(item.date), 'dd MMM yyyy', { locale: es }) : 'N/A'}
+                                                            {item.date ? format(parseLocalDate(item.date) || new Date(item.date), 'dd MMM yyyy', { locale: es }) : 'N/A'}
                                                         </Typography>
                                                         <Typography variant="caption" color="text.secondary">
-                                                            {item.time !== 'N/A' ? `A las ${item.time}` : 'Hora no definida'}
+                                                            {item.time !== 'N/A' ? `A las ${formatTimeWithMeridiem(item.time)}` : 'Hora no definida'}
                                                         </Typography>
                                                     </Stack>
                                                 </TableCell>
@@ -607,7 +692,7 @@ const AppointmentsList = () => {
                                 <Grid container spacing={2}>
                                     {safeSlots
                                         .filter(s => s.available)
-                                        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.time.localeCompare(b.time))
+                                        .sort((a, b) => getDateTimeValue(a.date, a.time) - getDateTimeValue(b.date, b.time) || a.time.localeCompare(b.time))
                                         .map((slot) => (
                                             <Grid item xs={12} sm={6} md={4} lg={3} key={slot._id}>
                                                 <Card variant="outlined" sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -670,7 +755,13 @@ const AppointmentsList = () => {
                 >
                     {drawerOpen && (
                         <Box overflow="hidden" display="flex" flexDirection="column" width="100%">
-                            <EventDrawer event={selectedEvent} onClose={() => setDrawerOpen(false)} />
+                            <EventDrawer
+                                key={selectedEvent?.id || 'appointment-detail'}
+                                event={selectedEvent}
+                                onClose={() => setDrawerOpen(false)}
+                                onReschedule={handleRescheduleAppointment}
+                                rescheduling={rescheduleAppointmentMutation.isPending}
+                            />
                         </Box>
                     )}
                 </SwipeableDrawer>

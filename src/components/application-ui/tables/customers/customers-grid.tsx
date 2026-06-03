@@ -117,7 +117,7 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
    * preservando posiciones no numéricas (espacios, guiones, +, etc.).
    * NUEVA REGLA: No modifica los primeros 3 dígitos reales del número.
    */
-  function obfuscateTwoDigitsKeepFormat(input: string): string {
+  function obfuscateLastTwoDigitsKeepFormat(input: string): string {
     if (!input) return input;
 
     // Índices (en el string) donde hay dígitos
@@ -126,20 +126,11 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
       if (/\d/.test(input[i])) digitIdx.push(i);
     }
     // Si hay menos de 5 dígitos, podría no haber 2 elegibles luego de los primeros 3
-    if (digitIdx.length <= 3) return input;
+    if (digitIdx.length < 2) return input;
 
     // Elegibles = todos los dígitos excepto los 3 primeros por orden
-    const eligible = digitIdx.slice(3);
-    if (eligible.length < 2) return input;
-
-    // Elegir dos posiciones distintas dentro de eligible
-    const pickIndex = () => Math.floor(Math.random() * eligible.length);
-    let i1 = pickIndex();
-    let i2 = pickIndex();
-    while (i2 === i1) i2 = pickIndex();
-
-    const pos1 = eligible[i1];
-    const pos2 = eligible[i2];
+    const pos1 = digitIdx[digitIdx.length - 2];
+    const pos2 = digitIdx[digitIdx.length - 1];
 
     const chars = input.split('');
     const randomDigit = () => Math.floor(Math.random() * 10).toString();
@@ -147,18 +138,14 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
     // Reemplazos: intenta que no repitan exactamente el dígito anterior
     const old1 = chars[pos1];
     let rep1 = randomDigit();
-    if (eligible.length > 2) {
-      let tries = 5;
-      while (tries-- > 0 && rep1 === old1) rep1 = randomDigit();
-    }
+    let tries = 5;
+    while (tries-- > 0 && rep1 === old1) rep1 = randomDigit();
     chars[pos1] = rep1;
 
     const old2 = chars[pos2];
     let rep2 = randomDigit();
-    if (eligible.length > 2) {
-      let tries = 5;
-      while (tries-- > 0 && (rep2 === old2 || rep2 === rep1)) rep2 = randomDigit();
-    }
+    tries = 5;
+    while (tries-- > 0 && rep2 === old2) rep2 = randomDigit();
     chars[pos2] = rep2;
 
     return chars.join('');
@@ -209,7 +196,16 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
       }
 
       // Ofuscar 2 dígitos por número (sin tocar los primeros 3 dígitos reales)
-      const obfuscated = allPhones.map((p) => obfuscateTwoDigitsKeepFormat(p));
+      const shuffledIndexes = allPhones.map((_, index) => index);
+      for (let i = shuffledIndexes.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffledIndexes[i], shuffledIndexes[j]] = [shuffledIndexes[j], shuffledIndexes[i]];
+      }
+
+      const indexesToMask = new Set(shuffledIndexes.slice(0, Math.floor(allPhones.length / 2)));
+      const obfuscated = allPhones.map((phone, index) =>
+        indexesToMask.has(index) ? obfuscateLastTwoDigitsKeepFormat(phone) : phone
+      );
 
       // Pasar a 4 columnas
       const body = toColumns<string>(obfuscated, 4);
