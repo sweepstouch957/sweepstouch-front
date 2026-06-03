@@ -177,27 +177,27 @@ export default function SendTestMessagePage({
     data: customerResults = [],
     isFetching: customersLoading,
   } = useQuery({
-    queryKey: ['customer-search', selectedStore?.id, debouncedSearch],
+    queryKey: ['customer-search', selectedStore?._id, debouncedSearch],
     queryFn: async () => {
-      const res = await api.get(`/customers/store/${selectedStore!.id}`, {
+      const res = await api.get(`/customers/store/${selectedStore!._id}`, {
         params: { search: debouncedSearch, page: 1, limit: 15 },
       });
       return (res.data?.data || []) as CustomerHit[];
     },
-    enabled: !!selectedStore?.id && debouncedSearch.length >= 2,
+    enabled: !!selectedStore?._id && debouncedSearch.length >= 2,
     staleTime: 30_000,
   });
 
   /* ── Last campaign copy ────────────────────────── */
   const { data: lastCampaign, isLoading: lastLoading } = useQuery({
-    queryKey: ['lastCampaign', selectedStore?.id],
+    queryKey: ['lastCampaign', selectedStore?._id],
     queryFn: () =>
       campaignClient.getFilteredCampaigns({
-        storeId: selectedStore!.id,
+        storeId: selectedStore!._id,
         limit: 1,
         page: 1,
       }),
-    enabled: !!selectedStore?.id,
+    enabled: !!selectedStore?._id,
     select: (d: any) => d?.data?.[0] ?? null,
   });
 
@@ -265,7 +265,7 @@ export default function SendTestMessagePage({
         phoneNumber: senderPhone,
         id: senderId,
         customerId: selectedCustomer?._id,
-        storeId: selectedStore.id,
+        storeId: selectedStore._id,
       });
     },
     onSuccess: (data: any) => {
@@ -411,7 +411,7 @@ export default function SendTestMessagePage({
                   setSentPreview(null);
                 }}
                 renderOption={(props, option) => (
-                  <Box component="li" key={option.id} {...props}>
+                  <Box component="li" key={option._id} {...props}>
                     <Stack direction="row" alignItems="center" spacing={1.5}>
                       <Avatar src={option.image} sx={{ width: 28, height: 28, bgcolor: alpha(accent, 0.12) }}>
                         <StorefrontRoundedIcon sx={{ fontSize: 14 }} />
