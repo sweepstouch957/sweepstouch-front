@@ -76,6 +76,7 @@ export async function sendChatMessage(
   onToolStart?: (data: { tool: string; input: Record<string, any> }) => void,
   onToolResult?: (data: { tool: string; result: Record<string, any> }) => void,
   onImage?: (data: { url: string; name: string }) => void,
+  onConversationId?: (conversationId: string) => void,
 ): Promise<void> {
   const { signal, ...bodyParams } = params;
   const token = getAuthToken();
@@ -111,6 +112,26 @@ export async function sendChatMessage(
 
   const decoder = new TextDecoder();
   let buffer = '';
+  const processLine = (line: string) => {
+    const trimmedLine = line.trimEnd();
+    if (!trimmedLine.startsWith('data: ')) return;
+
+    try {
+      const data = JSON.parse(trimmedLine.slice(6));
+      const conversationId =
+        data.conversationId || data.conversation?._id || data.conversation?.id;
+      if (conversationId) onConversationId?.(String(conversationId));
+
+      if (data.type === 'text') onText(data.text);
+      else if (data.type === 'done') onDone(data);
+      else if (data.type === 'error') onError(data.error);
+      else if (data.type === 'tool_start') onToolStart?.(data);
+      else if (data.type === 'tool_result') onToolResult?.(data);
+      else if (data.type === 'image') onImage?.(data);
+    } catch {
+      /* skip invalid JSON */
+    }
+  };
 
   try {
     while (true) {
@@ -122,18 +143,12 @@ export async function sendChatMessage(
       buffer = lines.pop() || '';
 
       for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const data = JSON.parse(line.slice(6));
-            if (data.type === 'text') onText(data.text);
-            else if (data.type === 'done') onDone(data);
-            else if (data.type === 'error') onError(data.error);
-            else if (data.type === 'tool_start') onToolStart?.(data);
-            else if (data.type === 'tool_result') onToolResult?.(data);
-            else if (data.type === 'image') onImage?.(data);
-          } catch { /* skip invalid JSON */ }
-        }
+        processLine(line);
       }
+    }
+
+    if (buffer.trim()) {
+      processLine(buffer);
     }
   } catch (err: any) {
     if (err.name === 'AbortError') return;
@@ -272,6 +287,20 @@ export async function generateImage(
   if (!reader) return;
   const decoder = new TextDecoder();
   let buffer = '';
+  const processLine = (line: string) => {
+    const trimmedLine = line.trimEnd();
+    if (!trimmedLine.startsWith('data: ')) return;
+
+    try {
+      const data = JSON.parse(trimmedLine.slice(6));
+      if (data.type === 'text') onText(data.text);
+      else if (data.type === 'image') onImage(data);
+      else if (data.type === 'done') onDone(data);
+      else if (data.type === 'error') onError(data.error);
+    } catch {
+      /* skip */
+    }
+  };
 
   try {
     while (true) {
@@ -281,16 +310,12 @@ export async function generateImage(
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
       for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const data = JSON.parse(line.slice(6));
-            if (data.type === 'text') onText(data.text);
-            else if (data.type === 'image') onImage(data);
-            else if (data.type === 'done') onDone(data);
-            else if (data.type === 'error') onError(data.error);
-          } catch { /* skip */ }
-        }
+        processLine(line);
       }
+    }
+
+    if (buffer.trim()) {
+      processLine(buffer);
     }
   } catch (err: any) {
     if (err.name === 'AbortError') return;

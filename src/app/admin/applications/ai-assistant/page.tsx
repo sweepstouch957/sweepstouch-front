@@ -75,22 +75,22 @@ const SIcon: React.FC<{
 
   const animationStyle = spin
     ? {
-        animation: 'sIconSpin 1.8s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite',
-        '@keyframes sIconSpin': {
-          '0%': { transform: 'rotate(0deg)' },
-          '100%': { transform: 'rotate(360deg)' },
+      animation: 'sIconSpin 1.8s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite',
+      '@keyframes sIconSpin': {
+        '0%': { transform: 'rotate(0deg)' },
+        '100%': { transform: 'rotate(360deg)' },
+      },
+      '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
+    }
+    : pulse
+      ? {
+        animation: 'sIconPulse 1.4s ease-in-out infinite',
+        '@keyframes sIconPulse': {
+          '0%, 100%': { opacity: 0.5, transform: 'scale(0.85)' },
+          '50%': { opacity: 1, transform: 'scale(1.15)' },
         },
         '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
       }
-    : pulse
-      ? {
-          animation: 'sIconPulse 1.4s ease-in-out infinite',
-          '@keyframes sIconPulse': {
-            '0%, 100%': { opacity: 0.5, transform: 'scale(0.85)' },
-            '50%': { opacity: 1, transform: 'scale(1.15)' },
-          },
-          '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-        }
       : {};
 
   return (
@@ -165,6 +165,12 @@ const COMBINED_FIRST_PASS_TIMEOUT_MS = 30000;
 const COMBINED_CONVERSATION_LOOKUP_ATTEMPTS = 12;
 const COMBINED_CONVERSATION_LOOKUP_DELAY_MS = 750;
 const STREAMING_TEXT_FLUSH_MS = 75;
+const CHAT_RECOVERY_INTERVAL_MS = 8000;
+const CHAT_POST_STREAM_RECOVERY_TIMEOUT_MS = 120000;
+const CHAT_SILENT_STREAM_TIMEOUT_MS = 240000;
+const NEW_CONVERSATION_LOOKUP_INTERVAL_MS = 1500;
+const EMPTY_RESPONSE_MESSAGE =
+  'La API de IA no devolvió una respuesta a tiempo para esta consulta. Intenta de nuevo; si vuelve a pasar, revisa los logs del backend o de las herramientas de datos.';
 
 const getResponseCacheKey = (content: string) => content.trim().slice(0, 5000);
 
@@ -382,8 +388,7 @@ function renderMarkdown(text: string) {
   processed = processed.replace(
     /%%CODE_BLOCK_(\d+)%%/g,
     (_, i) =>
-      `<pre style="background:rgba(0,0,0,0.05);padding:12px;border-radius:8px;overflow-x:auto;font-size:12px;margin:8px 0;line-height:1.5"><code>${
-        codeBlocks[Number(i)]
+      `<pre style="background:rgba(0,0,0,0.05);padding:12px;border-radius:8px;overflow-x:auto;font-size:12px;margin:8px 0;line-height:1.5"><code>${codeBlocks[Number(i)]
       }</code></pre>`
   );
 
@@ -1076,23 +1081,23 @@ export default function AIAssistantPage() {
         const timeoutId =
           options.timeoutMs && options.timeoutMs > 0
             ? window.setTimeout(() => {
-                if (completed) return;
-                timedOut = true;
-                modelController.abort();
-                updateCombinedResponse(model, {
-                  content: options.keepLoadingOnTimeout ? options.retryLabel || '' : modelText,
-                  status: options.keepLoadingOnTimeout
-                    ? 'loading'
-                    : modelText.trim()
-                      ? 'done'
-                      : 'error',
-                  error: options.keepLoadingOnTimeout
+              if (completed) return;
+              timedOut = true;
+              modelController.abort();
+              updateCombinedResponse(model, {
+                content: options.keepLoadingOnTimeout ? options.retryLabel || '' : modelText,
+                status: options.keepLoadingOnTimeout
+                  ? 'loading'
+                  : modelText.trim()
+                    ? 'done'
+                    : 'error',
+                error: options.keepLoadingOnTimeout
+                  ? undefined
+                  : modelText.trim()
                     ? undefined
-                    : modelText.trim()
-                      ? undefined
-                      : 'Tiempo de espera agotado. El modelo no respondió a tiempo.',
-                });
-              }, options.timeoutMs)
+                    : 'Tiempo de espera agotado. El modelo no respondió a tiempo.',
+              });
+            }, options.timeoutMs)
             : null;
 
         if (controller.signal.aborted) {
@@ -1146,16 +1151,13 @@ export default function AIAssistantPage() {
                 create_task: `Creating task: "${data.input?.title || ''}"...`,
                 get_member_tasks: `Looking up tasks for ${data.input?.memberName || ''}...`,
                 navigate: `Finding route...`,
-                create_user: `Creating user: ${data.input?.firstName || ''} ${
-                  data.input?.lastName || ''
-                }...`,
-                update_user: `Updating user: ${
-                  data.input?.userName || data.input?.userId || ''
-                }...`,
+                create_user: `Creating user: ${data.input?.firstName || ''} ${data.input?.lastName || ''
+                  }...`,
+                update_user: `Updating user: ${data.input?.userName || data.input?.userId || ''
+                  }...`,
                 search_users: `Searching users${data.input?.q ? `: "${data.input.q}"` : ''}...`,
-                search_campaigns: `Searching campaigns${
-                  data.input?.q ? `: "${data.input.q}"` : ''
-                }...`,
+                search_campaigns: `Searching campaigns${data.input?.q ? `: "${data.input.q}"` : ''
+                  }...`,
                 search_stores: `Searching stores${data.input?.q ? `: "${data.input.q}"` : ''}...`,
                 store_info: `🏬 Consultando información de la tienda: "${data.input?.q || data.input?.storeName || ''}"...`,
                 all_stores_debt: `💰 Analizando la deuda total de todas las tiendas...`,
@@ -1230,6 +1232,11 @@ export default function AIAssistantPage() {
       }
 
       const pendingModels = new Set<BaseAIModel>(BASE_AI_MODELS);
+      const firstPassOptions: RunModelOptions = {
+        timeoutMs: COMBINED_FIRST_PASS_TIMEOUT_MS,
+        keepLoadingOnTimeout: true,
+        retryLabel: '',
+      };
       const keepPendingIfNeeded = (model: BaseAIModel, result: RunModelResult) => {
         if (
           result.completed &&
@@ -1239,22 +1246,44 @@ export default function AIAssistantPage() {
           pendingModels.delete(model);
         }
       };
-      for (const model of BASE_AI_MODELS) {
+
+      while (!combinedConversationId && pendingModels.size > 0) {
         if (controller.signal.aborted) return;
-        const result = await runModel(model, combinedConversationId, {
-          timeoutMs: COMBINED_FIRST_PASS_TIMEOUT_MS,
-          keepLoadingOnTimeout: true,
-          retryLabel: '',
-        });
+        const model = Array.from(pendingModels)[0];
+        const result = await runModel(model, combinedConversationId, firstPassOptions);
         keepPendingIfNeeded(model, result);
-        if (!combinedConversationId) await ensureCombinedConversation();
+        await ensureCombinedConversation();
       }
 
-      for (const model of Array.from(pendingModels)) {
-        if (controller.signal.aborted) return;
-        const result = await runModel(model, combinedConversationId);
-        keepPendingIfNeeded(model, result);
-        if (!combinedConversationId) await ensureCombinedConversation();
+      if (combinedConversationId && pendingModels.size > 0) {
+        const firstPassResults = await Promise.all(
+          Array.from(pendingModels).map(async (model) => ({
+            model,
+            result: await runModel(model, combinedConversationId, firstPassOptions),
+          }))
+        );
+        firstPassResults.forEach(({ model, result }) => keepPendingIfNeeded(model, result));
+      }
+
+      if (controller.signal.aborted) return;
+
+      if (pendingModels.size > 0) {
+        if (combinedConversationId) {
+          const retryResults = await Promise.all(
+            Array.from(pendingModels).map(async (model) => ({
+              model,
+              result: await runModel(model, combinedConversationId),
+            }))
+          );
+          retryResults.forEach(({ model, result }) => keepPendingIfNeeded(model, result));
+        } else {
+          for (const model of Array.from(pendingModels)) {
+            if (controller.signal.aborted) return;
+            const result = await runModel(model, combinedConversationId);
+            keepPendingIfNeeded(model, result);
+            if (!combinedConversationId) await ensureCombinedConversation();
+          }
+        }
       }
 
       if (controller.signal.aborted) return;
@@ -1276,6 +1305,189 @@ export default function AIAssistantPage() {
     }
 
     let fullText = '';
+    let streamFinished = false;
+    let recoveryInFlight = false;
+    let recoveryIntervalId: number | null = null;
+    let silentTimeoutId: number | null = null;
+    let conversationLookupIntervalId: number | null = null;
+    let timedOutStream = false;
+    let lastStreamActivityAt = Date.now();
+    let resolvedConversationId = activeConvId;
+    const sentAt = Date.now();
+
+    const clearRecoveryInterval = () => {
+      if (recoveryIntervalId) {
+        window.clearInterval(recoveryIntervalId);
+        recoveryIntervalId = null;
+      }
+    };
+
+    const clearSilentTimeout = () => {
+      if (silentTimeoutId) {
+        window.clearInterval(silentTimeoutId);
+        silentTimeoutId = null;
+      }
+    };
+
+    const clearConversationLookupInterval = () => {
+      if (conversationLookupIntervalId) {
+        window.clearInterval(conversationLookupIntervalId);
+        conversationLookupIntervalId = null;
+      }
+    };
+
+    const setResolvedConversationId = (conversationId?: string | null) => {
+      if (!conversationId || resolvedConversationId === conversationId) return;
+      resolvedConversationId = conversationId;
+      setActiveConvId(conversationId);
+    };
+
+    const markStreamActivity = () => {
+      lastStreamActivityAt = Date.now();
+    };
+
+    const finishSingleResponse = (content: string, outputTokens?: number) => {
+      if (streamFinished) return;
+      streamFinished = true;
+      clearRecoveryInterval();
+      clearSilentTimeout();
+      clearConversationLookupInterval();
+      abortRef.current = null;
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content, tokens: outputTokens },
+      ]);
+      streamingTextRef.current = '';
+      clearStreamingFlush();
+      setStreamingText('');
+      setStreaming(false);
+      getConversations(userId).then((data) => {
+        setConversations(data.data || []);
+        if (!resolvedConversationId && data.data?.[0]) {
+          setResolvedConversationId(data.data[0]._id);
+        }
+      });
+    };
+
+    const findConversationForUserMessage = async (requiresAssistantResponse: boolean) => {
+      const data = await getConversations(userId);
+      const nextConversations = (data.data || []) as Conversation[];
+      setConversations(nextConversations);
+
+      const candidates = [
+        ...(resolvedConversationId
+          ? nextConversations.filter((conversation) => conversation._id === resolvedConversationId)
+          : []),
+        ...nextConversations.filter((conversation) => conversation._id !== resolvedConversationId),
+      ].slice(0, 8);
+
+      for (const candidate of candidates) {
+        if (!candidate?._id) continue;
+
+        const updatedAt = new Date(candidate.updatedAt).getTime();
+        if (Number.isFinite(updatedAt) && updatedAt < sentAt - 30000) continue;
+
+        const conv = await getConversation(candidate._id);
+        const normalizedMessages = normalizeCombinedMessages(conv.messages);
+        const matchingUserIndex = [...normalizedMessages]
+          .reverse()
+          .findIndex((message) => message.role === 'user' && message.content === trimmed);
+
+        if (matchingUserIndex === -1) continue;
+
+        setResolvedConversationId(conv._id);
+
+        const userIndex = normalizedMessages.length - 1 - matchingUserIndex;
+        const hasAssistantResponse = normalizedMessages
+          .slice(userIndex + 1)
+          .some((message) => message.role === 'assistant' && message.content.trim());
+
+        if (!requiresAssistantResponse || hasAssistantResponse) {
+          return { conv, normalizedMessages, hasAssistantResponse };
+        }
+      }
+
+      return null;
+    };
+
+    const discoverNewConversation = async () => {
+      if (streamFinished || resolvedConversationId || recoveryInFlight) return;
+
+      try {
+        await findConversationForUserMessage(false);
+      } catch {
+        /* best-effort lookup only */
+      }
+    };
+
+    const recoverSavedSingleResponse = async () => {
+      if (
+        streamFinished ||
+        recoveryInFlight ||
+        (controller.signal.aborted && !timedOutStream)
+      ) {
+        return false;
+      }
+      recoveryInFlight = true;
+
+      try {
+        const found = await findConversationForUserMessage(true);
+
+        if (found?.hasAssistantResponse) {
+          streamFinished = true;
+          clearRecoveryInterval();
+          clearConversationLookupInterval();
+          controller.abort();
+          abortRef.current = null;
+          setMessages(found.normalizedMessages);
+          streamingTextRef.current = '';
+          clearStreamingFlush();
+          setStreamingText('');
+          setStreaming(false);
+          return true;
+        }
+
+        return false;
+      } catch {
+        return false;
+      } finally {
+        recoveryInFlight = false;
+      }
+    };
+
+    const waitForSavedSingleResponse = async () => {
+      const deadline = Date.now() + CHAT_POST_STREAM_RECOVERY_TIMEOUT_MS;
+
+      while (
+        !streamFinished &&
+        (!controller.signal.aborted || timedOutStream) &&
+        Date.now() < deadline
+      ) {
+        const recovered = await recoverSavedSingleResponse();
+        if (recovered) return true;
+        await wait(2000);
+      }
+
+      return false;
+    };
+
+    recoveryIntervalId = window.setInterval(() => {
+      recoverSavedSingleResponse();
+    }, CHAT_RECOVERY_INTERVAL_MS);
+
+    if (!resolvedConversationId) {
+      conversationLookupIntervalId = window.setInterval(() => {
+        discoverNewConversation();
+      }, NEW_CONVERSATION_LOOKUP_INTERVAL_MS);
+    }
+
+    silentTimeoutId = window.setInterval(() => {
+      if (streamFinished || controller.signal.aborted) return;
+      if (Date.now() - lastStreamActivityAt < CHAT_SILENT_STREAM_TIMEOUT_MS) return;
+
+      timedOutStream = true;
+      controller.abort();
+    }, 5000);
 
     await sendChatMessage(
       {
@@ -1289,80 +1501,34 @@ export default function AIAssistantPage() {
         signal: controller.signal,
       },
       (text) => {
+        markStreamActivity();
         fullText += text;
         streamingTextRef.current = fullText;
         queueStreamingText(fullText);
       },
       (meta) => {
-        abortRef.current = null;
-        const assistantAttachments: Attachment[] = [];
-        if (meta.toolResults && Array.isArray(meta.toolResults)) {
-          for (const tr of meta.toolResults) {
-            if (tr.result?._fileUrls) {
-              const { excelUrl, pdfUrl } = tr.result._fileUrls;
-              if (excelUrl) {
-                assistantAttachments.push({
-                  url: excelUrl,
-                  name: `${tr.tool}_report.xlsx`,
-                  type: 'file',
-                  mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                });
-              }
-              if (pdfUrl) {
-                assistantAttachments.push({
-                  url: pdfUrl,
-                  name: `${tr.tool}_report.pdf`,
-                  type: 'document',
-                  mimeType: 'application/pdf',
-                });
-              }
-            }
-          }
+        markStreamActivity();
+        if (fullText.trim()) {
+          finishSingleResponse(fullText, meta.outputTokens);
         }
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: 'assistant',
-            content: fullText,
-            tokens: meta.outputTokens,
-            attachments: assistantAttachments.length > 0 ? assistantAttachments : undefined,
-          },
-        ]);
-        streamingTextRef.current = '';
-        clearStreamingFlush();
-        setStreamingText('');
-        setStreaming(false);
-        getConversations(userId).then((data) => {
-          setConversations(data.data || []);
-          if (!activeConvId && data.data?.[0]) {
-            setActiveConvId(data.data[0]._id);
-            loadConversation(data.data[0]._id);
-          } else if (activeConvId) {
-            loadConversation(activeConvId);
-          }
-        });
       },
       (error) => {
-        abortRef.current = null;
+        finishSingleResponse(
+          fullText.trim() ? `${fullText}\n\nError: ${error}` : `Error de IA: ${error}`
+        );
         toast.error(`AI Error: ${error}`);
-        setStreaming(false);
-        clearStreamingFlush();
-        setStreamingText('');
-        streamingTextRef.current = '';
       },
       (data) => {
         const toolLabels: Record<string, string> = {
           create_task: `🔧 Creating task: "${data.input?.title || ''}"...`,
           get_member_tasks: `🔍 Looking up tasks for ${data.input?.memberName || ''}...`,
           navigate: `🔗 Finding route...`,
-          create_user: `👤 Creating user: ${data.input?.firstName || ''} ${
-            data.input?.lastName || ''
-          }...`,
+          create_user: `👤 Creating user: ${data.input?.firstName || ''} ${data.input?.lastName || ''
+            }...`,
           update_user: `✏️ Updating user: ${data.input?.userName || data.input?.userId || ''}...`,
           search_users: `🔍 Searching users${data.input?.q ? `: "${data.input.q}"` : ''}...`,
-          search_campaigns: `📊 Searching campaigns${
-            data.input?.q ? `: "${data.input.q}"` : ''
-          }...`,
+          search_campaigns: `📊 Searching campaigns${data.input?.q ? `: "${data.input.q}"` : ''
+            }...`,
           search_stores: `🏪 Searching stores${data.input?.q ? `: "${data.input.q}"` : ''}...`,
           store_info: `🏬 Consultando información de la tienda: "${data.input?.q || data.input?.storeName || ''}"...`,
           all_stores_debt: `💰 Analizando la deuda total de todas las tiendas...`,
@@ -1382,11 +1548,13 @@ export default function AIAssistantPage() {
           explore_all: `🧭 Explorando registros de la base de datos...`,
         };
         const label = toolLabels[data.tool] || `⚙️ Running ${data.tool}...`;
+        markStreamActivity();
         fullText += `\n\n${label}\n`;
         streamingTextRef.current = fullText;
         queueStreamingText(fullText);
       },
       (data) => {
+        markStreamActivity();
         if (data.result?.success) {
           fullText += `✅ ${data.result.message}\n\n`;
         } else if (data.result?.error) {
@@ -1409,11 +1577,31 @@ export default function AIAssistantPage() {
         queueStreamingText(fullText);
       },
       (data) => {
+        markStreamActivity();
         fullText += `\n\n![${data.name}](${data.url})\n\n`;
         streamingTextRef.current = fullText;
         queueStreamingText(fullText);
+      },
+      (conversationId) => {
+        setResolvedConversationId(conversationId);
       }
     );
+
+    clearRecoveryInterval();
+    clearSilentTimeout();
+    clearConversationLookupInterval();
+
+    if (!streamFinished && (!controller.signal.aborted || timedOutStream)) {
+      if (fullText.trim()) {
+        finishSingleResponse(fullText);
+      } else {
+        const recovered = await waitForSavedSingleResponse();
+        if (!recovered) {
+          finishSingleResponse(EMPTY_RESPONSE_MESSAGE);
+          toast.error('AI response finished without returning text.');
+        }
+      }
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
