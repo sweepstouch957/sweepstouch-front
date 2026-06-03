@@ -257,6 +257,8 @@ export default function SendTestMessagePage({
         provider: storeProvider,
         phoneNumber: senderPhone,
         id: senderId,
+        customerId: selectedCustomer?._id,
+        storeId: selectedStore.id,
       });
     },
     onSuccess: () => {

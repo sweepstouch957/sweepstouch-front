@@ -618,8 +618,10 @@ class CampaignClient {
     provider: string;
     phoneNumber: string; // sourceTn / from number (bandwidthPhoneNumber)
     id?: string;         // bandwidthId
+    customerId?: string;
+    storeId?: string;
   }) {
-    const { phone, message, image, provider, phoneNumber, id } = params;
+    const { phone, message, image, provider, phoneNumber, id, customerId, storeId } = params;
     const uid = () => crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
     const res = await api.post('/send/api/send', {
       phone,
@@ -632,6 +634,8 @@ class CampaignClient {
       campaignId: `test-camaing-${uid()}`,
       origin: 'manual-test',
       originId: uid(),
+      customerId,
+      storeId,
     });
     return res.data;
   }

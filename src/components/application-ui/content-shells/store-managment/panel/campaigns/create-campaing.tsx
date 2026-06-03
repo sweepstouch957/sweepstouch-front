@@ -52,6 +52,7 @@ const placeholders = [
   { key: '#referralLink', label: 'Link de referido' },
   { key: '#disclaimer', label: 'Texto legal' },
   { key: '#linktree', label: 'Linktree de la tienda' }, // 👈 nuevo placeholder
+  { key: '#lead', label: 'Lead / Completar perfil' },
 ];
 
 const insertAtCursor = (inputEl: HTMLTextAreaElement, text: string) => {
