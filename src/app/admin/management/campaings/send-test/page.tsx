@@ -137,6 +137,13 @@ export default function SendTestMessagePage({
     msg: '',
     sev: 'success',
   });
+  const [sentPreview, setSentPreview] = useState<{
+    message: string;
+    phone: string;
+    type: 'SMS' | 'MMS';
+    image?: string | null;
+    timestamp: Date;
+  } | null>(null);
 
   /* ── Stores query ──────────────────────────────── */
   const { data: stores = [], isLoading: storesLoading } = useQuery({
@@ -261,9 +268,18 @@ export default function SendTestMessagePage({
         storeId: selectedStore.id,
       });
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       setSnack({ open: true, msg: '✅ Test message sent successfully!', sev: 'success' });
       setConfirmOpen(false);
+      
+      let imgUrl = uploadedImageUrl ?? safeCampaignImage ?? null;
+      setSentPreview({
+        message: data?.finalMessage || copyText,
+        phone: destinationPhone,
+        type: messageType,
+        image: imgUrl,
+        timestamp: new Date(),
+      });
     },
     onError: (err: any) => {
       setSnack({
@@ -392,6 +408,7 @@ export default function SendTestMessagePage({
                   setCopyText('');
                   setNewImage(null);
                   setUploadedImageUrl(null);
+                  setSentPreview(null);
                 }}
                 renderOption={(props, option) => (
                   <Box component="li" key={option.id} {...props}>
@@ -495,6 +512,7 @@ export default function SendTestMessagePage({
                     onInputChange={(_, val) => setCustomerSearch(val)}
                     value={selectedCustomer}
                     onChange={(_, val) => {
+                      setSentPreview(null);
                       if (val && typeof val !== 'string') {
                         setSelectedCustomer(val);
                       } else {
@@ -602,6 +620,7 @@ export default function SendTestMessagePage({
                             onClick={() => {
                               setSelectedCustomer(null);
                               setCustomerSearch('');
+                              setSentPreview(null);
                             }}
                           >
                             <CloseRoundedIcon sx={{ fontSize: 14 }} />
@@ -880,6 +899,85 @@ export default function SendTestMessagePage({
             gap: 2.5,
           }}
         >
+          {/* ── Sent Test Message Preview ── */}
+          {sentPreview && (
+            <Fade in>
+              <Paper
+                elevation={0}
+                sx={{
+                  borderRadius: 3,
+                  border: `1px solid ${theme.palette.success.main}`,
+                  bgcolor: alpha(theme.palette.success.main, isDark ? 0.04 : 0.02),
+                  overflow: 'hidden',
+                }}
+              >
+                <Box
+                  sx={{
+                    px: 3,
+                    py: 2,
+                    borderBottom: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
+                    bgcolor: alpha(theme.palette.success.main, isDark ? 0.08 : 0.04),
+                  }}
+                >
+                  <Stack direction="row" alignItems="center" spacing={1.5}>
+                    <CheckCircleRoundedIcon sx={{ fontSize: 18, color: 'success.main' }} />
+                    <Typography variant="subtitle1" fontWeight={700} color="success.main">
+                      Sent Message Preview
+                    </Typography>
+                    <Box flex={1} />
+                    <Typography variant="caption" color="text.secondary">
+                      {sentPreview.timestamp.toLocaleTimeString()}
+                    </Typography>
+                  </Stack>
+                </Box>
+                <Box sx={{ p: 3 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, fontWeight: 600 }}>
+                    Sent to: {formatPhone(sentPreview.phone)}
+                  </Typography>
+                  <Box sx={{ width: '100%', maxWidth: 240, mx: 'auto', position: 'relative', mb: 2 }}>
+                    <PreviewPhone content={sentPreview.message} image={sentPreview.image} fontSize={10} />
+                  </Box>
+                  
+                  {/* Extract and display clickeable links in message body for easy testing */}
+                  {(() => {
+                    const urlRegex = /(https?:\/\/[^\s]+)/g;
+                    const urls = sentPreview.message.match(urlRegex);
+                    if (!urls || urls.length === 0) return null;
+                    return (
+                      <Box sx={{ mt: 2, p: 1.5, borderRadius: 2, bgcolor: isDark ? alpha('#fff', 0.03) : alpha('#000', 0.02), border: `1px solid ${border}` }}>
+                        <Typography variant="caption" fontWeight={700} color="primary.main" sx={{ display: 'block', mb: 1, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                          🔗 Clickable Test Links:
+                        </Typography>
+                        <Stack spacing={1}>
+                          {urls.map((url, idx) => (
+                            <Button
+                              key={idx}
+                              variant="outlined"
+                              size="small"
+                              color="primary"
+                              endIcon={<OpenInNewRoundedIcon sx={{ fontSize: 12 }} />}
+                              onClick={() => window.open(url, '_blank')}
+                              sx={{
+                                textTransform: 'none',
+                                justifyContent: 'space-between',
+                                fontFamily: 'monospace',
+                                fontSize: 10,
+                                py: 0.5,
+                                borderRadius: 1.5
+                              }}
+                            >
+                              {url.length > 35 ? `${url.substring(0, 32)}...` : url}
+                            </Button>
+                          ))}
+                        </Stack>
+                      </Box>
+                    );
+                  })()}
+                </Box>
+              </Paper>
+            </Fade>
+          )}
+
           {/* ── Phone Preview ── */}
           <Paper
             elevation={0}
