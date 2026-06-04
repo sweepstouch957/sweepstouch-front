@@ -74,10 +74,14 @@ export default function AIConfigPage() {
   const [contextSources, setContextSources] = useState({
     team: true, tasks: true, campaigns: true, stores: true, audience: true,
   });
+  const [skills, setSkills] = useState<any[]>([]);
 
   // Rules/restrictions input
   const [newRule, setNewRule] = useState('');
   const [newRestriction, setNewRestriction] = useState('');
+  const [newSkillTrigger, setNewSkillTrigger] = useState('');
+  const [newSkillDesc, setNewSkillDesc] = useState('');
+  const [newSkillPrompt, setNewSkillPrompt] = useState('');
 
   // Admin conversations
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -100,6 +104,7 @@ export default function AIConfigPage() {
       setTemperature(cfg.temperature || 0.7);
       setMaxTokens(cfg.maxTokens || 4096);
       setContextSources(cfg.contextSources || { team: true, tasks: true, campaigns: true, stores: true, audience: true });
+      setSkills((cfg as any).skills || []);
     } catch (err) {
       console.error('Failed to load config:', err);
       toast.error('Failed to load AI configuration');
@@ -112,7 +117,7 @@ export default function AIConfigPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await updateAIConfig({ systemPrompt, temperature, maxTokens, contextSources });
+      await updateAIConfig({ systemPrompt, temperature, maxTokens, contextSources, skills } as any);
       toast.success('Configuration saved!');
       loadConfig();
     } catch {
@@ -120,6 +125,35 @@ export default function AIConfigPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // Skills handlers
+  const handleAddSkill = () => {
+    if (!newSkillTrigger.trim() || !newSkillPrompt.trim()) {
+      toast.error('Trigger and Prompt are required');
+      return;
+    }
+    let trig = newSkillTrigger.trim();
+    if (!trig.startsWith('/')) {
+      trig = '/' + trig;
+    }
+    const updated = [...skills, { trigger: trig, description: newSkillDesc.trim(), prompt: newSkillPrompt.trim(), active: true }];
+    setSkills(updated);
+    setNewSkillTrigger('');
+    setNewSkillDesc('');
+    setNewSkillPrompt('');
+    toast.success('Skill added to list! Save changes to apply.');
+  };
+
+  const handleRemoveSkill = (index: number) => {
+    const updated = skills.filter((_, i) => i !== index);
+    setSkills(updated);
+    toast.success('Skill removed from list! Save changes to apply.');
+  };
+
+  const handleToggleSkill = (index: number) => {
+    const updated = skills.map((s, i) => i === index ? { ...s, active: !s.active } : s);
+    setSkills(updated);
   };
 
   // Rules
@@ -254,14 +288,15 @@ export default function AIConfigPage() {
           value={tab}
           onChange={(_, v) => {
             setTab(v);
-            if (v === 3) loadConversations();
-            if (v === 4) handlePreviewContext();
+            if (v === 4) loadConversations();
+            if (v === 5) handlePreviewContext();
           }}
           sx={{ mb: 3, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, fontSize: 13 } }}
         >
           <Tab icon={<TuneRoundedIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="General" />
           <Tab icon={<RuleRoundedIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Rules" />
           <Tab icon={<BlockRoundedIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Restrictions" />
+          <Tab icon={<SmartToyRoundedIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Skills" />
           <Tab icon={<PeopleRoundedIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Conversations" />
           <Tab icon={<PreviewRoundedIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Context Preview" />
         </Tabs>
@@ -475,8 +510,125 @@ export default function AIConfigPage() {
           </Card>
         )}
 
-        {/* Tab 3: Conversations (Admin) */}
+        {/* Tab 3: Skills */}
         {tab === 3 && (
+          <Stack spacing={3}>
+            {/* Create Skill Card */}
+            <Card sx={cardSx}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="subtitle1" fontWeight={700} mb={1}>Crear Nueva Skill / Comando</Typography>
+                <Typography variant="caption" color="text.secondary" display="block" mb={2}>
+                  Define un comando (ej. /daily) que pueda ser ejecutado por el bot de WhatsApp usando inteligencia artificial.
+                </Typography>
+
+                <Stack spacing={2}>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                    <TextField
+                      label="Trigger Command (ej. /daily)"
+                      fullWidth
+                      size="small"
+                      value={newSkillTrigger}
+                      onChange={(e) => setNewSkillTrigger(e.target.value)}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, fontSize: 13 } }}
+                    />
+                    <TextField
+                      label="Description"
+                      fullWidth
+                      size="small"
+                      value={newSkillDesc}
+                      onChange={(e) => setNewSkillDesc(e.target.value)}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, fontSize: 13 } }}
+                    />
+                  </Stack>
+                  <TextField
+                    label="AI Instructions / Prompt"
+                    fullWidth
+                    multiline
+                    minRows={4}
+                    placeholder="Instrucciones para la IA cuando el comando se ejecute..."
+                    value={newSkillPrompt}
+                    onChange={(e) => setNewSkillPrompt(e.target.value)}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, fontSize: 13, fontFamily: 'monospace' } }}
+                  />
+                  <Box display="flex" justifyContent="flex-end">
+                    <Button
+                      variant="contained"
+                      startIcon={<AddRoundedIcon />}
+                      onClick={handleAddSkill}
+                      sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2, px: 3 }}
+                    >
+                      Añadir Skill
+                    </Button>
+                  </Box>
+                </Stack>
+              </CardContent>
+            </Card>
+
+            {/* List Skills Card */}
+            <Card sx={cardSx}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="subtitle1" fontWeight={700} mb={2}>Skills Registradas</Typography>
+                <Stack spacing={2}>
+                  {skills.map((skill, i) => (
+                    <Paper
+                      key={i}
+                      elevation={0}
+                      sx={{
+                        p: 2,
+                        border: `1px solid ${theme.palette.divider}`,
+                        borderRadius: 2,
+                        bgcolor: skill.active ? alpha(accent, 0.02) : alpha(theme.palette.text.disabled, 0.05),
+                      }}
+                    >
+                      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <Chip label={skill.trigger} size="small" color="primary" sx={{ fontWeight: 800, borderRadius: 1 }} />
+                          <Typography variant="body2" color="text.secondary" fontSize={12}>
+                            {skill.description || 'Sin descripción'}
+                          </Typography>
+                        </Stack>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <Switch
+                            checked={skill.active}
+                            size="small"
+                            onChange={() => handleToggleSkill(i)}
+                          />
+                          <IconButton size="small" onClick={() => handleRemoveSkill(i)} sx={{ color: 'error.main' }}>
+                            <DeleteOutlineRoundedIcon fontSize="small" />
+                          </IconButton>
+                        </Stack>
+                      </Stack>
+                      <Box
+                        component="pre"
+                        sx={{
+                          p: 1.5,
+                          bgcolor: isDark ? alpha(theme.palette.common.black, 0.2) : alpha(theme.palette.common.black, 0.03),
+                          borderRadius: 1,
+                          fontSize: 11,
+                          fontFamily: 'monospace',
+                          whiteSpace: 'pre-wrap',
+                          maxHeight: 150,
+                          overflowY: 'auto',
+                          margin: 0,
+                        }}
+                      >
+                        {skill.prompt}
+                      </Box>
+                    </Paper>
+                  ))}
+                  {skills.length === 0 && (
+                    <Typography variant="body2" color="text.secondary" textAlign="center" py={4}>
+                      No hay skills configuradas aún.
+                    </Typography>
+                  )}
+                </Stack>
+              </CardContent>
+            </Card>
+          </Stack>
+        )}
+
+        {/* Tab 4: Conversations (Admin) */}
+        {tab === 4 && (
           <Card sx={cardSx}>
             <CardContent sx={{ p: 3 }}>
               <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
@@ -515,8 +667,8 @@ export default function AIConfigPage() {
           </Card>
         )}
 
-        {/* Tab 4: Context Preview */}
-        {tab === 4 && (
+        {/* Tab 5: Context Preview */}
+        {tab === 5 && (
           <Card sx={cardSx}>
             <CardContent sx={{ p: 3 }}>
               <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>

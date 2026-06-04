@@ -62,6 +62,10 @@ import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { HEADER_HEIGHT } from 'src/theme/utils';
+import { BarChart } from '@mui/x-charts/BarChart';
+import { LineChart } from '@mui/x-charts/LineChart';
+import { PieChart } from '@mui/x-charts/PieChart';
+
 
 /* ─── Sweepstouch S Icon ─── */
 const SIcon: React.FC<{
@@ -395,24 +399,194 @@ function renderMarkdown(text: string) {
   return processed;
 }
 
-const MarkdownContent = React.memo(function MarkdownContent({ content }: { content: string }) {
-  const html = useMemo(() => renderMarkdown(content), [content]);
+interface ChartDataset {
+  label?: string;
+  data: number[];
+  color?: string;
+}
+
+interface ChartData {
+  type: 'bar' | 'line' | 'pie';
+  title?: string;
+  labels: string[];
+  datasets: ChartDataset[];
+}
+
+const InteractiveChart = React.memo(function InteractiveChart({ data }: { data: ChartData }) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+
+  const chartType = data.type || 'bar';
+  const title = data.title || 'Gráfico de Datos';
+  const labels = data.labels || [];
+  const datasets = data.datasets || [];
+
+  if (chartType === 'pie') {
+    const pieData = (datasets[0]?.data || []).map((val, idx) => ({
+      id: idx,
+      value: val,
+      label: labels[idx] || `Item ${idx + 1}`,
+      color: datasets[0]?.color || undefined,
+    }));
+
+    return (
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2,
+          my: 1.5,
+          borderRadius: 3,
+          border: `1px solid ${theme.palette.divider}`,
+          bgcolor: isDark ? alpha(theme.palette.background.paper, 0.4) : alpha(theme.palette.background.paper, 0.8),
+          width: '100%',
+          maxWidth: 450,
+          mx: 'auto',
+        }}
+      >
+        <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2, textAlign: 'center' }}>
+          {title}
+        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+          <PieChart
+            series={[
+              {
+                data: pieData,
+                highlightScope: { fade: 'global', highlight: 'item' },
+              },
+            ]}
+            height={200}
+          />
+        </Box>
+      </Paper>
+    );
+  }
+
+  if (chartType === 'line') {
+    const series = datasets.map((ds, idx) => ({
+      data: ds.data,
+      label: ds.label || `Serie ${idx + 1}`,
+      color: ds.color || (idx === 0 ? theme.palette.primary.main : theme.palette.secondary.main),
+    }));
+
+    return (
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2,
+          my: 1.5,
+          borderRadius: 3,
+          border: `1px solid ${theme.palette.divider}`,
+          bgcolor: isDark ? alpha(theme.palette.background.paper, 0.4) : alpha(theme.palette.background.paper, 0.8),
+          width: '100%',
+        }}
+      >
+        <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2 }}>
+          {title}
+        </Typography>
+        <Box sx={{ height: 260 }}>
+          <LineChart
+            xAxis={[{ scaleType: 'point', data: labels }]}
+            series={series}
+            height={240}
+            margin={{ left: 40, right: 16, top: 16, bottom: 32 }}
+          />
+        </Box>
+      </Paper>
+    );
+  }
+
+  // Default to BarChart
+  const series = datasets.map((ds, idx) => ({
+    data: ds.data,
+    label: ds.label || `Serie ${idx + 1}`,
+    color: ds.color || (idx === 0 ? theme.palette.primary.main : theme.palette.success.main),
+  }));
 
   return (
-    <Typography
-      variant="body2"
-      component="div"
+    <Paper
+      elevation={0}
       sx={{
-        fontSize: 13,
-        lineHeight: 1.65,
-        overflowWrap: 'anywhere',
-        '& pre': { my: 1, maxWidth: '100%' },
-        '& code': { fontFamily: 'monospace', whiteSpace: 'pre-wrap' },
-        '& table': { display: 'block', maxWidth: '100%', overflowX: 'auto' },
-        '& img': { height: 'auto' },
+        p: 2,
+        my: 1.5,
+        borderRadius: 3,
+        border: `1px solid ${theme.palette.divider}`,
+        bgcolor: isDark ? alpha(theme.palette.background.paper, 0.4) : alpha(theme.palette.background.paper, 0.8),
+        width: '100%',
       }}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    >
+      <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2 }}>
+        {title}
+      </Typography>
+      <Box sx={{ height: 260 }}>
+        <BarChart
+          xAxis={[{ scaleType: 'band', data: labels }]}
+          series={series}
+          height={240}
+          margin={{ left: 40, right: 16, top: 16, bottom: 32 }}
+          borderRadius={4}
+        />
+      </Box>
+    </Paper>
+  );
+});
+
+const chartRegex = /```(?:json:)?chart\n([\s\S]*?)\n```/g;
+
+const MarkdownContent = React.memo(function MarkdownContent({ content }: { content: string }) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+
+  const parts = useMemo(() => content.split(chartRegex), [content]);
+
+  return (
+    <Stack spacing={1.5} sx={{ width: '100%' }}>
+      {parts.map((part, index) => {
+        if (index % 2 === 0) {
+          if (!part.trim()) return null;
+          const html = renderMarkdown(part);
+          return (
+            <Typography
+              key={index}
+              variant="body2"
+              component="div"
+              sx={{
+                fontSize: 13,
+                lineHeight: 1.65,
+                overflowWrap: 'anywhere',
+                '& pre': { my: 1, maxWidth: '100%' },
+                '& code': { fontFamily: 'monospace', whiteSpace: 'pre-wrap' },
+                '& table': { display: 'block', maxWidth: '100%', overflowX: 'auto' },
+                '& img': { height: 'auto' },
+              }}
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+          );
+        } else {
+          try {
+            const chartData = JSON.parse(part.trim()) as ChartData;
+            return <InteractiveChart data={chartData} key={index} />;
+          } catch (e) {
+            console.error("Failed to parse chart JSON:", e);
+            return (
+              <Paper
+                key={index}
+                elevation={0}
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2,
+                  border: `1px solid ${theme.palette.error.light}`,
+                  bgcolor: alpha(theme.palette.error.main, 0.05),
+                }}
+              >
+                <Typography variant="caption" color="error.main" component="pre" sx={{ fontFamily: 'monospace' }}>
+                  Error al renderizar gráfico: {e instanceof Error ? e.message : String(e)}
+                </Typography>
+              </Paper>
+            );
+          }
+        }
+      })}
+    </Stack>
   );
 });
 
