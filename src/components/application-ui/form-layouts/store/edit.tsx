@@ -86,7 +86,7 @@ const SectionLabel = ({ icon, label }: { icon: React.ReactNode; label: string })
         height: 26,
         borderRadius: 1,
         bgcolor: 'primary.main',
-        color: '#fff',
+        color: 'common.white',
         flexShrink: 0,
         fontSize: 14,
         '& svg': { fontSize: 14 },
@@ -159,7 +159,6 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        borderLeft: (t) => `4px solid ${t.palette.primary.main}`,
       }}
     >
       <CardHeader
@@ -630,6 +629,7 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
                       <IconButton
                         size="small"
                         color="error"
+                        aria-label={`Eliminar contacto ${idx + 1}`}
                         onClick={() => removeContact(idx)}
                         sx={{ p: 0.5 }}
                       >
@@ -688,7 +688,11 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
 
             {edit && (
               <Box
+                role="button"
+                tabIndex={0}
                 onClick={addContact}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); addContact(); } }}
+                aria-label="Agregar contacto"
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
@@ -701,6 +705,8 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
                   cursor: 'pointer',
                   typography: 'body2',
                   fontWeight: 600,
+                  outline: 'none',
+                  '&:focus-visible': { boxShadow: (t) => `0 0 0 3px ${t.palette.primary.main}40` },
                   '&:hover': { bgcolor: (t) => (t.palette.mode === 'dark' ? 'primary.900' : 'primary.50') },
                 }}
               >

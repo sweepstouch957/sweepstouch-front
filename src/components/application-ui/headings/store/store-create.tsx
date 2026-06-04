@@ -208,9 +208,9 @@ export default function StoreHeader({
             <Box sx={{
               position: 'absolute', bottom: 1, right: 1,
               width: 11, height: 11, borderRadius: '50%',
-              bgcolor: active ? '#22c55e' : '#f59e0b',
+              bgcolor: active ? theme.palette.success.main : theme.palette.warning.main,
               border: `2px solid ${theme.palette.background.paper}`,
-              boxShadow: `0 0 6px ${active ? alpha('#22c55e', 0.7) : alpha('#f59e0b', 0.7)}`,
+              boxShadow: `0 0 6px ${active ? alpha(theme.palette.success.main, 0.7) : alpha(theme.palette.warning.main, 0.7)}`,
             }} />
           </Box>
 
@@ -343,18 +343,22 @@ export default function StoreHeader({
                   <Tooltip title="Ver QR" arrow>
                     <Box
                       role="button"
-                      aria-label="Ver QR"
+                      aria-label="Ver código QR del sorteo"
+                      tabIndex={0}
                       onClick={() => setQrOpen(true)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setQrOpen(true); } }}
                       sx={{
                         width: 34, height: 34,
                         borderRadius: 1.5,
                         border: `1.5px solid ${alpha(tier.accent, 0.35)}`,
-                        bgcolor: isDark ? alpha('#fff', 0.06) : 'white',
+                        bgcolor: isDark ? alpha(theme.palette.common.white, 0.06) : 'background.paper',
                         overflow: 'hidden',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        outline: 'none',
+                        '&:focus-visible': { boxShadow: `0 0 0 3px ${alpha(tier.accent, 0.4)}` },
                         transition: 'all 0.15s ease',
                         '&:hover': {
                           transform: 'translateY(-1px) scale(1.06)',
@@ -381,9 +385,9 @@ export default function StoreHeader({
                       disabled={saving}
                       sx={{
                         width: 34, height: 34, borderRadius: 1.5,
-                        bgcolor: alpha('#ef4444', isDark ? 0.2 : 0.1),
+                        bgcolor: alpha(theme.palette.error.main, isDark ? 0.2 : 0.1),
                         color: 'error.main',
-                        '&:hover': { bgcolor: alpha('#ef4444', isDark ? 0.32 : 0.18), transform: 'translateY(-1px)' },
+                        '&:hover': { bgcolor: alpha(theme.palette.error.main, isDark ? 0.32 : 0.18), transform: 'translateY(-1px)' },
                       }}
                     >
                       <CloseRounded sx={{ fontSize: 17 }} />
@@ -399,9 +403,9 @@ export default function StoreHeader({
                       disabled={saving}
                       sx={{
                         width: 34, height: 34, borderRadius: 1.5,
-                        bgcolor: alpha('#22c55e', isDark ? 0.2 : 0.1),
+                        bgcolor: alpha(theme.palette.success.main, isDark ? 0.2 : 0.1),
                         color: 'success.main',
-                        '&:hover': { bgcolor: alpha('#22c55e', isDark ? 0.32 : 0.18), transform: 'translateY(-1px)' },
+                        '&:hover': { bgcolor: alpha(theme.palette.success.main, isDark ? 0.32 : 0.18), transform: 'translateY(-1px)' },
                       }}
                     >
                       {saving
@@ -418,14 +422,19 @@ export default function StoreHeader({
                     <Tooltip title="Ver QR" arrow>
                       <Box
                         role="button"
+                        aria-label="Ver código QR del sorteo"
+                        tabIndex={0}
                         onClick={() => setQrOpen(true)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setQrOpen(true); } }}
                         sx={{
                           width: 34, height: 34, borderRadius: 1.5,
                           border: `1.5px solid ${alpha(tier.accent, 0.35)}`,
-                          bgcolor: isDark ? alpha('#fff', 0.06) : 'white',
+                          bgcolor: isDark ? alpha(theme.palette.common.white, 0.06) : 'background.paper',
                           overflow: 'hidden',
                           cursor: 'pointer',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          outline: 'none',
+                          '&:focus-visible': { boxShadow: `0 0 0 3px ${alpha(tier.accent, 0.4)}` },
                           transition: 'all 0.15s ease',
                           '&:hover': { transform: 'scale(1.06)', boxShadow: `0 3px 10px ${alpha(tier.accent, 0.3)}` },
                         }}

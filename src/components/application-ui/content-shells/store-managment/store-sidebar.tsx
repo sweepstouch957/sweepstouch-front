@@ -22,6 +22,7 @@ import {
   Woman2,
   DevicesOtherTwoTone as DevicesIcon,
   SmsTwoTone as SmsIcon,
+  PaletteTwoTone as BrandIcon,
 } from '@mui/icons-material';
 import PeopleIcon from '@mui/icons-material/People';
 import {
@@ -62,6 +63,7 @@ function buildSwitchUrl(storeId: string) {
 const STORE_SECTIONS = [
   { id: 'campaigns', label: 'Campaigns', icon: <CampaignsIcon /> },
   { id: 'general-info', label: 'General Info', icon: <InfoIcon /> },
+  { id: 'brand', label: 'Branding', icon: <BrandIcon /> },
   { id: 'equipment', label: 'Equipment', icon: <DevicesIcon /> },
   { id: 'sweepstakes', label: 'Sweepstakes', icon: <RewardIcon /> },
   { id: 'welcome-coupons', label: 'Welcome Coupons', icon: <CouponIcon /> },

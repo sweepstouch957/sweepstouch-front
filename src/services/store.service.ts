@@ -133,6 +133,22 @@ export interface UpdateStoreBody {
 
   // 🆕 Contact Info
   contactInfo?: ContactInfoItem[];
+
+  // 🆕 MMS Branding
+  mmsTheme?: {
+    primaryColor?: string;
+    primaryDark?: string;
+    accentColor?: string;
+    textOnPrimary?: string;
+    footerBg?: string;
+    logoUrl?: string;
+    ctaText?: string;
+    footerText?: string;
+    headerStyle?: 'classic' | 'modern' | 'minimal' | 'bold';
+  };
+
+  // 🆕 Brand reference
+  brand?: string;
 }
 
 export interface GetStoresResponse {

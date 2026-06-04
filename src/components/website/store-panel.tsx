@@ -16,8 +16,6 @@ import {
   PersonAddRounded,
   SaveRounded,
   Tag,
-  VisibilityOffOutlined,
-  VisibilityOutlined,
   WarningAmberRounded,
   CloseRounded,
   CreditCard,
@@ -78,7 +76,7 @@ const toInputDate = (value: any): string => {
 
 const generateAccessCode = (): string => {
   const num = Math.floor(10000 + Math.random() * 90000);
-  return `ANTILLAN-${num}`;
+  return `ST-${num}`;
 };
 
 /* ── Compact stat pill ───────────────────────────────────────── */
@@ -155,7 +153,7 @@ function SidebarSection({
       sx={{
         borderRadius: 2.5,
         overflow: 'hidden',
-        borderLeft: `3px solid ${accent}`,
+        border: `1px solid ${alpha(accent, 0.28)}`,
       }}
     >
       <Stack
@@ -198,7 +196,6 @@ export default function StoreInfo({ store }: { store: Store }) {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const [zoom, setZoom] = useState(12);
-  const [showPassword, setShowPassword] = useState(false);
   const [backfillResult, setBackfillResult] = useState<any>(null);
 
   const {
@@ -223,6 +220,7 @@ export default function StoreInfo({ store }: { store: Store }) {
   const { data: merchantUser, isLoading: loadingMerchant, isError: errorMerchant } = useQuery({
     queryKey: ['store-merchant-user', store._id],
     enabled: Boolean(store?._id),
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const users = await usersApi.searchUsers({ store: String(store._id) });
       if (!Array.isArray(users) || users.length === 0) return null;
@@ -283,7 +281,7 @@ export default function StoreInfo({ store }: { store: Store }) {
   const accentMerchant   = theme.palette.primary.main;
 
   return (
-    <Box>
+    <Box sx={{ pb: edit ? { xs: 10, md: 12 } : 0, transition: 'padding 0.2s ease' }}>
       {/* ── Main card ──────────────────────────────────────── */}
       <Card sx={{ overflow: 'hidden', borderRadius: 3, mb: 3, border: (t) => `1px solid ${t.palette.divider}` }}>
 
@@ -489,22 +487,12 @@ export default function StoreInfo({ store }: { store: Store }) {
                     <TextField label="Teléfono (usuario)" value={merchantUser.phoneNumber || '—'} fullWidth InputProps={{ readOnly: true }} size="small" />
                     <TextField label="Access code" value={merchantUser.accessCode || '—'} fullWidth InputProps={{ readOnly: true }} size="small" />
                     <TextField
-                      label="Password"
-                      value="ABC123"
-                      type={showPassword ? 'text' : 'password'}
+                      label="Contraseña"
+                      value="••••••••"
                       fullWidth
                       size="small"
-                      InputProps={{
-                        readOnly: true,
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <IconButton edge="end" size="small" onClick={() => setShowPassword((s) => !s)}>
-                              {showPassword ? <VisibilityOffOutlined fontSize="small" /> : <VisibilityOutlined fontSize="small" />}
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      }}
-                      helperText="Solo lectura"
+                      InputProps={{ readOnly: true }}
+                      helperText="No recuperable por seguridad"
                     />
                     {/* Show sync button if accessCode is missing on either store or user */}
                     {(!merchantUser.accessCode || !(store as any)?.accessCode) && (
@@ -615,6 +603,7 @@ export default function StoreInfo({ store }: { store: Store }) {
       >
         <Zoom in>
           <Fab
+            aria-label={edit ? 'Guardar cambios' : 'Editar tienda'}
             color={edit ? 'success' : 'primary'}
             onClick={edit ? handleSave : () => setEdit(true)}
             disabled={saving}
@@ -632,6 +621,7 @@ export default function StoreInfo({ store }: { store: Store }) {
 
         <Zoom in={edit}>
           <Fab
+            aria-label="Cancelar edición"
             color="default"
             size="medium"
             onClick={handleCancel}

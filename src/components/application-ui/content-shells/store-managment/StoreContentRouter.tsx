@@ -18,6 +18,7 @@ import QrDuetMUI from './panel/qr/QrContainer';
 import StoreAudienceOverview from './panel/sweepstakes/StoreAudienceOverview';
 import StoreSweepstakeStats from './panel/sweepstakes/StoreSweepstakeStats';
 import WelcomeCouponsPanel from './panel/welcome-coupons/WelcomeCouponsPanel';
+import StoreBrandPanel from './panel/brand/StoreBrandPanel';
 
 interface Props {
   tag: string;
@@ -179,6 +180,9 @@ export const StoreContentRouter: FC<Props> = ({
 
     case 'equipment':
       return <StoreEquipmentPanel store={store} storeId={storeId} />;
+
+    case 'brand':
+      return <StoreBrandPanel storeId={storeId} store={store} />;
 
     case 'general-info':
       return (
