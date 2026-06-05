@@ -67,6 +67,7 @@ export interface ProductAnalytics {
   timesPurchased?: number;
   timesSelected?: number;
   uniqueCustomers: number;
+  matched?: boolean;
 }
 
 export interface ProductDetail {
@@ -80,6 +81,7 @@ export interface ProductDetail {
   quantity: number;
   uniqueCustomers: number;
   lastPurchased?: string;
+  matched?: boolean;
 }
 
 export interface TimelinePoint {

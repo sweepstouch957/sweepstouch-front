@@ -33,11 +33,11 @@ interface Props {
 const PALETTE = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ec4899', '#14b8a6', '#6366f1', '#f97316'];
 const CATEGORY_EMOJI: Record<string, string> = {
   meat: '🥩', produce: '🥬', beverages: '🥤', dairy: '🧀', pantry: '🥫',
-  frozen: '🧊', bakery: '🍞', deli: '🥪', snacks: '🍿', household: '🧹',
+  frozen: '🧊', bakery: '🍞', deli: '🥪', snacks: '🍿', grocery: '🛒', household: '🧹',
 };
 const CATEGORY_COLORS: Record<string, string> = {
   meat: '#ef4444', produce: '#22c55e', beverages: '#3b82f6', dairy: '#f59e0b', pantry: '#8b5cf6',
-  frozen: '#06b6d4', bakery: '#f97316', deli: '#ec4899', snacks: '#a855f7', household: '#6366f1',
+  frozen: '#06b6d4', bakery: '#f97316', deli: '#ec4899', snacks: '#a855f7', grocery: '#64748b', household: '#6366f1',
 };
 
 export default function CampaignTable({ data, campaignProducts, isLoading }: Props) {
@@ -268,6 +268,19 @@ export default function CampaignTable({ data, campaignProducts, isLoading }: Pro
                                       textTransform: 'uppercase',
                                       bgcolor: alpha(catColor, 0.1),
                                       color: catColor,
+                                    }}
+                                  />
+                                  <Chip
+                                    label={p.matched ? 'Promo' : 'Regular'}
+                                    size="small"
+                                    sx={{
+                                      height: 16,
+                                      fontSize: 8,
+                                      fontWeight: 800,
+                                      textTransform: 'uppercase',
+                                      bgcolor: p.matched ? alpha('#10b981', 0.1) : alpha('#64748b', 0.1),
+                                      color: p.matched ? '#10b981' : '#64748b',
+                                      border: `1px solid ${p.matched ? alpha('#10b981', 0.15) : alpha('#64748b', 0.15)}`,
                                     }}
                                   />
                                   {p.price && (

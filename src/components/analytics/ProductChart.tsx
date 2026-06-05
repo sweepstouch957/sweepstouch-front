@@ -45,6 +45,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   bakery: '#f97316',
   deli: '#ec4899',
   snacks: '#a855f7',
+  grocery: '#64748b',
   household: '#6366f1',
 };
 
@@ -58,6 +59,7 @@ const CATEGORY_EMOJI: Record<string, string> = {
   bakery: '🍞',
   deli: '🥪',
   snacks: '🍿',
+  grocery: '🛒',
   household: '🧹',
 };
 
@@ -83,6 +85,7 @@ export default function ProductChart({ data, campaignProducts, isLoading }: Prop
       quantity: p.timesPurchased || 0,
       uniqueCustomers: p.uniqueCustomers,
       source: 'purchased' as const,
+      matched: p.matched,
     })),
     ...(campaignProducts?.purchased || []).map((p) => ({
       product: p.product,
@@ -92,6 +95,7 @@ export default function ProductChart({ data, campaignProducts, isLoading }: Prop
       quantity: p.quantity || 0,
       uniqueCustomers: p.uniqueCustomers,
       source: 'purchased' as const,
+      matched: p.matched,
     })),
   ];
 
@@ -104,6 +108,7 @@ export default function ProductChart({ data, campaignProducts, isLoading }: Prop
       quantity: p.timesSelected || 0,
       uniqueCustomers: p.uniqueCustomers,
       source: 'selected' as const,
+      matched: p.matched,
     })),
     ...(campaignProducts?.selected || []).map((p) => ({
       product: p.product,
@@ -113,11 +118,12 @@ export default function ProductChart({ data, campaignProducts, isLoading }: Prop
       quantity: p.quantity || 0,
       uniqueCustomers: p.uniqueCustomers,
       source: 'selected' as const,
+      matched: p.matched,
     })),
   ];
 
   // Deduplicate by product name and sum quantities
-  type ProdItem = { product: string; category: string; price: string; imageUrl: string; quantity: number; uniqueCustomers: number; source: string };
+  type ProdItem = { product: string; category: string; price: string; imageUrl?: string; quantity: number; uniqueCustomers: number; source: string; matched?: boolean };
   const dedup = (arr: ProdItem[]) => {
     const map = new Map<string, ProdItem>();
     for (const p of arr) {
@@ -125,6 +131,7 @@ export default function ProductChart({ data, campaignProducts, isLoading }: Prop
       if (existing) {
         existing.quantity += p.quantity;
         existing.uniqueCustomers = Math.max(existing.uniqueCustomers, p.uniqueCustomers);
+        existing.matched = existing.matched || p.matched;
       } else {
         map.set(p.product, { ...p });
       }
@@ -438,6 +445,22 @@ export default function ProductChart({ data, campaignProducts, isLoading }: Prop
                       letterSpacing: 0.5,
                     }}
                   />
+                  {tab === 0 && (
+                    <Chip
+                      label={p.matched ? 'Promo Item' : 'Regular Item'}
+                      size="small"
+                      sx={{
+                        height: 18,
+                        fontSize: 9,
+                        fontWeight: 800,
+                        textTransform: 'uppercase',
+                        bgcolor: p.matched ? alpha('#22c55e', 0.1) : alpha('#64748b', 0.1),
+                        color: p.matched ? '#22c55e' : '#64748b',
+                        border: `1px solid ${p.matched ? alpha('#22c55e', 0.2) : alpha('#64748b', 0.2)}`,
+                        letterSpacing: 0.5,
+                      }}
+                    />
+                  )}
                   {p.price && (
                     <Typography variant="caption" color="text.secondary" fontWeight={600}>
                       {p.price}
