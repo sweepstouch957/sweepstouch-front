@@ -7,6 +7,7 @@ import { usersApi } from '@/mocks/users';
 import { api } from '@/libs/axios';
 import { Store } from '@/services/store.service';
 import { getTierColor } from '@/utils/ui/store.page';
+import { format } from 'date-fns';
 import {
   CalendarMonthOutlined,
   ContentCopyOutlined,
@@ -21,7 +22,15 @@ import {
   CreditCard,
   LinkRounded,
   CheckRounded,
+  PictureAsPdf,
+  CloudUpload,
+  Delete,
+  AddCircle,
+  PauseCircleOutline,
+  PlayCircleOutline,
+  AttachFile,
 } from '@mui/icons-material';
+import { uploadPdfToS3 } from '@/services/upload.service';
 import {
   Alert,
   alpha,
@@ -72,6 +81,13 @@ const toInputDate = (value: any): string => {
   const d = typeof value === 'string' ? new Date(value) : value;
   if (Number.isNaN(d?.getTime?.())) return '';
   return d.toISOString().slice(0, 10);
+};
+
+const safeDateLabel = (iso?: string | null) => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return format(d, 'MMM dd, yyyy');
 };
 
 const generateAccessCode = (): string => {
@@ -216,6 +232,86 @@ export default function StoreInfo({ store }: { store: Store }) {
     handleCancel,
     kioskUrl,
   } = useStoreEditor(store);
+
+  // Pause History local states
+  const [newPauseStart, setNewPauseStart] = useState('');
+  const [newPauseEnd, setNewPauseEnd] = useState('');
+  const [newPauseReason, setNewPauseReason] = useState('');
+
+  // Contracts local states
+  const [uploadingContract, setUploadingContract] = useState(false);
+  const [newContractSignedAt, setNewContractSignedAt] = useState('');
+
+  const handleAddPause = () => {
+    if (!newPauseStart) return;
+    const item = {
+      startDate: newPauseStart,
+      endDate: newPauseEnd || null,
+      reason: newPauseReason.trim(),
+    };
+    setForm((s: any) => ({
+      ...s,
+      pauseHistory: [...(s.pauseHistory || []), item],
+    }));
+    setNewPauseStart('');
+    setNewPauseEnd('');
+    setNewPauseReason('');
+  };
+
+  const handleRemovePause = (index: number) => {
+    setForm((s: any) => ({
+      ...s,
+      pauseHistory: (s.pauseHistory || []).filter((_: any, i: number) => i !== index),
+    }));
+  };
+
+  const handleContractUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf') {
+      setSnack((s: any) => ({ open: true, msg: 'Solo se permiten archivos PDF', type: 'error' }));
+      return;
+    }
+    try {
+      setUploadingContract(true);
+      const res = await uploadPdfToS3(file);
+      if (res.ok) {
+        const item = {
+          fileName: file.name,
+          fileUrl: res.url,
+          uploadedAt: new Date().toISOString(),
+          signedAt: newContractSignedAt || null,
+        };
+        setForm((s: any) => ({
+          ...s,
+          contracts: [...(s.contracts || []), item],
+        }));
+        setNewContractSignedAt('');
+        setSnack((s: any) => ({ open: true, msg: 'Contrato subido y vinculado correctamente.', type: 'success' }));
+      } else {
+        setSnack((s: any) => ({ open: true, msg: 'No se pudo subir el archivo.', type: 'error' }));
+      }
+    } catch (err: any) {
+      setSnack((s: any) => ({ open: true, msg: err?.response?.data?.error || 'Error al subir contrato', type: 'error' }));
+    } finally {
+      setUploadingContract(false);
+    }
+  };
+
+  const handleRemoveContract = (index: number) => {
+    setForm((s: any) => ({
+      ...s,
+      contracts: (s.contracts || []).filter((_: any, i: number) => i !== index),
+    }));
+  };
+
+  const handleContractSignedAtChange = (index: number, val: string) => {
+    setForm((s: any) => {
+      const copy = [...(s.contracts || [])];
+      copy[index] = { ...copy[index], signedAt: val || null };
+      return { ...s, contracts: copy };
+    });
+  };
 
   const { data: merchantUser, isLoading: loadingMerchant, isError: errorMerchant } = useQuery({
     queryKey: ['store-merchant-user', store._id],
@@ -366,6 +462,251 @@ export default function StoreInfo({ store }: { store: Store }) {
                 lat={lat}
                 onRequestEdit={() => setEdit(true)}
               />
+
+              <Divider sx={{ my: 3.5 }} />
+
+              {/* ─── SECCIÓN: CONTRATOS DE LA TIENDA (S3) ─── */}
+              <Box mb={4}>
+                <Stack direction="row" spacing={1} alignItems="center" mb={2}>
+                  <AttachFile sx={{ fontSize: 20, color: theme.palette.primary.main }} />
+                  <Box>
+                    <Typography variant="subtitle2" fontWeight={800} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      Contratos y Documentos
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Subir y gestionar contratos firmados en formato PDF
+                    </Typography>
+                  </Box>
+                </Stack>
+
+                {edit && (
+                  <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 2, bgcolor: (t) => alpha(theme.palette.primary.main, 0.03) }}>
+                    <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" mb={1}>
+                      SUBIR NUEVO CONTRATO (S3)
+                    </Typography>
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="center">
+                      <TextField
+                        label="Fecha de firma (Opcional)"
+                        type="date"
+                        size="small"
+                        value={newContractSignedAt}
+                        onChange={(e) => setNewContractSignedAt(e.target.value)}
+                        InputLabelProps={{ shrink: true }}
+                        sx={{ minWidth: 200 }}
+                      />
+                      <Button
+                        component="label"
+                        variant="contained"
+                        disabled={uploadingContract}
+                        startIcon={uploadingContract ? <CircularProgress size={16} color="inherit" /> : <CloudUpload />}
+                        sx={{ textTransform: 'none', fontWeight: 800, borderRadius: 2 }}
+                      >
+                        {uploadingContract ? 'Subiendo...' : 'Seleccionar PDF'}
+                        <input
+                          type="file"
+                          accept="application/pdf"
+                          hidden
+                          onChange={handleContractUpload}
+                        />
+                      </Button>
+                    </Stack>
+                  </Paper>
+                )}
+
+                {(!form.contracts || form.contracts.length === 0) ? (
+                  <Typography variant="caption" color="text.disabled" sx={{ display: 'block', py: 1 }}>
+                    Sin contratos subidos para esta tienda
+                  </Typography>
+                ) : (
+                  <Stack spacing={1.25}>
+                    {(form.contracts || []).map((contract: any, index: number) => (
+                      <Card key={index} variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+                        <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+                          <Stack direction="row" alignItems="center" spacing={1.5}>
+                            <PictureAsPdf sx={{ color: '#ef4444', fontSize: 28, flexShrink: 0 }} />
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography fontWeight={700} fontSize={13} noWrap title={contract.fileName}>
+                                {contract.fileName}
+                              </Typography>
+                              <Stack direction="row" spacing={1.5} flexWrap="wrap" mt={0.25}>
+                                <Typography variant="caption" color="text.secondary">
+                                  Subido: {safeDateLabel(contract.uploadedAt)}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  Firmado: {safeDateLabel(contract.signedAt)}
+                                </Typography>
+                              </Stack>
+                            </Box>
+                            <Stack direction="row" spacing={1} alignItems="center" flexShrink={0}>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                href={contract.fileUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                sx={{ textTransform: 'none', borderRadius: 1.5, fontSize: 11, fontWeight: 700 }}
+                              >
+                                Ver PDF
+                              </Button>
+                              {edit && (
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => handleRemoveContract(index)}
+                                  sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}
+                                >
+                                  <Delete sx={{ fontSize: 15 }} />
+                                </IconButton>
+                              )}
+                            </Stack>
+                          </Stack>
+
+                          {edit && (
+                            <Box mt={1.5} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography variant="caption" color="text.secondary" fontWeight={700}>
+                                Editar Fecha de Firma:
+                              </Typography>
+                              <TextField
+                                type="date"
+                                size="small"
+                                value={toInputDate(contract.signedAt)}
+                                onChange={(e) => handleContractSignedAtChange(index, e.target.value)}
+                                InputLabelProps={{ shrink: true }}
+                                sx={{ width: 150, '& input': { py: 0.5, fontSize: 12 } }}
+                              />
+                            </Box>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </Stack>
+                )}
+              </Box>
+
+              <Divider sx={{ my: 3.5 }} />
+
+              {/* ─── SECCIÓN: HISTORIAL DE PAUSAS ─── */}
+              <Box>
+                <Stack direction="row" spacing={1} alignItems="center" mb={2}>
+                  <PauseCircleOutline sx={{ fontSize: 20, color: theme.palette.warning.main }} />
+                  <Box>
+                    <Typography variant="subtitle2" fontWeight={800} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      Historial de Pausas del Servicio
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Registro de períodos en los que se pausó el envío de campañas
+                    </Typography>
+                  </Box>
+                </Stack>
+
+                {edit && (
+                  <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 2, bgcolor: (t) => alpha(theme.palette.warning.main, 0.03) }}>
+                    <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" mb={1.5}>
+                      AGREGAR PERÍODO DE PAUSA
+                    </Typography>
+                    <Grid container spacing={1.5} alignItems="center">
+                      <Grid item xs={12} sm={4}>
+                        <TextField
+                          label="Desde (Inicio de pausa)"
+                          type="date"
+                          fullWidth
+                          size="small"
+                          value={newPauseStart}
+                          onChange={(e) => setNewPauseStart(e.target.value)}
+                          InputLabelProps={{ shrink: true }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={4}>
+                        <TextField
+                          label="Hasta (Reingreso/Fin)"
+                          type="date"
+                          fullWidth
+                          size="small"
+                          value={newPauseEnd}
+                          onChange={(e) => setNewPauseEnd(e.target.value)}
+                          InputLabelProps={{ shrink: true }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={4}>
+                        <Button
+                          fullWidth
+                          variant="contained"
+                          color="warning"
+                          disabled={!newPauseStart}
+                          startIcon={<AddCircle />}
+                          onClick={handleAddPause}
+                          sx={{ textTransform: 'none', fontWeight: 800, borderRadius: 2, py: 1 }}
+                        >
+                          Agregar
+                        </Button>
+                      </Grid>
+                      <Grid item xs={12}>
+                        <TextField
+                          label="Motivo o notas de la pausa"
+                          fullWidth
+                          size="small"
+                          value={newPauseReason}
+                          onChange={(e) => setNewPauseReason(e.target.value)}
+                          placeholder="Ej. Remodelación de local, Pausa temporal de invierno, etc."
+                        />
+                      </Grid>
+                    </Grid>
+                  </Paper>
+                )}
+
+                {(!form.pauseHistory || form.pauseHistory.length === 0) ? (
+                  <Typography variant="caption" color="text.disabled" sx={{ display: 'block', py: 1 }}>
+                    Sin pausas registradas para esta tienda
+                  </Typography>
+                ) : (
+                  <Stack spacing={1.25}>
+                    {(form.pauseHistory || []).map((pause: any, index: number) => {
+                      const isCurrent = !pause.endDate || new Date(pause.endDate) > new Date();
+                      return (
+                        <Card
+                          key={index}
+                          variant="outlined"
+                          sx={{
+                            borderRadius: 2,
+                            borderColor: isCurrent ? theme.palette.error.light : 'divider',
+                            bgcolor: isCurrent ? alpha(theme.palette.error.main, 0.01) : 'background.paper',
+                          }}
+                        >
+                          <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+                            <Stack direction="row" alignItems="center" spacing={1.5} justifyContent="space-between">
+                              <Stack direction="row" alignItems="center" spacing={1}>
+                                {isCurrent ? (
+                                  <Chip label="Pausado actualmente" color="error" size="small" sx={{ fontWeight: 800, fontSize: 10, height: 20 }} />
+                                ) : (
+                                  <Chip label="Pausado anteriormente" size="small" sx={{ fontWeight: 800, fontSize: 10, height: 20 }} />
+                                )}
+                                <Typography fontWeight={700} fontSize={13}>
+                                  {safeDateLabel(pause.startDate)} — {pause.endDate ? safeDateLabel(pause.endDate) : 'Indefinido'}
+                                </Typography>
+                              </Stack>
+                              {edit && (
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => handleRemovePause(index)}
+                                  sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}
+                                >
+                                  <Delete sx={{ fontSize: 15 }} />
+                                </IconButton>
+                              )}
+                            </Stack>
+                            {pause.reason && (
+                              <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: 12.5, pl: 1, borderLeft: '3px solid', borderColor: isCurrent ? 'error.main' : 'divider' }}>
+                                {pause.reason}
+                              </Typography>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </Stack>
+                )}
+              </Box>
             </Box>
           </Grid>
 

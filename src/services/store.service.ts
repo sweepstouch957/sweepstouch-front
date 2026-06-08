@@ -88,6 +88,21 @@ export interface Store {
 
   // 🆕 Contact Info
   contactInfo?: ContactInfoItem[];
+
+  // 🆕 Pause History
+  pauseHistory?: {
+    startDate?: string | null;
+    endDate?: string | null;
+    reason?: string;
+  }[];
+
+  // 🆕 Uploaded Contracts
+  contracts?: {
+    fileName?: string;
+    fileUrl?: string;
+    uploadedAt?: string;
+    signedAt?: string | null;
+  }[];
 }
 
 export interface UpdateStoreBody {
@@ -133,6 +148,21 @@ export interface UpdateStoreBody {
 
   // 🆕 Contact Info
   contactInfo?: ContactInfoItem[];
+
+  // 🆕 Pause History
+  pauseHistory?: {
+    startDate?: string | null;
+    endDate?: string | null;
+    reason?: string;
+  }[];
+
+  // 🆕 Uploaded Contracts
+  contracts?: {
+    fileName?: string;
+    fileUrl?: string;
+    uploadedAt?: string;
+    signedAt?: string | null;
+  }[];
 
   // 🆕 MMS Branding
   mmsTheme?: {

@@ -16,6 +16,13 @@ import PlaceRoundedIcon from '@mui/icons-material/PlaceRounded';
 import PrintRoundedIcon from '@mui/icons-material/PrintRounded';
 import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import TodayRoundedIcon from '@mui/icons-material/TodayRounded';
+import CampaignRoundedIcon from '@mui/icons-material/CampaignRounded';
+import CalendarTodayRoundedIcon from '@mui/icons-material/CalendarTodayRounded';
+import GroupRoundedIcon from '@mui/icons-material/GroupRounded';
+import AttachMoneyRoundedIcon from '@mui/icons-material/AttachMoneyRounded';
+import SpeedRoundedIcon from '@mui/icons-material/SpeedRounded';
+import PauseCircleOutlineIcon from '@mui/icons-material/PauseCircleOutline';
+import DescriptionIcon from '@mui/icons-material/Description';
 import {
   Alert,
   alpha,
@@ -37,9 +44,12 @@ import {
   Tooltip,
   Typography,
   useTheme,
+  CircularProgress,
 } from '@mui/material';
 import { format } from 'date-fns';
 import React, { useMemo, useState } from 'react';
+import { useLastCampaign } from '@/hooks/fetching/campaigns/useLastCampaign';
+import { useStoreById } from '@/hooks/fetching/stores/useStoreById';
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 type StoreTechModalProps = {
@@ -150,6 +160,9 @@ export default function StoreTechModal({
   const theme = useTheme();
   const [tab, setTab] = useState(0);
   const [toast, setToast] = useState({ open: false, msg: '' });
+
+  const { data: lastCampaign, isLoading: loadingCampaign } = useLastCampaign(storeId);
+  const { data: storeDetails } = useStoreById(storeId);
 
   const slug = (storeSlug || '').trim();
 
@@ -306,6 +319,208 @@ export default function StoreTechModal({
                   <CopyRow icon={<PlaceRoundedIcon sx={{ fontSize: 16 }} />} label="Dirección" value={address} onCopy={(v) => copy(v, 'Dirección copiada')} />
                   {!email && !phone && !address && (
                     <Typography variant="caption" color="text.disabled">Sin datos de contacto registrados</Typography>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Última campaña enviada */}
+              <Card variant="outlined" sx={{ borderRadius: 2.5 }}>
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  <Stack direction="row" spacing={1} alignItems="center" mb={1.5}>
+                    <CampaignRoundedIcon sx={{ fontSize: 18, color: theme.palette.primary.main }} />
+                    <Typography fontWeight={800} fontSize={13}>Última campaña enviada</Typography>
+                  </Stack>
+
+                  {loadingCampaign ? (
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ py: 1, justifyContent: 'center' }}>
+                      <CircularProgress size={16} thickness={5} sx={{ color: theme.palette.primary.main }} />
+                      <Typography variant="caption" color="text.secondary">Cargando campaña...</Typography>
+                    </Stack>
+                  ) : !lastCampaign ? (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', py: 0.5 }}>
+                      No se han encontrado campañas enviadas para esta tienda
+                    </Typography>
+                  ) : (
+                    <Stack spacing={1.5}>
+                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography fontWeight={700} fontSize={14} sx={{ mb: 0.5 }} noWrap title={lastCampaign.title}>
+                            {lastCampaign.title}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            ID: {lastCampaign._id}
+                          </Typography>
+                        </Box>
+                        <Stack direction="row" spacing={0.75} flexShrink={0}>
+                          {lastCampaign.type && (
+                            <Chip
+                              label={lastCampaign.type}
+                              size="small"
+                              sx={{
+                                fontWeight: 800,
+                                fontSize: 10,
+                                height: 20,
+                                bgcolor: lastCampaign.type === 'MMS' ? alpha(theme.palette.secondary.main, 0.1) : alpha(theme.palette.primary.main, 0.1),
+                                color: lastCampaign.type === 'MMS' ? theme.palette.secondary.main : theme.palette.primary.main,
+                              }}
+                            />
+                          )}
+                          {lastCampaign.status && (
+                            <Chip
+                              label={
+                                lastCampaign.status === 'completed'
+                                  ? 'Completado'
+                                  : lastCampaign.status === 'scheduled'
+                                  ? 'Programado'
+                                  : lastCampaign.status === 'draft'
+                                  ? 'Borrador'
+                                  : lastCampaign.status === 'progress'
+                                  ? 'En progreso'
+                                  : lastCampaign.status === 'cancelled'
+                                  ? 'Cancelado'
+                                  : lastCampaign.status
+                              }
+                              size="small"
+                              sx={{
+                                fontWeight: 800,
+                                fontSize: 10,
+                                height: 20,
+                                bgcolor: lastCampaign.status === 'completed' ? alpha('#10b981', 0.1) : alpha(theme.palette.text.secondary, 0.1),
+                                color: lastCampaign.status === 'completed' ? '#10b981' : theme.palette.text.secondary,
+                              }}
+                            />
+                          )}
+                        </Stack>
+                      </Stack>
+
+                      <Divider />
+
+                      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 1.5 }}>
+                        <Box>
+                          <Stack direction="row" spacing={0.5} alignItems="center" mb={0.25}>
+                            <CalendarTodayRoundedIcon sx={{ fontSize: 13, color: 'text.secondary' }} />
+                            <Typography variant="caption" color="text.secondary">Fecha</Typography>
+                          </Stack>
+                          <Typography fontWeight={700} fontSize={12}>
+                            {safeDateLabel(lastCampaign.startDate ? lastCampaign.startDate.toString() : lastCampaign.createdAt?.toString())}
+                          </Typography>
+                        </Box>
+
+                        <Box>
+                          <Stack direction="row" spacing={0.5} alignItems="center" mb={0.25}>
+                            <GroupRoundedIcon sx={{ fontSize: 13, color: 'text.secondary' }} />
+                            <Typography variant="caption" color="text.secondary">Audiencia</Typography>
+                          </Stack>
+                          <Typography fontWeight={700} fontSize={12} sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                            {Number.isFinite(lastCampaign.audience) ? lastCampaign.audience.toLocaleString('en-US') : '—'}
+                          </Typography>
+                        </Box>
+
+                        {Number.isFinite(lastCampaign.cost) && lastCampaign.cost > 0 && (
+                          <Box>
+                            <Stack direction="row" spacing={0.5} alignItems="center" mb={0.25}>
+                              <AttachMoneyRoundedIcon sx={{ fontSize: 13, color: 'text.secondary' }} />
+                              <Typography variant="caption" color="text.secondary">Costo</Typography>
+                            </Stack>
+                            <Typography fontWeight={700} fontSize={12} sx={{ fontVariantNumeric: 'tabular-nums', color: '#ef4444' }}>
+                              ${lastCampaign.cost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </Typography>
+                          </Box>
+                        )}
+
+                        {Number.isFinite(lastCampaign.deliveryRate) && lastCampaign.deliveryRate > 0 && (
+                          <Box>
+                            <Stack direction="row" spacing={0.5} alignItems="center" mb={0.25}>
+                              <SpeedRoundedIcon sx={{ fontSize: 13, color: 'text.secondary' }} />
+                              <Typography variant="caption" color="text.secondary">Entrega</Typography>
+                            </Stack>
+                            <Typography fontWeight={700} fontSize={12} sx={{ fontVariantNumeric: 'tabular-nums', color: '#10b981' }}>
+                              {Math.round(lastCampaign.deliveryRate)}%
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+                    </Stack>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Contratos firmados */}
+              <Card variant="outlined" sx={{ borderRadius: 2.5 }}>
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  <Stack direction="row" spacing={1} alignItems="center" mb={1.5}>
+                    <DescriptionIcon sx={{ fontSize: 18, color: theme.palette.primary.main }} />
+                    <Typography fontWeight={800} fontSize={13}>Contratos firmados</Typography>
+                  </Stack>
+
+                  {(!storeDetails?.contracts || storeDetails.contracts.length === 0) ? (
+                    <Typography variant="caption" color="text.disabled">
+                      No se han encontrado contratos para esta tienda
+                    </Typography>
+                  ) : (
+                    <Stack spacing={1}>
+                      {storeDetails.contracts.map((c: any, i: number) => (
+                        <Stack key={i} direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 1, borderRadius: 1.5, bgcolor: 'action.hover' }}>
+                          <Box sx={{ minWidth: 0, mr: 2 }}>
+                            <Typography fontWeight={700} fontSize={12.5} noWrap title={c.fileName}>{c.fileName}</Typography>
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              Firmado: {safeDateLabel(c.signedAt)} | Subido: {safeDateLabel(c.uploadedAt)}
+                            </Typography>
+                          </Box>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            href={c.fileUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            sx={{ textTransform: 'none', borderRadius: 1.5, fontSize: 11, fontWeight: 700, flexShrink: 0 }}
+                          >
+                            Ver PDF
+                          </Button>
+                        </Stack>
+                      ))}
+                    </Stack>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Historial de pausas */}
+              <Card variant="outlined" sx={{ borderRadius: 2.5 }}>
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  <Stack direction="row" spacing={1} alignItems="center" mb={1.5}>
+                    <PauseCircleOutlineIcon sx={{ fontSize: 18, color: theme.palette.warning.main }} />
+                    <Typography fontWeight={800} fontSize={13}>Historial de pausas del servicio</Typography>
+                  </Stack>
+
+                  {(!storeDetails?.pauseHistory || storeDetails.pauseHistory.length === 0) ? (
+                    <Typography variant="caption" color="text.disabled">
+                      No se registran períodos de pausa
+                    </Typography>
+                  ) : (
+                    <Stack spacing={1}>
+                      {storeDetails.pauseHistory.map((p: any, i: number) => {
+                        const isCurrent = !p.endDate || new Date(p.endDate) > new Date();
+                        return (
+                          <Box key={i} sx={{ p: 1, borderRadius: 1.5, bgcolor: isCurrent ? alpha(theme.palette.error.main, 0.03) : 'action.hover', borderLeft: '3px solid', borderColor: isCurrent ? 'error.main' : 'text.disabled' }}>
+                            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                              {isCurrent ? (
+                                <Chip label="Activo" color="error" size="small" sx={{ height: 16, fontSize: 9, fontWeight: 800 }} />
+                              ) : (
+                                <Chip label="Pausado" size="small" sx={{ height: 16, fontSize: 9, fontWeight: 800 }} />
+                              )}
+                              <Typography fontWeight={700} fontSize={12}>
+                                {safeDateLabel(p.startDate)} — {p.endDate ? safeDateLabel(p.endDate) : 'Indefinido'}
+                              </Typography>
+                            </Stack>
+                            {p.reason && (
+                              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                                {p.reason}
+                              </Typography>
+                            )}
+                          </Box>
+                        );
+                      })}
+                    </Stack>
                   )}
                 </CardContent>
               </Card>

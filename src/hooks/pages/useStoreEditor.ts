@@ -88,6 +88,10 @@ export function useStoreEditor(store) {
 
     // 🆕 Contact Info
     contactInfo: store.contactInfo ?? [],
+
+    // 🆕 Pause History & Contracts
+    pauseHistory: store.pauseHistory ?? [],
+    contracts: store.contracts ?? [],
   });
 
   const kioskUrl = useMemo(
@@ -164,6 +168,20 @@ export function useStoreEditor(store) {
     const currCI = JSON.stringify(curr?.contactInfo ?? []);
     if (origCI !== currCI) {
       patch.contactInfo = curr?.contactInfo ?? [];
+    }
+
+    // pauseHistory: array comparison via JSON
+    const origPH = JSON.stringify(orig?.pauseHistory ?? []);
+    const currPH = JSON.stringify(curr?.pauseHistory ?? []);
+    if (origPH !== currPH) {
+      patch.pauseHistory = curr?.pauseHistory ?? [];
+    }
+
+    // contracts: array comparison via JSON
+    const origC = JSON.stringify(orig?.contracts ?? []);
+    const currC = JSON.stringify(curr?.contracts ?? []);
+    if (origC !== currC) {
+      patch.contracts = curr?.contracts ?? [];
     }
 
     keys.forEach((k) => {
@@ -292,6 +310,10 @@ export function useStoreEditor(store) {
 
     // 🆕 Contact Info
     contactInfo: store.contactInfo ?? [],
+
+    // 🆕 Pause History & Contracts
+    pauseHistory: store.pauseHistory ?? [],
+    contracts: store.contracts ?? [],
   });
 
     setEdit(false);

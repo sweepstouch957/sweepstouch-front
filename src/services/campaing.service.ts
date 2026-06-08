@@ -451,6 +451,11 @@ class CampaignClient {
     return res.data as PaginatedResponse<Campaing>;
   }
 
+  async getLastCampaign(storeId: string): Promise<Campaing> {
+    const res = await api.get(`/campaigns/last/${storeId}`);
+    return res.data as Campaing;
+  }
+
   async getFilterStats(params: Omit<FilterCampaignParams, 'page' | 'limit'>): Promise<FilterStatsResponse> {
     const { status, startDate, endDate, storeId, title, type, deliveryRate, platform } = params;
     const res = await api.get('/campaigns/filter/stats', {
