@@ -241,6 +241,8 @@ export default function StoreInfo({ store }: { store: Store }) {
   const [newPauseStart, setNewPauseStart] = useState('');
   const [newPauseEnd, setNewPauseEnd] = useState('');
   const [newPauseReason, setNewPauseReason] = useState('');
+  const pauseStartInputRef = React.useRef<HTMLInputElement>(null);
+  const pauseEndInputRef = React.useRef<HTMLInputElement>(null);
 
   // Local states for Pause Date Range picker Popover
   const [pauseRangeAnchor, setPauseRangeAnchor] = useState<HTMLElement | null>(null);
@@ -407,12 +409,12 @@ export default function StoreInfo({ store }: { store: Store }) {
   };
 
   /* accent palette — derived from theme so customization dialog drives everything */
-  const accentAudience   = theme.palette.primary.main;
-  const accentPayment    = theme.palette.info.main;
+  const accentAudience = theme.palette.primary.main;
+  const accentPayment = theme.palette.info.main;
   const accentMembership = theme.palette.primary.dark;
-  const accentAge        = theme.palette.success.main;
-  const accentBilling    = theme.palette.warning.main;
-  const accentMerchant   = theme.palette.primary.main;
+  const accentAge = theme.palette.success.main;
+  const accentBilling = theme.palette.warning.main;
+  const accentMerchant = theme.palette.primary.main;
 
   return (
     <Box sx={{ pb: edit ? { xs: 10, md: 12 } : 0, transition: 'padding 0.2s ease' }}>
@@ -505,24 +507,35 @@ export default function StoreInfo({ store }: { store: Store }) {
 
               {/* ─── SECCIÓN: CONTRATOS DE LA TIENDA (S3) ─── */}
               <Box mb={4}>
-                <Stack direction="row" spacing={1} alignItems="center" mb={2}>
-                  <AttachFile sx={{ fontSize: 20, color: theme.palette.primary.main }} />
-                  <Box>
-                    <Typography variant="subtitle2" fontWeight={800} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <Stack direction="row" spacing={1} alignItems="flex-start" mb={2}>
+                  <AttachFile sx={{ fontSize: 20, color: theme.palette.primary.main, mt: 0.15, flexShrink: 0 }} />
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography
+                      variant="subtitle2"
+                      fontWeight={800}
+                      sx={{ textTransform: 'uppercase', letterSpacing: 0.5, overflowWrap: 'anywhere' }}
+                    >
                       Contratos y Documentos
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.45 }}>
                       Subir y gestionar contratos firmados en formato PDF
                     </Typography>
                   </Box>
                 </Stack>
 
                 {edit && (
-                  <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 2, bgcolor: (t) => alpha(theme.palette.primary.main, 0.03) }}>
+                  <Paper
+                    variant="outlined"
+                    sx={{ p: { xs: 1.5, sm: 2 }, mb: 2, borderRadius: 2, bgcolor: (t) => alpha(theme.palette.primary.main, 0.03) }}
+                  >
                     <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" mb={1}>
                       SUBIR NUEVO CONTRATO (S3)
                     </Typography>
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="center">
+                    <Stack
+                      direction={{ xs: 'column', lg: 'row' }}
+                      spacing={1.5}
+                      alignItems={{ xs: 'stretch', lg: 'center' }}
+                    >
                       <TextField
                         label="Fecha de firma (Opcional)"
                         type="date"
@@ -530,19 +543,36 @@ export default function StoreInfo({ store }: { store: Store }) {
                         value={newContractSignedAt}
                         onChange={(e) => setNewContractSignedAt(e.target.value)}
                         InputLabelProps={{ shrink: true }}
-                        sx={{ minWidth: 200 }}
+                        fullWidth
+                        sx={{
+                          minWidth: 0,
+                          flex: 1,
+                          '& .MuiInputBase-root': { minWidth: 0 },
+                          '& input': { minWidth: 0 },
+                        }}
                       />
                       <Button
                         component="label"
                         variant="contained"
                         disabled={uploadingContract}
                         startIcon={uploadingContract ? <CircularProgress size={16} color="inherit" /> : <CloudUpload />}
-                        sx={{ textTransform: 'none', fontWeight: 800, borderRadius: 2 }}
+                        fullWidth
+                        sx={{
+                          width: { xs: '100%', lg: 'auto' },
+                          minWidth: { lg: 170 },
+                          minHeight: 40,
+                          textTransform: 'none',
+                          fontWeight: 800,
+                          borderRadius: 2,
+                          whiteSpace: 'normal',
+                          lineHeight: 1.25,
+                        }}
                       >
                         {uploadingContract ? 'Subiendo...' : 'Seleccionar PDF'}
                         <input
                           type="file"
                           accept="application/pdf"
+                          aria-label="Seleccionar contrato en formato PDF"
                           hidden
                           onChange={handleContractUpload}
                         />
@@ -558,12 +588,20 @@ export default function StoreInfo({ store }: { store: Store }) {
                 ) : (
                   <Stack spacing={1.25}>
                     {(form.contracts || []).map((contract: any, index: number) => (
-                      <Card key={index} variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+                      <Card
+                        key={`${contract.fileUrl}-${contract.uploadedAt}`}
+                        variant="outlined"
+                        sx={{ borderRadius: 2, overflow: 'hidden' }}
+                      >
                         <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                          <Stack direction="row" alignItems="center" spacing={1.5}>
+                          <Stack
+                            direction={{ xs: 'column', sm: 'row' }}
+                            alignItems={{ xs: 'stretch', sm: 'center' }}
+                            spacing={1.5}
+                          >
                             <PictureAsPdf sx={{ color: '#ef4444', fontSize: 28, flexShrink: 0 }} />
                             <Box sx={{ flex: 1, minWidth: 0 }}>
-                              <Typography fontWeight={700} fontSize={13} noWrap title={contract.fileName}>
+                              <Typography fontWeight={700} fontSize={13} title={contract.fileName} sx={{ overflowWrap: 'anywhere' }}>
                                 {contract.fileName}
                               </Typography>
                               <Stack direction="row" spacing={1.5} flexWrap="wrap" mt={0.25}>
@@ -575,7 +613,13 @@ export default function StoreInfo({ store }: { store: Store }) {
                                 </Typography>
                               </Stack>
                             </Box>
-                            <Stack direction="row" spacing={1} alignItems="center" flexShrink={0}>
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              alignItems="center"
+                              justifyContent={{ xs: 'flex-end', sm: 'flex-start' }}
+                              flexShrink={0}
+                            >
                               <Button
                                 size="small"
                                 variant="outlined"
@@ -590,6 +634,7 @@ export default function StoreInfo({ store }: { store: Store }) {
                                 <IconButton
                                   size="small"
                                   color="error"
+                                  aria-label={`Eliminar contrato ${contract.fileName}`}
                                   onClick={() => handleRemoveContract(index)}
                                   sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}
                                 >
@@ -600,7 +645,15 @@ export default function StoreInfo({ store }: { store: Store }) {
                           </Stack>
 
                           {edit && (
-                            <Box mt={1.5} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Box
+                              mt={1.5}
+                              sx={{
+                                display: 'flex',
+                                flexDirection: { xs: 'column', sm: 'row' },
+                                alignItems: { xs: 'stretch', sm: 'center' },
+                                gap: 1,
+                              }}
+                            >
                               <Typography variant="caption" color="text.secondary" fontWeight={700}>
                                 Editar Fecha de Firma:
                               </Typography>
@@ -610,7 +663,14 @@ export default function StoreInfo({ store }: { store: Store }) {
                                 value={toInputDate(contract.signedAt)}
                                 onChange={(e) => handleContractSignedAtChange(index, e.target.value)}
                                 InputLabelProps={{ shrink: true }}
-                                sx={{ width: 150, '& input': { py: 0.5, fontSize: 12 } }}
+                                inputProps={{ 'aria-label': `Fecha de firma de ${contract.fileName}` }}
+                                fullWidth
+                                sx={{
+                                  width: { xs: '100%', sm: 180 },
+                                  minWidth: 0,
+                                  '& .MuiInputBase-root': { minWidth: 0 },
+                                  '& input': { minWidth: 0, py: 0.5, fontSize: 12 },
+                                }}
                               />
                             </Box>
                           )}
@@ -625,20 +685,27 @@ export default function StoreInfo({ store }: { store: Store }) {
 
               {/* ─── SECCIÓN: HISTORIAL DE PAUSAS ─── */}
               <Box>
-                <Stack direction="row" spacing={1} alignItems="center" mb={2}>
-                  <PauseCircleOutline sx={{ fontSize: 20, color: theme.palette.warning.main }} />
-                  <Box>
-                    <Typography variant="subtitle2" fontWeight={800} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <Stack direction="row" spacing={1} alignItems="flex-start" mb={2}>
+                  <PauseCircleOutline sx={{ fontSize: 20, color: theme.palette.warning.main, mt: 0.15, flexShrink: 0 }} />
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography
+                      variant="subtitle2"
+                      fontWeight={800}
+                      sx={{ textTransform: 'uppercase', letterSpacing: 0.5, overflowWrap: 'anywhere' }}
+                    >
                       Historial de Pausas del Servicio
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.45 }}>
                       Registro de períodos en los que se pausó el envío de campañas
                     </Typography>
                   </Box>
                 </Stack>
 
                 {edit && (
-                  <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 2, bgcolor: (t) => alpha(theme.palette.warning.main, 0.03) }}>
+                  <Paper
+                    variant="outlined"
+                    sx={{ p: { xs: 1.5, sm: 2 }, mb: 2, borderRadius: 2, bgcolor: (t) => alpha(theme.palette.warning.main, 0.03) }}
+                  >
                     <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" mb={1.5}>
                       AGREGAR PERÍODO DE PAUSA
                     </Typography>
@@ -712,7 +779,7 @@ export default function StoreInfo({ store }: { store: Store }) {
                           </Stack>
                         </Popover>
                       </Grid>
-                      <Grid item xs={12} sm={4}>
+                      <Grid item xs={12}>
                         <Button
                           fullWidth
                           variant="contained"
@@ -720,7 +787,7 @@ export default function StoreInfo({ store }: { store: Store }) {
                           disabled={!newPauseStart}
                           startIcon={<AddCircle />}
                           onClick={handleAddPause}
-                          sx={{ textTransform: 'none', fontWeight: 800, borderRadius: 2, py: 1 }}
+                          sx={{ minHeight: 40, height: '100%', textTransform: 'none', fontWeight: 800, borderRadius: 2, py: 1 }}
                         >
                           Agregar
                         </Button>
@@ -749,7 +816,7 @@ export default function StoreInfo({ store }: { store: Store }) {
                       const isCurrent = !pause.endDate || new Date(pause.endDate) > new Date();
                       return (
                         <Card
-                          key={index}
+                          key={`${pause.startDate}-${pause.endDate || 'indefinido'}-${pause.reason || ''}`}
                           variant="outlined"
                           sx={{
                             borderRadius: 2,
@@ -758,14 +825,24 @@ export default function StoreInfo({ store }: { store: Store }) {
                           }}
                         >
                           <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                            <Stack direction="row" alignItems="center" spacing={1.5} justifyContent="space-between">
-                              <Stack direction="row" alignItems="center" spacing={1}>
+                            <Stack
+                              direction={{ xs: 'column', sm: 'row' }}
+                              alignItems={{ xs: 'stretch', sm: 'center' }}
+                              spacing={1.5}
+                              justifyContent="space-between"
+                            >
+                              <Stack
+                                direction={{ xs: 'column', md: 'row' }}
+                                alignItems={{ xs: 'flex-start', md: 'center' }}
+                                spacing={1}
+                                sx={{ minWidth: 0, flex: 1 }}
+                              >
                                 {isCurrent ? (
-                                  <Chip label="Pausado actualmente" color="error" size="small" sx={{ fontWeight: 800, fontSize: 10, height: 20 }} />
+                                  <Chip label="Pausado actualmente" color="error" size="small" sx={{ fontWeight: 800, fontSize: 10, height: 20, flexShrink: 0 }} />
                                 ) : (
-                                  <Chip label="Pausado anteriormente" size="small" sx={{ fontWeight: 800, fontSize: 10, height: 20 }} />
+                                  <Chip label="Pausado anteriormente" size="small" sx={{ fontWeight: 800, fontSize: 10, height: 20, flexShrink: 0 }} />
                                 )}
-                                <Typography fontWeight={700} fontSize={13}>
+                                <Typography fontWeight={700} fontSize={13} sx={{ overflowWrap: 'anywhere' }}>
                                   {safeDateLabel(pause.startDate)} — {pause.endDate ? safeDateLabel(pause.endDate) : 'Indefinido'}
                                 </Typography>
                               </Stack>
@@ -773,15 +850,27 @@ export default function StoreInfo({ store }: { store: Store }) {
                                 <IconButton
                                   size="small"
                                   color="error"
+                                  aria-label={`Eliminar pausa iniciada el ${safeDateLabel(pause.startDate)}`}
                                   onClick={() => handleRemovePause(index)}
-                                  sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}
+                                  sx={{ alignSelf: { xs: 'flex-end', sm: 'center' }, border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}
                                 >
                                   <Delete sx={{ fontSize: 15 }} />
                                 </IconButton>
                               )}
                             </Stack>
                             {pause.reason && (
-                              <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: 12.5, pl: 1, borderLeft: '3px solid', borderColor: isCurrent ? 'error.main' : 'divider' }}>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{
+                                  mt: 1,
+                                  fontSize: 12.5,
+                                  pl: 1,
+                                  overflowWrap: 'anywhere',
+                                  borderLeft: '3px solid',
+                                  borderColor: isCurrent ? 'error.main' : 'divider',
+                                }}
+                              >
                                 {pause.reason}
                               </Typography>
                             )}
