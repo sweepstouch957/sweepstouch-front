@@ -18,6 +18,7 @@ import {
   SensorsRounded,
 } from '@mui/icons-material';
 import {
+  alpha,
   Avatar,
   Box,
   Button,
@@ -60,6 +61,8 @@ type Props = {
     membershipType: NonNullable<Store['membershipType']>;
     paymentMethod: NonNullable<Store['paymentMethod']>;
     startContractDate: string | null;
+    cancelContractDate?: string | null;
+    cancelContractReason?: string;
     socialLinks?: {
       facebook?: string;
       instagram?: string;
@@ -208,6 +211,50 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
             color="success"
           />
         </Stack>
+
+        {/* ── Details of Cancellation (only when inactive) ─────────────────────── */}
+        {!form.active && (
+          <Stack
+            spacing={1.5}
+            mb={2.5}
+            sx={{
+              p: 1.5,
+              borderRadius: 1.5,
+              border: (t) => `1px dashed ${t.palette.warning.main}`,
+              bgcolor: (t) => alpha(t.palette.warning.main, t.palette.mode === 'dark' ? 0.05 : 0.02),
+            }}
+          >
+            <Typography variant="caption" fontWeight={700} color="warning.main" textTransform="uppercase" letterSpacing={0.5}>
+              Detalles de Cancelación de Contrato
+            </Typography>
+            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={esLocale}>
+              <DatePicker
+                label="Fecha de cancelación"
+                value={toDate(form.cancelContractDate || null)}
+                onChange={(date: Date | null) => {
+                  if (!edit) return;
+                  onChange('cancelContractDate' as any)({ value: date ? date.toISOString() : null });
+                }}
+                slotProps={{
+                  textField: {
+                    size: 'small',
+                    fullWidth: true,
+                    disabled: !edit,
+                  },
+                }}
+              />
+            </LocalizationProvider>
+            <TextField
+              fullWidth
+              size="small"
+              label="Motivo de cancelación"
+              value={form.cancelContractReason || ''}
+              onChange={onChange('cancelContractReason' as any)}
+              disabled={!edit}
+              placeholder="Ej. Fin de contrato, cierre de tienda, cambio de proveedor, etc."
+            />
+          </Stack>
+        )}
 
         {/* ── Contact Info ─────────────────────── */}
         <SectionLabel

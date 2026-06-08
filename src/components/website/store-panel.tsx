@@ -38,15 +38,18 @@ import {
   Button,
   Card,
   CardContent,
+  Checkbox,
   Chip,
   CircularProgress,
   Divider,
   Fab,
+  FormControlLabel,
   Grid,
   IconButton,
   InputAdornment,
   MenuItem,
   Paper,
+  Popover,
   Snackbar,
   Stack,
   TextField,
@@ -57,6 +60,7 @@ import {
 } from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { DateRange } from 'react-date-range';
 import StoreKioskCard from '../application-ui/composed-blocks/kiosk';
 import StoreGeneralForm from '../application-ui/form-layouts/store/edit';
 import StoreHeader from '../application-ui/headings/store/store-create';
@@ -238,6 +242,32 @@ export default function StoreInfo({ store }: { store: Store }) {
   const [newPauseEnd, setNewPauseEnd] = useState('');
   const [newPauseReason, setNewPauseReason] = useState('');
 
+  // Local states for Pause Date Range picker Popover
+  const [pauseRangeAnchor, setPauseRangeAnchor] = useState<HTMLElement | null>(null);
+  const [isIndefinitePause, setIsIndefinitePause] = useState(false);
+  const [pauseRangeState, setPauseRangeState] = useState([
+    {
+      startDate: new Date(),
+      endDate: new Date(),
+      key: 'selection',
+    },
+  ]);
+
+  const handleOpenPauseRange = (e: React.MouseEvent<HTMLElement>) => {
+    setPauseRangeAnchor(e.currentTarget);
+  };
+  const handleClosePauseRange = () => {
+    setPauseRangeAnchor(null);
+  };
+  const handleApplyPauseRange = () => {
+    const sel = pauseRangeState[0];
+    const startStr = format(sel.startDate, 'yyyy-MM-dd');
+    const endStr = isIndefinitePause ? '' : format(sel.endDate, 'yyyy-MM-dd');
+    setNewPauseStart(startStr);
+    setNewPauseEnd(endStr);
+    handleClosePauseRange();
+  };
+
   // Contracts local states
   const [uploadingContract, setUploadingContract] = useState(false);
   const [newContractSignedAt, setNewContractSignedAt] = useState('');
@@ -256,6 +286,14 @@ export default function StoreInfo({ store }: { store: Store }) {
     setNewPauseStart('');
     setNewPauseEnd('');
     setNewPauseReason('');
+    setIsIndefinitePause(false);
+    setPauseRangeState([
+      {
+        startDate: new Date(),
+        endDate: new Date(),
+        key: 'selection',
+      },
+    ]);
   };
 
   const handleRemovePause = (index: number) => {
@@ -605,27 +643,74 @@ export default function StoreInfo({ store }: { store: Store }) {
                       AGREGAR PERÍODO DE PAUSA
                     </Typography>
                     <Grid container spacing={1.5} alignItems="center">
-                      <Grid item xs={12} sm={4}>
+                      <Grid item xs={12} sm={8}>
                         <TextField
-                          label="Desde (Inicio de pausa)"
-                          type="date"
+                          label="Rango de fechas de la pausa"
                           fullWidth
                           size="small"
-                          value={newPauseStart}
-                          onChange={(e) => setNewPauseStart(e.target.value)}
-                          InputLabelProps={{ shrink: true }}
+                          onClick={handleOpenPauseRange}
+                          value={
+                            newPauseStart
+                              ? newPauseEnd
+                                ? `Desde: ${newPauseStart} hasta: ${newPauseEnd}`
+                                : `Desde: ${newPauseStart} (Indefinido / En curso)`
+                              : 'Seleccionar rango de fechas...'
+                          }
+                          InputProps={{
+                            readOnly: true,
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <CalendarMonthOutlined fontSize="small" color="disabled" />
+                              </InputAdornment>
+                            ),
+                          }}
                         />
-                      </Grid>
-                      <Grid item xs={12} sm={4}>
-                        <TextField
-                          label="Hasta (Reingreso/Fin)"
-                          type="date"
-                          fullWidth
-                          size="small"
-                          value={newPauseEnd}
-                          onChange={(e) => setNewPauseEnd(e.target.value)}
-                          InputLabelProps={{ shrink: true }}
-                        />
+                        <Popover
+                          open={Boolean(pauseRangeAnchor)}
+                          anchorEl={pauseRangeAnchor}
+                          onClose={handleClosePauseRange}
+                          anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                          transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                          slotProps={{ paper: { sx: { borderRadius: 2, p: 1.5 } } }}
+                        >
+                          <DateRange
+                            ranges={pauseRangeState}
+                            onChange={(item) => setPauseRangeState([item.selection as any])}
+                            moveRangeOnFirstSelection={false}
+                            rangeColors={[theme.palette.warning.light]}
+                          />
+                          <Stack direction="row" alignItems="center" justifyContent="space-between" mt={1.5} px={1}>
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={isIndefinitePause}
+                                  onChange={(e) => setIsIndefinitePause(e.target.checked)}
+                                  color="warning"
+                                  size="small"
+                                />
+                              }
+                              label={
+                                <Typography variant="caption" fontWeight={700} color="text.secondary">
+                                  Pausa indefinida (sin fecha de fin)
+                                </Typography>
+                              }
+                            />
+                            <Stack direction="row" spacing={1}>
+                              <Button size="small" onClick={handleClosePauseRange}>
+                                Cancelar
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="warning"
+                                onClick={handleApplyPauseRange}
+                                sx={{ fontWeight: 800, textTransform: 'none', borderRadius: 1.5 }}
+                              >
+                                Aplicar
+                              </Button>
+                            </Stack>
+                          </Stack>
+                        </Popover>
                       </Grid>
                       <Grid item xs={12} sm={4}>
                         <Button

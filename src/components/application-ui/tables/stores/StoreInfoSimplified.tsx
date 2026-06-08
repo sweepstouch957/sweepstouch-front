@@ -23,6 +23,7 @@ import AttachMoneyRoundedIcon from '@mui/icons-material/AttachMoneyRounded';
 import SpeedRoundedIcon from '@mui/icons-material/SpeedRounded';
 import PauseCircleOutlineIcon from '@mui/icons-material/PauseCircleOutline';
 import DescriptionIcon from '@mui/icons-material/Description';
+import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import {
   Alert,
   alpha,
@@ -524,6 +525,39 @@ export default function StoreTechModal({
                   )}
                 </CardContent>
               </Card>
+
+              {/* Detalles de Cancelación */}
+              {(storeDetails?.active === false || storeDetails?.cancelContractDate || storeDetails?.cancelContractReason) && (
+                <Card
+                  variant="outlined"
+                  sx={{
+                    borderRadius: 2.5,
+                    borderColor: 'error.light',
+                    bgcolor: (t) => alpha(t.palette.error.main, 0.02),
+                  }}
+                >
+                  <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                    <Stack direction="row" spacing={1} alignItems="center" mb={1.5}>
+                      <WarningAmberRoundedIcon sx={{ fontSize: 18, color: theme.palette.error.main }} />
+                      <Typography fontWeight={800} fontSize={13} color="error.main">
+                        Contrato Cancelado / Tienda Inactiva
+                      </Typography>
+                    </Stack>
+                    <Stack spacing={1}>
+                      {storeDetails?.cancelContractDate && (
+                        <Typography variant="body2" fontWeight={700}>
+                          Fecha de Cancelación: {safeDateLabel(storeDetails.cancelContractDate)}
+                        </Typography>
+                      )}
+                      {storeDetails?.cancelContractReason && (
+                        <Typography variant="body2" color="text.secondary" sx={{ pl: 1, borderLeft: '3px solid', borderColor: 'error.main' }}>
+                          Motivo: {storeDetails.cancelContractReason}
+                        </Typography>
+                      )}
+                    </Stack>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Links */}
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>

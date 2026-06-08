@@ -63,6 +63,10 @@ export function useStoreEditor(store) {
     // 🆕 opcional: circulars url (lo mandamos al backend si cambia)
     circularssUrl: store.circularssUrl ?? null,
 
+    billingNextDate: store.billingNextDate ?? null,
+    billingLastPeriodEnd: store.billingLastPeriodEnd ?? null,
+    creditStatus: store.creditStatus || 'ok',
+
     location: isValidLngLat(store?.location?.coordinates)
       ? { type: 'Point', coordinates: [...store.location.coordinates] }
       : undefined,
@@ -70,6 +74,8 @@ export function useStoreEditor(store) {
     membershipType: store.membershipType ?? 'semanal',
     paymentMethod: store.paymentMethod ?? 'card',
     startContractDate: store.startContractDate ?? null,
+    cancelContractDate: store.cancelContractDate ?? null,
+    cancelContractReason: store.cancelContractReason || '',
 
     // 🆕 Tablet / Kiosko
     kioskTabletStatus: store.kioskTabletStatus ?? 'sin_instalar',
@@ -156,6 +162,11 @@ export function useStoreEditor(store) {
       'membershipType',
       'paymentMethod',
       'startContractDate',
+      'cancelContractDate',
+      'cancelContractReason',
+      'billingNextDate',
+      'billingLastPeriodEnd',
+      'creditStatus',
       'circularssUrl',
       'kioskTabletStatus',
       'kioskTabletDate',
@@ -285,6 +296,10 @@ export function useStoreEditor(store) {
       // 🆕 opcional
       circularssUrl: store.circularssUrl ?? null,
 
+      billingNextDate: store.billingNextDate ?? null,
+      billingLastPeriodEnd: store.billingLastPeriodEnd ?? null,
+      creditStatus: store.creditStatus || 'ok',
+
       location: isValidLngLat(store?.location?.coordinates)
         ? { type: 'Point', coordinates: [...store.location.coordinates] }
         : undefined,
@@ -292,6 +307,8 @@ export function useStoreEditor(store) {
       membershipType: store.membershipType ?? 'semanal',
       paymentMethod: store.paymentMethod ?? 'card',
       startContractDate: store.startContractDate ?? null,
+      cancelContractDate: store.cancelContractDate ?? null,
+      cancelContractReason: store.cancelContractReason || '',
 
     // 🆕 Tablet / Kiosko
     kioskTabletStatus: store.kioskTabletStatus ?? 'sin_instalar',
