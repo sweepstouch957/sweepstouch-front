@@ -50,6 +50,8 @@ export function useStoreEditor(store) {
     zipCode: store.zipCode || '',
     type: store.type || 'free',
     active: !!store.active,
+    status: store.status || (store.active ? 'active' : 'inactive'),
+    inactiveReason: store.inactiveReason || '',
     email: store.email || '',
     phoneNumber: store.phoneNumber || '',
     provider: store.provider || 'twilio',
@@ -137,7 +139,12 @@ export function useStoreEditor(store) {
     } else {
       val = e?.target?.value ?? e?.value ?? e;
     }
-    setForm((s) => ({ ...s, [key]: val }));
+    if (key === 'status') {
+      const active = val === 'active';
+      setForm((s) => ({ ...s, status: val, active }));
+    } else {
+      setForm((s) => ({ ...s, [key]: val }));
+    }
   };
 
   // Construye el patch SOLO con cambios reales
@@ -164,6 +171,8 @@ export function useStoreEditor(store) {
       'startContractDate',
       'cancelContractDate',
       'cancelContractReason',
+      'status',
+      'inactiveReason',
       'billingNextDate',
       'billingLastPeriodEnd',
       'creditStatus',
@@ -283,6 +292,8 @@ export function useStoreEditor(store) {
       zipCode: store.zipCode || '',
       type: store.type || 'free',
       active: !!store.active,
+      status: store.status || (store.active ? 'active' : 'inactive'),
+      inactiveReason: store.inactiveReason || '',
       email: store.email || '',
       phoneNumber: store.phoneNumber || '',
       provider: store.provider || 'twilio',

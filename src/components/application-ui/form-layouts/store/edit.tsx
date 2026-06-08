@@ -63,6 +63,8 @@ type Props = {
     startContractDate: string | null;
     cancelContractDate?: string | null;
     cancelContractReason?: string;
+    status?: Store['status'];
+    inactiveReason?: string;
     socialLinks?: {
       facebook?: string;
       instagram?: string;
@@ -170,8 +172,28 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
         action={
           <Chip
             size="small"
-            label={form.active ? 'Activa' : 'Inactiva'}
-            color={form.active ? 'success' : 'warning'}
+            label={
+              form.status === 'active'
+                ? 'Activa'
+                : form.status === 'inactive'
+                ? 'Inactiva'
+                : form.status === 'cancelled'
+                ? 'Cancelada'
+                : form.active
+                ? 'Activa'
+                : 'Inactiva'
+            }
+            color={
+              form.status === 'active'
+                ? 'success'
+                : form.status === 'inactive'
+                ? 'warning'
+                : form.status === 'cancelled'
+                ? 'error'
+                : form.active
+                ? 'success'
+                : 'warning'
+            }
             variant="outlined"
           />
         }
@@ -179,7 +201,7 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
       />
 
       <Box px={2} pb={3}>
-        {/* ── Status toggle ─────────────────────── */}
+        {/* ── Status select ─────────────────────── */}
         <Stack
           direction="row"
           alignItems="center"
@@ -195,7 +217,17 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
         >
           <SensorsRounded
             fontSize="small"
-            color={form.active ? 'success' : 'disabled'}
+            color={
+              form.status === 'active'
+                ? 'success'
+                : form.status === 'inactive'
+                ? 'warning'
+                : form.status === 'cancelled'
+                ? 'error'
+                : form.active
+                ? 'success'
+                : 'warning'
+            }
           />
           <Typography
             variant="body2"
@@ -204,16 +236,48 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
           >
             Estado de la Tienda
           </Typography>
-          <Switch
-            checked={form.active}
-            onChange={onChange('active')}
-            disabled={!edit}
-            color="success"
-          />
+          {edit ? (
+            <FormControl size="small" sx={{ width: 140 }}>
+              <Select
+                value={form.status || 'active'}
+                onChange={onChange('status' as any)}
+              >
+                <MenuItem value="active">Activa</MenuItem>
+                <MenuItem value="inactive">Inactiva</MenuItem>
+                <MenuItem value="cancelled">Cancelada</MenuItem>
+              </Select>
+            </FormControl>
+          ) : (
+            <Chip
+              size="small"
+              label={
+                form.status === 'active'
+                  ? 'Activa'
+                  : form.status === 'inactive'
+                  ? 'Inactiva'
+                  : form.status === 'cancelled'
+                  ? 'Cancelada'
+                  : form.active
+                  ? 'Activa'
+                  : 'Inactiva'
+              }
+              color={
+                form.status === 'active'
+                  ? 'success'
+                  : form.status === 'inactive'
+                  ? 'warning'
+                  : form.status === 'cancelled'
+                  ? 'error'
+                  : form.active
+                  ? 'success'
+                  : 'warning'
+              }
+            />
+          )}
         </Stack>
 
-        {/* ── Details of Cancellation (only when inactive) ─────────────────────── */}
-        {!form.active && (
+        {/* ── Details of Inactivity (only when status is inactive) ─────────────────── */}
+        {form.status === 'inactive' && (
           <Stack
             spacing={1.5}
             mb={2.5}
@@ -225,6 +289,33 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
             }}
           >
             <Typography variant="caption" fontWeight={700} color="warning.main" textTransform="uppercase" letterSpacing={0.5}>
+              Detalles de Inactividad de la Tienda
+            </Typography>
+            <TextField
+              fullWidth
+              size="small"
+              label="Motivo de inactividad"
+              value={form.inactiveReason || ''}
+              onChange={onChange('inactiveReason' as any)}
+              disabled={!edit}
+              placeholder="Ej. Remodelación, vacaciones, mantenimiento, etc."
+            />
+          </Stack>
+        )}
+
+        {/* ── Details of Cancellation (only when status is cancelled) ─────────────────────── */}
+        {form.status === 'cancelled' && (
+          <Stack
+            spacing={1.5}
+            mb={2.5}
+            sx={{
+              p: 1.5,
+              borderRadius: 1.5,
+              border: (t) => `1px dashed ${t.palette.error.main}`,
+              bgcolor: (t) => alpha(t.palette.error.main, t.palette.mode === 'dark' ? 0.05 : 0.02),
+            }}
+          >
+            <Typography variant="caption" fontWeight={700} color="error.main" textTransform="uppercase" letterSpacing={0.5}>
               Detalles de Cancelación de Contrato
             </Typography>
             <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={esLocale}>

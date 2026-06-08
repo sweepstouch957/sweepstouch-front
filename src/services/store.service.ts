@@ -64,6 +64,8 @@ export interface Store {
   startContractDate?: string | null; // ISO o null
   cancelContractDate?: string | null;
   cancelContractReason?: string;
+  status?: 'active' | 'inactive' | 'cancelled';
+  inactiveReason?: string;
   billingNextDate?: string | null;
   billingLastPeriodEnd?: string | null;
   creditStatus?: 'ok' | 'delinquent' | 'suspended';
@@ -130,6 +132,8 @@ export interface UpdateStoreBody {
   startContractDate?: string | null; // ISO o null
   cancelContractDate?: string | null;
   cancelContractReason?: string;
+  status?: 'active' | 'inactive' | 'cancelled';
+  inactiveReason?: string;
   billingNextDate?: string | null;
   billingLastPeriodEnd?: string | null;
   creditStatus?: 'ok' | 'delinquent' | 'suspended';

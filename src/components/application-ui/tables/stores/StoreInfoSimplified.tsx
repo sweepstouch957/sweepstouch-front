@@ -235,6 +235,34 @@ export default function StoreTechModal({
                       label={`slug: ${slug}`}
                       sx={{ fontWeight: 800, fontSize: 11, height: 20, bgcolor: alpha(theme.palette.primary.main, 0.1) }}
                     />
+                    {storeDetails && (
+                      <Chip
+                        size="small"
+                        label={
+                          storeDetails.status === 'active'
+                            ? 'Activa'
+                            : storeDetails.status === 'inactive'
+                            ? 'Inactiva'
+                            : storeDetails.status === 'cancelled'
+                            ? 'Cancelada'
+                            : storeDetails.active
+                            ? 'Activa'
+                            : 'Inactiva'
+                        }
+                        color={
+                          storeDetails.status === 'active'
+                            ? 'success'
+                            : storeDetails.status === 'inactive'
+                            ? 'warning'
+                            : storeDetails.status === 'cancelled'
+                            ? 'error'
+                            : storeDetails.active
+                            ? 'success'
+                            : 'warning'
+                        }
+                        sx={{ fontWeight: 800, fontSize: 11, height: 20 }}
+                      />
+                    )}
                     <Tooltip title="Copiar slug">
                       <IconButton size="small" onClick={() => copy(slug, 'Slug copiado')} sx={{ width: 22, height: 22, border: '1px solid', borderColor: 'divider' }}>
                         <ContentCopyRoundedIcon sx={{ fontSize: 12 }} />
@@ -526,8 +554,37 @@ export default function StoreTechModal({
                 </CardContent>
               </Card>
 
+              {/* Detalles de Inactividad */}
+              {(storeDetails?.status === 'inactive' || (!storeDetails?.status && storeDetails?.active === false && storeDetails?.inactiveReason)) && (
+                <Card
+                  variant="outlined"
+                  sx={{
+                    borderRadius: 2.5,
+                    borderColor: 'warning.light',
+                    bgcolor: (t) => alpha(t.palette.warning.main, 0.02),
+                  }}
+                >
+                  <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                    <Stack direction="row" spacing={1} alignItems="center" mb={1.5}>
+                      <WarningAmberRoundedIcon sx={{ fontSize: 18, color: theme.palette.warning.main }} />
+                      <Typography fontWeight={800} fontSize={13} color="warning.main">
+                        Tienda Inactiva
+                      </Typography>
+                    </Stack>
+                    <Stack spacing={1}>
+                      {storeDetails?.inactiveReason && (
+                        <Typography variant="body2" color="text.secondary" sx={{ pl: 1, borderLeft: '3px solid', borderColor: 'warning.main' }}>
+                          Motivo de Inactividad: {storeDetails.inactiveReason}
+                        </Typography>
+                      )}
+                    </Stack>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Detalles de Cancelación */}
-              {(storeDetails?.active === false || storeDetails?.cancelContractDate || storeDetails?.cancelContractReason) && (
+              {(storeDetails?.status === 'cancelled' || 
+                (!storeDetails?.status && (storeDetails?.active === false || storeDetails?.cancelContractDate || storeDetails?.cancelContractReason) && !storeDetails?.inactiveReason)) && (
                 <Card
                   variant="outlined"
                   sx={{
@@ -540,7 +597,7 @@ export default function StoreTechModal({
                     <Stack direction="row" spacing={1} alignItems="center" mb={1.5}>
                       <WarningAmberRoundedIcon sx={{ fontSize: 18, color: theme.palette.error.main }} />
                       <Typography fontWeight={800} fontSize={13} color="error.main">
-                        Contrato Cancelado / Tienda Inactiva
+                        Contrato Cancelado
                       </Typography>
                     </Stack>
                     <Stack spacing={1}>

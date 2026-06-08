@@ -265,7 +265,7 @@ const StoreRow: FC<StoreRowProps> = React.memo(({ store, isAdmin, onOpenTech, on
                 <Typography variant="subtitle1" fontWeight={900} sx={{ fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 260, whiteSpace: 'nowrap' }}>
                   {displayName}
                 </Typography>
-                <ActiveBadge active={!!store.active} />
+                <ActiveBadge status={store.status} active={!!store.active} />
               </Box>
             </Link>
             <Typography variant="body2" color="text.secondary" sx={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 280, whiteSpace: 'nowrap' }}>
@@ -415,30 +415,39 @@ const LogoImg: FC<{ src?: string }> = ({ src }) => {
   );
 };
 
-const ActiveBadge: FC<{ active: boolean }> = ({ active }) => (
-  <Tooltip
-    title={active ? 'Active' : 'Inactive'}
-    arrow
-  >
-    <Box
-      component="span"
-      sx={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        ml: 0.75,
-        transform: 'translateY(1px)',
-        cursor: 'help',
-      }}
+const ActiveBadge: FC<{ status?: 'active' | 'inactive' | 'cancelled'; active: boolean }> = ({ status, active }) => {
+  const effectiveStatus = status || (active ? 'active' : 'inactive');
+  let tooltipTitle = 'Active';
+  let icon = <CheckCircleRounded fontSize="small" color="success" />;
+  if (effectiveStatus === 'inactive') {
+    tooltipTitle = 'Inactive';
+    icon = <CancelRounded fontSize="small" color="warning" />;
+  } else if (effectiveStatus === 'cancelled') {
+    tooltipTitle = 'Cancelled';
+    icon = <CancelRounded fontSize="small" color="error" />;
+  }
+
+  return (
+    <Tooltip
+      title={tooltipTitle}
+      arrow
     >
-      {active ? (
-        <CheckCircleRounded fontSize="small" color="success" />
-      ) : (
-        <CancelRounded fontSize="small" color="error" />
-      )}
-    </Box>
-  </Tooltip>
-);
+      <Box
+        component="span"
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          ml: 0.75,
+          transform: 'translateY(1px)',
+          cursor: 'help',
+        }}
+      >
+        {icon}
+      </Box>
+    </Tooltip>
+  );
+};
 
 /* ✅ MobileList extracted to module scope — was defined inside Results which created
    a new component class every render, causing full remount and state destruction. */
@@ -490,7 +499,7 @@ const MobileList: FC<MobileListProps> = ({ stores, openTech }) => (
                     >
                       {displayName}
                     </Typography>
-                    <ActiveBadge active={!!store.active} />
+                    <ActiveBadge status={store.status} active={!!store.active} />
                   </Box>
                 </Link>
 
@@ -537,8 +546,28 @@ const MobileList: FC<MobileListProps> = ({ stores, openTech }) => (
               >
                 <Chip
                   size="small"
-                  label={store.active ? 'Active' : 'Inactive'}
-                  color={store.active ? 'success' : 'error'}
+                  label={
+                    store.status === 'active'
+                      ? 'Active'
+                      : store.status === 'inactive'
+                      ? 'Inactive'
+                      : store.status === 'cancelled'
+                      ? 'Cancelled'
+                      : store.active
+                      ? 'Active'
+                      : 'Inactive'
+                  }
+                  color={
+                    store.status === 'active'
+                      ? 'success'
+                      : store.status === 'inactive'
+                      ? 'warning'
+                      : store.status === 'cancelled'
+                      ? 'error'
+                      : store.active
+                      ? 'success'
+                      : 'error'
+                  }
                   variant="outlined"
                   sx={{ height: 22, fontSize: 11, fontWeight: 800 }}
                 />
