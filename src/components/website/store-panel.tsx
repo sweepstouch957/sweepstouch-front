@@ -237,6 +237,8 @@ export default function StoreInfo({ store }: { store: Store }) {
   const [newPauseStart, setNewPauseStart] = useState('');
   const [newPauseEnd, setNewPauseEnd] = useState('');
   const [newPauseReason, setNewPauseReason] = useState('');
+  const pauseStartInputRef = React.useRef<HTMLInputElement>(null);
+  const pauseEndInputRef = React.useRef<HTMLInputElement>(null);
 
   // Contracts local states
   const [uploadingContract, setUploadingContract] = useState(false);
@@ -670,7 +672,7 @@ export default function StoreInfo({ store }: { store: Store }) {
                       AGREGAR PERÍODO DE PAUSA
                     </Typography>
                     <Grid container spacing={1.5} alignItems="stretch">
-                      <Grid item xs={12} sm={6} lg={4}>
+                      <Grid item xs={12}>
                         <TextField
                           label="Desde (Inicio de pausa)"
                           type="date"
@@ -678,15 +680,31 @@ export default function StoreInfo({ store }: { store: Store }) {
                           size="small"
                           value={newPauseStart}
                           onChange={(e) => setNewPauseStart(e.target.value)}
+                          inputRef={pauseStartInputRef}
                           InputLabelProps={{ shrink: true }}
+                          InputProps={{
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                <IconButton
+                                  edge="end"
+                                  size="small"
+                                  aria-label="Abrir calendario de inicio de pausa"
+                                  onClick={() => pauseStartInputRef.current?.showPicker?.()}
+                                >
+                                  <CalendarMonthOutlined fontSize="small" />
+                                </IconButton>
+                              </InputAdornment>
+                            ),
+                          }}
                           sx={{
                             minWidth: 0,
                             '& .MuiInputBase-root': { minWidth: 0 },
                             '& input': { minWidth: 0 },
+                            '& input[type="date"]::-webkit-calendar-picker-indicator': { display: 'none' },
                           }}
                         />
                       </Grid>
-                      <Grid item xs={12} sm={6} lg={4}>
+                      <Grid item xs={12}>
                         <TextField
                           label="Hasta (Reingreso/Fin)"
                           type="date"
@@ -694,15 +712,31 @@ export default function StoreInfo({ store }: { store: Store }) {
                           size="small"
                           value={newPauseEnd}
                           onChange={(e) => setNewPauseEnd(e.target.value)}
+                          inputRef={pauseEndInputRef}
                           InputLabelProps={{ shrink: true }}
+                          InputProps={{
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                <IconButton
+                                  edge="end"
+                                  size="small"
+                                  aria-label="Abrir calendario de fin de pausa"
+                                  onClick={() => pauseEndInputRef.current?.showPicker?.()}
+                                >
+                                  <CalendarMonthOutlined fontSize="small" />
+                                </IconButton>
+                              </InputAdornment>
+                            ),
+                          }}
                           sx={{
                             minWidth: 0,
                             '& .MuiInputBase-root': { minWidth: 0 },
                             '& input': { minWidth: 0 },
+                            '& input[type="date"]::-webkit-calendar-picker-indicator': { display: 'none' },
                           }}
                         />
                       </Grid>
-                      <Grid item xs={12} lg={4}>
+                      <Grid item xs={12}>
                         <Button
                           fullWidth
                           variant="contained"
