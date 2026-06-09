@@ -332,7 +332,12 @@ export default function StoreInfo({ store }: { store: Store }) {
         setSnack((s: any) => ({ open: true, msg: 'No se pudo subir el archivo.', type: 'error' }));
       }
     } catch (err: any) {
-      setSnack((s: any) => ({ open: true, msg: err?.response?.data?.error || 'Error al subir contrato', type: 'error' }));
+      const apiMsg = err?.response?.data?.message || err?.response?.data?.error;
+      const status = err?.response?.status;
+      const msg = apiMsg
+        ? `Error ${status ? `(${status}) ` : ''}${apiMsg}`
+        : 'Error al subir contrato. Verifica las credenciales AWS y el bucket S3.';
+      setSnack((s: any) => ({ open: true, msg, type: 'error' }));
     } finally {
       setUploadingContract(false);
     }
