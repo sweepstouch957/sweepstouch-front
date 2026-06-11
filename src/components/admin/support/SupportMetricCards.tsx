@@ -10,6 +10,7 @@ import {
   LinearProgress,
   Skeleton,
   Stack,
+  Theme,
   Typography,
   Unstable_Grid2 as Grid,
   useTheme,
@@ -89,9 +90,9 @@ function MetricCard({ def, metrics, loading, theme }: {
   def: CardDef;
   metrics: SupportMetrics | undefined;
   loading: boolean;
-  theme: ReturnType<typeof useTheme>;
+  theme: Theme;
 }) {
-  const palette = theme.palette[def.color] as any;
+  const palette = (theme.palette[def.color] as any);
   const value = metrics ? def.getValue(metrics) : 0;
   const subText = metrics ? def.getSub(metrics) : '';
   const progress = metrics ? def.getProgress(metrics) : null;
