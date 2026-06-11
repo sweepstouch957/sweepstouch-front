@@ -100,6 +100,17 @@ interface StoreOption {
   name: string;
   address: string;
   type?: string;
+  customerCount?: number;
+}
+
+function getAudienceInfo(count: number | undefined): { label: string; hex: string } | null {
+  if (!count || count === 0) return null;
+  const k = count >= 1000
+    ? `${(count / 1000).toFixed(count >= 10000 ? 0 : 1)}k`
+    : `${count}`;
+  if (count >= 30000) return { label: `${k} · Crítico`, hex: '#C62828' };
+  if (count >= 10000) return { label: `${k} · Urgente`, hex: '#E65100' };
+  return { label: k, hex: '#2E7D32' };
 }
 
 interface FormState {
@@ -166,6 +177,7 @@ export default function VisitsPage() {
     name: s.name,
     address: s.address ?? '',
     type: s.type,
+    customerCount: (s as any).customerCount ?? 0,
   }));
 
   const { data: weeklyData, isLoading: loadingWeekly } = useQuery({
@@ -476,6 +488,7 @@ export default function VisitsPage() {
               isOptionEqualToValue={(a, b) => a._id === b._id}
               renderOption={(props, o) => {
                 const color = STORE_TYPE_COLOR[o.type ?? ''] ?? theme.palette.primary.main;
+                const aud = getAudienceInfo(o.customerCount);
                 return (
                   <Box component="li" {...props} sx={{ gap: 1.5, alignItems: 'flex-start !important', py: '8px !important' }}>
                     <Avatar sx={{ width: 36, height: 36, fontSize: 13, fontWeight: 700, bgcolor: alpha(color, 0.15), color, flexShrink: 0, mt: 0.25 }}>
@@ -484,8 +497,17 @@ export default function VisitsPage() {
                     <Box minWidth={0} flex={1}>
                       <Stack direction="row" alignItems="center" spacing={0.75}>
                         <Typography variant="body2" fontWeight={700} noWrap flex={1}>{o.name}</Typography>
-                        {o.type && (
-                          <Chip label={o.type} size="small" variant="outlined" sx={{ height: 18, fontSize: 10, borderColor: color, color, flexShrink: 0, textTransform: 'capitalize' }} />
+                        {aud && (
+                          <Chip
+                            label={aud.label}
+                            size="small"
+                            sx={{
+                              height: 18, fontSize: 10, fontWeight: 700, flexShrink: 0,
+                              bgcolor: alpha(aud.hex, 0.1),
+                              color: aud.hex,
+                              border: `1px solid ${alpha(aud.hex, 0.3)}`,
+                            }}
+                          />
                         )}
                       </Stack>
                       {o.address && (

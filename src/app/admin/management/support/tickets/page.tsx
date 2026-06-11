@@ -45,6 +45,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import React, { useEffect, useRef, useState } from 'react';
+import { useAuth } from '@/hooks/use-auth';
 import { useCustomization } from 'src/hooks/use-customization';
 import { getStores } from 'src/services/store.service';
 import supportService, {
@@ -95,12 +96,12 @@ const TYPE_LABEL: Record<string, string> = {
 };
 const AREA_LABEL: Record<string, string> = {
   it: 'IT / Sistemas',
+  support: 'Soporte Técnico',
   hardware: 'Hardware',
   networking: 'Redes',
   sales: 'Ventas',
   operations: 'Operaciones',
   management: 'Gerencia',
-  support: 'Soporte',
   other: 'Otro',
 };
 const AREA_HEX: Record<string, string> = {
@@ -124,12 +125,23 @@ function isImageUrl(url: string) {
   return /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(url);
 }
 
+function getAudienceInfo(count: number | undefined): { label: string; hex: string } | null {
+  if (!count || count === 0) return null;
+  const k = count >= 1000
+    ? `${(count / 1000).toFixed(count >= 10000 ? 0 : 1)}k`
+    : `${count}`;
+  if (count >= 30000) return { label: `${k} · Crítico`, hex: '#C62828' };
+  if (count >= 10000) return { label: `${k} · Urgente`, hex: '#E65100' };
+  return { label: k, hex: '#2E7D32' };
+}
+
 /* ─── Types ───────────────────────────────────────────────── */
 interface StoreOption {
   _id: string;
   name: string;
   address: string;
   type?: string;
+  customerCount?: number;
 }
 
 interface FormState {
@@ -143,6 +155,7 @@ interface FormState {
   store: StoreOption | null;
   assignee: Technician | null;
   reporterName: string;
+  reporterIsCurrentUser: boolean;
   evidenceUrls: string[];
 }
 
@@ -157,6 +170,7 @@ const EMPTY_FORM: FormState = {
   store: null,
   assignee: null,
   reporterName: '',
+  reporterIsCurrentUser: true,
   evidenceUrls: [],
 };
 
@@ -166,6 +180,8 @@ export default function TicketsPage() {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
+  const currentUserName = (user as any)?.name ?? (user as any)?.firstName ?? '';
 
   const [page, setPage] = useState(1);
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -206,6 +222,7 @@ export default function TicketsPage() {
     name: s.name,
     address: s.address ?? '',
     type: s.type,
+    customerCount: (s as any).customerCount ?? 0,
   }));
 
   const { data, isLoading } = useQuery({
@@ -283,7 +300,7 @@ export default function TicketsPage() {
   /* ── Dialog helpers ── */
   const openCreate = () => {
     setEditTicket(null);
-    setForm(EMPTY_FORM);
+    setForm({ ...EMPTY_FORM, reporterName: currentUserName, reporterIsCurrentUser: true });
     setStoreRaw('');
     setEvidenceError('');
     setDialogOpen(true);
@@ -303,7 +320,8 @@ export default function TicketsPage() {
       priority: ticket.priority,
       store: store ?? (ticket.storeId ? { _id: ticket.storeId, name: ticket.storeName, address: ticket.storeAddress } : null),
       assignee: assignee ?? (ticket.assigneeId ? { _id: ticket.assigneeId, id: ticket.assigneeId, name: ticket.assigneeName, email: '' } : null),
-      reporterName: ticket.reporterName,
+      reporterName: ticket.reporterName || currentUserName,
+      reporterIsCurrentUser: !ticket.reporterName || ticket.reporterName === currentUserName,
       evidenceUrls: ticket.evidenceUrls ?? [],
     });
     setEvidenceError('');
@@ -612,6 +630,7 @@ export default function TicketsPage() {
               isOptionEqualToValue={(a, b) => a._id === b._id}
               renderOption={(props, o) => {
                 const color = STORE_TYPE_COLOR[o.type ?? ''] ?? theme.palette.primary.main;
+                const aud = getAudienceInfo(o.customerCount);
                 return (
                   <Box component="li" {...props} sx={{ gap: 1.5, alignItems: 'flex-start !important', py: '8px !important' }}>
                     <Avatar sx={{ width: 36, height: 36, fontSize: 13, fontWeight: 700, bgcolor: alpha(color, 0.15), color, flexShrink: 0, mt: 0.25 }}>
@@ -620,8 +639,17 @@ export default function TicketsPage() {
                     <Box minWidth={0} flex={1}>
                       <Stack direction="row" alignItems="center" spacing={0.75}>
                         <Typography variant="body2" fontWeight={700} noWrap flex={1}>{o.name}</Typography>
-                        {o.type && (
-                          <Chip label={o.type} size="small" variant="outlined" sx={{ height: 18, fontSize: 10, borderColor: color, color, flexShrink: 0, textTransform: 'capitalize' }} />
+                        {aud && (
+                          <Chip
+                            label={aud.label}
+                            size="small"
+                            sx={{
+                              height: 18, fontSize: 10, fontWeight: 700, flexShrink: 0,
+                              bgcolor: alpha(aud.hex, 0.1),
+                              color: aud.hex,
+                              border: `1px solid ${alpha(aud.hex, 0.3)}`,
+                            }}
+                          />
                         )}
                       </Stack>
                       {o.address && <Typography variant="caption" color="text.secondary" noWrap display="block">{o.address}</Typography>}
@@ -679,12 +707,58 @@ export default function TicketsPage() {
               noOptionsText="Sin técnicos registrados"
             />
 
-            <TextField
-              label="Reportado por"
-              value={form.reporterName}
-              onChange={(e) => setForm({ ...form, reporterName: e.target.value })}
-              fullWidth size="small"
-            />
+            {/* Reporter toggle */}
+            <Box>
+              <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ display: 'block', mb: 0.75, fontSize: 11 }}>
+                Reportado por
+              </Typography>
+              <Stack direction="row" spacing={0.75} mb={1}>
+                <Chip
+                  label="Yo (usuario actual)"
+                  size="small"
+                  onClick={() => setForm({ ...form, reporterIsCurrentUser: true, reporterName: currentUserName })}
+                  sx={{
+                    cursor: 'pointer', fontWeight: form.reporterIsCurrentUser ? 700 : 500,
+                    bgcolor: form.reporterIsCurrentUser ? 'primary.main' : 'transparent',
+                    color: form.reporterIsCurrentUser ? '#fff' : 'text.secondary',
+                    border: '1px solid',
+                    borderColor: form.reporterIsCurrentUser ? 'primary.main' : 'divider',
+                  }}
+                />
+                <Chip
+                  label="Tercero"
+                  size="small"
+                  onClick={() => setForm({ ...form, reporterIsCurrentUser: false, reporterName: '' })}
+                  sx={{
+                    cursor: 'pointer', fontWeight: !form.reporterIsCurrentUser ? 700 : 500,
+                    bgcolor: !form.reporterIsCurrentUser ? 'primary.main' : 'transparent',
+                    color: !form.reporterIsCurrentUser ? '#fff' : 'text.secondary',
+                    border: '1px solid',
+                    borderColor: !form.reporterIsCurrentUser ? 'primary.main' : 'divider',
+                  }}
+                />
+              </Stack>
+              {form.reporterIsCurrentUser ? (
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 1.25, py: 0.85, borderRadius: 1.5, bgcolor: alpha(theme.palette.primary.main, 0.05), border: `1px solid ${alpha(theme.palette.primary.main, 0.15)}` }}>
+                  <Avatar sx={{ width: 26, height: 26, fontSize: 11, fontWeight: 700, bgcolor: 'primary.main', flexShrink: 0 }}>
+                    {currentUserName?.[0]?.toUpperCase() ?? 'U'}
+                  </Avatar>
+                  <Typography variant="body2" fontWeight={600} flex={1} noWrap>
+                    {currentUserName || 'Usuario actual'}
+                  </Typography>
+                  <Chip label="Tú" size="small" color="primary" variant="outlined" sx={{ height: 16, fontSize: 9, fontWeight: 700, '& .MuiChip-label': { px: 0.5 } }} />
+                </Stack>
+              ) : (
+                <TextField
+                  label="Nombre del reportante"
+                  value={form.reporterName}
+                  onChange={(e) => setForm({ ...form, reporterName: e.target.value })}
+                  fullWidth size="small"
+                  placeholder="Nombre completo del tercero..."
+                  autoFocus
+                />
+              )}
+            </Box>
 
             <TextField
               label="Notas internas"
