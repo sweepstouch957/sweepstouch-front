@@ -262,7 +262,7 @@ export interface GetStoresParams {
   type?: 'elite' | 'basic' | 'free' | '';
   sortBy?: string;
   order?: 'asc' | 'desc';
-  status?: 'all' | 'active' | 'inactive';
+  status?: 'all' | 'active' | 'suspended' | 'cancelled';
 
   // ✅ filtros de morosidad (AMPLIADO)
   debtStatus?: DebtStatus;
@@ -327,7 +327,7 @@ export const getStores = async ({
 
 // 🆕 Obtener resumen global de morosidad
 export const getStoresBillingSummary = async (opts?: {
-  status?: 'all' | 'active' | 'inactive';
+  status?: 'all' | 'active' | 'suspended' | 'cancelled';
 }): Promise<BillingSummaryResponse> => {
   const params: Record<string, any> = {};
   if (opts?.status && opts.status !== 'all') {

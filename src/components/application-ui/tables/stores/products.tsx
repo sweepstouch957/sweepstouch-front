@@ -1,4 +1,4 @@
-import { useStores } from '@/hooks/stores/useStores';
+import { matchesStoreStatus, useStores } from '@/hooks/stores/useStores';
 import ExportButton from '@/components/application-ui/buttons/export-button';
 import PageHeading from '@/components/base/page-heading';
 import React from 'react';
@@ -96,16 +96,27 @@ function Component() {
       if (pageNo > 2000) break;
     }
 
-    const rows = all.map((s: any) => ({
-      brand: s?.brand?.name || '',
-      name: s?.name || '',
-      address: s?.address || '',
-      customers: s?.customerCount ?? 0,
-      status: s?.active ? 'Active' : 'Inactive',
-      balancePending: s?.billing?.totalPending ?? 0,
-      daysOverdue: s?.billing?.maxDaysOverdue ?? 0,
-      installments: s?.billing?.installmentsNeeded ?? '',
-    }));
+    const rows = all.reduce<any[]>((result, s: any) => {
+      if (!matchesStoreStatus(s, status)) return result;
+
+      result.push({
+        brand: s?.brand?.name || '',
+        name: s?.name || '',
+        address: s?.address || '',
+        customers: s?.customerCount ?? 0,
+        status:
+          s?.status === 'suspended'
+            ? 'Suspended'
+            : s?.status === 'cancelled'
+              ? 'Cancelled'
+              : 'Active',
+        balancePending: s?.billing?.totalPending ?? 0,
+        daysOverdue: s?.billing?.maxDaysOverdue ?? 0,
+        installments: s?.billing?.installmentsNeeded ?? '',
+      });
+
+      return result;
+    }, []);
 
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();

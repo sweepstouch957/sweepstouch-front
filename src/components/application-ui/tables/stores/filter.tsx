@@ -31,6 +31,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next';
 
 type DebtStatus = 'all' | 'ok' | 'min_low' | 'low' | 'mid' | 'high' | 'critical';
+type StoreStatusFilter = 'all' | 'active' | 'suspended' | 'cancelled';
 
 function useAISuggestion(
   query: string,
@@ -117,7 +118,7 @@ export default function StoreFilters({
   onOpenCommandPalette,
 }: {
   search: string;
-  status: 'all' | 'active' | 'inactive';
+  status: StoreStatusFilter;
   audienceLt: string;
   total: number;
   debtStatus: DebtStatus;
@@ -132,7 +133,7 @@ export default function StoreFilters({
   onSortChange: (v: string) => void;
   onOrderChange: (v: 'asc' | 'desc') => void;
   handleSearchChange: (v: string) => void;
-  onStatusChange: (s: 'all' | 'active' | 'inactive') => void;
+  onStatusChange: (s: StoreStatusFilter) => void;
   onAudienceLtChange: (v: string) => void;
   onDebtStatusChange: (v: DebtStatus) => void;
   onMinDebtChange: (v: string) => void;
@@ -282,8 +283,9 @@ export default function StoreFilters({
             onChange={(e) => onStatusChange(e.target.value as any)}
           >
             <MenuItem value="all" sx={{ fontSize: 13 }}>Todos</MenuItem>
-            <MenuItem value="active" sx={{ fontSize: 13 }}>Activos</MenuItem>
-            <MenuItem value="inactive" sx={{ fontSize: 13 }}>Inactivos</MenuItem>
+            <MenuItem value="active" sx={{ fontSize: 13 }}>Activas</MenuItem>
+            <MenuItem value="suspended" sx={{ fontSize: 13 }}>Suspendidas</MenuItem>
+            <MenuItem value="cancelled" sx={{ fontSize: 13 }}>Canceladas</MenuItem>
           </Select>
         </FormControl>
 

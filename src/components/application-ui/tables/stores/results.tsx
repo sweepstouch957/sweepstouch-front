@@ -9,6 +9,7 @@ import {
   CancelRounded,
   CheckCircleRounded,
   ContentCopyRounded,
+  PauseCircleRounded,
   PaymentsRounded,
   Settings,
   Web,
@@ -340,7 +341,7 @@ const StoreRow: FC<StoreRowProps> = React.memo(({ store, isAdmin, onOpenTech, on
 StoreRow.displayName = 'StoreRow';
 
 /* --------------------------------- props ---------------------------------- */
-type StatusFilter = 'all' | 'active' | 'inactive';
+type StatusFilter = 'all' | 'active' | 'suspended' | 'cancelled';
 type DebtStatus = 'all' | 'ok' | 'min_low' | 'low' | 'mid' | 'high' | 'critical';
 
 interface ResultsProps {
@@ -415,13 +416,16 @@ const LogoImg: FC<{ src?: string }> = ({ src }) => {
   );
 };
 
-const ActiveBadge: FC<{ status?: 'active' | 'inactive' | 'cancelled'; active: boolean }> = ({ status, active }) => {
+const ActiveBadge: FC<{ status?: 'active' | 'inactive' | 'suspended' | 'cancelled'; active: boolean }> = ({ status, active }) => {
   const effectiveStatus = status || (active ? 'active' : 'inactive');
   let tooltipTitle = 'Active';
   let icon = <CheckCircleRounded fontSize="small" color="success" />;
   if (effectiveStatus === 'inactive') {
     tooltipTitle = 'Inactive';
     icon = <CancelRounded fontSize="small" color="warning" />;
+  } else if (effectiveStatus === 'suspended') {
+    tooltipTitle = 'Suspended';
+    icon = <PauseCircleRounded fontSize="small" color="info" />;
   } else if (effectiveStatus === 'cancelled') {
     tooltipTitle = 'Cancelled';
     icon = <CancelRounded fontSize="small" color="error" />;
@@ -549,6 +553,8 @@ const MobileList: FC<MobileListProps> = ({ stores, openTech }) => (
                   label={
                     store.status === 'active'
                       ? 'Active'
+                      : store.status === 'suspended'
+                      ? 'Suspended'
                       : store.status === 'inactive'
                       ? 'Inactive'
                       : store.status === 'cancelled'
@@ -560,6 +566,8 @@ const MobileList: FC<MobileListProps> = ({ stores, openTech }) => (
                   color={
                     store.status === 'active'
                       ? 'success'
+                      : store.status === 'suspended'
+                      ? 'info'
                       : store.status === 'inactive'
                       ? 'warning'
                       : store.status === 'cancelled'
