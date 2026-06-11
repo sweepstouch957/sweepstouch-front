@@ -902,7 +902,7 @@ export default function TicketsPage() {
             {/* ── Evidence section ── */}
             <Divider />
             <Box>
-              <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
+              <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2} mb={1.5}>
                 <Box>
                   <Typography variant="subtitle2" fontWeight={700}>
                     Evidencia {form.evidenceUrls.length > 0 && `(${form.evidenceUrls.length} archivo${form.evidenceUrls.length !== 1 ? 's' : ''})`}
@@ -915,6 +915,7 @@ export default function TicketsPage() {
                   startIcon={uploadingEvidence ? <CircularProgress size={14} /> : <AttachFileTwoToneIcon />}
                   disabled={uploadingEvidence}
                   component="label"
+                  sx={{ flexShrink: 0 }}
                 >
                   {uploadingEvidence ? 'Subiendo...' : 'Agregar'}
                   <input
