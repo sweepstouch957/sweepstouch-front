@@ -1,25 +1,13 @@
-import DoneAllRoundedIcon from '@mui/icons-material/DoneAllRounded';
 import {
-  alpha,
   Box,
   Button,
   CardActions,
   CardHeader,
   Divider,
   SwipeableDrawer,
-  Theme,
-  Tooltip,
-  useMediaQuery,
-  useTheme,
 } from '@mui/material';
-
 import { FC } from 'react';
-import { useTranslation } from 'react-i18next';
-import NotificationTabsLine from 'src/components/application-ui/tabs/line/line';
-import { ButtonSoft } from 'src/components/base/styles/button-soft';
 import DrawerContent from './drawer-content';
-import { useNotificationsStore } from 'src/store/notificationsStore';
-import { useAuth } from 'src/hooks/use-auth';
 
 interface NotificationsHeaderProps {
   onOpen?: () => void;
@@ -29,15 +17,6 @@ interface NotificationsHeaderProps {
 
 export const NotificationsHeader: FC<NotificationsHeaderProps> = (props) => {
   const { onClose, onOpen, open = false, ...other } = props;
-  const mdUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('md'));
-  const smUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('sm'));
-  const theme = useTheme();
-  const { t } = useTranslation();
-
-  const { connect, disconnect, markAllAsRead } = useNotificationsStore();
-  const { user } = useAuth();
-  const userId = user?._id || user?.id;
-  const room = userId ? `user_${userId}` : 'admin';
 
   const handleDrawerClose = () => {
     if (onClose) {
@@ -69,51 +48,11 @@ export const NotificationsHeader: FC<NotificationsHeaderProps> = (props) => {
         width="100%"
       >
         <CardHeader
-          title="Notifications"
-          titleTypographyProps={{
-            variant: 'h5',
-            textAlign: { xs: 'center', sm: 'left' },
-          }}
-          sx={{
-            p: 1.5,
-            '.MuiCardHeader-action': {
-              position: { xs: 'absolute', sm: 'static' },
-              right: theme.spacing(1),
-              top: theme.spacing(1),
-              mt: 0,
-            },
-          }}
-          action={
-            <Tooltip
-              arrow
-              placement="right"
-              title={t('Mark all as read')}
-            >
-              <ButtonSoft
-                color="error"
-                onClick={() => markAllAsRead(room)}
-                sx={{
-                  minWidth: 0,
-                  p: 0.5,
-                }}
-                size="small"
-              >
-                <DoneAllRoundedIcon fontSize="small" />
-              </ButtonSoft>
-            </Tooltip>
-          }
+          title="Notificaciones"
+          titleTypographyProps={{ variant: 'h5', fontWeight: 700 }}
+          sx={{ p: 1.5, pb: 1 }}
         />
         <Divider />
-        <Box
-          p={{ xs: 1, sm: 0 }}
-          sx={{
-            backgroundColor: (theme) =>
-              theme.palette.mode === 'dark' ? alpha(theme.palette.neutral[25], 0.02) : 'neutral.25',
-          }}
-        >
-          <NotificationTabsLine />
-        </Box>
-        {!smUp && <Divider />}
         <Box
           overflow="hidden"
           flex={1}
@@ -121,31 +60,10 @@ export const NotificationsHeader: FC<NotificationsHeaderProps> = (props) => {
           <DrawerContent />
         </Box>
         <Divider />
-        <CardActions
-          sx={{
-            width: '100%',
-            flexDirection: { xs: 'column-reverse', sm: 'row' },
-
-            '& > :not(:first-of-type)': {
-              marginLeft: { xs: 0, sm: theme.spacing(1) },
-              marginBottom: { xs: theme.spacing(1), sm: 0 },
-            },
-            justifyContent: 'flex-end',
-          }}
-        >
-          <Button
-            onClick={handleDrawerClose}
-            fullWidth={!mdUp}
-          >
-            Close
+        <CardActions sx={{ justifyContent: 'flex-end', px: 2 }}>
+          <Button onClick={handleDrawerClose} variant="outlined" size="small">
+            Cerrar
           </Button>
-          <ButtonSoft
-            color="primary"
-            onClick={handleDrawerClose}
-            fullWidth={!mdUp}
-          >
-            View all
-          </ButtonSoft>
         </CardActions>
       </Box>
     </SwipeableDrawer>

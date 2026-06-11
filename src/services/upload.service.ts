@@ -27,6 +27,17 @@ export const uploadCampaignImage = async (
   return response.data;
 };
 
+// Support evidence — images/PDFs to Cloudinary (folder: support-evidence)
+export const uploadSupportEvidence = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append('image', file);
+  formData.append('folder', 'support-evidence');
+  const response = await api.post('/upload', formData, {
+    headers: { 'Content-Type': undefined },
+  });
+  return response.data.url as string;
+};
+
 // S3 — field name must be "file" (matches multer.single("file") on s3-service)
 // Only accepts PDF files
 export const uploadPdfToS3 = async (file: File): Promise<S3UploadResponse> => {

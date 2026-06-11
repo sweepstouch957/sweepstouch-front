@@ -6,6 +6,7 @@ import { api } from '@/libs/axios';
 
 export type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
 export type TicketPriority = 'low' | 'medium' | 'high' | 'critical';
+export type TicketArea = 'it' | 'hardware' | 'networking' | 'sales' | 'operations' | 'management' | 'support' | 'other';
 export type TicketType =
   | 'software'
   | 'hardware'
@@ -31,6 +32,7 @@ export interface SupportTicket {
   identifier: string;
   title: string;
   description: string;
+  area?: TicketArea;
   type: TicketType;
   status: TicketStatus;
   priority: TicketPriority;
@@ -97,6 +99,7 @@ export interface GetTicketsParams {
   status?: TicketStatus | 'all';
   type?: TicketType | 'all';
   priority?: TicketPriority | 'all';
+  area?: TicketArea | 'all';
   assigneeId?: string;
   storeId?: string;
   search?: string;

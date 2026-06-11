@@ -11,6 +11,7 @@ import WarningTwoToneIcon from '@mui/icons-material/WarningTwoTone';
 import {
   alpha,
   Autocomplete,
+  Avatar,
   Box,
   Button,
   Card,
@@ -28,7 +29,9 @@ import {
   IconButton,
   InputLabel,
   MenuItem,
+  MenuList,
   Pagination,
+  Popover,
   Select,
   Stack,
   Switch,
@@ -45,7 +48,7 @@ import {
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useCustomization } from 'src/hooks/use-customization';
 import { getStores } from 'src/services/store.service';
 import supportService, {
@@ -76,6 +79,12 @@ const TYPE_LABEL: Record<string, string> = {
   soporte_remoto: 'Soporte Remoto',
 };
 
+const STORE_TYPE_COLOR: Record<string, string> = {
+  elite: '#6C63FF',
+  basic: '#0288D1',
+  free: '#757575',
+};
+
 function getCurrentWeek(): { week: number; year: number } {
   const now = new Date();
   const d = new Date(now);
@@ -90,6 +99,7 @@ interface StoreOption {
   _id: string;
   name: string;
   address: string;
+  type?: string;
 }
 
 interface FormState {
@@ -128,6 +138,14 @@ export default function VisitsPage() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [useWeekFilter, setUseWeekFilter] = useState(true);
 
+  // Store autocomplete — debounced server search
+  const [storeRaw, setStoreRaw] = useState('');
+  const [storeSearch, setStoreSearch] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setStoreSearch(storeRaw), 350);
+    return () => clearTimeout(t);
+  }, [storeRaw]);
+
   const LIMIT = 15;
 
   // Lookup data for autocompletes
@@ -137,15 +155,17 @@ export default function VisitsPage() {
     staleTime: 5 * 60_000,
   });
 
-  const { data: storesRes } = useQuery({
-    queryKey: ['stores-active-list'],
-    queryFn: () => getStores({ limit: 100, status: 'active' }),
-    staleTime: 5 * 60_000,
+  const { data: storesRes, isFetching: loadingStores } = useQuery({
+    queryKey: ['stores-support-search', storeSearch],
+    queryFn: () => getStores({ limit: 50, status: 'active', search: storeSearch }),
+    staleTime: 60_000,
+    placeholderData: (prev) => prev,
   });
   const stores: StoreOption[] = (storesRes?.data ?? []).map((s) => ({
     _id: s._id,
     name: s.name,
     address: s.address ?? '',
+    type: s.type,
   }));
 
   const { data: weeklyData, isLoading: loadingWeekly } = useQuery({
@@ -246,6 +266,22 @@ export default function VisitsPage() {
 
   const prevWeek = () => { if (week === 1) { setWeek(52); setYear(y => y - 1); } else setWeek(w => w - 1); };
   const nextWeek = () => { if (week === 52) { setWeek(1); setYear(y => y + 1); } else setWeek(w => w + 1); };
+
+  /* ── Quick status popover ── */
+  const [statusPopover, setStatusPopover] = useState<{
+    el: HTMLElement;
+    visitId: string;
+    current: VisitStatus;
+  } | null>(null);
+
+  const quickStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: VisitStatus }) =>
+      supportService.updateVisit(id, { status }),
+    onSuccess: () => {
+      invalidate();
+      setStatusPopover(null);
+    },
+  });
 
   const summary = weeklyData?.summary;
   const isSaving = createMutation.isPending || updateMutation.isPending;
@@ -353,7 +389,17 @@ export default function VisitsPage() {
                     </TableCell>
                     <TableCell><Typography variant="body2">{visit.technicianName || '—'}</Typography></TableCell>
                     <TableCell><Typography variant="body2">{visit.scheduledDate ? format(new Date(visit.scheduledDate), 'dd/MM/yy HH:mm') : '—'}</Typography></TableCell>
-                    <TableCell><Chip label={STATUS_LABEL[visit.status] ?? visit.status} color={STATUS_COLOR[visit.status] ?? 'default'} size="small" /></TableCell>
+                    <TableCell>
+                      <Tooltip title="Cambiar estado">
+                        <Chip
+                          label={STATUS_LABEL[visit.status] ?? visit.status}
+                          color={STATUS_COLOR[visit.status] ?? 'default'}
+                          size="small"
+                          onClick={(e) => setStatusPopover({ el: e.currentTarget, visitId: visit._id, current: visit.status })}
+                          sx={{ cursor: 'pointer' }}
+                        />
+                      </Tooltip>
+                    </TableCell>
                     <TableCell>{visit.isEmergency && <Chip label="Urgente" color="error" size="small" variant="outlined" />}</TableCell>
                     <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                       <Tooltip title="Editar"><IconButton size="small" onClick={() => openEdit(visit)}><EditTwoToneIcon fontSize="small" /></IconButton></Tooltip>
@@ -418,25 +464,55 @@ export default function VisitsPage() {
               noOptionsText="Sin técnicos registrados"
             />
 
-            {/* Store autocomplete */}
+            {/* Store autocomplete — search-as-you-type */}
             <Autocomplete
               options={stores}
               value={form.store}
               onChange={(_, val) => setForm({ ...form, store: val })}
+              onInputChange={(_, val) => setStoreRaw(val)}
+              filterOptions={(x) => x}
+              loading={loadingStores}
               getOptionLabel={(o) => o.name}
               isOptionEqualToValue={(a, b) => a._id === b._id}
-              renderOption={(props, o) => (
-                <Box component="li" {...props}>
-                  <Box>
-                    <Typography variant="body2" fontWeight={600}>{o.name}</Typography>
-                    {o.address && <Typography variant="caption" color="text.secondary">{o.address}</Typography>}
+              renderOption={(props, o) => {
+                const color = STORE_TYPE_COLOR[o.type ?? ''] ?? theme.palette.primary.main;
+                return (
+                  <Box component="li" {...props} sx={{ gap: 1.5, alignItems: 'flex-start !important', py: '8px !important' }}>
+                    <Avatar sx={{ width: 36, height: 36, fontSize: 13, fontWeight: 700, bgcolor: alpha(color, 0.15), color, flexShrink: 0, mt: 0.25 }}>
+                      {o.name?.[0]?.toUpperCase()}
+                    </Avatar>
+                    <Box minWidth={0} flex={1}>
+                      <Stack direction="row" alignItems="center" spacing={0.75}>
+                        <Typography variant="body2" fontWeight={700} noWrap flex={1}>{o.name}</Typography>
+                        {o.type && (
+                          <Chip label={o.type} size="small" variant="outlined" sx={{ height: 18, fontSize: 10, borderColor: color, color, flexShrink: 0, textTransform: 'capitalize' }} />
+                        )}
+                      </Stack>
+                      {o.address && (
+                        <Typography variant="caption" color="text.secondary" noWrap display="block">{o.address}</Typography>
+                      )}
+                    </Box>
                   </Box>
-                </Box>
-              )}
+                );
+              }}
               renderInput={(params) => (
-                <TextField {...params} label="Tienda" size="small" placeholder="Buscar tienda..." />
+                <TextField
+                  {...params}
+                  label="Tienda"
+                  size="small"
+                  placeholder="Escribe para buscar..."
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {loadingStores ? <CircularProgress size={14} color="inherit" /> : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
               )}
-              noOptionsText="Sin tiendas disponibles"
+              noOptionsText={storeSearch ? 'Sin resultados' : 'Escribe para buscar una tienda...'}
             />
 
             <TextField
@@ -469,12 +545,46 @@ export default function VisitsPage() {
           <Button
             variant="contained"
             onClick={handleSubmit}
-            disabled={!form.technician || !form.store || isSaving}
+            disabled={!form.technician || isSaving}
           >
             {isSaving ? 'Guardando...' : editVisit ? 'Guardar' : 'Programar'}
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* ── Quick Status Popover ── */}
+      <Popover
+        open={!!statusPopover}
+        anchorEl={statusPopover?.el}
+        onClose={() => setStatusPopover(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+        PaperProps={{ elevation: 3, sx: { minWidth: 168, borderRadius: 1.5 } }}
+      >
+        <MenuList dense sx={{ py: 0.5 }}>
+          {Object.entries(STATUS_LABEL).map(([value, label]) => (
+            <MenuItem
+              key={value}
+              selected={statusPopover?.current === value}
+              disabled={quickStatusMutation.isPending}
+              onClick={() =>
+                quickStatusMutation.mutate({
+                  id: statusPopover!.visitId,
+                  status: value as VisitStatus,
+                })
+              }
+              sx={{ gap: 1.5, py: 0.75, mx: 0.5, borderRadius: 1 }}
+            >
+              <Chip
+                label={label}
+                color={STATUS_COLOR[value] ?? 'default'}
+                size="small"
+                sx={{ pointerEvents: 'none', minWidth: 90 }}
+              />
+            </MenuItem>
+          ))}
+        </MenuList>
+      </Popover>
     </Container>
   );
 }

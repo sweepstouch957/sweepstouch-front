@@ -1,8 +1,7 @@
 'use client';
 
 import BuildRoundedIcon from '@mui/icons-material/BuildRounded';
-import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
-import { Box, Button, Container, Unstable_Grid2 as Grid, useTheme } from '@mui/material';
+import { Box, Container, Unstable_Grid2 as Grid, useTheme } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -42,15 +41,6 @@ function Page(): React.JSX.Element {
           sx={{ px: 0 }}
           title={t('Soporte Técnico')}
           description="Gestión de tickets y visitas del equipo técnico"
-          actions={
-            <Button
-              sx={{ mt: { xs: 2, md: 0 } }}
-              variant="contained"
-              startIcon={<FileDownloadOutlinedIcon fontSize="small" />}
-            >
-              {t('Exportar')}
-            </Button>
-          }
           iconBox={
             <AvatarState
               isSoft
