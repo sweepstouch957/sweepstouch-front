@@ -1,29 +1,34 @@
 import { useAuth } from '@/hooks/use-auth';
 import useMenuItemsCollapsedShells from '@/hooks/use-routes';
 
+import dynamic from 'next/dynamic';
 import type { FC, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-// Collapsed Shells
-import { CollapsedShellsDoubleAccent } from 'src/components/application-ui/collapsed-shells/double-accent/double-accent';
-import { CollapsedShellsDoubleDark } from 'src/components/application-ui/collapsed-shells/double-dark/double-dark';
-import { CollapsedShellsDouble } from 'src/components/application-ui/collapsed-shells/double/double';
-import { CollapsedShellsSingleAccent } from 'src/components/application-ui/collapsed-shells/single-accent/single-accent';
-import { CollapsedShellsSingleWhiteOff } from 'src/components/application-ui/collapsed-shells/single-white-off/single-white-off';
-import { CollapsedShellsSingleWhite } from 'src/components/application-ui/collapsed-shells/single-white/single-white';
-import { CollapsedShellsSingle } from 'src/components/application-ui/collapsed-shells/single/single';
-// Stacked Shells
-import { StackedShellsTopNavAccent } from 'src/components/application-ui/stacked-shells/top-nav-accent/top-nav-accent';
-import { StackedShellsTopNavTabs } from 'src/components/application-ui/stacked-shells/top-nav-tabs/top-nav-tabs';
-import { StackedShellsTopNavWide } from 'src/components/application-ui/stacked-shells/top-nav-wide/top-nav-wide';
-import { StackedShellsTopNav } from 'src/components/application-ui/stacked-shells/top-nav/top-nav';
-import { VerticalShellsAccentHeader } from 'src/components/application-ui/vertical-shells/accent-header/accent-header';
-import { VerticalShellsBrand } from 'src/components/application-ui/vertical-shells/brand/brand';
-import { VerticalShellsDarkAlternate } from 'src/components/application-ui/vertical-shells/dark-alternate/dark-alternate';
-// Vertical Shells
-import { VerticalShellsDark } from 'src/components/application-ui/vertical-shells/dark/dark';
-import { VerticalShellsLight } from 'src/components/application-ui/vertical-shells/light/light';
-import { VerticalShellsWhiteOff } from 'src/components/application-ui/vertical-shells/white-off/white-off';
-import { VerticalShellsWhite } from 'src/components/application-ui/vertical-shells/white/white';
+
+// Collapsed Shells (Dynamic Imports)
+const CollapsedShellsDoubleAccent = dynamic(() => import('src/components/application-ui/collapsed-shells/double-accent/double-accent').then(mod => mod.CollapsedShellsDoubleAccent));
+const CollapsedShellsDoubleDark = dynamic(() => import('src/components/application-ui/collapsed-shells/double-dark/double-dark').then(mod => mod.CollapsedShellsDoubleDark));
+const CollapsedShellsDouble = dynamic(() => import('src/components/application-ui/collapsed-shells/double/double').then(mod => mod.CollapsedShellsDouble));
+const CollapsedShellsSingleAccent = dynamic(() => import('src/components/application-ui/collapsed-shells/single-accent/single-accent').then(mod => mod.CollapsedShellsSingleAccent));
+const CollapsedShellsSingleWhiteOff = dynamic(() => import('src/components/application-ui/collapsed-shells/single-white-off/single-white-off').then(mod => mod.CollapsedShellsSingleWhiteOff));
+const CollapsedShellsSingleWhite = dynamic(() => import('src/components/application-ui/collapsed-shells/single-white/single-white').then(mod => mod.CollapsedShellsSingleWhite));
+const CollapsedShellsSingle = dynamic(() => import('src/components/application-ui/collapsed-shells/single/single').then(mod => mod.CollapsedShellsSingle));
+
+// Stacked Shells (Dynamic Imports)
+const StackedShellsTopNavAccent = dynamic(() => import('src/components/application-ui/stacked-shells/top-nav-accent/top-nav-accent').then(mod => mod.StackedShellsTopNavAccent));
+const StackedShellsTopNavTabs = dynamic(() => import('src/components/application-ui/stacked-shells/top-nav-tabs/top-nav-tabs').then(mod => mod.StackedShellsTopNavTabs));
+const StackedShellsTopNavWide = dynamic(() => import('src/components/application-ui/stacked-shells/top-nav-wide/top-nav-wide').then(mod => mod.StackedShellsTopNavWide));
+const StackedShellsTopNav = dynamic(() => import('src/components/application-ui/stacked-shells/top-nav/top-nav').then(mod => mod.StackedShellsTopNav));
+
+// Vertical Shells (Dynamic Imports)
+const VerticalShellsAccentHeader = dynamic(() => import('src/components/application-ui/vertical-shells/accent-header/accent-header').then(mod => mod.VerticalShellsAccentHeader));
+const VerticalShellsBrand = dynamic(() => import('src/components/application-ui/vertical-shells/brand/brand').then(mod => mod.VerticalShellsBrand));
+const VerticalShellsDarkAlternate = dynamic(() => import('src/components/application-ui/vertical-shells/dark-alternate/dark-alternate').then(mod => mod.VerticalShellsDarkAlternate));
+const VerticalShellsDark = dynamic(() => import('src/components/application-ui/vertical-shells/dark/dark').then(mod => mod.VerticalShellsDark));
+const VerticalShellsLight = dynamic(() => import('src/components/application-ui/vertical-shells/light/light').then(mod => mod.VerticalShellsLight));
+const VerticalShellsWhiteOff = dynamic(() => import('src/components/application-ui/vertical-shells/white-off/white-off').then(mod => mod.VerticalShellsWhiteOff));
+const VerticalShellsWhite = dynamic(() => import('src/components/application-ui/vertical-shells/white/white').then(mod => mod.VerticalShellsWhite));
+
 // Guards
 
 import { withAuthGuard } from 'src/hocs/with-auth-guard';
@@ -40,7 +45,7 @@ export const Layout: FC<LayoutProps> = withAuthGuard((props) => {
   const { t } = useTranslation();
   const { user } = useAuth();
 
-  let ShellComponent: FC<LayoutProps>;
+  let ShellComponent: any;
   let menuItems: MenuItem[] = [];
 
   switch (customization.layout) {

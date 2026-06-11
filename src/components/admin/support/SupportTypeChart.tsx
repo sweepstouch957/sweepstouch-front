@@ -13,6 +13,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { PieChart } from '@mui/x-charts/PieChart';
+import React from 'react';
 import { SupportMetrics } from '@/services/support.service';
 
 const TYPE_LABELS: Record<string, string> = {
@@ -44,7 +45,7 @@ interface Props {
   loading: boolean;
 }
 
-export default function SupportTypeChart({ distribution, loading }: Props) {
+export default React.memo(function SupportTypeChart({ distribution, loading }: Props) {
   const theme = useTheme();
 
   const total = distribution?.reduce((acc, d) => acc + d.count, 0) ?? 0;
@@ -70,14 +71,17 @@ export default function SupportTypeChart({ distribution, loading }: Props) {
             <Skeleton variant="circular" width={180} height={180} />
           </Box>
         ) : total === 0 ? (
-          <Box display="flex" justifyContent="center" alignItems="center" flex={1} minHeight={200}>
-            <Typography color="text.secondary" variant="body2">
-              Sin datos disponibles
+          <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" flex={1} minHeight={200} gap={1}>
+            <Typography color="text.disabled" variant="body2" fontWeight={600}>
+              Sin tickets registrados
+            </Typography>
+            <Typography variant="caption" color="text.disabled" textAlign="center">
+              Los datos aparecerán aquí cuando se creen tickets.
             </Typography>
           </Box>
         ) : (
           <>
-            <Box display="flex" justifyContent="center">
+            <Box sx={{ width: '100%' }}>
               <PieChart
                 series={[
                   {
@@ -86,11 +90,8 @@ export default function SupportTypeChart({ distribution, loading }: Props) {
                     outerRadius: 90,
                     paddingAngle: 3,
                     cornerRadius: 4,
-                    cx: 90,
-                    cy: 90,
                   },
                 ]}
-                width={200}
                 height={200}
                 sx={{ '& .MuiChartsLegend-root': { display: 'none' } }}
               />
@@ -125,4 +126,4 @@ export default function SupportTypeChart({ distribution, loading }: Props) {
       </CardContent>
     </Card>
   );
-}
+});
