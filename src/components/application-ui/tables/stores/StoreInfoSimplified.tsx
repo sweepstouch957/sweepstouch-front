@@ -108,7 +108,9 @@ function a11yProps(index: number) {
 function TabPanel({ value, index, children }: { value: number; index: number; children: React.ReactNode }) {
   if (value !== index) return null;
   return (
-    <Box role="tabpanel" id={`stm-tabpanel-${index}`} sx={{ pt: 2 }}>
+    <Box role="tabpanel"
+id={`stm-tabpanel-${index}`}
+sx={{ pt: 2 }}>
       {children}
     </Box>
   );
@@ -170,14 +172,24 @@ function imageFormat(dataUrl: string) {
 function KpiCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: React.ReactNode; color: string }) {
   const theme = useTheme();
   return (
-    <Card variant="outlined" sx={{ borderRadius: 2.5, flex: 1, minWidth: 0, overflow: 'hidden' }}>
+    <Card variant="outlined"
+sx={{ borderRadius: 2.5, flex: 1, minWidth: 0, overflow: 'hidden' }}>
       <Box sx={{ height: 3, bgcolor: color }} />
       <CardContent sx={{ p: 1.75, '&:last-child': { pb: 1.75 } }}>
-        <Stack direction="row" spacing={1} alignItems="center" mb={0.5}>
+        <Stack direction="row"
+spacing={1}
+alignItems="center"
+mb={0.5}>
           <Box sx={{ color, display: 'flex', alignItems: 'center' }}>{icon}</Box>
-          <Typography variant="caption" color="text.secondary" fontWeight={600} noWrap>{label}</Typography>
+          <Typography variant="caption"
+color="text.secondary"
+fontWeight={600}
+noWrap>{label}</Typography>
         </Stack>
-        <Typography fontWeight={800} fontSize={17} lineHeight={1.1} sx={{ fontVariantNumeric: 'tabular-nums' }}>
+        <Typography fontWeight={800}
+fontSize={17}
+lineHeight={1.1}
+sx={{ fontVariantNumeric: 'tabular-nums' }}>
           {value}
         </Typography>
       </CardContent>
@@ -189,14 +201,23 @@ function KpiCard({ icon, label, value, color }: { icon: React.ReactNode; label: 
 function CopyRow({ icon, label, value, onCopy }: { icon: React.ReactNode; label: string; value?: string | null; onCopy: (v: string) => void }) {
   if (!value) return null;
   return (
-    <Stack direction="row" spacing={1} alignItems="center" sx={{ py: 0.75 }}>
+    <Stack direction="row"
+spacing={1}
+alignItems="center"
+sx={{ py: 0.75 }}>
       <Box sx={{ color: 'text.secondary', display: 'flex', flexShrink: 0 }}>{icon}</Box>
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography variant="caption" color="text.secondary" display="block">{label}</Typography>
-        <Typography fontWeight={700} fontSize={13} noWrap>{value}</Typography>
+        <Typography variant="caption"
+color="text.secondary"
+display="block">{label}</Typography>
+        <Typography fontWeight={700}
+fontSize={13}
+noWrap>{value}</Typography>
       </Box>
       <Tooltip title={`Copiar ${label.toLowerCase()}`}>
-        <IconButton size="small" onClick={() => onCopy(value)} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}>
+        <IconButton size="small"
+onClick={() => onCopy(value)}
+sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}>
           <ContentCopyRoundedIcon sx={{ fontSize: 15 }} />
         </IconButton>
       </Tooltip>
@@ -433,8 +454,15 @@ export default function StoreTechModal({
               background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.main, 0.07)} 100%)`,
             }}
           >
-            <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={2} mb={1.5}>
-              <Stack direction="row" spacing={1.75} alignItems="center" sx={{ minWidth: 0 }}>
+            <Stack direction="row"
+alignItems="flex-start"
+justifyContent="space-between"
+spacing={2}
+mb={1.5}>
+              <Stack direction="row"
+spacing={1.75}
+alignItems="center"
+sx={{ minWidth: 0 }}>
                 {storeImage && (
                   <Avatar
                     src={storeImage}
@@ -443,15 +471,25 @@ export default function StoreTechModal({
                   />
                 )}
                 <Box sx={{ minWidth: 0 }}>
-                  <Typography variant="h6" fontWeight={900} lineHeight={1.2} noWrap>
+                  <Typography variant="h6"
+fontWeight={900}
+lineHeight={1.2}
+noWrap>
                     {storeName ?? 'Ficha técnica'}
                   </Typography>
                   {address && (
-                    <Typography variant="caption" color="text.secondary" display="block" noWrap sx={{ mt: 0.25 }}>
+                    <Typography variant="caption"
+color="text.secondary"
+display="block"
+noWrap
+sx={{ mt: 0.25 }}>
                       {address}
                     </Typography>
                   )}
-                  <Stack direction="row" spacing={0.75} mt={0.75} flexWrap="wrap">
+                  <Stack direction="row"
+spacing={0.75}
+mt={0.75}
+flexWrap="wrap">
                     <Chip
                       size="small"
                       label={`slug: ${slug}`}
@@ -490,17 +528,23 @@ export default function StoreTechModal({
                       />
                     )}
                     <Tooltip title="Copiar slug">
-                      <IconButton size="small" onClick={() => copy(slug, 'Slug copiado')} sx={{ width: 22, height: 22, border: '1px solid', borderColor: 'divider' }}>
+                      <IconButton size="small"
+onClick={() => copy(slug, 'Slug copiado')}
+sx={{ width: 22, height: 22, border: '1px solid', borderColor: 'divider' }}>
                         <ContentCopyRoundedIcon sx={{ fontSize: 12 }} />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Abrir Kiosko">
-                      <IconButton size="small" onClick={() => copy(kioskoUrl, 'Link Kiosko copiado')} sx={{ width: 22, height: 22, border: '1px solid', borderColor: 'divider' }}>
+                      <IconButton size="small"
+onClick={() => copy(kioskoUrl, 'Link Kiosko copiado')}
+sx={{ width: 22, height: 22, border: '1px solid', borderColor: 'divider' }}>
                         <StorefrontRoundedIcon sx={{ fontSize: 12 }} />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Copiar Link Tree">
-                      <IconButton size="small" onClick={() => copy(linkTreeUrl, 'Link Tree copiado')} sx={{ width: 22, height: 22, border: '1px solid', borderColor: 'divider' }}>
+                      <IconButton size="small"
+onClick={() => copy(linkTreeUrl, 'Link Tree copiado')}
+sx={{ width: 22, height: 22, border: '1px solid', borderColor: 'divider' }}>
                         <LinkRoundedIcon sx={{ fontSize: 12 }} />
                       </IconButton>
                     </Tooltip>
@@ -508,13 +552,16 @@ export default function StoreTechModal({
                 </Box>
               </Stack>
 
-              <Stack direction="row" spacing={1} flexShrink={0}>
+              <Stack direction="row"
+spacing={1}
+flexShrink={0}>
                 <Button
                   variant="contained"
                   size="small"
                   startIcon={
                     exportingPdf
-                      ? <CircularProgress size={14} color="inherit" />
+                      ? <CircularProgress size={14}
+color="inherit" />
                       : <PictureAsPdfRoundedIcon fontSize="small" />
                   }
                   onClick={exportTechnicalSheet}
@@ -523,7 +570,8 @@ export default function StoreTechModal({
                 >
                   {exportingPdf ? 'Generando...' : 'Exportar PDF'}
                 </Button>
-                <IconButton onClick={onClose} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                <IconButton onClick={onClose}
+sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
                   <CloseRoundedIcon fontSize="small" />
                 </IconButton>
               </Stack>
@@ -536,7 +584,10 @@ export default function StoreTechModal({
               scrollButtons="auto"
               sx={{ '& .MuiTab-root': { fontWeight: 800, textTransform: 'none', minHeight: 40, fontSize: 13 } }}
             >
-              <Tab icon={<InfoRoundedIcon sx={{ fontSize: 16 }} />} iconPosition="start" label="Info" {...a11yProps(0)} />
+              <Tab icon={<InfoRoundedIcon sx={{ fontSize: 16 }} />}
+iconPosition="start"
+label="Info"
+{...a11yProps(0)} />
               <Tab
                 icon={<DevicesRoundedIcon sx={{ fontSize: 16 }} />}
                 iconPosition="start"
@@ -557,7 +608,8 @@ export default function StoreTechModal({
         {/* ── Content ──────────────────────────────────────────────────────── */}
         <DialogContent sx={{ p: 2.5 }}>
           {/* TAB 0 — Info */}
-          <TabPanel value={tab} index={0}>
+          <TabPanel value={tab}
+index={0}>
             <Stack spacing={2}>
               {/* KPI row */}
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 1.5 }}>
@@ -593,9 +645,12 @@ export default function StoreTechModal({
                 />
               </Box>
 
-              <Card variant="outlined" sx={{ borderRadius: 2.5 }}>
+              <Card variant="outlined"
+sx={{ borderRadius: 2.5 }}>
                 <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                  <Typography fontWeight={800} fontSize={13} mb={1}>
+                  <Typography fontWeight={800}
+fontSize={13}
+mb={1}>
                     Razón de retiro
                   </Typography>
                   <Typography
@@ -609,14 +664,29 @@ export default function StoreTechModal({
               </Card>
 
               {/* Contact details */}
-              <Card variant="outlined" sx={{ borderRadius: 2.5 }}>
+              <Card variant="outlined"
+sx={{ borderRadius: 2.5 }}>
                 <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                  <Typography fontWeight={800} fontSize={13} mb={1}>Datos de contacto</Typography>
-                  <CopyRow icon={<EmailRoundedIcon sx={{ fontSize: 16 }} />} label="Email" value={effectiveEmail} onCopy={(v) => copy(v, 'Email copiado')} />
-                  <CopyRow icon={<PhoneRoundedIcon sx={{ fontSize: 16 }} />} label="Teléfono" value={storeDetails?.phoneNumber || phone} onCopy={(v) => copy(v, 'Teléfono copiado')} />
-                  <CopyRow icon={<PlaceRoundedIcon sx={{ fontSize: 16 }} />} label="Dirección" value={effectiveAddress} onCopy={(v) => copy(v, 'Dirección copiada')} />
+                  <Typography fontWeight={800}
+fontSize={13}
+mb={1}>Datos de contacto</Typography>
+                  <CopyRow icon={<EmailRoundedIcon sx={{ fontSize: 16 }} />}
+label="Email"
+value={effectiveEmail}
+onCopy={(v) => copy(v, 'Email copiado')} />
+                  <CopyRow icon={<PhoneRoundedIcon sx={{ fontSize: 16 }} />}
+label="Teléfono"
+value={storeDetails?.phoneNumber || phone}
+onCopy={(v) => copy(v, 'Teléfono copiado')} />
+                  <CopyRow icon={<PlaceRoundedIcon sx={{ fontSize: 16 }} />}
+label="Dirección"
+value={effectiveAddress}
+onCopy={(v) => copy(v, 'Dirección copiada')} />
                   {effectiveContacts.length > 0 && (
-                    <Stack spacing={0.75} mt={1.25} pt={1.25} sx={{ borderTop: '1px solid', borderColor: 'divider' }}>
+                    <Stack spacing={0.75}
+mt={1.25}
+pt={1.25}
+sx={{ borderTop: '1px solid', borderColor: 'divider' }}>
                       {effectiveContacts.map((contact) => (
                         <Stack
                           key={`${contact.type}-${contact.name}-${contact.phone}`}
@@ -624,13 +694,18 @@ export default function StoreTechModal({
                           spacing={{ xs: 0.25, sm: 1 }}
                           alignItems={{ xs: 'flex-start', sm: 'center' }}
                         >
-                          <Typography fontSize={13} fontWeight={800} sx={{ minWidth: 140 }}>
+                          <Typography fontSize={13}
+fontWeight={800}
+sx={{ minWidth: 140 }}>
                             {contact.name || 'Sin nombre'}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ minWidth: 80 }}>
+                          <Typography variant="caption"
+color="text.secondary"
+sx={{ minWidth: 80 }}>
                             {CONTACT_LABELS[contact.type] || contact.type}
                           </Typography>
-                          <Typography fontSize={13} color="text.secondary">
+                          <Typography fontSize={13}
+color="text.secondary">
                             {contact.phone || 'Sin teléfono'}
                           </Typography>
                         </Stack>
@@ -638,40 +713,65 @@ export default function StoreTechModal({
                     </Stack>
                   )}
                   {!effectiveEmail && !phone && !effectiveAddress && (
-                    <Typography variant="caption" color="text.disabled">Sin datos de contacto registrados</Typography>
+                    <Typography variant="caption"
+color="text.disabled">Sin datos de contacto registrados</Typography>
                   )}
                 </CardContent>
               </Card>
 
               {/* Última campaña enviada */}
-              <Card variant="outlined" sx={{ borderRadius: 2.5 }}>
+              <Card variant="outlined"
+sx={{ borderRadius: 2.5 }}>
                 <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                  <Stack direction="row" spacing={1} alignItems="center" mb={1.5}>
+                  <Stack direction="row"
+spacing={1}
+alignItems="center"
+mb={1.5}>
                     <CampaignRoundedIcon sx={{ fontSize: 18, color: theme.palette.primary.main }} />
-                    <Typography fontWeight={800} fontSize={13}>Última campaña enviada</Typography>
+                    <Typography fontWeight={800}
+fontSize={13}>Última campaña enviada</Typography>
                   </Stack>
 
                   {loadingCampaign ? (
-                    <Stack direction="row" spacing={1} alignItems="center" sx={{ py: 1, justifyContent: 'center' }}>
-                      <CircularProgress size={16} thickness={5} sx={{ color: theme.palette.primary.main }} />
-                      <Typography variant="caption" color="text.secondary">Cargando campaña...</Typography>
+                    <Stack direction="row"
+spacing={1}
+alignItems="center"
+sx={{ py: 1, justifyContent: 'center' }}>
+                      <CircularProgress size={16}
+thickness={5}
+sx={{ color: theme.palette.primary.main }} />
+                      <Typography variant="caption"
+color="text.secondary">Cargando campaña...</Typography>
                     </Stack>
                   ) : !lastCampaign ? (
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', py: 0.5 }}>
+                    <Typography variant="caption"
+color="text.secondary"
+sx={{ display: 'block', py: 0.5 }}>
                       No se han encontrado campañas enviadas para esta tienda
                     </Typography>
                   ) : (
                     <Stack spacing={1.5}>
-                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
+                      <Stack direction="row"
+justifyContent="space-between"
+alignItems="flex-start"
+spacing={2}>
                         <Box sx={{ minWidth: 0 }}>
-                          <Typography fontWeight={700} fontSize={14} sx={{ mb: 0.5 }} noWrap title={lastCampaign.title}>
+                          <Typography fontWeight={700}
+fontSize={14}
+sx={{ mb: 0.5 }}
+noWrap
+title={lastCampaign.title}>
                             {lastCampaign.title}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary" display="block">
+                          <Typography variant="caption"
+color="text.secondary"
+display="block">
                             ID: {lastCampaign._id}
                           </Typography>
                         </Box>
-                        <Stack direction="row" spacing={0.75} flexShrink={0}>
+                        <Stack direction="row"
+spacing={0.75}
+flexShrink={0}>
                           {lastCampaign.type && (
                             <Chip
                               label={lastCampaign.type}
@@ -717,32 +817,49 @@ export default function StoreTechModal({
 
                       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 1.5 }}>
                         <Box>
-                          <Stack direction="row" spacing={0.5} alignItems="center" mb={0.25}>
+                          <Stack direction="row"
+spacing={0.5}
+alignItems="center"
+mb={0.25}>
                             <CalendarTodayRoundedIcon sx={{ fontSize: 13, color: 'text.secondary' }} />
-                            <Typography variant="caption" color="text.secondary">Fecha</Typography>
+                            <Typography variant="caption"
+color="text.secondary">Fecha</Typography>
                           </Stack>
-                          <Typography fontWeight={700} fontSize={12}>
+                          <Typography fontWeight={700}
+fontSize={12}>
                             {safeDateLabel(lastCampaign.startDate ? lastCampaign.startDate.toString() : lastCampaign.createdAt?.toString())}
                           </Typography>
                         </Box>
 
                         <Box>
-                          <Stack direction="row" spacing={0.5} alignItems="center" mb={0.25}>
+                          <Stack direction="row"
+spacing={0.5}
+alignItems="center"
+mb={0.25}>
                             <GroupRoundedIcon sx={{ fontSize: 13, color: 'text.secondary' }} />
-                            <Typography variant="caption" color="text.secondary">Audiencia</Typography>
+                            <Typography variant="caption"
+color="text.secondary">Audiencia</Typography>
                           </Stack>
-                          <Typography fontWeight={700} fontSize={12} sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                          <Typography fontWeight={700}
+fontSize={12}
+sx={{ fontVariantNumeric: 'tabular-nums' }}>
                             {Number.isFinite(lastCampaign.audience) ? lastCampaign.audience.toLocaleString('en-US') : '—'}
                           </Typography>
                         </Box>
 
                         {Number.isFinite(lastCampaign.cost) && lastCampaign.cost > 0 && (
                           <Box>
-                            <Stack direction="row" spacing={0.5} alignItems="center" mb={0.25}>
+                            <Stack direction="row"
+spacing={0.5}
+alignItems="center"
+mb={0.25}>
                               <AttachMoneyRoundedIcon sx={{ fontSize: 13, color: 'text.secondary' }} />
-                              <Typography variant="caption" color="text.secondary">Costo</Typography>
+                              <Typography variant="caption"
+color="text.secondary">Costo</Typography>
                             </Stack>
-                            <Typography fontWeight={700} fontSize={12} sx={{ fontVariantNumeric: 'tabular-nums', color: '#ef4444' }}>
+                            <Typography fontWeight={700}
+fontSize={12}
+sx={{ fontVariantNumeric: 'tabular-nums', color: '#ef4444' }}>
                               ${lastCampaign.cost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </Typography>
                           </Box>
@@ -750,11 +867,17 @@ export default function StoreTechModal({
 
                         {Number.isFinite(lastCampaign.deliveryRate) && lastCampaign.deliveryRate > 0 && (
                           <Box>
-                            <Stack direction="row" spacing={0.5} alignItems="center" mb={0.25}>
+                            <Stack direction="row"
+spacing={0.5}
+alignItems="center"
+mb={0.25}>
                               <SpeedRoundedIcon sx={{ fontSize: 13, color: 'text.secondary' }} />
-                              <Typography variant="caption" color="text.secondary">Entrega</Typography>
+                              <Typography variant="caption"
+color="text.secondary">Entrega</Typography>
                             </Stack>
-                            <Typography fontWeight={700} fontSize={12} sx={{ fontVariantNumeric: 'tabular-nums', color: '#10b981' }}>
+                            <Typography fontWeight={700}
+fontSize={12}
+sx={{ fontVariantNumeric: 'tabular-nums', color: '#10b981' }}>
                               {Math.round(lastCampaign.deliveryRate)}%
                             </Typography>
                           </Box>
@@ -766,24 +889,39 @@ export default function StoreTechModal({
               </Card>
 
               {/* Contratos firmados */}
-              <Card variant="outlined" sx={{ borderRadius: 2.5 }}>
+              <Card variant="outlined"
+sx={{ borderRadius: 2.5 }}>
                 <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                  <Stack direction="row" spacing={1} alignItems="center" mb={1.5}>
+                  <Stack direction="row"
+spacing={1}
+alignItems="center"
+mb={1.5}>
                     <DescriptionIcon sx={{ fontSize: 18, color: theme.palette.primary.main }} />
-                    <Typography fontWeight={800} fontSize={13}>Contratos firmados</Typography>
+                    <Typography fontWeight={800}
+fontSize={13}>Contratos firmados</Typography>
                   </Stack>
 
                   {(!storeDetails?.contracts || storeDetails.contracts.length === 0) ? (
-                    <Typography variant="caption" color="text.disabled">
+                    <Typography variant="caption"
+color="text.disabled">
                       No se han encontrado contratos para esta tienda
                     </Typography>
                   ) : (
                     <Stack spacing={1}>
                       {storeDetails.contracts.map((c: any, i: number) => (
-                        <Stack key={i} direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 1, borderRadius: 1.5, bgcolor: 'action.hover' }}>
+                        <Stack key={i}
+direction="row"
+justifyContent="space-between"
+alignItems="center"
+sx={{ p: 1, borderRadius: 1.5, bgcolor: 'action.hover' }}>
                           <Box sx={{ minWidth: 0, mr: 2 }}>
-                            <Typography fontWeight={700} fontSize={12.5} noWrap title={c.fileName}>{c.fileName}</Typography>
-                            <Typography variant="caption" color="text.secondary" display="block">
+                            <Typography fontWeight={700}
+fontSize={12.5}
+noWrap
+title={c.fileName}>{c.fileName}</Typography>
+                            <Typography variant="caption"
+color="text.secondary"
+display="block">
                               Firmado: {safeDateLabel(c.signedAt)} | Subido: {safeDateLabel(c.uploadedAt)}
                             </Typography>
                           </Box>
@@ -805,15 +943,21 @@ export default function StoreTechModal({
               </Card>
 
               {/* Historial de pausas */}
-              <Card variant="outlined" sx={{ borderRadius: 2.5 }}>
+              <Card variant="outlined"
+sx={{ borderRadius: 2.5 }}>
                 <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                  <Stack direction="row" spacing={1} alignItems="center" mb={1.5}>
+                  <Stack direction="row"
+spacing={1}
+alignItems="center"
+mb={1.5}>
                     <PauseCircleOutlineIcon sx={{ fontSize: 18, color: theme.palette.warning.main }} />
-                    <Typography fontWeight={800} fontSize={13}>Historial de pausas del servicio</Typography>
+                    <Typography fontWeight={800}
+fontSize={13}>Historial de pausas del servicio</Typography>
                   </Stack>
 
                   {(!storeDetails?.pauseHistory || storeDetails.pauseHistory.length === 0) ? (
-                    <Typography variant="caption" color="text.disabled">
+                    <Typography variant="caption"
+color="text.disabled">
                       No se registran períodos de pausa
                     </Typography>
                   ) : (
@@ -821,19 +965,32 @@ export default function StoreTechModal({
                       {storeDetails.pauseHistory.map((p: any, i: number) => {
                         const isCurrent = !p.endDate || new Date(p.endDate) > new Date();
                         return (
-                          <Box key={i} sx={{ p: 1, borderRadius: 1.5, bgcolor: isCurrent ? alpha(theme.palette.error.main, 0.03) : 'action.hover', borderLeft: '3px solid', borderColor: isCurrent ? 'error.main' : 'text.disabled' }}>
-                            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                          <Box key={i}
+sx={{ p: 1, borderRadius: 1.5, bgcolor: isCurrent ? alpha(theme.palette.error.main, 0.03) : 'action.hover', borderLeft: '3px solid', borderColor: isCurrent ? 'error.main' : 'text.disabled' }}>
+                            <Stack direction="row"
+spacing={1}
+alignItems="center"
+flexWrap="wrap">
                               {isCurrent ? (
-                                <Chip label="Activo" color="error" size="small" sx={{ height: 16, fontSize: 9, fontWeight: 800 }} />
+                                <Chip label="Activo"
+color="error"
+size="small"
+sx={{ height: 16, fontSize: 9, fontWeight: 800 }} />
                               ) : (
-                                <Chip label="Pausado" size="small" sx={{ height: 16, fontSize: 9, fontWeight: 800 }} />
+                                <Chip label="Pausado"
+size="small"
+sx={{ height: 16, fontSize: 9, fontWeight: 800 }} />
                               )}
-                              <Typography fontWeight={700} fontSize={12}>
+                              <Typography fontWeight={700}
+fontSize={12}>
                                 {safeDateLabel(p.startDate)} — {p.endDate ? safeDateLabel(p.endDate) : 'Indefinido'}
                               </Typography>
                             </Stack>
                             {p.reason && (
-                              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                              <Typography variant="caption"
+color="text.secondary"
+display="block"
+sx={{ mt: 0.5 }}>
                                 {p.reason}
                               </Typography>
                             )}
@@ -856,15 +1013,22 @@ export default function StoreTechModal({
                   }}
                 >
                   <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                    <Stack direction="row" spacing={1} alignItems="center" mb={1.5}>
+                    <Stack direction="row"
+spacing={1}
+alignItems="center"
+mb={1.5}>
                       <WarningAmberRoundedIcon sx={{ fontSize: 18, color: theme.palette.warning.main }} />
-                      <Typography fontWeight={800} fontSize={13} color="warning.main">
+                      <Typography fontWeight={800}
+fontSize={13}
+color="warning.main">
                         Tienda Inactiva
                       </Typography>
                     </Stack>
                     <Stack spacing={1}>
                       {storeDetails?.inactiveReason && (
-                        <Typography variant="body2" color="text.secondary" sx={{ pl: 1, borderLeft: '3px solid', borderColor: 'warning.main' }}>
+                        <Typography variant="body2"
+color="text.secondary"
+sx={{ pl: 1, borderLeft: '3px solid', borderColor: 'warning.main' }}>
                           Motivo de Inactividad: {storeDetails.inactiveReason}
                         </Typography>
                       )}
@@ -885,20 +1049,28 @@ export default function StoreTechModal({
                   }}
                 >
                   <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                    <Stack direction="row" spacing={1} alignItems="center" mb={1.5}>
+                    <Stack direction="row"
+spacing={1}
+alignItems="center"
+mb={1.5}>
                       <WarningAmberRoundedIcon sx={{ fontSize: 18, color: theme.palette.error.main }} />
-                      <Typography fontWeight={800} fontSize={13} color="error.main">
+                      <Typography fontWeight={800}
+fontSize={13}
+color="error.main">
                         Contrato Cancelado
                       </Typography>
                     </Stack>
                     <Stack spacing={1}>
                       {storeDetails?.cancelContractDate && (
-                        <Typography variant="body2" fontWeight={700}>
+                        <Typography variant="body2"
+fontWeight={700}>
                           Fecha de Cancelación: {safeDateLabel(storeDetails.cancelContractDate)}
                         </Typography>
                       )}
                       {storeDetails?.cancelContractReason && (
-                        <Typography variant="body2" color="text.secondary" sx={{ pl: 1, borderLeft: '3px solid', borderColor: 'error.main' }}>
+                        <Typography variant="body2"
+color="text.secondary"
+sx={{ pl: 1, borderLeft: '3px solid', borderColor: 'error.main' }}>
                           Motivo: {storeDetails.cancelContractReason}
                         </Typography>
                       )}
@@ -913,14 +1085,22 @@ export default function StoreTechModal({
                   { label: 'Kiosko', url: kioskoUrl, color: '#00A9BC' },
                   { label: 'Link Tree', url: linkTreeUrl, color: '#ff0080' },
                 ].map((item) => (
-                  <Card key={item.label} variant="outlined" sx={{ borderRadius: 2.5, overflow: 'hidden' }}>
+                  <Card key={item.label}
+variant="outlined"
+sx={{ borderRadius: 2.5, overflow: 'hidden' }}>
                     <Box sx={{ height: 3, bgcolor: item.color }} />
                     <CardContent sx={{ p: 1.75, '&:last-child': { pb: 1.75 } }}>
-                      <Typography fontWeight={800} fontSize={13}>{item.label}</Typography>
-                      <Typography variant="caption" color="text.secondary" display="block" noWrap sx={{ mt: 0.25, mb: 1 }}>
+                      <Typography fontWeight={800}
+fontSize={13}>{item.label}</Typography>
+                      <Typography variant="caption"
+color="text.secondary"
+display="block"
+noWrap
+sx={{ mt: 0.25, mb: 1 }}>
                         {item.url}
                       </Typography>
-                      <Stack direction="row" spacing={1}>
+                      <Stack direction="row"
+spacing={1}>
                         <Button
                           size="small"
                           variant="contained"
@@ -965,35 +1145,54 @@ export default function StoreTechModal({
           </TabPanel>
 
           {/* TAB 1 — Equipo */}
-          <TabPanel value={tab} index={1}>
+          <TabPanel value={tab}
+index={1}>
             {!hasEquipment ? (
               <Box sx={{ py: 4, textAlign: 'center' }}>
                 <DevicesRoundedIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
-                <Typography color="text.secondary" fontWeight={700}>Sin equipamiento registrado</Typography>
-                <Typography variant="caption" color="text.disabled">Agrega tablets e impresoras desde la pestaña Equipment en el perfil de la tienda.</Typography>
+                <Typography color="text.secondary"
+fontWeight={700}>Sin equipamiento registrado</Typography>
+                <Typography variant="caption"
+color="text.disabled">Agrega tablets e impresoras desde la pestaña Equipment en el perfil de la tienda.</Typography>
               </Box>
             ) : (
               <Stack spacing={1.5}>
                 {totalTablets > 0 && (
-                  <Card variant="outlined" sx={{ borderRadius: 2.5 }}>
+                  <Card variant="outlined"
+sx={{ borderRadius: 2.5 }}>
                     <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                      <Stack direction="row" spacing={1.5} alignItems="center" mb={1.25}>
+                      <Stack direction="row"
+spacing={1.5}
+alignItems="center"
+mb={1.25}>
                         <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha('#6366f1', 0.12), display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366f1' }}>
                           <DevicesRoundedIcon fontSize="small" />
                         </Box>
                         <Box>
-                          <Typography fontWeight={800} fontSize={14}>Tablets</Typography>
-                          <Typography variant="caption" color="text.secondary">{totalTablets} unidades instaladas</Typography>
+                          <Typography fontWeight={800}
+fontSize={14}>Tablets</Typography>
+                          <Typography variant="caption"
+color="text.secondary">{totalTablets} unidades instaladas</Typography>
                         </Box>
                       </Stack>
                       <Stack spacing={0.5}>
                         {tablets.map((t, i) => (
-                          <Stack key={i} direction="row" justifyContent="space-between" alignItems="center" sx={{ px: 1.25, py: 0.75, borderRadius: 1.5, bgcolor: 'action.hover' }}>
-                            <Typography fontSize={13} fontWeight={600}>{t.label ?? t.id ?? `Tablet ${i + 1}`}</Typography>
-                            <Stack direction="row" spacing={1} alignItems="center">
-                              <Chip label={`x${t.qty}`} size="small" sx={{ height: 22, fontSize: 11, fontWeight: 700 }} />
+                          <Stack key={i}
+direction="row"
+justifyContent="space-between"
+alignItems="center"
+sx={{ px: 1.25, py: 0.75, borderRadius: 1.5, bgcolor: 'action.hover' }}>
+                            <Typography fontSize={13}
+fontWeight={600}>{t.label ?? t.id ?? `Tablet ${i + 1}`}</Typography>
+                            <Stack direction="row"
+spacing={1}
+alignItems="center">
+                              <Chip label={`x${t.qty}`}
+size="small"
+sx={{ height: 22, fontSize: 11, fontWeight: 700 }} />
                               {t.price > 0 && (
-                                <Typography variant="caption" color="text.secondary">${(t.qty * t.price).toLocaleString()}</Typography>
+                                <Typography variant="caption"
+color="text.secondary">${(t.qty * t.price).toLocaleString()}</Typography>
                               )}
                             </Stack>
                           </Stack>
@@ -1004,22 +1203,35 @@ export default function StoreTechModal({
                 )}
 
                 {totalPrinters > 0 && (
-                  <Card variant="outlined" sx={{ borderRadius: 2.5 }}>
+                  <Card variant="outlined"
+sx={{ borderRadius: 2.5 }}>
                     <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                      <Stack direction="row" spacing={1.5} alignItems="center" mb={1.25}>
+                      <Stack direction="row"
+spacing={1.5}
+alignItems="center"
+mb={1.25}>
                         <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha('#10b981', 0.12), display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
                           <PrintRoundedIcon fontSize="small" />
                         </Box>
                         <Box>
-                          <Typography fontWeight={800} fontSize={14}>Impresoras</Typography>
-                          <Typography variant="caption" color="text.secondary">{totalPrinters} unidades</Typography>
+                          <Typography fontWeight={800}
+fontSize={14}>Impresoras</Typography>
+                          <Typography variant="caption"
+color="text.secondary">{totalPrinters} unidades</Typography>
                         </Box>
                       </Stack>
                       <Stack spacing={0.5}>
                         {printers.map((p, i) => (
-                          <Stack key={i} direction="row" justifyContent="space-between" alignItems="center" sx={{ px: 1.25, py: 0.75, borderRadius: 1.5, bgcolor: 'action.hover' }}>
-                            <Typography fontSize={13} fontWeight={600}>{p.label ?? p.id ?? `Impresora ${i + 1}`}</Typography>
-                            <Chip label={`x${p.qty}`} size="small" sx={{ height: 22, fontSize: 11, fontWeight: 700 }} />
+                          <Stack key={i}
+direction="row"
+justifyContent="space-between"
+alignItems="center"
+sx={{ px: 1.25, py: 0.75, borderRadius: 1.5, bgcolor: 'action.hover' }}>
+                            <Typography fontSize={13}
+fontWeight={600}>{p.label ?? p.id ?? `Impresora ${i + 1}`}</Typography>
+                            <Chip label={`x${p.qty}`}
+size="small"
+sx={{ height: 22, fontSize: 11, fontWeight: 700 }} />
                           </Stack>
                         ))}
                       </Stack>
@@ -1031,27 +1243,37 @@ export default function StoreTechModal({
           </TabPanel>
 
           {/* TAB 2 — Contactos */}
-          <TabPanel value={tab} index={2}>
+          <TabPanel value={tab}
+index={2}>
             {!hasContacts ? (
               <Box sx={{ py: 4, textAlign: 'center' }}>
                 <GroupsRoundedIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
-                <Typography color="text.secondary" fontWeight={700}>Sin contactos registrados</Typography>
-                <Typography variant="caption" color="text.disabled">Agrega manager, owner u otros contactos desde la edición de la tienda.</Typography>
+                <Typography color="text.secondary"
+fontWeight={700}>Sin contactos registrados</Typography>
+                <Typography variant="caption"
+color="text.disabled">Agrega manager, owner u otros contactos desde la edición de la tienda.</Typography>
               </Box>
             ) : (
               <Stack spacing={1}>
                 {effectiveContacts.map((c, i) => {
                   const color = CONTACT_COLORS[c.type] ?? '#94a3b8';
                   return (
-                    <Card key={i} variant="outlined" sx={{ borderRadius: 2.5, overflow: 'hidden' }}>
-                      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ p: 1.75 }}>
+                    <Card key={i}
+variant="outlined"
+sx={{ borderRadius: 2.5, overflow: 'hidden' }}>
+                      <Stack direction="row"
+alignItems="center"
+spacing={1.5}
+sx={{ p: 1.75 }}>
                         <Avatar
                           sx={{ width: 40, height: 40, bgcolor: alpha(color, 0.15), color, border: '1px solid', borderColor: alpha(color, 0.3) }}
                         >
                           <AssignmentIndRoundedIcon fontSize="small" />
                         </Avatar>
                         <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography fontWeight={800} fontSize={14} noWrap>{c.name || '—'}</Typography>
+                          <Typography fontWeight={800}
+fontSize={14}
+noWrap>{c.name || '—'}</Typography>
                           <Chip
                             size="small"
                             label={CONTACT_LABELS[c.type] ?? c.type}
@@ -1059,15 +1281,24 @@ export default function StoreTechModal({
                           />
                         </Box>
                         {c.phone && (
-                          <Stack direction="row" spacing={0.5} alignItems="center">
-                            <Typography fontSize={13} fontWeight={700} sx={{ fontVariantNumeric: 'tabular-nums' }}>{c.phone}</Typography>
+                          <Stack direction="row"
+spacing={0.5}
+alignItems="center">
+                            <Typography fontSize={13}
+fontWeight={700}
+sx={{ fontVariantNumeric: 'tabular-nums' }}>{c.phone}</Typography>
                             <Tooltip title="Copiar teléfono">
-                              <IconButton size="small" onClick={() => copy(c.phone, 'Teléfono copiado')} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}>
+                              <IconButton size="small"
+onClick={() => copy(c.phone, 'Teléfono copiado')}
+sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}>
                                 <ContentCopyRoundedIcon sx={{ fontSize: 13 }} />
                               </IconButton>
                             </Tooltip>
                             <Tooltip title="Llamar">
-                              <IconButton size="small" href={`tel:${c.phone}`} component="a" sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}>
+                              <IconButton size="small"
+href={`tel:${c.phone}`}
+component="a"
+sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}>
                                 <PhoneRoundedIcon sx={{ fontSize: 13 }} />
                               </IconButton>
                             </Tooltip>
@@ -1089,7 +1320,10 @@ export default function StoreTechModal({
         onClose={() => setToast({ open: false, msg: '' })}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert onClose={() => setToast({ open: false, msg: '' })} severity="success" variant="filled" sx={{ borderRadius: 3, fontWeight: 900 }}>
+        <Alert onClose={() => setToast({ open: false, msg: '' })}
+severity="success"
+variant="filled"
+sx={{ borderRadius: 3, fontWeight: 900 }}>
           {toast.msg}
         </Alert>
       </Snackbar>

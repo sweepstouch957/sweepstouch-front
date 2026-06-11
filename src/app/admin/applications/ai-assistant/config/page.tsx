@@ -221,7 +221,10 @@ export default function AIConfigPage() {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight={400}>
+      <Box display="flex"
+justifyContent="center"
+alignItems="center"
+minHeight={400}>
         <CircularProgress />
       </Box>
     );
@@ -243,8 +246,13 @@ export default function AIConfigPage() {
     >
       <Container maxWidth={customization.stretch ? false : 'lg'}>
         {/* Header */}
-        <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3}>
-          <Stack direction="row" alignItems="center" spacing={1.5}>
+        <Stack direction="row"
+alignItems="center"
+justifyContent="space-between"
+mb={3}>
+          <Stack direction="row"
+alignItems="center"
+spacing={1.5}>
             <Button
               size="small"
               startIcon={<ArrowBackRoundedIcon sx={{ fontSize: 14 }} />}
@@ -253,12 +261,15 @@ export default function AIConfigPage() {
             >
               Back to Chat
             </Button>
-            <Divider orientation="vertical" flexItem />
+            <Divider orientation="vertical"
+flexItem />
             <SmartToyRoundedIcon sx={{ color: accent, fontSize: 24 }} />
-            <Typography variant="h5" fontWeight={700}>AI Configuration</Typography>
+            <Typography variant="h5"
+fontWeight={700}>AI Configuration</Typography>
           </Stack>
 
-          <Stack direction="row" spacing={1}>
+          <Stack direction="row"
+spacing={1}>
             <Button
               variant="outlined"
               size="small"
@@ -293,12 +304,24 @@ export default function AIConfigPage() {
           }}
           sx={{ mb: 3, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, fontSize: 13 } }}
         >
-          <Tab icon={<TuneRoundedIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="General" />
-          <Tab icon={<RuleRoundedIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Rules" />
-          <Tab icon={<BlockRoundedIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Restrictions" />
-          <Tab icon={<SmartToyRoundedIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Skills" />
-          <Tab icon={<PeopleRoundedIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Conversations" />
-          <Tab icon={<PreviewRoundedIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Context Preview" />
+          <Tab icon={<TuneRoundedIcon sx={{ fontSize: 18 }} />}
+iconPosition="start"
+label="General" />
+          <Tab icon={<RuleRoundedIcon sx={{ fontSize: 18 }} />}
+iconPosition="start"
+label="Rules" />
+          <Tab icon={<BlockRoundedIcon sx={{ fontSize: 18 }} />}
+iconPosition="start"
+label="Restrictions" />
+          <Tab icon={<SmartToyRoundedIcon sx={{ fontSize: 18 }} />}
+iconPosition="start"
+label="Skills" />
+          <Tab icon={<PeopleRoundedIcon sx={{ fontSize: 18 }} />}
+iconPosition="start"
+label="Conversations" />
+          <Tab icon={<PreviewRoundedIcon sx={{ fontSize: 18 }} />}
+iconPosition="start"
+label="Context Preview" />
         </Tabs>
 
         {/* Tab 0: General */}
@@ -307,8 +330,13 @@ export default function AIConfigPage() {
             {/* System Prompt */}
             <Card sx={cardSx}>
               <CardContent sx={{ p: 3 }}>
-                <Typography variant="subtitle1" fontWeight={700} mb={2}>System Prompt</Typography>
-                <Typography variant="caption" color="text.secondary" display="block" mb={1.5}>
+                <Typography variant="subtitle1"
+fontWeight={700}
+mb={2}>System Prompt</Typography>
+                <Typography variant="caption"
+color="text.secondary"
+display="block"
+mb={1.5}>
                   This is the base instruction given to Claude before every conversation. It defines the AI's personality, behavior, and scope.
                 </Typography>
                 <TextField
@@ -328,37 +356,59 @@ export default function AIConfigPage() {
             {/* Parameters */}
             <Card sx={cardSx}>
               <CardContent sx={{ p: 3 }}>
-                <Typography variant="subtitle1" fontWeight={700} mb={2}>Model Parameters</Typography>
+                <Typography variant="subtitle1"
+fontWeight={700}
+mb={2}>Model Parameters</Typography>
 
                 <Stack spacing={3}>
                   <Box>
-                    <Stack direction="row" justifyContent="space-between" mb={1}>
-                      <Typography variant="body2" fontWeight={600}>Temperature</Typography>
-                      <Chip label={temperature.toFixed(2)} size="small" sx={{ fontWeight: 700 }} />
+                    <Stack direction="row"
+justifyContent="space-between"
+mb={1}>
+                      <Typography variant="body2"
+fontWeight={600}>Temperature</Typography>
+                      <Chip label={temperature.toFixed(2)}
+size="small"
+sx={{ fontWeight: 700 }} />
                     </Stack>
-                    <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+                    <Typography variant="caption"
+color="text.secondary"
+display="block"
+mb={1}>
                       Lower = more focused/deterministic. Higher = more creative/random.
                     </Typography>
                     <Slider
                       value={temperature}
                       onChange={(_, v) => setTemperature(v as number)}
-                      min={0} max={1} step={0.05}
+                      min={0}
+max={1}
+step={0.05}
                       sx={{ color: accent }}
                     />
                   </Box>
 
                   <Box>
-                    <Stack direction="row" justifyContent="space-between" mb={1}>
-                      <Typography variant="body2" fontWeight={600}>Max Tokens</Typography>
-                      <Chip label={maxTokens} size="small" sx={{ fontWeight: 700 }} />
+                    <Stack direction="row"
+justifyContent="space-between"
+mb={1}>
+                      <Typography variant="body2"
+fontWeight={600}>Max Tokens</Typography>
+                      <Chip label={maxTokens}
+size="small"
+sx={{ fontWeight: 700 }} />
                     </Stack>
-                    <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+                    <Typography variant="caption"
+color="text.secondary"
+display="block"
+mb={1}>
                       Maximum length of AI response. Higher = longer responses allowed.
                     </Typography>
                     <Slider
                       value={maxTokens}
                       onChange={(_, v) => setMaxTokens(v as number)}
-                      min={256} max={8192} step={256}
+                      min={256}
+max={8192}
+step={256}
                       sx={{ color: accent }}
                     />
                   </Box>
@@ -369,16 +419,28 @@ export default function AIConfigPage() {
             {/* Context Sources */}
             <Card sx={cardSx}>
               <CardContent sx={{ p: 3 }}>
-                <Typography variant="subtitle1" fontWeight={700} mb={2}>Context Sources</Typography>
-                <Typography variant="caption" color="text.secondary" display="block" mb={2}>
+                <Typography variant="subtitle1"
+fontWeight={700}
+mb={2}>Context Sources</Typography>
+                <Typography variant="caption"
+color="text.secondary"
+display="block"
+mb={2}>
                   Toggle which data sources are included in the AI's context. Disabling sources reduces token usage.
                 </Typography>
 
                 {Object.entries(contextSources).map(([key, enabled]) => (
-                  <Stack key={key} direction="row" alignItems="center" justifyContent="space-between" py={0.5}>
+                  <Stack key={key}
+direction="row"
+alignItems="center"
+justifyContent="space-between"
+py={0.5}>
                     <Box>
-                      <Typography variant="body2" fontWeight={600} textTransform="capitalize">{key}</Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="body2"
+fontWeight={600}
+textTransform="capitalize">{key}</Typography>
+                      <Typography variant="caption"
+color="text.secondary">
                         {key === 'team' && 'Team member profiles, roles, departments, CVs'}
                         {key === 'tasks' && 'Projects, task boards, assignments, status'}
                         {key === 'campaigns' && 'Active and past campaigns, brands'}
@@ -402,12 +464,19 @@ export default function AIConfigPage() {
         {tab === 1 && (
           <Card sx={cardSx}>
             <CardContent sx={{ p: 3 }}>
-              <Typography variant="subtitle1" fontWeight={700} mb={1}>Active Rules</Typography>
-              <Typography variant="caption" color="text.secondary" display="block" mb={2}>
+              <Typography variant="subtitle1"
+fontWeight={700}
+mb={1}>Active Rules</Typography>
+              <Typography variant="caption"
+color="text.secondary"
+display="block"
+mb={2}>
                 Rules are instructions that Claude must follow. They are included in every conversation.
               </Typography>
 
-              <Stack direction="row" spacing={1} mb={2}>
+              <Stack direction="row"
+spacing={1}
+mb={2}>
                 <TextField
                   fullWidth
                   size="small"
@@ -432,7 +501,9 @@ export default function AIConfigPage() {
                   <ListItem
                     key={i}
                     secondaryAction={
-                      <IconButton edge="end" onClick={() => handleRemoveRule(i)} sx={{ color: 'error.main' }}>
+                      <IconButton edge="end"
+onClick={() => handleRemoveRule(i)}
+sx={{ color: 'error.main' }}>
                         <DeleteOutlineRoundedIcon fontSize="small" />
                       </IconButton>
                     }
@@ -445,7 +516,10 @@ export default function AIConfigPage() {
                   </ListItem>
                 ))}
                 {(!config?.rules || config.rules.length === 0) && (
-                  <Typography variant="body2" color="text.secondary" textAlign="center" py={4}>
+                  <Typography variant="body2"
+color="text.secondary"
+textAlign="center"
+py={4}>
                     No rules configured yet
                   </Typography>
                 )}
@@ -458,12 +532,19 @@ export default function AIConfigPage() {
         {tab === 2 && (
           <Card sx={cardSx}>
             <CardContent sx={{ p: 3 }}>
-              <Typography variant="subtitle1" fontWeight={700} mb={1}>Restrictions</Typography>
-              <Typography variant="caption" color="text.secondary" display="block" mb={2}>
+              <Typography variant="subtitle1"
+fontWeight={700}
+mb={1}>Restrictions</Typography>
+              <Typography variant="caption"
+color="text.secondary"
+display="block"
+mb={2}>
                 Things Claude should NOT do. These are enforced as "DO NOT" instructions.
               </Typography>
 
-              <Stack direction="row" spacing={1} mb={2}>
+              <Stack direction="row"
+spacing={1}
+mb={2}>
                 <TextField
                   fullWidth
                   size="small"
@@ -488,7 +569,9 @@ export default function AIConfigPage() {
                   <ListItem
                     key={i}
                     secondaryAction={
-                      <IconButton edge="end" onClick={() => handleRemoveRestriction(i)} sx={{ color: 'error.main' }}>
+                      <IconButton edge="end"
+onClick={() => handleRemoveRestriction(i)}
+sx={{ color: 'error.main' }}>
                         <DeleteOutlineRoundedIcon fontSize="small" />
                       </IconButton>
                     }
@@ -501,7 +584,10 @@ export default function AIConfigPage() {
                   </ListItem>
                 ))}
                 {(!config?.restrictions || config.restrictions.length === 0) && (
-                  <Typography variant="body2" color="text.secondary" textAlign="center" py={4}>
+                  <Typography variant="body2"
+color="text.secondary"
+textAlign="center"
+py={4}>
                     No restrictions configured yet
                   </Typography>
                 )}
@@ -516,13 +602,19 @@ export default function AIConfigPage() {
             {/* Create Skill Card */}
             <Card sx={cardSx}>
               <CardContent sx={{ p: 3 }}>
-                <Typography variant="subtitle1" fontWeight={700} mb={1}>Crear Nueva Skill / Comando</Typography>
-                <Typography variant="caption" color="text.secondary" display="block" mb={2}>
+                <Typography variant="subtitle1"
+fontWeight={700}
+mb={1}>Crear Nueva Skill / Comando</Typography>
+                <Typography variant="caption"
+color="text.secondary"
+display="block"
+mb={2}>
                   Define un comando (ej. /daily) que pueda ser ejecutado por el bot de WhatsApp usando inteligencia artificial.
                 </Typography>
 
                 <Stack spacing={2}>
-                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                  <Stack direction={{ xs: 'column', sm: 'row' }}
+spacing={2}>
                     <TextField
                       label="Trigger Command (ej. /daily)"
                       fullWidth
@@ -550,7 +642,8 @@ export default function AIConfigPage() {
                     onChange={(e) => setNewSkillPrompt(e.target.value)}
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, fontSize: 13, fontFamily: 'monospace' } }}
                   />
-                  <Box display="flex" justifyContent="flex-end">
+                  <Box display="flex"
+justifyContent="flex-end">
                     <Button
                       variant="contained"
                       startIcon={<AddRoundedIcon />}
@@ -567,7 +660,9 @@ export default function AIConfigPage() {
             {/* List Skills Card */}
             <Card sx={cardSx}>
               <CardContent sx={{ p: 3 }}>
-                <Typography variant="subtitle1" fontWeight={700} mb={2}>Skills Registradas</Typography>
+                <Typography variant="subtitle1"
+fontWeight={700}
+mb={2}>Skills Registradas</Typography>
                 <Stack spacing={2}>
                   {skills.map((skill, i) => (
                     <Paper
@@ -580,20 +675,34 @@ export default function AIConfigPage() {
                         bgcolor: skill.active ? alpha(accent, 0.02) : alpha(theme.palette.text.disabled, 0.05),
                       }}
                     >
-                      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                          <Chip label={skill.trigger} size="small" color="primary" sx={{ fontWeight: 800, borderRadius: 1 }} />
-                          <Typography variant="body2" color="text.secondary" fontSize={12}>
+                      <Stack direction="row"
+alignItems="center"
+justifyContent="space-between"
+mb={1}>
+                        <Stack direction="row"
+alignItems="center"
+spacing={1}>
+                          <Chip label={skill.trigger}
+size="small"
+color="primary"
+sx={{ fontWeight: 800, borderRadius: 1 }} />
+                          <Typography variant="body2"
+color="text.secondary"
+fontSize={12}>
                             {skill.description || 'Sin descripción'}
                           </Typography>
                         </Stack>
-                        <Stack direction="row" alignItems="center" spacing={1}>
+                        <Stack direction="row"
+alignItems="center"
+spacing={1}>
                           <Switch
                             checked={skill.active}
                             size="small"
                             onChange={() => handleToggleSkill(i)}
                           />
-                          <IconButton size="small" onClick={() => handleRemoveSkill(i)} sx={{ color: 'error.main' }}>
+                          <IconButton size="small"
+onClick={() => handleRemoveSkill(i)}
+sx={{ color: 'error.main' }}>
                             <DeleteOutlineRoundedIcon fontSize="small" />
                           </IconButton>
                         </Stack>
@@ -617,7 +726,10 @@ export default function AIConfigPage() {
                     </Paper>
                   ))}
                   {skills.length === 0 && (
-                    <Typography variant="body2" color="text.secondary" textAlign="center" py={4}>
+                    <Typography variant="body2"
+color="text.secondary"
+textAlign="center"
+py={4}>
                       No hay skills configuradas aún.
                     </Typography>
                   )}
@@ -631,8 +743,12 @@ export default function AIConfigPage() {
         {tab === 4 && (
           <Card sx={cardSx}>
             <CardContent sx={{ p: 3 }}>
-              <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
-                <Typography variant="subtitle1" fontWeight={700}>
+              <Stack direction="row"
+alignItems="center"
+justifyContent="space-between"
+mb={2}>
+                <Typography variant="subtitle1"
+fontWeight={700}>
                   All Conversations ({convTotal})
                 </Typography>
               </Stack>
@@ -658,7 +774,10 @@ export default function AIConfigPage() {
                   </ListItem>
                 ))}
                 {conversations.length === 0 && (
-                  <Typography variant="body2" color="text.secondary" textAlign="center" py={4}>
+                  <Typography variant="body2"
+color="text.secondary"
+textAlign="center"
+py={4}>
                     No conversations found
                   </Typography>
                 )}
@@ -671,8 +790,12 @@ export default function AIConfigPage() {
         {tab === 5 && (
           <Card sx={cardSx}>
             <CardContent sx={{ p: 3 }}>
-              <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
-                <Typography variant="subtitle1" fontWeight={700}>Context Preview</Typography>
+              <Stack direction="row"
+alignItems="center"
+justifyContent="space-between"
+mb={2}>
+                <Typography variant="subtitle1"
+fontWeight={700}>Context Preview</Typography>
                 <Button
                   size="small"
                   startIcon={<RefreshRoundedIcon sx={{ fontSize: 14 }} />}
@@ -682,12 +805,17 @@ export default function AIConfigPage() {
                   Reload
                 </Button>
               </Stack>
-              <Typography variant="caption" color="text.secondary" display="block" mb={2}>
+              <Typography variant="caption"
+color="text.secondary"
+display="block"
+mb={2}>
                 This is the live context data that Claude receives. It includes data from all enabled sources.
               </Typography>
 
               {loadingPreview ? (
-                <Box display="flex" justifyContent="center" py={6}><CircularProgress /></Box>
+                <Box display="flex"
+justifyContent="center"
+py={6}><CircularProgress /></Box>
               ) : (
                 <Box
                   sx={{
