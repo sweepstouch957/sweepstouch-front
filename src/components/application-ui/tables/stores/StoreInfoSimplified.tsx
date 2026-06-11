@@ -14,6 +14,7 @@ import PeopleAltRoundedIcon from '@mui/icons-material/PeopleAltRounded';
 import PhoneRoundedIcon from '@mui/icons-material/PhoneRounded';
 import PlaceRoundedIcon from '@mui/icons-material/PlaceRounded';
 import PrintRoundedIcon from '@mui/icons-material/PrintRounded';
+import PictureAsPdfRoundedIcon from '@mui/icons-material/PictureAsPdfRounded';
 import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import TodayRoundedIcon from '@mui/icons-material/TodayRounded';
 import CampaignRoundedIcon from '@mui/icons-material/CampaignRounded';
@@ -90,6 +91,13 @@ const CONTACT_COLORS: Record<string, string> = {
   other: '#94a3b8',
 };
 
+const SPANISH_DATE_FORMATTER = new Intl.DateTimeFormat('es-HN', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+
 function a11yProps(index: number) {
   return {
     id: `stm-tab-${index}`,
@@ -110,6 +118,52 @@ function safeDateLabel(iso?: string | null) {
   const d = iso ? new Date(iso) : null;
   if (!d || Number.isNaN(d.getTime())) return '—';
   return format(d, 'MMM dd, yyyy');
+}
+
+function spanishDateLabel(value?: string | Date | null) {
+  if (!value) return 'Sin registro';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Sin registro';
+  return SPANISH_DATE_FORMATTER.format(date);
+}
+
+async function imageToDataUrl(src?: string | null) {
+  if (!src) return null;
+  try {
+    const response = await fetch(src);
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const context = canvas.getContext('2d');
+    if (!context) return null;
+    context.drawImage(bitmap, 0, 0);
+    bitmap.close();
+    return canvas.toDataURL('image/png');
+  } catch {
+    return null;
+  }
+}
+
+async function storeImageToDataUrl(src?: string | null) {
+  if (!src) return null;
+
+  if (/^https?:\/\//i.test(src)) {
+    const proxied = await imageToDataUrl(`/api/store-logo?url=${encodeURIComponent(src)}`);
+    if (proxied) return proxied;
+
+    const optimizedUrl = `/_next/image?url=${encodeURIComponent(src)}&w=256&q=90`;
+    const optimized = await imageToDataUrl(optimizedUrl);
+    if (optimized) return optimized;
+  }
+
+  return imageToDataUrl(src);
+}
+
+function imageFormat(dataUrl: string) {
+  return dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
 }
 
 /* ─── KPI mini card ──────────────────────────────────────────────────────── */
@@ -161,9 +215,36 @@ export default function StoreTechModal({
   const theme = useTheme();
   const [tab, setTab] = useState(0);
   const [toast, setToast] = useState({ open: false, msg: '' });
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   const { data: lastCampaign, isLoading: loadingCampaign } = useLastCampaign(storeId);
   const { data: storeDetails } = useStoreById(storeId);
+
+  const effectiveName = storeDetails?.name || storeName || 'Tienda';
+  const effectiveAddress = storeDetails?.address || address || 'Sin dirección registrada';
+  const effectiveEmail = storeDetails?.email || email || '';
+  const effectiveImage = storeDetails?.image || storeImage || '';
+  const effectiveStartDate = storeDetails?.startContractDate || startContractDate || storeDetails?.createdAt;
+  const effectiveAudience = Number(storeDetails?.customerCount ?? audience ?? 0);
+  const effectiveContacts = storeDetails?.contactInfo?.length
+    ? storeDetails.contactInfo
+    : contactInfo ?? [];
+  const effectiveStatus = storeDetails?.status || (storeDetails?.active === false ? 'cancelled' : 'active');
+  const statusLabel =
+    effectiveStatus === 'suspended'
+      ? 'Cuenta Suspendida'
+      : effectiveStatus === 'cancelled'
+        ? 'Cuenta Cancelada'
+        : effectiveStatus === 'inactive'
+          ? 'Cuenta Inactiva'
+          : 'Cuenta Activa';
+  const withdrawalReason =
+    effectiveStatus === 'suspended'
+      ? storeDetails?.suspendedReason
+      : effectiveStatus === 'cancelled'
+        ? storeDetails?.cancelContractReason
+        : storeDetails?.inactiveReason;
+  const lastCampaignDate = lastCampaign?.startDate || lastCampaign?.createdAt;
 
   const slug = (storeSlug || '').trim();
 
@@ -177,7 +258,148 @@ export default function StoreTechModal({
   const totalPrinters = printers.reduce((s, e) => s + (e.qty ?? 0), 0);
   const hasEquipment = totalTablets > 0 || totalPrinters > 0 || (equipment ?? []).length > 0;
 
-  const hasContacts = (contactInfo ?? []).length > 0;
+  const hasContacts = effectiveContacts.length > 0;
+
+  async function exportTechnicalSheet() {
+    setExportingPdf(true);
+    try {
+      const [{ jsPDF }, brandLogo, storeLogo, cornerRibbon] = await Promise.all([
+        import('jspdf'),
+        imageToDataUrl('/st-logo.png'),
+        storeImageToDataUrl(effectiveImage),
+        imageToDataUrl('/technical-sheet-corner.png'),
+      ]);
+
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const pink = '#ff0080';
+      const dark = '#111827';
+      const gray = '#6b7280';
+      const margin = 68;
+
+      doc.setFillColor(255, 255, 255);
+      doc.rect(0, 0, pageWidth, pageHeight, 'F');
+
+      if (cornerRibbon) {
+        doc.addImage(cornerRibbon, imageFormat(cornerRibbon), pageWidth - 300, 0, 300, 100);
+      }
+
+      if (brandLogo) {
+        doc.addImage(brandLogo, imageFormat(brandLogo), 24, 10, 172, 58);
+      } else {
+        doc.setTextColor(pink);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(26);
+        doc.text('sweepsTOUCH', 30, 48);
+      }
+
+      doc.setTextColor(dark);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(13);
+      doc.text('FICHA TÉCNICA', pageWidth / 2, 92, { align: 'center' });
+
+      doc.setFont('helvetica', 'bold');
+      const titleMaxWidth = pageWidth - margin * 2 - 105;
+      const titleFontSize = effectiveName.length > 48 ? 15 : effectiveName.length > 34 ? 17 : 20;
+      doc.setFontSize(titleFontSize);
+      doc.text(effectiveName, margin + 25, 175, { maxWidth: titleMaxWidth });
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(gray);
+      doc.setFontSize(11);
+      doc.text(effectiveAddress, margin + 25, 193, { maxWidth: 480 });
+
+      if (storeLogo) {
+        const frameX = pageWidth - margin - 52;
+        const frameY = 148;
+        const frameSize = 52;
+        const imageProperties = doc.getImageProperties(storeLogo);
+        const imageRatio = imageProperties.width / imageProperties.height;
+        const imageWidth = imageRatio >= 1 ? frameSize - 8 : (frameSize - 8) * imageRatio;
+        const imageHeight = imageRatio >= 1 ? (frameSize - 8) / imageRatio : frameSize - 8;
+
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(220, 220, 220);
+        doc.roundedRect(frameX, frameY, frameSize, frameSize, 3, 3, 'FD');
+        doc.addImage(
+          storeLogo,
+          imageFormat(storeLogo),
+          frameX + (frameSize - imageWidth) / 2,
+          frameY + (frameSize - imageHeight) / 2,
+          imageWidth,
+          imageHeight
+        );
+      }
+
+      doc.setDrawColor(205, 205, 205);
+      doc.setLineWidth(0.8);
+      doc.line(margin, 210, pageWidth - margin, 210);
+
+      const metrics = [
+        ['FECHA DE INICIO', spanishDateLabel(effectiveStartDate)],
+        ['AUDIENCIA TOTAL', `${effectiveAudience.toLocaleString('en-US')} clientes`],
+        ['ÚLTIMA CAMPAÑA', spanishDateLabel(lastCampaignDate)],
+        ['ESTADO', statusLabel],
+      ];
+      const metricWidth = (pageWidth - margin * 2) / metrics.length;
+
+      metrics.forEach(([label, value], index) => {
+        const x = margin + 16 + metricWidth * index;
+        doc.setTextColor(dark);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.text(label, x, 245);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        doc.text(value, x, 265, { maxWidth: metricWidth - 22 });
+      });
+
+      let contentY = 315;
+      doc.setTextColor('#303030');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text('RAZÓN DE RETIRO', margin, contentY);
+      doc.setDrawColor(190, 190, 190);
+      doc.line(margin + 16, contentY + 14, margin + 16, contentY + 58);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(11);
+      doc.setTextColor(dark);
+      const reasonLines = doc.splitTextToSize(withdrawalReason || 'Sin razón de retiro registrada.', pageWidth - margin * 2 - 45);
+      doc.text(reasonLines, margin + 32, contentY + 33);
+
+      contentY += 92;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text('CONTACTOS', margin, contentY);
+
+      let contactY = contentY + 25;
+      doc.setFontSize(10);
+      doc.text('Correo:', margin + 16, contactY);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(gray);
+      doc.text(effectiveEmail || 'Sin correo registrado', margin + 76, contactY);
+
+      effectiveContacts.slice(0, 5).forEach((contact) => {
+        contactY += 17;
+        doc.setTextColor(dark);
+        doc.setFont('helvetica', 'bold');
+        doc.text(contact.name || 'Sin nombre', margin + 16, contactY);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(gray);
+        doc.text(`(${CONTACT_LABELS[contact.type] || contact.type})`, margin + 120, contactY);
+        doc.text(contact.phone || 'Sin teléfono', margin + 205, contactY);
+      });
+
+      doc.setDrawColor(220, 220, 220);
+      doc.line(margin, pageHeight - 35, pageWidth - margin, pageHeight - 35);
+      doc.save(`ficha-tecnica-${effectiveName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.pdf`);
+      setToast({ open: true, msg: 'Ficha técnica exportada.' });
+    } catch {
+      setToast({ open: true, msg: 'No se pudo generar el PDF.' });
+    } finally {
+      setExportingPdf(false);
+    }
+  }
 
   async function copy(text: string, msg: string) {
     try { await navigator.clipboard.writeText(text); } catch {
@@ -241,6 +463,8 @@ export default function StoreTechModal({
                         label={
                           storeDetails.status === 'active'
                             ? 'Activa'
+                            : storeDetails.status === 'suspended'
+                            ? 'Suspendida'
                             : storeDetails.status === 'inactive'
                             ? 'Inactiva'
                             : storeDetails.status === 'cancelled'
@@ -252,6 +476,8 @@ export default function StoreTechModal({
                         color={
                           storeDetails.status === 'active'
                             ? 'success'
+                            : storeDetails.status === 'suspended'
+                            ? 'info'
                             : storeDetails.status === 'inactive'
                             ? 'warning'
                             : storeDetails.status === 'cancelled'
@@ -282,9 +508,25 @@ export default function StoreTechModal({
                 </Box>
               </Stack>
 
-              <IconButton onClick={onClose} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider', flexShrink: 0 }}>
-                <CloseRoundedIcon fontSize="small" />
-              </IconButton>
+              <Stack direction="row" spacing={1} flexShrink={0}>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={
+                    exportingPdf
+                      ? <CircularProgress size={14} color="inherit" />
+                      : <PictureAsPdfRoundedIcon fontSize="small" />
+                  }
+                  onClick={exportTechnicalSheet}
+                  disabled={exportingPdf || !storeDetails}
+                  sx={{ textTransform: 'none', fontWeight: 800, borderRadius: 2 }}
+                >
+                  {exportingPdf ? 'Generando...' : 'Exportar PDF'}
+                </Button>
+                <IconButton onClick={onClose} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                  <CloseRoundedIcon fontSize="small" />
+                </IconButton>
+              </Stack>
             </Stack>
 
             <Tabs
@@ -304,7 +546,7 @@ export default function StoreTechModal({
               <Tab
                 icon={<GroupsRoundedIcon sx={{ fontSize: 16 }} />}
                 iconPosition="start"
-                label={`Contactos${hasContacts ? ` (${(contactInfo ?? []).length})` : ''}`}
+                label={`Contactos${hasContacts ? ` (${effectiveContacts.length})` : ''}`}
                 {...a11yProps(2)}
               />
             </Tabs>
@@ -318,35 +560,84 @@ export default function StoreTechModal({
           <TabPanel value={tab} index={0}>
             <Stack spacing={2}>
               {/* KPI row */}
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                <KpiCard
-                  icon={<PeopleAltRoundedIcon sx={{ fontSize: 18 }} />}
-                  label="Clientes"
-                  value={Number.isFinite(Number(audience)) ? Number(audience).toLocaleString('en-US') : '—'}
-                  color={theme.palette.primary.main}
-                />
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 1.5 }}>
                 <KpiCard
                   icon={<TodayRoundedIcon sx={{ fontSize: 18 }} />}
-                  label="Contrato desde"
-                  value={safeDateLabel(startContractDate)}
+                  label="Fecha de inicio"
+                  value={spanishDateLabel(effectiveStartDate)}
                   color="#10b981"
                 />
                 <KpiCard
-                  icon={<DevicesRoundedIcon sx={{ fontSize: 18 }} />}
-                  label="Tablets instaladas"
-                  value={totalTablets > 0 ? `${totalTablets} unid.` : '—'}
+                  icon={<PeopleAltRoundedIcon sx={{ fontSize: 18 }} />}
+                  label="Audiencia total"
+                  value={`${effectiveAudience.toLocaleString('en-US')} clientes`}
+                  color={theme.palette.primary.main}
+                />
+                <KpiCard
+                  icon={<CampaignRoundedIcon sx={{ fontSize: 18 }} />}
+                  label="Última campaña"
+                  value={spanishDateLabel(lastCampaignDate)}
                   color="#6366f1"
                 />
-              </Stack>
+                <KpiCard
+                  icon={<WarningAmberRoundedIcon sx={{ fontSize: 18 }} />}
+                  label="Estado"
+                  value={statusLabel}
+                  color={
+                    effectiveStatus === 'active'
+                      ? '#10b981'
+                      : effectiveStatus === 'suspended'
+                        ? '#0288d1'
+                        : '#ef4444'
+                  }
+                />
+              </Box>
+
+              <Card variant="outlined" sx={{ borderRadius: 2.5 }}>
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  <Typography fontWeight={800} fontSize={13} mb={1}>
+                    Razón de retiro
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ pl: 1.5, borderLeft: '3px solid', borderColor: 'divider' }}
+                  >
+                    {withdrawalReason || 'Sin razón de retiro registrada.'}
+                  </Typography>
+                </CardContent>
+              </Card>
 
               {/* Contact details */}
               <Card variant="outlined" sx={{ borderRadius: 2.5 }}>
                 <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
                   <Typography fontWeight={800} fontSize={13} mb={1}>Datos de contacto</Typography>
-                  <CopyRow icon={<EmailRoundedIcon sx={{ fontSize: 16 }} />} label="Email" value={email} onCopy={(v) => copy(v, 'Email copiado')} />
-                  <CopyRow icon={<PhoneRoundedIcon sx={{ fontSize: 16 }} />} label="Teléfono" value={phone} onCopy={(v) => copy(v, 'Teléfono copiado')} />
-                  <CopyRow icon={<PlaceRoundedIcon sx={{ fontSize: 16 }} />} label="Dirección" value={address} onCopy={(v) => copy(v, 'Dirección copiada')} />
-                  {!email && !phone && !address && (
+                  <CopyRow icon={<EmailRoundedIcon sx={{ fontSize: 16 }} />} label="Email" value={effectiveEmail} onCopy={(v) => copy(v, 'Email copiado')} />
+                  <CopyRow icon={<PhoneRoundedIcon sx={{ fontSize: 16 }} />} label="Teléfono" value={storeDetails?.phoneNumber || phone} onCopy={(v) => copy(v, 'Teléfono copiado')} />
+                  <CopyRow icon={<PlaceRoundedIcon sx={{ fontSize: 16 }} />} label="Dirección" value={effectiveAddress} onCopy={(v) => copy(v, 'Dirección copiada')} />
+                  {effectiveContacts.length > 0 && (
+                    <Stack spacing={0.75} mt={1.25} pt={1.25} sx={{ borderTop: '1px solid', borderColor: 'divider' }}>
+                      {effectiveContacts.map((contact) => (
+                        <Stack
+                          key={`${contact.type}-${contact.name}-${contact.phone}`}
+                          direction={{ xs: 'column', sm: 'row' }}
+                          spacing={{ xs: 0.25, sm: 1 }}
+                          alignItems={{ xs: 'flex-start', sm: 'center' }}
+                        >
+                          <Typography fontSize={13} fontWeight={800} sx={{ minWidth: 140 }}>
+                            {contact.name || 'Sin nombre'}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ minWidth: 80 }}>
+                            {CONTACT_LABELS[contact.type] || contact.type}
+                          </Typography>
+                          <Typography fontSize={13} color="text.secondary">
+                            {contact.phone || 'Sin teléfono'}
+                          </Typography>
+                        </Stack>
+                      ))}
+                    </Stack>
+                  )}
+                  {!effectiveEmail && !phone && !effectiveAddress && (
                     <Typography variant="caption" color="text.disabled">Sin datos de contacto registrados</Typography>
                   )}
                 </CardContent>
@@ -749,7 +1040,7 @@ export default function StoreTechModal({
               </Box>
             ) : (
               <Stack spacing={1}>
-                {(contactInfo ?? []).map((c, i) => {
+                {effectiveContacts.map((c, i) => {
                   const color = CONTACT_COLORS[c.type] ?? '#94a3b8';
                   return (
                     <Card key={i} variant="outlined" sx={{ borderRadius: 2.5, overflow: 'hidden' }}>
