@@ -418,7 +418,7 @@ export default function TicketsPage() {
 
       {/* Table */}
       <Card>
-        <TableContainer>
+        <TableContainer sx={{ display: { xs: 'none', md: 'block' } }}>
           <Table>
             <TableHead>
               <TableRow>
@@ -534,6 +534,136 @@ export default function TicketsPage() {
             </TableBody>
           </Table>
         </TableContainer>
+
+        {/* Mobile View — Cards list */}
+        <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+          {isLoading ? (
+            <Box display="flex" justifyContent="center" py={6}><CircularProgress size={32} /></Box>
+          ) : !data?.data?.length ? (
+            <Box display="flex" justifyContent="center" py={6}><Typography color="text.secondary">No hay tickets</Typography></Box>
+          ) : (
+            <Stack spacing={2} p={2}>
+              {data.data.map((ticket) => {
+                const areaHex = AREA_HEX[ticket.area ?? ''] ?? '#757575';
+                return (
+                  <Card
+                    key={ticket._id}
+                    variant="outlined"
+                    sx={{
+                      p: 2,
+                      position: 'relative',
+                      ...(ticket.priority === 'critical' && {
+                        borderLeft: '4px solid',
+                        borderLeftColor: 'error.main',
+                        bgcolor: alpha(theme.palette.error.main, 0.02),
+                      }),
+                    }}
+                  >
+                    <Stack spacing={1.5}>
+                      {/* Header row: ID + Priority + Actions */}
+                      <Stack direction="row" alignItems="center" justifyContent="space-between">
+                        <Typography variant="caption" fontFamily="monospace" color="text.secondary">
+                          {ticket.identifier}
+                        </Typography>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Chip
+                            label={PRIORITY_LABEL[ticket.priority] ?? ticket.priority}
+                            color={PRIORITY_COLOR[ticket.priority] ?? 'default'}
+                            size="small"
+                            variant="outlined"
+                          />
+                          <IconButton
+                            size="small"
+                            onClick={() => openEdit(ticket)}
+                          >
+                            <EditTwoToneIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => {
+                              if (confirm('¿Eliminar este ticket?')) deleteMutation.mutate(ticket._id);
+                            }}
+                          >
+                            <DeleteTwoToneIcon fontSize="small" />
+                          </IconButton>
+                        </Stack>
+                      </Stack>
+
+                      {/* Title & Type */}
+                      <Box>
+                        <Typography variant="body2" fontWeight={700}>
+                          {ticket.title}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          {TYPE_LABEL[ticket.type] ?? ticket.type}
+                        </Typography>
+                      </Box>
+
+                      {/* Store & Area */}
+                      <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+                        {ticket.storeName && (
+                          <Chip
+                            label={ticket.storeName}
+                            size="small"
+                            variant="outlined"
+                            sx={{ maxWidth: 180 }}
+                          />
+                        )}
+                        {ticket.area && (
+                          <Chip
+                            label={AREA_LABEL[ticket.area] ?? ticket.area}
+                            size="small"
+                            sx={{
+                              bgcolor: alpha(areaHex, 0.12),
+                              color: areaHex,
+                              fontWeight: 700,
+                              fontSize: 10,
+                              border: `1px solid ${alpha(areaHex, 0.3)}`,
+                            }}
+                          />
+                        )}
+                      </Stack>
+
+                      <Divider />
+
+                      {/* Footer: Assignee + Status + Time */}
+                      <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
+                        <Box>
+                          {ticket.assigneeName ? (
+                            <Stack direction="row" alignItems="center" spacing={0.5}>
+                              <Avatar sx={{ width: 20, height: 20, fontSize: 10, bgcolor: 'secondary.main' }}>
+                                {ticket.assigneeName[0]?.toUpperCase()}
+                              </Avatar>
+                              <Typography variant="caption" fontWeight={600}>{ticket.assigneeName}</Typography>
+                            </Stack>
+                          ) : (
+                            <Typography variant="caption" color="text.secondary">Sin asignar</Typography>
+                          )}
+                        </Box>
+
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <Typography variant="caption" color="text.secondary">
+                            {ticket.createdAt
+                              ? formatDistanceToNow(new Date(ticket.createdAt), { addSuffix: true, locale: es })
+                              : ''}
+                          </Typography>
+                          <Chip
+                            label={STATUS_LABEL[ticket.status] ?? ticket.status}
+                            color={STATUS_COLOR[ticket.status] ?? 'default'}
+                            size="small"
+                            onClick={(e) => setStatusPopover({ el: e.currentTarget, ticketId: ticket._id, current: ticket.status })}
+                            sx={{ cursor: 'pointer', height: 20, fontSize: 11 }}
+                          />
+                        </Stack>
+                      </Stack>
+                    </Stack>
+                  </Card>
+                );
+              })}
+            </Stack>
+          )}
+        </Box>
         <Divider />
         <Box display="flex" justifyContent="center" py={2}>
           <Pagination count={totalPages} page={page} onChange={(_, p) => setPage(p)} color="primary" shape="rounded" />
@@ -568,7 +698,7 @@ export default function TicketsPage() {
             />
 
             {/* Area + Type */}
-            <Stack direction="row" spacing={2}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <FormControl size="small" fullWidth>
                 <InputLabel>Área / Departamento *</InputLabel>
                 <Select
@@ -595,7 +725,7 @@ export default function TicketsPage() {
             </Stack>
 
             {/* Priority + Status */}
-            <Stack direction="row" spacing={2}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <FormControl size="small" fullWidth>
                 <InputLabel>Prioridad</InputLabel>
                 <Select value={form.priority} label="Prioridad" onChange={(e) => setForm({ ...form, priority: e.target.value as TicketPriority })}>
