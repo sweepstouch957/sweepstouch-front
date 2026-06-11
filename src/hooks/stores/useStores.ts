@@ -13,6 +13,18 @@ export type PaymentMethodFilter =
   | 'cash';
 
 export type ProviderFilter = 'all' | 'twilio' | 'bandwidth' | 'infobip';
+export type StoreStatusFilter = 'all' | 'active' | 'suspended' | 'cancelled';
+
+export const matchesStoreStatus = (
+  store: { status?: string; active?: boolean },
+  status: StoreStatusFilter
+) => {
+  if (status === 'all') return true;
+  if (status === 'active') {
+    return store.status === 'active' || (!store.status && store.active === true);
+  }
+  return store.status === status;
+};
 
 export interface UseStoresOptions {
   search?: string;
@@ -44,7 +56,7 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
     initialOptions.sortBy ?? 'customerCount'
   );
   const [order, setOrder] = useState<UseStoresOptions['order']>(initialOptions.order ?? 'desc');
-  const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('active');
+  const [status, setStatus] = useState<StoreStatusFilter>('active');
   const [audienceLt, setAudienceLt] = useState<string>(initialOptions.audienceLt ?? '');
 
   // morosidad
@@ -67,7 +79,7 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
   const [searchInput, setSearchInput] = useState(search);
   const debouncedSearch = useMemo(() => debounce((val: string) => setSearch(val), 150), []);
 
-  const onStatusChange = useCallback((value: 'all' | 'active' | 'inactive') => {
+  const onStatusChange = useCallback((value: StoreStatusFilter) => {
     setStatus(value);
     setPage(0);
   }, []);
@@ -175,9 +187,16 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
     setPage(0);
   }, []);
 
+  const rawStores = data?.data || [];
+  const stores = rawStores.filter((store) => matchesStoreStatus(store, status));
+  const responseIncludesOtherStatuses = stores.length !== rawStores.length;
+
   return {
-    stores: data?.data || [],
-    total: data?.total || 0,
+    stores,
+    total:
+      status !== 'all' && responseIncludesOtherStatuses
+        ? stores.length
+        : data?.total || 0,
     loading: isLoading,
     fetching: isFetching,
     error: isError ? (error instanceof Error ? error.message : 'Error desconocido') : null,

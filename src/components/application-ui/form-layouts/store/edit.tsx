@@ -257,13 +257,12 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
       : 'Sin configurar');
 
   const smsSummary = form.provider
-    ? `${form.provider.charAt(0).toUpperCase()}${form.provider.slice(1)}${
-        form.provider === 'twilio' && form.twilioPhoneNumber
-          ? ` · ${form.twilioPhoneNumber}`
-          : form.provider === 'bandwidth' && form.bandwidthPhoneNumber
-          ? ` · ${form.bandwidthPhoneNumber}`
-          : ''
-      }`
+    ? `${form.provider.charAt(0).toUpperCase()}${form.provider.slice(1)}${form.provider === 'twilio' && form.twilioPhoneNumber
+      ? ` · ${form.twilioPhoneNumber}`
+      : form.provider === 'bandwidth' && form.bandwidthPhoneNumber
+        ? ` · ${form.bandwidthPhoneNumber}`
+        : ''
+    }`
     : 'Sin configurar';
 
   const planSummary = [form.membershipType, form.paymentMethod]
@@ -277,10 +276,10 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
 
   const onSocialChange =
     (key: 'facebook' | 'instagram' | 'website') =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const val = e?.target?.value ?? '';
-      onChange('socialLinks' as any)({ value: { ...(form.socialLinks || {}), [key]: val } });
-    };
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e?.target?.value ?? '';
+        onChange('socialLinks' as any)({ value: { ...(form.socialLinks || {}), [key]: val } });
+      };
 
   const updateContact = (idx: number, field: keyof ContactInfoItem, val: string) => {
     const next = contacts.map((c, i) => (i === idx ? { ...c, [field]: val } : c));
@@ -332,7 +331,6 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
             <FormControl size="small" sx={{ width: 140 }}>
               <Select value={form.status || 'active'} onChange={onChange('status' as any)}>
                 <MenuItem value="active">Activa</MenuItem>
-                <MenuItem value="inactive">Inactiva</MenuItem>
                 <MenuItem value="suspended">Suspendida</MenuItem>
                 <MenuItem value="cancelled">Cancelada</MenuItem>
               </Select>
