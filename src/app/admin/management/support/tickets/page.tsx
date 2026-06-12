@@ -807,35 +807,37 @@ export default function TicketsPage() {
               noOptionsText={storeSearch ? 'Sin resultados' : 'Escribe para buscar una tienda...'}
             />
 
-            {/* Assignee (technician) — notification on assign */}
-            <Autocomplete
-              options={technicians}
-              value={form.assignee}
-              onChange={(_, val) => setForm({ ...form, assignee: val })}
-              getOptionLabel={(o) => o.name}
-              isOptionEqualToValue={(a, b) => a._id === b._id}
-              renderOption={(props, o) => (
-                <Box component="li" {...props} sx={{ gap: 1.5 }}>
-                  <Avatar sx={{ width: 32, height: 32, fontSize: 12, bgcolor: 'secondary.main', flexShrink: 0 }}>
-                    {o.name?.[0]?.toUpperCase()}
-                  </Avatar>
-                  <Box minWidth={0}>
-                    <Typography variant="body2" fontWeight={600} noWrap>{o.name}</Typography>
-                    {o.email && <Typography variant="caption" color="text.secondary" noWrap display="block">{o.email}</Typography>}
+            {/* Assignee (technician) — notification on assign — only show when editing */}
+            {editTicket && (
+              <Autocomplete
+                options={technicians}
+                value={form.assignee}
+                onChange={(_, val) => setForm({ ...form, assignee: val })}
+                getOptionLabel={(o) => o.name}
+                isOptionEqualToValue={(a, b) => a._id === b._id}
+                renderOption={(props, o) => (
+                  <Box component="li" {...props} sx={{ gap: 1.5 }}>
+                    <Avatar sx={{ width: 32, height: 32, fontSize: 12, bgcolor: 'secondary.main', flexShrink: 0 }}>
+                      {o.name?.[0]?.toUpperCase()}
+                    </Avatar>
+                    <Box minWidth={0}>
+                      <Typography variant="body2" fontWeight={600} noWrap>{o.name}</Typography>
+                      {o.email && <Typography variant="caption" color="text.secondary" noWrap display="block">{o.email}</Typography>}
+                    </Box>
                   </Box>
-                </Box>
-              )}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Asignado a"
-                  size="small"
-                  placeholder="Buscar técnico..."
-                  helperText="El técnico asignado recibirá una notificación automática"
-                />
-              )}
-              noOptionsText="Sin técnicos registrados"
-            />
+                )}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Asignado a"
+                    size="small"
+                    placeholder="Buscar técnico..."
+                    helperText="El técnico asignado recibirá una notificación automática"
+                  />
+                )}
+                noOptionsText="Sin técnicos registrados"
+              />
+            )}
 
             {/* Reporter toggle */}
             <Box>
