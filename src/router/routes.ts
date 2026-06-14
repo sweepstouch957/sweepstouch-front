@@ -148,6 +148,7 @@ export const routes = {
       'debug-numbers': '/admin/applications/debug-numbers',
       'projects-board': '/admin/applications/projects-board',
       tasks: '/admin/applications/tasks',
+      demos: '/admin/applications/demos',
     },
     management: {
       users: {

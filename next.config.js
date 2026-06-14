@@ -55,8 +55,24 @@ const config = {
 
   async headers() {
     return [
+      // Demo viewer pages — permissive CSP for AI-generated content (inline scripts/styles, CDN OK)
       {
-        source: '/:path*',
+        source: '/demo/:path*',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:",
+              "frame-ancestors 'none'",
+            ].join('; '),
+          },
+        ],
+      },
+      // All other routes — strict CSP
+      {
+        source: '/((?!demo).*)',
         headers: securityHeaders,
       },
     ];

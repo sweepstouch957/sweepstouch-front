@@ -10,6 +10,7 @@ import {
   StorefrontOutlined,
 } from '@mui/icons-material';
 import AppsRoundedIcon from '@mui/icons-material/AppsRounded';
+import OndemandVideoRoundedIcon from '@mui/icons-material/OndemandVideoRounded';
 import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
 import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded';
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
@@ -53,6 +54,7 @@ const applicationsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Store Maps'), route: routes.admin.applications.maps },
     { title: t('Calendar'), route: routes.admin.applications.calendar },
     { title: t('Depurar Numeros'), route: routes.admin.applications['debug-numbers'] },
+    { title: t('Demos'), route: routes.admin.applications.demos, icon: <OndemandVideoRoundedIcon /> },
     //{ title: t('File manager'), route: routes.admin.applications['file-manager'] },
     //{ title: t('Messenger'), route: routes.admin.applications.messenger },
   ]);
