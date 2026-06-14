@@ -29,7 +29,7 @@ export const demoService = {
 
   /** Público — sin auth. Llama directo al gateway /api/demo-view/:id */
   getPublic: (id: string): Promise<DemoDetail> => {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? '';
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '');
     return fetch(`${base}/demo-view/${id}`, { cache: 'no-store' }).then((r) => {
       if (!r.ok) throw new Error('Demo no encontrado');
       return r.json();
@@ -37,7 +37,7 @@ export const demoService = {
   },
 
   trackView: (id: string) => {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? '';
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '');
     fetch(`${base}/demo-view/${id}/view`, { method: 'POST' }).catch(() => {});
   },
 };

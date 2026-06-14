@@ -28,6 +28,7 @@ export default function DemoViewPage() {
     return (
       <div
         style={{
+          width: '100%',
           minHeight: '100vh',
           display: 'flex',
           alignItems: 'center',
@@ -49,6 +50,7 @@ export default function DemoViewPage() {
     return (
       <div
         style={{
+          width: '100%',
           minHeight: '100vh',
           display: 'flex',
           alignItems: 'center',
@@ -79,6 +81,7 @@ export default function DemoViewPage() {
     return (
       <div
         style={{
+          width: '100%',
           minHeight: '100vh',
           display: 'flex',
           alignItems: 'center',
@@ -110,6 +113,7 @@ export default function DemoViewPage() {
     return (
       <div
         style={{
+          width: '100%',
           minHeight: '100vh',
           display: 'flex',
           alignItems: 'center',
