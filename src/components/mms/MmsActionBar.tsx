@@ -82,25 +82,16 @@ export default function MmsActionBar({
 
   return (
     <Box>
-      <Stack direction="row" spacing={2} flexWrap="wrap">
-        <Button variant="outlined" onClick={handleSaveProducts}
+      {/* Secondary actions */}
+      <Stack direction="row" spacing={1} mb={1} flexWrap="wrap">
+        <Button variant="outlined" size="small" onClick={handleSaveProducts}
           disabled={!circularId || saving}
-          startIcon={saving ? <CircularProgress size={18} /> : <SaveIcon />}>
-          {saving ? 'Saving...' : saved ? '✅ Saved!' : 'Save Products'}
+          startIcon={saving ? <CircularProgress size={14} /> : <SaveIcon />}>
+          {saving ? 'Saving...' : saved ? '✅ Saved' : 'Save Products'}
         </Button>
 
-        <Button variant="contained" onClick={handleGenerate}
-          disabled={!circularId || !campaignCode || generating}
-          startIcon={generating ? <CircularProgress size={18} color="inherit" /> : <SendIcon />}
-          sx={{
-            background: 'linear-gradient(135deg, #DC1F26 0%, #ff6b6b 100%)',
-            '&:hover': { background: 'linear-gradient(135deg, #b01820 0%, #e55 100%)' },
-            fontWeight: 'bold',
-          }}>
-          {generating ? 'Generating...' : '🚀 Generate MMS for All Customers'}
-        </Button>
-
-        <Button variant="outlined" color="secondary" onClick={() => setTestModalOpen(true)}
+        <Button variant="outlined" size="small" color="secondary"
+          onClick={() => setTestModalOpen(true)}
           startIcon={<BugReportRoundedIcon />}
           disabled={products.length === 0}
           sx={{
@@ -110,6 +101,18 @@ export default function MmsActionBar({
           🧪 Send Test SMS
         </Button>
       </Stack>
+
+      {/* Primary action — full width */}
+      <Button variant="contained" onClick={handleGenerate} fullWidth
+        disabled={!circularId || !campaignCode || generating}
+        startIcon={generating ? <CircularProgress size={18} color="inherit" /> : <SendIcon />}
+        sx={{
+          background: 'linear-gradient(135deg, #DC1F26 0%, #ff6b6b 100%)',
+          '&:hover': { background: 'linear-gradient(135deg, #b01820 0%, #e55 100%)' },
+          fontWeight: 'bold', py: 1.2,
+        }}>
+        {generating ? 'Generating...' : '🚀 Generate MMS for All Customers'}
+      </Button>
 
       {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
 

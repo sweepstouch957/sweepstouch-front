@@ -51,6 +51,25 @@ export interface AiRecipe {
 
 const MAX_MMS_PRODUCTS = 10;
 
+/** Extract first well-formed JSON array from arbitrary text (handles code fences, trailing prose) */
+function extractFirstJsonArray(text: string): string | null {
+  const start = text.indexOf('[');
+  if (start === -1) return null;
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = start; i < text.length; i++) {
+    const c = text[i];
+    if (escape) { escape = false; continue; }
+    if (c === '\\' && inString) { escape = true; continue; }
+    if (c === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (c === '[') depth++;
+    if (c === ']') { depth--; if (depth === 0) return text.slice(start, i + 1); }
+  }
+  return null;
+}
+
 // ─── Step Badge ───────────────────────────────────────────────────────────────
 
 const StepBadge = React.memo(({ num }: { num: number }) => (
@@ -185,20 +204,26 @@ function AiRecipesPanel({
         .map(p => `${p.name}${p.category ? ' (' + p.category + ')' : ''}`)
         .join(', ');
       const res = await api.post('/ai/complete', {
-        systemPrompt: 'You are a cooking expert for a Latin grocery store marketing app. Given products on sale, suggest 3 recipe ideas that use those products as key ingredients. Reply with ONLY a valid JSON array, no markdown fences, no explanation. Schema: [{"name":"string","tags":["Latino","Familiar","Mariscos","Saludable","Rápido","Especial"],"time":"X min","ingredients":["ingredient"],"procedure":["step description"]}]',
+        systemPrompt: 'You are a cooking expert for a Latin grocery store marketing app. Given products on sale, suggest 3 recipe ideas that use those products as key ingredients. Reply with ONLY a valid JSON array, no markdown fences, no explanation. Schema: [{"name":"string","tags":["Latino","Familiar","Mariscos","Saludable","Rapido","Especial"],"time":"X min","ingredients":["ingredient"],"procedure":["step description"]}]',
         messages: [{ role: 'user', content: `Campaign: "${headline || 'Weekly Deals'}". Products: ${productList}` }],
         maxTokens: 1500,
         temperature: 0.8,
       });
-      const text: string = res.data?.content || '';
-      const match = text.match(/\[[\s\S]*\]/);
-      if (match) {
-        onChange(JSON.parse(match[0]) as AiRecipe[]);
-      } else {
-        setError('Could not parse AI response. Try again.');
+      const raw: string = res.data?.content || '';
+      const jsonStr = extractFirstJsonArray(raw);
+      if (!jsonStr) {
+        setError('AI response did not contain a recipe list. Try again.');
+        return;
       }
-    } catch {
-      setError('Recipe generation failed.');
+      const parsed = JSON.parse(jsonStr) as AiRecipe[];
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        setError('AI returned an empty recipe list. Try again.');
+        return;
+      }
+      onChange(parsed);
+    } catch (err: any) {
+      console.error('[recipes] generation failed:', err);
+      setError(err?.response?.data?.error || 'Recipe generation failed. Try again.');
     } finally {
       setGenerating(false);
     }
@@ -491,34 +516,33 @@ function MmsGeneratorPage(): React.JSX.Element {
                         <Typography variant="subtitle1" fontWeight={700}>Generate &amp; Send</Typography>
                       </Stack>
 
-                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'flex-start' }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                         <TextField
                           label="Campaign Code"
                           value={campaignCode}
                           onChange={(e) => setCampaignCode(e.target.value.toUpperCase())}
                           size="small"
                           placeholder="VIP0411"
-                          sx={{ width: { xs: '100%', sm: 180 }, flexShrink: 0 }}
+                          helperText="Unique code for this campaign (e.g. VIP0615)"
+                          sx={{ maxWidth: 240 }}
                         />
-                        <Box>
-                          <MmsActionBar
-                            circularId={circularId}
-                            storeId={selectedStore._id || (selectedStore as any).id || ''}
-                            storeSlug={storeSlug}
-                            storeName={selectedStore.name}
-                            campaignCode={campaignCode}
-                            products={mmsProducts}
-                            headline={headline}
-                            circularFileUrl={circularFileUrl}
-                            onGenerated={setGenerationResult}
-                            storeProvider={selectedStore.provider}
-                            storeBandwidthPhone={selectedStore.bandwidthPhoneNumber}
-                            storeBandwidthId={selectedStore.bandwithId}
-                            storeInfobipSenderId={selectedStore.infobipSenderId}
-                            storeTwilioPhone={selectedStore.twilioPhoneNumber}
-                          />
-                        </Box>
-                      </Stack>
+                        <MmsActionBar
+                          circularId={circularId}
+                          storeId={selectedStore._id || (selectedStore as any).id || ''}
+                          storeSlug={storeSlug}
+                          storeName={selectedStore.name}
+                          campaignCode={campaignCode}
+                          products={mmsProducts}
+                          headline={headline}
+                          circularFileUrl={circularFileUrl}
+                          onGenerated={setGenerationResult}
+                          storeProvider={selectedStore.provider}
+                          storeBandwidthPhone={selectedStore.bandwidthPhoneNumber}
+                          storeBandwidthId={selectedStore.bandwithId}
+                          storeInfobipSenderId={selectedStore.infobipSenderId}
+                          storeTwilioPhone={selectedStore.twilioPhoneNumber}
+                        />
+                      </Box>
 
                       {generationResult && (
                         <Alert severity="success" sx={{ mt: 1.5, py: 0.5 }}>
