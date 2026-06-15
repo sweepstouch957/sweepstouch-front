@@ -79,7 +79,7 @@ export default function MmsActionBar({
     } catch (err: any) {
       setError(err.response?.data?.error || 'Error generating MMS');
     } finally { setGenerating(false); }
-  }, [circularId, storeSlug, campaignCode, products, headline, onGenerated]);
+  }, [circularId, storeSlug, campaignCode, products, headline, recipes, onGenerated]);
 
   return (
     <Box>
