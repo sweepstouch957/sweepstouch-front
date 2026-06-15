@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { demoService, type DemoDetail } from '@/services/demo.service';
 
 export default function DemoViewPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [demo, setDemo] = useState<DemoDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const tracked = useRef(false);
@@ -15,6 +16,10 @@ export default function DemoViewPage() {
     demoService
       .getPublic(id)
       .then((d) => {
+        if (d.pinned) {
+          router.replace('/demo');
+          return;
+        }
         setDemo(d);
         if (!tracked.current) {
           tracked.current = true;
@@ -22,7 +27,7 @@ export default function DemoViewPage() {
         }
       })
       .catch((e) => setError(e.message ?? 'Error al cargar el demo'));
-  }, [id]);
+  }, [id, router]);
 
   if (error) {
     return (

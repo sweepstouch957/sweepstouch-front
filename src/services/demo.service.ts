@@ -15,6 +15,7 @@ export interface DemoEntry {
 
 export interface DemoDetail extends DemoEntry {
   html: string | null;
+  pinned?: boolean;
 }
 
 export const demoService = {
