@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import PricingCalculator from './pricing-calculator';
 
 const P = '#ef0f82';
 const FG = '#404040';
@@ -420,171 +421,6 @@ function Comparativa() {
   );
 }
 
-function Precios() {
-  const plans = [
-    {
-      name: 'SMS / MMS',
-      badge: null,
-      price: 'Desde $0.0175',
-      unit: 'por mensaje',
-      desc: 'Ideal para campañas de texto con alcance masivo.',
-      features: [
-        'SMS texto plano',
-        'MMS con imagen',
-        'Entrega garantizada',
-        'Tracking de apertura',
-        'Dashboard Sweepstouch',
-      ],
-    },
-    {
-      name: 'RCS',
-      badge: 'Popular',
-      price: 'Desde $0.035',
-      unit: 'por mensaje',
-      desc: 'Mensajes ricos con botones y carrusel. Mayor conversión.',
-      features: [
-        'Todo de SMS/MMS',
-        'Botones interactivos',
-        'Carrusel de productos',
-        'Verificación de marca',
-        'Analytics avanzados',
-      ],
-    },
-    {
-      name: 'WhatsApp',
-      badge: 'Mayor ROI',
-      price: 'Desde $0.05',
-      unit: 'por conversación',
-      desc: 'El canal con más alta tasa de conversión del mercado.',
-      features: [
-        'Todo de RCS',
-        'Conversaciones bidireccionales',
-        'Plantillas aprobadas Meta',
-        'Integración CRM',
-        'Soporte dedicado',
-      ],
-    },
-  ];
-
-  return (
-    <section id="precios" style={{ padding: '88px 0', background: SEC_BG }}>
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 1.5rem' }}>
-        <div style={{ textAlign: 'center', marginBottom: 48 }}>
-          <h2 style={{ fontSize: 'clamp(28px, 4vw, 46px)', color: FG, margin: '0 0 14px' }}>
-            Precios transparentes
-          </h2>
-          <p style={{ fontSize: 17, color: MUTED, maxWidth: 520, margin: '0 auto', lineHeight: 1.65 }}>
-            Sin contratos forzosos. Paga solo por lo que usas.
-          </p>
-        </div>
-
-        <div
-          className="demo-pricing-grid"
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}
-        >
-          {plans.map((plan) => {
-            const isHighlight = plan.badge === 'Mayor ROI';
-            return (
-              <div
-                key={plan.name}
-                style={{
-                  background: isHighlight ? P : '#fff',
-                  color: isHighlight ? '#fff' : FG,
-                  borderRadius: 16,
-                  padding: '36px 28px',
-                  border: `2px solid ${isHighlight ? P : BDR}`,
-                  position: 'relative',
-                  boxShadow: isHighlight ? '0 8px 40px rgba(239,15,130,0.25)' : '0 2px 8px rgba(0,0,0,0.05)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 20,
-                }}
-              >
-                {plan.badge && (
-                  <span
-                    style={{
-                      position: 'absolute',
-                      top: -14,
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      background: isHighlight ? FG : P,
-                      color: '#fff',
-                      fontSize: 11,
-                      fontWeight: 700,
-                      padding: '4px 14px',
-                      borderRadius: 20,
-                      whiteSpace: 'nowrap',
-                      letterSpacing: 0.5,
-                    }}
-                  >
-                    {plan.badge}
-                  </span>
-                )}
-
-                <div>
-                  <h3 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 8px', color: isHighlight ? '#fff' : FG }}>
-                    {plan.name}
-                  </h3>
-                  <p style={{ fontSize: 13, margin: 0, color: isHighlight ? 'rgba(255,255,255,0.75)' : MUTED, lineHeight: 1.55 }}>
-                    {plan.desc}
-                  </p>
-                </div>
-
-                <div>
-                  <span style={{ fontSize: 28, fontWeight: 800, color: isHighlight ? '#fff' : P }}>
-                    {plan.price}
-                  </span>
-                  <span style={{ fontSize: 13, color: isHighlight ? 'rgba(255,255,255,0.7)' : MUTED, marginLeft: 6 }}>
-                    {plan.unit}
-                  </span>
-                </div>
-
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {plan.features.map((f) => (
-                    <li key={f} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path
-                          d="M3 8.5l3.5 3.5 6.5-8"
-                          stroke={isHighlight ? '#fff' : P}
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      <span style={{ color: isHighlight ? 'rgba(255,255,255,0.9)' : FG }}>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <a
-                  href="mailto:jcvillamar@touchmile.com"
-                  style={{
-                    display: 'block',
-                    textAlign: 'center',
-                    padding: '12px',
-                    borderRadius: 9,
-                    background: isHighlight ? '#fff' : P,
-                    color: isHighlight ? P : '#fff',
-                    fontWeight: 700,
-                    fontSize: 14,
-                    textDecoration: 'none',
-                    marginTop: 'auto',
-                  }}
-                >
-                  Contactar
-                </a>
-              </div>
-            );
-          })}
-        </div>
-
-        <p style={{ textAlign: 'center', fontSize: 13, color: MUTED, marginTop: 24 }}>
-          Todos los precios incluyen acceso al dashboard de Sweepstouch. Base: 1,000 msgs/campaña.
-        </p>
-      </div>
-    </section>
-  );
-}
 
 function ROI() {
   const stats = [
@@ -771,7 +607,7 @@ export default async function DemoPage({ searchParams }: PageProps) {
       <Hero />
       <WhyMatters />
       <Comparativa />
-      <Precios />
+      <PricingCalculator />
       <ROI />
       <Footer />
     </div>
