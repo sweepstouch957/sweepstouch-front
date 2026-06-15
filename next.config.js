@@ -31,7 +31,7 @@ const securityHeaders = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://api.mapbox.com",
       "style-src 'self' 'unsafe-inline' https://api.mapbox.com",
-      "img-src 'self' data: blob: https://res.cloudinary.com https://*.cloudinary.com https://*.mapbox.com",
+      "img-src 'self' data: blob: https://res.cloudinary.com https://*.cloudinary.com https://*.mapbox.com https://jsfpovyoaqucwigttyil.supabase.co",
       "font-src 'self' data: https://api.mapbox.com",
       "connect-src 'self' http://localhost:* ws://localhost:* https://*.sweepstouch.com wss://*.sweepstouch.com https://api.mapbox.com https://events.mapbox.com",
       "worker-src 'self' blob:",
@@ -106,6 +106,10 @@ const config = {
       {
         protocol: 'https',
         hostname: 'asset.cloudinary.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'jsfpovyoaqucwigttyil.supabase.co',
       },
     ],
   },

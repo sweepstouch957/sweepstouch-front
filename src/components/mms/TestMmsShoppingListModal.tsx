@@ -385,9 +385,19 @@ export default function TestMmsShoppingListModal({
             <Typography variant="h6" fontWeight={700} color="success.main">
               Message Sent Successfully!
             </Typography>
-            <Typography variant="body2" color="text.secondary" textAlign="center">
-              SMS sent to <strong>{customerSearch.selected?.phoneNumber}</strong> with the shopping list link.
-            </Typography>
+            <Box textAlign="center">
+              <Typography variant="body2" color="text.secondary">
+                SMS sent to <strong>{customerSearch.selected?.phoneNumber}</strong>
+                {customerSearch.selected?.firstName ? ` (${customerSearch.selected.firstName})` : ''}
+              </Typography>
+              {(customerSearch.selected as any)?._id && (
+                <Chip
+                  label={`Customer ID: ${(customerSearch.selected as any)._id}`}
+                  size="small"
+                  sx={{ mt: 0.5, fontFamily: 'monospace', fontSize: 11, bgcolor: 'rgba(76,175,80,0.1)', color: '#4caf50' }}
+                />
+              )}
+            </Box>
 
             <Box sx={{
               width: '100%', p: 2, borderRadius: 2,
