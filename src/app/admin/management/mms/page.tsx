@@ -15,6 +15,8 @@ import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
 import RestaurantMenuRoundedIcon from '@mui/icons-material/RestaurantMenuRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
+import AddPhotoAlternateRoundedIcon from '@mui/icons-material/AddPhotoAlternateRounded';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import { useTranslation } from 'react-i18next';
 import PageHeading from 'src/components/base/page-heading';
 import { useCustomization } from 'src/hooks/use-customization';
@@ -158,31 +160,114 @@ function RcsLinkCard({ storeSlug, circularId }: { storeSlug: string; circularId:
 
 // ─── Recipe Card ──────────────────────────────────────────────────────────────
 
-function RecipeCard({ recipe, onRemove }: { recipe: AiRecipe; onRemove: () => void }) {
+function RecipeCard({
+  recipe, onRemove, onImageChange,
+}: {
+  recipe: AiRecipe;
+  onRemove: () => void;
+  onImageChange: (url: string) => void;
+}) {
   const [showProc, setShowProc] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [hoverImg, setHoverImg] = useState(false);
+  const fileRef = React.useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (fileRef.current) fileRef.current.value = '';
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('folder', 'recipes');
+      const res = await api.post('/upload', formData, { headers: { 'Content-Type': undefined } });
+      const url: string = res.data?.url;
+      if (url) onImageChange(url);
+    } catch (err) {
+      console.error('[recipe-upload] failed:', err);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <Box sx={{
       border: '1px solid', borderColor: 'divider', borderRadius: 2,
       bgcolor: 'background.paper', height: '100%', display: 'flex', flexDirection: 'column',
-      overflow: 'hidden',
+      overflow: 'hidden', transition: 'box-shadow 0.2s',
+      '&:hover': { boxShadow: 3 },
     }}>
-      {/* Recipe image or skeleton placeholder */}
-      <Box sx={{
-        width: '100%', aspectRatio: '16/9', position: 'relative',
-        bgcolor: recipe.imageUrl ? 'transparent' : 'action.hover',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        overflow: 'hidden',
-      }}>
+      {/* Hidden file input */}
+      <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
+        onChange={handleFileSelect} />
+
+      {/* Image zone */}
+      <Box
+        onMouseEnter={() => setHoverImg(true)}
+        onMouseLeave={() => setHoverImg(false)}
+        sx={{
+          width: '100%', aspectRatio: '16/9', position: 'relative',
+          overflow: 'hidden', cursor: 'pointer',
+        }}
+        onClick={() => !uploading && fileRef.current?.click()}
+      >
         {recipe.imageUrl ? (
-          <img src={recipe.imageUrl} alt={recipe.name}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          <>
+            <img src={recipe.imageUrl} alt={recipe.name}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+                transition: 'transform 0.3s', transform: hoverImg ? 'scale(1.04)' : 'scale(1)' }} />
+            {/* Hover overlay */}
+            <Box sx={{
+              position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(0,0,0,0.42)', opacity: uploading || hoverImg ? 1 : 0,
+              transition: 'opacity 0.2s',
+            }}>
+              {uploading ? (
+                <CircularProgress size={26} sx={{ color: 'white' }} />
+              ) : (
+                <Stack alignItems="center" spacing={0.5}>
+                  <EditRoundedIcon sx={{ color: 'white', fontSize: 22 }} />
+                  <Typography sx={{ color: 'white', fontSize: 11, fontWeight: 700 }}>Cambiar imagen</Typography>
+                </Stack>
+              )}
+            </Box>
+          </>
         ) : (
+          /* Empty upload zone */
           <Box sx={{
             width: '100%', height: '100%',
-            background: 'linear-gradient(135deg, rgba(220,31,38,0.06) 0%, rgba(220,31,38,0.02) 100%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: uploading
+              ? 'linear-gradient(135deg, rgba(244,55,137,0.08) 0%, rgba(220,31,38,0.04) 100%)'
+              : 'linear-gradient(135deg, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.01) 100%)',
+            border: '2px dashed',
+            borderColor: uploading ? 'primary.main' : 'divider',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', gap: 0.5,
+            transition: 'all 0.2s',
+            '&:hover': {
+              borderColor: 'primary.main',
+              background: 'linear-gradient(135deg, rgba(244,55,137,0.08) 0%, rgba(220,31,38,0.04) 100%)',
+            },
           }}>
-            <RestaurantMenuRoundedIcon sx={{ fontSize: 28, color: 'text.disabled', opacity: 0.5 }} />
+            {uploading ? (
+              <>
+                <CircularProgress size={22} color="primary" />
+                <Typography sx={{ fontSize: 11, color: 'primary.main', fontWeight: 600, mt: 0.5 }}>
+                  Subiendo a Cloudinary…
+                </Typography>
+              </>
+            ) : (
+              <>
+                <AddPhotoAlternateRoundedIcon sx={{ fontSize: 26, color: 'text.disabled' }} />
+                <Typography sx={{ fontSize: 11, color: 'text.secondary', fontWeight: 600 }}>
+                  Subir imagen
+                </Typography>
+                <Typography sx={{ fontSize: 10, color: 'text.disabled' }}>
+                  JPG, PNG, WebP
+                </Typography>
+              </>
+            )}
           </Box>
         )}
       </Box>
@@ -348,7 +433,15 @@ function AiRecipesPanel({
         <Grid container spacing={1.5}>
           {recipes.map((r, i) => (
             <Grid item xs={12} sm={6} key={i}>
-              <RecipeCard recipe={r} onRemove={() => onChange(recipes.filter((_, j) => j !== i))} />
+              <RecipeCard
+                recipe={r}
+                onRemove={() => onChange(recipes.filter((_, j) => j !== i))}
+                onImageChange={(url) => {
+                  const updated = [...recipes];
+                  updated[i] = { ...updated[i], imageUrl: url };
+                  onChange(updated);
+                }}
+              />
             </Grid>
           ))}
         </Grid>
