@@ -51,13 +51,11 @@ export interface AiRecipe {
 
 const MAX_MMS_PRODUCTS = 10;
 
-/** Extract first well-formed JSON array from arbitrary text (handles code fences, trailing prose) */
+/** Extract first well-formed JSON array; handles code fences and trailing prose */
 function extractFirstJsonArray(text: string): string | null {
   const start = text.indexOf('[');
   if (start === -1) return null;
-  let depth = 0;
-  let inString = false;
-  let escape = false;
+  let depth = 0, inString = false, escape = false;
   for (let i = start; i < text.length; i++) {
     const c = text[i];
     if (escape) { escape = false; continue; }
@@ -68,6 +66,35 @@ function extractFirstJsonArray(text: string): string | null {
     if (c === ']') { depth--; if (depth === 0) return text.slice(start, i + 1); }
   }
   return null;
+}
+
+/**
+ * Extract any COMPLETE recipe objects from a truncated JSON array.
+ * Gemini 2.5 Flash with thinking enabled can cut off mid-response.
+ */
+function extractCompleteRecipes(text: string): AiRecipe[] {
+  const objects: AiRecipe[] = [];
+  let i = text.indexOf('{');
+  while (i !== -1) {
+    let depth = 0, inStr = false, esc = false, j = i;
+    for (; j < text.length; j++) {
+      const c = text[j];
+      if (esc) { esc = false; continue; }
+      if (c === '\\' && inStr) { esc = true; continue; }
+      if (c === '"') { inStr = !inStr; continue; }
+      if (inStr) continue;
+      if (c === '{') depth++;
+      if (c === '}') { depth--; if (depth === 0) break; }
+    }
+    if (depth === 0 && j < text.length) {
+      try {
+        const obj = JSON.parse(text.slice(i, j + 1)) as AiRecipe;
+        if (obj.name && Array.isArray(obj.ingredients)) objects.push(obj);
+      } catch {}
+    }
+    i = text.indexOf('{', j + 1);
+  }
+  return objects;
 }
 
 // ─── Step Badge ───────────────────────────────────────────────────────────────
@@ -93,8 +120,8 @@ function RcsLinkCard({ storeSlug, circularId }: { storeSlug: string; circularId:
   const [copied, setCopied] = useState(false);
 
   const linkTemplate = storeSlug
-    ? `https://st.sweepstouch.com/rcs/{customerId}?store=${storeSlug}${circularId ? `&circular=${circularId}` : ''}`
-    : 'https://st.sweepstouch.com/rcs/{customerId}?store={storeSlug}';
+    ? `https://links.sweepstouch.com/rcs/{customerId}?store=${storeSlug}${circularId ? `&circular=${circularId}` : ''}`
+    : 'https://links.sweepstouch.com/rcs/{customerId}?store={storeSlug}';
 
   const copy = () => {
     navigator.clipboard.writeText(linkTemplate).then(() => {
@@ -204,20 +231,27 @@ function AiRecipesPanel({
         .map(p => `${p.name}${p.category ? ' (' + p.category + ')' : ''}`)
         .join(', ');
       const res = await api.post('/ai/complete', {
-        systemPrompt: 'You are a cooking expert for a Latin grocery store marketing app. Given products on sale, suggest 3 recipe ideas that use those products as key ingredients. Reply with ONLY a valid JSON array, no markdown fences, no explanation. Schema: [{"name":"string","tags":["Latino","Familiar","Mariscos","Saludable","Rapido","Especial"],"time":"X min","ingredients":["ingredient"],"procedure":["step description"]}]',
+        systemPrompt: 'You are a cooking expert for a Latin grocery store. Given products, suggest exactly 3 short recipes using those products. Reply with ONLY a JSON array, no markdown, no extra text. Keep each procedure to max 3 steps of max 15 words each. Schema: [{"name":"string","tags":["Latino","Familiar","Mariscos","Saludable","Rapido","Especial"],"time":"X min","ingredients":["item (max 5)"],"procedure":["step (max 3)"]}]',
         messages: [{ role: 'user', content: `Campaign: "${headline || 'Weekly Deals'}". Products: ${productList}` }],
-        maxTokens: 1500,
-        temperature: 0.8,
+        maxTokens: 4000,
+        temperature: 0.7,
       });
       const raw: string = res.data?.content || '';
+
+      // Try full array first, fall back to extracting complete objects from truncated JSON
+      let parsed: AiRecipe[] | null = null;
       const jsonStr = extractFirstJsonArray(raw);
-      if (!jsonStr) {
-        setError('AI response did not contain a recipe list. Try again.');
-        return;
+      if (jsonStr) {
+        try { parsed = JSON.parse(jsonStr); } catch {}
       }
-      const parsed = JSON.parse(jsonStr) as AiRecipe[];
-      if (!Array.isArray(parsed) || parsed.length === 0) {
-        setError('AI returned an empty recipe list. Try again.');
+      if (!parsed || parsed.length === 0) {
+        const recovered = extractCompleteRecipes(raw);
+        if (recovered.length > 0) parsed = recovered;
+      }
+
+      if (!parsed || parsed.length === 0) {
+        console.error('[recipes] could not parse response:', raw.slice(0, 300));
+        setError('AI response could not be parsed. Try again.');
         return;
       }
       onChange(parsed);

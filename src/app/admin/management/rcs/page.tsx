@@ -73,8 +73,8 @@ function RcsLinkCard({ storeSlug, circularId }: { storeSlug: string; circularId:
   const [copied, setCopied] = useState(false);
 
   const linkTemplate = storeSlug
-    ? `https://st.sweepstouch.com/rcs/{customerId}?store=${storeSlug}${circularId ? `&circular=${circularId}` : ''}`
-    : 'https://st.sweepstouch.com/rcs/{customerId}?store={storeSlug}';
+    ? `https://links.sweepstouch.com/rcs/{customerId}?store=${storeSlug}${circularId ? `&circular=${circularId}` : ''}`
+    : 'https://links.sweepstouch.com/rcs/{customerId}?store={storeSlug}';
 
   const copy = () => {
     navigator.clipboard.writeText(linkTemplate).then(() => {
