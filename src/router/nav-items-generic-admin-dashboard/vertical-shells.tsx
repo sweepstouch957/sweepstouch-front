@@ -102,6 +102,14 @@ const menuConfig: MenuConfig = {
               title: 'Send Test',
               route: (r: typeof routes, role: UserRole) => r.admin.management.campaings['send-test'],
             },
+            {
+              title: 'Campaigns MMS',
+              route: (r: typeof routes, role: UserRole) => r.admin.management.campaings.mms,
+            },
+            {
+              title: 'Campaigns RCS',
+              route: (r: typeof routes, role: UserRole) => r.admin.management.campaings.rcs,
+            },
           ],
         },
         {

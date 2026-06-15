@@ -173,6 +173,7 @@ export const routes = {
         create: '/admin/management/campaings/create',
         'send-test': '/admin/management/campaings/send-test',
         mms: '/admin/management/mms',
+        rcs: '/admin/management/rcs',
         optin: '/admin/management/campaings/optin',
       },
       promos: {

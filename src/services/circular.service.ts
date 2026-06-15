@@ -123,6 +123,11 @@ export class CircularService {
     return res.data;
   }
 
+  async getProducts(circularId: string): Promise<{ products: any[]; headline: string }> {
+    const res = await api.get(`/circulars/${circularId}/products`);
+    return res.data;
+  }
+
   /** Save edited products and headline to a circular */
   async saveProducts(circularId: string, products: any[], headline?: string): Promise<any> {
     const res = await api.put(`/circulars/${circularId}/products`, { products, headline });
