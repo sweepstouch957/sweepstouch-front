@@ -28,7 +28,7 @@ export default function DemoLayout({ children }: { children: ReactNode }) {
       />
       <style>{`
         #demo-root * { box-sizing: border-box; }
-        #demo-root { font-family: 'Inter', system-ui, sans-serif; color: #404040; background: #fff; }
+        #demo-root { width: 100%; min-height: 100vh; font-family: 'Inter', system-ui, sans-serif; color: #404040; background: #fff; overflow-x: hidden; }
         #demo-root h1, #demo-root h2, #demo-root h3, #demo-root h4 {
           font-family: 'Montserrat', system-ui, sans-serif;
           font-weight: 700;

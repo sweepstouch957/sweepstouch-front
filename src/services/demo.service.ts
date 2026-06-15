@@ -6,6 +6,7 @@ export interface DemoEntry {
   prompt: string;
   status: 'generating' | 'ready' | 'error';
   errorMsg?: string;
+  pinned?: boolean;
   createdBy: { id: string; name: string; role: string };
   views: number;
   lastViewed?: string;
@@ -27,6 +28,9 @@ export const demoService = {
 
   delete: (id: string) =>
     api.delete(`/ai/demos/${id}`).then((r) => r.data),
+
+  update: (id: string, payload: { name?: string; generatedHtml?: string }) =>
+    api.patch<DemoEntry>(`/ai/demos/${id}`, payload).then((r) => r.data),
 
   /** Público — sin auth. Llama directo al gateway /api/demo-view/:id */
   getPublic: (id: string): Promise<DemoDetail> => {

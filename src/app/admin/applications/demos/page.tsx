@@ -2,12 +2,14 @@
 
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
 import OndemandVideoRoundedIcon from '@mui/icons-material/OndemandVideoRounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
-import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
+import PushPinRoundedIcon from '@mui/icons-material/PushPinRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import {
   alpha,
@@ -25,10 +27,12 @@ import {
   TextField,
   Tooltip,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { demoService, type DemoEntry } from '@/services/demo.service';
 
 const STATUS_CHIP: Record<
@@ -45,9 +49,245 @@ function demoUrl(id: string) {
   return `${window.location.origin}/demo/${id}`;
 }
 
+// ─── Edit Dialog ──────────────────────────────────────────────────────────────
+
+interface EditDialogProps {
+  demo: DemoEntry;
+  open: boolean;
+  onClose: () => void;
+  onSaved: (updated: DemoEntry) => void;
+}
+
+function EditDialog({ demo, open, onClose, onSaved }: EditDialogProps) {
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('md'));
+  const [name, setName] = useState(demo.name);
+  const [html, setHtml] = useState('');
+  const [preview, setPreview] = useState('');
+  const [loadingHtml, setLoadingHtml] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Fetch full HTML when dialog opens
+  useEffect(() => {
+    if (!open) return;
+    setName(demo.name);
+    setLoadingHtml(true);
+    demoService
+      .getPublic(demo._id)
+      .then((d) => {
+        const h = d.html ?? '';
+        setHtml(h);
+        setPreview(h);
+      })
+      .catch(() => setHtml(''))
+      .finally(() => setLoadingHtml(false));
+  }, [open, demo._id, demo.name]);
+
+  // Debounce preview — update iframe 400ms after user stops typing
+  const handleHtmlChange = (val: string) => {
+    setHtml(val);
+    if (previewTimer.current) clearTimeout(previewTimer.current);
+    previewTimer.current = setTimeout(() => setPreview(val), 400);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const updated = await demoService.update(demo._id, {
+        name: name.trim(),
+        generatedHtml: html,
+      });
+      onSaved(updated);
+      onClose();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onClose={() => !saving && onClose()}
+      fullScreen={fullScreen}
+      maxWidth="xl"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: fullScreen ? 0 : 3,
+          height: fullScreen ? '100%' : '90vh',
+          maxHeight: '90vh',
+        },
+      }}
+    >
+      <DialogTitle sx={{ fontWeight: 800, pb: 0.5, flexShrink: 0 }}>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <EditRoundedIcon sx={{ color: '#ef0f82', fontSize: 20 }} />
+          <span>Editar demo</span>
+        </Stack>
+      </DialogTitle>
+      <Divider />
+
+      <DialogContent
+        sx={{
+          p: 0,
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
+          flex: 1,
+          minHeight: 0,
+        }}
+      >
+        {/* Left — editor */}
+        <Box
+          sx={{
+            width: { xs: '100%', md: '42%' },
+            borderRight: { md: '1px solid' },
+            borderColor: 'divider',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            flexShrink: 0,
+          }}
+        >
+          <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', flexShrink: 0 }}>
+            <TextField
+              label="Nombre"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              fullWidth
+              size="small"
+              disabled={saving}
+            />
+          </Box>
+
+          <Box sx={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+            {loadingHtml ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                <CircularProgress size={24} sx={{ color: '#ef0f82' }} />
+              </Box>
+            ) : (
+              <textarea
+                value={html}
+                onChange={(e) => handleHtmlChange(e.target.value)}
+                disabled={saving}
+                placeholder="Pega o escribe el HTML de la demo aquí…"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                  outline: 'none',
+                  resize: 'none',
+                  padding: '12px 14px',
+                  fontFamily: '"Fira Code", "Cascadia Code", "Courier New", monospace',
+                  fontSize: 12,
+                  lineHeight: 1.55,
+                  color: '#1a1a2e',
+                  background: '#f8f9ff',
+                  boxSizing: 'border-box',
+                }}
+              />
+            )}
+          </Box>
+
+          <Box
+            sx={{
+              p: 1.5,
+              borderTop: '1px solid',
+              borderColor: 'divider',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              bgcolor: 'background.paper',
+              flexShrink: 0,
+            }}
+          >
+            <Typography variant="caption" color="text.disabled">
+              {html.length.toLocaleString('es')} caracteres
+            </Typography>
+            <Typography variant="caption" color="text.disabled" sx={{ display: { xs: 'none', sm: 'block' } }}>
+              Preview se actualiza al soltar el teclado
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Right — live preview */}
+        <Box
+          sx={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            minWidth: 0,
+            height: { xs: 320, md: 'auto' },
+          }}
+        >
+          <Box
+            sx={{
+              px: 2,
+              py: 1,
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              bgcolor: 'action.hover',
+              flexShrink: 0,
+            }}
+          >
+            <Typography variant="caption" color="text.secondary" fontWeight={600}>
+              Vista previa en tiempo real
+            </Typography>
+          </Box>
+          <Box sx={{ flex: 1, overflow: 'hidden' }}>
+            {preview ? (
+              <iframe
+                srcDoc={preview}
+                title="Preview"
+                sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
+                style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+              />
+            ) : (
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                <Typography variant="caption" color="text.disabled">
+                  {loadingHtml ? 'Cargando HTML…' : 'El preview aparece aquí'}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </Box>
+      </DialogContent>
+
+      <Divider />
+      <DialogActions sx={{ px: 3, py: 1.5, gap: 1 }}>
+        <Button onClick={onClose} disabled={saving} size="small">
+          Cancelar
+        </Button>
+        <Button
+          onClick={handleSave}
+          variant="contained"
+          disabled={saving || loadingHtml || !name.trim()}
+          size="small"
+          startIcon={saving ? <CircularProgress size={14} thickness={5} sx={{ color: 'inherit' }} /> : <CheckRoundedIcon fontSize="small" />}
+          sx={{ bgcolor: '#ef0f82', '&:hover': { bgcolor: '#d40e75' }, fontWeight: 700, px: 2.5 }}
+        >
+          {saving ? 'Guardando…' : 'Guardar cambios'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
 // ─── Row ──────────────────────────────────────────────────────────────────────
 
-function DemoRow({ demo, onDelete }: { demo: DemoEntry; onDelete: (id: string) => void }) {
+function DemoRow({
+  demo,
+  onDelete,
+  onEdit,
+}: {
+  demo: DemoEntry;
+  onDelete: (id: string) => void;
+  onEdit: (demo: DemoEntry) => void;
+}) {
   const [copied, setCopied] = useState(false);
   const url = demoUrl(demo._id);
   const s = STATUS_CHIP[demo.status];
@@ -76,6 +316,9 @@ function DemoRow({ demo, onDelete }: { demo: DemoEntry; onDelete: (id: string) =
       {/* Info */}
       <Box minWidth={0}>
         <Stack direction="row" spacing={1} alignItems="center" mb={0.25}>
+          {demo.pinned && (
+            <PushPinRoundedIcon sx={{ fontSize: 14, color: '#ef0f82', flexShrink: 0 }} />
+          )}
           <Typography variant="body2" fontWeight={700} noWrap>
             {demo.name}
           </Typography>
@@ -118,6 +361,15 @@ function DemoRow({ demo, onDelete }: { demo: DemoEntry; onDelete: (id: string) =
       <Stack direction="row" spacing={0.25} alignItems="center">
         {demo.status === 'ready' && (
           <>
+            <Tooltip title="Editar HTML">
+              <IconButton
+                size="small"
+                onClick={() => onEdit(demo)}
+                sx={{ color: 'text.secondary' }}
+              >
+                <EditRoundedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
             <Tooltip title={copied ? 'Copiado' : 'Copiar enlace'}>
               <IconButton
                 size="small"
@@ -159,12 +411,13 @@ function DemoRow({ demo, onDelete }: { demo: DemoEntry; onDelete: (id: string) =
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DemosPage() {
-  const [demos, setDemos]         = useState<DemoEntry[]>([]);
-  const [loading, setLoading]     = useState(true);
+  const [demos, setDemos]           = useState<DemoEntry[]>([]);
+  const [loading, setLoading]       = useState(true);
   const [generating, setGenerating] = useState(false);
-  const [open, setOpen]           = useState(false);
-  const [name, setName]           = useState('');
-  const [prompt, setPrompt]       = useState('');
+  const [open, setOpen]             = useState(false);
+  const [name, setName]             = useState('');
+  const [prompt, setPrompt]         = useState('');
+  const [editTarget, setEditTarget] = useState<DemoEntry | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -199,6 +452,10 @@ export default function DemosPage() {
   const handleDelete = async (id: string) => {
     await demoService.delete(id);
     setDemos((prev) => prev.filter((d) => d._id !== id));
+  };
+
+  const handleSaved = (updated: DemoEntry) => {
+    setDemos((prev) => prev.map((d) => (d._id === updated._id ? { ...d, ...updated } : d)));
   };
 
   const ready = demos.filter((d) => d.status === 'ready').length;
@@ -282,7 +539,7 @@ export default function DemosPage() {
           </Box>
         ) : (
           demos.map((d) => (
-            <DemoRow key={d._id} demo={d} onDelete={handleDelete} />
+            <DemoRow key={d._id} demo={d} onDelete={handleDelete} onEdit={setEditTarget} />
           ))
         )}
       </Box>
@@ -378,6 +635,16 @@ export default function DemosPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Dialog: editar demo */}
+      {editTarget && (
+        <EditDialog
+          demo={editTarget}
+          open={Boolean(editTarget)}
+          onClose={() => setEditTarget(null)}
+          onSaved={handleSaved}
+        />
+      )}
     </Box>
   );
 }
