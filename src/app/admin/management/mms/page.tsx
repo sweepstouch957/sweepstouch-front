@@ -26,6 +26,7 @@ import MmsPreviewPhone from '@/components/mms/MmsPreviewPhone';
 import MmsActionBar from '@/components/mms/MmsActionBar';
 import { useStores } from '@/hooks/useStores';
 import { api } from '@/libs/axios';
+import { circularService } from '@/services/circular.service';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -324,16 +325,19 @@ function AiRecipesPanel({
   headline,
   recipes,
   onChange,
+  onGenerated,
 }: {
   products: ExtractedProduct[];
   headline: string;
   recipes: AiRecipe[];
   onChange: (r: AiRecipe[]) => void;
+  onGenerated?: (finalRecipes: AiRecipe[]) => Promise<void>;
 }) {
   const [generating, setGenerating] = useState(false);
   const [generatingImages, setGeneratingImages] = useState(false);
   const [imageProgress, setImageProgress] = useState(0);
   const [error, setError] = useState('');
+  const [autoSaved, setAutoSaved] = useState(false);
 
   const generate = async () => {
     setGenerating(true);
@@ -391,6 +395,14 @@ function AiRecipesPanel({
       }
       setGeneratingImages(false);
       setImageProgress(0);
+      // Auto-save final recipes (with images) to the circular
+      if (onGenerated) {
+        try {
+          await onGenerated(withImages);
+          setAutoSaved(true);
+          setTimeout(() => setAutoSaved(false), 4000);
+        } catch { /* save error is non-blocking */ }
+      }
       return; // already called setGenerating(false) above
     } catch (err: any) {
       console.error('[recipes] generation failed:', err);
@@ -403,9 +415,13 @@ function AiRecipesPanel({
   return (
     <Box>
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
-        <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+        <Typography sx={{ fontSize: 13, color: autoSaved ? 'success.main' : 'text.secondary',
+          display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          {autoSaved && '✅ '}
           {generatingImages
             ? `Generating images… ${imageProgress}/${recipes.length}`
+            : autoSaved
+            ? `${recipes.length} recipes saved to circular`
             : recipes.length > 0
             ? `${recipes.length} AI recipes — shown in Recetas tab`
             : 'Suggest recipes from your product list'}
@@ -689,6 +705,10 @@ function MmsGeneratorPage(): React.JSX.Element {
                         headline={headline}
                         recipes={recipes}
                         onChange={setRecipes}
+                        onGenerated={async (finalRecipes) => {
+                          if (!circularId) return;
+                          await circularService.saveProducts(circularId, mmsProducts, headline, finalRecipes);
+                        }}
                       />
 
                       <Divider sx={{ my: 2 }} />
