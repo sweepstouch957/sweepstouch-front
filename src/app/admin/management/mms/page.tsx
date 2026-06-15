@@ -523,7 +523,9 @@ function MmsGeneratorPage(): React.JSX.Element {
       if (!a.isHero && b.isHero) return 1;
       return 0;
     });
-    setProducts(sorted);
+    // Default savings to 10% if not set
+    const withDefaults = sorted.map(p => ({ ...p, savings: p.savings || '10%' }));
+    setProducts(withDefaults);
     setHeadline(extracted.headline);
     setExtractionStatus('completed');
     if (extracted.validDates) setValidDates(extracted.validDates);
