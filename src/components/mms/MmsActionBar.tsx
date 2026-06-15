@@ -28,6 +28,7 @@ interface Props {
   storeName: string;
   campaignCode: string;
   products: Product[];
+  recipes?: any[];
   headline: string;
   circularFileUrl?: string;
   onGenerated: (result: { generated: number; skipped: number }) => void;
@@ -40,7 +41,7 @@ interface Props {
 }
 
 export default function MmsActionBar({
-  circularId, storeId, storeSlug, storeName, campaignCode, products, headline,
+  circularId, storeId, storeSlug, storeName, campaignCode, products, recipes, headline,
   circularFileUrl, onGenerated, storeProvider, storeBandwidthPhone, storeBandwidthId,
   storeInfobipSenderId, storeTwilioPhone,
 }: Props) {
@@ -55,13 +56,13 @@ export default function MmsActionBar({
     if (!circularId) return;
     setSaving(true); setError(''); setSaved(false);
     try {
-      await circularService.saveProducts(circularId, products, headline);
+      await circularService.saveProducts(circularId, products, headline, recipes);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Error saving products');
     } finally { setSaving(false); }
-  }, [circularId, products, headline]);
+  }, [circularId, products, headline, recipes]);
 
   // Generate MMS barcodes for all customers
   const handleGenerate = useCallback(async () => {
@@ -72,7 +73,7 @@ export default function MmsActionBar({
     setGenerating(true); setError('');
     try {
       // Save first, then generate
-      await circularService.saveProducts(circularId, products, headline);
+      await circularService.saveProducts(circularId, products, headline, recipes);
       const result = await circularService.generateMms(circularId, storeSlug, campaignCode);
       onGenerated({ generated: result.generated || 0, skipped: result.skipped || 0 });
     } catch (err: any) {

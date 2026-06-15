@@ -68,8 +68,8 @@ function useCopy() {
 }
 
 // ─── Link Display ───────────────────────────────────────
-const LinkDisplay = React.memo(({ link, shortLink, copy, copied }: {
-  link: string; shortLink?: string; copy: (t: string) => void; copied: boolean;
+const LinkDisplay = React.memo(({ link, shortLink, copy, copied, label }: {
+  link: string; shortLink?: string; copy: (t: string) => void; copied: boolean; label?: string;
 }) => (
   <Stack spacing={1}>
     {shortLink && (
@@ -83,9 +83,9 @@ const LinkDisplay = React.memo(({ link, shortLink, copy, copied }: {
         <Box sx={{ flex: 1 }}>
           <Typography variant="caption" fontWeight={700} color="success.main"
             sx={{ display: 'block', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            Short Link (used in SMS)
+            {label || 'Short Link (used in SMS)'}
           </Typography>
-          <Typography sx={{ fontSize: 13, fontFamily: 'monospace', fontWeight: 700 }}>
+          <Typography sx={{ fontSize: 13, fontFamily: 'monospace', fontWeight: 700, wordBreak: 'break-all' }}>
             {shortLink}
           </Typography>
         </Box>
@@ -102,12 +102,10 @@ const LinkDisplay = React.memo(({ link, shortLink, copy, copied }: {
     }}>
       <LinkIcon sx={{ color: '#f43789', fontSize: 16 }} />
       <Box sx={{ flex: 1 }}>
-        {shortLink && (
-          <Typography variant="caption" color="text.disabled"
-            sx={{ display: 'block', fontSize: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            Original URL
-          </Typography>
-        )}
+        <Typography variant="caption" color="text.disabled"
+          sx={{ display: 'block', fontSize: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          {shortLink ? 'Original URL' : (label || 'Link')}
+        </Typography>
         <Typography sx={{ fontSize: 10, fontFamily: 'monospace', wordBreak: 'break-all', color: 'text.secondary' }}>
           {link}
         </Typography>
@@ -293,7 +291,7 @@ export default function TestMmsShoppingListModal({
               <Stack spacing={1}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
                   <Box>
-                    <Typography variant="caption" fontWeight={700} color="text.secondary">QR CODE</Typography>
+                    <Typography variant="caption" fontWeight={700} color="text.secondary">SHOPPING LIST</Typography>
                     <Typography fontWeight="bold" fontFamily="monospace" color="primary">
                       {mmsSend.listResult.qrCode}
                     </Typography>
@@ -305,6 +303,7 @@ export default function TestMmsShoppingListModal({
                   shortLink={mmsSend.listResult.shortLink}
                   copy={copy}
                   copied={copied}
+                  label="RCS Link (sent in SMS)"
                 />
               </Stack>
             </Box>
@@ -406,20 +405,18 @@ export default function TestMmsShoppingListModal({
             }}>
               <Stack spacing={1.5}>
                 <Box>
-                  <Typography variant="caption" fontWeight={700} color="text.secondary">QR CODE</Typography>
+                  <Typography variant="caption" fontWeight={700} color="text.secondary">SHOPPING LIST</Typography>
                   <Typography variant="h5" fontWeight="bold" fontFamily="monospace" color="primary">
                     {mmsSend.listResult.qrCode}
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" fontWeight={700} color="text.secondary">
-                    {mmsSend.listResult.shortLink ? 'SHORT LINK' : 'LINK'}
-                  </Typography>
                   <LinkDisplay
                     link={mmsSend.listResult.link}
                     shortLink={mmsSend.listResult.shortLink}
                     copy={copy}
                     copied={copied}
+                    label="RCS Link (sent in SMS)"
                   />
                 </Box>
               </Stack>

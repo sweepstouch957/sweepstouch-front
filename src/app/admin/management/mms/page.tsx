@@ -47,6 +47,7 @@ export interface AiRecipe {
   ingredients: string[];
   procedure: string[];
   savings?: string;
+  imageUrl?: string;
 }
 
 const MAX_MMS_PRODUCTS = 10;
@@ -161,48 +162,72 @@ function RecipeCard({ recipe, onRemove }: { recipe: AiRecipe; onRemove: () => vo
   const [showProc, setShowProc] = useState(false);
   return (
     <Box sx={{
-      p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 2,
+      border: '1px solid', borderColor: 'divider', borderRadius: 2,
       bgcolor: 'background.paper', height: '100%', display: 'flex', flexDirection: 'column',
+      overflow: 'hidden',
     }}>
-      <Stack direction="row" alignItems="flex-start" justifyContent="space-between">
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: 13, lineHeight: 1.3 }}>{recipe.name}</Typography>
-          <Stack direction="row" spacing={0.5} mt={0.5} flexWrap="wrap" gap={0.5}>
-            {recipe.time && (
-              <Chip label={`⏱ ${recipe.time}`} size="small" sx={{ height: 18, fontSize: 10 }} />
-            )}
-            {recipe.tags.slice(0, 2).map(t => (
-              <Chip key={t} label={t} size="small" color="primary" variant="outlined" sx={{ height: 18, fontSize: 10 }} />
+      {/* Recipe image or skeleton placeholder */}
+      <Box sx={{
+        width: '100%', aspectRatio: '16/9', position: 'relative',
+        bgcolor: recipe.imageUrl ? 'transparent' : 'action.hover',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        overflow: 'hidden',
+      }}>
+        {recipe.imageUrl ? (
+          <img src={recipe.imageUrl} alt={recipe.name}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        ) : (
+          <Box sx={{
+            width: '100%', height: '100%',
+            background: 'linear-gradient(135deg, rgba(220,31,38,0.06) 0%, rgba(220,31,38,0.02) 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <RestaurantMenuRoundedIcon sx={{ fontSize: 28, color: 'text.disabled', opacity: 0.5 }} />
+          </Box>
+        )}
+      </Box>
+
+      <Box sx={{ p: 1.5, flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Stack direction="row" alignItems="flex-start" justifyContent="space-between">
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography sx={{ fontWeight: 700, fontSize: 13, lineHeight: 1.3 }}>{recipe.name}</Typography>
+            <Stack direction="row" spacing={0.5} mt={0.5} flexWrap="wrap" gap={0.5}>
+              {recipe.time && (
+                <Chip label={`⏱ ${recipe.time}`} size="small" sx={{ height: 18, fontSize: 10 }} />
+              )}
+              {recipe.tags.slice(0, 2).map(t => (
+                <Chip key={t} label={t} size="small" color="primary" variant="outlined" sx={{ height: 18, fontSize: 10 }} />
+              ))}
+            </Stack>
+          </Box>
+          <IconButton size="small" onClick={onRemove} sx={{ ml: 0.5, flexShrink: 0 }}>
+            <DeleteOutlineRoundedIcon sx={{ fontSize: 14 }} />
+          </IconButton>
+        </Stack>
+
+        {recipe.ingredients.length > 0 && (
+          <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 1, lineHeight: 1.5 }}>
+            {recipe.ingredients.slice(0, 4).join(' · ')}
+            {recipe.ingredients.length > 4 && ` +${recipe.ingredients.length - 4} more`}
+          </Typography>
+        )}
+
+        <Button size="small" onClick={() => setShowProc(s => !s)}
+          sx={{ mt: 'auto', pt: 0.5, fontSize: 11, p: 0, minWidth: 0, textTransform: 'none', color: 'text.secondary', justifyContent: 'flex-start' }}>
+          {showProc ? '▲ Hide steps' : `▼ ${recipe.procedure?.length || 0} steps`}
+        </Button>
+
+        {showProc && recipe.procedure?.length > 0 && (
+          <Box sx={{ mt: 0.5 }}>
+            {recipe.procedure.map((step, i) => (
+              <Typography key={i} sx={{ fontSize: 11, color: 'text.secondary', mb: 0.5, display: 'flex', gap: 0.5 }}>
+                <span style={{ fontWeight: 700, flexShrink: 0 }}>{i + 1}.</span>
+                {step}
+              </Typography>
             ))}
-          </Stack>
-        </Box>
-        <IconButton size="small" onClick={onRemove} sx={{ ml: 0.5, flexShrink: 0 }}>
-          <DeleteOutlineRoundedIcon sx={{ fontSize: 14 }} />
-        </IconButton>
-      </Stack>
-
-      {recipe.ingredients.length > 0 && (
-        <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 1, lineHeight: 1.5 }}>
-          {recipe.ingredients.slice(0, 4).join(' · ')}
-          {recipe.ingredients.length > 4 && ` +${recipe.ingredients.length - 4} more`}
-        </Typography>
-      )}
-
-      <Button size="small" onClick={() => setShowProc(s => !s)}
-        sx={{ mt: 'auto', pt: 0.5, fontSize: 11, p: 0, minWidth: 0, textTransform: 'none', color: 'text.secondary', justifyContent: 'flex-start' }}>
-        {showProc ? '▲ Hide steps' : `▼ ${recipe.procedure?.length || 0} steps`}
-      </Button>
-
-      {showProc && recipe.procedure?.length > 0 && (
-        <Box sx={{ mt: 0.5 }}>
-          {recipe.procedure.map((step, i) => (
-            <Typography key={i} sx={{ fontSize: 11, color: 'text.secondary', mb: 0.5, display: 'flex', gap: 0.5 }}>
-              <span style={{ fontWeight: 700, flexShrink: 0 }}>{i + 1}.</span>
-              {step}
-            </Typography>
-          ))}
-        </Box>
-      )}
+          </Box>
+        )}
+      </Box>
     </Box>
   );
 }
@@ -221,6 +246,8 @@ function AiRecipesPanel({
   onChange: (r: AiRecipe[]) => void;
 }) {
   const [generating, setGenerating] = useState(false);
+  const [generatingImages, setGeneratingImages] = useState(false);
+  const [imageProgress, setImageProgress] = useState(0);
   const [error, setError] = useState('');
 
   const generate = async () => {
@@ -254,7 +281,32 @@ function AiRecipesPanel({
         setError('AI response could not be parsed. Try again.');
         return;
       }
+
+      // Show text recipes immediately
       onChange(parsed);
+      setGenerating(false);
+
+      // Generate one image per recipe sequentially
+      setGeneratingImages(true);
+      setImageProgress(0);
+      const withImages = [...parsed];
+      for (let i = 0; i < withImages.length; i++) {
+        const r = withImages[i];
+        try {
+          const prompt = `Professional food photography of "${r.name}", a Latin dish made with ${r.ingredients.slice(0, 3).join(', ')}. Overhead shot, bright natural lighting, vibrant colors, on a wooden table with fresh ingredients around it.`;
+          const imgRes = await api.post('/ai/generate-recipe-image', { prompt });
+          if (imgRes.data?.imageUrl) {
+            withImages[i] = { ...r, imageUrl: imgRes.data.imageUrl };
+            onChange([...withImages]);
+          }
+        } catch (imgErr) {
+          console.warn(`[recipes] image gen failed for "${r.name}":`, imgErr);
+        }
+        setImageProgress(i + 1);
+      }
+      setGeneratingImages(false);
+      setImageProgress(0);
+      return; // already called setGenerating(false) above
     } catch (err: any) {
       console.error('[recipes] generation failed:', err);
       setError(err?.response?.data?.error || 'Recipe generation failed. Try again.');
@@ -267,24 +319,26 @@ function AiRecipesPanel({
     <Box>
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
         <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
-          {recipes.length > 0
+          {generatingImages
+            ? `Generating images… ${imageProgress}/${recipes.length}`
+            : recipes.length > 0
             ? `${recipes.length} AI recipes — shown in Recetas tab`
             : 'Suggest recipes from your product list'}
         </Typography>
         <Button
           variant={recipes.length ? 'outlined' : 'contained'}
           size="small"
-          startIcon={generating
+          startIcon={(generating || generatingImages)
             ? <CircularProgress size={14} color="inherit" />
             : recipes.length ? <RefreshRoundedIcon /> : <AutoAwesomeIcon />}
           onClick={generate}
-          disabled={generating || products.length === 0}
+          disabled={generating || generatingImages || products.length === 0}
           sx={recipes.length ? {} : {
             background: 'linear-gradient(135deg, #f43789 0%, #DC1F26 100%)',
             '&:hover': { background: 'linear-gradient(135deg, #DC1F26 0%, #8B0000 100%)' },
           }}
         >
-          {generating ? 'Generating...' : recipes.length ? 'Regenerate' : '✨ Generate with AI'}
+          {generating ? 'Generating...' : generatingImages ? 'Adding images...' : recipes.length ? 'Regenerate' : '✨ Generate with AI'}
         </Button>
       </Stack>
 
@@ -567,6 +621,7 @@ function MmsGeneratorPage(): React.JSX.Element {
                           storeName={selectedStore.name}
                           campaignCode={campaignCode}
                           products={mmsProducts}
+                          recipes={recipes}
                           headline={headline}
                           circularFileUrl={circularFileUrl}
                           onGenerated={setGenerationResult}

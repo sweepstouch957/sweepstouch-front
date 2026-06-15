@@ -128,9 +128,9 @@ export class CircularService {
     return res.data;
   }
 
-  /** Save edited products and headline to a circular */
-  async saveProducts(circularId: string, products: any[], headline?: string): Promise<any> {
-    const res = await api.put(`/circulars/${circularId}/products`, { products, headline });
+  /** Save edited products, headline, and AI recipes to a circular */
+  async saveProducts(circularId: string, products: any[], headline?: string, recipes?: any[]): Promise<any> {
+    const res = await api.put(`/circulars/${circularId}/products`, { products, headline, recipes });
     return res.data;
   }
 

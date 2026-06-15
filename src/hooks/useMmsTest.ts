@@ -173,17 +173,19 @@ export function useMmsSend(opts: {
       );
 
       const { qrCode, totalItems } = res.data;
-      const longLink = `${LINKTREE_URL}?slug=${opts.storeSlug}&sl=${qrCode}`;
 
-      const shortLink = await shorten(longLink);
+      // RCS personalized link — shown in SMS and in the modal
+      const customerId = customer._id || customer.phoneNumber;
+      const rcsLink = `${LINKTREE_URL}/rcs/${customerId}?store=${opts.storeSlug}${opts.circularId ? '&circular=' + opts.circularId : ''}`;
+      const shortRcsLink = await shorten(rcsLink);
 
-      setListResult({ qrCode, link: longLink, shortLink, totalItems });
+      setListResult({ qrCode, link: rcsLink, shortLink: shortRcsLink, totalItems });
 
-      // Generate SMS text
+      // Generate SMS text with RCS link
       setGeneratingText(true);
-      const linkForSms = shortLink || longLink;
+      const linkForSms = shortRcsLink || rcsLink;
       setSmsText(
-        `⭐ Earn points with every purchase! Each product = 1 point you can redeem for exclusive rewards 🎁\n\nYour personalized deals are ready 👇\n${linkForSms}\n\nReply STOP to unsubscribe.`
+        `⭐ Earn points with every purchase! Each product = 1 point you can redeem for exclusive rewards 🎁\n\nTus ofertas personalizadas te esperan 👇\n${linkForSms}\n\nReply STOP to unsubscribe.`
       );
       setGeneratingText(false);
 
