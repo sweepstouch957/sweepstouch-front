@@ -40,10 +40,22 @@ import {
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import * as XLSX from 'xlsx';
 
 type ParsedCsv = {
   rawLines: string[];
   phoneNumbers: string[];
+};
+
+type CsvMode = 'listed' | 'except-listed';
+
+type CsvSummary = {
+  mode: CsvMode;
+  totalCsv: number;
+  found: number;
+  notFound: number;
+  toDeactivate: number;
+  toKeep: number;
 };
 
 function getCustomerId(c: any): string {
@@ -129,6 +141,58 @@ function parseCsv(text: string): ParsedCsv {
   return { rawLines, phoneNumbers: deduped };
 }
 
+function parseRows(rows: unknown[][]): ParsedCsv {
+  const normalizedRows = rows
+    .map((row) => row.map((cell) => (cell ?? '').toString().trim()))
+    .filter((row) => row.some(Boolean));
+
+  if (normalizedRows.length === 0) {
+    return { rawLines: [], phoneNumbers: [] };
+  }
+
+  const headerCells = normalizedRows[0];
+  const headerLooksLikeHeader = headerCells.some((c) => /[a-zA-Z]/.test(c));
+  let phoneIdx = 0;
+  let startAt = 0;
+
+  if (headerLooksLikeHeader) {
+    startAt = 1;
+    const norm = headerCells.map((c) => c.toLowerCase().replace(/\s+/g, ''));
+    phoneIdx = Math.max(
+      norm.findIndex((c) => ['phone', 'phonenumber', 'number', 'telefono', 'tel'].includes(c)),
+      0
+    );
+  }
+
+  const phoneNumbers: string[] = [];
+  for (let i = startAt; i < normalizedRows.length; i++) {
+    const candidate = (normalizedRows[i][phoneIdx] ?? normalizedRows[i][0] ?? '').toString();
+    const n = normalizePhone(candidate);
+    if (n) phoneNumbers.push(n);
+  }
+
+  return {
+    rawLines: normalizedRows.map((row) => row.join(',')),
+    phoneNumbers: Array.from(new Set(phoneNumbers)),
+  };
+}
+
+async function parsePhoneFile(file: File): Promise<ParsedCsv> {
+  const lowerName = file.name.toLowerCase();
+  if (lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls')) {
+    const buffer = await file.arrayBuffer();
+    const workbook = XLSX.read(buffer, { type: 'array' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = sheetName ? workbook.Sheets[sheetName] : null;
+    if (!sheet) return { rawLines: [], phoneNumbers: [] };
+    const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: false });
+    return parseRows(rows);
+  }
+
+  const text = await file.text();
+  return parseCsv(text);
+}
+
 async function fetchAllCustomersByStore(storeId: string) {
   const pageSize = 500;
   let page = 1;
@@ -168,6 +232,7 @@ export default function DebugNumbers(): React.JSX.Element {
   const brandPink = '#e91e63';
   const qc = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const csvModeRef = useRef<CsvMode>('listed');
 
   const { data: stores, isPending: storesPending } = useStores();
   const [storeId, setStoreId] = useState('');
@@ -191,14 +256,19 @@ export default function DebugNumbers(): React.JSX.Element {
   const [numberSearch, setNumberSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [duplicatesOnly, setDuplicatesOnly] = useState(false);
-  const customersQuery = useQuery({
+  const {
+    data: customersData,
+    isPending: customersPending,
+    isFetching: customersFetching,
+    isError: customersError,
+  } = useQuery({
     queryKey: ['debug-customers-by-store', storeId],
     enabled: !!storeId,
     queryFn: () => fetchAllCustomersByStore(storeId),
     staleTime: 30_000,
   });
 
-  const customers = customersQuery.data || [];
+  const customers = useMemo(() => customersData || [], [customersData]);
   const duplicatePhones = useMemo(() => {
     const groups = new Map<string, any[]>();
     for (const c of customers) {
@@ -299,12 +369,8 @@ export default function DebugNumbers(): React.JSX.Element {
 
   const [csvOpen, setCsvOpen] = useState(false);
   const [csv, setCsv] = useState<ParsedCsv | null>(null);
-  const [summary, setSummary] = useState<null | {
-    totalCsv: number;
-    found: number;
-    notFound: number;
-    toDeactivate: number;
-  }>(null);
+  const [csvMode, setCsvMode] = useState<CsvMode>('listed');
+  const [summary, setSummary] = useState<null | CsvSummary>(null);
 
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
@@ -389,29 +455,36 @@ export default function DebugNumbers(): React.JSX.Element {
     }
   }
 
-  async function handlePickCsvFile(file: File) {
+  function openCsvPicker(mode: CsvMode) {
+    csvModeRef.current = mode;
+    setCsvMode(mode);
+    fileInputRef.current?.click();
+  }
+
+  async function handlePickCsvFile(file: File, mode: CsvMode) {
     setMessage(null);
     setSummary(null);
     setCsv(null);
+    setCsvMode(mode);
 
-    const text = await file.text();
-    const parsed = parseCsv(text);
+    const parsed = await parsePhoneFile(file);
     setCsv(parsed);
 
     if (parsed.phoneNumbers.length === 0) {
-      setMessage({ type: 'error', text: 'No se encontraron números válidos en el CSV.' });
+      setMessage({ type: 'error', text: 'No se encontraron números válidos en el archivo.' });
       return;
     }
 
     if (!storeId) {
-      setMessage({ type: 'error', text: 'Selecciona una tienda antes de procesar el CSV.' });
+      setMessage({ type: 'error', text: 'Selecciona una tienda antes de procesar el archivo.' });
       return;
     }
 
     setProcessing(true);
     try {
-      const customers = customersQuery.data ?? (await fetchAllCustomersByStore(storeId));
+      const customers = customersData ?? (await fetchAllCustomersByStore(storeId));
       const phoneToIds = new Map<string, string[]>();
+      const csvPhones = new Set(parsed.phoneNumbers);
 
       for (const c of customers) {
         const phoneNorm = normalizePhone(c?.phoneNumber ?? '');
@@ -435,20 +508,34 @@ export default function DebugNumbers(): React.JSX.Element {
         }
       }
 
+      const toDeactivate =
+        mode === 'listed'
+          ? foundIds.size
+          : customers.filter((c) => {
+            const id = getCustomerId(c);
+            const phoneNorm = normalizePhone(c?.phoneNumber ?? '');
+            return id && c?.active && (!phoneNorm || !csvPhones.has(phoneNorm));
+          }).length;
+
       setSummary({
+        mode,
         totalCsv: parsed.phoneNumbers.length,
         found,
         notFound,
-        toDeactivate: foundIds.size,
+        toDeactivate,
+        toKeep: foundIds.size,
       });
 
       setMessage({
         type: 'info',
-        text: 'Listo. Revisa el resumen y luego presiona “Inactivar encontrados”.',
+        text:
+          mode === 'listed'
+            ? 'Listo. Revisa el resumen y luego presiona "Inactivar encontrados".'
+            : 'Listo. Revisa el resumen y luego presiona "Inactivar excepto archivo".',
       });
     } catch (e) {
       console.error(e);
-      setMessage({ type: 'error', text: 'No se pudo procesar el CSV. Revisa la consola.' });
+      setMessage({ type: 'error', text: 'No se pudo procesar el archivo. Revisa la consola.' });
     } finally {
       setProcessing(false);
     }
@@ -461,8 +548,9 @@ export default function DebugNumbers(): React.JSX.Element {
     setProgress({ done: 0, total: 0 });
 
     try {
-      const customers = customersQuery.data ?? (await fetchAllCustomersByStore(storeId));
+      const customers = customersData ?? (await fetchAllCustomersByStore(storeId));
       const phoneToCustomers = new Map<string, any[]>();
+      const csvPhones = new Set(csv.phoneNumbers);
       for (const c of customers) {
         const p = normalizePhone(c?.phoneNumber ?? '');
         if (!p) continue;
@@ -472,9 +560,18 @@ export default function DebugNumbers(): React.JSX.Element {
       }
 
       const targets: any[] = [];
-      for (const p of csv.phoneNumbers) {
-        const arr = phoneToCustomers.get(p);
-        if (arr?.length) targets.push(...arr);
+      if (csvMode === 'listed') {
+        for (const p of csv.phoneNumbers) {
+          const arr = phoneToCustomers.get(p);
+          if (arr?.length) targets.push(...arr);
+        }
+      } else {
+        for (const c of customers) {
+          const phoneNorm = normalizePhone(c?.phoneNumber ?? '');
+          if (c?.active && (!phoneNorm || !csvPhones.has(phoneNorm))) {
+            targets.push(c);
+          }
+        }
       }
 
       const unique = Array.from(new Map(targets.map((c) => [getCustomerId(c), c])).values()).filter(
@@ -500,7 +597,9 @@ export default function DebugNumbers(): React.JSX.Element {
         type: bad ? 'error' : 'success',
         text: bad
           ? `Proceso terminado con errores. Éxitos: ${ok}, Fallos: ${bad}.`
-          : `Listo. Se inactivaron ${ok} customer(s).`,
+          : csvMode === 'listed'
+            ? `Listo. Se inactivaron ${ok} customer(s).`
+            : `Listo. Se inactivaron ${ok} customer(s) fuera del archivo.`,
       });
     } catch (e) {
       console.error(e);
@@ -642,13 +741,13 @@ export default function DebugNumbers(): React.JSX.Element {
                   value={numberSearch}
                   onChange={(e) => setNumberSearch(e.target.value)}
                   sx={{ minWidth: { xs: '100%', md: 240 }, flex: { md: '1 1 240px' } }}
-                  disabled={!storeId || customersQuery.isPending}
+                  disabled={!storeId || customersPending}
                 />
 
                 <FormControl
                   size="small"
                   sx={{ minWidth: { xs: '100%', md: 200 }, flex: { md: '0 0 200px' } }}
-                  disabled={!storeId || customersQuery.isPending}
+                  disabled={!storeId || customersPending}
                 >
                   <InputLabel id="debug-active-filter">Estado</InputLabel>
                   <Select
@@ -673,13 +772,14 @@ export default function DebugNumbers(): React.JSX.Element {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".csv,text/csv"
+                  aria-label="Subir archivo de numeros"
+                  accept=".csv,.xlsx,.xls,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                   hidden
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     if (f) {
                       setCsvOpen(true);
-                      void handlePickCsvFile(f);
+                      void handlePickCsvFile(f, csvModeRef.current);
                     }
                     // permitir volver a subir el mismo archivo
                     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -701,7 +801,7 @@ export default function DebugNumbers(): React.JSX.Element {
                     }
                     setDuplicatesOnly((value) => !value);
                   }}
-                  disabled={!storeId || customersQuery.isPending || customersQuery.isFetching}
+                  disabled={!storeId || customersPending || customersFetching}
                   sx={{
                     whiteSpace: 'nowrap',
                     color: duplicatesOnly ? '#fff' : brandPink,
@@ -736,7 +836,7 @@ export default function DebugNumbers(): React.JSX.Element {
                 <Button
                   startIcon={<FileUploadRoundedIcon />}
                   variant="contained"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => openCsvPicker('listed')}
                   disabled={!storeId || processing}
                   sx={{
                     bgcolor: brandPink,
@@ -747,7 +847,26 @@ export default function DebugNumbers(): React.JSX.Element {
                     },
                   }}
                 >
-                  Desactivar desde CSV
+                  Desactivar desde archivo
+                </Button>
+
+                <Button
+                  startIcon={<FileUploadRoundedIcon />}
+                  variant="outlined"
+                  onClick={() => openCsvPicker('except-listed')}
+                  disabled={!storeId || processing}
+                  sx={{
+                    color: brandPink,
+                    borderColor: alpha(brandPink, 0.55),
+                    boxShadow: 'none',
+                    '&:hover': {
+                      bgcolor: alpha(brandPink, 0.08),
+                      borderColor: brandPink,
+                      boxShadow: 'none',
+                    },
+                  }}
+                >
+                  Desactivar excepto archivo
                 </Button>
               </Stack>
             </Stack>
@@ -758,7 +877,7 @@ export default function DebugNumbers(): React.JSX.Element {
 
             {storeId ? (
               <Box mt={1}>
-                {customersQuery.isPending ? (
+                {customersPending ? (
                   <Box
                     display="flex"
                     alignItems="center"
@@ -773,7 +892,7 @@ export default function DebugNumbers(): React.JSX.Element {
                       Cargando customers…
                     </Typography>
                   </Box>
-                ) : customersQuery.isError ? (
+                ) : customersError ? (
                   <Alert severity="error">
                     No se pudieron cargar los customers de esta tienda.
                   </Alert>
@@ -1073,7 +1192,9 @@ export default function DebugNumbers(): React.JSX.Element {
         fullWidth
         maxWidth="sm"
       >
-        <DialogTitle>Inactivar por CSV</DialogTitle>
+        <DialogTitle>
+          {csvMode === 'listed' ? 'Inactivar por archivo' : 'Inactivar excepto archivo'}
+        </DialogTitle>
         <DialogContent>
           <Stack
             spacing={2}
@@ -1092,7 +1213,7 @@ export default function DebugNumbers(): React.JSX.Element {
                   variant="body2"
                   color="text.secondary"
                 >
-                  Procesando CSV…
+                  Procesando archivo...
                 </Typography>
               </Box>
             ) : null}
@@ -1106,25 +1227,36 @@ export default function DebugNumbers(): React.JSX.Element {
                       variant="body2"
                       color="text.secondary"
                     >
-                      Números únicos en CSV: <b>{summary.totalCsv}</b>
+                      Numeros unicos en archivo: <b>{summary.totalCsv}</b>
                     </Typography>
                     <Typography
                       variant="body2"
                       color="text.secondary"
                     >
-                      Números encontrados (match por phoneNumber): <b>{summary.found}</b>
+                      Numeros encontrados (match por phoneNumber): <b>{summary.found}</b>
                     </Typography>
                     <Typography
                       variant="body2"
                       color="text.secondary"
                     >
-                      Números no encontrados: <b>{summary.notFound}</b>
+                      Numeros no encontrados: <b>{summary.notFound}</b>
                     </Typography>
+                    {summary.mode === 'except-listed' ? (
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                      >
+                        Customers a conservar activos por archivo: <b>{summary.toKeep}</b>
+                      </Typography>
+                    ) : null}
                     <Typography
                       variant="body2"
                       color="text.secondary"
                     >
-                      Customers a inactivar (IDs únicos): <b>{summary.toDeactivate}</b>
+                      {summary.mode === 'listed'
+                        ? 'Customers a inactivar (IDs unicos): '
+                        : 'Customers activos fuera del archivo a inactivar: '}
+                      <b>{summary.toDeactivate}</b>
                     </Typography>
                   </Stack>
                 </CardContent>
@@ -1153,7 +1285,7 @@ export default function DebugNumbers(): React.JSX.Element {
             onClick={() => void handleDeactivate()}
             disabled={!summary?.toDeactivate || processing}
           >
-            Inactivar encontrados
+            {csvMode === 'listed' ? 'Inactivar encontrados' : 'Inactivar excepto archivo'}
           </Button>
         </DialogActions>
       </Dialog>

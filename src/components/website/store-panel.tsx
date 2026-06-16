@@ -68,6 +68,7 @@ import StoreHeader from '../application-ui/headings/store/store-create';
 import StoreMap from '../application-ui/map/store-map';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
+const DEFAULT_MERCHANT_PASSWORD = 'ABC123';
 
 const formatAge = (iso?: string | null) => {
   if (!iso) return '—';
@@ -482,7 +483,7 @@ export default function StoreInfo({ store }: { store: Store }) {
     merchantPhone || t('merchantAccess.notAvailable'),
     '',
     t('merchantAccess.copyPasswordLabel'),
-    merchantPassword || t('merchantAccess.passwordUnavailableCopy'),
+    DEFAULT_MERCHANT_PASSWORD,
     '',
     t('merchantAccess.copyAccessCodeLabel'),
     merchantAccessCode || t('merchantAccess.notAvailable'),
@@ -1146,7 +1147,7 @@ export default function StoreInfo({ store }: { store: Store }) {
                       size="small"
                       InputProps={{
                         readOnly: true,
-                        endAdornment: copyAdornment(merchantPassword, t('merchantAccess.password'), !merchantPassword),
+                        endAdornment: copyAdornment(DEFAULT_MERCHANT_PASSWORD, t('merchantAccess.password')),
                       }}
                       helperText={t('merchantAccess.passwordSecurityHelper')}
                     />
