@@ -99,6 +99,40 @@ const generateAccessCode = (): string => {
   return `ST-${num}`;
 };
 
+const MERCHANT_PASSWORD_KEYS = new Set([
+  'password',
+  'tempPassword',
+  'plainPassword',
+  'merchantPassword',
+  'accessPassword',
+  'temporaryPassword',
+]);
+
+const isCopyableCredential = (value: string) => {
+  const trimmed = value.trim();
+  return Boolean(trimmed) && !trimmed.startsWith('$2a$') && !trimmed.startsWith('$2b$') && !trimmed.startsWith('$2y$');
+};
+
+const getCredentialValue = (source: any, keys: Set<string>): string => {
+  if (!source || typeof source !== 'object') return '';
+
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === 'string' && isCopyableCredential(value)) return value.trim();
+  }
+
+  for (const [key, value] of Object.entries(source)) {
+    const lowerKey = key.toLowerCase();
+    if (/hash|salt/.test(lowerKey)) continue;
+    if (value && typeof value === 'object') {
+      const nested = getCredentialValue(value, keys);
+      if (nested) return nested;
+    }
+  }
+
+  return '';
+};
+
 /* ── Compact stat pill ───────────────────────────────────────── */
 function StatPill({
   icon,
@@ -160,11 +194,13 @@ function SidebarSection({
   icon,
   label,
   accent,
+  action,
   children,
 }: {
   icon: React.ReactNode;
   label: string;
   accent: string;
+  action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -179,30 +215,41 @@ function SidebarSection({
       <Stack
         direction="row"
         alignItems="center"
+        justifyContent="space-between"
         spacing={1}
         px={2}
         py={1.2}
         sx={{ bgcolor: (t) => alpha(accent, t.palette.mode === 'dark' ? 0.08 : 0.04) }}
       >
-        <Box
-          sx={{
-            width: 24,
-            height: 24,
-            borderRadius: 1,
-            bgcolor: accent,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff',
-            '& svg': { fontSize: 13 },
-            flexShrink: 0,
-          }}
-        >
-          {icon}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+          <Box
+            sx={{
+              width: 24,
+              height: 24,
+              borderRadius: 1,
+              bgcolor: accent,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              '& svg': { fontSize: 13 },
+              flexShrink: 0,
+            }}
+          >
+            {icon}
+          </Box>
+          <Typography
+            variant="caption"
+            fontWeight={700}
+            textTransform="uppercase"
+            letterSpacing={0.7}
+            color="text.secondary"
+            noWrap
+          >
+            {label}
+          </Typography>
         </Box>
-        <Typography variant="caption" fontWeight={700} textTransform="uppercase" letterSpacing={0.7} color="text.secondary">
-          {label}
-        </Typography>
+        {action}
       </Stack>
       <Box px={2} pb={2} pt={1.5}>
         {children}
@@ -402,16 +449,61 @@ export default function StoreInfo({ store }: { store: Store }) {
     },
   });
 
-  const handleCopySlug = async () => {
-    const slug = form?.slug || (store as any)?.slug || '';
-    if (!slug) return;
+  const merchantWebsite = (process.env.NEXT_PUBLIC_MERCHANT_ORIGIN || 'https://merchant.sweepstouch.com').replace(/^https?:\/\//, '').replace(/\/$/, '');
+  const merchantPassword = getCredentialValue(
+    { merchantUser, backfillResult, store },
+    MERCHANT_PASSWORD_KEYS
+  );
+  const merchantPhone = merchantUser?.phoneNumber || '';
+  const merchantAccessCode = merchantUser?.accessCode || (store as any)?.accessCode || '';
+  const storeSlug = form?.slug || (store as any)?.slug || '';
+
+  const copyText = async (text: string, msg: string) => {
+    if (!text) return;
     try {
-      await navigator.clipboard.writeText(slug);
-      setSnack({ open: true, msg: `Slug "${slug}" copiado.`, type: 'success' });
+      await navigator.clipboard.writeText(text);
+      setSnack({ open: true, msg, type: 'success' });
     } catch {
       setSnack({ open: true, msg: 'No se pudo copiar.', type: 'error' });
     }
   };
+
+  const merchantAccessCopy = [
+    '👋 Welcome to Sweepstouch!',
+    'Here are your Merchant access credentials.',
+    'Please keep them in a safe place.',
+    '',
+    '🌐 Website:',
+    merchantWebsite,
+    '',
+    '📱 Phone (username):',
+    merchantPhone || 'No disponible',
+    '',
+    '🔑 Password:',
+    merchantPassword || 'No recuperable por seguridad. Guardala al crear el usuario.',
+    '',
+    '🏷️ Access code:',
+    merchantAccessCode || 'No disponible',
+    '',
+    '⚠️ For security reasons, the password cannot be recovered. Please save it now.',
+  ].join('\n');
+
+  const copyAdornment = (value: string, label: string, disabled = false) => (
+    <InputAdornment position="end">
+      <Tooltip title={`Copiar ${label}`}>
+        <span>
+          <IconButton
+            edge="end"
+            size="small"
+            onClick={() => copyText(value, `${label} copiado.`)}
+            disabled={disabled || !value}
+          >
+            <ContentCopyOutlined sx={{ fontSize: 16 }} />
+          </IconButton>
+        </span>
+      </Tooltip>
+    </InputAdornment>
+  );
 
   /* accent palette — derived from theme so customization dialog drives everything */
   const accentAudience = theme.palette.primary.main;
@@ -911,7 +1003,24 @@ export default function StoreInfo({ store }: { store: Store }) {
               </Box>
 
               {/* Merchant access — above Kiosk */}
-              <SidebarSection icon={<PersonAddRounded />} label="Acceso Merchant" accent={accentMerchant}>
+              <SidebarSection
+                icon={<PersonAddRounded />}
+                label="Acceso Merchant"
+                accent={accentMerchant}
+                action={(
+                  <Tooltip title="Copiar todos los accesos">
+                    <span>
+                      <IconButton
+                        size="small"
+                        onClick={() => copyText(merchantAccessCopy, 'Acceso merchant copiado.')}
+                        disabled={!merchantUser}
+                      >
+                        <ContentCopyOutlined sx={{ fontSize: 18 }} />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                )}
+              >
 
                 {/* Slug row */}
                 <Stack direction="row" alignItems="center" spacing={1} mb={1.5}>
@@ -933,13 +1042,17 @@ export default function StoreInfo({ store }: { store: Store }) {
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
                     }}
-                    title={(store as any)?.slug || 'Sin slug'}
+                    title={storeSlug || 'Sin slug'}
                   >
-                    {(store as any)?.slug || '—'}
+                    {storeSlug || '—'}
                   </Box>
                   <Tooltip title="Copiar slug">
                     <span>
-                      <IconButton size="small" onClick={handleCopySlug} disabled={!(store as any)?.slug}>
+                      <IconButton
+                        size="small"
+                        onClick={() => copyText(storeSlug, `Slug "${storeSlug}" copiado.`)}
+                        disabled={!storeSlug}
+                      >
                         <ContentCopyOutlined sx={{ fontSize: 15 }} />
                       </IconButton>
                     </span>
@@ -1003,16 +1116,47 @@ export default function StoreInfo({ store }: { store: Store }) {
                 )}
 
                 {merchantUser && (
-                  <Stack spacing={1}>
-                    <TextField label="Teléfono (usuario)" value={merchantUser.phoneNumber || '—'} fullWidth InputProps={{ readOnly: true }} size="small" />
-                    <TextField label="Access code" value={merchantUser.accessCode || '—'} fullWidth InputProps={{ readOnly: true }} size="small" />
+                  <Stack spacing={1.25}>
+                    <TextField
+                      label="Sitio web"
+                      value={merchantWebsite}
+                      fullWidth
+                      InputProps={{
+                        readOnly: true,
+                        endAdornment: copyAdornment(merchantWebsite, 'Sitio web'),
+                      }}
+                      size="small"
+                    />
+                    <TextField
+                      label="Teléfono (usuario)"
+                      value={merchantPhone || '—'}
+                      fullWidth
+                      InputProps={{
+                        readOnly: true,
+                        endAdornment: copyAdornment(merchantPhone, 'Teléfono', !merchantPhone),
+                      }}
+                      size="small"
+                    />
                     <TextField
                       label="Contraseña"
-                      value="••••••••"
+                      value={merchantPassword || '••••••••'}
                       fullWidth
                       size="small"
-                      InputProps={{ readOnly: true }}
+                      InputProps={{
+                        readOnly: true,
+                        endAdornment: copyAdornment(merchantPassword, 'Contraseña', !merchantPassword),
+                      }}
                       helperText="No recuperable por seguridad"
+                    />
+                    <TextField
+                      label="Access code"
+                      value={merchantAccessCode || '—'}
+                      fullWidth
+                      InputProps={{
+                        readOnly: true,
+                        endAdornment: copyAdornment(merchantAccessCode, 'Access code', !merchantAccessCode),
+                      }}
+                      size="small"
                     />
                     {/* Show sync button if accessCode is missing on either store or user */}
                     {(!merchantUser.accessCode || !(store as any)?.accessCode) && (
