@@ -214,6 +214,16 @@ async function fetchAllCustomersByStore(storeId: string) {
   return all;
 }
 
+function toImportCustomer(customer: any, active: boolean) {
+  return {
+    phoneNumber: (customer?.phoneNumber || '').toString(),
+    firstName: customer?.firstName,
+    countryCode: (customer?.countryCode || '').toString() || '1',
+    stores: Array.isArray(customer?.stores) && customer.stores.length ? customer.stores : [],
+    active,
+  };
+}
+
 const sleep = (ms: number) => new Promise((resolve) => {
   window.setTimeout(resolve, ms);
 });
@@ -622,16 +632,12 @@ export default function DebugNumbers(): React.JSX.Element {
       );
       setProgress({ done: 0, total: unique.length });
 
-      const tasks = unique.map((c) => async () => {
-        const res = await updateActive.mutateAsync({ customer: c, active: false });
-        setProgress((prev) => ({ ...prev, done: prev.done + 1 }));
-        return res;
+      const importRows = unique.map((c) => toImportCustomer(c, false));
+      const result = await customerClient.importCustomers(storeId, importRows, (done, total) => {
+        setProgress({ done, total });
       });
-
-      const settled = await runWithConcurrency(tasks);
-      const ok = settled.filter((r) => r.status === 'fulfilled').length;
-      const bad = settled.filter((r) => r.status === 'rejected').length;
-      const stoppedByRateLimit = settled.some((r) => r.status === 'rejected' && isRateLimitedError(r.reason));
+      const ok = result.updated + result.inserted;
+      const bad = result.failed;
 
       // refrescar tabla (debug) + opcionalmente customers estándar si existe en otras pantallas
       qc.invalidateQueries({ queryKey: ['debug-customers-by-store', storeId] });
@@ -639,10 +645,8 @@ export default function DebugNumbers(): React.JSX.Element {
 
       setMessage({
         type: bad ? 'error' : 'success',
-        text: stoppedByRateLimit
-          ? `Proceso pausado por RATE_LIMITED persistente para proteger tu sesion. Exitos: ${ok}, pendientes/fallos: ${bad}. Espera unos minutos antes de reintentar.`
-          : bad
-            ? `Proceso terminado con errores. Éxitos: ${ok}, Fallos: ${bad}.`
+        text: bad
+          ? `Proceso terminado con errores. Exitos: ${ok}, Fallos: ${bad}.`
           : csvMode === 'listed'
             ? `Listo. Se inactivaron ${ok} customer(s).`
             : `Listo. Se inactivaron ${ok} customer(s) fuera del archivo.`,
