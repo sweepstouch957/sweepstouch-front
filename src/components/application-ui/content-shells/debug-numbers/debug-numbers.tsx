@@ -58,6 +58,11 @@ type CsvSummary = {
   toKeep: number;
 };
 
+const BULK_UPDATE_DELAY_MS = 15_000;
+const RATE_LIMIT_RETRY_DELAY_MS = 120_000;
+const RATE_LIMIT_MAX_RETRIES = 2;
+const BULK_UPDATE_CONCURRENCY = 1;
+
 function getCustomerId(c: any): string {
   // El backend puede devolver _id (Mongo) o id (SQL / DTO).
   return (c?._id || c?.id || c?.customerId || '').toString();
@@ -209,17 +214,55 @@ async function fetchAllCustomersByStore(storeId: string) {
   return all;
 }
 
-async function runWithConcurrency<T>(tasks: (() => Promise<T>)[], concurrency = 8) {
+const sleep = (ms: number) => new Promise((resolve) => {
+  window.setTimeout(resolve, ms);
+});
+
+function isRateLimitedError(reason: any) {
+  const status = reason?.response?.status;
+  const code = reason?.response?.data?.code || reason?.response?.data?.error || reason?.message;
+  return status === 429 || String(code || '').toUpperCase().includes('RATE_LIMIT');
+}
+
+async function runWithConcurrency<T>(
+  tasks: (() => Promise<T>)[],
+  concurrency = BULK_UPDATE_CONCURRENCY,
+  delayMs = BULK_UPDATE_DELAY_MS
+) {
   const results: PromiseSettledResult<T>[] = [];
   let idx = 0;
+  let stopForRateLimit = false;
   const workers = new Array(concurrency).fill(0).map(async () => {
     while (idx < tasks.length) {
       const my = idx++;
+      if (stopForRateLimit) {
+        results[my] = { status: 'rejected', reason: new Error('Bulk process stopped after persistent RATE_LIMITED response.') };
+        continue;
+      }
       try {
-        const value = await tasks[my]();
+        let value: T;
+        let attempts = 0;
+        while (true) {
+          try {
+            value = await tasks[my]();
+            break;
+          } catch (reason) {
+            if (!isRateLimitedError(reason)) throw reason;
+            attempts += 1;
+            if (attempts > RATE_LIMIT_MAX_RETRIES) {
+              stopForRateLimit = true;
+              throw reason;
+            }
+            await sleep(RATE_LIMIT_RETRY_DELAY_MS);
+          }
+        }
         results[my] = { status: 'fulfilled', value };
       } catch (reason) {
         results[my] = { status: 'rejected', reason };
+      } finally {
+        if (idx < tasks.length && delayMs > 0) {
+          await sleep(delayMs);
+        }
       }
     }
   });
@@ -585,9 +628,10 @@ export default function DebugNumbers(): React.JSX.Element {
         return res;
       });
 
-      const settled = await runWithConcurrency(tasks, 8);
+      const settled = await runWithConcurrency(tasks);
       const ok = settled.filter((r) => r.status === 'fulfilled').length;
       const bad = settled.filter((r) => r.status === 'rejected').length;
+      const stoppedByRateLimit = settled.some((r) => r.status === 'rejected' && isRateLimitedError(r.reason));
 
       // refrescar tabla (debug) + opcionalmente customers estándar si existe en otras pantallas
       qc.invalidateQueries({ queryKey: ['debug-customers-by-store', storeId] });
@@ -595,8 +639,10 @@ export default function DebugNumbers(): React.JSX.Element {
 
       setMessage({
         type: bad ? 'error' : 'success',
-        text: bad
-          ? `Proceso terminado con errores. Éxitos: ${ok}, Fallos: ${bad}.`
+        text: stoppedByRateLimit
+          ? `Proceso pausado por RATE_LIMITED persistente para proteger tu sesion. Exitos: ${ok}, pendientes/fallos: ${bad}. Espera unos minutos antes de reintentar.`
+          : bad
+            ? `Proceso terminado con errores. Éxitos: ${ok}, Fallos: ${bad}.`
           : csvMode === 'listed'
             ? `Listo. Se inactivaron ${ok} customer(s).`
             : `Listo. Se inactivaron ${ok} customer(s) fuera del archivo.`,
@@ -657,17 +703,20 @@ export default function DebugNumbers(): React.JSX.Element {
       }
 
       setProgress({ done: 0, total: tasks.length });
-      const settled = await runWithConcurrency(tasks, 8);
+      const settled = await runWithConcurrency(tasks);
       const ok = settled.filter((r) => r.status === 'fulfilled').length;
       const bad = settled.filter((r) => r.status === 'rejected').length;
+      const stoppedByRateLimit = settled.some((r) => r.status === 'rejected' && isRateLimitedError(r.reason));
 
       qc.invalidateQueries({ queryKey: ['debug-customers-by-store', storeId] });
       qc.invalidateQueries({ queryKey: ['customers', storeId] });
 
       setMessage({
         type: bad ? 'error' : 'success',
-        text: bad
-          ? `Proceso terminado con errores. Exitos: ${ok}, Fallos: ${bad}.`
+        text: stoppedByRateLimit
+          ? `Proceso pausado por RATE_LIMITED persistente para proteger tu sesion. Exitos: ${ok}, pendientes/fallos: ${bad}. Espera unos minutos antes de reintentar.`
+          : bad
+            ? `Proceso terminado con errores. Exitos: ${ok}, Fallos: ${bad}.`
           : groupsWithoutNormalized
             ? `Listo. Se actualizaron ${ok} customer(s). ${groupsWithoutNormalized} grupo(s) no tenian un numero escrito exactamente normalizado, asi que se conservo uno como principal.`
             : `Listo. Se desactivaron duplicados y se dejo activo el numero normalizado.`,
