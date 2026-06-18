@@ -1,6 +1,7 @@
 'use client';
 
 import { Box, CircularProgress, Unstable_Grid2 as Grid, Typography, Button } from '@mui/material';
+import { PictureAsPdf } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import Results from './results';
@@ -236,14 +237,16 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
       <Grid xs={12}>
         {/* Botón alterno SOLO para usuarios distintos de juancarlos@sweepstouch.com */}
         {!isJuan && (
-          <Box mb={1}>
+          <Box mb={1.5} display="flex" justifyContent="flex-end">
             <Button
               variant="outlined"
               size="small"
+              startIcon={<PictureAsPdf />}
               onClick={handleExportDatos}
               disabled={exporting}
+              sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
             >
-              Exportar datos
+              {exporting ? 'Generando…' : 'Exportar datos'}
             </Button>
           </Box>
         )}

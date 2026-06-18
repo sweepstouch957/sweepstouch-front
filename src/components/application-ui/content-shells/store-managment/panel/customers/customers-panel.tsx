@@ -1,5 +1,6 @@
 import CustomersGrid from '@/components/application-ui/tables/customers/customers-grid';
-import { Box, Button, Typography } from '@mui/material';
+import { Box, Button, Paper, Stack, Tooltip, Typography } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { useState, type FC } from 'react';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import CleaningServicesRoundedIcon from '@mui/icons-material/CleaningServicesRounded';
@@ -13,6 +14,7 @@ import {
   SettingsBackupRestoreRounded,
   AutoFixHighRounded,
   DeleteSweepRounded,
+  TuneRounded,
 } from '@mui/icons-material';
 
 interface CustomersPanelProps {
@@ -49,91 +51,124 @@ const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName, provider 
     queryClient.invalidateQueries({ queryKey: ['customers', storeId] });
   };
 
+  const maintenanceActions = [
+    {
+      label: 'Arreglar Formato',
+      help: 'Normaliza el formato de los números',
+      color: 'warning' as const,
+      icon: <AutoFixHighRounded />,
+      onClick: () => setOpenNormalize(true),
+    },
+    {
+      label: 'Inactivación Masiva',
+      help: 'Inactiva clientes de forma masiva',
+      color: 'info' as const,
+      icon: <DeleteSweepRounded />,
+      onClick: () => setOpenBulkInactivate(true),
+    },
+    {
+      label: 'Reactivar Opt-out/Apagados',
+      help: 'Reactiva números con opt-out o apagados',
+      color: 'success' as const,
+      icon: <SettingsBackupRestoreRounded />,
+      onClick: () => setOpenReactivar(true),
+    },
+    {
+      label: 'Depurar Números',
+      help: 'Elimina números inválidos o duplicados',
+      color: 'error' as const,
+      icon: <CleaningServicesRoundedIcon />,
+      onClick: () => setOpenDepurar(true),
+    },
+  ];
+
   return (
-    <Box p={3}>
-      {/* Header con título y botones */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} gap={2} flexWrap="wrap">
-        <Typography variant="h4" fontWeight="700" color="text.primary">
-          Directorio de Clientes
-        </Typography>
-        <Box display="flex" gap={1.5} flexWrap="wrap">
-          <Button
-            variant="outlined"
-            color="warning"
-            sx={{
-               borderRadius: '8px',
-               textTransform: 'none',
-               fontWeight: 600,
-               px: 2.5,
-               py: 1,
-            }}
-            startIcon={<AutoFixHighRounded />}
-            onClick={() => setOpenNormalize(true)}
-          >
-            Arreglar Formato
-          </Button>
-          <Button
-            variant="outlined"
-            color="info"
-            sx={{
-               borderRadius: '8px',
-               textTransform: 'none',
-               fontWeight: 600,
-               px: 2.5,
-               py: 1,
-            }}
-            startIcon={<DeleteSweepRounded />}
-            onClick={() => setOpenBulkInactivate(true)}
-          >
-            Inactivación Masiva
-          </Button>
-          <Button
-            variant="outlined"
-            color="success"
-            sx={{
-               borderRadius: '8px',
-               textTransform: 'none',
-               fontWeight: 600,
-               px: 2.5,
-               py: 1,
-            }}
-            startIcon={<SettingsBackupRestoreRounded />}
-            onClick={() => setOpenReactivar(true)}
-          >
-            Reactivar Opt-out/Apagados
-          </Button>
-          <Button
-            variant="outlined"
-            color="error"
-            sx={{
-               borderRadius: '8px',
-               textTransform: 'none',
-               fontWeight: 600,
-               px: 2.5,
-               py: 1,
-            }}
-            startIcon={<CleaningServicesRoundedIcon />}
-            onClick={() => setOpenDepurar(true)}
-          >
-            Depurar Números
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            sx={{
-               borderRadius: '8px',
-               textTransform: 'none',
-               fontWeight: 600,
-               px: 3,
-               py: 1,
-            }}
-            startIcon={<CloudUploadIcon />}
-            onClick={() => setOpenImport(true)}
-          >
-            Importar Excel
-          </Button>
+    <Box p={{ xs: 2, md: 3 }}>
+      {/* Header: título + CTA principal */}
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        justifyContent="space-between"
+        alignItems={{ xs: 'stretch', sm: 'center' }}
+        mb={2.5}
+        gap={2}
+      >
+        <Box>
+          <Typography variant="h4" fontWeight={800} color="text.primary">
+            Directorio de Clientes
+          </Typography>
+          {storeName && (
+            <Typography variant="body2" color="text.secondary" noWrap>
+              {storeName}
+            </Typography>
+          )}
         </Box>
-      </Box>
+        <Button
+          variant="contained"
+          color="primary"
+          size="large"
+          startIcon={<CloudUploadIcon />}
+          onClick={() => setOpenImport(true)}
+          sx={{
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 700,
+            px: 3,
+            boxShadow: (t) => `0 6px 16px ${alpha(t.palette.primary.main, 0.35)}`,
+          }}
+        >
+          Importar Excel
+        </Button>
+      </Stack>
+
+      {/* Toolbar de mantenimiento */}
+      <Paper
+        variant="outlined"
+        sx={{
+          p: { xs: 1.5, sm: 2 },
+          mb: 3,
+          borderRadius: 3,
+          bgcolor: (t) => alpha(t.palette.text.primary, 0.015),
+        }}
+      >
+        <Stack
+          direction="row"
+          alignItems="center"
+          gap={1}
+          mb={1.5}
+          color="text.secondary"
+        >
+          <TuneRounded fontSize="small" />
+          <Typography variant="overline" fontWeight={700} letterSpacing={0.8}>
+            Herramientas de mantenimiento
+          </Typography>
+        </Stack>
+        <Box
+          display="grid"
+          gridTemplateColumns={{ xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }}
+          gap={1.5}
+        >
+          {maintenanceActions.map((a) => (
+            <Tooltip key={a.label} title={a.help} arrow>
+              <Button
+                variant="outlined"
+                color={a.color}
+                startIcon={a.icon}
+                onClick={a.onClick}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  py: 1.1,
+                  justifyContent: 'flex-start',
+                  bgcolor: 'background.paper',
+                }}
+              >
+                {a.label}
+              </Button>
+            </Tooltip>
+          ))}
+        </Box>
+      </Paper>
 
       {/* Grid Principal */}
       <CustomersGrid
