@@ -6,8 +6,14 @@ import CleaningServicesRoundedIcon from '@mui/icons-material/CleaningServicesRou
 import { ImportCustomersModal } from './import-customers-modal';
 import DepurarPhonesModal from './depurar-phones-modal';
 import ReactivarPhonesModal from './reactivar-phones-modal';
+import NormalizeFormatModal from './normalize-format-modal';
+import BulkInactivateModal from './bulk-inactivate-modal';
 import { useQueryClient } from '@tanstack/react-query';
-import { SettingsBackupRestoreRounded } from '@mui/icons-material';
+import {
+  SettingsBackupRestoreRounded,
+  AutoFixHighRounded,
+  DeleteSweepRounded,
+} from '@mui/icons-material';
 
 interface CustomersPanelProps {
   storeId: string;
@@ -19,10 +25,11 @@ const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName, provider 
   const [openImport, setOpenImport] = useState(false);
   const [openDepurar, setOpenDepurar] = useState(false);
   const [openReactivar, setOpenReactivar] = useState(false);
+  const [openNormalize, setOpenNormalize] = useState(false);
+  const [openBulkInactivate, setOpenBulkInactivate] = useState(false);
   const queryClient = useQueryClient();
 
   const handleImportSuccess = () => {
-    // Forzar recarga de los datos de la tabla (usando su queryKey)
     queryClient.invalidateQueries({ queryKey: ['customers', storeId] });
   };
 
@@ -34,14 +41,52 @@ const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName, provider 
     queryClient.invalidateQueries({ queryKey: ['customers', storeId] });
   };
 
+  const handleNormalizeSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['customers', storeId] });
+  };
+
+  const handleBulkInactivateSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['customers', storeId] });
+  };
+
   return (
     <Box p={3}>
       {/* Header con título y botones */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} gap={2}>
-        <Typography variant="h4" fontWeight="600" color="text.primary">
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} gap={2} flexWrap="wrap">
+        <Typography variant="h4" fontWeight="700" color="text.primary">
           Directorio de Clientes
         </Typography>
-        <Box display="flex" gap={1.5}>
+        <Box display="flex" gap={1.5} flexWrap="wrap">
+          <Button
+            variant="outlined"
+            color="warning"
+            sx={{
+               borderRadius: '8px',
+               textTransform: 'none',
+               fontWeight: 600,
+               px: 2.5,
+               py: 1,
+            }}
+            startIcon={<AutoFixHighRounded />}
+            onClick={() => setOpenNormalize(true)}
+          >
+            Arreglar Formato
+          </Button>
+          <Button
+            variant="outlined"
+            color="info"
+            sx={{
+               borderRadius: '8px',
+               textTransform: 'none',
+               fontWeight: 600,
+               px: 2.5,
+               py: 1,
+            }}
+            startIcon={<DeleteSweepRounded />}
+            onClick={() => setOpenBulkInactivate(true)}
+          >
+            Inactivación Masiva
+          </Button>
           <Button
             variant="outlined"
             color="success"
@@ -121,6 +166,24 @@ const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName, provider 
         storeId={storeId}
         storeName={storeName}
         onSuccess={handleReactivarSuccess}
+      />
+
+      {/* Modal de Normalización de Formato */}
+      <NormalizeFormatModal
+        open={openNormalize}
+        onClose={() => setOpenNormalize(false)}
+        storeId={storeId}
+        storeName={storeName}
+        onSuccess={handleNormalizeSuccess}
+      />
+
+      {/* Modal de Inactivación Masiva */}
+      <BulkInactivateModal
+        open={openBulkInactivate}
+        onClose={() => setOpenBulkInactivate(false)}
+        storeId={storeId}
+        storeName={storeName}
+        onSuccess={handleBulkInactivateSuccess}
       />
     </Box>
   );
