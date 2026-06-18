@@ -20,6 +20,7 @@ import {
   Stack,
   Typography,
   useTheme,
+  LinearProgress,
 } from '@mui/material';
 import {
   CloseRounded,
@@ -64,6 +65,7 @@ export default function BulkInactivateModal({
 
   // States
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [parsedData, setParsedData] = useState<ParsedCustomer[] | null>(null);
   const [mode, setMode] = useState<'inactivate_uploaded' | 'keep_uploaded_active'>('inactivate_uploaded');
   const [previewResult, setPreviewResult] = useState<BulkInactivateResult | null>(null);
@@ -71,11 +73,34 @@ export default function BulkInactivateModal({
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'upload' | 'preview' | 'done'>('upload');
 
+  React.useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (loading) {
+      setProgress(0);
+      interval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 95) {
+            clearInterval(interval);
+            return 95;
+          }
+          const stepVal = Math.max(1, Math.floor((100 - prev) / 8));
+          return prev + stepVal;
+        });
+      }, 150);
+    } else {
+      setProgress(100);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [loading]);
+
   const reset = () => {
     setParsedData(null);
     setPreviewResult(null);
     setExecResult(null);
     setError(null);
+    setProgress(0);
     setStep('upload');
     setMode('inactivate_uploaded');
   };
@@ -180,6 +205,14 @@ export default function BulkInactivateModal({
       <Divider />
 
       <DialogContent sx={{ pt: 2.5, minHeight: 280 }}>
+        {loading && (
+          <Box sx={{ width: '100%', mb: 2.5 }}>
+            <LinearProgress variant="determinate" value={progress} color={mode === 'keep_uploaded_active' ? 'primary' : 'error'} sx={{ height: 6, borderRadius: 3 }} />
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block', textAlign: 'right', fontWeight: 600 }}>
+              Procesando... {progress}%
+            </Typography>
+          </Box>
+        )}
         {/* ─── Step 1: Upload & Mode ─── */}
         {step === 'upload' && (
           <Stack spacing={3}>

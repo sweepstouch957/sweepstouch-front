@@ -16,6 +16,7 @@ import {
   Stack,
   Typography,
   useTheme,
+  LinearProgress,
 } from '@mui/material';
 import {
   CloseRounded,
@@ -58,15 +59,39 @@ export default function NormalizeFormatModal({
 
   // States
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [previewResult, setPreviewResult] = useState<NormalizeResult | null>(null);
   const [execResult, setExecResult] = useState<NormalizeResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'form' | 'preview' | 'done'>('form');
 
+  React.useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (loading) {
+      setProgress(0);
+      interval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 95) {
+            clearInterval(interval);
+            return 95;
+          }
+          const stepVal = Math.max(1, Math.floor((100 - prev) / 8));
+          return prev + stepVal;
+        });
+      }, 150);
+    } else {
+      setProgress(100);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [loading]);
+
   const reset = () => {
     setPreviewResult(null);
     setExecResult(null);
     setError(null);
+    setProgress(0);
     setStep('form');
   };
 
@@ -162,6 +187,14 @@ export default function NormalizeFormatModal({
       <Divider />
 
       <DialogContent sx={{ pt: 2.5 }}>
+        {loading && (
+          <Box sx={{ width: '100%', mb: 2.5 }}>
+            <LinearProgress variant="determinate" value={progress} color="warning" sx={{ height: 6, borderRadius: 3 }} />
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block', textAlign: 'right', fontWeight: 600 }}>
+              Procesando... {progress}%
+            </Typography>
+          </Box>
+        )}
         {/* ─── Step 1: Form ─── */}
         {step === 'form' && (
           <Stack spacing={2.5}>
