@@ -61,12 +61,14 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { DateRange } from 'react-date-range';
+import { useTranslation } from 'react-i18next';
 import StoreKioskCard from '../application-ui/composed-blocks/kiosk';
 import StoreGeneralForm from '../application-ui/form-layouts/store/edit';
 import StoreHeader from '../application-ui/headings/store/store-create';
 import StoreMap from '../application-ui/map/store-map';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
+const DEFAULT_MERCHANT_PASSWORD = 'ABC123';
 
 const formatAge = (iso?: string | null) => {
   if (!iso) return '—';
@@ -97,6 +99,40 @@ const safeDateLabel = (iso?: string | null) => {
 const generateAccessCode = (): string => {
   const num = Math.floor(10000 + Math.random() * 90000);
   return `ST-${num}`;
+};
+
+const MERCHANT_PASSWORD_KEYS = new Set([
+  'password',
+  'tempPassword',
+  'plainPassword',
+  'merchantPassword',
+  'accessPassword',
+  'temporaryPassword',
+]);
+
+const isCopyableCredential = (value: string) => {
+  const trimmed = value.trim();
+  return Boolean(trimmed) && !trimmed.startsWith('$2a$') && !trimmed.startsWith('$2b$') && !trimmed.startsWith('$2y$');
+};
+
+const getCredentialValue = (source: any, keys: Set<string>): string => {
+  if (!source || typeof source !== 'object') return '';
+
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === 'string' && isCopyableCredential(value)) return value.trim();
+  }
+
+  for (const [key, value] of Object.entries(source)) {
+    const lowerKey = key.toLowerCase();
+    if (/hash|salt/.test(lowerKey)) continue;
+    if (value && typeof value === 'object') {
+      const nested = getCredentialValue(value, keys);
+      if (nested) return nested;
+    }
+  }
+
+  return '';
 };
 
 /* ── Compact stat pill ───────────────────────────────────────── */
@@ -160,11 +196,13 @@ function SidebarSection({
   icon,
   label,
   accent,
+  action,
   children,
 }: {
   icon: React.ReactNode;
   label: string;
   accent: string;
+  action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -179,30 +217,41 @@ function SidebarSection({
       <Stack
         direction="row"
         alignItems="center"
+        justifyContent="space-between"
         spacing={1}
         px={2}
         py={1.2}
         sx={{ bgcolor: (t) => alpha(accent, t.palette.mode === 'dark' ? 0.08 : 0.04) }}
       >
-        <Box
-          sx={{
-            width: 24,
-            height: 24,
-            borderRadius: 1,
-            bgcolor: accent,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff',
-            '& svg': { fontSize: 13 },
-            flexShrink: 0,
-          }}
-        >
-          {icon}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+          <Box
+            sx={{
+              width: 24,
+              height: 24,
+              borderRadius: 1,
+              bgcolor: accent,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              '& svg': { fontSize: 13 },
+              flexShrink: 0,
+            }}
+          >
+            {icon}
+          </Box>
+          <Typography
+            variant="caption"
+            fontWeight={700}
+            textTransform="uppercase"
+            letterSpacing={0.7}
+            color="text.secondary"
+            noWrap
+          >
+            {label}
+          </Typography>
         </Box>
-        <Typography variant="caption" fontWeight={700} textTransform="uppercase" letterSpacing={0.7} color="text.secondary">
-          {label}
-        </Typography>
+        {action}
       </Stack>
       <Box px={2} pb={2} pt={1.5}>
         {children}
@@ -214,6 +263,7 @@ function SidebarSection({
 /* ── Main component ──────────────────────────────────────────── */
 export default function StoreInfo({ store }: { store: Store }) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [zoom, setZoom] = useState(12);
   const [backfillResult, setBackfillResult] = useState<any>(null);
@@ -384,34 +434,79 @@ export default function StoreInfo({ store }: { store: Store }) {
       queryClient.invalidateQueries({ queryKey: ['store', store._id] });
       queryClient.invalidateQueries({ queryKey: ['store-detail'] });
       const msgs: Record<string, string> = {
-        created_user: 'Usuario merchant creado exitosamente.',
-        updated_existing_merchant: 'Merchant actualizado correctamente.',
-        updated_merchant_no_phone_due_conflict: 'Merchant actualizado (sin teléfono — conflicto).',
-        attached_store_updated_role_accessCode_email_and_password: 'Usuario vinculado como merchant.',
-        conflict_store_already_taken: 'Conflicto: ya existe un usuario asignado.',
+        created_user: t('merchantAccess.createdUser'),
+        updated_existing_merchant: t('merchantAccess.updatedMerchant'),
+        updated_merchant_no_phone_due_conflict: t('merchantAccess.updatedNoPhoneConflict'),
+        attached_store_updated_role_accessCode_email_and_password: t('merchantAccess.attachedUser'),
+        conflict_store_already_taken: t('merchantAccess.conflictStoreTaken'),
       };
       setSnack({
         open: true,
-        msg: msgs[data?.action] || `Completado (${data?.action || 'ok'}).`,
+        msg: msgs[data?.action] || t('merchantAccess.completedAction', { action: data?.action || 'ok' }),
         type: data?.action === 'conflict_store_already_taken' ? 'info' : 'success',
       });
     },
     onError: (err: any) => {
       setBackfillResult(null);
-      setSnack({ open: true, msg: err?.response?.data?.error || 'Error al crear el usuario merchant.', type: 'error' });
+      setSnack({ open: true, msg: err?.response?.data?.error || t('merchantAccess.createUserError'), type: 'error' });
     },
   });
 
-  const handleCopySlug = async () => {
-    const slug = form?.slug || (store as any)?.slug || '';
-    if (!slug) return;
+  const merchantWebsite = (process.env.NEXT_PUBLIC_MERCHANT_ORIGIN || 'https://merchant.sweepstouch.com').replace(/^https?:\/\//, '').replace(/\/$/, '');
+  const merchantPassword = getCredentialValue(
+    { merchantUser, backfillResult, store },
+    MERCHANT_PASSWORD_KEYS
+  );
+  const merchantPhone = merchantUser?.phoneNumber || '';
+  const merchantAccessCode = merchantUser?.accessCode || (store as any)?.accessCode || '';
+  const storeSlug = form?.slug || (store as any)?.slug || '';
+
+  const copyText = async (text: string, msg: string) => {
+    if (!text) return;
     try {
-      await navigator.clipboard.writeText(slug);
-      setSnack({ open: true, msg: `Slug "${slug}" copiado.`, type: 'success' });
+      await navigator.clipboard.writeText(text);
+      setSnack({ open: true, msg, type: 'success' });
     } catch {
-      setSnack({ open: true, msg: 'No se pudo copiar.', type: 'error' });
+      setSnack({ open: true, msg: t('merchantAccess.copyError'), type: 'error' });
     }
   };
+
+  const merchantAccessCopy = [
+    t('merchantAccess.copyWelcome'),
+    t('merchantAccess.copyIntro'),
+    t('merchantAccess.copyKeepSafe'),
+    '',
+    t('merchantAccess.copyWebsiteLabel'),
+    merchantWebsite,
+    '',
+    t('merchantAccess.copyPhoneLabel'),
+    merchantPhone || t('merchantAccess.notAvailable'),
+    '',
+    t('merchantAccess.copyPasswordLabel'),
+    DEFAULT_MERCHANT_PASSWORD,
+    '',
+    t('merchantAccess.copyAccessCodeLabel'),
+    merchantAccessCode || t('merchantAccess.notAvailable'),
+    '',
+    t('merchantAccess.copySecurityWarning'),
+  ].join('\n');
+
+  const copyAdornment = (value: string, label: string, disabled = false) => (
+    <InputAdornment position="end">
+      <Tooltip title={t('merchantAccess.copyField', { field: label })}>
+        <span>
+          <IconButton
+            edge="end"
+            size="small"
+            onClick={() => copyText(value, t('merchantAccess.fieldCopied', { field: label }))}
+            disabled={disabled || !value}
+          >
+            <ContentCopyOutlined sx={{ fontSize: 16 }} />
+          </IconButton>
+        </span>
+      </Tooltip>
+    </InputAdornment>
+  );
 
   /* accent palette — derived from theme so customization dialog drives everything */
   const accentAudience = theme.palette.primary.main;
@@ -911,7 +1006,24 @@ export default function StoreInfo({ store }: { store: Store }) {
               </Box>
 
               {/* Merchant access — above Kiosk */}
-              <SidebarSection icon={<PersonAddRounded />} label="Acceso Merchant" accent={accentMerchant}>
+              <SidebarSection
+                icon={<PersonAddRounded />}
+                label={t('merchantAccess.title')}
+                accent={accentMerchant}
+                action={(
+                  <Tooltip title={t('merchantAccess.copyAll')}>
+                    <span>
+                      <IconButton
+                        size="small"
+                        onClick={() => copyText(merchantAccessCopy, t('merchantAccess.copiedAll'))}
+                        disabled={!merchantUser}
+                      >
+                        <ContentCopyOutlined sx={{ fontSize: 18 }} />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                )}
+              >
 
                 {/* Slug row */}
                 <Stack direction="row" alignItems="center" spacing={1} mb={1.5}>
@@ -933,13 +1045,17 @@ export default function StoreInfo({ store }: { store: Store }) {
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
                     }}
-                    title={(store as any)?.slug || 'Sin slug'}
+                    title={storeSlug || t('merchantAccess.noSlug')}
                   >
-                    {(store as any)?.slug || '—'}
+                    {storeSlug || '—'}
                   </Box>
-                  <Tooltip title="Copiar slug">
+                  <Tooltip title={t('merchantAccess.copyField', { field: 'Slug' })}>
                     <span>
-                      <IconButton size="small" onClick={handleCopySlug} disabled={!(store as any)?.slug}>
+                      <IconButton
+                        size="small"
+                        onClick={() => copyText(storeSlug, t('merchantAccess.slugCopied', { slug: storeSlug }))}
+                        disabled={!storeSlug}
+                      >
                         <ContentCopyOutlined sx={{ fontSize: 15 }} />
                       </IconButton>
                     </span>
@@ -949,20 +1065,20 @@ export default function StoreInfo({ store }: { store: Store }) {
                 {loadingMerchant && (
                   <Stack direction="row" spacing={1} alignItems="center" py={1}>
                     <CircularProgress size={14} />
-                    <Typography variant="caption" color="text.secondary">Cargando...</Typography>
+                    <Typography variant="caption" color="text.secondary">{t('merchantAccess.loading')}</Typography>
                   </Stack>
                 )}
 
                 {!loadingMerchant && !merchantUser && (
                   <Stack spacing={1.5}>
                     {errorMerchant ? (
-                      <Alert severity="error" sx={{ borderRadius: 2, py: 0 }}>No se pudo cargar el usuario.</Alert>
+                      <Alert severity="error" sx={{ borderRadius: 2, py: 0 }}>{t('merchantAccess.loadUserError')}</Alert>
                     ) : (
-                      <Alert severity="info" sx={{ borderRadius: 2, py: 0 }}>Sin usuario merchant asociado.</Alert>
+                      <Alert severity="info" sx={{ borderRadius: 2, py: 0 }}>{t('merchantAccess.noUser')}</Alert>
                     )}
                     {!hasAccessCode && !backfillResult && (
                       <Alert severity="warning" icon={<WarningAmberRounded fontSize="small" />} sx={{ borderRadius: 2, py: 0 }}>
-                        Sin <strong>accessCode</strong>; se generará uno automáticamente.
+                        {t('merchantAccess.noAccessCodePrefix')} <strong>accessCode</strong>; {t('merchantAccess.noAccessCodeSuffix')}
                       </Alert>
                     )}
                     {backfillResult && (
@@ -970,12 +1086,12 @@ export default function StoreInfo({ store }: { store: Store }) {
                         severity={backfillResult.action === 'conflict_store_already_taken' ? 'warning' : 'success'}
                         sx={{ borderRadius: 2, py: 0, fontSize: 12 }}
                       >
-                        {backfillResult.action === 'created_user' && '✅ Usuario merchant creado.'}
-                        {backfillResult.action === 'updated_existing_merchant' && '🔄 Merchant sincronizado.'}
-                        {backfillResult.action === 'updated_merchant_no_phone_due_conflict' && '🔄 Actualizado sin teléfono.'}
-                        {backfillResult.action === 'attached_store_updated_role_accessCode_email_and_password' && '🔗 Usuario vinculado.'}
-                        {backfillResult.action === 'conflict_store_already_taken' && '⚠️ Ya existe un usuario asignado.'}
-                        {backfillResult.action === 'none' && 'ℹ️ Sin cambios.'}
+                        {backfillResult.action === 'created_user' && t('merchantAccess.alertCreated')}
+                        {backfillResult.action === 'updated_existing_merchant' && t('merchantAccess.alertSynced')}
+                        {backfillResult.action === 'updated_merchant_no_phone_due_conflict' && t('merchantAccess.alertSyncedNoPhone')}
+                        {backfillResult.action === 'attached_store_updated_role_accessCode_email_and_password' && t('merchantAccess.alertAttached')}
+                        {backfillResult.action === 'conflict_store_already_taken' && t('merchantAccess.alertConflict')}
+                        {backfillResult.action === 'none' && t('merchantAccess.alertNoChanges')}
                         {backfillResult.email && (
                           <Typography variant="caption" display="block">Email: {backfillResult.email}</Typography>
                         )}
@@ -983,7 +1099,7 @@ export default function StoreInfo({ store }: { store: Store }) {
                     )}
                     {createMerchantMutation.isError && (
                       <Alert severity="error" sx={{ borderRadius: 2, py: 0 }}>
-                        {(createMerchantMutation.error as any)?.response?.data?.error || 'Error inesperado.'}
+                        {(createMerchantMutation.error as any)?.response?.data?.error || t('merchantAccess.unexpectedError')}
                       </Alert>
                     )}
                     <Button
@@ -996,23 +1112,54 @@ export default function StoreInfo({ store }: { store: Store }) {
                       sx={{ borderRadius: 2, textTransform: 'none' }}
                     >
                       {createMerchantMutation.isPending
-                        ? 'Creando...'
-                        : hasAccessCode ? 'Crear usuario merchant' : 'Generar accessCode y crear'}
+                        ? t('merchantAccess.creating')
+                        : hasAccessCode ? t('merchantAccess.createMerchantUser') : t('merchantAccess.generateAccessCodeAndCreate')}
                     </Button>
                   </Stack>
                 )}
 
                 {merchantUser && (
-                  <Stack spacing={1}>
-                    <TextField label="Teléfono (usuario)" value={merchantUser.phoneNumber || '—'} fullWidth InputProps={{ readOnly: true }} size="small" />
-                    <TextField label="Access code" value={merchantUser.accessCode || '—'} fullWidth InputProps={{ readOnly: true }} size="small" />
+                  <Stack spacing={1.25}>
                     <TextField
-                      label="Contraseña"
-                      value="••••••••"
+                      label={t('merchantAccess.website')}
+                      value={merchantWebsite}
+                      fullWidth
+                      InputProps={{
+                        readOnly: true,
+                        endAdornment: copyAdornment(merchantWebsite, t('merchantAccess.website')),
+                      }}
+                      size="small"
+                    />
+                    <TextField
+                      label={t('merchantAccess.phoneUsername')}
+                      value={merchantPhone || '—'}
+                      fullWidth
+                      InputProps={{
+                        readOnly: true,
+                        endAdornment: copyAdornment(merchantPhone, t('merchantAccess.phone'), !merchantPhone),
+                      }}
+                      size="small"
+                    />
+                    <TextField
+                      label={t('merchantAccess.password')}
+                      value={merchantPassword || '••••••••'}
                       fullWidth
                       size="small"
-                      InputProps={{ readOnly: true }}
-                      helperText="No recuperable por seguridad"
+                      InputProps={{
+                        readOnly: true,
+                        endAdornment: copyAdornment(DEFAULT_MERCHANT_PASSWORD, t('merchantAccess.password')),
+                      }}
+                      helperText={t('merchantAccess.passwordSecurityHelper')}
+                    />
+                    <TextField
+                      label="Access code"
+                      value={merchantAccessCode || '—'}
+                      fullWidth
+                      InputProps={{
+                        readOnly: true,
+                        endAdornment: copyAdornment(merchantAccessCode, 'Access code', !merchantAccessCode),
+                      }}
+                      size="small"
                     />
                     {/* Show sync button if accessCode is missing on either store or user */}
                     {(!merchantUser.accessCode || !(store as any)?.accessCode) && (
@@ -1026,7 +1173,7 @@ export default function StoreInfo({ store }: { store: Store }) {
                         onClick={() => { setBackfillResult(null); createMerchantMutation.mutate(); }}
                         sx={{ borderRadius: 2, textTransform: 'none' }}
                       >
-                        {createMerchantMutation.isPending ? 'Sincronizando...' : 'Generar accessCode y sincronizar'}
+                        {createMerchantMutation.isPending ? t('merchantAccess.syncing') : t('merchantAccess.generateAccessCodeAndSync')}
                       </Button>
                     )}
                   </Stack>
