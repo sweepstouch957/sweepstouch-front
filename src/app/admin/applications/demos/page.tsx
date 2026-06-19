@@ -32,7 +32,7 @@ import {
 } from '@mui/material';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { demoService, type DemoEntry } from '@/services/demo.service';
 
 const STATUS_CHIP: Record<
@@ -44,9 +44,112 @@ const STATUS_CHIP: Record<
   error:      { label: 'Error',      color: 'error'   },
 };
 
+const FEATURED_DEMO_NAME = 'plataforma de mensajeria multicanal';
+
+function normalizeDemoName(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function isFeaturedDemo(demo: DemoEntry) {
+  return normalizeDemoName(demo.name) === FEATURED_DEMO_NAME;
+}
+
 function demoUrl(id: string) {
   if (typeof window === 'undefined') return '';
   return `${window.location.origin}/demo/${id}`;
+}
+
+function DemoPreview({ demo }: { demo: DemoEntry }) {
+  const [html, setHtml] = useState('');
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    setHtml('');
+    setFailed(false);
+
+    if (demo.status !== 'ready') return undefined;
+
+    demoService
+      .getPublic(demo._id)
+      .then((d) => {
+        if (active) setHtml(d.html ?? '');
+      })
+      .catch(() => {
+        if (active) setFailed(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [demo._id, demo.status, demo.updatedAt]);
+
+  const shellSx = {
+    width: { xs: 112, sm: 168, md: 220 },
+    aspectRatio: '16 / 10',
+    borderRadius: 1.25,
+    border: '1px solid',
+    borderColor: 'divider',
+    bgcolor: '#f8f9fa',
+    overflow: 'hidden',
+    position: 'relative',
+    flexShrink: 0,
+  } as const;
+
+  if (demo.status === 'generating') {
+    return (
+      <Box sx={{ ...shellSx, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <CircularProgress
+          size={18}
+          thickness={5}
+          sx={{ color: 'warning.main' }}
+        />
+      </Box>
+    );
+  }
+
+  if (demo.status === 'error' || failed) {
+    return (
+      <Box sx={{ ...shellSx, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <ErrorOutlineRoundedIcon sx={{ color: 'error.main', fontSize: 20 }} />
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={shellSx}>
+      {html ? (
+        <Box
+          component="iframe"
+          srcDoc={html}
+          title={`Preview de ${demo.name}`}
+          sandbox="allow-scripts allow-forms allow-popups"
+          sx={{
+            width: { xs: 448, sm: 672, md: 880 },
+            height: { xs: 280, sm: 420, md: 550 },
+            border: 0,
+            display: 'block',
+            pointerEvents: 'none',
+            transform: 'scale(0.25)',
+            transformOrigin: 'top left',
+          }}
+        />
+      ) : (
+        <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <CircularProgress
+            size={16}
+            thickness={5}
+            sx={{ color: '#ef0f82' }}
+          />
+        </Box>
+      )}
+    </Box>
+  );
 }
 
 // ─── Edit Dialog ──────────────────────────────────────────────────────────────
@@ -243,7 +346,7 @@ function EditDialog({ demo, open, onClose, onSaved }: EditDialogProps) {
               <iframe
                 srcDoc={preview}
                 title="Preview"
-                sandbox="allow-scripts allow-forms allow-popups allow-same-origin"
+                sandbox="allow-scripts allow-forms allow-popups"
                 style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
               />
             ) : (
@@ -291,6 +394,7 @@ function DemoRow({
   const [copied, setCopied] = useState(false);
   const url = demoUrl(demo._id);
   const s = STATUS_CHIP[demo.status];
+  const featured = isFeaturedDemo(demo);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(url);
@@ -302,21 +406,23 @@ function DemoRow({
     <Box
       sx={{
         display: 'grid',
-        gridTemplateColumns: { xs: '1fr auto', md: '1fr 90px auto' },
+        gridTemplateColumns: { xs: 'auto minmax(0, 1fr) auto', md: 'auto minmax(0, 1fr) 70px auto' },
         alignItems: 'center',
-        gap: 1.5,
-        px: 2,
-        py: 1.75,
+        gap: { xs: 1.5, sm: 2.25 },
+        px: { xs: 2, sm: 2.5 },
+        py: { xs: 1.75, sm: 2.25 },
         borderBottom: '1px solid',
         borderColor: 'divider',
         '&:last-child': { borderBottom: 'none' },
         '&:hover': { bgcolor: 'action.hover' },
       }}
     >
+      <DemoPreview demo={demo} />
+
       {/* Info */}
       <Box minWidth={0}>
         <Stack direction="row" spacing={1} alignItems="center" mb={0.25}>
-          {demo.pinned && (
+          {(demo.pinned || featured) && (
             <PushPinRoundedIcon sx={{ fontSize: 14, color: '#ef0f82', flexShrink: 0 }} />
           )}
           <Typography variant="body2" fontWeight={700} noWrap>
@@ -458,10 +564,27 @@ export default function DemosPage() {
     setDemos((prev) => prev.map((d) => (d._id === updated._id ? { ...d, ...updated } : d)));
   };
 
+  const sortedDemos = useMemo(
+    () =>
+      demos
+        .map((demo, index) => ({ demo, index }))
+        .sort((a, b) => {
+          const aFeatured = isFeaturedDemo(a.demo);
+          const bFeatured = isFeaturedDemo(b.demo);
+
+          if (aFeatured !== bFeatured) return aFeatured ? -1 : 1;
+          if (a.demo.pinned !== b.demo.pinned) return a.demo.pinned ? -1 : 1;
+
+          return a.index - b.index;
+        })
+        .map(({ demo }) => demo),
+    [demos],
+  );
+
   const ready = demos.filter((d) => d.status === 'ready').length;
 
   return (
-    <Box sx={{ maxWidth: 900, mx: 'auto', p: { xs: 2, sm: 3 } }}>
+    <Box sx={{ maxWidth: 1120, mx: 'auto', p: { xs: 2, sm: 3 } }}>
       {/* Header */}
       <Stack
         direction="row"
@@ -538,7 +661,7 @@ export default function DemosPage() {
             </Typography>
           </Box>
         ) : (
-          demos.map((d) => (
+          sortedDemos.map((d) => (
             <DemoRow key={d._id} demo={d} onDelete={handleDelete} onEdit={setEditTarget} />
           ))
         )}
