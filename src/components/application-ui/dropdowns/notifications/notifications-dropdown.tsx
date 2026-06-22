@@ -224,9 +224,12 @@ export const NotificationsDropdown: React.FC = () => {
   useEffect(() => {
     if (userId) {
       const extraRooms = isAdmin ? ['admin'] : [];
+      if (user?.storeId) {
+        extraRooms.push(`store_${user.storeId}`);
+      }
       connect(`user_${userId}`, extraRooms);
     }
-  }, [userId, isAdmin, connect]);
+  }, [userId, isAdmin, user?.storeId, connect]);
 
   const handleClick = useCallback((e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget), []);
   const handleClose = useCallback(() => setAnchorEl(null), []);
