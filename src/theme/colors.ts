@@ -61,7 +61,14 @@ export const generateColorScale = (mainColor: string, theme: 'light' | 'dark') =
     theme === 'light' ? adjustColorForLightTheme(mainColor) : adjustColorForDarkTheme(mainColor);
 
   const contrastRatioWithWhite = getContrastRatio(adjustedMainColor, common.white);
-  const contrastText = contrastRatioWithWhite >= 4.4 ? common.white : common.black;
+  // El rosa de marca (#FC0C83) siempre usa texto blanco, aunque su contraste con blanco
+  // quede por debajo del umbral 4.4 (evita botones rosas con texto negro).
+  const isBrandPink = mainColor.toLowerCase() === SWEEPSTOUCH_PINK.toLowerCase();
+  const contrastText = isBrandPink
+    ? common.white
+    : contrastRatioWithWhite >= 4.4
+      ? common.white
+      : common.black;
 
   return {
     light: lighten(adjustedMainColor, 0.3),

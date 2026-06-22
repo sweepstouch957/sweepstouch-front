@@ -29,9 +29,9 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const COLORS = [
-  '#0C74E4',
+  '#FC0C83', // rosa de marca
   '#018a3c',
-  '#FC0C83',
+  '#E30B76', // rosa oscuro (antes rosa duplicado)
   '#c05a01',
   '#894AE0',
   '#ea2012',
