@@ -6,6 +6,7 @@ import {
   Box, Container, Grid, Card, CardContent, Typography, Button,
   Alert, Chip, Stack, TextField, Autocomplete, Avatar, CircularProgress,
   IconButton, Tooltip, Divider,
+  Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText,
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -17,6 +18,8 @@ import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import AddPhotoAlternateRoundedIcon from '@mui/icons-material/AddPhotoAlternateRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
+import UploadFileRoundedIcon from '@mui/icons-material/UploadFileRounded';
 import { useTranslation } from 'react-i18next';
 import PageHeading from 'src/components/base/page-heading';
 import { useCustomization } from 'src/hooks/use-customization';
@@ -499,6 +502,11 @@ function MmsGeneratorPage(): React.JSX.Element {
   const [circularFileUrl, setCircularFileUrl] = useState('');
   const [recipes, setRecipes] = useState<AiRecipe[]>([]);
 
+  // ─── Active circular dialog ───
+  const [existingCircular, setExistingCircular] = useState<any | null>(null);
+  const [circularDialogOpen, setCircularDialogOpen] = useState(false);
+  const [loadingExistingProducts, setLoadingExistingProducts] = useState(false);
+
   // ─── Theme ───
   const mmsTheme = useMemo(() => {
     if (!selectedStore) return {};
@@ -511,9 +519,8 @@ function MmsGeneratorPage(): React.JSX.Element {
 
   const storeSlug = selectedStore?.slug || '';
 
-  // ─── Handlers ───
-  const handleStoreChange = useCallback((_e: any, newValue: any) => {
-    setSelectedStore(newValue);
+  // ─── Helpers ───
+  const resetForm = useCallback(() => {
     setCircularId('');
     setProducts([]);
     setHeadline('');
@@ -523,7 +530,67 @@ function MmsGeneratorPage(): React.JSX.Element {
     setGenerationResult(null);
     setCircularFileUrl('');
     setRecipes([]);
-  }, [setSelectedStore]);
+  }, []);
+
+  // ─── Handlers ───
+  const handleStoreChange = useCallback(async (_e: any, newValue: any) => {
+    setSelectedStore(newValue);
+    resetForm();
+    setExistingCircular(null);
+
+    if (!newValue?.slug) return;
+
+    // Check if there's already an active circular for this store
+    try {
+      const res = await circularService.getByStore(newValue.slug);
+      const active = res.items?.find((c: any) => c.status === 'active' || c.status === 'scheduled');
+      if (active) {
+        setExistingCircular(active);
+        setCircularDialogOpen(true);
+      }
+    } catch {
+      // No circular found — proceed normally
+    }
+  }, [setSelectedStore, resetForm]);
+
+  /** Use the existing circular — load its products + recipes */
+  const handleUseExisting = useCallback(async () => {
+    if (!existingCircular) return;
+    setCircularDialogOpen(false);
+    setLoadingExistingProducts(true);
+    try {
+      setCircularId(existingCircular._id);
+      if (existingCircular.fileUrl) setCircularFileUrl(existingCircular.fileUrl);
+      const start = new Date(existingCircular.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const end   = new Date(existingCircular.endDate).toLocaleDateString('en-US',   { month: 'short', day: 'numeric', year: 'numeric' });
+      setValidDates(`${start} - ${end}`);
+
+      const { products: existing, headline: h } = await circularService.getProducts(existingCircular._id);
+      if (existing?.length) {
+        const sorted = [...existing].sort((a: any, b: any) => (a.isHero && !b.isHero ? -1 : !a.isHero && b.isHero ? 1 : 0));
+        const withDefaults = sorted.map((p: any) => ({ ...p, savings: p.savings || '10%' }));
+        setProducts(withDefaults);
+        setHeadline(h || '');
+        setExtractionStatus('completed');
+      }
+
+      // Load existing recipes if any
+      const circularDetail: any = existingCircular;
+      if (Array.isArray(circularDetail.recipes) && circularDetail.recipes.length > 0) {
+        setRecipes(circularDetail.recipes);
+      }
+    } catch (err) {
+      console.error('[mms] failed to load existing circular products:', err);
+    } finally {
+      setLoadingExistingProducts(false);
+    }
+  }, [existingCircular]);
+
+  /** Dismiss dialog — proceed with new upload */
+  const handleUploadNew = useCallback(() => {
+    setCircularDialogOpen(false);
+    setExistingCircular(null);
+  }, []);
 
   const handleCircularCreated = useCallback((circular: { _id: string; storeSlug: string; startDate: string; endDate: string; fileUrl?: string }) => {
     setCircularId(circular._id);
@@ -556,6 +623,105 @@ function MmsGeneratorPage(): React.JSX.Element {
 
   return (
     <>
+      {/* ─── Active Circular Dialog ─── */}
+      <Dialog
+        open={circularDialogOpen}
+        onClose={() => setCircularDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, fontSize: 18, pb: 0.5 }}>
+          Circular activo encontrado
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2, fontSize: 14 }}>
+            Esta tienda ya tiene un circular{' '}
+            <Chip
+              label={existingCircular?.status === 'active' ? 'Activo' : 'Programado'}
+              size="small"
+              color={existingCircular?.status === 'active' ? 'success' : 'warning'}
+              sx={{ fontSize: 11, height: 20 }}
+            />{' '}
+            llamado <strong>&ldquo;{existingCircular?.title || existingCircular?.storeSlug}&rdquo;</strong>.
+            ¿Qué quieres hacer?
+          </DialogContentText>
+
+          <Stack spacing={1.5}>
+            <Button
+              fullWidth
+              variant="contained"
+              size="large"
+              startIcon={<CheckCircleOutlineRoundedIcon />}
+              onClick={handleUseExisting}
+              sx={{
+                borderRadius: 2,
+                fontWeight: 700,
+                background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                '&:hover': { background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)' },
+                justifyContent: 'flex-start', px: 2.5, py: 1.5,
+              }}
+            >
+              <Box sx={{ textAlign: 'left' }}>
+                <Typography sx={{ fontWeight: 700, fontSize: 14, lineHeight: 1.2 }}>
+                  Usar circular existente
+                </Typography>
+                <Typography sx={{ fontSize: 12, opacity: 0.85, fontWeight: 400 }}>
+                  Carga sus productos y recetas actuales
+                </Typography>
+              </Box>
+            </Button>
+
+            <Button
+              fullWidth
+              variant="outlined"
+              size="large"
+              startIcon={<UploadFileRoundedIcon />}
+              onClick={handleUploadNew}
+              sx={{
+                borderRadius: 2,
+                fontWeight: 700,
+                borderColor: 'divider',
+                color: 'text.primary',
+                justifyContent: 'flex-start', px: 2.5, py: 1.5,
+                '&:hover': { bgcolor: 'action.hover' },
+              }}
+            >
+              <Box sx={{ textAlign: 'left' }}>
+                <Typography sx={{ fontWeight: 700, fontSize: 14, lineHeight: 1.2 }}>
+                  Subir nuevo flyer
+                </Typography>
+                <Typography sx={{ fontSize: 12, color: 'text.secondary', fontWeight: 400 }}>
+                  Reemplaza el circular activo con uno nuevo
+                </Typography>
+              </Box>
+            </Button>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            size="small"
+            onClick={() => setCircularDialogOpen(false)}
+            sx={{ textTransform: 'none', color: 'text.secondary' }}
+          >
+            Cancelar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Loading overlay when fetching existing products */}
+      {loadingExistingProducts && (
+        <Box sx={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          bgcolor: 'rgba(0,0,0,0.35)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Box sx={{ bgcolor: 'background.paper', borderRadius: 3, p: 4, textAlign: 'center', minWidth: 200 }}>
+            <CircularProgress size={36} sx={{ mb: 2 }} />
+            <Typography fontWeight={700}>Cargando circular activo…</Typography>
+          </Box>
+        </Box>
+      )}
       <Container sx={{ py: { xs: 2, sm: 3 } }} maxWidth={customization.stretch ? false : 'xl'}>
         <PageHeading
           sx={{ px: 0 }}
