@@ -131,6 +131,8 @@ export default function SendTestMessagePage({
   const [copyText, setCopyText] = useState('');
   const [newImage, setNewImage] = useState<File | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  // When true, ignore the inherited last-campaign image → send as plain SMS.
+  const [imageRemoved, setImageRemoved] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [snack, setSnack] = useState<{ open: boolean; msg: string; sev: 'success' | 'error' | 'info' }>({
     open: false,
@@ -210,8 +212,10 @@ export default function SendTestMessagePage({
   const lastImageIsPdf = isPdfUrl(lastCampaignImage);
   // Never use a PDF as the MMS image — it won't deliver
   const safeCampaignImage = lastImageIsPdf ? null : lastCampaignImage;
+  // The inherited last-campaign image, unless the user explicitly removed it.
+  const effectiveCampaignImage = imageRemoved ? null : safeCampaignImage;
   const previewImage: File | string | null =
-    newImage ?? uploadedImageUrl ?? safeCampaignImage ?? null;
+    newImage ?? uploadedImageUrl ?? effectiveCampaignImage ?? null;
   const messageType = previewImage ? 'MMS' : 'SMS';
   const charCount = copyText.length;
   const destinationPhone = selectedCustomer?.phoneNumber || '';
@@ -223,8 +227,8 @@ export default function SendTestMessagePage({
     mutationFn: async () => {
       if (!selectedStore) throw new Error('No store selected');
 
-      // Never send a PDF as the MMS image
-      let imgUrl = uploadedImageUrl ?? safeCampaignImage ?? null;
+      // Never send a PDF as the MMS image; respect an explicit removal.
+      let imgUrl = uploadedImageUrl ?? effectiveCampaignImage ?? null;
       if (newImage) {
         const up = await uploadCampaignImage(newImage);
         imgUrl = up.url;
@@ -271,8 +275,8 @@ export default function SendTestMessagePage({
     onSuccess: (data: any) => {
       setSnack({ open: true, msg: '✅ Test message sent successfully!', sev: 'success' });
       setConfirmOpen(false);
-      
-      let imgUrl = uploadedImageUrl ?? safeCampaignImage ?? null;
+
+      let imgUrl = uploadedImageUrl ?? effectiveCampaignImage ?? null;
       setSentPreview({
         message: data?.finalMessage || copyText,
         phone: destinationPhone,
@@ -408,6 +412,7 @@ export default function SendTestMessagePage({
                   setCopyText('');
                   setNewImage(null);
                   setUploadedImageUrl(null);
+                  setImageRemoved(false);
                   setSentPreview(null);
                 }}
                 renderOption={(props, option) => (
@@ -825,15 +830,23 @@ export default function SendTestMessagePage({
               )}
 
               <AvatarUploadLogo
+                key={imageRemoved ? 'img-cleared' : (safeCampaignImage || 'img-empty')}
                 label="Upload image"
-                initialUrl={safeCampaignImage}
+                initialUrl={imageRemoved ? null : safeCampaignImage}
                 onSelect={(file) => {
-                  if (!file) { setNewImage(null); return; }
+                  if (!file) {
+                    // Explicit removal → send as plain SMS, ignore inherited image.
+                    setNewImage(null);
+                    setUploadedImageUrl(null);
+                    setImageRemoved(true);
+                    return;
+                  }
                   if (file.size > MAX_IMAGE_KB * 1024) {
                     setSnack({ open: true, msg: `Image exceeds ${MAX_IMAGE_KB} KB.`, sev: 'error' });
                     return;
                   }
                   setNewImage(file);
+                  setImageRemoved(false);
                 }}
               />
 
@@ -846,6 +859,23 @@ export default function SendTestMessagePage({
                   size="small"
                   sx={{ mt: 1.5 }}
                 />
+              )}
+
+              {/* Remove the inherited / uploaded image → send as plain SMS */}
+              {previewImage && (
+                <Button
+                  size="small"
+                  color="inherit"
+                  startIcon={<CloseRoundedIcon sx={{ fontSize: 14 }} />}
+                  onClick={() => {
+                    setNewImage(null);
+                    setUploadedImageUrl(null);
+                    setImageRemoved(true);
+                  }}
+                  sx={{ mt: 1.5, textTransform: 'none', fontWeight: 600 }}
+                >
+                  Quitar imagen (enviar solo SMS)
+                </Button>
               )}
             </Box>
 
