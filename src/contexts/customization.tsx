@@ -8,7 +8,9 @@ import { type Customization, type Layout, type State } from './customization-typ
 export type { Layout, Customization, State };
 
 const defaultCustomization: Customization = {
-  colorPreset: 'monacoBlue',
+  // Rosa de marca Sweepstouch (#FC0C83) como color primario global de la app.
+  // 'radiantOrchid' mapea al rosa de marca en src/theme/colors.ts.
+  colorPreset: 'radiantOrchid',
   direction: 'ltr',
   layout: 'vertical-shells-dark',
   paletteMode: 'light',

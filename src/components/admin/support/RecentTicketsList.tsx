@@ -42,7 +42,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 const PRIORITY_HEX: Record<string, string> = {
   low: '#2E7D32',
-  medium: '#0C74E4',
+  medium: '#FC0C83',
   high: '#c05a01',
   critical: '#C62828',
 };
