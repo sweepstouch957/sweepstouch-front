@@ -533,10 +533,12 @@ export class BillingService {
   }
 
   async importInvoicesBulkExcel(
-    file: File
+    file: File,
+    sendEmails = false
   ): Promise<AxiosResponse<BulkImportPaymentsResponse>> { // Assuming BulkImportPaymentsResponse for now, adjust if a specific BulkImportInvoicesResponse is defined
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('sendEmails', String(sendEmails));
     return api.post('/billing/invoices/bulk-import', formData, {
       headers: { 'Content-Type': undefined },
     });
@@ -547,9 +549,10 @@ export class BillingService {
    * Called after the initial bulk import returns notFound rows.
    */
   async importResolvedInvoices(
-    resolvedRows: Array<{ storeId: string; openBalance: number; daysOverdue?: number }>
+    resolvedRows: Array<{ storeId: string; openBalance: number; daysOverdue?: number }>,
+    sendEmails = false
   ): Promise<AxiosResponse<{ ok: boolean; inserted: number; message: string }>> {
-    return api.post('/billing/invoices/bulk-import/resolve', { resolvedRows });
+    return api.post('/billing/invoices/bulk-import/resolve', { resolvedRows, sendEmails });
   }
 
   /* ===== [DEPRECATED] Métodos anteriores (eliminados del backend) =====

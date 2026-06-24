@@ -17,9 +17,11 @@ import {
   Card,
   CardContent,
   CardHeader,
+  Checkbox,
   Chip,
   CircularProgress,
   Divider,
+  FormControlLabel,
   LinearProgress,
   Select,
   MenuItem,
@@ -177,6 +179,9 @@ export default function BulkPaymentsImportCard() {
   const [imp, dispatchImp] = useReducer(importReducer, IMPORT_INIT);
   const { file, importType, isImporting, importError, importResult, notFoundRows, isResolving, resolveResult } = imp;
 
+  // Opt-in: send payment-reminder emails to resolved stores (never auto-blast).
+  const [sendEmails, setSendEmails] = useState(false);
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     multiple: false,
     accept: {
@@ -217,7 +222,7 @@ export default function BulkPaymentsImportCard() {
       if (importType === 'payments') {
         res = await billingService.importPaymentsBulkExcel(file);
       } else {
-        res = await billingService.importInvoicesBulkExcel(file);
+        res = await billingService.importInvoicesBulkExcel(file, sendEmails);
       }
       // ✅ .filter().map() combined into single .reduce() pass
       // (react-doctor: Js combine iterations ×21)
@@ -253,7 +258,7 @@ export default function BulkPaymentsImportCard() {
     if (toResolve.length === 0) return;
     try {
       dispatchImp({ type: 'RESOLVE_START' });
-      const res = await billingService.importResolvedInvoices(toResolve);
+      const res = await billingService.importResolvedInvoices(toResolve, sendEmails);
       dispatchImp({ type: 'RESOLVE_OK', result: res.data });
       await loadBalances();
     } catch (e: any) {
@@ -510,6 +515,25 @@ export default function BulkPaymentsImportCard() {
               </Select>
             </FormControl>
           </Stack>
+
+          {importType === 'invoices' && (
+            <FormControlLabel
+              sx={{ mb: 1 }}
+              control={
+                <Checkbox
+                  size="small"
+                  checked={sendEmails}
+                  onChange={(e) => setSendEmails(e.target.checked)}
+                  disabled={isImporting}
+                />
+              }
+              label={
+                <Typography variant="body2" color="text.secondary">
+                  Enviar recordatorio de pago por email a las tiendas reconocidas
+                </Typography>
+              }
+            />
+          )}
 
           <Box
             {...getRootProps()}
