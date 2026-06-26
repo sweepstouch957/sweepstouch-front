@@ -7,6 +7,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import RecentTicketsList from 'src/components/admin/support/RecentTicketsList';
 import SupportMetricCards from 'src/components/admin/support/SupportMetricCards';
+import SupportOrderFeed from 'src/components/admin/support/SupportOrderFeed';
 import SupportTypeChart from 'src/components/admin/support/SupportTypeChart';
 import WeeklyVisitsChart from 'src/components/admin/support/WeeklyVisitsChart';
 import PageHeading from 'src/components/base/page-heading';
@@ -65,6 +66,11 @@ function Page(): React.JSX.Element {
             {/* Metric cards - full width */}
             <Grid xs={12}>
               <SupportMetricCards metrics={metrics} loading={loadingMetrics} />
+            </Grid>
+
+            {/* Live order feed — todas las tiendas, prioridad: pagos en línea */}
+            <Grid xs={12}>
+              <SupportOrderFeed />
             </Grid>
 
             {/* Charts row */}
