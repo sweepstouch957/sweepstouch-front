@@ -22,7 +22,7 @@ import {
   Typography,
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Snackbar } from '@mui/material';
 import CampaignResume from './campaing-resume';
@@ -54,6 +54,70 @@ const placeholders = [
   { key: '#linktree', label: 'Linktree de la tienda' }, // 👈 nuevo placeholder
   { key: '#lead', label: 'Lead / Completar perfil' },
 ];
+
+const SHORTENER_DOMAINS = [
+  'bit.ly',
+  'bitly.com',
+  'j.mp',
+  'tinyurl.com',
+  't.co',
+  'goo.gl',
+  'ow.ly',
+  'buff.ly',
+  'is.gd',
+  'v.gd',
+  'rebrand.ly',
+  'cutt.ly',
+  'shorturl.at',
+  'tiny.cc',
+  'rb.gy',
+  's.id',
+  'lnkd.in',
+  'amzn.to',
+  'fb.me',
+  'youtu.be',
+  'wp.me',
+  'trib.al',
+  'dlvr.it',
+  'ift.tt',
+  'adf.ly',
+  'bit.do',
+  'mcaf.ee',
+  'qr.ae',
+  'po.st',
+  'su.pr',
+  'linktr.ee',
+];
+
+const SHORTENER_DOMAIN_SET = new Set(SHORTENER_DOMAINS);
+
+const URL_DOMAIN_REGEX =
+  /(?:https?:\/\/)?(?:www\.)?([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+)(?::\d+)?(?:\/[^\s]*)?/gi;
+
+const findShortenerDomains = (message: string) => {
+  const matchedDomains = new Set<string>();
+
+  for (const match of message.matchAll(URL_DOMAIN_REGEX)) {
+    const domain = match[1]?.toLowerCase();
+
+    if (!domain) {
+      continue;
+    }
+
+    const domainParts = domain.split('.');
+
+    for (let index = 0; index < domainParts.length - 1; index += 1) {
+      const domainSuffix = domainParts.slice(index).join('.');
+
+      if (SHORTENER_DOMAIN_SET.has(domainSuffix)) {
+        matchedDomains.add(domainSuffix);
+        break;
+      }
+    }
+  }
+
+  return Array.from(matchedDomains);
+};
 
 const insertAtCursor = (inputEl: HTMLTextAreaElement, text: string) => {
   const [start, end] = [inputEl.selectionStart, inputEl.selectionEnd];
@@ -114,6 +178,8 @@ export default function CreateCampaignForm({
   const estimatedCost = watch('estimatedCost');
   const customAudience = watch('customAudience');
   const startDate = watch('startDate');
+  const shortenerDomains = useMemo(() => findShortenerDomains(content || ''), [content]);
+  const hasShortenerLinks = shortenerDomains.length > 0;
 
   useEffect(() => {
     if (image && (image as any).length > 0) {
@@ -280,6 +346,39 @@ export default function CreateCampaignForm({
                                 {currentLength} / 2047
                               </Typography>
                             </Box>
+                            {hasShortenerLinks && (
+                              <Alert
+                                severity="warning"
+                                sx={{
+                                  mt: 1,
+                                  color: 'error.main',
+                                  fontSize: '0.95rem',
+                                  fontWeight: 600,
+                                  '& .MuiAlert-icon': {
+                                    color: 'error.main',
+                                  },
+                                  '& .MuiAlert-message': {
+                                    fontSize: 'inherit',
+                                  },
+                                }}
+                              >
+                                El mensaje contiene un short link generado por un sitio marcado por{' '}
+                                <Box
+                                  component="span"
+                                  sx={{ fontStyle: 'italic' }}
+                                >
+                                  desconfianza
+                                </Box>{' '}
+                                o{' '}
+                                <Box
+                                  component="span"
+                                  sx={{ fontStyle: 'italic' }}
+                                >
+                                  spam
+                                </Box>
+                                , debe cambiarlo por otro enlace o quitarlo del mensaje.
+                              </Alert>
+                            )}
                           </>
                         );
                       }}
@@ -472,7 +571,7 @@ export default function CreateCampaignForm({
                         <Button
                           variant="contained"
                           type="submit"
-                          disabled={isPhoneMissing}
+                          disabled={isPhoneMissing || hasShortenerLinks}
                         >
                           {isEditing ? 'Actualizar campaña' : 'Crear campaña'}
                         </Button>
