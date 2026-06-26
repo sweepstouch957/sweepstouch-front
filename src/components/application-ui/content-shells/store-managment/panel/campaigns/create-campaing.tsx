@@ -53,6 +53,8 @@ const placeholders = [
   { key: '#disclaimer', label: 'Texto legal' },
   { key: '#linktree', label: 'Linktree de la tienda' }, // 👈 nuevo placeholder
   { key: '#lead', label: 'Lead / Completar perfil' },
+  { key: '#linkrcs', label: 'Link RCS único por cliente (activa el flujo RCS)' },
+  { key: '#ahorro', label: 'Ahorro semanal de la tienda ($)' },
 ];
 
 const SHORTENER_DOMAINS = [
