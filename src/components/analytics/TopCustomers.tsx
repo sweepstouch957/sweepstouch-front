@@ -26,7 +26,6 @@ interface Props {
   isLoading: boolean;
 }
 
-const MEDAL_EMOJI = ['🥇', '🥈', '🥉'];
 const MEDAL_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32'];
 const RANK_GRADIENTS = [
   'linear-gradient(135deg, #FFD700 0%, #FFA000 100%)',
@@ -119,24 +118,18 @@ export default function TopCustomers({ data, isLoading }: Props) {
                 <Stack direction="row" alignItems="center" spacing={1.5}>
                   {/* Rank */}
                   <Box sx={{ minWidth: 30, textAlign: 'center' }}>
-                    {isTop3 ? (
-                      <Typography sx={{ fontSize: 22, lineHeight: 1 }}>
-                        {MEDAL_EMOJI[i]}
-                      </Typography>
-                    ) : (
-                      <Avatar
-                        sx={{
-                          width: 26,
-                          height: 26,
-                          fontSize: 11,
-                          fontWeight: 900,
-                          bgcolor: 'action.selected',
-                          color: 'text.secondary',
-                        }}
-                      >
-                        {i + 1}
-                      </Avatar>
-                    )}
+                    <Avatar
+                      sx={{
+                        width: 28,
+                        height: 28,
+                        fontSize: 12,
+                        fontWeight: 900,
+                        bgcolor: isTop3 ? MEDAL_COLORS[i] : 'action.selected',
+                        color: isTop3 ? '#fff' : 'text.secondary',
+                      }}
+                    >
+                      {i + 1}
+                    </Avatar>
                   </Box>
 
                   {/* Avatar */}
@@ -206,10 +199,10 @@ export default function TopCustomers({ data, isLoading }: Props) {
                         mt: 0.8,
                         height: 4,
                         borderRadius: 2,
-                        bgcolor: alpha(isTop3 ? MEDAL_COLORS[i] : '#6366f1', 0.08),
+                        bgcolor: alpha(isTop3 ? MEDAL_COLORS[i] : '#FC0680', 0.08),
                         '& .MuiLinearProgress-bar': {
                           borderRadius: 2,
-                          bgcolor: isTop3 ? MEDAL_COLORS[i] : '#6366f1',
+                          bgcolor: isTop3 ? MEDAL_COLORS[i] : '#FC0680',
                         },
                       }}
                     />

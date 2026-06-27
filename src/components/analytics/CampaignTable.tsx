@@ -30,14 +30,10 @@ interface Props {
   isLoading: boolean;
 }
 
-const PALETTE = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ec4899', '#14b8a6', '#6366f1', '#f97316'];
-const CATEGORY_EMOJI: Record<string, string> = {
-  meat: '🥩', produce: '🥬', beverages: '🥤', dairy: '🧀', pantry: '🥫',
-  frozen: '🧊', bakery: '🍞', deli: '🥪', snacks: '🍿', grocery: '🛒', household: '🧹',
-};
+const PALETTE = ['#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#14b8a6', '#64748b', '#f97316'];
 const CATEGORY_COLORS: Record<string, string> = {
-  meat: '#ef4444', produce: '#22c55e', beverages: '#3b82f6', dairy: '#f59e0b', pantry: '#8b5cf6',
-  frozen: '#06b6d4', bakery: '#f97316', deli: '#ec4899', snacks: '#a855f7', grocery: '#64748b', household: '#6366f1',
+  meat: '#ef4444', produce: '#22c55e', beverages: '#3b82f6', dairy: '#f59e0b', pantry: '#14b8a6',
+  frozen: '#06b6d4', bakery: '#f97316', deli: '#ec4899', snacks: '#eab308', grocery: '#64748b', household: '#0ea5e9',
 };
 
 export default function CampaignTable({ data, campaignProducts, isLoading }: Props) {
@@ -79,8 +75,8 @@ export default function CampaignTable({ data, campaignProducts, isLoading }: Pro
       {/* Header */}
       <Box sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
         <Stack direction="row" alignItems="center" spacing={1.5}>
-          <Box sx={{ p: 0.8, borderRadius: 1.5, bgcolor: alpha('#6366f1', 0.1), display: 'flex' }}>
-            <CampaignIcon sx={{ color: '#6366f1', fontSize: 20 }} />
+          <Box sx={{ p: 0.8, borderRadius: 1.5, bgcolor: (t) => alpha(t.palette.primary.main, 0.1), display: 'flex' }}>
+            <CampaignIcon sx={{ color: 'primary.main', fontSize: 20 }} />
           </Box>
           <Box>
             <Typography variant="subtitle1" fontWeight={800}>
@@ -183,12 +179,12 @@ export default function CampaignTable({ data, campaignProducts, isLoading }: Pro
                           : '#ef4444',
                     }}
                   />
-                  <Stack direction="row" spacing={0.3} alignItems="center">
-                    <Typography sx={{ fontSize: 12 }}>⭐</Typography>
+                  <Box sx={{ textAlign: 'center', minWidth: 50 }}>
                     <Typography fontWeight={800} fontSize={13} sx={{ color: '#f59e0b' }}>
                       {c.totalPoints.toLocaleString()}
                     </Typography>
-                  </Stack>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: 9 }}>puntos</Typography>
+                  </Box>
                 </Stack>
 
                 {/* Expand icon */}
@@ -228,7 +224,6 @@ export default function CampaignTable({ data, campaignProducts, isLoading }: Pro
                         {prods.map((p, pIdx) => {
                           const cat = p.category?.toLowerCase() || 'other';
                           const catColor = CATEGORY_COLORS[cat] || '#9e9e9e';
-                          const emoji = CATEGORY_EMOJI[cat] || '📦';
                           const pct = totalProdUnits ? (p.quantity / Math.max(...prods.map((pp) => pp.quantity))) * 100 : 0;
 
                           return (
@@ -245,10 +240,9 @@ export default function CampaignTable({ data, campaignProducts, isLoading }: Pro
                                 '&:hover': { bgcolor: alpha(catColor, 0.04) },
                               }}
                             >
-                              {/* Emoji */}
-                              <Typography sx={{ fontSize: 18, minWidth: 24, textAlign: 'center' }}>
-                                {emoji}
-                              </Typography>
+                              {/* Marcador de categoría */}
+                              <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: catColor, flexShrink: 0, mx: 0.75 }} />
+
 
                               {/* Product info */}
                               <Box sx={{ flex: 1, minWidth: 0 }}>

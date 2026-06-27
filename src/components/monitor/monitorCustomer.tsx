@@ -10,6 +10,7 @@ import GridViewRoundedIcon from '@mui/icons-material/GridViewRounded';
 import PersonSearchRoundedIcon from '@mui/icons-material/PersonSearchRounded';
 import QrCode2RoundedIcon from '@mui/icons-material/QrCode2Rounded';
 import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
+import Inventory2RoundedIcon from '@mui/icons-material/Inventory2Rounded';
 
 import { fetchProducts, fetchCustomers, fetchTimeline, fetchStoreShortlinks, type AnalyticsFilters } from '@/services/analytics.service';
 import { generateQr } from '@/services/qr.service';
@@ -56,7 +57,7 @@ export function OpportunityLists({ store, filters }: { store: StoreLite; filters
           <Stack divider={<Box sx={{ borderBottom: 1, borderColor: 'divider' }} />}>
             {desired.map((p, i) => (
               <Stack key={`${p.product}-${i}`} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1 }}>
-                <Avatar src={p.imageUrl} variant="rounded" sx={{ width: 36, height: 36, bgcolor: alpha(theme.palette.primary.main, 0.08) }}>🛒</Avatar>
+                <Avatar src={p.imageUrl} variant="rounded" sx={{ width: 36, height: 36, bgcolor: alpha(theme.palette.primary.main, 0.08), color: 'primary.main' }}><Inventory2RoundedIcon sx={{ fontSize: 18 }} /></Avatar>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography noWrap sx={{ fontWeight: 700, fontSize: 13 }}>{p.product}</Typography>
                   <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>{p.category} · {p.price}</Typography>

@@ -2,9 +2,8 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Box, Typography, Stack, Alert, Chip, useTheme, alpha } from '@mui/material';
+import { Box, Typography, Stack, useTheme, alpha } from '@mui/material';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import InsightsIcon from '@mui/icons-material/Insights';
 
@@ -17,15 +16,6 @@ import {
   fetchCampaignProducts,
   type AnalyticsFilters,
 } from '@/services/analytics.service';
-
-import {
-  DEMO_OVERVIEW,
-  DEMO_CAMPAIGNS,
-  DEMO_CUSTOMERS,
-  DEMO_PRODUCTS,
-  DEMO_TIMELINE,
-  DEMO_CAMPAIGN_PRODUCTS,
-} from './demoData';
 
 import FilterBar from './FilterBar';
 import KpiCards from './KpiCards';
@@ -74,28 +64,14 @@ export default function AnalyticsDashboard() {
     retry: 1,
   });
 
-  // ─── Fallback to demo ───
-  const isDemo = overview.isError || (!overview.isLoading && !overview.data?.kpis?.totalScans);
-  const overviewData = isDemo ? DEMO_OVERVIEW : overview.data;
-  const campaignData = campaigns.isError || (!campaigns.isLoading && (!campaigns.data || campaigns.data.length === 0)) ? DEMO_CAMPAIGNS : campaigns.data;
-  const customerData = customers.isError || (!customers.isLoading && (!customers.data || customers.data.length === 0)) ? DEMO_CUSTOMERS : customers.data;
-  const timelineData = timeline.isError || (!timeline.isLoading && (!timeline.data || timeline.data.scans.length === 0)) ? DEMO_TIMELINE : timeline.data;
-
-  const realProducts = products.data;
-  const productData = isDemo
-    ? {
-        purchased: [...(DEMO_PRODUCTS.purchased), ...(realProducts?.purchased || [])],
-        selected: [...(realProducts?.selected || []), ...(DEMO_PRODUCTS.selected)],
-      }
-    : realProducts || DEMO_PRODUCTS;
-
-  const campaignProductData = isDemo
-    ? DEMO_CAMPAIGN_PRODUCTS
-    : campaignProducts.isError
-      ? undefined
-      : campaignProducts.data;
-
-  const allLoading = overview.isLoading && campaigns.isLoading;
+  // ─── Datos reales (sin demo). Si no hay info, los componentes muestran su estado vacío. ───
+  const overviewData = overview.data;
+  const campaignData = campaigns.data;
+  const customerData = customers.data;
+  const timelineData = timeline.data;
+  const productData = products.data || { purchased: [], selected: [] };
+  const campaignProductData = campaigns.isError ? undefined : campaignProducts.data;
+  const isDemo = false;
 
   return (
     <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, py: 3, maxWidth: 1440, mx: 'auto' }}>
@@ -105,10 +81,7 @@ export default function AnalyticsDashboard() {
           mb: 4,
           p: { xs: 2.5, md: 3.5 },
           borderRadius: 4,
-          background:
-            theme.palette.mode === 'dark'
-              ? 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)'
-              : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
           color: '#fff',
           position: 'relative',
           overflow: 'hidden',
@@ -166,24 +139,6 @@ export default function AnalyticsDashboard() {
           )}
         </Stack>
       </Box>
-
-      {/* Demo banner */}
-      {isDemo && !allLoading && (
-        <Alert
-          severity="info"
-          icon={<InfoOutlinedIcon />}
-          sx={{
-            mb: 3,
-            borderRadius: 2.5,
-            '& .MuiAlert-message': { display: 'flex', alignItems: 'center', gap: 1, width: '100%', justifyContent: 'space-between' },
-          }}
-        >
-          <Typography variant="body2" fontWeight={600}>
-            Showing demo data. Real data will populate once campaigns have scans.
-          </Typography>
-          <Chip label="DEMO" size="small" color="info" sx={{ fontWeight: 800, height: 22 }} />
-        </Alert>
-      )}
 
       {/* ═══ Filters ═══ */}
       <Box sx={{ mb: 4 }}>

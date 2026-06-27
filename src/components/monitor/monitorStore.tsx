@@ -118,10 +118,10 @@ export function ConversionFunnel({ store, filters }: { store: { _id: string; slu
   const paid = orders.data?.kpis?.orders || 0;
 
   const steps = [
-    { label: 'Enviados', value: sent, color: '#8b5cf6' },
-    { label: 'Entregados', value: delivered, color: '#6366f1' },
+    { label: 'Enviados', value: sent, color: '#64748b' },
+    { label: 'Entregados', value: delivered, color: '#0891b2' },
     { label: 'Clicks', value: clicks, color: theme.palette.primary.main },
-    { label: 'Listas / carrito', value: carts, color: '#0ea5e9' },
+    { label: 'Listas / carrito', value: carts, color: '#f59e0b' },
     { label: 'Pedidos pagados', value: paid, color: '#16a34a' },
   ];
   const max = Math.max(...steps.map((s) => s.value), 1);

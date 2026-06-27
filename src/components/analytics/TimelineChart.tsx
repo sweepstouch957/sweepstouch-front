@@ -19,7 +19,7 @@ interface Props {
 
 const COLORS = {
   scans: '#3b82f6',
-  customers: '#8b5cf6',
+  customers: '#06b6d4',
   confirmed: '#10b981',
 };
 
@@ -114,10 +114,10 @@ export default function TimelineChart({ data, isLoading }: Props) {
                       {new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                     </Typography>
                     <Stack spacing={0.3}>
-                      <Typography variant="caption">📊 {d.scans} scans</Typography>
-                      <Typography variant="caption">👤 {d.customers} customers</Typography>
-                      <Typography variant="caption">✅ {d.confirmed} confirmed</Typography>
-                      <Typography variant="caption">⭐ {d.points} points</Typography>
+                      <Typography variant="caption">{d.scans} scans</Typography>
+                      <Typography variant="caption">{d.customers} customers</Typography>
+                      <Typography variant="caption">{d.confirmed} confirmed</Typography>
+                      <Typography variant="caption">{d.points} points</Typography>
                     </Stack>
                   </Box>
                 }
@@ -201,10 +201,10 @@ export default function TimelineChart({ data, isLoading }: Props) {
         }}
       >
         {[
-          { label: 'Total Scans', value: totalScans.toLocaleString(), color: COLORS.scans, icon: '📊' },
-          { label: 'Customer Visits', value: totalCustomers.toLocaleString(), color: COLORS.customers, icon: '👤' },
-          { label: 'Confirmed', value: totalConfirmed.toLocaleString(), color: COLORS.confirmed, icon: '✅' },
-          { label: 'Points Awarded', value: totalPoints.toLocaleString(), color: '#f59e0b', icon: '⭐' },
+          { label: 'Total Scans', value: totalScans.toLocaleString(), color: COLORS.scans },
+          { label: 'Customer Visits', value: totalCustomers.toLocaleString(), color: COLORS.customers },
+          { label: 'Confirmed', value: totalConfirmed.toLocaleString(), color: COLORS.confirmed },
+          { label: 'Points Awarded', value: totalPoints.toLocaleString(), color: '#f59e0b' },
         ].map((stat, i) => (
           <Box
             key={stat.label}
@@ -216,7 +216,6 @@ export default function TimelineChart({ data, isLoading }: Props) {
               borderColor: 'divider',
             }}
           >
-            <Typography sx={{ fontSize: 11, mb: 0.3 }}>{stat.icon}</Typography>
             <Typography variant="h6" fontWeight={900} sx={{ color: stat.color, lineHeight: 1.2 }}>
               {stat.value}
             </Typography>

@@ -1,4 +1,5 @@
 export const es = {
+  "RCS Monitoring": "Monitoreo RCS",
   "ACTIONS": "ACCIONES",
   "Actions": "Acciones",
   "ADDRESS": "DIRECCION",

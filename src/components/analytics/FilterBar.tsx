@@ -43,9 +43,7 @@ export default function FilterBar({ filters, onChange }: Props) {
         p: 2.5,
         borderRadius: 3,
         background: (theme) =>
-          theme.palette.mode === 'dark'
-            ? 'linear-gradient(135deg, rgba(20,20,40,0.95) 0%, rgba(15,15,35,0.95) 100%)'
-            : 'linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%)',
+          theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : '#ffffff',
         border: '1px solid',
         borderColor: 'divider',
         backdropFilter: 'blur(10px)',
@@ -142,15 +140,14 @@ export default function FilterBar({ filters, onChange }: Props) {
           renderInput={(params) => (
             <TextField
               {...params}
-              label="Store"
-              size="small"
-              placeholder="Search stores..."
+              label="Tienda"
+              placeholder="Buscar tienda..."
               InputProps={{
                 ...params.InputProps,
                 startAdornment: (
                   <>
                     <InputAdornment position="start">
-                      <StorefrontIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+                      <StorefrontIcon sx={{ fontSize: 22, color: 'text.secondary' }} />
                     </InputAdornment>
                     {params.InputProps.startAdornment}
                   </>
@@ -158,58 +155,55 @@ export default function FilterBar({ filters, onChange }: Props) {
               }}
             />
           )}
-          sx={{ minWidth: 280 }}
+          sx={{ flex: 1, minWidth: { xs: '100%', md: 360 } }}
         />
 
         {/* Date Range */}
         <TextField
-          label="From"
+          label="Desde"
           type="date"
-          size="small"
           value={filters.from || ''}
           onChange={(e) => onChange({ ...filters, from: e.target.value || undefined })}
           InputLabelProps={{ shrink: true }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                <CalendarTodayIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
               </InputAdornment>
             ),
           }}
-          sx={{ minWidth: 160 }}
+          sx={{ minWidth: 170 }}
         />
 
         <TextField
-          label="To"
+          label="Hasta"
           type="date"
-          size="small"
           value={filters.to || ''}
           onChange={(e) => onChange({ ...filters, to: e.target.value || undefined })}
           InputLabelProps={{ shrink: true }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                <CalendarTodayIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
               </InputAdornment>
             ),
           }}
-          sx={{ minWidth: 160 }}
+          sx={{ minWidth: 170 }}
         />
 
         {/* Group by */}
         <TextField
           select
-          label="Group By"
-          size="small"
+          label="Agrupar"
           value={filters.groupBy || 'day'}
           onChange={(e) =>
             onChange({ ...filters, groupBy: e.target.value as AnalyticsFilters['groupBy'] })
           }
-          sx={{ minWidth: 120 }}
+          sx={{ minWidth: 140 }}
         >
-          <MenuItem value="day">📅 Day</MenuItem>
-          <MenuItem value="week">📆 Week</MenuItem>
-          <MenuItem value="month">🗓️ Month</MenuItem>
+          <MenuItem value="day">Día</MenuItem>
+          <MenuItem value="week">Semana</MenuItem>
+          <MenuItem value="month">Mes</MenuItem>
         </TextField>
       </Stack>
 

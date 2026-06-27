@@ -112,17 +112,16 @@ function StorePicker({
       onChange={(_, v) => onChange(v)}
       getOptionLabel={(o) => o?.name || o?.slug || ''}
       isOptionEqualToValue={(o, v) => o._id === v._id}
-      sx={{ width: '100%', maxWidth: { sm: 420 } }}
+      sx={{ width: '100%', minWidth: { sm: 340 }, maxWidth: { sm: 520 } }}
       renderInput={(params) => (
         <TextField
           {...params}
           placeholder="Buscar tienda…"
-          size="small"
           InputProps={{
             ...params.InputProps,
             startAdornment: (
               <InputAdornment position="start">
-                <SearchRoundedIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+                <SearchRoundedIcon sx={{ fontSize: 22, color: 'text.secondary' }} />
               </InputAdornment>
             ),
           }}
@@ -179,11 +178,11 @@ function VendorFront({ store, filters }: { store: Store | null; filters: Analyti
         : `${MERCHANT_URL}/orders`;
       return sendMerchantWhatsApp({
         phoneNumber: store.phoneNumber,
-        message: `🔔 *${store.name}* — tienes pedidos en línea por revisar.\n\nEntra a tu panel: ${link}`,
+        message: `*${store.name}* — tienes pedidos en línea por revisar.\n\nEntra a tu panel: ${link}`,
       });
     },
     onSuccess: (d: any) =>
-      d?.sent ? toast.success('WhatsApp enviado al dueño 📲') : toast.error('No se pudo enviar (revisa el número del dueño)'),
+      d?.sent ? toast.success('WhatsApp enviado al dueño') : toast.error('No se pudo enviar (revisa el número del dueño)'),
     onError: () => toast.error('No se pudo enviar el WhatsApp'),
   });
 

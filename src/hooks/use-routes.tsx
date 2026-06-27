@@ -77,7 +77,7 @@ const campaignsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Listing'), route: routes.admin.management.campaings.listing },
     { title: t('Send Test'), route: routes.admin.management.campaings['send-test'], roles: ['admin'] },
     { title: t('MMS Generator'), route: routes.admin.management.campaings.mms, roles: ['admin'] },
-    { title: t('Campaign Analytics'), route: routes.admin.dashboards['campaign-analytics'], roles: ['admin'] },
+    { title: t('RCS Monitoring'), route: routes.admin.dashboards['campaign-analytics'], roles: ['admin'] },
     { title: t('Opt-in MMS'), route: routes.admin.management.campaings.optin, roles: ['admin', 'general_manager', 'campaign_manager'] },
     { title: t('Solicitudes de Campaña'), route: routes.admin.management['campaign-requests'].listing, roles: ['admin', 'campaign_manager', 'design', 'general_manager'] },
   ]);

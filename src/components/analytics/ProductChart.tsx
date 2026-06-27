@@ -40,35 +40,17 @@ const CATEGORY_COLORS: Record<string, string> = {
   produce: '#22c55e',
   beverages: '#3b82f6',
   dairy: '#f59e0b',
-  pantry: '#8b5cf6',
+  pantry: '#14b8a6',
   frozen: '#06b6d4',
   bakery: '#f97316',
   deli: '#ec4899',
-  snacks: '#a855f7',
+  snacks: '#eab308',
   grocery: '#64748b',
-  household: '#6366f1',
-};
-
-const CATEGORY_EMOJI: Record<string, string> = {
-  meat: '🥩',
-  produce: '🥬',
-  beverages: '🥤',
-  dairy: '🧀',
-  pantry: '🥫',
-  frozen: '🧊',
-  bakery: '🍞',
-  deli: '🥪',
-  snacks: '🍿',
-  grocery: '🛒',
-  household: '🧹',
+  household: '#0ea5e9',
 };
 
 function getColor(cat: string): string {
   return CATEGORY_COLORS[cat?.toLowerCase()] || '#9e9e9e';
-}
-
-function getEmoji(cat: string): string {
-  return CATEGORY_EMOJI[cat?.toLowerCase()] || '📦';
 }
 
 export default function ProductChart({ data, campaignProducts, isLoading }: Props) {
@@ -284,7 +266,6 @@ export default function ProductChart({ data, campaignProducts, isLoading }: Prop
               <Chip
                 label={
                   <Stack direction="row" spacing={0.5} alignItems="center">
-                    <span>{getEmoji(c.cat)}</span>
                     <span style={{ fontWeight: 800, fontSize: 11 }}>{c.cat}</span>
                     <span style={{ fontWeight: 600, fontSize: 10, opacity: 0.7 }}>({c.qty})</span>
                   </Stack>
@@ -414,7 +395,7 @@ export default function ProductChart({ data, campaignProducts, isLoading }: Prop
                     }}
                   />
                 ) : (
-                  <Typography sx={{ fontSize: 20 }}>{getEmoji(cat)}</Typography>
+                  <InventoryIcon sx={{ fontSize: 22, color }} />
                 )}
               </Box>
 
@@ -525,7 +506,7 @@ export default function ProductChart({ data, campaignProducts, isLoading }: Prop
         {[
           {
             label: 'Top Category',
-            value: categories[0] ? `${getEmoji(categories[0].cat)} ${categories[0].cat}` : '—',
+            value: categories[0] ? categories[0].cat : '—',
             sub: categories[0] ? `${categories[0].qty} units` : '',
           },
           {

@@ -51,8 +51,8 @@ export default function KpiCards({ data, isLoading }: Props) {
       label: 'Unique Customers',
       value: data.kpis.uniqueCustomers.toLocaleString(),
       icon: <PeopleAltIcon />,
-      color: '#8b5cf6',
-      gradient: 'linear-gradient(135deg, #8b5cf6, #a78bfa)',
+      color: '#06b6d4',
+      gradient: 'linear-gradient(135deg, #06b6d4, #22d3ee)',
       subtitle: 'Active shoppers',
     },
     {
@@ -91,8 +91,8 @@ export default function KpiCards({ data, isLoading }: Props) {
       label: 'Messages Sent',
       value: data.messaging.total.toLocaleString(),
       icon: <EmailIcon />,
-      color: '#6366f1',
-      gradient: 'linear-gradient(135deg, #6366f1, #818cf8)',
+      color: '#64748b',
+      gradient: 'linear-gradient(135deg, #64748b, #94a3b8)',
       subtitle: `${data.messaging.deliveryRate}% delivery`,
     },
     {
