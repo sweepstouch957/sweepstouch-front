@@ -131,6 +131,21 @@ export async function fetchOverview(filters: AnalyticsFilters = {}): Promise<Ana
   return data;
 }
 
+export interface MessagingStats {
+  total: number;
+  delivered: number;
+  errors: number;
+  mms: number;
+  sms: number;
+  deliveryRate: number;
+}
+
+/** Enviados/entregados por tienda (sent/delivered de los SMS/MMS de sus campañas). */
+export async function fetchMessaging(filters: AnalyticsFilters = {}): Promise<MessagingStats> {
+  const { data } = await api.get(`${TRACKING_BASE}/messaging`, { params: buildParams(filters) });
+  return data;
+}
+
 export async function fetchCampaigns(filters: AnalyticsFilters = {}): Promise<CampaignAnalytics[]> {
   const { data } = await api.get(`${TRACKING_BASE}/campaigns`, { params: buildParams(filters) });
   return data.campaigns;
@@ -154,6 +169,55 @@ export async function fetchTimeline(filters: AnalyticsFilters = {}): Promise<{ s
 export async function fetchAnalyticsStores(): Promise<AnalyticsStore[]> {
   const { data } = await api.get(`${TRACKING_BASE}/stores`);
   return data.stores;
+}
+
+export interface StoreShortlink {
+  code: string;
+  url: string;        // url destino larga (.../rcs/{customerId}?store=...)
+  hits: number;       // clicks
+  createdAt: string;
+  shortUrl: string;   // swtrcs.com/s/CODE
+}
+
+export interface StoreShortlinksResponse {
+  storeSlug: string;
+  count: number;
+  totalClicks: number;
+  clickedLinks: number;
+  links: StoreShortlink[];
+}
+
+/** Shortlinks generados para una tienda (filtrados por el slug embebido en la url destino). */
+export async function fetchStoreShortlinks(slug: string, limit = 100): Promise<StoreShortlinksResponse> {
+  const { data } = await api.get(`/tracking/short-link/by-store/${encodeURIComponent(slug)}`, { params: { limit } });
+  return data;
+}
+
+export interface CampaignClicks {
+  campaignId: string;
+  links: number;
+  clicks: number;
+  clicked: number;
+  clickRate: number; // % de links con al menos un click
+}
+
+/** Clicks de shortlink agregados por campaña para una tienda. */
+export async function fetchStoreCampaignClicks(slug: string): Promise<{ storeSlug: string; campaigns: CampaignClicks[] }> {
+  const { data } = await api.get(`/tracking/short-link/stats/campaigns/${encodeURIComponent(slug)}`);
+  return data;
+}
+
+/** Mapa campaignId → título (para etiquetar los charts de clicks por campaña). Best-effort. */
+export async function fetchStoreCampaignTitles(storeId: string): Promise<Record<string, string>> {
+  try {
+    const { data } = await api.get('/campaigns/filter', { params: { storeId, limit: 200 } });
+    const list: any[] = data?.data || data?.campaigns || [];
+    const map: Record<string, string> = {};
+    for (const c of list) map[c._id] = c.title || c.name || c._id;
+    return map;
+  } catch {
+    return {};
+  }
 }
 
 export async function fetchCampaignProducts(filters: AnalyticsFilters = {}): Promise<{
