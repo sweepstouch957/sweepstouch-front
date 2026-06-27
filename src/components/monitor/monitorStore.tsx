@@ -41,6 +41,8 @@ export function StoreFinanceCard({ store }: { store: { _id: string; name: string
     <SectionCard
       title="Finanzas · GMV y comisión"
       icon={<PaidRoundedIcon />}
+      empty={!stats.isLoading && net === 0 && (k?.orders || 0) === 0}
+      emptyText="Sin pedidos pagados todavía para esta tienda."
       action={
         <TextField
           size="small"

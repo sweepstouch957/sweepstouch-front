@@ -211,35 +211,11 @@ function VendorFront({ store, filters }: { store: Store | null; filters: Analyti
     { label: 'Puntos', value: totals.points, icon: <BoltRoundedIcon /> },
   ];
 
+  const hasKpis = campaigns.isLoading || totals.scans + totals.customers + totals.purchases + totals.points > 0;
+
   return (
     <Stack spacing={2.5}>
-      {/* KPI strip de la tienda */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2,1fr)', sm: 'repeat(4,1fr)' }, gap: 1.5 }}>
-        {kpis.map((k) => (
-          <Card key={k.label} sx={{ p: 2, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Avatar sx={{ width: 38, height: 38, bgcolor: alpha(theme.palette.primary.main, 0.12), color: 'primary.main' }}>
-              {k.icon}
-            </Avatar>
-            <Box sx={{ minWidth: 0 }}>
-              {campaigns.isLoading ? (
-                <Skeleton width={48} height={28} />
-              ) : (
-                <Typography sx={{ fontWeight: 800, fontSize: 20, lineHeight: 1 }}>{k.value.toLocaleString()}</Typography>
-              )}
-              <Typography sx={{ fontSize: 12, color: 'text.secondary', fontWeight: 600 }}>{k.label}</Typography>
-            </Box>
-          </Card>
-        ))}
-      </Box>
-
-      {/* Finanzas + embudo + alertas */}
-      <StoreFinanceCard store={{ _id: store._id, name: store.name }} />
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 2.5 }}>
-        <ConversionFunnel store={{ _id: store._id, slug: store.slug || '', name: store.name }} filters={filters} />
-        <AlertsPanel store={{ _id: store._id, name: store.name }} />
-      </Box>
-
-      {/* Consola embebida */}
+      {/* Consola embebida — EN VIVO, primero */}
       <Card sx={{ borderRadius: 3, overflow: 'hidden' }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2, py: 1.25, borderBottom: 1, borderColor: 'divider' }}>
           <Stack direction="row" alignItems="center" spacing={1}>
@@ -282,6 +258,34 @@ function VendorFront({ store, filters }: { store: Store | null; filters: Analyti
           Esta tienda no tiene <b>accessCode</b> — la consola abre el login del merchant. Configúralo para entrar directo a sus pedidos.
         </Typography>
       )}
+
+      {/* KPI strip — oculto si todo está en 0 (no llenar de ceros) */}
+      {hasKpis && (
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2,1fr)', sm: 'repeat(4,1fr)' }, gap: 1.5 }}>
+          {kpis.map((k) => (
+            <Card key={k.label} sx={{ p: 2, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Avatar sx={{ width: 38, height: 38, bgcolor: alpha(theme.palette.primary.main, 0.12), color: 'primary.main' }}>
+                {k.icon}
+              </Avatar>
+              <Box sx={{ minWidth: 0 }}>
+                {campaigns.isLoading ? (
+                  <Skeleton width={48} height={28} />
+                ) : (
+                  <Typography sx={{ fontWeight: 800, fontSize: 20, lineHeight: 1 }}>{k.value.toLocaleString()}</Typography>
+                )}
+                <Typography sx={{ fontSize: 12, color: 'text.secondary', fontWeight: 600 }}>{k.label}</Typography>
+              </Box>
+            </Card>
+          ))}
+        </Box>
+      )}
+
+      {/* Finanzas + embudo + alertas */}
+      <StoreFinanceCard store={{ _id: store._id, name: store.name }} />
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 2.5 }}>
+        <ConversionFunnel store={{ _id: store._id, slug: store.slug || '', name: store.name }} filters={filters} />
+        <AlertsPanel store={{ _id: store._id, name: store.name }} />
+      </Box>
     </Stack>
   );
 }
@@ -404,7 +408,68 @@ function CustomerFront({ store, filters }: { store: Store | null; filters: Analy
       </Stack>
 
       {/* Shortlinks generados + analítica */}
-      <Stack spacing={3}>
+      <Stack spacing={2}>
+        {/* ── Shortlinks de redirección (compacto, primero — es lo accionable) ── */}
+        <Card sx={{ p: 2, borderRadius: 3 }}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }} flexWrap="wrap" rowGap={0.5}>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <LinkRoundedIcon sx={{ color: 'primary.main', fontSize: 20 }} />
+              <Typography sx={{ fontWeight: 800, fontSize: 14 }}>Shortlinks de redirección {store ? `· ${store.name}` : ''}</Typography>
+            </Stack>
+            {shortlinks.data && (
+              <Stack direction="row" spacing={0.75}>
+                <Chip label={`${shortlinks.data.count} links`} size="small" sx={{ fontWeight: 700, height: 22 }} />
+                <Chip label={`${shortlinks.data.totalClicks} clicks`} size="small" color="primary" sx={{ fontWeight: 800, height: 22 }} />
+              </Stack>
+            )}
+          </Stack>
+          {!store ? (
+            <Typography variant="body2" color="text.secondary">Elige una tienda para ver sus shortlinks.</Typography>
+          ) : shortlinks.isLoading ? (
+            <Skeleton variant="rounded" height={160} />
+          ) : links.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">Esta tienda aún no tiene shortlinks generados.</Typography>
+          ) : (
+            <Box sx={{ maxHeight: 300, overflowY: 'auto', pr: 0.5 }}>
+              <Stack divider={<Box sx={{ borderBottom: 1, borderColor: 'divider' }} />}>
+                {links.map((l) => {
+                  const isActive = activeCode === l.code;
+                  return (
+                    <Stack
+                      key={l.code}
+                      direction="row"
+                      alignItems="center"
+                      spacing={1}
+                      onClick={() => { setLoadedUrl(l.url); setActiveCode(l.code); }}
+                      sx={{
+                        py: 0.75,
+                        px: 0.75,
+                        cursor: 'pointer',
+                        borderRadius: 1.5,
+                        bgcolor: isActive ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
+                        '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.05) },
+                      }}
+                    >
+                      <Avatar sx={{ width: 26, height: 26, bgcolor: alpha(theme.palette.primary.main, 0.12), color: 'primary.main' }}>
+                        <LinkRoundedIcon sx={{ fontSize: 15 }} />
+                      </Avatar>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography noWrap sx={{ fontWeight: 700, fontSize: 12.5, fontFamily: 'monospace' }}>/s/{l.code}</Typography>
+                        <Typography noWrap sx={{ fontSize: 10.5, color: 'text.secondary' }}>{l.url}</Typography>
+                      </Box>
+                      <Chip
+                        label={`${l.hits}`}
+                        size="small"
+                        sx={{ fontWeight: 800, flexShrink: 0, height: 20, minWidth: 34, bgcolor: l.hits > 0 ? alpha('#22c55e', 0.12) : undefined, color: l.hits > 0 ? '#16a34a' : undefined }}
+                      />
+                    </Stack>
+                  );
+                })}
+              </Stack>
+            </Box>
+          )}
+        </Card>
+
         {/* ── Historial de acciones (timeline) ── */}
         <ChartCard
           title="Historial de acciones (escaneos)"
@@ -445,69 +510,6 @@ function CustomerFront({ store, filters }: { store: Store | null; filters: Analy
             />
           )}
         </ChartCard>
-
-        {/* ── Shortlinks generados por tienda ── */}
-        <Card sx={{ p: 2.5, borderRadius: 3 }}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }} flexWrap="wrap" rowGap={1}>
-            <Stack direction="row" alignItems="center" spacing={1}>
-              <LinkRoundedIcon sx={{ color: 'primary.main', fontSize: 20 }} />
-              <Typography sx={{ fontWeight: 800 }}>Shortlinks generados {store ? `· ${store.name}` : ''}</Typography>
-            </Stack>
-            {shortlinks.data && (
-              <Stack direction="row" spacing={1}>
-                <Chip label={`${shortlinks.data.count} links`} size="small" sx={{ fontWeight: 700 }} />
-                <Chip label={`${shortlinks.data.clickedLinks} con clicks`} size="small" sx={{ fontWeight: 700, bgcolor: alpha('#22c55e', 0.12), color: '#16a34a' }} />
-                <Chip label={`${shortlinks.data.totalClicks} clicks`} size="small" color="primary" sx={{ fontWeight: 800 }} />
-              </Stack>
-            )}
-          </Stack>
-
-          {!store ? (
-            <Typography variant="body2" color="text.secondary">Elige una tienda para ver sus shortlinks.</Typography>
-          ) : shortlinks.isLoading ? (
-            <Skeleton variant="rounded" height={200} />
-          ) : links.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">Esta tienda aún no tiene shortlinks generados.</Typography>
-          ) : (
-            <Box sx={{ maxHeight: 360, overflowY: 'auto', pr: 0.5 }}>
-              <Stack divider={<Box sx={{ borderBottom: 1, borderColor: 'divider' }} />}>
-                {links.map((l) => {
-                  const isActive = activeCode === l.code;
-                  return (
-                    <Stack
-                      key={l.code}
-                      direction="row"
-                      alignItems="center"
-                      spacing={1.5}
-                      onClick={() => { setLoadedUrl(l.url); setActiveCode(l.code); }}
-                      sx={{
-                        py: 1.25,
-                        px: 1,
-                        cursor: 'pointer',
-                        borderRadius: 1.5,
-                        bgcolor: isActive ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
-                        '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.05) },
-                      }}
-                    >
-                      <Avatar sx={{ width: 32, height: 32, bgcolor: alpha(theme.palette.primary.main, 0.12), color: 'primary.main' }}>
-                        <LinkRoundedIcon sx={{ fontSize: 18 }} />
-                      </Avatar>
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography noWrap sx={{ fontWeight: 700, fontSize: 13, fontFamily: 'monospace' }}>/s/{l.code}</Typography>
-                        <Typography noWrap sx={{ fontSize: 11, color: 'text.secondary' }}>{l.url}</Typography>
-                      </Box>
-                      <Chip
-                        label={`${l.hits} clicks`}
-                        size="small"
-                        sx={{ fontWeight: 800, flexShrink: 0, bgcolor: l.hits > 0 ? alpha('#22c55e', 0.12) : undefined, color: l.hits > 0 ? '#16a34a' : undefined }}
-                      />
-                    </Stack>
-                  );
-                })}
-              </Stack>
-            </Box>
-          )}
-        </Card>
 
         <ChartCard
           title={`Productos más comprados${store ? ` · ${store.name}` : ''}`}
