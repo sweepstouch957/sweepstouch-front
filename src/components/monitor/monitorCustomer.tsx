@@ -77,9 +77,14 @@ export function OpportunityLists({ store, filters }: { store: StoreLite; filters
       >
         {shortlinks.isLoading || customers.isLoading ? <Skeleton variant="rounded" height={120} /> : (
           <Stack direction="row" flexWrap="wrap" gap={1}>
-            {clickedNotBought.map((id) => (
-              <Chip key={id} avatar={<Avatar>{String(nameById.get(id) || '?').charAt(0)}</Avatar>} label={nameById.get(id) || id.slice(-6)} sx={{ fontWeight: 600 }} />
-            ))}
+            {clickedNotBought.map((id) => {
+              const name = nameById.get(id);
+              return name ? (
+                <Chip key={id} avatar={<Avatar>{name.charAt(0)}</Avatar>} label={name} sx={{ fontWeight: 600 }} />
+              ) : (
+                <Chip key={id} icon={<PersonSearchRoundedIcon sx={{ fontSize: 16 }} />} label={`#${id.slice(-6)}`} variant="outlined" sx={{ fontWeight: 600, fontFamily: 'monospace' }} />
+              );
+            })}
           </Stack>
         )}
       </SectionCard>

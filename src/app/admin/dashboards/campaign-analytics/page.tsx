@@ -358,11 +358,10 @@ function CustomerFront({ store, filters }: { store: Store | null; filters: Analy
 
   return (
     <Stack spacing={3}>
-    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '420px 1fr' }, gap: 3, alignItems: 'start' }}>
-      {/* Phone frame + shortlink input */}
-      <Stack spacing={2}>
-        <Card sx={{ p: 2, borderRadius: 3 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: 14, mb: 1.25 }}>Vista del cliente</Typography>
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '360px minmax(0, 1fr)' }, gap: { xs: 2, lg: 3 }, alignItems: 'start' }}>
+      {/* Columna izquierda: teléfono — sticky en desktop para que quede a la vista al hacer scroll */}
+      <Stack spacing={1.5} sx={{ position: { lg: 'sticky' }, top: { lg: 12 } }}>
+        <Card sx={{ p: 1.5, borderRadius: 3 }}>
           <Stack direction="row" spacing={1}>
             <TextField
               fullWidth
@@ -370,20 +369,20 @@ function CustomerFront({ store, filters }: { store: Store | null; filters: Analy
               value={rawUrl}
               onChange={(e) => setRawUrl(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { setLoadedUrl(normalize(rawUrl)); setActiveCode(null); } }}
-              placeholder="Pega un shortlink (swtrcs.com/s/CODE)"
+              placeholder="Pega un shortlink…"
               InputProps={{ startAdornment: <InputAdornment position="start"><LinkRoundedIcon sx={{ fontSize: 18, color: 'text.secondary' }} /></InputAdornment> }}
             />
             <Button variant="contained" disableElevation onClick={() => { setLoadedUrl(normalize(rawUrl)); setActiveCode(null); }} sx={{ textTransform: 'none', px: 2 }}>
               Ver
             </Button>
           </Stack>
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-            O elige uno de los shortlinks generados de la tienda &rarr;
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: 'block' }}>
+            O elige un shortlink de la lista &rarr;
           </Typography>
         </Card>
 
         {/* Phone mockup */}
-        <Box sx={{ mx: 'auto', width: '100%', maxWidth: 390 }}>
+        <Box sx={{ mx: 'auto', width: '100%', maxWidth: { xs: 360, lg: 340 } }}>
           <Box
             sx={{
               borderRadius: 6,
@@ -394,9 +393,9 @@ function CustomerFront({ store, filters }: { store: Store | null; filters: Analy
             }}
           >
             {loadedUrl ? (
-              <Box component="iframe" src={loadedUrl} title="Customer view" sx={{ width: '100%', height: 720, border: 'none', display: 'block', bgcolor: '#fff' }} />
+              <Box component="iframe" src={loadedUrl} title="Customer view" sx={{ width: '100%', height: { xs: 600, lg: 660 }, border: 'none', display: 'block', bgcolor: '#fff' }} />
             ) : (
-              <Box sx={{ height: 720, display: 'grid', placeItems: 'center', color: 'rgba(255,255,255,0.5)', textAlign: 'center', px: 3 }}>
+              <Box sx={{ height: { xs: 600, lg: 660 }, display: 'grid', placeItems: 'center', color: 'rgba(255,255,255,0.5)', textAlign: 'center', px: 3 }}>
                 <Box>
                   <PhoneIphoneRoundedIcon sx={{ fontSize: 56, mb: 1 }} />
                   <Typography sx={{ fontSize: 13 }}>Elige un shortlink para cargar la vista del cliente</Typography>
@@ -408,7 +407,7 @@ function CustomerFront({ store, filters }: { store: Store | null; filters: Analy
       </Stack>
 
       {/* Shortlinks generados + analítica */}
-      <Stack spacing={2}>
+      <Stack spacing={2} sx={{ minWidth: 0 }}>
         {/* ── Shortlinks de redirección (compacto, primero — es lo accionable) ── */}
         <Card sx={{ p: 2, borderRadius: 3 }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }} flexWrap="wrap" rowGap={0.5}>
@@ -561,7 +560,7 @@ function CustomerFront({ store, filters }: { store: Store | null; filters: Analy
     </Box>
 
       {/* ── Herramientas extra del cliente ── */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 3, alignItems: 'start' }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, minmax(0, 1fr))' }, gap: { xs: 2, lg: 2.5 }, alignItems: 'start' }}>
         <ActivityHeatmap store={store} filters={filters} />
         <ShortlinkQr defaultUrl={loadedUrl || undefined} />
         <OpportunityLists store={store} filters={filters} />
