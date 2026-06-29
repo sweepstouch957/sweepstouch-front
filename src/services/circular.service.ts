@@ -83,10 +83,10 @@ export class CircularService {
     return res.data;
   }
 
-  /** Reprograma un circular existente (nuevas fechas o título) */
+  /** Reprograma un circular existente (nuevas fechas o título) — backend: PUT /circulars/:id */
   async reschedule(payload: ReschedulePayload): Promise<{ ok: boolean; circular: Circular }> {
     const { circularId, ...body } = payload;
-    const res = await api.patch(`/circulars/${circularId}/reschedule`, body);
+    const res = await api.put(`/circulars/${circularId}`, body);
     return res.data;
   }
 
