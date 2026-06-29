@@ -71,6 +71,18 @@ export const EditCircularDialog: React.FC<Props> = ({ target, onClose, onSaved }
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // El diálogo se queda montado y `target` pasa de null → circular al abrir.
+  // Los initializers de useState solo corren una vez (con target=null), así que hay
+  // que re-sincronizar el form cada vez que cambia `target`, o se queda vacío.
+  React.useEffect(() => {
+    setTitle(target?.circular.title ?? '');
+    setStartDate(isoToDateInput(target?.circular.startDate));
+    setEndDate(isoToDateInput(target?.circular.endDate));
+    setFile(null);
+    setUploadedFiles([]);
+    setError(null);
+  }, [target]);
+
   const hasChanges = useMemo(() => {
     if (!target) return false;
     const { circular } = target;
