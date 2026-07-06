@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { sweepstakesClient, type Sweepstakes } from '@/services/sweepstakes.service';
 
 type ParticipantSample = {
@@ -156,6 +156,7 @@ export default function PublicSweepstakeDrawPage() {
   const ballsRef = useRef<Ball[]>([]);
   const confettiRef = useRef<Confetti[]>([]);
   const drawStatusRef = useRef<DrawState['status']>('idle');
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const [state, dispatch] = useReducer(reducer, {
     status: 'idle',
@@ -222,6 +223,15 @@ export default function PublicSweepstakeDrawPage() {
   const isLoading = sweepstakeLoading || samplesLoading;
   const hasDataError = sweepstakeError || samplesError;
   const canDraw = realList.length > 0 && !isLoading;
+
+  const enterFullscreen = useCallback(() => {
+    const target = stageRef.current || document.documentElement;
+    if (!document.fullscreenElement) {
+      target.requestFullscreen?.().catch(() => {
+        /* Browser may reject fullscreen without direct user gesture. */
+      });
+    }
+  }, []);
 
   const resetCanvasBalls = useCallback(() => {
     const canvas = canvasRef.current;
@@ -311,6 +321,17 @@ export default function PublicSweepstakeDrawPage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [startDraw]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+
+    handleFullscreenChange();
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   useEffect(() => {
     resetCanvasBalls();
@@ -521,6 +542,16 @@ export default function PublicSweepstakeDrawPage() {
     >
       <canvas ref={canvasRef} />
 
+      {!isFullscreen && (
+        <button
+          className="fullscreen-btn"
+          type="button"
+          onClick={enterFullscreen}
+        >
+          Pantalla completa
+        </button>
+      )}
+
       <section
         className="brand"
         aria-label="Sweepstouch"
@@ -608,10 +639,36 @@ export default function PublicSweepstakeDrawPage() {
         .prize,
         .display,
         .winner-card,
+        .fullscreen-btn,
         .btn,
         .hint {
           position: absolute;
           z-index: 5;
+        }
+
+        .fullscreen-btn {
+          top: 24px;
+          right: 24px;
+          border: 1px solid rgba(255, 255, 255, 0.42);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.16);
+          color: #fff;
+          cursor: pointer;
+          font-size: 13px;
+          font-weight: 800;
+          letter-spacing: 0;
+          padding: 10px 16px;
+          backdrop-filter: blur(10px);
+          transition: background 0.2s, transform 0.2s;
+        }
+
+        .fullscreen-btn:hover {
+          background: rgba(255, 255, 255, 0.24);
+          transform: translateY(-1px);
+        }
+
+        .draw-stage:fullscreen .fullscreen-btn {
+          display: none;
         }
 
         .brand {
