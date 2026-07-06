@@ -40,6 +40,7 @@ import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 import AutorenewRoundedIcon from '@mui/icons-material/AutorenewRounded';
 import BarChartRoundedIcon from '@mui/icons-material/BarChartRounded';
 import FilterAltRoundedIcon from '@mui/icons-material/FilterAltRounded';
+import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 
 import {
   sweepstakesClient,
@@ -50,7 +51,6 @@ import RangePickerField, {
   type RangePickerValue,
 } from '@/components/base/range-picker-field';
 import { useCustomization } from 'src/hooks/use-customization';
-import PrizeRouletteCard from '@/components/application-ui/composed-visualization-blocks/prize-roulette/prize-roulette';
 import WeeklySales from 'src/components/application-ui/tables/sweepstakes-participant/participants-sweepstakes';
 import { routes } from 'src/router/routes';
 
@@ -1266,13 +1266,46 @@ function Page() {
         </Card>
       </Container>
 
-      {/* ── Prize Roulette ────────────────────────────────────────────────── */}
+      {/* ── Draw Launcher ────────────────────────────────────────────────── */}
       <Container
         disableGutters
         maxWidth={customization.stretch ? false : 'xl'}
       >
         <Box px={{ xs: 2, sm: 3 }} pb={{ xs: 2, sm: 3 }}>
-          <PrizeRouletteCard sweepstakeId={sweepstakeId} />
+          <Card
+            variant="outlined"
+            sx={{
+              borderRadius: 3,
+              p: { xs: 3, sm: 4 },
+              bgcolor: 'background.paper',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={<PlayArrowRoundedIcon />}
+              onClick={() => window.open(`/sweepstakes/${sweepstakeId}/draw`, '_blank', 'noopener,noreferrer')}
+              sx={{
+                bgcolor: '#ef0f82',
+                borderRadius: 999,
+                boxShadow: '0 18px 42px rgba(239, 15, 130, 0.28)',
+                fontSize: { xs: 16, sm: 18 },
+                fontWeight: 800,
+                px: { xs: 3.5, sm: 5 },
+                py: 1.5,
+                textTransform: 'none',
+                '&:hover': {
+                  bgcolor: '#d70d74',
+                  boxShadow: '0 20px 48px rgba(239, 15, 130, 0.34)',
+                },
+              }}
+            >
+              Iniciar sorteo
+            </Button>
+          </Card>
         </Box>
       </Container>
 
