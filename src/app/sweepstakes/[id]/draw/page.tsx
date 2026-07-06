@@ -512,7 +512,7 @@ export default function PublicSweepstakeDrawPage() {
 
   const buttonText = state.status === 'winner' ? 'NUEVO SORTEO' : state.status === 'drawing' ? 'SORTEANDO...' : 'SORTEAR';
   const title = sweepstake?.name || 'Sorteo';
-  const subtitle = sweepstake?.description || 'Sorteo de la semana';
+  const supermarketName = realList[0]?.storeName || state.displayStore || 'Supermercado participante';
 
   return (
     <main
@@ -528,16 +528,14 @@ export default function PublicSweepstakeDrawPage() {
         <div className="logo">
           SWEEPS<span>TOUCH</span>
         </div>
-        <div className="store">{subtitle}</div>
+        <div className="store">{supermarketName}</div>
       </section>
 
       <section
         className="prize"
         aria-label="Premio"
       >
-        <div className="k">Sorteo de la semana</div>
         <div className="p">{title}</div>
-        <div className="s">{realList.length.toLocaleString()} participantes disponibles</div>
       </section>
 
       {state.status === 'drawing' && (
@@ -645,7 +643,7 @@ export default function PublicSweepstakeDrawPage() {
         }
 
         .prize {
-          top: 15vh;
+          top: 14.5vh;
           left: 0;
           right: 0;
           padding: 0 24px;
@@ -654,29 +652,14 @@ export default function PublicSweepstakeDrawPage() {
           text-align: center;
         }
 
-        .prize .k {
-          color: #ffd84d;
-          font-size: clamp(12px, 1.05vw, 20px);
-          font-weight: 800;
-          letter-spacing: 3px;
-          text-transform: uppercase;
-        }
-
         .prize .p {
           max-width: min(1080px, 92vw);
-          margin: 1.2vh auto 0;
-          font-size: clamp(34px, 4.2vw, 72px);
+          margin: 0 auto;
+          font-size: clamp(34px, 4.4vw, 78px);
           font-weight: 800;
           line-height: 1.02;
           overflow-wrap: anywhere;
           text-shadow: 0 3px 14px rgba(0, 0, 0, 0.25);
-        }
-
-        .prize .s {
-          margin-top: 1.3vh;
-          font-size: clamp(13px, 1.2vw, 22px);
-          font-weight: 700;
-          opacity: 0.9;
         }
 
         .display {
@@ -840,7 +823,7 @@ export default function PublicSweepstakeDrawPage() {
 
         @media (max-width: 760px) {
           .prize {
-            top: 14vh;
+            top: 15vh;
           }
 
           .display {
