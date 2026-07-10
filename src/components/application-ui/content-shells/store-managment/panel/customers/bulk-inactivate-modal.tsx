@@ -67,7 +67,7 @@ export default function BulkInactivateModal({
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [parsedData, setParsedData] = useState<ParsedCustomer[] | null>(null);
-  const [mode, setMode] = useState<'inactivate_uploaded' | 'keep_uploaded_active'>('inactivate_uploaded');
+  const [mode, setMode] = useState<'inactivate_uploaded' | 'activate_uploaded' | 'keep_uploaded_active'>('inactivate_uploaded');
   const [previewResult, setPreviewResult] = useState<BulkInactivateResult | null>(null);
   const [execResult, setExecResult] = useState<BulkInactivateResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -156,6 +156,11 @@ export default function BulkInactivateModal({
     }
   };
 
+  // Modos que actúan solo sobre los "encontrados" del archivo (activar o inactivar).
+  const isActivateFound = mode === 'activate_uploaded';
+  const isFoundMode = mode === 'inactivate_uploaded' || mode === 'activate_uploaded';
+  const foundColor = isActivateFound ? 'success' : mode === 'keep_uploaded_active' ? 'primary' : 'error';
+
   return (
     <Dialog
       open={open}
@@ -207,7 +212,7 @@ export default function BulkInactivateModal({
       <DialogContent sx={{ pt: 2.5, minHeight: 280 }}>
         {loading && (
           <Box sx={{ width: '100%', mb: 2.5 }}>
-            <LinearProgress variant="determinate" value={progress} color={mode === 'keep_uploaded_active' ? 'primary' : 'error'} sx={{ height: 6, borderRadius: 3 }} />
+            <LinearProgress variant="determinate" value={progress} color={foundColor} sx={{ height: 6, borderRadius: 3 }} />
             <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block', textAlign: 'right', fontWeight: 600 }}>
               Procesando... {progress}%
             </Typography>
@@ -244,10 +249,25 @@ export default function BulkInactivateModal({
                       label={
                         <Box sx={{ my: 0.5 }}>
                           <Typography variant="body2" fontWeight={600} color="error.dark">
-                            Opción A: Inactivar números del archivo
+                            Opción A: Inactivar los encontrados
                           </Typography>
                           <Typography variant="caption" color="text.secondary" display="block">
-                            Desactiva los teléfonos cargados. El resto de los clientes permanece sin cambios.
+                            Desactiva los teléfonos del archivo que existan en esta tienda. El resto permanece sin cambios.
+                          </Typography>
+                        </Box>
+                      }
+                      sx={{ alignItems: 'flex-start', mb: 1.5 }}
+                    />
+                    <FormControlLabel
+                      value="activate_uploaded"
+                      control={<Radio color="success" />}
+                      label={
+                        <Box sx={{ my: 0.5 }}>
+                          <Typography variant="body2" fontWeight={600} color="success.dark">
+                            Opción B: Activar los encontrados
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            Activa los teléfonos del archivo que existan en esta tienda (si encontró 181, activa esos 181). El resto permanece sin cambios.
                           </Typography>
                         </Box>
                       }
@@ -259,7 +279,7 @@ export default function BulkInactivateModal({
                       label={
                         <Box sx={{ my: 0.5 }}>
                           <Typography variant="body2" fontWeight={600} color="primary.dark">
-                            Opción B: Mantener activos los cargados e inactivar los demás
+                            Opción C: Mantener activos los cargados e inactivar los demás
                           </Typography>
                           <Typography variant="caption" color="text.secondary" display="block">
                             Activa los teléfonos del archivo y <strong>INACTIVA TODOS LOS DEMÁS</strong> clientes en esta tienda.
@@ -290,7 +310,7 @@ export default function BulkInactivateModal({
               </Button>
               <Button
                 variant="contained"
-                color={mode === 'keep_uploaded_active' ? 'primary' : 'error'}
+                color={foundColor}
                 onClick={handlePreview}
                 disabled={loading || !parsedData}
                 startIcon={
@@ -323,10 +343,10 @@ export default function BulkInactivateModal({
                 variant="outlined"
                 size="small"
               />
-              {mode === 'inactivate_uploaded' ? (
+              {isFoundMode ? (
                 <Chip
-                  label={`${previewResult.matchedCount} encontrados que se inactivarán`}
-                  color="error"
+                  label={`${previewResult.matchedCount} encontrados que se ${isActivateFound ? 'activarán' : 'inactivarán'}`}
+                  color={isActivateFound ? 'success' : 'error'}
                   variant="outlined"
                   size="small"
                 />
@@ -349,10 +369,10 @@ export default function BulkInactivateModal({
             </Stack>
 
             {/* Preview tables */}
-            {mode === 'inactivate_uploaded' && previewResult.preview && previewResult.preview.length > 0 && (
+            {isFoundMode && previewResult.preview && previewResult.preview.length > 0 && (
               <Box sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 2, p: 1.5, maxHeight: 150, overflow: 'auto' }}>
                 <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" mb={1}>
-                  Muestra de números a inactivar:
+                  Muestra de números a {isActivateFound ? 'activar' : 'inactivar'}:
                 </Typography>
                 <Stack spacing={0.5}>
                   {previewResult.preview.map((p, i) => (
@@ -410,11 +430,11 @@ export default function BulkInactivateModal({
               </Button>
               <Button
                 variant="contained"
-                color={mode === 'keep_uploaded_active' ? 'primary' : 'error'}
+                color={foundColor}
                 onClick={handleExecute}
                 disabled={loading}
                 startIcon={
-                  loading ? <CircularProgress size={16} color="inherit" /> : <DeleteSweepRounded />
+                  loading ? <CircularProgress size={16} color="inherit" /> : (isActivateFound ? <CheckCircleOutlineRounded /> : <DeleteSweepRounded />)
                 }
                 sx={{
                   borderRadius: 2,
@@ -424,8 +444,8 @@ export default function BulkInactivateModal({
               >
                 {loading
                   ? 'Procesando...'
-                  : mode === 'inactivate_uploaded'
-                  ? `Inactivar ${previewResult.matchedCount} números`
+                  : isFoundMode
+                  ? `${isActivateFound ? 'Activar' : 'Inactivar'} ${previewResult.matchedCount} números`
                   : `Ejecutar reemplazo de estado`
                 }
               </Button>
@@ -445,7 +465,14 @@ export default function BulkInactivateModal({
             </Alert>
 
             <Stack direction="row" spacing={2} flexWrap="wrap">
-              {mode === 'inactivate_uploaded' ? (
+              {isActivateFound ? (
+                <Chip
+                  label={`${execResult.activatedCount || 0} activados`}
+                  color="success"
+                  variant="filled"
+                  size="small"
+                />
+              ) : mode === 'inactivate_uploaded' ? (
                 <Chip
                   label={`${execResult.deactivatedCount || 0} desactivados`}
                   color="error"
