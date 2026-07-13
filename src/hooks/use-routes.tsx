@@ -56,6 +56,7 @@ const applicationsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Calendar'), route: routes.admin.applications.calendar },
     { title: t('Depurar Numeros'), route: routes.admin.applications['debug-numbers'] },
     { title: t('Demos'), route: routes.admin.applications.demos, icon: <OndemandVideoRoundedIcon /> },
+    { title: t("QR"), icon: <QrCode2Rounded />, route: routes.admin.management.qr },
     //{ title: t('File manager'), route: routes.admin.applications['file-manager'] },
     //{ title: t('Messenger'), route: routes.admin.applications.messenger },
   ]);
@@ -147,9 +148,6 @@ const storesMenu = (t: (token: string) => string): MenuItem =>
 const addsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Ads'), <AdsClickOutlined />, [], routes.admin.management.promos.listing);
 
-const qrMenu = (t: (token: string) => string): MenuItem =>
-  buildMenu(t('QR'), <QrCode2Rounded />, [], routes.admin.management.qr);
-
 const circularsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Circulars'), <BookOutlined />, [
     { title: t('Info Dashboard'), route: routes.admin.management.circulars['info-dashboard'] },
@@ -198,7 +196,6 @@ export const useMenuItemsCollapsedShells = (
       sweepstakesMenu(t),
       promotorsMenu(t),
       addsMenu(t),
-      qrMenu(t),
       circularsMenu(t),
       supportMenu(t),
       //requestMenu(t),
