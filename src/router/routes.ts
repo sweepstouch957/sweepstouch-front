@@ -160,6 +160,7 @@ export const routes = {
       },
       projects: '/admin/management/projects',
       account: '/admin/management/account',
+      qr: '/admin/management/qr',
       stores: {
         listing: '/admin/management/stores',
         create: '/admin/management/stores/create',

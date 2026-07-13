@@ -29,6 +29,7 @@ import {
   PauseCircleOutline,
   PlayCircleOutline,
   AttachFile,
+  Autorenew,
 } from '@mui/icons-material';
 import { uploadPdfToS3 } from '@/services/upload.service';
 import {
@@ -100,6 +101,10 @@ const generateAccessCode = (): string => {
   const num = Math.floor(10000 + Math.random() * 90000);
   return `ST-${num}`;
 };
+
+// Cashier accessCode format (e.g. "fab25i35"). If the store's merchant has one of these,
+// it's really a cashier whose role got flipped by the old backfill bug.
+const CASHIER_CODE_RX = /^[a-z]{3}\d{2}i\d{2}$/i;
 
 const MERCHANT_PASSWORD_KEYS = new Set([
   'password',
@@ -452,6 +457,34 @@ export default function StoreInfo({ store }: { store: Store }) {
     },
   });
 
+  const regenerateMerchantMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.post(`/auth/admin/regenerate-merchant/${store._id}`);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      setBackfillResult(null);
+      queryClient.invalidateQueries({ queryKey: ['store-merchant-user', store._id] });
+      queryClient.invalidateQueries({ queryKey: ['store', store._id] });
+      queryClient.invalidateQueries({ queryKey: ['store-detail'] });
+      const restored = data?.restoredCashier;
+      const msg = data?.action === 'merchant_not_ex_cashier'
+        ? data?.message || t('merchantAccess.notExCashier')
+        : restored
+          ? t('merchantAccess.regeneratedWithCashier', { code: restored.accessCode })
+          : t('merchantAccess.regenerated');
+      setSnack({ open: true, msg, type: data?.action === 'merchant_not_ex_cashier' ? 'info' : 'success' });
+    },
+    onError: (err: any) => {
+      setSnack({ open: true, msg: err?.response?.data?.error || t('merchantAccess.regenerateError'), type: 'error' });
+    },
+  });
+
+  const handleRegenerate = () => {
+    if (!window.confirm(t('merchantAccess.regenerateConfirm'))) return;
+    regenerateMerchantMutation.mutate();
+  };
+
   const merchantWebsite = (process.env.NEXT_PUBLIC_MERCHANT_ORIGIN || 'https://merchant.sweepstouch.com').replace(/^https?:\/\//, '').replace(/\/$/, '');
   const merchantPassword = getCredentialValue(
     { merchantUser, backfillResult, store },
@@ -460,6 +493,10 @@ export default function StoreInfo({ store }: { store: Store }) {
   const merchantPhone = merchantUser?.phoneNumber || '';
   const merchantAccessCode = merchantUser?.accessCode || (store as any)?.accessCode || '';
   const storeSlug = form?.slug || (store as any)?.slug || '';
+  // Merchant whose accessCode is really a cashier's → offer to regenerate.
+  const merchantLooksLikeCashier = Boolean(
+    merchantUser?.accessCode && CASHIER_CODE_RX.test(String(merchantUser.accessCode))
+  );
 
   const copyText = async (text: string, msg: string) => {
     if (!text) return;
@@ -1175,6 +1212,31 @@ export default function StoreInfo({ store }: { store: Store }) {
                       >
                         {createMerchantMutation.isPending ? t('merchantAccess.syncing') : t('merchantAccess.generateAccessCodeAndSync')}
                       </Button>
+                    )}
+
+                    {/* Ex-cashier merchant → restore cashier + create a fresh merchant */}
+                    {merchantLooksLikeCashier && (
+                      <>
+                        <Alert
+                          severity="warning"
+                          icon={<WarningAmberRounded fontSize="small" />}
+                          sx={{ borderRadius: 2, py: 0, fontSize: 12 }}
+                        >
+                          {t('merchantAccess.exCashierWarning', { code: merchantAccessCode })}
+                        </Alert>
+                        <Button
+                          variant="contained"
+                          color="error"
+                          size="small"
+                          fullWidth
+                          startIcon={regenerateMerchantMutation.isPending ? <CircularProgress size={14} color="inherit" /> : <Autorenew />}
+                          disabled={regenerateMerchantMutation.isPending}
+                          onClick={handleRegenerate}
+                          sx={{ borderRadius: 2, textTransform: 'none' }}
+                        >
+                          {regenerateMerchantMutation.isPending ? t('merchantAccess.regenerating') : t('merchantAccess.regenerateMerchantUser')}
+                        </Button>
+                      </>
                     )}
                   </Stack>
                 )}

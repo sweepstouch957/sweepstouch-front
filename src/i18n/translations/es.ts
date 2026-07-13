@@ -238,5 +238,13 @@ export const es = {
   "merchantAccess.copyPasswordLabel": "🔑 Contraseña:",
   "merchantAccess.passwordUnavailableCopy": "No recuperable por seguridad. Guárdala al crear el usuario.",
   "merchantAccess.copyAccessCodeLabel": "🏷️ Access code:",
-  "merchantAccess.copySecurityWarning": "⚠️ Por seguridad, la contraseña no se puede recuperar. Guárdala ahora."
+  "merchantAccess.copySecurityWarning": "⚠️ Por seguridad, la contraseña no se puede recuperar. Guárdala ahora.",
+  "merchantAccess.exCashierWarning": "Este merchant se creó por error a partir de una cajera (accessCode {{code}}). Regenerar restaura esa cajera y crea un merchant nuevo.",
+  "merchantAccess.regenerateMerchantUser": "Regenerar usuario merchant",
+  "merchantAccess.regenerating": "Regenerando...",
+  "merchantAccess.regenerateConfirm": "Esto restaura la cajera original (rol cashier) y crea un merchant nuevo para la tienda. ¿Continuar?",
+  "merchantAccess.regeneratedWithCashier": "Cajera restaurada ({{code}}) y merchant regenerado ✅",
+  "merchantAccess.regenerated": "Merchant regenerado ✅",
+  "merchantAccess.regenerateError": "Error al regenerar el merchant.",
+  "merchantAccess.notExCashier": "El merchant actual no proviene de una cajera. No se hizo ningún cambio."
 };

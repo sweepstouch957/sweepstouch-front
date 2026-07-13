@@ -231,5 +231,13 @@ export const en = {
   "merchantAccess.copyPasswordLabel": "🔑 Password:",
   "merchantAccess.passwordUnavailableCopy": "Not recoverable for security reasons. Save it when creating the user.",
   "merchantAccess.copyAccessCodeLabel": "🏷️ Access code:",
-  "merchantAccess.copySecurityWarning": "⚠️ For security reasons, the password cannot be recovered. Please save it now."
+  "merchantAccess.copySecurityWarning": "⚠️ For security reasons, the password cannot be recovered. Please save it now.",
+  "merchantAccess.exCashierWarning": "This merchant was created by mistake from a cashier (accessCode {{code}}). Regenerating restores that cashier and creates a fresh merchant.",
+  "merchantAccess.regenerateMerchantUser": "Regenerate merchant user",
+  "merchantAccess.regenerating": "Regenerating...",
+  "merchantAccess.regenerateConfirm": "This restores the original cashier (cashier role) and creates a fresh merchant for the store. Continue?",
+  "merchantAccess.regeneratedWithCashier": "Cashier restored ({{code}}) and merchant regenerated ✅",
+  "merchantAccess.regenerated": "Merchant regenerated ✅",
+  "merchantAccess.regenerateError": "Failed to regenerate the merchant.",
+  "merchantAccess.notExCashier": "The current merchant did not come from a cashier. No changes were made."
 };

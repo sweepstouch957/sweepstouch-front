@@ -8,6 +8,7 @@ import {
   Redeem,
   Store,
   StorefrontOutlined,
+  QrCode2Rounded,
 } from '@mui/icons-material';
 import AppsRoundedIcon from '@mui/icons-material/AppsRounded';
 import OndemandVideoRoundedIcon from '@mui/icons-material/OndemandVideoRounded';
@@ -146,6 +147,9 @@ const storesMenu = (t: (token: string) => string): MenuItem =>
 const addsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Ads'), <AdsClickOutlined />, [], routes.admin.management.promos.listing);
 
+const qrMenu = (t: (token: string) => string): MenuItem =>
+  buildMenu(t('QR'), <QrCode2Rounded />, [], routes.admin.management.qr);
+
 const circularsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Circulars'), <BookOutlined />, [
     { title: t('Info Dashboard'), route: routes.admin.management.circulars['info-dashboard'] },
@@ -194,6 +198,7 @@ export const useMenuItemsCollapsedShells = (
       sweepstakesMenu(t),
       promotorsMenu(t),
       addsMenu(t),
+      qrMenu(t),
       circularsMenu(t),
       supportMenu(t),
       //requestMenu(t),

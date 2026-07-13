@@ -76,7 +76,49 @@ export interface SweepstakeQrResponse {
   slug?: string;
 }
 
+export type QrKind = 'store' | 'sweepstake';
+
+export interface StorePopulated {
+  _id: string;
+  name?: string;
+  slug?: string;
+  image?: string;
+}
+
+// Unified item returned by GET /qr/list (store + sweepstake QRs merged)
+export interface QrListItem {
+  _id: string;
+  kind: QrKind;
+  store?: StorePopulated | string;
+  slug: string;
+  link: string;
+  baseLink?: string;      // only sweepstake
+  sweepstakeName?: string; // only sweepstake
+  qr: QrImage;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QrListResponse {
+  success: boolean;
+  total: number;
+  page: number;
+  limit: number;
+  data: QrListItem[];
+}
+
 /* ====== Endpoints ====== */
+
+// GET /qr/list → todos los QR persistidos (tienda + sorteo), filtrable por store
+export const listQrs = async (params?: {
+  store?: string;
+  kind?: 'all' | QrKind;
+  page?: number;
+  limit?: number;
+}): Promise<QrListResponse> => {
+  const { data } = await api.get(`${basePath}/list`, { params });
+  return data as QrListResponse;
+};
 
 // POST /qr → genera/sube un QR
 export const generateQr = async (payload: GenerateQrBody): Promise<GenerateQrResponse> => {
