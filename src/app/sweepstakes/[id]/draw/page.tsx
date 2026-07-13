@@ -1,7 +1,9 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import Image from 'next/image';
 import { useParams } from 'next/navigation';
+import type { CSSProperties } from 'react';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { sweepstakesClient, type Sweepstakes } from '@/services/sweepstakes.service';
 
@@ -53,7 +55,16 @@ type DrawAction =
   | { type: 'WIN'; item: Winner }
   | { type: 'RESET' };
 
+type DrawMode = 'tickets' | 'balls';
+
 const COLORS = ['#ffd84d', '#ffffff', '#ff8fc4', '#ffe8a3', '#c7f0ff', '#ffb3d9', '#fff2cc'];
+const TICKET_ASSETS = [
+  '/raffle-tickets/ticket1.svg',
+  '/raffle-tickets/ticket2.svg',
+  '/raffle-tickets/ticket3.svg',
+  '/raffle-tickets/ticket4.svg',
+  '/raffle-tickets/ticket5.svg',
+];
 const INITIAL_PHONE = 'LISTO PARA JUGAR';
 const INITIAL_STORE = 'Esperando sorteo...';
 
@@ -109,6 +120,11 @@ function maskedPhone(): string {
   return `(${rand3()}) ***-****`;
 }
 
+function ticketNumber(raw: string): string {
+  const digits = (raw || '').replace(/\D/g, '');
+  return digits.slice(-7) || '0000000';
+}
+
 function cleanStoreImage(src?: string) {
   if (!src || src === 'no-image.jpg' || src === 'n/a') return undefined;
   if (src.startsWith('http') || src.startsWith('data:')) return src;
@@ -157,6 +173,7 @@ export default function PublicSweepstakeDrawPage() {
   const confettiRef = useRef<Confetti[]>([]);
   const drawStatusRef = useRef<DrawState['status']>('idle');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [drawMode, setDrawMode] = useState<DrawMode>('tickets');
 
   const [state, dispatch] = useReducer(reducer, {
     status: 'idle',
@@ -220,6 +237,35 @@ export default function PublicSweepstakeDrawPage() {
     return [...realList, ...filler];
   }, [realList]);
 
+  const ticketRows = useMemo(() => {
+    const source = spinList.length ? spinList : [{ phoneNumber: '0000000', storeName: '', storeImage: undefined }];
+
+    return Array.from({ length: 7 }).map((_, rowIndex) => {
+      return {
+        delay: -(rowIndex * 0.52),
+        duration: 6.2,
+        startScale: 0.64 + (rowIndex % 3) * 0.04,
+        items: Array.from({ length: 4 }).map((_, columnIndex) => {
+          const index = rowIndex * 4 + columnIndex;
+          const pick = source[index % source.length];
+
+          return {
+            asset: TICKET_ASSETS[index % TICKET_ASSETS.length],
+            number: ticketNumber(pick.phoneNumber),
+            left: 8 + columnIndex * 23 + ((rowIndex + columnIndex) % 2 === 0 ? -3 : 3),
+            top: ((rowIndex * 7 + columnIndex * 11) % 12) - 6,
+            rotate: ((rowIndex * 47 + columnIndex * 71) % 360) - 180,
+            spinDelay: -((rowIndex * 0.18 + columnIndex * 0.27) % 1.8),
+          };
+        }),
+      };
+    });
+  }, [spinList]);
+
+  const ballLabels = useMemo(() => {
+    return spinList.length ? spinList.map((item) => item.phoneNumber.replace(/\D/g, '').slice(-4) || '0000') : ['0000'];
+  }, [spinList]);
+
   const isLoading = sweepstakeLoading || samplesLoading;
   const hasDataError = sweepstakeError || samplesError;
   const canDraw = realList.length > 0 && !isLoading;
@@ -244,8 +290,6 @@ export default function PublicSweepstakeDrawPage() {
     const cy = height * 0.53;
     const radius = Math.min(width, height) * 0.27;
     const ballRadius = radius * 0.115;
-    const labels = spinList.length ? spinList.map((item) => item.phoneNumber.replace(/\D/g, '').slice(-4) || '0000') : ['0000'];
-
     ballsRef.current = Array.from({ length: 46 }).map((_, index) => {
       const angle = Math.random() * Math.PI * 2;
       const distance = Math.random() * (radius - ballRadius * 1.4);
@@ -256,11 +300,11 @@ export default function PublicSweepstakeDrawPage() {
         vx: (Math.random() - 0.5) * 4,
         vy: (Math.random() - 0.5) * 4,
         r: ballRadius,
-        label: labels[index % labels.length],
+        label: ballLabels[index % ballLabels.length],
         color: COLORS[index % COLORS.length],
       };
     });
-  }, [spinList]);
+  }, [ballLabels]);
 
   const spawnConfetti = useCallback(() => {
     const canvas = canvasRef.current;
@@ -338,6 +382,8 @@ export default function PublicSweepstakeDrawPage() {
   }, [resetCanvasBalls]);
 
   useEffect(() => {
+    if (drawMode !== 'balls') return undefined;
+
     const canvas = canvasRef.current;
     const stage = stageRef.current;
     const ctx = canvas?.getContext('2d');
@@ -349,13 +395,32 @@ export default function PublicSweepstakeDrawPage() {
     let cy = 0;
     let radius = 0;
 
+    const resetBallsForCanvas = () => {
+      const ballRadius = radius * 0.115;
+
+      ballsRef.current = Array.from({ length: 46 }).map((_, index) => {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.random() * (radius - ballRadius * 1.4);
+
+        return {
+          x: cx + Math.cos(angle) * distance,
+          y: cy + Math.sin(angle) * distance,
+          vx: (Math.random() - 0.5) * 4,
+          vy: (Math.random() - 0.5) * 4,
+          r: ballRadius,
+          label: ballLabels[index % ballLabels.length],
+          color: COLORS[index % COLORS.length],
+        };
+      });
+    };
+
     const resize = () => {
       width = canvas.width = stage.clientWidth;
       height = canvas.height = stage.clientHeight;
       cx = width / 2;
       cy = height * 0.56;
       radius = Math.min(width, height) * 0.27;
-      resetCanvasBalls();
+      resetBallsForCanvas();
     };
 
     const drawAmphora = () => {
@@ -522,7 +587,7 @@ export default function PublicSweepstakeDrawPage() {
       window.removeEventListener('resize', resize);
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
-  }, [resetCanvasBalls]);
+  }, [ballLabels, drawMode]);
 
   useEffect(() => {
     return () => {
@@ -540,7 +605,111 @@ export default function PublicSweepstakeDrawPage() {
       className="draw-stage"
       ref={stageRef}
     >
-      <canvas ref={canvasRef} />
+      <div
+        className="vegas-frame"
+        aria-hidden="true"
+      >
+        <div className="vegas-lights top" />
+        <div className="vegas-lights right" />
+        <div className="vegas-lights bottom" />
+        <div className="vegas-lights left" />
+      </div>
+
+      {drawMode === 'balls' && (
+        <canvas
+          className="balls-canvas"
+          ref={canvasRef}
+          aria-hidden="true"
+        />
+      )}
+
+      {drawMode === 'tickets' && (
+        <section
+          className={`ticket-machine ${state.status}`}
+          aria-hidden="true"
+        >
+          <Image
+            className="machine-stand"
+            src="/raffle-tickets/stand.svg"
+            alt=""
+            width={193}
+            height={155}
+            priority
+          />
+
+          <div className="raffle-holder">
+            <Image
+              className="machine-glass back"
+              src="/raffle-tickets/glass.svg"
+              alt=""
+              width={188}
+              height={106}
+              priority
+            />
+
+            <div className="ticket-window">
+              {ticketRows.map((row, rowIndex) => (
+                <div
+                  className="ticket-row"
+                  key={`ticket-row-${rowIndex}`}
+                  style={{
+                    '--row-delay': `${row.delay}s`,
+                    '--row-duration': `${row.duration}s`,
+                    '--row-scale': row.startScale,
+                    '--row-scale-back': row.startScale * 0.76,
+                    '--row-scale-mid': row.startScale * 0.92,
+                    '--row-scale-front': row.startScale * 1.26,
+                  } as CSSProperties}
+                >
+                  {row.items.map((ticket, ticketIndex) => (
+                    <div
+                      className="ticket-item"
+                      key={`${ticket.number}-${rowIndex}-${ticketIndex}`}
+                      style={{
+                        '--ticket-left': `${ticket.left}%`,
+                        '--ticket-top': `${ticket.top}%`,
+                        '--ticket-rotate': `${ticket.rotate}deg`,
+                        '--ticket-spin-delay': `${ticket.spinDelay}s`,
+                      } as CSSProperties}
+                    >
+                      <Image
+                        src={ticket.asset}
+                        alt=""
+                        width={768}
+                        height={389}
+                      />
+                      <span>{ticket.number}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+
+            <Image
+              className="machine-glass front"
+              src="/raffle-tickets/glass.svg"
+              alt=""
+              width={188}
+              height={106}
+              priority
+            />
+
+            <div className="drum-side-holder">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <Image
+                  className="drum-side"
+                  key={`drum-side-${index}`}
+                  src="/raffle-tickets/side.svg"
+                  alt=""
+                  width={188}
+                  height={3}
+                  style={{ '--side-delay': `${-(index * 0.42)}s` } as CSSProperties}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {!isFullscreen && (
         <button
@@ -551,6 +720,29 @@ export default function PublicSweepstakeDrawPage() {
           Pantalla completa
         </button>
       )}
+
+      <div
+        className="mode-selector"
+        role="group"
+        aria-label="Animacion del sorteo"
+      >
+        <button
+          className={drawMode === 'tickets' ? 'active' : ''}
+          type="button"
+          onClick={() => setDrawMode('tickets')}
+          disabled={state.status === 'drawing'}
+        >
+          Tickets
+        </button>
+        <button
+          className={drawMode === 'balls' ? 'active' : ''}
+          type="button"
+          onClick={() => setDrawMode('balls')}
+          disabled={state.status === 'drawing'}
+        >
+          Bolas
+        </button>
+      </div>
 
       <section
         className="brand"
@@ -569,33 +761,24 @@ export default function PublicSweepstakeDrawPage() {
         <div className="p">{title}</div>
       </section>
 
-      {state.status === 'drawing' && (
-        <section
-          className="display drawing"
-          aria-live="polite"
-        >
-          {state.displayImage ? (
-            <img
-              src={state.displayImage}
-              alt=""
-            />
-          ) : (
-            <div className="store-icon">ST</div>
-          )}
-          <div>
-            <div className="phone">{isLoading ? 'CARGANDO...' : state.displayPhone}</div>
-            <div className="store-name">
-              {hasDataError ? 'No se pudo cargar la informacion del sorteo' : state.displayStore}
-            </div>
-          </div>
-        </section>
-      )}
-
       {state.status === 'winner' && (
-        <section className="winner-card">
-          <div className="winner-k">Ganador</div>
-          <div className="winner-phone">{state.winner?.phoneNumber}</div>
-          <div className="winner-store">{state.winner?.storeName}</div>
+        <section className={`winner-card ${drawMode}`}>
+          {drawMode === 'tickets' ? (
+            <div className="winner-ticket">
+              <div className="winner-ticket-side">{ticketNumber(state.winner?.phoneNumber || '')}</div>
+              <div className="winner-ticket-main">
+                <div className="winner-ticket-label">The winning ticket is</div>
+                <div className="winner-phone">{state.winner?.phoneNumber}</div>
+                <div className="winner-store">{state.winner?.storeName}</div>
+              </div>
+            </div>
+          ) : (
+            <div className="winner-panel">
+              <div className="winner-label">Ganador</div>
+              <div className="winner-panel-phone">{state.winner?.phoneNumber}</div>
+              <div className="winner-panel-store">{state.winner?.storeName}</div>
+            </div>
+          )}
         </section>
       )}
 
@@ -624,13 +807,225 @@ export default function PublicSweepstakeDrawPage() {
           width: 100vw;
           height: 100vh;
           overflow: hidden;
-          background: radial-gradient(circle at 50% 38%, #ff2a97 0%, #ef0f82 42%, #b00860 100%);
+          background:
+            linear-gradient(90deg, rgba(255, 216, 77, 0.08) 0 1px, transparent 1px 100%),
+            linear-gradient(0deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 100%),
+            radial-gradient(circle at 50% 38%, #ff2a97 0%, #ef0f82 38%, #b00860 74%, #5f003d 100%);
+          background-size: 48px 48px, 48px 48px, auto;
           font-family: 'Helvetica Neue', Arial, sans-serif;
         }
 
-        canvas {
+        .draw-stage::before {
+          content: '';
           position: absolute;
           inset: 0;
+          z-index: 1;
+          pointer-events: none;
+          background:
+            linear-gradient(90deg, rgba(0, 0, 0, 0.42), transparent 18%, transparent 82%, rgba(0, 0, 0, 0.42)),
+            linear-gradient(180deg, rgba(0, 0, 0, 0.36), transparent 20%, transparent 82%, rgba(0, 0, 0, 0.44));
+        }
+
+        .vegas-frame {
+          position: absolute;
+          inset: 0;
+          z-index: 4;
+          pointer-events: none;
+        }
+
+        .vegas-lights {
+          position: absolute;
+          filter:
+            drop-shadow(0 0 6px rgba(255, 216, 77, 0.95))
+            drop-shadow(0 0 14px rgba(255, 43, 151, 0.8));
+          opacity: 0.95;
+        }
+
+        .vegas-lights.top,
+        .vegas-lights.bottom {
+          left: 0;
+          right: 0;
+          height: 34px;
+          background:
+            radial-gradient(circle, #fff8c9 0 25%, #ffd84d 28% 40%, transparent 44%) 0 50% / 58px 34px repeat-x;
+          animation: chaseHorizontal 1.25s linear infinite;
+        }
+
+        .vegas-lights.top {
+          top: 0;
+        }
+
+        .vegas-lights.bottom {
+          bottom: 0;
+          animation-direction: reverse;
+        }
+
+        .vegas-lights.left,
+        .vegas-lights.right {
+          top: 0;
+          bottom: 0;
+          width: 34px;
+          background:
+            radial-gradient(circle, #fff8c9 0 25%, #ffd84d 28% 40%, transparent 44%) 50% 0 / 34px 58px repeat-y;
+          animation: chaseVertical 1.25s linear infinite;
+        }
+
+        .vegas-lights.left {
+          left: 0;
+          animation-direction: reverse;
+        }
+
+        .vegas-lights.right {
+          right: 0;
+        }
+
+        .ticket-machine {
+          position: absolute;
+          left: 50%;
+          top: 23vh;
+          z-index: 3;
+          width: min(920px, 78vw);
+          aspect-ratio: 193.532 / 155.436;
+          transform: translateX(-50%);
+          pointer-events: none;
+          filter:
+            drop-shadow(0 0 24px rgba(255, 216, 77, 0.22))
+            drop-shadow(0 26px 46px rgba(0, 0, 0, 0.22));
+        }
+
+        .ticket-machine.drawing {
+          animation: ticketMachineSpin 0.38s ease-in-out infinite;
+          filter:
+            drop-shadow(0 0 32px rgba(255, 216, 77, 0.5))
+            drop-shadow(0 0 52px rgba(255, 42, 151, 0.34))
+            drop-shadow(0 28px 48px rgba(0, 0, 0, 0.26));
+        }
+
+        .machine-stand {
+          position: absolute;
+          inset: 0;
+          z-index: 1;
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+        }
+
+        .raffle-holder {
+          position: absolute;
+          top: 2%;
+          left: 1%;
+          z-index: 2;
+          width: 98%;
+          aspect-ratio: 188.027 / 106.104;
+        }
+
+        .machine-glass {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: fill;
+        }
+
+        .machine-glass.back {
+          z-index: 1;
+          opacity: 0.78;
+        }
+
+        .machine-glass.front {
+          z-index: 100;
+          opacity: 0.72;
+          pointer-events: none;
+        }
+
+        .ticket-window {
+          position: absolute;
+          inset: 0;
+          z-index: 5;
+          overflow: hidden;
+          perspective: 900px;
+        }
+
+        .ticket-machine.drawing .ticket-window {
+          animation: ticketWindowPulse 0.7s ease-in-out infinite;
+        }
+
+        .ticket-row {
+          position: absolute;
+          left: 0;
+          top: 50%;
+          width: 100%;
+          height: 100%;
+          animation: ticketRowOrbit var(--row-duration) linear infinite;
+          animation-delay: var(--row-delay);
+          transform-origin: center;
+          will-change: top, transform, opacity, filter;
+        }
+
+        .ticket-machine.drawing .ticket-row {
+          animation-duration: 1.35s;
+        }
+
+        .ticket-item {
+          position: absolute;
+          left: var(--ticket-left);
+          top: var(--ticket-top);
+          width: 25%;
+          transform: rotate(var(--ticket-rotate));
+          transform-origin: center;
+          will-change: transform;
+        }
+
+        .ticket-machine.drawing .ticket-item {
+          animation: ticketItemShuffle 1.15s ease-in-out infinite;
+          animation-delay: var(--ticket-spin-delay);
+        }
+
+        .ticket-item img {
+          display: block;
+          width: 100%;
+          height: auto;
+          filter:
+            drop-shadow(0 8px 10px rgba(0, 0, 0, 0.22))
+            drop-shadow(0 0 6px rgba(255, 255, 255, 0.2));
+        }
+
+        .ticket-item span {
+          position: absolute;
+          left: 30%;
+          top: 54%;
+          color: rgba(34, 38, 45, 0.72);
+          font-size: clamp(10px, 0.95vw, 15px);
+          font-weight: 900;
+          letter-spacing: 1px;
+          transform: translate(-50%, -50%) rotate(90deg);
+        }
+
+        .drum-side-holder {
+          position: absolute;
+          inset: 0;
+          z-index: 101;
+          pointer-events: none;
+        }
+
+        .drum-side {
+          position: absolute;
+          left: 0;
+          top: 20%;
+          width: 100%;
+          height: auto;
+          animation: drumSideSpin 1.65s linear infinite;
+          animation-delay: var(--side-delay);
+        }
+
+        .ticket-machine:not(.drawing) .drum-side {
+          animation-duration: 4.6s;
+        }
+
+        .balls-canvas {
+          position: absolute;
+          inset: 0;
+          z-index: 3;
           width: 100%;
           height: 100%;
         }
@@ -639,6 +1034,7 @@ export default function PublicSweepstakeDrawPage() {
         .prize,
         .display,
         .winner-card,
+        .mode-selector,
         .fullscreen-btn,
         .btn,
         .hint {
@@ -651,7 +1047,7 @@ export default function PublicSweepstakeDrawPage() {
           right: 24px;
           border: 1px solid rgba(255, 255, 255, 0.42);
           border-radius: 999px;
-          background: rgba(255, 255, 255, 0.16);
+          background: rgba(70, 0, 48, 0.44);
           color: #fff;
           cursor: pointer;
           font-size: 13px;
@@ -659,16 +1055,58 @@ export default function PublicSweepstakeDrawPage() {
           letter-spacing: 0;
           padding: 10px 16px;
           backdrop-filter: blur(10px);
-          transition: background 0.2s, transform 0.2s;
+          box-shadow: 0 0 18px rgba(255, 216, 77, 0.25), inset 0 0 12px rgba(255, 255, 255, 0.08);
+          transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
         }
 
         .fullscreen-btn:hover {
-          background: rgba(255, 255, 255, 0.24);
+          background: rgba(255, 216, 77, 0.18);
+          box-shadow: 0 0 24px rgba(255, 216, 77, 0.45), inset 0 0 14px rgba(255, 255, 255, 0.12);
           transform: translateY(-1px);
         }
 
         .draw-stage:fullscreen .fullscreen-btn {
           display: none;
+        }
+
+        .mode-selector {
+          top: 24px;
+          left: 24px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 4px;
+          border: 1px solid rgba(255, 255, 255, 0.34);
+          border-radius: 999px;
+          background: rgba(70, 0, 48, 0.44);
+          padding: 4px;
+          backdrop-filter: blur(10px);
+          box-shadow:
+            0 0 18px rgba(255, 216, 77, 0.22),
+            inset 0 0 12px rgba(255, 255, 255, 0.08);
+        }
+
+        .mode-selector button {
+          border: 0;
+          border-radius: 999px;
+          background: transparent;
+          color: rgba(255, 255, 255, 0.78);
+          cursor: pointer;
+          font-size: 13px;
+          font-weight: 900;
+          letter-spacing: 0;
+          padding: 8px 14px;
+          transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+        }
+
+        .mode-selector button.active {
+          background: #fff;
+          color: #ef0f82;
+          box-shadow: 0 0 18px rgba(255, 216, 77, 0.42);
+        }
+
+        .mode-selector button:disabled {
+          cursor: not-allowed;
+          opacity: 0.58;
         }
 
         .brand {
@@ -684,10 +1122,19 @@ export default function PublicSweepstakeDrawPage() {
           font-size: clamp(24px, 2.4vw, 46px);
           font-weight: 800;
           letter-spacing: 1px;
+          color: #fff;
+          text-shadow:
+            0 0 10px rgba(255, 255, 255, 0.82),
+            0 0 24px rgba(255, 43, 151, 0.85),
+            0 0 44px rgba(255, 216, 77, 0.36);
+          animation: neonFlicker 2.4s ease-in-out infinite;
         }
 
         .logo span {
           color: #ffd84d;
+          text-shadow:
+            0 0 10px rgba(255, 216, 77, 0.95),
+            0 0 28px rgba(255, 216, 77, 0.7);
         }
 
         .store {
@@ -697,6 +1144,9 @@ export default function PublicSweepstakeDrawPage() {
           font-weight: 600;
           line-height: 1.25;
           opacity: 0.9;
+          text-shadow:
+            0 0 10px rgba(255, 255, 255, 0.55),
+            0 0 22px rgba(255, 216, 77, 0.28);
         }
 
         .prize {
@@ -716,7 +1166,12 @@ export default function PublicSweepstakeDrawPage() {
           font-weight: 800;
           line-height: 1.02;
           overflow-wrap: anywhere;
-          text-shadow: 0 3px 14px rgba(0, 0, 0, 0.25);
+          text-shadow:
+            0 3px 14px rgba(0, 0, 0, 0.28),
+            0 0 18px rgba(255, 255, 255, 0.92),
+            0 0 34px rgba(255, 216, 77, 0.42),
+            0 0 54px rgba(255, 43, 151, 0.62);
+          animation: titleGlow 1.8s ease-in-out infinite;
         }
 
         .display {
@@ -730,7 +1185,9 @@ export default function PublicSweepstakeDrawPage() {
           border: 1px solid rgba(255, 255, 255, 0.32);
           border-radius: 28px;
           background: rgba(255, 255, 255, 0.92);
-          box-shadow: 0 18px 60px rgba(0, 0, 0, 0.24);
+          box-shadow:
+            0 18px 60px rgba(0, 0, 0, 0.24),
+            0 0 34px rgba(255, 216, 77, 0.28);
           padding: 18px 34px;
           transform: translateX(-50%);
         }
@@ -778,41 +1235,183 @@ export default function PublicSweepstakeDrawPage() {
         }
 
         .winner-card {
-          top: 30vh;
+          top: 24vh;
           left: 50%;
-          min-width: min(620px, 86vw);
-          border-radius: 32px;
-          background: #fff;
-          box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
-          padding: 28px 52px;
+          width: min(820px, 86vw);
+          min-width: 0;
+          padding: 0;
           text-align: center;
           transform: translateX(-50%);
-          animation: pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1);
+          animation: ticketPrizePop 0.72s cubic-bezier(0.2, 1.4, 0.4, 1);
+          overflow: visible;
         }
 
-        .winner-k {
-          color: #ffd84d;
-          font-size: clamp(20px, 2vw, 42px);
+        .winner-card.balls {
+          top: 30vh;
+          width: min(760px, 86vw);
+        }
+
+        .winner-card::before,
+        .winner-card::after {
+          display: none;
+        }
+
+        .winner-ticket {
+          position: relative;
+          z-index: 1;
+          display: grid;
+          grid-template-columns: 96px minmax(0, 1fr);
+          overflow: hidden;
+          min-height: 290px;
+          width: 100%;
+          border: 4px solid #2b1530;
+          border-radius: 22px;
+          background:
+            radial-gradient(circle at 78% 24%, rgba(255, 255, 255, 0.22), transparent 30%),
+            linear-gradient(135deg, #f51383, #b80663);
+          box-shadow:
+            inset 0 0 0 4px rgba(255, 255, 255, 0.1),
+            inset 0 0 40px rgba(255, 216, 77, 0.12),
+            0 24px 54px rgba(0, 0, 0, 0.32);
+        }
+
+        .winner-ticket::before,
+        .winner-ticket::after {
+          content: '';
+          position: absolute;
+          top: 50%;
+          z-index: 2;
+          width: 64px;
+          height: 64px;
+          border-radius: 50%;
+          background: #050405;
+          transform: translateY(-50%);
+        }
+
+        .winner-ticket::before {
+          left: -36px;
+        }
+
+        .winner-ticket::after {
+          right: -36px;
+        }
+
+        .winner-ticket-main {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-width: 0;
+          padding: 28px 46px;
+          pointer-events: none;
+        }
+
+        .winner-ticket-side {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-right: 3px dashed rgba(20, 16, 20, 0.72);
+          background: rgba(255, 216, 77, 0.18);
+          color: #2b1530;
+          font-size: clamp(16px, 1.5vw, 28px);
           font-weight: 900;
-          letter-spacing: 6px;
+          letter-spacing: 5px;
+          writing-mode: vertical-rl;
+          text-orientation: mixed;
+        }
+
+        .winner-ticket-label {
+          color: #fff;
+          font-size: clamp(14px, 1.4vw, 24px);
+          font-weight: 900;
+          letter-spacing: 2px;
           text-transform: uppercase;
-          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.18);
+          text-shadow:
+            0 0 8px rgba(255, 216, 77, 1),
+            0 0 18px rgba(255, 216, 77, 0.85),
+            0 0 36px rgba(255, 43, 151, 0.72);
         }
 
         .winner-phone {
-          margin-top: 12px;
-          color: #ef0f82;
-          font-size: clamp(42px, 5.7vw, 110px);
+          margin-top: 14px;
+          width: 100%;
+          max-width: 100%;
+          color: #fff;
+          font-size: clamp(36px, 5.4vw, 86px);
           font-weight: 900;
           line-height: 1;
+          letter-spacing: 0;
           font-variant-numeric: tabular-nums;
+          text-align: center;
+          overflow-wrap: anywhere;
+          text-shadow:
+            0 0 10px rgba(255, 42, 151, 0.92),
+            0 0 24px rgba(255, 42, 151, 0.72),
+            0 0 42px rgba(255, 216, 77, 0.36);
         }
 
         .winner-store {
-          margin-top: 12px;
-          color: #2b2b2b;
-          font-size: clamp(16px, 1.7vw, 32px);
+          margin-top: 16px;
+          width: 86%;
+          color: #fff;
+          font-size: clamp(15px, 1.55vw, 28px);
           font-weight: 800;
+          line-height: 1.15;
+          text-shadow:
+            0 0 10px rgba(255, 255, 255, 0.48),
+            0 0 18px rgba(255, 216, 77, 0.24);
+        }
+
+        .winner-panel {
+          position: relative;
+          overflow: hidden;
+          border: 3px solid #ffd84d;
+          border-radius: 34px;
+          background:
+            radial-gradient(circle at 50% 0%, rgba(255, 216, 77, 0.22), transparent 34%),
+            linear-gradient(180deg, #141014 0%, #050405 100%);
+          box-shadow:
+            0 24px 80px rgba(0, 0, 0, 0.55),
+            0 0 18px rgba(255, 216, 77, 0.72),
+            0 0 46px rgba(255, 43, 151, 0.46),
+            inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+          padding: 34px 48px 38px;
+        }
+
+        .winner-label {
+          color: #ffd84d;
+          font-size: clamp(18px, 2vw, 38px);
+          font-weight: 900;
+          letter-spacing: 6px;
+          text-transform: uppercase;
+          text-shadow:
+            0 0 8px rgba(255, 216, 77, 1),
+            0 0 20px rgba(255, 216, 77, 0.72);
+        }
+
+        .winner-panel-phone {
+          margin-top: 18px;
+          color: #fff;
+          font-size: clamp(46px, 6vw, 104px);
+          font-weight: 900;
+          line-height: 1;
+          font-variant-numeric: tabular-nums;
+          overflow-wrap: anywhere;
+          text-shadow:
+            0 0 10px rgba(255, 42, 151, 0.9),
+            0 0 28px rgba(255, 42, 151, 0.7);
+        }
+
+        .winner-panel-store {
+          margin-top: 18px;
+          color: #fff;
+          font-size: clamp(16px, 1.7vw, 30px);
+          font-weight: 800;
+          line-height: 1.2;
         }
 
         .btn {
@@ -822,7 +1421,10 @@ export default function PublicSweepstakeDrawPage() {
           border: 0;
           border-radius: 999px;
           background: #fff;
-          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+          box-shadow:
+            0 8px 30px rgba(0, 0, 0, 0.3),
+            0 0 26px rgba(255, 216, 77, 0.45),
+            inset 0 0 0 4px rgba(255, 216, 77, 0.08);
           color: #ef0f82;
           cursor: pointer;
           font-size: clamp(22px, 2vw, 38px);
@@ -843,7 +1445,7 @@ export default function PublicSweepstakeDrawPage() {
         }
 
         .btn.pulse {
-          animation: pulse 1.3s ease-in-out infinite;
+          animation: pulse 1.3s ease-in-out infinite, buttonShine 2.2s ease-in-out infinite;
         }
 
         .hint {
@@ -867,6 +1469,152 @@ export default function PublicSweepstakeDrawPage() {
           }
         }
 
+        @keyframes chaseHorizontal {
+          from {
+            background-position: 0 50%;
+          }
+          to {
+            background-position: 58px 50%;
+          }
+        }
+
+        @keyframes chaseVertical {
+          from {
+            background-position: 50% 0;
+          }
+          to {
+            background-position: 50% 58px;
+          }
+        }
+
+        @keyframes neonFlicker {
+          0%,
+          100% {
+            filter: brightness(1);
+          }
+          45% {
+            filter: brightness(1.22);
+          }
+          48% {
+            filter: brightness(0.92);
+          }
+          52% {
+            filter: brightness(1.28);
+          }
+        }
+
+        @keyframes titleGlow {
+          0%,
+          100% {
+            filter: brightness(1);
+          }
+          50% {
+            filter: brightness(1.16);
+          }
+        }
+
+        @keyframes buttonShine {
+          0%,
+          100% {
+            filter: brightness(1);
+          }
+          50% {
+            filter: brightness(1.08);
+          }
+        }
+
+        @keyframes ticketRowOrbit {
+          0% {
+            top: 18%;
+            opacity: 0.42;
+            filter: brightness(0.76) blur(0.2px);
+            transform: translate3d(-2%, -50%, -110px) scale(var(--row-scale-back));
+          }
+          17% {
+            top: 31%;
+            opacity: 0.72;
+            filter: brightness(0.9);
+            transform: translate3d(1.5%, -50%, -36px) scale(var(--row-scale-mid));
+          }
+          43% {
+            top: 62%;
+            opacity: 1;
+            filter: brightness(1.08);
+            transform: translate3d(2%, -50%, 84px) scale(var(--row-scale-front));
+          }
+          70% {
+            top: 88%;
+            opacity: 0.86;
+            filter: brightness(0.96);
+            transform: translate3d(-1%, -50%, 24px) scale(calc(var(--row-scale) * 1));
+          }
+          100% {
+            top: 18%;
+            opacity: 0.42;
+            filter: brightness(0.76) blur(0.2px);
+            transform: translate3d(-2%, -50%, -110px) scale(var(--row-scale-back));
+          }
+        }
+
+        @keyframes ticketItemShuffle {
+          0%,
+          100% {
+            transform: rotate(var(--ticket-rotate));
+          }
+          50% {
+            transform: rotate(calc(var(--ticket-rotate) + 92deg));
+          }
+        }
+
+        @keyframes ticketMachineSpin {
+          0%,
+          100% {
+            transform: translateX(-50%) rotate(-0.4deg) scale(1);
+          }
+          25% {
+            transform: translateX(-50%) rotate(0.8deg) scale(1.012);
+          }
+          50% {
+            transform: translateX(-50%) rotate(-0.7deg) scale(1.006);
+          }
+          75% {
+            transform: translateX(-50%) rotate(0.5deg) scale(1.014);
+          }
+        }
+
+        @keyframes ticketWindowPulse {
+          0%,
+          100% {
+            filter: brightness(1);
+          }
+          50% {
+            filter: brightness(1.18);
+          }
+        }
+
+        @keyframes drumSideSpin {
+          0% {
+            top: 14%;
+            opacity: 0;
+            transform: scale(0.84);
+          }
+          38% {
+            top: 48%;
+            opacity: 0.7;
+            transform: scale(1);
+          }
+          70% {
+            top: 84%;
+            opacity: 0;
+            transform: scale(0.9);
+          }
+          100% {
+            top: 14%;
+            opacity: 0;
+            transform: scale(0.84);
+          }
+        }
+
         @keyframes pop {
           0% {
             opacity: 0;
@@ -875,6 +1623,21 @@ export default function PublicSweepstakeDrawPage() {
           100% {
             opacity: 1;
             transform: translateX(-50%) scale(1);
+          }
+        }
+
+        @keyframes ticketPrizePop {
+          0% {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-40px) scale(0.38) rotate(-5deg);
+          }
+          64% {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1.04) rotate(1deg);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1) rotate(0);
           }
         }
 
@@ -895,8 +1658,48 @@ export default function PublicSweepstakeDrawPage() {
           }
 
           .winner-card {
+            top: 30vh;
+            width: min(94vw, 820px);
+          }
+
+          .winner-card.balls {
             top: 31vh;
+          }
+
+          .winner-ticket-main {
             padding: 22px 24px;
+          }
+
+          .winner-ticket {
+            grid-template-columns: 54px minmax(0, 1fr);
+            min-height: 240px;
+          }
+
+          .winner-ticket-side {
+            letter-spacing: 3px;
+          }
+
+          .winner-phone {
+            font-size: clamp(28px, 8.8vw, 54px);
+          }
+
+          .winner-store {
+            font-size: clamp(10px, 2.8vw, 15px);
+          }
+
+          .winner-panel {
+            border-radius: 24px;
+            padding: 24px 22px 28px;
+          }
+
+          .winner-panel-phone {
+            font-size: clamp(34px, 10vw, 58px);
+          }
+
+          .mode-selector {
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
           }
 
           .btn {
