@@ -1,7 +1,6 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import type { CSSProperties } from 'react';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
@@ -58,12 +57,11 @@ type DrawAction =
 type DrawMode = 'tickets' | 'balls';
 
 const COLORS = ['#ffd84d', '#ffffff', '#ff8fc4', '#ffe8a3', '#c7f0ff', '#ffb3d9', '#fff2cc'];
-const TICKET_ASSETS = [
-  '/raffle-tickets/ticket1.svg',
-  '/raffle-tickets/ticket2.svg',
-  '/raffle-tickets/ticket3.svg',
-  '/raffle-tickets/ticket4.svg',
-  '/raffle-tickets/ticket5.svg',
+const TICKET_STYLES = [
+  { bg: '#070707', fg: '#ffffff', edge: '#ffd84d', accent: '#f40f8a' },
+  { bg: '#ffd84d', fg: '#111111', edge: '#070707', accent: '#f40f8a' },
+  { bg: '#f40f8a', fg: '#ffffff', edge: '#ffd84d', accent: '#070707' },
+  { bg: '#ffffff', fg: '#111111', edge: '#f40f8a', accent: '#ffd84d' },
 ];
 const INITIAL_PHONE = 'LISTO PARA JUGAR';
 const INITIAL_STORE = 'Esperando sorteo...';
@@ -240,22 +238,23 @@ export default function PublicSweepstakeDrawPage() {
   const ticketRows = useMemo(() => {
     const source = spinList.length ? spinList : [{ phoneNumber: '0000000', storeName: '', storeImage: undefined }];
 
-    return Array.from({ length: 7 }).map((_, rowIndex) => {
+    return Array.from({ length: 14 }).map((_, rowIndex) => {
       return {
-        delay: -(rowIndex * 0.52),
-        duration: 6.2,
-        startScale: 0.64 + (rowIndex % 3) * 0.04,
-        items: Array.from({ length: 4 }).map((_, columnIndex) => {
-          const index = rowIndex * 4 + columnIndex;
+        delay: -(rowIndex * 0.18),
+        duration: 3.7,
+        staticTop: 7 + rowIndex * 6.6,
+        startScale: 0.42 + (rowIndex % 5) * 0.032,
+        items: Array.from({ length: 9 }).map((_, columnIndex) => {
+          const index = rowIndex * 9 + columnIndex;
           const pick = source[index % source.length];
 
           return {
-            asset: TICKET_ASSETS[index % TICKET_ASSETS.length],
+            palette: TICKET_STYLES[index % TICKET_STYLES.length],
             number: ticketNumber(pick.phoneNumber),
-            left: 8 + columnIndex * 23 + ((rowIndex + columnIndex) % 2 === 0 ? -3 : 3),
-            top: ((rowIndex * 7 + columnIndex * 11) % 12) - 6,
+            left: 1 + columnIndex * 11.7 + ((rowIndex + columnIndex) % 3 === 0 ? -2.4 : 1.4),
+            top: ((rowIndex * 9 + columnIndex * 13) % 18) - 9,
             rotate: ((rowIndex * 47 + columnIndex * 71) % 360) - 180,
-            spinDelay: -((rowIndex * 0.18 + columnIndex * 0.27) % 1.8),
+            spinDelay: -((rowIndex * 0.12 + columnIndex * 0.18) % 1.2),
           };
         }),
       };
@@ -628,25 +627,7 @@ export default function PublicSweepstakeDrawPage() {
           className={`ticket-machine ${state.status}`}
           aria-hidden="true"
         >
-          <Image
-            className="machine-stand"
-            src="/raffle-tickets/stand.svg"
-            alt=""
-            width={193}
-            height={155}
-            priority
-          />
-
           <div className="raffle-holder">
-            <Image
-              className="machine-glass back"
-              src="/raffle-tickets/glass.svg"
-              alt=""
-              width={188}
-              height={106}
-              priority
-            />
-
             <div className="ticket-window">
               {ticketRows.map((row, rowIndex) => (
                 <div
@@ -655,6 +636,7 @@ export default function PublicSweepstakeDrawPage() {
                   style={{
                     '--row-delay': `${row.delay}s`,
                     '--row-duration': `${row.duration}s`,
+                    '--row-static-top': `${row.staticTop}%`,
                     '--row-scale': row.startScale,
                     '--row-scale-back': row.startScale * 0.76,
                     '--row-scale-mid': row.startScale * 0.92,
@@ -670,41 +652,20 @@ export default function PublicSweepstakeDrawPage() {
                         '--ticket-top': `${ticket.top}%`,
                         '--ticket-rotate': `${ticket.rotate}deg`,
                         '--ticket-spin-delay': `${ticket.spinDelay}s`,
+                        '--ticket-bg': ticket.palette.bg,
+                        '--ticket-fg': ticket.palette.fg,
+                        '--ticket-edge': ticket.palette.edge,
+                        '--ticket-accent': ticket.palette.accent,
                       } as CSSProperties}
                     >
-                      <Image
-                        src={ticket.asset}
-                        alt=""
-                        width={768}
-                        height={389}
-                      />
-                      <span>{ticket.number}</span>
+                      <div className="spinning-ticket">
+                        <span className="ticket-serial">{ticket.number}</span>
+                        <span className="ticket-admit">ADMIT ONE</span>
+                        <span className="ticket-brand">sweepsTOUCH</span>
+                      </div>
                     </div>
                   ))}
                 </div>
-              ))}
-            </div>
-
-            <Image
-              className="machine-glass front"
-              src="/raffle-tickets/glass.svg"
-              alt=""
-              width={188}
-              height={106}
-              priority
-            />
-
-            <div className="drum-side-holder">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <Image
-                  className="drum-side"
-                  key={`drum-side-${index}`}
-                  src="/raffle-tickets/side.svg"
-                  alt=""
-                  width={188}
-                  height={3}
-                  style={{ '--side-delay': `${-(index * 0.42)}s` } as CSSProperties}
-                />
               ))}
             </div>
           </div>
@@ -769,7 +730,6 @@ export default function PublicSweepstakeDrawPage() {
               <div className="winner-ticket-main">
                 <div className="winner-ticket-label">The winning ticket is</div>
                 <div className="winner-phone">{state.winner?.phoneNumber}</div>
-                <div className="winner-store">{state.winner?.storeName}</div>
               </div>
             </div>
           ) : (
@@ -790,10 +750,6 @@ export default function PublicSweepstakeDrawPage() {
       >
         {canDraw ? buttonText : isLoading ? 'CARGANDO' : 'SIN PARTICIPANTES'}
       </button>
-
-      <div className="hint">
-        {canDraw ? 'Toca SORTEAR o presiona ESPACIO' : 'Este sorteo no tiene participantes disponibles para elegir'}
-      </div>
 
       <style jsx>{`
         .draw-stage,
@@ -845,9 +801,9 @@ export default function PublicSweepstakeDrawPage() {
         .vegas-lights.bottom {
           left: 0;
           right: 0;
-          height: 34px;
+          height: clamp(28px, 2.1vmin, 46px);
           background:
-            radial-gradient(circle, #fff8c9 0 25%, #ffd84d 28% 40%, transparent 44%) 0 50% / 58px 34px repeat-x;
+            radial-gradient(circle, #fff8c9 0 25%, #ffd84d 28% 40%, transparent 44%) 0 50% / clamp(48px, 3.4vmin, 72px) clamp(28px, 2.1vmin, 46px) repeat-x;
           animation: chaseHorizontal 1.25s linear infinite;
         }
 
@@ -864,9 +820,9 @@ export default function PublicSweepstakeDrawPage() {
         .vegas-lights.right {
           top: 0;
           bottom: 0;
-          width: 34px;
+          width: clamp(28px, 2.1vmin, 46px);
           background:
-            radial-gradient(circle, #fff8c9 0 25%, #ffd84d 28% 40%, transparent 44%) 50% 0 / 34px 58px repeat-y;
+            radial-gradient(circle, #fff8c9 0 25%, #ffd84d 28% 40%, transparent 44%) 50% 0 / clamp(28px, 2.1vmin, 46px) clamp(48px, 3.4vmin, 72px) repeat-y;
           animation: chaseVertical 1.25s linear infinite;
         }
 
@@ -882,9 +838,9 @@ export default function PublicSweepstakeDrawPage() {
         .ticket-machine {
           position: absolute;
           left: 50%;
-          top: 23vh;
+          top: clamp(210px, 22vh, 300px);
           z-index: 3;
-          width: min(920px, 78vw);
+          width: min(1560px, 91vw, 116vh);
           aspect-ratio: 193.532 / 155.436;
           transform: translateX(-50%);
           pointer-events: none;
@@ -901,125 +857,187 @@ export default function PublicSweepstakeDrawPage() {
             drop-shadow(0 28px 48px rgba(0, 0, 0, 0.26));
         }
 
-        .machine-stand {
-          position: absolute;
-          inset: 0;
-          z-index: 1;
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-        }
-
         .raffle-holder {
           position: absolute;
-          top: 2%;
-          left: 1%;
+          top: 2.8%;
+          left: 2.3%;
           z-index: 2;
-          width: 98%;
+          width: 95.4%;
           aspect-ratio: 188.027 / 106.104;
+          transform-origin: center;
         }
 
-        .machine-glass {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          object-fit: fill;
+        .raffle-holder::before,
+        .raffle-holder::after {
+          display: none;
         }
 
-        .machine-glass.back {
-          z-index: 1;
-          opacity: 0.78;
-        }
-
-        .machine-glass.front {
-          z-index: 100;
-          opacity: 0.72;
-          pointer-events: none;
+        .ticket-machine.drawing .raffle-holder {
+          animation: barrelDrumWobble 0.42s ease-in-out infinite;
         }
 
         .ticket-window {
           position: absolute;
-          inset: 0;
+          inset: 5.5% 4.2% 6.5%;
           z-index: 5;
           overflow: hidden;
+          border-radius: 2px;
+          background:
+            linear-gradient(90deg, rgba(255, 255, 255, 0.22) 0 2px, transparent 2px calc(100% - 2px), rgba(255, 255, 255, 0.22) calc(100% - 2px) 100%),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.14), transparent 10%, transparent 90%, rgba(255, 255, 255, 0.14)),
+            radial-gradient(ellipse at center, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02) 52%, rgba(0, 0, 0, 0.08) 100%);
+          box-shadow:
+            inset 7px 0 18px rgba(255, 255, 255, 0.16),
+            inset -7px 0 18px rgba(255, 255, 255, 0.16),
+            inset 0 0 42px rgba(255, 255, 255, 0.06);
           perspective: 900px;
+        }
+
+        .ticket-window::before,
+        .ticket-window::after {
+          content: '';
+          position: absolute;
+          left: 0;
+          right: 0;
+          z-index: 70;
+          pointer-events: none;
+        }
+
+        .ticket-window::before {
+          top: 8%;
+          bottom: 8%;
+          background:
+            linear-gradient(rgba(255, 255, 255, 0.32) 0 2px, transparent 2px 18px),
+            linear-gradient(rgba(29, 72, 86, 0.24) 0 1px, transparent 1px 18px);
+          background-size: 100% 18px, 100% 18px;
+          opacity: 0.55;
+          mix-blend-mode: screen;
+        }
+
+        .ticket-window::after {
+          top: 12%;
+          height: 76%;
+          background:
+            linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.18), transparent),
+            repeating-linear-gradient(180deg, transparent 0 22px, rgba(255, 216, 77, 0.18) 22px 24px, transparent 24px 44px);
+          opacity: 0;
         }
 
         .ticket-machine.drawing .ticket-window {
           animation: ticketWindowPulse 0.7s ease-in-out infinite;
         }
 
+        .ticket-machine.drawing .ticket-window::before {
+          animation: rollingGuideLines 0.34s linear infinite;
+          opacity: 0.62;
+        }
+
+        .ticket-machine.drawing .ticket-window::after {
+          animation: rollingHighlight 0.9s ease-in-out infinite;
+          opacity: 0.55;
+        }
+
         .ticket-row {
           position: absolute;
-          left: 0;
-          top: 50%;
-          width: 100%;
+          left: -3%;
+          top: var(--row-static-top);
+          width: 106%;
           height: 100%;
-          animation: ticketRowOrbit var(--row-duration) linear infinite;
-          animation-delay: var(--row-delay);
+          opacity: 0.9;
+          filter: brightness(0.95);
+          transform: translate3d(0, -50%, 0) scale(var(--row-scale));
           transform-origin: center;
           will-change: top, transform, opacity, filter;
         }
 
         .ticket-machine.drawing .ticket-row {
-          animation-duration: 1.35s;
+          animation: ticketRowOrbit 1.05s linear infinite;
+          animation-delay: var(--row-delay);
         }
 
         .ticket-item {
           position: absolute;
           left: var(--ticket-left);
           top: var(--ticket-top);
-          width: 25%;
+          width: 12.4%;
           transform: rotate(var(--ticket-rotate));
           transform-origin: center;
           will-change: transform;
         }
 
         .ticket-machine.drawing .ticket-item {
-          animation: ticketItemShuffle 1.15s ease-in-out infinite;
+          animation: ticketItemRoll 0.74s linear infinite;
           animation-delay: var(--ticket-spin-delay);
         }
 
-        .ticket-item img {
+        .spinning-ticket {
+          position: relative;
           display: block;
-          width: 100%;
-          height: auto;
-          filter:
-            drop-shadow(0 8px 10px rgba(0, 0, 0, 0.22))
-            drop-shadow(0 0 6px rgba(255, 255, 255, 0.2));
+          aspect-ratio: 2.35 / 1;
+          overflow: hidden;
+          border: 2px solid var(--ticket-edge);
+          border-radius: 8px;
+          background:
+            radial-gradient(circle at 0 50%, transparent 0 8px, var(--ticket-bg) 8.5px),
+            radial-gradient(circle at 100% 50%, transparent 0 8px, var(--ticket-bg) 8.5px),
+            linear-gradient(135deg, color-mix(in srgb, var(--ticket-bg) 86%, white), var(--ticket-bg));
+          color: var(--ticket-fg);
+          box-shadow:
+            0 8px 10px rgba(0, 0, 0, 0.24),
+            inset 0 0 0 2px color-mix(in srgb, var(--ticket-fg) 16%, transparent);
         }
 
-        .ticket-item span {
+        .spinning-ticket::before {
+          content: '';
           position: absolute;
-          left: 30%;
-          top: 54%;
-          color: rgba(34, 38, 45, 0.72);
-          font-size: clamp(10px, 0.95vw, 15px);
+          top: 0;
+          bottom: 0;
+          left: 24%;
+          width: 2px;
+          border-left: 2px dashed color-mix(in srgb, var(--ticket-edge) 75%, transparent);
+        }
+
+        .spinning-ticket::after {
+          content: '';
+          position: absolute;
+          inset: 9px;
+          border: 2px solid color-mix(in srgb, var(--ticket-edge) 72%, transparent);
+          border-radius: 6px;
+          pointer-events: none;
+        }
+
+        .ticket-serial {
+          position: absolute;
+          left: 12%;
+          top: 50%;
+          color: var(--ticket-accent);
+          font-size: clamp(7px, 0.68vw, 11px);
           font-weight: 900;
           letter-spacing: 1px;
           transform: translate(-50%, -50%) rotate(90deg);
         }
 
-        .drum-side-holder {
+        .ticket-admit {
           position: absolute;
-          inset: 0;
-          z-index: 101;
-          pointer-events: none;
+          left: 61%;
+          top: 24%;
+          color: var(--ticket-fg);
+          font-size: clamp(6px, 0.58vw, 10px);
+          font-weight: 900;
+          letter-spacing: 1px;
+          transform: translate(-50%, -50%);
         }
 
-        .drum-side {
+        .ticket-brand {
           position: absolute;
-          left: 0;
-          top: 20%;
-          width: 100%;
-          height: auto;
-          animation: drumSideSpin 1.65s linear infinite;
-          animation-delay: var(--side-delay);
-        }
-
-        .ticket-machine:not(.drawing) .drum-side {
-          animation-duration: 4.6s;
+          left: 62%;
+          top: 59%;
+          color: var(--ticket-fg);
+          font-size: clamp(8px, 0.82vw, 14px);
+          font-weight: 900;
+          line-height: 0.9;
+          transform: translate(-50%, -50%);
+          text-shadow: 0 1px 0 color-mix(in srgb, var(--ticket-accent) 60%, transparent);
         }
 
         .balls-canvas {
@@ -1036,8 +1054,7 @@ export default function PublicSweepstakeDrawPage() {
         .winner-card,
         .mode-selector,
         .fullscreen-btn,
-        .btn,
-        .hint {
+        .btn {
           position: absolute;
           z-index: 5;
         }
@@ -1119,7 +1136,7 @@ export default function PublicSweepstakeDrawPage() {
         }
 
         .logo {
-          font-size: clamp(24px, 2.4vw, 46px);
+          font-size: clamp(28px, 2.2vmin, 58px);
           font-weight: 800;
           letter-spacing: 1px;
           color: #fff;
@@ -1138,9 +1155,9 @@ export default function PublicSweepstakeDrawPage() {
         }
 
         .store {
-          max-width: min(780px, 86vw);
+          max-width: min(980px, 86vw);
           margin: 0.9vh auto 0;
-          font-size: clamp(12px, 1.05vw, 19px);
+          font-size: clamp(13px, 1vmin, 24px);
           font-weight: 600;
           line-height: 1.25;
           opacity: 0.9;
@@ -1150,7 +1167,7 @@ export default function PublicSweepstakeDrawPage() {
         }
 
         .prize {
-          top: 14.5vh;
+          top: clamp(130px, 14vh, 210px);
           left: 0;
           right: 0;
           padding: 0 24px;
@@ -1160,9 +1177,9 @@ export default function PublicSweepstakeDrawPage() {
         }
 
         .prize .p {
-          max-width: min(1080px, 92vw);
+          max-width: min(1300px, 92vw);
           margin: 0 auto;
-          font-size: clamp(34px, 4.4vw, 78px);
+          font-size: clamp(44px, 4.8vmin, 112px);
           font-weight: 800;
           line-height: 1.02;
           overflow-wrap: anywhere;
@@ -1235,9 +1252,9 @@ export default function PublicSweepstakeDrawPage() {
         }
 
         .winner-card {
-          top: 24vh;
+          top: clamp(245px, 25vh, 360px);
           left: 50%;
-          width: min(820px, 86vw);
+          width: min(1280px, 76vw);
           min-width: 0;
           padding: 0;
           text-align: center;
@@ -1248,7 +1265,7 @@ export default function PublicSweepstakeDrawPage() {
 
         .winner-card.balls {
           top: 30vh;
-          width: min(760px, 86vw);
+          width: min(1190px, 88vw);
         }
 
         .winner-card::before,
@@ -1260,40 +1277,47 @@ export default function PublicSweepstakeDrawPage() {
           position: relative;
           z-index: 1;
           display: grid;
-          grid-template-columns: 96px minmax(0, 1fr);
+          grid-template-columns: clamp(86px, 6vw, 128px) minmax(0, 1fr);
           overflow: hidden;
-          min-height: 290px;
+          min-height: clamp(360px, 34vh, 590px);
           width: 100%;
-          border: 4px solid #2b1530;
-          border-radius: 22px;
+          border: 4px solid #070707;
+          border-radius: 28px;
           background:
-            radial-gradient(circle at 78% 24%, rgba(255, 255, 255, 0.22), transparent 30%),
-            linear-gradient(135deg, #f51383, #b80663);
+            radial-gradient(circle at 78% 24%, rgba(255, 255, 255, 0.42), transparent 30%),
+            linear-gradient(135deg, #fff1a8 0%, #ffd84d 34%, #c99210 100%);
           box-shadow:
-            inset 0 0 0 4px rgba(255, 255, 255, 0.1),
-            inset 0 0 40px rgba(255, 216, 77, 0.12),
-            0 24px 54px rgba(0, 0, 0, 0.32);
-        }
-
-        .winner-ticket::before,
-        .winner-ticket::after {
-          content: '';
-          position: absolute;
-          top: 50%;
-          z-index: 2;
-          width: 64px;
-          height: 64px;
-          border-radius: 50%;
-          background: #050405;
-          transform: translateY(-50%);
+            inset 0 0 0 4px rgba(255, 255, 255, 0.18),
+            inset 0 0 42px rgba(7, 7, 7, 0.18),
+            0 24px 54px rgba(0, 0, 0, 0.34),
+            0 0 34px rgba(255, 216, 77, 0.4);
         }
 
         .winner-ticket::before {
-          left: -36px;
+          content: '';
+          position: absolute;
+          inset: clamp(18px, 1.5vw, 32px);
+          z-index: 0;
+          border: 2px solid rgba(7, 7, 7, 0.22);
+          border-radius: 24px;
+          box-shadow:
+            inset 0 0 28px rgba(255, 255, 255, 0.16),
+            0 0 18px rgba(255, 255, 255, 0.14);
+          pointer-events: none;
         }
 
         .winner-ticket::after {
-          right: -36px;
+          content: '';
+          position: absolute;
+          top: 8%;
+          bottom: 8%;
+          left: -8px;
+          right: -8px;
+          z-index: 2;
+          pointer-events: none;
+          background:
+            radial-gradient(circle, #ef0f82 0 7px, transparent 7.5px) left center / 18px 30px repeat-y,
+            radial-gradient(circle, #ef0f82 0 7px, transparent 7.5px) right center / 18px 30px repeat-y;
         }
 
         .winner-ticket-main {
@@ -1304,7 +1328,7 @@ export default function PublicSweepstakeDrawPage() {
           align-items: center;
           justify-content: center;
           min-width: 0;
-          padding: 28px 46px;
+          padding: clamp(26px, 2.2vw, 50px) clamp(34px, 2.6vw, 62px);
           pointer-events: none;
         }
 
@@ -1315,9 +1339,9 @@ export default function PublicSweepstakeDrawPage() {
           align-items: center;
           justify-content: center;
           border-right: 3px dashed rgba(20, 16, 20, 0.72);
-          background: rgba(255, 216, 77, 0.18);
-          color: #2b1530;
-          font-size: clamp(16px, 1.5vw, 28px);
+          background: rgba(7, 7, 7, 0.13);
+          color: #070707;
+          font-size: clamp(18px, 1.35vmin, 34px);
           font-weight: 900;
           letter-spacing: 5px;
           writing-mode: vertical-rl;
@@ -1325,45 +1349,35 @@ export default function PublicSweepstakeDrawPage() {
         }
 
         .winner-ticket-label {
-          color: #fff;
-          font-size: clamp(14px, 1.4vw, 24px);
+          color: #070707;
+          font-size: clamp(24px, 2vmin, 44px);
           font-weight: 900;
-          letter-spacing: 2px;
+          letter-spacing: 3px;
           text-transform: uppercase;
           text-shadow:
-            0 0 8px rgba(255, 216, 77, 1),
-            0 0 18px rgba(255, 216, 77, 0.85),
-            0 0 36px rgba(255, 43, 151, 0.72);
+            0 1px 0 rgba(255, 255, 255, 0.92),
+            0 0 10px rgba(255, 255, 255, 0.85),
+            0 0 20px rgba(255, 216, 77, 0.9),
+            0 0 36px rgba(255, 43, 151, 0.5);
+          animation: winnerLabelGlow 1.05s ease-in-out infinite;
         }
 
         .winner-phone {
-          margin-top: 14px;
+          margin-top: clamp(18px, 2vh, 34px);
           width: 100%;
           max-width: 100%;
-          color: #fff;
-          font-size: clamp(36px, 5.4vw, 86px);
+          color: #070707;
+          font-size: clamp(62px, 5.6vw, 118px);
           font-weight: 900;
           line-height: 1;
           letter-spacing: 0;
           font-variant-numeric: tabular-nums;
           text-align: center;
-          overflow-wrap: anywhere;
+          overflow-wrap: normal;
+          white-space: nowrap;
           text-shadow:
-            0 0 10px rgba(255, 42, 151, 0.92),
-            0 0 24px rgba(255, 42, 151, 0.72),
-            0 0 42px rgba(255, 216, 77, 0.36);
-        }
-
-        .winner-store {
-          margin-top: 16px;
-          width: 86%;
-          color: #fff;
-          font-size: clamp(15px, 1.55vw, 28px);
-          font-weight: 800;
-          line-height: 1.15;
-          text-shadow:
-            0 0 10px rgba(255, 255, 255, 0.48),
-            0 0 18px rgba(255, 216, 77, 0.24);
+            0 2px 0 rgba(255, 255, 255, 0.42),
+            0 0 14px rgba(255, 255, 255, 0.28);
         }
 
         .winner-panel {
@@ -1415,9 +1429,9 @@ export default function PublicSweepstakeDrawPage() {
         }
 
         .btn {
-          bottom: 6.4vh;
+          bottom: clamp(44px, 6.4vh, 92px);
           left: 50%;
-          min-width: 220px;
+          min-width: clamp(220px, 20vw, 420px);
           border: 0;
           border-radius: 999px;
           background: #fff;
@@ -1427,10 +1441,10 @@ export default function PublicSweepstakeDrawPage() {
             inset 0 0 0 4px rgba(255, 216, 77, 0.08);
           color: #ef0f82;
           cursor: pointer;
-          font-size: clamp(22px, 2vw, 38px);
+          font-size: clamp(24px, 1.8vmin, 46px);
           font-weight: 900;
           letter-spacing: 1px;
-          padding: 1.5vh 4vw;
+          padding: clamp(14px, 1.35vh, 26px) clamp(42px, 4vw, 92px);
           transform: translateX(-50%);
           transition: transform 0.1s, opacity 0.2s;
         }
@@ -1448,17 +1462,6 @@ export default function PublicSweepstakeDrawPage() {
           animation: pulse 1.3s ease-in-out infinite, buttonShine 2.2s ease-in-out infinite;
         }
 
-        .hint {
-          bottom: 3vh;
-          left: 0;
-          right: 0;
-          color: rgba(255, 255, 255, 0.85);
-          pointer-events: none;
-          text-align: center;
-          font-size: clamp(11px, 1vw, 18px);
-          font-weight: 700;
-        }
-
         @keyframes pulse {
           0%,
           100% {
@@ -1474,7 +1477,7 @@ export default function PublicSweepstakeDrawPage() {
             background-position: 0 50%;
           }
           to {
-            background-position: 58px 50%;
+            background-position: 72px 50%;
           }
         }
 
@@ -1483,7 +1486,7 @@ export default function PublicSweepstakeDrawPage() {
             background-position: 50% 0;
           }
           to {
-            background-position: 50% 58px;
+            background-position: 50% 72px;
           }
         }
 
@@ -1526,43 +1529,48 @@ export default function PublicSweepstakeDrawPage() {
         @keyframes ticketRowOrbit {
           0% {
             top: 18%;
-            opacity: 0.42;
-            filter: brightness(0.76) blur(0.2px);
-            transform: translate3d(-2%, -50%, -110px) scale(var(--row-scale-back));
+            opacity: 0.36;
+            filter: brightness(0.72) blur(0.25px);
+            transform: translate3d(-1.5%, -50%, -120px) rotateX(18deg) scale(var(--row-scale-back));
           }
-          17% {
-            top: 31%;
-            opacity: 0.72;
+          22% {
+            top: 34%;
+            opacity: 0.68;
             filter: brightness(0.9);
-            transform: translate3d(1.5%, -50%, -36px) scale(var(--row-scale-mid));
+            transform: translate3d(1%, -50%, -40px) rotateX(10deg) scale(var(--row-scale-mid));
           }
-          43% {
-            top: 62%;
+          50% {
+            top: 66%;
             opacity: 1;
-            filter: brightness(1.08);
-            transform: translate3d(2%, -50%, 84px) scale(var(--row-scale-front));
+            filter: brightness(1.12);
+            transform: translate3d(1.5%, -50%, 96px) rotateX(0deg) scale(var(--row-scale-front));
           }
-          70% {
-            top: 88%;
-            opacity: 0.86;
-            filter: brightness(0.96);
-            transform: translate3d(-1%, -50%, 24px) scale(calc(var(--row-scale) * 1));
+          76% {
+            top: 86%;
+            opacity: 0.72;
+            filter: brightness(0.92);
+            transform: translate3d(-1%, -50%, -28px) rotateX(-12deg) scale(var(--row-scale-mid));
           }
           100% {
             top: 18%;
-            opacity: 0.42;
-            filter: brightness(0.76) blur(0.2px);
-            transform: translate3d(-2%, -50%, -110px) scale(var(--row-scale-back));
+            opacity: 0.36;
+            filter: brightness(0.72) blur(0.25px);
+            transform: translate3d(-1.5%, -50%, -120px) rotateX(18deg) scale(var(--row-scale-back));
           }
         }
 
-        @keyframes ticketItemShuffle {
-          0%,
-          100% {
-            transform: rotate(var(--ticket-rotate));
+        @keyframes ticketItemRoll {
+          0% {
+            transform: translate3d(-3%, 0, 0) rotate(var(--ticket-rotate)) rotateX(0deg);
           }
-          50% {
-            transform: rotate(calc(var(--ticket-rotate) + 92deg));
+          35% {
+            transform: translate3d(4%, -4%, 24px) rotate(calc(var(--ticket-rotate) + 145deg)) rotateX(18deg);
+          }
+          70% {
+            transform: translate3d(-2%, 5%, -12px) rotate(calc(var(--ticket-rotate) + 286deg)) rotateX(-14deg);
+          }
+          100% {
+            transform: translate3d(-3%, 0, 0) rotate(calc(var(--ticket-rotate) + 360deg)) rotateX(0deg);
           }
         }
 
@@ -1582,6 +1590,16 @@ export default function PublicSweepstakeDrawPage() {
           }
         }
 
+        @keyframes barrelDrumWobble {
+          0%,
+          100% {
+            transform: rotate(0deg) scale(1);
+          }
+          50% {
+            transform: rotate(-0.45deg) scale(1.006);
+          }
+        }
+
         @keyframes ticketWindowPulse {
           0%,
           100% {
@@ -1592,26 +1610,22 @@ export default function PublicSweepstakeDrawPage() {
           }
         }
 
-        @keyframes drumSideSpin {
-          0% {
-            top: 14%;
-            opacity: 0;
-            transform: scale(0.84);
+        @keyframes rollingGuideLines {
+          from {
+            background-position: 0 0, 0 9px;
           }
-          38% {
-            top: 48%;
-            opacity: 0.7;
-            transform: scale(1);
+          to {
+            background-position: 0 18px, 0 27px;
           }
-          70% {
-            top: 84%;
-            opacity: 0;
-            transform: scale(0.9);
-          }
+        }
+
+        @keyframes rollingHighlight {
+          0%,
           100% {
-            top: 14%;
-            opacity: 0;
-            transform: scale(0.84);
+            transform: translateY(-14%);
+          }
+          50% {
+            transform: translateY(14%);
           }
         }
 
@@ -1641,6 +1655,18 @@ export default function PublicSweepstakeDrawPage() {
           }
         }
 
+        @keyframes winnerLabelGlow {
+          0%,
+          100% {
+            filter: brightness(1);
+            transform: scale(1);
+          }
+          50% {
+            filter: brightness(1.22);
+            transform: scale(1.025);
+          }
+        }
+
         @media (max-width: 760px) {
           .prize {
             top: 15vh;
@@ -1659,7 +1685,7 @@ export default function PublicSweepstakeDrawPage() {
 
           .winner-card {
             top: 30vh;
-            width: min(94vw, 820px);
+            width: min(90vw, 820px);
           }
 
           .winner-card.balls {
@@ -1667,24 +1693,24 @@ export default function PublicSweepstakeDrawPage() {
           }
 
           .winner-ticket-main {
-            padding: 22px 24px;
+            padding: 22px 20px;
           }
 
           .winner-ticket {
-            grid-template-columns: 54px minmax(0, 1fr);
-            min-height: 240px;
+            grid-template-columns: 50px minmax(0, 1fr);
+            min-height: 270px;
           }
 
           .winner-ticket-side {
             letter-spacing: 3px;
           }
 
-          .winner-phone {
-            font-size: clamp(28px, 8.8vw, 54px);
+          .winner-ticket-label {
+            font-size: clamp(17px, 4.6vw, 26px);
           }
 
-          .winner-store {
-            font-size: clamp(10px, 2.8vw, 15px);
+          .winner-phone {
+            font-size: clamp(42px, 12vw, 70px);
           }
 
           .winner-panel {
@@ -1704,6 +1730,20 @@ export default function PublicSweepstakeDrawPage() {
 
           .btn {
             min-width: 180px;
+          }
+        }
+
+        @media (min-width: 1800px) {
+          .winner-card {
+            width: min(1480px, 72vw);
+          }
+
+          .winner-ticket {
+            min-height: clamp(430px, 36vh, 660px);
+          }
+
+          .winner-phone {
+            font-size: clamp(86px, 5.2vw, 132px);
           }
         }
       `}</style>
