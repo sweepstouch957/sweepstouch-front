@@ -61,14 +61,14 @@
   }
 
   .draw-header{
-    position:absolute;left:50%;top:8.5vh;transform:translateX(-50%);
+    position:absolute;left:50%;top:clamp(32px,7.2vh,92px);transform:translateX(-50%);
     z-index:22;width:min(1200px,82vw);text-align:center;color:#fff;pointer-events:none;
   }
   .draw-logo{
-    font-size:clamp(34px,4.2vw,66px);font-weight:900;line-height:1;
-    letter-spacing:1px;text-shadow:0 0 10px rgba(255,255,255,.9),0 0 24px rgba(245,8,126,.95),0 0 38px rgba(249,224,138,.38);
+    width:min(784px,58.8vw);height:clamp(76px,8.4vw,129px);margin:0 auto;
+    background:url("/sweepstouch-logo-white.png") center/contain no-repeat;
+    filter:drop-shadow(0 0 10px rgba(255,255,255,.9)) drop-shadow(0 0 24px rgba(245,8,126,.95)) drop-shadow(0 0 38px rgba(249,224,138,.38));
   }
-  .draw-logo span{color:var(--gold-1);text-shadow:0 0 10px rgba(249,224,138,1),0 0 26px rgba(249,224,138,.74);}
   .draw-store{
     margin-top:10px;font-size:clamp(14px,1.4vw,24px);font-weight:800;text-shadow:0 0 10px rgba(0,0,0,.55);
     max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
@@ -86,7 +86,7 @@
     filter:drop-shadow(0 18px 30px rgba(0,0,0,.45));
   }
   .cylinder{
-    position:absolute;left:14.2%;top:7.5%;width:71.6%;height:73%;
+    position:absolute;left:13.5%;top:7.4%;width:73%;height:68.8%;
   }
   .cyl-body{
     position:absolute;inset:0;
@@ -202,42 +202,49 @@
 
   /* ============ WINNER ============ */
   .winner-overlay{
-    position:fixed;inset:0;background:rgba(60,0,32,.72);backdrop-filter:blur(3px);
+    position:fixed;inset:0;background:rgba(60,0,32,.78);backdrop-filter:blur(3px);
     display:none;align-items:center;justify-content:center;z-index:50;
   }
   .winner-overlay.show{display:flex;}
   .winner-card{
-    background:linear-gradient(160deg,#ff2f92,#b1035a);
-    border:4px solid var(--gold-1);
-    border-radius:24px;padding:46px 70px;text-align:center;color:#fff;
-    box-shadow:0 0 60px 16px rgba(245,8,126,.7), inset 0 2px 8px rgba(255,255,255,.4);
+    position:relative;
+    width:min(94vw,1500px);
+    aspect-ratio:1741/874;
+    background:url("/winner-ticket.png") center/contain no-repeat;
+    border:0;padding:0;text-align:center;color:#d80768;
+    filter:drop-shadow(0 0 28px rgba(245,8,126,.75)) drop-shadow(0 18px 34px rgba(0,0,0,.45));
     animation:pop .45s cubic-bezier(.2,1.6,.4,1);
   }
   @keyframes pop{from{transform:scale(.4);opacity:0;}to{transform:scale(1);opacity:1;}}
-  .winner-card h2{font-size:26px;letter-spacing:6px;text-transform:uppercase;color:var(--gold-1);}
-  .winner-card .big{font-size:88px;font-weight:900;margin:14px 0;text-shadow:0 4px 14px rgba(0,0,0,.4);}
-  .winner-card p{opacity:.9;letter-spacing:2px;font-size:14px;text-transform:uppercase;}
+  .winner-card h2{display:none;}
+  .winner-card .big{
+    position:absolute;left:29%;top:45%;width:69%;height:27%;
+    display:flex;align-items:center;justify-content:center;margin:0;
+    font-size:clamp(46px,6.4vw,108px);font-weight:950;letter-spacing:.02em;line-height:1;
+    color:#d80768;text-shadow:0 2px 0 #ffffff,0 0 12px rgba(245,8,126,.35);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .winner-card p{display:none;}
   .winner-card .close{
-    margin-top:26px;background:rgba(0,0,0,.35);border:2px solid var(--gold-1);
-    color:var(--gold-1);padding:10px 30px;border-radius:10px;font-size:16px;cursor:pointer;
+    display:none;
   }
   #confettiCanvas{position:fixed;inset:0;pointer-events:none;z-index:60;}
 
   .counter{
-    position:absolute;top:18.5vh;left:50%;transform:translateX(-50%);
-    color:var(--gold-1);letter-spacing:4px;font-size:clamp(22px,2vw,34px);font-weight:900;text-transform:uppercase;z-index:20;
+    position:absolute;top:clamp(122px,17.5vh,190px);left:50%;transform:translateX(-50%);
+    color:var(--gold-1);letter-spacing:2px;font-size:clamp(10px,.9vw,15px);font-weight:900;text-transform:uppercase;z-index:20;
     text-shadow:0 0 12px rgba(255,215,92,.55),0 0 10px rgba(0,0,0,.5);
     white-space:nowrap;
   }
-  .counter b{color:#fff;font-size:1.12em;}
+  .counter b{color:#fff;font-size:1.08em;}
 
   @media (max-height:950px){
     .frame{inset:22px;border-radius:42px;}
     .frame-gold{inset:42px;border-radius:32px;}
-    .draw-header{top:5.5vh;width:min(980px,76vw);}
-    .draw-logo{font-size:clamp(32px,3.6vw,56px);}
+    .draw-header{top:clamp(26px,5.5vh,58px);width:min(980px,76vw);}
+    .draw-logo{width:min(644px,53.2vw);height:clamp(64px,7vw,104px);}
     .draw-store{margin-top:8px;font-size:clamp(13px,1.25vw,20px);}
-    .counter{top:18vh;font-size:clamp(20px,1.75vw,28px);letter-spacing:3px;}
+    .counter{top:clamp(96px,15.2vh,142px);font-size:clamp(10px,.85vw,13px);letter-spacing:1.5px;}
     .drum-wrap{top:54%;width:min(1120px,82vw,116vh);}
     .controls{bottom:6.2vh;}
     .row{gap:18px;}
@@ -247,10 +254,10 @@
     .frame{inset:14px;border-radius:32px;border-width:3px;}
     .frame-gold{inset:30px;border-radius:24px;border-width:4px;}
     .bulb{width:14px;height:14px;}
-    .draw-header{top:4.5vh;width:78vw;}
-    .draw-logo{font-size:clamp(28px,3.2vw,46px);}
+    .draw-header{top:clamp(20px,4vh,34px);width:78vw;}
+    .draw-logo{width:min(504px,47.6vw);height:clamp(53px,6.4vw,81px);}
     .draw-store{margin-top:6px;font-size:clamp(12px,1.1vw,17px);}
-    .counter{top:15.8vh;font-size:clamp(16px,1.65vw,22px);letter-spacing:2px;}
+    .counter{top:clamp(72px,12.5vh,96px);font-size:clamp(9px,.85vw,11px);letter-spacing:1.2px;}
     .drum-wrap{top:54%;width:min(980px,80vw,105vh);}
     .controls{bottom:4.5vh;}
     .row{gap:12px;}
@@ -260,10 +267,10 @@
   @media (max-width:900px){
     .frame{inset:16px;border-radius:30px;}
     .frame-gold{inset:30px;border-radius:22px;}
-    .draw-header{top:5vh;width:82vw;}
-    .draw-logo{font-size:clamp(28px,7.8vw,46px);}
+    .draw-header{top:clamp(18px,4.5vh,42px);width:82vw;}
+    .draw-logo{width:min(448px,81vw);height:clamp(56px,15.4vw,87px);}
     .draw-store{font-size:clamp(12px,3.1vw,18px);}
-    .counter{top:16.5vh;font-size:clamp(16px,4vw,22px);letter-spacing:2px;}
+    .counter{top:clamp(78px,13vh,110px);font-size:clamp(9px,2vw,11px);letter-spacing:1px;}
     .drum-wrap{top:55%;width:min(112vw,880px,86vh);}
     .controls{bottom:5vh;width:88vw;}
     .btn{min-width:112px;font-size:14px;padding:10px 14px;}
@@ -273,10 +280,10 @@
   @media (max-width:560px){
     .frame{inset:10px;border-radius:24px;}
     .frame-gold{inset:22px;border-radius:18px;border-width:3px;}
-    .draw-header{top:4vh;width:76vw;}
-    .draw-logo{font-size:clamp(24px,8vw,36px);}
+    .draw-header{top:clamp(14px,3.4vh,26px);width:76vw;}
+    .draw-logo{width:min(364px,86vw);height:clamp(48px,16.8vw,70px);}
     .draw-store{margin-top:5px;font-size:clamp(11px,3.3vw,15px);}
-    .counter{top:14.2vh;font-size:clamp(14px,4.2vw,18px);letter-spacing:1px;}
+    .counter{top:clamp(62px,11.5vh,86px);font-size:clamp(8px,2.3vw,10px);letter-spacing:.8px;}
     .drum-wrap{top:52%;width:min(126vw,78vh);}
     .controls{bottom:3.4vh;width:84vw;}
     .btn{min-width:94px;padding:8px 11px;font-size:12px;letter-spacing:.2px;}
@@ -292,11 +299,10 @@
   <div id="bulbs"></div>
 
   <div class="draw-header">
-    <div class="draw-logo">SWEEPS<span>TOUCH</span></div>
-    <div class="draw-store" id="storeNameLabel">Supermercado participante</div>
+    <div class="draw-logo" aria-label="SweepsTouch"></div>
   </div>
 
-  <div class="counter">Participantes: <b id="countLabel">0</b></div>
+  <div class="counter">Participants: <b id="countLabel">0</b></div>
 
   <div class="drum-wrap">
     <div class="under-glow"></div>
@@ -347,7 +353,7 @@
   var PARTICIPANTS  = Array.isArray(RAFFLE_DATA.participants) ? RAFFLE_DATA.participants : [];
   var TOTAL_ITEMS   = Math.max(200, PARTICIPANTS.length || 0);     // cantidad de elementos en el tambor (a reventar)
   var GRAVITY       = 0.30;
-  var TUMBLE_SPEED  = 0.045;   // velocidad base del volteo durante el giro
+  var TUMBLE_SPEED  = 0.032;   // velocidad base del volteo durante el giro
   var DAMP_WALL     = 0.40;    // rebote contra paredes
   var AIR_FRICTION  = 0.99;
   var GROUND_FRICTION = 0.90;
@@ -363,6 +369,7 @@
   var spinPower = 0;
   var mode = "tickets";
   var lastWinner = null;
+  var pendingWinner = null;
   var W = 0, H = 0;
 
   function formatFallbackPhone(num){
@@ -384,7 +391,8 @@
   }
 
   function applyRaffleData(){
-    document.getElementById("storeNameLabel").textContent = RAFFLE_DATA.storeName || "Supermercado participante";
+    var storeEl = document.getElementById("storeNameLabel");
+    if(storeEl) storeEl.textContent = RAFFLE_DATA.storeName || "Supermercado participante";
     var titleEl = document.getElementById("sweepstakeTitleLabel");
     if(titleEl) titleEl.textContent = RAFFLE_DATA.title || "Sorteo";
     document.getElementById("countLabel").textContent = RAFFLE_DATA.participantCount || PARTICIPANTS.length || TOTAL_ITEMS;
@@ -460,7 +468,7 @@
     var left = W * 0.07;
     var right = W * 0.93;
     var top = H * 0.06;
-    var bottom = H * 0.92;
+    var bottom = H * 0.96;
     for(var i=0;i<sorted.length;i++){
       var row = i % rows;
       var col = Math.floor(i / rows);
@@ -494,14 +502,18 @@
   function step(){
     var cx = W/2, cy = H/2;
     if(stopping){
-      spinPower *= 0.972;
-      if(spinPower < 0.035){
+      spinPower *= 0.985;
+      if(spinPower < 0.02){
         spinPower = 0;
         spinning = false;
         stopping = false;
         assignRest();
         document.getElementById("btnToggle").classList.remove("active");
         document.getElementById("btnStop").classList.remove("active");
+        if(pendingWinner){
+          showWinner(pendingWinner);
+          pendingWinner = null;
+        }
       }
     }
     for(var i=0;i<items.length;i++){
@@ -516,7 +528,7 @@
         // así que nunca queda un lado vacío.
         var power = Math.max(spinPower, 0.02);
         it.orb.th += it.orb.om * power;
-        var ay = H/2 - halfW*0.42;
+        var ay = H/2 - halfW*1.05;
         var column = it.baseX || it.x || cx;
         var tx = column + Math.sin(it.orb.th*2.2 + it.num)*32 + Math.sin(it.orb.th*0.6 + it.num)*14;
         var ty = cy + Math.sin(it.orb.th)*ay*Math.min(1.08, it.orb.r);
@@ -546,7 +558,7 @@
       it.rot += it.vr;
       it.vr *= 0.96;
 
-      var idleTop = halfW * 0.32, idleBottom = H - halfW * 0.32;
+      var idleTop = halfW * 0.32, idleBottom = H - halfW * 0.22;
       if(it.y < idleTop){ it.y = idleTop; it.vy = Math.abs(it.vy)*DAMP_WALL; }
       if(it.y > idleBottom){
         it.y = idleBottom;
@@ -660,21 +672,46 @@
   /* ================= RESULT ================= */
   var overlay = document.getElementById("winnerOverlay");
 
+  function showWinner(pick){
+    lastWinner = pick;
+    var winnerNumberEl = document.getElementById("winnerNumber");
+    var winnerText = pick.phoneNumber || pick.phone || "Sin numero";
+    winnerNumberEl.textContent = winnerText;
+    winnerNumberEl.style.fontSize = winnerText.length > 14 ? "clamp(38px,5.2vw,86px)" : "";
+    var winnerMeta = document.querySelector(".winner-card p");
+    if(winnerMeta) winnerMeta.textContent = "";
+    overlay.classList.add("show");
+    document.getElementById("btnDestroy").disabled = false;
+    launchConfetti();
+  }
+
   document.getElementById("btnResult").addEventListener("click", function(){
     if(PARTICIPANTS.length === 0){ alert("No quedan participantes disponibles."); return; }
     setSpin(false);
     var pick = PARTICIPANTS[Math.floor(Math.random()*PARTICIPANTS.length)] || {};
+    pendingWinner = pick;
+    if(stopping || spinning || spinPower > 0.01){
+      return;
+    }
+    pendingWinner = null;
     lastWinner = pick;
     document.getElementById("winnerNumber").textContent =
       (mode === "tickets") ? "Nº " + String(pick.num).padStart(6,"0") : pick.num;
-    document.getElementById("winnerNumber").textContent = pick.phoneNumber || pick.phone || "Sin numero";
-    document.querySelector(".winner-card p").textContent = pick.storeName || RAFFLE_DATA.storeName || "Sweepstouch";
+    var winnerNumberEl = document.getElementById("winnerNumber");
+    var winnerText = pick.phoneNumber || pick.phone || "Sin numero";
+    winnerNumberEl.textContent = winnerText;
+    winnerNumberEl.style.fontSize = winnerText.length > 14 ? "clamp(38px,5.2vw,86px)" : "";
+    var winnerMeta = document.querySelector(".winner-card p");
+    if(winnerMeta) winnerMeta.textContent = "";
     overlay.classList.add("show");
     document.getElementById("btnDestroy").disabled = false;
     launchConfetti();
   });
 
   document.getElementById("btnCloseWinner").addEventListener("click", function(){
+    overlay.classList.remove("show");
+  });
+  overlay.addEventListener("click", function(){
     overlay.classList.remove("show");
   });
 
