@@ -147,9 +147,16 @@
   .ticket .brand{font-size:15px;text-transform:uppercase;}
   .ticket .num{font-size:11px;margin-top:4px;font-weight:600;letter-spacing:2px;opacity:.85;}
   .t-magenta{background:#e0176f;color:#fff;border-color:rgba(255,255,255,.55);}
-  .t-cream{background:#efe3c2;color:#5a4a2a;}
+  .t-cream{
+    background:url("/winner-ticket.png") center/contain no-repeat;
+    color:transparent;border-color:transparent;box-shadow:0 4px 10px rgba(0,0,0,.28);
+  }
   .t-white{background:#fdf3f8;color:#e0176f;border-color:rgba(224,23,111,.4);}
-  .t-teal{background:#67c6ac;color:#1e5a49;}
+  .t-teal{
+    background:url("/winner-ticket.png") center/contain no-repeat;
+    color:transparent;border-color:transparent;box-shadow:0 4px 10px rgba(0,0,0,.28);
+  }
+  .t-cream .brand,.t-cream .num,.t-teal .brand,.t-teal .num{display:none;}
   .ball{
     width:56px;height:56px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;
