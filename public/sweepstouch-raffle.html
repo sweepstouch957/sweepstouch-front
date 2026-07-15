@@ -425,21 +425,23 @@
                : makeBall(i, mode === "balls-num");
       var it = {
         el: made.el, w: made.w, h: made.h, num: i, alive: true, participant: made.participant,
-        baseX: W*0.12 + Math.random()*W*0.76,
-        x: W*0.12 + Math.random()*W*0.76,
-        y: H*0.12 + Math.random()*H*0.70,
-        rest: 0,   // se calcula con assignRest(): pila ordenada de abajo hacia arriba
+        baseX: W*0.08 + Math.random()*W*0.84,
+        x: W*0.08 + Math.random()*W*0.84,
+        y: H*0.06 + Math.random()*H*0.88,
+        rest: 0,
+        restX: 0,
+        restY: 0,
         vx: (Math.random()-0.5)*4,
         vy: (Math.random()-0.5)*4,
         rot: Math.random()*360,
         vr: (Math.random()-0.5)*6,
         // órbita propia para el giro: radio, ángulo y velocidad angular
-        orb: { r: 0.35 + Math.random()*0.62, th: Math.random()*Math.PI*2, om: TUMBLE_SPEED + Math.random()*TUMBLE_SPEED*0.9 }
+        orb: { r: 0.72 + Math.random()*0.34, th: Math.random()*Math.PI*2, om: TUMBLE_SPEED + Math.random()*TUMBLE_SPEED*0.9 }
       };
       layer.appendChild(made.el);
       items.push(it);
     }
-    assignRest();
+    assignRest(true);
     lastWinner = null;
     document.getElementById("btnDestroy").disabled = true;
     updateCount();
@@ -449,14 +451,28 @@
   // Reparte los "pisos" de reposo de abajo hacia arriba según la posición
   // actual de cada elemento: el que va más abajo aterriza más abajo.
   // Resultado: una pila continua y compacta, sin tickets flotando.
-  function assignRest(){
+  function assignRest(snap){
     var alive = items.filter(function(a){return a.alive;});
     if(alive.length === 0) return;
-    var sorted = alive.slice().sort(function(a,b){return b.y - a.y;});
-    var pileHeight = H * 0.82; // qué tan alto llega la pila (tambor lleno)
+    var sorted = alive.slice().sort(function(a,b){return a.num - b.num;});
+    var rows = Math.max(5, Math.floor(H / 42));
+    var cols = Math.max(1, Math.ceil(sorted.length / rows));
+    var left = W * 0.07;
+    var right = W * 0.93;
+    var top = H * 0.06;
+    var bottom = H * 0.92;
     for(var i=0;i<sorted.length;i++){
-      sorted[i].rest = (i/sorted.length) * pileHeight + (Math.random()-0.5)*12;
-      if(sorted[i].rest < 0) sorted[i].rest = 0;
+      var row = i % rows;
+      var col = Math.floor(i / rows);
+      sorted[i].restX = left + ((col + 0.5) / cols) * (right - left) + (Math.random() - 0.5) * 34;
+      sorted[i].restY = top + ((row + 0.5) / rows) * (bottom - top) + (Math.random() - 0.5) * 24;
+      sorted[i].restX = Math.max(left, Math.min(right, sorted[i].restX));
+      sorted[i].restY = Math.max(top, Math.min(bottom, sorted[i].restY));
+      sorted[i].rest = H - sorted[i].restY;
+      if(snap){
+        sorted[i].x = sorted[i].restX;
+        sorted[i].y = sorted[i].restY;
+      }
     }
   }
 
@@ -494,21 +510,16 @@
 
       var halfW = Math.max(it.w, it.h)/2 * 0.72; // radio aprox del item
 
-      if(!spinning && spinPower <= 0.01){
-        it.el.style.transform = "translate(" + (it.x - it.w/2) + "px," + (it.y - it.h/2) + "px) rotate(" + it.rot + "deg)";
-        continue;
-      }
-
       if(spinning || spinPower > 0.01){
         // ===== GIRO: cada ticket sigue su propia órbita elíptica =====
         // Las órbitas cubren TODO el tambor (izquierda, centro y derecha),
         // así que nunca queda un lado vacío.
         var power = Math.max(spinPower, 0.02);
         it.orb.th += it.orb.om * power;
-        var ay = H/2 - halfW*1.15;
+        var ay = H/2 - halfW*0.42;
         var column = it.baseX || it.x || cx;
-        var tx = column + Math.sin(it.orb.th*2.2 + it.num)*22 + Math.sin(it.orb.th*0.6 + it.num)*8;
-        var ty = cy + Math.sin(it.orb.th)*ay*it.orb.r;
+        var tx = column + Math.sin(it.orb.th*2.2 + it.num)*32 + Math.sin(it.orb.th*0.6 + it.num)*14;
+        var ty = cy + Math.sin(it.orb.th)*ay*Math.min(1.08, it.orb.r);
         // seguimiento suave hacia la órbita (guarda velocidad para la caída al detener)
         it.vx = (tx - it.x)*0.12*Math.max(power, 0.08);
         it.vy = (ty - it.y)*0.12*Math.max(power, 0.08);
@@ -524,16 +535,18 @@
         continue;
       }
 
-      it.vy += GRAVITY;
-      it.vx *= AIR_FRICTION;
-      it.vy *= AIR_FRICTION;
+      var targetX = it.restX || it.x;
+      var targetY = it.restY || it.y;
+      it.vx += (targetX - it.x) * 0.035;
+      it.vy += (targetY - it.y) * 0.035;
+      it.vx *= 0.82;
+      it.vy *= 0.82;
       it.x += it.vx;
       it.y += it.vy;
       it.rot += it.vr;
       it.vr *= 0.96;
 
-      var idleRestOffset = it.rest;
-      var idleTop = halfW, idleBottom = H - halfW - idleRestOffset;
+      var idleTop = halfW * 0.32, idleBottom = H - halfW * 0.32;
       if(it.y < idleTop){ it.y = idleTop; it.vy = Math.abs(it.vy)*DAMP_WALL; }
       if(it.y > idleBottom){
         it.y = idleBottom;
@@ -616,7 +629,7 @@
         it.baseX = it.x;
         var ny = (it.y - layer.clientHeight/2) / (layer.clientHeight/2 || 1);
         it.orb.th = Math.asin(Math.max(-1, Math.min(1, ny))) + (Math.random()-0.5)*0.8;
-        it.orb.r = Math.max(0.35, Math.min(0.98, Math.abs(ny) + Math.random()*0.35));
+        it.orb.r = Math.max(0.76, Math.min(1.08, Math.abs(ny) + 0.38 + Math.random()*0.28));
       }
     }
     if(!v && spinning){
