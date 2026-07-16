@@ -29,6 +29,7 @@ import {
   Grid,
   IconButton,
   InputAdornment,
+  MenuItem,
   Paper,
   Snackbar,
   Stack,
@@ -51,6 +52,21 @@ import AvatarUploadLogo from '../../upload/avatar/avatar-upload-logo';
 
 /* ===================== Types ===================== */
 
+/**
+ * Comportamiento del opt-in en la tablet/kiosko.
+ * '' = flujo normal · 'generic' = opt-in de promociones ·
+ * 'event' = pregunta Owner/Employee antes de registrar ·
+ * 'nsa' = pregunta Owner/Manager vs Seller/Brand después de registrar.
+ */
+export type SweepstakeOptinType = '' | 'generic' | 'event' | 'nsa';
+
+export const OPTIN_TYPE_OPTIONS: { value: SweepstakeOptinType; label: string; hint: string }[] = [
+  { value: '', label: 'Normal', hint: 'Registro directo, sin preguntas extra' },
+  { value: 'generic', label: 'Genérico (promociones)', hint: 'Opt-in de promociones de la tienda' },
+  { value: 'event', label: 'Evento — Owner / Employee', hint: 'Pregunta el rol ANTES de registrar' },
+  { value: 'nsa', label: 'NSA — Owner/Manager · Seller/Brand', hint: 'Pregunta el rol DESPUÉS de registrar' },
+];
+
 export type BriefFormValues = {
   name: string;
   description: string;
@@ -59,6 +75,7 @@ export type BriefFormValues = {
   winnersCount: number;
   image?: string;
   hasQr: boolean;
+  optinType?: SweepstakeOptinType;
   rules?: string;
   participationMessage: string;
   sweeptakeDescription?: string;
@@ -346,6 +363,7 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
       winnersCount: 1,
       image: '',
       hasQr: false,
+      optinType: '',
       rules: '',
       participationMessage: DEFAULT_MSG,
       sweeptakeDescription: '',
@@ -369,6 +387,7 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
         winnersCount: 1,
         image: '',
         hasQr: false,
+        optinType: '',
         rules: '',
         participationMessage: DEFAULT_MSG,
         sweeptakeDescription: '',
@@ -795,6 +814,49 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
                         }
                         label="¿Tiene QR en Ticket?"
                       />
+                    )}
+                  />
+                </Grid>
+
+                {/* Comportamiento del opt-in en la tablet/kiosko */}
+                <Grid
+                  item
+                  xs={12}
+                >
+                  <Controller
+                    name="optinType"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        value={field.value ?? ''}
+                        select
+                        fullWidth
+                        label="Tipo de opt-in (tablet)"
+                        helperText="Define qué pregunta la tablet al registrar un número"
+                      >
+                        {OPTIN_TYPE_OPTIONS.map((opt) => (
+                          <MenuItem
+                            key={opt.value || 'normal'}
+                            value={opt.value}
+                          >
+                            <Stack>
+                              <Typography
+                                variant="body2"
+                                fontWeight={700}
+                              >
+                                {opt.label}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                {opt.hint}
+                              </Typography>
+                            </Stack>
+                          </MenuItem>
+                        ))}
+                      </TextField>
                     )}
                   />
                 </Grid>
@@ -1400,6 +1462,7 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
                     endDate: null,
                     image: '',
                     hasQr: false,
+                    optinType: '',
                     rules: '',
                     participationMessage: DEFAULT_MSG,
                     sweeptakeDescription: '',

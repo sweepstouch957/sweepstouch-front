@@ -28,7 +28,7 @@ import {
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { BriefFormRHF } from '../application-ui/form-layouts/brief';
+import { BriefFormRHF, type SweepstakeOptinType } from '../application-ui/form-layouts/brief';
 import { DeadlineHeader } from '../application-ui/progress-indicators/dead-line';
 import { StepEditor } from '../application-ui/steppers/biref';
 import AvatarUploadLogo from '../application-ui/upload/avatar/avatar-upload-logo';
@@ -173,6 +173,8 @@ export default function SweepstakeChecklist({ sweepstakeId }: Props) {
       endDate: sweepstake.endDate || null,
       image: (sweepstake.image as string) || '',
       hasQr: Boolean(sweepstake.hasQr),
+      // Sin esto, guardar el brief pisaría el optinType existente ('event'/'nsa'/'generic')
+      optinType: ((sweepstake as any).optinType || '') as SweepstakeOptinType,
       rules: sweepstake.rules || '',
       participationMessage: sweepstake.participationMessage || '',
       sweeptakeDescription: sweepstake.description || '',

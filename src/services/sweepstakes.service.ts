@@ -138,6 +138,14 @@ export interface SweepstakeRegistrationsCountResponse {
 /* ===================== SWEEPSTAKES CLIENT ===================== */
 
 /** Exported participant row (for Excel) */
+/** Rol elegido en el modal NSA. Solo se llena si el sweepstake tiene optinType 'nsa'. */
+export type NsaRole = 'owner_manager' | 'seller_brand';
+
+export const NSA_ROLE_LABEL: Record<NsaRole, string> = {
+  owner_manager: 'Owner / Manager',
+  seller_brand: 'Seller / Brand',
+};
+
 export interface ExportedParticipant {
   phone: string;
   method: string;
@@ -145,6 +153,7 @@ export interface ExportedParticipant {
   registeredAt: string;
   participantNumber: number | null;
   coupon: string | null;
+  nsaRole?: NsaRole | null;
 }
 
 export interface DailyMetric {
@@ -473,7 +482,9 @@ export class SweepstakesClient {
     sweepstakeId?: string;
     startDate?: string;
     endDate?: string;
-  }): Promise<{ total: number; rows: ExportedParticipant[] }> {
+    // isNsa: el backend avisa si el sweepstake es optinType 'nsa' para mostrar/exportar
+    // la columna Owner/Seller solo cuando aplica.
+  }): Promise<{ total: number; rows: ExportedParticipant[]; isNsa?: boolean }> {
     const res = await api.get('/sweepstakes/participants/export', { params });
     return res.data;
   }
