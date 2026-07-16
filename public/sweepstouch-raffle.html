@@ -7,8 +7,9 @@
 <style>
   :root{
     --st-magenta:#F5087E;
-    --bg-deep:#8a0345;
-    --bg-mid:#c00458;
+    --button-magenta:#b90058;
+    --bg-deep:#120006;
+    --bg-mid:#69002c;
     --gold-1:#f9e08a;
     --gold-2:#d4a63b;
     --gold-3:#8a6a1d;
@@ -19,7 +20,7 @@
   html,body{width:100%;height:100%;overflow:hidden;}
   body{
     font-family:"Segoe UI", Arial, sans-serif;
-    background:radial-gradient(ellipse at 50% 35%, var(--bg-mid) 0%, var(--bg-deep) 60%, #5c022e 100%);
+    background:radial-gradient(ellipse at 50% 34%, #b20a55 0%, var(--bg-mid) 30%, var(--bg-deep) 66%, #030001 100%);
     display:flex;align-items:center;justify-content:center;
     user-select:none;
   }
@@ -29,11 +30,11 @@
   .frame{
     position:absolute;inset:28px;
     border-radius:48px;
-    border:4px solid #ff2f92;
+    border:4px solid var(--gold-2);
     box-shadow:
-      0 0 18px 4px rgba(255,47,146,.8),
-      0 0 60px 10px rgba(245,8,126,.45),
-      inset 0 0 24px 4px rgba(255,47,146,.55);
+      0 0 14px 3px rgba(249,224,138,.82),
+      0 0 48px 8px rgba(212,166,59,.42),
+      inset 0 0 20px 3px rgba(249,224,138,.38);
   }
   .frame-gold{
     position:absolute;inset:48px;
@@ -173,7 +174,7 @@
   .row{display:flex;gap:22px;}
   .btn{
     min-width:clamp(128px,9vw,170px);padding:clamp(10px,1.1vw,14px) clamp(16px,1.8vw,26px);border-radius:999px;cursor:pointer;
-    font-family:inherit;font-size:clamp(15px,1.05vw,19px);font-weight:900;letter-spacing:.5px;color:var(--st-magenta);
+    font-family:inherit;font-size:clamp(15px,1.05vw,19px);font-weight:900;letter-spacing:.5px;color:var(--button-magenta);
     background:linear-gradient(180deg,#ffffff 0%,#fff7fb 52%,#ffffff 100%);
     border:2px solid var(--gold-1);
     text-transform:none;
