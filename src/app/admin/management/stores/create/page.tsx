@@ -299,9 +299,14 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
       ownerPhone: step2Data.ownerPhone,
       email: step2Data.ownerEmail || state.email || '',
       brand: state.brandId,
-      provider: 'bandwidth',
-      bandwidthPhoneNumber: '+18554594926',
-      bandwithId: 'c3799660-ff17-4e29-a41a-e53f2d8b3859',
+      // Toda tienda nueva nace en infobip. Bandwidth está deprecado.
+      // No seteamos infobipSenderId: sin él, el envío cae al sender global
+      // (INFOBIP_SENDER_ID del env). Hardcodearlo acá congelaría el número.
+      provider: 'infobip',
+      // ⛔️ DEPRECADO — creación con Bandwidth:
+      // provider: 'bandwidth',
+      // bandwidthPhoneNumber: '+18554594926',
+      // bandwithId: 'c3799660-ff17-4e29-a41a-e53f2d8b3859',
       socialMedia: {
         website: state.website || '',
         facebook: state.facebook || '',

@@ -679,7 +679,8 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
               disabled={!edit}
             >
               <MenuItem value="twilio">📞 Twilio</MenuItem>
-              <MenuItem value="bandwidth">📡 Bandwidth</MenuItem>
+              {/* ⛔️ DEPRECADO — Bandwidth ya no se usa, no se puede elegir en tiendas nuevas
+              <MenuItem value="bandwidth">📡 Bandwidth</MenuItem> */}
               <MenuItem value="infobip">⚡ Infobip</MenuItem>
             </TextField>
 

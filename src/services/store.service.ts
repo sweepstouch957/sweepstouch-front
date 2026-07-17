@@ -249,7 +249,8 @@ export const emptyStore: Store = {
   image: '',
   active: false,
   phoneNumber: '',
-  provider: 'twilio',
+  // Toda tienda nueva nace en infobip — bandwidth está deprecado
+  provider: 'infobip',
   createdAt: '',
   updatedAt: '',
   customerCount: 0,
