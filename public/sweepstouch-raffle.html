@@ -149,15 +149,17 @@
   }
   .ticket .brand{font-size:15px;text-transform:uppercase;}
   .ticket .num{font-size:11px;margin-top:4px;font-weight:600;letter-spacing:2px;opacity:.85;}
-  .t-magenta{background:url("/tombola-ticket.png") center/contain no-repeat;color:transparent;border-color:transparent;}
+  .t-magenta{background:url("/raffle-tickets/ticket2.svg") center/contain no-repeat;color:transparent;border-color:transparent;filter:none;}
   .t-cream{
-    background:url("/tombola-ticket.png") center/contain no-repeat;
+    background:url("/winner-ticket.png") center/contain no-repeat;
     color:transparent;border-color:transparent;box-shadow:0 4px 10px rgba(0,0,0,.28);
+    filter:none;
   }
-  .t-white{background:url("/tombola-ticket.png") center/contain no-repeat;color:transparent;border-color:transparent;}
+  .t-white{background:url("/winner-ticket.png") center/contain no-repeat;color:transparent;border-color:transparent;filter:none;}
   .t-teal{
-    background:url("/tombola-ticket.png") center/contain no-repeat;
+    background:url("/raffle-tickets/ticket2.svg") center/contain no-repeat;
     color:transparent;border-color:transparent;box-shadow:0 4px 10px rgba(0,0,0,.28);
+    filter:none;
   }
   .ticket .brand,.ticket .num,.t-cream .brand,.t-cream .num,.t-teal .brand,.t-teal .num{display:none;}
   .ball{
@@ -227,8 +229,8 @@
   .winner-overlay.show{display:flex;}
   .winner-card{
     position:relative;
-    width:min(94vw,1500px);
-    aspect-ratio:1741/874;
+    width:min(96vw,1700px);
+    aspect-ratio:1923/818;
     background:url("/winner-ticket.png") center/contain no-repeat;
     border:0;padding:0;text-align:center;color:#d80768;
     filter:drop-shadow(0 0 28px rgba(245,8,126,.75)) drop-shadow(0 18px 34px rgba(0,0,0,.45));
@@ -237,9 +239,9 @@
   @keyframes pop{from{transform:scale(.4);opacity:0;}to{transform:scale(1);opacity:1;}}
   .winner-card h2{display:none;}
   .winner-card .big{
-    position:absolute;left:29%;top:45%;width:69%;height:27%;
+    position:absolute;left:20%;top:24%;width:62%;height:25%;
     display:flex;align-items:center;justify-content:center;margin:0;
-    font-size:clamp(46px,6.4vw,108px);font-weight:950;letter-spacing:.02em;line-height:1;
+    font-size:clamp(44px,6.8vw,132px);font-weight:950;letter-spacing:.02em;line-height:1;
     color:#d80768;text-shadow:0 2px 0 #ffffff,0 0 12px rgba(245,8,126,.35);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
@@ -337,9 +339,9 @@
   @media (orientation:portrait) and (max-width:760px){
     .frame{inset:8px;border-radius:22px;border-width:3px;}
     .frame-gold{inset:19px;border-radius:17px;border-width:3px;}
-    .draw-header{top:max(16px,env(safe-area-inset-top));width:84vw;}
-    .draw-logo{width:min(350px,80vw);height:clamp(42px,15vw,70px);}
-    .counter{top:clamp(58px,9.8vh,88px);font-size:clamp(7px,2.1vw,10px);letter-spacing:.7px;}
+    .draw-header{top:max(34px,calc(env(safe-area-inset-top) + 24px));width:86vw;}
+    .draw-logo{width:min(390px,84vw);height:clamp(48px,16.5vw,76px);}
+    .counter{top:clamp(92px,13.5vh,118px);font-size:clamp(7px,2vw,10px);letter-spacing:.7px;}
     .drum-wrap{top:50%;width:min(124vw,68vh);}
     .controls{bottom:max(16px,env(safe-area-inset-bottom));width:92vw;}
     .row{gap:8px;flex-wrap:nowrap;}
@@ -351,10 +353,10 @@
   @media (orientation:landscape) and (max-height:560px){
     .frame{inset:7px;border-radius:22px;border-width:3px;}
     .frame-gold{inset:18px;border-radius:18px;border-width:3px;}
-    .draw-header{top:clamp(7px,1.8vh,12px);width:40vw;}
-    .draw-logo{width:min(285px,32vw);height:clamp(24px,6.8vh,40px);}
-    .counter{top:clamp(34px,8.6vh,46px);font-size:clamp(7px,1.65vh,9px);letter-spacing:.65px;}
-    .drum-wrap{top:49%;width:min(70vw,116vh);}
+    .draw-header{top:clamp(28px,7vh,42px);width:58vw;}
+    .draw-logo{width:min(390px,47vw);height:clamp(34px,10vh,56px);}
+    .counter{top:clamp(66px,15vh,88px);font-size:clamp(7px,1.8vh,10px);letter-spacing:.7px;}
+    .drum-wrap{top:53%;width:min(70vw,112vh);}
     .controls{bottom:max(18px,env(safe-area-inset-bottom));width:min(60vw,470px);}
     .row{gap:8px;flex-wrap:nowrap;}
     .btn{min-width:0;flex:1 1 0;padding:6px 9px;font-size:clamp(10px,2.25vh,12px);}
@@ -366,10 +368,10 @@
     .frame{inset:5px;border-radius:18px;border-width:2px;}
     .frame-gold{inset:14px;border-radius:15px;border-width:3px;}
     .bulb{width:10px;height:10px;}
-    .draw-header{top:5px;width:34vw;}
-    .draw-logo{width:min(220px,28vw);height:28px;}
-    .counter{top:29px;font-size:7px;letter-spacing:.5px;}
-    .drum-wrap{top:47%;width:min(58vw,96vh);}
+    .draw-header{top:24px;width:54vw;}
+    .draw-logo{width:min(330px,44vw);height:clamp(28px,9vh,42px);}
+    .counter{top:clamp(54px,15vh,68px);font-size:7px;letter-spacing:.5px;}
+    .drum-wrap{top:53%;width:min(58vw,92vh);}
     .controls{bottom:18px;width:min(52vw,380px);}
     .btn{padding:5px 7px;font-size:10px;}
   }
@@ -449,7 +451,7 @@
   var AIR_FRICTION  = 0.99;
   var GROUND_FRICTION = 0.90;
 
-  var TICKET_STYLES = ["t-magenta","t-cream","t-white","t-teal"];
+  var TICKET_STYLES = ["t-magenta","t-white","t-magenta","t-cream","t-magenta","t-white"];
   var BALL_COLORS   = ["#f5087e","#ffd166","#67c6ac","#fdf3f8","#ff8fc2","#efe3c2"];
 
   /* ================= STATE ================= */
@@ -466,20 +468,23 @@
   var lastStepTs = 0;
 
   function getPerfProfile(){
-    var shortSide = Math.min(window.innerWidth || 0, window.innerHeight || 0);
+    var vw = window.innerWidth || 0;
+    var vh = window.innerHeight || 0;
+    var shortSide = Math.min(vw, vh);
     var coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
     var compact = shortSide <= 760 || coarse;
     var tiny = shortSide <= 520;
+    var desktopConfetti = Math.round(Math.max(900, Math.min(1700, (vw * vh) / 1400)));
     return {
       compact: compact,
       tiny: tiny,
       frameMs: 16,
-      speedBoost: 1.55,
-      visualItems: Math.max(tiny ? 88 : compact ? 118 : 200, Math.min(PARTICIPANTS.length || 0, tiny ? 110 : compact ? 148 : 240)),
-      confetti: tiny ? 70 : compact ? 110 : 220,
-      bulbGapMin: tiny ? 52 : compact ? 48 : 42,
-      bulbGapMax: tiny ? 84 : compact ? 78 : 68,
-      ticketScale: tiny ? 0.40 : compact ? 0.52 : Math.max(0.72, Math.min(1, shortSide / 900))
+      speedBoost: tiny ? 2.35 : compact ? 2.05 : 1.55,
+      visualItems: Math.max(tiny ? 190 : compact ? 235 : 820, Math.min(PARTICIPANTS.length || 0, tiny ? 230 : compact ? 285 : 940)),
+      confetti: tiny ? 520 : compact ? 760 : desktopConfetti,
+      bulbGapMin: tiny ? 19 : compact ? 22 : 42,
+      bulbGapMax: tiny ? 30 : compact ? 34 : 68,
+      ticketScale: tiny ? 0.28 : compact ? 0.36 : 1
     };
   }
 
@@ -893,14 +898,14 @@
     var total = perf.confetti || 220;
     for(var i=0;i<total;i++){
       confetti.push({
-        x: innerWidth/2 + (Math.random()-0.5)*300,
-        y: innerHeight*0.28,
-        vx: (Math.random()-0.5)*14,
-        vy: -Math.random()*13 - 3,
-        w: 6+Math.random()*7, h: 8+Math.random()*8,
+        x: Math.random()*innerWidth,
+        y: -30 + Math.random()*innerHeight*.32,
+        vx: (Math.random()-0.5)*18,
+        vy: -Math.random()*15 - 2,
+        w: 5+Math.random()*9, h: 8+Math.random()*10,
         rot: Math.random()*360, vr:(Math.random()-0.5)*18,
         color: colors[Math.floor(Math.random()*colors.length)],
-        life: 220
+        life: 260 + Math.random()*70
       });
     }
     if(!confettiRunning){ confettiRunning = true; confettiStep(); }
@@ -931,7 +936,7 @@
     var stage = document.querySelector(".stage");
     var w = stage.clientWidth, h = stage.clientHeight;
     var margin = Math.max(18, Math.min(34, Math.min(w,h) * 0.018));
-    var gap = Math.max(perf.bulbGapMin || 42, Math.min(perf.bulbGapMax || 68, Math.min(w,h) / (perf.compact ? 8.5 : 12)));
+    var gap = Math.max(perf.bulbGapMin || 42, Math.min(perf.bulbGapMax || 68, Math.min(w,h) / (perf.compact ? 4.4 : 12)));
     var bulbSize = perf.compact ? 12 : 18;
     function addBulb(x,y,delay){
       var b = document.createElement("div");
