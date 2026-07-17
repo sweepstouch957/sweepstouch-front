@@ -141,23 +141,25 @@
   .ticket{
     width:120px;height:58px;border-radius:6px;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:url("/tombola-ticket.png") center/contain no-repeat;
     box-shadow:0 3px 8px rgba(0,0,0,.28);
-    border:2px dashed rgba(0,0,0,.18);
+    border:0;
     font-weight:800;letter-spacing:.4px;text-align:center;line-height:1;
+    color:transparent;
   }
   .ticket .brand{font-size:15px;text-transform:uppercase;}
   .ticket .num{font-size:11px;margin-top:4px;font-weight:600;letter-spacing:2px;opacity:.85;}
-  .t-magenta{background:#e0176f;color:#fff;border-color:rgba(255,255,255,.55);}
+  .t-magenta{background:url("/tombola-ticket.png") center/contain no-repeat;color:transparent;border-color:transparent;}
   .t-cream{
-    background:url("/winner-ticket.png") center/contain no-repeat;
+    background:url("/tombola-ticket.png") center/contain no-repeat;
     color:transparent;border-color:transparent;box-shadow:0 4px 10px rgba(0,0,0,.28);
   }
-  .t-white{background:#fdf3f8;color:#e0176f;border-color:rgba(224,23,111,.4);}
+  .t-white{background:url("/tombola-ticket.png") center/contain no-repeat;color:transparent;border-color:transparent;}
   .t-teal{
-    background:url("/winner-ticket.png") center/contain no-repeat;
+    background:url("/tombola-ticket.png") center/contain no-repeat;
     color:transparent;border-color:transparent;box-shadow:0 4px 10px rgba(0,0,0,.28);
   }
-  .t-cream .brand,.t-cream .num,.t-teal .brand,.t-teal .num{display:none;}
+  .ticket .brand,.ticket .num,.t-cream .brand,.t-cream .num,.t-teal .brand,.t-teal .num{display:none;}
   .ball{
     width:56px;height:56px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;
@@ -167,6 +169,15 @@
   .ball .n{background:rgba(255,255,255,.85);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;}
 
   /* ============ CONTROLS ============ */
+  .fullscreen-btn{
+    position:fixed;right:max(12px,env(safe-area-inset-right));top:max(12px,env(safe-area-inset-top));
+    z-index:35;padding:8px 12px;border-radius:999px;border:1px solid rgba(249,224,138,.42);
+    background:rgba(255,255,255,.08);color:rgba(255,255,255,.72);font-size:12px;font-weight:800;
+    backdrop-filter:blur(6px);cursor:pointer;
+  }
+  .fullscreen-btn:hover{background:rgba(255,255,255,.16);color:#fff;}
+  :fullscreen .fullscreen-btn{display:none;}
+
   .controls{
     position:absolute;left:50%;bottom:8vh;transform:translateX(-50%);
     display:flex;flex-direction:column;gap:16px;align-items:center;z-index:20;
@@ -327,24 +338,40 @@
     .frame{inset:8px;border-radius:22px;border-width:3px;}
     .frame-gold{inset:19px;border-radius:17px;border-width:3px;}
     .draw-header{top:max(16px,env(safe-area-inset-top));width:84vw;}
-    .draw-logo{width:min(390px,84vw);height:clamp(48px,17vw,78px);}
-    .counter{top:clamp(66px,10.8vh,98px);font-size:clamp(8px,2.4vw,11px);letter-spacing:.8px;}
-    .drum-wrap{top:50.5%;width:min(136vw,72vh);}
+    .draw-logo{width:min(350px,80vw);height:clamp(42px,15vw,70px);}
+    .counter{top:clamp(58px,9.8vh,88px);font-size:clamp(7px,2.1vw,10px);letter-spacing:.7px;}
+    .drum-wrap{top:50%;width:min(124vw,68vh);}
     .controls{bottom:max(16px,env(safe-area-inset-bottom));width:92vw;}
     .row{gap:8px;flex-wrap:nowrap;}
     .btn{min-width:0;flex:1 1 0;padding:9px 8px;font-size:clamp(11px,3.2vw,13px);letter-spacing:.1px;}
+    .fullscreen-btn{padding:7px 10px;font-size:0;width:34px;height:34px;}
+    .fullscreen-btn::before{content:"\26F6";font-size:16px;color:rgba(255,255,255,.76);}
   }
 
   @media (orientation:landscape) and (max-height:560px){
     .frame{inset:7px;border-radius:22px;border-width:3px;}
     .frame-gold{inset:18px;border-radius:18px;border-width:3px;}
-    .draw-header{top:clamp(8px,2.6vh,18px);width:46vw;}
-    .draw-logo{width:min(360px,35vw);height:clamp(36px,8.2vh,58px);}
-    .counter{top:clamp(46px,11.5vh,64px);font-size:clamp(8px,1.8vh,10px);letter-spacing:.9px;}
-    .drum-wrap{top:52%;width:min(86vw,150vh);}
-    .controls{bottom:max(10px,env(safe-area-inset-bottom));width:70vw;}
-    .row{gap:10px;flex-wrap:nowrap;}
-    .btn{min-width:104px;padding:8px 12px;font-size:clamp(12px,2.8vh,14px);}
+    .draw-header{top:clamp(7px,1.8vh,12px);width:40vw;}
+    .draw-logo{width:min(285px,32vw);height:clamp(24px,6.8vh,40px);}
+    .counter{top:clamp(34px,8.6vh,46px);font-size:clamp(7px,1.65vh,9px);letter-spacing:.65px;}
+    .drum-wrap{top:49%;width:min(70vw,116vh);}
+    .controls{bottom:max(18px,env(safe-area-inset-bottom));width:min(60vw,470px);}
+    .row{gap:8px;flex-wrap:nowrap;}
+    .btn{min-width:0;flex:1 1 0;padding:6px 9px;font-size:clamp(10px,2.25vh,12px);}
+    .fullscreen-btn{padding:6px 9px;font-size:0;width:30px;height:30px;}
+    .fullscreen-btn::before{content:"\26F6";font-size:14px;color:rgba(255,255,255,.76);}
+  }
+
+  @media (orientation:landscape) and (max-height:430px){
+    .frame{inset:5px;border-radius:18px;border-width:2px;}
+    .frame-gold{inset:14px;border-radius:15px;border-width:3px;}
+    .bulb{width:10px;height:10px;}
+    .draw-header{top:5px;width:34vw;}
+    .draw-logo{width:min(220px,28vw);height:28px;}
+    .counter{top:29px;font-size:7px;letter-spacing:.5px;}
+    .drum-wrap{top:47%;width:min(58vw,96vh);}
+    .controls{bottom:18px;width:min(52vw,380px);}
+    .btn{padding:5px 7px;font-size:10px;}
   }
 
   @media (prefers-reduced-motion: reduce){
@@ -393,6 +420,7 @@
       <button class="btn" id="btnDestroy" disabled>Destroy</button>
     </div>
   </div>
+  <button class="fullscreen-btn" id="btnFullscreen" type="button">Pantalla completa</button>
 </div>
 
 <div class="winner-overlay" id="winnerOverlay">
@@ -445,12 +473,13 @@
     return {
       compact: compact,
       tiny: tiny,
-      frameMs: compact ? 33 : 16,
-      visualItems: Math.max(tiny ? 84 : compact ? 120 : 200, Math.min(PARTICIPANTS.length || 0, tiny ? 110 : compact ? 150 : 240)),
+      frameMs: 16,
+      speedBoost: 1.55,
+      visualItems: Math.max(tiny ? 88 : compact ? 118 : 200, Math.min(PARTICIPANTS.length || 0, tiny ? 110 : compact ? 148 : 240)),
       confetti: tiny ? 70 : compact ? 110 : 220,
       bulbGapMin: tiny ? 52 : compact ? 48 : 42,
       bulbGapMax: tiny ? 84 : compact ? 78 : 68,
-      ticketScale: tiny ? 0.74 : compact ? 0.84 : 1
+      ticketScale: tiny ? 0.40 : compact ? 0.52 : Math.max(0.72, Math.min(1, shortSide / 900))
     };
   }
 
@@ -526,6 +555,8 @@
       var it = {
         el: made.el, w: made.w, h: made.h, num: i, alive: true, participant: made.participant,
         baseX: W*0.08 + Math.random()*W*0.84,
+        spinX: W*0.05 + Math.random()*W*0.90,
+        spinLane: Math.random(),
         x: W*0.08 + Math.random()*W*0.84,
         y: H*0.06 + Math.random()*H*0.88,
         rest: 0,
@@ -592,14 +623,13 @@
   /* ================= PHYSICS ================= */
   // Contenedor: rectángulo con extremos redondeados (cápsula horizontal)
   function step(ts){
-    if(perf.frameMs > 16 && ts && lastStepTs && ts - lastStepTs < perf.frameMs){
-      requestAnimationFrame(step);
-      return;
-    }
-    lastStepTs = ts || performance.now();
+    var now = ts || performance.now();
+    var elapsed = lastStepTs ? Math.max(8, Math.min(40, now - lastStepTs)) : 16.67;
+    lastStepTs = now;
+    var frameBoost = Math.min(2.4, elapsed / 16.67) * (perf.speedBoost || 1);
     var cx = W/2, cy = H/2;
     if(stopping){
-      spinPower *= 0.985;
+      spinPower *= Math.pow(0.985, frameBoost);
       if(spinPower < 0.02){
         spinPower = 0;
         spinning = false;
@@ -624,11 +654,22 @@
         // Las órbitas cubren TODO el tambor (izquierda, centro y derecha),
         // así que nunca queda un lado vacío.
         var power = Math.max(spinPower, 0.02);
-        it.orb.th += it.orb.om * power;
-        var ay = H/2 - halfW*1.05;
-        var column = it.baseX || it.x || cx;
-        var tx = column + Math.sin(it.orb.th*2.2 + it.num)*32 + Math.sin(it.orb.th*0.6 + it.num)*14;
-        var ty = cy + Math.sin(it.orb.th)*ay*Math.min(1.08, it.orb.r);
+        it.orb.th += it.orb.om * power * frameBoost;
+        var fullFill = 1;
+        var phase = it.orb.th + it.spinLane*Math.PI*2;
+        var ay = H/2 + halfW * 0.18;
+        var column = fullFill
+          ? (it.spinX || (W*0.05 + Math.random()*W*0.9))
+          : (it.baseX || it.x || cx);
+        var depth = (Math.cos(phase) + 1) / 2;
+        var barrelSweep = (depth - 0.5) * W * 0.20;
+        var laneWave = Math.sin(it.orb.th*0.32 + it.num*0.41) * W * 0.13;
+        var tumbleWave = Math.sin(phase*2.6 + it.num*0.73) * W * 0.055;
+        var tx = column + barrelSweep + laneWave + tumbleWave;
+        var ty = cy + Math.sin(phase)*ay*1.04;
+        ty += Math.sin(phase*2.15 + it.num*0.7) * H * 0.075;
+        tx = Math.max(halfW * 0.08, Math.min(W - halfW * 0.08, tx));
+        ty = Math.max(halfW * -0.45, Math.min(H - halfW * -0.45, ty));
         // seguimiento suave hacia la órbita (guarda velocidad para la caída al detener)
         it.vx = (tx - it.x)*0.12*Math.max(power, 0.08);
         it.vy = (ty - it.y)*0.12*Math.max(power, 0.08);
@@ -636,10 +677,11 @@
         it.y += it.vy;
         it.vr += (Math.random()-0.5)*0.8*Math.max(power, 0.08);
         it.vr = Math.max(-6, Math.min(6, it.vr));
-        it.rot += it.vr * Math.max(power, 0.08);
-        var depth = (Math.cos(it.orb.th) + 1) / 2;
-        var scale = 0.82 + depth * 0.30;
+        it.rot += it.vr * Math.max(power, 0.08) * frameBoost;
+        var scale = 0.72 + depth * 0.46;
+        var opacity = 0.82 + depth * 0.18;
         it.el.style.zIndex = String(Math.round(depth * 100));
+        it.el.style.opacity = String(opacity);
         it.el.style.transform = "translate(" + (it.x - it.w/2) + "px," + (it.y - it.h/2) + "px) rotate(" + it.rot + "deg) scale(" + scale + ")";
         continue;
       }
@@ -736,6 +778,8 @@
         var it = items[i];
         if(!it.alive) continue;
         it.baseX = it.x;
+        it.spinX = W*0.04 + Math.random()*W*0.92;
+        it.spinLane = Math.random();
         var ny = (it.y - layer.clientHeight/2) / (layer.clientHeight/2 || 1);
         it.orb.th = Math.asin(Math.max(-1, Math.min(1, ny))) + (Math.random()-0.5)*0.8;
         it.orb.r = Math.max(0.76, Math.min(1.08, Math.abs(ny) + 0.38 + Math.random()*0.28));
@@ -754,6 +798,15 @@
 
   document.getElementById("btnToggle").addEventListener("click", function(){ setSpin(true); });
   document.getElementById("btnStop").addEventListener("click", function(){ setSpin(false); });
+
+  var fullscreenBtn = document.getElementById("btnFullscreen");
+  if(fullscreenBtn){
+    fullscreenBtn.addEventListener("click", function(){
+      var target = document.documentElement;
+      if(document.fullscreenElement) return;
+      if(target.requestFullscreen) target.requestFullscreen().catch(function(){});
+    });
+  }
 
   /* ================= MODES ================= */
   var modeButtons = document.querySelectorAll(".btn.mode");
