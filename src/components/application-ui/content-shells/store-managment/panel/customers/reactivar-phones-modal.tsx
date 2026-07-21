@@ -164,7 +164,6 @@ export default function ReactivarPhonesModal({
               alignItems: 'center',
               justifyContent: 'center',
               background: `linear-gradient(135deg, ${theme.palette.success.dark} 0%, ${theme.palette.success.main} 100%)`,
-              boxShadow: `0 4px 12px ${alpha(theme.palette.success.main, 0.4)}`,
             }}
           >
             <SettingsBackupRestoreRounded sx={{ color: 'white', fontSize: 20 }} />

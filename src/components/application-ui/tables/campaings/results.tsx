@@ -16,7 +16,6 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
-  LinearProgress,
   Skeleton,
   Stack,
   Table,
@@ -29,8 +28,7 @@ import {
   Tooltip,
   Typography,
   useMediaQuery,
-  useTheme,
-} from '@mui/material';
+  useTheme } from '@mui/material';
 import { format } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import numeral from 'numeral';
@@ -39,6 +37,8 @@ import type { FC } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SkeletonTableRow } from '../../skeleton/table/table';
 import CampaignsFilters from './CampaignsFilters';
+import type { Theme } from '@mui/material/styles';
+import { tint, tintBorder } from '@/theme/semantic';
 
 interface ResultsProps {
   campaigns: Campaing[];
@@ -60,19 +60,23 @@ const STATUS_CONFIG: Record<string, { label: string; color: 'warning' | 'success
   cancelled: { label: 'Cancelled', color: 'error' },
 };
 
-const PLATFORM_COLORS: Record<string, string> = {
-  bandwidth: '#2196f3',
-  infobip: '#e91e63',
-  twilio: '#f44336',
-};
+const platformColors = (theme: Theme): Record<string, string> => ({
+  bandwidth: theme.palette.info.main,
+  infobip: theme.palette.primary.main,
+  twilio: theme.palette.error.main,
+});
 
 const getStatusChip = (status: CampaingStatus) => {
   const cfg = STATUS_CONFIG[status] ?? { label: String(status), color: 'default' as const };
   return <Chip size="small" variant="outlined" label={cfg.label} color={cfg.color} />;
 };
 
-const getRateColor = (rate: number) =>
-  rate >= 90 ? '#10b981' : rate >= 75 ? '#f59e0b' : '#ef4444';
+const getRateColor = (theme: Theme, rate: number) =>
+  rate >= 90
+    ? theme.palette.success.main
+    : rate >= 75
+      ? theme.palette.warning.main
+      : theme.palette.error.main;
 
 // ─── Mobile Campaign Card ────────────────────────────────────────────────────
 
@@ -88,7 +92,7 @@ const CampaignCard: FC<CampaignCardProps> = ({ campaign, onStats, onEdit, onDele
   const sent = campaign?.sent ?? 0;
   const audience = campaign?.audience ?? 0;
   const rate = audience > 0 ? Math.round((sent / audience) * 100) : 0;
-  const rateColor = getRateColor(rate);
+  const rateColor = getRateColor(theme, rate);
 
   const localDate = campaign.startDate ? format(new Date(campaign.startDate), 'dd/MM/yy') : '-';
   const nyTime = campaign.startDate
@@ -99,12 +103,14 @@ const CampaignCard: FC<CampaignCardProps> = ({ campaign, onStats, onEdit, onDele
     <Card
       elevation={0}
       sx={{
-        borderRadius: 3,
         border: '1px solid',
         borderColor: 'divider',
         overflow: 'hidden',
-        transition: 'box-shadow 0.2s',
-        '&:hover': { boxShadow: theme.shadows[4] },
+        transition: 'border-color 0.2s, background-color 0.2s',
+        '&:hover': {
+          borderColor: tintBorder(theme, 'primary'),
+          bgcolor: tint(theme, 'primary', 0.04),
+        },
       }}
     >
       {/* Rate accent bar */}
@@ -145,8 +151,11 @@ const CampaignCard: FC<CampaignCardProps> = ({ campaign, onStats, onEdit, onDele
                     fontSize: 10,
                     fontWeight: 700,
                     textTransform: 'capitalize',
-                    bgcolor: alpha(PLATFORM_COLORS[campaign.platform] ?? '#9e9e9e', 0.12),
-                    color: PLATFORM_COLORS[campaign.platform] ?? 'text.secondary',
+                    bgcolor: alpha(
+                      platformColors(theme)[campaign.platform] ?? theme.palette.text.secondary,
+                      0.12
+                    ),
+                    color: platformColors(theme)[campaign.platform] ?? 'text.secondary',
                   }}
                 />
               )}
@@ -342,10 +351,8 @@ const Results: FC<ResultsProps> = ({
   return (
     <Card
       sx={{
-        borderRadius: 3,
         overflow: 'hidden',
         border: `1px solid ${theme.palette.divider}`,
-        boxShadow: `0 12px 32px rgba(0,0,0,0.10)`,
       }}
     >
       <CampaignsFilters filters={filters} setFilters={setFilters} storeId={storeId} />
@@ -418,12 +425,14 @@ const Results: FC<ResultsProps> = ({
                     const sent = campaign?.sent ?? 0;
                     const audience = campaign?.audience ?? 0;
                     const rate = audience > 0 ? Math.round((sent / audience) * 100) : 0;
-                    const rateColor = getRateColor(rate);
+                    const rateColor = getRateColor(theme, rate);
                     const localDate = campaign.startDate ? format(new Date(campaign.startDate), 'dd/MM/yy') : '-';
                     const nyTime = campaign.startDate
                       ? formatInTimeZone(new Date(campaign.startDate), 'America/New_York', 'hh:mm a')
                       : null;
-                    const platformColor = campaign.platform ? (PLATFORM_COLORS[campaign.platform] ?? '#9e9e9e') : null;
+                    const platformColor = campaign.platform
+                      ? (platformColors(theme)[campaign.platform] ?? theme.palette.text.disabled)
+                      : null;
 
                     return (
                       <TableRow
@@ -502,7 +511,7 @@ const Results: FC<ResultsProps> = ({
                         <TableCell onClick={(e) => e.stopPropagation()}>
                           {campaign.platform ? (
                             <Stack direction="row" spacing={0.75} alignItems="center" sx={{ minWidth: 0 }}>
-                              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: platformColor ?? '#9e9e9e', flexShrink: 0 }} />
+                              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: platformColor ?? 'text.disabled', flexShrink: 0 }} />
                               <Typography variant="caption" fontWeight={700} textTransform="capitalize" noWrap>
                                 {campaign.platform}
                               </Typography>

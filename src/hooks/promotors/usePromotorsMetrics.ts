@@ -5,13 +5,10 @@ import {
   getPromoterRanking,
   promoterService,
   getDailyRegistrations,
-  type ParticipationOverview,
-  type PromoterRankingResponse,
-  type DailyRegistrationsResponse,
-} from '@/services/promotor.service';
+  type ParticipationOverview } from '@/services/promotor.service';
 import { useQuery } from '@tanstack/react-query';
 import { endOfDay, startOfDay, startOfMonth, startOfWeek, subDays } from 'date-fns';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 export type MetricsPeriod = 'today' | 'week' | 'month';
 

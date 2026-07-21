@@ -74,7 +74,6 @@ const ShiftCard = ({ row, usd, openPreview, openEdit, openDelete }: ShiftCardPro
   return (
     <Card
       sx={{
-        borderRadius: 3,
         border: '1px solid',
         borderColor: 'divider',
         overflow: 'hidden',
@@ -189,7 +188,7 @@ const ShiftCard = ({ row, usd, openPreview, openEdit, openDelete }: ShiftCardPro
 };
 
 const SkeletonCard = () => (
-  <Card sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
+  <Card sx={{ border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
     <Skeleton variant="rectangular" height={4} />
     <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={1.5}>

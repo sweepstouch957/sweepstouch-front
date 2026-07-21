@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Box, Typography, Stack, Chip, IconButton, Tooltip } from '@mui/material';
 import TerminalIcon from '@mui/icons-material/Terminal';
 import CircleIcon from '@mui/icons-material/Circle';
@@ -32,6 +32,31 @@ const EVENT_LABEL: Record<string, string> = {
   validated: 'Validada (QR)',
   cancelled: 'Cancelada',
 };
+
+/**
+ * Chrome de la CONSOLA. No son tokens del theme a propósito: este widget imita
+ * una terminal y se mantiene oscuro en light y dark mode (igual que un editor de
+ * código embebido). Se centralizan acá para que no haya hex sueltos en el JSX.
+ */
+const TERM = {
+  bg: '#0b1020',
+  headerBg: '#0e1530',
+  border: 'rgba(255,255,255,0.08)',
+  headerBorder: 'rgba(255,255,255,0.06)',
+  text: '#e2e8f0',
+  muted: '#cbd5e1',
+  dim: '#94a3b8',
+  faint: '#64748b',
+  timestamp: '#475569',
+  accent: '#7dd3fc',
+  online: '#22c55e',
+  priority: '#f9a8d4',
+  priorityLine: '#ec4899',
+  priorityBg: 'rgba(236,72,153,0.10)',
+  priorityBgActive: 'rgba(236,72,153,0.25)',
+  priorityBgHover: 'rgba(236,72,153,0.15)',
+  priorityBorder: 'rgba(236,72,153,0.4)',
+} as const;
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_NOTIFICATION_URL || 'http://localhost:4008';
 const usd = (c?: number) =>
@@ -103,9 +128,8 @@ export default function SupportOrderFeed() {
       sx={{
         borderRadius: '14px',
         overflow: 'hidden',
-        border: '1px solid rgba(255,255,255,0.08)',
-        boxShadow: '0 8px 30px rgba(0,0,0,0.28)',
-        bgcolor: '#0b1020',
+        border: `1px solid ${TERM.border}`,
+        bgcolor: TERM.bg,
       }}
     >
       {/* Header */}
@@ -113,17 +137,17 @@ export default function SupportOrderFeed() {
         direction="row"
         alignItems="center"
         spacing={1.25}
-        sx={{ px: 2, py: 1.1, bgcolor: '#0e1530', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+        sx={{ px: 2, py: 1.1, bgcolor: TERM.headerBg, borderBottom: `1px solid ${TERM.headerBorder}` }}
       >
-        <TerminalIcon sx={{ color: '#7dd3fc', fontSize: 19 }} />
-        <Typography sx={{ color: '#e2e8f0', fontWeight: 800, fontSize: 13.5, fontFamily: 'monospace' }}>
+        <TerminalIcon sx={{ color: TERM.accent, fontSize: 19 }} />
+        <Typography sx={{ color: TERM.text, fontWeight: 800, fontSize: 13.5, fontFamily: 'monospace' }}>
           soporte · pedidos en vivo
         </Typography>
         <Tooltip title={connected ? 'En vivo' : 'Conectando…'}>
           <CircleIcon
             sx={{
               fontSize: 10,
-              color: connected ? '#22c55e' : '#64748b',
+              color: connected ? TERM.online : TERM.faint,
               '@keyframes livedot': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.35 } },
               animation: connected ? 'livedot 1.5s ease-in-out infinite' : 'none',
             }}
@@ -139,14 +163,14 @@ export default function SupportOrderFeed() {
             fontSize: 10.5,
             fontFamily: 'monospace',
             cursor: 'pointer',
-            bgcolor: onlyPriority ? 'rgba(236,72,153,0.25)' : 'transparent',
-            color: '#f9a8d4',
-            border: '1px solid rgba(236,72,153,0.4)',
-            '&:hover': { bgcolor: 'rgba(236,72,153,0.15)' },
+            bgcolor: onlyPriority ? TERM.priorityBgActive : 'transparent',
+            color: TERM.priority,
+            border: `1px solid ${TERM.priorityBorder}`,
+            '&:hover': { bgcolor: TERM.priorityBgHover },
           }}
         />
         <Tooltip title="Limpiar">
-          <IconButton size="small" onClick={() => setEvents([])} sx={{ color: '#94a3b8' }}>
+          <IconButton size="small" onClick={() => setEvents([])} sx={{ color: TERM.dim }}>
             <DeleteSweepIcon sx={{ fontSize: 18 }} />
           </IconButton>
         </Tooltip>
@@ -167,11 +191,11 @@ export default function SupportOrderFeed() {
           fontFamily: 'monospace',
           fontSize: 12.5,
           lineHeight: 1.7,
-          bgcolor: '#0b1020',
+          bgcolor: TERM.bg,
         }}
       >
         {shown.length === 0 ? (
-          <Typography sx={{ color: '#64748b', fontFamily: 'monospace', fontSize: 12.5 }}>
+          <Typography sx={{ color: TERM.faint, fontFamily: 'monospace', fontSize: 12.5 }}>
             {'// esperando cambios de estado…'}
           </Typography>
         ) : (
@@ -187,17 +211,17 @@ export default function SupportOrderFeed() {
                 py: e.paidOnline ? 0.25 : 0,
                 my: e.paidOnline ? 0.25 : 0,
                 borderRadius: e.paidOnline ? 1 : 0,
-                bgcolor: e.paidOnline ? 'rgba(236,72,153,0.10)' : 'transparent',
-                borderLeft: e.paidOnline ? '2px solid #ec4899' : '2px solid transparent',
+                bgcolor: e.paidOnline ? TERM.priorityBg : 'transparent',
+                borderLeft: e.paidOnline ? `2px solid ${TERM.priorityLine}` : '2px solid transparent',
               }}
             >
-              <span style={{ color: '#475569' }}>
+              <span style={{ color: TERM.timestamp }}>
                 {new Date(e.ts).toLocaleTimeString('es-US', { hour12: false })}
               </span>
-              {e.paidOnline ? <span style={{ color: '#f9a8d4', fontWeight: 800 }}>⚡</span> : null}
-              <span style={{ color: '#7dd3fc', minWidth: 120 }}>{e.storeName || '—'}</span>
-              <span style={{ color: '#e2e8f0', fontWeight: 700, minWidth: 96 }}>{e.orderNumber || '—'}</span>
-              <span style={{ color: e.paidOnline ? '#f9a8d4' : '#cbd5e1', flex: 1 }}>
+              {e.paidOnline ? <span style={{ color: TERM.priority, fontWeight: 800 }}>⚡</span> : null}
+              <span style={{ color: TERM.accent, minWidth: 120 }}>{e.storeName || '—'}</span>
+              <span style={{ color: TERM.text, fontWeight: 700, minWidth: 96 }}>{e.orderNumber || '—'}</span>
+              <span style={{ color: e.paidOnline ? TERM.priority : TERM.muted, flex: 1 }}>
                 {EVENT_LABEL[e.event] || e.event}
                 {e.customerName ? `  ·  ${e.customerName}` : ''}
                 {typeof e.totalCents === 'number' ? `  ·  ${usd(e.totalCents)}` : ''}

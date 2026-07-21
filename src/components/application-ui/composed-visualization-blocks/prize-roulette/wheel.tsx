@@ -1,20 +1,15 @@
+import { useTheme } from '@mui/material/styles';
+import { chartPalette } from 'src/theme/semantic';
+
 /* ===================== Wheel SVG ===================== */
 export function WheelSvg({ rotationDeg, size = 340 }: { rotationDeg: number; size?: number }) {
+  const theme = useTheme();
   const cx = size / 2;
   const cy = size / 2;
   const r = Math.floor(size * 0.46);
   const segments = 8;
 
-  const colors = [
-    '#E11D48',
-    '#2563EB',
-    '#F59E0B',
-    '#10B981',
-    '#7C3AED',
-    '#DB2777',
-    '#06B6D4',
-    '#EAB308',
-  ];
+  const colors = chartPalette(theme);
 
   const paths = Array.from({ length: segments }).map((_, i) => {
     const a0 = (i * 2 * Math.PI) / segments - Math.PI / 2;
@@ -132,7 +127,7 @@ export function WheelSvg({ rotationDeg, size = 340 }: { rotationDeg: number; siz
         cx={cx}
         cy={cy}
         r={10}
-        fill="#111827"
+        fill={theme.palette.common.black}
         opacity={0.15}
       />
     </svg>

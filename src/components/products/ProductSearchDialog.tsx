@@ -12,7 +12,6 @@ import {
   Card,
   CardMedia,
   CardContent,
-  CardActions,
   Typography,
   CircularProgress,
   IconButton,
@@ -25,17 +24,14 @@ import {
   Backdrop,
   Fade,
   Tooltip,
-  Badge,
   Divider,
   useTheme,
-  alpha,
-} from '@mui/material';
+  alpha } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ImageNotSupportedIcon from '@mui/icons-material/ImageNotSupported';
-import CategoryIcon from '@mui/icons-material/Category';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import {

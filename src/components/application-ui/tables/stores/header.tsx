@@ -23,6 +23,8 @@ import {
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
+import type { Theme } from '@mui/material/styles';
+import { tint, tintBorder } from '@/theme/semantic';
 
 export type BillingBucketSummary = {
   count: number;
@@ -57,13 +59,13 @@ function formatMoney(value: number) {
   }).format(value || 0);
 }
 
-const BUCKET_CONFIGS = [
-  { key: 'ok',       label: 'OK',       subtitle: '0 sem', color: '#10B981', tooltip: 'Tiendas al día — sin semanas de retraso' },
-  { key: 'min_low',  label: 'MIN LOW',  subtitle: '1 sem', color: '#64748B', tooltip: '1 semana de retraso — deuda mínima, monitorear' },
-  { key: 'low',      label: 'LOW',      subtitle: '2 sem', color: '#D97706', tooltip: '2 semanas de retraso — deuda baja, contactar pronto' },
-  { key: 'mid',      label: 'MID',      subtitle: '3 sem', color: '#EA580C', tooltip: '3 semanas de retraso — atención recomendada' },
-  { key: 'high',     label: 'HIGH',     subtitle: '4 sem', color: '#E11D48', tooltip: '4 semanas de retraso — acción urgente requerida' },
-  { key: 'critical', label: 'CRITICAL', subtitle: '5+',    color: '#7F1D1D', tooltip: '5 o más semanas — deuda crítica, acción inmediata' },
+const bucketConfigs = (theme: Theme) => [
+  { key: 'ok',       label: 'OK',       subtitle: '0 sem', color: theme.palette.success.main,   tooltip: 'Tiendas al día — sin semanas de retraso' },
+  { key: 'min_low',  label: 'MIN LOW',  subtitle: '1 sem', color: theme.palette.text.secondary, tooltip: '1 semana de retraso — deuda mínima, monitorear' },
+  { key: 'low',      label: 'LOW',      subtitle: '2 sem', color: theme.palette.warning.main,   tooltip: '2 semanas de retraso — deuda baja, contactar pronto' },
+  { key: 'mid',      label: 'MID',      subtitle: '3 sem', color: theme.palette.warning.dark,   tooltip: '3 semanas de retraso — atención recomendada' },
+  { key: 'high',     label: 'HIGH',     subtitle: '4 sem', color: theme.palette.error.main,     tooltip: '4 semanas de retraso — acción urgente requerida' },
+  { key: 'critical', label: 'CRITICAL', subtitle: '5+',    color: theme.palette.error.dark,     tooltip: '5 o más semanas — deuda crítica, acción inmediata' },
 ] as const;
 
 export function StoresBillingHeader({ status = 'all', onFilterByDebt, activeDebtStatus }: Props) {
@@ -143,25 +145,25 @@ export function StoresBillingHeader({ status = 'all', onFilterByDebt, activeDebt
             />
             <Chip
               size="small"
-              icon={<CheckCircleOutlineRoundedIcon sx={{ fontSize: '13px !important', color: '#10B981 !important' }} />}
+              icon={<CheckCircleOutlineRoundedIcon sx={{ fontSize: '13px !important', color: `${theme.palette.success.main} !important` }} />}
               label={`${okCount} al día`}
               sx={{
                 fontSize: 11, fontWeight: 700, height: 24,
-                bgcolor: alpha('#10B981', theme.palette.mode === 'dark' ? 0.18 : 0.1),
-                color: '#10B981',
-                border: '1px solid', borderColor: alpha('#10B981', 0.35),
+                bgcolor: tint(theme, 'success', theme.palette.mode === 'dark' ? 0.18 : 0.1),
+                color: 'success.main',
+                border: '1px solid', borderColor: tintBorder(theme, 'success', 0.35),
               }}
             />
             {issueCount > 0 && (
               <Chip
                 size="small"
-                icon={<WarningAmberRoundedIcon sx={{ fontSize: '13px !important', color: '#E11D48 !important' }} />}
+                icon={<WarningAmberRoundedIcon sx={{ fontSize: '13px !important', color: `${theme.palette.error.main} !important` }} />}
                 label={`${issueCount} con deuda`}
                 sx={{
                   fontSize: 11, fontWeight: 700, height: 24,
-                  bgcolor: alpha('#E11D48', theme.palette.mode === 'dark' ? 0.18 : 0.08),
-                  color: '#E11D48',
-                  border: '1px solid', borderColor: alpha('#E11D48', 0.3),
+                  bgcolor: tint(theme, 'error', theme.palette.mode === 'dark' ? 0.18 : 0.08),
+                  color: 'error.main',
+                  border: '1px solid', borderColor: tintBorder(theme, 'error', 0.3),
                 }}
               />
             )}
@@ -210,7 +212,7 @@ export function StoresBillingHeader({ status = 'all', onFilterByDebt, activeDebt
             flexWrap: 'wrap',
           }}
         >
-          {BUCKET_CONFIGS.map((cfg) => {
+          {bucketConfigs(theme).map((cfg) => {
             const bucket = data?.[cfg.key] as BillingBucketSummary | undefined;
             const isActive = activeDebtStatus === cfg.key;
             return (
@@ -226,9 +228,10 @@ export function StoresBillingHeader({ status = 'all', onFilterByDebt, activeDebt
                     border: '2px solid',
                     borderColor: isActive ? cfg.color : alpha(cfg.color, 0.3),
                     cursor: onFilterByDebt ? 'pointer' : 'default',
-                    transition: 'box-shadow 0.15s, transform 0.15s, border-color 0.15s',
+                    transition: 'background-color 0.15s, transform 0.15s, border-color 0.15s',
                     '&:hover': onFilterByDebt ? {
-                      boxShadow: `0 4px 14px ${alpha(cfg.color, 0.35)}`,
+                      borderColor: alpha(cfg.color, 0.6),
+                      bgcolor: alpha(cfg.color, theme.palette.mode === 'dark' ? 0.24 : 0.13),
                       transform: 'translateY(-1px)',
                     } : {},
                   }}

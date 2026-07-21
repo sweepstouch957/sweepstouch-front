@@ -133,7 +133,7 @@ export default function BillingFilters({
   const [openStores, setOpenStores] = React.useState(false);
   const bgSoft =
     theme.palette.mode === 'dark'
-      ? alpha(theme.palette.neutral?.[25] ?? '#fff', 0.04)
+      ? alpha(theme.palette.neutral?.[25] ?? theme.palette.common.white, 0.04)
       : 'neutral.25';
 
   /* ====== Quick ranges ====== */
@@ -556,7 +556,7 @@ export default function BillingFilters({
           sx={{
             bgcolor:
               theme.palette.mode === 'dark'
-                ? alpha(theme.palette.neutral?.[25] ?? '#fff', 0.04)
+                ? alpha(theme.palette.neutral?.[25] ?? theme.palette.common.white, 0.04)
                 : 'neutral.25',
             p: 1,
             borderRadius: 2,

@@ -9,16 +9,14 @@
  */
 
 import React, {
-  FC, useCallback, useEffect, useMemo, useRef, useState,
-} from 'react';
+  FC, useCallback, useEffect, useRef, useState } from 'react';
 import {
   alpha, Avatar, Box, Chip, CircularProgress, Dialog, Divider,
   IconButton, InputAdornment, Stack, TextField, Tooltip, Typography, useTheme,
 } from '@mui/material';
 import {
-  AutoAwesome, CheckCircleOutline, Close, KeyboardReturn,
-  SearchRounded, StoreRounded,
-} from '@mui/icons-material';
+  AutoAwesome, Close, KeyboardReturn,
+  SearchRounded, StoreRounded } from '@mui/icons-material';
 import Link from 'next/link';
 import { api } from '@/libs/axios';
 import { Store } from '@/services/store.service';
@@ -127,8 +125,7 @@ const ResultRow: FC<{
           {store.active !== undefined && (
             <Box sx={{
               width: 7, height: 7, borderRadius: '50%',
-              bgcolor: store.active ? '#4ade80' : '#9ca3af',
-              boxShadow: store.active ? `0 0 4px ${alpha('#4ade80', 0.6)}` : 'none',
+              bgcolor: store.active ? 'success.main' : 'text.disabled',
             }} />
           )}
           {store.customerCount !== undefined && (
@@ -238,16 +235,16 @@ export const StoreCommandPalette: FC<Props> = ({ open, onClose, onSelectSearch }
           overflow: 'hidden',
           border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
           background: isDark
-            ? `linear-gradient(160deg, ${alpha('#0f172a', 0.98)} 0%, ${alpha('#1e293b', 0.95)} 100%)`
+            ? `linear-gradient(160deg, ${alpha(theme.palette.background.default, 0.98)} 0%, ${alpha(theme.palette.background.paper, 0.95)} 100%)`
             : theme.palette.background.paper,
           backdropFilter: 'blur(20px)',
-          boxShadow: `0 24px 80px ${alpha('#000', isDark ? 0.5 : 0.15)}, 0 0 0 1px ${alpha(theme.palette.primary.main, 0.1)}`,
+          boxShadow: `0 24px 80px ${alpha(theme.palette.common.black, isDark ? 0.5 : 0.15)}, 0 0 0 1px ${alpha(theme.palette.primary.main, 0.1)}`,
           mt: { xs: '5vh', sm: '12vh' },
           alignSelf: 'flex-start',
           mx: { xs: 1.5, sm: 'auto' },
         },
       }}
-      sx={{ '& .MuiBackdrop-root': { backdropFilter: 'blur(4px)', bgcolor: alpha('#000', 0.4) } }}
+      sx={{ '& .MuiBackdrop-root': { backdropFilter: 'blur(4px)', bgcolor: alpha(theme.palette.common.black, 0.4) } }}
     >
       {/* Search input */}
       <Box sx={{

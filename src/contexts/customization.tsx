@@ -2,7 +2,7 @@ import isEqual from 'lodash.isequal';
 
 import type { FC, ReactNode } from 'react';
 import { useCallback, useMemo, useState } from 'react';
-import { CustomizationContext, type CustomizationContextType } from './customization-context';
+import { CustomizationContext } from './customization-context';
 import { type Customization, type Layout, type State } from './customization-types';
 
 export type { Layout, Customization, State };

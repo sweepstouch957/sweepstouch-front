@@ -78,12 +78,10 @@ interface CustomerHit {
 const SummaryRow = ({
   label,
   value,
-  isDark,
   even,
 }: {
   label: string;
   value: React.ReactNode;
-  isDark: boolean;
   even: boolean;
 }) => (
   <Box
@@ -93,7 +91,7 @@ const SummaryRow = ({
       alignItems: 'center',
       px: 2,
       py: 0.75,
-      bgcolor: even ? (isDark ? alpha('#fff', 0.02) : alpha('#000', 0.016)) : 'transparent',
+      bgcolor: even ? 'action.hover' : 'transparent',
     }}
   >
     <Typography
@@ -309,9 +307,9 @@ export default function SendTestMessagePage({
   }
 
   /* ── Tokens ────────────────────────────────────── */
-  const bg = isDark ? '#0d1117' : '#f4f6f9';
-  const surface = isDark ? '#161b22' : '#ffffff';
-  const border = isDark ? alpha('#fff', 0.07) : alpha('#000', 0.07);
+  const bg = theme.palette.background.default;
+  const surface = theme.palette.background.paper;
+  const border = theme.palette.divider;
   const accent = theme.palette.primary.main;
   const accentGlow = alpha(accent, isDark ? 0.12 : 0.06);
 
@@ -681,7 +679,7 @@ export default function SendTestMessagePage({
                                     px: 1.5,
                                     py: 0.75,
                                     borderRadius: 1.5,
-                                    bgcolor: isDark ? alpha('#fff', 0.03) : alpha('#000', 0.02),
+                                    bgcolor: 'action.hover',
                                     border: `1px solid ${border}`,
                                   }}
                                 >
@@ -904,8 +902,8 @@ export default function SendTestMessagePage({
                 background: canSend
                   ? `linear-gradient(135deg, ${accent} 0%, ${theme.palette.primary.dark} 100%)`
                   : undefined,
-                boxShadow: canSend ? `0 4px 20px ${alpha(accent, 0.35)}` : 'none',
-                '&:hover': { boxShadow: canSend ? `0 6px 28px ${alpha(accent, 0.45)}` : 'none' },
+                boxShadow: 'none',
+                '&:hover': { boxShadow: 'none' },
               }}
             >
               {sendMutation.isPending
@@ -974,7 +972,7 @@ export default function SendTestMessagePage({
                     const urls = sentPreview.message.match(urlRegex);
                     if (!urls || urls.length === 0) return null;
                     return (
-                      <Box sx={{ mt: 2, p: 1.5, borderRadius: 2, bgcolor: isDark ? alpha('#fff', 0.03) : alpha('#000', 0.02), border: `1px solid ${border}` }}>
+                      <Box sx={{ mt: 2, p: 1.5, borderRadius: 2, bgcolor: 'action.hover', border: `1px solid ${border}` }}>
                         <Typography variant="caption" fontWeight={700} color="primary.main" sx={{ display: 'block', mb: 1, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                           🔗 Clickable Test Links:
                         </Typography>
@@ -1117,7 +1115,7 @@ export default function SendTestMessagePage({
             <SummaryRow
               label="To"
               value={selectedCustomer ? formatPhone(selectedCustomer.phoneNumber) : '— select customer —'}
-              isDark={isDark}
+             
               even={false}
             />
             <SummaryRow
@@ -1134,7 +1132,7 @@ export default function SendTestMessagePage({
                   '—'
                 )
               }
-              isDark={isDark}
+             
               even={true}
             />
             <SummaryRow
@@ -1146,18 +1144,18 @@ export default function SendTestMessagePage({
                     : `+${selectedStore.bandwidthPhoneNumber || selectedStore.twilioPhoneNumber || '—'}`
                   : '—'
               }
-              isDark={isDark}
+             
               even={false}
             />
-            <SummaryRow label="Store" value={selectedStore?.name || '—'} isDark={isDark} even={true} />
-            <SummaryRow label="Type" value={messageType} isDark={isDark} even={false} />
+            <SummaryRow label="Store" value={selectedStore?.name || '—'} even={true} />
+            <SummaryRow label="Type" value={messageType} even={false} />
             <SummaryRow
               label="Provider"
               value={(selectedStore?.provider || '—').toUpperCase()}
-              isDark={isDark}
+             
               even={true}
             />
-            <SummaryRow label="Characters" value={`${charCount}`} isDark={isDark} even={false} />
+            <SummaryRow label="Characters" value={`${charCount}`} even={false} />
           </Paper>
 
           {/* ── Kiosk CTA (when no customers and search active) ── */}
@@ -1248,7 +1246,7 @@ export default function SendTestMessagePage({
               ['Type', messageType],
               ['Provider', (selectedStore?.provider || '—').toUpperCase()],
             ].map(([label, value], i) => (
-              <SummaryRow key={label as string} label={label as string} value={value as string} isDark={isDark} even={i % 2 === 1} />
+              <SummaryRow key={label as string} label={label as string} value={value as string} even={i % 2 === 1} />
             ))}
           </Box>
           <Box

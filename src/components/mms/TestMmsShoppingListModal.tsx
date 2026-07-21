@@ -19,6 +19,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
 import { useCustomerSearch, useMmsSend } from '@/hooks/useMmsTest';
+import { tint, tintBorder, type SemanticRole } from 'src/theme/semantic';
 
 // ─── Types ──────────────────────────────────────────────
 const isPdfUrl = (url?: string | null): boolean =>
@@ -75,11 +76,12 @@ const LinkDisplay = React.memo(({ link, shortLink, copy, copied, label }: {
     {shortLink && (
       <Box sx={{
         p: 1.5, borderRadius: 1.5,
-        bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(76,175,80,0.08)' : 'rgba(76,175,80,0.05)',
-        border: '1px solid rgba(76,175,80,0.3)',
+        bgcolor: (t) => tint(t, 'success', t.palette.mode === 'dark' ? 0.08 : 0.05),
+        border: '1px solid',
+        borderColor: (t) => tintBorder(t, 'success', 0.3),
         display: 'flex', alignItems: 'center', gap: 1,
       }}>
-        <LinkIcon sx={{ color: '#4caf50', fontSize: 18 }} />
+        <LinkIcon sx={{ color: 'success.main', fontSize: 18 }} />
         <Box sx={{ flex: 1 }}>
           <Typography variant="caption" fontWeight={700} color="success.main"
             sx={{ display: 'block', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.5 }}>
@@ -90,17 +92,18 @@ const LinkDisplay = React.memo(({ link, shortLink, copy, copied, label }: {
           </Typography>
         </Box>
         <IconButton size="small" onClick={() => copy(shortLink)}>
-          {copied ? <CheckCircleIcon sx={{ fontSize: 16, color: '#4caf50' }} /> : <ContentCopyIcon sx={{ fontSize: 16 }} />}
+          {copied ? <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} /> : <ContentCopyIcon sx={{ fontSize: 16 }} />}
         </IconButton>
       </Box>
     )}
     <Box sx={{
       p: 1, borderRadius: 1.5,
-      bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(244,55,137,0.08)' : 'rgba(244,55,137,0.05)',
-      border: '1px solid rgba(244,55,137,0.2)',
+      bgcolor: (t) => tint(t, 'primary', t.palette.mode === 'dark' ? 0.08 : 0.05),
+      border: '1px solid',
+      borderColor: (t) => tintBorder(t, 'primary', 0.2),
       display: 'flex', alignItems: 'center', gap: 1,
     }}>
-      <LinkIcon sx={{ color: '#f43789', fontSize: 16 }} />
+      <LinkIcon sx={{ color: 'primary.main', fontSize: 16 }} />
       <Box sx={{ flex: 1 }}>
         <Typography variant="caption" color="text.disabled"
           sx={{ display: 'block', fontSize: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
@@ -175,7 +178,7 @@ export default function TestMmsShoppingListModal({
 
   // Char count
   const charCount = mmsSend.smsText.length;
-  const charColor = charCount > 320 ? '#f44336' : charCount > 160 ? '#ff9800' : '#4caf50';
+  const charRole: SemanticRole = charCount > 320 ? 'error' : charCount > 160 ? 'warning' : 'success';
 
   // Product summary
   const productSummary = useMemo(() =>
@@ -201,7 +204,7 @@ export default function TestMmsShoppingListModal({
         display: 'flex', alignItems: 'center', gap: 1, py: 2,
         borderBottom: '1px solid', borderColor: 'divider',
       }}>
-        <QrCodeIcon sx={{ color: '#f43789' }} />
+        <QrCodeIcon sx={{ color: 'primary.main' }} />
         <Typography variant="h6" fontWeight={700} sx={{ flex: 1 }}>
           {step === 'select' ? '📱 Test MMS — Select Customer' :
            step === 'compose' ? '✨ AI Message Ready — Review & Send' :
@@ -209,7 +212,7 @@ export default function TestMmsShoppingListModal({
         </Typography>
         {step === 'compose' && (
           <Chip label={products.length + ' items'} size="small"
-            sx={{ bgcolor: 'rgba(76,175,80,0.15)', color: '#4caf50', fontWeight: 700 }} />
+            sx={{ bgcolor: (t) => tint(t, 'success', 0.15), color: 'success.main', fontWeight: 700 }} />
         )}
       </DialogTitle>
 
@@ -236,7 +239,7 @@ export default function TestMmsShoppingListModal({
                 return (
                 <Box component="li" key={key || option.phoneNumber} {...rest}
                   sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.5 }}>
-                  <Avatar sx={{ width: 32, height: 32, bgcolor: '#DC1F26', fontSize: 13, fontWeight: 'bold' }}>
+                  <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: 13, fontWeight: 'bold' }}>
                     {(option.firstName?.[0] || '?').toUpperCase()}
                   </Avatar>
                   <Box>
@@ -312,12 +315,16 @@ export default function TestMmsShoppingListModal({
             <Box>
               <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
                 <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <AutoAwesomeIcon fontSize="small" sx={{ color: '#f43789' }} />
+                  <AutoAwesomeIcon fontSize="small" sx={{ color: 'primary.main' }} />
                   {mmsSend.generatingText ? 'Generating...' : 'AI-Generated Message'}
                 </Typography>
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Chip label={`${charCount} chars`} size="small"
-                    sx={{ height: 22, fontSize: 11, bgcolor: `${charColor}22`, color: charColor, fontWeight: 700 }} />
+                    sx={{
+                      height: 22, fontSize: 11, fontWeight: 700,
+                      bgcolor: (t) => tint(t, charRole, 0.13),
+                      color: `${charRole}.main`,
+                    }} />
                   <IconButton size="small" onClick={() => setEditingText(!editingText)}>
                     <EditIcon sx={{ fontSize: 16 }} />
                   </IconButton>
@@ -380,7 +387,7 @@ export default function TestMmsShoppingListModal({
         {/* ─── STEP 3: Sent Success ─── */}
         {step === 'sent' && mmsSend.listResult && (
           <Box display="flex" flexDirection="column" alignItems="center" gap={2} py={2}>
-            <CheckCircleIcon sx={{ fontSize: 64, color: '#4caf50' }} />
+            <CheckCircleIcon sx={{ fontSize: 64, color: 'success.main' }} />
             <Typography variant="h6" fontWeight={700} color="success.main">
               Message Sent Successfully!
             </Typography>
@@ -393,7 +400,11 @@ export default function TestMmsShoppingListModal({
                 <Chip
                   label={`Customer ID: ${(customerSearch.selected as any)._id}`}
                   size="small"
-                  sx={{ mt: 0.5, fontFamily: 'monospace', fontSize: 11, bgcolor: 'rgba(76,175,80,0.1)', color: '#4caf50' }}
+                  sx={{
+                    mt: 0.5, fontFamily: 'monospace', fontSize: 11,
+                    bgcolor: (t) => tint(t, 'success', 0.1),
+                    color: 'success.main',
+                  }}
                 />
               )}
             </Box>
@@ -444,8 +455,12 @@ export default function TestMmsShoppingListModal({
               startIcon={mmsSend.creatingList ? <CircularProgress size={16} /> : <AutoAwesomeIcon />}
               sx={{
                 borderRadius: 2, textTransform: 'none', fontWeight: 700,
-                background: 'linear-gradient(135deg, #f43789 0%, #DC1F26 100%)',
-                '&:hover': { background: 'linear-gradient(135deg, #DC1F26 0%, #b71c1c 100%)' },
+                background: (t) =>
+                  `linear-gradient(135deg, ${t.palette.primary.main} 0%, ${t.palette.primary.dark} 100%)`,
+                '&:hover': {
+                  background: (t) =>
+                    `linear-gradient(135deg, ${t.palette.primary.dark} 0%, ${t.palette.primary.dark} 100%)`,
+                },
               }}
             >
               {mmsSend.creatingList ? 'Creating...' : 'Create List & Generate AI Text'}
@@ -465,8 +480,12 @@ export default function TestMmsShoppingListModal({
               }
               sx={{
                 borderRadius: 2, textTransform: 'none', fontWeight: 700,
-                background: 'linear-gradient(135deg, #DC1F26 0%, #8B0000 100%)',
-                '&:hover': { background: 'linear-gradient(135deg, #b71c1c 0%, #6d0000 100%)' },
+                background: (t) =>
+                  `linear-gradient(135deg, ${t.palette.primary.main} 0%, ${t.palette.primary.dark} 100%)`,
+                '&:hover': {
+                  background: (t) =>
+                    `linear-gradient(135deg, ${t.palette.primary.dark} 0%, ${t.palette.primary.dark} 100%)`,
+                },
               }}
             >
               {mmsSend.sending ? 'Sending...' : `Send SMS to ${customerSearch.selected?.phoneNumber}`}

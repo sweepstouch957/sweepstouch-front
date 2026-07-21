@@ -144,10 +144,6 @@ const StyledQuillEditor = styled(QuillEditorBase, {
 })(({ theme }) => ({
   display: 'flex',
   flexDirection: 'column',
-  boxShadow:
-    theme.palette.mode === 'dark'
-      ? `${alpha(theme.palette.neutral[900], 0.3)} 0 1px 3px !important`
-      : `${alpha(theme.palette.neutral[400], 0.3)} 0 1px 3px !important`,
   backgroundColor:
     theme.palette.mode === 'dark' ? theme.palette.neutral[900] : theme.palette.background.paper,
   border:

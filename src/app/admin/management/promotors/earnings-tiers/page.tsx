@@ -250,7 +250,7 @@ function EarningsTiersPage() {
                       display: 'grid',
                       placeItems: 'center',
                       background: `linear-gradient(135deg, ${primary}, ${alpha(primary, 0.6)})`,
-                      color: '#fff',
+                      color: 'common.white',
                     }}
                   >
                     <AttachMoneyRoundedIcon sx={{ fontSize: 22 }} />

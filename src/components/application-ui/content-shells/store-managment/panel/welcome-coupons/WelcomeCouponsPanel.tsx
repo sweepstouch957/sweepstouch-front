@@ -8,7 +8,6 @@ import {
    Card,
    CardContent,
    CircularProgress,
-   Divider,
    Grid,
    Stack,
    Switch,
@@ -18,33 +17,26 @@ import {
    alpha,
    Alert,
    Snackbar,
-   IconButton,
-   Tooltip,
    Fade,
-   Grow,
    Paper,
-   Chip,
-} from '@mui/material';
+   Chip } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import AvatarUploadLogo from '@/components/application-ui/upload/avatar/avatar-upload-logo';
 import { LineChart } from '@mui/x-charts/LineChart';
-import SmartphoneIcon from '@mui/icons-material/Smartphone';
 import {
    Send as SendIcon,
    PersonAdd as PersonAddIcon,
    Replay as ReplayIcon,
-   OpenInNew as OpenInNewIcon,
-   InfoOutlined as InfoOutlinedIcon,
    AutoAwesome as AutoAwesomeIcon,
-   Visibility as VisibilityIcon,
-} from '@mui/icons-material';
+   Visibility as VisibilityIcon } from '@mui/icons-material';
 import CountUp from 'react-countup';
 import { ImageViewer, useImageViewer, ViewImageIcon } from '@/components/ImageViewer';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
+import { tint, tintBorder } from '@/theme/semantic';
 
 interface WelcomeCouponsPanelProps {
    storeId: string;
@@ -55,10 +47,9 @@ const compactCardSx = (theme: any) => ({
    border: `1px solid ${theme.palette.divider}`,
    background: theme.palette.mode === 'dark' ? alpha(theme.palette.background.default, 0.5) : theme.palette.background.paper,
    transition: 'all 0.2s ease-in-out',
-   boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
    '&:hover': {
-      borderColor: alpha(theme.palette.primary.main, 0.3),
-      boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+      borderColor: tintBorder(theme, 'primary', 0.3),
+      backgroundColor: tint(theme, 'primary', 0.04),
    },
 });
 

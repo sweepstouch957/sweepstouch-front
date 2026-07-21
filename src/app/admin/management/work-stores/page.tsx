@@ -267,8 +267,8 @@ const WorkStoresPage = () => {
                 px: 1.5,
                 py: 0.5,
                 flexShrink: 0,
-                bgcolor: '#EE1E7C',
-                '&:hover': { bgcolor: '#d01a6e' },
+                bgcolor: 'primary.main',
+                '&:hover': { bgcolor: 'primary.dark' },
               }}
             >
               Nuevo turno

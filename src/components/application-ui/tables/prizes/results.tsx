@@ -1,5 +1,5 @@
 
-import { DeleteRounded, Edit, OpenInNewRounded, SearchTwoTone, AddRounded } from '@mui/icons-material';
+import { DeleteRounded, OpenInNewRounded, SearchTwoTone, AddRounded } from '@mui/icons-material';
 import {
   Avatar,
   Box,

@@ -26,9 +26,7 @@ import {
   CloseRounded,
   DeleteSweepRounded,
   PreviewRounded,
-  CheckCircleOutlineRounded,
-  UploadFileRounded,
-} from '@mui/icons-material';
+  CheckCircleOutlineRounded } from '@mui/icons-material';
 import { api } from '@/libs/axios';
 import { ExcelCustomerDropzone, ParsedCustomer } from '@/components/shared/ExcelCustomerDropzone';
 
@@ -188,7 +186,6 @@ export default function BulkInactivateModal({
               alignItems: 'center',
               justifyContent: 'center',
               background: `linear-gradient(135deg, ${theme.palette.error.dark} 0%, ${theme.palette.error.main} 100%)`,
-              boxShadow: `0 4px 12px ${alpha(theme.palette.error.main, 0.4)}`,
             }}
           >
             <DeleteSweepRounded sx={{ color: 'white', fontSize: 20 }} />

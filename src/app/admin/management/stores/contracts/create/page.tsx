@@ -139,7 +139,7 @@ export default function CreateContractPage() {
 
   const accent = theme.palette.primary.main;
   const isDark = theme.palette.mode === 'dark';
-  const border = isDark ? alpha('#fff', 0.08) : alpha('#000', 0.08);
+  const border = theme.palette.divider;
 
   return (
     <Container maxWidth="sm" sx={{ py: { xs: 2, sm: 3 }, px: { xs: 2, sm: 3 } }}>
@@ -300,7 +300,7 @@ export default function CreateContractPage() {
                 p: 2,
                 borderRadius: 2.5,
                 border: `1px solid ${border}`,
-                bgcolor: isDark ? alpha('#fff', 0.02) : alpha('#000', 0.015),
+                bgcolor: 'action.hover',
               }}
             >
               <Stack direction="row" alignItems="center" spacing={1.5}>
@@ -401,7 +401,6 @@ export default function CreateContractPage() {
             fontSize: 16,
             textTransform: 'none',
             background: `linear-gradient(135deg, ${accent} 0%, ${theme.palette.primary.dark} 100%)`,
-            boxShadow: `0 4px 20px ${alpha(accent, 0.35)}`,
             mb: 2,
           }}
         >

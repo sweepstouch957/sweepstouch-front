@@ -40,14 +40,14 @@ const UserRow: FC<{
   user: User; isDragging: boolean; innerRef: any; draggableProps: any; dragHandleProps: any;
 }> = memo(({ user, isDragging, innerRef, draggableProps, dragHandleProps }) => {
   const theme = useTheme();
-  const r = ROLE_STYLE[user.role] ?? { label: user.role, color: '#78909c' };
+  const r = ROLE_STYLE[user.role] ?? { label: user.role, color: theme.palette.text.secondary };
   return (
     <Card ref={innerRef} {...draggableProps} elevation={0} sx={{
-      mb: 0.5, borderRadius: 1.5,
+      mb: 0.5,
       border: `1px solid ${isDragging ? alpha(r.color, 0.5) : theme.palette.divider}`,
       bgcolor: isDragging ? alpha(r.color, 0.06) : theme.palette.background.paper,
-      boxShadow: isDragging ? `0 8px 24px ${alpha('#000', 0.18)}` : 'none',
-      '&:hover': { borderColor: alpha(r.color, 0.35), boxShadow: `0 2px 8px ${alpha('#000', 0.06)}` },
+      boxShadow: isDragging ? theme.shadows[8] : 'none',
+      '&:hover': { borderColor: alpha(r.color, 0.35), bgcolor: alpha(r.color, 0.04) },
       transition: 'border-color 0.15s, box-shadow 0.15s',
       willChange: isDragging ? 'transform' : 'auto',
     }}>
@@ -122,7 +122,7 @@ const DeptSection: FC<DeptSectionProps> = memo(({ dept, users, search, defaultOp
             }} />
           </Stack>
         </Box>
-        <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: c, boxShadow: `0 0 5px ${alpha(c, 0.5)}`, flexShrink: 0 }} />
+        <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: c, flexShrink: 0 }} />
         {open ? <ExpandLessRoundedIcon sx={{ fontSize: 16, color: 'text.secondary' }} /> : <ExpandMoreRoundedIcon sx={{ fontSize: 16, color: 'text.secondary' }} />}
       </Box>
 

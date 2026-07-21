@@ -208,7 +208,8 @@ function Projects() {
                 <Avatar
                   sx={{
                     mb: { xs: 1, sm: 0 },
-                    background: 'linear-gradient(135deg, #6B73FF 0%, #000DFF 100%) !important',
+                    background: (theme) =>
+                      `linear-gradient(135deg, ${theme.palette.info.light} 0%, ${theme.palette.info.dark} 100%) !important`,
                     color: 'common.white',
                   }}
                 >

@@ -2,6 +2,7 @@
 
 import { alpha, Box, Card, CardContent, Chip, Stack, Typography } from '@mui/material';
 import React from 'react';
+import { tint } from 'src/theme/semantic';
 
 export function MetricPill(props: {
   label: string;
@@ -15,7 +16,7 @@ export function MetricPill(props: {
       sx={(t) => ({
         fontWeight: 900,
         borderRadius: 999,
-        bgcolor: alpha(t.palette[tone].main, 0.12),
+        bgcolor: tint(t, tone),
         color: t.palette[tone].dark,
       })}
     />
@@ -32,10 +33,8 @@ export function GlassCard(props: {
     <Card
       variant="outlined"
       sx={(t) => ({
-        borderRadius: 3,
         borderColor: alpha(t.palette.divider, 0.9),
         bgcolor: alpha(t.palette.background.paper, 0.92),
-        boxShadow: `0 12px 28px ${alpha(t.palette.common.black, 0.06)}`,
         overflow: 'hidden',
         position: 'relative',
       })}

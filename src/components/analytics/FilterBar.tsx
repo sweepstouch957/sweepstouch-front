@@ -1,25 +1,24 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import {
   Box,
   Card,
   Stack,
   TextField,
   MenuItem,
-  Button,
   Chip,
   Autocomplete,
   InputAdornment,
   Typography,
-  Avatar,
-} from '@mui/material';
+  Avatar } from '@mui/material';
+import { tint } from '@/theme/semantic';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import ClearIcon from '@mui/icons-material/Clear';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import { getAllStores, type Store } from '@/services/store.service';
+import { useStoreSearch } from '@/hooks/fetching/stores/useStoreSearch';
+import { useStoreById } from '@/hooks/fetching/stores/useStoreById';
 import type { AnalyticsFilters } from '@/services/analytics.service';
 
 interface Props {
@@ -28,22 +27,23 @@ interface Props {
 }
 
 export default function FilterBar({ filters, onChange }: Props) {
-  const { data: stores = [], isLoading: loadingStores } = useQuery({
-    queryKey: ['all-stores'],
-    queryFn: getAllStores,
-    staleTime: 1000 * 60 * 10,
-  });
+  // Búsqueda server-side: antes traía el catálogo completo para filtrar acá.
+  const [term, setTerm] = useState('');
+  const { options: stores, loading: loadingStores } = useStoreSearch(term);
 
-  const selectedStore = stores.find((s) => s._id === filters.storeId) || null;
+  // La tienda seleccionada se resuelve por id, NO buscándola en `stores`:
+  // con búsqueda server-side la lista solo trae lo que matchea el término,
+  // así que al tipear otra cosa el valor seleccionado desaparecería del input.
+  const { data: selectedStoreById } = useStoreById(filters.storeId || '');
+  const selectedStore =
+    stores.find((s) => s._id === filters.storeId) || selectedStoreById || null;
   const hasFilters = filters.storeId || filters.from || filters.to;
 
   return (
     <Card
       sx={{
         p: 2.5,
-        borderRadius: 3,
-        background: (theme) =>
-          theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : '#ffffff',
+        bgcolor: 'background.paper',
         border: '1px solid',
         borderColor: 'divider',
         backdropFilter: 'blur(10px)',
@@ -57,7 +57,7 @@ export default function FilterBar({ filters, onChange }: Props) {
             borderRadius: 1.5,
             bgcolor: 'primary.main',
             display: 'flex',
-            color: '#fff',
+            color: 'primary.contrastText',
           }}
         >
           <FilterListIcon sx={{ fontSize: 18 }} />
@@ -88,6 +88,10 @@ export default function FilterBar({ filters, onChange }: Props) {
           options={stores}
           loading={loadingStores}
           value={selectedStore}
+          inputValue={term}
+          onInputChange={(_e, v, reason) => { if (reason !== 'reset') setTerm(v); }}
+          filterOptions={(x) => x}
+          noOptionsText={term.trim().length < 2 ? 'Escribí al menos 2 letras…' : 'Sin resultados'}
           onChange={(_, newVal) =>
             onChange({ ...filters, storeId: newVal?._id || undefined })
           }
@@ -119,18 +123,22 @@ export default function FilterBar({ filters, onChange }: Props) {
                       height: 20,
                       fontSize: 10,
                       fontWeight: 700,
-                      bgcolor:
-                        option.type === 'elite'
-                          ? '#FFD70020'
-                          : option.type === 'basic'
-                            ? '#3b82f620'
-                            : '#9e9e9e20',
+                      // Tier de tienda: rol semántico, no hex de tono.
+                      bgcolor: (theme) =>
+                        tint(
+                          theme,
+                          option.type === 'elite'
+                            ? 'warning'
+                            : option.type === 'basic'
+                              ? 'info'
+                              : 'secondary'
+                        ),
                       color:
                         option.type === 'elite'
-                          ? '#B8860B'
+                          ? 'warning.dark'
                           : option.type === 'basic'
-                            ? '#3b82f6'
-                            : '#9e9e9e',
+                            ? 'info.main'
+                            : 'text.secondary',
                     }}
                   />
                 )}

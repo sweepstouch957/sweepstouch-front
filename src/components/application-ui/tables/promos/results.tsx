@@ -24,6 +24,8 @@ import {
 import { format } from 'date-fns';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { Theme } from '@mui/material/styles';
+import { tint, tintBorder } from '@/theme/semantic';
 
 export interface Promo {
   _id: string;
@@ -59,15 +61,16 @@ interface Props {
   onDelete: (id: string) => void;
 }
 
-const STATUS_CONFIG = {
-  in_progress: { label: 'Active', color: '#0288d1', bg: alpha('#0288d1', 0.1) },
-  active: { label: 'Active', color: '#0288d1', bg: alpha('#0288d1', 0.1) },
-  pending: { label: 'Pending', color: '#ed6c02', bg: alpha('#ed6c02', 0.1) },
-  completed: { label: 'Completed', color: '#2e7d32', bg: alpha('#2e7d32', 0.1) },
-} as const;
+const statusConfig = (theme: Theme) => ({
+  in_progress: { label: 'Active', color: theme.palette.info.main, bg: tint(theme, 'info') },
+  active: { label: 'Active', color: theme.palette.info.main, bg: tint(theme, 'info') },
+  pending: { label: 'Pending', color: theme.palette.warning.main, bg: tint(theme, 'warning') },
+  completed: { label: 'Completed', color: theme.palette.success.main, bg: tint(theme, 'success') },
+});
 
 const StatusBadge = ({ status }: { status: string }) => {
-  const cfg = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG];
+  const theme = useTheme();
+  const cfg = statusConfig(theme)[status as keyof ReturnType<typeof statusConfig>];
   if (!cfg) return <Typography variant="caption" color="text.disabled">{status}</Typography>;
 
   return (
@@ -134,14 +137,16 @@ export const PromoResults = ({
     setCurrentTitle('');
   };
 
-  const headerBg = isDark ? alpha('#fff', 0.03) : alpha('#000', 0.025);
+  const headerBg = alpha(
+    isDark ? theme.palette.common.white : theme.palette.common.black,
+    isDark ? 0.03 : 0.025
+  );
 
   return (
     <>
       <Card
         elevation={0}
         sx={{
-          borderRadius: 3,
           border: '1px solid',
           borderColor: 'divider',
           overflow: 'hidden',
@@ -196,7 +201,7 @@ export const PromoResults = ({
                         sx={{
                           cursor: 'pointer',
                           width: 'fit-content',
-                          '&:hover .store-name': { color: '#FC0C83' },
+                          '&:hover .store-name': { color: 'primary.main' },
                         }}
                         onClick={() => {
                           if (promo.storeId?._id) {
@@ -249,10 +254,10 @@ export const PromoResults = ({
                           border: '1px solid',
                           borderColor: 'divider',
                           cursor: 'pointer',
-                          transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                          transition: 'transform 0.15s ease, border-color 0.15s ease',
                           '&:hover': {
                             transform: 'scale(1.06)',
-                            boxShadow: '0 4px 14px rgba(0,0,0,0.18)',
+                            borderColor: tintBorder(theme, 'primary'),
                           },
                         }}
                         onClick={() => handlePreview(promo.imageMobile, promo.title)}
@@ -293,14 +298,14 @@ export const PromoResults = ({
                         borderRadius: 1,
                         ...(promo.category === 'custom'
                           ? {
-                              borderColor: alpha('#FC0C83', 0.5),
-                              color: '#FC0C83',
-                              bgcolor: alpha('#FC0C83', 0.06),
+                              borderColor: tintBorder(theme, 'primary', 0.5),
+                              color: 'primary.main',
+                              bgcolor: tint(theme, 'primary', 0.06),
                             }
                           : {
-                              borderColor: alpha('#9c27b0', 0.4),
-                              color: '#9c27b0',
-                              bgcolor: alpha('#9c27b0', 0.06),
+                              borderColor: tintBorder(theme, 'secondary', 0.4),
+                              color: 'secondary.main',
+                              bgcolor: tint(theme, 'secondary', 0.06),
                             }),
                       }}
                     />
@@ -368,7 +373,7 @@ export const PromoResults = ({
                             transition: 'all 0.15s ease',
                             '&:hover': {
                               color: 'primary.main',
-                              bgcolor: alpha('#FC0C83', 0.08),
+                              bgcolor: tint(theme, 'primary', 0.08),
                             },
                           }}
                         >
@@ -387,7 +392,7 @@ export const PromoResults = ({
                             transition: 'all 0.15s ease',
                             '&:hover': {
                               color: 'error.main',
-                              bgcolor: alpha('#ef4444', 0.08),
+                              bgcolor: tint(theme, 'error', 0.08),
                             },
                           }}
                         >
@@ -420,7 +425,7 @@ export const PromoResults = ({
                           width: 64,
                           height: 64,
                           borderRadius: 3,
-                          bgcolor: isDark ? alpha('#fff', 0.04) : alpha('#000', 0.04),
+                          bgcolor: alpha(isDark ? theme.palette.common.white : theme.palette.common.black, 0.04),
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -492,7 +497,7 @@ export const PromoResults = ({
               right: 12,
               top: 12,
               color: 'text.secondary',
-              '&:hover': { bgcolor: alpha('#000', 0.06) },
+              '&:hover': { bgcolor: 'action.hover' },
             }}
           >
             <Close fontSize="small" />
@@ -510,7 +515,7 @@ export const PromoResults = ({
               borderRadius: 2,
               border: '1px solid',
               borderColor: 'divider',
-              bgcolor: isDark ? alpha('#fff', 0.02) : alpha('#000', 0.02),
+              bgcolor: alpha(isDark ? theme.palette.common.white : theme.palette.common.black, 0.02),
               display: 'block',
             }}
           />

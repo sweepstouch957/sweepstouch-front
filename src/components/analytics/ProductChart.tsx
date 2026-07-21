@@ -16,7 +16,9 @@ import {
   Tooltip,
   TextField,
   InputAdornment,
+  useTheme,
 } from '@mui/material';
+import { chartPalette, tint, tintBorder } from '@/theme/semantic';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
@@ -35,25 +37,32 @@ interface Props {
   isLoading: boolean;
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-  meat: '#ef4444',
-  produce: '#22c55e',
-  beverages: '#3b82f6',
-  dairy: '#f59e0b',
-  pantry: '#14b8a6',
-  frozen: '#06b6d4',
-  bakery: '#f97316',
-  deli: '#ec4899',
-  snacks: '#eab308',
-  grocery: '#64748b',
-  household: '#0ea5e9',
-};
-
-function getColor(cat: string): string {
-  return CATEGORY_COLORS[cat?.toLowerCase()] || '#9e9e9e';
-}
+/**
+ * Orden estable de categorías: define qué color de la paleta categórica del
+ * theme le toca a cada una. Antes era un hex por categoría.
+ */
+const CATEGORY_ORDER = [
+  'meat',
+  'produce',
+  'beverages',
+  'dairy',
+  'pantry',
+  'frozen',
+  'bakery',
+  'deli',
+  'snacks',
+  'grocery',
+  'household',
+];
 
 export default function ProductChart({ data, campaignProducts, isLoading }: Props) {
+  const theme = useTheme();
+  const palette = chartPalette(theme);
+  const getColor = (cat: string): string => {
+    const idx = CATEGORY_ORDER.indexOf(cat?.toLowerCase());
+    return idx === -1 ? theme.palette.text.disabled : palette[idx % palette.length];
+  };
+
   const [tab, setTab] = useState(0);
   const [search, setSearch] = useState('');
 
@@ -157,7 +166,7 @@ export default function ProductChart({ data, campaignProducts, isLoading }: Prop
   // ─── Early returns AFTER all hooks ───
   if (isLoading) {
     return (
-      <Card sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+      <Card sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Skeleton variant="text" width={240} height={32} sx={{ mb: 2 }} />
         {Array.from({ length: 6 }).map((_, i) => (
           <Skeleton key={i} variant="rounded" height={64} sx={{ mb: 1.5, borderRadius: 2 }} />
@@ -168,7 +177,7 @@ export default function ProductChart({ data, campaignProducts, isLoading }: Prop
 
   if (purchasedList.length === 0 && selectedList.length === 0) {
     return (
-      <Card sx={{ p: 5, textAlign: 'center', borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+      <Card sx={{ p: 5, textAlign: 'center', border: '1px solid', borderColor: 'divider' }}>
         <InventoryIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
         <Typography color="text.secondary" fontWeight={600}>
           No product data yet
@@ -181,7 +190,7 @@ export default function ProductChart({ data, campaignProducts, isLoading }: Prop
   }
 
   return (
-    <Card sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
+    <Card sx={{ border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
       {/* ═══ Header ═══ */}
       <Box
         sx={{
@@ -197,8 +206,8 @@ export default function ProductChart({ data, campaignProducts, isLoading }: Prop
         }}
       >
         <Stack direction="row" alignItems="center" spacing={1.5}>
-          <Box sx={{ p: 0.8, borderRadius: 1.5, bgcolor: alpha('#22c55e', 0.1), display: 'flex' }}>
-            <InventoryIcon sx={{ color: '#22c55e', fontSize: 20 }} />
+          <Box sx={{ p: 0.8, borderRadius: 1.5, bgcolor: tint(theme, 'success'), display: 'flex' }}>
+            <InventoryIcon sx={{ color: 'success.main', fontSize: 20 }} />
           </Box>
           <Box>
             <Typography variant="subtitle1" fontWeight={800}>
@@ -217,7 +226,7 @@ export default function ProductChart({ data, campaignProducts, isLoading }: Prop
             minHeight: 36,
             '& .MuiTab-root': { minHeight: 36, py: 0.5, fontSize: 12, fontWeight: 700, textTransform: 'none' },
             '& .MuiTabs-indicator': {
-              background: tab === 0 ? '#22c55e' : '#3b82f6',
+              background: tab === 0 ? theme.palette.success.main : theme.palette.info.main,
               height: 3,
               borderRadius: 2,
             },
@@ -407,7 +416,7 @@ export default function ProductChart({ data, campaignProducts, isLoading }: Prop
                   </Typography>
                   {isHot && (
                     <LocalFireDepartmentIcon
-                      sx={{ fontSize: 16, color: '#ef4444', animation: 'pulse 1.5s infinite' }}
+                      sx={{ fontSize: 16, color: 'error.main', animation: 'pulse 1.5s infinite' }}
                     />
                   )}
                 </Stack>
@@ -435,9 +444,15 @@ export default function ProductChart({ data, campaignProducts, isLoading }: Prop
                         fontSize: 9,
                         fontWeight: 800,
                         textTransform: 'uppercase',
-                        bgcolor: p.matched ? alpha('#22c55e', 0.1) : alpha('#64748b', 0.1),
-                        color: p.matched ? '#22c55e' : '#64748b',
-                        border: `1px solid ${p.matched ? alpha('#22c55e', 0.2) : alpha('#64748b', 0.2)}`,
+                        bgcolor: p.matched
+                          ? tint(theme, 'success')
+                          : alpha(theme.palette.text.secondary, 0.1),
+                        color: p.matched ? 'success.main' : 'text.secondary',
+                        border: `1px solid ${
+                          p.matched
+                            ? tintBorder(theme, 'success', 0.2)
+                            : alpha(theme.palette.text.secondary, 0.2)
+                        }`,
                         letterSpacing: 0.5,
                       }}
                     />

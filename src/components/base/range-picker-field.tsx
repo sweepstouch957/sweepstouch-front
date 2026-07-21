@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import { DateCalendar } from '@mui/x-date-pickers';
 import { PickersDay, type PickersDayProps } from '@mui/x-date-pickers/PickersDay';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 function pad2(v: number) {

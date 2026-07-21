@@ -28,7 +28,6 @@ import {
   Avatar,
   Box,
   Chip,
-  Divider,
   FormControl,
   InputLabel,
   LinearProgress,
@@ -39,9 +38,8 @@ import {
   TextField,
   Typography,
   useMediaQuery,
-  useTheme,
-} from '@mui/material';
-import React, { useMemo, useState } from 'react';
+  useTheme } from '@mui/material';
+import { useMemo, useState } from 'react';
 
 function clampDateISO(d: Date) {
   const yyyy = d.getFullYear();

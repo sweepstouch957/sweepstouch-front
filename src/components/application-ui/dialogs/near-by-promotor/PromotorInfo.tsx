@@ -296,7 +296,7 @@ const PromotersDialog: React.FC<{
                     borderColor: 'divider',
                   }}
                 >
-                  <Box sx={{ height: 76, background: '#DDDDDD' }} />
+                  <Box sx={{ height: 76, bgcolor: 'action.disabledBackground' }} />
                   <Box sx={{ position: 'absolute', top: 36, left: 16 }}>
                     <Avatar
                       src={p.profileImage || '/placeholder-profile.png'}

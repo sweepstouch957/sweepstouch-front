@@ -1,12 +1,11 @@
 'use client';
 
-import React, { FC, useState } from 'react';
+import { FC, useState } from 'react';
 import {
   alpha,
   Avatar,
   Box,
   Button,
-  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -21,8 +20,7 @@ import {
   TextField,
   Tooltip,
   Typography,
-  useTheme,
-} from '@mui/material';
+  useTheme } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { FC, useMemo, useState } from 'react';
+import { FC, useMemo, useState } from 'react';
 import {
   alpha,
   Avatar,
@@ -35,7 +35,6 @@ import { PieChart } from '@mui/x-charts/PieChart';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import CountUp from 'react-countup';
 
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import PersonAddAlt1RoundedIcon from '@mui/icons-material/PersonAddAlt1Rounded';
@@ -62,6 +61,7 @@ import { useCustomization } from 'src/hooks/use-customization';
 import WeeklySales from 'src/components/application-ui/tables/sweepstakes-participant/participants-sweepstakes';
 import { routes } from 'src/router/routes';
 import KpiCard from '@/components/application-ui/card-shells/kpi-card';
+import { chartPalette } from 'src/theme/semantic';
 
 
 // ─── Store Performance Card ────────────────────────────────────────────────────
@@ -94,7 +94,7 @@ const StoreCard: FC<StoreCardProps> = ({ store, rank, color, total }) => {
         border: `1px solid ${theme.palette.divider}`,
         transition: 'all 0.2s ease',
         '&:hover': {
-          boxShadow: `0 6px 20px ${alpha(color, isDark ? 0.25 : 0.18)}`,
+          bgcolor: alpha(color, isDark ? 0.12 : 0.06),
           borderColor: alpha(color, 0.4),
           transform: 'translateY(-2px)',
         },
@@ -152,18 +152,18 @@ const StoreCard: FC<StoreCardProps> = ({ store, rank, color, total }) => {
         <Box
           flex={1}
           sx={{
-            bgcolor: alpha('#4caf50', isDark ? 0.15 : 0.08),
+            bgcolor: alpha(theme.palette.success.main, isDark ? 0.15 : 0.08),
             borderRadius: 1.5,
             p: 0.75,
             textAlign: 'center',
-            border: `1px solid ${alpha('#4caf50', 0.22)}`,
+            border: `1px solid ${alpha(theme.palette.success.main, 0.22)}`,
           }}
         >
           <Typography
             sx={{
               fontSize: 8,
               fontWeight: 800,
-              color: '#4caf50',
+              color: 'success.main',
               textTransform: 'uppercase',
               letterSpacing: 0.8,
               lineHeight: 1,
@@ -174,7 +174,7 @@ const StoreCard: FC<StoreCardProps> = ({ store, rank, color, total }) => {
           <Typography
             fontWeight={900}
             fontSize={14}
-            sx={{ color: '#4caf50', lineHeight: 1.3 }}
+            sx={{ color: 'success.main', lineHeight: 1.3 }}
           >
             {(store.newNumbers || 0).toLocaleString()}
           </Typography>
@@ -355,14 +355,7 @@ function Page() {
   );
 
   // Pie chart data
-  const pieColors = [
-    theme.palette.primary.main,
-    '#e91e63',
-    '#4caf50',
-    '#ff9800',
-    '#9c27b0',
-    '#00bcd4',
-  ];
+  const pieColors = chartPalette(theme);
 
   const grouped: any[] = [];
   let othersValue = 0;
@@ -785,7 +778,7 @@ function Page() {
                 {
                   data: chartNew,
                   label: 'Nuevos',
-                  color: '#43a047',
+                  color: theme.palette.success.main,
                   stack: 'total',
                 },
                 {
@@ -1045,7 +1038,7 @@ function Page() {
           <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
             <Box>
               <Stack direction="row" alignItems="center" spacing={1}>
-                <PersonAddAlt1RoundedIcon sx={{ color: '#43a047', fontSize: 20 }} />
+                <PersonAddAlt1RoundedIcon sx={{ color: 'success.main', fontSize: 20 }} />
                 <Typography variant="h6" fontWeight={700}>
                   Ranking por números nuevos
                 </Typography>
@@ -1070,8 +1063,15 @@ function Page() {
               {storesByNuevos.map((store, index) => {
                 const totalNuevos = storesByNuevos.reduce((acc, s) => acc + (s.newNumbers || 0), 0);
                 const pct = totalNuevos > 0 ? ((store.newNumbers || 0) / totalNuevos) * 100 : 0;
-                const color = '#43a047';
-                const rankColor = index === 0 ? '#f9a825' : index === 1 ? '#90a4ae' : index === 2 ? '#a1887f' : alpha(theme.palette.text.primary, 0.1);
+                const color = theme.palette.success.main;
+                const rankColor =
+                  index === 0
+                    ? theme.palette.warning.main
+                    : index === 1
+                      ? theme.palette.text.secondary
+                      : index === 2
+                        ? theme.palette.warning.dark
+                        : alpha(theme.palette.text.primary, 0.1);
                 return (
                   <Grid xs={12} sm={6} md={4} lg={3} key={store.storeId || index}>
                     <Card
@@ -1083,7 +1083,7 @@ function Page() {
                         border: `1px solid ${theme.palette.divider}`,
                         transition: 'all 0.2s ease',
                         '&:hover': {
-                          boxShadow: `0 6px 20px ${alpha(color, isDark ? 0.25 : 0.18)}`,
+                          bgcolor: alpha(color, isDark ? 0.12 : 0.06),
                           borderColor: alpha(color, 0.4),
                           transform: 'translateY(-2px)',
                         },
@@ -1192,17 +1192,15 @@ function Page() {
               startIcon={<PlayArrowRoundedIcon />}
               onClick={() => window.open(`/sweepstakes/${sweepstakeId}/draw`, '_blank', 'noopener,noreferrer')}
               sx={{
-                bgcolor: '#ef0f82',
+                bgcolor: 'primary.main',
                 borderRadius: 999,
-                boxShadow: '0 18px 42px rgba(239, 15, 130, 0.28)',
                 fontSize: { xs: 16, sm: 18 },
                 fontWeight: 800,
                 px: { xs: 3.5, sm: 5 },
                 py: 1.5,
                 textTransform: 'none',
                 '&:hover': {
-                  bgcolor: '#d70d74',
-                  boxShadow: '0 20px 48px rgba(239, 15, 130, 0.34)',
+                  bgcolor: 'primary.dark',
                 },
               }}
             >

@@ -187,14 +187,12 @@ export default function AudienceWeekSummaryCompact({
     <Card
       sx={{
         mb: 2,
-        borderRadius: 3,
         overflow: 'hidden',
         border: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
-        boxShadow: theme.shadows[1],
         background:
           theme.palette.mode === 'dark'
             ? alpha(theme.palette.background.default, 0.9)
-            : alpha('#fff', 0.9),
+            : alpha(theme.palette.common.white, 0.9),
       }}
     >
       {/* Header */}
@@ -265,7 +263,9 @@ export default function AudienceWeekSummaryCompact({
                 borderRadius: 2,
                 border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
                 background:
-                  theme.palette.mode === 'dark' ? alpha('#101418', 0.6) : alpha('#fff', 0.85),
+                  theme.palette.mode === 'dark'
+                    ? alpha(theme.palette.background.default, 0.6)
+                    : alpha(theme.palette.common.white, 0.85),
               }}
             >
               {isFetching ? (
@@ -344,7 +344,6 @@ export default function AudienceWeekSummaryCompact({
             <Stack gap={1.25} height="100%" justifyContent="center">
               <Card
                 sx={{
-                  borderRadius: 2,
                   borderLeft: `5px solid ${theme.palette.info.main}`,
                   bgcolor:
                     theme.palette.mode === 'dark'
@@ -372,7 +371,6 @@ export default function AudienceWeekSummaryCompact({
 
               <Card
                 sx={{
-                  borderRadius: 2,
                   borderLeft: `5px solid ${theme.palette.secondary.main}`,
                   bgcolor:
                     theme.palette.mode === 'dark'

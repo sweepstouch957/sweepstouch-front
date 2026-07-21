@@ -1,6 +1,6 @@
 'use client';
 
-import React, { memo, useState } from 'react';
+import { memo, useState } from 'react';
 import { Avatar, Box, Chip, Divider, Skeleton, Stack, Typography } from '@mui/material';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';

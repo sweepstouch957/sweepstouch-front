@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   alpha,
   Box,
@@ -22,10 +22,8 @@ import {
   Tab,
   Tabs,
   TextField,
-  Tooltip,
   Typography,
-  useTheme,
-} from '@mui/material';
+  useTheme } from '@mui/material';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import SaveRoundedIcon from '@mui/icons-material/SaveRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
@@ -233,7 +231,6 @@ minHeight={400}>
   const cardSx = {
     borderRadius: 2.5,
     border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-    boxShadow: `0 2px 12px ${alpha(theme.palette.common.black, isDark ? 0.2 : 0.04)}`,
   };
 
   return (
@@ -558,7 +555,7 @@ mb={2}>
                   variant="contained"
                   startIcon={<AddRoundedIcon />}
                   onClick={handleAddRestriction}
-                  sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2, px: 3, bgcolor: '#ef4444', '&:hover': { bgcolor: '#dc2626' } }}
+                  sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2, px: 3, bgcolor: 'error.main', '&:hover': { bgcolor: 'error.dark' } }}
                 >
                   Add
                 </Button>

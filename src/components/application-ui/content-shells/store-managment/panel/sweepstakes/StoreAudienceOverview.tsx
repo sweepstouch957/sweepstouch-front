@@ -52,16 +52,14 @@ function StatMini({
   sub?: string;
   loading?: boolean;
 }) {
-  const theme = useTheme();
   return (
     <Card
       variant="outlined"
       sx={{
-        borderRadius: 3,
         borderLeft: `4px solid ${color}`,
         height: '100%',
-        transition: 'box-shadow 0.2s',
-        '&:hover': { boxShadow: theme.shadows[4] },
+        transition: 'border-color 0.2s, background-color 0.2s',
+        '&:hover': { borderColor: color, bgcolor: alpha(color, 0.04) },
       }}
     >
       <CardContent sx={{ py: 2, px: 2.5 }}>
@@ -153,7 +151,7 @@ export default function StoreAudienceOverview({ storeId }: Props) {
     tablet: theme.palette.warning.main,
     promotor: theme.palette.success.main,
     referral: theme.palette.error.main,
-    pinpad: '#ec4899',
+    pinpad: theme.palette.primary.dark,
   };
 
   const loading = loadingAudience;
@@ -302,7 +300,7 @@ export default function StoreAudienceOverview({ storeId }: Props) {
                     {
                       data: weekNew,
                       label: 'Nuevos usuarios',
-                      color: '#10b981',
+                      color: theme.palette.success.main,
                       showMark: false,
                     },
                   ]}
@@ -354,7 +352,7 @@ export default function StoreAudienceOverview({ storeId }: Props) {
                                 width: 8,
                                 height: 8,
                                 borderRadius: '50%',
-                                bgcolor: METHOD_COLORS[m] || '#888',
+                                bgcolor: METHOD_COLORS[m] || theme.palette.text.disabled,
                               }}
                             />
                             <Typography variant="caption" color="text.secondary" textTransform="capitalize">

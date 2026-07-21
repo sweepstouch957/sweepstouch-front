@@ -15,6 +15,7 @@ import {
 import { PieChart } from '@mui/x-charts/PieChart';
 import React from 'react';
 import { SupportMetrics } from '@/services/support.service';
+import { chartPalette } from 'src/theme/semantic';
 
 const TYPE_LABELS: Record<string, string> = {
   software: 'Software',
@@ -28,17 +29,6 @@ const TYPE_LABELS: Record<string, string> = {
   other: 'Otro',
 };
 
-const COLORS = [
-  '#FC0C83', // rosa de marca
-  '#018a3c',
-  '#E30B76', // rosa oscuro (antes rosa duplicado)
-  '#c05a01',
-  '#894AE0',
-  '#ea2012',
-  '#02876f',
-  '#967210',
-  '#4656E8',
-];
 
 interface Props {
   distribution: SupportMetrics['typeDistribution'] | undefined;
@@ -48,13 +38,14 @@ interface Props {
 export default React.memo(function SupportTypeChart({ distribution, loading }: Props) {
   const theme = useTheme();
 
+  const palette = chartPalette(theme);
   const total = distribution?.reduce((acc, d) => acc + d.count, 0) ?? 0;
 
   const data = (distribution ?? []).map((d, i) => ({
     id: d._id,
     value: d.count,
     label: TYPE_LABELS[d._id] ?? d._id,
-    color: COLORS[i % COLORS.length],
+    color: palette[i % palette.length],
   }));
 
   return (

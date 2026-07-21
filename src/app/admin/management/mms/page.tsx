@@ -111,7 +111,7 @@ const StepBadge = React.memo(({ num }: { num: number }) => (
     component="span"
     sx={{
       width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-      background: 'linear-gradient(135deg, #DC1F26 0%, #ff6b6b 100%)',
+      background: (t) => `linear-gradient(135deg, ${t.palette.primary.main} 0%, ${t.palette.primary.light} 100%)`,
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       color: 'white', fontSize: 13, fontWeight: 'bold',
     }}
@@ -199,8 +199,8 @@ function RecipeCard({
     <Box sx={{
       border: '1px solid', borderColor: 'divider', borderRadius: 2,
       bgcolor: 'background.paper', height: '100%', display: 'flex', flexDirection: 'column',
-      overflow: 'hidden', transition: 'box-shadow 0.2s',
-      '&:hover': { boxShadow: 3 },
+      overflow: 'hidden', transition: 'border-color 0.2s',
+      '&:hover': { borderColor: 'primary.main' },
     }}>
       {/* Hidden file input */}
       <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
@@ -438,8 +438,8 @@ function AiRecipesPanel({
           onClick={generate}
           disabled={generating || generatingImages || products.length === 0}
           sx={recipes.length ? {} : {
-            background: 'linear-gradient(135deg, #f43789 0%, #DC1F26 100%)',
-            '&:hover': { background: 'linear-gradient(135deg, #DC1F26 0%, #8B0000 100%)' },
+            background: (t) => `linear-gradient(135deg, ${t.palette.primary.light} 0%, ${t.palette.primary.main} 100%)`,
+            '&:hover': { background: (t) => `linear-gradient(135deg, ${t.palette.primary.main} 0%, ${t.palette.primary.dark} 100%)` },
           }}
         >
           {generating ? 'Generating...' : generatingImages ? 'Adding images...' : recipes.length ? 'Regenerate' : '✨ Generate with AI'}
@@ -657,8 +657,8 @@ function MmsGeneratorPage(): React.JSX.Element {
               sx={{
                 borderRadius: 2,
                 fontWeight: 700,
-                background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-                '&:hover': { background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)' },
+                background: (t) => `linear-gradient(135deg, ${t.palette.success.main} 0%, ${t.palette.success.dark} 100%)`,
+                '&:hover': { background: (t) => `linear-gradient(135deg, ${t.palette.success.dark} 0%, ${t.palette.success.dark} 100%)` },
                 justifyContent: 'flex-start', px: 2.5, py: 1.5,
               }}
             >
@@ -747,7 +747,7 @@ function MmsGeneratorPage(): React.JSX.Element {
                       sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1 }}>
                       <Avatar
                         src={option.image !== 'no-image.jpg' ? option.image : undefined}
-                        sx={{ width: 28, height: 28, bgcolor: '#DC1F26', fontSize: 12 }}>
+                        sx={{ width: 28, height: 28, bgcolor: 'primary.main', fontSize: 12 }}>
                         {option.name?.charAt(0)?.toUpperCase()}
                       </Avatar>
                       <Box>

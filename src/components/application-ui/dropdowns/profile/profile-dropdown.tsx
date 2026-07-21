@@ -122,9 +122,7 @@ export const ProfileDropdown: FC<ProfileDropdownProps> = (props) => {
           '& .MuiPaper-root': {
             borderRadius: 2.5,
             border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
-            boxShadow: isDark
-              ? `0 8px 32px ${alpha('#000', 0.4)}`
-              : `0 8px 32px ${alpha('#000', 0.08)}`,
+            boxShadow: isDark ? theme.shadows[16] : theme.shadows[8],
           },
           '& .MuiMenuItem-root': {
             borderRadius: 1.5,

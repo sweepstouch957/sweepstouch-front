@@ -13,7 +13,9 @@ import {
   alpha,
   Tooltip,
   LinearProgress,
+  useTheme,
 } from '@mui/material';
+import { tint, tintBorder } from '@/theme/semantic';
 import StarIcon from '@mui/icons-material/Star';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
@@ -26,20 +28,21 @@ interface Props {
   isLoading: boolean;
 }
 
-const MEDAL_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32'];
-const RANK_GRADIENTS = [
-  'linear-gradient(135deg, #FFD700 0%, #FFA000 100%)',
-  'linear-gradient(135deg, #E0E0E0 0%, #9E9E9E 100%)',
-  'linear-gradient(135deg, #D4A574 0%, #8D6E63 100%)',
-];
-
 export default function TopCustomers({ data, isLoading }: Props) {
+  const theme = useTheme();
+  // Podio (oro / plata / bronce) expresado con roles del theme, no con hex.
+  const MEDAL_COLORS = [
+    theme.palette.warning.main,
+    theme.palette.text.secondary,
+    theme.palette.warning.dark,
+  ];
+
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
   if (isLoading) {
     return (
-      <Card sx={{ p: 2, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+      <Card sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
         <Skeleton variant="text" width={180} height={32} sx={{ mb: 2 }} />
         {Array.from({ length: 5 }).map((_, i) => (
           <Skeleton key={i} variant="rounded" height={68} sx={{ mb: 1, borderRadius: 2 }} />
@@ -50,7 +53,7 @@ export default function TopCustomers({ data, isLoading }: Props) {
 
   if (!data || data.length === 0) {
     return (
-      <Card sx={{ p: 5, textAlign: 'center', borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+      <Card sx={{ p: 5, textAlign: 'center', border: '1px solid', borderColor: 'divider' }}>
         <EmojiEventsIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
         <Typography color="text.secondary" fontWeight={600}>
           No customer data yet
@@ -67,7 +70,6 @@ export default function TopCustomers({ data, isLoading }: Props) {
   return (
     <Card
       sx={{
-        borderRadius: 3,
         border: '1px solid',
         borderColor: 'divider',
         overflow: 'hidden',
@@ -76,8 +78,8 @@ export default function TopCustomers({ data, isLoading }: Props) {
       {/* Header */}
       <Box sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
         <Stack direction="row" alignItems="center" spacing={1.5}>
-          <Box sx={{ p: 0.8, borderRadius: 1.5, bgcolor: alpha('#FFD700', 0.15), display: 'flex' }}>
-            <EmojiEventsIcon sx={{ color: '#FFD700', fontSize: 20 }} />
+          <Box sx={{ p: 0.8, borderRadius: 1.5, bgcolor: tint(theme, 'warning', 0.15), display: 'flex' }}>
+            <EmojiEventsIcon sx={{ color: 'warning.main', fontSize: 20 }} />
           </Box>
           <Box>
             <Typography variant="subtitle1" fontWeight={800}>
@@ -125,7 +127,7 @@ export default function TopCustomers({ data, isLoading }: Props) {
                         fontSize: 12,
                         fontWeight: 900,
                         bgcolor: isTop3 ? MEDAL_COLORS[i] : 'action.selected',
-                        color: isTop3 ? '#fff' : 'text.secondary',
+                        color: isTop3 ? 'common.white' : 'text.secondary',
                       }}
                     >
                       {i + 1}
@@ -159,8 +161,8 @@ export default function TopCustomers({ data, isLoading }: Props) {
                             height: 16,
                             fontSize: 8,
                             fontWeight: 800,
-                            bgcolor: alpha('#22c55e', 0.1),
-                            color: '#22c55e',
+                            bgcolor: tint(theme, 'success'),
+                            color: 'success.main',
                           }}
                         />
                       )}
@@ -199,10 +201,10 @@ export default function TopCustomers({ data, isLoading }: Props) {
                         mt: 0.8,
                         height: 4,
                         borderRadius: 2,
-                        bgcolor: alpha(isTop3 ? MEDAL_COLORS[i] : '#FC0680', 0.08),
+                        bgcolor: alpha(isTop3 ? MEDAL_COLORS[i] : theme.palette.primary.main, 0.08),
                         '& .MuiLinearProgress-bar': {
                           borderRadius: 2,
-                          bgcolor: isTop3 ? MEDAL_COLORS[i] : '#FC0680',
+                          bgcolor: isTop3 ? MEDAL_COLORS[i] : theme.palette.primary.main,
                         },
                       }}
                     />
@@ -211,16 +213,20 @@ export default function TopCustomers({ data, isLoading }: Props) {
                   {/* Points + Products */}
                   <Stack alignItems="flex-end" spacing={0.2}>
                     <Chip
-                      icon={<StarIcon sx={{ fontSize: 13, color: '#FF9800 !important' }} />}
+                      icon={
+                        <StarIcon
+                          sx={{ fontSize: 13, color: `${theme.palette.warning.main} !important` }}
+                        />
+                      }
                       label={c.totalPoints.toLocaleString()}
                       size="small"
                       sx={{
                         fontWeight: 900,
                         fontSize: 12,
                         height: 26,
-                        bgcolor: alpha('#FF9800', 0.08),
-                        color: '#FF9800',
-                        border: `1px solid ${alpha('#FF9800', 0.2)}`,
+                        bgcolor: tint(theme, 'warning', 0.08),
+                        color: 'warning.main',
+                        border: `1px solid ${tintBorder(theme, 'warning', 0.2)}`,
                       }}
                     />
                     <Typography variant="caption" color="text.secondary" sx={{ fontSize: 10, fontWeight: 600 }}>

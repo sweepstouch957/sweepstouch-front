@@ -16,6 +16,8 @@ import {
   ListItemText,
   Paper,
   Typography,
+  alpha,
+  useTheme,
 } from '@mui/material';
 import React, { useCallback, useState } from 'react';
 
@@ -57,6 +59,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({
   helpText = '',
   maxSizeMB = 10,
 }) => {
+  const theme = useTheme();
   const [isDragOver, setIsDragOver] = useState(false);
 
   const validateAndSend = (files: File[]) => {
@@ -99,13 +102,13 @@ const FileUploader: React.FC<FileUploaderProps> = ({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Uploaded':
-        return '#4CAF50';
+        return theme.palette.success.main;
       case 'Uploading':
-        return '#FF9800';
+        return theme.palette.warning.main;
       case 'Error':
-        return '#F44336';
+        return theme.palette.error.main;
       default:
-        return '#718096';
+        return theme.palette.text.secondary;
     }
   };
 
@@ -114,14 +117,15 @@ const FileUploader: React.FC<FileUploaderProps> = ({
       {/* Upload Area */}
       <Paper
         sx={{
-          border: `2px dashed ${isDragOver ? '#E91E63' : '#CBD5E0'}`,
+          border: '2px dashed',
+          borderColor: isDragOver ? 'primary.main' : 'divider',
           borderRadius: 3,
           p: 6,
           textAlign: 'center',
-          backgroundColor: isDragOver ? 'rgba(233,30,99,0.05)' : 'transparent',
+          backgroundColor: isDragOver ? alpha(theme.palette.primary.main, 0.05) : 'transparent',
           cursor: 'pointer',
           transition: 'all .2s',
-          '&:hover': { borderColor: '#E91E63' },
+          '&:hover': { borderColor: 'primary.main' },
         }}
         onDragOver={(e) => {
           e.preventDefault();
@@ -138,12 +142,12 @@ const FileUploader: React.FC<FileUploaderProps> = ({
           sx={{
             p: 2,
             borderRadius: 2,
-            backgroundColor: '#F7FAFC',
+            backgroundColor: 'action.hover',
             display: 'inline-flex',
             mb: 3,
           }}
         >
-          {icon ?? <CloudUploadIcon sx={{ fontSize: 32, color: '#718096' }} />}
+          {icon ?? <CloudUploadIcon sx={{ fontSize: 32, color: 'text.secondary' }} />}
         </Box>
 
         <Typography
@@ -152,7 +156,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({
         >
           <Typography
             component="span"
-            sx={{ color: '#2196F3', fontWeight: 500 }}
+            sx={{ color: 'info.main', fontWeight: 500 }}
           >
             Click to upload
           </Typography>{' '}
@@ -162,7 +166,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({
         {helpText && (
           <Typography
             variant="body2"
-            sx={{ color: '#718096' }}
+            sx={{ color: 'text.secondary' }}
           >
             {helpText}
           </Typography>
@@ -183,7 +187,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({
         <Box sx={{ mt: 4 }}>
           <Typography
             variant="h6"
-            sx={{ fontWeight: 600, color: '#2D3748', mb: 2 }}
+            sx={{ fontWeight: 600, color: 'text.primary', mb: 2 }}
           >
             Uploaded Files
           </Typography>
@@ -194,11 +198,12 @@ const FileUploader: React.FC<FileUploaderProps> = ({
                 <ListItem
                   key={file.id}
                   sx={{
-                    borderBottom: index < uploadedFiles.length - 1 ? '1px solid #E2E8F0' : 'none',
+                    borderBottom: index < uploadedFiles.length - 1 ? '1px solid' : 'none',
+                    borderColor: 'divider',
                   }}
                 >
                   <ListItemIcon>
-                    <AttachFileIcon sx={{ color: '#718096' }} />
+                    <AttachFileIcon sx={{ color: 'text.secondary' }} />
                   </ListItemIcon>
 
                   <ListItemText
@@ -214,7 +219,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({
                           label={file.status}
                           size="small"
                           sx={{
-                            backgroundColor: `${getStatusColor(file.status)}22`,
+                            backgroundColor: alpha(getStatusColor(file.status), 0.13),
                             color: getStatusColor(file.status),
                           }}
                         />
@@ -223,7 +228,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({
                     secondary={
                       <Typography
                         variant="caption"
-                        sx={{ color: '#718096' }}
+                        sx={{ color: 'text.secondary' }}
                       >
                         {file.size}
                       </Typography>

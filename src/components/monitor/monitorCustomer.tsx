@@ -62,7 +62,7 @@ export function OpportunityLists({ store, filters }: { store: StoreLite; filters
                   <Typography noWrap sx={{ fontWeight: 700, fontSize: 13 }}>{p.product}</Typography>
                   <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>{p.category} · {p.price}</Typography>
                 </Box>
-                <Chip label={`${p.timesSelected ?? 0} deseos`} size="small" sx={{ fontWeight: 800, bgcolor: alpha('#f59e0b', 0.12), color: '#b45309' }} />
+                <Chip label={`${p.timesSelected ?? 0} deseos`} size="small" sx={{ fontWeight: 800, bgcolor: alpha(theme.palette.warning.main, 0.12), color: theme.palette.warning.dark }} />
               </Stack>
             ))}
           </Stack>
@@ -158,7 +158,7 @@ export function ActivityHeatmap({ store, filters }: { store: StoreLite; filters:
             return (
               <Box key={d} sx={{ textAlign: 'center' }}>
                 <Box sx={{ height: 64, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.12 + intensity * 0.78), display: 'grid', placeItems: 'center', mb: 0.5 }}>
-                  <Typography sx={{ fontWeight: 800, fontSize: 13, color: intensity > 0.5 ? '#fff' : 'text.primary' }}>{byDow[i].toLocaleString()}</Typography>
+                  <Typography sx={{ fontWeight: 800, fontSize: 13, color: intensity > 0.5 ? 'common.white' : 'text.primary' }}>{byDow[i].toLocaleString()}</Typography>
                 </Box>
                 <Typography sx={{ fontSize: 11, color: 'text.secondary', fontWeight: 600 }}>{d}</Typography>
               </Box>

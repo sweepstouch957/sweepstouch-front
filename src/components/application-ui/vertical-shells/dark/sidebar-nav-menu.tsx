@@ -4,15 +4,13 @@ import {
   Box,
   Collapse,
   List,
-  ListItemButton,
   ListItemIcon,
   ListItemText,
   ListProps,
   ListSubheader,
   styled,
   Theme,
-  useMediaQuery,
-} from '@mui/material';
+  useMediaQuery } from '@mui/material';
 
 import React, { FC, useState } from 'react';
 import { RouterLink } from 'src/components/base/router-link';

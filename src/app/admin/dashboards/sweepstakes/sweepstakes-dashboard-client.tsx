@@ -23,10 +23,8 @@ import {
   Stack,
   Tooltip,
   Typography,
-  useMediaQuery,
   useTheme,
-  Unstable_Grid2 as Grid,
-} from '@mui/material';
+  Unstable_Grid2 as Grid } from '@mui/material';
 import CountUp from 'react-countup';
 import {
   CheckCircleRounded,
@@ -34,7 +32,6 @@ import {
   EmojiEventsRounded,
   FilterAltRounded,
   OpenInNewRounded,
-  PersonAddRounded,
   RedeemRounded,
   RefreshRounded,
   StorefrontRounded,
@@ -42,8 +39,7 @@ import {
   TrendingDownRounded,
   TrendingUpRounded,
   WarningAmberRounded,
-  WifiOffRounded,
-} from '@mui/icons-material';
+  WifiOffRounded } from '@mui/icons-material';
 import RangePickerField from 'src/components/base/range-picker-field';
 import { sweepstakesClient } from 'src/services/sweepstakes.service';
 import { format } from 'date-fns';
@@ -52,6 +48,7 @@ import { LineChart } from '@mui/x-charts/LineChart';
 import { PieChart } from '@mui/x-charts/PieChart';
 import { useQuery } from '@tanstack/react-query';
 import type { ActiveStoreStatusRow } from 'src/services/sweepstakes.service';
+import { chartPalette, tint } from 'src/theme/semantic';
 
 // ─── Status dot ────────────────────────────────────────────────────────────────
 function StatusDot({ status }: { status: string }) {
@@ -72,10 +69,11 @@ function StatusDot({ status }: { status: string }) {
         bgcolor: c,
         flexShrink: 0,
         ...(status !== 'ok' && {
+          outline: `2px solid ${alpha(c, 0.2)}`,
           animation: 'sdPulse 2s ease-in-out infinite',
           '@keyframes sdPulse': {
-            '0%,100%': { boxShadow: `0 0 0 2px ${alpha(c, 0.2)}` },
-            '50%': { boxShadow: `0 0 0 5px ${alpha(c, 0.35)}` },
+            '0%,100%': { outline: `2px solid ${alpha(c, 0.2)}` },
+            '50%': { outline: `5px solid ${alpha(c, 0.35)}` },
           },
           '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
         }),
@@ -90,21 +88,18 @@ interface KpiCardProps {
   value: number;
   subtext?: string;
   gradient: string;
-  shadowColor: string;
   Icon: React.ElementType;
   isLoading?: boolean;
   badge?: React.ReactNode;
 }
 
-function KpiCard({ label, value, subtext, gradient, shadowColor, Icon, isLoading, badge }: KpiCardProps) {
+function KpiCard({ label, value, subtext, gradient, Icon, isLoading, badge }: KpiCardProps) {
   return (
     <Card
       elevation={0}
       sx={{
         p: { xs: 2, sm: 2.5 },
         background: gradient,
-        boxShadow: `0 8px 28px ${shadowColor}`,
-        borderRadius: 3,
         border: 'none',
         position: 'relative',
         overflow: 'hidden',
@@ -112,7 +107,7 @@ function KpiCard({ label, value, subtext, gradient, shadowColor, Icon, isLoading
       }}
     >
       <Box sx={{ position: 'absolute', top: -14, right: -14, opacity: 0.07, pointerEvents: 'none' }}>
-        <Icon sx={{ fontSize: 110, color: '#fff' }} />
+        <Icon sx={{ fontSize: 110, color: 'common.white' }} />
       </Box>
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1.5 }}>
         <Box>
@@ -128,7 +123,7 @@ function KpiCard({ label, value, subtext, gradient, shadowColor, Icon, isLoading
           >
             {label}
           </Typography>
-          <Typography variant="h3" fontWeight={900} sx={{ color: '#fff', lineHeight: 1, letterSpacing: -1 }}>
+          <Typography variant="h3" fontWeight={900} sx={{ color: 'common.white', lineHeight: 1, letterSpacing: -1 }}>
             {isLoading ? (
               <Skeleton width={80} sx={{ bgcolor: 'rgba(255,255,255,0.2)', borderRadius: 1 }} />
             ) : (
@@ -138,7 +133,7 @@ function KpiCard({ label, value, subtext, gradient, shadowColor, Icon, isLoading
         </Box>
         <Avatar
           variant="rounded"
-          sx={{ bgcolor: 'rgba(255,255,255,0.16)', color: '#fff', width: 48, height: 48, backdropFilter: 'blur(6px)' }}
+          sx={{ bgcolor: 'rgba(255,255,255,0.16)', color: 'common.white', width: 48, height: 48, backdropFilter: 'blur(6px)' }}
         >
           <Icon />
         </Avatar>
@@ -152,8 +147,6 @@ function KpiCard({ label, value, subtext, gradient, shadowColor, Icon, isLoading
 }
 
 // ─── Store mini card (inside horizontal scroll) ────────────────────────────────
-const RANK_COLORS = ['#1565c0', '#2e7d32', '#6a1b9a', '#c62828', '#e65100', '#00695c', '#4527a0', '#37474f'];
-
 interface StoreMiniCardProps {
   store: any;
   rank: number;
@@ -164,7 +157,8 @@ interface StoreMiniCardProps {
 function StoreMiniCard({ store, rank, sweepId, onNavigate }: StoreMiniCardProps) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
-  const color = RANK_COLORS[rank % RANK_COLORS.length];
+  const rankPalette = chartPalette(theme);
+  const color = rankPalette[rank % rankPalette.length];
   const isTop3 = rank < 3;
 
   const resolveImg = (img: string) => {
@@ -189,7 +183,7 @@ function StoreMiniCard({ store, rank, sweepId, onNavigate }: StoreMiniCardProps)
         transition: 'all 0.18s ease',
         '&:hover': {
           borderColor: alpha(color, 0.55),
-          boxShadow: `0 4px 16px ${alpha(color, 0.2)}`,
+          bgcolor: alpha(color, isDark ? 0.16 : 0.08),
           transform: 'translateY(-2px)',
         },
       }}
@@ -202,7 +196,7 @@ function StoreMiniCard({ store, rank, sweepId, onNavigate }: StoreMiniCardProps)
             height: 20,
             borderRadius: '50%',
             bgcolor: isTop3 ? color : alpha(theme.palette.text.primary, 0.1),
-            color: isTop3 ? '#fff' : theme.palette.text.secondary,
+            color: isTop3 ? theme.palette.common.white : theme.palette.text.secondary,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -266,13 +260,13 @@ function StoreMiniCard({ store, rank, sweepId, onNavigate }: StoreMiniCardProps)
           sx={{
             flex: 1,
             textAlign: 'center',
-            bgcolor: alpha('#43a047', isDark ? 0.14 : 0.07),
-            border: `1px solid ${alpha('#43a047', 0.18)}`,
+            bgcolor: tint(theme, 'success', isDark ? 0.14 : 0.07),
+            border: `1px solid ${tint(theme, 'success', 0.18)}`,
             borderRadius: 1.5,
             p: '6px 4px',
           }}
         >
-          <Typography fontSize={15} fontWeight={900} sx={{ color: '#43a047', lineHeight: 1 }}>
+          <Typography fontSize={15} fontWeight={900} sx={{ color: 'success.main', lineHeight: 1 }}>
             {store.newUsers.toLocaleString()}
           </Typography>
           <Typography fontSize={8} color="text.secondary" fontWeight={700} textTransform="uppercase" letterSpacing={0.4}>
@@ -468,7 +462,7 @@ export default function SweepstakesDashboardClient(): React.JSX.Element {
       <Collapse in={filtersOpen}>
         <Card
           variant="outlined"
-          sx={{ borderRadius: 3, p: { xs: 1.5, sm: 2 }, mb: 2.5, bgcolor: 'background.paper' }}
+          sx={{ p: { xs: 1.5, sm: 2 }, mb: 2.5, bgcolor: 'background.paper' }}
         >
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }}>
             <RangePickerField
@@ -510,7 +504,6 @@ export default function SweepstakesDashboardClient(): React.JSX.Element {
             value={dailyTotalData?.today?.total ?? 0}
             subtext={`${dailyTotalData?.today?.newUsers ?? 0} nuevos · ${dailyTotalData?.today?.existingUsers ?? 0} existentes`}
             gradient={`linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`}
-            shadowColor={alpha(theme.palette.primary.main, 0.35)}
             Icon={TodayRounded}
             isLoading={loadingDailyTotal}
           />
@@ -521,10 +514,9 @@ export default function SweepstakesDashboardClient(): React.JSX.Element {
             value={Math.abs(Math.round(deltaPercent * 10) / 10)}
             gradient={
               isUp
-                ? 'linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #43a047 100%)'
-                : 'linear-gradient(135deg, #b71c1c 0%, #c62828 50%, #ef5350 100%)'
+                ? `linear-gradient(135deg, ${theme.palette.success.dark} 0%, ${theme.palette.success.main} 100%)`
+                : `linear-gradient(135deg, ${theme.palette.error.dark} 0%, ${theme.palette.error.main} 100%)`
             }
-            shadowColor={isUp ? 'rgba(46,125,50,0.35)' : 'rgba(198,40,40,0.35)'}
             Icon={isUp ? TrendingUpRounded : TrendingDownRounded}
             isLoading={loadingDailyTotal}
             subtext={`Ayer: ${(dailyTotalData?.comparisons?.vsYesterday?.total ?? 0).toLocaleString()} contactos`}
@@ -547,8 +539,7 @@ export default function SweepstakesDashboardClient(): React.JSX.Element {
             label="Tiendas online"
             value={onlineCount}
             subtext={`de ${totalActive} activas · ${onlinePct}% operativas`}
-            gradient="linear-gradient(135deg, #0d47a1 0%, #1565c0 50%, #1e88e5 100%)"
-            shadowColor="rgba(21,101,192,0.35)"
+            gradient={`linear-gradient(135deg, ${theme.palette.info.dark} 0%, ${theme.palette.info.main} 100%)`}
             Icon={StorefrontRounded}
             isLoading={loadingStoresStatus}
           />
@@ -560,10 +551,9 @@ export default function SweepstakesDashboardClient(): React.JSX.Element {
             subtext={`${offlineCount} offline · ${noDataCount} sin datos hoy`}
             gradient={
               alertCount > 0
-                ? 'linear-gradient(135deg, #b71c1c 0%, #c62828 50%, #ef5350 100%)'
-                : 'linear-gradient(135deg, #37474f 0%, #455a64 50%, #607d8b 100%)'
+                ? `linear-gradient(135deg, ${theme.palette.error.dark} 0%, ${theme.palette.error.main} 100%)`
+                : `linear-gradient(135deg, ${theme.palette.grey[800]} 0%, ${theme.palette.grey[600]} 100%)`
             }
-            shadowColor={alertCount > 0 ? 'rgba(198,40,40,0.35)' : 'rgba(55,71,79,0.25)'}
             Icon={WifiOffRounded}
             isLoading={loadingStoresStatus}
           />
@@ -576,7 +566,7 @@ export default function SweepstakesDashboardClient(): React.JSX.Element {
         <Grid xs={12} sm={6} md={4} lg={3}>
           <Card
             variant="outlined"
-            sx={{ borderRadius: 3, p: { xs: 2, sm: 2.5 }, height: '100%', bgcolor: 'background.paper' }}
+            sx={{ p: { xs: 2, sm: 2.5 }, height: '100%', bgcolor: 'background.paper' }}
           >
             <Typography variant="subtitle2" fontWeight={700} mb={0.25}>
               Audiencia Global
@@ -664,7 +654,7 @@ export default function SweepstakesDashboardClient(): React.JSX.Element {
         <Grid xs={12} sm={6} md={hasAlerts ? 4 : 8} lg={hasAlerts ? 5 : 9}>
           <Card
             variant="outlined"
-            sx={{ borderRadius: 3, p: { xs: 2, sm: 2.5 }, height: '100%', bgcolor: 'background.paper' }}
+            sx={{ p: { xs: 2, sm: 2.5 }, height: '100%', bgcolor: 'background.paper' }}
           >
             <Stack direction="row" alignItems="flex-start" justifyContent="space-between" mb={1}>
               <Box>
@@ -732,13 +722,13 @@ export default function SweepstakesDashboardClient(): React.JSX.Element {
         {/* Store health alerts */}
         {hasAlerts && (
           <Grid xs={12} md={4}>
-            <Card variant="outlined" sx={{ borderRadius: 3, height: '100%', bgcolor: 'background.paper', overflow: 'hidden' }}>
+            <Card variant="outlined" sx={{ height: '100%', bgcolor: 'background.paper', overflow: 'hidden' }}>
               <Box
                 sx={{
                   px: 2.5,
                   py: 2,
                   borderBottom: `1px solid ${theme.palette.divider}`,
-                  bgcolor: isDark ? alpha('#000', 0.2) : alpha('#000', 0.015),
+                  bgcolor: isDark ? alpha(theme.palette.common.black, 0.2) : alpha(theme.palette.common.black, 0.015),
                 }}
               >
                 <Stack direction="row" alignItems="center" justifyContent="space-between">
@@ -835,7 +825,7 @@ export default function SweepstakesDashboardClient(): React.JSX.Element {
           ))}
         </Stack>
       ) : data.length === 0 ? (
-        <Card variant="outlined" sx={{ p: 6, textAlign: 'center', borderRadius: 3 }}>
+        <Card variant="outlined" sx={{ p: 6, textAlign: 'center' }}>
           <StorefrontRounded sx={{ fontSize: 42, color: 'text.disabled', mb: 2 }} />
           <Typography variant="h6" color="text.secondary" fontWeight={600}>
             No hay sorteos que coincidan con los filtros
@@ -851,7 +841,7 @@ export default function SweepstakesDashboardClient(): React.JSX.Element {
             const accentColor = isActive ? theme.palette.success.main : theme.palette.text.disabled;
 
             return (
-              <Card variant="outlined" key={sweep.id} sx={{ borderRadius: 3, overflow: 'hidden', bgcolor: 'background.paper' }}>
+              <Card variant="outlined" key={sweep.id} sx={{ overflow: 'hidden', bgcolor: 'background.paper' }}>
                 {/* Card header — clickable */}
                 <Box
                   onClick={() => handleSweepStats(sweep.id)}
@@ -859,7 +849,7 @@ export default function SweepstakesDashboardClient(): React.JSX.Element {
                     px: { xs: 2, sm: 2.5 },
                     py: { xs: 1.5, sm: 2 },
                     cursor: 'pointer',
-                    bgcolor: isDark ? alpha('#000', 0.2) : alpha('#000', 0.015),
+                    bgcolor: isDark ? alpha(theme.palette.common.black, 0.2) : alpha(theme.palette.common.black, 0.015),
                     borderBottom: `1px solid ${theme.palette.divider}`,
                     transition: 'background 0.15s',
                     '&:hover': { bgcolor: alpha(accent, 0.04) },
@@ -916,7 +906,7 @@ export default function SweepstakesDashboardClient(): React.JSX.Element {
                           </Typography>
                         </Box>
                         <Box textAlign="center">
-                          <Typography variant="h6" fontWeight={900} sx={{ color: '#43a047', lineHeight: 1 }}>
+                          <Typography variant="h6" fontWeight={900} sx={{ color: 'success.main', lineHeight: 1 }}>
                             {sweep.totalNewUsers.toLocaleString()}
                           </Typography>
                           <Typography variant="caption" color="text.secondary" fontSize={9} fontWeight={700} textTransform="uppercase">

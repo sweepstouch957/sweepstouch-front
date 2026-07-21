@@ -34,6 +34,8 @@ import {
   StoreRounded,
   SwapHorizRounded,
 } from '@mui/icons-material';
+import type { Theme } from '@mui/material/styles';
+import { chartPalette } from 'src/theme/semantic';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { merchantService, MerchantUser } from '@/services/merchant.service';
 import { getStoresWithoutFilters, Store } from '@/services/store.service';
@@ -49,11 +51,8 @@ const getInitials = (u: MerchantUser) => {
   return (f + l).toUpperCase() || '?';
 };
 
-const avatarColor = (id: string) => {
-  const colors = [
-    '#6C63FF', '#FF6584', '#43A8D0', '#F7B731', '#26de81',
-    '#FC5C65', '#45AAF2', '#FD9644', '#2BCB9B', '#A55EEA',
-  ];
+const avatarColor = (theme: Theme, id: string) => {
+  const colors = chartPalette(theme);
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) & 0xffff;
   return colors[h % colors.length];
@@ -94,7 +93,6 @@ const StoreDragCard: React.FC<StoreDragCardProps> = ({ store, side, onDragStart 
           : theme.palette.background.paper,
         transition: 'all 0.15s ease',
         '&:hover': {
-          boxShadow: theme.shadows[3],
           transform: 'translateY(-1px)',
           borderColor: side === 'assigned'
             ? theme.palette.success.main
@@ -107,7 +105,7 @@ const StoreDragCard: React.FC<StoreDragCardProps> = ({ store, side, onDragStart 
       <Avatar
         src={store.image}
         variant="rounded"
-        sx={{ width: 34, height: 34, fontSize: 13, flexShrink: 0, bgcolor: avatarColor(store._id || store.id) }}
+        sx={{ width: 34, height: 34, fontSize: 13, flexShrink: 0, bgcolor: avatarColor(theme, store._id || store.id) }}
       >
         <StoreRounded fontSize="small" />
       </Avatar>
@@ -316,17 +314,16 @@ const MerchantAssignPanel: React.FC<MerchantAssignPanelProps> = ({ merchant, all
   };
 
   const initials = getInitials(merchant);
-  const color = avatarColor(merchant._id);
+  const color = avatarColor(theme, merchant._id);
 
   return (
     <Card
       elevation={0}
       sx={{
         border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-        borderRadius: 3,
         overflow: 'hidden',
-        transition: 'box-shadow 0.2s',
-        '&:hover': { boxShadow: theme.shadows[4] },
+        transition: 'border-color 0.2s',
+        '&:hover': { borderColor: 'primary.main' },
       }}
     >
       {/* Header */}
@@ -492,7 +489,6 @@ export default function MerchantsPage() {
               sx={{
                 borderRadius: 2,
                 background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
-                boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.4)}`,
               }}
             >
               Create User

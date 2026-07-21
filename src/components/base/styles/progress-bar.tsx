@@ -78,7 +78,7 @@ export const LinearProgressGradientGreen = styled(LinearProgress)(({ theme }) =>
   },
 
   [`& .${linearProgressClasses.bar}`]: {
-    background: 'linear-gradient(135deg, #FFF720 0%, #3CD500 100%)',
+    background: `linear-gradient(135deg, ${theme.palette.success.light} 0%, ${theme.palette.success.dark} 100%)`,
   },
 }));
 
@@ -88,7 +88,7 @@ export const LinearProgressGradientOrange = styled(LinearProgress)(({ theme }) =
   },
 
   [`& .${linearProgressClasses.bar}`]: {
-    background: 'linear-gradient(120deg, #f6d365 0%, #fda085 100%)',
+    background: `linear-gradient(120deg, ${theme.palette.warning.light} 0%, ${theme.palette.warning.dark} 100%)`,
   },
 }));
 
@@ -98,6 +98,6 @@ export const LinearProgressGradientPurple = styled(LinearProgress)(({ theme }) =
   },
 
   [`& .${linearProgressClasses.bar}`]: {
-    background: 'linear-gradient(135deg, #43CBFF 0%, #9708CC 100%)',
+    background: `linear-gradient(135deg, ${theme.palette.info.light} 0%, ${theme.palette.secondary.dark} 100%)`,
   },
 }));

@@ -197,7 +197,6 @@ export default function DepurarPhonesModal({
               alignItems: 'center',
               justifyContent: 'center',
               background: `linear-gradient(135deg, ${theme.palette.error.dark} 0%, ${theme.palette.error.main} 100%)`,
-              boxShadow: `0 4px 12px ${alpha(theme.palette.error.main, 0.4)}`,
             }}
           >
             <CleaningServicesRounded sx={{ color: 'white', fontSize: 20 }} />

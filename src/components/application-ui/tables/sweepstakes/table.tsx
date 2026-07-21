@@ -167,8 +167,8 @@ export default function SweepstakesTable() {
           mb: 2,
           p: { xs: 2, sm: 3 },
           borderRadius: 3,
-          background: theme.palette.mode === 'light' ? '#ffffff' : '#1e1e1e',
-          boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)'
+          background: theme.palette.background.paper,
+          border: `1px solid ${theme.palette.divider}`,
         }}
         elevation={0}
       >
@@ -257,7 +257,7 @@ export default function SweepstakesTable() {
               </Typography>
             ) : (
               <Table size={isMobile ? 'small' : 'medium'}>
-                <TableHead sx={{ bgcolor: theme.palette.mode === 'light' ? '#f8fafc' : '#2d2d2d' }}>
+                <TableHead sx={{ bgcolor: 'action.hover' }}>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 700, minWidth: 280, py: 2 }}>
                       <TableSortLabel active={sortBy === 'createdAt'} direction={sortBy === 'createdAt' ? sortOrder : 'asc'} onClick={() => handleSort('createdAt')}>
@@ -319,7 +319,7 @@ export default function SweepstakesTable() {
                           sx={{
                             transition: 'all 0.2s ease',
                             '&:hover': {
-                              backgroundColor: theme.palette.mode === 'light' ? '#f8fafc' : 'rgba(255,255,255,0.03)',
+                              backgroundColor: theme.palette.action.hover,
                             },
                           }}
                         >
@@ -329,7 +329,7 @@ export default function SweepstakesTable() {
                               {sw.image ? (
                                 <Tooltip title="View Image">
                                   <ButtonBase onClick={() => dispatch({ type: 'SET_PREVIEW', payload: { url: sw.image, name: sw.name } })} sx={{ borderRadius: 2 }}>
-                                    <Avatar src={sw.image} variant="rounded" sx={{ width: 56, height: 56, boxShadow: 1, borderRadius: 2 }} />
+                                    <Avatar src={sw.image} variant="rounded" sx={{ width: 56, height: 56, border: `1px solid ${theme.palette.divider}`, borderRadius: 2 }} />
                                   </ButtonBase>
                                 </Tooltip>
                               ) : (
@@ -379,7 +379,7 @@ export default function SweepstakesTable() {
                                 variant="determinate"
                                 value={pct}
                                 color={color}
-                                sx={{ height: 6, borderRadius: 3, bgcolor: theme.palette.mode === 'light' ? '#e2e8f0' : 'rgba(255,255,255,0.1)' }}
+                                sx={{ height: 6, borderRadius: 3, bgcolor: theme.palette.action.selected }}
                               />
                             </Box>
                           </TableCell>

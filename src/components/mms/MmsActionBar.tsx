@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   Box, Button, CircularProgress, Stack, Typography, Alert,
 } from '@mui/material';
@@ -9,6 +9,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
 import { circularService } from '@/services/circular.service';
 import TestMmsShoppingListModal from '@/components/mms/TestMmsShoppingListModal';
+import { tint, tintBorder } from 'src/theme/semantic';
 
 interface Product {
   name: string;
@@ -96,8 +97,12 @@ export default function MmsActionBar({
           startIcon={<BugReportRoundedIcon />}
           disabled={products.length === 0}
           sx={{
-            borderColor: 'rgba(244,55,137,0.4)', color: '#f43789',
-            '&:hover': { borderColor: '#f43789', bgcolor: 'rgba(244,55,137,0.04)' },
+            borderColor: (theme) => tintBorder(theme, 'primary', 0.4),
+            color: 'primary.main',
+            '&:hover': {
+              borderColor: 'primary.main',
+              bgcolor: (theme) => tint(theme, 'primary', 0.06),
+            },
           }}>
           🧪 Send Test SMS
         </Button>
@@ -108,8 +113,12 @@ export default function MmsActionBar({
         disabled={!circularId || !campaignCode || generating}
         startIcon={generating ? <CircularProgress size={18} color="inherit" /> : <SendIcon />}
         sx={{
-          background: 'linear-gradient(135deg, #DC1F26 0%, #ff6b6b 100%)',
-          '&:hover': { background: 'linear-gradient(135deg, #b01820 0%, #e55 100%)' },
+          background: (theme) =>
+            `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.light} 100%)`,
+          '&:hover': {
+            background: (theme) =>
+              `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+          },
           fontWeight: 'bold', py: 1.2,
         }}>
         {generating ? 'Generating...' : '🚀 Generate MMS for All Customers'}
@@ -124,7 +133,8 @@ export default function MmsActionBar({
           </Typography>
           <Box sx={{
             height: 4, borderRadius: 2,
-            background: 'linear-gradient(90deg, #DC1F26, #FFD700, #DC1F26)',
+            background: (theme) =>
+              `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.warning.main}, ${theme.palette.primary.main})`,
             backgroundSize: '200% 100%',
             animation: 'shimmer 1.5s infinite',
             '@keyframes shimmer': { '0%': { backgroundPosition: '200% 0' }, '100%': { backgroundPosition: '-200% 0' } },

@@ -11,8 +11,9 @@
  * Export a XLSX usando SheetJS (xlsx).
  */
 
-import { useSmsAudit, type SmsAuditRow, type SmsAuditSummary } from '@/services/cashier.service';
+import { useSmsAudit } from '@/services/cashier.service';
 import {
+  alpha,
   Box,
   Button,
   Chip,
@@ -82,8 +83,8 @@ function SummaryCard({ label, value, pct, color }: { label: string; value: numbe
         borderColor    : 'divider',
         background     : (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
         textAlign      : 'center',
-        transition     : 'box-shadow .2s',
-        '&:hover'      : { boxShadow: 3 },
+        transition     : 'border-color .2s, background-color .2s',
+        '&:hover'      : { borderColor: 'primary.main', bgcolor: (t) => alpha(t.palette.primary.main, 0.04) },
       }}
     >
       <Typography variant="h4" fontWeight={800} color={color}>
@@ -271,10 +272,7 @@ export default function SmsAuditPanel({ storeId, startDate, endDate }: Props) {
             onClick={handleExport}
             disabled={!data?.rows?.length}
             sx={{
-              background : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color      : '#fff',
               fontWeight : 700,
-              '&:hover'  : { background: 'linear-gradient(135deg, #5a6fd6 0%, #6a4194 100%)' },
             }}
           >
             Exportar XLSX

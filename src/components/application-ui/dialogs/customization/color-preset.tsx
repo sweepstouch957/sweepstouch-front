@@ -2,7 +2,6 @@ import DarkModeTwoToneIcon from '@mui/icons-material/DarkModeTwoTone';
 import LightModeTwoToneIcon from '@mui/icons-material/LightModeTwoTone';
 import {
   alpha,
-  Avatar,
   Box,
   Card,
   ListItemButton,
@@ -10,8 +9,7 @@ import {
   PaletteMode,
   Stack,
   Typography,
-  useTheme,
-} from '@mui/material';
+  useTheme } from '@mui/material';
 
 import type { FC, ReactElement } from 'react';
 import { AvatarState } from 'src/components/base/styles/avatar';

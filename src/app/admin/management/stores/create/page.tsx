@@ -25,7 +25,7 @@ import {
   Tab,
   Autocomplete,
 } from '@mui/material';
-import { createTheme, ThemeProvider, useTheme } from '@mui/material/styles';
+import { useTheme } from '@mui/material/styles';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { es } from 'date-fns/locale';
@@ -37,20 +37,6 @@ import { customerClient } from '@/services/customerService';
 import LocationPickerMap from '@/components/application-ui/map/LocationPickerMap';
 import PhoneMaskInput from '@/components/PhoneMaskInput';
 import { ExcelCustomerDropzone, ParsedCustomer } from '@/components/shared/ExcelCustomerDropzone';
-
-const pinkTheme = createTheme({
-  palette: {
-    primary: { main: '#FF008A' },
-    secondary: { main: '#FF4D9E' },
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: { borderRadius: 8, textTransform: 'none' },
-      },
-    },
-  },
-});
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -341,9 +327,9 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
 
   if (createdStore) {
     return (
-      <ThemeProvider theme={pinkTheme}>
+      <>
         <Container maxWidth="md" sx={{ py: { xs: 4, md: 8 }, textAlign: 'center' }}>
-          <Card sx={{ p: { xs: 3, md: 6 }, borderRadius: 4, boxShadow: '0 12px 40px rgba(0,0,0,0.08)' }}>
+          <Card sx={{ p: { xs: 3, md: 6 } }}>
             <CheckCircleOutlineIcon color="success" sx={{ fontSize: 90, mb: 2 }} />
             <Typography variant="h3" fontWeight="bold" gutterBottom>
               ¡Tienda Creada!
@@ -381,12 +367,12 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
             </Box>
           </Card>
         </Container>
-      </ThemeProvider>
+      </>
     );
   }
 
   return (
-    <ThemeProvider theme={pinkTheme}>
+    <>
       <Container
         maxWidth="lg"
         sx={{ py: { xs: 2, md: 3 } }}
@@ -825,7 +811,7 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
           }}
         />
       </Container>
-    </ThemeProvider>
+    </>
   );
 }
 

@@ -4,8 +4,6 @@ import React, { useState } from 'react';
 import {
   Alert,
   alpha,
-  Autocomplete,
-  Avatar,
   Box,
   Button,
   CircularProgress,
@@ -25,8 +23,7 @@ import {
   Stack,
   TextField,
   Typography,
-  useTheme,
-} from '@mui/material';
+  useTheme } from '@mui/material';
 import {
   CloseRounded,
   PersonAddRounded,
@@ -35,7 +32,7 @@ import {
 } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { merchantService, CreateUserPayload } from '@/services/merchant.service';
-import { departmentService, Department } from '@/services/department.service';
+import { departmentService } from '@/services/department.service';
 
 interface CreateUserDialogProps {
   open: boolean;
@@ -174,7 +171,6 @@ export default function CreateUserDialog({ open, onClose, onCreated }: CreateUse
                 width: 40, height: 40, borderRadius: 2,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
-                boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.4)}`,
               }}
             >
               <PersonAddRounded sx={{ color: 'white', fontSize: 20 }} />

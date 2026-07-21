@@ -113,7 +113,6 @@ const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName, provider 
             textTransform: 'none',
             fontWeight: 700,
             px: 3,
-            boxShadow: (t) => `0 6px 16px ${alpha(t.palette.primary.main, 0.35)}`,
           }}
         >
           Importar Excel

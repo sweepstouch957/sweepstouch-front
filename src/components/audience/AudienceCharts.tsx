@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import { BarChart } from '@mui/x-charts/BarChart';
 import { PieChart } from '@mui/x-charts/PieChart';
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { num } from './audience-utils';
 import { GlassCard, MetricPill } from './ui';
 

@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Box, Typography, Stack, useTheme, alpha } from '@mui/material';
+import { Box, Typography, Stack, useTheme } from '@mui/material';
+import { tint } from '@/theme/semantic';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import InsightsIcon from '@mui/icons-material/Insights';
@@ -82,7 +83,7 @@ export default function AnalyticsDashboard() {
           p: { xs: 2.5, md: 3.5 },
           borderRadius: 4,
           background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-          color: '#fff',
+          color: 'primary.contrastText',
           position: 'relative',
           overflow: 'hidden',
         }}
@@ -181,8 +182,8 @@ export default function AnalyticsDashboard() {
 
       {/* ═══ Section: Product Intelligence ═══ */}
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-        <Box sx={{ p: 0.6, borderRadius: 1.5, bgcolor: alpha('#22c55e', 0.1), display: 'flex' }}>
-          <TrendingUpIcon sx={{ color: '#22c55e', fontSize: 20 }} />
+        <Box sx={{ p: 0.6, borderRadius: 1.5, bgcolor: tint(theme, 'success'), display: 'flex' }}>
+          <TrendingUpIcon sx={{ color: 'success.main', fontSize: 20 }} />
         </Box>
         <Box>
           <Typography variant="h6" fontWeight={900}>

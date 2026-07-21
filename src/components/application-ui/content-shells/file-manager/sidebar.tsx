@@ -31,7 +31,7 @@ import { ButtonLight } from 'src/components/base/styles/button';
 import { DividerLight } from 'src/components/base/styles/card';
 
 const BoxUpgrade = styled(Box)(({ theme }) => ({
-  background: 'linear-gradient(135deg, #43CBFF 0%, #9708CC 100%)',
+  background: `linear-gradient(135deg, ${theme.palette.info.main} 0%, ${theme.palette.secondary.main} 100%)`,
   position: 'relative',
   borderRadius: theme.shape.borderRadius,
 
@@ -333,7 +333,7 @@ export const FileManagerSidebar: FC<FileManagerSidebarProps> = (props) => {
           sx: {
             position: 'relative',
             width: 420,
-            background: 'linear-gradient(127.55deg, #141E30 3.73%, #243B55 92.26%) !important',
+            background: `linear-gradient(127.55deg, ${theme.palette.neutral[900]} 3.73%, ${theme.palette.neutral[800]} 92.26%) !important`,
             boxShadow: (theme) => theme.shadows[0],
           },
         }}
@@ -359,7 +359,7 @@ export const FileManagerSidebar: FC<FileManagerSidebarProps> = (props) => {
           pointerEvents: 'auto',
           position: 'absolute',
           boxShadow: (theme) => theme.shadows[24],
-          background: 'linear-gradient(127.55deg, #141E30 3.73%, #243B55 92.26%) !important',
+          background: `linear-gradient(127.55deg, ${theme.palette.neutral[900]} 3.73%, ${theme.palette.neutral[800]} 92.26%) !important`,
         },
       }}
       ModalProps={{

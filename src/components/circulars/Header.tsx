@@ -25,8 +25,9 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
       position="fixed"
       elevation={0}
       sx={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #E2E8F0',
+        backgroundColor: 'background.paper',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
         left: { xs: 260, md: 280 }, // Sidebar width
         width: { xs: 'calc(100% - 260px)', md: 'calc(100% - 280px)' },
         zIndex: 1100,
@@ -37,7 +38,7 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
         <Typography
           variant="h5"
           sx={{
-            color: '#2D3748',
+            color: 'text.primary',
             fontWeight: 600,
             flex: 1,
             textAlign: 'center',
@@ -50,9 +51,9 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <IconButton
             sx={{
-              color: '#718096',
+              color: 'text.secondary',
               '&:hover': {
-                backgroundColor: 'rgba(113, 128, 150, 0.1)',
+                backgroundColor: 'action.hover',
               },
             }}
           >
@@ -65,7 +66,7 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
             variant="dot"
             sx={{
               '& .MuiBadge-badge': {
-                backgroundColor: '#2196F3',
+                backgroundColor: 'info.main',
                 width: 8,
                 height: 8,
                 borderRadius: '50%',
@@ -76,7 +77,7 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
               sx={{
                 width: 40,
                 height: 40,
-                backgroundColor: '#2196F3',
+                backgroundColor: 'info.main',
                 fontSize: '0.875rem',
                 fontWeight: 600,
               }}

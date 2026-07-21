@@ -2,16 +2,15 @@
 
 import * as React from 'react';
 import {
-  Alert, alpha, Box, Button, Chip, CircularProgress, Collapse, Dialog,
+  alpha, Box, Button, Chip, CircularProgress, Collapse, Dialog,
   DialogActions, DialogContent, DialogTitle, Divider, Grid, IconButton,
   InputAdornment, LinearProgress, Paper, Skeleton, Stack, TextField,
-  Tooltip, Typography, useMediaQuery, useTheme,
-} from '@mui/material';
+  type Theme, Tooltip, Typography, useMediaQuery, useTheme } from '@mui/material';
 import {
   BatteryAlert, BatteryChargingFull, BatteryFull, Battery50, Battery20,
   CheckCircle, ClearRounded, Close, DeviceHub, Download, ErrorOutline,
-  FiberManualRecord, FlashOn, FlashOff, GetApp, GroupWork, History,
-  LockOpen, MoreHoriz, NotificationsActive, PhoneAndroid, PhoneIphone,
+  FiberManualRecord, GroupWork, History,
+  LockOpen, MoreHoriz, NotificationsActive, PhoneAndroid,
   PowerSettingsNew, Refresh, Router, Screenshot, SettingsRemote,
   SignalCellularAlt, SmartScreen, SpeakerNotesOff, SpeakerPhone,
   SystemUpdate, TouchApp, VolumeUp, Wifi, WifiOff,
@@ -20,6 +19,7 @@ import toast from 'react-hot-toast';
 import { useKioskDevices, useDeviceAction, useGroupDeviceAction, useBatteryReport } from '@/hooks/fetching/kiosk/useKioskDevices';
 import { type KioskDevice, type DeviceActionName, notifyBatteryAlerts } from '@/services/kiosk.service';
 import { api } from '@/libs/axios';
+import { tint, tintBorder, type SemanticRole } from '@/theme/semantic';
 
 interface Props { storeId: string; }
 
@@ -39,11 +39,33 @@ interface ScreenshotState {
 }
 
 /* ─── Battery helpers ─────────────────────────────────────────────────────── */
-function batteryColor(level: number, charging: boolean) {
-  if (charging) return '#4ade80';
-  if (level >= 50) return '#4ade80';
-  if (level >= 20) return '#fbbf24';
-  return '#f87171';
+function batteryRole(level: number, charging: boolean): SemanticRole {
+  if (charging) return 'success';
+  if (level >= 50) return 'success';
+  if (level >= 20) return 'warning';
+  return 'error';
+}
+
+function batteryColor(theme: Theme, level: number, charging: boolean) {
+  return theme.palette[batteryRole(level, charging)].main;
+}
+
+/**
+ * Paleta EXCLUSIVA del mockup skeuomórfico de la tablet (`TabletFramePreview`).
+ * No es design system: dibuja el hardware y una simulación de la pantalla del
+ * dispositivo, siempre sobre negro, así que no debe seguir el theme del admin
+ * (los tokens claros quedarían ilegibles sobre el negro del mockup).
+ */
+const SCREEN = {
+  batteryOk: '#4ade80',
+  batteryLow: '#fbbf24',
+  batteryCritical: '#f87171',
+} as const;
+
+function screenBatteryColor(level: number, charging: boolean) {
+  if (charging || level >= 50) return SCREEN.batteryOk;
+  if (level >= 20) return SCREEN.batteryLow;
+  return SCREEN.batteryCritical;
 }
 
 function BatteryIcon({ level, charging, size = 15 }: { level: number; charging: boolean; size?: number }) {
@@ -60,30 +82,30 @@ interface ActionDef {
   label: string;
   icon: React.ReactNode;
   action: DeviceActionName;
-  color: string;
+  color: SemanticRole;
   confirm?: string;
   danger?: boolean;
 }
 
 const QUICK: ActionDef[] = [
-  { label: 'Actualizar',   icon: <Refresh sx={{ fontSize: 13 }} />,        action: 'request-status', color: '#60a5fa' },
-  { label: 'Pantalla ON',  icon: <SmartScreen sx={{ fontSize: 13 }} />,    action: 'screen-on',      color: '#4ade80' },
-  { label: 'Pantalla OFF', icon: <SpeakerNotesOff sx={{ fontSize: 13 }} />, action: 'screen-off',    color: '#fbbf24' },
-  { label: 'Captura',      icon: <Screenshot sx={{ fontSize: 13 }} />,     action: 'screenshot',     color: '#a78bfa' },
-  { label: 'Identificar',  icon: <SpeakerPhone sx={{ fontSize: 13 }} />,   action: 'identify',       color: '#38bdf8' },
-  { label: 'Localizar',    icon: <VolumeUp sx={{ fontSize: 13 }} />,       action: 'locate-sound',   color: '#38bdf8' },
+  { label: 'Actualizar',   icon: <Refresh sx={{ fontSize: 13 }} />,        action: 'request-status', color: 'info' },
+  { label: 'Pantalla ON',  icon: <SmartScreen sx={{ fontSize: 13 }} />,    action: 'screen-on',      color: 'success' },
+  { label: 'Pantalla OFF', icon: <SpeakerNotesOff sx={{ fontSize: 13 }} />, action: 'screen-off',    color: 'warning' },
+  { label: 'Captura',      icon: <Screenshot sx={{ fontSize: 13 }} />,     action: 'screenshot',     color: 'primary' },
+  { label: 'Identificar',  icon: <SpeakerPhone sx={{ fontSize: 13 }} />,   action: 'identify',       color: 'info' },
+  { label: 'Localizar',    icon: <VolumeUp sx={{ fontSize: 13 }} />,       action: 'locate-sound',   color: 'info' },
 ];
 
 const ADVANCED: ActionDef[] = [
-  { label: 'Reiniciar App',  icon: <Refresh sx={{ fontSize: 13 }} />,          action: 'restart-app',    color: '#fbbf24', confirm: '¿Reiniciar la aplicación kiosko?' },
-  { label: 'Recargar Home',  icon: <Router sx={{ fontSize: 13 }} />,           action: 'reload-home',    color: '#fbbf24' },
-  { label: 'Limpiar Caché',  icon: <LockOpen sx={{ fontSize: 13 }} />,         action: 'clear-cache',    color: '#fbbf24', confirm: '¿Limpiar caché del navegador kiosko?' },
-  { label: 'Limpiar Cookies',icon: <LockOpen sx={{ fontSize: 13 }} />,         action: 'clear-cookies',  color: '#fbbf24', confirm: '¿Limpiar cookies?' },
-  { label: 'Actualizar',     icon: <SystemUpdate sx={{ fontSize: 13 }} />,     action: 'update-kiosk',   color: '#60a5fa', confirm: '¿Actualizar el kiosko?' },
-  { label: 'Limpiar Datos',  icon: <DeviceHub sx={{ fontSize: 13 }} />,        action: 'clear-app-data', color: '#f97316', confirm: '¿Limpiar datos? Esto eliminará la sesión.' },
-  { label: 'WiFi Settings',  icon: <Wifi sx={{ fontSize: 13 }} />,             action: 'open-wifi',      color: '#60a5fa' },
-  { label: 'Subir Logs',     icon: <SignalCellularAlt sx={{ fontSize: 13 }} />,action: 'upload-logs',    color: '#60a5fa' },
-  { label: 'REINICIAR',      icon: <PowerSettingsNew sx={{ fontSize: 13 }} />, action: 'reboot',         color: '#f87171', confirm: '⚠️ ¿Confirmar REINICIO del dispositivo?', danger: true },
+  { label: 'Reiniciar App',  icon: <Refresh sx={{ fontSize: 13 }} />,          action: 'restart-app',    color: 'warning', confirm: '¿Reiniciar la aplicación kiosko?' },
+  { label: 'Recargar Home',  icon: <Router sx={{ fontSize: 13 }} />,           action: 'reload-home',    color: 'warning' },
+  { label: 'Limpiar Caché',  icon: <LockOpen sx={{ fontSize: 13 }} />,         action: 'clear-cache',    color: 'warning', confirm: '¿Limpiar caché del navegador kiosko?' },
+  { label: 'Limpiar Cookies',icon: <LockOpen sx={{ fontSize: 13 }} />,         action: 'clear-cookies',  color: 'warning', confirm: '¿Limpiar cookies?' },
+  { label: 'Actualizar',     icon: <SystemUpdate sx={{ fontSize: 13 }} />,     action: 'update-kiosk',   color: 'info', confirm: '¿Actualizar el kiosko?' },
+  { label: 'Limpiar Datos',  icon: <DeviceHub sx={{ fontSize: 13 }} />,        action: 'clear-app-data', color: 'warning', confirm: '¿Limpiar datos? Esto eliminará la sesión.' },
+  { label: 'WiFi Settings',  icon: <Wifi sx={{ fontSize: 13 }} />,             action: 'open-wifi',      color: 'info' },
+  { label: 'Subir Logs',     icon: <SignalCellularAlt sx={{ fontSize: 13 }} />,action: 'upload-logs',    color: 'info' },
+  { label: 'REINICIAR',      icon: <PowerSettingsNew sx={{ fontSize: 13 }} />, action: 'reboot',         color: 'error', confirm: '⚠️ ¿Confirmar REINICIO del dispositivo?', danger: true },
 ];
 
 const ACTION_LABELS: Partial<Record<DeviceActionName, string>> = {
@@ -114,7 +136,7 @@ function TabletFramePreview({
   screenshot?: ScreenshotState;
   onClearScreenshot?: () => void;
 }) {
-  const bColor = batteryColor(device.batteryLevel, device.isCharging);
+  const bColor = screenBatteryColor(device.batteryLevel, device.isCharging);
   const [time, setTime] = React.useState(
     new Date().toLocaleTimeString('es-HN', { hour: '2-digit', minute: '2-digit' }),
   );
@@ -441,8 +463,9 @@ function TabletFramePreview({
 /* ─── Device Stats Grid ───────────────────────────────────────────────────── */
 function DeviceStatsGrid({ device }: { device: KioskDevice }) {
   const t = useTheme();
-  const bColor = batteryColor(device.batteryLevel, device.isCharging);
+  const bColor = batteryColor(t, device.batteryLevel, device.isCharging);
   const hasWifi = !!(device.wiFiNetwork && device.wiFiNetwork !== '<unknown ssid>');
+  const offColor = t.palette.text.disabled;
 
   const stats = [
     {
@@ -452,34 +475,34 @@ function DeviceStatsGrid({ device }: { device: KioskDevice }) {
       color: bColor,
     },
     {
-      icon: <SmartScreen sx={{ fontSize: 14, color: device.screenOn ? '#60a5fa' : '#4b5563' }} />,
+      icon: <SmartScreen sx={{ fontSize: 14, color: device.screenOn ? t.palette.info.main : offColor }} />,
       label: 'Pantalla',
       value: device.screenOn ? 'Encendida' : 'Apagada',
-      color: device.screenOn ? '#60a5fa' : '#4b5563',
+      color: device.screenOn ? t.palette.info.main : offColor,
     },
     {
-      icon: hasWifi ? <Wifi sx={{ fontSize: 14, color: '#22d3ee' }} /> : <WifiOff sx={{ fontSize: 14, color: '#4b5563' }} />,
+      icon: hasWifi ? <Wifi sx={{ fontSize: 14, color: 'info.main' }} /> : <WifiOff sx={{ fontSize: 14, color: offColor }} />,
       label: 'WiFi',
       value: hasWifi ? device.wiFiNetwork! : 'Sin WiFi',
-      color: hasWifi ? '#22d3ee' : '#4b5563',
+      color: hasWifi ? t.palette.info.main : offColor,
     },
     {
-      icon: <SmartScreen sx={{ fontSize: 14, color: '#a78bfa' }} />,
+      icon: <SmartScreen sx={{ fontSize: 14, color: 'primary.main' }} />,
       label: 'Kiosk',
       value: `v${device.kioskVersion || '—'}`,
-      color: '#a78bfa',
+      color: t.palette.primary.main,
     },
     {
-      icon: <PhoneAndroid sx={{ fontSize: 14, color: '#38bdf8' }} />,
+      icon: <PhoneAndroid sx={{ fontSize: 14, color: 'info.main' }} />,
       label: 'Android',
       value: device.androidVersion || '—',
-      color: '#38bdf8',
+      color: t.palette.info.main,
     },
     {
-      icon: <FiberManualRecord sx={{ fontSize: 9, color: '#64748b' }} />,
+      icon: <FiberManualRecord sx={{ fontSize: 9, color: 'text.secondary' }} />,
       label: 'Serial',
       value: device.serial || (device.imei ? String(device.imei).slice(0, 12) + '…' : '—'),
-      color: '#64748b',
+      color: t.palette.text.secondary,
     },
   ];
 
@@ -512,6 +535,8 @@ function DeviceStatsGrid({ device }: { device: KioskDevice }) {
 function ActionPill({ def, loading, disabled, onClick }: {
   def: ActionDef; loading: boolean; disabled: boolean; onClick: () => void;
 }) {
+  const t = useTheme();
+  const accent = t.palette[def.color].main;
   return (
     <Tooltip title={def.label} placement="top">
       <Box
@@ -521,22 +546,21 @@ function ActionPill({ def, loading, disabled, onClick }: {
         sx={{
           all: 'unset', display: 'inline-flex', alignItems: 'center', gap: 0.5,
           px: 1.5, py: 0.65, borderRadius: 2, cursor: 'pointer',
-          border: `1px solid ${alpha(def.color, 0.2)}`,
-          bgcolor: alpha(def.color, 0.06),
-          color: def.color,
+          border: `1px solid ${tintBorder(t, def.color, 0.2)}`,
+          bgcolor: tint(t, def.color, 0.06),
+          color: accent,
           fontSize: '0.7rem', fontWeight: 700, whiteSpace: 'nowrap',
           transition: 'all 0.15s ease',
           '&:hover:not(:disabled)': {
-            bgcolor: alpha(def.color, 0.14),
-            borderColor: alpha(def.color, 0.5),
+            bgcolor: tint(t, def.color, 0.14),
+            borderColor: tintBorder(t, def.color, 0.5),
             transform: 'translateY(-1px)',
-            boxShadow: `0 4px 14px ${alpha(def.color, 0.2)}`,
           },
-          '&:active:not(:disabled)': { transform: 'translateY(0)', boxShadow: 'none' },
+          '&:active:not(:disabled)': { transform: 'translateY(0)' },
           '&:disabled': { opacity: 0.3, cursor: 'not-allowed' },
         }}
       >
-        {loading ? <CircularProgress size={11} sx={{ color: def.color }} /> : def.icon}
+        {loading ? <CircularProgress size={11} sx={{ color: accent }} /> : def.icon}
         {def.label}
       </Box>
     </Tooltip>
@@ -570,7 +594,7 @@ function SectionToggle({ label, icon, open, onToggle, badge }: {
       {badge !== undefined && badge > 0 && (
         <Chip label={badge} size="small" sx={{
           height: 16, fontSize: '0.58rem', fontWeight: 700,
-          bgcolor: alpha('#60a5fa', 0.12), color: '#60a5fa',
+          bgcolor: tint(t, 'info', 0.12), color: 'info.main',
           '& .MuiChip-label': { px: 0.65 },
         }} />
       )}
@@ -607,16 +631,16 @@ function ActivityLogPanel({ entries }: { entries: ActivityEntry[] }) {
           border: `1px solid ${t.palette.divider}`,
           transition: 'background 0.1s',
         }}>
-          {e.status === 'pending' && <CircularProgress size={12} sx={{ color: '#60a5fa', flexShrink: 0 }} />}
-          {e.status === 'success' && <CheckCircle sx={{ fontSize: 14, color: '#4ade80', flexShrink: 0 }} />}
-          {e.status === 'error'   && <ErrorOutline sx={{ fontSize: 14, color: '#f87171', flexShrink: 0 }} />}
+          {e.status === 'pending' && <CircularProgress size={12} sx={{ color: 'info.main', flexShrink: 0 }} />}
+          {e.status === 'success' && <CheckCircle sx={{ fontSize: 14, color: 'success.main', flexShrink: 0 }} />}
+          {e.status === 'error'   && <ErrorOutline sx={{ fontSize: 14, color: 'error.main', flexShrink: 0 }} />}
 
           <Box flex={1} minWidth={0}>
             <Typography noWrap sx={{ fontSize: '0.68rem', fontWeight: 600, color: t.palette.text.secondary }}>
               {e.label}
             </Typography>
             {e.errorMsg && (
-              <Typography sx={{ fontSize: '0.58rem', color: '#f87171' }}>{e.errorMsg}</Typography>
+              <Typography sx={{ fontSize: '0.58rem', color: 'error.main' }}>{e.errorMsg}</Typography>
             )}
           </Box>
 
@@ -634,8 +658,8 @@ function DeviceListItem({ device, selected, onClick }: {
   device: KioskDevice; selected: boolean; onClick: () => void;
 }) {
   const t = useTheme();
-  const bColor = batteryColor(device.batteryLevel, device.isCharging);
-  const accentColor = device.online ? '#4ade80' : t.palette.text.secondary;
+  const bColor = batteryColor(t, device.batteryLevel, device.isCharging);
+  const accentColor = device.online ? t.palette.success.main : t.palette.text.secondary;
 
   return (
     <Box
@@ -653,17 +677,17 @@ function DeviceListItem({ device, selected, onClick }: {
     >
       <Stack direction="row" alignItems="center" spacing={1}>
         <Box sx={{ position: 'relative', flexShrink: 0 }}>
-          <PhoneAndroid sx={{ fontSize: 17, color: device.online ? '#4ade80' : t.palette.text.disabled }} />
+          <PhoneAndroid sx={{ fontSize: 17, color: device.online ? 'success.main' : t.palette.text.disabled }} />
           <Box sx={{
             position: 'absolute', bottom: -1, right: -2,
             width: 7, height: 7, borderRadius: '50%',
-            bgcolor: device.online ? '#4ade80' : t.palette.text.disabled,
+            bgcolor: device.online ? 'success.main' : t.palette.text.disabled,
             border: `1.5px solid ${t.palette.background.paper}`,
             ...(device.online && {
               animation: 'pulse-dot 2.5s ease-in-out infinite',
               '@keyframes pulse-dot': {
-                '0%, 100%': { boxShadow: `0 0 0 0 ${alpha('#4ade80', 0.45)}` },
-                '60%':      { boxShadow: `0 0 0 4px ${alpha('#4ade80', 0)}` },
+                '0%, 100%': { boxShadow: `0 0 0 0 ${tintBorder(t, 'success', 0.45)}` },
+                '60%':      { boxShadow: `0 0 0 4px ${tintBorder(t, 'success', 0)}` },
               },
             }),
           }} />
@@ -672,7 +696,7 @@ function DeviceListItem({ device, selected, onClick }: {
         <Box flex={1} minWidth={0}>
           <Typography noWrap sx={{
             fontSize: '0.73rem', fontWeight: 700,
-            color: selected ? (device.online ? '#4ade80' : t.palette.text.secondary) : t.palette.text.secondary,
+            color: selected ? accentColor : t.palette.text.secondary,
           }}>
             {device.name || 'Sin nombre'}
           </Typography>
@@ -694,7 +718,7 @@ function DeviceListItem({ device, selected, onClick }: {
           </Stack>
           <Typography sx={{
             fontSize: '0.58rem', fontWeight: 700,
-            color: device.screenOn ? '#60a5fa' : t.palette.text.disabled,
+            color: device.screenOn ? t.palette.info.main : t.palette.text.disabled,
           }}>
             {device.screenOn ? 'ON' : 'OFF'}
           </Typography>
@@ -714,9 +738,10 @@ function DeviceListItem({ device, selected, onClick }: {
 function ConfirmDialog({ open, message, onConfirm, onClose }: {
   open: boolean; message: string; onConfirm: () => void; onClose: () => void;
 }) {
+  const t = useTheme();
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth
-      PaperProps={{ sx: { borderRadius: 3, border: `1px solid ${alpha('#f87171', 0.25)}` } }}>
+      PaperProps={{ sx: { borderRadius: 3, border: `1px solid ${tintBorder(t, 'error')}` } }}>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
         <Stack direction="row" alignItems="center" spacing={1}>
           <PowerSettingsNew sx={{ color: 'error.main', fontSize: 18 }} />
@@ -749,7 +774,7 @@ function DeviceDetailView({ device, onAction, loadingAction, activityLog, screen
   const t = useTheme();
   const [showAdvanced, setShowAdvanced] = React.useState(false);
   const [showLog, setShowLog] = React.useState(true);
-  const bColor = batteryColor(device.batteryLevel, device.isCharging);
+  const bColor = batteryColor(t, device.batteryLevel, device.isCharging);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -760,18 +785,18 @@ function DeviceDetailView({ device, onAction, loadingAction, activityLog, screen
         border: `1px solid ${t.palette.divider}`,
         background: alpha(t.palette.text.primary, 0.025),
         backgroundImage: device.online
-          ? `radial-gradient(ellipse at top right, ${alpha('#4ade80', 0.04)} 0%, transparent 60%)`
+          ? `radial-gradient(ellipse at top right, ${tint(t, 'success', 0.04)} 0%, transparent 60%)`
           : 'none',
       }}>
         <Stack direction="row" alignItems="center" spacing={1.5}>
           <Box sx={{
             width: 44, height: 44, borderRadius: 2, flexShrink: 0,
             background: device.online
-              ? `linear-gradient(135deg, ${alpha('#4ade80', 0.18)}, ${alpha('#22d3ee', 0.1)})`
+              ? `linear-gradient(135deg, ${tint(t, 'success', 0.18)}, ${tint(t, 'info', 0.1)})`
               : alpha(t.palette.text.primary, 0.06),
-            border: `1.5px solid ${device.online ? alpha('#4ade80', 0.3) : t.palette.divider}`,
+            border: `1.5px solid ${device.online ? tintBorder(t, 'success', 0.3) : t.palette.divider}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: device.online ? '#4ade80' : t.palette.text.secondary,
+            color: device.online ? t.palette.success.main : t.palette.text.secondary,
           }}>
             <PhoneAndroid sx={{ fontSize: 24 }} />
           </Box>
@@ -788,9 +813,9 @@ function DeviceDetailView({ device, onAction, loadingAction, activityLog, screen
             size="small"
             sx={{
               height: 24, fontSize: '0.68rem', fontWeight: 700, flexShrink: 0,
-              bgcolor: device.online ? alpha('#4ade80', 0.1) : alpha(t.palette.text.primary, 0.06),
-              color: device.online ? '#4ade80' : t.palette.text.secondary,
-              border: `1px solid ${device.online ? alpha('#4ade80', 0.3) : t.palette.divider}`,
+              bgcolor: device.online ? tint(t, 'success', 0.1) : alpha(t.palette.text.primary, 0.06),
+              color: device.online ? t.palette.success.main : t.palette.text.secondary,
+              border: `1px solid ${device.online ? tintBorder(t, 'success', 0.3) : t.palette.divider}`,
             }}
           />
         </Stack>
@@ -844,7 +869,6 @@ function DeviceDetailView({ device, onAction, loadingAction, activityLog, screen
                   '& .MuiLinearProgress-bar': {
                     bgcolor: bColor, borderRadius: 4,
                     transition: 'width 1.2s cubic-bezier(0.4,0,0.2,1)',
-                    boxShadow: `0 0 8px ${alpha(bColor, 0.35)}`,
                   },
                 }}
               />
@@ -917,12 +941,12 @@ function DeviceDetailView({ device, onAction, loadingAction, activityLog, screen
 
 /* ─── Fleet Actions Bar ───────────────────────────────────────────────────── */
 const GROUP_ACTIONS: ActionDef[] = [
-  { label: 'Estado',        icon: <Refresh sx={{ fontSize: 13 }} />,          action: 'request-status', color: '#60a5fa' },
-  { label: 'Pantalla ON',   icon: <SmartScreen sx={{ fontSize: 13 }} />,      action: 'screen-on',      color: '#4ade80' },
-  { label: 'Pantalla OFF',  icon: <SpeakerNotesOff sx={{ fontSize: 13 }} />,  action: 'screen-off',     color: '#fbbf24' },
-  { label: 'Reiniciar App', icon: <Refresh sx={{ fontSize: 13 }} />,          action: 'restart-app',    color: '#f97316', confirm: '¿Reiniciar la app kiosko en TODAS las tablets?' },
-  { label: 'Limpiar Caché', icon: <LockOpen sx={{ fontSize: 13 }} />,         action: 'clear-cache',    color: '#f97316', confirm: '¿Limpiar caché en TODAS las tablets?' },
-  { label: 'REINICIAR',     icon: <PowerSettingsNew sx={{ fontSize: 13 }} />, action: 'reboot',         color: '#f87171', confirm: '⚠️ ¿Reiniciar (reboot) TODOS los dispositivos?', danger: true },
+  { label: 'Estado',        icon: <Refresh sx={{ fontSize: 13 }} />,          action: 'request-status', color: 'info' },
+  { label: 'Pantalla ON',   icon: <SmartScreen sx={{ fontSize: 13 }} />,      action: 'screen-on',      color: 'success' },
+  { label: 'Pantalla OFF',  icon: <SpeakerNotesOff sx={{ fontSize: 13 }} />,  action: 'screen-off',     color: 'warning' },
+  { label: 'Reiniciar App', icon: <Refresh sx={{ fontSize: 13 }} />,          action: 'restart-app',    color: 'warning', confirm: '¿Reiniciar la app kiosko en TODAS las tablets?' },
+  { label: 'Limpiar Caché', icon: <LockOpen sx={{ fontSize: 13 }} />,         action: 'clear-cache',    color: 'warning', confirm: '¿Limpiar caché en TODAS las tablets?' },
+  { label: 'REINICIAR',     icon: <PowerSettingsNew sx={{ fontSize: 13 }} />, action: 'reboot',         color: 'error', confirm: '⚠️ ¿Reiniciar (reboot) TODOS los dispositivos?', danger: true },
 ];
 
 function FleetActionsBar({
@@ -966,20 +990,20 @@ function FleetActionsBar({
           all: 'unset', width: '100%', boxSizing: 'border-box',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           px: 1.75, py: 1.25, cursor: 'pointer',
-          background: alpha('#818cf8', 0.05),
+          background: tint(t, 'primary', 0.05),
           transition: 'background 0.15s',
-          '&:hover': { background: alpha('#818cf8', 0.09) },
+          '&:hover': { background: tint(t, 'primary', 0.09) },
         }}
       >
         <Stack direction="row" alignItems="center" spacing={1}>
-          <GroupWork sx={{ fontSize: 15, color: '#818cf8' }} />
-          <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: '#818cf8', letterSpacing: '0.08em' }}>
+          <GroupWork sx={{ fontSize: 15, color: 'primary.main' }} />
+          <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: 'primary.main', letterSpacing: '0.08em' }}>
             ACCIONES EN GRUPO
           </Typography>
           <Chip
             label={`${deviceCount} tablets`}
             size="small"
-            sx={{ height: 16, fontSize: '0.56rem', fontWeight: 700, bgcolor: alpha('#818cf8', 0.12), color: '#818cf8', '& .MuiChip-label': { px: 0.65 } }}
+            sx={{ height: 16, fontSize: '0.56rem', fontWeight: 700, bgcolor: tint(t, 'primary', 0.12), color: 'primary.main', '& .MuiChip-label': { px: 0.65 } }}
           />
         </Stack>
         <MoreHoriz sx={{ fontSize: 15, color: t.palette.text.disabled, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
@@ -1079,25 +1103,25 @@ function BatteryAlertBanner({ storeId }: { storeId: string }) {
           ) : (
             <>
               <Stack direction="row" alignItems="center" spacing={0.5}>
-                <PhoneAndroid sx={{ fontSize: 13, color: '#60a5fa' }} />
-                <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#60a5fa' }}>{(report?.total ?? 0)} total</Typography>
+                <PhoneAndroid sx={{ fontSize: 13, color: 'info.main' }} />
+                <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: 'info.main' }}>{(report?.total ?? 0)} total</Typography>
               </Stack>
               <Stack direction="row" alignItems="center" spacing={0.5}>
-                <FiberManualRecord sx={{ fontSize: 8, color: '#4ade80' }} />
-                <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#4ade80' }}>{online} online</Typography>
+                <FiberManualRecord sx={{ fontSize: 8, color: 'success.main' }} />
+                <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: 'success.main' }}>{online} online</Typography>
               </Stack>
               <Stack direction="row" alignItems="center" spacing={0.5}>
                 <FiberManualRecord sx={{ fontSize: 8, color: t.palette.text.disabled }} />
                 <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: t.palette.text.disabled }}>{offline} offline</Typography>
               </Stack>
               <Stack direction="row" alignItems="center" spacing={0.5}>
-                <BatteryChargingFull sx={{ fontSize: 13, color: '#4ade80' }} />
-                <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#4ade80' }}>{charging} cargando</Typography>
+                <BatteryChargingFull sx={{ fontSize: 13, color: 'success.main' }} />
+                <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: 'success.main' }}>{charging} cargando</Typography>
               </Stack>
               {alerts.length > 0 && (
                 <Stack direction="row" alignItems="center" spacing={0.5}>
-                  <BatteryAlert sx={{ fontSize: 13, color: '#f87171' }} />
-                  <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#f87171' }}>
+                  <BatteryAlert sx={{ fontSize: 13, color: 'error.main' }} />
+                  <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: 'error.main' }}>
                     {alerts.length} alerta{alerts.length > 1 ? 's' : ''}
                   </Typography>
                 </Stack>
@@ -1123,9 +1147,9 @@ function BatteryAlertBanner({ storeId }: { storeId: string }) {
             <IconButton size="small" onClick={() => setNotifyOpen(true)}
               sx={{
                 width: 26, height: 26, borderRadius: 1,
-                border: `1px solid ${alpha('#f87171', alerts.length > 0 ? 0.4 : 0.15)}`,
-                color: alerts.length > 0 ? '#f87171' : t.palette.text.secondary,
-                bgcolor: alerts.length > 0 ? alpha('#f87171', 0.08) : 'transparent',
+                border: `1px solid ${tintBorder(t, 'error', alerts.length > 0 ? 0.4 : 0.15)}`,
+                color: alerts.length > 0 ? t.palette.error.main : t.palette.text.secondary,
+                bgcolor: alerts.length > 0 ? tint(t, 'error', 0.08) : 'transparent',
               }}>
               <NotificationsActive sx={{ fontSize: 13 }} />
             </IconButton>
@@ -1140,17 +1164,17 @@ function BatteryAlertBanner({ storeId }: { storeId: string }) {
             <Box key={d.identifier} sx={{
               display: 'flex', alignItems: 'center', gap: 1,
               px: 1.5, py: 0.75, borderRadius: 1.5,
-              border: `1px solid ${alpha('#f87171', 0.2)}`,
-              background: alpha('#f87171', 0.04),
+              border: `1px solid ${tintBorder(t, 'error', 0.2)}`,
+              background: tint(t, 'error', 0.04),
             }}>
-              <BatteryAlert sx={{ fontSize: 14, color: '#f87171', flexShrink: 0 }} />
-              <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#f87171', flex: 1 }}>
+              <BatteryAlert sx={{ fontSize: 14, color: 'error.main', flexShrink: 0 }} />
+              <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: 'error.main', flex: 1 }}>
                 {d.name}
               </Typography>
               <Chip
                 label={`${d.batteryLevel}%`}
                 size="small"
-                sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800, bgcolor: alpha('#f87171', 0.12), color: '#f87171', '& .MuiChip-label': { px: 0.65 } }}
+                sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800, bgcolor: tint(t, 'error', 0.12), color: 'error.main', '& .MuiChip-label': { px: 0.65 } }}
               />
               <Typography sx={{ fontSize: '0.6rem', color: t.palette.text.secondary }}>sin carga</Typography>
             </Box>
@@ -1160,10 +1184,10 @@ function BatteryAlertBanner({ storeId }: { storeId: string }) {
 
       {/* Notify dialog */}
       <Dialog open={notifyOpen} onClose={() => setNotifyOpen(false)} maxWidth="xs" fullWidth
-        PaperProps={{ sx: { borderRadius: 3, border: `1px solid ${alpha('#f87171', 0.2)}` } }}>
+        PaperProps={{ sx: { borderRadius: 3, border: `1px solid ${tintBorder(t, 'error', 0.2)}` } }}>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
           <Stack direction="row" alignItems="center" spacing={1}>
-            <NotificationsActive sx={{ color: '#f87171', fontSize: 18 }} />
+            <NotificationsActive sx={{ color: 'error.main', fontSize: 18 }} />
             <Typography fontWeight={700} fontSize="0.9rem">Notificar alerta de batería</Typography>
           </Stack>
           <IconButton size="small" onClick={() => setNotifyOpen(false)}><Close fontSize="small" /></IconButton>
@@ -1182,7 +1206,7 @@ function BatteryAlertBanner({ storeId }: { storeId: string }) {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             InputProps={{
-              startAdornment: <InputAdornment position="start"><PhoneAndroid sx={{ fontSize: 16, color: '#475569' }} /></InputAdornment>,
+              startAdornment: <InputAdornment position="start"><PhoneAndroid sx={{ fontSize: 16, color: 'text.disabled' }} /></InputAdornment>,
             }}
             sx={{
               '& .MuiOutlinedInput-root': { borderRadius: 2 },
@@ -1390,19 +1414,18 @@ export function KioskTabletPanel({ storeId }: Props) {
         <Stack direction="row" alignItems="center" spacing={1.5}>
           <Box sx={{
             width: 40, height: 40, borderRadius: 2,
-            background: 'linear-gradient(135deg, rgba(74,222,128,0.15), rgba(34,211,238,0.08))',
-            border: `1px solid ${alpha('#4ade80', 0.22)}`,
+            background: `linear-gradient(135deg, ${tint(theme, 'success', 0.15)}, ${tint(theme, 'info', 0.08)})`,
+            border: `1px solid ${tintBorder(theme, 'success', 0.22)}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: `0 0 16px ${alpha('#4ade80', 0.08)}`,
           }}>
-            <SettingsRemote sx={{ fontSize: 22, color: '#4ade80' }} />
+            <SettingsRemote sx={{ fontSize: 22, color: 'success.main' }} />
           </Box>
           <Box>
             <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography variant="subtitle1" fontWeight={800} sx={{ letterSpacing: '-0.02em', color: theme.palette.mode === 'dark' ? '#e2e8f0' : 'text.primary' }}>
+              <Typography variant="subtitle1" fontWeight={800} sx={{ letterSpacing: '-0.02em', color: 'text.primary' }}>
                 Kiosk Manager Pro
               </Typography>
-              {isFetching && <CircularProgress size={12} sx={{ color: '#60a5fa' }} />}
+              {isFetching && <CircularProgress size={12} sx={{ color: 'info.main' }} />}
             </Stack>
             <Typography sx={{ fontSize: '0.7rem', color: theme.palette.text.disabled }}>
               Gestión remota · Control en tiempo real
@@ -1412,9 +1435,9 @@ export function KioskTabletPanel({ storeId }: Props) {
 
         <Stack direction="row" alignItems="center" spacing={1}>
           <Chip
-            icon={<FiberManualRecord sx={{ fontSize: '8px !important', color: '#4ade80 !important' }} />}
+            icon={<FiberManualRecord sx={{ fontSize: '8px !important', color: `${theme.palette.success.main} !important` }} />}
             label={`${online} online`} size="small"
-            sx={{ fontWeight: 700, fontSize: '0.68rem', height: 24, bgcolor: alpha('#4ade80', 0.08), color: '#4ade80', border: `1px solid ${alpha('#4ade80', 0.18)}` }}
+            sx={{ fontWeight: 700, fontSize: '0.68rem', height: 24, bgcolor: tint(theme, 'success', 0.08), color: 'success.main', border: `1px solid ${tintBorder(theme, 'success', 0.18)}` }}
           />
           <Chip
             icon={<FiberManualRecord sx={{ fontSize: '8px !important', color: `${theme.palette.text.disabled} !important` }} />}
@@ -1437,10 +1460,10 @@ export function KioskTabletPanel({ storeId }: Props) {
             <IconButton
               size="small"
               sx={{
-                border: '1px solid rgba(251,191,36,0.25)',
+                border: `1px solid ${tintBorder(theme, 'warning')}`,
                 borderRadius: 1.5, width: 32, height: 32,
-                color: '#fbbf24',
-                '&:hover': { bgcolor: alpha('#fbbf24', 0.08) },
+                color: 'warning.main',
+                '&:hover': { bgcolor: tint(theme, 'warning', 0.08) },
               }}
               onClick={() => {
                 api.delete(`/store/${storeId}/kiosk/clear-tag`)
@@ -1483,11 +1506,10 @@ export function KioskTabletPanel({ storeId }: Props) {
                   transition: 'all 0.15s',
                   background: filter === f ? alpha(theme.palette.text.primary, 0.07) : 'transparent',
                   color: filter === f
-                    ? f === 'online'  ? '#4ade80'
+                    ? f === 'online'  ? theme.palette.success.main
                     : f === 'offline' ? theme.palette.text.secondary
                     : theme.palette.text.primary
                     : theme.palette.text.disabled,
-                  boxShadow: filter === f ? theme.shadows[1] : 'none',
                 }}
               >
                 {f === 'all' ? 'Todos' : f === 'online' ? 'Online' : 'Offline'}

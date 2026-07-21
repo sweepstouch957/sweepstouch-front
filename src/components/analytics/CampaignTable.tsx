@@ -13,7 +13,9 @@ import {
   IconButton,
   LinearProgress,
   Tooltip,
+  useTheme,
 } from '@mui/material';
+import { chartPalette, tint, tintBorder } from '@/theme/semantic';
 import CampaignIcon from '@mui/icons-material/Campaign';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
@@ -30,18 +32,25 @@ interface Props {
   isLoading: boolean;
 }
 
-const PALETTE = ['#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#14b8a6', '#64748b', '#f97316'];
-const CATEGORY_COLORS: Record<string, string> = {
-  meat: '#ef4444', produce: '#22c55e', beverages: '#3b82f6', dairy: '#f59e0b', pantry: '#14b8a6',
-  frozen: '#06b6d4', bakery: '#f97316', deli: '#ec4899', snacks: '#eab308', grocery: '#64748b', household: '#0ea5e9',
-};
+/** Orden estable de categorías → índice en la paleta categórica del theme. */
+const CATEGORY_ORDER = [
+  'meat', 'produce', 'beverages', 'dairy', 'pantry', 'frozen',
+  'bakery', 'deli', 'snacks', 'grocery', 'household',
+];
 
 export default function CampaignTable({ data, campaignProducts, isLoading }: Props) {
+  const theme = useTheme();
+  const palette = chartPalette(theme);
+  const catColorOf = (cat: string): string => {
+    const idx = CATEGORY_ORDER.indexOf(cat?.toLowerCase());
+    return idx === -1 ? theme.palette.text.disabled : palette[idx % palette.length];
+  };
+
   const [expanded, setExpanded] = useState<string | null>(null);
 
   if (isLoading) {
     return (
-      <Card sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+      <Card sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Skeleton variant="text" width={200} height={32} sx={{ mb: 2 }} />
         {Array.from({ length: 5 }).map((_, i) => (
           <Skeleton key={i} variant="rounded" height={60} sx={{ mb: 1.5, borderRadius: 2 }} />
@@ -52,7 +61,7 @@ export default function CampaignTable({ data, campaignProducts, isLoading }: Pro
 
   if (!data || data.length === 0) {
     return (
-      <Card sx={{ p: 5, textAlign: 'center', borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+      <Card sx={{ p: 5, textAlign: 'center', border: '1px solid', borderColor: 'divider' }}>
         <CampaignIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
         <Typography color="text.secondary" fontWeight={600}>No campaign data yet</Typography>
       </Card>
@@ -71,11 +80,11 @@ export default function CampaignTable({ data, campaignProducts, isLoading }: Pro
   };
 
   return (
-    <Card sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
+    <Card sx={{ border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
       {/* Header */}
       <Box sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
         <Stack direction="row" alignItems="center" spacing={1.5}>
-          <Box sx={{ p: 0.8, borderRadius: 1.5, bgcolor: (t) => alpha(t.palette.primary.main, 0.1), display: 'flex' }}>
+          <Box sx={{ p: 0.8, borderRadius: 1.5, bgcolor: (t) => tint(t, 'primary'), display: 'flex' }}>
             <CampaignIcon sx={{ color: 'primary.main', fontSize: 20 }} />
           </Box>
           <Box>
@@ -92,7 +101,7 @@ export default function CampaignTable({ data, campaignProducts, isLoading }: Pro
       {/* Campaign list */}
       <Box sx={{ maxHeight: 600, overflow: 'auto' }}>
         {data.map((c, idx) => {
-          const color = PALETTE[idx % PALETTE.length];
+          const color = palette[idx % palette.length];
           const isOpen = expanded === c.circularId;
           const prods = getProducts(c.circularId, c.storeSlug);
           const totalProdUnits = prods.reduce((s, p) => s + p.quantity, 0);
@@ -167,20 +176,19 @@ export default function CampaignTable({ data, campaignProducts, isLoading }: Pro
                       fontWeight: 800,
                       fontSize: 11,
                       height: 24,
-                      bgcolor: c.conversionRate >= 60
-                        ? alpha('#10b981', 0.1)
-                        : c.conversionRate >= 30
-                          ? alpha('#f59e0b', 0.1)
-                          : alpha('#ef4444', 0.1),
+                      bgcolor: tint(
+                        theme,
+                        c.conversionRate >= 60 ? 'success' : c.conversionRate >= 30 ? 'warning' : 'error'
+                      ),
                       color: c.conversionRate >= 60
-                        ? '#10b981'
+                        ? 'success.main'
                         : c.conversionRate >= 30
-                          ? '#f59e0b'
-                          : '#ef4444',
+                          ? 'warning.main'
+                          : 'error.main',
                     }}
                   />
                   <Box sx={{ textAlign: 'center', minWidth: 50 }}>
-                    <Typography fontWeight={800} fontSize={13} sx={{ color: '#f59e0b' }}>
+                    <Typography fontWeight={800} fontSize={13} sx={{ color: 'warning.main' }}>
                       {c.totalPoints.toLocaleString()}
                     </Typography>
                     <Typography variant="caption" color="text.secondary" sx={{ fontSize: 9 }}>puntos</Typography>
@@ -223,7 +231,7 @@ export default function CampaignTable({ data, campaignProducts, isLoading }: Pro
                       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr', gap: 0.5 }}>
                         {prods.map((p, pIdx) => {
                           const cat = p.category?.toLowerCase() || 'other';
-                          const catColor = CATEGORY_COLORS[cat] || '#9e9e9e';
+                          const catColor = catColorOf(cat);
                           const pct = totalProdUnits ? (p.quantity / Math.max(...prods.map((pp) => pp.quantity))) * 100 : 0;
 
                           return (
@@ -272,9 +280,15 @@ export default function CampaignTable({ data, campaignProducts, isLoading }: Pro
                                       fontSize: 8,
                                       fontWeight: 800,
                                       textTransform: 'uppercase',
-                                      bgcolor: p.matched ? alpha('#10b981', 0.1) : alpha('#64748b', 0.1),
-                                      color: p.matched ? '#10b981' : '#64748b',
-                                      border: `1px solid ${p.matched ? alpha('#10b981', 0.15) : alpha('#64748b', 0.15)}`,
+                                      bgcolor: p.matched
+                                        ? tint(theme, 'success')
+                                        : alpha(theme.palette.text.secondary, 0.1),
+                                      color: p.matched ? 'success.main' : 'text.secondary',
+                                      border: `1px solid ${
+                                        p.matched
+                                          ? tintBorder(theme, 'success', 0.15)
+                                          : alpha(theme.palette.text.secondary, 0.15)
+                                      }`,
                                     }}
                                   />
                                   {p.price && (

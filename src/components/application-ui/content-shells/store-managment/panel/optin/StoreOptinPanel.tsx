@@ -24,6 +24,7 @@ import SmsRoundedIcon from '@mui/icons-material/SmsRounded';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
 import { endOfDay, endOfMonth, format, startOfMonth, subMonths } from 'date-fns';
+import { tint, tintBorder } from '@/theme/semantic';
 
 const OPTIN_PRICE = 0.0585;
 
@@ -52,8 +53,12 @@ function StatTile({
       border: `1px solid ${alpha(color, isDark ? 0.25 : 0.2)}`,
       bgcolor: alpha(color, isDark ? 0.06 : 0.04),
       p: 2,
-      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-      '&:hover': { transform: 'translateY(-2px)', boxShadow: `0 6px 20px ${alpha(color, 0.14)}` },
+      transition: 'transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease',
+      '&:hover': {
+        transform: 'translateY(-2px)',
+        borderColor: alpha(color, isDark ? 0.45 : 0.35),
+        bgcolor: alpha(color, isDark ? 0.1 : 0.07),
+      },
     }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.75}>
         <Box sx={{ width: 34, height: 34, borderRadius: 2, bgcolor: alpha(color, isDark ? 0.2 : 0.12), display: 'flex', alignItems: 'center', justifyContent: 'center', color }}>
@@ -85,6 +90,7 @@ function StatTile({
 function TrendBar({ sent, skipped, maxSent, label, cost, loading }: {
   sent: number; skipped: number; maxSent: number; label: string; cost: number; loading: boolean;
 }) {
+  const theme = useTheme();
   const sentH = maxSent > 0 ? Math.max((sent / maxSent) * 100, sent > 0 ? 6 : 0) : 0;
   const skippedH = maxSent > 0 ? Math.max((skipped / maxSent) * 100, skipped > 0 ? 4 : 0) : 0;
 
@@ -95,10 +101,10 @@ function TrendBar({ sent, skipped, maxSent, label, cost, loading }: {
       ) : (
         <Box sx={{ width: '100%', height: 80, display: 'flex', alignItems: 'flex-end', gap: '2px' }}>
           <Tooltip title={`Enviados: ${sent.toLocaleString()}`} arrow placement="top">
-            <Box sx={{ flex: 1, bgcolor: '#10b981', borderRadius: '3px 3px 0 0', height: `${sentH}%`, minHeight: 0, transition: 'height 0.5s cubic-bezier(0.4,0,0.2,1)' }} />
+            <Box sx={{ flex: 1, bgcolor: 'success.main', borderRadius: '3px 3px 0 0', height: `${sentH}%`, minHeight: 0, transition: 'height 0.5s cubic-bezier(0.4,0,0.2,1)' }} />
           </Tooltip>
           <Tooltip title={`Omitidos: ${skipped.toLocaleString()}`} arrow placement="top">
-            <Box sx={{ flex: 1, bgcolor: alpha('#9ca3af', 0.45), borderRadius: '3px 3px 0 0', height: `${skippedH}%`, minHeight: 0, transition: 'height 0.5s cubic-bezier(0.4,0,0.2,1)' }} />
+            <Box sx={{ flex: 1, bgcolor: alpha(theme.palette.text.disabled, 0.45), borderRadius: '3px 3px 0 0', height: `${skippedH}%`, minHeight: 0, transition: 'height 0.5s cubic-bezier(0.4,0,0.2,1)' }} />
           </Tooltip>
         </Box>
       )}
@@ -180,7 +186,13 @@ export default function StoreOptinPanel({ storeId }: { storeId: string }) {
   const skipRate = total > 0 ? Math.round((skipped / total) * 100) : 0;
 
   const accentColor =
-    cost === 0 ? primary : cost < 200 ? '#10b981' : cost < 800 ? '#f59e0b' : '#ef4444';
+    cost === 0
+      ? primary
+      : cost < 200
+        ? theme.palette.success.main
+        : cost < 800
+          ? theme.palette.warning.main
+          : theme.palette.error.main;
 
   const trendData = useMemo(
     () =>
@@ -223,7 +235,7 @@ export default function StoreOptinPanel({ storeId }: { storeId: string }) {
         </Stack>
 
         {/* ── Control bar ─────────────────────────────────────────────── */}
-        <Box sx={{ borderRadius: 2.5, border: `1px solid ${theme.palette.divider}`, bgcolor: isDark ? alpha('#fff', 0.02) : alpha('#000', 0.01), p: 1.75, mb: 2.5 }}>
+        <Box sx={{ borderRadius: 2.5, border: `1px solid ${theme.palette.divider}`, bgcolor: alpha(theme.palette.text.primary, isDark ? 0.02 : 0.01), p: 1.75, mb: 2.5 }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} gap={1.5} flexWrap="wrap">
             <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
               {PRESETS.map((p) => {
@@ -234,7 +246,7 @@ export default function StoreOptinPanel({ storeId }: { storeId: string }) {
                       fontSize: 11, fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
                       bgcolor: isActive ? alpha(primary, isDark ? 0.2 : 0.1) : 'transparent',
                       color: isActive ? primary : 'text.secondary',
-                      border: `1px solid ${isActive ? alpha(primary, 0.4) : alpha('#9ca3af', 0.3)}`,
+                      border: `1px solid ${isActive ? alpha(primary, 0.4) : theme.palette.divider}`,
                       '&:hover': { bgcolor: alpha(primary, 0.08), color: primary, borderColor: alpha(primary, 0.3) },
                     }} />
                 );
@@ -257,8 +269,8 @@ export default function StoreOptinPanel({ storeId }: { storeId: string }) {
 
         {/* ── KPI tiles ───────────────────────────────────────────────── */}
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 1.5, mb: 2 }}>
-          <StatTile icon={<CheckCircleRoundedIcon sx={{ fontSize: 18 }} />} label="MMS Enviados" sublabel={`$${OPTIN_PRICE}/msg · cargo facturado`} value={sent} color="#10b981" badge={sentRate} loading={isLoading} />
-          <StatTile icon={<BlockRoundedIcon sx={{ fontSize: 18 }} />} label="MMS Omitidos" sublabel="active: false · sin cargo" value={skipped} color="#9ca3af" badge={skipRate} loading={isLoading} />
+          <StatTile icon={<CheckCircleRoundedIcon sx={{ fontSize: 18 }} />} label="MMS Enviados" sublabel={`$${OPTIN_PRICE}/msg · cargo facturado`} value={sent} color={theme.palette.success.main} badge={sentRate} loading={isLoading} />
+          <StatTile icon={<BlockRoundedIcon sx={{ fontSize: 18 }} />} label="MMS Omitidos" sublabel="active: false · sin cargo" value={skipped} color={theme.palette.text.disabled} badge={skipRate} loading={isLoading} />
           <StatTile icon={<PeopleRoundedIcon sx={{ fontSize: 18 }} />} label="Registros Totales" sublabel="participantes en el periodo" value={total} color={accentColor} loading={isLoading} />
           <StatTile icon={<AttachMoneyRoundedIcon sx={{ fontSize: 18 }} />} label="Costo Estimado" sublabel={`$${OPTIN_PRICE} × ${sent.toLocaleString()} msgs`} value={cost} color={accentColor} isCurrency loading={isLoading} />
         </Box>
@@ -273,7 +285,7 @@ export default function StoreOptinPanel({ storeId }: { storeId: string }) {
               </Stack>
               <Typography sx={{ fontSize: 15, fontWeight: 900, color: accentColor, fontVariantNumeric: 'tabular-nums' }}>{sentRate}%</Typography>
             </Stack>
-            <Box sx={{ position: 'relative', height: 6, borderRadius: 3, bgcolor: alpha('#ef4444', 0.12), overflow: 'hidden' }}>
+            <Box sx={{ position: 'relative', height: 6, borderRadius: 3, bgcolor: alpha(theme.palette.error.main, 0.12), overflow: 'hidden' }}>
               <Box sx={{ position: 'absolute', inset: 0, right: `${100 - sentRate}%`, bgcolor: accentColor, borderRadius: 3, transition: 'right 0.9s cubic-bezier(0.4,0,0.2,1)' }} />
             </Box>
             <Stack direction="row" justifyContent="space-between" mt={0.75}>
@@ -284,16 +296,16 @@ export default function StoreOptinPanel({ storeId }: { storeId: string }) {
         )}
 
         {/* ── 6-month trend ────────────────────────────────────────────── */}
-        <Box sx={{ borderRadius: 2.5, border: `1px solid ${theme.palette.divider}`, bgcolor: isDark ? alpha('#fff', 0.015) : 'transparent', p: 2, mb: 2 }}>
+        <Box sx={{ borderRadius: 2.5, border: `1px solid ${theme.palette.divider}`, bgcolor: isDark ? alpha(theme.palette.text.primary, 0.015) : 'transparent', p: 2, mb: 2 }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
             <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'text.secondary' }}>Historial últimos 6 meses</Typography>
             <Stack direction="row" spacing={2}>
               <Stack direction="row" alignItems="center" spacing={0.5}>
-                <Box sx={{ width: 8, height: 8, borderRadius: 1, bgcolor: '#10b981' }} />
+                <Box sx={{ width: 8, height: 8, borderRadius: 1, bgcolor: 'success.main' }} />
                 <Typography sx={{ fontSize: 10, color: 'text.disabled' }}>Enviados</Typography>
               </Stack>
               <Stack direction="row" alignItems="center" spacing={0.5}>
-                <Box sx={{ width: 8, height: 8, borderRadius: 1, bgcolor: alpha('#9ca3af', 0.45) }} />
+                <Box sx={{ width: 8, height: 8, borderRadius: 1, bgcolor: alpha(theme.palette.text.disabled, 0.45) }} />
                 <Typography sx={{ fontSize: 10, color: 'text.disabled' }}>Omitidos</Typography>
               </Stack>
             </Stack>
@@ -307,8 +319,8 @@ export default function StoreOptinPanel({ storeId }: { storeId: string }) {
         </Box>
 
         {/* ── Info note ────────────────────────────────────────────────── */}
-        <Box sx={{ borderRadius: 2.5, border: `1px solid ${alpha('#f59e0b', isDark ? 0.2 : 0.18)}`, bgcolor: alpha('#f59e0b', isDark ? 0.04 : 0.025), px: 2, py: 1.5, display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-          <InfoOutlinedIcon sx={{ fontSize: 15, color: '#f59e0b', flexShrink: 0, mt: 0.2 }} />
+        <Box sx={{ borderRadius: 2.5, border: `1px solid ${tintBorder(theme, 'warning', isDark ? 0.2 : 0.18)}`, bgcolor: tint(theme, 'warning', isDark ? 0.04 : 0.025), px: 2, py: 1.5, display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+          <InfoOutlinedIcon sx={{ fontSize: 15, color: 'warning.main', flexShrink: 0, mt: 0.2 }} />
           <Typography sx={{ fontSize: 12, color: 'text.secondary', lineHeight: 1.65 }}>
             Los MMS de opt-in <strong>no aparecen en campañas</strong>. Son cargos automáticos por cada registro de sorteo: el participante recibe un MMS de confirmación al escanear el QR a <strong>${OPTIN_PRICE}/msg</strong>. Registros con <code>active: false</code> quedan omitidos sin cargo.
           </Typography>

@@ -48,6 +48,8 @@ import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import SmsRoundedIcon from '@mui/icons-material/SmsRounded';
+import type { Theme } from '@mui/material/styles';
+import { tint, tintBorder } from '@/theme/semantic';
 
 type Preset = 'current' | 'last1' | 'last2' | 'last3' | 'custom';
 
@@ -74,8 +76,8 @@ function StatTile({
       border: `1px solid ${alpha(color, isDark ? 0.25 : 0.2)}`,
       bgcolor: alpha(color, isDark ? 0.06 : 0.04),
       p: 2.5,
-      transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
-      '&:hover': { borderColor: alpha(color, 0.5), transform: 'translateY(-2px)', boxShadow: `0 8px 28px ${alpha(color, isDark ? 0.18 : 0.12)}` },
+      transition: 'transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease',
+      '&:hover': { borderColor: alpha(color, 0.5), transform: 'translateY(-2px)', bgcolor: alpha(color, isDark ? 0.12 : 0.08) },
     }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
         <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha(color, isDark ? 0.22 : 0.14), display: 'flex', alignItems: 'center', justifyContent: 'center', color }}>
@@ -120,7 +122,7 @@ function DeliveryBar({ stats, accentColor, fetching }: { stats: OptinGlobalStats
           <Typography sx={{ fontSize: 15, fontWeight: 900, color: accentColor, fontVariantNumeric: 'tabular-nums' }}>{stats.sentRate}%</Typography>
         </Stack>
       </Stack>
-      <Box sx={{ position: 'relative', height: 6, borderRadius: 3, bgcolor: alpha('#ef4444', 0.12), overflow: 'hidden' }}>
+      <Box sx={{ position: 'relative', height: 6, borderRadius: 3, bgcolor: tint(theme, 'error', 0.12), overflow: 'hidden' }}>
         <Box sx={{ position: 'absolute', inset: 0, right: `${100 - stats.sentRate}%`, bgcolor: accentColor, borderRadius: 3, transition: 'right 0.9s cubic-bezier(0.4, 0, 0.2, 1)' }} />
       </Box>
       <Stack direction="row" justifyContent="space-between" mt={0.75}>
@@ -133,11 +135,16 @@ function DeliveryBar({ stats, accentColor, fetching }: { stats: OptinGlobalStats
 
 // ─── ProviderChip ─────────────────────────────────────────────────────────────
 
-const PROVIDER_COLORS: Record<string, string> = { twilio: '#7c3aed', bandwidth: '#2563eb', infobip: '#e91e8c' };
+const providerColors = (theme: Theme): Record<string, string> => ({
+  twilio: theme.palette.secondary.main,
+  bandwidth: theme.palette.info.main,
+  infobip: theme.palette.primary.main,
+});
 
 function ProviderChip({ provider }: { provider?: string }) {
+  const theme = useTheme();
   if (!provider) return null;
-  const color = PROVIDER_COLORS[provider] ?? '#6b7280';
+  const color = providerColors(theme)[provider] ?? theme.palette.text.secondary;
   return (
     <Box sx={{ px: 0.75, py: 0.15, borderRadius: 0.75, bgcolor: alpha(color, 0.1), border: `1px solid ${alpha(color, 0.2)}`, display: 'inline-flex' }}>
       <Typography sx={{ fontSize: 9, fontWeight: 800, color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{provider}</Typography>
@@ -150,15 +157,16 @@ function ProviderChip({ provider }: { provider?: string }) {
 function StoreTableRow({ row, accentColor, onNavigate }: { row: StoreRow; accentColor: string; onNavigate: (id: string) => void }) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
-  const dotColor = row.sentRate >= 70 ? '#10b981' : row.sentRate >= 40 ? '#f59e0b' : row.total === 0 ? '#9ca3af' : '#ef4444';
-  const costColor = row.cost === 0 ? '#9ca3af' : row.cost < 25 ? '#10b981' : row.cost < 100 ? '#f59e0b' : '#ef4444';
-  const barColor = row.sentRate >= 70 ? '#10b981' : row.sentRate >= 40 ? '#f59e0b' : '#ef4444';
+  const { success, warning, error, text } = theme.palette;
+  const dotColor = row.sentRate >= 70 ? success.main : row.sentRate >= 40 ? warning.main : row.total === 0 ? text.disabled : error.main;
+  const costColor = row.cost === 0 ? text.disabled : row.cost < 25 ? success.main : row.cost < 100 ? warning.main : error.main;
+  const barColor = row.sentRate >= 70 ? success.main : row.sentRate >= 40 ? warning.main : error.main;
 
   return (
     <TableRow hover sx={{ cursor: 'pointer', transition: 'background-color 0.12s', '&:hover': { bgcolor: alpha(accentColor, isDark ? 0.055 : 0.04) }, '&:hover .row-reveal': { opacity: 1 } }} onClick={() => onNavigate(row.id)}>
       <TableCell sx={{ py: 1.5, pl: 2, pr: 1 }}>
         <Stack direction="row" alignItems="center" spacing={1.5}>
-          <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: row.loading ? alpha('#9ca3af', 0.4) : dotColor, flexShrink: 0, transition: 'background-color 0.3s' }} />
+          <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: row.loading ? alpha(theme.palette.text.disabled, 0.4) : dotColor, flexShrink: 0, transition: 'background-color 0.3s' }} />
           <Box>
             <Typography sx={{ fontSize: 13, fontWeight: 700, lineHeight: 1.3 }}>{row.name}</Typography>
             <Stack direction="row" alignItems="center" spacing={0.75} mt={0.3}>
@@ -170,7 +178,7 @@ function StoreTableRow({ row, accentColor, onNavigate }: { row: StoreRow; accent
       </TableCell>
 
       <TableCell align="right" sx={{ py: 1.5 }}>
-        {row.loading ? <Skeleton width={36} sx={{ ml: 'auto' }} /> : <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#10b981', fontVariantNumeric: 'tabular-nums' }}>{row.sent.toLocaleString()}</Typography>}
+        {row.loading ? <Skeleton width={36} sx={{ ml: 'auto' }} /> : <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'success.main', fontVariantNumeric: 'tabular-nums' }}>{row.sent.toLocaleString()}</Typography>}
       </TableCell>
 
       <TableCell align="right" sx={{ py: 1.5 }}>
@@ -191,7 +199,7 @@ function StoreTableRow({ row, accentColor, onNavigate }: { row: StoreRow; accent
         ) : row.total > 0 ? (
           <Stack alignItems="flex-end" spacing={0.5}>
             <Typography sx={{ fontSize: 11, fontWeight: 800, color: barColor, fontVariantNumeric: 'tabular-nums' }}>{row.sentRate}%</Typography>
-            <Box sx={{ width: 52, height: 4, borderRadius: 2, bgcolor: alpha('#ef4444', 0.12), overflow: 'hidden' }}>
+            <Box sx={{ width: 52, height: 4, borderRadius: 2, bgcolor: tint(theme, 'error', 0.12), overflow: 'hidden' }}>
               <Box sx={{ height: '100%', borderRadius: 2, width: `${row.sentRate}%`, bgcolor: barColor, transition: 'width 0.6s cubic-bezier(0.4,0,0.2,1)' }} />
             </Box>
           </Stack>
@@ -268,9 +276,9 @@ export default function OptinMmsGlobalPage() {
 
   const accentColor =
     globalStats.cost === 0 ? primary
-    : globalStats.cost < 200 ? '#10b981'
-    : globalStats.cost < 800 ? '#f59e0b'
-    : '#ef4444';
+    : globalStats.cost < 200 ? theme.palette.success.main
+    : globalStats.cost < 800 ? theme.palette.warning.main
+    : theme.palette.error.main;
 
   const sortLabelSx = {
     fontSize: 11, fontWeight: 700,
@@ -299,7 +307,7 @@ export default function OptinMmsGlobalPage() {
       />
 
       {/* ── Control bar ─────────────────────────────────────────────────── */}
-      <Box sx={{ borderRadius: 3, border: `1px solid ${theme.palette.divider}`, bgcolor: isDark ? alpha('#fff', 0.02) : alpha('#000', 0.012), p: 2, mb: 2.5, mt: 0.5 }}>
+      <Box sx={{ borderRadius: 3, border: `1px solid ${theme.palette.divider}`, bgcolor: alpha(isDark ? theme.palette.common.white : theme.palette.common.black, isDark ? 0.02 : 0.012), p: 2, mb: 2.5, mt: 0.5 }}>
         <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ xs: 'stretch', md: 'center' }} gap={1.5} flexWrap="wrap">
           <Stack direction="row" alignItems="center" spacing={0.75} flexWrap="wrap" useFlexGap>
             {PRESETS.map((p) => {
@@ -309,7 +317,7 @@ export default function OptinMmsGlobalPage() {
                   fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
                   bgcolor: isActive ? alpha(primary, isDark ? 0.2 : 0.1) : 'transparent',
                   color: isActive ? primary : 'text.secondary',
-                  border: `1px solid ${isActive ? alpha(primary, 0.4) : alpha('#9ca3af', 0.3)}`,
+                  border: `1px solid ${isActive ? alpha(primary, 0.4) : theme.palette.divider}`,
                   '&:hover': { bgcolor: alpha(primary, isDark ? 0.15 : 0.08), color: primary, borderColor: alpha(primary, 0.35) },
                 }} />
               );
@@ -327,7 +335,7 @@ export default function OptinMmsGlobalPage() {
           </Stack>
 
           <Button size="small" variant="contained" disableElevation startIcon={<DownloadRoundedIcon sx={{ fontSize: 15 }} />} onClick={exportCSV} disabled={!isAllLoaded || filteredRows.length === 0}
-            sx={{ fontWeight: 700, fontSize: 12, borderRadius: 2, textTransform: 'none', whiteSpace: 'nowrap', bgcolor: alpha(primary, 0.12), color: primary, border: `1px solid ${alpha(primary, 0.25)}`, boxShadow: 'none', '&:hover': { bgcolor: alpha(primary, 0.2), boxShadow: 'none' }, '&.Mui-disabled': { bgcolor: alpha('#9ca3af', 0.08), color: 'text.disabled', borderColor: 'divider' } }}>
+            sx={{ fontWeight: 700, fontSize: 12, borderRadius: 2, textTransform: 'none', whiteSpace: 'nowrap', bgcolor: alpha(primary, 0.12), color: primary, border: `1px solid ${alpha(primary, 0.25)}`, '&:hover': { bgcolor: alpha(primary, 0.2) }, '&.Mui-disabled': { bgcolor: 'action.disabledBackground', color: 'text.disabled', borderColor: 'divider' } }}>
             {isBatchLoading ? 'Cargando tiendas…' : isAllLoaded ? 'Exportar CSV' : 'Exportar CSV'}
           </Button>
         </Stack>
@@ -343,8 +351,8 @@ export default function OptinMmsGlobalPage() {
 
       {/* ── KPI tiles ───────────────────────────────────────────────────── */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', lg: 'repeat(4, 1fr)' }, gap: 1.5, mb: 2.5 }}>
-        <StatTile icon={<CheckCircleRoundedIcon sx={{ fontSize: 18 }} />} label="MMS Enviados" sublabel={`$${OPTIN_PRICE} por mensaje · cargo facturado`} value={globalStats.sent} color="#10b981" badge={globalStats.sentRate} loading={globalLoading} />
-        <StatTile icon={<BlockRoundedIcon sx={{ fontSize: 18 }} />} label="MMS Omitidos" sublabel="opt-out activo · sin cargo" value={globalStats.skipped} color="#9ca3af" badge={globalStats.total > 0 ? Math.round((globalStats.skipped / globalStats.total) * 100) : 0} loading={globalLoading} />
+        <StatTile icon={<CheckCircleRoundedIcon sx={{ fontSize: 18 }} />} label="MMS Enviados" sublabel={`$${OPTIN_PRICE} por mensaje · cargo facturado`} value={globalStats.sent} color={theme.palette.success.main} badge={globalStats.sentRate} loading={globalLoading} />
+        <StatTile icon={<BlockRoundedIcon sx={{ fontSize: 18 }} />} label="MMS Omitidos" sublabel="opt-out activo · sin cargo" value={globalStats.skipped} color={theme.palette.text.disabled} badge={globalStats.total > 0 ? Math.round((globalStats.skipped / globalStats.total) * 100) : 0} loading={globalLoading} />
         <StatTile icon={<PeopleRoundedIcon sx={{ fontSize: 18 }} />} label="Registros Totales" sublabel="participantes únicos en el periodo" value={globalStats.total} color={accentColor} loading={globalLoading} />
         <StatTile icon={<AttachMoneyRoundedIcon sx={{ fontSize: 18 }} />} label="Costo Estimado" sublabel={`$${OPTIN_PRICE} × ${globalStats.sent.toLocaleString()} msgs`} value={globalStats.cost} color={accentColor} isCurrency loading={globalLoading} />
       </Box>
@@ -384,7 +392,7 @@ export default function OptinMmsGlobalPage() {
         <TableContainer>
           <Table size="small" sx={{ minWidth: 640 }}>
             <TableHead>
-              <TableRow sx={{ bgcolor: isDark ? alpha('#fff', 0.03) : alpha('#000', 0.02) }}>
+              <TableRow sx={{ bgcolor: alpha(isDark ? theme.palette.common.white : theme.palette.common.black, isDark ? 0.03 : 0.02) }}>
                 <TableCell sx={{ py: 1.5, pl: 2, width: '35%' }}>
                   <TableSortLabel active={sortField === 'name'} direction={sortField === 'name' ? sortDir : 'asc'} onClick={() => handleSort('name')} sx={sortLabelSx}>Tienda</TableSortLabel>
                 </TableCell>
@@ -435,10 +443,10 @@ export default function OptinMmsGlobalPage() {
 
         {/* Footer */}
         {!storesLoading && isAllLoaded && filteredRows.length > 0 && (
-          <Box sx={{ px: 2, py: 1.75, borderTop: `1px solid ${theme.palette.divider}`, bgcolor: isDark ? alpha('#fff', 0.025) : alpha('#000', 0.018), display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' }, gap: 2 }}>
+          <Box sx={{ px: 2, py: 1.75, borderTop: `1px solid ${theme.palette.divider}`, bgcolor: alpha(isDark ? theme.palette.common.white : theme.palette.common.black, isDark ? 0.025 : 0.018), display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' }, gap: 2 }}>
             {[
-              { label: 'Total enviados', value: footer.sent.toLocaleString(), color: '#10b981' },
-              { label: 'Total omitidos', value: footer.skipped.toLocaleString(), color: '#9ca3af' },
+              { label: 'Total enviados', value: footer.sent.toLocaleString(), color: theme.palette.success.main },
+              { label: 'Total omitidos', value: footer.skipped.toLocaleString(), color: theme.palette.text.disabled },
               { label: 'Total registros', value: footer.total.toLocaleString(), color: accentColor },
               { label: 'Costo total', value: `$${footer.cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: accentColor },
             ].map((item) => (
@@ -452,8 +460,8 @@ export default function OptinMmsGlobalPage() {
       </Box>
 
       {/* ── Info note ───────────────────────────────────────────────────── */}
-      <Box sx={{ borderRadius: 2.5, border: `1px solid ${alpha('#f59e0b', isDark ? 0.2 : 0.18)}`, bgcolor: alpha('#f59e0b', isDark ? 0.04 : 0.025), px: 2, py: 1.5, display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-        <InfoOutlinedIcon sx={{ fontSize: 15, color: '#f59e0b', flexShrink: 0, mt: 0.2 }} />
+      <Box sx={{ borderRadius: 2.5, border: `1px solid ${tintBorder(theme, 'warning', isDark ? 0.2 : 0.18)}`, bgcolor: tint(theme, 'warning', isDark ? 0.04 : 0.025), px: 2, py: 1.5, display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+        <InfoOutlinedIcon sx={{ fontSize: 15, color: 'warning.main', flexShrink: 0, mt: 0.2 }} />
         <Typography sx={{ fontSize: 12, color: 'text.secondary', lineHeight: 1.65 }}>
           Los MMS de opt-in <strong>no aparecen en campañas</strong>. Son cargos automáticos por cada registro de sorteo: el participante recibe un MMS de confirmación al escanear el QR a <strong>${OPTIN_PRICE}/msg</strong>. Registros con <code>active: false</code> quedan omitidos sin cargo. Haz clic en cualquier fila para ver el detalle de esa tienda.
         </Typography>

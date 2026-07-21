@@ -13,21 +13,27 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
+import { alpha, useTheme, type Theme } from '@mui/material/styles';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import supercluster from 'supercluster';
 import { cloudinaryThumb } from '@/utils/cloudinary';
+import { tint, tintBorder } from '@/theme/semantic';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
 
 const PLACEHOLDER_IMAGE =
   'https://res.cloudinary.com/proyectos-personales/image/upload/v1679455472/woocommerce-placeholder-600x600_xo2kmv.png';
 
-const audienceColor = (n: number) =>
-  n < 1000 ? '#f44336' : n < 5000 ? '#fdd835' : n < 10000 ? '#EE1E7C' : '#4caf50';
-
-const audienceTextColor = (n: number) => (n >= 1000 && n < 5000 ? '#000' : '#fff');
+const audienceColor = (theme: Theme, n: number) =>
+  n < 1000
+    ? theme.palette.error.main
+    : n < 5000
+      ? theme.palette.warning.main
+      : n < 10000
+        ? theme.palette.primary.main
+        : theme.palette.success.main;
 
 // ── Memoised marker bodies ─────────────────────────────────────────────────────
 // Extracted so parent re-renders (selectedStoreId change, zoom, pan) only cause
@@ -42,8 +48,9 @@ const StoreMarkerBody = memo(function StoreMarkerBody({
   isSelected: boolean;
   onSelect: (s: Store) => void;
 }) {
-  const color = audienceColor(store.customerCount || 0);
-  const textColor = audienceTextColor(store.customerCount || 0);
+  const theme = useTheme();
+  const color = audienceColor(theme, store.customerCount || 0);
+  const textColor = theme.palette.getContrastText(color);
   return (
     <Box textAlign="center" sx={{ cursor: 'pointer' }} onClick={() => onSelect(store)}>
       <Avatar
@@ -52,9 +59,9 @@ const StoreMarkerBody = memo(function StoreMarkerBody({
         sx={{
           width: isSelected ? 42 : 36,
           height: isSelected ? 42 : 36,
-          border: `${isSelected ? 3 : 2}px solid ${isSelected ? '#EE1E7C' : color}`,
+          border: `${isSelected ? 3 : 2}px solid ${isSelected ? theme.palette.primary.main : color}`,
           boxShadow: isSelected
-            ? '0 0 0 4px rgba(238,30,124,0.22), 2px 2px 6px rgba(0,0,0,0.2)'
+            ? `0 0 0 4px ${alpha(theme.palette.primary.main, 0.22)}`
             : 2,
           mb: '2px',
           opacity: store.active === false ? 0.45 : 1,
@@ -89,6 +96,7 @@ const PromoterMarkerBody = memo(function PromoterMarkerBody({
   isHighlighted: boolean;
   onSelect: (p: NearbyPromoter) => void;
 }) {
+  const theme = useTheme();
   const size = isHighlighted ? 42 : 34;
   return (
     <Box
@@ -106,7 +114,7 @@ const PromoterMarkerBody = memo(function PromoterMarkerBody({
             width: size + 16,
             height: size + 16,
             borderRadius: '50%',
-            border: '2.5px solid #EE1E7C',
+            border: `2.5px solid ${theme.palette.primary.main}`,
             opacity: 0.5,
             animation: 'pulse-ring 1.4s ease-out infinite',
             '@keyframes pulse-ring': {
@@ -123,13 +131,13 @@ const PromoterMarkerBody = memo(function PromoterMarkerBody({
           width: size,
           height: size,
           border: isHighlighted
-            ? '3px solid #EE1E7C'
-            : `2.5px solid ${p.isOnline ? '#22c55e' : '#9e9e9e'}`,
+            ? `3px solid ${theme.palette.primary.main}`
+            : `2.5px solid ${p.isOnline ? theme.palette.success.main : theme.palette.text.disabled}`,
           boxShadow: isHighlighted
-            ? '0 0 0 3px rgba(238,30,124,0.25), 0 4px 12px rgba(0,0,0,0.25)'
+            ? `0 0 0 3px ${alpha(theme.palette.primary.main, 0.25)}`
             : p.isOnline
-            ? '0 0 8px rgba(34,197,94,0.5), 0 2px 6px rgba(0,0,0,0.15)'
-            : '0 2px 6px rgba(0,0,0,0.12)',
+              ? `0 0 8px ${alpha(theme.palette.success.main, 0.5)}`
+              : 1,
           opacity: p.isOnline ? 1 : 0.72,
           transition: 'all 0.2s ease',
           zIndex: isHighlighted ? 10 : 1,
@@ -146,9 +154,10 @@ const PromoterMarkerBody = memo(function PromoterMarkerBody({
           width: 10,
           height: 10,
           borderRadius: '50%',
-          bgcolor: p.isOnline ? '#22c55e' : '#9e9e9e',
-          border: '1.5px solid white',
-          boxShadow: p.isOnline ? '0 0 4px rgba(34,197,94,0.8)' : 'none',
+          bgcolor: p.isOnline ? 'success.main' : 'text.disabled',
+          border: '1.5px solid',
+          borderColor: 'background.paper',
+          boxShadow: p.isOnline ? `0 0 4px ${alpha(theme.palette.success.main, 0.8)}` : 'none',
         }}
       />
       <Box
@@ -158,11 +167,25 @@ const PromoterMarkerBody = memo(function PromoterMarkerBody({
           py: '1.5px',
           borderRadius: '4px',
           fontWeight: 600,
-          backgroundColor: isHighlighted ? '#EE1E7C' : p.isOnline ? '#dcfce7' : '#f5f5f5',
-          color: isHighlighted ? '#fff' : p.isOnline ? '#15803d' : '#616161',
+          backgroundColor: isHighlighted
+            ? theme.palette.primary.main
+            : p.isOnline
+              ? tint(theme, 'success')
+              : theme.palette.action.hover,
+          color: isHighlighted
+            ? theme.palette.primary.contrastText
+            : p.isOnline
+              ? theme.palette.success.dark
+              : theme.palette.text.secondary,
           display: 'inline-block',
           mt: '2px',
-          border: `1px solid ${isHighlighted ? '#EE1E7C' : p.isOnline ? '#86efac' : '#e0e0e0'}`,
+          border: `1px solid ${
+            isHighlighted
+              ? theme.palette.primary.main
+              : p.isOnline
+                ? tintBorder(theme, 'success')
+                : theme.palette.divider
+          }`,
           maxWidth: 72,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -297,9 +320,9 @@ export const StoresMapCanvas = memo(function StoresMapCanvas({
                     sx={{
                       width: 32,
                       height: 32,
-                      backgroundColor: '#EE1E7C',
+                      backgroundColor: 'primary.main',
                       borderRadius: '50%',
-                      color: '#fff',
+                      color: 'primary.contrastText',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -438,9 +461,11 @@ export const StoresMapCanvas = memo(function StoresMapCanvas({
                 sx={{
                   position: 'absolute', bottom: 1, right: 1,
                   width: 14, height: 14, borderRadius: '50%',
-                  bgcolor: selectedPromoter?.isOnline ? '#22c55e' : '#9e9e9e',
-                  border: '2px solid white',
-                  boxShadow: selectedPromoter?.isOnline ? '0 0 6px rgba(34,197,94,0.7)' : 'none',
+                  bgcolor: selectedPromoter?.isOnline ? 'success.main' : 'text.disabled',
+                  border: '2px solid',
+                  borderColor: 'background.paper',
+                  boxShadow: (t) =>
+                    selectedPromoter?.isOnline ? `0 0 6px ${alpha(t.palette.success.main, 0.7)}` : 'none',
                 }}
               />
             </Box>
@@ -459,9 +484,11 @@ export const StoresMapCanvas = memo(function StoresMapCanvas({
                   height: 20,
                   fontSize: 11,
                   fontWeight: 600,
-                  bgcolor: selectedPromoter?.isOnline ? '#dcfce7' : '#f5f5f5',
-                  color: selectedPromoter?.isOnline ? '#15803d' : '#616161',
-                  border: `1px solid ${selectedPromoter?.isOnline ? '#86efac' : '#e0e0e0'}`,
+                  bgcolor: (t) => (selectedPromoter?.isOnline ? tint(t, 'success') : t.palette.action.hover),
+                  color: selectedPromoter?.isOnline ? 'success.dark' : 'text.secondary',
+                  border: '1px solid',
+                  borderColor: (t) =>
+                    selectedPromoter?.isOnline ? tintBorder(t, 'success') : t.palette.divider,
                   '& .MuiChip-label': { px: 1 },
                 }}
               />
@@ -525,12 +552,14 @@ export const StoresMapCanvas = memo(function StoresMapCanvas({
               sx={{
                 display: 'flex', alignItems: 'center', gap: 0.5,
                 mb: 2, px: 1.5, py: 0.75,
-                borderRadius: 1.5, bgcolor: '#f0fdf4',
-                border: '1px solid #bbf7d0',
+                borderRadius: 1.5,
+                bgcolor: (t) => tint(t, 'success', 0.08),
+                border: '1px solid',
+                borderColor: (t) => tintBorder(t, 'success'),
               }}
             >
-              <LocationOnIcon sx={{ fontSize: 14, color: '#16a34a' }} />
-              <Typography variant="caption" color="#15803d" fontWeight={500}>
+              <LocationOnIcon sx={{ fontSize: 14, color: 'success.main' }} />
+              <Typography variant="caption" color="success.dark" fontWeight={500}>
                 {selectedPromoter.lastLocation.coordinates[1].toFixed(5)},{' '}
                 {selectedPromoter.lastLocation.coordinates[0].toFixed(5)}
               </Typography>
@@ -553,7 +582,6 @@ export const StoresMapCanvas = memo(function StoresMapCanvas({
               fullWidth
               endIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
               onClick={() => window.open(`/admin/management/promoters/${selectedPromoter!._id}`, '_blank')}
-              sx={{ bgcolor: '#EE1E7C', '&:hover': { bgcolor: '#d01a6e' } }}
             >
               Ver perfil
             </Button>

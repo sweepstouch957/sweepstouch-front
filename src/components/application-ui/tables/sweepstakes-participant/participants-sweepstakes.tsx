@@ -22,9 +22,7 @@ import {
   Typography,
   useMediaQuery,
   useTheme,
-  Stack,
-  Tooltip,
-} from '@mui/material';
+  Stack } from '@mui/material';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -81,7 +79,7 @@ function SweepstakeStoresTable({ sweepstakeId }: Props) {
         alignItems={{ xs: 'flex-start', sm: 'center' }}
         justifyContent="space-between"
         gap={{ xs: 2, sm: 0 }}
-        bgcolor={theme.palette.mode === 'light' ? '#f8fafc' : '#1e1e1e'}
+        bgcolor="action.hover"
       >
         <Box>
           <Typography variant="h5" fontWeight={700}>
@@ -100,7 +98,7 @@ function SweepstakeStoresTable({ sweepstakeId }: Props) {
         <TableContainer sx={{ minWidth: 320 }}>
           <Table size={isMobile ? 'small' : 'medium'}>
             {!isMobile && (
-              <TableHead sx={{ bgcolor: theme.palette.mode === 'light' ? '#ffffff' : '#2d2d2d' }}>
+              <TableHead sx={{ bgcolor: 'background.paper' }}>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 600, py: 2, color: 'text.secondary' }}>{t('Store')}</TableCell>
                   <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>{t('Type')}</TableCell>

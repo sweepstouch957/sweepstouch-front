@@ -118,7 +118,7 @@ function DeviceProductCard({
         <Box
           sx={{
             width: 68, height: 68, borderRadius: 2, overflow: 'hidden', flexShrink: 0,
-            bgcolor: theme.palette.mode === 'dark' ? alpha('#fff', 0.06) : 'grey.50',
+            bgcolor: theme.palette.mode === 'dark' ? alpha(theme.palette.common.white, 0.06) : 'grey.50',
             border: `1px solid ${theme.palette.divider}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
@@ -319,13 +319,13 @@ export function EquipmentSectionModal({
               width: 46, height: 46, borderRadius: 2,
               bgcolor: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(4px)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#fff', flexShrink: 0,
+              color: 'common.white', flexShrink: 0,
             }}
           >
             <sectionCfg.Icon sx={{ fontSize: 22 }} />
           </Box>
           <Box flex={1} minWidth={0}>
-            <Typography variant="subtitle1" fontWeight={800} color="#fff" lineHeight={1.2}>
+            <Typography variant="subtitle1" fontWeight={800} color="common.white" lineHeight={1.2}>
               {sectionCfg.label}
             </Typography>
             <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.75)' }}>
@@ -465,7 +465,6 @@ export function EquipmentSectionModal({
             sx={{
               borderRadius: 2, textTransform: 'none',
               background: sectionCfg.gradient,
-              boxShadow: `0 4px 14px ${alpha(sectionCfg.accent, 0.35)}`,
               '&:hover': { background: sectionCfg.gradient, filter: 'brightness(1.07)' },
             }}
           >

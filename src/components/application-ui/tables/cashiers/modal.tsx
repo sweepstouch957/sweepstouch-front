@@ -11,7 +11,6 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import PaidIcon from '@mui/icons-material/Paid';
 import PhoneIcon from '@mui/icons-material/Phone';
-import PhoneDisabledIcon from '@mui/icons-material/PhoneDisabled';
 import DownloadIcon from '@mui/icons-material/Download';
 import { sweepstakesClient } from '@/services/sweepstakes.service';
 import {
@@ -209,7 +208,7 @@ export default function CashierDetailsDialog({
           mb={2}
         >
           <Avatar
-            sx={{ width: 56, height: 56, bgcolor: '#fc0680', fontWeight: 800 }}
+            sx={{ width: 56, height: 56, bgcolor: 'primary.main', fontWeight: 800 }}
             src={
               stats?.user?.profileImage
                 ? `https://api2.sweepstouch.com/uploads/${stats.user.profileImage}`

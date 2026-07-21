@@ -293,10 +293,6 @@ function isMmsType(raw: unknown): boolean {
   return s.includes('mms');
 }
 
-// Brand color used across Sweepstouch marketing assets.
-// We do NOT use theme.palette.primary here because the admin theme can be blue.
-const SWEEPSTOUCH_PINK = '#ff0f6e';
-
 async function fetchAllCampaignsFromStartDate(startDate: string) {
   // NOTE: getFilteredCampaigns is paginated. For charts we must fetch ALL pages,
   // otherwise earlier days in the month will show as 0.
@@ -502,7 +498,7 @@ function YearBlock({
               series={[
                 { data: sms, label: t('SMS'), color: theme.palette.grey[400] } as any,
                 { data: mms, label: t('MMS'), color: theme.palette.grey[700] } as any,
-                { data: totals, label: t('Total'), color: SWEEPSTOUCH_PINK } as any,
+                { data: totals, label: t('Total'), color: theme.palette.primary.main } as any,
               ]}
               grid={{ horizontal: true }}
             />
@@ -873,7 +869,7 @@ return (
                                 series={[
                                   { data: [selectedSms, avgSms], label: t('SMS'), color: theme.palette.grey[400] } as any,
                                   { data: [selectedMms, avgMms], label: t('MMS'), color: theme.palette.grey[700] } as any,
-                                  { data: [selectedTotal, avgTotal], label: t('Total'), color: SWEEPSTOUCH_PINK } as any,
+                                  { data: [selectedTotal, avgTotal], label: t('Total'), color: theme.palette.primary.main } as any,
                                 ]}
                                 grid={{ horizontal: true }}
                               />
@@ -917,7 +913,7 @@ return (
                                 series={[
                                   { data: sms, label: t('SMS'), color: theme.palette.grey[400] } as any,
                                   { data: mms, label: t('MMS'), color: theme.palette.grey[700] } as any,
-                                  { data: totals, label: t('Total'), color: SWEEPSTOUCH_PINK } as any,
+                                  { data: totals, label: t('Total'), color: theme.palette.primary.main } as any,
                                 ]}
                                 grid={{ horizontal: true }}
                               />
@@ -1031,7 +1027,7 @@ return (
                         series={[
                           { data: dailyQ.data!.sms, label: t('SMS'), color: theme.palette.grey[400] } as any,
                           { data: dailyQ.data!.mms, label: t('MMS'), color: theme.palette.grey[700] } as any,
-                          { data: dailyQ.data!.total, label: t('Total'), color: SWEEPSTOUCH_PINK } as any,
+                          { data: dailyQ.data!.total, label: t('Total'), color: theme.palette.primary.main } as any,
                         ]}
                         grid={{ horizontal: true }}
                       />

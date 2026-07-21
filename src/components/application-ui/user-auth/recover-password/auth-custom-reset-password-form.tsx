@@ -23,12 +23,12 @@ import {
   StepLabel,
   Stepper,
   Typography,
-  alpha,
   useTheme,
 } from '@mui/material';
 import { RouterLink } from 'src/components/base/router-link';
 import { routes } from 'src/router/routes';
 import { api } from '@/libs/axios';
+import { tint } from '@/theme/semantic';
 
 const steps = ['Ingresa tu correo', 'Código de verificación', 'Nueva contraseña'];
 
@@ -192,8 +192,7 @@ export function ResetPasswordForm(): React.JSX.Element {
               alignItems: 'center',
               justifyContent: 'center',
               mb: 2,
-              background: 'linear-gradient(135deg, #ff0aa2 0%, #ff5cb9 100%)',
-              boxShadow: '0 8px 24px rgba(255,10,162,0.3)',
+              bgcolor: 'primary.main',
             }}
           >
             <LockResetRoundedIcon sx={{ fontSize: 28, color: 'white' }} />
@@ -218,8 +217,8 @@ export function ResetPasswordForm(): React.JSX.Element {
             sx={{
               mb: 3,
               '.MuiStepLabel-label': { fontSize: 11, fontWeight: 600 },
-              '.MuiStepIcon-root.Mui-active': { color: '#ff0aa2' },
-              '.MuiStepIcon-root.Mui-completed': { color: '#22C55E' },
+              '.MuiStepIcon-root.Mui-active': { color: 'primary.main' },
+              '.MuiStepIcon-root.Mui-completed': { color: 'success.main' },
             }}
           >
             {steps.map((label) => (
@@ -275,8 +274,6 @@ export function ResetPasswordForm(): React.JSX.Element {
                 borderRadius: 2,
                 fontWeight: 700,
                 py: 1.5,
-                background: 'linear-gradient(135deg, #ff0aa2 0%, #ff5cb9 100%)',
-                '&:hover': { background: 'linear-gradient(135deg, #e0008d 0%, #ff3baf 100%)' },
               }}
             >
               {loading ? (
@@ -338,8 +335,6 @@ export function ResetPasswordForm(): React.JSX.Element {
                 borderRadius: 2,
                 fontWeight: 700,
                 py: 1.5,
-                background: 'linear-gradient(135deg, #ff0aa2 0%, #ff5cb9 100%)',
-                '&:hover': { background: 'linear-gradient(135deg, #e0008d 0%, #ff3baf 100%)' },
               }}
             >
               {loading ? <CircularProgress size={22} color="inherit" /> : 'Verificar código'}
@@ -413,8 +408,6 @@ export function ResetPasswordForm(): React.JSX.Element {
                 borderRadius: 2,
                 fontWeight: 700,
                 py: 1.5,
-                background: 'linear-gradient(135deg, #ff0aa2 0%, #ff5cb9 100%)',
-                '&:hover': { background: 'linear-gradient(135deg, #e0008d 0%, #ff3baf 100%)' },
               }}
             >
               {loading ? <CircularProgress size={22} color="inherit" /> : 'Cambiar contraseña'}
@@ -433,10 +426,10 @@ export function ResetPasswordForm(): React.JSX.Element {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: alpha('#22C55E', 0.15),
+                bgcolor: (t) => tint(t, 'success', 0.15),
               }}
             >
-              <CheckCircleRoundedIcon sx={{ fontSize: 48, color: '#22C55E' }} />
+              <CheckCircleRoundedIcon sx={{ fontSize: 48, color: 'success.main' }} />
             </Box>
             <Typography variant="h5" fontWeight={700} textAlign="center">
               ¡Contraseña actualizada!
@@ -455,8 +448,6 @@ export function ResetPasswordForm(): React.JSX.Element {
                 borderRadius: 2,
                 fontWeight: 700,
                 py: 1.5,
-                background: 'linear-gradient(135deg, #ff0aa2 0%, #ff5cb9 100%)',
-                '&:hover': { background: 'linear-gradient(135deg, #e0008d 0%, #ff3baf 100%)' },
               }}
             >
               Ir a iniciar sesión

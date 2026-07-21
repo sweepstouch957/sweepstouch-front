@@ -9,7 +9,6 @@ import InvoicesListing from 'src/components/application-ui/tables/invoices/invoi
 import PageHeading from 'src/components/base/page-heading';
 import { AvatarState } from 'src/components/base/styles/avatar';
 import { useCustomization } from 'src/hooks/use-customization';
-import { Layout } from 'src/layouts';
 
 function Page(): React.JSX.Element {
   const customization = useCustomization();

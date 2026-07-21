@@ -52,6 +52,7 @@ import { format } from 'date-fns';
 import React, { useMemo, useState } from 'react';
 import { useLastCampaign } from '@/hooks/fetching/campaigns/useLastCampaign';
 import { useStoreById } from '@/hooks/fetching/stores/useStoreById';
+import { tint, type SemanticRole } from '@/theme/semantic';
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 type StoreTechModalProps = {
@@ -83,12 +84,12 @@ const CONTACT_LABELS: Record<string, string> = {
   other: 'Otro',
 };
 
-const CONTACT_COLORS: Record<string, string> = {
-  manager: '#6366f1',
-  owner: '#f59e0b',
-  secretary: '#10b981',
-  assistant: '#3b82f6',
-  other: '#94a3b8',
+const CONTACT_ROLES: Record<string, SemanticRole> = {
+  manager: 'secondary',
+  owner: 'warning',
+  secretary: 'success',
+  assistant: 'info',
+  other: 'primary',
 };
 
 const SPANISH_DATE_FORMATTER = new Intl.DateTimeFormat('es-HN', {
@@ -617,7 +618,7 @@ index={0}>
                   icon={<TodayRoundedIcon sx={{ fontSize: 18 }} />}
                   label="Fecha de inicio"
                   value={spanishDateLabel(effectiveStartDate)}
-                  color="#10b981"
+                  color={theme.palette.success.main}
                 />
                 <KpiCard
                   icon={<PeopleAltRoundedIcon sx={{ fontSize: 18 }} />}
@@ -629,7 +630,7 @@ index={0}>
                   icon={<CampaignRoundedIcon sx={{ fontSize: 18 }} />}
                   label="Última campaña"
                   value={spanishDateLabel(lastCampaignDate)}
-                  color="#6366f1"
+                  color={theme.palette.secondary.main}
                 />
                 <KpiCard
                   icon={<WarningAmberRoundedIcon sx={{ fontSize: 18 }} />}
@@ -637,10 +638,10 @@ index={0}>
                   value={statusLabel}
                   color={
                     effectiveStatus === 'active'
-                      ? '#10b981'
+                      ? theme.palette.success.main
                       : effectiveStatus === 'suspended'
-                        ? '#0288d1'
-                        : '#ef4444'
+                        ? theme.palette.info.main
+                        : theme.palette.error.main
                   }
                 />
               </Box>
@@ -805,8 +806,8 @@ flexShrink={0}>
                                 fontWeight: 800,
                                 fontSize: 10,
                                 height: 20,
-                                bgcolor: lastCampaign.status === 'completed' ? alpha('#10b981', 0.1) : alpha(theme.palette.text.secondary, 0.1),
-                                color: lastCampaign.status === 'completed' ? '#10b981' : theme.palette.text.secondary,
+                                bgcolor: lastCampaign.status === 'completed' ? tint(theme, 'success') : alpha(theme.palette.text.secondary, 0.1),
+                                color: lastCampaign.status === 'completed' ? theme.palette.success.main : theme.palette.text.secondary,
                               }}
                             />
                           )}
@@ -859,7 +860,7 @@ color="text.secondary">Costo</Typography>
                             </Stack>
                             <Typography fontWeight={700}
 fontSize={12}
-sx={{ fontVariantNumeric: 'tabular-nums', color: '#ef4444' }}>
+sx={{ fontVariantNumeric: 'tabular-nums', color: 'error.main' }}>
                               ${lastCampaign.cost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </Typography>
                           </Box>
@@ -877,7 +878,7 @@ color="text.secondary">Entrega</Typography>
                             </Stack>
                             <Typography fontWeight={700}
 fontSize={12}
-sx={{ fontVariantNumeric: 'tabular-nums', color: '#10b981' }}>
+sx={{ fontVariantNumeric: 'tabular-nums', color: 'success.main' }}>
                               {Math.round(lastCampaign.deliveryRate)}%
                             </Typography>
                           </Box>
@@ -1082,8 +1083,8 @@ sx={{ pl: 1, borderLeft: '3px solid', borderColor: 'error.main' }}>
               {/* Links */}
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
                 {[
-                  { label: 'Kiosko', url: kioskoUrl, color: '#00A9BC' },
-                  { label: 'Link Tree', url: linkTreeUrl, color: '#ff0080' },
+                  { label: 'Kiosko', url: kioskoUrl, color: theme.palette.info.main },
+                  { label: 'Link Tree', url: linkTreeUrl, color: theme.palette.primary.main },
                 ].map((item) => (
                   <Card key={item.label}
 variant="outlined"
@@ -1165,7 +1166,7 @@ sx={{ borderRadius: 2.5 }}>
 spacing={1.5}
 alignItems="center"
 mb={1.25}>
-                        <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha('#6366f1', 0.12), display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366f1' }}>
+                        <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: tint(theme, 'secondary', 0.12), display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'secondary.main' }}>
                           <DevicesRoundedIcon fontSize="small" />
                         </Box>
                         <Box>
@@ -1210,7 +1211,7 @@ sx={{ borderRadius: 2.5 }}>
 spacing={1.5}
 alignItems="center"
 mb={1.25}>
-                        <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha('#10b981', 0.12), display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
+                        <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: tint(theme, 'success', 0.12), display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'success.main' }}>
                           <PrintRoundedIcon fontSize="small" />
                         </Box>
                         <Box>
@@ -1256,7 +1257,7 @@ color="text.disabled">Agrega manager, owner u otros contactos desde la edición 
             ) : (
               <Stack spacing={1}>
                 {effectiveContacts.map((c, i) => {
-                  const color = CONTACT_COLORS[c.type] ?? '#94a3b8';
+                  const color = theme.palette[CONTACT_ROLES[c.type] ?? 'primary'].main;
                   return (
                     <Card key={i}
 variant="outlined"

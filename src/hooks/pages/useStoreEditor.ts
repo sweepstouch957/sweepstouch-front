@@ -1,5 +1,5 @@
 // src/hooks/useStoreEditor.js
-import { Store, updateStorePatch } from '@/services/store.service';
+import { updateStorePatch } from '@/services/store.service';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 

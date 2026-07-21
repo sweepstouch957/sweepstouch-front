@@ -9,7 +9,8 @@ import {
   type QrListItem,
   type StorePopulated,
 } from '@/services/qr.service';
-import { getAllStores, type Store } from '@/services/store.service';
+import { type Store } from '@/services/store.service';
+import { useStoreSearch } from '@/hooks/fetching/stores/useStoreSearch';
 import { sweepstakesClient } from '@/services/sweepstakes.service';
 import {
   AddRounded,
@@ -51,7 +52,6 @@ import {
   useTheme,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import * as React from 'react';
 import { useCallback, useMemo, useState } from 'react';
 
 /* ─────────────────────────── helpers */
@@ -128,8 +128,8 @@ function QrCard({ item }: { item: QrListItem }) {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        transition: 'box-shadow 0.2s',
-        '&:hover': { boxShadow: `0 4px 20px ${alpha(accent, 0.12)}` },
+        transition: 'border-color 0.2s',
+        '&:hover': { borderColor: accent },
       }}
     >
       {/* Banner */}
@@ -143,7 +143,7 @@ function QrCard({ item }: { item: QrListItem }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#fff',
+            color: 'common.white',
             flexShrink: 0,
             '& svg': { fontSize: 18 },
           }}
@@ -151,7 +151,7 @@ function QrCard({ item }: { item: QrListItem }) {
           <QrCode2Rounded />
         </Box>
         <Box flex={1} minWidth={0}>
-          <Typography variant="subtitle2" fontWeight={700} color="#fff" noWrap>
+          <Typography variant="subtitle2" fontWeight={700} color="common.white" noWrap>
             {title}
           </Typography>
           <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }} noWrap>
@@ -161,7 +161,7 @@ function QrCard({ item }: { item: QrListItem }) {
         <Chip
           label={isSweep ? 'Sorteo' : 'Tienda'}
           size="small"
-          sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: '#fff', fontWeight: 600, fontSize: 11 }}
+          sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'common.white', fontWeight: 600, fontSize: 11 }}
         />
       </Box>
 
@@ -234,17 +234,16 @@ type CreateMode = 'url' | 'store';
 function CreateQrDialog({
   open,
   onClose,
-  stores,
-  storesLoading,
   onCreated,
 }: {
   open: boolean;
   onClose: () => void;
-  stores: Store[];
-  storesLoading: boolean;
   onCreated: (msg: string) => void;
 }) {
   const theme = useTheme();
+  // Busqueda propia: no comparte termino con el filtro de la pagina.
+  const [storeTerm, setStoreTerm] = useState('');
+  const { options: stores, loading: storesLoading } = useStoreSearch(storeTerm);
   const [mode, setMode] = useState<CreateMode>('url');
   const [url, setUrl] = useState('');
   const [store, setStore] = useState<Store | null>(null);
@@ -379,6 +378,10 @@ function CreateQrDialog({
               loading={storesLoading}
               value={store}
               onChange={(_, v) => setStore(v)}
+              inputValue={storeTerm}
+              onInputChange={(_, v, reason) => { if (reason !== 'reset') setStoreTerm(v); }}
+              filterOptions={(x) => x}
+              noOptionsText={storeTerm.trim().length < 2 ? 'Escribi al menos 2 letras...' : 'Sin resultados'}
               getOptionLabel={(o) => o.name || ''}
               isOptionEqualToValue={(o, v) => o._id === v._id}
               renderInput={(params) => (
@@ -446,11 +449,9 @@ export default function QrManagementPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [snack, setSnack] = useState<{ open: boolean; msg: string }>({ open: false, msg: '' });
 
-  const { data: stores = [], isLoading: storesLoading } = useQuery({
-    queryKey: ['all-stores'],
-    queryFn: getAllStores,
-    staleTime: 1000 * 60 * 10,
-  });
+  // Busqueda server-side: antes traia el catalogo completo de tiendas.
+  const [storeTerm, setStoreTerm] = useState('');
+  const { options: stores, loading: storesLoading } = useStoreSearch(storeTerm);
 
   const {
     data: qrResp,
@@ -496,8 +497,7 @@ export default function QrManagementPage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#fff',
-              boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+              color: 'common.white',
             }}
           >
             <QrCodeRounded />
@@ -538,6 +538,10 @@ export default function QrManagementPage() {
           loading={storesLoading}
           value={storeFilter}
           onChange={(_, v) => setStoreFilter(v)}
+          inputValue={storeTerm}
+          onInputChange={(_, v, reason) => { if (reason !== 'reset') setStoreTerm(v); }}
+          filterOptions={(x) => x}
+          noOptionsText={storeTerm.trim().length < 2 ? 'Escribi al menos 2 letras...' : 'Sin resultados'}
           getOptionLabel={(o) => o.name || ''}
           isOptionEqualToValue={(o, v) => o._id === v._id}
           renderInput={(params) => (
@@ -601,8 +605,6 @@ export default function QrManagementPage() {
       <CreateQrDialog
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        stores={stores}
-        storesLoading={storesLoading}
         onCreated={onCreated}
       />
 

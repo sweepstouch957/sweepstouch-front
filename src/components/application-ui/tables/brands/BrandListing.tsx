@@ -4,7 +4,6 @@ import { Edit, SearchTwoTone } from '@mui/icons-material';
 import {
   Avatar,
   Box,
-  Button,
   Card,
   Chip,
   IconButton,
@@ -16,9 +15,8 @@ import {
   TablePagination,
   TableRow,
   TextField,
-  Typography,
-} from '@mui/material';
-import React, { useMemo, useState } from 'react';
+  Typography } from '@mui/material';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useBrands } from '@/hooks/fetching/brands/useBrands';
 import { Brand } from '@/services/brand.service';

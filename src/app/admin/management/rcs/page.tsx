@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
-  Box, Container, Grid, Card, CardContent, Typography, Button,
+  alpha, Box, Container, Grid, Card, CardContent, Typography, Button,
   Chip, Stack, TextField, Autocomplete, Avatar, CircularProgress,
   IconButton, Tooltip,
 } from '@mui/material';
@@ -57,7 +57,7 @@ const StepBadge = React.memo(({ num }: { num: number }) => (
     component="span"
     sx={{
       width: 28, height: 28, borderRadius: '50%',
-      background: 'linear-gradient(135deg, #DC1F26 0%, #ff6b6b 100%)',
+      background: (t) => `linear-gradient(135deg, ${t.palette.primary.main} 0%, ${t.palette.primary.light} 100%)`,
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       color: 'white', fontSize: 14, fontWeight: 'bold', flexShrink: 0,
     }}
@@ -251,7 +251,7 @@ function RcsPreviewCard({ storeSlug, circularId, categories, recipes }: {
               Store
             </Typography>
             <Typography sx={{ fontSize: 13 }}>
-              {storeSlug || <span style={{ color: '#9ca3af' }}>Not selected</span>}
+              {storeSlug || <Box component="span" sx={{ color: 'text.disabled' }}>Not selected</Box>}
             </Typography>
           </Box>
 
@@ -260,7 +260,7 @@ function RcsPreviewCard({ storeSlug, circularId, categories, recipes }: {
               Circular
             </Typography>
             <Typography sx={{ fontSize: 13 }}>
-              {circularId || <span style={{ color: '#9ca3af' }}>None selected</span>}
+              {circularId || <Box component="span" sx={{ color: 'text.disabled' }}>None selected</Box>}
             </Typography>
           </Box>
 
@@ -427,10 +427,10 @@ function RcsCampaignPage(): React.JSX.Element {
                   return (
                     <Box component="li" key={key || option._id} {...rest}
                       sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.5,
-                        '&:hover': { background: 'rgba(220, 31, 38, 0.04) !important' } }}>
+                        '&:hover': { background: (t) => `${alpha(t.palette.primary.main, 0.04)} !important` } }}>
                       <Avatar
                         src={option.image !== 'no-image.jpg' ? option.image : undefined}
-                        sx={{ width: 36, height: 36, bgcolor: '#DC1F26', fontSize: 14, fontWeight: 'bold' }}>
+                        sx={{ width: 36, height: 36, bgcolor: 'primary.main', fontSize: 14, fontWeight: 'bold' }}>
                         {option.name?.charAt(0)?.toUpperCase()}
                       </Avatar>
                       <Box sx={{ flex: 1 }}>
@@ -443,8 +443,13 @@ function RcsCampaignPage(): React.JSX.Element {
                         label={option.type} size="small"
                         sx={{
                           height: 22, fontSize: 11, fontWeight: 'bold',
-                          bgcolor: option.type === 'elite' ? '#FFD700' : option.type === 'basic' ? '#90CAF9' : '#E0E0E0',
-                          color: '#333',
+                          bgcolor: (t) =>
+                            option.type === 'elite'
+                              ? alpha(t.palette.warning.main, 0.3)
+                              : option.type === 'basic'
+                                ? alpha(t.palette.info.main, 0.3)
+                                : t.palette.action.selected,
+                          color: 'text.primary',
                         }}
                       />
                     </Box>
@@ -520,8 +525,13 @@ function RcsCampaignPage(): React.JSX.Element {
                                 <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>{start} – {end} · {option.status}</Typography>
                               </Box>
                               <Chip label={option.status} size="small" sx={{ ml: 'auto',
-                                bgcolor: option.status === 'active' ? '#dcfce7' : option.status === 'scheduled' ? '#fef9c3' : '#f3f4f6',
-                                color: option.status === 'active' ? '#166534' : option.status === 'scheduled' ? '#854d0e' : '#6b7280',
+                                bgcolor: (t) =>
+                                  option.status === 'active'
+                                    ? alpha(t.palette.success.main, 0.15)
+                                    : option.status === 'scheduled'
+                                      ? alpha(t.palette.warning.main, 0.15)
+                                      : t.palette.action.selected,
+                                color: option.status === 'active' ? 'success.dark' : option.status === 'scheduled' ? 'warning.dark' : 'text.secondary',
                               }} />
                             </Box>
                           );

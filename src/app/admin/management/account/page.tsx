@@ -32,12 +32,12 @@ import UploadFileRoundedIcon from '@mui/icons-material/UploadFileRounded';
 import PhoneRoundedIcon from '@mui/icons-material/PhoneRounded';
 import EmailRoundedIcon from '@mui/icons-material/EmailRounded';
 import BadgeRoundedIcon from '@mui/icons-material/BadgeRounded';
-import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
 import AssignmentTurnedInRoundedIcon from '@mui/icons-material/AssignmentTurnedInRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import PictureAsPdfRoundedIcon from '@mui/icons-material/PictureAsPdfRounded';
 import InsertDriveFileRoundedIcon from '@mui/icons-material/InsertDriveFileRounded';
+import { severityColor, tint, tintBorder } from 'src/theme/semantic';
 import { useAuth } from 'src/hooks/use-auth';
 import { useCustomization } from 'src/hooks/use-customization';
 import { uploadCampaignImage, uploadPdfToS3 } from '@/services/upload.service';
@@ -192,7 +192,6 @@ export default function AccountPage() {
             <Card
               elevation={0}
               sx={{
-                borderRadius: 3,
                 border: '1px solid',
                 borderColor: 'divider',
                 overflow: 'visible',
@@ -207,7 +206,7 @@ export default function AccountPage() {
                 sx={{
                   height: 100,
                   borderRadius: '12px 12px 0 0',
-                  background: 'linear-gradient(135deg, #DC1F26 0%, #ff6b6b 50%, #FFD700 100%)',
+                  background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.light} 50%, ${theme.palette.warning.main} 100%)`,
                 }}
               />
               <CardContent sx={{ textAlign: 'center', mt: -5 }}>
@@ -244,7 +243,7 @@ export default function AccountPage() {
                       borderColor: 'background.paper',
                       fontSize: 32,
                       fontWeight: 800,
-                      bgcolor: '#DC1F26',
+                      bgcolor: 'primary.main',
                     }}
                   >
                     {form.firstName?.charAt(0)?.toUpperCase()}
@@ -315,10 +314,10 @@ export default function AccountPage() {
                       borderRadius: 2.5,
                       overflow: 'hidden',
                       border: '1px solid',
-                      borderColor: alpha(theme.palette.success.main, 0.3),
-                      bgcolor: alpha(theme.palette.success.main, 0.04),
+                      borderColor: tintBorder(theme, 'success', 0.3),
+                      bgcolor: tint(theme, 'success', 0.04),
                       transition: 'all 0.2s',
-                      '&:hover': { borderColor: 'success.main', boxShadow: `0 4px 16px ${alpha(theme.palette.success.main, 0.12)}` },
+                      '&:hover': { borderColor: 'success.main', bgcolor: tint(theme, 'success') },
                     }}
                   >
                     {/* PDF inline preview */}
@@ -404,7 +403,7 @@ export default function AccountPage() {
                 ) : (
                   <Stack spacing={1}>
                     {myTasks.slice(0, 5).map((t) => {
-                      const pri = { critical: '#FF1744', high: '#FF9100', medium: '#FFC400', low: '#00E676' }[t.priority] || '#FFC400';
+                      const pri = severityColor(theme, t.priority);
                       return (
                         <Paper
                           key={t._id}
@@ -532,8 +531,8 @@ export default function AccountPage() {
                       fontWeight: 700,
                       textTransform: 'none',
                       px: 4,
-                      background: 'linear-gradient(135deg, #DC1F26 0%, #ff6b6b 100%)',
-                      '&:hover': { background: 'linear-gradient(135deg, #b01820 0%, #e55 100%)' },
+                      background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.light} 100%)`,
+                      '&:hover': { background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)` },
                     }}
                   >
                     {saving ? 'Saving...' : 'Save Changes'}

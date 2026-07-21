@@ -9,15 +9,11 @@ import {
   ListRequestsParams,
 } from '@/services/campaign-request.service';
 import { getStores, Store } from '@/services/store.service';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import FilterListIcon from '@mui/icons-material/FilterList';
-import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import ImageIcon from '@mui/icons-material/Image';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import PendingIcon from '@mui/icons-material/Pending';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import StoreIcon from '@mui/icons-material/Store';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import {
   Autocomplete,
   Box,
@@ -43,7 +39,7 @@ import {
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { useState, useMemo, useCallback } from 'react';
+import { useState } from 'react';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Todos' },

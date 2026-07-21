@@ -111,7 +111,7 @@ export default function NewPromoterModal({ open, onClose, onCreated }: NewPromot
           sx={{
             px: 3, pt: 2.5, pb: 2,
             borderBottom: `1px solid ${theme.palette.divider}`,
-            bgcolor: isDark ? alpha('#fff', 0.02) : alpha(primary, 0.02),
+            bgcolor: isDark ? alpha(theme.palette.common.white, 0.02) : alpha(primary, 0.02),
             display: 'flex',
             alignItems: 'center',
             gap: 1.5,
@@ -171,7 +171,9 @@ export default function NewPromoterModal({ open, onClose, onCreated }: NewPromot
           sx={{
             px: 3, py: 2, gap: 1,
             borderTop: `1px solid ${theme.palette.divider}`,
-            bgcolor: isDark ? alpha('#fff', 0.02) : alpha('#000', 0.015),
+            bgcolor: isDark
+              ? alpha(theme.palette.common.white, 0.02)
+              : alpha(theme.palette.common.black, 0.015),
           }}
         >
           <Button

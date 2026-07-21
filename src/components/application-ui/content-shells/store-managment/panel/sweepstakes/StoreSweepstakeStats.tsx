@@ -78,16 +78,14 @@ function StatCard({
   color: string;
   loading?: boolean;
 }) {
-  const theme = useTheme();
   return (
     <Card
       variant="outlined"
       sx={{
-        borderRadius: 3,
         borderLeft: `4px solid ${color}`,
         height: '100%',
-        transition: 'box-shadow 0.2s',
-        '&:hover': { boxShadow: theme.shadows[4] },
+        transition: 'border-color 0.2s, background-color 0.2s',
+        '&:hover': { borderColor: color, bgcolor: alpha(color, 0.04) },
       }}
     >
       <CardContent sx={{ py: 2, px: 2.5 }}>
@@ -153,7 +151,7 @@ export default function StoreSweepstakeStats({ storeId, sweepstakeId }: Props) {
     tablet: theme.palette.warning.main,
     promotor: theme.palette.success.main,
     referral: theme.palette.error.main,
-    pinpad: '#ec4899',
+    pinpad: theme.palette.primary.dark,
   };
 
   const [dateRange, setDateRange] = useState<RangePickerValue>({
@@ -397,7 +395,7 @@ export default function StoreSweepstakeStats({ storeId, sweepstakeId }: Props) {
                       {sanitizedEntries.map(([m, count]) => (
                         <Stack key={m} direction="row" alignItems="center" justifyContent="space-between">
                           <Stack direction="row" alignItems="center" spacing={0.75}>
-                            <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: METHOD_COLORS[m] ?? '#888' }} />
+                            <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: METHOD_COLORS[m] ?? theme.palette.text.disabled }} />
                             <Typography variant="caption" color="text.secondary" textTransform="capitalize">{m}</Typography>
                           </Stack>
                           <Typography variant="caption" fontWeight={700}>
@@ -487,8 +485,8 @@ export default function StoreSweepstakeStats({ storeId, sweepstakeId }: Props) {
                           icon={METHOD_ICONS[p.method] as any}
                           label={p.method || '—'}
                           sx={{
-                            bgcolor: alpha(METHOD_COLORS[p.method] || '#888', 0.12),
-                            color: METHOD_COLORS[p.method] || '#888',
+                            bgcolor: alpha(METHOD_COLORS[p.method] || theme.palette.text.disabled, 0.12),
+                            color: METHOD_COLORS[p.method] || theme.palette.text.disabled,
                             fontWeight: 600,
                             fontSize: '0.7rem',
                           }}

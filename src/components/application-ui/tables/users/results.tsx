@@ -35,7 +35,6 @@ import {
   MenuItem,
   Select,
   Stack,
-  styled,
   Tab,
   Table,
   TableBody,
@@ -51,24 +50,22 @@ import {
   Typography,
   useMediaQuery,
   useTheme,
-  Theme,
-} from '@mui/material';
-import React, {
+  Theme } from '@mui/material';
+import {
   ChangeEvent,
   FC,
   MouseEvent,
   SyntheticEvent,
   useEffect,
   useMemo,
-  useState,
-} from 'react';
+  useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
 import { TabsShadow } from 'src/components/base/styles/tabs';
-import { CardWrapper } from './styles';
 import BulkDelete from './bulk-delete';
 import toast from 'react-hot-toast';
 import { usersApi } from '@/mocks/users';
+import { chartPalette } from '@/theme/semantic';
 // CardWrapper imported from ./styles
 
 // ---------- Role → palette ----------
@@ -92,14 +89,11 @@ const getRolePalette = (roleKey: string, theme: Theme) => {
 };
 
 // ---------- Avatar helpers ----------
-const AVATAR_COLORS = [
-  '#6C63FF', '#FF6584', '#43A8D0', '#F7B731', '#26de81',
-  '#FC5C65', '#45AAF2', '#FD9644', '#2BCB9B', '#A55EEA',
-];
-const getAvatarColor = (id = '') => {
+const getAvatarColor = (theme: Theme, id = '') => {
+  const palette = chartPalette(theme);
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) & 0xffff;
-  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+  return palette[h % palette.length];
 };
 const getInitials = (u: any) =>
   ((u.firstName?.[0] ?? '') + (u.lastName?.[0] ?? '')).toUpperCase() || '?';
@@ -470,7 +464,7 @@ const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment, onDe
                         const roleKey = getRoleKey(user.role);
                         const pal = getRolePalette(roleKey, theme);
                         const initials = getInitials(user);
-                        const avatarColor = getAvatarColor(user.id || user._id || '');
+                        const avatarColor = getAvatarColor(theme, user.id || user._id || '');
                         const roleLabel = ROLE_META[roleKey]?.text ?? toTitle(roleKey || '');
 
                         return (
@@ -500,14 +494,14 @@ const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment, onDe
                             <TableCell>
                               {user.department ? (
                                 <Chip label={user.department.name || user.departmentId} size="small"
-                                  sx={{ bgcolor: alpha(user.department.color || '#666', 0.12), color: user.department.color || 'text.primary', fontWeight: 600, fontSize: 11, borderRadius: 1, border: `1px solid ${alpha(user.department.color || '#666', 0.2)}` }} />
+                                  sx={{ bgcolor: alpha(user.department.color || theme.palette.text.secondary, 0.12), color: user.department.color || 'text.primary', fontWeight: 600, fontSize: 11, borderRadius: 1, border: `1px solid ${alpha(user.department.color || theme.palette.text.secondary, 0.2)}` }} />
                               ) : <Typography variant="caption" color="text.disabled">N/A</Typography>}
                             </TableCell>
                             <TableCell align="center">
                               <Stack direction="row" spacing={0.5} justifyContent="center">
                                 <Tooltip title="Edit" arrow><IconButton size="small" onClick={() => onEditUser?.(user)} sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main', bgcolor: alpha(theme.palette.primary.main, 0.08) } }}><EditRoundedIcon fontSize="small" /></IconButton></Tooltip>
                                 <Tooltip title="View Profile" arrow><IconButton size="small" onClick={() => push(`/admin/management/users-profile?id=${user._id || user.id}`)} sx={{ color: 'text.secondary', '&:hover': { color: 'info.main', bgcolor: alpha(theme.palette.info.main, 0.08) } }}><LaunchTwoToneIcon fontSize="small" /></IconButton></Tooltip>
-                                <Tooltip title="Assign Dept" arrow><IconButton size="small" onClick={() => onAssignDepartment?.(user)} sx={{ color: 'text.secondary', '&:hover': { color: '#9C27B0', bgcolor: alpha('#9C27B0', 0.08) } }}><GroupWorkRoundedIcon fontSize="small" /></IconButton></Tooltip>
+                                <Tooltip title="Assign Dept" arrow><IconButton size="small" onClick={() => onAssignDepartment?.(user)} sx={{ color: 'text.secondary', '&:hover': { color: theme.palette.secondary.main, bgcolor: alpha(theme.palette.secondary.main, 0.08) } }}><GroupWorkRoundedIcon fontSize="small" /></IconButton></Tooltip>
                                 <Tooltip title="Delete" arrow><IconButton size="small" onClick={() => { setDeleteTarget(user); setDeleteDialogOpen(true); }} sx={{ color: 'text.secondary', '&:hover': { color: 'error.main', bgcolor: alpha(theme.palette.error.main, 0.08) } }}><DeleteTwoToneIcon fontSize="small" /></IconButton></Tooltip>
                               </Stack>
                             </TableCell>
@@ -533,7 +527,7 @@ const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment, onDe
                   const roleKey = getRoleKey(user.role);
                   const pal = getRolePalette(roleKey, theme);
                   const initials = getInitials(user);
-                  const avatarColor = getAvatarColor(user.id || user._id || '');
+                  const avatarColor = getAvatarColor(theme, user.id || user._id || '');
                   const isMerchant = roleKey === 'merchant';
                   const roleLabel = ROLE_META[roleKey]?.text ?? toTitle(roleKey || '');
 
@@ -548,11 +542,11 @@ const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment, onDe
                           transition: 'all 0.25s ease',
                           '&:hover': {
                             transform: 'translateY(-4px)',
-                            boxShadow: `0 16px 48px ${alpha(pal.main, 0.16)}`,
                             borderColor: alpha(pal.main, 0.35),
+                            bgcolor: alpha(pal.main, 0.04),
                           },
                           ...(isUserSelected && {
-                            boxShadow: `0 0 0 2px ${pal.main}, 0 8px 24px ${alpha(pal.main, 0.14)}`,
+                            outline: `2px solid ${pal.main}`,
                           }),
                         }}
                       >
@@ -577,7 +571,7 @@ const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment, onDe
                               width: 110,
                               height: 110,
                               borderRadius: '50%',
-                              background: alpha('#fff', 0.1),
+                              background: alpha(theme.palette.common.white, 0.1),
                               pointerEvents: 'none',
                             },
                             '&::after': {
@@ -588,7 +582,7 @@ const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment, onDe
                               width: 72,
                               height: 72,
                               borderRadius: '50%',
-                              background: alpha('#fff', 0.07),
+                              background: alpha(theme.palette.common.white, 0.07),
                               pointerEvents: 'none',
                             },
                           }}
@@ -597,26 +591,26 @@ const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment, onDe
                             size="small"
                             checked={isUserSelected}
                             onChange={(e) => handleSelectOneUser(e as any, user.id)}
-                            sx={{ color: alpha('#fff', 0.7), '&.Mui-checked': { color: '#fff' }, p: 0.5, position: 'relative', zIndex: 1 }}
+                            sx={{ color: alpha(theme.palette.common.white, 0.7), '&.Mui-checked': { color: 'common.white' }, p: 0.5, position: 'relative', zIndex: 1 }}
                           />
                           <Stack direction="row" spacing={0.25} sx={{ position: 'relative', zIndex: 1 }}>
                             <Tooltip title="Edit" arrow>
                               <IconButton size="small" onClick={() => onEditUser?.(user)}
-                                sx={{ color: alpha('#fff', 0.9), '&:hover': { bgcolor: alpha('#fff', 0.18), color: '#fff' } }}>
+                                sx={{ color: alpha(theme.palette.common.white, 0.9), '&:hover': { bgcolor: alpha(theme.palette.common.white, 0.18), color: 'common.white' } }}>
                                 <EditRoundedIcon sx={{ fontSize: 16 }} />
                               </IconButton>
                             </Tooltip>
                             <Tooltip title="View Profile" arrow>
                               <IconButton size="small"
                                 onClick={() => push(`/admin/management/users-profile?id=${user._id || user.id}`)}
-                                sx={{ color: alpha('#fff', 0.9), '&:hover': { bgcolor: alpha('#fff', 0.18), color: '#fff' } }}>
+                                sx={{ color: alpha(theme.palette.common.white, 0.9), '&:hover': { bgcolor: alpha(theme.palette.common.white, 0.18), color: 'common.white' } }}>
                                 <LaunchTwoToneIcon sx={{ fontSize: 16 }} />
                               </IconButton>
                             </Tooltip>
                             <Tooltip title="More" arrow>
                               <IconButton size="small"
                                 onClick={() => { setDeleteTarget(user); setDeleteDialogOpen(true); }}
-                                sx={{ color: alpha('#fff', 0.9), '&:hover': { bgcolor: alpha('#fff', 0.18), color: '#fff' } }}>
+                                sx={{ color: alpha(theme.palette.common.white, 0.9), '&:hover': { bgcolor: alpha(theme.palette.common.white, 0.18), color: 'common.white' } }}>
                                 <DeleteTwoToneIcon sx={{ fontSize: 16 }} />
                               </IconButton>
                             </Tooltip>
@@ -640,7 +634,6 @@ const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment, onDe
                                 fontSize: 22,
                                 fontWeight: 700,
                                 border: `4px solid ${theme.palette.background.paper}`,
-                                boxShadow: `0 6px 20px ${alpha(pal.main, 0.3)}`,
                                 position: 'relative',
                                 zIndex: 1,
                               }}
@@ -700,10 +693,10 @@ const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment, onDe
                                   size="small"
                                   sx={{
                                     height: 20,
-                                    bgcolor: alpha(user.department.color || '#666', 0.12),
+                                    bgcolor: alpha(user.department.color || theme.palette.text.secondary, 0.12),
                                     color: user.department.color || 'text.primary',
                                     fontWeight: 600, fontSize: 10, borderRadius: 1,
-                                    border: `1px solid ${alpha(user.department.color || '#666', 0.2)}`,
+                                    border: `1px solid ${alpha(user.department.color || theme.palette.text.secondary, 0.2)}`,
                                   }}
                                 />
                               )}
@@ -739,7 +732,7 @@ const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment, onDe
                               onClick={() => onAssignDepartment?.(user)}
                               sx={{
                                 color: 'text.secondary',
-                                '&:hover': { color: '#9C27B0', bgcolor: alpha('#9C27B0', 0.08) },
+                                '&:hover': { color: theme.palette.secondary.main, bgcolor: alpha(theme.palette.secondary.main, 0.08) },
                               }}
                             >
                               <GroupWorkRoundedIcon fontSize="small" />
@@ -772,7 +765,7 @@ const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment, onDe
                                   push(`/admin/management/users-profile?id=${user._id || user.id}`)
                                 }
                                 sx={{
-                                  color: '#fff',
+                                  color: 'common.white',
                                   bgcolor: pal.main,
                                   borderRadius: 1.5,
                                   '&:hover': { bgcolor: pal.dark ?? pal.main },

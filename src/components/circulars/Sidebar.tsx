@@ -13,6 +13,7 @@ import {
   Avatar,
   Divider,
   Collapse,
+  alpha,
 } from '@mui/material';
 import {
   Store as StoreIcon,
@@ -73,15 +74,17 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onItemClick }) => {
       sx={{
         width: { xs: 260, md: 280 },
         height: '100vh',
-        backgroundColor: '#2D3748',
-        color: 'white',
+        backgroundColor: 'grey.800',
+        color: 'common.white',
         display: 'flex',
         flexDirection: 'column',
         position: 'fixed',
         left: 0,
         top: 0,
         zIndex: 1200,
-        boxShadow: '2px 0 8px rgba(0, 0, 0, 0.1)',
+        // Sin sombra: la separación la marca el borde.
+        borderRight: '1px solid',
+        borderColor: 'divider',
       }}
     >
       {/* Logo */}
@@ -104,7 +107,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onItemClick }) => {
           variant="h6"
           sx={{
             fontWeight: 600,
-            color: '#E91E63',
+            color: 'primary.main',
           }}
         >
           sweepsTOUCH
@@ -128,7 +131,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onItemClick }) => {
                   sx={{
                     borderRadius: 2,
                     mb: 0.5,
-                    backgroundColor: activeItem === item.id ? 'rgba(233, 30, 99, 0.1)' : 'transparent',
+                    backgroundColor: (theme) =>
+                      activeItem === item.id
+                        ? alpha(theme.palette.primary.main, 0.1)
+                        : 'transparent',
                     '&:hover': {
                       backgroundColor: 'rgba(255, 255, 255, 0.05)',
                     },
@@ -161,7 +167,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onItemClick }) => {
                             borderRadius: 2,
                             mb: 0.5,
                             ml: 2,
-                            backgroundColor: activeItem === subItem.id ? 'rgba(233, 30, 99, 0.1)' : 'transparent',
+                            backgroundColor: (theme) =>
+                              activeItem === subItem.id
+                                ? alpha(theme.palette.primary.main, 0.1)
+                                : 'transparent',
                             '&:hover': {
                               backgroundColor: 'rgba(255, 255, 255, 0.05)',
                             },
@@ -193,7 +202,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onItemClick }) => {
             sx={{
               width: 40,
               height: 40,
-              backgroundColor: '#E91E63',
+              backgroundColor: 'primary.main',
               fontSize: '0.875rem',
             }}
           >

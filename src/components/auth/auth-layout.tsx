@@ -4,15 +4,13 @@ import {
   alpha,
   Box,
   Button,
-  Chip,
   Container,
   Grid,
   IconButton,
   Paper,
   styled,
   Tooltip,
-  Typography,
-} from '@mui/material';
+  Typography } from '@mui/material';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Logo } from 'src/components/base/logo';
@@ -94,7 +92,7 @@ export function AuthLayout({ children, strategy }: AuthLayoutProps): React.JSX.E
               width: '100%',
               position: 'relative',
               minHeight: '100%',
-              background: 'linear-gradient(100.66deg, #434343 6.56%, #000000 93.57%) !important',
+              background: 'linear-gradient(100.66deg, ${theme.palette.grey[800]} 6.56%, ${theme.palette.common.black} 93.57%) !important',
             }}
           >
             <CardActions
@@ -118,7 +116,7 @@ export function AuthLayout({ children, strategy }: AuthLayoutProps): React.JSX.E
             <BoxComposedBg
               sx={{
                 opacity: 0.3,
-                background: 'linear-gradient(135deg, #43CBFF 0%, #9708CC 100%)',
+                background: 'linear-gradient(135deg, ${theme.palette.info.main} 0%, ${theme.palette.secondary.main} 100%)',
               }}
             />
             <BoxComposedImage

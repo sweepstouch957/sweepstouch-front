@@ -21,7 +21,7 @@ import {
 } from '@mui/material';
 import { formatDistance } from 'date-fns';
 import type { FC } from 'react';
-import React, { forwardRef, useMemo, useRef, useState } from 'react';
+import { forwardRef, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ButtonIcon } from 'src/components/base/styles/button-icon';
 import { LinearProgressSlim } from 'src/components/base/styles/progress-bar';

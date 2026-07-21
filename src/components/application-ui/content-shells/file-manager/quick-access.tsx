@@ -9,20 +9,17 @@ import {
   alpha,
   Box,
   Card,
-  CardActionArea,
   CardActions,
   CardMedia,
   Divider,
   Unstable_Grid2 as Grid,
   IconButton,
   Link,
-  styled,
   SwipeableDrawer,
   ToggleButton,
   ToggleButtonGroup,
   Typography,
-  useTheme,
-} from '@mui/material';
+  useTheme } from '@mui/material';
 import { formatDistance, subDays } from 'date-fns';
 import { MouseEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';

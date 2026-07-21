@@ -144,9 +144,9 @@ export default function QuickCampaignDialog({
   };
 
   // ── tokens
-  const bg = isDark ? '#0d1117' : '#f8fafc';
-  const surface = isDark ? '#161b22' : '#ffffff';
-  const border = isDark ? alpha('#fff', 0.07) : alpha('#000', 0.07);
+  const bg = theme.palette.background.default;
+  const surface = theme.palette.background.paper;
+  const border = theme.palette.divider;
   const accent = theme.palette.primary.main;
 
   return (
@@ -401,7 +401,7 @@ export default function QuickCampaignDialog({
                         <Box key={label} sx={{
                           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                           px: 2, py: 1,
-                          bgcolor: i % 2 ? (isDark ? alpha('#fff', 0.02) : alpha('#000', 0.016)) : 'transparent',
+                          bgcolor: i % 2 ? alpha(theme.palette.text.primary, isDark ? 0.02 : 0.016) : 'transparent',
                         }}>
                           <Typography variant="caption" color="text.secondary">{label}</Typography>
                           <Typography variant="caption" fontWeight={700}>{value}</Typography>

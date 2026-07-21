@@ -78,6 +78,45 @@ export const HEX_TO_TOKEN: Record<string, string> = {
 };
 
 /**
+ * Prioridad / severidad → rol semántico.
+ * Evita los `Record<string, string>` con hex sueltos que había repetidos en
+ * soporte, tickets, turnos y campañas.
+ */
+export const SEVERITY_ROLE: Record<string, SemanticRole> = {
+  low: 'success',
+  medium: 'primary',
+  high: 'warning',
+  critical: 'error',
+};
+
+export function severityColor(theme: Theme, level: string): string {
+  const role = SEVERITY_ROLE[level] ?? 'primary';
+  return theme.palette[role].main;
+}
+
+/**
+ * Paleta CATEGÓRICA para charts (torta/barras por categoría).
+ *
+ * No es lo mismo que un token semántico: acá hacen falta N colores
+ * *distinguibles entre sí*, no "el color de éxito". Arranca con el primary del
+ * theme (así respeta el selector) y sigue con tonos estables y accesibles.
+ * Antes cada chart definía su propio array de hex.
+ */
+export function chartPalette(theme: Theme): string[] {
+  return [
+    theme.palette.primary.main,
+    theme.palette.success.main,
+    theme.palette.info.main,
+    theme.palette.warning.main,
+    theme.palette.error.main,
+    theme.palette.secondary.main,
+    theme.palette.success.dark,
+    theme.palette.info.dark,
+    theme.palette.warning.dark,
+  ];
+}
+
+/**
  * Chequeo runnable del mapa (no depende de MUI ni del theme).
  * `npx tsx src/theme/semantic.ts` o importarlo desde un test.
  */

@@ -51,6 +51,7 @@ import {
 import { PieChart } from '@mui/x-charts/PieChart';
 import { formatInTimeZone } from 'date-fns-tz';
 import { FC, useReducer, useRef, useState } from 'react';
+import { tint } from '@/theme/semantic';
 import { useTranslation } from 'react-i18next';
 
 interface CampaignOverviewProps {
@@ -68,7 +69,6 @@ const KpiCard: FC<{
   tooltip?: string;
   sub?: string;
 }> = ({ label, value, icon, color, onClick, tooltip, sub }) => {
-  const theme = useTheme();
   const content = (
     <Paper
       variant="outlined"
@@ -81,7 +81,7 @@ const KpiCard: FC<{
         borderColor: 'divider',
         transition: 'all .18s',
         ...(onClick && {
-          '&:hover': { borderColor: color, boxShadow: `0 0 0 2px ${color}22`, transform: 'translateY(-1px)' },
+          '&:hover': { borderColor: color, boxShadow: `0 0 0 2px ${alpha(color, 0.13)}`, transform: 'translateY(-1px)' },
         }),
         minWidth: 110,
         flex: 1,
@@ -118,10 +118,10 @@ const DeliveryHero: FC<{ rate: number; color: string; isLoading?: boolean }> = (
         p: 2,
         mb: 2,
         background: isExcellent
-          ? `linear-gradient(135deg, ${alpha('#10b981', 0.12)}, ${alpha('#10b981', 0.06)})`
+          ? `linear-gradient(135deg, ${tint(theme, 'success', 0.12)}, ${tint(theme, 'success', 0.06)})`
           : isGood
-            ? `linear-gradient(135deg, ${alpha('#f59e0b', 0.12)}, ${alpha('#f59e0b', 0.06)})`
-            : `linear-gradient(135deg, ${alpha('#ef4444', 0.12)}, ${alpha('#ef4444', 0.06)})`,
+            ? `linear-gradient(135deg, ${tint(theme, 'warning', 0.12)}, ${tint(theme, 'warning', 0.06)})`
+            : `linear-gradient(135deg, ${tint(theme, 'error', 0.12)}, ${tint(theme, 'error', 0.06)})`,
         border: `1.5px solid ${alpha(color, 0.3)}`,
         display: 'flex',
         alignItems: 'center',
@@ -409,16 +409,20 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
   const errorRate = audience > 0 ? Math.round((errors / audience) * 100) : 0;
 
   const deliveryColor =
-    deliveryRate >= 90 ? '#10b981' : deliveryRate >= 75 ? '#f59e0b' : '#ef4444';
+    deliveryRate >= 90
+      ? theme.palette.success.main
+      : deliveryRate >= 75
+        ? theme.palette.warning.main
+        : theme.palette.error.main;
 
   const formattedStartDate = campaign?.startDate
     ? formatInTimeZone(campaign.startDate, 'America/New_York', 'MMMM dd yyyy, hh:mm a zzz')
     : '-';
 
   const platformColor: Record<string, string> = {
-    bandwidth: '#2196f3',
-    infobip: '#e91e63',
-    twilio: '#f44336',
+    bandwidth: theme.palette.info.main,
+    infobip: theme.palette.primary.main,
+    twilio: theme.palette.error.main,
   };
 
   const handleResendClose = () => {
@@ -428,7 +432,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
 
   return (
     <>
-      <Card sx={{ borderRadius: 4, width: '100%' }}>
+      <Card sx={{ width: '100%' }}>
         {/* ─── Header ──────────────────────────────────────────── */}
         <CardHeader
           avatar={
@@ -446,7 +450,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                 <Box
                   sx={{
                     position: 'absolute', inset: 0, borderRadius: 2,
-                    bgcolor: 'rgba(0,0,0,0.35)',
+                    bgcolor: (t) => alpha(t.palette.common.black, 0.35),
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     opacity: 0, transition: 'opacity 0.2s',
                     '&:hover': { opacity: 1 },
@@ -485,7 +489,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                       sx={{
                         fontWeight: 700,
                         textTransform: 'capitalize',
-                        bgcolor: alpha(platformColor[campaign.platform] ?? '#9e9e9e', 0.12),
+                        bgcolor: alpha(platformColor[campaign.platform] ?? theme.palette.text.disabled, 0.12),
                         color: platformColor[campaign.platform] ?? 'text.secondary',
                       }}
                     />
@@ -582,7 +586,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                 label="Delivered"
                 value={sent.toLocaleString()}
                 icon={<SendIcon fontSize="small" />}
-                color="#10b981"
+                color={theme.palette.success.main}
                 onClick={() => dispatch({ type: 'OPEN_MODAL', modal: 'success' })}
                 tooltip="Ver logs entregados"
                 sub={`${((sent / (audience || 1)) * 100).toFixed(1)}% del audience`}
@@ -591,7 +595,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                 label={`Errors (${errorRate}%)`}
                 value={errors.toLocaleString()}
                 icon={<ErrorIcon fontSize="small" />}
-                color="#ef4444"
+                color={theme.palette.error.main}
                 onClick={() => dispatch({ type: 'OPEN_MODAL', modal: 'logs' })}
                 tooltip="Ver logs de errores"
               />
@@ -600,7 +604,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                   label="En Cola"
                   value={queued.toLocaleString()}
                   icon={<HourglassEmptyRounded fontSize="small" />}
-                  color="#f59e0b"
+                  color={theme.palette.warning.main}
                   tooltip="Mensajes pendientes de envío"
                   sub="esperando despacho"
                 />
@@ -610,7 +614,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                   label="Enviando"
                   value={sending.toLocaleString()}
                   icon={<PhonelinkRingRounded fontSize="small" />}
-                  color="#8b5cf6"
+                  color={theme.palette.secondary.main}
                   tooltip="Mensajes en proceso de envío ahora mismo"
                   sub="en tránsito"
                 />
@@ -677,7 +681,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
               </Typography>
               <Box
                 sx={{
-                  bgcolor: (t) => t.palette.mode === 'dark' ? alpha('#fff', 0.04) : alpha('#000', 0.03),
+                  bgcolor: 'action.hover',
                   border: `1.5px solid ${theme.palette.divider}`,
                   p: 2,
                   borderRadius: 2,
@@ -728,11 +732,11 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                     series={[
                       {
                         data: [
-                          { id: 0, label: 'Delivered', value: sent, color: '#10b981' },
-                          { id: 1, label: 'Not Sent', value: errors, color: '#ef4444' },
-                          { id: 2, label: 'Pending', value: notSent, color: '#4DA8DA' },
-                          ...(queued  > 0 ? [{ id: 3, label: 'Queued',  value: queued,  color: '#f59e0b' }] : []),
-                          ...(sending > 0 ? [{ id: 4, label: 'Sending', value: sending, color: '#8b5cf6' }] : []),
+                          { id: 0, label: 'Delivered', value: sent, color: theme.palette.success.main },
+                          { id: 1, label: 'Not Sent', value: errors, color: theme.palette.error.main },
+                          { id: 2, label: 'Pending', value: notSent, color: theme.palette.info.main },
+                          ...(queued  > 0 ? [{ id: 3, label: 'Queued',  value: queued,  color: theme.palette.warning.main }] : []),
+                          ...(sending > 0 ? [{ id: 4, label: 'Sending', value: sending, color: theme.palette.secondary.main }] : []),
                         ],
                         innerRadius: isMobile ? 60 : 90,
                         outerRadius: isMobile ? 100 : 140,
@@ -767,26 +771,26 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                 {/* Clickable legends */}
                 <Stack direction="row" justifyContent="center" flexWrap="wrap" gap={1.5}>
                   <Stack direction="row" spacing={0.8} alignItems="center" sx={{ cursor: 'pointer' }} onClick={() => dispatch({ type: 'OPEN_MODAL', modal: 'success' })}>
-                    <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#10b981' }} />
+                    <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'success.main' }} />
                     <Typography variant="body2" fontWeight={600}>Delivered ({sent.toLocaleString()})</Typography>
                   </Stack>
                   <Stack direction="row" spacing={0.8} alignItems="center" sx={{ cursor: 'pointer' }} onClick={() => dispatch({ type: 'OPEN_MODAL', modal: 'logs' })}>
-                    <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#ef4444' }} />
+                    <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'error.main' }} />
                     <Typography variant="body2" fontWeight={600}>Errors ({errors.toLocaleString()})</Typography>
                   </Stack>
                   <Stack direction="row" spacing={0.8} alignItems="center">
-                    <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#4DA8DA' }} />
+                    <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'info.main' }} />
                     <Typography variant="body2" fontWeight={600}>Pending ({notSent.toLocaleString()})</Typography>
                   </Stack>
                   {queued > 0 && (
                     <Stack direction="row" spacing={0.8} alignItems="center">
-                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#f59e0b' }} />
+                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'warning.main' }} />
                       <Typography variant="body2" fontWeight={600}>Queued ({queued.toLocaleString()})</Typography>
                     </Stack>
                   )}
                   {sending > 0 && (
                     <Stack direction="row" spacing={0.8} alignItems="center">
-                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#8b5cf6' }} />
+                      <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'secondary.main' }} />
                       <Typography variant="body2" fontWeight={600}>Sending ({sending.toLocaleString()})</Typography>
                     </Stack>
                   )}
@@ -833,7 +837,7 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
               top: 12,
               right: 12,
               zIndex: 10,
-              bgcolor: alpha('#000', 0.5),
+              bgcolor: (t) => alpha(t.palette.common.black, 0.5),
               borderRadius: '50%',
             }}
           >

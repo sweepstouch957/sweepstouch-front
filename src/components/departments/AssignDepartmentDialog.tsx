@@ -1,6 +1,6 @@
 'use client';
 
-import React, { FC, useEffect, useState } from 'react';
+import { FC, useEffect, useState } from 'react';
 import {
   alpha,
   Avatar,
@@ -21,7 +21,7 @@ import {
 } from '@mui/material';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { departmentService, Department } from '@/services/department.service';
+import { departmentService } from '@/services/department.service';
 import { api } from '@/libs/axios';
 import toast from 'react-hot-toast';
 

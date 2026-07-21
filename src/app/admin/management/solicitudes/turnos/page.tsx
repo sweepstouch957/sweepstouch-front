@@ -38,10 +38,10 @@ type RequestStatus = 'all' | 'pendiente' | 'aprobado' | 'rechazado' | 'cancelado
 
 const STATUS_TABS: { value: RequestStatus; label: string; color: string }[] = [
   { value: 'all', label: 'Todas', color: 'default' },
-  { value: 'pendiente', label: 'Pendiente', color: '#f59e0b' },
-  { value: 'aprobado', label: 'Aprobadas', color: '#10b981' },
-  { value: 'rechazado', label: 'Rechazadas', color: '#ef4444' },
-  { value: 'cancelado', label: 'Canceladas', color: '#6b7280' },
+  { value: 'pendiente', label: 'Pendiente', color: 'warning.main' },
+  { value: 'aprobado', label: 'Aprobadas', color: 'success.main' },
+  { value: 'rechazado', label: 'Rechazadas', color: 'error.main' },
+  { value: 'cancelado', label: 'Canceladas', color: 'text.disabled' },
 ];
 
 const LIMIT = 12;
@@ -222,21 +222,21 @@ const RequestsPage = () => {
           icon={<AccessTimeIcon fontSize="small" />}
           label="Pendientes"
           value={stats?.byStatus?.pendiente ?? 0}
-          color="#f59e0b"
+          color={theme.palette.warning.main}
           loading={statsLoading}
         />
         <StatCard
           icon={<CheckCircleIcon fontSize="small" />}
           label="Aprobadas"
           value={stats?.byStatus?.aprobado ?? 0}
-          color="#10b981"
+          color={theme.palette.success.main}
           loading={statsLoading}
         />
         <StatCard
           icon={<CancelIcon fontSize="small" />}
           label="Rechazadas"
           value={stats?.byStatus?.rechazado ?? 0}
-          color="#ef4444"
+          color={theme.palette.error.main}
           loading={statsLoading}
         />
       </Box>
@@ -265,7 +265,7 @@ const RequestsPage = () => {
                 fontWeight: 600,
                 cursor: 'pointer',
                 ...(status === tab.value && tab.value !== 'all'
-                  ? { bgcolor: tab.color, color: '#fff', borderColor: tab.color }
+                  ? { bgcolor: tab.color, color: 'common.white', borderColor: tab.color }
                   : {}),
               }}
             />

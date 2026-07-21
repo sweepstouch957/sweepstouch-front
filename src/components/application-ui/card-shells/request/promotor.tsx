@@ -26,6 +26,7 @@ import {
   Typography,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
+import { tint, tintBorder } from 'src/theme/semantic';
 import { format } from 'date-fns';
 import es from 'date-fns/locale/es';
 
@@ -146,23 +147,17 @@ export default function ActivationRequestCard({
     <Card
       elevation={0}
       sx={{
-        borderRadius: 3,
         overflow: 'hidden',
         border: `1px solid ${
-          hasDanger ? alpha(theme.palette.error.main, 0.25) : theme.palette.divider
+          hasDanger ? tintBorder(theme, 'error') : theme.palette.divider
         }`,
-        boxShadow: hasDanger
-          ? `0 0 0 2px ${alpha(theme.palette.error.main, 0.1)}`
-          : `0 1px 3px ${alpha(theme.palette.common.black, 0.04)}`,
-        transition: 'transform 150ms ease, box-shadow 150ms ease',
+        transition: 'transform 150ms ease, border-color 150ms ease, background-color 150ms ease',
         '&:hover': {
           transform: 'translateY(-2px)',
-          boxShadow: hasDanger
-            ? `0 0 0 2px ${alpha(theme.palette.error.main, 0.18)}, 0 8px 24px ${alpha(
-                theme.palette.common.black,
-                0.08
-              )}`
-            : `0 8px 24px ${alpha(theme.palette.common.black, 0.08)}`,
+          borderColor: hasDanger
+            ? tintBorder(theme, 'error', 0.45)
+            : tintBorder(theme, 'primary'),
+          bgcolor: hasDanger ? tint(theme, 'error', 0.04) : tint(theme, 'primary', 0.03),
         },
         position: 'relative',
       }}

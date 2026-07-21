@@ -134,8 +134,8 @@ function QrFrame({
         aspectRatio: '1 / 1',
         borderRadius: 3,
         overflow: 'hidden',
-        boxShadow: `0 0 0 3px ${alpha(accentColor, 0.25)}, 0 8px 32px ${alpha(accentColor, 0.12)}`,
-        bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'white',
+        border: `3px solid ${alpha(accentColor, 0.25)}`,
+        bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'common.white',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -203,7 +203,7 @@ function CardBanner({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#fff',
+          color: 'common.white',
           flexShrink: 0,
           backdropFilter: 'blur(4px)',
           '& svg': { fontSize: 20 },
@@ -212,7 +212,7 @@ function CardBanner({
         {icon}
       </Box>
       <Box flex={1} minWidth={0}>
-        <Typography variant="subtitle2" fontWeight={700} color="#fff" noWrap>
+        <Typography variant="subtitle2" fontWeight={700} color="common.white" noWrap>
           {label}
         </Typography>
       </Box>
@@ -363,9 +363,8 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#fff',
+              color: 'common.white',
               flexShrink: 0,
-              boxShadow: `0 4px 12px ${alpha(storeAccent, 0.3)}`,
             }}
           >
             <QrCodeRounded sx={{ fontSize: 22 }} />
@@ -409,8 +408,8 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                transition: 'box-shadow 0.2s',
-                '&:hover': { boxShadow: `0 4px 20px ${alpha(storeAccent, 0.12)}` },
+                transition: 'border-color 0.2s, background-color 0.2s',
+                '&:hover': { borderColor: alpha(storeAccent, 0.35), bgcolor: alpha(storeAccent, 0.04) },
               }}
             >
               <CardBanner
@@ -419,9 +418,9 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
                 gradient={storeGradient}
                 badge={
                   storeQr ? (
-                    <Chip label="Activo" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: '#fff', fontWeight: 600, fontSize: 11 }} />
+                    <Chip label="Activo" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'common.white', fontWeight: 600, fontSize: 11 }} />
                   ) : (
-                    <Chip label="Sin generar" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 600, fontSize: 11 }} />
+                    <Chip label="Sin generar" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: 'common.white', fontWeight: 600, fontSize: 11 }} />
                   )
                 }
               />
@@ -515,7 +514,7 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
                 icon={<QrCode2Rounded />}
                 label="QR del Sorteo Activo"
                 gradient={sweepGradient}
-                badge={<Chip label="Sin sorteo" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 600, fontSize: 11 }} />}
+                badge={<Chip label="Sin sorteo" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: 'common.white', fontWeight: 600, fontSize: 11 }} />}
               />
               <Box p={3} flex={1} display="flex" flexDirection="column" alignItems="center" justifyContent="center">
                 <QrCode2Rounded sx={{ fontSize: 56, color: alpha(sweepAccent, 0.25), mb: 1.5 }} />
@@ -536,8 +535,8 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                transition: 'box-shadow 0.2s',
-                '&:hover': { boxShadow: `0 4px 20px ${alpha(sweepAccent, 0.12)}` },
+                transition: 'border-color 0.2s, background-color 0.2s',
+                '&:hover': { borderColor: alpha(sweepAccent, 0.35), bgcolor: alpha(sweepAccent, 0.04) },
               }}
             >
               <CardBanner
@@ -546,9 +545,9 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
                 gradient={sweepGradient}
                 badge={
                   sweepQr ? (
-                    <Chip label="Generado" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: '#fff', fontWeight: 600, fontSize: 11 }} />
+                    <Chip label="Generado" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'common.white', fontWeight: 600, fontSize: 11 }} />
                   ) : (
-                    <Chip label="Sin generar" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 600, fontSize: 11 }} />
+                    <Chip label="Sin generar" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: 'common.white', fontWeight: 600, fontSize: 11 }} />
                   )
                 }
               />
@@ -701,8 +700,8 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
                       aspectRatio: '1/1',
                       borderRadius: 3,
                       overflow: 'hidden',
-                      boxShadow: `0 0 0 3px ${alpha(accent, 0.2)}, 0 12px 40px ${alpha(accent, 0.15)}`,
-                      bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'white',
+                      border: `3px solid ${alpha(accent, 0.2)}`,
+                      bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'common.white',
                       p: 2,
                     }}
                   >

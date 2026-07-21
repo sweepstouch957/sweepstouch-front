@@ -102,7 +102,7 @@ export default function ActivationRequestsToolbar({
         background:
           theme.palette.mode === 'dark'
             ? 'rgba(255,255,255,0.04)'
-            : 'linear-gradient(180deg, #fff, #fafafa)',
+            : `linear-gradient(180deg, ${theme.palette.common.white}, ${theme.palette.grey[50]})`,
       }}
     >
       <Typography
@@ -138,7 +138,7 @@ export default function ActivationRequestsToolbar({
                 },
                 // thumb blanco cuando está activo
                 '& .Mui-checked .MuiSwitch-thumb': {
-                  color: '#fff',
+                  color: theme.palette.common.white,
                 },
               }}
             />

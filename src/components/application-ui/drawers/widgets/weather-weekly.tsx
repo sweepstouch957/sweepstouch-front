@@ -1,5 +1,4 @@
 import AirTwoToneIcon from '@mui/icons-material/AirTwoTone';
-import CloudTwoToneIcon from '@mui/icons-material/CloudTwoTone';
 import GrainTwoToneIcon from '@mui/icons-material/GrainTwoTone';
 import MyLocationTwoToneIcon from '@mui/icons-material/MyLocationTwoTone';
 import WbSunnyTwoToneIcon from '@mui/icons-material/WbSunnyTwoTone';
@@ -18,8 +17,8 @@ import { addDays, format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { ButtonLight } from 'src/components/base/styles/button';
 
-const WeatherBox = styled(Card)(() => ({
-  background: 'linear-gradient(100.66deg, #434343 6.56%, #000000 93.57%) !important',
+const WeatherBox = styled(Card)(({ theme }) => ({
+  background: `linear-gradient(100.66deg, ${theme.palette.grey[800]} 6.56%, ${theme.palette.common.black} 93.57%) !important`,
   overflow: 'hidden',
   position: 'relative',
 }));

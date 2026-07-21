@@ -1,13 +1,11 @@
 'use client';
 
-import { useCashierRanking, useCashierStats, useCreateCashier } from '@/services/cashier.service';
+import { useCashierRanking, useCreateCashier } from '@/services/cashier.service';
 import AddIcon from '@mui/icons-material/Add';
 import EmojiEventsTwoToneIcon from '@mui/icons-material/EmojiEventsTwoTone';
 import SearchIcon from '@mui/icons-material/Search';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import {
-  Avatar,
-  Box,
   Button,
   Card,
   CardContent,
@@ -18,9 +16,7 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
-  Grid,
   InputAdornment,
-  LinearProgress,
   Paper,
   Popover,
   Stack,
@@ -34,8 +30,7 @@ import {
   TableRow,
   TextField,
   Typography,
-  useTheme,
-} from '@mui/material';
+  useTheme } from '@mui/material';
 import { addDays, formatISO, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import * as React from 'react';

@@ -120,9 +120,9 @@ const AdjustBudgetModal = ({ open, onClose, currentBudget }: AdjustBudgetModalPr
             onClick={() => adjust()}
             disabled={isPending || !amount}
             sx={{
-              backgroundColor: '#ff0080',
+              backgroundColor: 'primary.main',
               fontWeight: 'bold',
-              '&:hover': { backgroundColor: '#e60073' },
+              '&:hover': { backgroundColor: 'primary.dark' },
             }}
           >
             Guardar Cambios

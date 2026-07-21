@@ -18,7 +18,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
   FormControl,
   InputLabel,
   LinearProgress,
@@ -36,8 +35,7 @@ import {
   TableRow,
   TextField,
   Typography,
-  useTheme,
-} from '@mui/material';
+  useTheme } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
@@ -282,7 +280,8 @@ async function runWithConcurrency<T>(
 
 export default function DebugNumbers(): React.JSX.Element {
   const theme = useTheme();
-  const brandPink = '#e91e63';
+  const brandPink = theme.palette.primary.main;
+  const brandPinkDark = theme.palette.primary.dark;
   const qc = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const csvModeRef = useRef<CsvMode>('listed');
@@ -741,10 +740,8 @@ export default function DebugNumbers(): React.JSX.Element {
       <Card
         variant="outlined"
         sx={{
-          borderRadius: 3,
           bgcolor: 'background.paper',
           borderColor: 'divider',
-          boxShadow: 'none',
         }}
       >
         <CardContent>
@@ -857,11 +854,11 @@ export default function DebugNumbers(): React.JSX.Element {
                   disabled={!storeId || customersPending || customersFetching}
                   sx={{
                     whiteSpace: 'nowrap',
-                    color: duplicatesOnly ? '#fff' : brandPink,
+                    color: duplicatesOnly ? 'primary.contrastText' : brandPink,
                     bgcolor: duplicatesOnly ? brandPink : 'transparent',
                     borderColor: alpha(brandPink, 0.55),
                     '&:hover': {
-                      bgcolor: duplicatesOnly ? '#c2185b' : alpha(brandPink, 0.08),
+                      bgcolor: duplicatesOnly ? brandPinkDark : alpha(brandPink, 0.08),
                       borderColor: brandPink,
                     },
                   }}
@@ -875,11 +872,9 @@ export default function DebugNumbers(): React.JSX.Element {
                   disabled={!storeId || processing || duplicatePhones.size === 0}
                   sx={{
                     bgcolor: brandPink,
-                    boxShadow: 'none',
                     whiteSpace: 'nowrap',
                     '&:hover': {
-                      bgcolor: '#c2185b',
-                      boxShadow: 'none',
+                      bgcolor: brandPinkDark,
                     },
                   }}
                 >
@@ -893,10 +888,8 @@ export default function DebugNumbers(): React.JSX.Element {
                   disabled={!storeId || processing}
                   sx={{
                     bgcolor: brandPink,
-                    boxShadow: 'none',
                     '&:hover': {
-                      bgcolor: '#c2185b',
-                      boxShadow: 'none',
+                      bgcolor: brandPinkDark,
                     },
                   }}
                 >
@@ -911,11 +904,9 @@ export default function DebugNumbers(): React.JSX.Element {
                   sx={{
                     color: brandPink,
                     borderColor: alpha(brandPink, 0.55),
-                    boxShadow: 'none',
                     '&:hover': {
                       bgcolor: alpha(brandPink, 0.08),
                       borderColor: brandPink,
-                      boxShadow: 'none',
                     },
                   }}
                 >

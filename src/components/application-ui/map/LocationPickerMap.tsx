@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Map, { Marker, NavigationControl } from 'react-map-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { Box, Typography, Button, CircularProgress } from '@mui/material';
+import { Box, Typography, CircularProgress } from '@mui/material';
 import MapIcon from '@mui/icons-material/Map';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
@@ -67,8 +67,8 @@ export default function LocationPickerMap({
   }, [onLocationChange]);
 
   return (
-    <Box sx={{ width: '100%', border: '1px solid #e0e0e0', borderRadius: 2, overflow: 'hidden' }}>
-      <Box sx={{ p: 2, bgcolor: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <Box sx={{ width: '100%', border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
+      <Box sx={{ p: 2, bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <MapIcon fontSize="small" /> Ubicación en Mapa 
           {isGeocoding && <CircularProgress size={16} sx={{ ml: 1 }} />}

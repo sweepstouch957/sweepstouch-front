@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   Box,
   Table,
@@ -26,10 +26,8 @@ import AddIcon from '@mui/icons-material/Add';
 import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import SearchIcon from '@mui/icons-material/Search';
-import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import CloseIcon from '@mui/icons-material/Close';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import ImageNotSupportedIcon from '@mui/icons-material/ImageNotSupported';
 import ProductSearchDialog from '@/components/products/ProductSearchDialog';
 import type { SupabaseProduct } from '@/services/product.service';
 
@@ -199,12 +197,11 @@ export default function ExtractedProductsTable({ products, onChange }: Props) {
                             cursor: 'zoom-in',
                             border: '2px solid',
                             borderColor: 'divider',
-                            bgcolor: '#fafafa',
+                            bgcolor: 'background.default',
                             transition: 'all 0.2s',
                             '&:hover': {
                               borderColor: theme.palette.primary.main,
                               transform: 'scale(1.1)',
-                              boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
                             },
                           }}
                         >
@@ -270,7 +267,9 @@ export default function ExtractedProductsTable({ products, onChange }: Props) {
                     size="small"
                     variant="standard"
                     placeholder="$2.99"
-                    inputProps={{ style: { fontWeight: 'bold', color: '#DC1F26' } }}
+                    inputProps={{
+                      style: { fontWeight: 'bold', color: theme.palette.error.dark },
+                    }}
                   />
                 </TableCell>
 

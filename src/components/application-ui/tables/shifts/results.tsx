@@ -45,6 +45,7 @@ import { DateRange, Range, RangeKeyDict } from 'react-date-range';
 import ShiftPreviewModal from '../../dialogs/shift-preview';
 import DeleteShiftDialog from '../../dialogs/shift/delete';
 import NewShiftModal from '../../dialogs/shift/modal';
+import { tint } from '@/theme/semantic';
 
 // === Small inline RangePicker (pure controlled) ===
 function RangePicker({
@@ -85,7 +86,7 @@ function RangePicker({
           readOnly: true,
           sx: {
             minWidth: 280,
-            background: theme.palette.mode === 'dark' ? '#1f1f1f' : '#fff',
+            background: theme.palette.background.paper,
             borderRadius: 2,
             cursor: 'pointer',
           },
@@ -494,7 +495,7 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({
                                           sx={{
                                             backgroundColor: getStatusColor(shift.status || ''),
                                             fontWeight: 600,
-                                            color: '#ffffff',
+                                            color: 'common.white',
                                           }}
                                         />
                                       </TableCell>
@@ -556,7 +557,7 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({
                                             sx={{
                                               height: 8,
                                               borderRadius: 4,
-                                              backgroundColor: '#ffe4f0',
+                                              backgroundColor: tint(theme, 'primary'),
                                               '& .MuiLinearProgress-bar': {
                                                 backgroundColor: theme.palette.primary.main,
                                               },

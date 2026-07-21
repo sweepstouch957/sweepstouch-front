@@ -17,6 +17,7 @@ import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import TuneIcon from '@mui/icons-material/Tune';
 import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
+import { tintBorder } from 'src/theme/semantic';
 import { SortBy, StatusFilter } from '../types';
 
 const STATUS_OPTIONS: { value: StatusFilter; label: string; color?: 'success' | 'error' }[] = [
@@ -132,14 +133,14 @@ function RadiusInput({ radiusKm, onRadiusChange }: RadiusInputProps) {
             transition: 'all 0.2s ease-in-out',
             p: 0,
             '& fieldset': {
-              borderColor: isLocked ? 'rgba(0,0,0,0.06)' : 'rgba(238,30,124,0.4)',
+              borderColor: isLocked ? 'divider' : (t) => tintBorder(t, 'primary', 0.4),
               transition: 'border-color 0.2s',
             },
             '&:hover fieldset': {
-              borderColor: isLocked ? 'rgba(0,0,0,0.06)' : '#EE1E7C',
+              borderColor: isLocked ? 'divider' : 'primary.main',
             },
             '&.Mui-focused fieldset': {
-              borderColor: '#EE1E7C',
+              borderColor: 'primary.main',
               borderWidth: '1px',
             },
             '& input': {
@@ -168,11 +169,11 @@ function RadiusInput({ radiusKm, onRadiusChange }: RadiusInputProps) {
         onClick={handleToggleLock}
         aria-label={isLocked ? "Desbloquear radio de búsqueda" : "Bloquear y guardar radio de búsqueda"}
         sx={{
-          color: isLocked ? 'text.secondary' : '#EE1E7C',
+          color: isLocked ? 'text.secondary' : 'primary.main',
           p: 0.25,
           transition: 'all 0.2s',
           '&:hover': {
-            color: isLocked ? 'text.primary' : '#D0146C',
+            color: isLocked ? 'text.primary' : 'primary.dark',
             transform: 'scale(1.1)',
           },
         }}
@@ -253,7 +254,7 @@ export const FilterBar = memo(function FilterBar({
             fontSize: '0.75rem',
             '& fieldset': { borderColor: 'rgba(0,0,0,0.08)' },
             '&:hover fieldset': { borderColor: 'rgba(0,0,0,0.15)' },
-            '&.Mui-focused fieldset': { borderColor: '#EE1E7C', borderWidth: '1px' },
+            '&.Mui-focused fieldset': { borderColor: 'primary.main', borderWidth: '1px' },
           }
         }}
       />
@@ -278,7 +279,7 @@ export const FilterBar = memo(function FilterBar({
             fontSize: '0.75rem',
             '& fieldset': { borderColor: 'rgba(0,0,0,0.08)' },
             '&:hover fieldset': { borderColor: 'rgba(0,0,0,0.15)' },
-            '&.Mui-focused fieldset': { borderColor: '#EE1E7C', borderWidth: '1px' },
+            '&.Mui-focused fieldset': { borderColor: 'primary.main', borderWidth: '1px' },
           }
         }}
       />
@@ -293,8 +294,8 @@ export const FilterBar = memo(function FilterBar({
         mb: 2,
         borderRadius: '16px',
         bgcolor: 'background.paper',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)',
-        border: '1px solid rgba(0, 0, 0, 0.05)',
+        border: '1px solid',
+        borderColor: 'divider',
         position: 'relative',
         overflow: 'hidden',
         '&::before': {
@@ -304,7 +305,7 @@ export const FilterBar = memo(function FilterBar({
           left: 0,
           right: 0,
           height: '3px',
-          background: '#EE1E7C',
+          background: (t) => t.palette.primary.main,
         }
       }}
     >
@@ -341,7 +342,7 @@ export const FilterBar = memo(function FilterBar({
                 height: 26,
                 fontSize: '0.75rem',
                 fontWeight: 600,
-                color: statusFilter === 'active' ? '#2e7d32' : statusFilter === 'inactive' ? '#d32f2f' : 'text.secondary',
+                color: statusFilter === 'active' ? 'success.dark' : statusFilter === 'inactive' ? 'error.dark' : 'text.secondary',
                 '& .MuiOutlinedInput-notchedOutline': {
                   borderColor: 'rgba(0,0,0,0.08)',
                   borderRadius: '8px',
@@ -350,14 +351,14 @@ export const FilterBar = memo(function FilterBar({
                   borderColor: 'rgba(0,0,0,0.15)',
                 },
                 '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#EE1E7C',
+                  borderColor: 'primary.main',
                   borderWidth: '1px',
                 },
               }}
             >
               <MenuItem value="all" sx={{ fontSize: '0.75rem', fontWeight: 500 }}>Todas</MenuItem>
-              <MenuItem value="active" sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#2e7d32' }}>Activas</MenuItem>
-              <MenuItem value="inactive" sx={{ fontSize: '0.75rem', fontWeight: 500, color: '#d32f2f' }}>Inactivas</MenuItem>
+              <MenuItem value="active" sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'success.dark' }}>Activas</MenuItem>
+              <MenuItem value="inactive" sx={{ fontSize: '0.75rem', fontWeight: 500, color: 'error.dark' }}>Inactivas</MenuItem>
             </Select>
           </Stack>
 
@@ -387,9 +388,9 @@ export const FilterBar = memo(function FilterBar({
                   fontSize: '0.75rem',
                   height: 22,
                   transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  borderColor: sortBy === 'default' ? '#EE1E7C' : 'divider',
+                  borderColor: sortBy === 'default' ? 'primary.main' : 'divider',
                   bgcolor: sortBy === 'default' ? 'rgba(238,30,124,0.08)' : 'transparent',
-                  color: sortBy === 'default' ? '#EE1E7C' : 'text.secondary',
+                  color: sortBy === 'default' ? 'primary.main' : 'text.secondary',
                   border: '1px solid',
                   '&:hover': {
                     bgcolor: sortBy === 'default' ? 'rgba(238,30,124,0.12)' : 'action.hover',
@@ -410,9 +411,9 @@ export const FilterBar = memo(function FilterBar({
                   fontSize: '0.75rem',
                   height: 22,
                   transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  borderColor: sortBy === 'promoters_desc' ? '#EE1E7C' : 'divider',
+                  borderColor: sortBy === 'promoters_desc' ? 'primary.main' : 'divider',
                   bgcolor: sortBy === 'promoters_desc' ? 'rgba(238,30,124,0.08)' : 'transparent',
-                  color: sortBy === 'promoters_desc' ? '#EE1E7C' : 'text.secondary',
+                  color: sortBy === 'promoters_desc' ? 'primary.main' : 'text.secondary',
                   border: '1px solid',
                   '&:hover': {
                     bgcolor: sortBy === 'promoters_desc' ? 'rgba(238,30,124,0.12)' : 'action.hover',
@@ -485,7 +486,7 @@ export const FilterBar = memo(function FilterBar({
             onClick={() => setOpen((p) => !p)}
             aria-label="Expandir filtros de clientes"
             sx={{
-              color: hasActiveFilters ? '#EE1E7C' : 'text.secondary',
+              color: hasActiveFilters ? 'primary.main' : 'text.secondary',
               bgcolor: hasActiveFilters ? 'rgba(238,30,124,0.08)' : 'transparent',
               border: '1px solid',
               borderColor: hasActiveFilters ? 'rgba(238,30,124,0.3)' : 'divider',

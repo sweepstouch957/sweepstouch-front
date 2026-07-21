@@ -319,7 +319,7 @@ const CampaignResendModal: React.FC<Props> = ({ open, onClose, campaignId }) => 
         {/* ─── Done ────────────────────────────────────────────────── */}
         {step === 'done' && result && (
           <Stack spacing={2} alignItems="center" py={2}>
-            <CheckCircleIcon sx={{ fontSize: 56, color: '#19B278' }} />
+            <CheckCircleIcon sx={{ fontSize: 56, color: 'success.main' }} />
             <Typography variant="h6" fontWeight={800}>
               Reenvío completado
             </Typography>

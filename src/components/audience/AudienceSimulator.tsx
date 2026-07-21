@@ -20,7 +20,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { num, pct } from './audience-utils';
 import { StatCard } from './AudienceKpis';
 import { GlassCard } from './ui';

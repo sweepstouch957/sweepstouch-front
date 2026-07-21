@@ -1,7 +1,6 @@
 'use client';
 
-import { Box, Container } from '@mui/material';
-import React from 'react';
+import { Container } from '@mui/material';
 import ApplicationUiTablesInvoices from 'src/components/application-ui/tables/campaings/campaings';
 import { useCustomization } from 'src/hooks/use-customization';
 

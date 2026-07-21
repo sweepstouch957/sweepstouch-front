@@ -170,7 +170,7 @@ function Page() {
               sx={{
                 mb: 3, p: 2, borderRadius: 2.5,
                 border: `1px solid ${theme.palette.divider}`,
-                bgcolor: isDark ? alpha('#fff', 0.02) : alpha('#000', 0.015),
+                bgcolor: 'action.hover',
               }}
             >
               {/* Promoter selector */}

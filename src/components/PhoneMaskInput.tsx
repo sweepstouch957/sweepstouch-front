@@ -1,5 +1,5 @@
 import { TextField, TextFieldProps } from '@mui/material';
-import React, { ChangeEvent } from 'react';
+import { ChangeEvent } from 'react';
 
 type Props = Omit<TextFieldProps, 'onChange'> & {
   onChange: (value: string) => void;

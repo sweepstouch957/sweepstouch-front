@@ -46,6 +46,7 @@ import {
 import React, { FC, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { searchWithAI, type AISearchResult } from '@/services/ai.service';
+import { tint, type SemanticRole } from 'src/theme/semantic';
 
 /* ═══════════ Route-based search items ═══════════ */
 interface SearchItem {
@@ -95,11 +96,11 @@ const CATEGORY_LABELS: Record<string, string> = {
   tools: '🛠 Tools & Apps',
 };
 
-const CATEGORY_COLORS: Record<string, string> = {
-  navigation: '#5569ff',
-  management: '#44D600',
-  actions: '#FFC400',
-  tools: '#33C2FF',
+const CATEGORY_ROLES: Record<string, SemanticRole> = {
+  navigation: 'primary',
+  management: 'success',
+  actions: 'warning',
+  tools: 'info',
 };
 
 /* ─── Simple markdown for AI answers ─── */
@@ -393,19 +394,19 @@ export const BasicSpotlightSearch: FC<BasicSpotlightSearchProps> = (props) => {
                       px: 2,
                       borderRadius: 2,
                       mb: 0.5,
-                      bgcolor: alpha('#44D600', 0.06),
-                      border: `1px solid ${alpha('#44D600', 0.15)}`,
-                      '&:hover': { bgcolor: alpha('#44D600', 0.12) },
+                      bgcolor: tint(theme, 'success', 0.06),
+                      border: `1px solid ${alpha(theme.palette.success.main, 0.15)}`,
+                      '&:hover': { bgcolor: tint(theme, 'success', 0.12) },
                     }}
                   >
                     <ListItemIcon sx={{ minWidth: 32 }}>
-                      <TaskAltRoundedIcon sx={{ color: '#44D600', fontSize: 20 }} />
+                      <TaskAltRoundedIcon sx={{ color: 'success.main', fontSize: 20 }} />
                     </ListItemIcon>
                     <ListItemText
                       primary={action.result?.message || 'Action completed'}
                       primaryTypographyProps={{ variant: 'body2', fontWeight: 600, fontSize: 12 }}
                     />
-                    <CheckCircleOutlineRoundedIcon sx={{ color: '#44D600', fontSize: 16, opacity: 0.7 }} />
+                    <CheckCircleOutlineRoundedIcon sx={{ color: 'success.main', fontSize: 16, opacity: 0.7 }} />
                   </ListItemButton>
                 ))}
 
@@ -470,7 +471,7 @@ export const BasicSpotlightSearch: FC<BasicSpotlightSearchProps> = (props) => {
                           fontWeight: 800,
                           textTransform: 'uppercase',
                           letterSpacing: 1,
-                          color: CATEGORY_COLORS[category] || 'text.secondary',
+                          color: CATEGORY_ROLES[category] ? `${CATEGORY_ROLES[category]}.main` : 'text.secondary',
                           bgcolor: 'transparent',
                         }}
                       >
@@ -490,12 +491,12 @@ export const BasicSpotlightSearch: FC<BasicSpotlightSearchProps> = (props) => {
                           mb: 0.5,
                           transition: 'all 0.15s',
                           '&:hover': {
-                            bgcolor: alpha(CATEGORY_COLORS[category] || theme.palette.primary.main, 0.08),
+                            bgcolor: tint(theme, CATEGORY_ROLES[category] ?? 'primary', 0.08),
                             transform: 'translateX(4px)',
                           },
                         }}
                       >
-                        <ListItemIcon sx={{ minWidth: 36, color: CATEGORY_COLORS[category] || 'primary.main' }}>
+                        <ListItemIcon sx={{ minWidth: 36, color: `${CATEGORY_ROLES[category] ?? 'primary'}.main` }}>
                           {item.icon}
                         </ListItemIcon>
                         <ListItemText

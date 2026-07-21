@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Box, Card, Stack, Typography, Chip, Avatar, Skeleton, alpha, TextField, InputAdornment } from '@mui/material';
+import { Box, Stack, Typography, Chip, Avatar, Skeleton, alpha, TextField, InputAdornment } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import PaidRoundedIcon from '@mui/icons-material/PaidRounded';
 import FilterAltRoundedIcon from '@mui/icons-material/FilterAltRounded';
@@ -32,7 +32,7 @@ export function StoreFinanceCard({ store }: { store: { _id: string; name: string
 
   const tiles = [
     { label: 'GMV (neto)', value: centsToUsd(net), color: theme.palette.primary.main },
-    { label: `Tu comisión (${commission}%)`, value: centsToUsd(fee), color: '#16a34a' },
+    { label: `Tu comisión (${commission}%)`, value: centsToUsd(fee), color: 'success.main' },
     { label: 'Pedidos pagados', value: (k?.orders || 0).toLocaleString(), color: theme.palette.text.primary },
     { label: 'Clientes', value: (k?.uniqueCustomers || 0).toLocaleString(), color: theme.palette.text.primary },
   ];
@@ -72,11 +72,11 @@ export function StoreFinanceCard({ store }: { store: { _id: string; name: string
             <Typography sx={{ fontSize: 12, fontWeight: 700, color: 'text.secondary', mb: 0.5 }}>Pagos: online vs caja</Typography>
             <Box sx={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden', bgcolor: 'action.hover' }}>
               <Box sx={{ width: `${net ? (online / net) * 100 : 0}%`, bgcolor: theme.palette.primary.main }} />
-              <Box sx={{ width: `${net ? (inStore / net) * 100 : 0}%`, bgcolor: '#f59e0b' }} />
+              <Box sx={{ width: `${net ? (inStore / net) * 100 : 0}%`, bgcolor: 'warning.main' }} />
             </Box>
             <Stack direction="row" spacing={2} sx={{ mt: 0.75 }}>
               <Typography variant="caption"><b style={{ color: theme.palette.primary.main }}>● Online</b> {centsToUsd(online)}</Typography>
-              <Typography variant="caption"><b style={{ color: '#f59e0b' }}>● Caja</b> {centsToUsd(inStore)}</Typography>
+              <Typography variant="caption"><b style={{ color: 'warning.main' }}>● Caja</b> {centsToUsd(inStore)}</Typography>
             </Stack>
           </Box>
         </Stack>
@@ -120,11 +120,11 @@ export function ConversionFunnel({ store, filters }: { store: { _id: string; slu
   const paid = orders.data?.kpis?.orders || 0;
 
   const steps = [
-    { label: 'Enviados', value: sent, color: '#64748b' },
-    { label: 'Entregados', value: delivered, color: '#0891b2' },
+    { label: 'Enviados', value: sent, color: 'text.secondary' },
+    { label: 'Entregados', value: delivered, color: 'info.main' },
     { label: 'Clicks', value: clicks, color: theme.palette.primary.main },
-    { label: 'Listas / carrito', value: carts, color: '#f59e0b' },
-    { label: 'Pedidos pagados', value: paid, color: '#16a34a' },
+    { label: 'Listas / carrito', value: carts, color: 'warning.main' },
+    { label: 'Pedidos pagados', value: paid, color: 'success.main' },
   ];
   const max = Math.max(...steps.map((s) => s.value), 1);
 
@@ -142,7 +142,7 @@ export function ConversionFunnel({ store, filters }: { store: { _id: string; slu
                 <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.25 }}>
                   <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{s.label}</Typography>
                   <Typography sx={{ fontSize: 13, fontWeight: 800 }}>
-                    {s.value.toLocaleString()} {drop != null && <Typography component="span" sx={{ fontSize: 11, color: drop >= 50 ? '#16a34a' : '#ef4444' }}>({drop}%)</Typography>}
+                    {s.value.toLocaleString()} {drop != null && <Typography component="span" sx={{ fontSize: 11, color: drop >= 50 ? 'success.main' : 'error.main' }}>({drop}%)</Typography>}
                   </Typography>
                 </Stack>
                 <Box sx={{ height: 10, borderRadius: 5, bgcolor: 'action.hover', overflow: 'hidden' }}>
@@ -198,7 +198,7 @@ export function AlertsPanel({ store }: { store: { _id: string; name: string } })
             const mins = Math.round((now - new Date(o.paidAt || o.createdAt).getTime()) / 60000);
             return (
               <Stack key={o._id} direction="row" alignItems="center" spacing={1.5} sx={{ py: 1 }}>
-                <Avatar sx={{ width: 34, height: 34, bgcolor: alpha('#ef4444', 0.12), color: '#ef4444' }}>
+                <Avatar sx={{ width: 34, height: 34, bgcolor: alpha('error.main', 0.12), color: 'error.main' }}>
                   <WarningAmberRoundedIcon sx={{ fontSize: 18 }} />
                 </Avatar>
                 <Box sx={{ flex: 1, minWidth: 0 }}>

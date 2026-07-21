@@ -10,12 +10,9 @@ export const ListItemButtonWrapper = styled(ListItemButton)(({ theme }) => ({
     borderRadius: theme.shape.borderRadius,
     background: lighten(theme.palette.background.default, 0.05),
     zIndex: 6,
-    boxShadow: `
-        0 0.56875rem 3.3rem ${theme.palette.background.default},
-        0 0.9975rem 2.4rem ${alpha(theme.palette.common.black, 0.07)},
-        0 0.35rem 1rem ${alpha(theme.palette.common.black, 0.1)},
-        0 0.225rem 0.8rem ${alpha(theme.palette.common.black, 0.15)}
-      `,
+    // Sin sombra: el hover se marca con borde + tinte del primary.
+    border: '1px solid',
+    borderColor: alpha(theme.palette.primary.main, 0.25),
     transform: 'scale(1.08)',
   },
 

@@ -12,16 +12,13 @@ import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ImageIcon from '@mui/icons-material/Image';
 import InventoryIcon from '@mui/icons-material/Inventory';
-import PersonIcon from '@mui/icons-material/Person';
 import SaveIcon from '@mui/icons-material/Save';
-import SearchIcon from '@mui/icons-material/Search';
 import SendIcon from '@mui/icons-material/Send';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
@@ -43,7 +40,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
   Grid,
   IconButton,
   List,
@@ -59,8 +55,7 @@ import {
   TableRow,
   TextField,
   Tooltip,
-  Typography,
-} from '@mui/material';
+  Typography } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
@@ -528,10 +523,11 @@ export default function RequestDetail({ id }: { id: string }) {
                   <CheckCircleIcon color="success" />
                   <Typography variant="subtitle1" fontWeight={700} color="success.dark">Diseño aprobado</Typography>
                 </Stack>
-                <img
+                <Box
+                  component="img"
                   src={req.approvedImageUrl}
                   alt="Diseño aprobado"
-                  style={{ width: '100%', maxHeight: 360, objectFit: 'contain', borderRadius: 8, background: '#f5f5f5' }}
+                  sx={{ width: '100%', maxHeight: 360, objectFit: 'contain', borderRadius: 1, bgcolor: 'action.hover' }}
                 />
               </CardContent>
             </Card>

@@ -1,7 +1,7 @@
 'use client';
 
 import { Box } from '@mui/material';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
     circularService,
     inferStoreSlugFromFilename,

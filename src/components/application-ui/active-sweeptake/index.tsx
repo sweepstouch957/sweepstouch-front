@@ -25,6 +25,7 @@ import {
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { tint } from '@/theme/semantic';
 
 interface ActiveSweepstakeCardProps {
   storeId: string;
@@ -72,8 +73,8 @@ export const ActiveSweepstakeCard = ({ storeId }: ActiveSweepstakeCardProps) => 
 
   if (isError || !sweepstake) {
     return (
-      <Card sx={{ p: 3, borderRadius: 4, boxShadow: 6, background: 'linear-gradient(to right, #fff7f9, #fceef4)', textAlign: 'center' }}>
-        <Typography variant="h6" fontWeight={700} color="#fc066f" mb={2}>
+      <Card sx={{ p: 3, bgcolor: (t) => tint(t, 'primary', 0.06), textAlign: 'center' }}>
+        <Typography variant="h6" fontWeight={700} color="primary.main" mb={2}>
           No hay un sweepstake activo
         </Typography>
         <Typography variant="body1" color="text.secondary" mb={3}>
@@ -83,7 +84,7 @@ export const ActiveSweepstakeCard = ({ storeId }: ActiveSweepstakeCardProps) => 
           <CircularProgress />
         ) : allSweepstakes?.length > 0 ? (
           <Stack spacing={2} direction={isMobile ? 'column' : 'row'} justifyContent="center">
-            <Select size="small" value={selectedSweepstakeId} onChange={(e) => setSelectedSweepstakeId(e.target.value)} displayEmpty sx={{ minWidth: 220, bgcolor: '#fff' }}>
+            <Select size="small" value={selectedSweepstakeId} onChange={(e) => setSelectedSweepstakeId(e.target.value)} displayEmpty sx={{ minWidth: 220, bgcolor: 'background.paper' }}>
               <MenuItem value="">Selecciona un sweepstake</MenuItem>
               {allSweepstakes.map((sw) => (
                 <MenuItem key={sw.id} value={sw.id}>{sw.name}</MenuItem>
@@ -102,7 +103,7 @@ export const ActiveSweepstakeCard = ({ storeId }: ActiveSweepstakeCardProps) => 
           autoHideDuration={4000}
           message={snackbar.message}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-          ContentProps={{ sx: { backgroundColor: snackbar.severity === 'success' ? '#4caf50' : '#f44336' } }}
+          ContentProps={{ sx: { backgroundColor: snackbar.severity === 'success' ? 'success.main' : 'error.main' } }}
         />
       </Card>
     );
@@ -114,9 +115,6 @@ export const ActiveSweepstakeCard = ({ storeId }: ActiveSweepstakeCardProps) => 
       <Card
         sx={{
           p: 2,
-          borderRadius: 4,
-          boxShadow: 6,
-          background: 'linear-gradient(to right, #fdfbfb, #ebedee)',
           display: 'flex',
           flexDirection: isMobile ? 'column' : 'row',
           alignItems: isMobile ? 'stretch' : 'center',
@@ -131,12 +129,12 @@ export const ActiveSweepstakeCard = ({ storeId }: ActiveSweepstakeCardProps) => 
         />
 
         <Box flex={1}>
-          <Typography variant="h6" fontWeight="bold" color="#004aad" mb={1}>
+          <Typography variant="h6" fontWeight="bold" color="info.dark" mb={1}>
             {sweepstake.name}
           </Typography>
 
           <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
-            <CalendarMonthIcon sx={{ color: '#fc066f' }} />
+            <CalendarMonthIcon sx={{ color: 'primary.main' }} />
             <Typography variant="body2" color="text.secondary">
               {new Date(sweepstake.startDate).toLocaleDateString()} to{' '}
               {new Date(sweepstake.endDate).toLocaleDateString()}
@@ -144,7 +142,7 @@ export const ActiveSweepstakeCard = ({ storeId }: ActiveSweepstakeCardProps) => 
           </Stack>
 
           <Stack direction="row" alignItems="center" spacing={1}>
-            <PeopleIcon sx={{ color: '#fc066f' }} />
+            <PeopleIcon sx={{ color: 'primary.main' }} />
             <Typography variant="body2" color="text.secondary">
               Participantes: <strong>{sweepstake.participants}</strong>
             </Typography>
@@ -156,7 +154,7 @@ export const ActiveSweepstakeCard = ({ storeId }: ActiveSweepstakeCardProps) => 
               value={selectedSweepstakeId}
               onChange={(e) => setSelectedSweepstakeId(e.target.value)}
               displayEmpty
-              sx={{ minWidth: 200, bgcolor: '#fff' }}
+              sx={{ minWidth: 200, bgcolor: 'background.paper' }}
             >
               <MenuItem value="">Cambiar sweepstake</MenuItem>
               {allSweepstakes?.map((sw) => (
@@ -188,7 +186,7 @@ export const ActiveSweepstakeCard = ({ storeId }: ActiveSweepstakeCardProps) => 
           autoHideDuration={4000}
           message={snackbar.message}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-          ContentProps={{ sx: { backgroundColor: snackbar.severity === 'success' ? '#4caf50' : '#f44336' } }}
+          ContentProps={{ sx: { backgroundColor: snackbar.severity === 'success' ? 'success.main' : 'error.main' } }}
         />
       </Card>
 

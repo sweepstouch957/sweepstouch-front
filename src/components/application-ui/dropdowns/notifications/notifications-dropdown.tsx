@@ -34,6 +34,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { NotificationsHeader } from 'src/components/application-ui/drawers/notifications/notifications-header';
 import { AppNotification, useNotificationsStore } from 'src/store/notificationsStore';
+import { tint, type SemanticRole } from '@/theme/semantic';
 
 /* ─── Category system ─────────────────────────────────────── */
 export type NotifCategory = 'todos' | 'tickets' | 'tareas' | 'turnos';
@@ -57,11 +58,11 @@ export const CATEGORY_OF: Record<string, NotifCategory> = {
   shift_completed: 'turnos',
 };
 
-export const CATEGORY_HEX: Record<NotifCategory, string> = {
-  todos: '#5569ff',
-  tickets: '#C62828',
-  tareas: '#1565C0',
-  turnos: '#AD1457',
+export const CATEGORY_ROLE: Record<NotifCategory, SemanticRole> = {
+  todos: 'primary',
+  tickets: 'error',
+  tareas: 'info',
+  turnos: 'warning',
 };
 
 export const CATEGORY_LABEL: Record<NotifCategory, string> = {
@@ -81,32 +82,32 @@ const EMPTY_COPY: Record<NotifCategory, string> = {
 };
 
 /* ─── Type meta ───────────────────────────────────────────── */
-export function getNotifMeta(type: string): { icon: React.ReactNode; color: string } {
+export function getNotifMeta(type: string): { icon: React.ReactNode; role: SemanticRole } {
   switch (type) {
     case 'ticket_assigned':
     case 'ticket_updated':
-      return { icon: <BugReportTwoToneIcon sx={{ fontSize: 15 }} />, color: '#C62828' };
+      return { icon: <BugReportTwoToneIcon sx={{ fontSize: 15 }} />, role: 'error' };
     case 'ticket_resolved':
-      return { icon: <CheckCircleTwoToneIcon sx={{ fontSize: 15 }} />, color: '#2E7D32' };
+      return { icon: <CheckCircleTwoToneIcon sx={{ fontSize: 15 }} />, role: 'success' };
     case 'visit_assigned':
-      return { icon: <EventNoteTwoToneIcon sx={{ fontSize: 15 }} />, color: '#C62828' };
+      return { icon: <EventNoteTwoToneIcon sx={{ fontSize: 15 }} />, role: 'error' };
     case 'visit_completed':
-      return { icon: <CheckCircleTwoToneIcon sx={{ fontSize: 15 }} />, color: '#0288D1' };
+      return { icon: <CheckCircleTwoToneIcon sx={{ fontSize: 15 }} />, role: 'info' };
     case 'task_assigned':
-      return { icon: <AssignmentTurnedInRoundedIcon sx={{ fontSize: 15 }} />, color: '#1565C0' };
+      return { icon: <AssignmentTurnedInRoundedIcon sx={{ fontSize: 15 }} />, role: 'info' };
     case 'task_updated':
-      return { icon: <AssignmentTurnedInRoundedIcon sx={{ fontSize: 15 }} />, color: '#F57C00' };
+      return { icon: <AssignmentTurnedInRoundedIcon sx={{ fontSize: 15 }} />, role: 'warning' };
     case 'whatsapp_task_update':
-      return { icon: <WhatsAppIcon sx={{ fontSize: 15 }} />, color: '#25D366' };
+      return { icon: <WhatsAppIcon sx={{ fontSize: 15 }} />, role: 'success' };
     case 'new-shift-request':
-      return { icon: <EventNoteTwoToneIcon sx={{ fontSize: 15 }} />, color: '#AD1457' };
+      return { icon: <EventNoteTwoToneIcon sx={{ fontSize: 15 }} />, role: 'warning' };
     case 'shift-request-approved':
     case 'shift_completed':
-      return { icon: <CheckCircleTwoToneIcon sx={{ fontSize: 15 }} />, color: '#2E7D32' };
+      return { icon: <CheckCircleTwoToneIcon sx={{ fontSize: 15 }} />, role: 'success' };
     case 'shift-request-rejected':
-      return { icon: <CancelTwoToneIcon sx={{ fontSize: 15 }} />, color: '#C62828' };
+      return { icon: <CancelTwoToneIcon sx={{ fontSize: 15 }} />, role: 'error' };
     default:
-      return { icon: <SettingsSuggestTwoToneIcon sx={{ fontSize: 15 }} />, color: '#546E7A' };
+      return { icon: <SettingsSuggestTwoToneIcon sx={{ fontSize: 15 }} />, role: 'secondary' };
   }
 }
 
@@ -117,9 +118,12 @@ export const NotificationItem: React.FC<{
   onNavigate?: (link?: string) => void;
   compact?: boolean;
 }> = ({ notif, onRead, onNavigate, compact = true }) => {
-  const { icon, color } = getNotifMeta(notif.type);
+  const theme = useTheme();
+  const { icon, role } = getNotifMeta(notif.type);
+  const color = theme.palette[role].main;
   const category = CATEGORY_OF[notif.type];
-  const catHex = category ? CATEGORY_HEX[category] : '#546E7A';
+  const catRole: SemanticRole = category ? CATEGORY_ROLE[category] : 'secondary';
+  const catColor = theme.palette[catRole].main;
 
   return (
     <Box
@@ -132,9 +136,9 @@ export const NotificationItem: React.FC<{
         py: compact ? 1.1 : 1.5,
         cursor: 'pointer',
         position: 'relative',
-        bgcolor: notif.read ? 'transparent' : alpha(catHex, 0.05),
+        bgcolor: notif.read ? 'transparent' : tint(theme, catRole, 0.05),
         transition: 'background-color .12s',
-        '&:hover': { bgcolor: alpha(catHex, 0.09) },
+        '&:hover': { bgcolor: tint(theme, catRole, 0.09) },
       }}
     >
       <Stack direction="row" spacing={1.25} alignItems="flex-start">
@@ -159,15 +163,15 @@ export const NotificationItem: React.FC<{
                 size="small"
                 sx={{
                   height: 14, fontSize: 9, fontWeight: 700,
-                  bgcolor: alpha(catHex, 0.1),
-                  color: catHex,
+                  bgcolor: tint(theme, catRole),
+                  color: catColor,
                   '& .MuiChip-label': { px: 0.6 },
                   flexShrink: 0,
                 }}
               />
             )}
             {!notif.read && (
-              <CircleRounded sx={{ fontSize: 5, color: catHex, ml: 'auto !important', flexShrink: 0 }} />
+              <CircleRounded sx={{ fontSize: 5, color: catColor, ml: 'auto !important', flexShrink: 0 }} />
             )}
           </Stack>
 
@@ -341,7 +345,8 @@ export const NotificationsDropdown: React.FC = () => {
             {FILTER_TABS.map((cat) => {
               const count = countUnread(cat);
               const isActive = activeFilter === cat;
-              const hex = CATEGORY_HEX[cat];
+              const role = CATEGORY_ROLE[cat];
+              const hex = theme.palette[role].main;
               return (
                 <Chip
                   key={cat}
@@ -352,8 +357,10 @@ export const NotificationsDropdown: React.FC = () => {
                         <Box
                           component="span"
                           sx={{
-                            bgcolor: isActive ? 'rgba(255,255,255,0.3)' : alpha(hex, 0.2),
-                            color: isActive ? '#fff' : hex,
+                            bgcolor: isActive
+                              ? alpha(theme.palette.common.white, 0.3)
+                              : alpha(hex, 0.2),
+                            color: isActive ? theme.palette[role].contrastText : hex,
                             borderRadius: 6,
                             px: 0.45,
                             fontSize: 8,
@@ -376,7 +383,7 @@ export const NotificationsDropdown: React.FC = () => {
                     fontWeight: isActive ? 700 : 500,
                     cursor: 'pointer',
                     bgcolor: isActive ? hex : alpha(hex, 0.08),
-                    color: isActive ? '#fff' : hex,
+                    color: isActive ? theme.palette[role].contrastText : hex,
                     border: `1px solid ${isActive ? hex : alpha(hex, 0.2)}`,
                     '&:hover': { bgcolor: isActive ? hex : alpha(hex, 0.15) },
                     transition: 'all .12s',

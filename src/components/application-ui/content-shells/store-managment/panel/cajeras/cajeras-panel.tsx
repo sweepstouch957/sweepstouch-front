@@ -7,7 +7,7 @@ import SmsAuditPanel from './SmsAuditPanel';
 import { Box, Tab, Tabs, Typography } from '@mui/material';
 import { Assessment, ManageAccounts, Sms } from '@mui/icons-material';
 import { endOfWeek, formatISO, startOfWeek } from 'date-fns';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 interface CajerasPanelProps {
   storeId: string;

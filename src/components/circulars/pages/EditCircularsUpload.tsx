@@ -67,10 +67,10 @@ const EditCircularsUpload: React.FC = () => {
       {/* Page Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 600, color: '#2D3748', mb: 0.5 }}>
+          <Typography variant="h4" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
             Edit Circulars
           </Typography>
-          <Typography variant="subtitle1" sx={{ color: '#718096' }}>
+          <Typography variant="subtitle1" sx={{ color: 'text.secondary' }}>
             Upload and manage circular files
           </Typography>
         </Box>
@@ -80,10 +80,10 @@ const EditCircularsUpload: React.FC = () => {
             startIcon={<HelpIcon />}
             onClick={() => setShowInstructions(true)}
             sx={{
-              borderColor: '#E91E63',
-              color: '#E91E63',
+              borderColor: 'primary.main',
+              color: 'primary.main',
               '&:hover': {
-                borderColor: '#AD1457',
+                borderColor: 'primary.dark',
                 backgroundColor: 'rgba(233, 30, 99, 0.05)',
               },
             }}
@@ -94,9 +94,9 @@ const EditCircularsUpload: React.FC = () => {
             variant="contained"
             startIcon={<SaveIcon />}
             sx={{
-              backgroundColor: '#E91E63',
+              backgroundColor: 'primary.main',
               '&:hover': {
-                backgroundColor: '#AD1457',
+                backgroundColor: 'primary.dark',
               },
             }}
           >
@@ -116,8 +116,8 @@ const EditCircularsUpload: React.FC = () => {
 
       {/* Circular Schedule Management */}
       <Paper sx={{ borderRadius: 3, overflow: 'hidden' }}>
-        <Box sx={{ p: 3, borderBottom: '1px solid #E2E8F0' }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, color: '#2D3748' }}>
+        <Box sx={{ p: 3, borderBottom: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
             Circular Schedule Management
           </Typography>
         </Box>
@@ -142,7 +142,7 @@ const EditCircularsUpload: React.FC = () => {
                         sx={{
                           width: 40,
                           height: 40,
-                          backgroundColor: '#E91E63',
+                          backgroundColor: 'primary.main',
                           fontSize: '0.875rem',
                           fontWeight: 600,
                         }}
@@ -150,10 +150,10 @@ const EditCircularsUpload: React.FC = () => {
                         {circular.storeInitials}
                       </Avatar>
                       <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 500, color: '#2D3748' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>
                           {circular.storeName}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#718096' }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                           {circular.storeAddress}
                         </Typography>
                       </Box>
@@ -166,7 +166,7 @@ const EditCircularsUpload: React.FC = () => {
                       InputProps={{
                         endAdornment: (
                           <InputAdornment position="end">
-                            <CalendarIcon sx={{ color: '#718096', fontSize: 20 }} />
+                            <CalendarIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
                           </InputAdornment>
                         ),
                       }}
@@ -184,7 +184,7 @@ const EditCircularsUpload: React.FC = () => {
                       InputProps={{
                         endAdornment: (
                           <InputAdornment position="end">
-                            <CalendarIcon sx={{ color: '#718096', fontSize: 20 }} />
+                            <CalendarIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
                           </InputAdornment>
                         ),
                       }}
@@ -199,7 +199,7 @@ const EditCircularsUpload: React.FC = () => {
                     <StatusBadge status={circular.status} />
                   </TableCell>
                   <TableCell align="center">
-                    <IconButton size="small" sx={{ color: '#718096' }}>
+                    <IconButton size="small" sx={{ color: 'text.secondary' }}>
                       <DeleteIcon fontSize="small" />
                     </IconButton>
                   </TableCell>
@@ -232,12 +232,12 @@ const EditCircularsUpload: React.FC = () => {
           }}
         >
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h5" sx={{ fontWeight: 600, color: '#2D3748' }}>
+            <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.primary' }}>
               Instructions
             </Typography>
             <IconButton
               onClick={() => setShowInstructions(false)}
-              sx={{ color: '#718096' }}
+              sx={{ color: 'text.secondary' }}
             >
               <CloseIcon />
             </IconButton>
@@ -250,7 +250,7 @@ const EditCircularsUpload: React.FC = () => {
                   primary={`• ${instruction}`}
                   primaryTypographyProps={{
                     variant: 'body2',
-                    color: '#2D3748',
+                    color: 'text.primary',
                     lineHeight: 1.6,
                   }}
                 />

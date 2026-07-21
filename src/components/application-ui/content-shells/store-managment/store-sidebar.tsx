@@ -36,7 +36,6 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import Grid2 from '@mui/material/Unstable_Grid2';
 import type { FC } from 'react';
 import React, { useCallback, useMemo } from 'react';
 import { Scrollbar } from 'src/components/base/scrollbar';
@@ -148,7 +147,6 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
             borderRadius: '50%',
             objectFit: 'cover',
             mb: 1,
-            boxShadow: theme.shadows[4],
             border: `2px solid ${theme.palette.primary.main}`,
           }}
         />

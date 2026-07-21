@@ -33,7 +33,7 @@ import {
 import { addDays, format as fmtDate, parseISO } from 'date-fns';
 import { saveAs } from 'file-saver';
 import Link from 'next/link';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { DateRange, type RangeKeyDict } from 'react-date-range';
 import * as XLSX from 'xlsx';
 import { GlassCard } from './ui';
@@ -192,7 +192,8 @@ function StoreRowItem({ row, idx }: { row: AudienceStoreGrowthRow; idx: number }
           color: 'inherit',
           outline: 'none',
           '&:focus-visible .row': {
-            boxShadow: `0 0 0 3px ${alpha(t.palette.primary.main, 0.22)}`,
+            outline: `2px solid ${t.palette.primary.main}`,
+            outlineOffset: -2,
           },
         })}
       >

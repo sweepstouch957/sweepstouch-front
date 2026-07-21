@@ -27,10 +27,8 @@ import { EquipmentSectionModal } from './EquipmentSectionModal';
 import {
   type BItem,
   type EquipmentSection,
-  materialCatalogDefault,
   printerCatalog,
-  tabletCatalog,
-} from './equipment-catalog';
+  tabletCatalog } from './equipment-catalog';
 import { KioskTabletPanel } from './KioskTabletPanel';
 
 
@@ -93,7 +91,7 @@ function EquipmentCard({
         bgcolor: 'background.paper',
         '&:hover': {
           borderColor: accent,
-          boxShadow: `0 6px 28px ${alpha(accent, 0.18)}`,
+          bgcolor: alpha(accent, 0.04),
           transform: 'translateY(-3px)',
         },
         '&:focus-visible': {

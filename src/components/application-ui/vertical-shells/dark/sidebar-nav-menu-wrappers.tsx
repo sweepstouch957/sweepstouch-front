@@ -37,7 +37,7 @@ export const ListItemButtonWrapper = styled(ListItemButton)(({ theme }) => ({
   },
 
   '&.Mui-selected, &.Mui-selected:hover': {
-    color: '#fff',
+    color: theme.palette.common.white,
     background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.15)} 0%, ${alpha(theme.palette.primary.dark, 0.08)} 100%)`,
 
     '& .MuiListItemIcon-root': {
@@ -45,7 +45,7 @@ export const ListItemButtonWrapper = styled(ListItemButton)(({ theme }) => ({
     },
 
     '& .MuiListItemText-root': {
-      color: '#fff',
+      color: theme.palette.common.white,
     },
   },
 }));

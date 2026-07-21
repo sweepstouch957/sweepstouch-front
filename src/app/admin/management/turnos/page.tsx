@@ -22,7 +22,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 const ShiftManagementPage = () => {
   const theme = useTheme();

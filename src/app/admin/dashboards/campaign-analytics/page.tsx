@@ -29,6 +29,7 @@ import {
   alpha,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { tint } from 'src/theme/semantic';
 import AdminPanelSettingsRoundedIcon from '@mui/icons-material/AdminPanelSettingsRounded';
 import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import PhoneIphoneRoundedIcon from '@mui/icons-material/PhoneIphoneRounded';
@@ -47,7 +48,8 @@ import { LineChart } from '@mui/x-charts/LineChart';
 
 import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
 import SupportOrderFeed from '@/components/admin/support/SupportOrderFeed';
-import { getAllStores, type Store } from '@/services/store.service';
+import { type Store } from '@/services/store.service';
+import { useStoreSearch } from '@/hooks/fetching/stores/useStoreSearch';
 import { sendMerchantWhatsApp } from '@/services/bot.service';
 import {
   fetchCampaigns,
@@ -98,11 +100,9 @@ function StorePicker({
   onChange: (s: Store | null) => void;
 }) {
   const theme = useTheme();
-  const { data: stores = [], isLoading } = useQuery({
-    queryKey: ['all-stores-monitor'],
-    queryFn: getAllStores,
-    staleTime: 300_000,
-  });
+  // Búsqueda server-side: antes traía el catálogo completo solo para filtrar acá.
+  const [term, setTerm] = React.useState('');
+  const { options: stores, loading: isLoading } = useStoreSearch(term);
 
   return (
     <Autocomplete
@@ -110,6 +110,13 @@ function StorePicker({
       loading={isLoading}
       value={value}
       onChange={(_, v) => onChange(v)}
+      inputValue={term}
+      onInputChange={(_, v, reason) => {
+        if (reason !== 'reset') setTerm(v);
+      }}
+      // El backend ya filtró; volver a filtrar acá esconde resultados válidos.
+      filterOptions={(x) => x}
+      noOptionsText={term.trim().length < 2 ? 'Escribí al menos 2 letras…' : 'Sin resultados'}
       getOptionLabel={(o) => o?.name || o?.slug || ''}
       isOptionEqualToValue={(o, v) => o._id === v._id}
       sx={{ width: '100%', minWidth: { sm: 340 }, maxWidth: { sm: 520 } }}
@@ -216,12 +223,12 @@ function VendorFront({ store, filters }: { store: Store | null; filters: Analyti
   return (
     <Stack spacing={2.5}>
       {/* Consola embebida — EN VIVO, primero */}
-      <Card sx={{ borderRadius: 3, overflow: 'hidden' }}>
+      <Card sx={{ overflow: 'hidden' }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2, py: 1.25, borderBottom: 1, borderColor: 'divider' }}>
           <Stack direction="row" alignItems="center" spacing={1}>
-            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#22c55e' }} />
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'success.main' }} />
             <Typography sx={{ fontWeight: 700, fontSize: 14 }} noWrap>Consola del vendor · {store.name}</Typography>
-            <Chip label="EN VIVO" size="small" sx={{ height: 20, fontWeight: 800, fontSize: 10, bgcolor: alpha('#22c55e', 0.12), color: '#16a34a' }} />
+            <Chip label="EN VIVO" size="small" sx={{ height: 20, fontWeight: 800, fontSize: 10, bgcolor: tint(theme, 'success'), color: 'success.dark' }} />
           </Stack>
           <Stack direction="row" spacing={0.5}>
             {store.phoneNumber && (
@@ -232,7 +239,7 @@ function VendorFront({ store, filters }: { store: Store | null; filters: Analyti
                 startIcon={<WhatsAppIcon />}
                 disabled={notifyMerchant.isPending}
                 onClick={() => notifyMerchant.mutate()}
-                sx={{ textTransform: 'none', bgcolor: '#25D366', '&:hover': { bgcolor: '#1da851' }, minWidth: isMobile ? 0 : undefined }}
+                sx={{ textTransform: 'none', bgcolor: 'success.main', '&:hover': { bgcolor: 'success.dark' }, minWidth: isMobile ? 0 : undefined }}
               >
                 {isMobile ? '' : notifyMerchant.isPending ? 'Enviando…' : 'Avisar al dueño'}
               </Button>
@@ -386,14 +393,14 @@ function CustomerFront({ store, filters }: { store: Store | null; filters: Analy
           <Box
             sx={{
               borderRadius: 6,
-              border: '10px solid #0F172A',
+              border: '10px solid',
+              borderColor: 'grey.900',
               overflow: 'hidden',
-              boxShadow: '0 20px 50px rgba(15,23,42,0.25)',
-              bgcolor: '#0F172A',
+              bgcolor: 'grey.900',
             }}
           >
             {loadedUrl ? (
-              <Box component="iframe" src={loadedUrl} title="Customer view" sx={{ width: '100%', height: { xs: 600, lg: 660 }, border: 'none', display: 'block', bgcolor: '#fff' }} />
+              <Box component="iframe" src={loadedUrl} title="Customer view" sx={{ width: '100%', height: { xs: 600, lg: 660 }, border: 'none', display: 'block', bgcolor: 'common.white' }} />
             ) : (
               <Box sx={{ height: { xs: 600, lg: 660 }, display: 'grid', placeItems: 'center', color: 'rgba(255,255,255,0.5)', textAlign: 'center', px: 3 }}>
                 <Box>
@@ -459,7 +466,7 @@ function CustomerFront({ store, filters }: { store: Store | null; filters: Analy
                       <Chip
                         label={`${l.hits}`}
                         size="small"
-                        sx={{ fontWeight: 800, flexShrink: 0, height: 20, minWidth: 34, bgcolor: l.hits > 0 ? alpha('#22c55e', 0.12) : undefined, color: l.hits > 0 ? '#16a34a' : undefined }}
+                        sx={{ fontWeight: 800, flexShrink: 0, height: 20, minWidth: 34, bgcolor: l.hits > 0 ? tint(theme, 'success') : undefined, color: l.hits > 0 ? 'success.dark' : undefined }}
                       />
                     </Stack>
                   );
@@ -483,7 +490,7 @@ function CustomerFront({ store, filters }: { store: Store | null; filters: Analy
               xAxis={[{ data: tlDates, scaleType: 'point', tickLabelStyle: { fontSize: 10 } }]}
               series={[
                 { data: tlScans, label: 'Escaneos', color: theme.palette.primary.main, area: true, showMark: false },
-                { data: tlConfirmed, label: 'Compras', color: '#22c55e', showMark: false },
+                { data: tlConfirmed, label: 'Compras', color: theme.palette.success.main, showMark: false },
               ]}
               margin={{ top: 12, right: 12, bottom: 28, left: 44 }}
             />
@@ -523,7 +530,7 @@ function CustomerFront({ store, filters }: { store: Store | null; filters: Analy
               layout="horizontal"
               yAxis={[{ data: prodLabels, scaleType: 'band', tickLabelStyle: { fontSize: 11 } }]}
               xAxis={[{ tickMinStep: 1 }]}
-              series={[{ data: prodValues, color: '#22c55e' }]}
+              series={[{ data: prodValues, color: theme.palette.success.main }]}
               margin={{ top: 8, right: 16, bottom: 24, left: 132 }}
               hideLegend
             />
@@ -598,7 +605,7 @@ export default function CampaignAnalyticsMonitorPage() {
           pt: { xs: 2.5, md: 3.5 },
           pb: 2,
           background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-          color: '#fff',
+          color: 'common.white',
         }}
       >
         <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'center' }} justifyContent="space-between" spacing={2}>
@@ -619,7 +626,7 @@ export default function CampaignAnalyticsMonitorPage() {
           {/* Store search (drives Tienda + Cliente) */}
           <Box
             sx={{
-              '& .MuiOutlinedInput-root': { bgcolor: '#fff', borderRadius: 2 },
+              '& .MuiOutlinedInput-root': { bgcolor: 'common.white', borderRadius: 2 },
               '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
               width: { xs: '100%', md: 'auto' },
             }}

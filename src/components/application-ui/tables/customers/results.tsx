@@ -1,4 +1,3 @@
-import { Customer } from '@/models/customer';
 import {
   SearchTwoTone,
   PictureAsPdf,
@@ -10,7 +9,7 @@ import {
   Avatar, Box, Card, Chip, Divider, InputAdornment, Stack, Table, TableBody, TableCell,
   TableContainer, TableHead, TablePagination, TableRow, TextField, Typography, Button,
 } from '@mui/material';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import dayjs from 'dayjs';
 import React from 'react';
 import type { Customer as ModelCustomer } from '@/models/customer';
@@ -51,6 +50,7 @@ function StatCard({
   from: string;
   to: string;
 }) {
+  const theme = useTheme();
   const pct = total > 0 ? Math.round((value / total) * 100) : null;
   return (
     <Card
@@ -58,12 +58,10 @@ function StatCard({
         position: 'relative',
         overflow: 'hidden',
         p: { xs: 2, sm: 2.5 },
-        color: '#fff',
-        borderRadius: 3,
+        color: 'common.white',
         background: `linear-gradient(135deg, ${from} 0%, ${to} 100%)`,
-        boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-        transition: 'transform .2s ease, box-shadow .2s ease',
-        '&:hover': { transform: 'translateY(-3px)', boxShadow: '0 12px 28px rgba(0,0,0,0.18)' },
+        transition: 'transform .2s ease',
+        '&:hover': { transform: 'translateY(-3px)' },
       }}
     >
       <Box display="flex" justifyContent="space-between" alignItems="flex-start">
@@ -77,8 +75,8 @@ function StatCard({
         </Box>
         <Avatar
           sx={{
-            bgcolor: alpha('#fff', 0.18),
-            color: '#fff',
+            bgcolor: alpha(theme.palette.common.white, 0.18),
+            color: 'common.white',
             width: 44,
             height: 44,
             backdropFilter: 'blur(4px)',
@@ -103,6 +101,7 @@ export default function Results(props: ResultsProps) {
     onExportPdf, exporting, stats,
   } = props;
 
+  const theme = useTheme();
   const totalCount = stats?.total || 0;
 
   return (
@@ -119,28 +118,28 @@ export default function Results(props: ResultsProps) {
           value={totalCount}
           total={totalCount}
           icon={<GroupsRounded />}
-          from="#1f1f1f"
-          to="#3d3d3d"
+          from={theme.palette.grey[900]}
+          to={theme.palette.grey[700]}
         />
         <StatCard
           label="Activos"
           value={stats?.active || 0}
           total={totalCount}
           icon={<CheckCircleRounded />}
-          from="#0d4d1a"
-          to="#16a34a"
+          from={theme.palette.success.dark}
+          to={theme.palette.success.main}
         />
         <StatCard
           label="Inactivos"
           value={stats?.inactive || 0}
           total={totalCount}
           icon={<BlockRounded />}
-          from="#4d0d0d"
-          to="#b91c1c"
+          from={theme.palette.error.dark}
+          to={theme.palette.error.main}
         />
       </Box>
 
-      <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+      <Card>
         {/* Toolbar */}
         <Stack
           direction={{ xs: 'column', md: 'row' }}

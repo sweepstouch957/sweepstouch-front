@@ -27,8 +27,9 @@ import {
   useTheme,
 } from '@mui/material';
 import debounce from 'lodash.debounce';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { Theme } from '@mui/material/styles';
 
 type DebtStatus = 'all' | 'ok' | 'min_low' | 'low' | 'mid' | 'high' | 'critical';
 type StoreStatusFilter = 'all' | 'active' | 'suspended' | 'cancelled';
@@ -83,14 +84,16 @@ function useAISuggestion(
   return { suggestion, thinking, clear: () => setSuggestion(null) };
 }
 
-const DEBT_CHIP_CONFIGS: { value: DebtStatus; label: string; color: string }[] = [
+const debtChipConfigs = (
+  theme: Theme
+): { value: DebtStatus; label: string; color: string }[] => [
   { value: 'all',      label: 'Todos',    color: '' },
-  { value: 'ok',       label: 'OK',       color: '#10B981' },
-  { value: 'min_low',  label: 'Min low',  color: '#64748B' },
-  { value: 'low',      label: 'Low',      color: '#D97706' },
-  { value: 'mid',      label: 'Mid',      color: '#EA580C' },
-  { value: 'high',     label: 'High',     color: '#E11D48' },
-  { value: 'critical', label: 'Critical', color: '#7F1D1D' },
+  { value: 'ok',       label: 'OK',       color: theme.palette.success.main },
+  { value: 'min_low',  label: 'Min low',  color: theme.palette.text.secondary },
+  { value: 'low',      label: 'Low',      color: theme.palette.warning.main },
+  { value: 'mid',      label: 'Mid',      color: theme.palette.warning.dark },
+  { value: 'high',     label: 'High',     color: theme.palette.error.main },
+  { value: 'critical', label: 'Critical', color: theme.palette.error.dark },
 ];
 
 export default function StoreFilters({
@@ -481,7 +484,7 @@ export default function StoreFilters({
               >
                 Deuda:
               </Typography>
-              {DEBT_CHIP_CONFIGS.map((cfg) => (
+              {debtChipConfigs(theme).map((cfg) => (
                 <Chip
                   key={cfg.value}
                   size="small"

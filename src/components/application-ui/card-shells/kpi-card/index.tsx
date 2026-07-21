@@ -195,7 +195,6 @@ const KpiCard = ({
     <Card
       variant="outlined"
       sx={{
-        borderRadius: 3,
         height: '100%',
         width: '100%',
         // Sin sombras: el resto del panel usa outlined + divider.

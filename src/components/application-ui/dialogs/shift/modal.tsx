@@ -19,12 +19,10 @@ import {
   Dialog,
   Divider,
   IconButton,
-  InputAdornment,
   Snackbar,
   Stack,
   TextField,
-  Typography,
-} from '@mui/material';
+  Typography } from '@mui/material';
 import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import Autocomplete from '@mui/material/Autocomplete';
@@ -32,6 +30,7 @@ import { MobileDatePicker, TimePicker } from '@mui/x-date-pickers';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useReducer, useState, useRef } from 'react';
 import { usePromotersNearStore } from '@/hooks/fetching/promoter/usePromotersNearStore';
+import { tint, tintBorder } from '@/theme/semantic';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -217,18 +216,18 @@ function RadiusInput({ radiusKm, onRadiusChange }: RadiusInputProps) {
             borderRadius: '8px',
             fontSize: '0.75rem',
             fontWeight: 700,
-            bgcolor: isLocked ? 'rgba(0, 0, 0, 0.02)' : 'background.paper',
+            bgcolor: isLocked ? 'action.hover' : 'background.paper',
             transition: 'all 0.2s ease-in-out',
             p: 0,
             '& fieldset': {
-              borderColor: isLocked ? 'rgba(0,0,0,0.06)' : 'rgba(238,30,124,0.4)',
+              borderColor: (t) => (isLocked ? t.palette.divider : tintBorder(t, 'primary', 0.4)),
               transition: 'border-color 0.2s',
             },
             '&:hover fieldset': {
-              borderColor: isLocked ? 'rgba(0,0,0,0.06)' : '#EE1E7C',
+              borderColor: (t) => (isLocked ? t.palette.divider : t.palette.primary.main),
             },
             '&.Mui-focused fieldset': {
-              borderColor: '#EE1E7C',
+              borderColor: 'primary.main',
               borderWidth: '1px',
             },
             '& input': {
@@ -256,11 +255,11 @@ function RadiusInput({ radiusKm, onRadiusChange }: RadiusInputProps) {
         size="small"
         onClick={handleToggleLock}
         sx={{
-          color: isLocked ? 'text.disabled' : '#EE1E7C',
+          color: isLocked ? 'text.disabled' : 'primary.main',
           p: 0.25,
           transition: 'all 0.2s',
           '&:hover': {
-            color: isLocked ? 'text.primary' : '#D0146C',
+            color: isLocked ? 'text.primary' : 'primary.dark',
             transform: 'scale(1.1)',
           },
         }}
@@ -795,11 +794,12 @@ const NewShiftModal = ({ open, onClose, shiftId, initialStoreId, initialPromoter
                   mb: 1.5,
                   p: 1.5,
                   borderRadius: 2,
-                  background: 'linear-gradient(135deg, rgba(238, 30, 124, 0.04) 0%, rgba(156, 39, 176, 0.04) 100%)',
-                  border: '1px dashed rgba(238, 30, 124, 0.25)',
+                  bgcolor: (t) => tint(t, 'primary', 0.04),
+                  border: '1px dashed',
+                  borderColor: (t) => tintBorder(t, 'primary'),
                 }}
               >
-                <Typography variant="caption" sx={{ fontSize: 10, fontWeight: 700, color: '#EE1E7C', display: 'block', mb: 1 }}>
+                <Typography variant="caption" sx={{ fontSize: 10, fontWeight: 700, color: 'primary.main', display: 'block', mb: 1 }}>
                   ✨ RECOMENDACIÓN DE IA
                 </Typography>
                 <Box
@@ -826,15 +826,15 @@ const NewShiftModal = ({ open, onClose, shiftId, initialStoreId, initialPromoter
                         sx={{
                           p: 1,
                           borderRadius: 1.5,
-                          bgcolor: isSelected ? 'rgba(238, 30, 124, 0.08)' : 'background.paper',
+                          bgcolor: (t) => (isSelected ? tint(t, 'primary', 0.08) : t.palette.background.paper),
                           border: '1px solid',
-                          borderColor: isSelected ? '#EE1E7C' : 'divider',
+                          borderColor: isSelected ? 'primary.main' : 'divider',
                           cursor: 'pointer',
                           textAlign: 'center',
                           transition: 'all 0.15s ease',
                           '&:hover': {
-                            borderColor: '#EE1E7C',
-                            boxShadow: '0 2px 6px rgba(238,30,124,0.08)',
+                            borderColor: 'primary.main',
+                            bgcolor: (t) => tint(t, 'primary', 0.08),
                           },
                         }}
                       >
@@ -873,8 +873,8 @@ const NewShiftModal = ({ open, onClose, shiftId, initialStoreId, initialPromoter
                             height: 14,
                             fontSize: 8,
                             fontWeight: 700,
-                            bgcolor: isSelected ? '#EE1E7C' : 'rgba(238, 30, 124, 0.08)',
-                            color: isSelected ? 'white' : '#EE1E7C',
+                            bgcolor: (t) => (isSelected ? t.palette.primary.main : tint(t, 'primary', 0.08)),
+                            color: isSelected ? 'primary.contrastText' : 'primary.main',
                             '& .MuiChip-label': { px: 0.5 },
                           }}
                         />
@@ -928,9 +928,10 @@ const NewShiftModal = ({ open, onClose, shiftId, initialStoreId, initialPromoter
                             height: 14,
                             fontSize: 8,
                             fontWeight: 700,
-                            bgcolor: 'rgba(46,125,50,0.08)',
+                            bgcolor: (t) => tint(t, 'success', 0.08),
                             color: 'success.dark',
-                            border: '1px solid rgba(46,125,50,0.2)',
+                            border: '1px solid',
+                            borderColor: (t) => tintBorder(t, 'success', 0.2),
                             '& .MuiChip-label': { px: 0.5 },
                           }}
                         />
@@ -1014,9 +1015,9 @@ const NewShiftModal = ({ open, onClose, shiftId, initialStoreId, initialPromoter
             sx={{
               borderRadius: 10,
               textTransform: 'none',
-              borderColor: '#EE1E7C',
-              color: '#EE1E7C',
-              '&:hover': { borderColor: '#EE1E7C', bgcolor: '#fff0f7' },
+              borderColor: 'primary.main',
+              color: 'primary.main',
+              '&:hover': { borderColor: 'primary.main', bgcolor: (t) => tint(t, 'primary', 0.06) },
             }}
           >
             Cancelar
@@ -1031,8 +1032,8 @@ const NewShiftModal = ({ open, onClose, shiftId, initialStoreId, initialPromoter
               borderRadius: 10,
               textTransform: 'none',
               fontWeight: 600,
-              bgcolor: '#EE1E7C',
-              '&:hover': { bgcolor: '#d01a6e' },
+              bgcolor: 'primary.main',
+              '&:hover': { bgcolor: 'primary.dark' },
             }}
           >
             {saving ? 'Guardando...' : shiftId ? 'Guardar cambios' : 'Crear turno'}

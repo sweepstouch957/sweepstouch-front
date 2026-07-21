@@ -2,6 +2,7 @@ import { useSweepstake } from '@/hooks/fetching/sweepstakes/useSweepstakesById';
 import CloseIcon from '@mui/icons-material/Close';
 import PreviewIcon from '@mui/icons-material/Preview';
 import {
+  alpha,
   Box,
   Chip,
   CircularProgress,
@@ -157,7 +158,7 @@ export function SweepstakeMiniHeader({ sweepstakeId }: { sweepstakeId: string })
               maxWidth: '95vw',
               maxHeight: '85vh',
               aspectRatio: '9/16',
-              background: '#fff',
+              bgcolor: 'common.white',
               borderRadius: 5,
               boxShadow: 14,
               overflow: 'hidden',
@@ -170,8 +171,8 @@ export function SweepstakeMiniHeader({ sweepstakeId }: { sweepstakeId: string })
                 top: 8,
                 right: 8,
                 zIndex: 99,
-                bgcolor: '#23263ae6',
-                color: '#fff',
+                bgcolor: alpha(theme.palette.grey[900], 0.9),
+                color: 'common.white',
                 boxShadow: 3,
                 '&:hover': { bgcolor: theme.palette.primary.main },
               }}
@@ -187,7 +188,7 @@ export function SweepstakeMiniHeader({ sweepstakeId }: { sweepstakeId: string })
               style={{
                 objectFit: 'contain',
                 borderRadius: 12,
-                background: '#fff',
+                background: theme.palette.common.white,
               }}
             />
           </Box>

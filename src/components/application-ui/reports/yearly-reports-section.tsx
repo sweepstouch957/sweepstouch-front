@@ -50,8 +50,6 @@ type YearlyReportsSectionProps = {
   storeId?: string;
 };
 
-const SWEEP_PINK = '#ff0080';
-
 function n(v?: number) {
   return Number.isFinite(v as number) ? (v as number) : 0;
 }
@@ -62,6 +60,7 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
   const smUp = useMediaQuery(theme.breakpoints.up('sm'));
   const isDark = theme.palette.mode === 'dark';
   const { common } = theme.palette;
+  const SWEEP_PINK = theme.palette.primary.main;
 
   const cardHeaderSx = {
     px: 2.5,
@@ -451,7 +450,7 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
                 sx={{
                   borderRadius: 2,
                   bgcolor: SWEEP_PINK,
-                  color: '#fff',
+                  color: 'primary.contrastText',
                   '&:hover': { bgcolor: SWEEP_PINK },
                 }}
               >

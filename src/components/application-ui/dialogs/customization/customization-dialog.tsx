@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import { TransitionProps } from '@mui/material/transitions';
 
-import React, { FC, forwardRef, ReactElement, Ref, useCallback } from 'react';
+import { FC, forwardRef, ReactElement, Ref, useCallback } from 'react';
 import { Customization } from 'src/contexts/customization';
 import { OptionsColorPreset } from './color-preset';
 import { OptionsColorScheme } from './color-scheme';

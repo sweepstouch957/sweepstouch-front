@@ -26,6 +26,7 @@ import {
     Typography,
 } from '@mui/material';
 import { DateRange } from 'react-date-range';
+import { tint } from '@/theme/semantic';
 import { StatusBadge } from '../StatusBadge';
 import { Row } from '../types/ScheduleCirculars';
 
@@ -39,7 +40,7 @@ type CircularsTableProps = {
     onRangeChange: (id: string, start: Date | null, end: Date | null) => void;
 };
 
-const headerStyles = { fontWeight: 700, color: '#475569' };
+const headerStyles = { fontWeight: 700, color: 'text.secondary' };
 
 function formatDate(d?: Date | null) {
     if (!d) return 'Sin fecha';
@@ -72,15 +73,18 @@ function DateRangeCell({ row, onChange }: DateRangeCellProps) {
                 onClick={handleOpen}
                 sx={{
                     borderRadius: 999,
-                    border: '1px solid #E2E8F0',
+                    border: '1px solid', borderColor: 'divider',
                     px: 1.8,
                     py: 0.8,
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 1,
-                    bgcolor: '#F8FAFC',
-                    '&:hover': { borderColor: '#A5B4FC', bgcolor: '#EEF2FF' },
+                    bgcolor: 'action.hover',
+                    '&:hover': {
+                        borderColor: 'info.main',
+                        bgcolor: (theme) => tint(theme, 'info', 0.06),
+                    },
                 }}
             >
                 <Box
@@ -88,22 +92,22 @@ function DateRangeCell({ row, onChange }: DateRangeCellProps) {
                         width: 24,
                         height: 24,
                         borderRadius: 999,
-                        bgcolor: '#E0E7FF',
+                        bgcolor: (theme) => tint(theme, 'info'),
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontSize: 11,
                         fontWeight: 600,
-                        color: '#3730A3',
+                        color: 'info.dark',
                     }}
                 >
                     R
                 </Box>
                 <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                    <Typography variant="caption" sx={{ color: '#6B7280', lineHeight: 1.2 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1.2 }}>
                         Rango activo
                     </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 500, color: '#111827', lineHeight: 1.2 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary', lineHeight: 1.2 }}>
                         {formatDate(row.startDate)} to {formatDate(row.endDate)}
                     </Typography>
                 </Box>
@@ -142,16 +146,15 @@ export function CircularsTable({
     return (
         <Paper
             sx={{
-                borderRadius: 3,
                 overflow: 'hidden',
-                border: '1px solid #EDF2F7',
+                border: '1px solid', borderColor: 'divider',
             }}
             elevation={0}
         >
-            <Box sx={{ px: 3, py: 1.5, borderBottom: '1px solid #EDF2F7', bgcolor: '#FAFAFB' }}>
+            <Box sx={{ px: 3, py: 1.5, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'action.hover' }}>
                 <Typography
                     variant="h6"
-                    sx={{ fontWeight: 700, color: '#2D3748', fontSize: 18 }}
+                    sx={{ fontWeight: 700, color: 'text.primary', fontSize: 18 }}
                 >
                     Circular Schedule Management
                 </Typography>
@@ -161,7 +164,7 @@ export function CircularsTable({
                 <Table
                     stickyHeader
                     size="small"
-                    sx={{ '& td, & th': { borderBottomColor: '#F1F5F9' } }}
+                    sx={{ '& td, & th': { borderBottomColor: 'divider' } }}
                 >
                     <TableHead>
                         <TableRow>
@@ -179,7 +182,7 @@ export function CircularsTable({
                         {rows.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={5} sx={{ py: 5 }}>
-                                    <Stack spacing={1.2} alignItems="center" sx={{ color: '#64748B' }}>
+                                    <Stack spacing={1.2} alignItems="center" sx={{ color: 'text.secondary' }}>
                                         <UploadIcon />
                                         <Typography variant="body2">
                                             Sube PDFs o crea filas para agendar circulares.
@@ -198,7 +201,7 @@ export function CircularsTable({
                                     key={row.id}
                                     hover
                                     sx={{
-                                        '&:nth-of-type(odd)': { bgcolor: '#FCFCFD' },
+                                        '&:nth-of-type(odd)': { bgcolor: 'action.hover' },
                                         position: 'relative',
                                     }}
                                 >
@@ -215,7 +218,7 @@ export function CircularsTable({
                                                 sx={{
                                                     width: 40,
                                                     height: 40,
-                                                    bgcolor: needsSlug ? '#F97316' : '#0EA5E9',
+                                                    bgcolor: needsSlug ? 'warning.main' : 'info.main',
                                                     fontSize: '0.8rem',
                                                     fontWeight: 700,
                                                 }}
@@ -229,7 +232,7 @@ export function CircularsTable({
                                                     <Box sx={{ mb: 0.25 }}>
                                                         <Typography
                                                             variant="body2"
-                                                            sx={{ fontWeight: 600, color: '#0F172A', lineHeight: 1.2 }}
+                                                            sx={{ fontWeight: 600, color: 'text.primary', lineHeight: 1.2 }}
                                                         >
                                                             {row.storeInfo.name}
                                                         </Typography>
@@ -237,7 +240,7 @@ export function CircularsTable({
                                                             <Typography
                                                                 variant="caption"
                                                                 sx={{
-                                                                    color: '#64748B',
+                                                                    color: 'text.secondary',
                                                                     display: 'block',
                                                                     lineHeight: 1.2,
                                                                 }}
@@ -249,7 +252,7 @@ export function CircularsTable({
                                                 ) : (
                                                     <Typography
                                                         variant="body2"
-                                                        sx={{ fontWeight: 500, color: '#475569', lineHeight: 1.2 }}
+                                                        sx={{ fontWeight: 500, color: 'text.secondary', lineHeight: 1.2 }}
                                                     >
                                                         {row.storeSlug || 'Slug pendiente'}
                                                     </Typography>
@@ -279,14 +282,14 @@ export function CircularsTable({
 
                                                 {/* Estado de lookup / error corto */}
                                                 {row.storeLoading && (
-                                                    <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                                                         Buscando tienda…
                                                     </Typography>
                                                 )}
                                                 {row.storeError && (
                                                     <Typography
                                                         variant="caption"
-                                                        sx={{ color: '#DC2626' }}
+                                                        sx={{ color: 'error.main' }}
                                                     >
                                                         {row.storeError}
                                                     </Typography>
@@ -303,7 +306,7 @@ export function CircularsTable({
                                                         <Typography
                                                             variant="caption"
                                                             sx={{
-                                                                color: '#64748B',
+                                                                color: 'text.secondary',
                                                                 overflow: 'hidden',
                                                                 textOverflow: 'ellipsis',
                                                                 whiteSpace: 'nowrap',
@@ -316,8 +319,8 @@ export function CircularsTable({
                                                             size="small"
                                                             label={prettySize(row.file.size)}
                                                             sx={{
-                                                                bgcolor: '#E2E8F0',
-                                                                color: '#1E293B',
+                                                                bgcolor: 'divider',
+                                                                color: 'text.primary',
                                                                 fontWeight: 500,
                                                                 fontSize: 10,
                                                                 height: 20,
@@ -397,9 +400,9 @@ export function CircularsTable({
                                                     <IconButton
                                                         size="small"
                                                         sx={{
-                                                            color: '#64748B',
+                                                            color: 'text.secondary',
                                                             borderRadius: 999,
-                                                            '&:hover': { bgcolor: '#F1F5F9' },
+                                                            '&:hover': { bgcolor: 'action.hover' },
                                                         }}
                                                         onClick={() => removeRow(row.id)}
                                                         disabled={row.uploading}

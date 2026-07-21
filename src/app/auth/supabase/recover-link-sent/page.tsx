@@ -1,7 +1,7 @@
 'use client';
 
 import DoneRoundedIcon from '@mui/icons-material/DoneRounded';
-import { Box, Button, Container, Divider, Link, Stack, Typography } from '@mui/material';
+import { Box, Button, Container, Divider, Stack, Typography } from '@mui/material';
 import React from 'react';
 import { ResetPasswordButton } from 'src/components/application-ui/user-auth/recover-password/auth-supabase-reset-password-button';
 import { AuthLayout } from 'src/components/auth/auth-layout';

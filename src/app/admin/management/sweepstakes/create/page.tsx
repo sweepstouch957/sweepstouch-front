@@ -1,7 +1,6 @@
 'use client';
 
 import { BriefFormRHF } from '@/components/application-ui/form-layouts/brief';
-import SweepstakeChecklist from '@/components/website/sweeptake-checklist';
 import { sweepstakesClient } from '@/services/sweepstakes.service';
 import { CreateOutlined } from '@mui/icons-material';
 import { Box, Card, CardContent, Container, Stack } from '@mui/material';

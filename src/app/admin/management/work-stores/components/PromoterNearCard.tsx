@@ -1,11 +1,12 @@
 'use client';
 
-import React, { memo, useState } from 'react';
+import { memo, useState } from 'react';
 import { Avatar, Box, Button, Chip, Stack, Typography } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import StarIcon from '@mui/icons-material/Star';
 import { NearbyPromoter } from '@/services/promotor.service';
 import { cloudinaryThumb } from '@/utils/cloudinary';
+import { tint } from 'src/theme/semantic';
 
 interface PromoterNearCardProps {
   promoter: NearbyPromoter;
@@ -130,9 +131,9 @@ export const PromoterNearCard = memo(function PromoterNearCard({
           px: 1.25,
           py: 0.25,
           flexShrink: 0,
-          borderColor: '#EE1E7C',
-          color: '#EE1E7C',
-          '&:hover': { borderColor: '#EE1E7C', bgcolor: 'rgba(238,30,124,0.06)' },
+          borderColor: 'primary.main',
+          color: 'primary.main',
+          '&:hover': { borderColor: 'primary.main', bgcolor: (t) => tint(t, 'primary', 0.06) },
         }}
       >
         Turno

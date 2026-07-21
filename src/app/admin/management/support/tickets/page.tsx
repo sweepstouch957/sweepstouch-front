@@ -41,6 +41,8 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
+import type { Theme } from '@mui/material/styles';
+import { chartPalette, tint, tintBorder, type SemanticRole } from 'src/theme/semantic';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -104,20 +106,18 @@ const AREA_LABEL: Record<string, string> = {
   management: 'Gerencia',
   other: 'Otro',
 };
-const AREA_HEX: Record<string, string> = {
-  it: '#6C63FF',
-  hardware: '#FF8C00',
-  networking: '#0288D1',
-  sales: '#2E7D32',
-  operations: '#C62828',
-  management: '#6D4C41',
-  support: '#0097A7',
-  other: '#757575',
+/** Áreas: color CATEGÓRICO (hay que distinguirlas entre sí, no significan estado). */
+const AREA_ORDER = ['it', 'hardware', 'networking', 'sales', 'operations', 'management', 'support', 'other'];
+const areaColor = (theme: Theme, area?: string) => {
+  const palette = chartPalette(theme);
+  const idx = AREA_ORDER.indexOf(area ?? '');
+  return idx >= 0 ? palette[idx % palette.length] : theme.palette.text.disabled;
 };
-const STORE_TYPE_COLOR: Record<string, string> = {
-  elite: '#6C63FF',
-  basic: '#0288D1',
-  free: '#757575',
+const STORE_TYPE_ORDER = ['elite', 'basic', 'free'];
+const storeTypeColor = (theme: Theme, type?: string) => {
+  const palette = chartPalette(theme);
+  const idx = STORE_TYPE_ORDER.indexOf(type ?? '');
+  return idx >= 0 ? palette[idx % palette.length] : theme.palette.primary.main;
 };
 
 /* ─── Helpers ─────────────────────────────────────────────── */
@@ -125,14 +125,14 @@ function isImageUrl(url: string) {
   return /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(url);
 }
 
-function getAudienceInfo(count: number | undefined): { label: string; hex: string } | null {
+function getAudienceInfo(count: number | undefined): { label: string; role: SemanticRole } | null {
   if (!count || count === 0) return null;
   const k = count >= 1000
     ? `${(count / 1000).toFixed(count >= 10000 ? 0 : 1)}k`
     : `${count}`;
-  if (count >= 30000) return { label: `${k} · Crítico`, hex: '#C62828' };
-  if (count >= 10000) return { label: `${k} · Urgente`, hex: '#E65100' };
-  return { label: k, hex: '#2E7D32' };
+  if (count >= 30000) return { label: `${k} · Crítico`, role: 'error' };
+  if (count >= 10000) return { label: `${k} · Urgente`, role: 'warning' };
+  return { label: k, role: 'success' };
 }
 
 /* ─── Types ───────────────────────────────────────────────── */
@@ -441,7 +441,7 @@ export default function TicketsPage() {
                 <TableRow><TableCell colSpan={10} align="center" sx={{ py: 6 }}><Typography color="text.secondary">No hay tickets</Typography></TableCell></TableRow>
               ) : (
                 data.data.map((ticket) => {
-                  const areaHex = AREA_HEX[ticket.area ?? ''] ?? '#757575';
+                  const areaHex = areaColor(theme, ticket.area);
                   return (
                     <TableRow
                       key={ticket._id}
@@ -544,7 +544,7 @@ export default function TicketsPage() {
           ) : (
             <Stack spacing={2} p={2}>
               {data.data.map((ticket) => {
-                const areaHex = AREA_HEX[ticket.area ?? ''] ?? '#757575';
+                const areaHex = areaColor(theme, ticket.area);
                 return (
                   <Card
                     key={ticket._id}
@@ -709,7 +709,7 @@ export default function TicketsPage() {
                   {Object.entries(AREA_LABEL).map(([k, v]) => (
                     <MenuItem key={k} value={k}>
                       <Stack direction="row" alignItems="center" spacing={1}>
-                        <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: AREA_HEX[k] ?? '#757575', flexShrink: 0 }} />
+                        <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: areaColor(theme, k), flexShrink: 0 }} />
                         <span>{v}</span>
                       </Stack>
                     </MenuItem>
@@ -759,7 +759,7 @@ export default function TicketsPage() {
               getOptionLabel={(o) => o.name}
               isOptionEqualToValue={(a, b) => a._id === b._id}
               renderOption={(props, o) => {
-                const color = STORE_TYPE_COLOR[o.type ?? ''] ?? theme.palette.primary.main;
+                const color = storeTypeColor(theme, o.type);
                 const aud = getAudienceInfo(o.customerCount);
                 return (
                   <Box component="li" {...props} sx={{ gap: 1.5, alignItems: 'flex-start !important', py: '8px !important' }}>
@@ -775,9 +775,9 @@ export default function TicketsPage() {
                             size="small"
                             sx={{
                               height: 18, fontSize: 10, fontWeight: 700, flexShrink: 0,
-                              bgcolor: alpha(aud.hex, 0.1),
-                              color: aud.hex,
-                              border: `1px solid ${alpha(aud.hex, 0.3)}`,
+                              bgcolor: tint(theme, aud.role),
+                              color: `${aud.role}.main`,
+                              border: `1px solid ${tintBorder(theme, aud.role, 0.3)}`,
                             }}
                           />
                         )}
@@ -852,7 +852,7 @@ export default function TicketsPage() {
                   sx={{
                     cursor: 'pointer', fontWeight: form.reporterIsCurrentUser ? 700 : 500,
                     bgcolor: form.reporterIsCurrentUser ? 'primary.main' : 'transparent',
-                    color: form.reporterIsCurrentUser ? '#fff' : 'text.secondary',
+                    color: form.reporterIsCurrentUser ? 'common.white' : 'text.secondary',
                     border: '1px solid',
                     borderColor: form.reporterIsCurrentUser ? 'primary.main' : 'divider',
                   }}
@@ -864,7 +864,7 @@ export default function TicketsPage() {
                   sx={{
                     cursor: 'pointer', fontWeight: !form.reporterIsCurrentUser ? 700 : 500,
                     bgcolor: !form.reporterIsCurrentUser ? 'primary.main' : 'transparent',
-                    color: !form.reporterIsCurrentUser ? '#fff' : 'text.secondary',
+                    color: !form.reporterIsCurrentUser ? 'common.white' : 'text.secondary',
                     border: '1px solid',
                     borderColor: !form.reporterIsCurrentUser ? 'primary.main' : 'divider',
                   }}
@@ -988,7 +988,7 @@ export default function TicketsPage() {
                         sx={{
                           position: 'absolute', top: -7, right: -7,
                           width: 18, height: 18,
-                          bgcolor: 'error.main', color: '#fff',
+                          bgcolor: 'error.main', color: 'common.white',
                           border: '1.5px solid white',
                           '&:hover': { bgcolor: 'error.dark' },
                         }}

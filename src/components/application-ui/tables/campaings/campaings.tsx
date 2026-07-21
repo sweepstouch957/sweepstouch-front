@@ -34,6 +34,8 @@ import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
 import ExportButton from '../../buttons/export-button';
 import Results from './results';
+import type { Theme } from '@mui/material/styles';
+import { tint, tintBorder } from '@/theme/semantic';
 
 interface CampaignsGridProps {
   storeId?: string;
@@ -41,14 +43,14 @@ interface CampaignsGridProps {
 }
 
 /* ─── Platform color map ─── */
-const PLATFORM_META: Record<string, { label: string; color: string }> = {
-  infobip: { label: 'Infobip', color: '#e91e8c' },
-  bandwidth: { label: 'Bandwidth', color: '#2196f3' },
-  twillio: { label: 'Twilio', color: '#7c3aed' },
-  twilio: { label: 'Twilio', color: '#7c3aed' },
-  unknown: { label: 'Sin plataforma', color: '#6b7280' },
-  '': { label: 'Sin plataforma', color: '#6b7280' },
-};
+const platformMeta = (theme: Theme): Record<string, { label: string; color: string }> => ({
+  infobip: { label: 'Infobip', color: theme.palette.primary.main },
+  bandwidth: { label: 'Bandwidth', color: theme.palette.info.main },
+  twillio: { label: 'Twilio', color: theme.palette.secondary.main },
+  twilio: { label: 'Twilio', color: theme.palette.secondary.main },
+  unknown: { label: 'Sin plataforma', color: theme.palette.text.secondary },
+  '': { label: 'Sin plataforma', color: theme.palette.text.secondary },
+});
 
 /* ─────────────────────────────────────────
    KPI CARD  —  executive left-border style
@@ -83,8 +85,8 @@ function KpiCard({
         p: 1,
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         '&:hover': {
-          boxShadow: `0 0 0 1px ${alpha(color, 0.4)}, 0 8px 24px ${alpha(color, 0.15)}`,
           borderColor: alpha(color, 0.5),
+          bgcolor: alpha(color, isDark ? 0.12 : 0.07),
           transform: 'translateY(-2px)',
         },
       }}
@@ -186,7 +188,11 @@ function StatCell({ icon, color, label, sublabel, value, pct, extraInfo, isCurre
         px: 1,
         py: 0.75,
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        '&:hover': { transform: 'translateY(-2px)', bgcolor: isDark ? alpha('#fff', 0.02) : alpha('#000', 0.02) }
+        '&:hover': {
+          transform: 'translateY(-2px)',
+          bgcolor: (t: Theme) =>
+            alpha(isDark ? t.palette.common.white : t.palette.common.black, 0.02),
+        },
       }}
     >
       <Stack direction="row" alignItems="center" spacing={0.75} mb={0.25}>
@@ -270,15 +276,15 @@ function MessagingPanel({ stats, loading }: { stats: FilterStatsResponse; loadin
         borderRadius: 2.5,
         border: '1px solid',
         borderColor: 'divider',
-        bgcolor: isDark ? alpha('#fff', 0.02) : alpha('#000', 0.015),
+        bgcolor: alpha(isDark ? theme.palette.common.white : theme.palette.common.black, isDark ? 0.02 : 0.015),
         overflow: 'hidden',
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         '&:hover': {
-          borderColor: isDark ? alpha('#fff', 0.1) : alpha('#000', 0.1),
-          boxShadow: `0 8px 24px ${alpha('#000', 0.08)}`,
+          borderColor: tintBorder(theme, 'primary'),
+          bgcolor: tint(theme, 'primary', 0.04),
         },
       }}
     >
@@ -293,7 +299,7 @@ function MessagingPanel({ stats, loading }: { stats: FilterStatsResponse; loadin
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 1,
-          bgcolor: isDark ? alpha('#fff', 0.02) : alpha('#000', 0.015),
+          bgcolor: alpha(isDark ? theme.palette.common.white : theme.palette.common.black, isDark ? 0.02 : 0.015),
         }}
       >
         <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'text.secondary' }}>
@@ -391,7 +397,7 @@ function MessagingPanel({ stats, loading }: { stats: FilterStatsResponse; loadin
             alignItems: 'center',
             gap: 2,
             flexWrap: 'wrap',
-            bgcolor: isDark ? alpha('#fff', 0.01) : alpha('#000', 0.01),
+            bgcolor: alpha(isDark ? theme.palette.common.white : theme.palette.common.black, 0.01),
           }}
         >
           <Stack direction="row" alignItems="center" spacing={0.75} flexShrink={0}>
@@ -411,7 +417,7 @@ function MessagingPanel({ stats, loading }: { stats: FilterStatsResponse; loadin
           ) : (
             <Stack direction="row" spacing={3} flexWrap="wrap">
               {platforms.map(([key, count]) => {
-                const meta = PLATFORM_META[key] ?? { label: key, color: '#9e9e9e' };
+                const meta = platformMeta(theme)[key] ?? { label: key, color: theme.palette.text.disabled };
                 const pct = total > 0 ? Math.round((count / total) * 100) : 0;
                 return (
                   <Tooltip key={key} title={`${count} campañas · ${pct}% del total`} arrow placement="top">
@@ -553,13 +559,16 @@ function CampaignsGrid({ storeId, forceCards = false }: CampaignsGridProps) {
             px: 2,
             py: 1.25,
             borderRadius: 2,
-            bgcolor: theme.palette.mode === 'dark' ? alpha('#fff', 0.02) : alpha('#000', 0.015),
+            bgcolor: alpha(
+              theme.palette.mode === 'dark' ? theme.palette.common.white : theme.palette.common.black,
+              theme.palette.mode === 'dark' ? 0.02 : 0.015
+            ),
             border: '1px solid',
             borderColor: 'divider',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover': {
-              bgcolor: theme.palette.mode === 'dark' ? alpha('#fff', 0.04) : alpha('#000', 0.03),
-              boxShadow: `0 4px 12px ${alpha('#000', 0.05)}`
+              borderColor: tintBorder(theme, 'primary'),
+              bgcolor: tint(theme, 'primary', 0.04),
             }
           }}
         >
@@ -580,11 +589,11 @@ function CampaignsGrid({ storeId, forceCards = false }: CampaignsGridProps) {
                 </Box>
                 <Box>
                   <Typography sx={{ fontSize: 10, color: 'text.secondary', textTransform: 'uppercase', fontWeight: 700, lineHeight: 1.2 }}>Completadas</Typography>
-                  <Typography sx={{ fontSize: 14, fontWeight: 800, color: '#10b981', lineHeight: 1.2 }}>{(s.byStatus.completed ?? 0).toLocaleString()}</Typography>
+                  <Typography sx={{ fontSize: 14, fontWeight: 800, color: 'success.main', lineHeight: 1.2 }}>{(s.byStatus.completed ?? 0).toLocaleString()}</Typography>
                 </Box>
                 <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
                   <Typography sx={{ fontSize: 10, color: 'text.secondary', textTransform: 'uppercase', fontWeight: 700, lineHeight: 1.2 }}>Audiencia</Typography>
-                  <Typography sx={{ fontSize: 14, fontWeight: 800, color: '#8b5cf6', lineHeight: 1.2 }}>{s.messages.totalAudience.toLocaleString()}</Typography>
+                  <Typography sx={{ fontSize: 14, fontWeight: 800, color: 'secondary.main', lineHeight: 1.2 }}>{s.messages.totalAudience.toLocaleString()}</Typography>
                 </Box>
               </Stack>
             )}
@@ -626,7 +635,7 @@ function CampaignsGrid({ storeId, forceCards = false }: CampaignsGridProps) {
                   label="Completadas"
                   description="campañas enviadas con éxito"
                   value={s.byStatus.completed ?? 0}
-                  color="#10b981"
+                  color={theme.palette.success.main}
                   loading={isLoading}
                 />
                 <KpiCard
@@ -634,7 +643,7 @@ function CampaignsGrid({ storeId, forceCards = false }: CampaignsGridProps) {
                   label="Programadas"
                   description="campañas en cola de envío"
                   value={s.byStatus.scheduled ?? 0}
-                  color="#f59e0b"
+                  color={theme.palette.warning.main}
                   loading={isLoading}
                 />
                 <KpiCard
@@ -642,7 +651,7 @@ function CampaignsGrid({ storeId, forceCards = false }: CampaignsGridProps) {
                   label="Canceladas"
                   description="campañas no ejecutadas"
                   value={s.byStatus.cancelled ?? 0}
-                  color="#ef4444"
+                  color={theme.palette.error.main}
                   loading={isLoading}
                 />
               </Box>

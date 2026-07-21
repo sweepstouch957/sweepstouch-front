@@ -56,7 +56,7 @@ export const CircularsTable: React.FC<CircularsTableProps> = ({
       <Box
         sx={{
           p: 3,
-          borderBottom: '1px solid #E2E8F0',
+          borderBottom: '1px solid', borderColor: 'divider',
           display: 'flex',
           flexDirection: { xs: 'column', sm: 'row' },
           gap: 2,
@@ -66,7 +66,7 @@ export const CircularsTable: React.FC<CircularsTableProps> = ({
       >
         <Typography
           variant="h6"
-          sx={{ fontWeight: 600, color: '#2D3748' }}
+          sx={{ fontWeight: 600, color: 'text.primary' }}
         >
           Circular Status by Store
         </Typography>
@@ -112,7 +112,7 @@ export const CircularsTable: React.FC<CircularsTableProps> = ({
                       sx={{
                         width: 40,
                         height: 40,
-                        backgroundColor: storeImage ? undefined : '#E91E63',
+                        backgroundColor: storeImage ? undefined : 'primary.main',
                         fontSize: '0.875rem',
                         fontWeight: 600,
                       }}
@@ -123,7 +123,7 @@ export const CircularsTable: React.FC<CircularsTableProps> = ({
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                         <Typography
                           variant="body2"
-                          sx={{ fontWeight: 600, color: '#2D3748' }}
+                          sx={{ fontWeight: 600, color: 'text.primary' }}
                         >
                           {storeName}
                         </Typography>
@@ -131,13 +131,13 @@ export const CircularsTable: React.FC<CircularsTableProps> = ({
                       </Box>
                       <Typography
                         variant="caption"
-                        sx={{ color: '#A0AEC0', display: 'block' }}
+                        sx={{ color: 'text.disabled', display: 'block' }}
                       >
                         {slug}
                       </Typography>
                       <Typography
                         variant="caption"
-                        sx={{ color: '#4A5568', display: 'block', mt: 0.5 }}
+                        sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}
                       >
                         Audience: {formatAudience(audience)}
                       </Typography>
@@ -150,14 +150,14 @@ export const CircularsTable: React.FC<CircularsTableProps> = ({
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                     <Typography
                       variant="body2"
-                      sx={{ color: '#2D3748', fontWeight: 500 }}
+                      sx={{ color: 'text.primary', fontWeight: 500 }}
                     >
                       {current ? current.title : 'No active circular'}
                     </Typography>
                     {current?.endDate && (
                       <Typography
                         variant="caption"
-                        sx={{ color: '#718096' }}
+                        sx={{ color: 'text.secondary' }}
                       >
                         {`UNTIL ${fmt(current.endDate)}`}
                       </Typography>
@@ -190,14 +190,14 @@ export const CircularsTable: React.FC<CircularsTableProps> = ({
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                     <Typography
                       variant="body2"
-                      sx={{ color: '#2D3748', fontWeight: 500 }}
+                      sx={{ color: 'text.primary', fontWeight: 500 }}
                     >
                       {next ? next.title : 'No scheduled circular'}
                     </Typography>
                     {next?.startDate && (
                       <Typography
                         variant="caption"
-                        sx={{ color: '#2196F3' }}
+                        sx={{ color: 'info.main' }}
                       >
                         {`STARTS ${fmt(next.startDate)}`}
                       </Typography>
@@ -233,7 +233,7 @@ export const CircularsTable: React.FC<CircularsTableProps> = ({
                       <span>
                         <IconButton
                           size="small"
-                          sx={{ color: '#718096' }}
+                          sx={{ color: 'text.secondary' }}
                           disabled={!current?.fileUrl && !next?.fileUrl}
                           onClick={() => {
                             if (current?.fileUrl && current) {
@@ -257,7 +257,7 @@ export const CircularsTable: React.FC<CircularsTableProps> = ({
                         target="_blank"
                         rel="noopener noreferrer"
                         sx={{
-                          color: '#00A9BC',
+                          color: 'info.main',
                           '&:hover': {
                             bgcolor: 'rgba(0,169,188,0.08)',
                           },

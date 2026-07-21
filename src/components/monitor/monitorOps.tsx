@@ -3,8 +3,7 @@
 import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Box, Card, Stack, Typography, Chip, Avatar, Skeleton, alpha, Autocomplete, TextField,
-} from '@mui/material';
+  Box, Stack, Typography, Chip, Skeleton, alpha, Autocomplete, TextField } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import MonitorHeartRoundedIcon from '@mui/icons-material/MonitorHeartRounded';
 import CompareArrowsRoundedIcon from '@mui/icons-material/CompareArrowsRounded';
@@ -39,9 +38,11 @@ async function pingAll() {
   );
 }
 
-const STATUS_COLOR: Record<string, string> = { ok: '#22c55e', slow: '#f59e0b', down: '#ef4444' };
+// Estado de servicio -> rol semantico (resuelto contra el theme en cada uso)
+const STATUS_ROLE: Record<string, 'success' | 'warning' | 'error'> = { ok: 'success', slow: 'warning', down: 'error' };
 
 export function ServicesHealth() {
+  const theme = useTheme();
   const health = useQuery({ queryKey: ['monitor-health'], queryFn: pingAll, refetchInterval: 30_000, retry: 0 });
   return (
     <SectionCard title="Salud de servicios" icon={<MonitorHeartRoundedIcon />}>
@@ -49,17 +50,20 @@ export function ServicesHealth() {
         <Skeleton variant="rounded" height={120} />
       ) : (
         <Stack spacing={1}>
-          {(health.data || []).map((s) => (
+          {(health.data || []).map((s) => {
+            const statusColor = theme.palette[STATUS_ROLE[s.status] ?? 'success'].main;
+            return (
             <Stack key={s.name} direction="row" alignItems="center" spacing={1.5} sx={{ py: 0.75 }}>
-              <CircleIcon sx={{ fontSize: 12, color: STATUS_COLOR[s.status] }} />
+              <CircleIcon sx={{ fontSize: 12, color: statusColor }} />
               <Typography sx={{ flex: 1, fontWeight: 600, fontSize: 13 }}>{s.name}</Typography>
               <Chip
                 label={s.ok ? `${s.ms} ms` : 'caído'}
                 size="small"
-                sx={{ fontWeight: 700, bgcolor: alpha(STATUS_COLOR[s.status], 0.12), color: STATUS_COLOR[s.status] }}
+                sx={{ fontWeight: 700, bgcolor: alpha(statusColor, 0.12), color: statusColor }}
               />
             </Stack>
-          ))}
+            );
+          })}
         </Stack>
       )}
     </SectionCard>
@@ -136,7 +140,7 @@ export function CompareStores({ storeA }: { storeA: Store | null }) {
               <Typography sx={{ fontSize: 14, fontWeight: aWins ? 800 : 600, textAlign: 'right', py: 0.75, borderTop: 1, borderColor: 'divider', color: aWins ? 'primary.main' : 'text.primary', bgcolor: aWins ? alpha(theme.palette.primary.main, 0.05) : 'transparent' }}>
                 {a.loading ? '…' : fmt(va)}
               </Typography>
-              <Typography sx={{ fontSize: 14, fontWeight: !aWins && vb > 0 ? 800 : 600, textAlign: 'right', py: 0.75, borderTop: 1, borderColor: 'divider', color: !aWins && vb > 0 ? '#16a34a' : 'text.primary' }}>
+              <Typography sx={{ fontSize: 14, fontWeight: !aWins && vb > 0 ? 800 : 600, textAlign: 'right', py: 0.75, borderTop: 1, borderColor: 'divider', color: !aWins && vb > 0 ? 'success.main' : 'text.primary' }}>
                 {!storeB ? '—' : b.loading ? '…' : fmt(vb)}
               </Typography>
             </React.Fragment>

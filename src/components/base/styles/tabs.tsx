@@ -103,7 +103,6 @@ export const TabsShadow = styled(Tabs)(({ theme }) => ({
       top: -44,
       borderRadius: 'inherit',
       background: theme.palette.primary.main,
-      boxShadow: theme.shadows[1],
     },
   },
 }));
@@ -149,7 +148,6 @@ export const TabsAlternate = styled(Tabs)(({ theme }) => ({
       top: -44,
       borderRadius: theme.shape.borderRadius,
       background: theme.palette.primary.main,
-      boxShadow: theme.shadows[1],
     },
   },
 }));

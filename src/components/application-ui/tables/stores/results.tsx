@@ -44,6 +44,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import type { Theme } from '@mui/material/styles';
 import Link from 'next/link';
 import NextImage from 'next/image';
 import dynamic from 'next/dynamic';
@@ -163,16 +164,19 @@ function paymentMethodLabel(method?: Store['paymentMethod']) {
 }
 
 /* --------------------------- provider helper ------------------------------ */
-function providerInfo(store: any): { label: string; emoji: string; sender: string; color: string } {
+function providerInfo(
+  store: any,
+  theme: Theme
+): { label: string; emoji: string; sender: string; color: string } {
   const p = store.provider || 'twilio';
   switch (p) {
     case 'infobip':
-      return { label: 'Infobip', emoji: '⚡', sender: store.infobipSenderId || '—', color: '#FF6B00' };
+      return { label: 'Infobip', emoji: '⚡', sender: store.infobipSenderId || '—', color: theme.palette.warning.main };
     case 'bandwidth':
-      return { label: 'Bandwidth', emoji: '📡', sender: store.bandwidthPhoneNumber || '—', color: '#0066CC' };
+      return { label: 'Bandwidth', emoji: '📡', sender: store.bandwidthPhoneNumber || '—', color: theme.palette.info.main };
     case 'twilio':
     default:
-      return { label: 'Twilio', emoji: '📞', sender: store.twilioPhoneNumber || '—', color: '#F22F46' };
+      return { label: 'Twilio', emoji: '📞', sender: store.twilioPhoneNumber || '—', color: theme.palette.error.main };
   }
 }
 
@@ -250,9 +254,10 @@ const StoreRow: FC<StoreRowProps> = React.memo(({ store, isAdmin, onOpenTech, on
   const pending = store.billing?.totalPending || 0;
   const weeklyCost = store.billing?.lastWeekCampaignCost || 0;
   const installmentsNeeded = store.billing?.installmentsNeeded ?? null;
+  const theme = useTheme();
   const tone = paymentTone(pending, installmentsNeeded);
   const payMethod = paymentMethodLabel(store.paymentMethod);
-  const pi = providerInfo(store);
+  const pi = providerInfo(store, theme);
 
   return (
     <TableRow key={id} hover>
@@ -274,7 +279,7 @@ const StoreRow: FC<StoreRowProps> = React.memo(({ store, isAdmin, onOpenTech, on
             </Typography>
             {store.accessCode ? (
               <Chip size="small" label={`Codigo: ${store.accessCode}`} variant="outlined"
-                sx={{ mt: 0.5, height: 20, maxWidth: 260, color: '#ff0080', borderColor: '#ff0080', fontSize: 10, fontWeight: 800, '& .MuiChip-label': { px: 0.75, overflow: 'hidden', textOverflow: 'ellipsis' } }}
+                sx={{ mt: 0.5, height: 20, maxWidth: 260, color: 'primary.main', borderColor: 'primary.main', fontSize: 10, fontWeight: 800, '& .MuiChip-label': { px: 0.75, overflow: 'hidden', textOverflow: 'ellipsis' } }}
               />
             ) : null}
           </Box>
@@ -530,8 +535,8 @@ const MobileList: FC<MobileListProps> = ({ stores, openTech }) => (
                       mt: 0.5,
                       height: 20,
                       maxWidth: '100%',
-                      color: '#ff0080',
-                      borderColor: '#ff0080',
+                      color: 'primary.main',
+                      borderColor: 'primary.main',
                       fontSize: 10,
                       fontWeight: 800,
                       '& .MuiChip-label': {

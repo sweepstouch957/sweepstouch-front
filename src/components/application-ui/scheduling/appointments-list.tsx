@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     Box,
@@ -31,11 +31,7 @@ import {
     DialogActions,
     DialogContentText,
     ToggleButtonGroup,
-    ToggleButton,
-    MenuItem,
-    Select,
-    FormControl,
-    InputLabel
+    ToggleButton
 } from '@mui/material';
 import { format, isPast, isToday, addMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -290,7 +286,7 @@ const AppointmentsList = () => {
             time: (app.slotId as any)?.time || 'N/A',
             status: app.status,
             link: app.meetingLink,
-            color: '#10b981',
+            color: theme.palette.success.main,
             scheduledAt: app.scheduledAt,
             phone: app.phoneNumber,
             email: app.contactEmail,
@@ -310,7 +306,7 @@ const AppointmentsList = () => {
                 time: req.demoTimeSlot || 'N/A',
                 status: req.status,
                 link: req.meetingLink,
-                color: '#f59e0b',
+                color: theme.palette.warning.main,
                 scheduledAt: undefined,
                 phone: req.phoneNumber,
                 email: req.contactEmail,
@@ -338,8 +334,8 @@ const AppointmentsList = () => {
                 start: `${rawDate}T${slot.time}:00`,
                 end: `${rawDate}T${endTime}:00`,
                 allDay: false,
-                color: !slot.available ? '#9ca3af' : '#4f46e5',
-                textColor: '#ffffff',
+                color: !slot.available ? theme.palette.grey[400] : theme.palette.primary.main,
+                textColor: theme.palette.common.white,
                 display: 'block'
             };
         }),

@@ -14,7 +14,6 @@ import {
   Divider,
   FormControlLabel,
   IconButton,
-  LinearProgress,
   Snackbar,
   Stack,
   Step,
@@ -24,8 +23,7 @@ import {
   Switch,
   TextField,
   Tooltip,
-  Typography,
-} from '@mui/material';
+  Typography } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BriefFormRHF, type SweepstakeOptinType } from '../application-ui/form-layouts/brief';

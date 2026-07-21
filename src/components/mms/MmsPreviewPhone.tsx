@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Box, Typography } from '@mui/material';
 
 interface Product {

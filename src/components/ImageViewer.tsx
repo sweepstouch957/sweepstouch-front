@@ -1,7 +1,7 @@
 'use client';
 
 import React, { forwardRef, useState, type ReactElement } from 'react';
-import { Dialog, DialogContent, Box, IconButton, Zoom } from '@mui/material';
+import { alpha, Dialog, DialogContent, Box, IconButton, Zoom } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { type TransitionProps } from '@mui/material/transitions';
@@ -48,7 +48,7 @@ export function ImageViewer({ open, imageUrl, onClose }: ImageViewerProps) {
             position: 'absolute',
             top: 12,
             right: 12,
-            color: '#fff',
+            color: 'common.white',
             bgcolor: 'rgba(0,0,0,0.5)',
             backdropFilter: 'blur(4px)',
             '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' },
@@ -102,12 +102,11 @@ export function ViewImageIcon({ onClick, sx = {} }: { onClick: (e: React.MouseEv
       onClick={onClick}
       size="small"
       sx={{
-        color: '#fff',
-        background: 'rgba(215, 0, 110, 0.6)',
+        color: 'common.white',
+        background: (theme) => alpha(theme.palette.primary.main, 0.6),
         backdropFilter: 'blur(4px)',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
         '&:hover': {
-          background: 'rgba(215, 0, 110, 0.8)',
+          background: (theme) => alpha(theme.palette.primary.main, 0.85),
           transform: 'scale(1.1)',
         },
         transition: 'all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',

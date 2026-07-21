@@ -1,4 +1,3 @@
-import { Store } from "@/services/store.service";
 export interface TargetAudience {
   ageRange: AgeRange;
   gender: string;

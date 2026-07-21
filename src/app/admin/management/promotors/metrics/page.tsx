@@ -15,7 +15,6 @@ import {
   Box,
   Chip,
   Container,
-  Divider,
   LinearProgress,
   Skeleton,
   Stack,
@@ -28,11 +27,11 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Typography,
-  useTheme,
-} from '@mui/material';
+  useTheme } from '@mui/material';
 import { BarChart } from '@mui/x-charts/BarChart';
 import { useState } from 'react';
 import PageHeading from 'src/components/base/page-heading';
+import { tint, tintBorder } from 'src/theme/semantic';
 import { useCustomization } from 'src/hooks/use-customization';
 
 // ── Period config ─────────────────────────────────────────────────────────────
@@ -116,9 +115,9 @@ function StatRow({
             fontSize: 10,
             fontWeight: 700,
             flexShrink: 0,
-            bgcolor: alpha(delta >= 0 ? '#10b981' : '#ef4444', 0.1),
-            color: delta >= 0 ? '#10b981' : '#ef4444',
-            border: `1px solid ${alpha(delta >= 0 ? '#10b981' : '#ef4444', 0.18)}`,
+            bgcolor: tint(theme, delta >= 0 ? 'success' : 'error'),
+            color: delta >= 0 ? 'success.main' : 'error.main',
+            border: `1px solid ${tintBorder(theme, delta >= 0 ? 'success' : 'error', 0.18)}`,
           }}
         />
       )}
@@ -147,7 +146,7 @@ function SectionCard({
         border: '1px solid',
         borderColor: 'divider',
         overflow: 'hidden',
-        bgcolor: dark ? alpha('#fff', 0.012) : alpha('#000', 0.008),
+        bgcolor: alpha(theme.palette.text.primary, dark ? 0.012 : 0.008),
       }}
     >
       <Stack
@@ -269,9 +268,16 @@ function GoalProgressRow({ promoter, rank, threshold }: { promoter: any; rank: n
   const regs = promoter.totalRegistrations ?? 0;
   const pct = Math.min(100, Math.round((regs / threshold) * 100));
   const reached = regs >= threshold;
-  const gold = '#f59e0b';
+  const gold = theme.palette.warning.main;
   const primary = theme.palette.primary.main;
-  const dotColor = rank === 0 ? gold : rank === 1 ? '#9ca3af' : rank === 2 ? '#b45309' : primary;
+  const dotColor =
+    rank === 0
+      ? gold
+      : rank === 1
+        ? theme.palette.text.disabled
+        : rank === 2
+          ? theme.palette.warning.dark
+          : primary;
 
   return (
     <Box
@@ -316,9 +322,9 @@ function GoalProgressRow({ promoter, rank, threshold }: { promoter: any; rank: n
           sx={{
             height: 5,
             borderRadius: 3,
-            bgcolor: alpha(reached ? '#10b981' : primary, dark ? 0.12 : 0.08),
+            bgcolor: alpha(reached ? theme.palette.success.main : primary, dark ? 0.12 : 0.08),
             '& .MuiLinearProgress-bar': {
-              bgcolor: reached ? '#10b981' : primary,
+              bgcolor: reached ? 'success.main' : primary,
               borderRadius: 3,
             },
           }}
@@ -327,7 +333,7 @@ function GoalProgressRow({ promoter, rank, threshold }: { promoter: any; rank: n
 
       {/* Count */}
       <Box textAlign="right">
-        <Typography sx={{ fontSize: 13, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: reached ? '#10b981' : 'text.primary' }}>
+        <Typography sx={{ fontSize: 13, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: reached ? 'success.main' : 'text.primary' }}>
           {regs}
         </Typography>
         <Typography sx={{ fontSize: 10, color: 'text.disabled', fontVariantNumeric: 'tabular-nums' }}>
@@ -427,7 +433,7 @@ export default function PromoterMetricsPage() {
           label="Nuevos usuarios"
           value={overview.newUsers.toLocaleString()}
           sub={`${newPct}% del total`}
-          color="#10b981"
+          color={theme.palette.success.main}
           loading={isLoading}
         />
         <StatRow
@@ -435,7 +441,7 @@ export default function PromoterMetricsPage() {
           label="Recurrentes"
           value={overview.existingUsers.toLocaleString()}
           sub={`${existPct}% del total`}
-          color="#6366f1"
+          color={theme.palette.info.main}
           loading={isLoading}
         />
         <StatRow
@@ -443,7 +449,7 @@ export default function PromoterMetricsPage() {
           label="Tiendas con actividad"
           value={overview.uniqueStoresCount}
           sub={`${overview.uniquePromotersCount} promotoras`}
-          color="#0ea5e9"
+          color={theme.palette.info.dark}
           loading={isLoading}
         />
         <StatRow
@@ -451,7 +457,7 @@ export default function PromoterMetricsPage() {
           label="Meta alcanzada"
           value={goalReached.length}
           sub={`≥${GOAL_THRESHOLD} registros totales`}
-          color="#ec4899"
+          color={theme.palette.secondary.main}
           loading={isLoading}
         />
         <StatRow
@@ -459,7 +465,7 @@ export default function PromoterMetricsPage() {
           label="Total pagado"
           value={`$${(overview.totalPaid ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           sub="para promotoras"
-          color="#f59e0b"
+          color={theme.palette.warning.main}
           loading={isLoading}
         />
         <StatRow
@@ -467,7 +473,7 @@ export default function PromoterMetricsPage() {
           label="Campañas enviadas"
           value={(overview.campaignSentCount ?? 0).toLocaleString()}
           sub="en el período"
-          color="#a855f7"
+          color={theme.palette.secondary.dark}
           loading={isLoading}
         />
       </Box>
@@ -527,7 +533,7 @@ export default function PromoterMetricsPage() {
         }}
       >
         {/* Daily chart */}
-        <SectionCard title={`Registros por día — ${PERIOD_LABELS[period]}`} dot="#10b981">
+        <SectionCard title={`Registros por día — ${PERIOD_LABELS[period]}`} dot={theme.palette.success.main}>
           <DailyRegistrationsChart data={dailyRegistrations} loading={isLoading} />
         </SectionCard>
 
@@ -557,7 +563,7 @@ export default function PromoterMetricsPage() {
                     <TableRow key={r.promoterId} hover sx={{ '&:last-child td': { border: 0 } }}>
                       <TableCell sx={{ py: 0.75 }}>
                         <Typography
-                          sx={{ fontSize: 11, fontWeight: 800, color: i === 0 ? '#f59e0b' : i === 1 ? '#9ca3af' : i === 2 ? '#b45309' : 'text.disabled' }}
+                          sx={{ fontSize: 11, fontWeight: 800, color: i === 0 ? 'warning.main' : i === 1 ? 'text.disabled' : i === 2 ? 'warning.dark' : 'text.disabled' }}
                         >
                           {i + 1}
                         </Typography>
@@ -615,7 +621,7 @@ export default function PromoterMetricsPage() {
         {/* Goal progress — all top 20 */}
         <SectionCard
           title="Progreso hacia la meta"
-          dot="#10b981"
+          dot={theme.palette.success.main}
           badge={
             <Chip
               size="small"
@@ -647,7 +653,7 @@ export default function PromoterMetricsPage() {
         {/* All-time grid — top 10 compact */}
         <SectionCard
           title="Historial acumulado"
-          dot="#6366f1"
+          dot={theme.palette.info.main}
           badge={
             <Typography sx={{ fontSize: 11, color: 'text.disabled', ml: 0.5 }}>
               todos los tiempos
@@ -663,7 +669,7 @@ export default function PromoterMetricsPage() {
           ) : (
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.25 }}>
               {topPromoters.slice(0, 10).map((p, i) => {
-                const dotColor = i === 0 ? '#f59e0b' : i === 1 ? '#9ca3af' : i === 2 ? '#b45309' : primary;
+                const dotColor = i === 0 ? theme.palette.warning.main : i === 1 ? theme.palette.text.disabled : i === 2 ? theme.palette.warning.dark : primary;
                 return (
                   <Stack
                     key={p._id}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { memo, useState } from 'react';
+import { memo, useState } from 'react';
 import { Avatar, Box, Chip, Stack, Typography } from '@mui/material';
 import { Store } from '@/services/store.service';
 import { PLACEHOLDER_IMG } from '../constants';

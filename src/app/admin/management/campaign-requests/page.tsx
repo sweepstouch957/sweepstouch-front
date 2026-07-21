@@ -1,8 +1,7 @@
 'use client';
 
 import RequestsList from '@/components/campaign-requests/RequestsList';
-import CampaignIcon from '@mui/icons-material/Campaign';
-import { Box, Container, Typography } from '@mui/material';
+import { Box, Container } from '@mui/material';
 import PageHeading from 'src/components/base/page-heading';
 import { useCustomization } from 'src/hooks/use-customization';
 

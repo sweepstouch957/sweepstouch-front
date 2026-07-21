@@ -6,7 +6,6 @@ import { useStoreEditor } from '@/hooks/pages/useStoreEditor';
 import { usersApi } from '@/mocks/users';
 import { api } from '@/libs/axios';
 import { Store } from '@/services/store.service';
-import { getTierColor } from '@/utils/ui/store.page';
 import { format } from 'date-fns';
 import {
   CalendarMonthOutlined,
@@ -27,10 +26,8 @@ import {
   Delete,
   AddCircle,
   PauseCircleOutline,
-  PlayCircleOutline,
   AttachFile,
-  Autorenew,
-} from '@mui/icons-material';
+  Autorenew } from '@mui/icons-material';
 import { uploadPdfToS3 } from '@/services/upload.service';
 import {
   Alert,
@@ -736,7 +733,7 @@ export default function StoreInfo({ store }: { store: Store }) {
                             alignItems={{ xs: 'stretch', sm: 'center' }}
                             spacing={1.5}
                           >
-                            <PictureAsPdf sx={{ color: '#ef4444', fontSize: 28, flexShrink: 0 }} />
+                            <PictureAsPdf sx={{ color: 'error.main', fontSize: 28, flexShrink: 0 }} />
                             <Box sx={{ flex: 1, minWidth: 0 }}>
                               <Typography fontWeight={700} fontSize={13} title={contract.fileName} sx={{ overflowWrap: 'anywhere' }}>
                                 {contract.fileName}

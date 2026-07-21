@@ -13,6 +13,7 @@ import {
   Stack,
   Tooltip,
   Typography,
+  useTheme,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -24,7 +25,6 @@ const OPTIN_CASHIERS_URL =
 const LINKTREE_URL =
   'https://links.sweepstouch.com/?slug=food-universe-marketplace-498-e-30th-st-paterson-nj-07504';
 const DEFAULT_TEST_STORE_NAME = 'Tienda de prueba super real';
-const SWEEPSTOUCH_PINK = '#FC0C83';
 const iframeScale = {
   xs: 0.58,
   sm: 0.64,
@@ -33,6 +33,9 @@ const iframeScale = {
 };
 
 export default function OptinCashiersPage() {
+  const theme = useTheme();
+  const white = theme.palette.common.white;
+  const brand = theme.palette.primary.main;
   const { push } = useRouter();
   const [activeView, setActiveView] = useState<'kiosk' | 'send-test' | 'linktree'>('kiosk');
   const isPhoneView = activeView === 'linktree';
@@ -54,9 +57,9 @@ export default function OptinCashiersPage() {
           maxHeight: 'none',
           m: 0,
           borderRadius: { xs: 2.5, sm: 3.5 },
-          bgcolor: SWEEPSTOUCH_PINK,
-          backgroundImage: `linear-gradient(135deg, ${SWEEPSTOUCH_PINK} 0%, #d8006b 44%, #a90055 100%)`,
-          color: '#fff',
+          bgcolor: brand,
+          backgroundImage: `linear-gradient(135deg, ${brand} 0%, ${theme.palette.primary.dark} 100%)`,
+          color: white,
           overflow: 'hidden',
         },
       }}
@@ -91,8 +94,8 @@ export default function OptinCashiersPage() {
                 borderRadius: 1.5,
                 display: 'grid',
                 placeItems: 'center',
-                bgcolor: alpha('#fff', 0.1),
-                border: `1px solid ${alpha('#fff', 0.14)}`,
+                bgcolor: alpha(white, 0.1),
+                border: `1px solid ${alpha(white, 0.14)}`,
               }}
             >
               <TabletMacRoundedIcon fontSize="small" />
@@ -106,7 +109,7 @@ export default function OptinCashiersPage() {
               </Typography>
               <Typography
                 variant="body2"
-                sx={{ color: alpha('#fff', 0.68) }}
+                sx={{ color: alpha(white, 0.68) }}
               >
                 Kiosko merchant
               </Typography>
@@ -123,10 +126,10 @@ export default function OptinCashiersPage() {
                 onClick={handleClose}
                 aria-label="Close Optin Cashiers"
                 sx={{
-                  color: '#fff',
-                  bgcolor: alpha('#fff', 0.1),
-                  border: `1px solid ${alpha('#fff', 0.16)}`,
-                  '&:hover': { bgcolor: alpha('#fff', 0.16) },
+                  color: white,
+                  bgcolor: alpha(white, 0.1),
+                  border: `1px solid ${alpha(white, 0.16)}`,
+                  '&:hover': { bgcolor: alpha(white, 0.16) },
                 }}
               >
                 <CloseRoundedIcon />
@@ -163,12 +166,11 @@ export default function OptinCashiersPage() {
               maxWidth: isPhoneView ? 380 : 1390,
               justifySelf: 'center',
               borderRadius: isPhoneView ? { xs: 5, md: 7 } : { xs: 4, md: 6 },
-              bgcolor: '#101010',
+              bgcolor: theme.palette.grey[900],
               p: isPhoneView
                 ? { xs: '22px 9px 12px', sm: '26px 11px 14px' }
                 : { xs: '12px 8px', sm: '16px 10px', md: '20px 12px' },
-              boxShadow: `0 28px 80px ${alpha('#000', 0.46)}`,
-              border: `1px solid ${alpha('#fff', 0.16)}`,
+              border: `1px solid ${alpha(white, 0.16)}`,
               position: 'relative',
               display: 'flex',
             }}
@@ -181,7 +183,7 @@ export default function OptinCashiersPage() {
                 width: isPhoneView ? { xs: 70, sm: 86 } : { xs: 58, sm: 76 },
                 height: isPhoneView ? 5 : 4,
                 borderRadius: 999,
-                bgcolor: alpha('#fff', 0.2),
+                bgcolor: alpha(white, 0.2),
                 transform: 'translateX(-50%)',
               }}
             />
@@ -190,8 +192,8 @@ export default function OptinCashiersPage() {
                 flex: 1,
                 overflow: 'hidden',
                 borderRadius: isPhoneView ? { xs: 3.8, sm: 5 } : { xs: 2.6, md: 4 },
-                bgcolor: '#fff',
-                border: `1px solid ${alpha('#fff', 0.1)}`,
+                bgcolor: white,
+                border: `1px solid ${alpha(white, 0.1)}`,
                 position: 'relative',
               }}
             >
@@ -276,20 +278,19 @@ export default function OptinCashiersPage() {
                 minHeight: 48,
                 minWidth: 0,
                 justifyContent: 'center',
-                bgcolor: '#fff',
-                color: SWEEPSTOUCH_PINK,
-                borderColor: '#fff',
+                bgcolor: white,
+                color: brand,
+                borderColor: white,
                 px: { xs: 1.25, sm: 2 },
                 whiteSpace: 'nowrap',
                 fontSize: { xs: 12, sm: 14 },
                 fontWeight: 800,
-                boxShadow: `0 12px 30px ${alpha('#000', 0.18)}`,
                 '& .MuiButton-startIcon': {
                   mr: { xs: 0.75, sm: 1 },
                   flexShrink: 0,
                 },
                 '&:hover': {
-                  bgcolor: alpha('#fff', 0.92),
+                  bgcolor: alpha(white, 0.92),
                 },
               }}
             >
@@ -305,20 +306,19 @@ export default function OptinCashiersPage() {
                 minHeight: 48,
                 minWidth: 0,
                 justifyContent: 'center',
-                bgcolor: '#fff',
-                color: SWEEPSTOUCH_PINK,
-                borderColor: '#fff',
+                bgcolor: white,
+                color: brand,
+                borderColor: white,
                 px: { xs: 1.25, sm: 2 },
                 whiteSpace: 'nowrap',
                 fontSize: { xs: 12, sm: 14 },
                 fontWeight: 800,
-                boxShadow: `0 12px 30px ${alpha('#000', 0.18)}`,
                 '& .MuiButton-startIcon': {
                   mr: { xs: 0.75, sm: 1 },
                   flexShrink: 0,
                 },
                 '&:hover': {
-                  bgcolor: alpha('#fff', 0.92),
+                  bgcolor: alpha(white, 0.92),
                 },
               }}
             >
@@ -334,21 +334,20 @@ export default function OptinCashiersPage() {
                 minHeight: 48,
                 minWidth: 0,
                 justifyContent: 'center',
-                color: SWEEPSTOUCH_PINK,
-                borderColor: '#fff',
-                bgcolor: '#fff',
+                color: brand,
+                borderColor: white,
+                bgcolor: white,
                 px: { xs: 1.25, sm: 2 },
                 whiteSpace: 'nowrap',
                 fontSize: { xs: 12, sm: 14 },
                 fontWeight: 800,
-                boxShadow: `0 12px 30px ${alpha('#000', 0.12)}`,
                 '& .MuiButton-startIcon': {
                   mr: { xs: 0.75, sm: 1 },
                   flexShrink: 0,
                 },
                 '&:hover': {
-                  borderColor: '#fff',
-                  bgcolor: alpha('#fff', 0.92),
+                  borderColor: white,
+                  bgcolor: alpha(white, 0.92),
                 },
               }}
             >

@@ -294,7 +294,7 @@ export const PreviewCircularDialog: React.FC<Props> = ({ target, onClose }) => {
         sx={{
           p: 0,
           height: fullScreen ? '100%' : '80vh',
-          bgcolor: '#111827',
+          bgcolor: 'grey.900',
         }}
       >
         <Box
@@ -313,10 +313,10 @@ export const PreviewCircularDialog: React.FC<Props> = ({ target, onClose }) => {
               transformOrigin: 'top center',
               width: `${100 / zoom}%`,
               height: `${100 / zoom}%`,
-              boxShadow: '0 0 25px rgba(0,0,0,0.4)',
+              boxShadow: 24,
               borderRadius: 1,
               overflow: 'hidden',
-              bgcolor: '#fff',
+              bgcolor: 'common.white',
             }}
           >
             {url ? (
@@ -332,8 +332,8 @@ export const PreviewCircularDialog: React.FC<Props> = ({ target, onClose }) => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  bgcolor: '#111827',
-                  color: '#E5E7EB',
+                  bgcolor: 'grey.900',
+                  color: 'grey.200',
                 }}
               >
                 <Typography variant="body2">No PDF available for this circular.</Typography>

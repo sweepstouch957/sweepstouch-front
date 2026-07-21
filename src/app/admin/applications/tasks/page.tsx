@@ -3,7 +3,7 @@
 import { useAuth } from '@/hooks/use-auth';
 import { usersApi } from '@/mocks/users';
 import { Department, departmentService } from '@/services/department.service';
-import { Project, Task, taskClient, type BoardData } from '@/services/task.service';
+import { Task, taskClient, type BoardData } from '@/services/task.service';
 import { DragDropContext, Draggable, Droppable, type DropResult } from '@hello-pangea/dnd';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
@@ -17,7 +17,6 @@ import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
 import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
 import FlagRoundedIcon from '@mui/icons-material/FlagRounded';
-import MoreHorizRoundedIcon from '@mui/icons-material/MoreHorizRounded';
 import PersonOutlineRoundedIcon from '@mui/icons-material/PersonOutlineRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
@@ -28,7 +27,6 @@ import {
   alpha,
   Autocomplete,
   Avatar,
-  AvatarGroup,
   Box,
   Button,
   Card,
@@ -57,15 +55,16 @@ import {
   Tooltip,
   Typography,
   useMediaQuery,
-  useTheme,
-} from '@mui/material';
+  useTheme } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { format, formatDistance, isAfter } from 'date-fns';
+import { format, isAfter } from 'date-fns';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useCustomization } from 'src/hooks/use-customization';
+import type { Theme } from '@mui/material/styles';
+import { severityColor, tint, type SemanticRole } from 'src/theme/semantic';
 
 type TaskFormState = {
   title: string;
@@ -88,23 +87,59 @@ type ProjectFormState = {
 
 /* ──────────────────────────── Constants ──────────────────────────── */
 
-const PRIORITY_CONFIG: Record<string, { color: string; label: string; icon: string }> = {
-  critical: { color: '#FF1744', label: 'Critical', icon: '🔴' },
-  high: { color: '#FF6D00', label: 'High', icon: '🟠' },
-  medium: { color: '#FFB300', label: 'Medium', icon: '🟡' },
-  low: { color: '#00C853', label: 'Low', icon: '🟢' },
+const PRIORITY_CONFIG: Record<string, { label: string; icon: string }> = {
+  critical: { label: 'Critical', icon: '🔴' },
+  high: { label: 'High', icon: '🟠' },
+  medium: { label: 'Medium', icon: '🟡' },
+  low: { label: 'Low', icon: '🟢' },
 };
 
-const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
-  backlog: { label: 'Backlog', color: '#78909C', bg: 'rgba(120,144,156,0.08)' },
-  todo: { label: 'To Do', color: '#42A5F5', bg: 'rgba(66,165,245,0.08)' },
-  in_progress: { label: 'In Progress', color: '#FFA726', bg: 'rgba(255,167,38,0.08)' },
-  in_review: { label: 'In Review', color: '#AB47BC', bg: 'rgba(171,71,188,0.08)' },
-  done: { label: 'Done', color: '#66BB6A', bg: 'rgba(102,187,106,0.08)' },
+/** Color de prioridad: sale del design system (`severityColor`), no de hex. */
+function priorityMeta(theme: Theme, key: string) {
+  const cfg = PRIORITY_CONFIG[key] ?? PRIORITY_CONFIG.medium;
+  return { ...cfg, color: severityColor(theme, key) };
+}
+
+function priorityEntries(theme: Theme) {
+  return Object.keys(PRIORITY_CONFIG).map((k) => [k, priorityMeta(theme, k)] as const);
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  backlog: 'Backlog',
+  todo: 'To Do',
+  in_progress: 'In Progress',
+  in_review: 'In Review',
+  done: 'Done',
 };
+
+const STATUS_ROLE: Record<string, SemanticRole> = {
+  backlog: 'secondary',
+  todo: 'info',
+  in_progress: 'warning',
+  in_review: 'primary',
+  done: 'success',
+};
+
+function statusMeta(theme: Theme, key: string) {
+  const role = STATUS_ROLE[key] ?? 'info';
+  return {
+    label: STATUS_LABEL[key] ?? key,
+    color: theme.palette[role].main,
+    bg: tint(theme, role, 0.08),
+  };
+}
+
+function statusEntries(theme: Theme) {
+  return Object.keys(STATUS_LABEL).map((k) => [k, statusMeta(theme, k)] as const);
+}
 
 const cbIcon = <CheckBoxOutlineBlankIcon fontSize="small" />;
 const cbChecked = <CheckBoxIcon fontSize="small" />;
+/**
+ * Paleta del selector de color del proyecto. NO es design system: el valor
+ * elegido se PERSISTE en la BD (`project.color`), así que debe ser estable e
+ * independiente del theme activo / dark mode.
+ */
 const PROJECT_COLORS = [
   '#5569ff',
   '#E91E63',
@@ -227,7 +262,7 @@ const KanbanTaskCard = React.memo(
   }) {
     const theme = useTheme();
     const isDark = theme.palette.mode === 'dark';
-    const pri = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium;
+    const pri = priorityMeta(theme, task.priority);
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
     const isOverdue =
@@ -255,14 +290,11 @@ const KanbanTaskCard = React.memo(
             bgcolor: dragging
               ? alpha(theme.palette.background.paper, 0.95)
               : theme.palette.background.paper,
-            boxShadow: dragging
-              ? `0 16px 40px ${alpha(theme.palette.common.black, 0.18)}`
-              : `0 1px 3px ${alpha(theme.palette.common.black, isDark ? 0.2 : 0.04)}`,
             transformOrigin: 'bottom center', // Pegman hangs from the bottom or top depending on preference. Top is usually 'top center'
-            transition: dragging ? 'none' : 'box-shadow 0.15s, border-color 0.15s',
+            transition: dragging ? 'none' : 'background-color 0.15s, border-color 0.15s',
             zIndex: dragging ? 9999 : 'auto',
             '&:hover': {
-              boxShadow: `0 4px 16px ${alpha(theme.palette.common.black, isDark ? 0.25 : 0.08)}`,
+              bgcolor: alpha(pri.color, isDark ? 0.12 : 0.05),
               borderColor: alpha(pri.color, 0.6),
             },
           }}
@@ -414,7 +446,7 @@ const KanbanTaskCard = React.memo(
                     bgcolor: alpha(theme.palette.divider, 0.15),
                     '& .MuiLinearProgress-bar': {
                       borderRadius: 2,
-                      bgcolor: task.progress === 100 ? '#66BB6A' : 'primary.main',
+                      bgcolor: task.progress === 100 ? 'success.main' : 'primary.main',
                     },
                   }}
                 />
@@ -555,7 +587,7 @@ const KanbanColumn = React.memo(function KanbanColumn({
 }) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
-  const meta = STATUS_META[statusKey] || STATUS_META.todo;
+  const meta = statusMeta(theme, statusKey);
 
   return (
     <Box
@@ -589,7 +621,7 @@ const KanbanColumn = React.memo(function KanbanColumn({
               height: 10,
               borderRadius: '50%',
               bgcolor: meta.color,
-              boxShadow: `0 0 0 3px ${alpha(meta.color, 0.2)}`,
+              outline: `3px solid ${alpha(meta.color, 0.2)}`,
             }}
           />
           <Typography
@@ -789,7 +821,7 @@ function TasksPage(): React.JSX.Element {
   const [projectForm, setProjectForm] = useState<ProjectFormState>({
     name: '',
     description: '',
-    color: '#5569ff',
+    color: PROJECT_COLORS[0],
   });
 
   /* ── AI dialog ── */
@@ -892,7 +924,7 @@ function TasksPage(): React.JSX.Element {
     if (priorityFilter !== 'all') filtered = filtered.filter((t) => t.priority === priorityFilter);
 
     const byStatus: Record<string, Task[]> = {};
-    Object.keys(STATUS_META).forEach((k) => {
+    Object.keys(STATUS_LABEL).forEach((k) => {
       byStatus[k] = [];
     });
     filtered.forEach((t) => {
@@ -909,7 +941,7 @@ function TasksPage(): React.JSX.Element {
   const statusCounts = useMemo(() => {
     if (!board) return {} as Record<string, number>;
     const c: Record<string, number> = {};
-    Object.keys(STATUS_META).forEach((k) => {
+    Object.keys(STATUS_LABEL).forEach((k) => {
       c[k] = 0;
     });
     Object.values(board.tasks).forEach((t) => {
@@ -954,7 +986,7 @@ function TasksPage(): React.JSX.Element {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       setSelectedProjectId(d._id);
       setNewProjectOpen(false);
-      setProjectForm({ name: '', description: '', color: '#5569ff' });
+      setProjectForm({ name: '', description: '', color: PROJECT_COLORS[0] });
       toast.success('Project created');
     },
   });
@@ -1223,7 +1255,7 @@ function TasksPage(): React.JSX.Element {
               '& .MuiLinearProgress-bar': {
                 borderRadius: 2,
                 background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${
-                  projectProgress === 100 ? '#66BB6A' : theme.palette.primary.light
+                  projectProgress === 100 ? theme.palette.success.main : theme.palette.primary.light
                 })`,
               },
             }}
@@ -1309,7 +1341,7 @@ function TasksPage(): React.JSX.Element {
               spacing={1.5}
               mt={1}
             >
-              {Object.entries(STATUS_META)
+              {statusEntries(theme)
                 .filter(([key]) => key !== 'done')
                 .map(([statusKey, meta]) => {
                   const tasksInStatus = myTasks.filter((t) => t.status === statusKey);
@@ -1367,7 +1399,7 @@ function TasksPage(): React.JSX.Element {
                         }
                       >
                         {tasksInStatus.map((task) => {
-                          const pri = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium;
+                          const pri = priorityMeta(theme, task.priority);
                           const isOverdue =
                             pageMounted &&
                             task.dueDate &&
@@ -1563,7 +1595,7 @@ function TasksPage(): React.JSX.Element {
                             width: 8,
                             height: 8,
                             borderRadius: '50%',
-                            bgcolor: p.color || '#5569ff',
+                            bgcolor: p.color || PROJECT_COLORS[0],
                             flexShrink: 0,
                           }}
                         />
@@ -1604,7 +1636,7 @@ function TasksPage(): React.JSX.Element {
                           width: 8,
                           height: 8,
                           borderRadius: '50%',
-                          bgcolor: p.color || '#5569ff',
+                          bgcolor: p.color || PROJECT_COLORS[0],
                         }}
                       />
                       <span>{p.name}</span>
@@ -1803,7 +1835,7 @@ function TasksPage(): React.JSX.Element {
                       sx={{ minWidth: 110, borderRadius: 1.5, fontSize: 11 }}
                     >
                       <MenuItem value="all">All priority</MenuItem>
-                      {Object.entries(PRIORITY_CONFIG).map(([k, c]) => (
+                      {priorityEntries(theme).map(([k, c]) => (
                         <MenuItem
                           key={k}
                           value={k}
@@ -1830,7 +1862,7 @@ function TasksPage(): React.JSX.Element {
                 mb={2}
                 flexWrap="wrap"
               >
-                {Object.entries(STATUS_META).map(([key, meta]) => (
+                {statusEntries(theme).map(([key, meta]) => (
                   <Box
                     key={key}
                     sx={{
@@ -1920,7 +1952,7 @@ function TasksPage(): React.JSX.Element {
                       alignItems="flex-start"
                       sx={{ minWidth: { md: 1100 }, pb: 1 }}
                     >
-                      {Object.entries(STATUS_META).map(([statusKey]) => (
+                      {statusEntries(theme).map(([statusKey]) => (
                         <KanbanColumn
                           key={statusKey}
                           statusKey={statusKey}
@@ -2049,7 +2081,7 @@ function TasksPage(): React.JSX.Element {
                   value={taskForm.priority}
                   onChange={(e) => { const v = e.target.value; setTaskForm(prev => ({ ...prev, priority: v })); }}
                 >
-                  {Object.entries(PRIORITY_CONFIG).map(([k, c]) => (
+                  {priorityEntries(theme).map(([k, c]) => (
                     <MenuItem
                       key={k}
                       value={k}
@@ -2073,7 +2105,7 @@ function TasksPage(): React.JSX.Element {
                   value={newTaskStatus}
                   onChange={(e) => setNewTaskStatus(e.target.value)}
                 >
-                  {Object.entries(STATUS_META).map(([k, m]) => (
+                  {statusEntries(theme).map(([k, m]) => (
                     <MenuItem
                       key={k}
                       value={k}
@@ -2314,7 +2346,7 @@ function TasksPage(): React.JSX.Element {
                           projectForm.color === c
                             ? `3px solid ${theme.palette.background.paper}`
                             : '3px solid transparent',
-                        boxShadow: projectForm.color === c ? `0 0 0 2px ${c}` : 'none',
+                        outline: projectForm.color === c ? `2px solid ${c}` : 'none',
                         transition: 'all 0.15s',
                         '&:hover': { transform: 'scale(1.12)' },
                       }}

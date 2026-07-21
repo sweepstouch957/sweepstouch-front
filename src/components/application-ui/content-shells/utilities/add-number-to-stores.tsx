@@ -1,8 +1,8 @@
 'use client';
 
-import { useStores } from '@/hooks/fetching/stores/useStores';
+import { useStoreSearch } from '@/hooks/fetching/stores/useStoreSearch';
 import { customerClient, type AddToStoresResult } from '@/services/customerService';
-import type { Store } from '@/services/store.service';
+import { getStores, type Store } from '@/services/store.service';
 import PhoneIphoneRoundedIcon from '@mui/icons-material/PhoneIphoneRounded';
 import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
@@ -25,8 +25,8 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import { useMutation } from '@tanstack/react-query';
-import React, { useMemo, useState } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
 
 type Mode = 'one' | 'all';
 
@@ -41,13 +41,25 @@ function normalizeUsPhone(raw: string): string | null {
 
 export default function AddNumberToStores() {
   const theme = useTheme();
-  const { data: stores = [], isLoading: loadingStores } = useStores();
 
   const [mode, setMode] = useState<Mode>('one');
   const [phone, setPhone] = useState('');
   const [firstName, setFirstName] = useState('');
   const [selectedStores, setSelectedStores] = useState<Store[]>([]);
   const [result, setResult] = useState<AddToStoresResult | null>(null);
+
+  // Búsqueda server-side por nombre (debounced). Antes traía TODAS las tiendas
+  // al abrir la página solo para filtrar en el cliente.
+  const [storeTerm, setStoreTerm] = useState('');
+  const { options: storeOptions, loading: loadingStores, needsMoreChars } =
+    useStoreSearch(storeTerm);
+
+  // Solo el TOTAL (limit:1) para el aviso de "todas las tiendas" — no la lista.
+  const { data: totalStores } = useQuery({
+    queryKey: ['stores', 'total'],
+    queryFn: async () => (await getStores({ limit: 1 })).total,
+    staleTime: 1000 * 60 * 10,
+  });
 
   const normalized = useMemo(() => normalizeUsPhone(phone), [phone]);
   const phoneTouched = phone.trim().length > 0;
@@ -72,7 +84,7 @@ export default function AddNumberToStores() {
     if (!canSubmit) return;
     if (mode === 'all') {
       const ok = window.confirm(
-        `Se agregará ${normalized} a TODAS las tiendas (${stores.length}). ¿Continuar?`
+        `Se agregará ${normalized} a TODAS las tiendas${totalStores ? ` (${totalStores})` : ''}. ¿Continuar?`
       );
       if (!ok) return;
     }
@@ -93,10 +105,8 @@ export default function AddNumberToStores() {
       <Card
         variant="outlined"
         sx={{
-          borderRadius: 3,
           bgcolor: 'background.paper',
           borderColor: 'divider',
-          boxShadow: 'none',
         }}
       >
         <CardContent>
@@ -182,20 +192,36 @@ export default function AddNumberToStores() {
               <Autocomplete
                 multiple
                 size="small"
-                options={stores}
+                options={storeOptions}
                 loading={loadingStores}
                 value={selectedStores}
                 onChange={(_, v) => {
                   setSelectedStores(v);
                   setResult(null);
                 }}
+                inputValue={storeTerm}
+                onInputChange={(_, v, reason) => {
+                  // 'reset' se dispara al seleccionar: no borres el término,
+                  // así podés seguir sumando tiendas de la misma búsqueda.
+                  if (reason !== 'reset') setStoreTerm(v);
+                }}
+                // El backend ya filtró por nombre — si además filtramos acá,
+                // MUI esconde resultados válidos (ej. match por slug/dirección).
+                filterOptions={(x) => x}
                 getOptionLabel={(o) => o.name || ''}
                 isOptionEqualToValue={(a, b) => a._id === b._id}
+                noOptionsText={
+                  needsMoreChars
+                    ? 'Escribí al menos 2 letras...'
+                    : storeTerm.trim()
+                      ? 'Sin resultados'
+                      : 'Escribí para buscar una tienda'
+                }
                 renderInput={(params) => (
                   <TextField
                     {...params}
                     label="Tiendas"
-                    placeholder="Buscar tienda..."
+                    placeholder="Buscar tienda por nombre..."
                     InputProps={{
                       ...params.InputProps,
                       endAdornment: (
@@ -211,7 +237,7 @@ export default function AddNumberToStores() {
             ) : (
               <Alert severity="warning" sx={{ borderRadius: 2 }}>
                 El número se agregará a <strong>todas las tiendas</strong>
-                {stores.length > 0 ? ` (${stores.length})` : ''}. Recibirá las campañas de
+                {totalStores ? ` (${totalStores})` : ''}. Recibirá las campañas de
                 cada una.
               </Alert>
             )}

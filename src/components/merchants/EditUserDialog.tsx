@@ -27,6 +27,7 @@ import {
   EditRounded,
 } from '@mui/icons-material';
 import { merchantService, MerchantUser, UpdateUserPayload } from '@/services/merchant.service';
+import { chartPalette } from 'src/theme/semantic';
 
 interface EditUserDialogProps {
   open: boolean;
@@ -35,14 +36,14 @@ interface EditUserDialogProps {
   onUpdated: () => void;
 }
 
-const getAvatarColor = (id: string) => {
-  const colors = [
-    '#6C63FF', '#FF6584', '#43A8D0', '#F7B731', '#26de81',
-    '#FC5C65', '#45AAF2', '#FD9644', '#2BCB9B', '#A55EEA',
-  ];
+/**
+ * Acento por usuario: es una categoría (hash del id), no un estado.
+ * Usa la paleta categórica del design system en vez de hex fijos.
+ */
+const getAvatarColor = (id: string, palette: string[]) => {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) & 0xffff;
-  return colors[h % colors.length];
+  return palette[h % palette.length];
 };
 
 export default function EditUserDialog({ open, user, onClose, onUpdated }: EditUserDialogProps) {
@@ -93,7 +94,7 @@ export default function EditUserDialog({ open, user, onClose, onUpdated }: EditU
   };
 
   const userIdForAvatar = user._id || (user as any).id || '';
-  const accentColor = getAvatarColor(userIdForAvatar);
+  const accentColor = getAvatarColor(userIdForAvatar, chartPalette(theme));
 
   return (
     <>
@@ -122,11 +123,10 @@ export default function EditUserDialog({ open, user, onClose, onUpdated }: EditU
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: `linear-gradient(135deg, ${accentColor}cc 0%, ${accentColor} 100%)`,
-                boxShadow: `0 4px 12px ${alpha(accentColor, 0.4)}`,
+                background: `linear-gradient(135deg, ${alpha(accentColor, 0.8)} 0%, ${accentColor} 100%)`,
               }}
             >
-              <EditRounded sx={{ color: 'white', fontSize: 20 }} />
+              <EditRounded sx={{ color: 'common.white', fontSize: 20 }} />
             </Box>
             <Box flex={1}>
               <Stack direction="row" alignItems="center" spacing={1}>
@@ -253,8 +253,7 @@ export default function EditUserDialog({ open, user, onClose, onUpdated }: EditU
               startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <EditRounded />}
               sx={{
                 borderRadius: 2,
-                background: `linear-gradient(135deg, ${accentColor}cc 0%, ${accentColor} 100%)`,
-                boxShadow: `0 4px 12px ${alpha(accentColor, 0.4)}`,
+                background: `linear-gradient(135deg, ${alpha(accentColor, 0.8)} 0%, ${accentColor} 100%)`,
                 px: 3,
               }}
             >

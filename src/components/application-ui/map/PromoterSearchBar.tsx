@@ -18,6 +18,7 @@ import {
   Typography,
 } from '@mui/material';
 import { memo, useMemo } from 'react';
+import { tint, tintBorder } from '@/theme/semantic';
 
 interface Props {
   promoters: NearbyPromoter[];
@@ -62,7 +63,7 @@ export const PromoterSearchBar = memo(function PromoterSearchBar({
                 <InputAdornment position="start">
                   <MyLocationIcon
                     fontSize="small"
-                    sx={{ color: value ? '#EE1E7C' : 'text.disabled' }}
+                    sx={{ color: value ? 'primary.main' : 'text.disabled' }}
                   />
                 </InputAdornment>
               ),
@@ -71,7 +72,7 @@ export const PromoterSearchBar = memo(function PromoterSearchBar({
               bgcolor: 'background.paper',
               '& .MuiOutlinedInput-root': {
                 borderRadius: 2,
-                '&.Mui-focused fieldset': { borderColor: '#EE1E7C' },
+                '&.Mui-focused fieldset': { borderColor: 'primary.main' },
               },
             }}
           />
@@ -91,8 +92,9 @@ export const PromoterSearchBar = memo(function PromoterSearchBar({
                     width: 9,
                     height: 9,
                     borderRadius: '50%',
-                    bgcolor: p.isOnline ? '#22c55e' : '#9e9e9e',
-                    border: '1.5px solid white',
+                    bgcolor: p.isOnline ? 'success.main' : 'text.disabled',
+                    border: '1.5px solid',
+                    borderColor: 'background.paper',
                   }}
                 />
               </Box>
@@ -107,8 +109,8 @@ export const PromoterSearchBar = memo(function PromoterSearchBar({
                     sx={{
                       height: 16,
                       fontSize: 10,
-                      bgcolor: p.isOnline ? '#dcfce7' : '#f5f5f5',
-                      color: p.isOnline ? '#15803d' : '#757575',
+                      bgcolor: (t) => (p.isOnline ? tint(t, 'success') : t.palette.action.hover),
+                      color: p.isOnline ? 'success.dark' : 'text.secondary',
                       '& .MuiChip-label': { px: 0.75 },
                     }}
                   />
@@ -139,13 +141,13 @@ export const PromoterSearchBar = memo(function PromoterSearchBar({
             height: 36,
             borderRadius: 2,
             border: '1px solid',
-            borderColor: onlineOnly ? '#22c55e' : 'divider',
-            bgcolor: onlineOnly ? '#dcfce7' : 'background.paper',
-            color: onlineOnly ? '#15803d' : 'text.secondary',
+            borderColor: (t) => (onlineOnly ? tintBorder(t, 'success') : t.palette.divider),
+            bgcolor: (t) => (onlineOnly ? tint(t, 'success') : t.palette.background.paper),
+            color: onlineOnly ? 'success.dark' : 'text.secondary',
             transition: 'all 0.15s ease',
             '&:hover': {
-              bgcolor: onlineOnly ? '#bbf7d0' : 'action.hover',
-              borderColor: onlineOnly ? '#16a34a' : 'divider',
+              bgcolor: (t) => (onlineOnly ? tint(t, 'success', 0.2) : t.palette.action.hover),
+              borderColor: (t) => (onlineOnly ? tintBorder(t, 'success', 0.5) : t.palette.divider),
             },
           }}
         >
@@ -165,11 +167,12 @@ export const PromoterSearchBar = memo(function PromoterSearchBar({
           sx={{
             flexShrink: 0,
             height: 24,
-            bgcolor: '#dcfce7',
-            color: '#15803d',
+            bgcolor: (t) => tint(t, 'success'),
+            color: 'success.dark',
             fontWeight: 600,
             fontSize: 11,
-            border: '1px solid #86efac',
+            border: '1px solid',
+            borderColor: (t) => tintBorder(t, 'success'),
           }}
         />
       )}

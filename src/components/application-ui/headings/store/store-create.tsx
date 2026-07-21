@@ -68,15 +68,18 @@ function IBtn({
             borderRadius: 1.5,
             bgcolor: tint
               ? alpha(tint, theme.palette.mode === 'dark' ? 0.18 : 0.1)
-              : theme.palette.mode === 'dark' ? alpha('#fff', 0.07) : alpha('#000', 0.05),
+              : theme.palette.mode === 'dark'
+                ? alpha(theme.palette.common.white, 0.07)
+                : alpha(theme.palette.common.black, 0.05),
             color: tint || 'text.secondary',
             transition: 'all 0.15s ease',
             '&:hover': {
               bgcolor: tint
                 ? alpha(tint, theme.palette.mode === 'dark' ? 0.3 : 0.18)
-                : theme.palette.mode === 'dark' ? alpha('#fff', 0.13) : alpha('#000', 0.1),
+                : theme.palette.mode === 'dark'
+                  ? alpha(theme.palette.common.white, 0.13)
+                  : alpha(theme.palette.common.black, 0.1),
               transform: 'translateY(-1px)',
-              boxShadow: tint ? `0 3px 10px ${alpha(tint, 0.3)}` : 1,
             },
             '&.Mui-disabled': { opacity: 0.35 },
           }}
@@ -198,7 +201,6 @@ export default function StoreHeader({
                 width: { xs: 50, md: 58 },
                 height: { xs: 50, md: 58 },
                 border: `2.5px solid ${alpha(tier.accent, 0.45)}`,
-                boxShadow: `0 0 0 1px ${alpha(tier.accent, 0.12)}, 0 4px 14px ${alpha(tier.accent, 0.22)}`,
                 bgcolor: alpha(tier.accent, 0.15),
               }}
             >
@@ -210,7 +212,6 @@ export default function StoreHeader({
               width: 11, height: 11, borderRadius: '50%',
               bgcolor: active ? theme.palette.success.main : theme.palette.warning.main,
               border: `2px solid ${theme.palette.background.paper}`,
-              boxShadow: `0 0 6px ${active ? alpha(theme.palette.success.main, 0.7) : alpha(theme.palette.warning.main, 0.7)}`,
             }} />
           </Box>
 
@@ -262,7 +263,7 @@ export default function StoreHeader({
                 label={tier.label.toUpperCase()}
                 sx={{
                   height: 19, fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
-                  background: tier.gradient, color: '#fff',
+                  background: tier.gradient, color: theme.palette.common.white,
                   '& .MuiChip-label': { px: 1 },
                 }}
               />
@@ -362,7 +363,8 @@ export default function StoreHeader({
                         transition: 'all 0.15s ease',
                         '&:hover': {
                           transform: 'translateY(-1px) scale(1.06)',
-                          boxShadow: `0 3px 12px ${alpha(tier.accent, 0.35)}`,
+                          borderColor: alpha(tier.accent, 0.6),
+                          bgcolor: alpha(tier.accent, 0.08),
                         },
                       }}
                     >
@@ -436,7 +438,11 @@ export default function StoreHeader({
                           outline: 'none',
                           '&:focus-visible': { boxShadow: `0 0 0 3px ${alpha(tier.accent, 0.4)}` },
                           transition: 'all 0.15s ease',
-                          '&:hover': { transform: 'scale(1.06)', boxShadow: `0 3px 10px ${alpha(tier.accent, 0.3)}` },
+                          '&:hover': {
+                            transform: 'scale(1.06)',
+                            borderColor: alpha(tier.accent, 0.6),
+                            bgcolor: alpha(tier.accent, 0.08),
+                          },
                         }}
                       >
                         {qrImageUrl || fallbackQrSrc
@@ -475,7 +481,7 @@ export default function StoreHeader({
               sx={{
                 width: '100%', maxWidth: 300, height: 'auto',
                 borderRadius: 2,
-                boxShadow: `0 0 0 3px ${alpha(tier.accent, 0.2)}, 0 8px 28px ${alpha(tier.accent, 0.15)}`,
+                border: `1px solid ${alpha(tier.accent, 0.25)}`,
               }}
             />
           ) : (

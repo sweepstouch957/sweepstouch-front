@@ -165,7 +165,6 @@ export default function NormalizeFormatModal({
               alignItems: 'center',
               justifyContent: 'center',
               background: `linear-gradient(135deg, ${theme.palette.warning.dark} 0%, ${theme.palette.warning.main} 100%)`,
-              boxShadow: `0 4px 12px ${alpha(theme.palette.warning.main, 0.4)}`,
             }}
           >
             <AutoFixHighRounded sx={{ color: 'white', fontSize: 20 }} />

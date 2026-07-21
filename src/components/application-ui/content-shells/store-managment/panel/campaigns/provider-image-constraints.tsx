@@ -1,4 +1,3 @@
-import React from 'react';
 import { Alert, AlertTitle, Box, Typography } from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 

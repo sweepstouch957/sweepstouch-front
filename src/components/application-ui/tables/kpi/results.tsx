@@ -56,6 +56,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
+import { tint, tintBorder } from '@/theme/semantic';
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
@@ -76,8 +77,8 @@ const RatingStars = ({ rating }: { rating?: number }) => {
     return <Typography variant="caption" color="text.disabled">N/A</Typography>;
   return (
     <Stack direction="row" spacing={0.25} alignItems="center">
-      <StarRoundedIcon sx={{ fontSize: 14, color: '#f59e0b' }} />
-      <Typography variant="caption" fontWeight={700} sx={{ color: '#f59e0b' }}>
+      <StarRoundedIcon sx={{ fontSize: 14, color: 'warning.main' }} />
+      <Typography variant="caption" fontWeight={700} sx={{ color: 'warning.main' }}>
         {rating.toFixed(1)}
       </Typography>
     </Stack>
@@ -105,7 +106,6 @@ const MetricCard = ({
           border: `1px solid ${alpha(accent, 0.35)}`,
           bgcolor: alpha(accent, 0.08),
           transform: 'translateY(-1px)',
-          boxShadow: `0 4px 14px ${alpha(accent, 0.1)}`,
         },
       }}
     >
@@ -261,7 +261,7 @@ const PromoterTable = ({
           mb: 2,
           borderRadius: 2.5,
           border: `1px solid ${theme.palette.divider}`,
-          bgcolor: isDark ? alpha('#fff', 0.02) : alpha('#000', 0.015),
+          bgcolor: alpha(isDark ? theme.palette.common.white : theme.palette.common.black, isDark ? 0.02 : 0.015),
         }}
       >
         <Stack
@@ -365,7 +365,7 @@ const PromoterTable = ({
           sx={{
             px: 2.5, py: 1.25,
             borderBottom: `1px solid ${theme.palette.divider}`,
-            bgcolor: isDark ? alpha('#fff', 0.025) : alpha('#000', 0.02),
+            bgcolor: alpha(isDark ? theme.palette.common.white : theme.palette.common.black, isDark ? 0.025 : 0.02),
           }}
         >
           <Stack direction="row" alignItems="center" spacing={1}>
@@ -385,7 +385,7 @@ const PromoterTable = ({
 
         <TableContainer>
           <Table size="small">
-            <TableHead sx={{ bgcolor: isDark ? alpha('#fff', 0.03) : alpha('#000', 0.02) }}>
+            <TableHead sx={{ bgcolor: alpha(isDark ? theme.palette.common.white : theme.palette.common.black, isDark ? 0.03 : 0.02) }}>
               <TableRow>
                 {['Impulsadora', 'Contacto', 'Estado', 'Rating', 'Turnos', 'Registros', 'Ganancias', ''].map((h) => (
                   <TableCell
@@ -582,7 +582,7 @@ const PromoterTable = ({
         <Box
           sx={{
             flexShrink: 0,
-            bgcolor: isDark ? alpha('#fff', 0.02) : alpha(primary, 0.02),
+            bgcolor: isDark ? alpha(theme.palette.common.white, 0.02) : alpha(primary, 0.02),
             borderBottom: `1px solid ${theme.palette.divider}`,
             px: 3,
             pt: 2.5,
@@ -608,9 +608,9 @@ const PromoterTable = ({
                 bgcolor: alpha(primary, 0.15), color: primary,
                 fontWeight: 800, fontSize: 24, cursor: 'pointer',
                 border: `2px solid ${alpha(primary, 0.35)}`,
-                boxShadow: `0 0 0 3px ${alpha(primary, 0.08)}`,
-                transition: 'box-shadow 0.2s',
-                '&:hover': { boxShadow: `0 0 0 3px ${alpha(primary, 0.18)}` },
+                outline: `3px solid ${alpha(primary, 0.08)}`,
+                transition: 'outline-color 0.2s',
+                '&:hover': { outlineColor: alpha(primary, 0.18) },
               }}
             >
               {selected?.firstName?.[0]?.toUpperCase()}
@@ -632,7 +632,7 @@ const PromoterTable = ({
                     border: `1px solid ${alpha(selected?.active ? theme.palette.success.main : theme.palette.grey[500], 0.25)}`,
                   }}
                 >
-                  <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: selected?.active ? theme.palette.success.main : theme.palette.grey[500], ...(selected?.active && { boxShadow: `0 0 5px ${theme.palette.success.main}` }) }} />
+                  <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: selected?.active ? theme.palette.success.main : theme.palette.grey[500] }} />
                   <Typography sx={{ fontSize: 11, fontWeight: 700, color: selected?.active ? 'success.main' : 'text.secondary' }}>
                     {selected?.active ? 'Activa' : 'Inactiva'}
                   </Typography>
@@ -640,9 +640,9 @@ const PromoterTable = ({
 
                 {/* Rating */}
                 {typeof selected?.rating === 'number' && (
-                  <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.4, px: 1.1, py: 0.3, borderRadius: 999, bgcolor: alpha('#f59e0b', 0.1), border: `1px solid ${alpha('#f59e0b', 0.25)}` }}>
-                    <StarRoundedIcon sx={{ fontSize: 11, color: '#f59e0b' }} />
-                    <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>{selected.rating.toFixed(1)}</Typography>
+                  <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.4, px: 1.1, py: 0.3, borderRadius: 999, bgcolor: tint(theme, 'warning', 0.1), border: `1px solid ${tintBorder(theme, 'warning')}` }}>
+                    <StarRoundedIcon sx={{ fontSize: 11, color: 'warning.main' }} />
+                    <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'warning.main' }}>{selected.rating.toFixed(1)}</Typography>
                   </Box>
                 )}
 
@@ -700,7 +700,7 @@ const PromoterTable = ({
                         p: 3,
                         borderRight: { md: `1px solid ${theme.palette.divider}` },
                         borderBottom: { xs: `1px solid ${theme.palette.divider}`, md: 'none' },
-                        bgcolor: isDark ? alpha('#fff', 0.015) : alpha('#000', 0.015),
+                        bgcolor: alpha(isDark ? theme.palette.common.white : theme.palette.common.black, isDark ? 0.015 : 0.015),
                       }}
                     >
                       <Typography sx={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: 'text.disabled', mb: 2 }}>
@@ -749,7 +749,7 @@ const PromoterTable = ({
                           { icon: <PersonRoundedIcon sx={{ fontSize: 14, color: theme.palette.warning.main }} />, label: 'Registros', value: fmtNum(selected.totalRegistrations), color: theme.palette.warning.main },
                           { icon: <PersonAddAlt1RoundedIcon sx={{ fontSize: 14, color: theme.palette.success.main }} />, label: 'Nuevos', value: fmtNum((selected as any).newUsersRegistered), color: theme.palette.success.main },
                           { icon: <PersonRoundedIcon sx={{ fontSize: 14, color: 'text.secondary' as string }} />, label: 'Existentes', value: fmtNum((selected as any).existingUsersRegistered), color: theme.palette.text.secondary as string },
-                          { icon: <AttachMoneyIcon sx={{ fontSize: 14, color: '#22c55e' }} />, label: 'Ganancias', value: fmtMoney((selected as any).totalAccumulatedMoney), color: '#22c55e' },
+                          { icon: <AttachMoneyIcon sx={{ fontSize: 14, color: 'success.main' }} />, label: 'Ganancias', value: fmtMoney((selected as any).totalAccumulatedMoney), color: theme.palette.success.main },
                           { icon: <AttachMoneyIcon sx={{ fontSize: 14, color: theme.palette.info.main }} />, label: 'x Participación', value: fmtMoney((selected as any).participationEarnings), color: theme.palette.info.main },
                           { icon: <AttachMoneyIcon sx={{ fontSize: 14, color: primary }} />, label: 'x Turno', value: fmtMoney((selected as any).shiftEarnings), color: primary },
                         ].map(({ icon, label, value, color }) => (
@@ -764,7 +764,7 @@ const PromoterTable = ({
                     sx={{
                       px: 3, pt: 2, pb: 2.5,
                       borderTop: `1px solid ${theme.palette.divider}`,
-                      bgcolor: isDark ? alpha('#fff', 0.015) : alpha('#000', 0.015),
+                      bgcolor: alpha(isDark ? theme.palette.common.white : theme.palette.common.black, isDark ? 0.015 : 0.015),
                     }}
                   >
                     <Typography sx={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: 'text.disabled', mb: 1.5 }}>
@@ -825,7 +825,7 @@ const PromoterTable = ({
                     sx={{
                       mb: 3, p: 2, borderRadius: 2,
                       border: `1px solid ${theme.palette.divider}`,
-                      bgcolor: isDark ? alpha('#fff', 0.02) : alpha('#000', 0.015),
+                      bgcolor: alpha(isDark ? theme.palette.common.white : theme.palette.common.black, isDark ? 0.02 : 0.015),
                     }}
                   >
                     <ToggleButtonGroup
@@ -884,7 +884,7 @@ const PromoterTable = ({
             flexShrink: 0,
             px: 3, py: 1.75, gap: 1,
             borderTop: `1px solid ${theme.palette.divider}`,
-            bgcolor: isDark ? alpha('#fff', 0.02) : alpha('#000', 0.015),
+            bgcolor: alpha(isDark ? theme.palette.common.white : theme.palette.common.black, isDark ? 0.02 : 0.015),
           }}
         >
           <Box sx={{ flex: 1 }}>

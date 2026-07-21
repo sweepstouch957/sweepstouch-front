@@ -21,6 +21,7 @@ import {
   Stack,
   styled,
   Tab,
+  type Theme,
   Tooltip,
   Typography,
   useMediaQuery,
@@ -33,7 +34,6 @@ import BadgeRoundedIcon from '@mui/icons-material/BadgeRounded';
 import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import CalendarTodayRoundedIcon from '@mui/icons-material/CalendarTodayRounded';
 import AssignmentRoundedIcon from '@mui/icons-material/AssignmentRounded';
-import FlagRoundedIcon from '@mui/icons-material/FlagRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import TrendingUpRoundedIcon from '@mui/icons-material/TrendingUpRounded';
@@ -45,6 +45,7 @@ import { usersApi } from '@/mocks/users';
 import { taskClient } from '@/services/task.service';
 import { departmentService } from '@/services/department.service';
 import { TabsPills } from 'src/components/base/styles/tabs';
+import { chartPalette, severityColor, tint, tintBorder, type SemanticRole } from 'src/theme/semantic';
 
 /* ─── Styled components ─── */
 const CardCover = styled(Card)(({ theme }) => `
@@ -62,30 +63,61 @@ const AvatarWrapper = styled(Card)(({ theme }) => `
 `);
 
 /* ─── Priority config ─── */
-const PRIORITY_CONFIG: Record<string, { color: string; label: string }> = {
-  critical: { color: '#FF1744', label: 'Critical' },
-  high: { color: '#FF9100', label: 'High' },
-  medium: { color: '#FFC400', label: 'Medium' },
-  low: { color: '#00E676', label: 'Low' },
+const PRIORITY_LABEL: Record<string, string> = {
+  critical: 'Critical',
+  high: 'High',
+  medium: 'Medium',
+  low: 'Low',
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  backlog: '#9E9E9E', todo: '#42A5F5', in_progress: '#FFA726', in_review: '#AB47BC', done: '#66BB6A',
+/** Color de prioridad: sale del design system (`severityColor`), no de hex. */
+function priorityMeta(theme: Theme, key?: string) {
+  const k = key && PRIORITY_LABEL[key] ? key : 'medium';
+  return { label: PRIORITY_LABEL[k], color: severityColor(theme, k) };
+}
+
+const STATUS_ROLE: Record<string, SemanticRole> = {
+  backlog: 'secondary',
+  todo: 'info',
+  in_progress: 'warning',
+  in_review: 'primary',
+  done: 'success',
 };
+
+function statusColor(theme: Theme, key: string): string {
+  const role = STATUS_ROLE[key];
+  return role ? theme.palette[role].main : theme.palette.text.secondary;
+}
 
 /* ─── Role metadata ─── */
-const ROLE_META: Record<string, { label: string; color: string }> = {
-  admin: { label: 'Administrator', color: '#F44336' },
-  design: { label: 'Designer', color: '#E91E63' },
-  campaign_manager: { label: 'Campaign Manager', color: '#FF9800' },
-  promotor_manager: { label: 'Promotor Manager', color: '#9C27B0' },
-  general_manager: { label: 'General Manager', color: '#2196F3' },
-  merchant_manager: { label: 'Merchant Manager', color: '#009688' },
-  merchant: { label: 'Merchant', color: '#4CAF50' },
-  cashier: { label: 'Cashier', color: '#FF5722' },
-  promotor: { label: 'Promotor', color: '#795548' },
-  marketing: { label: 'Marketing', color: '#3F51B5' },
+const ROLE_LABEL: Record<string, string> = {
+  admin: 'Administrator',
+  design: 'Designer',
+  campaign_manager: 'Campaign Manager',
+  promotor_manager: 'Promotor Manager',
+  general_manager: 'General Manager',
+  merchant_manager: 'Merchant Manager',
+  merchant: 'Merchant',
+  cashier: 'Cashier',
+  promotor: 'Promotor',
+  marketing: 'Marketing',
 };
+
+const ROLE_KEYS = Object.keys(ROLE_LABEL);
+
+/**
+ * El rol necesita un color *distinguible* entre N roles, no un rol semántico:
+ * es una paleta categórica, así que sale de `chartPalette` (respeta el theme
+ * activo y el dark mode) indexada por la posición del rol.
+ */
+function roleMetaOf(theme: Theme, key?: string) {
+  const palette = chartPalette(theme);
+  const idx = key ? ROLE_KEYS.indexOf(key) : -1;
+  return {
+    label: (key && ROLE_LABEL[key]) || key || 'Unknown',
+    color: idx >= 0 ? palette[idx % palette.length] : theme.palette.text.secondary,
+  };
+}
 
 /* ─── Info Row ─── */
 const InfoRow = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) => (
@@ -179,7 +211,7 @@ export default function UserProfilePage() {
     return stats;
   }, [userTasks]);
 
-  const roleMeta = ROLE_META[user?.role || 'admin'] || { label: user?.role || 'Unknown', color: '#999' };
+  const roleMeta = roleMetaOf(theme, user?.role || 'admin');
 
   if (loadingUsers || !userId) {
     return (
@@ -238,7 +270,7 @@ export default function UserProfilePage() {
               </Box>
 
               {/* Cover card */}
-              <CardCover elevation={0} sx={{ borderRadius: 3, overflow: 'hidden' }}>
+              <CardCover sx={{ overflow: 'hidden' }}>
                 <CardMedia sx={{ background: coverGradient }}>
                   <Box display="flex" alignItems="center" justifyContent="center" height="100%">
                     <Typography variant="h2" fontWeight={900}
@@ -251,7 +283,7 @@ export default function UserProfilePage() {
               </CardCover>
 
               {/* Avatar + Name */}
-              <AvatarWrapper elevation={4} sx={{ borderRadius: 3 }}>
+              <AvatarWrapper>
                 <Avatar variant="rounded" alt={user.firstName} src={user.profileImage} />
               </AvatarWrapper>
 
@@ -308,7 +340,7 @@ export default function UserProfilePage() {
             {/* ═══ Sidebar (4 cols) ═══ */}
             <Grid xs={12} md={4}>
               {/* User Info Card */}
-              <Card elevation={0} sx={{ borderRadius: 3, border: `1px solid ${theme.palette.divider}`, mb: 2 }}>
+              <Card sx={{ mb: 2 }}>
                 <CardContent>
                   <Typography variant="subtitle2" fontWeight={700} gutterBottom>
                     Contact Information
@@ -352,7 +384,7 @@ export default function UserProfilePage() {
               </Card>
 
               {/* Task Progress Card */}
-              <Card elevation={0} sx={{ borderRadius: 3, border: `1px solid ${theme.palette.divider}` }}>
+              <Card>
                 <CardContent>
                   <Typography variant="subtitle2" fontWeight={700} gutterBottom>
                     Task Progress
@@ -382,7 +414,7 @@ export default function UserProfilePage() {
                       return (
                         <Stack key={key} direction="row" alignItems="center" justifyContent="space-between">
                           <Stack direction="row" alignItems="center" spacing={0.75}>
-                            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: STATUS_COLORS[key] || '#999' }} />
+                            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: statusColor(theme, key) }} />
                             <Typography variant="caption" fontWeight={600}>{label}</Typography>
                           </Stack>
                           <Chip label={count} size="small" sx={{ height: 18, fontSize: 10, fontWeight: 700 }} />
@@ -420,14 +452,20 @@ export default function UserProfilePage() {
               {/* Overview Tab */}
               {currentTab === 0 && (
                 <Grid container spacing={2}>
-                  {userTasks.length > 0 ? userTasks.map((task: any) => (
+                  {userTasks.length > 0 ? userTasks.map((task: any) => {
+                    const pri = priorityMeta(theme, task.priority);
+                    return (
                     <Grid xs={12} sm={6} md={4} key={task._id}>
-                      <Card elevation={0} sx={{
-                        borderRadius: 2.5,
+                      <Card sx={{
                         border: `1px solid ${theme.palette.divider}`,
-                        borderLeft: `3px solid ${(PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium).color}`,
+                        borderLeft: `3px solid ${pri.color}`,
                         transition: 'all 0.2s',
-                        '&:hover': { transform: 'translateY(-2px)', boxShadow: theme.shadows[4] },
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          borderColor: tintBorder(theme, 'primary'),
+                          borderLeftColor: pri.color,
+                          bgcolor: tint(theme, 'primary', 0.04),
+                        },
                       }}>
                         <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
                           <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={0.5}>
@@ -441,11 +479,11 @@ export default function UserProfilePage() {
                             </Typography>
                           )}
                           <Stack direction="row" spacing={0.5} flexWrap="wrap" gap={0.5}>
-                            <Chip size="small" label={(PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium).label}
+                            <Chip size="small" label={pri.label}
                               sx={{
                                 height: 20, fontSize: 10, fontWeight: 700,
-                                bgcolor: alpha((PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium).color, 0.1),
-                                color: (PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium).color,
+                                bgcolor: alpha(pri.color, 0.1),
+                                color: pri.color,
                               }}
                             />
                             <Chip size="small" variant="outlined"
@@ -456,7 +494,8 @@ export default function UserProfilePage() {
                         </CardContent>
                       </Card>
                     </Grid>
-                  )) : (
+                    );
+                  }) : (
                     <Grid xs={12}>
                       <Box textAlign="center" py={6}>
                         <AssignmentRoundedIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
@@ -472,14 +511,14 @@ export default function UserProfilePage() {
 
               {/* Tasks Tab */}
               {currentTab === 1 && (
-                <Card elevation={0} sx={{ borderRadius: 3, border: `1px solid ${theme.palette.divider}` }}>
+                <Card>
                   <CardContent>
                     <Typography variant="subtitle1" fontWeight={700} mb={2}>
                       All Tasks ({userTasks.length})
                     </Typography>
                     <Stack spacing={1}>
                       {userTasks.map((task: any) => {
-                        const pri = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium;
+                        const pri = priorityMeta(theme, task.priority);
                         return (
                           <Box key={task._id}
                             sx={{
@@ -524,7 +563,7 @@ export default function UserProfilePage() {
 
               {/* Activity Tab */}
               {currentTab === 2 && (
-                <Card elevation={0} sx={{ borderRadius: 3, border: `1px solid ${theme.palette.divider}` }}>
+                <Card>
                   <CardContent>
                     <Typography variant="subtitle1" fontWeight={700} mb={2}>
                       Recent Activity

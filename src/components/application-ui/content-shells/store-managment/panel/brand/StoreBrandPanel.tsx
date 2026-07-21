@@ -98,9 +98,8 @@ function ColorField({
               flexShrink: 0,
               position: 'relative',
               overflow: 'hidden',
-              transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-              boxShadow: `0 2px 8px ${value}40`,
-              '&:hover': { transform: 'scale(1.08)', boxShadow: `0 4px 14px ${value}60` },
+              transition: 'transform 0.15s ease, border-color 0.15s ease',
+              '&:hover': { transform: 'scale(1.08)', borderColor: 'text.disabled' },
             }}
           >
             <input

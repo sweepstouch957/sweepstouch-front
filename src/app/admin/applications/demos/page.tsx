@@ -12,7 +12,6 @@ import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import PushPinRoundedIcon from '@mui/icons-material/PushPinRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import {
-  alpha,
   Box,
   Button,
   Chip,
@@ -30,6 +29,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import { tint } from 'src/theme/semantic';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -95,7 +95,7 @@ function DemoPreview({ demo }: { demo: DemoEntry }) {
     borderRadius: 1.25,
     border: '1px solid',
     borderColor: 'divider',
-    bgcolor: '#f8f9fa',
+    bgcolor: 'action.hover',
     overflow: 'hidden',
     position: 'relative',
     flexShrink: 0,
@@ -144,7 +144,7 @@ function DemoPreview({ demo }: { demo: DemoEntry }) {
           <CircularProgress
             size={16}
             thickness={5}
-            sx={{ color: '#ef0f82' }}
+            sx={{ color: 'primary.main' }}
           />
         </Box>
       )}
@@ -227,7 +227,7 @@ function EditDialog({ demo, open, onClose, onSaved }: EditDialogProps) {
     >
       <DialogTitle sx={{ fontWeight: 800, pb: 0.5, flexShrink: 0 }}>
         <Stack direction="row" spacing={1} alignItems="center">
-          <EditRoundedIcon sx={{ color: '#ef0f82', fontSize: 20 }} />
+          <EditRoundedIcon sx={{ color: 'primary.main', fontSize: 20 }} />
           <span>Editar demo</span>
         </Stack>
       </DialogTitle>
@@ -269,7 +269,7 @@ function EditDialog({ demo, open, onClose, onSaved }: EditDialogProps) {
           <Box sx={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
             {loadingHtml ? (
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                <CircularProgress size={24} sx={{ color: '#ef0f82' }} />
+                <CircularProgress size={24} sx={{ color: 'primary.main' }} />
               </Box>
             ) : (
               <textarea
@@ -287,8 +287,8 @@ function EditDialog({ demo, open, onClose, onSaved }: EditDialogProps) {
                   fontFamily: '"Fira Code", "Cascadia Code", "Courier New", monospace',
                   fontSize: 12,
                   lineHeight: 1.55,
-                  color: '#1a1a2e',
-                  background: '#f8f9ff',
+                  color: theme.palette.text.primary,
+                  background: theme.palette.background.default,
                   boxSizing: 'border-box',
                 }}
               />
@@ -371,7 +371,7 @@ function EditDialog({ demo, open, onClose, onSaved }: EditDialogProps) {
           disabled={saving || loadingHtml || !name.trim()}
           size="small"
           startIcon={saving ? <CircularProgress size={14} thickness={5} sx={{ color: 'inherit' }} /> : <CheckRoundedIcon fontSize="small" />}
-          sx={{ bgcolor: '#ef0f82', '&:hover': { bgcolor: '#d40e75' }, fontWeight: 700, px: 2.5 }}
+          sx={{ bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' }, fontWeight: 700, px: 2.5 }}
         >
           {saving ? 'Guardando…' : 'Guardar cambios'}
         </Button>
@@ -423,7 +423,7 @@ function DemoRow({
       <Box minWidth={0}>
         <Stack direction="row" spacing={1} alignItems="center" mb={0.25}>
           {(demo.pinned || featured) && (
-            <PushPinRoundedIcon sx={{ fontSize: 14, color: '#ef0f82', flexShrink: 0 }} />
+            <PushPinRoundedIcon sx={{ fontSize: 14, color: 'primary.main', flexShrink: 0 }} />
           )}
           <Typography variant="body2" fontWeight={700} noWrap>
             {demo.name}
@@ -493,7 +493,7 @@ function DemoRow({
               <IconButton
                 size="small"
                 onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
-                sx={{ color: '#ef0f82' }}
+                sx={{ color: 'primary.main' }}
               >
                 <OpenInNewRoundedIcon fontSize="small" />
               </IconButton>
@@ -600,14 +600,14 @@ export default function DemosPage() {
               width: 44,
               height: 44,
               borderRadius: 2,
-              bgcolor: alpha('#ef0f82', 0.1),
+              bgcolor: (t) => tint(t, 'primary', 0.1),
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
             }}
           >
-            <OndemandVideoRoundedIcon sx={{ color: '#ef0f82', fontSize: 24 }} />
+            <OndemandVideoRoundedIcon sx={{ color: 'primary.main', fontSize: 24 }} />
           </Box>
           <Box>
             <Typography variant="h5" fontWeight={800} lineHeight={1.2}>
@@ -629,7 +629,7 @@ export default function DemosPage() {
             variant="contained"
             startIcon={<AddRoundedIcon />}
             onClick={() => setOpen(true)}
-            sx={{ bgcolor: '#ef0f82', '&:hover': { bgcolor: '#d40e75' }, fontWeight: 700 }}
+            sx={{ bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' }, fontWeight: 700 }}
           >
             Nueva demo
           </Button>
@@ -648,7 +648,7 @@ export default function DemosPage() {
       >
         {loading ? (
           <Box sx={{ p: 5, display: 'flex', justifyContent: 'center' }}>
-            <CircularProgress size={28} sx={{ color: '#ef0f82' }} />
+            <CircularProgress size={28} sx={{ color: 'primary.main' }} />
           </Box>
         ) : demos.length === 0 ? (
           <Box sx={{ p: 6, textAlign: 'center' }}>
@@ -681,7 +681,7 @@ export default function DemosPage() {
       >
         <DialogTitle sx={{ fontWeight: 800, pb: 0.5 }}>
           <Stack direction="row" spacing={1} alignItems="center">
-            <AutoAwesomeRoundedIcon sx={{ color: '#ef0f82', fontSize: 20 }} />
+            <AutoAwesomeRoundedIcon sx={{ color: 'primary.main', fontSize: 20 }} />
             <span>Nueva demo con IA</span>
           </Stack>
         </DialogTitle>
@@ -719,12 +719,12 @@ export default function DemosPage() {
                 gap: 1.5,
                 p: 1.5,
                 borderRadius: 1.5,
-                bgcolor: alpha('#ef0f82', 0.05),
+                bgcolor: (t) => tint(t, 'primary', 0.05),
                 border: '1px solid',
-                borderColor: alpha('#ef0f82', 0.2),
+                borderColor: (t) => tint(t, 'primary', 0.2),
               }}
             >
-              <CircularProgress size={16} thickness={5} sx={{ color: '#ef0f82', flexShrink: 0 }} />
+              <CircularProgress size={16} thickness={5} sx={{ color: 'primary.main', flexShrink: 0 }} />
               <Typography variant="caption" color="text.secondary">
                 Claude está generando la página… puede tardar 10–30 segundos.
               </Typography>
@@ -752,7 +752,7 @@ export default function DemosPage() {
                 <AutoAwesomeRoundedIcon fontSize="small" />
               )
             }
-            sx={{ bgcolor: '#ef0f82', '&:hover': { bgcolor: '#d40e75' }, fontWeight: 700, px: 2.5 }}
+            sx={{ bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' }, fontWeight: 700, px: 2.5 }}
           >
             {generating ? 'Generando…' : 'Generar con IA'}
           </Button>

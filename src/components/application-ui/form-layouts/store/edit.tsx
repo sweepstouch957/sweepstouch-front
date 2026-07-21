@@ -43,6 +43,7 @@ import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import esLocale from 'date-fns/locale/es';
 import React, { useState } from 'react';
+import type { SemanticRole } from '@/theme/semantic';
 
 type Props = {
   form: {
@@ -90,12 +91,12 @@ const CONTACT_TYPE_LABELS: Record<ContactInfoItem['type'], string> = {
   other: 'Otro',
 };
 
-const CONTACT_TYPE_COLORS: Record<ContactInfoItem['type'], string> = {
-  manager: '#4f46e5',
-  owner: '#0891b2',
-  secretary: '#7c3aed',
-  assistant: '#059669',
-  other: '#9ca3af',
+const CONTACT_TYPE_ROLES: Record<ContactInfoItem['type'], SemanticRole> = {
+  manager: 'secondary',
+  owner: 'info',
+  secretary: 'primary',
+  assistant: 'success',
+  other: 'warning',
 };
 
 function resolveStatus(form: Props['form']): {
@@ -149,7 +150,7 @@ function CollapsibleSection({
           outline: 'none',
           userSelect: 'none',
           '&:focus-visible': {
-            boxShadow: (t) => `0 0 0 2px ${t.palette.primary.main}40`,
+            boxShadow: (t) => `0 0 0 2px ${alpha(t.palette.primary.main, 0.25)}`,
           },
           '&:hover .section-lbl': { color: 'text.primary' },
           '&:hover .section-chevron': { color: 'text.secondary' },
@@ -851,7 +852,7 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
                       height: 28,
                       fontSize: 12,
                       fontWeight: 700,
-                      bgcolor: CONTACT_TYPE_COLORS[c.type] ?? '#9ca3af',
+                      bgcolor: `${CONTACT_TYPE_ROLES[c.type] ?? 'warning'}.main`,
                     }}
                   >
                     {(c.name || '?')[0].toUpperCase()}
@@ -960,7 +961,7 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
                   fontWeight: 600,
                   outline: 'none',
                   '&:focus-visible': {
-                    boxShadow: (t) => `0 0 0 3px ${t.palette.primary.main}40`,
+                    boxShadow: (t) => `0 0 0 3px ${alpha(t.palette.primary.main, 0.25)}`,
                   },
                   '&:hover': {
                     bgcolor: (t) =>

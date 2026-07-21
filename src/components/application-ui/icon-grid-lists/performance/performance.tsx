@@ -15,7 +15,8 @@ function Component() {
       sx={{
         p: { xs: 2, sm: 3 },
         border: 0,
-        background: 'linear-gradient(127.55deg, #141E30 3.73%, #243B55 92.26%) !important',
+        background: (theme) =>
+          `linear-gradient(127.55deg, ${theme.palette.grey[900]} 3.73%, ${theme.palette.info.dark} 92.26%) !important`,
         color: 'common.white',
       }}
     >

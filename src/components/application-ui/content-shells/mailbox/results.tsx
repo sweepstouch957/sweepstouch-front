@@ -1,6 +1,6 @@
 import { Box, Card, Divider, Pagination, Stack, Typography } from '@mui/material';
 import type { FC } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 // ✅ zustand
 import useMailStore, { getMails, runMailThunk } from 'src/slices/mailbox';

@@ -45,7 +45,6 @@ import {
   useTheme,
 } from '@mui/material';
 import { format, formatDistance } from 'date-fns';
-import PropTypes from 'prop-types';
 import { ChangeEvent, FC, MouseEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import BulkDelete from 'src/components/application-ui/tables/users/bulk-delete';

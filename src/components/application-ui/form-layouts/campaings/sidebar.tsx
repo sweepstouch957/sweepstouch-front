@@ -17,10 +17,8 @@ import {
   Stack,
   SwipeableDrawer,
   Theme,
-  Typography,
   useMediaQuery,
-  useTheme,
-} from '@mui/material';
+  useTheme } from '@mui/material';
 import { FC } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Scrollbar } from 'src/components/base/scrollbar';

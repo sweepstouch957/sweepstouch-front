@@ -6,6 +6,7 @@ import TrendingDownRoundedIcon from '@mui/icons-material/TrendingDownRounded';
 import TrendingUpRoundedIcon from '@mui/icons-material/TrendingUpRounded';
 import { alpha, Box, Card, CardContent, Chip, Stack, Typography } from '@mui/material';
 import React from 'react';
+import { tint } from 'src/theme/semantic';
 import { num, pct } from './audience-utils';
 
 export function GrowthChip({ value }: { value: number }) {
@@ -18,7 +19,7 @@ export function GrowthChip({ value }: { value: number }) {
       sx={(t) => ({
         fontWeight: 900,
         borderRadius: 999,
-        bgcolor: up ? alpha(t.palette.success.main, 0.12) : alpha(t.palette.error.main, 0.12),
+        bgcolor: up ? tint(t, 'success') : tint(t, 'error'),
         color: up ? t.palette.success.dark : t.palette.error.dark,
       })}
     />
@@ -39,12 +40,10 @@ export function StatCard(props: {
     <Card
       variant="outlined"
       sx={(t) => ({
-        borderRadius: 3,
         overflow: 'hidden',
         position: 'relative',
         borderColor: alpha(t.palette.divider, 0.9),
         bgcolor: alpha(t.palette.background.paper, 0.92),
-        boxShadow: `0 12px 28px ${alpha(t.palette.common.black, 0.06)}`,
       })}
     >
       <Box
@@ -78,7 +77,7 @@ export function StatCard(props: {
                 borderRadius: 2.5,
                 display: 'grid',
                 placeItems: 'center',
-                bgcolor: alpha(t.palette[accent].main, 0.14),
+                bgcolor: tint(t, accent, 0.14),
                 color: t.palette[accent].dark,
                 flex: '0 0 auto',
               })}

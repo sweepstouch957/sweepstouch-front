@@ -3,10 +3,9 @@
 import SweepstakesTable from '@/components/application-ui/tables/sweepstakes/table';
 import { Add } from '@mui/icons-material';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
-import { Box, Button, Container, Typography } from '@mui/material';
+import { Box, Button, Container } from '@mui/material';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import ProjectsListing from 'src/components/application-ui/tables/projects/projects';
 import PageHeading from 'src/components/base/page-heading';
 import { useCustomization } from 'src/hooks/use-customization';
 

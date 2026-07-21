@@ -311,7 +311,7 @@ const getMessageKey = (message: Message, index: number) => {
   return `${message.role}-${timestamp}-${index}-${contentKey}`;
 };
 
-function renderMarkdown(text: string) {
+function renderMarkdown(text: string, linkColor: string) {
   const codeBlocks: string[] = [];
   let processed = text.replace(/```([\s\S]*?)```/g, (_, code) => {
     codeBlocks.push(code);
@@ -382,7 +382,7 @@ function renderMarkdown(text: string) {
   );
   processed = processed.replace(
     /\[([^\]]+)\]\(([^)]+)\)/g,
-    '<a href="$2" target="_blank" rel="noopener noreferrer" style="color:#0284c7;font-weight:600;text-decoration:underline">$1</a>'
+    `<a href="$2" target="_blank" rel="noopener noreferrer" style="color:${linkColor};font-weight:600;text-decoration:underline">$1</a>`
   );
   processed = processed.replace(/\n{3,}/g, '\n\n');
   processed = processed.replace(/\n\n/g, '<br/>');
@@ -543,7 +543,7 @@ const MarkdownContent = React.memo(function MarkdownContent({ content }: { conte
       {parts.map((part, index) => {
         if (index % 2 === 0) {
           if (!part.trim()) return null;
-          const html = renderMarkdown(part);
+          const html = renderMarkdown(part, theme.palette.info.main);
           return (
             <Typography
               key={index}
@@ -892,6 +892,9 @@ export default function AIAssistantPage() {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const accent = theme.palette.primary.main;
+  // Acento del "modo imagen": distingue generar imagen del envio normal (primary).
+  // Rol semantico del design system, no un morado quemado.
+  const imageAccent = theme.palette.info.main;
   const mdUp = useMediaQuery(theme.breakpoints.up('md'));
   const { push } = useRouter();
   const { user } = useAuth();
@@ -2175,9 +2178,9 @@ export default function AIAssistantPage() {
                     fontSize: 11,
                     fontWeight: 500,
                     maxWidth: { xs: '100%', sm: 'none' },
-                    borderColor: alpha('#8E24AA', 0.3),
-                    color: '#8E24AA',
-                    '&:hover': { bgcolor: alpha('#8E24AA', 0.08) },
+                    borderColor: alpha(imageAccent, 0.3),
+                    color: 'info.main',
+                    '&:hover': { bgcolor: alpha(imageAccent, 0.08) },
                     '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' },
                   }}
                 />
@@ -2271,8 +2274,8 @@ export default function AIAssistantPage() {
                 px: 1.5,
                 py: 0.75,
                 borderRadius: 2,
-                bgcolor: alpha('#8E24AA', 0.08),
-                border: `1px solid ${alpha('#8E24AA', 0.25)}`,
+                bgcolor: alpha(imageAccent, 0.08),
+                border: `1px solid ${alpha(imageAccent, 0.25)}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -2285,10 +2288,10 @@ export default function AIAssistantPage() {
                 alignItems="center"
                 sx={{ minWidth: 0 }}
               >
-                <AutoFixHighRoundedIcon sx={{ fontSize: 15, color: '#8E24AA' }} />
+                <AutoFixHighRoundedIcon sx={{ fontSize: 15, color: 'info.main' }} />
                 <Typography
                   variant="caption"
-                  sx={{ color: '#8E24AA', fontWeight: 600, fontSize: 11, overflowWrap: 'anywhere' }}
+                  sx={{ color: 'info.main', fontWeight: 600, fontSize: 11, overflowWrap: 'anywhere' }}
                 >
                   Image Generation Mode: describe what you want to create
                 </Typography>
@@ -2298,7 +2301,7 @@ export default function AIAssistantPage() {
                 onClick={() => setImageMode(false)}
                 sx={{ p: 0.25 }}
               >
-                <CloseRoundedIcon sx={{ fontSize: 14, color: '#8E24AA' }} />
+                <CloseRoundedIcon sx={{ fontSize: 14, color: 'info.main' }} />
               </IconButton>
             </Box>
           )}
@@ -2361,11 +2364,11 @@ export default function AIAssistantPage() {
                 onClick={() => setImageMode((v) => !v)}
                 sx={{
                   order: { xs: 2, sm: 0 },
-                  color: imageMode ? '#8E24AA' : 'text.secondary',
-                  bgcolor: imageMode ? alpha('#8E24AA', 0.1) : 'transparent',
+                  color: imageMode ? 'info.main' : 'text.secondary',
+                  bgcolor: imageMode ? alpha(imageAccent, 0.1) : 'transparent',
                   borderRadius: 1.5,
                   transition: 'all 0.2s',
-                  '&:hover': { bgcolor: alpha('#8E24AA', 0.12), color: '#8E24AA' },
+                  '&:hover': { bgcolor: alpha(imageAccent, 0.12), color: 'info.main' },
                 }}
               >
                 <AutoFixHighRoundedIcon sx={{ fontSize: 20 }} />
@@ -2405,8 +2408,8 @@ export default function AIAssistantPage() {
                     ? alpha(theme.palette.common.white, 0.04)
                     : alpha(theme.palette.common.black, 0.03),
                   ...(imageMode && {
-                    borderColor: alpha('#8E24AA', 0.4),
-                    '& fieldset': { borderColor: alpha('#8E24AA', 0.3) },
+                    borderColor: alpha(imageAccent, 0.4),
+                    '& fieldset': { borderColor: alpha(imageAccent, 0.3) },
                   }),
                 },
               }}
@@ -2558,14 +2561,14 @@ export default function AIAssistantPage() {
                 disabled={(!input.trim() && pendingAttachments.length === 0) || transcribing}
                 sx={{
                   order: { xs: 2, sm: 0 },
-                  bgcolor: imageMode ? '#8E24AA' : 'primary.main',
+                  bgcolor: imageMode ? 'info.main' : 'primary.main',
                   color: 'white',
                   borderRadius: 2,
                   width: 38,
                   height: 38,
-                  '&:hover': { bgcolor: imageMode ? '#6A1B9A' : 'primary.dark' },
+                  '&:hover': { bgcolor: imageMode ? 'info.dark' : 'primary.dark' },
                   '&.Mui-disabled': {
-                    bgcolor: alpha(imageMode ? '#8E24AA' : theme.palette.primary.main, 0.3),
+                    bgcolor: alpha(imageMode ? imageAccent : theme.palette.primary.main, 0.3),
                     color: 'white',
                   },
                   transition: 'background-color 0.2s',

@@ -22,6 +22,7 @@ import {
   Skeleton,
   Typography,
   alpha,
+  useTheme,
 } from '@mui/material';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -44,16 +45,15 @@ const StatCard = ({ label, value, icon, color, loading }: StatCardProps) => (
     elevation={0}
     sx={{
       p: 2.5,
-      borderRadius: 3,
       border: '1px solid',
       borderColor: 'divider',
       display: 'flex',
       alignItems: 'center',
       gap: 2,
-      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      transition: 'border-color 0.2s ease, background-color 0.2s ease',
       '&:hover': {
         borderColor: color,
-        boxShadow: `0 4px 20px ${alpha(color, 0.12)}`,
+        bgcolor: alpha(color, 0.06),
       },
     }}
   >
@@ -95,6 +95,7 @@ const StatCard = ({ label, value, icon, color, loading }: StatCardProps) => (
 export const PromoDashboard = ({ storeId }: PromoDashboardProps) => {
   const customization = useCustomization();
   const { t } = useTranslation();
+  const theme = useTheme();
 
   const [openModal, setOpenModal] = useState(false);
   const [filters, setFilters] = useState({ page: 1, limit: 10 });
@@ -149,25 +150,25 @@ export const PromoDashboard = ({ storeId }: PromoDashboardProps) => {
       label: t('Total Ads'),
       value: stats.total,
       icon: <Campaign />,
-      color: '#FC0C83',
+      color: theme.palette.primary.main,
     },
     {
       label: t('Active'),
       value: stats.active,
       icon: <PlayCircleOutline />,
-      color: '#0288d1',
+      color: theme.palette.info.main,
     },
     {
       label: t('Pending'),
       value: stats.pending,
       icon: <HourglassEmpty />,
-      color: '#ed6c02',
+      color: theme.palette.warning.main,
     },
     {
       label: t('Completed'),
       value: stats.completed,
       icon: <CheckCircleOutline />,
-      color: '#2e7d32',
+      color: theme.palette.success.main,
     },
   ];
 

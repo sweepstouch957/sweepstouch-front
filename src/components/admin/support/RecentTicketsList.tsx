@@ -1,6 +1,7 @@
 'use client';
 
 import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
+import { chartPalette, severityColor } from 'src/theme/semantic';
 import OpenInNewTwoToneIcon from '@mui/icons-material/OpenInNewTwoTone';
 import TaskAltRoundedIcon from '@mui/icons-material/TaskAltRounded';
 import {
@@ -40,28 +41,26 @@ const STATUS_LABEL: Record<string, string> = {
   resolved: 'Resuelto',
   closed: 'Cerrado',
 };
-const PRIORITY_HEX: Record<string, string> = {
-  low: '#2E7D32',
-  medium: '#FC0C83',
-  high: '#c05a01',
-  critical: '#C62828',
-};
 const PRIORITY_LABEL: Record<string, string> = {
   low: 'Bajo',
   medium: 'Medio',
   high: 'Alto',
   critical: 'Crítico',
 };
-const AREA_HEX: Record<string, string> = {
-  it: '#6C63FF',
-  hardware: '#FF8C00',
-  networking: '#0288D1',
-  sales: '#2E7D32',
-  operations: '#C62828',
-  management: '#6D4C41',
-  support: '#0097A7',
-  other: '#757575',
-};
+/**
+ * El área es una categoría, no una severidad: necesita N colores distinguibles.
+ * El orden define el índice dentro de `chartPalette(theme)`.
+ */
+const AREA_ORDER = [
+  'it',
+  'hardware',
+  'networking',
+  'sales',
+  'operations',
+  'management',
+  'support',
+  'other',
+];
 const AREA_LABEL: Record<string, string> = {
   it: 'IT',
   hardware: 'HW',
@@ -81,6 +80,7 @@ interface Props {
 export default React.memo(function RecentTicketsList({ tickets, loading }: Props) {
   const { push } = useRouter();
   const theme = useTheme();
+  const areaPalette = chartPalette(theme);
 
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -129,8 +129,12 @@ export default React.memo(function RecentTicketsList({ tickets, loading }: Props
             </Box>
           ) : (
             tickets.map((ticket) => {
-              const priorityHex = PRIORITY_HEX[ticket.priority] ?? '#757575';
-              const areaHex = AREA_HEX[ticket.area ?? ''] ?? '#757575';
+              const priorityHex = severityColor(theme, ticket.priority);
+              const areaIdx = AREA_ORDER.indexOf(ticket.area ?? '');
+              const areaHex =
+                areaIdx >= 0
+                  ? areaPalette[areaIdx % areaPalette.length]
+                  : theme.palette.text.secondary;
               const isCritical = ticket.priority === 'critical';
               const timeAgo = ticket.createdAt
                 ? formatDistanceToNow(new Date(ticket.createdAt), { addSuffix: true, locale: es })

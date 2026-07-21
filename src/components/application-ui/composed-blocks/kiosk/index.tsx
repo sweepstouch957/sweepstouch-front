@@ -11,7 +11,6 @@ import {
   TabletAndroidRounded,
 } from '@mui/icons-material';
 import {
-  Alert,
   Box,
   Button,
   Card,
@@ -24,13 +23,12 @@ import {
   Stack,
   TextField,
   Tooltip,
-  Typography,
-} from '@mui/material';
+  Typography } from '@mui/material';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { format, parseISO } from 'date-fns';
 import esLocale from 'date-fns/locale/es';
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 type Props = {
   kioskUrl: string;
@@ -79,7 +77,6 @@ export default function StoreKioskCard({ kioskUrl, storeId, edit, form, setForm 
     <Card
       variant="outlined"
       sx={{
-        borderRadius: 2,
         borderLeft: (t) => `4px solid ${t.palette.warning.main}`,
       }}
     >
@@ -104,7 +101,7 @@ export default function StoreKioskCard({ kioskUrl, storeId, edit, form, setForm 
               height: 32,
               borderRadius: 1.5,
               bgcolor: 'warning.main',
-              color: '#fff',
+              color: 'warning.contrastText',
             }}
           >
             <TabletAndroidRounded sx={{ fontSize: 18 }} />

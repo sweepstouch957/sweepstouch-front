@@ -10,7 +10,12 @@ import {
   QrCode2Rounded,
 } from '@mui/icons-material';
 import AppsRoundedIcon from '@mui/icons-material/AppsRounded';
+import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
+import FilterAltRoundedIcon from '@mui/icons-material/FilterAltRounded';
 import HandymanRoundedIcon from '@mui/icons-material/HandymanRounded';
+import MapRoundedIcon from '@mui/icons-material/MapRounded';
+import TaskAltRoundedIcon from '@mui/icons-material/TaskAltRounded';
+import ViewKanbanRoundedIcon from '@mui/icons-material/ViewKanbanRounded';
 import OndemandVideoRoundedIcon from '@mui/icons-material/OndemandVideoRounded';
 import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
@@ -49,13 +54,16 @@ const dashboardsMenu = (t: (token: string) => string): MenuItem =>
 
 const applicationsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Applications'), <AppsRoundedIcon />, [
-    { title: t('Projects Board'), route: routes.admin.applications['projects-board'] },
-    { title: t('Tasks'), route: routes.admin.applications.tasks },
-    { title: t('Store Maps'), route: routes.admin.applications.maps },
-    { title: t('Calendar'), route: routes.admin.applications.calendar },
-    { title: t('Depurar Numeros'), route: routes.admin.applications['debug-numbers'] },
-    { title: t('Demos'), route: routes.admin.applications.demos, icon: <OndemandVideoRoundedIcon /> },
-    { title: t("QR"), icon: <QrCode2Rounded />, route: routes.admin.management.qr },
+    // Todos los items llevan icono: sin él, el ítem se alinea distinto al resto
+    // y el menú se ve desparejo.
+    { title: t('Optin Cashiers'), icon: <TabletMacRoundedIcon />, route: routes.admin.applications['optin-cashiers'] },
+    { title: t('Projects Board'), icon: <ViewKanbanRoundedIcon />, route: routes.admin.applications['projects-board'] },
+    { title: t('Tasks'), icon: <TaskAltRoundedIcon />, route: routes.admin.applications.tasks },
+    { title: t('Store Maps'), icon: <MapRoundedIcon />, route: routes.admin.applications.maps },
+    { title: t('Calendar'), icon: <CalendarMonthRoundedIcon />, route: routes.admin.applications.calendar },
+    { title: t('Depurar Numeros'), icon: <FilterAltRoundedIcon />, route: routes.admin.applications['debug-numbers'] },
+    { title: t('Demos'), icon: <OndemandVideoRoundedIcon />, route: routes.admin.applications.demos },
+    { title: t('QR'), icon: <QrCode2Rounded />, route: routes.admin.management.qr },
     { title: t('Utilidades'), icon: <HandymanRoundedIcon />, route: routes.admin.applications.utilities },
     //{ title: t('File manager'), route: routes.admin.applications['file-manager'] },
     //{ title: t('Messenger'), route: routes.admin.applications.messenger },
@@ -172,12 +180,7 @@ export const useMenuItemsCollapsedShells = (
   ];
 
   const general: MenuItem[] = [
-    buildMenu(
-      t('Optin Cashiers'),
-      <TabletMacRoundedIcon />,
-      [],
-      routes.admin.applications['optin-cashiers']
-    ),
+    // Optin Cashiers pasó a ser el primer item de Applications (ya no cuelga suelto acá)
     ...aiMenu,
     dashboardsMenu(t),
     applicationsMenu(t),

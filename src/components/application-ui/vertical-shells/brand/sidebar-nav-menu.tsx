@@ -4,23 +4,19 @@ import {
   Box,
   Collapse,
   darken,
-  lighten,
   List,
-  ListItemButton,
   ListItemIcon,
   ListItemText,
   ListProps,
   ListSubheader,
   styled,
   Theme,
-  useMediaQuery,
-} from '@mui/material';
+  useMediaQuery } from '@mui/material';
 
 import React, { FC, useState } from 'react';
 import { RouterLink } from 'src/components/base/router-link';
 import { usePathname } from 'src/hooks/use-pathname';
 import { ListItemButtonWrapper } from './sidebar-nav-menu-wrappers';
-import { useRouter } from 'src/hooks/use-router';
 import { MenuItem } from 'src/router/menuItem';
 
 interface NavItemProps {

@@ -1,6 +1,5 @@
 import ChatBubbleOutlineRoundedIcon from '@mui/icons-material/ChatBubbleOutlineRounded';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
-import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import WidgetsOutlinedIcon from '@mui/icons-material/WidgetsOutlined';
 import {
@@ -24,7 +23,6 @@ import { ProfileDropdown } from 'src/components/application-ui/dropdowns/profile
 import { BasicSpotlightSearch } from 'src/components/application-ui/navigation-overlays/basic/basic-search-overlay';
 import CustomizationButton from 'src/components/base/customization';
 import { Logo } from 'src/components/base/logo';
-import { PulseBadge } from 'src/components/base/styles/pulse-badge';
 import { useDialog } from 'src/hooks/use-dialog';
 import { usePopover } from 'src/hooks/use-popover';
 import useScrollDirection from 'src/hooks/use-scroll-direction';

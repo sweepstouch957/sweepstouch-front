@@ -1,6 +1,7 @@
 'use client';
 
 import { billingService } from '@/services/billing.service';
+import { useStoreSearch } from '@/hooks/fetching/stores/useStoreSearch';
 import { getStores, type Store } from '@/services/store.service';
 import AutorenewOutlinedIcon from '@mui/icons-material/AutorenewOutlined';
 import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
@@ -54,29 +55,8 @@ function money(v: number) {
   return numeral(v || 0).format('$0,0.00');
 }
 
-/* ─── Store search debounced ─────────────────────────────── */
-function useStoreSearch() {
-  const [options, setOptions] = useState<Store[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  const search = useCallback(async (q: string) => {
-    if (!q || q.length < 2) {
-      setOptions([]);
-      return;
-    }
-    try {
-      setLoading(true);
-      const res = await getStores({ search: q, status: 'active', limit: 10 });
-      setOptions(res.data || []);
-    } catch {
-      setOptions([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  return { options, loading, search };
-}
+// El useStoreSearch local (sin debounce, disparaba una request por tecla) se
+// reemplazó por el hook compartido en @/hooks/fetching/stores/useStoreSearch.
 
 // ── Balances reducer ────────────────────────────────────────────────────
 type BalancesState = {
@@ -856,7 +836,8 @@ function NotFoundRowItem({
   row: NotFoundRow;
   onChange: (store: Store | null) => void;
 }) {
-  const { options, loading, search } = useStoreSearch();
+  const [term, setTerm] = useState('');
+  const { options, loading } = useStoreSearch(term, { status: 'active', limit: 10 });
 
   return (
     <Box
@@ -891,7 +872,9 @@ function NotFoundRowItem({
           getOptionLabel={(opt) => opt.name || ''}
           isOptionEqualToValue={(a, b) => a._id === b._id}
           value={row.selectedStore || null}
-          onInputChange={(_e, val) => search(val)}
+          inputValue={term}
+          onInputChange={(_e, val, reason) => { if (reason !== 'reset') setTerm(val); }}
+          filterOptions={(x) => x}
           onChange={(_e, val) => onChange(val)}
           renderOption={(props, opt) => (
             <li key={opt._id} {...props}>

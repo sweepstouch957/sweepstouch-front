@@ -22,6 +22,7 @@ import {
 import { format } from 'date-fns';
 import es from 'date-fns/locale/es';
 import { useState } from 'react';
+import { tint, tintBorder, type SemanticRole } from '@/theme/semantic';
 
 interface RequestCardProps {
   request: any;
@@ -29,11 +30,11 @@ interface RequestCardProps {
   onReject?: (reason: string) => void;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  pendiente: { label: 'Pendiente', color: '#f59e0b' },
-  aprobado: { label: 'Aprobada', color: '#10b981' },
-  rechazado: { label: 'Rechazada', color: '#ef4444' },
-  cancelado: { label: 'Cancelada', color: '#6b7280' },
+const STATUS_CONFIG: Record<string, { label: string; role: SemanticRole }> = {
+  pendiente: { label: 'Pendiente', role: 'warning' },
+  aprobado: { label: 'Aprobada', role: 'success' },
+  rechazado: { label: 'Rechazada', role: 'error' },
+  cancelado: { label: 'Cancelada', role: 'secondary' },
 };
 
 const RequestCard = ({ request, onAssign, onReject }: RequestCardProps) => {
@@ -51,7 +52,8 @@ const RequestCard = ({ request, onAssign, onReject }: RequestCardProps) => {
   const endTime = format(new Date(shift?.endTime || new Date()), 'HH:mm');
 
   const statusKey = request.status as string;
-  const status = STATUS_CONFIG[statusKey] ?? { label: statusKey, color: '#6b7280' };
+  const statusMeta = STATUS_CONFIG[statusKey] ?? { label: statusKey, role: 'secondary' as SemanticRole };
+  const status = { label: statusMeta.label, color: theme.palette[statusMeta.role].main };
 
   const [openRejectModal, setOpenRejectModal] = useState(false);
   const [reason, setReason] = useState('');
@@ -69,12 +71,14 @@ const RequestCard = ({ request, onAssign, onReject }: RequestCardProps) => {
   return (
     <Card
       sx={{
-        borderRadius: 3,
         border: '1px solid',
         borderColor: 'divider',
         overflow: 'hidden',
-        transition: 'box-shadow 0.2s',
-        '&:hover': { boxShadow: theme.shadows[4] },
+        transition: 'border-color 0.2s, background-color 0.2s',
+        '&:hover': {
+          borderColor: tintBorder(theme, 'primary'),
+          bgcolor: tint(theme, 'primary', 0.03),
+        },
       }}
     >
       {/* Status accent bar */}
@@ -88,8 +92,8 @@ const RequestCard = ({ request, onAssign, onReject }: RequestCardProps) => {
               sx={{
                 width: 36,
                 height: 36,
-                bgcolor: alpha('#fc0680', 0.15),
-                color: '#fc0680',
+                bgcolor: tint(theme, 'primary', 0.15),
+                color: 'primary.main',
                 fontWeight: 700,
                 fontSize: 14,
                 flexShrink: 0,
@@ -220,8 +224,8 @@ const RequestCard = ({ request, onAssign, onReject }: RequestCardProps) => {
                   textTransform: 'none',
                   borderRadius: 2,
                   fontSize: 12,
-                  bgcolor: '#10b981',
-                  '&:hover': { bgcolor: '#059669' },
+                  bgcolor: 'success.main',
+                  '&:hover': { bgcolor: 'success.dark' },
                 }}
               >
                 Aceptar
@@ -234,8 +238,8 @@ const RequestCard = ({ request, onAssign, onReject }: RequestCardProps) => {
                   textTransform: 'none',
                   borderRadius: 2,
                   fontSize: 12,
-                  bgcolor: '#ef4444',
-                  '&:hover': { bgcolor: '#dc2626' },
+                  bgcolor: 'error.main',
+                  '&:hover': { bgcolor: 'error.dark' },
                 }}
               >
                 Rechazar

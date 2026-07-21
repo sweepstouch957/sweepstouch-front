@@ -17,13 +17,13 @@ export function ScheduleCircularsHeader({
             <Box>
                 <Typography
                     variant="h4"
-                    sx={{ fontWeight: 700, color: '#1A202C', mb: 0.25 }}
+                    sx={{ fontWeight: 700, color: 'text.primary', mb: 0.25 }}
                 >
                     Schedule Circulars
                 </Typography>
                 <Typography
                     variant="subtitle1"
-                    sx={{ color: '#718096' }}
+                    sx={{ color: 'text.secondary' }}
                 >
                     Upload and manage circular files
                 </Typography>
@@ -49,7 +49,7 @@ export function ScheduleCircularsHeader({
                     variant="contained"
                     startIcon={<HelpIcon />}
                     onClick={onOpenInstructions}
-                    sx={{ backgroundColor: '#E91E63', '&:hover': { backgroundColor: '#AD1457' } }}
+                    sx={{ backgroundColor: 'primary.main', '&:hover': { backgroundColor: 'primary.dark' } }}
                 >
                     Instructions
                 </Button>

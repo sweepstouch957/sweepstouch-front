@@ -151,7 +151,6 @@ function TaskSearch() {
             sx={{
               p: 2,
               background: alpha(theme.palette.background.default, 0.3),
-              boxShadow: theme.shadows[8],
             }}
           >
             <Box>
@@ -263,7 +262,6 @@ function TaskSearch() {
             sx={{
               p: 2,
               background: alpha(theme.palette.background.default, 0.3),
-              boxShadow: theme.shadows[8],
             }}
           >
             <Box>
@@ -382,7 +380,6 @@ function TaskSearch() {
             sx={{
               p: 2,
               background: alpha(theme.palette.background.default, 0.3),
-              boxShadow: theme.shadows[8],
             }}
           >
             <Box>

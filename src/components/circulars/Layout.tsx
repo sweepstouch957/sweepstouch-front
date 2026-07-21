@@ -32,7 +32,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title, activeItem, onItemClic
           component="main"
           sx={{
             flex: 1,
-            backgroundColor: '#F7FAFC',
+            backgroundColor: 'background.default',
             pt: '80px', // Header height + padding
             p: 3,
             minHeight: 'calc(100vh - 80px)',

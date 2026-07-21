@@ -46,9 +46,11 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
+import type { Theme } from '@mui/material/styles';
+import { chartPalette, tint, tintBorder, type SemanticRole } from 'src/theme/semantic';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useCustomization } from 'src/hooks/use-customization';
 import { getStores } from 'src/services/store.service';
 import supportService, {
@@ -79,10 +81,11 @@ const TYPE_LABEL: Record<string, string> = {
   soporte_remoto: 'Soporte Remoto',
 };
 
-const STORE_TYPE_COLOR: Record<string, string> = {
-  elite: '#6C63FF',
-  basic: '#0288D1',
-  free: '#757575',
+const STORE_TYPE_ORDER = ['elite', 'basic', 'free'];
+const storeTypeColor = (theme: Theme, type?: string) => {
+  const palette = chartPalette(theme);
+  const idx = STORE_TYPE_ORDER.indexOf(type ?? '');
+  return idx >= 0 ? palette[idx % palette.length] : theme.palette.primary.main;
 };
 
 function getCurrentWeek(): { week: number; year: number } {
@@ -103,14 +106,14 @@ interface StoreOption {
   customerCount?: number;
 }
 
-function getAudienceInfo(count: number | undefined): { label: string; hex: string } | null {
+function getAudienceInfo(count: number | undefined): { label: string; role: SemanticRole } | null {
   if (!count || count === 0) return null;
   const k = count >= 1000
     ? `${(count / 1000).toFixed(count >= 10000 ? 0 : 1)}k`
     : `${count}`;
-  if (count >= 30000) return { label: `${k} · Crítico`, hex: '#C62828' };
-  if (count >= 10000) return { label: `${k} · Urgente`, hex: '#E65100' };
-  return { label: k, hex: '#2E7D32' };
+  if (count >= 30000) return { label: `${k} · Crítico`, role: 'error' };
+  if (count >= 10000) return { label: `${k} · Urgente`, role: 'warning' };
+  return { label: k, role: 'success' };
 }
 
 interface FormState {
@@ -487,7 +490,7 @@ export default function VisitsPage() {
               getOptionLabel={(o) => o.name}
               isOptionEqualToValue={(a, b) => a._id === b._id}
               renderOption={(props, o) => {
-                const color = STORE_TYPE_COLOR[o.type ?? ''] ?? theme.palette.primary.main;
+                const color = storeTypeColor(theme, o.type);
                 const aud = getAudienceInfo(o.customerCount);
                 return (
                   <Box component="li" {...props} sx={{ gap: 1.5, alignItems: 'flex-start !important', py: '8px !important' }}>
@@ -503,9 +506,9 @@ export default function VisitsPage() {
                             size="small"
                             sx={{
                               height: 18, fontSize: 10, fontWeight: 700, flexShrink: 0,
-                              bgcolor: alpha(aud.hex, 0.1),
-                              color: aud.hex,
-                              border: `1px solid ${alpha(aud.hex, 0.3)}`,
+                              bgcolor: tint(theme, aud.role),
+                              color: `${aud.role}.main`,
+                              border: `1px solid ${tintBorder(theme, aud.role, 0.3)}`,
                             }}
                           />
                         )}

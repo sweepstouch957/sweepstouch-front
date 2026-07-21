@@ -62,7 +62,7 @@ const STATUS_MAP: Record<ContractStatus, { label: string; color: 'warning' | 'in
 };
 
 /* ── Detail row helper ── */
-const DetailRow = ({ label, value, isDark }: { label: string; value: React.ReactNode; isDark: boolean }) => (
+const DetailRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
   <Stack
     direction="row"
     justifyContent="space-between"
@@ -70,7 +70,8 @@ const DetailRow = ({ label, value, isDark }: { label: string; value: React.React
     sx={{
       py: 1,
       px: 0,
-      borderBottom: `1px solid ${isDark ? alpha('#fff', 0.05) : alpha('#000', 0.05)}`,
+      borderBottom: '1px solid',
+      borderColor: 'divider',
       '&:last-child': { borderBottom: 0 },
     }}
   >
@@ -102,9 +103,9 @@ export default function ContractsListingPage() {
   });
 
   const accent = theme.palette.primary.main;
-  const border = isDark ? alpha('#fff', 0.07) : alpha('#000', 0.07);
-  const surface = isDark ? '#161b22' : '#fff';
-  const bg = isDark ? '#0d1117' : '#f4f6f9';
+  const border = theme.palette.divider;
+  const surface = theme.palette.background.paper;
+  const bg = theme.palette.background.default;
 
   /* ── Stats ── */
   const { data: stats } = useQuery({
@@ -188,7 +189,6 @@ export default function ContractsListingPage() {
             fontWeight: 700,
             px: 3,
             background: `linear-gradient(135deg, ${accent} 0%, ${theme.palette.primary.dark} 100%)`,
-            boxShadow: `0 4px 16px ${alpha(accent, 0.3)}`,
           }}
         >
           New Contract
@@ -437,10 +437,10 @@ export default function ContractsListingPage() {
               <Typography variant="overline" color="text.disabled" fontWeight={700} letterSpacing={1.5} sx={{ display: 'block', mb: 0.5 }}>
                 Store Information
               </Typography>
-              <DetailRow label="Store Name" value={viewTarget.storeName} isDark={isDark} />
-              <DetailRow label="Address" value={viewTarget.address} isDark={isDark} />
-              <DetailRow label="Phone" value={viewTarget.phone} isDark={isDark} />
-              <DetailRow label="Email" value={viewTarget.email} isDark={isDark} />
+              <DetailRow label="Store Name" value={viewTarget.storeName} />
+              <DetailRow label="Address" value={viewTarget.address} />
+              <DetailRow label="Phone" value={viewTarget.phone} />
+              <DetailRow label="Email" value={viewTarget.email} />
 
               <Divider sx={{ my: 2 }} />
 
@@ -448,7 +448,7 @@ export default function ContractsListingPage() {
               <Typography variant="overline" color="text.disabled" fontWeight={700} letterSpacing={1.5} sx={{ display: 'block', mb: 0.5 }}>
                 Equipment
               </Typography>
-              <DetailRow label="Cash Registers" value={viewTarget.cashRegisters} isDark={isDark} />
+              <DetailRow label="Cash Registers" value={viewTarget.cashRegisters} />
               <DetailRow
                 label="Tablet Type"
                 value={
@@ -458,15 +458,15 @@ export default function ContractsListingPage() {
                       ? 'Small (Free)'
                       : 'None'
                 }
-                isDark={isDark}
+               
               />
               {viewTarget.tabletType !== 'none' && (
-                <DetailRow label="Tablet Count" value={viewTarget.tabletCount} isDark={isDark} />
+                <DetailRow label="Tablet Count" value={viewTarget.tabletCount} />
               )}
               <DetailRow
                 label="Printers"
                 value={viewTarget.hasPrinters ? `Yes — ${viewTarget.printerCount} units` : 'No'}
-                isDark={isDark}
+               
               />
 
               <Divider sx={{ my: 2 }} />
@@ -475,12 +475,12 @@ export default function ContractsListingPage() {
               <Typography variant="overline" color="text.disabled" fontWeight={700} letterSpacing={1.5} sx={{ display: 'block', mb: 0.5 }}>
                 Costs
               </Typography>
-              <DetailRow label="Installation" value={fmt$(viewTarget.installationCost)} isDark={isDark} />
+              <DetailRow label="Installation" value={fmt$(viewTarget.installationCost)} />
               {viewTabletTotal > 0 && (
                 <DetailRow
                   label={`Tablets (${viewTarget.tabletCount} × ${fmt$(viewTarget.tabletCostEach)})`}
                   value={fmt$(viewTabletTotal)}
-                  isDark={isDark}
+                 
                 />
               )}
               <Stack
@@ -516,7 +516,7 @@ export default function ContractsListingPage() {
                 Metadata
               </Typography>
               {viewTarget.createdBy?.name && (
-                <DetailRow label="Created By" value={`${viewTarget.createdBy.name} (${viewTarget.createdBy.email})`} isDark={isDark} />
+                <DetailRow label="Created By" value={`${viewTarget.createdBy.name} (${viewTarget.createdBy.email})`} />
               )}
               <DetailRow
                 label="Source"
@@ -529,10 +529,10 @@ export default function ContractsListingPage() {
                     sx={{ fontSize: 10, height: 20 }}
                   />
                 }
-                isDark={isDark}
+               
               />
-              <DetailRow label="Created" value={fmtDate(viewTarget.createdAt)} isDark={isDark} />
-              <DetailRow label="Last Updated" value={fmtDate(viewTarget.updatedAt)} isDark={isDark} />
+              <DetailRow label="Created" value={fmtDate(viewTarget.createdAt)} />
+              <DetailRow label="Last Updated" value={fmtDate(viewTarget.updatedAt)} />
             </DialogContent>
 
             <DialogActions sx={{ px: 2.5, pb: 2 }}>

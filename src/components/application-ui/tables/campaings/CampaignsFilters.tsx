@@ -49,16 +49,16 @@ const PLATFORM_OPTIONS = [
   { value: 'twilio', label: 'Twilio' },
 ];
 
-const PLATFORM_COLORS: Record<string, string> = {
-  bandwidth: '#2196f3',
-  infobip: '#e91e63',
-  twilio: '#f44336',
-};
-
 export default function CampaignsFilters({ filters, setFilters, storeId }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  const PLATFORM_COLORS: Record<string, string> = {
+    bandwidth: theme.palette.info.main,
+    infobip: theme.palette.primary.main,
+    twilio: theme.palette.error.main,
+  };
 
   const patch = (p: Partial<CampaignFilters>) => {
     setFilters({ ...filters, ...p, page: 1 });

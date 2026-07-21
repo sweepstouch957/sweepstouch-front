@@ -6,9 +6,7 @@
 import {
   useMutation,
   useQuery,
-  useQueryClient,
-  type UseMutationOptions,
-} from '@tanstack/react-query';
+  useQueryClient } from '@tanstack/react-query';
 
 import {
   getKioskDevices,

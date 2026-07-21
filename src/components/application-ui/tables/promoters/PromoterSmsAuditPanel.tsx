@@ -12,9 +12,7 @@
 import {
   getPromoterSmsAudit,
   validatePromoterPhone,
-  type PromoterSmsAuditResponse,
-  type PromoterSmsAuditRow,
-} from '@/services/promotor.service';
+  type PromoterSmsAuditResponse } from '@/services/promotor.service';
 import {
   alpha,
   Autocomplete,

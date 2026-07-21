@@ -318,8 +318,12 @@ export default function FlyerUploader({
           disabled={!circularId || isExtracting}
           startIcon={isExtracting ? <CircularProgress size={18} /> : <AutoAwesomeIcon />}
           sx={{
-            background: 'linear-gradient(135deg, #DC1F26 0%, #ff6b6b 100%)',
-            '&:hover': { background: 'linear-gradient(135deg, #b01820 0%, #e55 100%)' },
+            background: (theme) =>
+              `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.light} 100%)`,
+            '&:hover': {
+              background: (theme) =>
+                `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+            },
           }}
         >
           {isExtracting ? 'AI Extracting...' : `🤖 Extract${maxProducts ? ` Top ${maxProducts}` : ' All'}`}
@@ -331,7 +335,7 @@ export default function FlyerUploader({
             onClick={() => handleExtract(0)}
             disabled={isExtracting}
             size="small"
-            sx={{ textTransform: 'none', borderColor: '#f43789', color: '#f43789' }}
+            sx={{ textTransform: 'none', borderColor: 'primary.main', color: 'primary.main' }}
           >
             📦 Load All Products
           </Button>
@@ -350,7 +354,8 @@ export default function FlyerUploader({
               sx={{
                 height: 4,
                 borderRadius: 2,
-                background: 'linear-gradient(90deg, #DC1F26, #FFD700, #DC1F26)',
+                background: (theme) =>
+                  `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.warning.main}, ${theme.palette.primary.main})`,
                 backgroundSize: '200% 100%',
                 animation: 'shimmer 1.5s infinite',
                 '@keyframes shimmer': {

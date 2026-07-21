@@ -71,6 +71,7 @@ import { taskClient, type Project, type WorkflowStatus } from '@/services/task.s
 import { useCustomization } from 'src/hooks/use-customization';
 import { LinearProgressSlim } from 'src/components/base/styles/progress-bar';
 import { CardWrapper } from 'src/components/application-ui/tables/users/styles';
+import { tint, tintBorder } from 'src/theme/semantic';
 import { usersApi } from '@/mocks/users';
 
 /* ─── Constants ─── */
@@ -81,6 +82,11 @@ const STATUS_MAP: Record<WorkflowStatus, { label: string; color: 'error' | 'info
   completed:    { label: 'Completed',    color: 'success' },
 };
 
+/**
+ * Paleta del selector de color del proyecto. NO es design system: el valor
+ * elegido se PERSISTE en la BD (`project.color`), así que debe ser estable e
+ * independiente del theme activo / dark mode.
+ */
 const PROJECT_COLORS = ['#5569ff','#E91E63','#FF9800','#4CAF50','#9C27B0','#00BCD4','#F44336','#795548','#607D8B'];
 
 const statusOptions: { id: WorkflowStatus; name: string }[] = [
@@ -90,7 +96,7 @@ const statusOptions: { id: WorkflowStatus; name: string }[] = [
 ];
 
 const EMPTY_FORM = {
-  name: '', description: '', color: '#5569ff', tags: '',
+  name: '', description: '', color: PROJECT_COLORS[0], tags: '',
   workflowStatus: 'not_started' as WorkflowStatus,
   startDate: '', dueDate: '',
 };
@@ -118,7 +124,7 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (c: string)
           sx={{
             width: 28, height: 28, borderRadius: 1.5, bgcolor: c, cursor: 'pointer',
             border: value === c ? `3px solid ${theme.palette.background.paper}` : '3px solid transparent',
-            boxShadow: value === c ? `0 0 0 2px ${c}` : 'none',
+            outline: value === c ? `2px solid ${c}` : 'none',
             transition: 'all 0.15s', '&:hover': { transform: 'scale(1.12)' },
           }}
         />
@@ -160,7 +166,7 @@ function EditProjectDrawer({
       setForm({
         name: project.name || '',
         description: project.description || '',
-        color: project.color || '#5569ff',
+        color: project.color || PROJECT_COLORS[0],
         tags: (project.tags || []).join(', '),
         workflowStatus: project.workflowStatus || 'not_started',
         startDate: project.startDate ? project.startDate.slice(0, 10) : '',
@@ -229,7 +235,7 @@ function EditProjectDrawer({
         }}
       >
         <Stack direction="row" alignItems="center" spacing={1.5}>
-          <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: project.color || '#5569ff', flexShrink: 0 }} />
+          <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: project.color || PROJECT_COLORS[0], flexShrink: 0 }} />
           <Box>
             <Typography variant="h6" fontWeight={700} lineHeight={1.2}>
               Edit Project
@@ -803,7 +809,7 @@ export default function ProjectsBoardPage() {
                       <TableRow hover key={project._id}>
                         <TableCell>
                           <Stack direction="row" alignItems="center" spacing={1}>
-                            <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: project.color || '#5569ff', flexShrink: 0 }} />
+                            <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: project.color || PROJECT_COLORS[0], flexShrink: 0 }} />
                             <Box>
                               <Typography noWrap variant="h6" fontWeight={600} sx={{ maxWidth: 180 }}>{project.name}</Typography>
                               {project.description && (
@@ -915,12 +921,12 @@ export default function ProjectsBoardPage() {
             <Grid container spacing={{ xs: 2, sm: 3 }}>
               {paginated.map((project) => (
                 <Grid xs={12} md={6} lg={4} key={project._id}>
-                  <CardWrapper elevation={0} sx={{ position: 'relative', transition: 'box-shadow 0.2s', '&:hover': { boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.1)}` } }}>
+                  <CardWrapper elevation={0} sx={{ position: 'relative', transition: 'border-color 0.2s, background-color 0.2s', '&:hover': { borderColor: tintBorder(theme, 'primary'), bgcolor: tint(theme, 'primary', 0.04) } }}>
                     <Box position="relative" zIndex={2}>
                       {/* Card header */}
                       <Box pl={2} py={1.25} pr={1.5} display="flex" alignItems="center" justifyContent="space-between">
                         <Stack direction="row" alignItems="center" spacing={1}>
-                          <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: project.color || '#5569ff', flexShrink: 0 }} />
+                          <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: project.color || PROJECT_COLORS[0], flexShrink: 0 }} />
                           <Stack direction="row" flexWrap="wrap" gap={0.4} alignItems="center">
                             {project.identifier && (
                               <Typography

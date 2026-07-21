@@ -8,6 +8,7 @@ import {
   Skeleton,
   Tooltip,
   alpha,
+  useTheme,
 } from '@mui/material';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import type { TimelinePoint, ListTimelinePoint } from '@/services/analytics.service';
@@ -17,16 +18,18 @@ interface Props {
   isLoading: boolean;
 }
 
-const COLORS = {
-  scans: '#3b82f6',
-  customers: '#06b6d4',
-  confirmed: '#10b981',
-};
-
 export default function TimelineChart({ data, isLoading }: Props) {
+  const theme = useTheme();
+  // Series del chart resueltas por el theme (antes: hex quemados).
+  const COLORS = {
+    scans: theme.palette.info.main,
+    customers: theme.palette.primary.main,
+    confirmed: theme.palette.success.main,
+  };
+
   if (isLoading) {
     return (
-      <Card sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+      <Card sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
         <Skeleton variant="text" width={200} height={32} sx={{ mb: 2 }} />
         <Skeleton variant="rounded" height={240} sx={{ borderRadius: 2 }} />
       </Card>
@@ -35,7 +38,7 @@ export default function TimelineChart({ data, isLoading }: Props) {
 
   if (!data || data.scans.length === 0) {
     return (
-      <Card sx={{ p: 5, textAlign: 'center', borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+      <Card sx={{ p: 5, textAlign: 'center', border: '1px solid', borderColor: 'divider' }}>
         <TrendingUpIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
         <Typography color="text.secondary" fontWeight={600}>No timeline data yet</Typography>
       </Card>
@@ -50,7 +53,7 @@ export default function TimelineChart({ data, isLoading }: Props) {
   const BAR_HEIGHT = 200;
 
   return (
-    <Card sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
+    <Card sx={{ border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
       {/* Header */}
       <Box
         sx={{
@@ -204,7 +207,7 @@ export default function TimelineChart({ data, isLoading }: Props) {
           { label: 'Total Scans', value: totalScans.toLocaleString(), color: COLORS.scans },
           { label: 'Customer Visits', value: totalCustomers.toLocaleString(), color: COLORS.customers },
           { label: 'Confirmed', value: totalConfirmed.toLocaleString(), color: COLORS.confirmed },
-          { label: 'Points Awarded', value: totalPoints.toLocaleString(), color: '#f59e0b' },
+          { label: 'Points Awarded', value: totalPoints.toLocaleString(), color: theme.palette.warning.main },
         ].map((stat, i) => (
           <Box
             key={stat.label}

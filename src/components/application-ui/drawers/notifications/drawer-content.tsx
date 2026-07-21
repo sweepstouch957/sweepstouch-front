@@ -17,7 +17,7 @@ import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import { formatDistance, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import NextLink from 'next/link';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Scrollbar } from 'src/components/base/scrollbar';
 import { PulseBadge } from 'src/components/base/styles/pulse-badge';
 import { useNotificationsStore, AppNotification } from 'src/store/notificationsStore';
@@ -25,10 +25,11 @@ import { useAuth } from 'src/hooks/use-auth';
 import {
   NotifCategory,
   CATEGORY_OF,
-  CATEGORY_HEX,
+  CATEGORY_ROLE,
   CATEGORY_LABEL,
   getNotifMeta,
 } from 'src/components/application-ui/dropdowns/notifications/notifications-dropdown';
+import { tint, type SemanticRole } from '@/theme/semantic';
 
 const FILTER_TABS: NotifCategory[] = ['todos', 'tickets', 'tareas', 'turnos'];
 
@@ -49,9 +50,10 @@ function DrawerNotificationItem({
   markAsRead: (id: string, room: string) => void;
 }) {
   const theme = useTheme();
-  const { icon, color } = getNotifMeta(n.type);
+  const { icon, role } = getNotifMeta(n.type);
+  const color = theme.palette[role].main;
   const category = CATEGORY_OF[n.type];
-  const catHex = category ? CATEGORY_HEX[category] : '#546E7A';
+  const catRole: SemanticRole = category ? CATEGORY_ROLE[category] : 'secondary';
 
   const avatarEl = (
     <Box
@@ -78,9 +80,9 @@ function DrawerNotificationItem({
         px: 2.5,
         py: 1.75,
         position: 'relative',
-        bgcolor: n.read ? 'transparent' : alpha(catHex, 0.04),
+        bgcolor: n.read ? 'transparent' : tint(theme, catRole, 0.04),
         transition: 'background-color .12s',
-        '&:hover': { bgcolor: alpha(catHex, 0.07), cursor: n.link ? 'pointer' : 'default' },
+        '&:hover': { bgcolor: tint(theme, catRole, 0.07), cursor: n.link ? 'pointer' : 'default' },
       }}
     >
       {!n.read && (
@@ -177,7 +179,7 @@ const DrawerContent = () => {
           >
             {FILTER_TABS.map((cat) => {
               const count = countUnread(cat);
-              const hex = CATEGORY_HEX[cat];
+              const hex = theme.palette[CATEGORY_ROLE[cat]].main;
               return (
                 <Tab
                   key={cat}
