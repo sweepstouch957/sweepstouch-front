@@ -113,6 +113,12 @@ class CustomerClient {
     return res.data.total;
   }
 
+  /** Búsqueda global de clientes por nombre, teléfono o email. */
+  async searchCustomers(q: string, limit = 10): Promise<CustomerSearchResult[]> {
+    const res = await api.get('/customers/search', { params: { q, limit } });
+    return res.data?.data ?? [];
+  }
+
   /** Agrega un número a una tienda, a varias, o a todas. Idempotente. */
   async addNumberToStores(data: {
     phoneNumber: string;
@@ -126,6 +132,17 @@ class CustomerClient {
     return res.data;
   }
 
+}
+
+export interface CustomerSearchResult {
+  _id: string;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber: string;
+  email?: string;
+  active?: boolean;
+  /** Tiendas a las que ya pertenece — sirve para avisar si ya está asignado. */
+  stores?: string[];
 }
 
 export interface AddToStoresResult {

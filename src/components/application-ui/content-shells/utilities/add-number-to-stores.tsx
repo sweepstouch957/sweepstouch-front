@@ -1,7 +1,12 @@
 'use client';
 
 import { useStoreSearch } from '@/hooks/fetching/stores/useStoreSearch';
-import { customerClient, type AddToStoresResult } from '@/services/customerService';
+import { useCustomerSearch } from '@/hooks/fetching/customers/useCustomerSearch';
+import {
+  customerClient,
+  type AddToStoresResult,
+  type CustomerSearchResult,
+} from '@/services/customerService';
 import { getStores, type Store } from '@/services/store.service';
 import PhoneIphoneRoundedIcon from '@mui/icons-material/PhoneIphoneRounded';
 import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
@@ -48,10 +53,19 @@ export default function AddNumberToStores() {
   const [selectedStores, setSelectedStores] = useState<Store[]>([]);
   const [result, setResult] = useState<AddToStoresResult | null>(null);
 
+  // Cliente elegido del autocomplete (null = número escrito a mano, se creará)
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerSearchResult | null>(null);
+  // El input del teléfono es a la vez el término de búsqueda de clientes.
+  const {
+    options: customerOptions,
+    loading: loadingCustomers,
+    needsMoreChars,
+  } = useCustomerSearch(phone);
+
   // Búsqueda server-side por nombre (debounced). Antes traía TODAS las tiendas
   // al abrir la página solo para filtrar en el cliente.
   const [storeTerm, setStoreTerm] = useState('');
-  const { options: storeOptions, loading: loadingStores, needsMoreChars } =
+  const { options: storeOptions, loading: loadingStores, needsMoreChars: needsMoreStoreChars } =
     useStoreSearch(storeTerm);
 
   // Solo el TOTAL (limit:1) para el aviso de "todas las tiendas" — no la lista.
@@ -94,6 +108,7 @@ export default function AddNumberToStores() {
 
   const handleReset = () => {
     setPhone('');
+    setSelectedCustomer(null);
     setFirstName('');
     setSelectedStores([]);
     setResult(null);
@@ -158,26 +173,87 @@ export default function AddNumberToStores() {
               </ToggleButton>
             </ToggleButtonGroup>
 
-            {/* Datos */}
+            {/* Cliente: buscar uno existente por nombre/teléfono, o tipear uno nuevo */}
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-              <TextField
+              <Autocomplete
+                freeSolo
                 size="small"
-                label="Número de teléfono"
-                placeholder="(555) 123-4567"
-                value={phone}
-                onChange={(e) => {
-                  setPhone(e.target.value);
+                sx={{ flex: 1 }}
+                options={customerOptions}
+                loading={loadingCustomers}
+                filterOptions={(x) => x}
+                value={selectedCustomer}
+                inputValue={phone}
+                onInputChange={(_, v, reason) => {
+                  if (reason === 'reset') return;
+                  setPhone(v);
+                  // Si edita el texto a mano, deja de estar atado al cliente elegido
+                  setSelectedCustomer(null);
                   setResult(null);
                 }}
-                error={phoneError}
-                helperText={
-                  phoneError
-                    ? 'Debe ser un número US de 10 dígitos'
-                    : normalized
-                      ? `Se guardará como ${normalized}`
-                      : 'Se aceptan formatos con ( ) - o espacios'
+                onChange={(_, v) => {
+                  if (v && typeof v !== 'string') {
+                    setSelectedCustomer(v);
+                    setPhone(v.phoneNumber);
+                    setFirstName(v.firstName || '');
+                  }
+                  setResult(null);
+                }}
+                getOptionLabel={(o) =>
+                  typeof o === 'string' ? o : o.phoneNumber || ''
                 }
-                sx={{ flex: 1 }}
+                isOptionEqualToValue={(a, b) =>
+                  typeof a !== 'string' && typeof b !== 'string' && a._id === b._id
+                }
+                noOptionsText={
+                  needsMoreChars
+                    ? 'Escribí al menos 2 caracteres…'
+                    : 'Sin clientes — se creará uno nuevo con este número'
+                }
+                renderOption={(props, o) => {
+                  if (typeof o === 'string') return null;
+                  const name = [o.firstName, o.lastName].filter(Boolean).join(' ');
+                  return (
+                    <Box component="li" {...props} key={o._id}>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography variant="body2" fontWeight={700} noWrap>
+                          {name || o.phoneNumber}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" noWrap>
+                          {o.phoneNumber}
+                          {o.stores?.length ? ` · ${o.stores.length} tienda(s)` : ''}
+                          {o.active === false ? ' · inactivo' : ''}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  );
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Cliente (nombre o teléfono)"
+                    placeholder="Buscar o escribir un número nuevo…"
+                    error={phoneError}
+                    helperText={
+                      phoneError
+                        ? 'Debe ser un número US de 10 dígitos'
+                        : selectedCustomer
+                          ? `Cliente existente · ${normalized}`
+                          : normalized
+                            ? `Se creará/actualizará ${normalized}`
+                            : 'Buscá por nombre o teléfono, o escribí un número nuevo'
+                    }
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {loadingCustomers ? <CircularProgress size={16} /> : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
               />
               <TextField
                 size="small"
@@ -211,7 +287,7 @@ export default function AddNumberToStores() {
                 getOptionLabel={(o) => o.name || ''}
                 isOptionEqualToValue={(a, b) => a._id === b._id}
                 noOptionsText={
-                  needsMoreChars
+                  needsMoreStoreChars
                     ? 'Escribí al menos 2 letras...'
                     : storeTerm.trim()
                       ? 'Sin resultados'
