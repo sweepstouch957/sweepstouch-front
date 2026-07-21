@@ -5,6 +5,7 @@ import ArrowBackIosNewTwoToneIcon from '@mui/icons-material/ArrowBackIosNewTwoTo
 import ArrowForwardIosTwoToneIcon from '@mui/icons-material/ArrowForwardIosTwoTone';
 import CheckCircleTwoToneIcon from '@mui/icons-material/CheckCircleTwoTone';
 import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
+import ConfirmDialog from '@/components/base/confirm-dialog';
 import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
 import EventTwoToneIcon from '@mui/icons-material/EventTwoTone';
 import WarningTwoToneIcon from '@mui/icons-material/WarningTwoTone';
@@ -245,6 +246,8 @@ export default function VisitsPage() {
     onSuccess: () => { invalidate(); closeDialog(); },
   });
 
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => supportService.deleteVisit(id),
     onSuccess: invalidate,
@@ -419,7 +422,7 @@ export default function VisitsPage() {
                     <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                       <Tooltip title="Editar"><IconButton size="small" onClick={() => openEdit(visit)}><EditTwoToneIcon fontSize="small" /></IconButton></Tooltip>
                       <Tooltip title="Eliminar">
-                        <IconButton size="small" color="error" onClick={() => { if (confirm('¿Eliminar esta visita?')) deleteMutation.mutate(visit._id); }}>
+                        <IconButton size="small" color="error" onClick={() => { setPendingDelete(visit._id); }}>
                           <DeleteTwoToneIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
@@ -610,6 +613,19 @@ export default function VisitsPage() {
           ))}
         </MenuList>
       </Popover>
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={() => {
+          if (pendingDelete) deleteMutation.mutate(pendingDelete);
+          setPendingDelete(null);
+        }}
+        loading={deleteMutation.isPending}
+        severity="error"
+        title="Eliminar visita"
+        description="Esta acción no se puede deshacer."
+        confirmLabel="Eliminar"
+      />
     </Container>
   );
 }

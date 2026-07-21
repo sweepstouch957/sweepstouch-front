@@ -2,6 +2,7 @@
 
 import { useStoreSearch } from '@/hooks/fetching/stores/useStoreSearch';
 import { useCustomerSearch } from '@/hooks/fetching/customers/useCustomerSearch';
+import ConfirmDialog from '@/components/base/confirm-dialog';
 import {
   customerClient,
   type AddToStoresResult,
@@ -52,6 +53,7 @@ export default function AddNumberToStores() {
   const [firstName, setFirstName] = useState('');
   const [selectedStores, setSelectedStores] = useState<Store[]>([]);
   const [result, setResult] = useState<AddToStoresResult | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Cliente elegido del autocomplete (null = número escrito a mano, se creará)
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerSearchResult | null>(null);
@@ -96,12 +98,18 @@ export default function AddNumberToStores() {
 
   const handleSubmit = () => {
     if (!canSubmit) return;
+    // Aplicar a TODAS las tiendas es masivo e idempotente pero difícil de revertir:
+    // pedimos confirmación explícita. Para tiendas puntuales, va directo.
     if (mode === 'all') {
-      const ok = window.confirm(
-        `Se agregará ${normalized} a TODAS las tiendas${totalStores ? ` (${totalStores})` : ''}. ¿Continuar?`
-      );
-      if (!ok) return;
+      setConfirmOpen(true);
+      return;
     }
+    setResult(null);
+    mutation.mutate();
+  };
+
+  const handleConfirmAll = () => {
+    setConfirmOpen(false);
     setResult(null);
     mutation.mutate();
   };
@@ -374,6 +382,27 @@ export default function AddNumberToStores() {
           </Stack>
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleConfirmAll}
+        loading={mutation.isPending}
+        severity="warning"
+        title="Agregar a todas las tiendas"
+        confirmLabel="Sí, agregar"
+        description={
+          <Stack spacing={1}>
+            <Typography variant="body2">
+              El número <strong>{normalized}</strong> se agregará a{' '}
+              <strong>todas las tiendas{totalStores ? ` (${totalStores})` : ''}</strong>.
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Va a recibir las campañas de cada una.
+            </Typography>
+          </Stack>
+        }
+      />
     </Box>
   );
 }

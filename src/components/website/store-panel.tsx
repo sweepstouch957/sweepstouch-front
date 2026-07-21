@@ -3,6 +3,7 @@
 
 import React from 'react';
 import { useStoreEditor } from '@/hooks/pages/useStoreEditor';
+import ConfirmDialog from '@/components/base/confirm-dialog';
 import { usersApi } from '@/mocks/users';
 import { api } from '@/libs/axios';
 import { Store } from '@/services/store.service';
@@ -477,8 +478,12 @@ export default function StoreInfo({ store }: { store: Store }) {
     },
   });
 
-  const handleRegenerate = () => {
-    if (!window.confirm(t('merchantAccess.regenerateConfirm'))) return;
+  const [regenConfirmOpen, setRegenConfirmOpen] = useState(false);
+
+  const handleRegenerate = () => setRegenConfirmOpen(true);
+
+  const handleRegenerateConfirmed = () => {
+    setRegenConfirmOpen(false);
     regenerateMerchantMutation.mutate();
   };
 
@@ -1358,6 +1363,17 @@ export default function StoreInfo({ store }: { store: Store }) {
           </Fab>
         </Zoom>
       </Box>
+
+      <ConfirmDialog
+        open={regenConfirmOpen}
+        onClose={() => setRegenConfirmOpen(false)}
+        onConfirm={handleRegenerateConfirmed}
+        loading={regenerateMerchantMutation.isPending}
+        severity="error"
+        title={t('merchantAccess.regenerateMerchantUser')}
+        description={t('merchantAccess.regenerateConfirm')}
+        confirmLabel={t('merchantAccess.regenerateMerchantUser')}
+      />
 
       {/* ── Snackbar ───────────────────────────────────────── */}
       <Snackbar

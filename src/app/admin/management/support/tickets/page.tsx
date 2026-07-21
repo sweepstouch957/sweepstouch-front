@@ -4,6 +4,7 @@ import AddTwoToneIcon from '@mui/icons-material/AddTwoTone';
 import AttachFileTwoToneIcon from '@mui/icons-material/AttachFileTwoTone';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
+import ConfirmDialog from '@/components/base/confirm-dialog';
 import EditTwoToneIcon from '@mui/icons-material/EditTwoTone';
 import {
   alpha,
@@ -292,6 +293,8 @@ export default function TicketsPage() {
     onSuccess: () => { invalidate(); closeDialog(); },
   });
 
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => supportService.deleteTicket(id),
     onSuccess: invalidate,
@@ -522,7 +525,7 @@ export default function TicketsPage() {
                           <IconButton size="small" onClick={() => openEdit(ticket)}><EditTwoToneIcon fontSize="small" /></IconButton>
                         </Tooltip>
                         <Tooltip title="Eliminar">
-                          <IconButton size="small" color="error" onClick={() => { if (confirm('¿Eliminar este ticket?')) deleteMutation.mutate(ticket._id); }}>
+                          <IconButton size="small" color="error" onClick={() => { setPendingDelete(ticket._id); }}>
                             <DeleteTwoToneIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
@@ -582,7 +585,7 @@ export default function TicketsPage() {
                             size="small"
                             color="error"
                             onClick={() => {
-                              if (confirm('¿Eliminar este ticket?')) deleteMutation.mutate(ticket._id);
+                              setPendingDelete(ticket._id);
                             }}
                           >
                             <DeleteTwoToneIcon fontSize="small" />
@@ -1062,6 +1065,19 @@ export default function TicketsPage() {
           ))}
         </MenuList>
       </Popover>
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={() => {
+          if (pendingDelete) deleteMutation.mutate(pendingDelete);
+          setPendingDelete(null);
+        }}
+        loading={deleteMutation.isPending}
+        severity="error"
+        title="Eliminar ticket"
+        description="Esta acción no se puede deshacer."
+        confirmLabel="Eliminar"
+      />
     </Container>
   );
 }

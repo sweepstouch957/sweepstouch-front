@@ -1,6 +1,7 @@
 'use client';
 
 import { Promo, PromoResults } from '@/components/application-ui/tables/promos/results';
+import ConfirmDialog from '@/components/base/confirm-dialog';
 import PageHeading from '@/components/base/page-heading';
 import { usePromos } from '@/hooks/fetching/promos/usePromos';
 import { useSweepstakes } from '@/hooks/fetching/sweepstakes/useSweepstakes';
@@ -124,10 +125,17 @@ export const PromoDashboard = ({ storeId }: PromoDashboardProps) => {
     [allPromos, promoData],
   );
 
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+
   const handleDeletePromo = async (id: string) => {
     if (!id) return;
-    const confirmed = window.confirm(t('Are you sure you want to delete this promotion?'));
-    if (!confirmed) return;
+    setPendingDelete(id);
+  };
+
+  const confirmDeletePromo = async () => {
+    const id = pendingDelete;
+    setPendingDelete(null);
+    if (!id) return;
     try {
       await promoService.deletePromo(id);
       refetch();
@@ -323,6 +331,14 @@ export const PromoDashboard = ({ storeId }: PromoDashboardProps) => {
         stores={stores}
         storeId={storeId}
         promo={promo}
+      />
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={confirmDeletePromo}
+        severity="error"
+        title={t('Are you sure you want to delete this promotion?')}
+        confirmLabel={t('Delete')}
       />
     </>
   );
