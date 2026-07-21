@@ -33,6 +33,7 @@ import { useRouter } from 'next/navigation';
 import { useCustomization } from '@/hooks/use-customization';
 import AvatarUploadLogo from '@/components/application-ui/upload/avatar/avatar-upload-logo';
 import { uploadCampaignImage } from '@/services/upload.service';
+import { downloadImageWithDerivedExtension } from '@/services/download.service';
 import { prizesClient, type Prize } from '@/services/sweepstakes.service';
 import { useRef, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
@@ -240,23 +241,7 @@ export default function Page() {
 
   const handleDownloadPrizeImage = async () => {
     if (!generatedImagePreview) return;
-
-    try {
-      const response = await fetch(generatedImagePreview);
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      const extension = blob.type.split('/')[1] || 'png';
-
-      link.href = url;
-      link.download = `prize-image.${extension}`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-    } catch {
-      window.open(generatedImagePreview, '_blank', 'noopener,noreferrer');
-    }
+    await downloadImageWithDerivedExtension(generatedImagePreview, 'prize-image');
   };
 
 

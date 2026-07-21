@@ -24,7 +24,7 @@ import {
   PreviewRounded,
   CheckCircleOutlineRounded,
 } from '@mui/icons-material';
-import { api } from '@/libs/axios';
+import { customerClient } from '@/services/customerService';
 
 interface NormalizeFormatModalProps {
   open: boolean;
@@ -106,11 +106,11 @@ export default function NormalizeFormatModal({
     setLoading(true);
     setError(null);
     try {
-      const res = await api.post('/tracking/phones/normalize-format', {
+      const data = await customerClient.normalizePhoneFormat({
         storeId,
         dryRun: true,
       });
-      setPreviewResult(res.data);
+      setPreviewResult(data);
       setStep('preview');
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Error al obtener vista previa de normalización.');
@@ -124,11 +124,11 @@ export default function NormalizeFormatModal({
     setLoading(true);
     setError(null);
     try {
-      const res = await api.post('/tracking/phones/normalize-format', {
+      const data = await customerClient.normalizePhoneFormat({
         storeId,
         dryRun: false,
       });
-      setExecResult(res.data);
+      setExecResult(data);
       setStep('done');
       onSuccess?.();
     } catch (err: any) {

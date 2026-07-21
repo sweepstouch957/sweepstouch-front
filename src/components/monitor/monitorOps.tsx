@@ -8,10 +8,9 @@ import { useTheme } from '@mui/material/styles';
 import MonitorHeartRoundedIcon from '@mui/icons-material/MonitorHeartRounded';
 import CompareArrowsRoundedIcon from '@mui/icons-material/CompareArrowsRounded';
 import CircleIcon from '@mui/icons-material/Circle';
-import { api } from '@/libs/axios';
 import { getAllStores, type Store } from '@/services/store.service';
 import { fetchOverview, fetchStoreShortlinks } from '@/services/analytics.service';
-import { fetchOrderStats } from '@/services/monitor.service';
+import { fetchOrderStats, pingHealthTarget } from '@/services/monitor.service';
 import { SectionCard, centsToUsd } from './monitorShared';
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -28,7 +27,7 @@ async function pingAll() {
     HEALTH_TARGETS.map(async (t) => {
       const start = performance.now();
       try {
-        await api.get(t.url, { params: t.params, timeout: 8000 });
+        await pingHealthTarget(t.url, t.params);
         const ms = Math.round(performance.now() - start);
         return { name: t.name, ok: true, ms, status: ms < 1200 ? 'ok' : 'slow' };
       } catch {

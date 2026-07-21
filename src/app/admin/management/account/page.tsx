@@ -41,7 +41,7 @@ import { severityColor, tint, tintBorder } from 'src/theme/semantic';
 import { useAuth } from 'src/hooks/use-auth';
 import { useCustomization } from 'src/hooks/use-customization';
 import { uploadCampaignImage, uploadPdfToS3 } from '@/services/upload.service';
-import { api } from '@/libs/axios';
+import { merchantService } from '@/services/merchant.service';
 import { useQuery } from '@tanstack/react-query';
 import { taskClient } from '@/services/task.service';
 import toast from 'react-hot-toast';
@@ -115,7 +115,7 @@ export default function AccountPage() {
     }
     setSaving(true);
     try {
-      await api.patch(`/auth/users/profile/${userId}`, {
+      await merchantService.updateUser(userId, {
         firstName: form.firstName,
         lastName: form.lastName,
         phoneNumber: form.phoneNumber,
@@ -142,7 +142,7 @@ export default function AccountPage() {
       const result = await uploadCampaignImage(file, 'profile-images');
       const imageUrl = result.url;
       if (imageUrl) {
-        await api.patch(`/auth/users/profile/${userId}`, { profileImage: imageUrl });
+        await merchantService.updateUser(userId, { profileImage: imageUrl });
         setForm((f) => ({ ...f, profileImage: imageUrl }));
         toast.success('Profile photo updated!');
         checkSession?.();

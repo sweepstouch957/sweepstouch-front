@@ -27,7 +27,7 @@ import {
   DeleteSweepRounded,
   PreviewRounded,
   CheckCircleOutlineRounded } from '@mui/icons-material';
-import { api } from '@/libs/axios';
+import { customerClient } from '@/services/customerService';
 import { ExcelCustomerDropzone, ParsedCustomer } from '@/components/shared/ExcelCustomerDropzone';
 
 interface BulkInactivateModalProps {
@@ -116,13 +116,13 @@ export default function BulkInactivateModal({
     setError(null);
     try {
       const phones = parsedData.map(c => c.phone);
-      const res = await api.post('/tracking/phones/bulk-inactivate', {
+      const data = await customerClient.bulkInactivatePhones({
         storeId,
         phones,
         mode,
         dryRun: true,
       });
-      setPreviewResult(res.data);
+      setPreviewResult(data);
       setStep('preview');
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Error al obtener vista previa en lote.');
@@ -138,13 +138,13 @@ export default function BulkInactivateModal({
     setError(null);
     try {
       const phones = parsedData.map(c => c.phone);
-      const res = await api.post('/tracking/phones/bulk-inactivate', {
+      const data = await customerClient.bulkInactivatePhones({
         storeId,
         phones,
         mode,
         dryRun: false,
       });
-      setExecResult(res.data);
+      setExecResult(data);
       setStep('done');
       onSuccess?.();
     } catch (err: any) {

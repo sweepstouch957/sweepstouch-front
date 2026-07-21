@@ -349,6 +349,25 @@ export const getStoreById = async (id: string): Promise<Store> => {
   return res.data;
 };
 
+/** Búsqueda de tiendas por relevancia (AI) — usada por el command palette. */
+export const aiSearchStores = async (
+  q: string,
+  signal?: AbortSignal,
+): Promise<any[]> => {
+  const res = await api.get('/store/ai/search', {
+    params: { q, limit: 12, score: '1' },
+    signal,
+  });
+  return res.data?.data ?? [];
+};
+
+/** Descarga una imagen remota como Blob (para convertirla a dataURL en el cliente). */
+export const fetchImageBlob = async (src: string): Promise<Blob | null> => {
+  const response = await fetch(src);
+  if (!response.ok) return null;
+  return response.blob();
+};
+
 export const getStoreCustomers = async (
   storeId: string,
   page: number = 1,

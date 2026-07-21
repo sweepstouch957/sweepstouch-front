@@ -1,6 +1,7 @@
 'use client';
 
 import type { ContactInfoItem, EquipmentItem } from '@/services/store.service';
+import { fetchImageBlob } from '@/services/store.service';
 import AssignmentIndRoundedIcon from '@mui/icons-material/AssignmentIndRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
@@ -133,9 +134,8 @@ function spanishDateLabel(value?: string | Date | null) {
 async function imageToDataUrl(src?: string | null) {
   if (!src) return null;
   try {
-    const response = await fetch(src);
-    if (!response.ok) return null;
-    const blob = await response.blob();
+    const blob = await fetchImageBlob(src);
+    if (!blob) return null;
     const bitmap = await createImageBitmap(blob);
     const canvas = document.createElement('canvas');
     canvas.width = bitmap.width;

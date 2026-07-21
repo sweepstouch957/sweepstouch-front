@@ -17,8 +17,7 @@ import {
 } from '@mui/icons-material';
 import toast from 'react-hot-toast';
 import { useKioskDevices, useDeviceAction, useGroupDeviceAction, useBatteryReport } from '@/hooks/fetching/kiosk/useKioskDevices';
-import { type KioskDevice, type DeviceActionName, notifyBatteryAlerts } from '@/services/kiosk.service';
-import { api } from '@/libs/axios';
+import { type KioskDevice, type DeviceActionName, notifyBatteryAlerts, getKioskScreenshot, clearKioskTag } from '@/services/kiosk.service';
 import { tint, tintBorder, type SemanticRole } from '@/theme/semantic';
 
 interface Props { storeId: string; }
@@ -1310,8 +1309,8 @@ export function KioskTabletPanel({ storeId }: Props) {
           setScreenshots(prev => ({ ...prev, [identifier]: { status: 'capturing' } }));
           setTimeout(async () => {
             try {
-              const resp = await api.get(`/store/${storeId}/kiosk/screenshot/${encodeURIComponent(identifier)}`);
-              const url: string | null = resp.data?.screenshotUrl ?? null;
+              const resp = await getKioskScreenshot(storeId, identifier);
+              const url: string | null = resp?.screenshotUrl ?? null;
               if (url) {
                 setScreenshots(prev => ({ ...prev, [identifier]: { status: 'ready', url } }));
               } else {
@@ -1381,7 +1380,7 @@ export function KioskTabletPanel({ storeId }: Props) {
               startIcon={<ClearRounded />}
               sx={{ borderRadius: 2 }}
               onClick={() => {
-                api.delete(`/store/${storeId}/kiosk/clear-tag`)
+                clearKioskTag(storeId)
                   .then(() => { toast.success('Tag reseteado — se re-detectará automáticamente'); refetch(); })
                   .catch(() => toast.error('Error al resetear el tag'));
               }}
@@ -1466,7 +1465,7 @@ export function KioskTabletPanel({ storeId }: Props) {
                 '&:hover': { bgcolor: tint(theme, 'warning', 0.08) },
               }}
               onClick={() => {
-                api.delete(`/store/${storeId}/kiosk/clear-tag`)
+                clearKioskTag(storeId)
                   .then(() => { toast.success('Tag kiosk reseteado — se re-detectará automáticamente'); refetch(); })
                   .catch(() => toast.error('Error al resetear el tag'));
               }}

@@ -1,4 +1,3 @@
-import { api } from '@/libs/axios';
 import { sweepstakesClient } from '@/services/sweepstakes.service';
 import { uploadCampaignImage } from '@/services/upload.service';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -125,8 +124,7 @@ export default function SweepstakeChecklist({ sweepstakeId }: Props) {
   const updateBriefMutation = useMutation({
     mutationFn: async (values: any) => {
       const payload = { ...values, prize: values.prizeIds }; // map a backend
-      const res = await api.patch(`/sweepstakes/${sweepstakeId}`, payload);
-      return res.data;
+      return sweepstakesClient.updateSweepstake(sweepstakeId, payload);
     },
     onSuccess: async () => {
       setSnack({ open: true, msg: 'Brief actualizado ✅', sev: 'success' });

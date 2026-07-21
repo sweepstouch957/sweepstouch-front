@@ -18,8 +18,7 @@ import {
   AutoAwesome, Close, KeyboardReturn,
   SearchRounded, StoreRounded } from '@mui/icons-material';
 import Link from 'next/link';
-import { api } from '@/libs/axios';
-import { Store } from '@/services/store.service';
+import { Store, aiSearchStores } from '@/services/store.service';
 
 /* ─── local debounce hook ─────────────────────────────────────────────────── */
 function useDebounce(value: string, ms: number): [string] {
@@ -35,15 +34,6 @@ function useDebounce(value: string, ms: number): [string] {
 interface AIResult extends Partial<Store> {
   _snippet?: string;
   _score?: number;
-}
-
-/* ─── Mini API call ─────────────────────────────────────────────────────────── */
-async function aiSearch(q: string, signal: AbortSignal): Promise<AIResult[]> {
-  const res = await api.get('/store/ai/search', {
-    params: { q, limit: 12, score: '1' },
-    signal,
-  });
-  return res.data?.data ?? [];
 }
 
 /* ─── Highlight match ───────────────────────────────────────────────────────── */
@@ -185,7 +175,7 @@ export const StoreCommandPalette: FC<Props> = ({ open, onClose, onSelectSearch }
     abortRef.current?.abort();
     abortRef.current = new AbortController();
     setLoading(true);
-    aiSearch(debouncedQuery, abortRef.current.signal)
+    aiSearchStores(debouncedQuery, abortRef.current.signal)
       .then((data) => { setResults(data); setActiveIdx(0); })
       .catch(() => {/* aborted */})
       .finally(() => setLoading(false));

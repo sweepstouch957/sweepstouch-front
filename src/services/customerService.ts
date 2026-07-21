@@ -35,6 +35,16 @@ class CustomerClient {
     return res.data;
   }
 
+  /** Búsqueda paginada de clientes dentro de una tienda (por nombre o teléfono).
+   *  Devuelve solo el arreglo `data` de la respuesta paginada. */
+  async searchCustomersByStore(
+    storeId: string,
+    params: { search?: string; page?: number; limit?: number } = {}
+  ): Promise<any[]> {
+    const res = await api.get(`/customers/store/${storeId}`, { params });
+    return res.data?.data || [];
+  }
+
   async exportCustomers(storeId: string): Promise<Pick<Customer, 'firstName' | 'phoneNumber'>[]> {
     const res = await api.get(`/customers/export/${storeId}`);
     return res.data.data;
@@ -129,6 +139,49 @@ class CustomerClient {
     allStores?: boolean;
   }): Promise<AddToStoresResult> {
     const res = await api.post('/customers/add-to-stores', data);
+    return res.data;
+  }
+
+  /* ── Gestión de estado de teléfonos (backend routes /tracking/phones/*) ── */
+
+  /** Inactiva/activa teléfonos en lote a partir de una lista cargada. */
+  async bulkInactivatePhones(body: {
+    storeId: string;
+    phones: string[];
+    mode: 'inactivate_uploaded' | 'activate_uploaded' | 'keep_uploaded_active';
+    dryRun: boolean;
+  }): Promise<any> {
+    const res = await api.post('/tracking/phones/bulk-inactivate', body);
+    return res.data;
+  }
+
+  /** Depura teléfonos con errores de entrega en un rango de fechas. */
+  async depurarPhones(body: {
+    storeId: string;
+    from: string;
+    to: string;
+    provider: string;
+    dryRun: boolean;
+  }): Promise<any> {
+    const res = await api.post('/tracking/phones/depurar', body);
+    return res.data;
+  }
+
+  /** Normaliza el formato de los teléfonos de una tienda (EE.UU. a 10 dígitos). */
+  async normalizePhoneFormat(body: {
+    storeId: string;
+    dryRun: boolean;
+  }): Promise<any> {
+    const res = await api.post('/tracking/phones/normalize-format', body);
+    return res.data;
+  }
+
+  /** Reactiva teléfonos inactivos recuperables de una tienda. */
+  async reactivarPhones(body: {
+    storeId: string;
+    dryRun: boolean;
+  }): Promise<any> {
+    const res = await api.post('/tracking/phones/reactivar', body);
     return res.data;
   }
 

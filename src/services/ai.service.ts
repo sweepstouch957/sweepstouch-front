@@ -362,6 +362,13 @@ export async function searchWithAI(query: string): Promise<AISearchResult> {
   return data;
 }
 
+/* ─── Download a generated image URL as a Blob (for client-side download) ─── */
+
+export async function fetchGeneratedImageBlob(url: string): Promise<Blob> {
+  const response = await fetch(url);
+  return response.blob();
+}
+
 /* ─── MMS Text Generation (one-shot) ─── */
 
 export async function generateMmsText(params: {
@@ -372,4 +379,23 @@ export async function generateMmsText(params: {
 }): Promise<string> {
   const { data } = await api.post('/ai/generate-mms-text', params);
   return data.text || '';
+}
+
+/* ─── Generic Completion (one-shot) ─── */
+
+export async function aiComplete(params: {
+  systemPrompt?: string;
+  messages: { role: string; content: string }[];
+  maxTokens?: number;
+  temperature?: number;
+}): Promise<{ content?: string }> {
+  const { data } = await api.post('/ai/complete', params);
+  return data;
+}
+
+/* ─── Recipe Image Generation (one-shot) ─── */
+
+export async function generateRecipeImage(prompt: string): Promise<{ imageUrl?: string }> {
+  const { data } = await api.post('/ai/generate-recipe-image', { prompt });
+  return data;
 }

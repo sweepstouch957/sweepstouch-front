@@ -5,7 +5,7 @@ import React from 'react';
 import { useStoreEditor } from '@/hooks/pages/useStoreEditor';
 import ConfirmDialog from '@/components/base/confirm-dialog';
 import { usersApi } from '@/mocks/users';
-import { api } from '@/libs/axios';
+import { merchantService } from '@/services/merchant.service';
 import { Store } from '@/services/store.service';
 import { format } from 'date-fns';
 import {
@@ -428,8 +428,7 @@ export default function StoreInfo({ store }: { store: Store }) {
   const createMerchantMutation = useMutation({
     mutationFn: async () => {
       // Backend auto-generates accessCode if the store doesn't have one
-      const res = await api.post(`/auth/admin/backfill-from-store/${store._id}`);
-      return res.data;
+      return merchantService.backfillFromStore(store._id);
     },
     onSuccess: (data) => {
       setBackfillResult(data);
@@ -457,8 +456,7 @@ export default function StoreInfo({ store }: { store: Store }) {
 
   const regenerateMerchantMutation = useMutation({
     mutationFn: async () => {
-      const res = await api.post(`/auth/admin/regenerate-merchant/${store._id}`);
-      return res.data;
+      return merchantService.regenerateMerchant(store._id);
     },
     onSuccess: (data) => {
       setBackfillResult(null);

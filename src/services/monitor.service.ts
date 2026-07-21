@@ -58,3 +58,8 @@ export async function fetchStoreOrders(storeId: string, opts: { status?: string;
   const { data } = await api.get(`/orders/store/${storeId}`, { params: { status: opts.status, limit: opts.limit || 50 } });
   return data.items || [];
 }
+
+/** Health ping for a gateway endpoint. Throws on failure so callers can time/handle it. */
+export async function pingHealthTarget(url: string, params?: Record<string, unknown>): Promise<void> {
+  await api.get(url, { params, timeout: 8000 });
+}

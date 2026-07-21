@@ -5,6 +5,7 @@ import {
   getSweepstakeOptinQr,
   upsertStoreGenericQr,
   upsertSweepstakeOptinQr,
+  fetchQrFileBlob,
   type StoreQr,
   type SweepstakeQr,
 } from '@/services/qr.service';
@@ -52,9 +53,7 @@ type PreviewTarget = { type: 'store'; doc: StoreQr } | { type: 'sweep'; doc: Swe
 /* ──────────────────────────────────────────────────────── helpers */
 async function downloadRemoteFile(url: string, filename?: string) {
   try {
-    const resp = await fetch(url, { credentials: 'omit' });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const blob = await resp.blob();
+    const blob = await fetchQrFileBlob(url);
     const objectUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = objectUrl;

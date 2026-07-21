@@ -12,6 +12,7 @@ import {
 import { type Store } from '@/services/store.service';
 import { useStoreSearch } from '@/hooks/fetching/stores/useStoreSearch';
 import { sweepstakesClient } from '@/services/sweepstakes.service';
+import { downloadRemoteFile } from '@/services/download.service';
 import {
   AddRounded,
   CheckRounded,
@@ -55,24 +56,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
 
 /* ─────────────────────────── helpers */
-async function downloadRemoteFile(url: string, filename?: string) {
-  try {
-    const resp = await fetch(url, { credentials: 'omit' });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const blob = await resp.blob();
-    const objectUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = objectUrl;
-    a.download = filename || url.split('/').pop() || 'qr';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(objectUrl);
-  } catch {
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }
-}
-
 function fmtDate(d?: string | Date) {
   if (!d) return '—';
   return new Date(d).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' });

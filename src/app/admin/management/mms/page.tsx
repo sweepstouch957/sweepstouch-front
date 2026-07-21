@@ -28,7 +28,8 @@ import ExtractedProductsTable from '@/components/mms/ExtractedProductsTable';
 import MmsPreviewPhone from '@/components/mms/MmsPreviewPhone';
 import MmsActionBar from '@/components/mms/MmsActionBar';
 import { useStores } from '@/hooks/useStores';
-import { api } from '@/libs/axios';
+import { uploadCampaignImage } from '@/services/upload.service';
+import { aiComplete, generateRecipeImage } from '@/services/ai.service';
 import { circularService } from '@/services/circular.service';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -182,11 +183,8 @@ function RecipeCard({
     if (fileRef.current) fileRef.current.value = '';
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('image', file);
-      formData.append('folder', 'recipes');
-      const res = await api.post('/upload', formData, { headers: { 'Content-Type': undefined } });
-      const url: string = res.data?.url;
+      const resp = await uploadCampaignImage(file, 'recipes');
+      const url: string = resp?.url;
       if (url) onImageChange(url);
     } catch (err) {
       console.error('[recipe-upload] failed:', err);
@@ -349,13 +347,13 @@ function AiRecipesPanel({
       const productList = products
         .map(p => `${p.name}${p.category ? ' (' + p.category + ')' : ''}`)
         .join(', ');
-      const res = await api.post('/ai/complete', {
+      const data = await aiComplete({
         systemPrompt: 'You are a cooking expert for a Latin grocery store. Given products, suggest exactly 3 short recipes using those products. Reply with ONLY a JSON array, no markdown, no extra text. Keep each procedure to max 3 steps of max 15 words each. Schema: [{"name":"string","tags":["Latino","Familiar","Mariscos","Saludable","Rapido","Especial"],"time":"X min","ingredients":["item (max 5)"],"procedure":["step (max 3)"]}]',
         messages: [{ role: 'user', content: `Campaign: "${headline || 'Weekly Deals'}". Products: ${productList}` }],
         maxTokens: 4000,
         temperature: 0.7,
       });
-      const raw: string = res.data?.content || '';
+      const raw: string = data?.content || '';
 
       // Try full array first, fall back to extracting complete objects from truncated JSON
       let parsed: AiRecipe[] | null = null;
@@ -386,9 +384,9 @@ function AiRecipesPanel({
         const r = withImages[i];
         try {
           const prompt = `Professional food photography of "${r.name}", a Latin dish made with ${r.ingredients.slice(0, 3).join(', ')}. Overhead shot, bright natural lighting, vibrant colors, on a wooden table with fresh ingredients around it.`;
-          const imgRes = await api.post('/ai/generate-recipe-image', { prompt });
-          if (imgRes.data?.imageUrl) {
-            withImages[i] = { ...r, imageUrl: imgRes.data.imageUrl };
+          const imgData = await generateRecipeImage(prompt);
+          if (imgData?.imageUrl) {
+            withImages[i] = { ...r, imageUrl: imgData.imageUrl };
             onChange([...withImages]);
           }
         } catch (imgErr) {

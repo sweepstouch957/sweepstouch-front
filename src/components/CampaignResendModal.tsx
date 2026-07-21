@@ -1,6 +1,6 @@
 'use client';
 
-import { api } from '@/libs/axios';
+import { campaignClient } from '@/services/campaing.service';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import ReplayIcon from '@mui/icons-material/Replay';
@@ -74,13 +74,11 @@ interface ResendResult {
 }
 
 async function fetchResendPreview(campaignId: string): Promise<ResendPreview> {
-  const res = await api.get(`/tracking/campaigns/${campaignId}/resend-preview`);
-  return res.data;
+  return campaignClient.getResendPreview(campaignId);
 }
 
 async function executeResend(campaignId: string): Promise<ResendResult> {
-  const res = await api.post(`/tracking/campaigns/${campaignId}/resend-errors`);
-  return res.data;
+  return campaignClient.resendCampaignErrors(campaignId);
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────

@@ -64,4 +64,9 @@ export const departmentService = {
     const { data } = await api.post(`${BASE}/seed`);
     return data;
   },
+
+  /** Assign (or clear with null) a department for a user */
+  assignUserToDepartment: async (userId: string, departmentId: string | null): Promise<void> => {
+    await api.patch(`/auth/users/profile/${userId}`, { departmentId });
+  },
 };

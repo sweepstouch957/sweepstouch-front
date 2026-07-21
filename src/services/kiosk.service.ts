@@ -270,3 +270,20 @@ export async function notifyBatteryAlerts(
   const res = await api.post(`/store/${storeId}/kiosk/notify-battery-alerts`, { phoneNumber });
   return res.data;
 }
+
+// ─── Screenshot & Tag API ───────────────────────────────────────────────────────
+
+/** Fetch the latest applicationScreenshot URL for a device (polled after a screenshot action). */
+export async function getKioskScreenshot(
+  storeId: string,
+  identifier: string,
+): Promise<{ screenshotUrl?: string | null }> {
+  const res = await api.get(`/store/${storeId}/kiosk/screenshot/${encodeURIComponent(identifier)}`);
+  return res.data;
+}
+
+/** Clear the stored kiosk tag for a store so it re-detects automatically. */
+export async function clearKioskTag(storeId: string): Promise<unknown> {
+  const res = await api.delete(`/store/${storeId}/kiosk/clear-tag`);
+  return res.data;
+}

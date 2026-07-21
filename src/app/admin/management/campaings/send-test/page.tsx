@@ -6,9 +6,9 @@ import AvatarUploadLogo from '@/components/application-ui/upload/avatar/avatar-u
 import { campaignClient } from '@/services/campaing.service';
 import { uploadCampaignImage } from '@/services/upload.service';
 import { getAllStores, type Store } from '@/services/store.service';
+import { customerClient } from '@/services/customerService';
 import { useAuth } from '@/hooks/use-auth';
 import { useCustomization } from '@/hooks/use-customization';
-import { api } from '@/libs/axios';
 import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
@@ -179,10 +179,12 @@ export default function SendTestMessagePage({
   } = useQuery({
     queryKey: ['customer-search', selectedStore?._id, debouncedSearch],
     queryFn: async () => {
-      const res = await api.get(`/customers/store/${selectedStore!._id}`, {
-        params: { search: debouncedSearch, page: 1, limit: 15 },
+      const data = await customerClient.searchCustomersByStore(selectedStore!._id, {
+        search: debouncedSearch,
+        page: 1,
+        limit: 15,
       });
-      return (res.data?.data || []) as CustomerHit[];
+      return data as CustomerHit[];
     },
     enabled: !!selectedStore?._id && debouncedSearch.length >= 2,
     staleTime: 30_000,

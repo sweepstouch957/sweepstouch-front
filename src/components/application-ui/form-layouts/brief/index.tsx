@@ -1,5 +1,5 @@
 import { usePrizes } from '@/hooks/fetching/sweepstakes/usePrizes';
-import { generateImage } from '@/services/ai.service';
+import { fetchGeneratedImageBlob, generateImage } from '@/services/ai.service';
 import { prizesClient, sweepstakesClient, type Prize } from '@/services/sweepstakes.service';
 import { uploadCampaignImage } from '@/services/upload.service';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
@@ -508,8 +508,7 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
     if (!generatedMainImagePreview) return;
 
     try {
-      const response = await fetch(generatedMainImagePreview);
-      const blob = await response.blob();
+      const blob = await fetchGeneratedImageBlob(generatedMainImagePreview);
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       const extension = blob.type.split('/')[1] || 'png';

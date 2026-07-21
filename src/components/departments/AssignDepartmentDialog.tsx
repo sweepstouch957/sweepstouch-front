@@ -22,7 +22,6 @@ import {
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { departmentService } from '@/services/department.service';
-import { api } from '@/libs/axios';
 import toast from 'react-hot-toast';
 
 interface AssignDepartmentDialogProps {
@@ -57,7 +56,7 @@ const AssignDepartmentDialog: FC<AssignDepartmentDialogProps> = ({ open, onClose
 
   const assignMutation = useMutation({
     mutationFn: async (departmentId: string | null) => {
-      await api.patch(`/auth/users/profile/${user.id || user._id}`, { departmentId });
+      await departmentService.assignUserToDepartment(user.id || user._id, departmentId);
     },
     onSuccess: () => {
       queryClient.refetchQueries({ queryKey: ['users'] });

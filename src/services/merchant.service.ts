@@ -36,6 +36,8 @@ export interface UpdateUserPayload {
   countryCode?: string;
   accessCode?: string;
   active?: boolean;
+  address?: string;
+  profileImage?: string;
 }
 
 class MerchantService {
@@ -69,6 +71,18 @@ class MerchantService {
   async updateUser(userId: string, payload: UpdateUserPayload): Promise<MerchantUser> {
     const res = await api.patch(`/auth/users/profile/${userId}`, payload);
     return res.data?.user;
+  }
+
+  /** Create/attach the merchant user from a store (backend auto-generates accessCode) */
+  async backfillFromStore(storeId: string): Promise<any> {
+    const res = await api.post(`/auth/admin/backfill-from-store/${storeId}`);
+    return res.data;
+  }
+
+  /** Regenerate the merchant user for a store (restores ex-cashier if needed) */
+  async regenerateMerchant(storeId: string): Promise<any> {
+    const res = await api.post(`/auth/admin/regenerate-merchant/${storeId}`);
+    return res.data;
   }
 }
 

@@ -168,3 +168,10 @@ export const upsertSweepstakeOptinQr = async (sweepstakeId: string, storeId: str
   const { data } = await api.post(`${basePath}/sweepstake/${sweepstakeId}/store/`, { storeId });
   return data;
 };
+
+// Descarga el binario de un QR remoto (Cloudinary, etc.) como Blob para su descarga en el navegador.
+export const fetchQrFileBlob = async (url: string): Promise<Blob> => {
+  const resp = await fetch(url, { credentials: 'omit' });
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  return resp.blob();
+};

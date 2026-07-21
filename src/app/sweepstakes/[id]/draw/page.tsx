@@ -1,5 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import {
+  getPublicSweepstakeById,
+  getPublicParticipantSamplePhones,
+} from '@/services/sweepstakes.service';
 
 type PageParams = { id: string };
 type PageProps = { params: Promise<PageParams> };
@@ -22,25 +26,6 @@ type RaffleParticipant = {
   storeName: string;
   storeImage?: string;
 };
-
-function getApiUrl(path: string) {
-  const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
-  if (!base) return null;
-  return `${base}${path.startsWith('/') ? path : `/${path}`}`;
-}
-
-async function getJson<T>(path: string): Promise<T | null> {
-  const url = getApiUrl(path);
-  if (!url) return null;
-
-  try {
-    const response = await fetch(url, { cache: 'no-store' });
-    if (!response.ok) return null;
-    return (await response.json()) as T;
-  } catch {
-    return null;
-  }
-}
 
 function formatPhone(raw: string) {
   const digits = raw.replace(/\D/g, '');
@@ -87,8 +72,8 @@ function injectRaffleData(html: string, data: unknown) {
 export default async function PublicSweepstakeDrawPage({ params }: PageProps) {
   const { id } = await params;
   const [sweepstake, samples] = await Promise.all([
-    getJson<SweepstakeResponse>(`/sweepstakes/${id}`),
-    getJson<ParticipantSample[]>(`/sweepstakes/participants/${id}/participants/sample-phones`),
+    getPublicSweepstakeById<SweepstakeResponse>(id),
+    getPublicParticipantSamplePhones<ParticipantSample[]>(id),
   ]);
 
   const participantSamples = Array.isArray(samples) ? samples : [];

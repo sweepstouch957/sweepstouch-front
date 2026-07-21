@@ -3,6 +3,7 @@ import Map, { Marker, NavigationControl } from 'react-map-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Box, Typography, CircularProgress } from '@mui/material';
 import MapIcon from '@mui/icons-material/Map';
+import { geocodeAddress } from '@/services/geocoding.service';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string;
 
@@ -37,13 +38,8 @@ export default function LocationPickerMap({
     const timeout = setTimeout(async () => {
       setIsGeocoding(true);
       try {
-        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
-          addressToGeocode
-        )}.json?access_token=${MAPBOX_TOKEN}&limit=1`;
-        
-        const res = await fetch(url);
-        const data = await res.json();
-        
+        const data = await geocodeAddress(addressToGeocode);
+
         if (data.features && data.features.length > 0) {
           const [lng, lat] = data.features[0].center;
           setMarkerState({ lng, lat });

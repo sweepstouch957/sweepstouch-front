@@ -27,7 +27,7 @@ import {
 } from '@mui/material';
 import { RouterLink } from 'src/components/base/router-link';
 import { routes } from 'src/router/routes';
-import { api } from '@/libs/axios';
+import { forgotPassword, resetPassword, verifyResetCode } from '@/services/auth.service';
 import { tint } from '@/theme/semantic';
 
 const steps = ['Ingresa tu correo', 'Código de verificación', 'Nueva contraseña'];
@@ -64,7 +64,7 @@ export function ResetPasswordForm(): React.JSX.Element {
     setError('');
     setLoading(true);
     try {
-      const { data } = await api.post('/auth/forgot-password', { email: email.trim() });
+      const data = await forgotPassword(email.trim());
       if (data.success) {
         setActiveStep(1);
         setCooldown(60);
@@ -90,10 +90,7 @@ export function ResetPasswordForm(): React.JSX.Element {
     setError('');
     setLoading(true);
     try {
-      const { data } = await api.post('/auth/verify-reset-code', {
-        email: email.trim(),
-        code: fullCode,
-      });
+      const data = await verifyResetCode(email.trim(), fullCode);
       if (data.success) {
         setActiveStep(2);
         setSuccess('');
@@ -118,11 +115,7 @@ export function ResetPasswordForm(): React.JSX.Element {
     setError('');
     setLoading(true);
     try {
-      const { data } = await api.post('/auth/reset-password', {
-        email: email.trim(),
-        code: code.join(''),
-        newPassword,
-      });
+      const data = await resetPassword(email.trim(), code.join(''), newPassword);
       if (data.success) {
         setActiveStep(3);
         setSuccess(data.message);
@@ -167,7 +160,7 @@ export function ResetPasswordForm(): React.JSX.Element {
     setError('');
     setLoading(true);
     try {
-      await api.post('/auth/forgot-password', { email: email.trim() });
+      await forgotPassword(email.trim());
       setCooldown(60);
       setSuccess('Código reenviado');
       setCode(['', '', '', '', '', '']);

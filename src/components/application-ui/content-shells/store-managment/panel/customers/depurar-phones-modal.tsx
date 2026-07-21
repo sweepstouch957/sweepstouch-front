@@ -26,7 +26,7 @@ import {
   DeleteSweepRounded,
   CheckCircleOutlineRounded,
 } from '@mui/icons-material';
-import { api } from '@/libs/axios';
+import { customerClient } from '@/services/customerService';
 
 interface DepurarPhonesModalProps {
   open: boolean;
@@ -132,14 +132,14 @@ export default function DepurarPhonesModal({
     setLoading(true);
     setError(null);
     try {
-      const res = await api.post('/tracking/phones/depurar', {
+      const data = await customerClient.depurarPhones({
         storeId,
         from,
         to,
         provider,
         dryRun: true,
       });
-      setPreviewResult(res.data);
+      setPreviewResult(data);
       setStep('preview');
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Error al obtener vista previa.');
@@ -153,14 +153,14 @@ export default function DepurarPhonesModal({
     setLoading(true);
     setError(null);
     try {
-      const res = await api.post('/tracking/phones/depurar', {
+      const data = await customerClient.depurarPhones({
         storeId,
         from,
         to,
         provider,
         dryRun: false,
       });
-      setExecResult(res.data);
+      setExecResult(data);
       setStep('done');
       onSuccess?.();
     } catch (err: any) {

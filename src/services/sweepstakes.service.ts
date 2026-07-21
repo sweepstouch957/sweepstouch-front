@@ -385,6 +385,11 @@ export class SweepstakesClient {
     return res.data;
   }
 
+  async updateSweepstake(id: string, data: any): Promise<Sweepstakes> {
+    const res = await api.patch(`/sweepstakes/${id}`, data);
+    return res.data;
+  }
+
   async reasignSweepstake(
     originalSweepstakeId: string,
     storeId: string,
@@ -565,6 +570,38 @@ export class SweepstakesClient {
 }
 
 export const sweepstakesClient = new SweepstakesClient();
+
+/* ===================== PUBLIC RAFFLE DRAW (server-safe) =====================
+   Usado por la página pública /sweepstakes/[id]/draw (server component).
+   fetch plano con cache: 'no-store' y null-on-error: NO debe lanzar para que
+   la página pueda renderizar con datos de respaldo. */
+
+function getPublicApiUrl(path: string): string | null {
+  const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
+  if (!base) return null;
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
+async function getPublicJson<T>(path: string): Promise<T | null> {
+  const url = getPublicApiUrl(path);
+  if (!url) return null;
+
+  try {
+    const response = await fetch(url, { cache: 'no-store' });
+    if (!response.ok) return null;
+    return (await response.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+export function getPublicSweepstakeById<T>(id: string): Promise<T | null> {
+  return getPublicJson<T>(`/sweepstakes/${id}`);
+}
+
+export function getPublicParticipantSamplePhones<T>(id: string): Promise<T | null> {
+  return getPublicJson<T>(`/sweepstakes/participants/${id}/participants/sample-phones`);
+}
 
 /* ===================== PRIZES ===================== */
 

@@ -24,7 +24,7 @@ import {
   PreviewRounded,
   CheckCircleOutlineRounded,
 } from '@mui/icons-material';
-import { api } from '@/libs/axios';
+import { customerClient } from '@/services/customerService';
 
 interface ReactivarPhonesModalProps {
   open: boolean;
@@ -105,11 +105,11 @@ export default function ReactivarPhonesModal({
     setLoading(true);
     setError(null);
     try {
-      const res = await api.post('/tracking/phones/reactivar', {
+      const data = await customerClient.reactivarPhones({
         storeId,
         dryRun: true,
       });
-      setPreviewResult(res.data);
+      setPreviewResult(data);
       setStep('preview');
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Error al obtener vista previa.');
@@ -123,11 +123,11 @@ export default function ReactivarPhonesModal({
     setLoading(true);
     setError(null);
     try {
-      const res = await api.post('/tracking/phones/reactivar', {
+      const data = await customerClient.reactivarPhones({
         storeId,
         dryRun: false,
       });
-      setExecResult(res.data);
+      setExecResult(data);
       setStep('done');
       onSuccess?.();
     } catch (err: any) {
