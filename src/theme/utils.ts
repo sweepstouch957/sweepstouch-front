@@ -27,5 +27,10 @@ export const SIDEBAR_WIDTH_COLLAPSED = 98;
 export const HEADER_HEIGHT = 54;
 
 // Common
-export const BORDER_RADIUS = 6;
+/**
+ * Radio base del design system. `theme.shape.borderRadius`.
+ * Es la ÚNICA fuente de verdad del redondeo: en sx, `borderRadius: 1` = 8px,
+ * `2` = 16px, etc. No hardcodear px en los componentes.
+ */
+export const BORDER_RADIUS = 8;
 export const SPACING_UNIT = 10;

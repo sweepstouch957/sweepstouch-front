@@ -61,119 +61,8 @@ import RangePickerField, {
 import { useCustomization } from 'src/hooks/use-customization';
 import WeeklySales from 'src/components/application-ui/tables/sweepstakes-participant/participants-sweepstakes';
 import { routes } from 'src/router/routes';
+import KpiCard from '@/components/application-ui/card-shells/kpi-card';
 
-// ─── KPI Hero Card ────────────────────────────────────────────────────────────
-
-interface KpiCardProps {
-  label: string;
-  value: number;
-  subtext?: string;
-  gradient: string;
-  shadowColor: string;
-  Icon: React.ElementType;
-  isLoading?: boolean;
-}
-
-const KpiCard: FC<KpiCardProps> = ({
-  label,
-  value,
-  subtext,
-  gradient,
-  shadowColor,
-  Icon,
-  isLoading,
-}) => (
-  <Card
-    elevation={0}
-    sx={{
-      p: { xs: 2, sm: 2.5 },
-      background: gradient,
-      boxShadow: `0 8px 28px ${shadowColor}`,
-      borderRadius: 3,
-      border: 'none',
-      position: 'relative',
-      overflow: 'hidden',
-      height: '100%',
-    }}
-  >
-    <Box
-      sx={{
-        position: 'absolute',
-        top: -14,
-        right: -14,
-        opacity: 0.07,
-        pointerEvents: 'none',
-      }}
-    >
-      <Icon sx={{ fontSize: 110, color: '#fff' }} />
-    </Box>
-
-    <Stack
-      direction="row"
-      justifyContent="space-between"
-      alignItems="flex-start"
-      sx={{ mb: 1.5 }}
-    >
-      <Box>
-        <Typography
-          sx={{
-            color: 'rgba(255,255,255,0.72)',
-            fontWeight: 700,
-            letterSpacing: 1.2,
-            textTransform: 'uppercase',
-            fontSize: 10,
-            mb: 0.5,
-          }}
-        >
-          {label}
-        </Typography>
-        <Typography
-          variant="h3"
-          fontWeight={900}
-          sx={{ color: '#fff', lineHeight: 1, letterSpacing: -1 }}
-        >
-          {isLoading ? (
-            <Skeleton
-              width={80}
-              sx={{ bgcolor: 'rgba(255,255,255,0.2)', borderRadius: 1 }}
-            />
-          ) : (
-            <CountUp
-              end={value}
-              separator=","
-              duration={1.4}
-              useEasing
-            />
-          )}
-        </Typography>
-      </Box>
-      <Avatar
-        variant="rounded"
-        sx={{
-          bgcolor: 'rgba(255,255,255,0.16)',
-          color: '#fff',
-          width: 48,
-          height: 48,
-          backdropFilter: 'blur(6px)',
-        }}
-      >
-        <Icon />
-      </Avatar>
-    </Stack>
-
-    {subtext && !isLoading && (
-      <Typography
-        sx={{
-          color: 'rgba(255,255,255,0.68)',
-          fontWeight: 600,
-          fontSize: 11,
-        }}
-      >
-        {subtext}
-      </Typography>
-    )}
-  </Card>
-);
 
 // ─── Store Performance Card ────────────────────────────────────────────────────
 
@@ -710,66 +599,61 @@ function Page() {
         <Grid container spacing={{ xs: 1.5, sm: 2 }} sx={{ mb: 3 }}>
           <Grid xs={12} sm={6} lg={3}>
             <KpiCard
+              layout="horizontal"
               label="Números nuevos"
-              value={totalNewNumbers}
-              subtext={
+              value={metricsLoading ? '—' : totalNewNumbers.toLocaleString()}
+              descriptions={
                 totalRegistrations > 0
                   ? `${Math.round(
                       (totalNewNumbers / totalRegistrations) * 100
                     )}% del total registrado`
                   : undefined
               }
-              gradient="linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #43a047 100%)"
-              shadowColor="rgba(46,125,50,0.35)"
-              Icon={PersonAddAlt1RoundedIcon}
-              isLoading={metricsLoading}
+              variant="success"
+              icon={<PersonAddAlt1RoundedIcon fontSize="small" />}
             />
           </Grid>
           <Grid xs={12} sm={6} lg={3}>
             <KpiCard
+              layout="horizontal"
               label="Participaciones"
-              value={totalParticipations}
-              subtext={
+              value={metricsLoading ? '—' : totalParticipations.toLocaleString()}
+              descriptions={
                 storeCount > 0
                   ? `~${avgPerStore.toLocaleString()} promedio / tienda`
                   : undefined
               }
-              gradient={`linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`}
-              shadowColor={alpha(theme.palette.primary.main, 0.35)}
-              Icon={TrendingUpRoundedIcon}
-              isLoading={metricsLoading}
+              icon={<TrendingUpRoundedIcon fontSize="small" />}
             />
           </Grid>
           <Grid xs={12} sm={6} lg={3}>
             <KpiCard
+              layout="horizontal"
               label="Tiendas activas"
-              value={storeCount}
-              subtext={
+              value={metricsLoading ? '—' : storeCount.toLocaleString()}
+              descriptions={
                 totalRegistrations > 0
-                  ? `${totalRegistrations.toLocaleString()} registros totales`
-                  : undefined
+                  ? `${totalRegistrations.toLocaleString()} registros · Ver tiendas`
+                  : 'Ver tiendas'
               }
-              gradient="linear-gradient(135deg, #0d47a1 0%, #1565c0 50%, #1e88e5 100%)"
-              shadowColor="rgba(21,101,192,0.35)"
-              Icon={StorefrontRoundedIcon}
-              isLoading={metricsLoading}
+              variant="info"
+              icon={<StorefrontRoundedIcon fontSize="small" />}
+              href={routes.admin.management.stores.listing}
             />
           </Grid>
           <Grid xs={12} sm={6} lg={3}>
             <KpiCard
+              layout="horizontal"
               label="Ya registrados"
-              value={totalExistingNumbers}
-              subtext={
+              value={metricsLoading ? '—' : totalExistingNumbers.toLocaleString()}
+              descriptions={
                 totalRegistrations > 0
                   ? `${Math.round(
                       (totalExistingNumbers / totalRegistrations) * 100
                     )}% recurrentes`
                   : undefined
               }
-              gradient="linear-gradient(135deg, #4a148c 0%, #6a1b9a 50%, #8e24aa 100%)"
-              shadowColor="rgba(106,27,154,0.35)"
-              Icon={PeopleRoundedIcon}
-              isLoading={metricsLoading}
+              icon={<PeopleRoundedIcon fontSize="small" />}
             />
           </Grid>
         </Grid>

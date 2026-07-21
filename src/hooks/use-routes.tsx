@@ -7,13 +7,12 @@ import {
   Person2Outlined,
   Redeem,
   Store,
-  StorefrontOutlined,
   QrCode2Rounded,
 } from '@mui/icons-material';
 import AppsRoundedIcon from '@mui/icons-material/AppsRounded';
+import HandymanRoundedIcon from '@mui/icons-material/HandymanRounded';
 import OndemandVideoRoundedIcon from '@mui/icons-material/OndemandVideoRounded';
 import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
-import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded';
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import TabletMacRoundedIcon from '@mui/icons-material/TabletMacRounded';
 import { List } from '@mui/material';
@@ -57,6 +56,7 @@ const applicationsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Depurar Numeros'), route: routes.admin.applications['debug-numbers'] },
     { title: t('Demos'), route: routes.admin.applications.demos, icon: <OndemandVideoRoundedIcon /> },
     { title: t("QR"), icon: <QrCode2Rounded />, route: routes.admin.management.qr },
+    { title: t('Utilidades'), icon: <HandymanRoundedIcon />, route: routes.admin.applications.utilities },
     //{ title: t('File manager'), route: routes.admin.applications['file-manager'] },
     //{ title: t('Messenger'), route: routes.admin.applications.messenger },
   ]);
@@ -67,11 +67,6 @@ const usersMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Merchants'), route: routes.admin.management.merchants.listing },
     { title: t('Departments'), route: routes.admin.management.departments.listing },
     //{ title: t('User profile'), route: routes.admin.management.users.profile },
-  ]);
-
-const merchantsMenu = (t: (token: string) => string): MenuItem =>
-  buildMenu(t('Merchants'), <StorefrontOutlined />, [
-    { title: t('Listing'), route: routes.admin.management.merchants.listing },
   ]);
 
 const campaignsMenu = (t: (token: string) => string): MenuItem =>

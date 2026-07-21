@@ -24,6 +24,8 @@ import {
   useTheme,
 } from '@mui/material';
 import { useMemo, useState } from 'react';
+import KpiCard from '@/components/application-ui/card-shells/kpi-card';
+import { routes } from 'src/router/routes';
 import BulkPaymentsImportCard from './BulkPaymentsImportCard';
 import BillingFilters, { PaymentMethod } from './filters';
 import { PieWithLegend } from './utils';
@@ -136,35 +138,46 @@ export default function BillingPage() {
   };
 
   // KPI cards data
-  const kpis = [
+  // Cada KPI declara a dónde lleva (href) o qué abre (onClick). Si no lleva a
+  // ningún lado, no se marca como clickeable — así se ve cuál navega y cuál no.
+  const kpis: {
+    label: string;
+    value?: string;
+    hint: string;
+    icon: React.ReactNode;
+    variant?: 'error' | 'info' | 'success' | 'warning';
+    href?: string;
+    onClick?: () => void;
+  }[] = [
     {
       label: 'Grand Total',
       value: range.isLoading ? undefined : fmt(grandTotal),
       hint: `${startStr} → ${endStr}`,
       icon: <AccountBalanceWalletRoundedIcon fontSize="small" />,
-      color: theme.palette.primary.main,
     },
     {
       label: 'Campaigns SMS + MMS',
       value: range.isLoading ? undefined : fmt(sms + mms),
-      hint: 'Click to view logs',
+      hint: 'Ver logs de envíos',
       icon: <MessageRoundedIcon fontSize="small" />,
-      color: theme.palette.success.main,
+      variant: 'success',
       onClick: handleOpenSmsModal,
     },
     {
       label: 'Memberships',
       value: range.isLoading ? undefined : fmt(storesFee),
-      hint: `Periods ×${periods || 0}`,
+      hint: `Periods ×${periods || 0} · Ver tiendas`,
       icon: <GroupRoundedIcon fontSize="small" />,
-      color: theme.palette.secondary.main,
+      variant: 'info',
+      href: routes.admin.management.stores.listing,
     },
     {
       label: 'Opt-in',
       value: range.isLoading ? undefined : fmt(optinCost),
-      hint: `${optinCount} × ${fmt(optinUnit)}`,
+      hint: `${optinCount} × ${fmt(optinUnit)} · Ver Opt-in MMS`,
       icon: <HowToRegRoundedIcon fontSize="small" />,
-      color: theme.palette.warning.main,
+      variant: 'warning',
+      href: routes.admin.management.campaings.optin,
     },
   ];
 
@@ -317,47 +330,16 @@ export default function BillingPage() {
             md={3}
             key={kpi.label}
           >
-            <Paper
-              elevation={0}
+            <KpiCard
+              layout="horizontal"
+              icon={kpi.icon}
+              label={kpi.label}
+              value={kpi.value ?? '—'}
+              descriptions={kpi.hint}
+              variant={kpi.variant}
+              href={kpi.href}
               onClick={kpi.onClick}
-              sx={{
-                ...cardSx,
-                borderRadius: 2.5,
-                cursor: kpi.onClick ? 'pointer' : 'default',
-                transition: 'box-shadow 0.15s',
-                '&:hover': kpi.onClick
-                  ? { boxShadow: `0 0 0 2px ${alpha(kpi.color, 0.35)}` }
-                  : undefined,
-              }}
-            >
-              <Box sx={{ ...cardBodySx, display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                <Avatar sx={iconAvatarSx(kpi.color)}>{kpi.icon}</Avatar>
-                <Box sx={{ minWidth: 0, flex: 1 }}>
-                  <Typography {...kpiLabelSx}>{kpi.label}</Typography>
-                  {kpi.value === undefined ? (
-                    <Skeleton
-                      width={90}
-                      height={32}
-                    />
-                  ) : (
-                    <Typography
-                      variant="h5"
-                      fontWeight={800}
-                      letterSpacing={-0.5}
-                      lineHeight={1.2}
-                    >
-                      {kpi.value}
-                    </Typography>
-                  )}
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                  >
-                    {kpi.hint}
-                  </Typography>
-                </Box>
-              </Box>
-            </Paper>
+            />
           </Grid>
         ))}
       </Grid>

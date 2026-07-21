@@ -3,6 +3,7 @@
 /* eslint-disable react/jsx-max-props-per-line */
 // 🔗 Hooks reales
 import { useCircularAlerts, useCircularOverview } from '@hooks/fetching/circulars/useCirculars';
+import { routes } from 'src/router/routes';
 import {
   Error as ErrorIcon,
   Info as InfoIcon,
@@ -93,6 +94,7 @@ const InfoDashboard = () => {
       >
         <MetricCard
           title="Total Stores"
+          href={routes.admin.management.circulars['subscribed-stores']}
           value={totalStores}
           subtitle="+0 this month"
           icon={ShoppingCartIcon}
@@ -101,6 +103,7 @@ const InfoDashboard = () => {
         />
         <MetricCard
           title="Active Circulars"
+          href={routes.admin.management.circulars.manage}
           value={totals.active}
           subtitle="Currently running"
           icon={TrendingUpIcon}
@@ -109,6 +112,7 @@ const InfoDashboard = () => {
         />
         <MetricCard
           title="Scheduled"
+          href={routes.admin.management.circulars.schedule}
           value={totals.scheduled}
           subtitle="Ready to launch"
           icon={ScheduleIcon}
@@ -117,6 +121,7 @@ const InfoDashboard = () => {
         />
         <MetricCard
           title="Expired"
+          href={routes.admin.management.circulars.manage}
           value={totals.expired}
           subtitle="Need attention"
           icon={ErrorIcon}

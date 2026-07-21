@@ -120,16 +120,8 @@ export const routes = {
     dashboards: {
       reports: '/admin/dashboards/reports',
       'messages-sent': '/admin/dashboards/messages-sent',
-      expenses: '/admin/dashboards/expenses',
       sweepstakes: '/admin/dashboards/sweepstakes',
-      prouctivity: '/admin/dashboards/productivity',
-      statistics: '/admin/dashboards/statistics',
-      automation: '/admin/dashboards/automation',
-      analytics: '/admin/dashboards/analytics',
       'campaign-analytics': '/admin/dashboards/campaign-analytics',
-      hospital: '/admin/dashboards/hospital',
-      helpdesk: '/admin/dashboards/helpdesk',
-      monitoring: '/admin/dashboards/monitoring',
       billing: '/admin/dashboards/billing',
       audience: '/admin/dashboards/audience',
 
@@ -149,6 +141,7 @@ export const routes = {
       'projects-board': '/admin/applications/projects-board',
       tasks: '/admin/applications/tasks',
       demos: '/admin/applications/demos',
+      utilities: '/admin/applications/utilities',
     },
     management: {
       users: {

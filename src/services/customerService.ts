@@ -113,6 +113,29 @@ class CustomerClient {
     return res.data.total;
   }
 
+  /** Agrega un número a una tienda, a varias, o a todas. Idempotente. */
+  async addNumberToStores(data: {
+    phoneNumber: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    storeIds?: string[];
+    allStores?: boolean;
+  }): Promise<AddToStoresResult> {
+    const res = await api.post('/customers/add-to-stores', data);
+    return res.data;
+  }
+
+}
+
+export interface AddToStoresResult {
+  success: boolean;
+  created: boolean;      // true si el cliente no existía
+  phoneNumber: string;   // ya normalizado a +1XXXXXXXXXX
+  targetStores: number;
+  addedTo: number;       // tiendas nuevas donde quedó agregado
+  alreadyIn: number;     // ya estaba en estas
+  totalStores: number;   // total tras la operación
 }
 
 export const customerClient = new CustomerClient();

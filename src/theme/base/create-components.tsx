@@ -824,8 +824,20 @@ export const createComponents = (): Components => {
       },
     },
     MuiCard: {
+      // Antes: elevation 8 → TODA card nacía con sombra, y cada página la peleaba
+      // con boxShadow a mano (202 overrides en el repo). Ahora el default del
+      // design system es: sin sombra, borde de divider y radio del token (8px).
+      // Una card que de verdad necesite elevarse (drag, overlay) puede pedir
+      // elevation explícito.
       defaultProps: {
-        elevation: 8,
+        elevation: 0,
+      },
+      styleOverrides: {
+        root: ({ theme }: any) => ({
+          borderRadius: BORDER_RADIUS,
+          border: `1px solid ${theme.palette.divider}`,
+          backgroundImage: 'none',
+        }),
       },
     },
     MuiButtonGroup: {

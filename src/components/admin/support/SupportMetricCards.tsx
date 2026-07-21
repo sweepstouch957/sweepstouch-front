@@ -15,8 +15,10 @@ import {
   Unstable_Grid2 as Grid,
   useTheme,
 } from '@mui/material';
+import Link from 'next/link';
 import React from 'react';
 import { SupportMetrics } from '@/services/support.service';
+import { routes } from 'src/router/routes';
 
 interface Props {
   metrics: SupportMetrics | undefined;
@@ -32,12 +34,15 @@ interface CardDef {
   getSub: (m: SupportMetrics) => string;
   getProgress: (m: SupportMetrics) => number | null;
   urgentWhen?: (v: number) => boolean;
+  /** A dónde lleva la card al hacer click. */
+  href?: string;
 }
 
 const cardDefs: CardDef[] = [
   {
     key: 'open',
     label: 'Tickets Abiertos',
+    href: routes.admin.management.support.tickets,
     icon: BugReportTwoToneIcon,
     color: 'warning',
     getValue: (m) => m.tickets.open + m.tickets.inProgress,
@@ -50,6 +55,7 @@ const cardDefs: CardDef[] = [
   {
     key: 'visits',
     label: 'Visitas Esta Semana',
+    href: routes.admin.management.support.visits,
     icon: EventAvailableTwoToneIcon,
     color: 'primary',
     getValue: (m) => m.visits.thisWeek,
@@ -65,6 +71,7 @@ const cardDefs: CardDef[] = [
   {
     key: 'resolved',
     label: 'Resueltos Este Mes',
+    href: routes.admin.management.support.tickets,
     icon: CheckCircleTwoToneIcon,
     color: 'success',
     getValue: (m) => m.tickets.resolvedThisMonth,
@@ -74,6 +81,7 @@ const cardDefs: CardDef[] = [
   {
     key: 'critical',
     label: 'Críticos Activos',
+    href: routes.admin.management.support.tickets,
     icon: ErrorOutlineRoundedIcon,
     color: 'error',
     getValue: (m) => m.tickets.critical,
@@ -100,6 +108,11 @@ function MetricCard({ def, metrics, loading, theme }: {
 
   return (
     <Box
+      // Si la card tiene destino, se renderiza como <a> real: click, ctrl+click,
+      // "abrir en pestaña nueva" y navegación por teclado funcionan gratis.
+      {...(def.href
+        ? { component: Link, href: def.href, 'aria-label': `${def.label}: ${value}` }
+        : {})}
       sx={{
         p: 2.5,
         borderRadius: 2,
@@ -110,11 +123,16 @@ function MetricCard({ def, metrics, loading, theme }: {
         display: 'flex',
         flexDirection: 'column',
         gap: 1,
-        transition: 'border-color .15s, box-shadow .15s',
-        '&:hover': {
-          borderColor: alpha(palette.main, 0.35),
-          boxShadow: `0 0 0 3px ${alpha(palette.main, 0.08)}`,
-        },
+        textDecoration: 'none',
+        color: 'inherit',
+        cursor: def.href ? 'pointer' : 'default',
+        transition: 'border-color .15s, background-color .15s',
+        ...(def.href && {
+          '&:hover': {
+            borderColor: alpha(palette.main, 0.45),
+            bgcolor: alpha(palette.main, 0.06),
+          },
+        }),
       }}
     >
       {/* Label row */}
