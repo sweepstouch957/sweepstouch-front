@@ -4,6 +4,7 @@
 import { Store } from '@/services/store.service';
 import { duplicateStore, getStoreById } from '@/services/store.service';
 import { useAuth } from '@/hooks/use-auth';
+import { resolveStoreStatus, STORE_STATUS_COLOR, STORE_STATUS_LABEL } from './storeExport';
 import {
   AccountCircle,
   CancelRounded,
@@ -422,7 +423,8 @@ const LogoImg: FC<{ src?: string }> = ({ src }) => {
 };
 
 const ActiveBadge: FC<{ status?: 'active' | 'inactive' | 'suspended' | 'cancelled'; active: boolean }> = ({ status, active }) => {
-  const effectiveStatus = status || (active ? 'active' : 'inactive');
+  // `active:false` gana sobre el enum (tiendas de baja sin migrar).
+  const effectiveStatus = resolveStoreStatus({ status, active });
   let tooltipTitle = 'Active';
   let icon = <CheckCircleRounded fontSize="small" color="success" />;
   if (effectiveStatus === 'inactive') {
@@ -555,32 +557,8 @@ const MobileList: FC<MobileListProps> = ({ stores, openTech }) => (
               >
                 <Chip
                   size="small"
-                  label={
-                    store.status === 'active'
-                      ? 'Active'
-                      : store.status === 'suspended'
-                      ? 'Suspended'
-                      : store.status === 'inactive'
-                      ? 'Inactive'
-                      : store.status === 'cancelled'
-                      ? 'Cancelled'
-                      : store.active
-                      ? 'Active'
-                      : 'Inactive'
-                  }
-                  color={
-                    store.status === 'active'
-                      ? 'success'
-                      : store.status === 'suspended'
-                      ? 'info'
-                      : store.status === 'inactive'
-                      ? 'warning'
-                      : store.status === 'cancelled'
-                      ? 'error'
-                      : store.active
-                      ? 'success'
-                      : 'error'
-                  }
+                  label={STORE_STATUS_LABEL[resolveStoreStatus(store)]}
+                  color={STORE_STATUS_COLOR[resolveStoreStatus(store)]}
                   variant="outlined"
                   sx={{ height: 22, fontSize: 11, fontWeight: 800 }}
                 />

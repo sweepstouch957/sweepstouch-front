@@ -2,6 +2,37 @@
 // Única fuente de verdad: el modal pinta los checkboxes desde aquí y el
 // generador de XLSX arma las filas con los mismos accessors.
 
+export type StoreStatus = 'active' | 'inactive' | 'suspended' | 'cancelled';
+
+/**
+ * Estado real de una tienda — resolver único (tabla + export).
+ *
+ * `active: false` GANA sobre el enum `status`. Hay tiendas dadas de baja que
+ * sólo tienen el booleano en false y nunca se migraron al enum (siguen con
+ * status "active"); sin esta precedencia salían como activas en la tabla y en
+ * el Excel. Debe quedar igual que `buildStatusMatch` del store-service.
+ */
+export function resolveStoreStatus(s: any): StoreStatus {
+  if (s?.active === false) return 'cancelled';
+  const st = s?.status;
+  if (st === 'suspended' || st === 'cancelled' || st === 'inactive') return st;
+  return 'active';
+}
+
+export const STORE_STATUS_LABEL: Record<StoreStatus, string> = {
+  active: 'Active',
+  inactive: 'Inactive',
+  suspended: 'Suspended',
+  cancelled: 'Cancelled',
+};
+
+export const STORE_STATUS_COLOR: Record<StoreStatus, 'success' | 'warning' | 'info' | 'error'> = {
+  active: 'success',
+  inactive: 'warning',
+  suspended: 'info',
+  cancelled: 'error',
+};
+
 export type StoreExportField = {
   key: string;
   /** Encabezado de la columna en el Excel */
@@ -40,14 +71,8 @@ export function deriveBranch(s: any): string {
 
 const fmtDate = (d: any) => (d ? new Date(d).toISOString().slice(0, 10) : '');
 
-const statusLabel = (s: any) =>
-  s?.status === 'suspended'
-    ? 'Suspended'
-    : s?.status === 'cancelled'
-      ? 'Cancelled'
-      : s?.status === 'inactive'
-        ? 'Inactive'
-        : 'Active';
+// `active:false` ⇒ Cancelled (ver storeStatus.ts).
+const statusLabel = (s: any) => STORE_STATUS_LABEL[resolveStoreStatus(s)];
 
 export const STORE_EXPORT_FIELDS: StoreExportField[] = [
   // ── Identificación ──
