@@ -34,6 +34,13 @@ import type { Theme } from '@mui/material/styles';
 type DebtStatus = 'all' | 'ok' | 'min_low' | 'low' | 'mid' | 'high' | 'critical';
 type StoreStatusFilter = 'all' | 'active' | 'suspended' | 'cancelled';
 
+const STATUS_LABELS: Record<StoreStatusFilter, string> = {
+  all: 'Estado',
+  active: 'Activas',
+  suspended: 'Suspendidas',
+  cancelled: 'Canceladas',
+};
+
 function useAISuggestion(
   query: string,
   hasResults: boolean,
@@ -276,16 +283,24 @@ export default function StoreFilters({
           }}
         />
 
-        {/* Status */}
+        {/* Estado — control único del status (el header refleja este valor) */}
         <FormControl
           size="small"
-          sx={{ ...selectSx, flex: { xs: '1 1 calc(50% - 4px)', sm: '0 0 110px' } }}
+          sx={{ ...selectSx, flex: { xs: '1 1 calc(50% - 4px)', sm: '0 0 138px' } }}
         >
           <Select
             value={status}
             onChange={(e) => onStatusChange(e.target.value as any)}
+            renderValue={(val) => (
+              <Typography
+                fontSize={13}
+                color={!val || val === 'all' ? 'text.secondary' : 'text.primary'}
+              >
+                {STATUS_LABELS[val as StoreStatusFilter] ?? 'Estado'}
+              </Typography>
+            )}
           >
-            <MenuItem value="all" sx={{ fontSize: 13 }}>Todos</MenuItem>
+            <MenuItem value="all" sx={{ fontSize: 13 }}>Todas las tiendas</MenuItem>
             <MenuItem value="active" sx={{ fontSize: 13 }}>Activas</MenuItem>
             <MenuItem value="suspended" sx={{ fontSize: 13 }}>Suspendidas</MenuItem>
             <MenuItem value="cancelled" sx={{ fontSize: 13 }}>Canceladas</MenuItem>

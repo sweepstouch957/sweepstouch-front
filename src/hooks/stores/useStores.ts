@@ -15,17 +15,6 @@ export type PaymentMethodFilter =
 export type ProviderFilter = 'all' | 'twilio' | 'bandwidth' | 'infobip';
 export type StoreStatusFilter = 'all' | 'active' | 'suspended' | 'cancelled';
 
-export const matchesStoreStatus = (
-  store: { status?: string; active?: boolean },
-  status: StoreStatusFilter
-) => {
-  if (status === 'all') return true;
-  if (status === 'active') {
-    return store.status === 'active' || (!store.status && store.active === true);
-  }
-  return store.status === status;
-};
-
 export interface UseStoresOptions {
   search?: string;
   page?: number;
@@ -187,16 +176,13 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
     setPage(0);
   }, []);
 
-  const rawStores = data?.data || [];
-  const stores = rawStores.filter((store) => matchesStoreStatus(store, status));
-  const responseIncludesOtherStatuses = stores.length !== rawStores.length;
+  // El backend ya filtra por `status` (enum real) y devuelve el total correcto.
+  // Volver a filtrar en cliente rompía la paginación y el conteo.
+  const stores = data?.data || [];
 
   return {
     stores,
-    total:
-      status !== 'all' && responseIncludesOtherStatuses
-        ? stores.length
-        : data?.total || 0,
+    total: data?.total || 0,
     loading: isLoading,
     fetching: isFetching,
     error: isError ? (error instanceof Error ? error.message : 'Error desconocido') : null,

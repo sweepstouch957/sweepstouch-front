@@ -10,13 +10,11 @@ import {
   Chip,
   Collapse,
   Divider,
-  FormControlLabel,
   IconButton,
   LinearProgress,
   Paper,
   Skeleton,
   Stack,
-  Switch,
   Tooltip,
   Typography,
   useTheme,
@@ -46,9 +44,17 @@ export type BillingSummaryResponse = {
 };
 
 type Props = {
-  status?: 'all' | 'active' | 'inactive';
+  /** Viene del filtro de la barra — única fuente de verdad del estado. */
+  status?: 'all' | 'active' | 'suspended' | 'cancelled';
   onFilterByDebt?: (debtStatus: string) => void;
   activeDebtStatus?: string;
+};
+
+const STATUS_SCOPE_LABEL: Record<string, string> = {
+  all: 'Todas',
+  active: 'Activas',
+  suspended: 'Suspendidas',
+  cancelled: 'Canceladas',
 };
 
 function formatMoney(value: number) {
@@ -70,13 +76,11 @@ const bucketConfigs = (theme: Theme) => [
 
 export function StoresBillingHeader({ status = 'all', onFilterByDebt, activeDebtStatus }: Props) {
   const theme = useTheme();
-  const [showInactive, setShowInactive] = useState(false);
   const [expanded, setExpanded] = useState(true);
-  const effectiveStatus: 'all' | 'active' | 'inactive' = showInactive ? 'all' : 'active';
 
   const { data, isLoading, isFetching } = useQuery<BillingSummaryResponse>({
-    queryKey: ['stores', 'billing-summary', effectiveStatus],
-    queryFn: () => storesService.getStoresBillingSummary({ status: effectiveStatus }) as any,
+    queryKey: ['stores', 'billing-summary', status],
+    queryFn: () => storesService.getStoresBillingSummary({ status }) as any,
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
   });
@@ -106,21 +110,20 @@ export function StoresBillingHeader({ status = 'all', onFilterByDebt, activeDebt
         alignItems="center"
         sx={{ px: { xs: 1.5, sm: 2 }, py: 1, gap: 1, minHeight: 52, flexWrap: 'wrap' }}
       >
-        <FormControlLabel
+        {/* Alcance actual — refleja el filtro de estado de la barra (control único). */}
+        <Typography
+          variant="caption"
           sx={{
-            m: 0,
             flexShrink: 0,
-            '& .MuiFormControlLabel-label': { fontSize: '0.72rem', color: 'text.secondary' },
+            fontWeight: 800,
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            fontSize: '0.65rem',
+            color: 'text.secondary',
           }}
-          control={
-            <Switch
-              size="small"
-              checked={showInactive}
-              onChange={(_, v) => setShowInactive(v)}
-            />
-          }
-          label={showInactive ? 'Todas' : 'Activas'}
-        />
+        >
+          {STATUS_SCOPE_LABEL[status] ?? 'Todas'}
+        </Typography>
 
         <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
 
