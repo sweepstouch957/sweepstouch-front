@@ -33,9 +33,13 @@ import {
   Typography,
   Skeleton,
 } from '@mui/material';
-import { PieChart } from '@mui/x-charts/PieChart';
+import dynamic from 'next/dynamic';
+const PieChart = dynamic(() => import('@mui/x-charts/PieChart').then((m) => m.PieChart), {
+  ssr: false,
+});
 import numeral from 'numeral';
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
+import { useMemo, useReducer, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useDropzone } from 'react-dropzone';
 
 type ImportResult = Awaited<ReturnType<typeof billingService.importPaymentsBulkExcel>>['data'];
@@ -58,38 +62,8 @@ function money(v: number) {
 // El useStoreSearch local (sin debounce, disparaba una request por tecla) se
 // reemplazó por el hook compartido en @/hooks/fetching/stores/useStoreSearch.
 
-// ── Balances reducer ────────────────────────────────────────────────────
-type BalancesState = {
-  pendingTotal: number;
-  invoicedTotal: number;
-  paidTotal: number;
-  isLoadingBalances: boolean;
-  balancesLoadedOnce: boolean;
-  balancesError: string | null;
-};
-
-type BalancesAction =
-  | { type: 'BALANCES_START' }
-  | { type: 'BALANCES_OK'; pending: number; invoiced: number; paid: number }
-  | { type: 'BALANCES_ERR'; error: string };
-
-const BALANCES_INIT: BalancesState = {
-  pendingTotal: 0,
-  invoicedTotal: 0,
-  paidTotal: 0,
-  isLoadingBalances: false,
-  balancesLoadedOnce: false,
-  balancesError: null,
-};
-
-function balancesReducer(s: BalancesState, a: BalancesAction): BalancesState {
-  switch (a.type) {
-    case 'BALANCES_START': return { ...s, isLoadingBalances: true, balancesError: null };
-    case 'BALANCES_OK': return { ...s, isLoadingBalances: false, balancesLoadedOnce: true, pendingTotal: a.pending, invoicedTotal: a.invoiced, paidTotal: a.paid };
-    case 'BALANCES_ERR': return { ...s, isLoadingBalances: false, balancesLoadedOnce: true, balancesError: a.error };
-    default: return s;
-  }
-}
+// Balances: los totales viven en react-query (['stores-balances']). El reducer
+// manual replicaba isLoading/loadedOnce/error/data -> reemplazado por useQuery.
 
 // ── Import reducer ────────────────────────────────────────────────────
 type ImportState = {
@@ -153,8 +127,28 @@ function importReducer(s: ImportState, a: ImportAction): ImportState {
 }
 
 export default function BulkPaymentsImportCard() {
-  const [balances, dispatchBalances] = useReducer(balancesReducer, BALANCES_INIT);
-  const { pendingTotal, invoicedTotal, paidTotal, isLoadingBalances, balancesLoadedOnce, balancesError } = balances;
+  // Totales de balances via react-query: agrega los stores en el queryFn.
+  const balancesQ = useQuery({
+    queryKey: ['stores-balances'],
+    queryFn: async () => {
+      const res = await billingService.getStoresBalances();
+      const stores = res.data?.stores || [];
+      return {
+        pendingTotal: stores.reduce((acc: number, s: any) => acc + (s.totalPending || 0), 0),
+        invoicedTotal: stores.reduce((acc: number, s: any) => acc + (s.totalInvoiced || 0), 0),
+        paidTotal: stores.reduce((acc: number, s: any) => acc + (s.totalPaid || 0), 0),
+      };
+    },
+  });
+  const pendingTotal = balancesQ.data?.pendingTotal ?? 0;
+  const invoicedTotal = balancesQ.data?.invoicedTotal ?? 0;
+  const paidTotal = balancesQ.data?.paidTotal ?? 0;
+  const isLoadingBalances = balancesQ.isFetching;
+  const balancesLoadedOnce = balancesQ.isFetched;
+  const balancesError = balancesQ.error
+    ? ((balancesQ.error as any)?.response?.data?.error || (balancesQ.error as any)?.message || 'Error loading balances')
+    : null;
+  const loadBalances = () => balancesQ.refetch();
 
   const [imp, dispatchImp] = useReducer(importReducer, IMPORT_INIT);
   const { file, importType, isImporting, importError, importResult, notFoundRows, isResolving, resolveResult } = imp;
@@ -174,25 +168,6 @@ export default function BulkPaymentsImportCard() {
     },
   });
 
-  async function loadBalances() {
-    try {
-      dispatchBalances({ type: 'BALANCES_START' });
-      const res = await billingService.getStoresBalances();
-      const stores = res.data?.stores || [];
-      const pending = stores.reduce((acc: number, s: any) => acc + (s.totalPending || 0), 0);
-      const paid = stores.reduce((acc: number, s: any) => acc + (s.totalPaid || 0), 0);
-      const invoiced = stores.reduce((acc: number, s: any) => acc + (s.totalInvoiced || 0), 0);
-      dispatchBalances({ type: 'BALANCES_OK', pending, invoiced, paid });
-    } catch (e: any) {
-      dispatchBalances({ type: 'BALANCES_ERR', error: e?.response?.data?.error || e?.message || 'Error loading balances' });
-    }
-  }
-
-  // ✅ Auto load on first render
-  useEffect(() => {
-    loadBalances();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   async function onImport() {
     if (!file) return;

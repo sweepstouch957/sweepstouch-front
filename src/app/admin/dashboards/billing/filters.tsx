@@ -29,7 +29,6 @@ import {
 } from '@mui/material';
 import React from 'react';
 import { DateRange, RangeKeyDict } from 'react-date-range';
-import * as XLSX from 'xlsx';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import StoresReportModal from '@/components/billing/StoresReportModal';
@@ -203,6 +202,8 @@ export default function BillingFilters({
 
     try {
       setExporting(true);
+
+      const XLSX = await import('xlsx');
 
       // Dispara el fetch con los últimos filtros/rango (enabled:false en el hook)
       const { data } = await storesReport.refetch();

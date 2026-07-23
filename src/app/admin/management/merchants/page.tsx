@@ -155,11 +155,19 @@ const DropZone: React.FC<DropZoneProps> = ({
   const filteredStores = React.useMemo(() => {
     if (!query) return stores;
     const q = query.toLowerCase();
-    return stores.filter(s => 
-      s.name.toLowerCase().includes(q) || 
+    return stores.filter(s =>
+      s.name.toLowerCase().includes(q) ||
       (s.address && s.address.toLowerCase().includes(q))
     );
   }, [stores, query]);
+
+  // La columna "available" puede tener miles de tiendas → renderizarlas todas
+  // monta miles de nodos DOM (jank). Capamos el render sin búsqueda; el buscador
+  // ya existe para encontrar el resto. "assigned" (pocas) se muestra completa.
+  const RENDER_CAP = 60;
+  const capped = side === 'available' && !query && filteredStores.length > RENDER_CAP;
+  const visibleStores = capped ? filteredStores.slice(0, RENDER_CAP) : filteredStores;
+  const hiddenCount = filteredStores.length - visibleStores.length;
 
   return (
     <Box flex={1} minWidth={0}>
@@ -232,9 +240,21 @@ const DropZone: React.FC<DropZoneProps> = ({
             </Typography>
           </Box>
         ) : (
-          filteredStores.map((s) => (
-            <StoreDragCard key={s._id || s.id} store={s} side={side} onDragStart={onDragStart} />
-          ))
+          <>
+            {visibleStores.map((s) => (
+              <StoreDragCard key={s._id || s.id} store={s} side={side} onDragStart={onDragStart} />
+            ))}
+            {hiddenCount > 0 && (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                align="center"
+                sx={{ display: 'block', py: 1 }}
+              >
+                +{hiddenCount} tiendas más — buscá para filtrar
+              </Typography>
+            )}
+          </>
         )}
       </Box>
     </Box>
@@ -261,21 +281,27 @@ const MerchantAssignPanel: React.FC<MerchantAssignPanelProps> = ({ merchant, all
     open: false, message: '', severity: 'success',
   });
 
-  const { data: userStores, isLoading: loadingStores } = useQuery({
-    queryKey: ['user-stores', merchant._id],
-    queryFn: () => merchantService.getUserStores(merchant._id),
-    staleTime: 1000 * 60 * 2,
-  });
-
+  // Antes: un GET /users/:id/stores por CADA merchant (N+1). Ahora la asignación
+  // se deriva de `allStores` (cada tienda ya trae `ownerId`) → 0 requests extra.
   useEffect(() => {
-    if (userStores) {
-      setAssignedIds(new Set(userStores.map((s) => s._id || s.id)));
-      setIsDirty(false);
-    }
-  }, [userStores]);
+    setAssignedIds(
+      new Set(
+        allStores
+          .filter((s) => String((s as any).ownerId) === String(merchant._id))
+          .map((s) => s._id || s.id)
+      )
+    );
+    setIsDirty(false);
+  }, [allStores, merchant._id]);
 
-  const assigned = allStores.filter((s) => assignedIds.has(s._id || s.id));
-  const available = allStores.filter((s) => !assignedIds.has(s._id || s.id));
+  const assigned = React.useMemo(
+    () => allStores.filter((s) => assignedIds.has(s._id || s.id)),
+    [allStores, assignedIds]
+  );
+  const available = React.useMemo(
+    () => allStores.filter((s) => !assignedIds.has(s._id || s.id)),
+    [allStores, assignedIds]
+  );
 
   const handleDragStart = (store: Store, from: 'assigned' | 'available') => {
     dragRef.current = { store, from };
@@ -303,7 +329,8 @@ const MerchantAssignPanel: React.FC<MerchantAssignPanelProps> = ({ merchant, all
     setSaving(true);
     try {
       await merchantService.assignUserStores(merchant._id, Array.from(assignedIds));
-      queryClient.invalidateQueries({ queryKey: ['user-stores', merchant._id] });
+      // Refresca la lista de tiendas (traen el ownerId nuevo) → re-deriva asignaciones.
+      queryClient.invalidateQueries({ queryKey: ['all-stores-raw'] });
       setIsDirty(false);
       setSnack({ open: true, message: `Stores updated for ${merchant.firstName}`, severity: 'success' });
     } catch {
@@ -375,7 +402,7 @@ const MerchantAssignPanel: React.FC<MerchantAssignPanelProps> = ({ merchant, all
             stores={assigned}
             side="assigned"
             isOver={overLeft}
-            loading={loadingStores}
+            loading={false}
             onDragStart={handleDragStart}
             onDrop={() => handleDrop('assigned')}
             onDragOver={(e) => { e.preventDefault(); setOverLeft(true); setOverRight(false); }}

@@ -25,6 +25,7 @@ import {
   Alert,
   alpha,
   Autocomplete,
+  createFilterOptions,
   Avatar,
   Box,
   Button,
@@ -51,6 +52,13 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 /* ────────────────────────────── constants ────────────────────────────── */
 const KIOSK_BASE = 'https://kiosko.sweepstouch.com';
 const MAX_IMAGE_KB = 500;
+
+// Capa el render del Autocomplete de tiendas a 50 opciones (miles de tiendas
+// montarian miles de <li> con input vacio). Filtra por name al tipear.
+const storeAutocompleteFilter = createFilterOptions<any>({
+  limit: 50,
+  stringify: (o) => o?.name ?? '',
+});
 
 /* ────────────────────────────── helpers ────────────────────────────── */
 const formatPhone = (p: string) => {
@@ -147,7 +155,7 @@ export default function SendTestMessagePage({
 
   /* ── Stores query ──────────────────────────────── */
   const { data: stores = [], isLoading: storesLoading } = useQuery({
-    queryKey: ['stores-all-test'],
+    queryKey: ['stores'],
     queryFn: () => getAllStores(),
     staleTime: 5 * 60_000,
   });
@@ -402,6 +410,9 @@ export default function SendTestMessagePage({
               </Typography>
               <Autocomplete
                 options={stores.filter((s) => s.active)}
+                // ponytail: capa opciones renderizadas a 50 -> el popup no monta miles
+                // de nodos con lista vacia. User tipea para filtrar el resto.
+                filterOptions={storeAutocompleteFilter}
                 getOptionLabel={(opt) => opt.name}
                 loading={storesLoading}
                 value={selectedStore}

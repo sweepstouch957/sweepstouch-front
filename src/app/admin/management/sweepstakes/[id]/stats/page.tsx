@@ -30,8 +30,13 @@ import {
   Unstable_Grid2 as Grid,
   useTheme,
 } from '@mui/material';
-import { BarChart } from '@mui/x-charts/BarChart';
-import { PieChart } from '@mui/x-charts/PieChart';
+import dynamic from 'next/dynamic';
+const BarChart = dynamic(() => import('@mui/x-charts/BarChart').then((m) => m.BarChart), {
+  ssr: false,
+});
+const PieChart = dynamic(() => import('@mui/x-charts/PieChart').then((m) => m.PieChart), {
+  ssr: false,
+});
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import { format } from 'date-fns';

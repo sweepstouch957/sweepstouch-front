@@ -38,7 +38,6 @@ import {
   useTheme } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import * as XLSX from 'xlsx';
 
 type ParsedCsv = {
   rawLines: string[];
@@ -183,6 +182,7 @@ function parseRows(rows: unknown[][]): ParsedCsv {
 async function parsePhoneFile(file: File): Promise<ParsedCsv> {
   const lowerName = file.name.toLowerCase();
   if (lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls')) {
+    const XLSX = await import('xlsx');
     const buffer = await file.arrayBuffer();
     const workbook = XLSX.read(buffer, { type: 'array' });
     const sheetName = workbook.SheetNames[0];

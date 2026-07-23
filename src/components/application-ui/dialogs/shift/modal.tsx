@@ -323,7 +323,7 @@ const NewShiftModal = ({ open, onClose, shiftId, initialStoreId, initialPromoter
 
   // All stores — no inline default; undefined = loading, data = stable reference
   const { data: allStores } = useQuery({
-    queryKey: ['all-stores-shift-modal'],
+    queryKey: ['stores'],
     queryFn: getAllStores,
     staleTime: 1000 * 60 * 30,
     refetchOnWindowFocus: false,

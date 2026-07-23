@@ -33,7 +33,6 @@ import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useTranslation } from 'react-i18next';
-import * as XLSX from 'xlsx';
 
 type AudienceMonthlyResponse = {
   year: number;
@@ -257,7 +256,8 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
   // =====================
   //  Export Excel
   // =====================
-  function exportExcel() {
+  async function exportExcel() {
+    const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
 
     const wsAudienceData = [

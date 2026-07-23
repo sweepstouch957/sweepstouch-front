@@ -3,7 +3,6 @@ import ExportButton from '@/components/application-ui/buttons/export-button';
 import PageHeading from '@/components/base/page-heading';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import * as XLSX from 'xlsx';
 import StoreFilter from './filter';
 import { StoresBillingHeader } from './header';
 import Results from './results';
@@ -89,6 +88,7 @@ function Component() {
 
     const { rows, cols } = buildExportRows(all, selectedKeys);
 
+    const XLSX = await import('xlsx');
     const ws = XLSX.utils.json_to_sheet(rows);
     ws['!cols'] = cols; // sin esto Brand/Address quedan cortadas
     const wb = XLSX.utils.book_new();

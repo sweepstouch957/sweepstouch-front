@@ -564,7 +564,7 @@ export default function ProjectsBoardPage() {
 
   const { data: allUsers = [] } = useQuery({
     queryKey: ['users'],
-    queryFn: () => usersApi.getUsers(),
+    queryFn: () => usersApi.getUsers({ lean: true }),
     staleTime: 120_000,
   });
 

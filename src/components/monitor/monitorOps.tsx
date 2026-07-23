@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Box, Stack, Typography, Chip, Skeleton, alpha, Autocomplete, TextField } from '@mui/material';
+  Box, Stack, Typography, Chip, Skeleton, alpha, Autocomplete, createFilterOptions, TextField } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import MonitorHeartRoundedIcon from '@mui/icons-material/MonitorHeartRounded';
 import CompareArrowsRoundedIcon from '@mui/icons-material/CompareArrowsRounded';
@@ -39,6 +39,9 @@ async function pingAll() {
 
 // Estado de servicio -> rol semantico (resuelto contra el theme en cada uso)
 const STATUS_ROLE: Record<string, 'success' | 'warning' | 'error'> = { ok: 'success', slow: 'warning', down: 'error' };
+
+// Capa el Autocomplete de comparar-tiendas a 50 opciones renderizadas.
+const storeCmpFilter = createFilterOptions<Store>({ limit: 50, stringify: (o) => o?.name || o?.slug || '' });
 
 export function ServicesHealth() {
   const theme = useTheme();
@@ -100,7 +103,7 @@ const CMP_ROWS: { key: keyof ReturnType<typeof useStoreSnapshot>['metrics']; lab
 
 export function CompareStores({ storeA }: { storeA: Store | null }) {
   const theme = useTheme();
-  const { data: stores = [] } = useQuery({ queryKey: ['all-stores-monitor'], queryFn: getAllStores, staleTime: 300_000 });
+  const { data: stores = [] } = useQuery({ queryKey: ['stores'], queryFn: getAllStores, staleTime: 300_000 });
   const [storeB, setStoreB] = React.useState<Store | null>(null);
 
   const a = useStoreSnapshot(storeA);
@@ -113,6 +116,7 @@ export function CompareStores({ storeA }: { storeA: Store | null }) {
       action={
         <Autocomplete
           options={stores}
+          filterOptions={storeCmpFilter}
           value={storeB}
           onChange={(_, v) => setStoreB(v)}
           getOptionLabel={(o) => o?.name || o?.slug || ''}

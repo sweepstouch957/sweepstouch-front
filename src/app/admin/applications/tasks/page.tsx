@@ -842,7 +842,7 @@ function TasksPage(): React.JSX.Element {
 
   const { data: allUsers = [] } = useQuery({
     queryKey: ['users'],
-    queryFn: () => usersApi.getUsers(),
+    queryFn: () => usersApi.getUsers({ lean: true }),
     staleTime: 120_000,
   });
 

@@ -14,7 +14,6 @@ import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import SearchIcon from '@mui/icons-material/Search';
 import { useMemo, useState } from 'react';
-import * as XLSX from 'xlsx';
 import { StoresMapCanvas } from './StoresMapCanvas';
 
 type StatusFilter = 'all' | 'active' | 'inactive';
@@ -53,7 +52,8 @@ const MapboxMap = () => {
     [filteredStores],
   );
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
+    const XLSX = await import('xlsx');
     const data = filteredStores.map((s) => ({
       Tienda: s.name,
       Clientes: s.customerCount,

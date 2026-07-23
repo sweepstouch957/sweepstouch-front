@@ -15,7 +15,6 @@ import {
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useDropzone } from 'react-dropzone';
-import * as XLSX from 'xlsx';
 import toast from 'react-hot-toast';
 
 export interface ParsedCustomer {
@@ -55,6 +54,7 @@ export const ExcelCustomerDropzone: FC<ExcelCustomerDropzoneProps> = ({
         const reader = new FileReader();
         reader.onload = async (e) => {
           try {
+            const XLSX = await import('xlsx');
             const data = e.target?.result;
             const workbook = XLSX.read(data, { type: 'binary' });
             const sheetName = workbook.SheetNames[0];

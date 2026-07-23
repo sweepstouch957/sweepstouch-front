@@ -35,7 +35,6 @@ import { saveAs } from 'file-saver';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { DateRange, type RangeKeyDict } from 'react-date-range';
-import * as XLSX from 'xlsx';
 import { GlassCard } from './ui';
 
 /* ===================== Types (mínimos) ===================== */
@@ -381,7 +380,8 @@ export function AudienceSummaryExecutive({
   const anyError = !!errorSummary || !!errorGrowth;
 
   /* ===================== Export Excel ===================== */
-  function exportToExcel() {
+  async function exportToExcel() {
+    const XLSX = await import('xlsx');
     const payload = rows.map((r) => ({
       storeId: r.storeId,
       name: r.name,

@@ -44,8 +44,13 @@ import RangePickerField from 'src/components/base/range-picker-field';
 import { sweepstakesClient } from 'src/services/sweepstakes.service';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
-import { LineChart } from '@mui/x-charts/LineChart';
-import { PieChart } from '@mui/x-charts/PieChart';
+import dynamic from 'next/dynamic';
+const LineChart = dynamic(() => import('@mui/x-charts/LineChart').then((m) => m.LineChart), {
+  ssr: false,
+});
+const PieChart = dynamic(() => import('@mui/x-charts/PieChart').then((m) => m.PieChart), {
+  ssr: false,
+});
 import { useQuery } from '@tanstack/react-query';
 import type { ActiveStoreStatusRow } from 'src/services/sweepstakes.service';
 import { chartPalette, tint } from 'src/theme/semantic';

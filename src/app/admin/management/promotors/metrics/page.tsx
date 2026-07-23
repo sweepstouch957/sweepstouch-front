@@ -28,7 +28,10 @@ import {
   ToggleButtonGroup,
   Typography,
   useTheme } from '@mui/material';
-import { BarChart } from '@mui/x-charts/BarChart';
+import dynamic from 'next/dynamic';
+const BarChart = dynamic(() => import('@mui/x-charts/BarChart').then((m) => m.BarChart), {
+  ssr: false,
+});
 import { useState } from 'react';
 import PageHeading from 'src/components/base/page-heading';
 import { tint, tintBorder } from 'src/theme/semantic';

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   alpha,
   Box,
@@ -61,8 +62,13 @@ export default function AIConfigPage() {
   const customization = useCustomization();
 
   const [tab, setTab] = useState(0);
-  const [config, setConfig] = useState<AIConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+  // config = estado del servidor (read-only: rules/restrictions se leen directo).
+  // Los campos editables (systemPrompt, temperature, ...) se copian a local state abajo.
+  const {
+    data: config = null,
+    isLoading: loading,
+    refetch: reloadConfig,
+  } = useQuery({ queryKey: ['ai-config'], queryFn: getAIConfig });
   const [saving, setSaving] = useState(false);
 
   // Form state
@@ -89,27 +95,16 @@ export default function AIConfigPage() {
   const [contextPreview, setContextPreview] = useState('');
   const [loadingPreview, setLoadingPreview] = useState(false);
 
-  // Load config
+  // Semilla los campos editables cuando llega/cambia el config del server
+  // (mount y tras cada reloadConfig()). react-query maneja fetch/loading/cache.
   useEffect(() => {
-    loadConfig();
-  }, []);
-
-  const loadConfig = async () => {
-    try {
-      const cfg = await getAIConfig();
-      setConfig(cfg);
-      setSystemPrompt(cfg.systemPrompt || '');
-      setTemperature(cfg.temperature || 0.7);
-      setMaxTokens(cfg.maxTokens || 4096);
-      setContextSources(cfg.contextSources || { team: true, tasks: true, campaigns: true, stores: true, audience: true });
-      setSkills((cfg as any).skills || []);
-    } catch (err) {
-      console.error('Failed to load config:', err);
-      toast.error('Failed to load AI configuration');
-    } finally {
-      setLoading(false);
-    }
-  };
+    if (!config) return;
+    setSystemPrompt(config.systemPrompt || '');
+    setTemperature(config.temperature || 0.7);
+    setMaxTokens(config.maxTokens || 4096);
+    setContextSources(config.contextSources || { team: true, tasks: true, campaigns: true, stores: true, audience: true });
+    setSkills((config as any).skills || []);
+  }, [config]);
 
   // Save config
   const handleSave = async () => {
@@ -117,7 +112,7 @@ export default function AIConfigPage() {
     try {
       await updateAIConfig({ systemPrompt, temperature, maxTokens, contextSources, skills } as any);
       toast.success('Configuration saved!');
-      loadConfig();
+      reloadConfig();
     } catch {
       toast.error('Failed to save');
     } finally {
@@ -159,13 +154,13 @@ export default function AIConfigPage() {
     if (!newRule.trim()) return;
     await addRule(newRule.trim());
     setNewRule('');
-    loadConfig();
+    reloadConfig();
     toast.success('Rule added');
   };
 
   const handleRemoveRule = async (index: number) => {
     await removeRule(index);
-    loadConfig();
+    reloadConfig();
     toast.success('Rule removed');
   };
 
@@ -174,13 +169,13 @@ export default function AIConfigPage() {
     if (!newRestriction.trim()) return;
     await addRestriction(newRestriction.trim());
     setNewRestriction('');
-    loadConfig();
+    reloadConfig();
     toast.success('Restriction added');
   };
 
   const handleRemoveRestriction = async (index: number) => {
     await removeRestriction(index);
-    loadConfig();
+    reloadConfig();
     toast.success('Restriction removed');
   };
 
