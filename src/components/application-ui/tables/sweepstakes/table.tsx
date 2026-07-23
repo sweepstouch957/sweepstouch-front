@@ -6,9 +6,13 @@ import EditIcon from '@mui/icons-material/Edit';
 import SearchIcon from '@mui/icons-material/Search';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
+import ClearRoundedIcon from '@mui/icons-material/ClearRounded';
+import EventBusyRoundedIcon from '@mui/icons-material/EventBusyRounded';
+import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import {
   Avatar,
   Box,
+  Button,
   Chip,
   CircularProgress,
   Fade,
@@ -17,7 +21,6 @@ import {
   LinearProgress,
   MenuItem,
   Paper,
-  Select,
   Stack,
   Table,
   TableBody,
@@ -42,10 +45,10 @@ import { useRouter } from 'next/navigation';
 import React from 'react';
 
 const statusOptions = [
-  { value: '', label: 'All Statuses' },
-  { value: 'in progress', label: 'Active / In Progress' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'draft', label: 'Draft' },
+  { value: '', label: 'Todos los estados' },
+  { value: 'in progress', label: 'Activo / En progreso' },
+  { value: 'completed', label: 'Completado' },
+  { value: 'draft', label: 'Borrador' },
 ];
 
 // Helpers
@@ -81,12 +84,24 @@ const getStatusChip = (status?: string) => {
   return { color: 'default' as const, label: status || '—' };
 };
 
-type SortField = 'participants' | 'createdAt' | 'status' | '';
+type SortField = 'participants' | 'createdAt' | 'status' | 'stores' | 'endDate' | '';
+
+// Orden combinado (campo + dirección) para un solo selector claro.
+const SORT_OPTIONS: { key: string; label: string; sortBy: SortField; sortOrder: 'asc' | 'desc' }[] = [
+  { key: 'recent', label: 'Más recientes', sortBy: 'createdAt', sortOrder: 'desc' },
+  { key: 'oldest', label: 'Más antiguos', sortBy: 'createdAt', sortOrder: 'asc' },
+  { key: 'participants', label: 'Más participantes', sortBy: 'participants', sortOrder: 'desc' },
+  { key: 'stores', label: 'Más tiendas agregadas', sortBy: 'stores', sortOrder: 'desc' },
+  { key: 'endSoon', label: 'Finalizan pronto', sortBy: 'endDate', sortOrder: 'asc' },
+  { key: 'endLate', label: 'Finalizan más tarde', sortBy: 'endDate', sortOrder: 'desc' },
+];
 
 // ✅ useReducer: consolidates 6 related useState calls (react-doctor: UseReducer warning)
+type FilterField = 'status' | 'q' | 'endFrom' | 'endTo';
+
 type TableState = {
   preview: { url: string; name: string } | null;
-  filters: { status: string; name: string; createdFrom: string; createdTo: string };
+  filters: { status: string; q: string; endFrom: string; endTo: string };
   page: number;
   limit: number;
   sortBy: SortField;
@@ -95,7 +110,8 @@ type TableState = {
 
 type TableAction =
   | { type: 'SET_PREVIEW'; payload: { url: string; name: string } | null }
-  | { type: 'SET_FILTER'; field: 'status' | 'name' | 'createdFrom' | 'createdTo'; value: string }
+  | { type: 'SET_FILTER'; field: FilterField; value: string }
+  | { type: 'CLEAR_FILTERS' }
   | { type: 'SET_PAGE'; payload: number }
   | { type: 'SET_LIMIT'; payload: number }
   | { type: 'SET_SORT'; sortBy: SortField; sortOrder: 'asc' | 'desc' };
@@ -106,6 +122,8 @@ function tableReducer(state: TableState, action: TableAction): TableState {
       return { ...state, preview: action.payload };
     case 'SET_FILTER':
       return { ...state, filters: { ...state.filters, [action.field]: action.value }, page: 0 };
+    case 'CLEAR_FILTERS':
+      return { ...state, filters: { status: '', q: '', endFrom: '', endTo: '' }, page: 0 };
     case 'SET_PAGE':
       return { ...state, page: action.payload };
     case 'SET_LIMIT':
@@ -120,10 +138,10 @@ function tableReducer(state: TableState, action: TableAction): TableState {
 export default function SweepstakesTable() {
   const [state, dispatch] = React.useReducer(tableReducer, {
     preview: null,
-    filters: { status: '', name: '', createdFrom: '', createdTo: '' },
+    filters: { status: '', q: '', endFrom: '', endTo: '' },
     page: 0,
     limit: 10,
-    sortBy: '' as SortField,
+    sortBy: 'createdAt' as SortField,
     sortOrder: 'desc',
   } satisfies TableState);
 
@@ -133,6 +151,14 @@ export default function SweepstakesTable() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   // ✅ Destructure push — easier for React Compiler to memoize (react-doctor: compiler hint)
   const { push } = useRouter();
+
+  // Search con debounce: el input es local (inmediato), `filters.q` (lo que dispara
+  // la query) se actualiza 350ms después de dejar de teclear -> no una request por tecla.
+  const [searchInput, setSearchInput] = React.useState('');
+  React.useEffect(() => {
+    const t = setTimeout(() => dispatch({ type: 'SET_FILTER', field: 'q', value: searchInput.trim() }), 350);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
   const { data: response, isLoading, error, isFetching } = usePaginatedSweepstakes({
     ...filters,
@@ -144,11 +170,20 @@ export default function SweepstakesTable() {
   const sweepstakes = response?.data ?? [];
   const total = response?.total ?? 0;
 
+  const activeFilterCount =
+    (filters.q ? 1 : 0) + (filters.status ? 1 : 0) + (filters.endFrom ? 1 : 0) + (filters.endTo ? 1 : 0);
+  const currentSortKey =
+    SORT_OPTIONS.find((o) => o.sortBy === sortBy && o.sortOrder === sortOrder)?.key ?? 'recent';
+
   // Handlers
   const handleStatusChange = (e: any) => dispatch({ type: 'SET_FILTER', field: 'status', value: e.target.value });
-  const handleNameChange = (e: any) => dispatch({ type: 'SET_FILTER', field: 'name', value: e.target.value });
-  const handleDateChange = (field: 'createdFrom' | 'createdTo') => (e: any) =>
+  const handleDateChange = (field: 'endFrom' | 'endTo') => (e: any) =>
     dispatch({ type: 'SET_FILTER', field, value: e.target.value });
+  const handleSortSelect = (key: string) => {
+    const opt = SORT_OPTIONS.find((o) => o.key === key) ?? SORT_OPTIONS[0];
+    dispatch({ type: 'SET_SORT', sortBy: opt.sortBy, sortOrder: opt.sortOrder });
+  };
+  const clearAll = () => { setSearchInput(''); dispatch({ type: 'CLEAR_FILTERS' }); };
   const handleChangePage = (_e: unknown, newPage: number) => dispatch({ type: 'SET_PAGE', payload: newPage });
   const handleChangeRowsPerPage = (e: React.ChangeEvent<HTMLInputElement>) =>
     dispatch({ type: 'SET_LIMIT', payload: parseInt(e.target.value, 10) });
@@ -165,73 +200,87 @@ export default function SweepstakesTable() {
       <Paper
         sx={{
           mb: 2,
-          p: { xs: 2, sm: 3 },
+          p: { xs: 2, sm: 2.5 },
           borderRadius: 3,
-          background: theme.palette.background.paper,
           border: `1px solid ${theme.palette.divider}`,
         }}
         elevation={0}
       >
-        <Stack
-          direction={isMobile ? 'column' : 'row'}
-          spacing={2}
-          alignItems="stretch"
-          flexWrap="wrap"
-          useFlexGap
-        >
-          <TextField
-            placeholder="Search by name..."
-            size="small"
-            value={filters.name}
-            onChange={handleNameChange}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon color="action" />
-                </InputAdornment>
-              ),
-            }}
-            sx={{ flex: { xs: 1, md: 2 }, minWidth: { xs: '100%', sm: 280 } }}
-          />
+        <Stack spacing={2}>
+          {/* Fila 1: búsqueda + orden + estado */}
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="stretch" flexWrap="wrap" useFlexGap>
+            <TextField
+              placeholder="Buscar por nombre, tienda o código…"
+              size="small"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon color="action" />
+                  </InputAdornment>
+                ),
+                endAdornment: searchInput ? (
+                  <InputAdornment position="end">
+                    <IconButton size="small" edge="end" onClick={() => setSearchInput('')} aria-label="Limpiar búsqueda">
+                      <ClearRoundedIcon fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                ) : null,
+              }}
+              sx={{ flex: { xs: 1, md: 2 }, minWidth: { xs: '100%', sm: 300 } }}
+            />
 
-          <Select
-            displayEmpty
-            value={sortBy === 'createdAt' ? sortOrder : 'desc'}
-            onChange={(e) => {
-              dispatch({ type: 'SET_SORT', sortBy: 'createdAt', sortOrder: e.target.value as 'asc' | 'desc' });
-            }}
-            size="small"
-            sx={{
-              flex: 1,
-              minWidth: { xs: '100%', sm: 150 },
-              background: theme.palette.background.paper,
-              fontWeight: 500,
-            }}
-            variant="outlined"
-          >
-            <MenuItem value="desc">Newest First</MenuItem>
-            <MenuItem value="asc">Oldest First</MenuItem>
-          </Select>
+            <TextField
+              select
+              label="Ordenar por"
+              size="small"
+              value={currentSortKey}
+              onChange={(e) => handleSortSelect(e.target.value)}
+              sx={{ flex: 1, minWidth: { xs: '100%', sm: 200 } }}
+            >
+              {SORT_OPTIONS.map((o) => (
+                <MenuItem key={o.key} value={o.key}>{o.label}</MenuItem>
+              ))}
+            </TextField>
 
-          <Select
-            displayEmpty
-            value={filters.status}
-            onChange={handleStatusChange}
-            size="small"
-            sx={{
-              flex: 1,
-              minWidth: { xs: '100%', sm: 180 },
-              background: theme.palette.background.paper,
-              fontWeight: 500,
-            }}
-            variant="outlined"
-          >
-            {statusOptions.map((s) => (
-              <MenuItem key={s.value} value={s.value}>
-                {s.label}
-              </MenuItem>
-            ))}
-          </Select>
+            <TextField
+              select
+              label="Estado"
+              size="small"
+              value={filters.status}
+              onChange={handleStatusChange}
+              sx={{ flex: 1, minWidth: { xs: '100%', sm: 180 } }}
+            >
+              {statusOptions.map((s) => (
+                <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
+              ))}
+            </TextField>
+          </Stack>
+
+          {/* Fila 2: rango de fecha de finalización + limpiar */}
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', sm: 'center' }} flexWrap="wrap" useFlexGap>
+            <Stack direction="row" spacing={0.75} alignItems="center" sx={{ color: 'text.secondary', minWidth: 90 }}>
+              <EventBusyRoundedIcon fontSize="small" />
+              <Typography variant="caption" sx={{ fontWeight: 700 }}>Finaliza</Typography>
+            </Stack>
+            <TextField
+              type="date" label="Desde" size="small" InputLabelProps={{ shrink: true }}
+              value={filters.endFrom} onChange={handleDateChange('endFrom')}
+              sx={{ minWidth: { xs: '100%', sm: 165 } }}
+            />
+            <TextField
+              type="date" label="Hasta" size="small" InputLabelProps={{ shrink: true }}
+              value={filters.endTo} onChange={handleDateChange('endTo')}
+              sx={{ minWidth: { xs: '100%', sm: 165 } }}
+            />
+            <Box sx={{ flex: 1 }} />
+            {activeFilterCount > 0 && (
+              <Button size="small" variant="text" color="secondary" startIcon={<ClearRoundedIcon />} onClick={clearAll} sx={{ whiteSpace: 'nowrap' }}>
+                Limpiar filtros ({activeFilterCount})
+              </Button>
+            )}
+          </Stack>
         </Stack>
       </Paper>
 
@@ -274,7 +323,11 @@ export default function SweepstakesTable() {
                         Participants
                       </TableSortLabel>
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Stores</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>
+                      <TableSortLabel active={sortBy === 'stores'} direction={sortBy === 'stores' ? sortOrder : 'asc'} onClick={() => handleSort('stores')}>
+                        Stores
+                      </TableSortLabel>
+                    </TableCell>
                     <TableCell sx={{ fontWeight: 700, minWidth: 180 }}>Checklist</TableCell>
                     <TableCell sx={{ fontWeight: 700, minWidth: 100, textAlign: 'right' }}>Actions</TableCell>
                   </TableRow>
@@ -302,9 +355,22 @@ export default function SweepstakesTable() {
                   ) : !sweepstakes?.length ? (
                     <TableRow>
                       <TableCell colSpan={6}>
-                        <Typography align="center" color="text.secondary" sx={{ py: 6 }}>
-                          No sweepstakes found matching the criteria.
-                        </Typography>
+                        <Stack alignItems="center" spacing={1.5} sx={{ py: 6, px: 2 }}>
+                          <StorefrontRoundedIcon sx={{ fontSize: 44, color: 'text.disabled' }} />
+                          <Typography align="center" sx={{ fontWeight: 700 }}>
+                            No se encontraron sorteos
+                          </Typography>
+                          <Typography align="center" color="text.secondary" variant="body2" sx={{ maxWidth: 420 }}>
+                            {activeFilterCount > 0
+                              ? 'Probá con el nombre del sorteo, el nombre de la tienda o su código de acceso. También revisá el estado y el rango de fechas.'
+                              : 'Aún no hay sorteos para mostrar.'}
+                          </Typography>
+                          {activeFilterCount > 0 && (
+                            <Button size="small" variant="outlined" color="secondary" startIcon={<ClearRoundedIcon />} onClick={clearAll}>
+                              Limpiar filtros
+                            </Button>
+                          )}
+                        </Stack>
                       </TableCell>
                     </TableRow>
                   ) : (

@@ -363,7 +363,7 @@ export class SweepstakesClient {
     return res.data;
   }
 
-  async getPaginatedSweepstakes(filters?: { status?: string; name?: string; page?: number; limit?: number; sortBy?: string; sortOrder?: 'asc' | 'desc'; createdFrom?: string; createdTo?: string; }): Promise<{ data: Sweepstakes[]; total: number; page: number; limit: number; }> {
+  async getPaginatedSweepstakes(filters?: { status?: string; name?: string; q?: string; page?: number; limit?: number; sortBy?: string; sortOrder?: 'asc' | 'desc'; createdFrom?: string; createdTo?: string; endFrom?: string; endTo?: string; }): Promise<{ data: Sweepstakes[]; total: number; page: number; limit: number; }> {
     const res = await api.get('/sweepstakes', { params: filters });
     return res.data;
   }

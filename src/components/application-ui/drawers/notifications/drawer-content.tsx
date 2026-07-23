@@ -31,6 +31,13 @@ import {
 } from 'src/components/application-ui/dropdowns/notifications/notifications-dropdown';
 import { tint, type SemanticRole } from '@/theme/semantic';
 
+// Notis viejas en DB apuntan a /admin/management/shifts (ruta inexistente -> 404
+// en cada prefetch/click). La seccion real es /solicitudes/turnos. Remapea al vuelo
+// preservando el query (?requestId=...). Fix de datos: migrar los registros viejos.
+function normalizeNotifLink(link: string): string {
+  return link.replace('/admin/management/shifts', '/admin/management/solicitudes/turnos');
+}
+
 const FILTER_TABS: NotifCategory[] = ['todos', 'tickets', 'tareas', 'turnos'];
 
 const EMPTY_COPY: Record<NotifCategory, string> = {
@@ -127,7 +134,8 @@ function DrawerNotificationItem({
             <Box mt={1.25}>
               <Button
                 component={NextLink}
-                href={n.link}
+                href={normalizeNotifLink(n.link)}
+                prefetch={false}
                 size="small"
                 variant={n.read ? 'outlined' : 'contained'}
                 color={n.read ? 'secondary' : 'primary'}
