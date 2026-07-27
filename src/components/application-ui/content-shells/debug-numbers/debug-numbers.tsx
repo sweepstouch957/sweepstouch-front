@@ -144,9 +144,10 @@ function parseCsv(text: string): ParsedCsv {
 }
 
 function parseRows(rows: unknown[][]): ParsedCsv {
-  const normalizedRows = rows
-    .map((row) => row.map((cell) => (cell ?? '').toString().trim()))
-    .filter((row) => row.some(Boolean));
+  const normalizedRows = rows.flatMap((row) => {
+    const normalized = row.map((cell) => (cell ?? '').toString().trim());
+    return normalized.some(Boolean) ? [normalized] : [];
+  });
 
   if (normalizedRows.length === 0) {
     return { rawLines: [], phoneNumbers: [] };
@@ -349,31 +350,28 @@ export default function DebugNumbers(): React.JSX.Element {
     const qLower = raw.toLowerCase();
 
     return Array.from(duplicatePhones.entries())
-      .map(([normalizedPhone, group]) => {
-        const visibleCustomers = group
-          .filter((c: any) => {
-            if (activeFilter === 'all') return true;
-            if (activeFilter === 'active') return !!c?.active;
-            return !c?.active;
-          })
-          .filter((c: any) => {
-            if (!raw) return true;
-            const p = (c?.phoneNumber || '').toString();
-            const normP = normalizePhone(p);
-            return (
-              normalizedPhone.includes(normQ) ||
-              (normQ && normP.includes(normQ)) ||
-              p.toLowerCase().includes(qLower)
-            );
-          });
+      .flatMap(([normalizedPhone, group]) => {
+        const visibleCustomers = group.filter((c: any) => {
+          const activeOk =
+            activeFilter === 'all' ? true : activeFilter === 'active' ? !!c?.active : !c?.active;
+          if (!activeOk) return false;
+          if (!raw) return true;
+          const p = (c?.phoneNumber || '').toString();
+          const normP = normalizePhone(p);
+          return (
+            normalizedPhone.includes(normQ) ||
+            (normQ && normP.includes(normQ)) ||
+            p.toLowerCase().includes(qLower)
+          );
+        });
 
-        return {
+        if (visibleCustomers.length === 0) return [];
+        return [{
           normalizedPhone,
           visibleCustomers,
           totalCustomers: group.length,
-        };
+        }];
       })
-      .filter((group) => group.visibleCustomers.length > 0)
       .sort((a, b) => b.totalCustomers - a.totalCustomers);
   }, [activeFilter, duplicatePhones, numberSearch]);
 
@@ -382,23 +380,21 @@ export default function DebugNumbers(): React.JSX.Element {
     const normQ = normalizePhone(raw);
     const qLower = raw.toLowerCase();
 
-    return customers
-      .filter((c: any) => {
-        if (activeFilter === 'all') return true;
-        if (activeFilter === 'active') return !!c?.active;
-        return !c?.active;
-      })
-      .filter((c: any) => {
-        if (!duplicatesOnly) return true;
+    return customers.filter((c: any) => {
+      const activeOk =
+        activeFilter === 'all' ? true : activeFilter === 'active' ? !!c?.active : !c?.active;
+      if (!activeOk) return false;
+
+      if (duplicatesOnly) {
         const normalized = normalizePhone(c?.phoneNumber ?? '');
-        return !!normalized && duplicatePhones.has(normalized);
-      })
-      .filter((c: any) => {
-        if (!raw) return true;
-        const p = (c?.phoneNumber || '').toString();
-        const normP = normalizePhone(p);
-        return (normQ && normP.includes(normQ)) || p.toLowerCase().includes(qLower);
-      });
+        if (!normalized || !duplicatePhones.has(normalized)) return false;
+      }
+
+      if (!raw) return true;
+      const p = (c?.phoneNumber || '').toString();
+      const normP = normalizePhone(p);
+      return (normQ && normP.includes(normQ)) || p.toLowerCase().includes(qLower);
+    });
   }, [customers, numberSearch, activeFilter, duplicatesOnly, duplicatePhones]);
 
   const [page, setPage] = useState(0);

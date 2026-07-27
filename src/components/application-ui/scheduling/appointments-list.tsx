@@ -310,26 +310,27 @@ const AppointmentsList = () => {
             zipCode: (app as any).zipCode,
             estimatedVolume: (app as any).estimatedMonthlyMessages
         })),
-        ...storeRequests
-            .filter((req) => !appointments.some((app) => app.leadId === req._id))
-            .map((req) => ({
-                id: req._id,
-                source: 'store-request',
-                type: 'Store Request (Lead)',
-                name: req.storeName,
-                contact: req.contactName,
-                date: req.demoDate || req.createdAt,
-                time: req.demoTimeSlot || 'N/A',
-                status: req.status,
-                link: req.meetingLink,
-                color: theme.palette.warning.main,
-                scheduledAt: undefined,
-                phone: req.phoneNumber,
-                email: req.contactEmail,
-                city: req.city,
-                zipCode: req.zipCode,
-                estimatedVolume: req.estimatedMonthlyMessages
-            }))
+        ...storeRequests.flatMap((req) =>
+            appointments.some((app) => app.leadId === req._id)
+                ? []
+                : [{
+                    id: req._id,
+                    source: 'store-request',
+                    type: 'Store Request (Lead)',
+                    name: req.storeName,
+                    contact: req.contactName,
+                    date: req.demoDate || req.createdAt,
+                    time: req.demoTimeSlot || 'N/A',
+                    status: req.status,
+                    link: req.meetingLink,
+                    color: theme.palette.warning.main,
+                    scheduledAt: undefined,
+                    phone: req.phoneNumber,
+                    email: req.contactEmail,
+                    city: req.city,
+                    zipCode: req.zipCode,
+                    estimatedVolume: req.estimatedMonthlyMessages
+                }])
     ].sort((a, b) => getDateTimeValue(b.date, b.time) - getDateTimeValue(a.date, a.time));
 
     const filteredList = combinedList.filter((item) => {
@@ -355,25 +356,24 @@ const AppointmentsList = () => {
                 display: 'block'
             };
         }),
-        ...filteredList
-            .filter(item => item.date && item.link && (item.status === 'confirmed' || item.status === 'scheduled' || item.status === 'converted'))
-            .map(item => {
-                const isAllDay = item.time === 'N/A' && !item.scheduledAt;
-                let startStr = '';
-                if (item.scheduledAt) {
-                    startStr = new Date(item.scheduledAt).toISOString();
-                } else {
-                    startStr = isAllDay ? item.date.split('T')[0] : `${item.date.split('T')[0]}T${item.time}:00`;
-                }
-                return {
-                    id: item.id,
-                    title: `${item.name} (${item.contact})`,
-                    start: startStr,
-                    allDay: isAllDay,
-                    color: item.color,
-                    extendedProps: { ...item }
-                };
-            })
+        ...filteredList.flatMap(item => {
+            if (!(item.date && item.link && (item.status === 'confirmed' || item.status === 'scheduled' || item.status === 'converted'))) return [];
+            const isAllDay = item.time === 'N/A' && !item.scheduledAt;
+            let startStr = '';
+            if (item.scheduledAt) {
+                startStr = new Date(item.scheduledAt).toISOString();
+            } else {
+                startStr = isAllDay ? item.date.split('T')[0] : `${item.date.split('T')[0]}T${item.time}:00`;
+            }
+            return [{
+                id: item.id,
+                title: `${item.name} (${item.contact})`,
+                start: startStr,
+                allDay: isAllDay,
+                color: item.color,
+                extendedProps: { ...item }
+            }];
+        })
     ];
 
     if (isLoading) {

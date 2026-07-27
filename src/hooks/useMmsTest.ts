@@ -213,7 +213,6 @@ export function useMmsSend(opts: {
         setUploadingImage(true);
         const up = await uploadCampaignImage(mmsImageFile);
         imgToSend = up.url;
-        setUploadingImage(false);
       }
 
       const { provider, senderPhone, senderId } = resolveProvider({
@@ -239,6 +238,7 @@ export function useMmsSend(opts: {
       setError(err.response?.data?.error || err.message || 'Failed to send message');
       return false;
     } finally {
+      setUploadingImage(false);
       setSending(false);
     }
   }, [smsText, opts]);

@@ -62,8 +62,8 @@ export const EditCircularDialog: React.FC<Props> = ({ target, onClose, onSaved }
   // ✅ Hooks ALWAYS called unconditionally — Rules of Hooks requires no conditional hooks
   // Safe defaults when target is null: hooks are no-ops until dialog opens with a real target
   const [title, setTitle] = useState(target?.circular.title ?? '');
-  const [startDate, setStartDate] = useState(isoToDateInput(target?.circular.startDate));
-  const [endDate, setEndDate] = useState(isoToDateInput(target?.circular.endDate));
+  const [startDate, setStartDate] = useState(() => isoToDateInput(target?.circular.startDate));
+  const [endDate, setEndDate] = useState(() => isoToDateInput(target?.circular.endDate));
 
   const [file, setFile] = useState<File | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFileItem[]>([]);

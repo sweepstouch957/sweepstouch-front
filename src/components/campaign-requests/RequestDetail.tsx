@@ -304,7 +304,7 @@ function AIBriefPanel({ requestId }: { requestId: string }) {
                 <>
                   <Typography variant="subtitle1" fontWeight={700} mb={1.5}>Productos con imágenes</Typography>
                   <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 2 }}>
-                    {data.products.map((p, i) => <ProductCard key={i} product={p} />)}
+                    {data.products.map((p, i) => <ProductCard key={p.name} product={p} />)}
                   </Box>
                 </>
               )}
@@ -500,7 +500,7 @@ export default function RequestDetail({ id }: { id: string }) {
                   </Typography>
                 </Stack>
                 {req.changeRequests.map((cr, i) => (
-                  <Alert key={i} severity="warning" sx={{ mb: 1, py: 0.5 }}>
+                  <Alert key={cr.requestedAt} severity="warning" sx={{ mb: 1, py: 0.5 }}>
                     <Typography variant="caption" display="block" color="text.secondary">{formatDate(cr.requestedAt)}</Typography>
                     <Typography variant="body2">{cr.description}</Typography>
                     {cr.resolvedAt && (
@@ -560,7 +560,7 @@ export default function RequestDetail({ id }: { id: string }) {
               ) : (
                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 2 }}>
                   {displayProducts.map((p, i) => (
-                    <Box key={i} sx={{ position: 'relative' }}>
+                    <Box key={p.name} sx={{ position: 'relative' }}>
                       <ProductCard product={p} />
                       {editing && (
                         <IconButton size="small" onClick={() => handleDeleteProduct(i)}
@@ -628,7 +628,7 @@ export default function RequestDetail({ id }: { id: string }) {
                   </TableHead>
                   <TableBody>
                     {req.previewsSent.map((p, i) => (
-                      <TableRow key={i}>
+                      <TableRow key={p.sentAt}>
                         <TableCell>
                           <Chip label={p.type === '6h' ? '6 horas antes' : p.type === '1h' ? '1 hora antes' : 'Al momento'} size="small" color="info" />
                         </TableCell>

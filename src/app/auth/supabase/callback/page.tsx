@@ -10,7 +10,7 @@ import { routes } from 'src/router/routes';
 import { createClient as createSupabaseClient } from 'src/utils/supabase/client';
 
 function PageContent(): React.JSX.Element | null {
-  const [supabaseClient] = React.useState(createSupabaseClient());
+  const [supabaseClient] = React.useState(() => createSupabaseClient());
   const { push } = useRouter();
   const { checkSession } = useAuth();
   const executedRef = React.useRef<boolean>(false);

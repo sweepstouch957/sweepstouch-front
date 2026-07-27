@@ -34,7 +34,7 @@ const defaultValues = {
 } satisfies Values;
 
 export function ResetPasswordForm(): React.JSX.Element {
-  const [supabaseClient] = React.useState(createSupabaseClient());
+  const [supabaseClient] = React.useState(() => createSupabaseClient());
   const { push } = useRouter();
   const [isPending, setIsPending] = React.useState<boolean>(false);
   const {
@@ -51,24 +51,27 @@ export function ResetPasswordForm(): React.JSX.Element {
     async (values: Values): Promise<void> => {
       setIsPending(true);
 
-      const redirectToUrl = new URL(routes.auth['supabase.callback'], window.location.origin);
-      redirectToUrl.searchParams.set('next', routes.auth['supabase.update-password']);
+      try {
+        const redirectToUrl = new URL(routes.auth['supabase.callback'], window.location.origin);
+        redirectToUrl.searchParams.set('next', routes.auth['supabase.update-password']);
 
-      const { error } = await supabaseClient.auth.resetPasswordForEmail(values.email, {
-        redirectTo: redirectToUrl.href,
-      });
-
-      if (error) {
-        setError('root', {
-          type: 'server',
-          message: error.message,
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(values.email, {
+          redirectTo: redirectToUrl.href,
         });
-        setIsPending(false);
-        return;
-      }
 
-      const searchParams = new URLSearchParams({ email: values.email });
-      push(`${routes.auth['supabase.recover-link-sent']}?${searchParams.toString()}`);
+        if (error) {
+          setError('root', {
+            type: 'server',
+            message: error.message,
+          });
+          return;
+        }
+
+        const searchParams = new URLSearchParams({ email: values.email });
+        push(`${routes.auth['supabase.recover-link-sent']}?${searchParams.toString()}`);
+      } finally {
+        setIsPending(false);
+      }
     },
     [supabaseClient, push, setError]
   );

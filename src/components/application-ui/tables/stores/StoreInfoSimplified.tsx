@@ -910,7 +910,7 @@ color="text.disabled">
                   ) : (
                     <Stack spacing={1}>
                       {storeDetails.contracts.map((c: any, i: number) => (
-                        <Stack key={i}
+                        <Stack key={c.fileUrl}
 direction="row"
 justifyContent="space-between"
 alignItems="center"
@@ -966,7 +966,7 @@ color="text.disabled">
                       {storeDetails.pauseHistory.map((p: any, i: number) => {
                         const isCurrent = !p.endDate || new Date(p.endDate) > new Date();
                         return (
-                          <Box key={i}
+                          <Box key={`${p.startDate}-${p.endDate ?? ''}`}
 sx={{ p: 1, borderRadius: 1.5, bgcolor: isCurrent ? alpha(theme.palette.error.main, 0.03) : 'action.hover', borderLeft: '3px solid', borderColor: isCurrent ? 'error.main' : 'text.disabled' }}>
                             <Stack direction="row"
 spacing={1}
@@ -1178,7 +1178,7 @@ color="text.secondary">{totalTablets} unidades instaladas</Typography>
                       </Stack>
                       <Stack spacing={0.5}>
                         {tablets.map((t, i) => (
-                          <Stack key={i}
+                          <Stack key={t.id}
 direction="row"
 justifyContent="space-between"
 alignItems="center"
@@ -1223,7 +1223,7 @@ color="text.secondary">{totalPrinters} unidades</Typography>
                       </Stack>
                       <Stack spacing={0.5}>
                         {printers.map((p, i) => (
-                          <Stack key={i}
+                          <Stack key={p.id}
 direction="row"
 justifyContent="space-between"
 alignItems="center"
@@ -1259,7 +1259,7 @@ color="text.disabled">Agrega manager, owner u otros contactos desde la edición 
                 {effectiveContacts.map((c, i) => {
                   const color = theme.palette[CONTACT_ROLES[c.type] ?? 'primary'].main;
                   return (
-                    <Card key={i}
+                    <Card key={`${c.type}-${c.name}-${c.phone}`}
 variant="outlined"
 sx={{ borderRadius: 2.5, overflow: 'hidden' }}>
                       <Stack direction="row"

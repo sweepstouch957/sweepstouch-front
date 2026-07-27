@@ -384,7 +384,8 @@ export const BasicSpotlightSearch: FC<BasicSpotlightSearchProps> = (props) => {
                 )}
 
                 {/* Action results (created tasks, etc.) */}
-                {aiResult.actions?.filter(a => a.result?.success).map((action, i) => (
+                {aiResult.actions?.flatMap((action, i) => (
+                  action.result?.success ? [(
                   <ListItemButton
                     key={i}
                     onClick={() => {
@@ -411,6 +412,7 @@ export const BasicSpotlightSearch: FC<BasicSpotlightSearchProps> = (props) => {
                     />
                     <CheckCircleOutlineRoundedIcon sx={{ color: 'success.main', fontSize: 16, opacity: 0.7 }} />
                   </ListItemButton>
+                  )] : []
                 ))}
 
                 {/* Token usage */}

@@ -33,7 +33,7 @@ export function OpportunityLists({ store, filters }: { store: StoreLite; filters
   const desiredRows = desired.map((p) => ({ producto: p.product, categoria: p.category, precio: p.price, veces_seleccionado: p.timesSelected ?? 0 }));
 
   // Clickearon pero no compraron: customerId del shortlink (con hits>0) que NO está entre compradores.
-  const buyers = new Set((customers.data || []).filter((c) => (c.confirmedPurchases || 0) > 0).map((c) => c.customerId));
+  const buyers = new Set((customers.data || []).flatMap((c) => (c.confirmedPurchases || 0) > 0 ? [c.customerId] : []));
   const nameById = new Map((customers.data || []).map((c) => [c.customerId, c.customerName || c.customerPhone || c.customerId]));
   const clickedIds = new Set<string>();
   for (const l of shortlinks.data?.links || []) {

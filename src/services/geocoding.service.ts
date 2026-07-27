@@ -11,5 +11,8 @@ export async function geocodeAddress(address: string): Promise<any> {
   )}.json?access_token=${MAPBOX_TOKEN}&limit=1`;
 
   const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Mapbox geocoding failed: ${res.status} ${res.statusText}`);
+  }
   return res.json();
 }

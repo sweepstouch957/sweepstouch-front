@@ -20,8 +20,8 @@ export default function CajerasPanel({ storeId, storeName, customerCount }: Caje
   const s0 = startOfWeek(now, { weekStartsOn: 1 });
   const e0 = endOfWeek(now, { weekStartsOn: 1 });
 
-  const [startDate, setStartDate] = useState(formatISO(s0, { representation: 'date' }));
-  const [endDate, setEndDate] = useState(formatISO(e0, { representation: 'date' }));
+  const [startDate, setStartDate] = useState(() => formatISO(s0, { representation: 'date' }));
+  const [endDate, setEndDate] = useState(() => formatISO(e0, { representation: 'date' }));
   const [activeTab, setActiveTab] = useState(0);
 
   const handleRangeChange = useCallback((startISO: string, endISO: string) => {

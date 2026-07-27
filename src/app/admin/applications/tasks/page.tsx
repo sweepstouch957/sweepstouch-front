@@ -1342,11 +1342,10 @@ function TasksPage(): React.JSX.Element {
               spacing={1.5}
               mt={1}
             >
-              {statusEntries(theme)
-                .filter(([key]) => key !== 'done')
-                .map(([statusKey, meta]) => {
+              {statusEntries(theme).flatMap(([statusKey, meta]) => {
+                  if (statusKey === 'done') return [];
                   const tasksInStatus = myTasks.filter((t) => t.status === statusKey);
-                  if (tasksInStatus.length === 0) return null;
+                  if (tasksInStatus.length === 0) return [];
                   return (
                     <Card
                       key={statusKey}

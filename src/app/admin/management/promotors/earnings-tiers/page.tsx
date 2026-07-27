@@ -194,7 +194,7 @@ function EarningsTiersPage() {
               { label: '1,000 contactos', icon: <TrendingUpRoundedIcon />, value: `$${calculatePreview(1000).toFixed(2)}` },
             ].map((item, i) => (
               <Card
-                key={i}
+                key={item.label}
                 sx={{
                   flex: 1,
                   borderRadius: 3,
@@ -280,7 +280,7 @@ function EarningsTiersPage() {
               <Stack spacing={2}>
                 {tiers.map((tier, idx) => (
                   <Stack
-                    key={idx}
+                    key={tier.maxCount}
                     direction={{ xs: 'column', sm: 'row' }}
                     spacing={1.5}
                     alignItems={{ xs: 'stretch', sm: 'center' }}

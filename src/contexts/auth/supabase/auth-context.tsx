@@ -8,7 +8,7 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps): React.JSX.Element {
-  const [supabaseClient] = React.useState(createSupabaseClient());
+  const [supabaseClient] = React.useState(() => createSupabaseClient());
   const [state, setState] = React.useState<{
     user: User | null;
     error: string | null;

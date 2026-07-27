@@ -62,7 +62,7 @@ const defaultValues = {
 } satisfies Values;
 
 export function AuthSupabaseLoginForm(): React.JSX.Element {
-  const [supabaseClient] = React.useState(createSupabaseClient());
+  const [supabaseClient] = React.useState(() => createSupabaseClient());
   const { push, refresh } = useRouter();
 
   const theme = useTheme();
@@ -94,23 +94,26 @@ export function AuthSupabaseLoginForm(): React.JSX.Element {
     async (provider: OAuthProvider['id']): Promise<void> => {
       setIsPending(true);
 
-      const redirectToUrl = new URL(routes.auth['supabase.callback'], window.location.origin);
-      redirectToUrl.searchParams.set('next', routes.admin.index);
+      try {
+        const redirectToUrl = new URL(routes.auth['supabase.callback'], window.location.origin);
+        redirectToUrl.searchParams.set('next', routes.admin.index);
 
-      const { data, error } = await supabaseClient.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: redirectToUrl.href,
-        },
-      });
+        const { data, error } = await supabaseClient.auth.signInWithOAuth({
+          provider,
+          options: {
+            redirectTo: redirectToUrl.href,
+          },
+        });
 
-      if (error) {
+        if (error) {
+          // toast.error(error.message);
+          return;
+        }
+
+        window.location.href = data.url;
+      } finally {
         setIsPending(false);
-        // toast.error(error.message);
-        return;
       }
-
-      window.location.href = data.url;
     },
     [supabaseClient]
   );
@@ -119,28 +122,31 @@ export function AuthSupabaseLoginForm(): React.JSX.Element {
     async (values: Values): Promise<void> => {
       setIsPending(true);
 
-      const { error } = await supabaseClient.auth.signInWithPassword({
-        email: values.email,
-        password: values.password,
-      });
+      try {
+        const { error } = await supabaseClient.auth.signInWithPassword({
+          email: values.email,
+          password: values.password,
+        });
 
-      if (error) {
-        if (error.message.includes('Email not confirmed')) {
-          const searchParams = new URLSearchParams({ email: values.email });
-          push(`${routes.auth['supabase.register-confirm']}?${searchParams.toString()}`);
-        } else {
-          setError('root', {
-            type: 'server',
-            message: error.message,
-          });
-          setIsPending(false);
+        if (error) {
+          if (error.message.includes('Email not confirmed')) {
+            const searchParams = new URLSearchParams({ email: values.email });
+            push(`${routes.auth['supabase.register-confirm']}?${searchParams.toString()}`);
+          } else {
+            setError('root', {
+              type: 'server',
+              message: error.message,
+            });
+          }
+
+          return;
         }
 
-        return;
+        await checkSession();
+        refresh();
+      } finally {
+        setIsPending(false);
       }
-
-      await checkSession();
-      refresh();
     },
     [supabaseClient, push, refresh, setError, checkSession]
   );

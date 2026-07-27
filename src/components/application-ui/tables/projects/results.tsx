@@ -202,6 +202,7 @@ const Results: FC<ResultsProps> = ({ projects }) => {
 
   const filteredProjects = applyFilters(projects, query, filters);
   const paginatedProjects = applyPagination(filteredProjects, page, limit);
+  const selectedItemsSet = new Set(selectedItems);
   const selectedBulkActions = selectedItems.length > 0;
   const selectedSomeProjects = selectedItems.length > 0 && selectedItems.length < projects.length;
   const selectedAllProjects = selectedItems.length === projects.length;
@@ -614,7 +615,7 @@ const Results: FC<ResultsProps> = ({ projects }) => {
                     </TableHead>
                     <TableBody>
                       {paginatedProjects.map((project) => {
-                        const isProjectSelected = selectedItems.includes(project.id);
+                        const isProjectSelected = selectedItemsSet.has(project.id);
                         return (
                           <TableRow
                             hover
@@ -850,7 +851,7 @@ const Results: FC<ResultsProps> = ({ projects }) => {
                   spacing={{ xs: 2, sm: 3 }}
                 >
                   {paginatedProjects.map((project) => {
-                    const isProjectSelected = selectedItems.includes(project.id);
+                    const isProjectSelected = selectedItemsSet.has(project.id);
 
                     return (
                       <Grid

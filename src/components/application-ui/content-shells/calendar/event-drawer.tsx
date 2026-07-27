@@ -98,7 +98,7 @@ const EventDrawer: FC<AddEditEventModalProps> = ({
     []
   );
 
-  const [formState, setFormState] = useState(getInitialValues(event, range));
+  const [formState, setFormState] = useState(() => getInitialValues(event, range));
 
   const handleFieldChange = (field: string, value: any) => {
     setFormState((prev) => ({ ...prev, [field]: value }));

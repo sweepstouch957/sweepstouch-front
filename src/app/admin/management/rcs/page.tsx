@@ -329,6 +329,8 @@ function RcsCampaignPage(): React.JSX.Element {
     return merged;
   }, [autoCategories, manualCategories]);
 
+  const autoCategorySet = useMemo(() => new Set(autoCategories), [autoCategories]);
+
   const handleStoreChange = useCallback(async (_e: any, newValue: any) => {
     setSelectedStore(newValue);
     setSelectedCircular(null);
@@ -575,7 +577,7 @@ function RcsCampaignPage(): React.JSX.Element {
                           key={cat}
                           label={displayCat(cat)}
                           size="small"
-                          color={autoCategories.includes(cat) ? 'primary' : 'default'}
+                          color={autoCategorySet.has(cat) ? 'primary' : 'default'}
                           variant="outlined"
                           onDelete={() => removeCategory(cat)}
                         />

@@ -90,9 +90,10 @@ const initialBItems: BItem[] = [
 
 /* ===== Utils ===== */
 function selectedWithQty(items: InventoryItem[], qmap: QtyMap) {
-  return items
-    .filter((i) => (qmap[i.id] ?? 0) > 0)
-    .map((i) => ({ ...i, qty: qmap[i.id] ?? 0 }));
+  return items.flatMap((i) => {
+    const qty = qmap[i.id] ?? 0;
+    return qty > 0 ? [{ ...i, qty }] : [];
+  });
 }
 
 /** Card que muestra el resumen agregado de un tipo de dispositivo (tablets o impresoras) */
@@ -273,9 +274,9 @@ export default function CreateStoreStep2({
         })),
     ];
 
-    const materials = sectionB
-      .filter((it) => it.checked && it.qty > 0)
-      .map(({ id, name, material, price, qty }) => ({ id, name, material, price, qty }));
+    const materials = sectionB.flatMap(({ id, name, material, price, qty, checked }) =>
+      checked && qty > 0 ? [{ id, name, material, price, qty }] : [],
+    );
 
     const payload = {
       equipment,

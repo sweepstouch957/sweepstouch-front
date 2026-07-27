@@ -44,7 +44,7 @@ const AssignDepartmentDialog: FC<AssignDepartmentDialogProps> = ({ open, onClose
   const theme = useTheme();
   const queryClient = useQueryClient();
 
-  const [selected, setSelected] = useState<string | null>(normalizeDeptId(user));
+  const [selected, setSelected] = useState<string | null>(() => normalizeDeptId(user));
 
   useEffect(() => {
     setSelected(normalizeDeptId(user));

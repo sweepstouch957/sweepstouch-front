@@ -366,6 +366,7 @@ export async function searchWithAI(query: string): Promise<AISearchResult> {
 
 export async function fetchGeneratedImageBlob(url: string): Promise<Blob> {
   const response = await fetch(url);
+  if (!response.ok) throw new Error('Image download failed');
   return response.blob();
 }
 

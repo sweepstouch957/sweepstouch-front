@@ -256,16 +256,17 @@ export const StoresMapCanvas = memo(function StoresMapCanvas({
 
   const points = useMemo(
     () =>
-      stores
-        .filter((s) => s.location?.coordinates?.length === 2)
-        .map((store) => {
-          const [lng, lat] = store.location!.coordinates;
-          return {
+      stores.flatMap((store) => {
+        if (store.location?.coordinates?.length !== 2) return [];
+        const [lng, lat] = store.location!.coordinates;
+        return [
+          {
             type: 'Feature' as const,
             properties: { cluster: false, storeId: store._id, store },
             geometry: { type: 'Point' as const, coordinates: [lng, lat] },
-          };
-        }),
+          },
+        ];
+      }),
     [stores],
   );
 

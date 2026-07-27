@@ -13,7 +13,7 @@ export function SignUpResendButton({
   children,
   email,
 }: SignUpResendButtonProps): React.JSX.Element {
-  const [supabaseClient] = React.useState(createSupabaseClient());
+  const [supabaseClient] = React.useState(() => createSupabaseClient());
   const [isPending, setIsPending] = React.useState<boolean>(false);
   const [submitError, setSubmitError] = React.useState<string>();
 
@@ -25,28 +25,30 @@ export function SignUpResendButton({
     setIsPending(true);
     setSubmitError(undefined);
 
-    const redirectToUrl = new URL(
-      routes.auth['supabase.callback.implicit'],
-      window.location.origin
-    );
-    redirectToUrl.searchParams.set('next', routes.admin.index);
+    try {
+      const redirectToUrl = new URL(
+        routes.auth['supabase.callback.implicit'],
+        window.location.origin
+      );
+      redirectToUrl.searchParams.set('next', routes.admin.index);
 
-    const { error } = await supabaseClient.auth.resend({
-      email,
-      type: 'signup',
-      options: {
-        emailRedirectTo: redirectToUrl.href,
-      },
-    });
+      const { error } = await supabaseClient.auth.resend({
+        email,
+        type: 'signup',
+        options: {
+          emailRedirectTo: redirectToUrl.href,
+        },
+      });
 
-    if (error) {
-      setSubmitError(error.message);
+      if (error) {
+        setSubmitError(error.message);
+        return;
+      }
+
+      toast.success('Verification email sent');
+    } finally {
       setIsPending(false);
-      return;
     }
-
-    setIsPending(false);
-    toast.success('Verification email sent');
   }, [supabaseClient, email]);
 
   return (

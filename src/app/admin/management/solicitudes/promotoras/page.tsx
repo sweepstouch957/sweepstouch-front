@@ -383,7 +383,7 @@ const ActivationRequestsPage = () => {
                     : []),
                 ].map(({ icon, text }, i) => (
                   <Stack
-                    key={i}
+                    key={text}
                     direction="row"
                     spacing={1.5}
                     alignItems="center"

@@ -136,7 +136,7 @@ function TabletFramePreview({
   onClearScreenshot?: () => void;
 }) {
   const bColor = screenBatteryColor(device.batteryLevel, device.isCharging);
-  const [time, setTime] = React.useState(
+  const [time, setTime] = React.useState(() =>
     new Date().toLocaleTimeString('es-HN', { hour: '2-digit', minute: '2-digit' }),
   );
   const [countdown, setCountdown] = React.useState<number | null>(null);

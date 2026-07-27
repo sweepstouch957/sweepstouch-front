@@ -992,7 +992,7 @@ export default function SendTestMessagePage({
                         <Stack spacing={1}>
                           {urls.map((url, idx) => (
                             <Button
-                              key={idx}
+                              key={url}
                               variant="outlined"
                               size="small"
                               color="primary"

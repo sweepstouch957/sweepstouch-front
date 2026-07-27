@@ -9,6 +9,7 @@ import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 import ClearRoundedIcon from '@mui/icons-material/ClearRounded';
 import EventBusyRoundedIcon from '@mui/icons-material/EventBusyRounded';
 import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
+import CircleIcon from '@mui/icons-material/Circle';
 import {
   Avatar,
   Box,
@@ -73,13 +74,13 @@ const getChecklist = (sw: any) => {
 const getStatusChip = (status?: string) => {
   const s = (status || '').toLowerCase();
   if (s === 'in progress' || s === 'active') {
-    return { color: 'warning' as const, label: 'Active' };
+    return { color: 'warning' as const, label: 'Activo' };
   }
   if (s === 'completed') {
-    return { color: 'success' as const, label: 'Completed' };
+    return { color: 'success' as const, label: 'Completado' };
   }
   if (s === 'draft') {
-    return { color: 'default' as const, label: 'Draft' };
+    return { color: 'default' as const, label: 'Borrador' };
   }
   return { color: 'default' as const, label: status || '—' };
 };
@@ -284,6 +285,53 @@ export default function SweepstakesTable() {
         </Stack>
       </Paper>
 
+      {/* Barra de resultados: cuenta como ancla + filtros activos como chips removibles.
+          Soporte ve al instante cuántos sorteos matchean y qué filtros están puestos. */}
+      {!showSkeletons && !error && (
+        <Stack
+          direction="row"
+          alignItems="center"
+          flexWrap="wrap"
+          useFlexGap
+          spacing={1}
+          sx={{ mb: 1.5, px: 0.5, minHeight: 30 }}
+        >
+          <Typography component="span" sx={{ fontWeight: 800, fontSize: 15, letterSpacing: '-0.01em' }}>
+            {total.toLocaleString()}{' '}
+            <Box component="span" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: 13 }}>
+              {total === 1 ? 'sorteo' : 'sorteos'}
+            </Box>
+          </Typography>
+          {filters.q && (
+            <Chip
+              size="small"
+              label={`“${filters.q}”`}
+              onDelete={() => setSearchInput('')}
+              sx={{ fontWeight: 600, borderRadius: 1.5, maxWidth: 240 }}
+            />
+          )}
+          {filters.status && (
+            <Chip
+              size="small"
+              label={statusOptions.find((s) => s.value === filters.status)?.label ?? filters.status}
+              onDelete={() => dispatch({ type: 'SET_FILTER', field: 'status', value: '' })}
+              sx={{ fontWeight: 600, borderRadius: 1.5 }}
+            />
+          )}
+          {(filters.endFrom || filters.endTo) && (
+            <Chip
+              size="small"
+              label={`Finaliza ${filters.endFrom || '…'} → ${filters.endTo || '…'}`}
+              onDelete={() => {
+                dispatch({ type: 'SET_FILTER', field: 'endFrom', value: '' });
+                dispatch({ type: 'SET_FILTER', field: 'endTo', value: '' });
+              }}
+              sx={{ fontWeight: 600, borderRadius: 1.5 }}
+            />
+          )}
+        </Stack>
+      )}
+
       {/* Tabla */}
       <Fade in={true}>
         <Box>
@@ -394,8 +442,8 @@ export default function SweepstakesTable() {
                             <Stack direction="row" spacing={2} alignItems="center">
                               {sw.image ? (
                                 <Tooltip title="View Image">
-                                  <ButtonBase onClick={() => dispatch({ type: 'SET_PREVIEW', payload: { url: sw.image, name: sw.name } })} sx={{ borderRadius: 2 }}>
-                                    <Avatar src={sw.image} variant="rounded" sx={{ width: 56, height: 56, border: `1px solid ${theme.palette.divider}`, borderRadius: 2 }} />
+                                  <ButtonBase onClick={() => dispatch({ type: 'SET_PREVIEW', payload: { url: sw.image, name: sw.name } })} sx={{ borderRadius: 2, overflow: 'hidden', '&:hover .MuiAvatar-root': { transform: 'scale(1.08)' } }}>
+                                    <Avatar src={sw.image} variant="rounded" sx={{ width: 56, height: 56, border: `1px solid ${theme.palette.divider}`, borderRadius: 2, transition: 'transform 0.35s cubic-bezier(0.22,1,0.36,1)' }} />
                                   </ButtonBase>
                                 </Tooltip>
                               ) : (
@@ -417,7 +465,14 @@ export default function SweepstakesTable() {
 
                           {/* Status */}
                           <TableCell>
-                            <Chip label={statusChip.label} color={statusChip.color as any} size="small" sx={{ fontWeight: 600, px: 1 }} />
+                            <Chip
+                              icon={<CircleIcon sx={{ fontSize: '9px !important', ml: '8px !important' }} />}
+                              label={statusChip.label}
+                              color={statusChip.color as any}
+                              size="small"
+                              variant={statusChip.color === 'default' ? 'outlined' : 'filled'}
+                              sx={{ fontWeight: 700, px: 0.5, letterSpacing: '0.01em' }}
+                            />
                           </TableCell>
 
                           {/* Participants */}

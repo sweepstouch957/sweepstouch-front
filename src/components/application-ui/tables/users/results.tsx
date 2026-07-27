@@ -213,7 +213,7 @@ const StatsRow: FC<{ users: User[]; roleCounts: Record<string, number> }> = ({
   return (
     <Grid container spacing={2} sx={{ mb: 3 }}>
       {stats.map((s, i) => (
-        <Grid key={i} xs={6} sm={3}>
+        <Grid key={s.label} xs={6} sm={3}>
           <Card elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 3, p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Box sx={{ width: 44, height: 44, borderRadius: 2, bgcolor: alpha(s.palette.main, 0.1), color: s.palette.main, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               {s.icon}
@@ -260,9 +260,11 @@ const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment, onDe
     const keys = [...ROLE_ORDER, ...unknownAfter];
     return [
       { value: 'all', label: t('All users'), count: users.length },
-      ...keys
-        .filter((k) => (roleCounts[k] ?? 0) > 0)
-        .map((k) => ({ value: k, label: t(ROLE_TABS_LABEL[k] ?? toTitle(ROLE_META[k]?.text ?? k)), count: roleCounts[k] ?? 0 })),
+      ...keys.flatMap((k) =>
+        (roleCounts[k] ?? 0) > 0
+          ? [{ value: k, label: t(ROLE_TABS_LABEL[k] ?? toTitle(ROLE_META[k]?.text ?? k)), count: roleCounts[k] ?? 0 }]
+          : []
+      ),
     ];
   }, [users.length, roleCounts, t]);
 
@@ -296,11 +298,12 @@ const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment, onDe
   const selectedBulkActions = selectedItems.length > 0;
   const selectedSomeUsers = selectedItems.length > 0 && selectedItems.length < users.length;
   const selectedAllUsers = selectedItems.length === users.length;
+  const selectedItemsSet = new Set(selectedItems);
 
   const handleExport = async (mode: 'filtered' | 'page' | 'selected' | 'all' = 'filtered') => {
     const rows =
       mode === 'page' ? paginatedUsers
-      : mode === 'selected' ? users.filter((u: any) => selectedItems.includes(u.id))
+      : mode === 'selected' ? users.filter((u: any) => selectedItemsSet.has(u.id))
       : mode === 'all' ? users : filteredUsers;
     const data = buildExportRows(rows as any);
     const XLSX = await import('xlsx');
@@ -461,7 +464,7 @@ const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment, onDe
                     </TableHead>
                     <TableBody>
                       {paginatedUsers.map((user: any) => {
-                        const isUserSelected = selectedItems.includes(user.id);
+                        const isUserSelected = selectedItemsSet.has(user.id);
                         const roleKey = getRoleKey(user.role);
                         const pal = getRolePalette(roleKey, theme);
                         const initials = getInitials(user);
@@ -524,7 +527,7 @@ const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment, onDe
             <>
               <Grid container spacing={{ xs: 2, sm: 2.5 }}>
                 {paginatedUsers.map((user: any) => {
-                  const isUserSelected = selectedItems.includes(user.id);
+                  const isUserSelected = selectedItemsSet.has(user.id);
                   const roleKey = getRoleKey(user.role);
                   const pal = getRolePalette(roleKey, theme);
                   const initials = getInitials(user);

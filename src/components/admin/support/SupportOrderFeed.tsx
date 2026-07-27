@@ -208,7 +208,7 @@ export default function SupportOrderFeed() {
         ) : (
           shown.map((e, i) => (
             <Box
-              key={i}
+              key={`${e.event}-${e.orderNumber ?? ''}-${e.ts}`}
               sx={{
                 display: 'flex',
                 gap: 1,

@@ -296,7 +296,7 @@ export default function MmsPreviewPhone({
               const visual = getProductVisual(p);
               return (
                 <Box
-                  key={i}
+                  key={p.name}
                   sx={{
                     display: 'flex',
                     alignItems: 'center',

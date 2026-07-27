@@ -70,8 +70,8 @@ function Page() {
   const s0  = startOfWeek(now, { weekStartsOn: 1 });
   const e0  = endOfWeek(now, { weekStartsOn: 1 });
 
-  const [auditStartDate,      setAuditStartDate]      = useState(formatISO(s0, { representation: 'date' }));
-  const [auditEndDate,        setAuditEndDate]        = useState(formatISO(e0, { representation: 'date' }));
+  const [auditStartDate,      setAuditStartDate]      = useState(() => formatISO(s0, { representation: 'date' }));
+  const [auditEndDate,        setAuditEndDate]        = useState(() => formatISO(e0, { representation: 'date' }));
   const [auditUseDateRange,   setAuditUseDateRange]   = useState(true);
   const [selectedPromoter,    setSelectedPromoter]    = useState<Promoter | null>(null);
 

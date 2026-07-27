@@ -114,7 +114,7 @@ export const STORE_EXPORT_GROUPS = Array.from(
   new Set(STORE_EXPORT_FIELDS.map((f) => f.group))
 );
 
-export const DEFAULT_EXPORT_KEYS = STORE_EXPORT_FIELDS.filter((f) => f.default).map((f) => f.key);
+export const DEFAULT_EXPORT_KEYS = STORE_EXPORT_FIELDS.flatMap((f) => (f.default ? [f.key] : []));
 
 /** Arma las filas del Excel respetando el orden del catálogo y las columnas elegidas. */
 export function buildExportRows(stores: any[], selectedKeys: string[]) {

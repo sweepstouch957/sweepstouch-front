@@ -598,7 +598,7 @@ export default function CampaignAnalyticsMonitorPage() {
   const theme = useTheme();
   const [tab, setTab] = React.useState(0);
   const [store, setStore] = React.useState<Store | null>(null);
-  const [range, setRange] = React.useState<DateRange>(rangeFromDays(30, '30 días'));
+  const [range, setRange] = React.useState<DateRange>(() => rangeFromDays(30, '30 días'));
   const filters: AnalyticsFilters = React.useMemo(() => ({ from: range.from, to: range.to }), [range]);
   const showDateBar = tab === 1 || tab === 2 || tab === 4;
 

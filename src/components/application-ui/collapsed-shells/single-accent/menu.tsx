@@ -200,7 +200,7 @@ const MenuItemComponent: FC<{
               >
                 {item.subMenu.map((subItem, index) => (
                   <MenuItemComponent
-                    key={index}
+                    key={subItem.title}
                     item={subItem}
                     isSub
                   />
@@ -245,7 +245,7 @@ export const NavMenu: React.FC<NavMenuProps> = ({ menuItems }) => {
         >
           {menuItems.map((item, index) => (
             <MenuItemComponent
-              key={index}
+              key={item.title}
               item={item}
             />
           ))}

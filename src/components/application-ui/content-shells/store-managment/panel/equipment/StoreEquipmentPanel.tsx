@@ -283,13 +283,15 @@ export function StoreEquipmentPanel({ store, storeId }: Props) {
   }, [printers]);
 
   /* Card items */
-  const tabletCardItems = tablets
-    .filter((t) => (t.qty ?? 0) > 0)
-    .map((t) => ({ label: t.label ?? t.id, qty: t.qty, detail: `$${t.price}`, imeis: (t as any).imei }));
+  const tabletCardItems = tablets.flatMap((t) =>
+    (t.qty ?? 0) > 0
+      ? [{ label: t.label ?? t.id, qty: t.qty, detail: `$${t.price}`, imeis: (t as any).imei }]
+      : []
+  );
 
-  const printerCardItems = printers
-    .filter((p) => (p.qty ?? 0) > 0)
-    .map((p) => ({ label: p.label ?? p.id, qty: p.qty, detail: `$${p.price}` }));
+  const printerCardItems = printers.flatMap((p) =>
+    (p.qty ?? 0) > 0 ? [{ label: p.label ?? p.id, qty: p.qty, detail: `$${p.price}` }] : []
+  );
 
   const materialCardItems = materials.map((m) => ({
     label: m.name, qty: m.qty, detail: m.material,
@@ -310,29 +312,33 @@ export function StoreEquipmentPanel({ store, storeId }: Props) {
 
     if (section === 'tablets') {
       const nonTablets = equipment.filter((e) => e.type === 'printer');
-      const newTablets = tabletCatalog
-        .filter((t) => (data.tabletQty[t.id] ?? 0) > 0)
-        .map((t) => ({
-          id: t.id, label: t.label, description: t.description,
-          qty: data.tabletQty[t.id], price: t.price,
-          type: 'tablet' as const,
-          imei: (data.tabletImei[t.id] ?? []).filter(Boolean),
-        }));
+      const newTablets = tabletCatalog.flatMap((t) =>
+        (data.tabletQty[t.id] ?? 0) > 0
+          ? [{
+              id: t.id, label: t.label, description: t.description,
+              qty: data.tabletQty[t.id], price: t.price,
+              type: 'tablet' as const,
+              imei: (data.tabletImei[t.id] ?? []).filter(Boolean),
+            }]
+          : []
+      );
       newEquipment = [...nonTablets, ...newTablets];
     } else if (section === 'printers') {
       const nonPrinters = equipment.filter((e) => e.type === 'tablet');
-      const newPrinters = printerCatalog
-        .filter((p) => (data.printerQty[p.id] ?? 0) > 0)
-        .map((p) => ({
-          id: p.id, label: p.label, description: p.description,
-          qty: data.printerQty[p.id], price: p.price,
-          type: 'printer' as const,
-        }));
+      const newPrinters = printerCatalog.flatMap((p) =>
+        (data.printerQty[p.id] ?? 0) > 0
+          ? [{
+              id: p.id, label: p.label, description: p.description,
+              qty: data.printerQty[p.id], price: p.price,
+              type: 'printer' as const,
+            }]
+          : []
+      );
       newEquipment = [...nonPrinters, ...newPrinters];
     } else {
-      newMaterials = data.materials
-        .filter((m) => m.checked && m.qty > 0)
-        .map(({ id, name, material, price, qty }) => ({ id, name, material, price, qty }));
+      newMaterials = data.materials.flatMap(({ id, name, material, price, qty, checked }) =>
+        checked && qty > 0 ? [{ id, name, material, price, qty }] : []
+      );
     }
 
     const newEquipmentTotal = newEquipment.reduce((s, e) => s + (e.qty ?? 0) * (e.price ?? 0), 0);

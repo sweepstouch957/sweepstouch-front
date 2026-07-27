@@ -34,6 +34,7 @@ export async function downloadImageWithDerivedExtension(
 ): Promise<void> {
   try {
     const response = await fetch(url);
+    if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
     const blob = await response.blob();
     const objectUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');

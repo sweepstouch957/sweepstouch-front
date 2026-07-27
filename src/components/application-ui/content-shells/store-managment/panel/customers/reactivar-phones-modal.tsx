@@ -280,7 +280,7 @@ export default function ReactivarPhonesModal({
                     {previewResult.preview.map((p, i) => (
                       <Box
                         component="tr"
-                        key={i}
+                        key={p.phone}
                         sx={{
                           '&:nth-of-type(even)': {
                             bgcolor: alpha(theme.palette.action.hover, 0.04),

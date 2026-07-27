@@ -181,15 +181,15 @@ function EditProjectDrawer({
     return allUsers.filter((u: any) => !excluded.includes(u.role));
   }, [allUsers]);
 
-  const memberObjects = useMemo(
-    () => teamMembers.filter((u: any) => memberIds.includes(u.id || u._id)),
-    [teamMembers, memberIds]
-  );
+  const memberObjects = useMemo(() => {
+    const memberIdSet = new Set(memberIds);
+    return teamMembers.filter((u: any) => memberIdSet.has(u.id || u._id));
+  }, [teamMembers, memberIds]);
 
-  const nonMembers = useMemo(
-    () => teamMembers.filter((u: any) => !memberIds.includes(u.id || u._id)),
-    [teamMembers, memberIds]
-  );
+  const nonMembers = useMemo(() => {
+    const memberIdSet = new Set(memberIds);
+    return teamMembers.filter((u: any) => !memberIdSet.has(u.id || u._id));
+  }, [teamMembers, memberIds]);
 
   function addMember(user: any) {
     setMemberIds((prev) => [...prev, user.id || user._id]);

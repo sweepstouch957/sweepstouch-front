@@ -42,7 +42,7 @@ export function InstructionsModal({ open, instructions, onClose }: InstructionsM
 
                 {instructions.map((instruction, idx) => (
                     <Typography
-                        key={idx}
+                        key={instruction}
                         variant="body2"
                         sx={{ color: 'text.secondary', mb: 1.2 }}
                     >

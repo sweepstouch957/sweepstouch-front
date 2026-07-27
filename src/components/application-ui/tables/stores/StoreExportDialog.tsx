@@ -39,6 +39,7 @@ export function StoreExportDialog({ open, onClose, onExport }: Props) {
 
   const total = STORE_EXPORT_FIELDS.length;
   const count = selected.length;
+  const selectedSet = useMemo(() => new Set(selected), [selected]);
 
   const byGroup = useMemo(
     () =>
@@ -55,10 +56,11 @@ export function StoreExportDialog({ open, onClose, onExport }: Props) {
     );
 
   const toggleGroup = (groupKeys: string[]) => {
-    const allOn = groupKeys.every((k) => selected.includes(k));
+    const groupKeySet = new Set(groupKeys);
+    const allOn = groupKeys.every((k) => selectedSet.has(k));
     setSelected((prev) =>
       allOn
-        ? prev.filter((k) => !groupKeys.includes(k))
+        ? prev.filter((k) => !groupKeySet.has(k))
         : Array.from(new Set([...prev, ...groupKeys]))
     );
   };
@@ -141,7 +143,7 @@ export function StoreExportDialog({ open, onClose, onExport }: Props) {
         <Stack spacing={2}>
           {byGroup.map(({ group, fields }) => {
             const groupKeys = fields.map((f) => f.key);
-            const allOn = groupKeys.every((k) => selected.includes(k));
+            const allOn = groupKeys.every((k) => selectedSet.has(k));
             return (
               <Box key={group}>
                 <Stack direction="row" alignItems="center" sx={{ mb: 0.5 }}>
@@ -187,7 +189,7 @@ export function StoreExportDialog({ open, onClose, onExport }: Props) {
                       control={
                         <Checkbox
                           size="small"
-                          checked={selected.includes(f.key)}
+                          checked={selectedSet.has(f.key)}
                           onChange={() => toggle(f.key)}
                         />
                       }

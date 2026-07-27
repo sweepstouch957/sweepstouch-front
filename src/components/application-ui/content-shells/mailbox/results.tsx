@@ -47,6 +47,7 @@ export const MailboxResults: FC<MailboxResultsProps> = (props) => {
 
   const totalSelected = selectedMails.length;
   const totalMails = allIds.length;
+  const selectedMailsSet = new Set(selectedMails);
 
   return (
     <Box>
@@ -84,7 +85,7 @@ export const MailboxResults: FC<MailboxResultsProps> = (props) => {
                 href={tag && tag !== 'inbox' ? `?mailId=${mailId}&tag=${tag}` : `?mailId=${mailId}`}
                 onDeselect={() => handleDeselectOneMail(mailId)}
                 onSelect={() => handleSelectOneMail(mailId)}
-                selected={selectedMails.includes(mailId)}
+                selected={selectedMailsSet.has(mailId)}
               />
             ))}
           </Stack>

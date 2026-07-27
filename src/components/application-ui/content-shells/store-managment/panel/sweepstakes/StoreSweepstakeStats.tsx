@@ -197,14 +197,16 @@ export default function StoreSweepstakeStats({ storeId, sweepstakeId }: Props) {
   const totalMethods = sanitizedEntries.reduce((s, [, v]) => s + v, 0);
 
   // Pie data — value must be > 0, MUI X Charts throws on value=0 or undefined
-  const pieData = sanitizedEntries
-    .filter(([, count]) => count > 0)
-    .map(([m, count]) => ({
-      id: m,
-      label: m.charAt(0).toUpperCase() + m.slice(1),
-      value: count,
-      color: METHOD_COLORS[m] ?? theme.palette.primary.main,
-    }));
+  const pieData = sanitizedEntries.flatMap(([m, count]) =>
+    count > 0
+      ? [{
+          id: m,
+          label: m.charAt(0).toUpperCase() + m.slice(1),
+          value: count,
+          color: METHOD_COLORS[m] ?? theme.palette.primary.main,
+        }]
+      : []
+  );
 
   // Bar data for methods
   const barLabels = sanitizedEntries.map(([m]) => m);

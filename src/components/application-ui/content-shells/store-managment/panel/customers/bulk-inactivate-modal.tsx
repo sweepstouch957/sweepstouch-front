@@ -372,7 +372,7 @@ export default function BulkInactivateModal({
                 </Typography>
                 <Stack spacing={0.5}>
                   {previewResult.preview.map((p, i) => (
-                    <Typography key={i} variant="body2" fontFamily="monospace">
+                    <Typography key={p.phone} variant="body2" fontFamily="monospace">
                       • {p.phone}
                     </Typography>
                   ))}
@@ -389,7 +389,7 @@ export default function BulkInactivateModal({
                     </Typography>
                     <Stack spacing={0.5}>
                       {previewResult.previewActivate.map((ph, i) => (
-                        <Typography key={i} variant="body2" fontFamily="monospace">• {ph}</Typography>
+                        <Typography key={ph} variant="body2" fontFamily="monospace">• {ph}</Typography>
                       ))}
                     </Stack>
                   </Box>
@@ -401,7 +401,7 @@ export default function BulkInactivateModal({
                     </Typography>
                     <Stack spacing={0.5}>
                       {previewResult.previewDeactivate.map((ph, i) => (
-                        <Typography key={i} variant="body2" fontFamily="monospace" color="error.main">• {ph}</Typography>
+                        <Typography key={ph} variant="body2" fontFamily="monospace" color="error.main">• {ph}</Typography>
                       ))}
                     </Stack>
                   </Box>

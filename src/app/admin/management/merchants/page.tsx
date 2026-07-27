@@ -286,9 +286,9 @@ const MerchantAssignPanel: React.FC<MerchantAssignPanelProps> = ({ merchant, all
   useEffect(() => {
     setAssignedIds(
       new Set(
-        allStores
-          .filter((s) => String((s as any).ownerId) === String(merchant._id))
-          .map((s) => s._id || s.id)
+        allStores.flatMap((s) =>
+          String((s as any).ownerId) === String(merchant._id) ? [s._id || s.id] : []
+        )
       )
     );
     setIsDirty(false);

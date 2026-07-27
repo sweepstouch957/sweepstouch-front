@@ -162,11 +162,13 @@ export function useOptinMmsReport({
   // ── Export CSV ────────────────────────────────────────────────────────────
   const exportCSV = useCallback(() => {
     const header = ['Tienda', 'Proveedor', 'Tipo', 'MMS Enviados', 'MMS Omitidos', 'Registros Totales', 'Costo Estimado ($)', '% Entrega'].join(',');
-    const dataRows = filteredRows
-      .filter((r) => !r.loading)
-      .map((r) =>
-        [`"${r.name.replace(/"/g, '""')}"`, r.provider ?? '', r.type ?? '', r.sent, r.skipped, r.total, r.cost.toFixed(2), `${r.sentRate}%`].join(','),
-      );
+    const dataRows = filteredRows.flatMap((r) =>
+      r.loading
+        ? []
+        : [
+            [`"${r.name.replace(/"/g, '""')}"`, r.provider ?? '', r.type ?? '', r.sent, r.skipped, r.total, r.cost.toFixed(2), `${r.sentRate}%`].join(','),
+          ],
+    );
     const { sent: tS, skipped: tSk, total: tT, cost: tC } = footer;
     const tRate = tT > 0 ? `${Math.round((tS / tT) * 100)}%` : '0%';
     const totRow = ['"TOTAL"', '', '', tS, tSk, tT, tC.toFixed(2), tRate].join(',');
