@@ -4,6 +4,7 @@ import { prizesClient, sweepstakesClient, type Prize } from '@/services/sweepsta
 import { uploadCampaignImage } from '@/services/upload.service';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
+import CardGiftcardRounded from '@mui/icons-material/CardGiftcardRounded';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CloseIcon from '@mui/icons-material/Close';
 import ColorLensOutlinedIcon from '@mui/icons-material/ColorLensOutlined';
@@ -1507,7 +1508,8 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
         PaperProps={{ sx: { borderRadius: 3 } }}
       >
         <DialogTitle sx={{ pr: 6, fontWeight: 800 }}>
-          🏆 Crear nuevo premio
+          <CardGiftcardRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />
+          Crear nuevo premio
           <IconButton
             onClick={() => setOpenPrizeDialog(false)}
             size="small"

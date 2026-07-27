@@ -8,6 +8,11 @@ import { useBrands } from '@/hooks/fetching/brands/useBrands';
 import { useSweepstakes } from '@/hooks/fetching/sweepstakes/useSweepstakes';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
+import UploadRoundedIcon from '@mui/icons-material/UploadRounded';
+import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
+import LocationOnRoundedIcon from '@mui/icons-material/LocationOnRounded';
+import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import {
   Avatar,
   Box,
@@ -109,7 +114,7 @@ function UploadDrop({
           color: 'text.secondary',
         }}
       >
-        <div style={{ fontSize: 20 }}>☁️</div>
+        <div style={{ fontSize: 20 }}><UploadRoundedIcon fontSize="inherit" /></div>
         <div>{t("Click to select a file")}</div>
         <Typography variant="caption">
           {accept.includes('image') ? t("Upload format image helper") : t("Upload format pdf helper")}
@@ -171,7 +176,7 @@ function LogoPreview({ src }: { src?: string }) {
               lineHeight: 1,
             }}
           >
-            🏪
+            <StorefrontRoundedIcon fontSize="inherit" />
           </div>
 
           <Typography
@@ -432,7 +437,7 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
               <Box>
                 {/* --- 1. MARCA Y LOGO --- */}
                 <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <span>🏪</span> {t("Select your Brand")}
+                  <StorefrontRoundedIcon fontSize="small" /> {t("Select your Brand")}
                 </Typography>
 
                 <Grid container spacing={1.5}>
@@ -488,7 +493,7 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
 
                 {/* --- 2. DATOS GENERALES --- */}
                 <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <span>📝</span> {t("Store Data")}
+                  <DescriptionRoundedIcon fontSize="small" /> {t("Store Data")}
                 </Typography>
 
                 <Grid container spacing={1.5}>
@@ -534,7 +539,7 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
 
                 {/* --- 3. UBICACIÓN --- */}
                 <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <span>📍</span> {t("Physical Location")}
+                  <LocationOnRoundedIcon fontSize="small" /> {t("Physical Location")}
                 </Typography>
 
                 <Grid container spacing={1.5}>
@@ -584,7 +589,7 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
 
                 {/* --- 4. CONFIGURACIÓN Y CONTRATO --- */}
                 <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <span>🧰</span> {t("Configuration and Contract")}
+                  <SettingsRoundedIcon fontSize="small" /> {t("Configuration and Contract")}
                 </Typography>
 
                 <Grid container spacing={1.5}>
@@ -718,7 +723,7 @@ export default function CreateStoreStepperPage(): React.JSX.Element {
 
                 {/* --- 5. REDES E INFORMACIÓN --- */}
                 <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <span>🌐</span> {t("Social Media and Extra Info")}
+                  {t("Social Media and Extra Info")}
                 </Typography>
 
                 <Grid container spacing={1.5}>

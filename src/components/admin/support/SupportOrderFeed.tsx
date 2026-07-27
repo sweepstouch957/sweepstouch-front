@@ -6,6 +6,7 @@ import { Box, Typography, Stack, Chip, IconButton, Tooltip } from '@mui/material
 import TerminalIcon from '@mui/icons-material/Terminal';
 import CircleIcon from '@mui/icons-material/Circle';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
+import BoltRounded from '@mui/icons-material/BoltRounded';
 import { io, type Socket } from 'socket.io-client';
 
 interface FeedEvent {
@@ -155,7 +156,12 @@ export default function SupportOrderFeed() {
         </Tooltip>
         <Box flex={1} />
         <Chip
-          label={`⚡ prioridad ${priorityCount}`}
+          label={
+            <>
+              <BoltRounded sx={{ fontSize: 14, verticalAlign: 'middle', mr: 0.4 }} />
+              {`prioridad ${priorityCount}`}
+            </>
+          }
           size="small"
           onClick={() => setOnlyPriority((v) => !v)}
           sx={{
@@ -218,7 +224,7 @@ export default function SupportOrderFeed() {
               <span style={{ color: TERM.timestamp }}>
                 {new Date(e.ts).toLocaleTimeString('es-US', { hour12: false })}
               </span>
-              {e.paidOnline ? <span style={{ color: TERM.priority, fontWeight: 800 }}>⚡</span> : null}
+              {e.paidOnline ? <BoltRounded sx={{ color: TERM.priority, fontSize: 15 }} /> : null}
               <span style={{ color: TERM.accent, minWidth: 120 }}>{e.storeName || '—'}</span>
               <span style={{ color: TERM.text, fontWeight: 700, minWidth: 96 }}>{e.orderNumber || '—'}</span>
               <span style={{ color: e.paidOnline ? TERM.priority : TERM.muted, flex: 1 }}>

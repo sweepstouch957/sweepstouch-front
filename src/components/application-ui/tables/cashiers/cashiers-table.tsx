@@ -2,7 +2,11 @@
 
 import { useCashierRanking, useCreateCashier } from '@/services/cashier.service';
 import AddIcon from '@mui/icons-material/Add';
+import CancelRounded from '@mui/icons-material/CancelRounded';
+import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded';
 import EmojiEventsTwoToneIcon from '@mui/icons-material/EmojiEventsTwoTone';
+import HourglassEmptyRounded from '@mui/icons-material/HourglassEmptyRounded';
+import PhoneIphoneRounded from '@mui/icons-material/PhoneIphoneRounded';
 import SearchIcon from '@mui/icons-material/Search';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import {
@@ -341,20 +345,23 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
               <>
                 <Chip
                   size="small"
-                  label={`✅ Válidos: ${data.phoneAudit.validPhones}`}
+                  icon={<CheckCircleRounded fontSize="small" />}
+                  label={`Válidos: ${data.phoneAudit.validPhones}`}
                   color="success"
                   variant="outlined"
                 />
                 <Chip
                   size="small"
-                  label={`❌ Inválidos: ${data.phoneAudit.invalidPhones} (${data.phoneAudit.invalidPercent}%)`}
+                  icon={<CancelRounded fontSize="small" />}
+                  label={`Inválidos: ${data.phoneAudit.invalidPhones} (${data.phoneAudit.invalidPercent}%)`}
                   color={data.phoneAudit.invalidPercent > 10 ? 'error' : 'warning'}
                   variant="outlined"
                 />
                 {data.phoneAudit.unknownPhones > 0 && (
                   <Chip
                     size="small"
-                    label={`⏳ Sin validar: ${data.phoneAudit.unknownPhones}`}
+                    icon={<HourglassEmptyRounded fontSize="small" />}
+                    label={`Sin validar: ${data.phoneAudit.unknownPhones}`}
                     variant="outlined"
                   />
                 )}
@@ -398,7 +405,7 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
                   <TableCell>Nombre</TableCell>
                   <TableCell>Código</TableCell>
                   <TableCell align="right">Registros</TableCell>
-                  <TableCell align="right">📱 Tel. Audit</TableCell>
+                  <TableCell align="right"><PhoneIphoneRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Tel. Audit</TableCell>
                   <TableCell align="center" sx={{ width: 80 }}></TableCell>
                 </TableRow>
               </TableHead>
@@ -426,8 +433,8 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
                     <TableCell align="right">
                       {r.phoneAudit ? (
                         <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                          <Chip size="small" label={`✅${r.phoneAudit.validPhones}`} color="success" variant="outlined" sx={{ height: 22, '& .MuiChip-label': { px: 0.75, fontSize: '0.7rem' } }} />
-                          <Chip size="small" label={`❌${r.phoneAudit.invalidPhones}`} color={r.phoneAudit.invalidPercent > 15 ? 'error' : r.phoneAudit.invalidPercent > 5 ? 'warning' : 'default'} variant="outlined" sx={{ height: 22, '& .MuiChip-label': { px: 0.75, fontSize: '0.7rem' } }} />
+                          <Chip size="small" icon={<CheckCircleRounded fontSize="small" />} label={r.phoneAudit.validPhones} color="success" variant="outlined" sx={{ height: 22, '& .MuiChip-label': { px: 0.75, fontSize: '0.7rem' } }} />
+                          <Chip size="small" icon={<CancelRounded fontSize="small" />} label={r.phoneAudit.invalidPhones} color={r.phoneAudit.invalidPercent > 15 ? 'error' : r.phoneAudit.invalidPercent > 5 ? 'warning' : 'default'} variant="outlined" sx={{ height: 22, '& .MuiChip-label': { px: 0.75, fontSize: '0.7rem' } }} />
                         </Stack>
                       ) : '—'}
                     </TableCell>

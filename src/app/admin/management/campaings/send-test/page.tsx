@@ -835,7 +835,7 @@ export default function SendTestMessagePage({
 
               {lastImageIsPdf && (
                 <Alert severity="error" sx={{ borderRadius: 2, py: 0.5, mb: 2, fontSize: 12 }}>
-                  ⚠️ The last campaign image is a <strong>PDF</strong> and cannot be sent via MMS.
+                  The last campaign image is a <strong>PDF</strong> and cannot be sent via MMS.
                   Please upload a JPG/PNG image below.
                 </Alert>
               )}
@@ -987,7 +987,7 @@ export default function SendTestMessagePage({
                     return (
                       <Box sx={{ mt: 2, p: 1.5, borderRadius: 2, bgcolor: 'action.hover', border: `1px solid ${border}` }}>
                         <Typography variant="caption" fontWeight={700} color="primary.main" sx={{ display: 'block', mb: 1, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                          🔗 Clickable Test Links:
+                          Clickable Test Links:
                         </Typography>
                         <Stack spacing={1}>
                           {urls.map((url, idx) => (
@@ -1139,7 +1139,7 @@ export default function SendTestMessagePage({
                     <Typography variant="caption" fontWeight={700} sx={{ fontSize: 11 }}>
                       {selectedCustomer.firstName}
                     </Typography>
-                    <Chip label="✓" size="small" color="success" sx={{ fontSize: 9, height: 16, minWidth: 16 }} />
+                    <Chip label={<CheckCircleRoundedIcon sx={{ fontSize: 12 }} />} size="small" color="success" sx={{ fontSize: 9, height: 16, minWidth: 16 }} />
                   </Stack>
                 ) : (
                   '—'

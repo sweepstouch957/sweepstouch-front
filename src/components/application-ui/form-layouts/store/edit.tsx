@@ -2,20 +2,34 @@
 
 import { ContactInfoItem, Store } from '@/services/store.service';
 import {
+  AccountBalanceRounded,
   AddCircleOutline,
   AlternateEmail,
+  BarChartRounded,
+  BlockRounded,
+  BoltRounded,
+  BusinessRounded,
+  CalendarMonthRounded,
+  CardGiftcardRounded,
+  CreditCardRounded,
   DeleteOutline,
+  EventRounded,
   ExpandMoreRounded,
   Facebook,
   Instagram,
+  Inventory2Rounded,
   Language,
   LinkRounded,
   LockRounded,
   LocalPhone,
   LocationOn,
   MarkunreadMailbox,
+  PaymentsRounded,
   PeopleAlt,
+  ReceiptLongRounded,
   SensorsRounded,
+  StarRounded,
+  SyncRounded,
 } from '@mui/icons-material';
 import {
   alpha,
@@ -55,6 +69,7 @@ type Props = {
     twilioPhoneNumberSid: string;
     twilioPhoneNumberFriendlyName: string;
     infobipSenderId?: string;
+    infobipShortcode?: string;
     verifiedByTwilio: boolean;
     address: string;
     zipCode: string;
@@ -619,9 +634,9 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
                 onChange={onChange('type')}
                 disabled={!edit}
               >
-                <MenuItem value="elite">⚡ Elite</MenuItem>
-                <MenuItem value="basic">📦 Basic</MenuItem>
-                <MenuItem value="free">🆓 Free</MenuItem>
+                <MenuItem value="elite"><BoltRounded fontSize="small" sx={{ mr: 1 }} />Elite</MenuItem>
+                <MenuItem value="basic"><Inventory2Rounded fontSize="small" sx={{ mr: 1 }} />Basic</MenuItem>
+                <MenuItem value="free"><CardGiftcardRounded fontSize="small" sx={{ mr: 1 }} />Free</MenuItem>
               </TextField>
             </Stack>
             <Stack direction="row" spacing={1.25}>
@@ -679,10 +694,10 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
               onChange={onChange('provider')}
               disabled={!edit}
             >
-              <MenuItem value="twilio">📞 Twilio</MenuItem>
-              {/* ⛔️ DEPRECADO — Bandwidth ya no se usa, no se puede elegir en tiendas nuevas
-              <MenuItem value="bandwidth">📡 Bandwidth</MenuItem> */}
-              <MenuItem value="infobip">⚡ Infobip</MenuItem>
+              <MenuItem value="twilio"><LocalPhone fontSize="small" sx={{ mr: 1 }} />Twilio</MenuItem>
+              {/* DEPRECADO — Bandwidth ya no se usa, no se puede elegir en tiendas nuevas
+              <MenuItem value="bandwidth">Bandwidth</MenuItem> */}
+              <MenuItem value="infobip"><BoltRounded fontSize="small" sx={{ mr: 1 }} />Infobip</MenuItem>
             </TextField>
 
             {form.provider === 'infobip' && (
@@ -693,7 +708,19 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
                 value={form.infobipSenderId || ''}
                 onChange={onChange('infobipSenderId')}
                 disabled={!edit}
-                helperText="Dejar vacío para usar el número predeterminado del sistema."
+                helperText="Toll-free para campañas. Dejar vacío para usar el número predeterminado del sistema."
+              />
+            )}
+
+            {form.provider === 'infobip' && (
+              <TextField
+                fullWidth
+                size="small"
+                label="Infobip Shortcode (OTP)"
+                value={form.infobipShortcode || ''}
+                onChange={onChange('infobipShortcode')}
+                disabled={!edit}
+                helperText="Shortcode para OTP/verificación (ej: 912608). Vacío = default del sistema."
               />
             )}
 
@@ -782,10 +809,10 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
                   onChange={onChange('membershipType')}
                   disabled={!edit}
                 >
-                  <MenuItem value="semanal">📅 Semanal</MenuItem>
-                  <MenuItem value="mensual">🗓 Mensual</MenuItem>
-                  <MenuItem value="especial">⭐ Especial</MenuItem>
-                  <MenuItem value="none">🚫 No Paga</MenuItem>
+                  <MenuItem value="semanal"><EventRounded fontSize="small" sx={{ mr: 1 }} />Semanal</MenuItem>
+                  <MenuItem value="mensual"><CalendarMonthRounded fontSize="small" sx={{ mr: 1 }} />Mensual</MenuItem>
+                  <MenuItem value="especial"><StarRounded fontSize="small" sx={{ mr: 1 }} />Especial</MenuItem>
+                  <MenuItem value="none"><BlockRounded fontSize="small" sx={{ mr: 1 }} />No Paga</MenuItem>
                 </TextField>
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -798,13 +825,13 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
                   onChange={onChange('paymentMethod')}
                   disabled={!edit}
                 >
-                  <MenuItem value="card">💳 Tarjeta</MenuItem>
-                  <MenuItem value="check">🧾 Check</MenuItem>
-                  <MenuItem value="central_billing">🏢 Central Billing</MenuItem>
-                  <MenuItem value="quickbooks">📊 QuickBooks</MenuItem>
-                  <MenuItem value="ach">🏦 ACH</MenuItem>
-                  <MenuItem value="wire">🔁 Wire</MenuItem>
-                  <MenuItem value="cash">💵 Efectivo</MenuItem>
+                  <MenuItem value="card"><CreditCardRounded fontSize="small" sx={{ mr: 1 }} />Tarjeta</MenuItem>
+                  <MenuItem value="check"><ReceiptLongRounded fontSize="small" sx={{ mr: 1 }} />Check</MenuItem>
+                  <MenuItem value="central_billing"><BusinessRounded fontSize="small" sx={{ mr: 1 }} />Central Billing</MenuItem>
+                  <MenuItem value="quickbooks"><BarChartRounded fontSize="small" sx={{ mr: 1 }} />QuickBooks</MenuItem>
+                  <MenuItem value="ach"><AccountBalanceRounded fontSize="small" sx={{ mr: 1 }} />ACH</MenuItem>
+                  <MenuItem value="wire"><SyncRounded fontSize="small" sx={{ mr: 1 }} />Wire</MenuItem>
+                  <MenuItem value="cash"><PaymentsRounded fontSize="small" sx={{ mr: 1 }} />Efectivo</MenuItem>
                 </TextField>
               </Grid>
             </Grid>

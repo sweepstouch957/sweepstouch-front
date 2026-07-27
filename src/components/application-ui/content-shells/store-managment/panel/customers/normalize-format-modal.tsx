@@ -23,6 +23,7 @@ import {
   AutoFixHighRounded,
   PreviewRounded,
   CheckCircleOutlineRounded,
+  CheckCircleRounded,
 } from '@mui/icons-material';
 import { customerClient } from '@/services/customerService';
 
@@ -316,7 +317,7 @@ export default function NormalizeFormatModal({
 
             {previewResult.toNormalizeCount === 0 && (
               <Alert severity="success" sx={{ borderRadius: 2 }}>
-                ✅ Todos los números de esta tienda ya se encuentran normalizados. No se requieren cambios.
+                <CheckCircleRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Todos los números de esta tienda ya se encuentran normalizados. No se requieren cambios.
               </Alert>
             )}
 

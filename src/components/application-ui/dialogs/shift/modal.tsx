@@ -4,8 +4,10 @@ import { promoterService } from '@/services/promotor.service';
 import { shiftService } from '@/services/shift.service';
 import { getAllStores, Store } from '@/services/store.service';
 import { sweepstakesClient } from '@/services/sweepstakes.service';
+import AutoAwesomeRounded from '@mui/icons-material/AutoAwesomeRounded';
 import CloseIcon from '@mui/icons-material/Close';
 import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined';
+import StarRounded from '@mui/icons-material/StarRounded';
 import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined';
 import PersonAddOutlinedIcon from '@mui/icons-material/PersonAddOutlined';
 import SearchIcon from '@mui/icons-material/Search';
@@ -800,7 +802,8 @@ const NewShiftModal = ({ open, onClose, shiftId, initialStoreId, initialPromoter
                 }}
               >
                 <Typography variant="caption" sx={{ fontSize: 10, fontWeight: 700, color: 'primary.main', display: 'block', mb: 1 }}>
-                  ✨ RECOMENDACIÓN DE IA
+                  <AutoAwesomeRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />
+                  RECOMENDACIÓN DE IA
                 </Typography>
                 <Box
                   sx={{
@@ -855,7 +858,8 @@ const NewShiftModal = ({ open, onClose, shiftId, initialStoreId, initialPromoter
                             •
                           </Typography>
                           <Typography variant="caption" color="warning.main" sx={{ fontSize: 9, fontWeight: 700 }}>
-                            ★ {p.rating?.toFixed(1) ?? '—'}
+                            <StarRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />
+                            {p.rating?.toFixed(1) ?? '—'}
                           </Typography>
                         </Stack>
 
@@ -917,7 +921,8 @@ const NewShiftModal = ({ open, onClose, shiftId, initialStoreId, initialPromoter
                           color="text.secondary"
                           sx={{ display: 'flex', alignItems: 'center' }}
                         >
-                          {'★'} {option.rating.toFixed(1)}
+                          <StarRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />
+                          {option.rating.toFixed(1)}
                         </Typography>
                       )}
                       {option.distanceMiles !== undefined && (

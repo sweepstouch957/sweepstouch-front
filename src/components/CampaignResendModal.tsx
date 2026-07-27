@@ -2,6 +2,8 @@
 
 import { campaignClient } from '@/services/campaing.service';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded';
+import CancelRounded from '@mui/icons-material/CancelRounded';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import ReplayIcon from '@mui/icons-material/Replay';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
@@ -234,7 +236,7 @@ const CampaignResendModal: React.FC<Props> = ({ open, onClose, campaignId }) => 
                 {preview.resendBreakdown.length > 0 && (
                   <Box>
                     <Typography variant="caption" color="success.main" fontWeight={700} mb={0.5} display="block">
-                      ✅ Se reenviarán ({preview.resendableCount.toLocaleString()} mensajes)
+                      <CheckCircleRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Se reenviarán ({preview.resendableCount.toLocaleString()} mensajes)
                     </Typography>
                     <Stack spacing={0.6}>
                       {preview.resendBreakdown.map(({ code, count }) => (
@@ -261,7 +263,7 @@ const CampaignResendModal: React.FC<Props> = ({ open, onClose, campaignId }) => 
                 {preview.permanentBreakdown.length > 0 && (
                   <Box>
                     <Typography variant="caption" color="error.main" fontWeight={700} mb={0.5} display="block">
-                      ❌ Se omitirán (permanentes: {preview.permanentCount.toLocaleString()} mensajes)
+                      <CancelRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Se omitirán (permanentes: {preview.permanentCount.toLocaleString()} mensajes)
                     </Typography>
                     <Stack spacing={0.6}>
                       {preview.permanentBreakdown.map(({ code, count }) => (

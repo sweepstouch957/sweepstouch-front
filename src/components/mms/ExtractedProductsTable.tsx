@@ -144,7 +144,7 @@ export default function ExtractedProductsTable({ products, onChange }: Props) {
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ width: 40, fontWeight: 'bold' }}>⭐</TableCell>
+              <TableCell sx={{ width: 40, fontWeight: 'bold' }}><StarIcon fontSize="small" /></TableCell>
               <TableCell sx={{ width: 72, fontWeight: 'bold' }}>Imagen</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Product Name</TableCell>
               <TableCell sx={{ width: 100, fontWeight: 'bold' }}>Price</TableCell>
@@ -338,7 +338,7 @@ export default function ExtractedProductsTable({ products, onChange }: Props) {
         </Box>
 
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-          ⭐ = Hero product · 🔍 = Buscar imagen real de producto en el repositorio · Click en imagen para zoom
+          <StarIcon fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} /> = Hero product · <SearchIcon fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} /> = Buscar imagen real de producto en el repositorio · Click en imagen para zoom
         </Typography>
       </Box>
 

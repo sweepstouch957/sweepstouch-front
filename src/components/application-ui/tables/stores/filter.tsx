@@ -3,7 +3,11 @@
 import { useAuth } from '@/hooks/use-auth';
 import { sendChatMessage } from '@/services/ai.service';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
+import BoltRounded from '@mui/icons-material/BoltRounded';
+import CancelRounded from '@mui/icons-material/CancelRounded';
 import FilterAltOffRoundedIcon from '@mui/icons-material/FilterAltOffRounded';
+import LocalPhone from '@mui/icons-material/LocalPhone';
+import SmsRounded from '@mui/icons-material/SmsRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import SwapVertRoundedIcon from '@mui/icons-material/SwapVertRounded';
@@ -344,14 +348,20 @@ export default function StoreFilters({
             onChange={(e) => onProviderChange(e.target.value)}
             renderValue={(val) => (
               <Typography fontSize={13} color={!val || val === 'all' ? 'text.secondary' : 'text.primary'}>
-                {!val || val === 'all' ? 'Provider' : val === 'twilio' ? '📞 Twilio' : val === 'bandwidth' ? '📡 Bandwidth' : '⚡ Infobip'}
+                {!val || val === 'all' ? 'Provider' : val === 'twilio' ? (
+                  <><LocalPhone fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Twilio</>
+                ) : val === 'bandwidth' ? (
+                  <><SmsRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Bandwidth</>
+                ) : (
+                  <><BoltRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Infobip</>
+                )}
               </Typography>
             )}
           >
             <MenuItem value="all" sx={{ fontSize: 13 }}>Todos</MenuItem>
-            <MenuItem value="twilio" sx={{ fontSize: 13 }}>📞 Twilio</MenuItem>
-            <MenuItem value="bandwidth" sx={{ fontSize: 13 }}>📡 Bandwidth</MenuItem>
-            <MenuItem value="infobip" sx={{ fontSize: 13 }}>⚡ Infobip</MenuItem>
+            <MenuItem value="twilio" sx={{ fontSize: 13 }}><LocalPhone fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Twilio</MenuItem>
+            <MenuItem value="bandwidth" sx={{ fontSize: 13 }}><SmsRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Bandwidth</MenuItem>
+            <MenuItem value="infobip" sx={{ fontSize: 13 }}><BoltRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Infobip</MenuItem>
           </Select>
         </FormControl>
 
@@ -471,7 +481,7 @@ export default function StoreFilters({
                 sx={{ fontSize: 12, height: 24, cursor: 'pointer', fontWeight: 700 }}
               />
               <IconButton size="small" onClick={clearAI} sx={{ width: 22, height: 22, p: 0 }}>
-                <Typography fontSize={11} color="text.secondary">✕</Typography>
+                <CancelRounded fontSize="small" sx={{ color: 'text.secondary' }} />
               </IconButton>
             </>
           )}

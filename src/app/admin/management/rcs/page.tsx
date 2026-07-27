@@ -291,7 +291,7 @@ function RcsPreviewCard({ storeSlug, circularId, categories, recipes }: {
           <Box sx={{ pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
             <Typography sx={{ fontSize: 11, color: 'text.secondary', mb: 1 }}>Tabs in RCS web view:</Typography>
             <Stack direction="row" spacing={0.5} flexWrap="wrap" gap={0.5}>
-              {['🏠 Home', '📰 Circular', '🛒 Lista', '🍳 Recetas', '⭐ Puntos'].map(tab => (
+              {['Home', 'Circular', 'Lista', 'Recetas', 'Puntos'].map(tab => (
                 <Chip key={tab} label={tab} size="small" sx={{ fontSize: 11 }} />
               ))}
             </Stack>

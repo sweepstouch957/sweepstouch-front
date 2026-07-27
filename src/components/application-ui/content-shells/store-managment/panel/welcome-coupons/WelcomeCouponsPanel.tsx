@@ -249,7 +249,7 @@ const WelcomeCouponsPanel = ({ storeId }: WelcomeCouponsPanelProps) => {
                                        rows={2}
                                        value={message}
                                        onChange={(e) => setMessage(e.target.value)}
-                                       placeholder="¡Hola! 🎉 Gracias por registrarte..."
+                                       placeholder="¡Hola! Gracias por registrarte..."
                                        size="small"
                                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                                     />

@@ -6,6 +6,7 @@ import { Department, departmentService } from '@/services/department.service';
 import { Task, taskClient, type BoardData } from '@/services/task.service';
 import { DragDropContext, Draggable, Droppable, type DropResult } from '@hello-pangea/dnd';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import CelebrationRoundedIcon from '@mui/icons-material/CelebrationRounded';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
 import AssignmentIndRoundedIcon from '@mui/icons-material/AssignmentIndRounded';
@@ -1332,7 +1333,7 @@ function TasksPage(): React.JSX.Element {
                   variant="body2"
                   color="text.secondary"
                 >
-                  You're all caught up! 🎉
+                  You're all caught up! <CelebrationRoundedIcon fontSize="small" sx={{ ml: 0.5, verticalAlign: 'middle' }} />
                 </Typography>
               </CardContent>
             </Card>

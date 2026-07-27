@@ -7,12 +7,15 @@ import { useAuth } from '@/hooks/use-auth';
 import { resolveStoreStatus, STORE_STATUS_COLOR, STORE_STATUS_LABEL } from './storeExport';
 import {
   AccountCircle,
+  BoltRounded,
   CancelRounded,
   CheckCircleRounded,
   ContentCopyRounded,
+  LocalPhone,
   PauseCircleRounded,
   PaymentsRounded,
   Settings,
+  SmsRounded,
   Web,
 } from '@mui/icons-material';
 import {
@@ -168,16 +171,16 @@ function paymentMethodLabel(method?: Store['paymentMethod']) {
 function providerInfo(
   store: any,
   theme: Theme
-): { label: string; emoji: string; sender: string; color: string } {
+): { label: string; icon: React.ReactElement; sender: string; color: string } {
   const p = store.provider || 'twilio';
   switch (p) {
     case 'infobip':
-      return { label: 'Infobip', emoji: '⚡', sender: store.infobipSenderId || '—', color: theme.palette.warning.main };
+      return { label: 'Infobip', icon: <BoltRounded sx={{ fontSize: 16 }} />, sender: store.infobipSenderId || '—', color: theme.palette.warning.main };
     case 'bandwidth':
-      return { label: 'Bandwidth', emoji: '📡', sender: store.bandwidthPhoneNumber || '—', color: theme.palette.info.main };
+      return { label: 'Bandwidth', icon: <SmsRounded sx={{ fontSize: 16 }} />, sender: store.bandwidthPhoneNumber || '—', color: theme.palette.info.main };
     case 'twilio':
     default:
-      return { label: 'Twilio', emoji: '📞', sender: store.twilioPhoneNumber || '—', color: theme.palette.error.main };
+      return { label: 'Twilio', icon: <LocalPhone sx={{ fontSize: 16 }} />, sender: store.twilioPhoneNumber || '—', color: theme.palette.error.main };
   }
 }
 
@@ -322,8 +325,8 @@ const StoreRow: FC<StoreRowProps> = React.memo(({ store, isAdmin, onOpenTech, on
       {/* Provider */}
       <TableCell align="center">
         <Stack spacing={0.25} alignItems="center">
-          <Chip size="small" label={`${pi.emoji} ${pi.label}`} variant="outlined"
-            sx={{ height: 22, fontSize: 11, fontWeight: 800, borderColor: pi.color, color: pi.color, '& .MuiChip-label': { px: 0.75 } }}
+          <Chip size="small" icon={pi.icon} label={pi.label} variant="outlined"
+            sx={{ height: 22, fontSize: 11, fontWeight: 800, borderColor: pi.color, color: pi.color, '& .MuiChip-label': { px: 0.75 }, '& .MuiChip-icon': { color: pi.color } }}
           />
           <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary', maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={pi.sender}>
             {pi.sender}

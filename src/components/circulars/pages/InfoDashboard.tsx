@@ -5,6 +5,7 @@
 import { useCircularAlerts, useCircularOverview } from '@hooks/fetching/circulars/useCirculars';
 import { routes } from 'src/router/routes';
 import {
+  CheckCircleRounded,
   Error as ErrorIcon,
   Info as InfoIcon,
   Schedule as ScheduleIcon,
@@ -170,7 +171,7 @@ const InfoDashboard = () => {
                   severity="success"
                   sx={{ borderRadius: 2 }}
                 >
-                  No hay alertas por ahora ✅
+                  No hay alertas por ahora <CheckCircleRounded fontSize="small" sx={{ verticalAlign: 'middle' }} />
                 </Alert>
               )}
               {(alertsData?.alerts || []).map((a) => (
@@ -179,11 +180,17 @@ const InfoDashboard = () => {
                   severity={a.type === 'gap_warning' ? 'warning' : 'info'}
                   sx={{ borderRadius: 2, '& .MuiAlert-message': { fontSize: '0.875rem' } }}
                 >
-                  {a.type === 'gap_warning'
-                    ? `⚠ El circular de ${a.storeSlug} expira el ${fmt(
-                        a.endDate
-                      )} y NO hay otro agendado.`
-                    : `ℹ El circular de ${a.storeSlug} expira pronto (${fmt(a.endDate)}).`}
+                  {a.type === 'gap_warning' ? (
+                    <>
+                      <WarningIcon fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />
+                      {`El circular de ${a.storeSlug} expira el ${fmt(a.endDate)} y NO hay otro agendado.`}
+                    </>
+                  ) : (
+                    <>
+                      <InfoIcon fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />
+                      {`El circular de ${a.storeSlug} expira pronto (${fmt(a.endDate)}).`}
+                    </>
+                  )}
                 </Alert>
               ))}
             </Box>

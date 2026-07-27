@@ -74,6 +74,7 @@ export interface Store {
   lat?: number | null;
   email?: string;
   infobipSenderId?: string;
+  infobipShortcode?: string;
 
   // 🆕 Social Links
   socialLinks?: {
@@ -122,6 +123,7 @@ export interface UpdateStoreBody {
   phoneNumber?: string;
   provider?: 'twilio' | 'bandwidth' | 'infobip';
   infobipSenderId?: string;
+  infobipShortcode?: string;
   bandwidthPhoneNumber?: string;
   twilioPhoneNumber?: string;
   twilioPhoneNumberSid?: string;

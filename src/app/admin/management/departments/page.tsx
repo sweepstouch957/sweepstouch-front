@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
 
+import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
@@ -251,7 +252,7 @@ function Page() {
           }}>
             {filteredUnassigned.length === 0 && (
               <Typography fontSize={10} color="text.disabled" textAlign="center" py={3}>
-                {userSearch ? 'Sin coincidencias' : 'Todos asignados ✓'}
+                {userSearch ? 'Sin coincidencias' : <>Todos asignados <CheckCircleRoundedIcon fontSize="small" sx={{ ml: 0.5, verticalAlign: 'middle' }} /></>}
               </Typography>
             )}
             {filteredUnassigned.map((user, i) => (

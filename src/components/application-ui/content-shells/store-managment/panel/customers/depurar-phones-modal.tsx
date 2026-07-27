@@ -25,6 +25,7 @@ import {
   PreviewRounded,
   DeleteSweepRounded,
   CheckCircleOutlineRounded,
+  CheckCircleRounded,
 } from '@mui/icons-material';
 import { customerClient } from '@/services/customerService';
 
@@ -384,7 +385,7 @@ export default function DepurarPhonesModal({
 
             {previewResult.uniquePhones === 0 && (
               <Alert severity="success" sx={{ borderRadius: 2 }}>
-                ✅ No se encontraron números inválidos en el rango seleccionado.
+                <CheckCircleRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />No se encontraron números inválidos en el rango seleccionado.
               </Alert>
             )}
 

@@ -2,11 +2,13 @@
 
 import { sweepstakesClient } from '@/services/sweepstakes.service';
 import {
+  BoltRounded,
   CellTowerRounded,
   DownloadRounded,
   FilterAltRounded,
   GroupAddRounded,
   GroupRounded,
+  PeopleRounded,
   PersonAddRounded,
   PersonRounded,
   QrCode2Rounded,
@@ -280,12 +282,12 @@ export default function StoreSweepstakeStats({ storeId, sweepstakeId }: Props) {
               <FormControl size="small" sx={{ flex: { xs: '1 1 auto', md: 1 }, minWidth: { md: 140 }, bgcolor: 'background.paper', borderRadius: 2 }}>
                 <InputLabel sx={{ fontWeight: 600 }}>Método</InputLabel>
                 <Select value={method} label="Método" onChange={(e) => setMethod(e.target.value)} sx={{ borderRadius: 2 }}>
-                  <MenuItem value="all">⚡ Todos</MenuItem>
-                  <MenuItem value="qr">📷 QR</MenuItem>
-                  <MenuItem value="web">🌐 Web</MenuItem>
-                  <MenuItem value="tablet">📱 Tablet</MenuItem>
-                  <MenuItem value="promotor">🙋‍♂️ Promotoras</MenuItem>
-                  <MenuItem value="referral">🚀 Referidos</MenuItem>
+                  <MenuItem value="all"><BoltRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Todos</MenuItem>
+                  <MenuItem value="qr">QR</MenuItem>
+                  <MenuItem value="web">Web</MenuItem>
+                  <MenuItem value="tablet">Tablet</MenuItem>
+                  <MenuItem value="promotor"><PeopleRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Promotoras</MenuItem>
+                  <MenuItem value="referral"><RocketLaunchRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Referidos</MenuItem>
                   <MenuItem value="pinpad">⌨️ Pinpad</MenuItem>
                 </Select>
               </FormControl>

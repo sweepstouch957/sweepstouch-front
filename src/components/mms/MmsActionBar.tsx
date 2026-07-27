@@ -7,6 +7,9 @@ import {
 import SendIcon from '@mui/icons-material/Send';
 import SaveIcon from '@mui/icons-material/Save';
 import BugReportRoundedIcon from '@mui/icons-material/BugReportRounded';
+import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded';
+import ScienceRounded from '@mui/icons-material/ScienceRounded';
+import RocketLaunchRounded from '@mui/icons-material/RocketLaunchRounded';
 import { circularService } from '@/services/circular.service';
 import TestMmsShoppingListModal from '@/components/mms/TestMmsShoppingListModal';
 import { tint, tintBorder } from 'src/theme/semantic';
@@ -89,7 +92,7 @@ export default function MmsActionBar({
         <Button variant="outlined" size="small" onClick={handleSaveProducts}
           disabled={!circularId || saving}
           startIcon={saving ? <CircularProgress size={14} /> : <SaveIcon />}>
-          {saving ? 'Saving...' : saved ? '✅ Saved' : 'Save Products'}
+          {saving ? 'Saving...' : saved ? <><CheckCircleRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Saved</> : 'Save Products'}
         </Button>
 
         <Button variant="outlined" size="small" color="secondary"
@@ -104,7 +107,7 @@ export default function MmsActionBar({
               bgcolor: (theme) => tint(theme, 'primary', 0.06),
             },
           }}>
-          🧪 Send Test SMS
+          <ScienceRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Send Test SMS
         </Button>
       </Stack>
 
@@ -121,7 +124,7 @@ export default function MmsActionBar({
           },
           fontWeight: 'bold', py: 1.2,
         }}>
-        {generating ? 'Generating...' : '🚀 Generate MMS for All Customers'}
+        {generating ? 'Generating...' : <><RocketLaunchRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Generate MMS for All Customers</>}
       </Button>
 
       {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}

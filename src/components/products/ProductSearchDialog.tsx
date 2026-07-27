@@ -29,6 +29,7 @@ import {
   alpha } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
+import SearchRounded from '@mui/icons-material/SearchRounded';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ImageNotSupportedIcon from '@mui/icons-material/ImageNotSupported';
@@ -607,7 +608,7 @@ export default function ProductSearchDialog({
 
         <DialogActions sx={{ px: 2.5, py: 1.5 }}>
           <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
-            Haz clic en un producto para seleccionarlo · 🔍 para ver en grande
+            Haz clic en un producto para seleccionarlo · <SearchRounded fontSize="small" sx={{ mr: 0.5, verticalAlign: 'middle' }} />para ver en grande
           </Typography>
           <Button onClick={onClose} color="inherit" variant="outlined" size="small">
             Cerrar

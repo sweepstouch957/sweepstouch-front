@@ -9,6 +9,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText,
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import LinkRoundedIcon from '@mui/icons-material/LinkRounded';
@@ -418,7 +419,7 @@ function AiRecipesPanel({
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
         <Typography sx={{ fontSize: 13, color: autoSaved ? 'success.main' : 'text.secondary',
           display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          {autoSaved && '✅ '}
+          {autoSaved && <CheckCircleRoundedIcon fontSize="small" />}
           {generatingImages
             ? `Generating images… ${imageProgress}/${recipes.length}`
             : autoSaved
@@ -440,7 +441,7 @@ function AiRecipesPanel({
             '&:hover': { background: (t) => `linear-gradient(135deg, ${t.palette.primary.main} 0%, ${t.palette.primary.dark} 100%)` },
           }}
         >
-          {generating ? 'Generating...' : generatingImages ? 'Adding images...' : recipes.length ? 'Regenerate' : '✨ Generate with AI'}
+          {generating ? 'Generating...' : generatingImages ? 'Adding images...' : recipes.length ? 'Regenerate' : 'Generate with AI'}
         </Button>
       </Stack>
 

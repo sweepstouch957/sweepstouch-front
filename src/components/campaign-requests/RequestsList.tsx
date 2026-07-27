@@ -9,7 +9,12 @@ import {
   ListRequestsParams,
 } from '@/services/campaign-request.service';
 import { getStores, Store } from '@/services/store.service';
+import CancelRounded from '@mui/icons-material/CancelRounded';
+import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded';
+import DescriptionRounded from '@mui/icons-material/DescriptionRounded';
+import EditRounded from '@mui/icons-material/EditRounded';
 import FilterListIcon from '@mui/icons-material/FilterList';
+import HourglassEmptyRounded from '@mui/icons-material/HourglassEmptyRounded';
 import ImageIcon from '@mui/icons-material/Image';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
@@ -134,7 +139,7 @@ function RequestRow({ req, onClick }: { req: CampaignRequest; onClick: () => voi
         )}
         {req.specialNotes && (
           <Box sx={{ mt: 0.5, px: 1, py: 0.3, bgcolor: 'warning.lighter', borderRadius: 1, borderLeft: '2px solid', borderColor: 'warning.main' }}>
-            <Typography variant="caption" color="warning.dark" fontWeight={500}>📝 {req.specialNotes}</Typography>
+            <Typography variant="caption" color="warning.dark" fontWeight={500}><DescriptionRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />{req.specialNotes}</Typography>
           </Box>
         )}
       </TableCell>
@@ -197,7 +202,13 @@ function RequestRow({ req, onClick }: { req: CampaignRequest; onClick: () => voi
                 <br />
                 <Typography variant="caption"
                   color={lastProposal.status === 'approved' ? 'success.main' : lastProposal.status === 'rejected' ? 'error.main' : 'text.secondary'}>
-                  {lastProposal.status === 'approved' ? '✅ Aprobada' : lastProposal.status === 'rejected' ? '❌ Rechazada' : '⏳ Pendiente'}
+                  {lastProposal.status === 'approved' ? (
+                    <><CheckCircleRounded fontSize="small" sx={{ mr: 0.5, verticalAlign: 'middle' }} />Aprobada</>
+                  ) : lastProposal.status === 'rejected' ? (
+                    <><CancelRounded fontSize="small" sx={{ mr: 0.5, verticalAlign: 'middle' }} />Rechazada</>
+                  ) : (
+                    <><HourglassEmptyRounded fontSize="small" sx={{ mr: 0.5, verticalAlign: 'middle' }} />Pendiente</>
+                  )}
                 </Typography>
               </Box>
             </Box>
@@ -214,7 +225,7 @@ function RequestRow({ req, onClick }: { req: CampaignRequest; onClick: () => voi
             <Box sx={{ px: 0.75, py: 0.3, bgcolor: 'error.lighter', borderRadius: 0.5, borderLeft: '2px solid', borderColor: 'error.main' }}>
               <Typography variant="caption" color="error.dark"
                 sx={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                ✏️ {lastChange.description}
+                <EditRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />{lastChange.description}
               </Typography>
             </Box>
           )}

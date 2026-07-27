@@ -16,6 +16,8 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import ImageIcon from '@mui/icons-material/Image';
+import BoltRounded from '@mui/icons-material/BoltRounded';
+import Inventory2Rounded from '@mui/icons-material/Inventory2Rounded';
 import { circularService } from '@/services/circular.service';
 
 interface Props {
@@ -185,7 +187,7 @@ export default function FlyerUploader({
                 color="default"
               />
               <Chip
-                label={file.type.includes('pdf') ? '☁️ S3' : '🖼 Cloudinary'}
+                label={file.type.includes('pdf') ? 'S3' : <><ImageIcon fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Cloudinary</>}
                 size="small"
                 color={file.type.includes('pdf') ? 'warning' : 'info'}
                 variant="outlined"
@@ -305,7 +307,7 @@ export default function FlyerUploader({
           sx={{ minWidth: 130 }}
           disabled={!circularId || isExtracting}
         >
-          <MenuItem value={6}>Top 6 ⚡</MenuItem>
+          <MenuItem value={6}>Top 6 <BoltRounded fontSize="small" sx={{ verticalAlign: 'middle' }} /></MenuItem>
           <MenuItem value={10}>Top 10</MenuItem>
           <MenuItem value={15}>Top 15</MenuItem>
           <MenuItem value={20}>Top 20</MenuItem>
@@ -326,7 +328,7 @@ export default function FlyerUploader({
             },
           }}
         >
-          {isExtracting ? 'AI Extracting...' : `🤖 Extract${maxProducts ? ` Top ${maxProducts}` : ' All'}`}
+          {isExtracting ? 'AI Extracting...' : `Extract${maxProducts ? ` Top ${maxProducts}` : ' All'}`}
         </Button>
 
         {extractionStatus === 'completed' && extractedCount > 0 && maxProducts > 0 && (
@@ -337,7 +339,7 @@ export default function FlyerUploader({
             size="small"
             sx={{ textTransform: 'none', borderColor: 'primary.main', color: 'primary.main' }}
           >
-            📦 Load All Products
+            <Inventory2Rounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Load All Products
           </Button>
         )}
       </Stack>

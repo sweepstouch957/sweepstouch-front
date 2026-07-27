@@ -104,7 +104,7 @@ const ADVANCED: ActionDef[] = [
   { label: 'Limpiar Datos',  icon: <DeviceHub sx={{ fontSize: 13 }} />,        action: 'clear-app-data', color: 'warning', confirm: '¿Limpiar datos? Esto eliminará la sesión.' },
   { label: 'WiFi Settings',  icon: <Wifi sx={{ fontSize: 13 }} />,             action: 'open-wifi',      color: 'info' },
   { label: 'Subir Logs',     icon: <SignalCellularAlt sx={{ fontSize: 13 }} />,action: 'upload-logs',    color: 'info' },
-  { label: 'REINICIAR',      icon: <PowerSettingsNew sx={{ fontSize: 13 }} />, action: 'reboot',         color: 'error', confirm: '⚠️ ¿Confirmar REINICIO del dispositivo?', danger: true },
+  { label: 'REINICIAR',      icon: <PowerSettingsNew sx={{ fontSize: 13 }} />, action: 'reboot',         color: 'error', confirm: '¿Confirmar REINICIO del dispositivo?', danger: true },
 ];
 
 const ACTION_LABELS: Partial<Record<DeviceActionName, string>> = {
@@ -945,7 +945,7 @@ const GROUP_ACTIONS: ActionDef[] = [
   { label: 'Pantalla OFF',  icon: <SpeakerNotesOff sx={{ fontSize: 13 }} />,  action: 'screen-off',     color: 'warning' },
   { label: 'Reiniciar App', icon: <Refresh sx={{ fontSize: 13 }} />,          action: 'restart-app',    color: 'warning', confirm: '¿Reiniciar la app kiosko en TODAS las tablets?' },
   { label: 'Limpiar Caché', icon: <LockOpen sx={{ fontSize: 13 }} />,         action: 'clear-cache',    color: 'warning', confirm: '¿Limpiar caché en TODAS las tablets?' },
-  { label: 'REINICIAR',     icon: <PowerSettingsNew sx={{ fontSize: 13 }} />, action: 'reboot',         color: 'error', confirm: '⚠️ ¿Reiniciar (reboot) TODOS los dispositivos?', danger: true },
+  { label: 'REINICIAR',     icon: <PowerSettingsNew sx={{ fontSize: 13 }} />, action: 'reboot',         color: 'error', confirm: '¿Reiniciar (reboot) TODOS los dispositivos?', danger: true },
 ];
 
 function FleetActionsBar({

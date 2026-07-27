@@ -2165,7 +2165,7 @@ export default function AIAssistantPage() {
                   />
                 ))}
                 <Chip
-                  label="🎨 Generate a banner"
+                  label="Generate a banner"
                   variant="outlined"
                   icon={<AutoFixHighRoundedIcon sx={{ fontSize: 13 }} />}
                   onClick={() => {

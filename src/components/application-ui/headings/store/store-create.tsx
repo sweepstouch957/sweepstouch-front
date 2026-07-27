@@ -10,7 +10,6 @@ import {
   QrCodeRounded,
   RocketLaunch,
   SaveRounded,
-  ShieldRounded,
   StoreMallDirectoryRounded,
   VerifiedRounded,
 } from '@mui/icons-material';
@@ -115,7 +114,7 @@ type Props = {
 
 export default function StoreHeader({
   image, address, kioskUrl, qrImageUrl, showQrBadge,
-  edit, saving, name, type, provider, active, verifiedByTwilio,
+  edit, saving, name, type, provider, active,
   onEdit, onSave, onCancel, onNameChange,
 }: Props) {
   const theme = useTheme();
@@ -281,15 +280,6 @@ export default function StoreHeader({
                 label={active ? 'Activa' : 'Inactiva'}
                 sx={{ height: 19, fontSize: 10, fontWeight: 600, '& .MuiChip-label': { px: 0.75 } }}
               />
-              {verifiedByTwilio && (
-                <Chip
-                  size="small"
-                  color="info"
-                  icon={<ShieldRounded style={{ fontSize: 11 }} />}
-                  label="Verificada"
-                  sx={{ height: 19, fontSize: 10, fontWeight: 600, '& .MuiChip-label': { px: 0.75 } }}
-                />
-              )}
             </Stack>
           </Box>
 

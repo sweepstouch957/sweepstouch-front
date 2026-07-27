@@ -1,3 +1,5 @@
+import AutoAwesomeRounded from '@mui/icons-material/AutoAwesomeRounded';
+import BoltRounded from '@mui/icons-material/BoltRounded';
 import ChevronRightTwoToneIcon from '@mui/icons-material/ChevronRightTwoTone';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchTwoToneIcon from '@mui/icons-material/SearchTwoTone';
@@ -304,7 +306,8 @@ export const BasicSpotlightSearch: FC<BasicSpotlightSearchProps> = (props) => {
       {aiMode && (
         <Box sx={{ px: 2, py: 0.5, bgcolor: alpha(accent, 0.04), borderBottom: `1px solid ${alpha(accent, 0.1)}` }}>
           <Typography variant="caption" sx={{ color: accent, fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 }}>
-            🤖 AI Mode: Ask anything or paste meeting notes to create tasks
+            <AutoAwesomeRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />
+            AI Mode: Ask anything or paste meeting notes to create tasks
           </Typography>
         </Box>
       )}
@@ -542,7 +545,8 @@ export const BasicSpotlightSearch: FC<BasicSpotlightSearchProps> = (props) => {
                       bgcolor: 'transparent',
                     }}
                   >
-                    ⚡ Quick navigation
+                    <BoltRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />
+                    Quick navigation
                   </ListSubheader>
                 }
               >

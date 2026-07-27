@@ -25,8 +25,10 @@ import {
   Typography,
   useTheme } from '@mui/material';
 import {
+  BusinessRounded,
   CloseRounded,
   PersonAddRounded,
+  StorefrontRounded,
   VisibilityOffRounded,
   VisibilityRounded,
 } from '@mui/icons-material';
@@ -178,7 +180,7 @@ export default function CreateUserDialog({ open, onClose, onCreated }: CreateUse
             <Box flex={1}>
               <Typography variant="h6" fontWeight={700}>Create New User</Typography>
               <Typography variant="caption" color="text.secondary">
-                {isStaffRole ? '🏢 Staff — Sweepstouch Team' : '🏪 External — Store Operations'}
+                {isStaffRole ? <><BusinessRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Staff — Sweepstouch Team</> : <><StorefrontRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />External — Store Operations</>}
               </Typography>
             </Box>
             <IconButton size="small" onClick={handleClose} disabled={saving}>
@@ -248,7 +250,7 @@ export default function CreateUserDialog({ open, onClose, onCreated }: CreateUse
                   }}
                 >
                   <ListSubheader sx={{ fontWeight: 700, fontSize: 11, letterSpacing: 1, color: 'primary.main', bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
-                    🏢 STAFF: SWEEPSTOUCH TEAM
+                    <BusinessRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />STAFF: SWEEPSTOUCH TEAM
                   </ListSubheader>
                   {STAFF_ROLES.map((r) => (
                     <MenuItem key={r.value} value={r.value}>
@@ -259,7 +261,7 @@ export default function CreateUserDialog({ open, onClose, onCreated }: CreateUse
                     </MenuItem>
                   ))}
                   <ListSubheader sx={{ fontWeight: 700, fontSize: 11, letterSpacing: 1, color: 'warning.main', bgcolor: alpha(theme.palette.warning.main, 0.04) }}>
-                    🏪 EXTERNAL: STORE OPERATIONS
+                    <StorefrontRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />EXTERNAL: STORE OPERATIONS
                   </ListSubheader>
                   {EXTERNAL_ROLES.map((r) => (
                     <MenuItem key={r.value} value={r.value}>

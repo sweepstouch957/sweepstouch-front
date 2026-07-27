@@ -23,6 +23,7 @@ import {
   SettingsBackupRestoreRounded,
   PreviewRounded,
   CheckCircleOutlineRounded,
+  CheckCircleRounded,
 } from '@mui/icons-material';
 import { customerClient } from '@/services/customerService';
 
@@ -298,7 +299,7 @@ export default function ReactivarPhonesModal({
 
             {previewResult.recoverableCount === 0 && (
               <Alert severity="success" sx={{ borderRadius: 2 }}>
-                ✅ Requerimiento no necesario. No se encontraron números recuperables entre los inactivos.
+                <CheckCircleRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Requerimiento no necesario. No se encontraron números recuperables entre los inactivos.
               </Alert>
             )}
 

@@ -18,6 +18,8 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import EditIcon from '@mui/icons-material/Edit';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
+import Inventory2Rounded from '@mui/icons-material/Inventory2Rounded';
+import WarningAmberRounded from '@mui/icons-material/WarningAmberRounded';
 import { useCustomerSearch, useMmsSend } from '@/hooks/useMmsTest';
 import { tint, tintBorder, type SemanticRole } from 'src/theme/semantic';
 
@@ -206,9 +208,9 @@ export default function TestMmsShoppingListModal({
       }}>
         <QrCodeIcon sx={{ color: 'primary.main' }} />
         <Typography variant="h6" fontWeight={700} sx={{ flex: 1 }}>
-          {step === 'select' ? '📱 Test MMS — Select Customer' :
-           step === 'compose' ? '✨ AI Message Ready — Review & Send' :
-           '✅ Message Sent!'}
+          {step === 'select' ? <><PhoneIphoneRoundedIcon fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Test MMS — Select Customer</> :
+           step === 'compose' ? <><AutoAwesomeIcon fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />AI Message Ready — Review & Send</> :
+           <><CheckCircleIcon fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Message Sent!</>}
         </Typography>
         {step === 'compose' && (
           <Chip label={products.length + ' items'} size="small"
@@ -274,7 +276,7 @@ export default function TestMmsShoppingListModal({
 
             {customerSearch.selected && (
               <Alert severity="success" variant="outlined" icon={<PhoneIphoneRoundedIcon />} sx={{ fontSize: 13 }}>
-                📦 Will create a shopping list with {products.length} products: {productSummary}
+                <Inventory2Rounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Will create a shopping list with {products.length} products: {productSummary}
               </Alert>
             )}
 
@@ -376,8 +378,8 @@ export default function TestMmsShoppingListModal({
             {/* Recipient */}
             <Alert severity="success" variant="outlined" icon={<PhoneIphoneRoundedIcon />} sx={{ fontSize: 13 }}>
               Will send to: <strong>{customerSearch.selected?.phoneNumber}</strong> ({customerSearch.selected?.firstName || 'Unknown'})
-              {effectiveImage && <><br />📎 MMS with image attached</>}
-              {circularIsPdf && !mmsImageFile && <><br />⚠️ No image uploaded; will send as SMS only</>}
+              {effectiveImage && <><br />MMS with image attached</>}
+              {circularIsPdf && !mmsImageFile && <><br /><WarningAmberRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />No image uploaded; will send as SMS only</>}
             </Alert>
 
             {mmsSend.error && <Alert severity="error">{mmsSend.error}</Alert>}
@@ -469,7 +471,7 @@ export default function TestMmsShoppingListModal({
         )}
         {step === 'compose' && (
           <>
-            <Button onClick={() => setStep('select')} color="inherit">← Back</Button>
+            <Button onClick={() => setStep('select')} color="inherit">Back</Button>
             <Button
               onClick={handleSend}
               variant="contained"

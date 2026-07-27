@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import Map, { Marker, NavigationControl } from 'react-map-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Box, Typography, CircularProgress } from '@mui/material';
+import LocationOnRounded from '@mui/icons-material/LocationOnRounded';
 import MapIcon from '@mui/icons-material/Map';
 import { geocodeAddress } from '@/services/geocoding.service';
 
@@ -96,7 +97,7 @@ export default function LocationPickerMap({
                   filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.4))'
                 }}
               >
-                📍
+                <LocationOnRounded fontSize="small" />
               </Box>
             </Marker>
           )}

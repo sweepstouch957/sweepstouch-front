@@ -3,10 +3,13 @@
 
 import { copyToClipboard } from '@/utils/ui/store.page';
 import {
+  CancelRounded,
   CheckCircleOutlineRounded,
+  CheckCircleRounded,
   ContentCopyRounded,
   DevicesRounded,
   EventNoteRounded,
+  Inventory2Rounded,
   OpenInNewRounded,
   TabletAndroidRounded,
 } from '@mui/icons-material';
@@ -28,7 +31,7 @@ import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { format, parseISO } from 'date-fns';
 import esLocale from 'date-fns/locale/es';
-import { useState } from 'react';
+import { useState, type ReactElement } from 'react';
 
 type Props = {
   kioskUrl: string;
@@ -55,10 +58,10 @@ const toDate = (value?: string | null) => {
   }
 };
 
-const STATUS_CONFIG: Record<string, { label: string; color: 'success' | 'error' | 'default'; emoji: string }> = {
-  instalada:    { label: 'Instalada',    color: 'success', emoji: '✅' },
-  desinstalada: { label: 'Desinstalada', color: 'error',   emoji: '❌' },
-  sin_instalar: { label: 'Sin instalar', color: 'default', emoji: '📦' },
+const STATUS_CONFIG: Record<string, { label: string; color: 'success' | 'error' | 'default'; icon: ReactElement }> = {
+  instalada:    { label: 'Instalada',    color: 'success', icon: <CheckCircleRounded sx={{ fontSize: 16 }} /> },
+  desinstalada: { label: 'Desinstalada', color: 'error',   icon: <CancelRounded sx={{ fontSize: 16 }} /> },
+  sin_instalar: { label: 'Sin instalar', color: 'default', icon: <Inventory2Rounded sx={{ fontSize: 16 }} /> },
 };
 
 export default function StoreKioskCard({ kioskUrl, storeId, edit, form, setForm }: Props) {
@@ -113,7 +116,8 @@ export default function StoreKioskCard({ kioskUrl, storeId, edit, form, setForm 
 
         <Chip
           size="small"
-          label={`${statusCfg.emoji} ${statusCfg.label}`}
+          icon={statusCfg.icon}
+          label={statusCfg.label}
           color={statusCfg.color}
           variant="outlined"
           sx={{ fontWeight: 600 }}
@@ -148,9 +152,9 @@ export default function StoreKioskCard({ kioskUrl, storeId, edit, form, setForm 
           }}
           sx={{ mb: 2 }}
         >
-          <MenuItem value="instalada">✅ Instalada</MenuItem>
-          <MenuItem value="desinstalada">❌ Desinstalada</MenuItem>
-          <MenuItem value="sin_instalar">📦 Sin Instalar</MenuItem>
+          <MenuItem value="instalada"><CheckCircleRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Instalada</MenuItem>
+          <MenuItem value="desinstalada"><CancelRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Desinstalada</MenuItem>
+          <MenuItem value="sin_instalar"><Inventory2Rounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Sin Instalar</MenuItem>
         </TextField>
 
         {/* Date + Quantity (only if installed/uninstalled) */}

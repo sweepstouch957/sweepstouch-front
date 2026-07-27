@@ -4,6 +4,7 @@ import { billingService } from '@/services/billing.service';
 import { useStoreSearch } from '@/hooks/fetching/stores/useStoreSearch';
 import { getStores, type Store } from '@/services/store.service';
 import AutorenewOutlinedIcon from '@mui/icons-material/AutorenewOutlined';
+import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
 import ErrorOutlineOutlinedIcon from '@mui/icons-material/ErrorOutlineOutlined';
 import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutlined';
@@ -252,7 +253,7 @@ export default function BulkPaymentsImportCard() {
   const dropHint = useMemo(() => {
     if (isImporting) return 'Importing… please wait';
     if (file) return `${file.name} • ${(file.size / 1024 / 1024).toFixed(2)} MB`;
-    if (isDragActive) return 'Drop it here 👇';
+    if (isDragActive) return 'Drop it here';
     return 'Only .xlsx/.xls. Tip: include columns like Slug, Open balance, Due date, Num, Memo/Description.';
   }, [file, isDragActive, isImporting]);
 
@@ -603,7 +604,7 @@ export default function BulkPaymentsImportCard() {
                 sx={{ borderRadius: 3 }}
               >
                 <Stack spacing={0.75}>
-                  <Typography sx={{ fontWeight: 900 }}>Import completed ✅</Typography>
+                  <Typography sx={{ fontWeight: 900 }}>Import completed <CheckCircleRoundedIcon fontSize="small" sx={{ ml: 0.5, verticalAlign: 'middle' }} /></Typography>
 
                   <Stack
                     direction="row"
