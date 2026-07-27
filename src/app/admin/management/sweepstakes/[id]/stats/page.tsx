@@ -78,16 +78,17 @@ interface StoreCardProps {
   total: number;
 }
 
+// Pure helper — no component-local deps, allocated once at module scope
+const getAvatar = (img: string) => {
+  if (!img || img === 'no-image.jpg' || img === 'n/a') return undefined;
+  if (img.startsWith('http') || img.startsWith('data:')) return img;
+  return `${process.env.NEXT_PUBLIC_API_URL}/files/images/${img}`;
+};
+
 const StoreCard: FC<StoreCardProps> = ({ store, rank, color, total }) => {
   const theme = useTheme();
   const pct = total > 0 ? (store.totalParticipations / total) * 100 : 0;
   const isDark = theme.palette.mode === 'dark';
-
-  const getAvatar = (img: string) => {
-    if (!img || img === 'no-image.jpg' || img === 'n/a') return undefined;
-    if (img.startsWith('http') || img.startsWith('data:')) return img;
-    return `${process.env.NEXT_PUBLIC_API_URL}/files/images/${img}`;
-  };
 
   return (
     <Card

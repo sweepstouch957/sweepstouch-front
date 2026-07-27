@@ -312,8 +312,8 @@ export default function StoreOptinPanel({ storeId }: { storeId: string }) {
           </Stack>
 
           <Stack direction="row" alignItems="flex-end" spacing={1}>
-            {trendData.map((m, i) => (
-              <TrendBar key={i} sent={m.sent} skipped={m.skipped} maxSent={maxSent} label={m.label} cost={m.cost} loading={m.loading} />
+            {trendData.map((m) => (
+              <TrendBar key={m.label} sent={m.sent} skipped={m.skipped} maxSent={maxSent} label={m.label} cost={m.cost} loading={m.loading} />
             ))}
           </Stack>
         </Box>

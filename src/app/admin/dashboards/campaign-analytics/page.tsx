@@ -94,6 +94,13 @@ function ChartCard({ title, icon, children, empty }: { title: string; icon: Reac
 
 const MERCHANT_URL = 'https://merchant.sweepstouch.com';
 
+// Normaliza una URL pegada (agrega https:// si falta) — sin estado de componente.
+const normalize = (u: string) => {
+  const s = u.trim();
+  if (!s) return '';
+  return /^https?:\/\//i.test(s) ? s : `https://${s}`;
+};
+
 /* ─────────────────────────────────────────────────────────────────────────
    Store picker — un buscador que maneja todas las tiendas
    ───────────────────────────────────────────────────────────────────────── */
@@ -358,12 +365,6 @@ function CustomerFront({ store, filters }: { store: Store | null; filters: Analy
   const purchasedTop = (products.data?.purchased || []).slice(0, 8);
   const prodLabels = purchasedTop.map((p) => p.product.length > 16 ? `${p.product.slice(0, 15)}…` : p.product);
   const prodValues = purchasedTop.map((p) => p.timesPurchased ?? p.timesSelected ?? 0);
-
-  const normalize = (u: string) => {
-    const s = u.trim();
-    if (!s) return '';
-    return /^https?:\/\//i.test(s) ? s : `https://${s}`;
-  };
 
   const topCustomers = (customers.data || []).slice(0, 6);
   const links = shortlinks.data?.links || [];

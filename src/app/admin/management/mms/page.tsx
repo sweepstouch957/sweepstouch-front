@@ -308,7 +308,7 @@ function RecipeCard({
         {showProc && recipe.procedure?.length > 0 && (
           <Box sx={{ mt: 0.5 }}>
             {recipe.procedure.map((step, i) => (
-              <Typography key={i} sx={{ fontSize: 11, color: 'text.secondary', mb: 0.5, display: 'flex', gap: 0.5 }}>
+              <Typography key={step} sx={{ fontSize: 11, color: 'text.secondary', mb: 0.5, display: 'flex', gap: 0.5 }}>
                 <span style={{ fontWeight: 700, flexShrink: 0 }}>{i + 1}.</span>
                 {step}
               </Typography>
@@ -450,7 +450,7 @@ function AiRecipesPanel({
       {recipes.length > 0 && (
         <Grid container spacing={1.5}>
           {recipes.map((r, i) => (
-            <Grid item xs={12} sm={6} key={i}>
+            <Grid item xs={12} sm={6} key={r.name}>
               <RecipeCard
                 recipe={r}
                 onRemove={() => onChange(recipes.filter((_, j) => j !== i))}

@@ -31,16 +31,18 @@ interface AssignDepartmentDialogProps {
   onUpdated?: () => void;
 }
 
+// Extracts a department id from a user in any of its shapes; pure, hoisted to module scope.
+const normalizeDeptId = (u: any): string | null => {
+  if (!u) return null;
+  if (u.departmentId && typeof u.departmentId === 'string') return u.departmentId;
+  if (u.department?._id) return u.department._id;
+  if (u.departmentId?._id) return u.departmentId._id;
+  return null;
+};
+
 const AssignDepartmentDialog: FC<AssignDepartmentDialogProps> = ({ open, onClose, user, onUpdated }) => {
   const theme = useTheme();
   const queryClient = useQueryClient();
-  const normalizeDeptId = (u: any): string | null => {
-    if (!u) return null;
-    if (u.departmentId && typeof u.departmentId === 'string') return u.departmentId;
-    if (u.department?._id) return u.department._id;
-    if (u.departmentId?._id) return u.departmentId._id;
-    return null;
-  };
 
   const [selected, setSelected] = useState<string | null>(normalizeDeptId(user));
 

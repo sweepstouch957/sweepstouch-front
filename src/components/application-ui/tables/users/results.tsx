@@ -229,6 +229,9 @@ const StatsRow: FC<{ users: User[]; roleCounts: Record<string, number> }> = ({
   );
 };
 
+// Static role ordering — allocated once at module scope
+const ROLE_ORDER = ['admin', 'merchant_manager', 'merchant', 'promotor_owner', 'promotor', 'general_manager', 'cashier', 'marketing'];
+
 // ---------- Main ----------
 const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment, onDeleteUser }) => {
   const [selectedItems, setSelectedUsers] = useState<string[]>([]);
@@ -251,8 +254,6 @@ const Results: FC<ResultsProps> = ({ users, onEditUser, onAssignDepartment, onDe
     });
     return acc;
   }, [users]);
-
-  const ROLE_ORDER = ['admin', 'merchant_manager', 'merchant', 'promotor_owner', 'promotor', 'general_manager', 'cashier', 'marketing'];
 
   const tabs: UITabItem[] = useMemo(() => {
     const unknownAfter = Object.keys(roleCounts).filter((k) => !ROLE_ORDER.includes(k));

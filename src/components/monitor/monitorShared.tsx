@@ -127,5 +127,6 @@ export function SectionCard({
 }
 
 /* Formato moneda desde centavos */
-export const centsToUsd = (c?: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format((c || 0) / 100);
+// Formateador USD reutilizable (locale + opciones literales)
+const usdFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+export const centsToUsd = (c?: number) => usdFmt.format((c || 0) / 100);

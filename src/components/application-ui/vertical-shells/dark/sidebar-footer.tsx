@@ -46,17 +46,18 @@ import { authClient } from 'src/utils/auth/custom/client';
 
 import AccountCircleTwoToneIcon from '@mui/icons-material/AccountCircleTwoTone';
 
+// Cierra la sesión — sin dependencias del componente
+const handleLogout = async () => {
+  try {
+    await authClient.signOut();
+    window.location.href = '/auth/custom/login';
+  } catch (error) {
+    console.error('Logout error:', error);
+  }
+};
+
 const SidebarFooter: FC = () => {
   const { push } = useRouter();
-  
-  const handleLogout = async () => {
-    try {
-      await authClient.signOut();
-      window.location.href = '/auth/custom/login';
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
 
   return (
     <Stack

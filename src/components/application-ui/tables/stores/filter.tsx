@@ -45,6 +45,11 @@ const STATUS_LABELS: Record<StoreStatusFilter, string> = {
   cancelled: 'Canceladas',
 };
 
+// Estilo estático de los selects — sin dependencias del componente
+const selectSx = {
+  '& .MuiOutlinedInput-root': { height: 36, fontSize: 13, borderRadius: 2 },
+} as const;
+
 function useAISuggestion(
   query: string,
   hasResults: boolean,
@@ -214,10 +219,6 @@ export default function StoreFilters({
     onMinDebtChange('');
     onMaxDebtChange('');
   };
-
-  const selectSx = {
-    '& .MuiOutlinedInput-root': { height: 36, fontSize: 13, borderRadius: 2 },
-  } as const;
 
   return (
     <Box

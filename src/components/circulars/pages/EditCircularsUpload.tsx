@@ -33,6 +33,15 @@ import { FileUploader } from '../FileUploader';
 import { StatusBadge } from '../StatusBadge';
 import { mockCirculars, mockUploadedFiles } from '../../../data/circularsData';
 
+// Instrucciones estáticas de la página — fuera del componente.
+const instructionsContent = [
+  'Upload PDF files using the drag-and-drop area above (maximum 10MB per file)',
+  'Set start and end dates for each store\'s circular schedule',
+  'Dates are locked once saved unless manually edited',
+  'All stores must have both start and end dates before saving',
+  'Use the trash icon to delete scheduled circulars that haven\'t been locked',
+];
+
 const EditCircularsUpload: React.FC = () => {
   const [showInstructions, setShowInstructions] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState(mockUploadedFiles);
@@ -51,14 +60,6 @@ const EditCircularsUpload: React.FC = () => {
   const handleFileDelete = (fileId: string) => {
     setUploadedFiles(prev => prev.filter(file => file.id !== fileId));
   };
-
-  const instructionsContent = [
-    'Upload PDF files using the drag-and-drop area above (maximum 10MB per file)',
-    'Set start and end dates for each store\'s circular schedule',
-    'Dates are locked once saved unless manually edited',
-    'All stores must have both start and end dates before saving',
-    'Use the trash icon to delete scheduled circulars that haven\'t been locked',
-  ];
 
   return (
     <Box sx={{
@@ -244,8 +245,8 @@ const EditCircularsUpload: React.FC = () => {
           </Box>
           
           <List>
-            {instructionsContent.map((instruction, index) => (
-              <ListItem key={index} sx={{ px: 0, py: 1 }}>
+            {instructionsContent.map((instruction) => (
+              <ListItem key={instruction} sx={{ px: 0, py: 1 }}>
                 <ListItemText
                   primary={`• ${instruction}`}
                   primaryTypographyProps={{

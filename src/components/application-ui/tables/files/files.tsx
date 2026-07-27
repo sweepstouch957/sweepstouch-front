@@ -40,6 +40,19 @@ interface SortConfig {
   direction: 'ascending' | 'descending';
 }
 
+// Ordenamiento puro de filas — sin estado de componente.
+const sortData = (data: TableRowData[], config: SortConfig): TableRowData[] => {
+  return [...data].sort((a, b) => {
+    if (a[config.key] < b[config.key]) {
+      return config.direction === 'ascending' ? -1 : 1;
+    }
+    if (a[config.key] > b[config.key]) {
+      return config.direction === 'ascending' ? 1 : -1;
+    }
+    return 0;
+  });
+};
+
 const Component = () => {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -47,18 +60,6 @@ const Component = () => {
     key: 'dateCreated',
     direction: 'ascending',
   });
-
-  const sortData = (data: TableRowData[], config: SortConfig): TableRowData[] => {
-    return [...data].sort((a, b) => {
-      if (a[config.key] < b[config.key]) {
-        return config.direction === 'ascending' ? -1 : 1;
-      }
-      if (a[config.key] > b[config.key]) {
-        return config.direction === 'ascending' ? 1 : -1;
-      }
-      return 0;
-    });
-  };
 
   const requestSort = (key: keyof TableRowData) => {
     let direction = 'ascending';

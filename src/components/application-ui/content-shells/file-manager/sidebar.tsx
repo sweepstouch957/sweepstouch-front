@@ -49,15 +49,16 @@ interface FileManagerSidebarProps {
   open?: boolean;
 }
 
+// Datos estáticos del widget de almacenamiento — fuera del componente.
+const data = {
+  percentage: 68.45,
+};
+
 export const FileManagerSidebar: FC<FileManagerSidebarProps> = (props) => {
   const { parentContainer, onClose, onOpen, open, ...other } = props;
   const { t } = useTranslation();
   const lgUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('lg'));
   const theme = useTheme();
-
-  const data = {
-    percentage: 68.45,
-  };
 
   const sidebarContent = (
     <Stack

@@ -73,6 +73,9 @@ const STATUS_CONFIG: Record<string, { label: string; color: 'success' | 'error' 
   unknown    : { label: 'Desconocido', color: 'default', icon: <HelpOutline  sx={{ fontSize: 14 }} /> },
 };
 
+// ── Status filter chips ───────────────────────────────────────────────────────
+const statuses = ['all', 'delivered', 'pending', 'failed', 'no_sms'];
+
 // ── Summary card ──────────────────────────────────────────────────────────────
 
 function SummaryCard({ label, value, pct, color }: { label: string; value: number; pct?: number; color: string }) {
@@ -275,9 +278,6 @@ export default function PromoterSmsAuditPanel({ promoterId, promoterName, startD
     utils.book_append_sheet(wb, detailSheet,  'Detalle');
     writeFile(wb, `sms_audit_promotora_${safeName}_${dateLabel}.xlsx`);
   };
-
-  // ── Status filter chips ───────────────────────────────────────────────────
-  const statuses = ['all', 'delivered', 'pending', 'failed', 'no_sms'];
 
   if (isLoading) {
     return (

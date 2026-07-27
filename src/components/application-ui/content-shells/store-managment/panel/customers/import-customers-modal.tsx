@@ -161,7 +161,7 @@ export const ImportCustomersModal: FC<ImportCustomersModalProps> = ({
                 >
                   <List dense disablePadding>
                     {results.errors.map((err, index) => (
-                      <ListItem key={index} sx={{ borderBottom: index < results.errors.length - 1 ? '1px solid' : 'none', borderColor: 'divider' }}>
+                      <ListItem key={`${err.row}-${err.reason}`} sx={{ borderBottom: index < results.errors.length - 1 ? '1px solid' : 'none', borderColor: 'divider' }}>
                         <ListItemText
                           primary={`Fila ${err.row}: ${err.reason}`}
                           primaryTypographyProps={{ color: 'error', variant: 'body2' }}

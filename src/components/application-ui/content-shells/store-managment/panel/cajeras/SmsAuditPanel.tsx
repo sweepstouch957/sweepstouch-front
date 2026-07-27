@@ -104,6 +104,9 @@ function SummaryCard({ label, value, pct, color }: { label: string; value: numbe
 
 // ── Main component ────────────────────────────────────────────────────────────
 
+// ── Status filter chips — allocated once at module scope ──────────────────────
+const statuses = ['all', 'delivered', 'pending', 'failed', 'no_sms'];
+
 export default function SmsAuditPanel({ storeId, startDate, endDate }: Props) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -216,9 +219,6 @@ export default function SmsAuditPanel({ storeId, startDate, endDate }: Props) {
     utils.book_append_sheet(wb, detailSheet,  'Detalle');
     writeFile(wb, `sms_audit_${dateLabel}.xlsx`);
   };
-
-  // ── Status filter chips ───────────────────────────────────────────────────
-  const statuses = ['all', 'delivered', 'pending', 'failed', 'no_sms'];
 
   if (isLoading) {
     return (

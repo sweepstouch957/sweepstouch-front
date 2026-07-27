@@ -8,13 +8,15 @@ import ProjectsListing from 'src/components/application-ui/tables/projects/proje
 import PageHeading from 'src/components/base/page-heading';
 import { useCustomization } from 'src/hooks/use-customization';
 
+// Metadata estática de la página
+const pageMeta = {
+  title: 'Projects',
+  description: 'Overview of projects',
+};
+
 function Page(): React.JSX.Element {
   const customization = useCustomization();
   const { t } = useTranslation();
-  const pageMeta = {
-    title: 'Projects',
-    description: 'Overview of projects',
-  };
   return (
     <>
       {pageMeta.title && (

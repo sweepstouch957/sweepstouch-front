@@ -38,19 +38,31 @@ import {
 import * as React from 'react';
 
 /* ---------------- helpers ---------------- */
+// Intl instance allocated once at module scope (literal locale + options)
+const dateTimeFmt = new Intl.DateTimeFormat(undefined, {
+  year: '2-digit',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
 const formatDateTime = (iso?: string) => {
   if (!iso) return '-';
   try {
     const d = new Date(iso);
-    return new Intl.DateTimeFormat(undefined, {
-      year: '2-digit',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(d);
+    return dateTimeFmt.format(d);
   } catch {
     return iso;
+  }
+};
+
+// Pure helper — closes over only the `navigator` global, allocated once at module scope
+const copy = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    /* no-op */
   }
 };
 
@@ -183,14 +195,6 @@ const CampaignLogsModal: React.FC<Props> = ({
   const response = data as CampaignLogsResponse | undefined;
   const totalPages = response?.totalPages ?? 1;
   const rows = response?.data ?? [];
-
-  const copy = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      /* no-op */
-    }
-  };
 
   /* --------- exportar TODAS las filas según filtros vigentes --------- */
   const exportAllLogs = async () => {

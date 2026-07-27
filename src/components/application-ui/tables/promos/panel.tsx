@@ -93,6 +93,12 @@ const StatCard = ({ label, value, icon, color, loading }: StatCardProps) => (
   </Card>
 );
 
+// Static demo stores; no component state, hoisted to module scope.
+const stores = [
+  { _id: 't1', name: 'Tienda Principal', logo: 'https://via.placeholder.com/50' },
+  { _id: 't2', name: 'Sucursal Norte', logo: 'https://via.placeholder.com/50' },
+];
+
 export const PromoDashboard = ({ storeId }: PromoDashboardProps) => {
   const customization = useCustomization();
   const { t } = useTranslation();
@@ -144,11 +150,6 @@ export const PromoDashboard = ({ storeId }: PromoDashboardProps) => {
       alert(t('There was an error deleting the promotion.'));
     }
   };
-
-  const stores = [
-    { _id: 't1', name: 'Tienda Principal', logo: 'https://via.placeholder.com/50' },
-    { _id: 't2', name: 'Sucursal Norte', logo: 'https://via.placeholder.com/50' },
-  ];
 
   const handleChangePage = (page: number) => setFilters((prev) => ({ ...prev, page }));
   const handleChangeLimit = (limit: number) => setFilters({ page: 1, limit });

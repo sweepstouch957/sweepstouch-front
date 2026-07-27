@@ -9,14 +9,16 @@ import { useTranslation } from 'react-i18next';
 import PageHeading from 'src/components/base/page-heading';
 import { useCustomization } from 'src/hooks/use-customization';
 
+// Static page metadata — no component state, safe at module scope.
+const pageMeta = {
+  title: 'Sweepstakes',
+  description: 'Manage and monitor sweepstakes',
+  icon: <FileDownloadOutlinedIcon />,
+};
+
 function Page(): React.JSX.Element {
   const customization = useCustomization();
   const { t } = useTranslation();
-  const pageMeta = {
-    title: 'Sweepstakes',
-    description: 'Manage and monitor sweepstakes',
-    icon: <FileDownloadOutlinedIcon />,
-  };
   return (
     <>
       {pageMeta.title && (

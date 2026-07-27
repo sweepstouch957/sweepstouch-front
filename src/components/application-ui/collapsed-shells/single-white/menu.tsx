@@ -170,9 +170,9 @@ const MenuItemComponent: FC<{
                 {...commonProps}
                 sx={{ minWidth: 240, maxWidth: 320, p: 2 }}
               >
-                {item.subMenu.map((subItem, index) => (
+                {item.subMenu.map((subItem) => (
                   <MenuItemComponent
-                    key={index}
+                    key={subItem.title}
                     item={subItem}
                     isSub
                   />
@@ -217,9 +217,9 @@ export const NavMenu: React.FC<NavMenuProps> = ({ menuItems }) => {
           spacing={1}
           alignItems="center"
         >
-          {menuItems.map((item, index) => (
+          {menuItems.map((item) => (
             <MenuItemComponent
-              key={index}
+              key={item.title}
               item={item}
             />
           ))}

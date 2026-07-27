@@ -33,6 +33,9 @@ import {
 import { format } from 'date-fns';
 import es from 'date-fns/locale/es';
 
+// Formateador de moneda reutilizable — evita reconstruir Intl en cada render.
+const usdFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
 const STATUS_CONFIG: Record<
   string,
   { label: string; color: 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' }
@@ -233,8 +236,7 @@ const MobileShiftCarousel = ({
   deleteModalOpen = false,
   sweepstakes,
 }: MobileShiftCarouselProps) => {
-  const defaultUsd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
-  const formatter = usd ?? defaultUsd;
+  const formatter = usd ?? usdFmt;
 
   return (
     <Box>

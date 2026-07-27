@@ -159,18 +159,19 @@ interface StoreMiniCardProps {
   onNavigate: (sweepId: string, storeId: string) => void;
 }
 
+// Resolve a store image URL (env-based, no component state)
+const resolveImg = (img: string) => {
+  if (!img || img === 'no-image.jpg' || img === 'n/a') return undefined;
+  if (img.startsWith('http') || img.startsWith('data:')) return img;
+  return `${process.env.NEXT_PUBLIC_API_URL}/files/images/${img}`;
+};
+
 function StoreMiniCard({ store, rank, sweepId, onNavigate }: StoreMiniCardProps) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const rankPalette = chartPalette(theme);
   const color = rankPalette[rank % rankPalette.length];
   const isTop3 = rank < 3;
-
-  const resolveImg = (img: string) => {
-    if (!img || img === 'no-image.jpg' || img === 'n/a') return undefined;
-    if (img.startsWith('http') || img.startsWith('data:')) return img;
-    return `${process.env.NEXT_PUBLIC_API_URL}/files/images/${img}`;
-  };
 
   return (
     <Card

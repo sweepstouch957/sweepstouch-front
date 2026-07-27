@@ -166,6 +166,14 @@ function SplitFooter(props: { senders: number; non: number; sp: number; np: numb
   );
 }
 
+// Oculta el legend interno de x-charts (porque hacemos el nuestro).
+// No usa estado del componente; hoisted a module scope.
+const hideInternalLegendSx = {
+  '& .MuiChartsLegend-root': { display: 'none !important' },
+  '& .MuiChartsLegend-series': { display: 'none !important' },
+  '& .MuiChartsLegend-label': { display: 'none !important' },
+} as const;
+
 /* ============================== Main ============================== */
 export function AudienceCharts(props: Props) {
   const { summary, weekly, loading, weeklyError } = props;
@@ -174,13 +182,6 @@ export function AudienceCharts(props: Props) {
 
   const cSenders = theme.palette.primary.main;
   const cNon = theme.palette.warning.main;
-
-  // Oculta el legend interno de x-charts (porque hacemos el nuestro)
-  const hideInternalLegendSx = {
-    '& .MuiChartsLegend-root': { display: 'none !important' },
-    '& .MuiChartsLegend-series': { display: 'none !important' },
-    '& .MuiChartsLegend-label': { display: 'none !important' },
-  } as const;
 
   /* ----------------------------- Donut dataset ---------------------------- */
   const donut = useMemo(() => {

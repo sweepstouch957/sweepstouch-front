@@ -53,6 +53,10 @@ function n(v?: number) {
   return Number.isFinite(v as number) ? (v as number) : 0;
 }
 
+// Formatea valores para la tabla — sin estado de componente.
+const formatInt = (v: any) =>
+  typeof v === 'number' ? v.toLocaleString() : typeof v === 'string' ? v : '—';
+
 function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSectionProps) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -313,9 +317,6 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
   for (let y = 2025; y <= currentYearForSelect; y += 1) {
     years.push(y);
   }
-
-  const formatInt = (v: any) =>
-    typeof v === 'number' ? v.toLocaleString() : typeof v === 'string' ? v : '—';
 
   const chartAxisSx = {
     '.MuiBarElement-root': {

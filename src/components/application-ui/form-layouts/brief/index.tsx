@@ -343,6 +343,19 @@ const DEFAULT_SECONDARY_COLOR = '#C1121F';
 
 const stripHtml = (value?: string) => value?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
+// Pure data-fetch helper; closes over no component state, hoisted to module scope.
+const getExistingSweepstakeImageReferences = async () => {
+  try {
+    const existingSweepstakes = await sweepstakesClient.getSweepstakes();
+    return existingSweepstakes
+      .filter((sw) => sw.image?.includes('res.cloudinary.com'))
+      .slice(0, 5)
+      .map((sw) => `${sw.name}: ${sw.image}`);
+  } catch {
+    return [];
+  }
+};
+
 export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
@@ -423,18 +436,6 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
     () => selectedIds.map((id) => prizes.find((p) => p._id === id)).filter(Boolean) as Prize[],
     [selectedIds, prizes]
   );
-
-  const getExistingSweepstakeImageReferences = async () => {
-    try {
-      const existingSweepstakes = await sweepstakesClient.getSweepstakes();
-      return existingSweepstakes
-        .filter((sw) => sw.image?.includes('res.cloudinary.com'))
-        .slice(0, 5)
-        .map((sw) => `${sw.name}: ${sw.image}`);
-    } catch {
-      return [];
-    }
-  };
 
   const handleGenerateMainImage = async () => {
     const values = getValues();

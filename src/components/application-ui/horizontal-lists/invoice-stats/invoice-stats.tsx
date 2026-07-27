@@ -24,15 +24,16 @@ const DotPending = styled('span')(
 `
 );
 
+// Datos estáticos del ejemplo — sin dependencias del componente
+const data = {
+  currency: '$',
+  totalReceived: '78593',
+  drafts: '16859',
+  pending: '5748',
+};
+
 function InvoiceStats() {
   const { t } = useTranslation();
-
-  const data = {
-    currency: '$',
-    totalReceived: '78593',
-    drafts: '16859',
-    pending: '5748',
-  };
 
   return (
     <Grid

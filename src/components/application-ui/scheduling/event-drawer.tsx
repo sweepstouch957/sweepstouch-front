@@ -99,6 +99,22 @@ function formatTimeWithMeridiem(timeValue?: string) {
     return `${toTwelveHourTime(timeValue)} ${getMeridiem(timeValue)}`;
 }
 
+// Un enlace/CTA está deshabilitado si la fecha objetivo ya pasó (no depende de estado)
+function isLinkDisabled(dateStr: string, timeStr: string) {
+    if (!dateStr) return true;
+    try {
+        const rawDate = dateStr.split('T')[0];
+        const datetimeStr = timeStr === 'N/A' ? rawDate : `${rawDate}T${timeStr}`;
+        const targetDate = timeStr === 'N/A'
+            ? parseLocalDate(rawDate) || new Date(rawDate)
+            : new Date(datetimeStr);
+        if (isToday(targetDate)) return false;
+        return isPast(targetDate);
+    } catch {
+        return false;
+    }
+}
+
 const EventDrawer: React.FC<EventDrawerProps> = ({ event, onClose, onReschedule, rescheduling = false }) => {
     const theme = useTheme();
     const [isRescheduling, setIsRescheduling] = useState(false);
@@ -164,21 +180,6 @@ const EventDrawer: React.FC<EventDrawerProps> = ({ event, onClose, onReschedule,
         });
         setIsRescheduling(false);
         setRescheduleError('');
-    };
-
-    const isLinkDisabled = (dateStr: string, timeStr: string) => {
-        if (!dateStr) return true;
-        try {
-            const rawDate = dateStr.split('T')[0];
-            const datetimeStr = timeStr === 'N/A' ? rawDate : `${rawDate}T${timeStr}`;
-            const targetDate = timeStr === 'N/A'
-                ? parseLocalDate(rawDate) || new Date(rawDate)
-                : new Date(datetimeStr);
-            if (isToday(targetDate)) return false;
-            return isPast(targetDate);
-        } catch {
-            return false;
-        }
     };
 
     const past = isLinkDisabled(date, time);

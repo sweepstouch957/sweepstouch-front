@@ -216,7 +216,7 @@ export const ExcelCustomerDropzone: FC<ExcelCustomerDropzoneProps> = ({
 
           <List dense disablePadding sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
             {parsedData.slice(0, 5).map((row, index) => (
-              <ListItem key={index} sx={{ borderBottom: index < 4 ? '1px solid' : 'none', borderColor: 'divider' }}>
+              <ListItem key={row.phone} sx={{ borderBottom: index < 4 ? '1px solid' : 'none', borderColor: 'divider' }}>
                 <ListItemText
                   primary={<Typography variant="body2" fontWeight={500}>{row.firstName} {row.lastName} - {row.phone}</Typography>}
                   secondary={<Typography variant="caption" color="text.secondary">{row.email || 'Sin correo'}</Typography>}

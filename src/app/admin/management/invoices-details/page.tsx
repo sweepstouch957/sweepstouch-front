@@ -10,15 +10,17 @@ import PageHeading from 'src/components/base/page-heading';
 import { AvatarState } from 'src/components/base/styles/avatar';
 import { useCustomization } from 'src/hooks/use-customization';
 
+// Static page metadata — no component-local dependencies, allocate once.
+const pageMeta = {
+  title: 'Invoice Details',
+  description: 'Review individual transaction records and payment details',
+  icon: <ReceiptPercentIcon />,
+};
+
 function Page(): React.JSX.Element {
   const customization = useCustomization();
   const theme = useTheme();
   const { t } = useTranslation();
-  const pageMeta = {
-    title: 'Invoice Details',
-    description: 'Review individual transaction records and payment details',
-    icon: <ReceiptPercentIcon />,
-  };
   return (
     <>
       {pageMeta.title && (

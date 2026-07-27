@@ -165,6 +165,10 @@ type Group = {
 
 const DEFAULT_TARGET_PER_SHIFT = 400;
 
+// Pure helper — computes a clamped percentage, allocated once at module scope
+const pct = (curr: number, target: number) =>
+  target > 0 ? Math.min(100, Math.round((curr / target) * 100)) : 0;
+
 const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({
   sweepstakes,
   // data
@@ -246,9 +250,6 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({
   // Estado local para colapsables (por promotora)
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
   const toggle = (id: string) => setOpenMap((p) => ({ ...p, [id]: !p[id] }));
-
-  const pct = (curr: number, target: number) =>
-    target > 0 ? Math.min(100, Math.round((curr / target) * 100)) : 0;
 
   return (
     <Box>

@@ -30,6 +30,13 @@ import { useTranslation } from 'react-i18next';
 import SearchWithButton from 'src/components/application-ui/input/search/search-with-button';
 import { AvatarState } from 'src/components/base/styles/avatar';
 
+// Datos de usuario de demo — estáticos, fuera del componente.
+const user = {
+  avatar: '/avatars/1.png',
+  name: 'Ethan Donovan',
+  jobTitle: 'Principal Engineer',
+};
+
 function SidebarContent() {
   const { t } = useTranslation();
 
@@ -54,12 +61,6 @@ function SidebarContent() {
 
   const handleTabsChange = (_event: ChangeEvent<{}>, value: string): void => {
     setCurrentTab(value);
-  };
-
-  const user = {
-    avatar: '/avatars/1.png',
-    name: 'Ethan Donovan',
-    jobTitle: 'Principal Engineer',
   };
 
   return (

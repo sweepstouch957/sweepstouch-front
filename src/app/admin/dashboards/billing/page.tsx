@@ -38,9 +38,28 @@ const toYYYYMMDD = (d: Date | null | undefined) =>
       ).padStart(2, '0')}`
     : '';
 
-// Currency formatter
-const fmt = (v: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
+// Currency formatter — Intl instance allocated once at module scope
+const usdFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+const fmt = (v: number) => usdFmt.format(v);
+
+// Static sx values — allocated once at module scope (no component-local deps)
+const cardBodySx = { p: 2.5 } as const;
+
+const iconAvatarSx = (color: string) => ({
+  width: 38,
+  height: 38,
+  bgcolor: alpha(color, 0.12),
+  color,
+  borderRadius: 1.5,
+});
+
+const kpiLabelSx = {
+  variant: 'caption' as const,
+  fontWeight: 600,
+  textTransform: 'uppercase' as const,
+  letterSpacing: 0.5,
+  color: 'text.secondary',
+};
 
 export default function BillingPage() {
   const theme = useTheme();
@@ -118,24 +137,6 @@ export default function BillingPage() {
     borderBottom: `1px solid ${theme.palette.divider}`,
     bgcolor: isDark ? alpha(common.black, 0.15) : alpha(common.black, 0.015),
   } as const;
-
-  const cardBodySx = { p: 2.5 } as const;
-
-  const iconAvatarSx = (color: string) => ({
-    width: 38,
-    height: 38,
-    bgcolor: alpha(color, 0.12),
-    color,
-    borderRadius: 1.5,
-  });
-
-  const kpiLabelSx = {
-    variant: 'caption' as const,
-    fontWeight: 600,
-    textTransform: 'uppercase' as const,
-    letterSpacing: 0.5,
-    color: 'text.secondary',
-  };
 
   // KPI cards data
   // Cada KPI declara a dónde lleva (href) o qué abre (onClick). Si no lleva a

@@ -11,6 +11,33 @@ import { useTranslation } from 'react-i18next';
 import PageHeading from 'src/components/base/page-heading';
 import { useCustomization } from 'src/hooks/use-customization';
 
+// Valores iniciales — sin dependencias del componente, se crean una sola vez
+const initialValues = {
+  name: '',
+  description: '',
+  startDate: '',
+  endDate: '',
+  winnersCount: 1,
+  image: '',
+  hasQr: false,
+  rules: '',
+  participationMessage:
+    'Thank you for participating in the #StoreName!. Your participation code is: #Codigo',
+  sweeptakeDescription: '',
+  prizeIds: [] as string[],
+  bannerDesktop: '',
+  bannerMobile: '',
+  mainColor: '#D4AF37',
+  secondaryColor: '#C1121F',
+};
+
+// Metadata estática de la página, sin dependencias del componente
+const pageMeta = {
+  title: 'Create Sweepstake',
+  description: 'Manage and monitor Sweepstake',
+  icon: <CreateOutlined />,
+};
+
 function Page(): React.JSX.Element {
   const customization = useCustomization();
   const { t } = useTranslation();
@@ -44,31 +71,6 @@ function Page(): React.JSX.Element {
     onError: () => setSnack({ open: true, msg: 'No se pudo crear el sweepstake', sev: 'error' }),
   });
 
-  // Valores iniciales (puedes dejarlos en blanco si tu BriefFormRHF ya setea defaults)
-  const initialValues = {
-    name: '',
-    description: '',
-    startDate: '',
-    endDate: '',
-    winnersCount: 1,
-    image: '',
-    hasQr: false,
-    rules: '',
-    participationMessage:
-      'Thank you for participating in the #StoreName!. Your participation code is: #Codigo',
-    sweeptakeDescription: '',
-    prizeIds: [] as string[],
-    bannerDesktop: '',
-    bannerMobile: '',
-    mainColor: '#D4AF37',
-    secondaryColor: '#C1121F',
-  };
-
-  const pageMeta = {
-    title: 'Create Sweepstake',
-    description: 'Manage and monitor Sweepstake',
-    icon: <CreateOutlined />,
-  };
   return (
     <>
       {pageMeta.title && (

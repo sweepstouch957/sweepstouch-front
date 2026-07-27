@@ -23,6 +23,58 @@ function slugifyName(s?: string) {
     .toLowerCase();
 }
 
+/**
+ * Utilidad: cambia exactamente DOS d\u00edgitos del string,
+ * preservando posiciones no num\u00e9ricas (espacios, guiones, +, etc.).
+ * NUEVA REGLA: No modifica los primeros 3 d\u00edgitos reales del n\u00famero.
+ */
+function obfuscateLastTwoDigitsKeepFormat(input: string): string {
+  if (!input) return input;
+
+  // \u00cdndices (en el string) donde hay d\u00edgitos
+  const digitIdx: number[] = [];
+  for (let i = 0; i < input.length; i++) {
+    if (/\d/.test(input[i])) digitIdx.push(i);
+  }
+  // Si hay menos de 5 d\u00edgitos, podr\u00eda no haber 2 elegibles luego de los primeros 3
+  if (digitIdx.length < 2) return input;
+
+  // Elegibles = todos los d\u00edgitos excepto los 3 primeros por orden
+  const pos1 = digitIdx[digitIdx.length - 2];
+  const pos2 = digitIdx[digitIdx.length - 1];
+
+  const chars = input.split('');
+  const randomDigit = () => Math.floor(Math.random() * 10).toString();
+
+  // Reemplazos: intenta que no repitan exactamente el d\u00edgito anterior
+  const old1 = chars[pos1];
+  let rep1 = randomDigit();
+  let tries = 5;
+  while (tries-- > 0 && rep1 === old1) rep1 = randomDigit();
+  chars[pos1] = rep1;
+
+  const old2 = chars[pos2];
+  let rep2 = randomDigit();
+  tries = 5;
+  while (tries-- > 0 && rep2 === old2) rep2 = randomDigit();
+  chars[pos2] = rep2;
+
+  return chars.join('');
+}
+
+/**
+ * Utilidad: agrupar una lista en filas de N columnas (rellena con '')
+ */
+function toColumns<T>(items: T[], columns: number): T[][] {
+  const rows: T[][] = [];
+  for (let i = 0; i < items.length; i += columns) {
+    const slice = items.slice(i, i + columns);
+    while (slice.length < columns) slice.push('' as any);
+    rows.push(slice);
+  }
+  return rows;
+}
+
 export default function CustomersGrid({ storeId, storeName }: CustomersGridProps) {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
@@ -111,58 +163,6 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
     } finally {
       setExporting(false);
     }
-  }
-
-  /**
-   * Utilidad: cambia exactamente DOS dígitos del string,
-   * preservando posiciones no numéricas (espacios, guiones, +, etc.).
-   * NUEVA REGLA: No modifica los primeros 3 dígitos reales del número.
-   */
-  function obfuscateLastTwoDigitsKeepFormat(input: string): string {
-    if (!input) return input;
-
-    // Índices (en el string) donde hay dígitos
-    const digitIdx: number[] = [];
-    for (let i = 0; i < input.length; i++) {
-      if (/\d/.test(input[i])) digitIdx.push(i);
-    }
-    // Si hay menos de 5 dígitos, podría no haber 2 elegibles luego de los primeros 3
-    if (digitIdx.length < 2) return input;
-
-    // Elegibles = todos los dígitos excepto los 3 primeros por orden
-    const pos1 = digitIdx[digitIdx.length - 2];
-    const pos2 = digitIdx[digitIdx.length - 1];
-
-    const chars = input.split('');
-    const randomDigit = () => Math.floor(Math.random() * 10).toString();
-
-    // Reemplazos: intenta que no repitan exactamente el dígito anterior
-    const old1 = chars[pos1];
-    let rep1 = randomDigit();
-    let tries = 5;
-    while (tries-- > 0 && rep1 === old1) rep1 = randomDigit();
-    chars[pos1] = rep1;
-
-    const old2 = chars[pos2];
-    let rep2 = randomDigit();
-    tries = 5;
-    while (tries-- > 0 && rep2 === old2) rep2 = randomDigit();
-    chars[pos2] = rep2;
-
-    return chars.join('');
-  }
-
-  /**
-   * Utilidad: agrupar una lista en filas de N columnas (rellena con '')
-   */
-  function toColumns<T>(items: T[], columns: number): T[][] {
-    const rows: T[][] = [];
-    for (let i = 0; i < items.length; i += columns) {
-      const slice = items.slice(i, i + columns);
-      while (slice.length < columns) slice.push('' as any);
-      rows.push(slice);
-    }
-    return rows;
   }
 
   /**

@@ -123,6 +123,15 @@ const autoFit = (data: any[]) => {
   return cols;
 };
 
+// Pure helper — formats a date range, allocated once at module scope
+const formatRange = (value: DateRangeValue) => {
+  const { startDate, endDate } = value;
+  if (!startDate && !endDate) return "";
+  if (startDate && !endDate) return `${format(startDate, "MM/dd/yyyy")} –`;
+  if (!startDate && endDate) return `– ${format(endDate, "MM/dd/yyyy")}`;
+  return `${format(startDate!, "MM/dd/yyyy")} – ${format(endDate!, "MM/dd/yyyy")}`;
+};
+
 export function useShiftsTable(options: UseShiftsTableOptions = {}): UseShiftsTableResult {
   const pageSizeOptions = options.pageSizeOptions ?? [10, 12, 20, 30, 50];
   const [status, setStatus] = useState<StatusFilter>("all");
@@ -196,14 +205,6 @@ export function useShiftsTable(options: UseShiftsTableOptions = {}): UseShiftsTa
   };
 
   // helpers
-  const formatRange = (value: DateRangeValue) => {
-    const { startDate, endDate } = value;
-    if (!startDate && !endDate) return "";
-    if (startDate && !endDate) return `${format(startDate, "MM/dd/yyyy")} –`;
-    if (!startDate && endDate) return `– ${format(endDate, "MM/dd/yyyy")}`;
-    return `${format(startDate!, "MM/dd/yyyy")} – ${format(endDate!, "MM/dd/yyyy")}`;
-  };
-
   const buildExcelAndDownload = (rows: ShiftRow[] = shifts) => {
     const groups = new Map<
       string,

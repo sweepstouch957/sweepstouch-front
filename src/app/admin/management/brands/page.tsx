@@ -9,15 +9,16 @@ import { useCustomization } from 'src/hooks/use-customization';
 import AddIcon from '@mui/icons-material/Add';
 import { BrandCreationModal } from '@/components/admin/stores/BrandCreationModal';
 
+// Static page metadata — allocated once at module scope
+const pageMeta = {
+  title: 'Brands',
+  description: 'Manage all the store brands in the system',
+};
+
 function Page(): React.JSX.Element {
   const customization = useCustomization();
   const { t } = useTranslation();
   const [modalOpen, setModalOpen] = useState(false);
-
-  const pageMeta = {
-    title: 'Brands',
-    description: 'Manage all the store brands in the system',
-  };
 
   return (
     <>

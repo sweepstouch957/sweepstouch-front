@@ -221,6 +221,15 @@ function StoreTableRow({ row, accentColor, onNavigate }: { row: StoreRow; accent
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
+// Static table-sort-label sx — allocated once at module scope
+const sortLabelSx = {
+  fontSize: 11, fontWeight: 700,
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.05em',
+  color: 'text.secondary',
+  '& .MuiTableSortLabel-icon': { fontSize: 13 },
+};
+
 export default function OptinMmsGlobalPage() {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -250,12 +259,11 @@ export default function OptinMmsGlobalPage() {
   }, []);
 
   const handleSort = useCallback((field: SortField) => {
-    setSortField((prev) => {
-      if (prev === field) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-      else setSortDir('desc');
-      return field;
-    });
-  }, []);
+    // La dirección se deriva del sortField actual (en deps) -> sin anidar
+    // setSortDir dentro del updater de setSortField (updater debe ser puro).
+    setSortDir((d) => (sortField === field ? (d === 'asc' ? 'desc' : 'asc') : 'desc'));
+    setSortField(field);
+  }, [sortField]);
 
   const handleNavigate = useCallback((id: string) => {
     push(`/admin/management/stores/edit/${id}?tag=opt-in`);
@@ -279,14 +287,6 @@ export default function OptinMmsGlobalPage() {
     : globalStats.cost < 200 ? theme.palette.success.main
     : globalStats.cost < 800 ? theme.palette.warning.main
     : theme.palette.error.main;
-
-  const sortLabelSx = {
-    fontSize: 11, fontWeight: 700,
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.05em',
-    color: 'text.secondary',
-    '& .MuiTableSortLabel-icon': { fontSize: 13 },
-  };
 
   const periodLabel =
     activePreset === 'current' ? 'Mes actual'

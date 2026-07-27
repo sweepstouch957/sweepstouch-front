@@ -130,6 +130,13 @@ const InfoRow = ({ icon, label, value }: { icon: React.ReactNode; label: string;
   </Stack>
 );
 
+/* ─── Static tabs ─── */
+const tabs = [
+  { value: 0, label: 'Overview' },
+  { value: 1, label: 'Tasks' },
+  { value: 2, label: 'Activity' },
+];
+
 /* ═══════ MAIN PAGE ═══════ */
 export default function UserProfilePage() {
   const theme = useTheme();
@@ -141,12 +148,6 @@ export default function UserProfilePage() {
   const searchParams = useSearchParams();
   const userId = searchParams.get('id');
   const [currentTab, setCurrentTab] = useState(0);
-
-  const tabs = [
-    { value: 0, label: 'Overview' },
-    { value: 1, label: 'Tasks' },
-    { value: 2, label: 'Activity' },
-  ];
 
   /* ── Queries ── */
   const { data: allUsers = [], isLoading: loadingUsers } = useQuery({

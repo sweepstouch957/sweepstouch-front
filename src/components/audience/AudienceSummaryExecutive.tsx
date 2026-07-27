@@ -71,10 +71,13 @@ type Props = {
   status?: 'active' | 'inactive' | 'all';
 };
 
+// Formateador de números reutilizable (locale + opciones literales)
+const enUsNumberFmt = new Intl.NumberFormat('en-US');
+
 function fmt(n: any) {
   const num = Number(n ?? 0);
   if (!Number.isFinite(num)) return '0';
-  return new Intl.NumberFormat('en-US').format(num);
+  return enUsNumberFmt.format(num);
 }
 function fmtPct(n: any) {
   const num = Number(n ?? 0);

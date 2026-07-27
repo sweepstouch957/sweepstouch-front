@@ -40,6 +40,9 @@ const EMPTY_FORM = {
   status: 'Activa',
 };
 
+// Estilo estático de los campos — sin dependencias del componente
+const fieldSx = { '& .MuiOutlinedInput-root': { borderRadius: 2 } };
+
 export default function NewPromoterModal({ open, onClose, onCreated }: NewPromoterModalProps) {
   const theme  = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -93,8 +96,6 @@ export default function NewPromoterModal({ open, onClose, onCreated }: NewPromot
     setCreatedPromoter(null);
     onClose();
   };
-
-  const fieldSx = { '& .MuiOutlinedInput-root': { borderRadius: 2 } };
 
   return (
     <>

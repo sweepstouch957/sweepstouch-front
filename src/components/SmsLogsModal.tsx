@@ -136,6 +136,15 @@ const renderErrorTooltip = (row: CampaignLog) => {
   );
 };
 
+// Copia texto al portapapeles — sin dependencias del componente
+const copy = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    /* no-op */
+  }
+};
+
 /* ---------------- component ---------------- */
 
 type Props = {
@@ -246,14 +255,6 @@ export const SmsLogsModal: React.FC<Props> = ({
   // Corrección: data ya está tipado como CampaignLogsResponse
   const totalPages = data?.totalPages ?? 1;
   const items = data?.data ?? [];
-
-  const copy = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      /* no-op */
-    }
-  };
 
   /* --------- Exportar TODAS las filas según filtros vigentes (simplificado) --------- */
   const exportAllLogs = async () => {
@@ -401,7 +402,7 @@ export const SmsLogsModal: React.FC<Props> = ({
                 </TableRow>
               )}
               {items.map((row: CampaignLog, index: number) => (
-                <TableRow key={index}>
+                <TableRow key={row.messageSid ?? row.sid ?? `${row.phone}-${row.timestamp ?? row.createdAt}`}>
                   <TableCell>
                     {formatDateTime(row.timestamp || row.time || row.createdAt)}
                   </TableCell>

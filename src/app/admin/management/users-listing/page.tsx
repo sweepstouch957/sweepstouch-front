@@ -15,6 +15,21 @@ import EditUserDialog from 'src/components/merchants/EditUserDialog';
 import DepartmentManager from 'src/components/departments/DepartmentManager';
 import AssignDepartmentDialog from 'src/components/departments/AssignDepartmentDialog';
 
+// Static page metadata; no component state, hoisted to module scope.
+const pageMeta = {
+  title: 'Users',
+  description: 'Manage user accounts, roles and department assignments',
+};
+
+// Fires a window event to trigger export; no component state, hoisted to module scope.
+const triggerExport = (
+  mode: 'filtered' | 'page' | 'selected' | 'all' = 'filtered'
+) => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('users-export', { detail: { mode } }));
+  }
+};
+
 function Page(): React.JSX.Element {
   const customization = useCustomization();
   const { t } = useTranslation();
@@ -24,21 +39,6 @@ function Page(): React.JSX.Element {
   const [editUser, setEditUser] = useState<any | null>(null);
   const [deptManagerOpen, setDeptManagerOpen] = useState(false);
   const [assignDeptUser, setAssignDeptUser] = useState<any | null>(null);
-
-  const pageMeta = {
-    title: 'Users',
-    description: 'Manage user accounts, roles and department assignments',
-  };
-
-  const triggerExport = (
-    mode: 'filtered' | 'page' | 'selected' | 'all' = 'filtered'
-  ) => {
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(
-        new CustomEvent('users-export', { detail: { mode } })
-      );
-    }
-  };
 
   return (
     <>

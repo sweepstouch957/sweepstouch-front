@@ -10,6 +10,49 @@ import { StoreCommandPalette, useCommandPalette } from './StoreCommandPalette';
 import StoreExportDialog from './StoreExportDialog';
 import { buildExportRows } from './storeExport';
 
+/**
+ * Exporta el listado COMPLETO de tiendas (ignora los filtros de pantalla:
+ * el pedido es "todas las tiendas") con las columnas elegidas en el modal.
+ * No usa estado del componente; hoisted a module scope.
+ */
+async function exportAll(selectedKeys: string[]) {
+  const limitPage = 500;
+  let pageNo = 1;
+  let all: any[] = [];
+  const svc = (await import('@/services/store.service')).default;
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const res: any = await svc.getStores({
+      page: pageNo,
+      limit: limitPage,
+      status: 'all',
+      sortBy: 'name',
+      order: 'asc',
+      debtStatus: 'all',
+      paymentMethod: 'all',
+      provider: 'all',
+    });
+
+    const data = res?.data || [];
+    all = all.concat(data);
+    const totalRemote = res?.total || data.length;
+
+    if (!totalRemote || all.length >= totalRemote || data.length === 0) break;
+    pageNo += 1;
+    if (pageNo > 2000) break;
+  }
+
+  const { rows, cols } = buildExportRows(all, selectedKeys);
+
+  const XLSX = await import('xlsx');
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = cols; // sin esto Brand/Address quedan cortadas
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Stores');
+  XLSX.writeFile(wb, `stores_listing_${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+
 function Component() {
   const { t } = useTranslation();
   const {
@@ -53,48 +96,6 @@ function Component() {
   const { open: paletteOpen, openPalette, closePalette } = useCommandPalette();
 
   const [exportOpen, setExportOpen] = React.useState(false);
-
-  /**
-   * Exporta el listado COMPLETO de tiendas (ignora los filtros de pantalla:
-   * el pedido es "todas las tiendas") con las columnas elegidas en el modal.
-   */
-  async function exportAll(selectedKeys: string[]) {
-    const limitPage = 500;
-    let pageNo = 1;
-    let all: any[] = [];
-    const svc = (await import('@/services/store.service')).default;
-
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const res: any = await svc.getStores({
-        page: pageNo,
-        limit: limitPage,
-        status: 'all',
-        sortBy: 'name',
-        order: 'asc',
-        debtStatus: 'all',
-        paymentMethod: 'all',
-        provider: 'all',
-      });
-
-      const data = res?.data || [];
-      all = all.concat(data);
-      const totalRemote = res?.total || data.length;
-
-      if (!totalRemote || all.length >= totalRemote || data.length === 0) break;
-      pageNo += 1;
-      if (pageNo > 2000) break;
-    }
-
-    const { rows, cols } = buildExportRows(all, selectedKeys);
-
-    const XLSX = await import('xlsx');
-    const ws = XLSX.utils.json_to_sheet(rows);
-    ws['!cols'] = cols; // sin esto Brand/Address quedan cortadas
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Stores');
-    XLSX.writeFile(wb, `stores_listing_${new Date().toISOString().slice(0, 10)}.xlsx`);
-  }
 
   React.useEffect(() => {
     const handler = () => setExportOpen(true);

@@ -54,6 +54,16 @@ import {
 } from '@/services/ai.service';
 import { formatDistanceToNow } from 'date-fns';
 
+// Pure handler — closes over only module-level imports, allocated once at module scope
+const handleRefreshContext = async () => {
+  try {
+    const data = await refreshContext();
+    toast.success(`Context refreshed! (${data.length} chars)`);
+  } catch {
+    toast.error('Failed to refresh context');
+  }
+};
+
 export default function AIConfigPage() {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -200,15 +210,6 @@ export default function AIConfigPage() {
       toast.error('Failed to load context preview');
     } finally {
       setLoadingPreview(false);
-    }
-  };
-
-  const handleRefreshContext = async () => {
-    try {
-      const data = await refreshContext();
-      toast.success(`Context refreshed! (${data.length} chars)`);
-    } catch {
-      toast.error('Failed to refresh context');
     }
   };
 
@@ -491,7 +492,7 @@ mb={2}>
               <List>
                 {config?.rules?.map((rule, i) => (
                   <ListItem
-                    key={i}
+                    key={rule.text}
                     secondaryAction={
                       <IconButton edge="end"
 onClick={() => handleRemoveRule(i)}
@@ -559,7 +560,7 @@ mb={2}>
               <List>
                 {config?.restrictions?.map((r, i) => (
                   <ListItem
-                    key={i}
+                    key={r.text}
                     secondaryAction={
                       <IconButton edge="end"
 onClick={() => handleRemoveRestriction(i)}
@@ -658,7 +659,7 @@ mb={2}>Skills Registradas</Typography>
                 <Stack spacing={2}>
                   {skills.map((skill, i) => (
                     <Paper
-                      key={i}
+                      key={skill.trigger}
                       elevation={0}
                       sx={{
                         p: 2,

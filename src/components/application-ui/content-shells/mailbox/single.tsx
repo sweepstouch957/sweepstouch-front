@@ -38,6 +38,13 @@ interface MailboxSingleProps {
   tag: string;
 }
 
+// Static demo user — allocated once at module scope
+const user = {
+  avatar: '/avatars/1.png',
+  name: 'Ethan Donovan',
+  jobTitle: 'Principal Engineer',
+};
+
 export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
   const { mailId, tag } = props;
 
@@ -66,12 +73,6 @@ export const MailboxSingle: FC<MailboxSingleProps> = (props) => {
 
   const closeMenu = (): void => {
     setMenuOpen(false);
-  };
-
-  const user = {
-    avatar: '/avatars/1.png',
-    name: 'Ethan Donovan',
-    jobTitle: 'Principal Engineer',
   };
 
   return (

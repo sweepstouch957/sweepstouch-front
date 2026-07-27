@@ -147,7 +147,7 @@ function RecipesEditor({
       )}
 
       {recipes.map((r, i) => (
-        <Box key={i} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 1.5,
+        <Box key={r.name} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 1.5,
           p: 1.5, bgcolor: 'action.hover', borderRadius: 2 }}>
           <RestaurantMenuRoundedIcon sx={{ fontSize: 18, color: 'text.secondary', mt: 0.3 }} />
           <Box sx={{ flex: 1, minWidth: 0 }}>

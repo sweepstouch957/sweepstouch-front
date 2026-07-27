@@ -21,6 +21,64 @@ import useCalendarStore, { getEvents, runCalendarThunk, updateEvent } from 'src/
 import Actions from './actions';
 import EventDrawer from './event-drawer';
 
+// Pure handlers — close over only module-level imports, allocated once at module scope
+const handleEventDrop = async ({ event }: any): Promise<void> => {
+  try {
+    if (!event?.start) {
+      console.error('Event start date is missing');
+      return;
+    }
+
+    const startISO =
+      event.start instanceof Date
+        ? event.start.toISOString()
+        : new Date(event.start).toISOString();
+
+    // FullCalendar a veces no trae end si es allDay o de 1 slot
+    const endISO = event.end
+      ? event.end instanceof Date
+        ? event.end.toISOString()
+        : new Date(event.end).toISOString()
+      : startISO;
+
+    await runCalendarThunk(
+      updateEvent(event.id, {
+        allDay: !!event.allDay,
+        start: startISO,
+        end: endISO,
+      })
+    );
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+const handleEventResize = async ({ event }: any): Promise<void> => {
+  try {
+    if (!event?.start) return;
+
+    const startISO =
+      event.start instanceof Date
+        ? event.start.toISOString()
+        : new Date(event.start).toISOString();
+    const endISO = event.end
+      ? event.end instanceof Date
+        ? event.end.toISOString()
+        : new Date(event.end).toISOString()
+      : startISO;
+
+    await runCalendarThunk(
+      updateEvent(event.id, {
+        allDay: !!event.allDay,
+        start: startISO,
+        end: endISO,
+      })
+    );
+  } catch (err) {
+    console.error(err);
+  }
+};
+
 const Component = () => {
   const [date, setDate] = useState<Date>(new Date());
   const theme = useTheme();
@@ -44,69 +102,12 @@ const Component = () => {
 
   const eventChosen = drawer.eId ? events.find((event) => event.id === drawer.eId) : undefined;
 
-  const handleEventDrop = async ({ event }: any): Promise<void> => {
-    try {
-      if (!event?.start) {
-        console.error('Event start date is missing');
-        return;
-      }
-
-      const startISO =
-        event.start instanceof Date
-          ? event.start.toISOString()
-          : new Date(event.start).toISOString();
-
-      // FullCalendar a veces no trae end si es allDay o de 1 slot
-      const endISO = event.end
-        ? event.end instanceof Date
-          ? event.end.toISOString()
-          : new Date(event.end).toISOString()
-        : startISO;
-
-      await runCalendarThunk(
-        updateEvent(event.id, {
-          allDay: !!event.allDay,
-          start: startISO,
-          end: endISO,
-        })
-      );
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   const handleEventSelect = (arg: any): void => {
     setDrawer({
       isDrawerOpen: true,
       eId: arg?.event?.id,
       range: undefined,
     });
-  };
-
-  const handleEventResize = async ({ event }: any): Promise<void> => {
-    try {
-      if (!event?.start) return;
-
-      const startISO =
-        event.start instanceof Date
-          ? event.start.toISOString()
-          : new Date(event.start).toISOString();
-      const endISO = event.end
-        ? event.end instanceof Date
-          ? event.end.toISOString()
-          : new Date(event.end).toISOString()
-        : startISO;
-
-      await runCalendarThunk(
-        updateEvent(event.id, {
-          allDay: !!event.allDay,
-          start: startISO,
-          end: endISO,
-        })
-      );
-    } catch (err) {
-      console.error(err);
-    }
   };
 
   const handleRangeSelect = (arg: any): void => {

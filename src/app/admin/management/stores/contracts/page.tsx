@@ -84,6 +84,11 @@ const DetailRow = ({ label, value }: { label: string; value: React.ReactNode }) 
   </Stack>
 );
 
+/* ── Formatters (no component state) ── */
+const fmt$ = (n: number) => `$${n.toLocaleString('en-US')}`;
+const fmtDate = (d: string) =>
+  new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
 export default function ContractsListingPage() {
   const theme = useTheme();
   const { push } = useRouter();
@@ -146,8 +151,6 @@ export default function ContractsListingPage() {
 
   const contracts = data?.data || [];
   const totalPages = data?.totalPages || 1;
-  const fmt$ = (n: number) => `$${n.toLocaleString('en-US')}`;
-  const fmtDate = (d: string) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   /* ── Computed totals for detail modal ── */
   const viewTabletTotal = viewTarget ? (viewTarget.tabletCostEach || 0) * (viewTarget.tabletCount || 0) : 0;

@@ -25,10 +25,11 @@ interface KpiDef {
   gradient: string;
 }
 
+// Gradiente derivado del token: no hay pares de hex quemados que se salteen el theme.
+const grad = (c: string) => `linear-gradient(135deg, ${c}, ${alpha(c, 0.6)})`;
+
 export default function KpiCards({ data, isLoading }: Props) {
   const theme = useTheme();
-  // Gradiente derivado del token: no hay pares de hex quemados que se salteen el theme.
-  const grad = (c: string) => `linear-gradient(135deg, ${c}, ${alpha(c, 0.6)})`;
 
   if (isLoading) {
     return (

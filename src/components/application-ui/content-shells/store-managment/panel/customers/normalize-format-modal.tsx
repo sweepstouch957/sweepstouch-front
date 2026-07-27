@@ -73,7 +73,6 @@ export default function NormalizeFormatModal({
       interval = setInterval(() => {
         setProgress((prev) => {
           if (prev >= 95) {
-            clearInterval(interval);
             return 95;
           }
           const stepVal = Math.max(1, Math.floor((100 - prev) / 8));

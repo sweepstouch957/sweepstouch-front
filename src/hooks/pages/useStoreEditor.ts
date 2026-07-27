@@ -35,6 +35,105 @@ const locEqual = (o, f) => {
   return oc[0] === fc[0] && oc[1] === fc[1];
 };
 
+// Construye el patch SOLO con cambios reales — función pura, sin dependencias del hook
+const buildPatch = (orig, curr) => {
+  const patch: any = {};
+
+  const keys = [
+    'name',
+    'address',
+    'zipCode',
+    'type',
+    'active',
+    'email',
+    'phoneNumber',
+    'provider',
+    'bandwidthPhoneNumber',
+    'twilioPhoneNumber',
+    'twilioPhoneNumberSid',
+    'twilioPhoneNumberFriendlyName',
+    'infobipSenderId',
+    'infobipShortcode',
+    'verifiedByTwilio',
+    'membershipType',
+    'paymentMethod',
+    'startContractDate',
+    'cancelContractDate',
+    'cancelContractReason',
+    'status',
+    'inactiveReason',
+    'suspendedReason',
+    'billingNextDate',
+    'billingLastPeriodEnd',
+    'creditStatus',
+    'circularssUrl',
+    'kioskTabletStatus',
+    'kioskTabletDate',
+    'kioskTabletQuantity',
+    'slug',
+  ];
+
+  // contactInfo: array comparison via JSON
+  const origCI = JSON.stringify(orig?.contactInfo ?? []);
+  const currCI = JSON.stringify(curr?.contactInfo ?? []);
+  if (origCI !== currCI) {
+    patch.contactInfo = curr?.contactInfo ?? [];
+  }
+
+  // pauseHistory: array comparison via JSON
+  const origPH = JSON.stringify(orig?.pauseHistory ?? []);
+  const currPH = JSON.stringify(curr?.pauseHistory ?? []);
+  if (origPH !== currPH) {
+    patch.pauseHistory = curr?.pauseHistory ?? [];
+  }
+
+  // contracts: array comparison via JSON
+  const origC = JSON.stringify(orig?.contracts ?? []);
+  const currC = JSON.stringify(curr?.contracts ?? []);
+  if (origC !== currC) {
+    patch.contracts = curr?.contracts ?? [];
+  }
+
+  keys.forEach((k) => {
+    const o = orig?.[k];
+    const f = curr?.[k];
+    if (!softEqual(o, f)) {
+      patch[k] = f; // distinto → lo mandamos
+    }
+  });
+
+  // location: solo si es válida y cambió
+  const currLoc = curr?.location;
+  if (!locEqual(orig, curr) && isValidLngLat(currLoc?.coordinates)) {
+    patch.location = {
+      type: 'Point',
+      coordinates: [Number(currLoc.coordinates[0]), Number(currLoc.coordinates[1])],
+    };
+  }
+
+  // socialLinks: solo si cambió algún campo
+  const origSL = orig?.socialLinks || {};
+  const currSL = curr?.socialLinks || {};
+  if (
+    origSL.facebook !== currSL.facebook ||
+    origSL.instagram !== currSL.instagram ||
+    origSL.website !== currSL.website
+  ) {
+    patch.socialLinks = {
+      facebook: currSL.facebook || '',
+      instagram: currSL.instagram || '',
+      website: currSL.website || '',
+    };
+  }
+
+  // Limpia undefined explícitos
+  Object.keys(patch).forEach((k) => {
+    if (patch[k] === undefined) delete patch[k];
+  });
+
+  return patch;
+};
+
 export function useStoreEditor(store) {
   const [edit, setEdit] = useState(false);
   const [snack, setSnack] = useState<{
@@ -147,105 +246,6 @@ export function useStoreEditor(store) {
     } else {
       setForm((s) => ({ ...s, [key]: val }));
     }
-  };
-
-  // Construye el patch SOLO con cambios reales
-  const buildPatch = (orig, curr) => {
-    const patch: any = {};
-
-    const keys = [
-      'name',
-      'address',
-      'zipCode',
-      'type',
-      'active',
-      'email',
-      'phoneNumber',
-      'provider',
-      'bandwidthPhoneNumber',
-      'twilioPhoneNumber',
-      'twilioPhoneNumberSid',
-      'twilioPhoneNumberFriendlyName',
-      'infobipSenderId',
-      'infobipShortcode',
-      'verifiedByTwilio',
-      'membershipType',
-      'paymentMethod',
-      'startContractDate',
-      'cancelContractDate',
-      'cancelContractReason',
-      'status',
-      'inactiveReason',
-      'suspendedReason',
-      'billingNextDate',
-      'billingLastPeriodEnd',
-      'creditStatus',
-      'circularssUrl',
-      'kioskTabletStatus',
-      'kioskTabletDate',
-      'kioskTabletQuantity',
-      'slug',
-    ];
-
-    // contactInfo: array comparison via JSON
-    const origCI = JSON.stringify(orig?.contactInfo ?? []);
-    const currCI = JSON.stringify(curr?.contactInfo ?? []);
-    if (origCI !== currCI) {
-      patch.contactInfo = curr?.contactInfo ?? [];
-    }
-
-    // pauseHistory: array comparison via JSON
-    const origPH = JSON.stringify(orig?.pauseHistory ?? []);
-    const currPH = JSON.stringify(curr?.pauseHistory ?? []);
-    if (origPH !== currPH) {
-      patch.pauseHistory = curr?.pauseHistory ?? [];
-    }
-
-    // contracts: array comparison via JSON
-    const origC = JSON.stringify(orig?.contracts ?? []);
-    const currC = JSON.stringify(curr?.contracts ?? []);
-    if (origC !== currC) {
-      patch.contracts = curr?.contracts ?? [];
-    }
-
-    keys.forEach((k) => {
-      const o = orig?.[k];
-      const f = curr?.[k];
-      if (!softEqual(o, f)) {
-        patch[k] = f; // distinto → lo mandamos
-      }
-    });
-
-    // location: solo si es válida y cambió
-    const currLoc = curr?.location;
-    if (!locEqual(orig, curr) && isValidLngLat(currLoc?.coordinates)) {
-      patch.location = {
-        type: 'Point',
-        coordinates: [Number(currLoc.coordinates[0]), Number(currLoc.coordinates[1])],
-      };
-    }
-
-    // socialLinks: solo si cambió algún campo
-    const origSL = orig?.socialLinks || {};
-    const currSL = curr?.socialLinks || {};
-    if (
-      origSL.facebook !== currSL.facebook ||
-      origSL.instagram !== currSL.instagram ||
-      origSL.website !== currSL.website
-    ) {
-      patch.socialLinks = {
-        facebook: currSL.facebook || '',
-        instagram: currSL.instagram || '',
-        website: currSL.website || '',
-      };
-    }
-
-    // Limpia undefined explícitos
-    Object.keys(patch).forEach((k) => {
-      if (patch[k] === undefined) delete patch[k];
-    });
-
-    return patch;
   };
 
   const queryClient = useQueryClient();

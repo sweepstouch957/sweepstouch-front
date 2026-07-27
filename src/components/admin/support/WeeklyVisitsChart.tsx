@@ -37,8 +37,8 @@ export default React.memo(function WeeklyVisitsChart({ weeklyVisits, loading }: 
       <CardContent sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
         {loading || !weeklyVisits ? (
           <Box width="100%" height={220} display="flex" alignItems="flex-end" gap={1} px={2} pb={1}>
-            {[55, 38, 72, 44, 68, 30, 88, 60].map((h, i) => (
-              <Skeleton key={i} variant="rectangular" width="100%" height={`${h}%`} sx={{ borderRadius: 1 }} />
+            {[55, 38, 72, 44, 68, 30, 88, 60].map((h) => (
+              <Skeleton key={h} variant="rectangular" width="100%" height={`${h}%`} sx={{ borderRadius: 1 }} />
             ))}
           </Box>
         ) : labels.length === 0 ? (

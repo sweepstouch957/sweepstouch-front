@@ -60,8 +60,9 @@ const TERM = {
 } as const;
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_NOTIFICATION_URL || 'http://localhost:4008';
-const usd = (c?: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format((c || 0) / 100);
+// Reused currency formatter; literal locale + options, hoisted to module scope.
+const usdFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+const usd = (c?: number) => usdFmt.format((c || 0) / 100);
 
 /**
  * Feed en vivo para SOPORTE TÉCNICO: cada cambio de estado de pedido de CUALQUIER tienda.

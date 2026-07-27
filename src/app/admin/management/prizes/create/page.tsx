@@ -110,6 +110,19 @@ function ColorPickerField({
   );
 }
 
+// Pure data-fetch helper; closes over no component state, hoisted to module scope.
+const getExistingPrizeImageReferences = async () => {
+  try {
+    const existingPrizes = await prizesClient.getPrizes();
+    return existingPrizes
+      .filter((prize) => prize.image?.includes('res.cloudinary.com'))
+      .slice(0, 5)
+      .map((prize) => `${prize.name}: ${prize.image}`);
+  } catch {
+    return [];
+  }
+};
+
 export default function Page() {
   const { t } = useTranslation();
   const { push, back } = useRouter();
@@ -161,18 +174,6 @@ export default function Page() {
   });
 
   const onSubmit = (values: PrizeForm) => createMutation.mutate(values);
-
-  const getExistingPrizeImageReferences = async () => {
-    try {
-      const existingPrizes = await prizesClient.getPrizes();
-      return existingPrizes
-        .filter((prize) => prize.image?.includes('res.cloudinary.com'))
-        .slice(0, 5)
-        .map((prize) => `${prize.name}: ${prize.image}`);
-    } catch {
-      return [];
-    }
-  };
 
   const handleGeneratePrizeImage = async () => {
     const values = getValues();

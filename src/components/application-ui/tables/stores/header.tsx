@@ -57,12 +57,15 @@ const STATUS_SCOPE_LABEL: Record<string, string> = {
   cancelled: 'Canceladas',
 };
 
+// Formateador de moneda reutilizable — evita reconstruir Intl en cada llamada.
+const usdFmt = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 0,
+});
+
 function formatMoney(value: number) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(value || 0);
+  return usdFmt.format(value || 0);
 }
 
 const bucketConfigs = (theme: Theme) => [

@@ -27,12 +27,14 @@ const CardWrapperSecondary = styled(Card)(
 `
 );
 
+// Datos estáticos del usuario — sin dependencias del componente
+const user = {
+  avatar: '/avatars/1.png',
+  name: 'Ethan Donovan',
+};
+
 function ChatContent() {
   const { t } = useTranslation();
-  const user = {
-    avatar: '/avatars/1.png',
-    name: 'Ethan Donovan',
-  };
 
   return (
     <Box py={{ xs: 2, sm: 3 }}>

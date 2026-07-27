@@ -67,25 +67,17 @@ const DocumentsUploadList = () => {
     acceptedFiles.forEach((file) => {
       // Simulate file upload progress
       const simulateProgress = (file) => {
+        // Progreso simulado. `pct` es un contador local -> el updater queda puro
+        // (solo mapea estado) y el clearInterval vive fuera de él.
+        let pct = 0;
         const progressInterval = setInterval(() => {
-          setUploadProgress((prevProgress) => {
-            if (!prevProgress[file.name]) {
-              clearInterval(progressInterval);
-              return prevProgress;
-            }
-
-            const currentProgress = prevProgress[file.name].progress;
-            const nextProgress = Math.min(currentProgress + 10, 100);
-
-            if (nextProgress === 100) {
-              clearInterval(progressInterval);
-            }
-
-            return {
-              ...prevProgress,
-              [file.name]: { progress: nextProgress },
-            };
-          });
+          pct = Math.min(pct + 10, 100);
+          setUploadProgress((prevProgress) =>
+            prevProgress[file.name]
+              ? { ...prevProgress, [file.name]: { progress: pct } }
+              : prevProgress
+          );
+          if (pct >= 100) clearInterval(progressInterval);
         }, 200);
       };
 

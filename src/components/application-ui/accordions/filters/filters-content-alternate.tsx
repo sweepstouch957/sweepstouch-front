@@ -18,54 +18,55 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AccordionMinimal } from 'src/components/base/styles/accordion';
 
+// Datos estáticos de filtros — sin dependencias del componente
+const categories = [
+  {
+    id: 1,
+    name: 'Toys & Hobbies',
+    value: 'toys_hobbies',
+  },
+  {
+    id: 2,
+    name: 'Office Supplies',
+    value: 'office_supplies',
+  },
+  {
+    id: 3,
+    name: 'Electronics',
+    value: 'electronics',
+  },
+  {
+    id: 4,
+    name: 'Video Games',
+    value: 'video_games',
+  },
+];
+
+const rating = [
+  {
+    id: 1,
+    rating: 5,
+  },
+  {
+    id: 2,
+    rating: 4,
+  },
+  {
+    id: 3,
+    rating: 3,
+  },
+  {
+    id: 4,
+    rating: 2,
+  },
+  {
+    id: 5,
+    rating: 1,
+  },
+];
+
 const Component = () => {
   const { t } = useTranslation();
-
-  const categories = [
-    {
-      id: 1,
-      name: 'Toys & Hobbies',
-      value: 'toys_hobbies',
-    },
-    {
-      id: 2,
-      name: 'Office Supplies',
-      value: 'office_supplies',
-    },
-    {
-      id: 3,
-      name: 'Electronics',
-      value: 'electronics',
-    },
-    {
-      id: 4,
-      name: 'Video Games',
-      value: 'video_games',
-    },
-  ];
-
-  const rating = [
-    {
-      id: 1,
-      rating: 5,
-    },
-    {
-      id: 2,
-      rating: 4,
-    },
-    {
-      id: 3,
-      rating: 3,
-    },
-    {
-      id: 4,
-      rating: 2,
-    },
-    {
-      id: 5,
-      rating: 1,
-    },
-  ];
 
   const [checked, setChecked] = useState([0]);
 

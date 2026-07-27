@@ -9,15 +9,17 @@ import { useTranslation } from 'react-i18next';
 import PageHeading from 'src/components/base/page-heading';
 import { useCustomization } from 'src/hooks/use-customization';
 
+// Metadata estática de la página
+const pageMeta = {
+  title: 'Checklist | Sweepstake',
+  description: 'Manage and monitor Sweepstake checklist',
+  icon: <CreateOutlined />,
+};
+
 function Page(): React.JSX.Element {
   const customization = useCustomization();
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
-  const pageMeta = {
-    title: 'Checklist | Sweepstake',
-    description: 'Manage and monitor Sweepstake checklist',
-    icon: <CreateOutlined />,
-  };
   return (
     <>
       {pageMeta.title && (

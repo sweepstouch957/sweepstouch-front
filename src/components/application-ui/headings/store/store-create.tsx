@@ -112,6 +112,11 @@ type Props = {
   onNameChange?: (val: string) => void;
 };
 
+// Pure helper — extracts the `slug` query param, allocated once at module scope
+const extractSlug = (url?: string) => {
+  try { return new URL(url || '').searchParams.get('slug') ?? undefined; } catch { return undefined; }
+};
+
 export default function StoreHeader({
   image, address, kioskUrl, qrImageUrl, showQrBadge,
   edit, saving, name, type, provider, active,
@@ -123,9 +128,6 @@ export default function StoreHeader({
   const [qrOpen, setQrOpen] = React.useState(false);
   const isDark = theme.palette.mode === 'dark';
 
-  const extractSlug = (url?: string) => {
-    try { return new URL(url || '').searchParams.get('slug') ?? undefined; } catch { return undefined; }
-  };
   const slug = extractSlug(kioskUrl);
   const qrHref = slug ? `https://st.sweepstouch.com/?slug=${encodeURIComponent(slug)}` : undefined;
   const fallbackQrSrc = qrHref

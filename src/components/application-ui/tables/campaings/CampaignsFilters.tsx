@@ -49,6 +49,15 @@ const PLATFORM_OPTIONS = [
   { value: 'twilio', label: 'Twilio' },
 ];
 
+// Estilos estáticos de los selects
+const selectSx = {
+  '& .MuiOutlinedInput-root': {
+    height: 36,
+    fontSize: 13,
+    borderRadius: 2,
+  },
+} as const;
+
 export default function CampaignsFilters({ filters, setFilters, storeId }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -95,14 +104,6 @@ export default function CampaignsFilters({ filters, setFilters, storeId }: Props
     if (!filters.storeId) return null;
     return stores.find((s) => s._id === filters.storeId) ?? null;
   }, [filters.storeId, shouldShowStorePicker, stores]);
-
-  const selectSx = {
-    '& .MuiOutlinedInput-root': {
-      height: 36,
-      fontSize: 13,
-      borderRadius: 2,
-    },
-  } as const;
 
   return (
     <Box

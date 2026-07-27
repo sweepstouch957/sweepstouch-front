@@ -888,6 +888,12 @@ const StreamingIndicator: React.FC = () => {
    MAIN PAGE
    ═══════════════════════════════════════════════════════════ */
 
+// Altura del chat — solo depende de HEADER_HEIGHT (constante de módulo)
+const chatHeight = {
+  xs: `calc(100dvh - ${HEADER_HEIGHT * 1.5}px)`,
+  md: `calc(100vh - ${HEADER_HEIGHT * 1.5}px)`,
+};
+
 export default function AIAssistantPage() {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -1943,11 +1949,6 @@ export default function AIAssistantPage() {
       )}
     </Box>
   );
-
-  const chatHeight = {
-    xs: `calc(100dvh - ${HEADER_HEIGHT * 1.5}px)`,
-    md: `calc(100vh - ${HEADER_HEIGHT * 1.5}px)`,
-  };
 
   return (
     <Box

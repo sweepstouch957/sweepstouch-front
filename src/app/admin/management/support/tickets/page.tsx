@@ -175,6 +175,24 @@ const EMPTY_FORM: FormState = {
   evidenceUrls: [],
 };
 
+// Maps form state to the API request body; no component state, hoisted to module scope.
+const buildBody = (f: FormState) => ({
+  title: f.title,
+  description: f.description,
+  notes: f.notes,
+  area: f.area,
+  type: f.type,
+  status: f.status,
+  priority: f.priority,
+  storeId: f.store?._id ?? null,
+  storeName: f.store?.name ?? '',
+  storeAddress: f.store?.address ?? '',
+  assigneeId: f.assignee?._id ?? null,
+  assigneeName: f.assignee?.name ?? '',
+  reporterName: f.reporterName,
+  evidenceUrls: f.evidenceUrls,
+});
+
 /* ─── Component ───────────────────────────────────────────── */
 export default function TicketsPage() {
   const customization = useCustomization();
@@ -265,23 +283,6 @@ export default function TicketsPage() {
     setForm((f) => ({ ...f, evidenceUrls: f.evidenceUrls.filter((_, i) => i !== idx) }));
 
   /* ── Mutations ── */
-  const buildBody = (f: FormState) => ({
-    title: f.title,
-    description: f.description,
-    notes: f.notes,
-    area: f.area,
-    type: f.type,
-    status: f.status,
-    priority: f.priority,
-    storeId: f.store?._id ?? null,
-    storeName: f.store?.name ?? '',
-    storeAddress: f.store?.address ?? '',
-    assigneeId: f.assignee?._id ?? null,
-    assigneeName: f.assignee?.name ?? '',
-    reporterName: f.reporterName,
-    evidenceUrls: f.evidenceUrls,
-  });
-
   const createMutation = useMutation({
     mutationFn: (f: FormState) => supportService.createTicket(buildBody(f)),
     onSuccess: () => { invalidate(); closeDialog(); },
@@ -941,7 +942,7 @@ export default function TicketsPage() {
               {form.evidenceUrls.length > 0 ? (
                 <Stack direction="row" flexWrap="wrap" gap={1}>
                   {form.evidenceUrls.map((url, i) => (
-                    <Box key={i} sx={{ position: 'relative' }}>
+                    <Box key={url} sx={{ position: 'relative' }}>
                       {isImageUrl(url) ? (
                         <Box
                           component="img"

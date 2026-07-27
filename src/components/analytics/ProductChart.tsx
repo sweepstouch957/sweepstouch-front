@@ -55,6 +55,23 @@ const CATEGORY_ORDER = [
   'household',
 ];
 
+// Deduplicate by product name and sum quantities — pure, allocated once at module scope
+type ProdItem = { product: string; category: string; price: string; imageUrl?: string; quantity: number; uniqueCustomers: number; source: string; matched?: boolean };
+const dedup = (arr: ProdItem[]) => {
+  const map = new Map<string, ProdItem>();
+  for (const p of arr) {
+    const existing = map.get(p.product);
+    if (existing) {
+      existing.quantity += p.quantity;
+      existing.uniqueCustomers = Math.max(existing.uniqueCustomers, p.uniqueCustomers);
+      existing.matched = existing.matched || p.matched;
+    } else {
+      map.set(p.product, { ...p });
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => b.quantity - a.quantity);
+};
+
 export default function ProductChart({ data, campaignProducts, isLoading }: Props) {
   const theme = useTheme();
   const palette = chartPalette(theme);
@@ -112,23 +129,6 @@ export default function ProductChart({ data, campaignProducts, isLoading }: Prop
       matched: p.matched,
     })),
   ];
-
-  // Deduplicate by product name and sum quantities
-  type ProdItem = { product: string; category: string; price: string; imageUrl?: string; quantity: number; uniqueCustomers: number; source: string; matched?: boolean };
-  const dedup = (arr: ProdItem[]) => {
-    const map = new Map<string, ProdItem>();
-    for (const p of arr) {
-      const existing = map.get(p.product);
-      if (existing) {
-        existing.quantity += p.quantity;
-        existing.uniqueCustomers = Math.max(existing.uniqueCustomers, p.uniqueCustomers);
-        existing.matched = existing.matched || p.matched;
-      } else {
-        map.set(p.product, { ...p });
-      }
-    }
-    return Array.from(map.values()).sort((a, b) => b.quantity - a.quantity);
-  };
 
   const purchasedList = dedup(purchased);
   const selectedList = dedup(selected);

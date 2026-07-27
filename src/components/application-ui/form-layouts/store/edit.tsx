@@ -125,6 +125,9 @@ function resolveStatus(form: Props['form']): {
   return { label: 'Inactiva', color: 'warning' };
 }
 
+// Convierte un ISO string a Date (o null)
+const toDate = (iso: string | null) => (iso ? new Date(iso) : null);
+
 function CollapsibleSection({
   icon,
   label,
@@ -236,7 +239,6 @@ function CollapsibleSection({
 export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onRequestEdit }: Props) {
   const hasCoords = !!form.location?.coordinates;
   const isEmailValid = !form.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email);
-  const toDate = (iso: string | null) => (iso ? new Date(iso) : null);
   const { label: statusLabel, color: statusColor } = resolveStatus(form);
 
   // Section open/collapsed state — sensible defaults

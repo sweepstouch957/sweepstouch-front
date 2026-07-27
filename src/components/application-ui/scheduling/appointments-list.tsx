@@ -103,6 +103,22 @@ function getDateTimeValue(dateValue?: string, timeValue?: string) {
     return (parseLocalDate(dateValue) || new Date(dateValue)).getTime();
 }
 
+// Pure date guard; uses only module-level helpers, hoisted to module scope.
+const isLinkDisabled = (dateStr: string, timeStr: string) => {
+    if (!dateStr) return true;
+    try {
+        const rawDate = dateStr.split('T')[0];
+        const datetimeStr = timeStr === 'N/A' ? rawDate : `${rawDate}T${timeStr}`;
+        const targetDate = timeStr === 'N/A'
+            ? parseLocalDate(rawDate) || new Date(rawDate)
+            : new Date(datetimeStr);
+        if (isToday(targetDate)) return false;
+        return isPast(targetDate);
+    } catch {
+        return false;
+    }
+};
+
 const AppointmentsList = () => {
     const { user } = useAuth();
     const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
@@ -367,21 +383,6 @@ const AppointmentsList = () => {
             </Box>
         );
     }
-
-    const isLinkDisabled = (dateStr: string, timeStr: string) => {
-        if (!dateStr) return true;
-        try {
-            const rawDate = dateStr.split('T')[0];
-            const datetimeStr = timeStr === 'N/A' ? rawDate : `${rawDate}T${timeStr}`;
-            const targetDate = timeStr === 'N/A'
-                ? parseLocalDate(rawDate) || new Date(rawDate)
-                : new Date(datetimeStr);
-            if (isToday(targetDate)) return false;
-            return isPast(targetDate);
-        } catch {
-            return false;
-        }
-    };
 
     const handleDateToday = (): void => {
         const calItem = calendarRef.current;

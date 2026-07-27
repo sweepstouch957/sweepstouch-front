@@ -188,6 +188,14 @@ type Props = {
   };
 };
 
+// Ajusta la cantidad de un item en un mapa — función pura, sin estado de componente.
+const changeQty = (
+  setter: React.Dispatch<React.SetStateAction<QtyMap>>,
+  map: QtyMap,
+  id: string,
+  delta: number,
+) => setter({ ...map, [id]: Math.max(0, (map[id] ?? 0) + delta) });
+
 export default function CreateStoreStep2({
   onBack,
   onSubmit,
@@ -219,13 +227,6 @@ export default function CreateStoreStep2({
 
   const [openTablets, setOpenTablets] = React.useState(false);
   const [openPrinters, setOpenPrinters] = React.useState(false);
-
-  const changeQty = (
-    setter: React.Dispatch<React.SetStateAction<QtyMap>>,
-    map: QtyMap,
-    id: string,
-    delta: number,
-  ) => setter({ ...map, [id]: Math.max(0, (map[id] ?? 0) + delta) });
 
   const equipmentTotal = React.useMemo(() => {
     const all = [...tabletInventory, ...printerInventory];
