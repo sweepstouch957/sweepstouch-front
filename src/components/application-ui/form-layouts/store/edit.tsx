@@ -38,9 +38,11 @@ import {
   Button,
   Card,
   CardHeader,
+  Checkbox,
   Chip,
   Collapse,
   FormControl,
+  FormControlLabel,
   Grid,
   IconButton,
   InputAdornment,
@@ -79,6 +81,7 @@ type Props = {
     membershipType: NonNullable<Store['membershipType']>;
     paymentMethod: NonNullable<Store['paymentMethod']>;
     startContractDate: string | null;
+    circularss: boolean;
     cancelContractDate?: string | null;
     cancelContractReason?: string;
     status?: Store['status'];
@@ -852,6 +855,40 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
                 }}
               />
             </LocalizationProvider>
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                display="block"
+              >
+                Circularss
+              </Typography>
+              <Stack
+                direction="row"
+                spacing={2}
+              >
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={form.circularss}
+                      onChange={() => onChange('circularss')({ value: true })}
+                      disabled={!edit}
+                    />
+                  }
+                  label="Sí"
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={!form.circularss}
+                      onChange={() => onChange('circularss')({ value: false })}
+                      disabled={!edit}
+                    />
+                  }
+                  label="No"
+                />
+              </Stack>
+            </Box>
           </Stack>
         </CollapsibleSection>
 
