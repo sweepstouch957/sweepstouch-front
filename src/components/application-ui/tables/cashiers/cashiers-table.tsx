@@ -1,13 +1,15 @@
 'use client';
 
-import { useCashierRanking, useCashierStats, useCreateCashier } from '@/services/cashier.service';
+import { useCashierRanking, useCreateCashier } from '@/services/cashier.service';
 import AddIcon from '@mui/icons-material/Add';
+import CancelRounded from '@mui/icons-material/CancelRounded';
+import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded';
 import EmojiEventsTwoToneIcon from '@mui/icons-material/EmojiEventsTwoTone';
+import HourglassEmptyRounded from '@mui/icons-material/HourglassEmptyRounded';
+import PhoneIphoneRounded from '@mui/icons-material/PhoneIphoneRounded';
 import SearchIcon from '@mui/icons-material/Search';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import {
-  Avatar,
-  Box,
   Button,
   Card,
   CardContent,
@@ -18,9 +20,7 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
-  Grid,
   InputAdornment,
-  LinearProgress,
   Paper,
   Popover,
   Stack,
@@ -34,13 +34,20 @@ import {
   TableRow,
   TextField,
   Typography,
-  useTheme,
-} from '@mui/material';
+  useTheme } from '@mui/material';
 import { addDays, formatISO, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import * as React from 'react';
 import { DateRange } from 'react-date-range';
 import CashierDetailsDialog from './modal';
+
+type PhoneAudit = {
+  totalRegistered: number;
+  validPhones: number;
+  invalidPhones: number;
+  unknownPhones: number;
+  invalidPercent: number;
+};
 
 type Row = {
   cashierId: string;
@@ -53,6 +60,7 @@ type Row = {
   count: number;
   newNumbers?: number;
   existingNumbers?: number;
+  phoneAudit?: PhoneAudit | null;
 };
 
 export interface CashiersTableProps {
@@ -262,6 +270,7 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
     name?: string | null;
     email?: string | null;
     accessCode?: string | null;
+    phoneAudit?: PhoneAudit | null;
   }>({ id: null });
 
   return (
@@ -332,7 +341,32 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
               label={`Total cajeras: ${totalCashiers}`}
               size="small"
             />
-            
+            {data?.phoneAudit && data.phoneAudit.totalRegistered > 0 && (
+              <>
+                <Chip
+                  size="small"
+                  icon={<CheckCircleRounded fontSize="small" />}
+                  label={`Válidos: ${data.phoneAudit.validPhones}`}
+                  color="success"
+                  variant="outlined"
+                />
+                <Chip
+                  size="small"
+                  icon={<CancelRounded fontSize="small" />}
+                  label={`Inválidos: ${data.phoneAudit.invalidPhones} (${data.phoneAudit.invalidPercent}%)`}
+                  color={data.phoneAudit.invalidPercent > 10 ? 'error' : 'warning'}
+                  variant="outlined"
+                />
+                {data.phoneAudit.unknownPhones > 0 && (
+                  <Chip
+                    size="small"
+                    icon={<HourglassEmptyRounded fontSize="small" />}
+                    label={`Sin validar: ${data.phoneAudit.unknownPhones}`}
+                    variant="outlined"
+                  />
+                )}
+              </>
+            )}
           </Stack>
 
           {(isLoading || isFetching) && (
@@ -364,15 +398,15 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
           <Divider sx={{ my: 2 }} />
 
           <TableContainer component={Paper}>
-            <Table stickyHeader>
+            <Table stickyHeader size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>#</TableCell>
-                  <TableCell>First name</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Access code</TableCell>
-                  <TableCell align="right">Participaciones</TableCell>
-                  <TableCell align="center">Acciones</TableCell>
+                  <TableCell sx={{ width: 50 }}>#</TableCell>
+                  <TableCell>Nombre</TableCell>
+                  <TableCell>Código</TableCell>
+                  <TableCell align="right">Registros</TableCell>
+                  <TableCell align="right"><PhoneIphoneRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Tel. Audit</TableCell>
+                  <TableCell align="center" sx={{ width: 80 }}></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -390,28 +424,37 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
                       />
                     </TableCell>
                     <TableCell>{getFirstName(r.name)}</TableCell>
-                    <TableCell>{r.email ?? '—'}</TableCell>
-                    <TableCell>{r.accessCode ?? '—'}</TableCell>
-                    <TableCell align="right">{toInt(r.count, 0)}</TableCell>
-                    <TableCell
-                      align="center"
-                      width={140}
-                    >
+                    <TableCell>
+                      <Typography variant="caption" color="text.secondary">{r.accessCode ?? '—'}</Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography variant="body2" fontWeight={700}>{toInt(r.count, 0)}</Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      {r.phoneAudit ? (
+                        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                          <Chip size="small" icon={<CheckCircleRounded fontSize="small" />} label={r.phoneAudit.validPhones} color="success" variant="outlined" sx={{ height: 22, '& .MuiChip-label': { px: 0.75, fontSize: '0.7rem' } }} />
+                          <Chip size="small" icon={<CancelRounded fontSize="small" />} label={r.phoneAudit.invalidPhones} color={r.phoneAudit.invalidPercent > 15 ? 'error' : r.phoneAudit.invalidPercent > 5 ? 'warning' : 'default'} variant="outlined" sx={{ height: 22, '& .MuiChip-label': { px: 0.75, fontSize: '0.7rem' } }} />
+                        </Stack>
+                      ) : '—'}
+                    </TableCell>
+                    <TableCell align="center">
                       <Button
                         size="small"
-                        variant="outlined"
-                        startIcon={<VisibilityIcon />}
+                        variant="text"
                         onClick={() => {
                           setSelected({
                             id: r.cashierId,
                             name: r.name,
                             email: r.email,
                             accessCode: r.accessCode,
+                            phoneAudit: r.phoneAudit || null,
                           });
                           setDetailsOpen(true);
                         }}
+                        sx={{ minWidth: 0 }}
                       >
-                        Ver
+                        <VisibilityIcon fontSize="small" />
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -419,7 +462,7 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
 
                 {!ranked.length && !isLoading && !isFetching && (
                   <TableRow>
-                    <TableCell colSpan={7}>
+                    <TableCell colSpan={6}>
                       <Typography
                         textAlign="center"
                         py={3}
@@ -432,7 +475,7 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
               </TableBody>
               <TableFooter>
                 <TableRow>
-                  <TableCell colSpan={7}>
+                  <TableCell colSpan={6}>
                     <Stack
                       direction="row"
                       alignItems="center"
@@ -566,6 +609,7 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
         startDateYMD={startDateYMD}
         endDateYMD={endDateYMD}
         storeId={storeId}
+        phoneAudit={selected.phoneAudit || undefined}
       />
     </>
   );

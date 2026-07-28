@@ -1,7 +1,6 @@
 'use client';
 
 import { BriefFormRHF } from '@/components/application-ui/form-layouts/brief';
-import SweepstakeChecklist from '@/components/website/sweeptake-checklist';
 import { sweepstakesClient } from '@/services/sweepstakes.service';
 import { CreateOutlined } from '@mui/icons-material';
 import { Box, Card, CardContent, Container, Stack } from '@mui/material';
@@ -12,10 +11,37 @@ import { useTranslation } from 'react-i18next';
 import PageHeading from 'src/components/base/page-heading';
 import { useCustomization } from 'src/hooks/use-customization';
 
+// Valores iniciales — sin dependencias del componente, se crean una sola vez
+const initialValues = {
+  name: '',
+  description: '',
+  startDate: '',
+  endDate: '',
+  winnersCount: 1,
+  image: '',
+  hasQr: false,
+  rules: '',
+  participationMessage:
+    'Thank you for participating in the #StoreName!. Your participation code is: #Codigo',
+  sweeptakeDescription: '',
+  prizeIds: [] as string[],
+  bannerDesktop: '',
+  bannerMobile: '',
+  mainColor: '#D4AF37',
+  secondaryColor: '#C1121F',
+};
+
+// Metadata estática de la página, sin dependencias del componente
+const pageMeta = {
+  title: 'Create Sweepstake',
+  description: 'Manage and monitor Sweepstake',
+  icon: <CreateOutlined />,
+};
+
 function Page(): React.JSX.Element {
   const customization = useCustomization();
   const { t } = useTranslation();
-  const router = useRouter();
+  const { push } = useRouter();
   const qc = useQueryClient();
 
   const [snack, setSnack] = useState<{
@@ -40,32 +66,11 @@ function Page(): React.JSX.Element {
       // refresca listados si los tienes cacheados
       await qc.invalidateQueries({ queryKey: ['sweepstakes'] });
       // 🚀 redirige al checklist del sweepstake creado
-      router.push(`/admin/management/sweepstakes/${id}/checklist`);
+      push(`/admin/management/sweepstakes/${id}/checklist`);
     },
     onError: () => setSnack({ open: true, msg: 'No se pudo crear el sweepstake', sev: 'error' }),
   });
 
-  // Valores iniciales (puedes dejarlos en blanco si tu BriefFormRHF ya setea defaults)
-  const initialValues = {
-    name: '',
-    description: '',
-    startDate: '',
-    endDate: '',
-    winnersCount: 1,
-    image: '',
-    hasQr: false,
-    rules: '',
-    participationMessage:
-      'Thank you for participating in the #StoreName For a Car Labor Day!. Your participation code is: #Codigo',
-    sweeptakeDescription: '',
-    prizeIds: [] as string[],
-  };
-
-  const pageMeta = {
-    title: 'Create Sweepstake',
-    description: 'Manage and monitor Sweepstake',
-    icon: <CreateOutlined />,
-  };
   return (
     <>
       {pageMeta.title && (

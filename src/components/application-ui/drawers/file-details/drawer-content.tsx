@@ -104,6 +104,7 @@ const Component = () => {
             component="span"
             variant="subtitle1"
             color="text.secondary"
+            suppressHydrationWarning
           >
             {t('Edited')}{' '}
             {formatDistance(subDays(new Date(), 1), new Date(), {
@@ -277,6 +278,7 @@ const Component = () => {
                       <Typography
                         variant="subtitle1"
                         fontWeight={500}
+                        suppressHydrationWarning
                       >
                         {format(subHours(new Date(), 64), 'MMMM dd yyyy')}
                       </Typography>
@@ -299,6 +301,7 @@ const Component = () => {
                       <Typography
                         variant="subtitle1"
                         fontWeight={500}
+                        suppressHydrationWarning
                       >
                         {formatDistance(subDays(new Date(), 2), new Date(), {
                           addSuffix: true,
@@ -323,6 +326,7 @@ const Component = () => {
                       <Typography
                         variant="subtitle1"
                         fontWeight={500}
+                        suppressHydrationWarning
                       >
                         {formatDistance(subHours(new Date(), 4), new Date(), {
                           addSuffix: true,
@@ -516,6 +520,7 @@ const Component = () => {
               <Divider />
               <ListSubheader
                 disableSticky
+                suppressHydrationWarning
                 sx={{
                   backgroundColor: (theme) =>
                     theme.palette.mode === 'dark'
@@ -629,6 +634,7 @@ const Component = () => {
               <Divider />
               <ListSubheader
                 disableSticky
+                suppressHydrationWarning
                 sx={{
                   backgroundColor: (theme) =>
                     theme.palette.mode === 'dark'

@@ -10,7 +10,10 @@ export const RouterLink = forwardRef((props: RouterLinkProps, ref: any) => {
   return (
     <Link
       ref={ref}
+      prefetch={false}
       {...props}
     />
   );
 });
+
+RouterLink.displayName = 'RouterLink';

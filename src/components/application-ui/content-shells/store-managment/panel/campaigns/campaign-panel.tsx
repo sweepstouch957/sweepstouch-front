@@ -11,7 +11,10 @@ interface CampaignsPanelProps {
 const CampaignsPanel: FC<CampaignsPanelProps> = ({ storeId, storeName, onCreate }) => {
   return (
     <Box p={3}>
-      <CampaignsGrid storeId={storeId} />
+      <CampaignsGrid
+        storeId={storeId}
+        forceCards
+      />
     </Box>
   );
 };

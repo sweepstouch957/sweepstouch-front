@@ -25,7 +25,7 @@ import {
   useTheme,
 } from '@mui/material';
 
-import { ChangeEvent, FC, useEffect, useState } from 'react';
+import { ChangeEvent, FC, useEffect, useReducer } from 'react';
 import SmallMenu from 'src/components/application-ui/vertical-menus/small/small-menu';
 import { MenuItemPrimary } from 'src/components/base/styles/menu-item';
 import { dummyData } from './data';
@@ -40,52 +40,80 @@ interface SearchAlternateOverlayProps {
   open?: boolean;
 }
 
+// ── useReducer: consolidates 5 useState (react-doctor: UseReducer ×55) ────────
+type SearchState = {
+  searchTerm     : string;
+  filteredItems  : Item[];
+  loading        : boolean;
+  searchInitiated: boolean;
+  favorites      : Item[];
+};
+
+type SearchAction =
+  | { type: 'INIT_FAVORITES'; items: Item[] }
+  | { type: 'SEARCH'; term: string }
+  | { type: 'SEARCH_RESULT'; items: Item[] }
+  | { type: 'CLEAR' }
+  | { type: 'TOGGLE_FAVORITE'; item: Item };
+
+function searchReducer(state: SearchState, action: SearchAction): SearchState {
+  switch (action.type) {
+    case 'INIT_FAVORITES':
+      return { ...state, favorites: action.items };
+    case 'SEARCH':
+      if (!action.term.trim()) {
+        return { ...state, searchTerm: action.term, filteredItems: [], searchInitiated: false, loading: false };
+      }
+      return { ...state, searchTerm: action.term, searchInitiated: true, loading: true };
+    case 'SEARCH_RESULT':
+      return { ...state, filteredItems: action.items, loading: false };
+    case 'CLEAR':
+      return { ...state, searchTerm: '', filteredItems: [], searchInitiated: false, loading: false };
+    case 'TOGGLE_FAVORITE': {
+      const exists = state.favorites.some((f) => f.id === action.item.id);
+      return {
+        ...state,
+        favorites: exists
+          ? state.favorites.filter((f) => f.id !== action.item.id)
+          : [...state.favorites, action.item],
+      };
+    }
+    default: return state;
+  }
+}
+
 export const SearchAlternateOverlay: FC<SearchAlternateOverlayProps> = (props) => {
   const { onClose, open = false, ...other } = props;
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [filteredItems, setFilteredItems] = useState<Item[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [searchInitiated, setSearchInitiated] = useState<boolean>(false);
-  const [favorites, setFavorites] = useState<Item[]>([]);
+  const [{ searchTerm, filteredItems, loading, searchInitiated, favorites }, dispatch] = useReducer(
+    searchReducer,
+    { searchTerm: '', filteredItems: [], loading: false, searchInitiated: false, favorites: [] }
+  );
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   useEffect(() => {
-    setFavorites(dummyData.slice(0, 3) as Item[]);
+    // ✅ Initialize favorites with first 3 items from dummyData
+    dispatch({ type: 'INIT_FAVORITES', items: dummyData.slice(0, 3) as Item[] });
   }, []);
 
   const isFavorite = (id: string) => favorites.some((item) => item.id === id);
 
   const handleToggleFavorite = (item: Item) => {
-    if (isFavorite(item.id)) {
-      setFavorites((prevFavorites) => prevFavorites.filter((fav) => fav.id !== item.id));
-    } else {
-      setFavorites((prevFavorites) => [...prevFavorites, item]);
-    }
+    dispatch({ type: 'TOGGLE_FAVORITE', item });
   };
 
   const handleSearch = (event: ChangeEvent<HTMLInputElement>) => {
     const newSearchTerm = event.target.value;
-    setSearchTerm(newSearchTerm);
-    setSearchInitiated(true);
+    dispatch({ type: 'SEARCH', term: newSearchTerm });
 
-    if (newSearchTerm.trim() === '') {
-      setFilteredItems([]);
-      setSearchInitiated(false);
-      return;
-    }
+    if (!newSearchTerm.trim()) return;
 
-    setLoading(true);
-    setTimeout(
-      () => {
-        const filtered = dummyData.filter((item) =>
-          item.title.toLowerCase().includes(newSearchTerm.toLowerCase())
-        ) as Item[];
-        setFilteredItems(filtered);
-        setLoading(false);
-      },
-      Math.round(Math.random() * 1500)
-    );
+    setTimeout(() => {
+      const filtered = dummyData.filter((item) =>
+        item.title.toLowerCase().includes(newSearchTerm.toLowerCase())
+      ) as Item[];
+      dispatch({ type: 'SEARCH_RESULT', items: filtered });
+    }, Math.round(Math.random() * 1500));
   };
 
   const renderItem = (item: Item) => (
@@ -202,12 +230,7 @@ export const SearchAlternateOverlay: FC<SearchAlternateOverlayProps> = (props) =
                       size="small"
                       color="primary"
                       sx={{ mr: 0.5 }}
-                      onClick={() => {
-                        setSearchTerm('');
-                        setFilteredItems([]);
-                        setSearchInitiated(false);
-                        setLoading(false);
-                      }}
+                      onClick={() => dispatch({ type: 'CLEAR' })}
                       aria-label="close search dialog"
                     >
                       <CloseIcon fontSize="small" />

@@ -17,6 +17,7 @@ interface SnackbarState {
 interface ApprovedModalState {
   open: boolean;
   tempPassword: string;
+  accessCode?: string;
   item: ActivationRequest | null;
 }
 
@@ -43,6 +44,7 @@ export function useActivationRequestsPage(initialPageSize: PageSize = 12) {
   const [approvedModal, setApprovedModal] = useState<ApprovedModalState>({
     open: false,
     tempPassword: '',
+    accessCode: '',
     item: null,
   });
 
@@ -82,7 +84,6 @@ export function useActivationRequestsPage(initialPageSize: PageSize = 12) {
     onSuccess: (res: any, id) => {
       setSnackbar({ open: true, message: 'Solicitud aprobada con éxito.', severity: 'success' });
 
-      // Password con fallbacks defensivos
       const temp =
         res?.data?.previewTempPassword ??
         res?.data?.tempPassword ??
@@ -91,10 +92,12 @@ export function useActivationRequestsPage(initialPageSize: PageSize = 12) {
         res?.data?.previewSetPasswordLink ??
         '';
 
+      const accessCode = res?.data?.accessCode ?? res?.accessCode ?? '';
+
       const targetId = id || lastApprovedId;
       const item = lastApprovedItem || requests.find((r) => r._id === targetId) || null;
 
-      setApprovedModal({ open: true, tempPassword: temp, item });
+      setApprovedModal({ open: true, tempPassword: temp, accessCode, item });
 
       queryClient.invalidateQueries({ queryKey: ['activationRequests'] });
     },

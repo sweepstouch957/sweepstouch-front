@@ -69,7 +69,7 @@ const defaultValues = {
 } satisfies Values;
 
 export function AuthSupabaseRegisterForm(): React.JSX.Element {
-  const [supabaseClient] = React.useState(createSupabaseClient());
+  const [supabaseClient] = React.useState(() => createSupabaseClient());
   const { t } = useTranslation();
 
   const theme = useTheme();
@@ -85,7 +85,7 @@ export function AuthSupabaseRegisterForm(): React.JSX.Element {
         : provider.logo,
   }));
 
-  const router = useRouter();
+  const { push, refresh } = useRouter();
   const { checkSession } = useAuth();
   const [isPending, setIsPending] = React.useState<boolean>(false);
   const {
@@ -102,23 +102,26 @@ export function AuthSupabaseRegisterForm(): React.JSX.Element {
     async (provider: OAuthProvider['id']): Promise<void> => {
       setIsPending(true);
 
-      const redirectToUrl = new URL(routes.auth['supabase.callback'], window.location.origin);
-      redirectToUrl.searchParams.set('next', routes.admin.index);
+      try {
+        const redirectToUrl = new URL(routes.auth['supabase.callback'], window.location.origin);
+        redirectToUrl.searchParams.set('next', routes.admin.index);
 
-      const { data, error } = await supabaseClient.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: redirectToUrl.href,
-        },
-      });
+        const { data, error } = await supabaseClient.auth.signInWithOAuth({
+          provider,
+          options: {
+            redirectTo: redirectToUrl.href,
+          },
+        });
 
-      if (error) {
+        if (error) {
+          // toast.error(error.message);
+          return;
+        }
+
+        window.location.href = data.url;
+      } finally {
         setIsPending(false);
-        // toast.error(error.message);
-        return;
       }
-
-      window.location.href = data.url;
     },
     [supabaseClient]
   );
@@ -127,42 +130,43 @@ export function AuthSupabaseRegisterForm(): React.JSX.Element {
     async (values: Values): Promise<void> => {
       setIsPending(true);
 
-      const redirectToUrl = new URL(routes.auth['supabase.callback'], window.location.origin);
-      redirectToUrl.searchParams.set('next', routes.admin.index);
+      try {
+        const redirectToUrl = new URL(routes.auth['supabase.callback'], window.location.origin);
+        redirectToUrl.searchParams.set('next', routes.admin.index);
 
-      const { data, error } = await supabaseClient.auth.signUp({
-        email: values.email,
-        password: values.password,
-        options: {
-          emailRedirectTo: redirectToUrl.href,
-        },
-      });
-
-      if (error) {
-        setError('root', {
-          type: 'server',
-          message: error.message,
+        const { data, error } = await supabaseClient.auth.signUp({
+          email: values.email,
+          password: values.password,
+          options: {
+            emailRedirectTo: redirectToUrl.href,
+          },
         });
+
+        if (error) {
+          setError('root', {
+            type: 'server',
+            message: error.message,
+          });
+          return;
+        }
+
+        if (data.session) {
+          await checkSession();
+
+          refresh();
+          return;
+        }
+
+        if (data.user) {
+          const searchParams = new URLSearchParams({ email: values.email });
+          push(`${routes.auth['supabase.register-confirm']}?${searchParams.toString()}`);
+          return;
+        }
+      } finally {
         setIsPending(false);
-        return;
       }
-
-      if (data.session) {
-        await checkSession();
-
-        router.refresh();
-        return;
-      }
-
-      if (data.user) {
-        const searchParams = new URLSearchParams({ email: values.email });
-        router.push(`${routes.auth['supabase.register-confirm']}?${searchParams.toString()}`);
-        return;
-      }
-
-      setIsPending(false);
     },
-    [supabaseClient, router, setError, checkSession]
+    [supabaseClient, push, refresh, setError, checkSession]
   );
 
   const [showPassword, setShowPassword] = React.useState(false);

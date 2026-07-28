@@ -11,17 +11,26 @@ function Page(): React.JSX.Element {
   return (
     <>
       <Box
-        p={{
-          xs: 2,
-          sm: 3,
+        sx={{
+          px: { xs: 2, sm: 3 },
+          pt: { xs: 2, sm: 3 },
+          pb: 2,
+          bgcolor: 'background.default',
         }}
       >
-        <Typography variant="h3">{t('Debug numbers')}</Typography>
         <Typography
-          variant="subtitle1"
+          variant="h4"
+          fontWeight={800}
+        >
+          {t('Depuracion de numeros duplicados')}
+        </Typography>
+        <Typography
+          variant="body2"
           color="text.secondary"
         >
-          {t('View customers by store and bulk-deactivate by CSV')}
+          {t(
+            'Selecciona una tienda, revisa los contactos para desactivar los duplicados y opcionalmente sube un CSV con números para inactivar en lote'
+          )}
         </Typography>
       </Box>
       <Divider />

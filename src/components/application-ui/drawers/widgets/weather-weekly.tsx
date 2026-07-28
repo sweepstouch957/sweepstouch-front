@@ -1,5 +1,4 @@
 import AirTwoToneIcon from '@mui/icons-material/AirTwoTone';
-import CloudTwoToneIcon from '@mui/icons-material/CloudTwoTone';
 import GrainTwoToneIcon from '@mui/icons-material/GrainTwoTone';
 import MyLocationTwoToneIcon from '@mui/icons-material/MyLocationTwoTone';
 import WbSunnyTwoToneIcon from '@mui/icons-material/WbSunnyTwoTone';
@@ -18,8 +17,8 @@ import { addDays, format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { ButtonLight } from 'src/components/base/styles/button';
 
-const WeatherBox = styled(Card)(() => ({
-  background: 'linear-gradient(100.66deg, #434343 6.56%, #000000 93.57%) !important',
+const WeatherBox = styled(Card)(({ theme }) => ({
+  background: `linear-gradient(100.66deg, ${theme.palette.grey[800]} 6.56%, ${theme.palette.common.black} 93.57%) !important`,
   overflow: 'hidden',
   position: 'relative',
 }));
@@ -127,6 +126,7 @@ function WeatherWeekly() {
                 fontWeight={400}
                 noWrap
                 variant="h6"
+                suppressHydrationWarning
               >
                 Today, {format(new Date(), 'MMM dd yyyy')}
               </Typography>
@@ -176,6 +176,7 @@ function WeatherWeekly() {
                 <Typography
                   fontWeight={400}
                   variant="h5"
+                  suppressHydrationWarning
                 >
                   {format(addDays(new Date(), 1), 'MMM dd')}
                 </Typography>
@@ -225,6 +226,7 @@ function WeatherWeekly() {
                 <Typography
                   fontWeight={400}
                   variant="h5"
+                  suppressHydrationWarning
                 >
                   {format(addDays(new Date(), 2), 'MMM dd')}
                 </Typography>
@@ -274,6 +276,7 @@ function WeatherWeekly() {
                 <Typography
                   fontWeight={400}
                   variant="h5"
+                  suppressHydrationWarning
                 >
                   {format(addDays(new Date(), 3), 'MMM dd')}
                 </Typography>
@@ -323,6 +326,7 @@ function WeatherWeekly() {
                 <Typography
                   fontWeight={400}
                   variant="h5"
+                  suppressHydrationWarning
                 >
                   {format(addDays(new Date(), 4), 'MMM dd')}
                 </Typography>

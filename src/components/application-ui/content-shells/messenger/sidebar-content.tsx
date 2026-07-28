@@ -30,6 +30,13 @@ import { useTranslation } from 'react-i18next';
 import SearchWithButton from 'src/components/application-ui/input/search/search-with-button';
 import { AvatarState } from 'src/components/base/styles/avatar';
 
+// Datos de usuario de demo — estáticos, fuera del componente.
+const user = {
+  avatar: '/avatars/1.png',
+  name: 'Ethan Donovan',
+  jobTitle: 'Principal Engineer',
+};
+
 function SidebarContent() {
   const { t } = useTranslation();
 
@@ -54,12 +61,6 @@ function SidebarContent() {
 
   const handleTabsChange = (_event: ChangeEvent<{}>, value: string): void => {
     setCurrentTab(value);
-  };
-
-  const user = {
-    avatar: '/avatars/1.png',
-    name: 'Ethan Donovan',
-    jobTitle: 'Principal Engineer',
   };
 
   return (
@@ -420,7 +421,7 @@ function SidebarContent() {
               >
                 10:00 - 11:30
               </Typography>
-              <Typography variant="subtitle1">
+              <Typography variant="subtitle1" suppressHydrationWarning>
                 {formatDistance(subMinutes(new Date(), 12), new Date(), {
                   addSuffix: true,
                 })}
@@ -514,7 +515,7 @@ function SidebarContent() {
               >
                 14:30 - 16:15
               </Typography>
-              <Typography variant="subtitle1">
+              <Typography variant="subtitle1" suppressHydrationWarning>
                 {formatDistance(subHours(new Date(), 4), new Date(), {
                   addSuffix: true,
                 })}

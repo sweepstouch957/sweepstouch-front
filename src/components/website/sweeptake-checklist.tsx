@@ -1,7 +1,5 @@
-import { api } from '@/libs/axios';
 import { sweepstakesClient } from '@/services/sweepstakes.service';
 import { uploadCampaignImage } from '@/services/upload.service';
-import DoneAllIcon from '@mui/icons-material/DoneAll';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import {
   Alert,
@@ -15,7 +13,6 @@ import {
   Divider,
   FormControlLabel,
   IconButton,
-  LinearProgress,
   Snackbar,
   Stack,
   Step,
@@ -25,11 +22,10 @@ import {
   Switch,
   TextField,
   Tooltip,
-  Typography,
-} from '@mui/material';
+  Typography } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { BriefFormRHF } from '../application-ui/form-layouts/brief';
+import { BriefFormRHF, type SweepstakeOptinType } from '../application-ui/form-layouts/brief';
 import { DeadlineHeader } from '../application-ui/progress-indicators/dead-line';
 import { StepEditor } from '../application-ui/steppers/biref';
 import AvatarUploadLogo from '../application-ui/upload/avatar/avatar-upload-logo';
@@ -128,8 +124,7 @@ export default function SweepstakeChecklist({ sweepstakeId }: Props) {
   const updateBriefMutation = useMutation({
     mutationFn: async (values: any) => {
       const payload = { ...values, prize: values.prizeIds }; // map a backend
-      const res = await api.patch(`/sweepstakes/${sweepstakeId}`, payload);
-      return res.data;
+      return sweepstakesClient.updateSweepstake(sweepstakeId, payload);
     },
     onSuccess: async () => {
       setSnack({ open: true, msg: 'Brief actualizado ✅', sev: 'success' });
@@ -168,19 +163,25 @@ export default function SweepstakeChecklist({ sweepstakeId }: Props) {
   // Valores iniciales para el Brief (edición)
   const initialBriefValues = sweepstake
     ? {
-        name: sweepstake.name || '',
-        description: sweepstake.description || '',
-        startDate: sweepstake.startDate || null,
-        endDate: sweepstake.endDate || null,
-        image: (sweepstake.image as string) || '',
-        hasQr: Boolean(sweepstake.hasQr),
-        rules: sweepstake.rules || '',
-        participationMessage: sweepstake.participationMessage || '',
-        sweeptakeDescription: sweepstake.description || '',
-        prizeIds: Array.isArray(sweepstake.prize)
-          ? sweepstake.prize.map((p: any) => (typeof p === 'string' ? p : p._id))
-          : [],
-      }
+      name: sweepstake.name || '',
+      description: sweepstake.description || '',
+      startDate: sweepstake.startDate || null,
+      endDate: sweepstake.endDate || null,
+      image: (sweepstake.image as string) || '',
+      hasQr: Boolean(sweepstake.hasQr),
+      // Sin esto, guardar el brief pisaría el optinType existente ('event'/'nsa'/'generic')
+      optinType: ((sweepstake as any).optinType || '') as SweepstakeOptinType,
+      rules: sweepstake.rules || '',
+      participationMessage: sweepstake.participationMessage || '',
+      sweeptakeDescription: sweepstake.description || '',
+      prizeIds: Array.isArray(sweepstake.prize)
+        ? sweepstake.prize.map((p: any) => (typeof p === 'string' ? p : p._id))
+        : [],
+      bannerDesktop: sweepstake.bannerDesktop || '',
+      bannerMobile: sweepstake.bannerMobile || '',
+      mainColor: sweepstake.mainColor || '',
+      secondaryColor: sweepstake.secondaryColor || '',
+    }
     : undefined;
 
   return (

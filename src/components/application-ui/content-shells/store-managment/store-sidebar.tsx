@@ -16,8 +16,13 @@ import {
   MonetizationOn,
   QrCode2Outlined,
   RedeemTwoTone as RewardIcon,
+  ConfirmationNumberTwoTone as CouponIcon,
   Web as WebIcon,
+  OpenInNewRounded as KioskIcon,
   Woman2,
+  DevicesOtherTwoTone as DevicesIcon,
+  SmsTwoTone as SmsIcon,
+  PaletteTwoTone as BrandIcon,
 } from '@mui/icons-material';
 import PeopleIcon from '@mui/icons-material/People';
 import {
@@ -31,9 +36,8 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import Grid2 from '@mui/material/Unstable_Grid2';
 import type { FC } from 'react';
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Scrollbar } from 'src/components/base/scrollbar';
 import { StoreSidebarItem } from './store-sidebar-item';
 
@@ -42,6 +46,7 @@ interface StoreSidebarProps {
   storeName?: string;
   image?: string;
   storeId: string;
+  storeSlug?: string;
   accessCode: string;
   portalRedirectPath?: string;
   portalOpenInNewTab?: boolean;
@@ -57,7 +62,11 @@ function buildSwitchUrl(storeId: string) {
 const STORE_SECTIONS = [
   { id: 'campaigns', label: 'Campaigns', icon: <CampaignsIcon /> },
   { id: 'general-info', label: 'General Info', icon: <InfoIcon /> },
+  { id: 'brand', label: 'Branding', icon: <BrandIcon /> },
+  { id: 'equipment', label: 'Equipment', icon: <DevicesIcon /> },
   { id: 'sweepstakes', label: 'Sweepstakes', icon: <RewardIcon /> },
+  { id: 'welcome-coupons', label: 'Welcome Coupons', icon: <CouponIcon /> },
+  { id: 'opt-in', label: 'Opt-in MMS', icon: <SmsIcon /> },
   { id: 'billing', label: 'Billing', icon: <MonetizationOn /> },
   { id: 'qr', label: 'QR', icon: <QrCode2Outlined /> },
   { id: 'customers', label: 'Customers', icon: <PeopleIcon /> },
@@ -70,6 +79,7 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
   storeName,
   image,
   storeId,
+  storeSlug,
   portalOpenInNewTab = true,
   accessCode,
 }) => {
@@ -89,24 +99,42 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
     else window.location.href = url;
   };
 
-  const handleSectionClick = async (id: string) => {
-    if (id === 'portal') {
-      openPortal();
-      await runStoreManagementThunk(closeSidebar());
-      return;
-    }
+  const openKiosk = () => {
+    const kioskBase = process.env.NEXT_PUBLIC_KIOSK_ORIGIN || 'https://kiosko.sweepstouch.com';
+    // Normalizar: quitar comas y "_" final (formato ConfigurationName de tablets)
+    const cleanSlug = storeSlug
+      ? storeSlug.replace(/,/g, '').replace(/_+$/, '')
+      : null;
+    const target = cleanSlug
+      ? `${kioskBase}/?slug=${encodeURIComponent(cleanSlug)}`
+      : `${kioskBase}/?ac=${storeId}`;
+    window.open(target, '_blank');
+  };
 
+  const handleSectionClick = useCallback(async (id: string) => {
     await runStoreManagementThunk(setActiveSection(id));
     await runStoreManagementThunk(closeSidebar());
-  };
+  }, []);
+
+  const visibleSections = useMemo(
+    () =>
+      STORE_SECTIONS.filter(
+        (s) =>
+          (s.id !== 'customers' && s.id !== 'cajeras') ||
+          userRole === 'admin' ||
+          userRole === 'promotor_manager'
+      ),
+    [userRole]
+  );
 
   const sidebarContent = (
     <Box p={{ xs: 2, sm: 3 }}>
+      {/* Store identity */}
       <Box
         display="flex"
         flexDirection="column"
         alignItems="center"
-        mb={3}
+        mb={2}
         textAlign="center"
       >
         <Box
@@ -114,12 +142,11 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
           src={image || '/no-image.jpg'}
           alt={storeName}
           sx={{
-            width: 84,
-            height: 84,
+            width: 76,
+            height: 76,
             borderRadius: '50%',
             objectFit: 'cover',
             mb: 1,
-            boxShadow: theme.shadows[4],
             border: `2px solid ${theme.palette.primary.main}`,
           }}
         />
@@ -127,42 +154,63 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
           component="span"
           sx={{
             fontWeight: 700,
-            fontSize: '0.98rem',
+            fontSize: '0.9rem',
             color: theme.palette.text.primary,
             wordBreak: 'break-word',
+            lineHeight: 1.3,
+            mb: 1.5,
           }}
           title={storeName}
         >
           {storeName}
         </Box>
 
-        <Grid2
-          container
-          spacing={1.5}
-          sx={{ mt: 1.5 }}
+        {/* Merchant + Kiosk buttons: row on desktop, column on mobile */}
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: 1,
+            width: '100%',
+          }}
         >
-          <Grid2 xs={12}>
-            <Button
-              fullWidth
-              variant="contained"
-              size="small"
-              startIcon={<WebIcon />}
-              onClick={openPortal}
-              sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2 }}
-            >
-              Open Portal
-            </Button>
-          </Grid2>
-        </Grid2>
+          <Button
+            fullWidth
+            variant="contained"
+            size="small"
+            startIcon={<WebIcon sx={{ fontSize: '1rem !important' }} />}
+            onClick={openPortal}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 700,
+              borderRadius: 2,
+              fontSize: '0.78rem',
+              py: 0.75,
+            }}
+          >
+            Merchant
+          </Button>
+          <Button
+            fullWidth
+            variant="outlined"
+            size="small"
+            startIcon={<KioskIcon sx={{ fontSize: '1rem !important' }} />}
+            onClick={openKiosk}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 700,
+              borderRadius: 2,
+              fontSize: '0.78rem',
+              py: 0.75,
+            }}
+          >
+            Kiosk
+          </Button>
+        </Box>
       </Box>
 
       <List disablePadding>
-        {STORE_SECTIONS.filter(
-          (s) =>
-            (s.id !== 'customers' && s.id !== 'cajeras') ||
-            userRole === 'admin' ||
-            userRole === 'promotor_manager'
-        ).map((section) => (
+        {visibleSections.map((section) => (
           <StoreSidebarItem
             key={section.id}
             section={section}

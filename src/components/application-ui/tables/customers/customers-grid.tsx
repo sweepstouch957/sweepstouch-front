@@ -1,6 +1,7 @@
 'use client';
 
 import { Box, CircularProgress, Unstable_Grid2 as Grid, Typography, Button } from '@mui/material';
+import { PictureAsPdf } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import Results from './results';
@@ -20,6 +21,58 @@ function slugifyName(s?: string) {
     .trim()
     .replace(/\s+/g, '_')                             // espacios -> _
     .toLowerCase();
+}
+
+/**
+ * Utilidad: cambia exactamente DOS d\u00edgitos del string,
+ * preservando posiciones no num\u00e9ricas (espacios, guiones, +, etc.).
+ * NUEVA REGLA: No modifica los primeros 3 d\u00edgitos reales del n\u00famero.
+ */
+function obfuscateLastTwoDigitsKeepFormat(input: string): string {
+  if (!input) return input;
+
+  // \u00cdndices (en el string) donde hay d\u00edgitos
+  const digitIdx: number[] = [];
+  for (let i = 0; i < input.length; i++) {
+    if (/\d/.test(input[i])) digitIdx.push(i);
+  }
+  // Si hay menos de 5 d\u00edgitos, podr\u00eda no haber 2 elegibles luego de los primeros 3
+  if (digitIdx.length < 2) return input;
+
+  // Elegibles = todos los d\u00edgitos excepto los 3 primeros por orden
+  const pos1 = digitIdx[digitIdx.length - 2];
+  const pos2 = digitIdx[digitIdx.length - 1];
+
+  const chars = input.split('');
+  const randomDigit = () => Math.floor(Math.random() * 10).toString();
+
+  // Reemplazos: intenta que no repitan exactamente el d\u00edgito anterior
+  const old1 = chars[pos1];
+  let rep1 = randomDigit();
+  let tries = 5;
+  while (tries-- > 0 && rep1 === old1) rep1 = randomDigit();
+  chars[pos1] = rep1;
+
+  const old2 = chars[pos2];
+  let rep2 = randomDigit();
+  tries = 5;
+  while (tries-- > 0 && rep2 === old2) rep2 = randomDigit();
+  chars[pos2] = rep2;
+
+  return chars.join('');
+}
+
+/**
+ * Utilidad: agrupar una lista en filas de N columnas (rellena con '')
+ */
+function toColumns<T>(items: T[], columns: number): T[][] {
+  const rows: T[][] = [];
+  for (let i = 0; i < items.length; i += columns) {
+    const slice = items.slice(i, i + columns);
+    while (slice.length < columns) slice.push('' as any);
+    rows.push(slice);
+  }
+  return rows;
 }
 
 export default function CustomersGrid({ storeId, storeName }: CustomersGridProps) {
@@ -113,71 +166,6 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
   }
 
   /**
-   * Utilidad: cambia exactamente DOS dígitos del string,
-   * preservando posiciones no numéricas (espacios, guiones, +, etc.).
-   * NUEVA REGLA: No modifica los primeros 3 dígitos reales del número.
-   */
-  function obfuscateTwoDigitsKeepFormat(input: string): string {
-    if (!input) return input;
-
-    // Índices (en el string) donde hay dígitos
-    const digitIdx: number[] = [];
-    for (let i = 0; i < input.length; i++) {
-      if (/\d/.test(input[i])) digitIdx.push(i);
-    }
-    // Si hay menos de 5 dígitos, podría no haber 2 elegibles luego de los primeros 3
-    if (digitIdx.length <= 3) return input;
-
-    // Elegibles = todos los dígitos excepto los 3 primeros por orden
-    const eligible = digitIdx.slice(3);
-    if (eligible.length < 2) return input;
-
-    // Elegir dos posiciones distintas dentro de eligible
-    const pickIndex = () => Math.floor(Math.random() * eligible.length);
-    let i1 = pickIndex();
-    let i2 = pickIndex();
-    while (i2 === i1) i2 = pickIndex();
-
-    const pos1 = eligible[i1];
-    const pos2 = eligible[i2];
-
-    const chars = input.split('');
-    const randomDigit = () => Math.floor(Math.random() * 10).toString();
-
-    // Reemplazos: intenta que no repitan exactamente el dígito anterior
-    const old1 = chars[pos1];
-    let rep1 = randomDigit();
-    if (eligible.length > 2) {
-      let tries = 5;
-      while (tries-- > 0 && rep1 === old1) rep1 = randomDigit();
-    }
-    chars[pos1] = rep1;
-
-    const old2 = chars[pos2];
-    let rep2 = randomDigit();
-    if (eligible.length > 2) {
-      let tries = 5;
-      while (tries-- > 0 && (rep2 === old2 || rep2 === rep1)) rep2 = randomDigit();
-    }
-    chars[pos2] = rep2;
-
-    return chars.join('');
-  }
-
-  /**
-   * Utilidad: agrupar una lista en filas de N columnas (rellena con '')
-   */
-  function toColumns<T>(items: T[], columns: number): T[][] {
-    const rows: T[][] = [];
-    for (let i = 0; i < items.length; i += columns) {
-      const slice = items.slice(i, i + columns);
-      while (slice.length < columns) slice.push('' as any);
-      rows.push(slice);
-    }
-    return rows;
-  }
-
-  /**
    * Exportación "Exportar datos" para NO-Juan:
    * - Toma phoneNumber
    * - Modifica 2 dígitos aleatorios por número, sin tocar los primeros 3 dígitos reales
@@ -209,7 +197,16 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
       }
 
       // Ofuscar 2 dígitos por número (sin tocar los primeros 3 dígitos reales)
-      const obfuscated = allPhones.map((p) => obfuscateTwoDigitsKeepFormat(p));
+      const shuffledIndexes = allPhones.map((_, index) => index);
+      for (let i = shuffledIndexes.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffledIndexes[i], shuffledIndexes[j]] = [shuffledIndexes[j], shuffledIndexes[i]];
+      }
+
+      const indexesToMask = new Set(shuffledIndexes.slice(0, Math.floor(allPhones.length / 2)));
+      const obfuscated = allPhones.map((phone, index) =>
+        indexesToMask.has(index) ? obfuscateLastTwoDigitsKeepFormat(phone) : phone
+      );
 
       // Pasar a 4 columnas
       const body = toColumns<string>(obfuscated, 4);
@@ -240,14 +237,16 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
       <Grid xs={12}>
         {/* Botón alterno SOLO para usuarios distintos de juancarlos@sweepstouch.com */}
         {!isJuan && (
-          <Box mb={1}>
+          <Box mb={1.5} display="flex" justifyContent="flex-end">
             <Button
               variant="outlined"
               size="small"
+              startIcon={<PictureAsPdf />}
               onClick={handleExportDatos}
               disabled={exporting}
+              sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
             >
-              Exportar datos
+              {exporting ? 'Generando…' : 'Exportar datos'}
             </Button>
           </Box>
         )}
@@ -257,6 +256,7 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
           exporting={exporting}
           customers={data?.data || []}
           total={data?.total || 0}
+          stats={data?.stats}
           page={data?.page || page}
           limit={limit}
           onPageChange={(p) => setPage(p)}

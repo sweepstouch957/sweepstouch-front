@@ -3,7 +3,7 @@
 // ================================================
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { endOfDay, startOfDay, format } from "date-fns";
 import * as XLSX from "xlsx";
@@ -68,6 +68,8 @@ export type UseShiftsTableResult = {
   setStatus: (s: StatusFilter) => void;
   dateRange: DateRangeValue;
   setDateRange: (r: DateRangeValue) => void;
+  promoterId: string;
+  setPromoterId: (id: string) => void;
 
   // paging
   page: number;
@@ -121,12 +123,22 @@ const autoFit = (data: any[]) => {
   return cols;
 };
 
+// Pure helper — formats a date range, allocated once at module scope
+const formatRange = (value: DateRangeValue) => {
+  const { startDate, endDate } = value;
+  if (!startDate && !endDate) return "";
+  if (startDate && !endDate) return `${format(startDate, "MM/dd/yyyy")} –`;
+  if (!startDate && endDate) return `– ${format(endDate, "MM/dd/yyyy")}`;
+  return `${format(startDate!, "MM/dd/yyyy")} – ${format(endDate!, "MM/dd/yyyy")}`;
+};
+
 export function useShiftsTable(options: UseShiftsTableOptions = {}): UseShiftsTableResult {
   const pageSizeOptions = options.pageSizeOptions ?? [10, 12, 20, 30, 50];
   const [status, setStatus] = useState<StatusFilter>("all");
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(options.defaultRowsPerPage ?? 12);
   const [dateRange, setDateRange] = useState<DateRangeValue>({ startDate: null, endDate: null });
+  const [promoterId, setPromoterIdState] = useState<string>("");
 
   // derived dates
   const startISO = useMemo(
@@ -140,7 +152,7 @@ export function useShiftsTable(options: UseShiftsTableOptions = {}): UseShiftsTa
 
   // fetch
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ["shifts", page, rowsPerPage, startISO, endISO, status],
+    queryKey: ["shifts", page, rowsPerPage, startISO, endISO, status, promoterId],
     queryFn: () =>
       shiftService.getAllShifts({
         page,
@@ -148,6 +160,7 @@ export function useShiftsTable(options: UseShiftsTableOptions = {}): UseShiftsTa
         startTime: startISO,
         endTime: endISO,
         status: status === "all" ? undefined : status,
+        promoterId: promoterId || undefined,
       }),
   });
 
@@ -192,14 +205,6 @@ export function useShiftsTable(options: UseShiftsTableOptions = {}): UseShiftsTa
   };
 
   // helpers
-  const formatRange = (value: DateRangeValue) => {
-    const { startDate, endDate } = value;
-    if (!startDate && !endDate) return "";
-    if (startDate && !endDate) return `${format(startDate, "MM/dd/yyyy")} –`;
-    if (!startDate && endDate) return `– ${format(endDate, "MM/dd/yyyy")}`;
-    return `${format(startDate!, "MM/dd/yyyy")} – ${format(endDate!, "MM/dd/yyyy")}`;
-  };
-
   const buildExcelAndDownload = (rows: ShiftRow[] = shifts) => {
     const groups = new Map<
       string,
@@ -311,6 +316,11 @@ export function useShiftsTable(options: UseShiftsTableOptions = {}): UseShiftsTa
     dateRange,
     setDateRange: (r) => {
       setDateRange(r);
+      setPage(1);
+    },
+    promoterId,
+    setPromoterId: (id: string) => {
+      setPromoterIdState(id);
       setPage(1);
     },
 

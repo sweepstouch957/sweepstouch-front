@@ -36,29 +36,32 @@ interface Item {
   currency: string;
 }
 
+// Static demo user; no component state, hoisted to module scope.
+const user = {
+  name: 'Ethan Donovan',
+  jobTitle: 'Principal Engineer',
+};
+
+// Static invoice items; no component state, hoisted to module scope.
+const itemsList: Item[] = [
+  {
+    id: 1,
+    name: 'Design services for March',
+    quantity: 1,
+    price: 8945,
+    currency: '$',
+  },
+  {
+    id: 2,
+    name: 'Website migration services',
+    quantity: 3,
+    price: 2367,
+    currency: '$',
+  },
+];
+
 const InvoiceBody: FC<InvoiceBodyProps> = ({ invoice }) => {
   const { t } = useTranslation();
-  const user = {
-    name: 'Ethan Donovan',
-    jobTitle: 'Principal Engineer',
-  };
-
-  const itemsList: Item[] = [
-    {
-      id: 1,
-      name: 'Design services for March',
-      quantity: 1,
-      price: 8945,
-      currency: '$',
-    },
-    {
-      id: 2,
-      name: 'Website migration services',
-      quantity: 3,
-      price: 2367,
-      currency: '$',
-    },
-  ];
 
   const [items] = useState<Item[]>(itemsList);
 

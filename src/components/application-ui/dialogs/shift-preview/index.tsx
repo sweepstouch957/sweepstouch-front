@@ -1,4 +1,3 @@
-// components/ShiftPreviewModal.tsx
 'use client';
 
 import { Shift, shiftService } from '@/services/shift.service';
@@ -11,10 +10,11 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  Skeleton,
   Stack,
   Typography,
 } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
 interface ShiftPreviewModalProps {
   open: boolean;
@@ -23,20 +23,14 @@ interface ShiftPreviewModalProps {
 }
 
 export default function ShiftPreviewModal({ open, onClose, shiftId }: ShiftPreviewModalProps) {
-  const [shift, setShift] = useState<Shift | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['shift-by-id', shiftId],
+    queryFn: () => shiftService.getShiftById(shiftId!),
+    enabled: !!shiftId,
+    staleTime: 1000 * 60 * 2,
+  });
 
-  useEffect(() => {
-    if (!shiftId) return;
-    setLoading(true);
-    shiftService
-      .getShiftById(shiftId)
-      .then((res) => {
-        console.log(res);
-        setShift(res.shift);
-      })
-      .finally(() => setLoading(false));
-  }, [shiftId]);
+  const shift: Shift | undefined = data?.shift;
 
   return (
     <Dialog
@@ -53,11 +47,38 @@ export default function ShiftPreviewModal({ open, onClose, shiftId }: ShiftPrevi
       </DialogTitle>
 
       <DialogContent>
-        {loading ? (
-          <Typography>Cargando...</Typography>
-        ) : shift ? (
+        {isLoading ? (
           <Box>
-            {/* Supermercado */}
+            <Stack
+              direction="row"
+              spacing={2}
+              mb={2}
+            >
+              <Skeleton
+                variant="circular"
+                width={40}
+                height={40}
+              />
+              <Box flex={1}>
+                <Skeleton
+                  width="60%"
+                  height={20}
+                />
+                <Skeleton
+                  width="40%"
+                  height={16}
+                />
+              </Box>
+            </Stack>
+            <Skeleton height={20} sx={{ mb: 1 }} />
+            <Skeleton width="70%" height={20} />
+          </Box>
+        ) : isError || !shift ? (
+          <Typography color="text.secondary">
+            No se encontró información del turno.
+          </Typography>
+        ) : (
+          <Box>
             <Stack
               direction="row"
               alignItems="center"
@@ -76,7 +97,6 @@ export default function ShiftPreviewModal({ open, onClose, shiftId }: ShiftPrevi
               </Box>
             </Stack>
 
-            {/* Fecha y Horario */}
             <Typography
               fontWeight={600}
               mb={1}
@@ -91,7 +111,6 @@ export default function ShiftPreviewModal({ open, onClose, shiftId }: ShiftPrevi
 
             <Divider sx={{ my: 2 }} />
 
-            {/* Participaciones */}
             <Typography
               fontWeight={600}
               mb={1}
@@ -102,38 +121,25 @@ export default function ShiftPreviewModal({ open, onClose, shiftId }: ShiftPrevi
               direction="row"
               spacing={2}
             >
-              <Box>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                >
-                  Nuevos
-                </Typography>
-                <Typography fontWeight={700}>{shift.newParticipations ?? 0}</Typography>
-              </Box>
-              <Box>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                >
-                  Existentes
-                </Typography>
-                <Typography fontWeight={700}>{shift.existingParticipations ?? 0}</Typography>
-              </Box>
-              <Box>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                >
-                  Total
-                </Typography>
-                <Typography fontWeight={700}>{shift.totalParticipations ?? 0}</Typography>
-              </Box>
+              {[
+                { label: 'Nuevos', value: shift.newParticipations ?? 0 },
+                { label: 'Existentes', value: shift.existingParticipations ?? 0 },
+                { label: 'Total', value: shift.totalParticipations ?? 0 },
+              ].map(({ label, value }) => (
+                <Box key={label}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                  >
+                    {label}
+                  </Typography>
+                  <Typography fontWeight={700}>{value}</Typography>
+                </Box>
+              ))}
             </Stack>
 
             <Divider sx={{ my: 2 }} />
 
-            {/* Ganancias */}
             <Typography
               fontWeight={600}
               mb={1}
@@ -143,13 +149,11 @@ export default function ShiftPreviewModal({ open, onClose, shiftId }: ShiftPrevi
             <Typography
               fontSize={24}
               fontWeight={800}
-              color="green"
+              color="success.main"
             >
               ${shift.totalEarnings?.toFixed(2) || '0.00'}
             </Typography>
           </Box>
-        ) : (
-          <Typography>No se encontró información del turno.</Typography>
         )}
       </DialogContent>
 

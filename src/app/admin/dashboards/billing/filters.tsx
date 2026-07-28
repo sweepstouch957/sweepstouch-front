@@ -29,7 +29,6 @@ import {
 } from '@mui/material';
 import React from 'react';
 import { DateRange, RangeKeyDict } from 'react-date-range';
-import * as XLSX from 'xlsx';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import StoresReportModal from '@/components/billing/StoresReportModal';
@@ -78,6 +77,16 @@ const toYYYYMMDD = (d: Date | null) =>
         d.getDate()
       ).padStart(2, '0')}`
     : '';
+
+/* ====== Quick ranges (estáticos) ====== */
+const quickRanges = [
+  { value: '7d', text: 'Últimos 7 días' },
+  { value: '14d', text: 'Últimos 14 días' },
+  { value: 'm', text: 'Este mes' },
+];
+
+// estilos/layout: UNA sola fila con wrap bonito
+const itemSx = { flex: '1 1 240px', minWidth: 240, maxWidth: 360 };
 
 export default function BillingFilters({
   startDate,
@@ -133,15 +142,8 @@ export default function BillingFilters({
   const [openStores, setOpenStores] = React.useState(false);
   const bgSoft =
     theme.palette.mode === 'dark'
-      ? alpha(theme.palette.neutral?.[25] ?? '#fff', 0.04)
+      ? alpha(theme.palette.neutral?.[25] ?? theme.palette.common.white, 0.04)
       : 'neutral.25';
-
-  /* ====== Quick ranges ====== */
-  const quickRanges = [
-    { value: '7d', text: 'Últimos 7 días' },
-    { value: '14d', text: 'Últimos 14 días' },
-    { value: 'm', text: 'Este mes' },
-  ];
 
   const applyQuick = (code: string) => {
     const now = new Date();
@@ -203,6 +205,8 @@ export default function BillingFilters({
 
     try {
       setExporting(true);
+
+      const XLSX = await import('xlsx');
 
       // Dispara el fetch con los últimos filtros/rango (enabled:false en el hook)
       const { data } = await storesReport.refetch();
@@ -320,9 +324,6 @@ export default function BillingFilters({
       setExporting(false);
     }
   };
-
-  // estilos/layout: UNA sola fila con wrap bonito
-  const itemSx = { flex: '1 1 240px', minWidth: 240, maxWidth: 360 };
 
   return (
     <Card
@@ -556,7 +557,7 @@ export default function BillingFilters({
           sx={{
             bgcolor:
               theme.palette.mode === 'dark'
-                ? alpha(theme.palette.neutral?.[25] ?? '#fff', 0.04)
+                ? alpha(theme.palette.neutral?.[25] ?? theme.palette.common.white, 0.04)
                 : 'neutral.25',
             p: 1,
             borderRadius: 2,

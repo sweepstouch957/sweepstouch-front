@@ -1,15 +1,65 @@
 import { useStores } from '@/hooks/stores/useStores';
+import ExportButton from '@/components/application-ui/buttons/export-button';
+import PageHeading from '@/components/base/page-heading';
 import React from 'react';
-import * as XLSX from 'xlsx';
+import { useTranslation } from 'react-i18next';
 import StoreFilter from './filter';
 import { StoresBillingHeader } from './header';
 import Results from './results';
+import { StoreCommandPalette, useCommandPalette } from './StoreCommandPalette';
+import StoreExportDialog from './StoreExportDialog';
+import { buildExportRows } from './storeExport';
+
+/**
+ * Exporta el listado COMPLETO de tiendas (ignora los filtros de pantalla:
+ * el pedido es "todas las tiendas") con las columnas elegidas en el modal.
+ * No usa estado del componente; hoisted a module scope.
+ */
+async function exportAll(selectedKeys: string[]) {
+  const limitPage = 500;
+  let pageNo = 1;
+  let all: any[] = [];
+  const svc = (await import('@/services/store.service')).default;
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const res: any = await svc.getStores({
+      page: pageNo,
+      limit: limitPage,
+      status: 'all',
+      sortBy: 'name',
+      order: 'asc',
+      debtStatus: 'all',
+      paymentMethod: 'all',
+      provider: 'all',
+    });
+
+    const data = res?.data || [];
+    all = all.concat(data);
+    const totalRemote = res?.total || data.length;
+
+    if (!totalRemote || all.length >= totalRemote || data.length === 0) break;
+    pageNo += 1;
+    if (pageNo > 2000) break;
+  }
+
+  const { rows, cols } = buildExportRows(all, selectedKeys);
+
+  const XLSX = await import('xlsx');
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = cols; // sin esto Brand/Address quedan cortadas
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Stores');
+  XLSX.writeFile(wb, `stores_listing_${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
 
 function Component() {
+  const { t } = useTranslation();
   const {
     stores,
     total,
     loading,
+    fetching,
     error,
     page,
     limit,
@@ -38,84 +88,40 @@ function Component() {
     handlePaymentMethodChange,
     paymentMethod,
     handleMaxDebtChange,
+    provider,
+    handleProviderChange,
+    refetch,
   } = useStores();
 
-  async function exportAll() {
-    const limitPage = 500;
-    let pageNo = 1;
-    let all: any[] = [];
-    const svc = (await import('@/services/store.service')).default;
+  const { open: paletteOpen, openPalette, closePalette } = useCommandPalette();
 
-    const current = {
-      search,
-      status,
-      sortBy,
-      order,
-      audienceLt,
-      debtStatus,
-      minDebt,
-      maxDebt,
-      paymentMethod,
-    };
-
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const res: any = await svc.getStores({
-        page: pageNo,
-        limit: limitPage,
-        search: current.search,
-        status: current.status,
-        sortBy: (current.sortBy as any) || 'customerCount',
-        order: (current.order as any) || 'desc',
-        audienceLt: current.audienceLt || '',
-        debtStatus: current.debtStatus,
-        minDebt: current.minDebt || '',
-        maxDebt: current.maxDebt || '',
-        paymentMethod: current.paymentMethod || 'all',
-      });
-
-      const data = res?.data || [];
-      all = all.concat(data);
-      const totalRemote = res?.total || data.length;
-
-      if (!totalRemote || all.length >= totalRemote || data.length === 0) break;
-      pageNo += 1;
-      if (pageNo > 2000) break;
-    }
-
-    const rows = all.map((s: any) => ({
-      brand: s?.brand?.name || '',
-      name: s?.name || '',
-      address: s?.address || '',
-      customers: s?.customerCount ?? 0,
-      status: s?.active ? 'Active' : 'Inactive',
-      balancePending: s?.billing?.totalPending ?? 0,
-      daysOverdue: s?.billing?.maxDaysOverdue ?? 0,
-      installments: s?.billing?.installmentsNeeded ?? '',
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Stores');
-    XLSX.writeFile(wb, 'stores_listing.xlsx');
-  }
+  const [exportOpen, setExportOpen] = React.useState(false);
 
   React.useEffect(() => {
-    const handler = () => exportAll();
+    const handler = () => setExportOpen(true);
 
     if (typeof window !== 'undefined') {
       window.addEventListener('stores:export', handler);
       return () => window.removeEventListener('stores:export', handler);
     }
     return () => {};
-  }, [search, status, sortBy, order, audienceLt, debtStatus, minDebt, maxDebt, paymentMethod]);
+  }, []);
 
   return (
     <>
-      <StoresBillingHeader />
+      <PageHeading
+        title={t('Stores')}
+        description={t('Overview of all stores')}
+        actions={<ExportButton eventName="stores:export" emitOnly />}
+      />
+
+      <StoresBillingHeader
+        status={status}
+        onFilterByDebt={(ds) => handleDebtStatusChange(ds as any)}
+        activeDebtStatus={debtStatus}
+      />
 
       <StoreFilter
-        t={(k) => k}
         search={search}
         total={total}
         status={status}
@@ -123,7 +129,7 @@ function Component() {
         debtStatus={debtStatus as any}
         minDebt={minDebt}
         maxDebt={maxDebt}
-        handleSearchChange={(e) => handleSearchChange(e.target.value)}
+        handleSearchChange={(v) => handleSearchChange(v)}
         onStatusChange={onStatusChange}
         onAudienceLtChange={handleAudienceLtChange}
         onDebtStatusChange={handleDebtStatusChange as any}
@@ -131,10 +137,13 @@ function Component() {
         onMaxDebtChange={handleMaxDebtChange}
         paymentMethod={paymentMethod}
         onPaymentMethodChange={handlePaymentMethodChange}
+        provider={provider}
+        onProviderChange={handleProviderChange}
         sortBy={sortBy}
         order={order}
         onSortChange={handleSortChange}
         onOrderChange={handleOrderChange}
+        onOpenCommandPalette={openPalette}
       />
 
       <Results
@@ -147,8 +156,22 @@ function Component() {
         onSortChange={handleSortChange}
         onPageChange={handlePageChange}
         onLimitChange={handleLimitChange}
+        onRefresh={refetch}
         loading={loading}
+        fetching={fetching}
         error={error}
+      />
+
+      <StoreCommandPalette
+        open={paletteOpen}
+        onClose={closePalette}
+        onSelectSearch={handleSearchChange}
+      />
+
+      <StoreExportDialog
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        onExport={exportAll}
       />
     </>
   );

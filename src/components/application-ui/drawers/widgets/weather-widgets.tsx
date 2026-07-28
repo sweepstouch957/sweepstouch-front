@@ -67,13 +67,14 @@ const LinearUv = styled(Box)(({ theme }) => ({
   },
 }));
 
+// Datos estáticos del widget — fuera del componente.
+const data = {
+  percentage: 67,
+};
+
 function WeatherWidgets() {
   const { t } = useTranslation();
   const theme = useTheme();
-
-  const data = {
-    percentage: 67,
-  };
 
   return (
     <Box m={-2}>

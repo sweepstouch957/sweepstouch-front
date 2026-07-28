@@ -40,6 +40,13 @@ const TopBarWrapper = styled(AppBar)(({ theme }) => ({
   transition: theme.transitions.create(['height', 'width']),
 }));
 
+// Static demo user — allocated once at module scope
+const user = {
+  avatar: '/avatars/1.png',
+  name: 'Ethan Donovan',
+  jobTitle: 'Principal Engineer',
+};
+
 export const TopBar = () => {
   const smUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('sm'));
   const dialog = useDialog();
@@ -48,12 +55,6 @@ export const TopBar = () => {
   const theme = useTheme();
   const notifications = useDialog();
   const widgets = useDialog();
-
-  const user = {
-    avatar: '/avatars/1.png',
-    name: 'Ethan Donovan',
-    jobTitle: 'Principal Engineer',
-  };
 
   return (
     <TopBarWrapper

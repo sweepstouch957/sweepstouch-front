@@ -14,8 +14,8 @@ import {
 } from '@mui/material';
 import { BarChart } from '@mui/x-charts/BarChart';
 import { PieChart } from '@mui/x-charts/PieChart';
-import React, { useMemo } from 'react';
-import { num } from './AudienceKpis';
+import { useMemo } from 'react';
+import { num } from './audience-utils';
 import { GlassCard, MetricPill } from './ui';
 
 /* ============================== Types ============================== */
@@ -67,7 +67,7 @@ function fmtSigned(v: number) {
 }
 
 /* ============================== Styled bits ============================== */
-export const Dot = styled('span')<{ color: string }>(({ color }) => ({
+const Dot = styled('span')<{ color: string }>(({ color }) => ({
   display: 'inline-block',
   width: 10,
   height: 10,
@@ -166,6 +166,14 @@ function SplitFooter(props: { senders: number; non: number; sp: number; np: numb
   );
 }
 
+// Oculta el legend interno de x-charts (porque hacemos el nuestro).
+// No usa estado del componente; hoisted a module scope.
+const hideInternalLegendSx = {
+  '& .MuiChartsLegend-root': { display: 'none !important' },
+  '& .MuiChartsLegend-series': { display: 'none !important' },
+  '& .MuiChartsLegend-label': { display: 'none !important' },
+} as const;
+
 /* ============================== Main ============================== */
 export function AudienceCharts(props: Props) {
   const { summary, weekly, loading, weeklyError } = props;
@@ -174,13 +182,6 @@ export function AudienceCharts(props: Props) {
 
   const cSenders = theme.palette.primary.main;
   const cNon = theme.palette.warning.main;
-
-  // Oculta el legend interno de x-charts (porque hacemos el nuestro)
-  const hideInternalLegendSx = {
-    '& .MuiChartsLegend-root': { display: 'none !important' },
-    '& .MuiChartsLegend-series': { display: 'none !important' },
-    '& .MuiChartsLegend-label': { display: 'none !important' },
-  } as const;
 
   /* ----------------------------- Donut dataset ---------------------------- */
   const donut = useMemo(() => {
@@ -516,7 +517,7 @@ export function AudienceCharts(props: Props) {
                 variant="body2"
                 sx={{ mt: 1 }}
               >
-                Weekly breakdown failed — verify /campaigns/audience/weekly.
+                Weekly breakdown failed. Verify /campaigns/audience/weekly.
               </Typography>
             ) : null}
           </GlassCard>

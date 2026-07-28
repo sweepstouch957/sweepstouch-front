@@ -12,6 +12,9 @@ export type PaymentMethodFilter =
   | 'wire'
   | 'cash';
 
+export type ProviderFilter = 'all' | 'twilio' | 'bandwidth' | 'infobip';
+export type StoreStatusFilter = 'all' | 'active' | 'suspended' | 'cancelled';
+
 export interface UseStoresOptions {
   search?: string;
   page?: number;
@@ -28,6 +31,9 @@ export interface UseStoresOptions {
 
   // ⭐ nuevo: filtro por método de pago
   paymentMethod?: PaymentMethodFilter;
+
+  // ⭐ nuevo: filtro por proveedor SMS
+  provider?: ProviderFilter;
 }
 
 export const useStores = (initialOptions: UseStoresOptions = {}) => {
@@ -39,7 +45,7 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
     initialOptions.sortBy ?? 'customerCount'
   );
   const [order, setOrder] = useState<UseStoresOptions['order']>(initialOptions.order ?? 'desc');
-  const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('active');
+  const [status, setStatus] = useState<StoreStatusFilter>('active');
   const [audienceLt, setAudienceLt] = useState<string>(initialOptions.audienceLt ?? '');
 
   // morosidad
@@ -54,10 +60,15 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
     initialOptions.paymentMethod ?? 'all'
   );
 
-  const [searchInput, setSearchInput] = useState(search);
-  const debouncedSearch = useMemo(() => debounce((val: string) => setSearch(val), 500), []);
+  // ⭐ provider
+  const [provider, setProvider] = useState<ProviderFilter>(
+    initialOptions.provider ?? 'all'
+  );
 
-  const onStatusChange = useCallback((value: 'all' | 'active' | 'inactive') => {
+  const [searchInput, setSearchInput] = useState(search);
+  const debouncedSearch = useMemo(() => debounce((val: string) => setSearch(val), 150), []);
+
+  const onStatusChange = useCallback((value: StoreStatusFilter) => {
     setStatus(value);
     setPage(0);
   }, []);
@@ -84,6 +95,7 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
       minDebt,
       maxDebt,
       paymentMethod, // ⭐ entra al cache key
+      provider,      // ⭐ entra al cache key
     ],
     queryFn: () =>
       storesService.getStores({
@@ -98,70 +110,78 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
         minDebt,
         maxDebt,
         paymentMethod, // ⭐ se manda al backend
+        provider,      // ⭐ se manda al backend
       }),
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
   });
 
-  const handlePageChange = (newPage: number) => setPage(newPage);
+  const handlePageChange = useCallback((newPage: number) => setPage(newPage), []);
 
-  const handleLimitChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleLimitChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     setLimit(parseInt(e.target.value, 10));
     setPage(0);
-  };
+  }, []);
 
-  const handleSearchChange = (value: string) => {
+  const handleSearchChange = useCallback((value: string) => {
     setSearchInput(value);
     debouncedSearch(value);
     setPage(0);
-  };
+  }, [debouncedSearch]);
 
-  const handleTypeChange = (value: string) => {
+  const handleTypeChange = useCallback((value: string) => {
     setType(value as UseStoresOptions['type']);
     setPage(0);
-  };
+  }, []);
 
-  const handleSortChange = (
+  const handleSortChange = useCallback((
     value: 'customerCount' | 'name' | 'active' | 'maxDaysOverdue' | string
   ) => {
     setSortBy(value);
     setPage(0);
-  };
+  }, []);
 
-  const handleOrderChange = (value: 'asc' | 'desc') => {
+  const handleOrderChange = useCallback((value: 'asc' | 'desc') => {
     setOrder(value);
     setPage(0);
-  };
+  }, []);
 
-  const handleAudienceLtChange = (value: string) => {
+  const handleAudienceLtChange = useCallback((value: string) => {
     setAudienceLt(value);
     setPage(0);
-  };
+  }, []);
 
-  // morosidad
-  const handleDebtStatusChange = (value: 'all' | 'ok' | 'low' | 'high') => {
+  const handleDebtStatusChange = useCallback((value: 'all' | 'ok' | 'low' | 'high') => {
     setDebtStatus(value);
     setPage(0);
-  };
+  }, []);
 
-  const handleMinDebtChange = (value: string) => {
+  const handleMinDebtChange = useCallback((value: string) => {
     setMinDebt(value);
     setPage(0);
-  };
+  }, []);
 
-  const handleMaxDebtChange = (value: string) => {
+  const handleMaxDebtChange = useCallback((value: string) => {
     setMaxDebt(value);
     setPage(0);
-  };
+  }, []);
 
-  // ⭐ handler paymentMethod
-  const handlePaymentMethodChange = (value: PaymentMethodFilter) => {
+  const handlePaymentMethodChange = useCallback((value: PaymentMethodFilter) => {
     setPaymentMethod(value);
     setPage(0);
-  };
+  }, []);
+
+  const handleProviderChange = useCallback((value: ProviderFilter) => {
+    setProvider(value);
+    setPage(0);
+  }, []);
+
+  // El backend ya filtra por `status` (enum real) y devuelve el total correcto.
+  // Volver a filtrar en cliente rompía la paginación y el conteo.
+  const stores = data?.data || [];
 
   return {
-    stores: data?.data || [],
+    stores,
     total: data?.total || 0,
     loading: isLoading,
     fetching: isFetching,
@@ -208,5 +228,9 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
 
     // ⭐ nuevo handler expuesto
     handlePaymentMethodChange,
+
+    // ⭐ provider
+    provider,
+    handleProviderChange,
   };
 };

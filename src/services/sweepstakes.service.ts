@@ -104,6 +104,11 @@ export interface Sweepstakes {
   hasOptinLink?: boolean;
   confirmationLink?: string | null;
   createdAt?: string;
+  // Branding fields (optional)
+  bannerDesktop?: string;
+  bannerMobile?: string;
+  mainColor?: string;
+  secondaryColor?: string;
 }
 
 /** ===== Audience Windows ===== */
@@ -131,6 +136,172 @@ export interface SweepstakeRegistrationsCountResponse {
 }
 
 /* ===================== SWEEPSTAKES CLIENT ===================== */
+
+/** Exported participant row (for Excel) */
+/** Rol elegido en el modal NSA. Solo se llena si el sweepstake tiene optinType 'nsa'. */
+export type NsaRole = 'owner_manager' | 'seller_brand';
+
+export const NSA_ROLE_LABEL: Record<NsaRole, string> = {
+  owner_manager: 'Owner / Manager',
+  seller_brand: 'Seller / Brand',
+};
+
+export interface ExportedParticipant {
+  phone: string;
+  method: string;
+  isNewUser: boolean;
+  registeredAt: string;
+  participantNumber: number | null;
+  coupon: string | null;
+  nsaRole?: NsaRole | null;
+}
+
+export interface DailyMetric {
+  date: string;
+  total: number;
+  newUsers: number;
+  existingUsers: number;
+  methodBreakdown: Record<string, number>;
+}
+
+export interface StoreMetricsResponse {
+  storeId: string;
+  storeInfo: any | null;
+  metrics: {
+    total: number;
+    newUsers: number;
+    existingUsers: number;
+    byMethod: Record<string, number>;
+    bySweepstake: Record<string, number>;
+    recentParticipations: any[];
+  };
+  participants: any[];
+}
+
+/* ===================== AUDIENCE TYPES ===================== */
+
+/** /audience/by-store row */
+export interface AudienceStoreRow {
+  storeId: string;
+  storeName: string;
+  storeImage: string;
+  storeType: string;
+  active: boolean;
+  customerCount: number;
+  tabletStatus: string;
+  dailyAverage: number;
+  totalContacts30d: number;
+  daysWithData: number;
+  activationDaysExcluded: number;
+  yesterday: {
+    date: string;
+    total: number;
+    newUsers: number;
+    existingUsers: number;
+    deltaVsAverage: number;
+    aboveAverage: boolean;
+  };
+  byMethod: Record<string, number>;
+  lastCalculatedAt: string | null;
+}
+
+export interface AudienceByStoreResponse {
+  success: boolean;
+  count: number;
+  data: AudienceStoreRow[];
+  generatedAt: string;
+}
+
+/** /audience/daily-total */
+export interface AudienceDailyTotalResponse {
+  success: boolean;
+  date: string;
+  today: {
+    total: number;
+    newUsers: number;
+    existingUsers: number;
+    byMethod: Record<string, number>;
+  };
+  comparisons: {
+    vsYesterday: { total: number; delta: number; deltaPercent: number };
+    vsLastWeek: { total: number; delta: number; deltaPercent: number };
+  };
+  topStores: Array<{
+    storeId: string;
+    storeName: string;
+    storeImage: string;
+    count: number;
+    newUsers: number;
+  }>;
+  activeStoresCount: number;
+  generatedAt: string;
+}
+
+/** /audience/stores-status */
+export interface ActiveStoreStatusRow {
+  storeId: string;
+  storeName: string;
+  storeImage: string;
+  storeType: string;
+  customerCount: number;
+  tabletStatus: string;
+  tabletQuantity: number;
+  tabletDate: string | null;
+  lastParticipation: string | null;
+  lastMethod: string | null;
+  hoursSinceLastActivity: number;
+  todayContacts: number;
+  dailyAverage: number;
+  status: 'ok' | 'offline' | 'no_data_today' | 'below_average';
+  alerts: {
+    offline: boolean;
+    noDataToday: boolean;
+    belowAverage: boolean;
+  };
+}
+
+export interface ActiveStoresStatusResponse {
+  success: boolean;
+  summary: {
+    totalActive: number;
+    online: number;
+    offline: number;
+    noDataToday: number;
+    belowAverage: number;
+  };
+  data: ActiveStoreStatusRow[];
+  generatedAt: string;
+}
+
+/** /audience/history */
+export interface AudienceWeeklySnapshot {
+  year: number;
+  week: number;
+  weekStart: string;
+  weekEnd: string;
+  total: number;
+  newUsers: number;
+  existingUsers: number;
+  dailyAvg: number;
+  byMethod: Record<string, number>;
+}
+
+export interface AudienceHistoryResponse {
+  success: boolean;
+  storeId: string;
+  storeInfo: any | null;
+  weeks: number;
+  totalWeeksReturned: number;
+  trend: {
+    firstWeekTotal: number;
+    lastWeekTotal: number;
+    growthPercent: number;
+  } | null;
+  data: AudienceWeeklySnapshot[];
+  generatedAt: string;
+}
+
+
 
 export class SweepstakesClient {
   /* ------------ Participants ------------ */
@@ -168,8 +339,8 @@ export class SweepstakesClient {
 
   async getStoresBySweepstkesFiltered(
     id: string,
-    filters?: Pagination
-  ): Promise<StoreSweepstakeResponse> {
+    filters?: { page?: number; limit?: number; sortBy?: string; sortOrder?: 'asc' | 'desc' }
+  ): Promise<any> {
     const res = await api.get(`/sweepstakes/${id}/stores`, { params: filters });
     return res.data;
   }
@@ -187,8 +358,12 @@ export class SweepstakesClient {
     return res.data;
   }
 
-  /* ------------- Sweepstakes ------------- */
   async getSweepstakes(filters?: { status?: string; name?: string }): Promise<Sweepstakes[]> {
+    const res = await api.get('/sweepstakes', { params: filters });
+    return res.data;
+  }
+
+  async getPaginatedSweepstakes(filters?: { status?: string; name?: string; q?: string; page?: number; limit?: number; sortBy?: string; sortOrder?: 'asc' | 'desc'; createdFrom?: string; createdTo?: string; endFrom?: string; endTo?: string; }): Promise<{ data: Sweepstakes[]; total: number; page: number; limit: number; }> {
     const res = await api.get('/sweepstakes', { params: filters });
     return res.data;
   }
@@ -207,6 +382,11 @@ export class SweepstakesClient {
 
   async createSweepstake(data: any): Promise<Sweepstakes> {
     const res = await api.post('/sweepstakes', data);
+    return res.data;
+  }
+
+  async updateSweepstake(id: string, data: any): Promise<Sweepstakes> {
+    const res = await api.patch(`/sweepstakes/${id}`, data);
     return res.data;
   }
 
@@ -299,9 +479,129 @@ export class SweepstakesClient {
 
     return res.data;
   }
+  /* ====== Export participants (for Excel download) ======
+     GET /sweepstakes/participants/export?storeId=&sweepstakeId=&startDate=&endDate=
+  */
+  async exportParticipants(params: {
+    storeId?: string;
+    sweepstakeId?: string;
+    startDate?: string;
+    endDate?: string;
+    // isNsa: el backend avisa si el sweepstake es optinType 'nsa' para mostrar/exportar
+    // la columna Owner/Seller solo cuando aplica.
+  }): Promise<{ total: number; rows: ExportedParticipant[]; isNsa?: boolean }> {
+    const res = await api.get('/sweepstakes/participants/export', { params });
+    return res.data;
+  }
+
+  /* ====== Store-level metrics for a sweepstake ======
+     GET /sweepstakes/metrics/participants/store/:storeId
+  */
+  async getStoreMetrics(
+    storeId: string,
+    params?: { startDate?: string; endDate?: string; method?: string; sweepstakeId?: string }
+  ): Promise<StoreMetricsResponse> {
+    const res = await api.get(`/sweepstakes/metrics/participants/store/${storeId}`, { params });
+    return res.data;
+  }
+
+  /* ====== Daily metrics ======
+     GET /sweepstakes/metrics/participants/daily
+  */
+  async getDailyMetrics(params?: {
+    storeId?: string;
+    sweepstakeId?: string;
+    days?: number;
+  }): Promise<{ dailyMetrics: DailyMetric[]; period: { startDate: string; endDate: string; days: number } }> {
+    const res = await api.get('/sweepstakes/metrics/participants/daily', { params });
+    return res.data;
+  }
+
+  /* ====== CEO Dashboard ======
+     GET /sweepstakes/metrics/ceo-dashboard
+  */
+  async getCeoDashboard(params?: {
+    startDate?: string;
+    endDate?: string;
+    status?: string;
+    method?: string;
+  }): Promise<{ success: boolean; data: any[]; globalTrend?: any[]; globalMethods?: any[] }> {
+    const res = await api.get('/sweepstakes/metrics/ceo-dashboard', { params });
+    return res.data;
+  }
+
+  /* ====== Audience: By Store (Daniela) ======
+     GET /sweepstakes/audience/by-store
+  */
+  async getAudienceByStore(params?: {
+    storeId?: string;
+    sweepstakeId?: string;
+  }): Promise<AudienceByStoreResponse> {
+    const res = await api.get('/sweepstakes/audience/by-store', { params });
+    return res.data;
+  }
+
+  /* ====== Audience: Daily Total (Carolina) ======
+     GET /sweepstakes/audience/daily-total
+  */
+  async getAudienceDailyTotal(): Promise<AudienceDailyTotalResponse> {
+    const res = await api.get('/sweepstakes/audience/daily-total');
+    return res.data;
+  }
+
+  /* ====== Audience: Active Stores Status (Katherin) ======
+     GET /sweepstakes/audience/stores-status
+  */
+  async getActiveStoresStatus(): Promise<ActiveStoresStatusResponse> {
+    const res = await api.get('/sweepstakes/audience/stores-status');
+    return res.data;
+  }
+
+  /* ====== Audience: History (Juan Carlos / Paola) ======
+     GET /sweepstakes/audience/history
+  */
+  async getAudienceHistory(params?: {
+    storeId?: string;
+    weeks?: number;
+  }): Promise<AudienceHistoryResponse> {
+    const res = await api.get('/sweepstakes/audience/history', { params });
+    return res.data;
+  }
 }
 
 export const sweepstakesClient = new SweepstakesClient();
+
+/* ===================== PUBLIC RAFFLE DRAW (server-safe) =====================
+   Usado por la página pública /sweepstakes/[id]/draw (server component).
+   fetch plano con cache: 'no-store' y null-on-error: NO debe lanzar para que
+   la página pueda renderizar con datos de respaldo. */
+
+function getPublicApiUrl(path: string): string | null {
+  const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
+  if (!base) return null;
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
+async function getPublicJson<T>(path: string): Promise<T | null> {
+  const url = getPublicApiUrl(path);
+  if (!url) return null;
+
+  try {
+    const response = await fetch(url, { cache: 'no-store' });
+    if (!response.ok) return null;
+    return (await response.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+export function getPublicSweepstakeById<T>(id: string): Promise<T | null> {
+  return getPublicJson<T>(`/sweepstakes/${id}`);
+}
+
+export function getPublicParticipantSamplePhones<T>(id: string): Promise<T | null> {
+  return getPublicJson<T>(`/sweepstakes/participants/${id}/participants/sample-phones`);
+}
 
 /* ===================== PRIZES ===================== */
 
@@ -343,4 +643,65 @@ export class PrizesClient {
   }
 }
 
+
+/* ===================== WELCOME COUPONS ===================== */
+
+export interface WelcomeCouponConfig {
+  active: boolean;
+  welcomeMessage: string;
+  welcomeImageUrl: string;
+  title?: string;
+  discountPercentage?: string;
+  validFrom?: string;
+  validUntil?: string;
+  minPurchaseAmount?: string;
+  terms?: string;
+  totalWelcomeSent?: number;
+  totalNewCustomers?: number;
+  totalExisting?: number;
+}
+
+export interface WelcomeCouponMetrics {
+  totalWelcomeSent: number;
+  totalNewCustomers: number;
+  totalExisting: number;
+  dailyTrend: Array<{ date: string; count: number }>;
+}
+
+export class WelcomeCouponClient {
+  async upsertConfig(data: {
+    storeId: string;
+    active?: boolean;
+    welcomeMessage: string;
+    welcomeImageUrl: string;
+    title?: string;
+    discountPercentage?: string;
+    validFrom?: string;
+    validUntil?: string;
+    minPurchaseAmount?: string;
+    terms?: string;
+  }): Promise<{ success: boolean; config: WelcomeCouponConfig }> {
+    const res = await api.post('/sweepstakes/welcome-coupon', data);
+    return res.data;
+  }
+
+  async getConfig(storeId: string): Promise<{ success: boolean; config: WelcomeCouponConfig }> {
+    const res = await api.get(`/sweepstakes/welcome-coupon/${storeId}`);
+    return res.data;
+  }
+
+  async toggleActive(storeId: string): Promise<{ success: boolean; active: boolean; config: WelcomeCouponConfig }> {
+    const res = await api.patch(`/sweepstakes/welcome-coupon/${storeId}/toggle`);
+    return res.data;
+  }
+
+  async getMetrics(storeId: string, params?: { startDate: string; endDate: string }): Promise<{ success: boolean; metrics: WelcomeCouponMetrics }> {
+    const res = await api.get(`/sweepstakes/welcome-coupon/${storeId}/metrics`, { params });
+    return res.data;
+  }
+}
+
+export const welcomeCouponClient = new WelcomeCouponClient();
+
 export const prizesClient = new PrizesClient();
+

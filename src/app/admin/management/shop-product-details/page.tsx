@@ -8,13 +8,15 @@ import ProductDetails from 'src/components/application-ui/content-shells/product
 import PageHeading from 'src/components/base/page-heading';
 import { useCustomization } from 'src/hooks/use-customization';
 
+// Static page metadata — no component-local dependencies, allocate once.
+const pageMeta = {
+  title: 'Product Details',
+  description: 'View detailed information on products',
+};
+
 function Page(): React.JSX.Element {
   const customization = useCustomization();
   const { t } = useTranslation();
-  const pageMeta = {
-    title: 'Product Details',
-    description: 'View detailed information on products',
-  };
   return (
     <>
       {pageMeta.title && (

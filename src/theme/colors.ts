@@ -32,12 +32,14 @@ const common = {
   neutral: '#14191e',
 };
 
+const SWEEPSTOUCH_PINK = '#FC0C83';
+
 const baseColors = [
   { name: 'livingCoral', value: '#ea2012' },
   { name: 'greenery', value: '#018a3c' },
   { name: 'ultraViolet', value: '#894AE0' },
   { name: 'roseQuartz', value: '#da3c42' },
-  { name: 'radiantOrchid', value: '#d427af' },
+  { name: 'radiantOrchid', value: SWEEPSTOUCH_PINK },
   { name: 'tangerineTango', value: '#cf4c10' },
   { name: 'emerald', value: '#02876f' },
   { name: 'honeyGold', value: '#967210' },
@@ -51,14 +53,22 @@ const baseColors = [
 ];
 
 export const adjustColorForLightTheme = (color: string) => color;
-export const adjustColorForDarkTheme = (color: string) => lighten(color, 0.26);
+export const adjustColorForDarkTheme = (color: string) =>
+  color.toLowerCase() === SWEEPSTOUCH_PINK.toLowerCase() ? color : lighten(color, 0.26);
 
 export const generateColorScale = (mainColor: string, theme: 'light' | 'dark') => {
   let adjustedMainColor =
     theme === 'light' ? adjustColorForLightTheme(mainColor) : adjustColorForDarkTheme(mainColor);
 
   const contrastRatioWithWhite = getContrastRatio(adjustedMainColor, common.white);
-  const contrastText = contrastRatioWithWhite >= 4.4 ? common.white : common.black;
+  // El rosa de marca (#FC0C83) siempre usa texto blanco, aunque su contraste con blanco
+  // quede por debajo del umbral 4.4 (evita botones rosas con texto negro).
+  const isBrandPink = mainColor.toLowerCase() === SWEEPSTOUCH_PINK.toLowerCase();
+  const contrastText = isBrandPink
+    ? common.white
+    : contrastRatioWithWhite >= 4.4
+      ? common.white
+      : common.black;
 
   return {
     light: lighten(adjustedMainColor, 0.3),

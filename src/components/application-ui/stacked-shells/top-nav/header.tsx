@@ -62,6 +62,13 @@ const SidebarWrapper = styled(Box)({
   flexDirection: 'column',
 });
 
+// Static demo user; no component state, hoisted to module scope.
+const user = {
+  avatar: '/avatars/1.png',
+  name: 'Ethan Donovan',
+  jobtitle: 'Principal Engineer',
+};
+
 export const Header: FC<HeaderProps> = (props) => {
   const { onClose, onOpen, menuItems, open, ...other } = props;
 
@@ -73,12 +80,6 @@ export const Header: FC<HeaderProps> = (props) => {
   const notifications = useDialog();
   const widgets = useDialog();
   const dialog = useDialog();
-
-  const user = {
-    avatar: '/avatars/1.png',
-    name: 'Ethan Donovan',
-    jobtitle: 'Principal Engineer',
-  };
 
   const sidebarContentMobile = (
     <SidebarWrapper

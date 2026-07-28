@@ -22,6 +22,32 @@ import type { Customization } from 'src/contexts/customization';
 
 const CUSTOMIZATION_STORAGE_KEY = 'uifort.customization';
 
+/**
+ * Defaults de react-query para TODO el panel.
+ *
+ * Antes era `new QueryClient()` sin config, o sea `staleTime: 0`: cada query
+ * quedaba obsoleta al instante y se refetcheaba al montar, al navegar y al
+ * volver a la pestaña. Con ~176 `useQuery` en el panel, eso es la causa
+ * principal de que "se sienta lento".
+ *
+ * Las pantallas que necesitan datos más frescos ya declaran su propio
+ * `staleTime`/`refetchInterval` y siguen mandando (esto es solo el piso).
+ */
+const DEFAULT_QUERY_OPTIONS = {
+  queries: {
+    // Un minuto sin refetchear al navegar entre páginas.
+    staleTime: 60_000,
+    // Cache retenida 10 min: volver a una pantalla ya visitada es instantáneo.
+    gcTime: 10 * 60_000,
+    // El panel es de uso interno: no hace falta refrescar cada vez que el
+    // usuario vuelve a la pestaña (era el default `true` de react-query).
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    // Un solo reintento: 3 (default) hace que un endpoint caído tarde en fallar.
+    retry: 1,
+  },
+} as const;
+
 const updateCustomization = (customization: Customization): void => {
   try {
     Cookies.set(CUSTOMIZATION_STORAGE_KEY, JSON.stringify(customization));
@@ -47,7 +73,7 @@ interface LayoutProps {
 
 export const Layout: FC<LayoutProps> = (props: LayoutProps) => {
   const { children, customization } = props;
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(() => new QueryClient({ defaultOptions: DEFAULT_QUERY_OPTIONS }));
 
   return (
     <NextAppDirEmotionCacheProvider options={{ key: 'uifort' }}>

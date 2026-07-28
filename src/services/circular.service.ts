@@ -25,6 +25,7 @@ export interface UploadCircularPayload {
   startDate?: string;
   endDate?: string;
   title?: string;
+  overridePassword?: string;
 }
 
 export interface ScheduleCircularPayload {
@@ -71,10 +72,9 @@ export class CircularService {
     if (payload.startDate) form.append('startDate', payload.startDate);
     if (payload.endDate) form.append('endDate', payload.endDate);
     if (payload.title) form.append('title', payload.title);
+    if (payload.overridePassword) form.append('overridePassword', payload.overridePassword);
 
-    const res = await api.post('/circulars/upload', form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const res = await api.post('/circulars/upload', form);
     return res.data;
   }
 
@@ -83,10 +83,10 @@ export class CircularService {
     return res.data;
   }
 
-  /** Reprograma un circular existente (nuevas fechas o título) */
+  /** Reprograma un circular existente (nuevas fechas o título) — backend: PUT /circulars/:id */
   async reschedule(payload: ReschedulePayload): Promise<{ ok: boolean; circular: Circular }> {
     const { circularId, ...body } = payload;
-    const res = await api.patch(`/circulars/${circularId}/reschedule`, body);
+    const res = await api.put(`/circulars/${circularId}`, body);
     return res.data;
   }
 
@@ -96,8 +96,13 @@ export class CircularService {
   ): Promise<{ ok: boolean; circular: Circular }> {
     const form = new FormData();
     form.append('file', file);
-    const res = await api.patch(`/circulars/${circularId}/attach`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    const res = await api.patch(`/circulars/${circularId}/attach`, form);
+    return res.data;
+  }
+
+  async extractProducts(circularId: string, maxProducts?: number): Promise<any> {
+    const res = await api.post(`/circulars/${circularId}/extract-products`, {
+      maxProducts: maxProducts || 0,
     });
     return res.data;
   }
@@ -115,6 +120,23 @@ export class CircularService {
 
   async getAlerts(hours = 48) {
     const res = await api.get('/circulars/alerts', { params: { hours } });
+    return res.data;
+  }
+
+  async getProducts(circularId: string): Promise<{ products: any[]; headline: string }> {
+    const res = await api.get(`/circulars/${circularId}/products`);
+    return res.data;
+  }
+
+  /** Save edited products, headline, and AI recipes to a circular */
+  async saveProducts(circularId: string, products: any[], headline?: string, recipes?: any[]): Promise<any> {
+    const res = await api.put(`/circulars/${circularId}/products`, { products, headline, recipes });
+    return res.data;
+  }
+
+  /** Generate MMS barcodes for all customers of a store */
+  async generateMms(circularId: string, storeSlug: string, campaignCode: string): Promise<{ generated: number; skipped: number }> {
+    const res = await api.post('/mms-generator/generate', { circularId, storeSlug, campaignCode });
     return res.data;
   }
 }

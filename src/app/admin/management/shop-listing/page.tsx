@@ -7,15 +7,16 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import PageHeading from 'src/components/base/page-heading';
 import { useCustomization } from 'src/hooks/use-customization';
-import { Layout } from 'src/layouts';
+
+// Static page metadata — allocated once at module scope
+const pageMeta = {
+  title: 'Shop Listing',
+  description: 'List and categorize your shop items',
+};
 
 function Page(): React.JSX.Element {
   const customization = useCustomization();
   const { t } = useTranslation();
-  const pageMeta = {
-    title: 'Shop Listing',
-    description: 'List and categorize your shop items',
-  };
   return (
     <>
       {pageMeta.title && (

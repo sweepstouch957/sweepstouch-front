@@ -1,5 +1,5 @@
 // src/hooks/useStoreEditor.js
-import { Store, updateStore } from '@/services/store.service';
+import { updateStorePatch } from '@/services/store.service';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 
@@ -35,6 +35,106 @@ const locEqual = (o, f) => {
   return oc[0] === fc[0] && oc[1] === fc[1];
 };
 
+// Construye el patch SOLO con cambios reales — función pura, sin dependencias del hook
+const buildPatch = (orig, curr) => {
+  const patch: any = {};
+
+  const keys = [
+    'name',
+    'address',
+    'zipCode',
+    'type',
+    'active',
+    'email',
+    'phoneNumber',
+    'provider',
+    'bandwidthPhoneNumber',
+    'twilioPhoneNumber',
+    'twilioPhoneNumberSid',
+    'twilioPhoneNumberFriendlyName',
+    'infobipSenderId',
+    'infobipShortcode',
+    'verifiedByTwilio',
+    'membershipType',
+    'paymentMethod',
+    'startContractDate',
+    'circularss',
+    'cancelContractDate',
+    'cancelContractReason',
+    'status',
+    'inactiveReason',
+    'suspendedReason',
+    'billingNextDate',
+    'billingLastPeriodEnd',
+    'creditStatus',
+    'circularssUrl',
+    'kioskTabletStatus',
+    'kioskTabletDate',
+    'kioskTabletQuantity',
+    'slug',
+  ];
+
+  // contactInfo: array comparison via JSON
+  const origCI = JSON.stringify(orig?.contactInfo ?? []);
+  const currCI = JSON.stringify(curr?.contactInfo ?? []);
+  if (origCI !== currCI) {
+    patch.contactInfo = curr?.contactInfo ?? [];
+  }
+
+  // pauseHistory: array comparison via JSON
+  const origPH = JSON.stringify(orig?.pauseHistory ?? []);
+  const currPH = JSON.stringify(curr?.pauseHistory ?? []);
+  if (origPH !== currPH) {
+    patch.pauseHistory = curr?.pauseHistory ?? [];
+  }
+
+  // contracts: array comparison via JSON
+  const origC = JSON.stringify(orig?.contracts ?? []);
+  const currC = JSON.stringify(curr?.contracts ?? []);
+  if (origC !== currC) {
+    patch.contracts = curr?.contracts ?? [];
+  }
+
+  keys.forEach((k) => {
+    const o = orig?.[k];
+    const f = curr?.[k];
+    if (!softEqual(o, f)) {
+      patch[k] = f; // distinto → lo mandamos
+    }
+  });
+
+  // location: solo si es válida y cambió
+  const currLoc = curr?.location;
+  if (!locEqual(orig, curr) && isValidLngLat(currLoc?.coordinates)) {
+    patch.location = {
+      type: 'Point',
+      coordinates: [Number(currLoc.coordinates[0]), Number(currLoc.coordinates[1])],
+    };
+  }
+
+  // socialLinks: solo si cambió algún campo
+  const origSL = orig?.socialLinks || {};
+  const currSL = curr?.socialLinks || {};
+  if (
+    origSL.facebook !== currSL.facebook ||
+    origSL.instagram !== currSL.instagram ||
+    origSL.website !== currSL.website
+  ) {
+    patch.socialLinks = {
+      facebook: currSL.facebook || '',
+      instagram: currSL.instagram || '',
+      website: currSL.website || '',
+    };
+  }
+
+  // Limpia undefined explícitos
+  Object.keys(patch).forEach((k) => {
+    if (patch[k] === undefined) delete patch[k];
+  });
+
+  return patch;
+};
+
 export function useStoreEditor(store) {
   const [edit, setEdit] = useState(false);
   const [snack, setSnack] = useState<{
@@ -50,16 +150,26 @@ export function useStoreEditor(store) {
     zipCode: store.zipCode || '',
     type: store.type || 'free',
     active: !!store.active,
+    status: store.status || (store.active ? 'active' : 'inactive'),
+    inactiveReason: store.inactiveReason || '',
+    suspendedReason: store.suspendedReason || '',
+    email: store.email || '',
     phoneNumber: store.phoneNumber || '',
     provider: store.provider || 'twilio',
     bandwidthPhoneNumber: store.bandwidthPhoneNumber || '',
     twilioPhoneNumber: store.twilioPhoneNumber || '',
     twilioPhoneNumberSid: store.twilioPhoneNumberSid || '',
     twilioPhoneNumberFriendlyName: store.twilioPhoneNumberFriendlyName || '',
+    infobipSenderId: store.infobipSenderId || '',
+    infobipShortcode: store.infobipShortcode || '',
     verifiedByTwilio: !!store.verifiedByTwilio,
 
     // 🆕 opcional: circulars url (lo mandamos al backend si cambia)
     circularssUrl: store.circularssUrl ?? null,
+
+    billingNextDate: store.billingNextDate ?? null,
+    billingLastPeriodEnd: store.billingLastPeriodEnd ?? null,
+    creditStatus: store.creditStatus || 'ok',
 
     location: isValidLngLat(store?.location?.coordinates)
       ? { type: 'Point', coordinates: [...store.location.coordinates] }
@@ -68,14 +178,31 @@ export function useStoreEditor(store) {
     membershipType: store.membershipType ?? 'semanal',
     paymentMethod: store.paymentMethod ?? 'card',
     startContractDate: store.startContractDate ?? null,
+    circularss: store.circularss ?? false,
+    cancelContractDate: store.cancelContractDate ?? null,
+    cancelContractReason: store.cancelContractReason || '',
 
     // 🆕 Tablet / Kiosko
-    // 'instalada' | 'desinstalada' | 'sin_instalar'
     kioskTabletStatus: store.kioskTabletStatus ?? 'sin_instalar',
-    // Fecha (YYYY-MM-DD) o null
     kioskTabletDate: store.kioskTabletDate ?? null,
-    // Cantidad de tablets (number) o null
     kioskTabletQuantity: store.kioskTabletQuantity ?? null,
+
+    // 🆕 Social Links
+    socialLinks: {
+      facebook: store.socialLinks?.facebook ?? '',
+      instagram: store.socialLinks?.instagram ?? '',
+      website: store.socialLinks?.website ?? '',
+    },
+
+    // 🆕 Slug (editable)
+    slug: store.slug ?? '',
+
+    // 🆕 Contact Info
+    contactInfo: store.contactInfo ?? [],
+
+    // 🆕 Pause History & Contracts
+    pauseHistory: store.pauseHistory ?? [],
+    contracts: store.contracts ?? [],
   });
 
   const kioskUrl = useMemo(
@@ -105,65 +232,27 @@ export function useStoreEditor(store) {
   };
 
   const handleChange = (key) => (e) => {
-    const val =
-      e?.target?.type === 'checkbox' ? !!e.target.checked : e?.target?.value ?? e?.value ?? e;
-    setForm((s) => ({ ...s, [key]: val }));
-  };
-
-  // Construye el patch SOLO con cambios reales
-  const buildPatch = (orig, curr) => {
-    const patch: any = {};
-
-    const keys = [
-      'name',
-      'address',
-      'zipCode',
-      'type',
-      'active',
-      'phoneNumber',
-      'provider',
-      'bandwidthPhoneNumber',
-      'twilioPhoneNumber',
-      'twilioPhoneNumberSid',
-      'twilioPhoneNumberFriendlyName',
-      'verifiedByTwilio',
-      'membershipType',
-      'paymentMethod',
-      'startContractDate',
-      'circularssUrl',
-      'kioskTabletStatus',
-      'kioskTabletDate',
-      'kioskTabletQuantity',
-    ];
-
-    keys.forEach((k) => {
-      const o = orig?.[k];
-      const f = curr?.[k];
-      if (!softEqual(o, f)) {
-        patch[k] = f; // distinto → lo mandamos
-      }
-    });
-
-    // location: solo si es válida y cambió
-    const currLoc = curr?.location;
-    if (!locEqual(orig, curr) && isValidLngLat(currLoc?.coordinates)) {
-      patch.location = {
-        type: 'Point',
-        coordinates: [Number(currLoc.coordinates[0]), Number(currLoc.coordinates[1])],
-      };
+    // When an e?.value is present (e.g. for nested objects like socialLinks or location),
+    // use it directly instead of e.target.value
+    let val: any;
+    if (e?.target?.type === 'checkbox') {
+      val = !!e.target.checked;
+    } else if (e?.value !== undefined && e?.target === undefined) {
+      val = e.value;
+    } else {
+      val = e?.target?.value ?? e?.value ?? e;
     }
-
-    // Limpia undefined explícitos
-    Object.keys(patch).forEach((k) => {
-      if (patch[k] === undefined) delete patch[k];
-    });
-
-    return patch;
+    if (key === 'status') {
+      const active = val === 'active';
+      setForm((s) => ({ ...s, status: val, active }));
+    } else {
+      setForm((s) => ({ ...s, [key]: val }));
+    }
   };
 
   const queryClient = useQueryClient();
   const mutation = useMutation({
-    mutationFn: (body: Store) => updateStore(store._id, body),
+    mutationFn: (body: any) => updateStorePatch(store._id, body),
     onSuccess: (resp) => {
       const updated: any = resp;
 
@@ -209,16 +298,26 @@ export function useStoreEditor(store) {
       zipCode: store.zipCode || '',
       type: store.type || 'free',
       active: !!store.active,
+      status: store.status || (store.active ? 'active' : 'inactive'),
+      inactiveReason: store.inactiveReason || '',
+      suspendedReason: store.suspendedReason || '',
+      email: store.email || '',
       phoneNumber: store.phoneNumber || '',
       provider: store.provider || 'twilio',
       bandwidthPhoneNumber: store.bandwidthPhoneNumber || '',
       twilioPhoneNumber: store.twilioPhoneNumber || '',
       twilioPhoneNumberSid: store.twilioPhoneNumberSid || '',
       twilioPhoneNumberFriendlyName: store.twilioPhoneNumberFriendlyName || '',
+      infobipSenderId: store.infobipSenderId || '',
+      infobipShortcode: store.infobipShortcode || '',
       verifiedByTwilio: !!store.verifiedByTwilio,
 
       // 🆕 opcional
       circularssUrl: store.circularssUrl ?? null,
+
+      billingNextDate: store.billingNextDate ?? null,
+      billingLastPeriodEnd: store.billingLastPeriodEnd ?? null,
+      creditStatus: store.creditStatus || 'ok',
 
       location: isValidLngLat(store?.location?.coordinates)
         ? { type: 'Point', coordinates: [...store.location.coordinates] }
@@ -227,12 +326,32 @@ export function useStoreEditor(store) {
       membershipType: store.membershipType ?? 'semanal',
       paymentMethod: store.paymentMethod ?? 'card',
       startContractDate: store.startContractDate ?? null,
+      circularss: store.circularss ?? false,
+      cancelContractDate: store.cancelContractDate ?? null,
+      cancelContractReason: store.cancelContractReason || '',
 
-      // 🆕 Tablet / Kiosko
-      kioskTabletStatus: store.kioskTabletStatus ?? 'sin_instalar',
-      kioskTabletDate: store.kioskTabletDate ?? null,
-      kioskTabletQuantity: store.kioskTabletQuantity ?? null,
-    });
+    // 🆕 Tablet / Kiosko
+    kioskTabletStatus: store.kioskTabletStatus ?? 'sin_instalar',
+    kioskTabletDate: store.kioskTabletDate ?? null,
+    kioskTabletQuantity: store.kioskTabletQuantity ?? null,
+
+    // 🆕 Social Links
+    socialLinks: {
+      facebook: store.socialLinks?.facebook ?? '',
+      instagram: store.socialLinks?.instagram ?? '',
+      website: store.socialLinks?.website ?? '',
+    },
+
+    // 🆕 Slug
+    slug: store.slug ?? '',
+
+    // 🆕 Contact Info
+    contactInfo: store.contactInfo ?? [],
+
+    // 🆕 Pause History & Contracts
+    pauseHistory: store.pauseHistory ?? [],
+    contracts: store.contracts ?? [],
+  });
 
     setEdit(false);
   };

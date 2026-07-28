@@ -13,7 +13,6 @@ import {
   Snackbar,
 } from '@mui/material';
 import { useMutation } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import CreateCampaignForm from './create-campaing';
 

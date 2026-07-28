@@ -62,7 +62,7 @@ export default function StoreMap({
             <Avatar
               src={image}
               alt={name}
-              sx={{ width: 36, height: 36, border: '2px solid #EE1E7C', boxShadow: 2 }}
+              sx={{ width: 36, height: 36, border: '2px solid', borderColor: 'primary.main', boxShadow: 2 }}
             />
           </Marker>
         )}

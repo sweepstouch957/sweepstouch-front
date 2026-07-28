@@ -41,7 +41,7 @@ const MenuItemComponent: FC<{
   item: MenuItem;
   isSub?: boolean;
 }> = ({ item, isSub }) => {
-  const router = useRouter();
+  const { push } = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -85,7 +85,7 @@ const MenuItemComponent: FC<{
       {isSub ? (
         <Button
           fullWidth
-          onClick={() => item.route && router.push(item.route)}
+          onClick={() => item.route && push(item.route)}
           endIcon={item.subMenu ? <KeyboardArrowRightTwoToneIcon fontSize="small" /> : null}
           sx={{
             textAlign: 'left',
@@ -126,7 +126,7 @@ const MenuItemComponent: FC<{
           title={!item.subMenu && item.title}
         >
           <IconButtonWrapper
-            onClick={() => item.route && router.push(item.route)}
+            onClick={() => item.route && push(item.route)}
             {...commonProps}
             sx={{
               color: (theme) =>

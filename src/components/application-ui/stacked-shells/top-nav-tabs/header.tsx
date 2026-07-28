@@ -58,6 +58,13 @@ const SidebarWrapper = styled(Box)({
   flexDirection: 'column',
 });
 
+// Datos estáticos del usuario — sin dependencias del componente
+const user = {
+  avatar: '/avatars/1.png',
+  name: 'Ethan Donovan',
+  jobTitle: 'Principal Engineer',
+};
+
 export const Header: FC<HeaderProps> = (props) => {
   const { onClose, onOpen, menuItems, open, ...other } = props;
   const lgUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('lg'));
@@ -69,11 +76,6 @@ export const Header: FC<HeaderProps> = (props) => {
   const widgets = useDialog();
   const dialog = useDialog();
 
-  const user = {
-    avatar: '/avatars/1.png',
-    name: 'Ethan Donovan',
-    jobTitle: 'Principal Engineer',
-  };
   const sidebarContentMobile = (
     <SidebarWrapper
       component="nav"

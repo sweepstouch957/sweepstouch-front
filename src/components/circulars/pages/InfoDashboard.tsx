@@ -3,7 +3,9 @@
 /* eslint-disable react/jsx-max-props-per-line */
 // 🔗 Hooks reales
 import { useCircularAlerts, useCircularOverview } from '@hooks/fetching/circulars/useCirculars';
+import { routes } from 'src/router/routes';
 import {
+  CheckCircleRounded,
   Error as ErrorIcon,
   Info as InfoIcon,
   Schedule as ScheduleIcon,
@@ -11,7 +13,16 @@ import {
   TrendingUp as TrendingUpIcon,
   Warning as WarningIcon,
 } from '@mui/icons-material';
-import { Alert, Avatar, Box, CircularProgress, Divider, Paper, Typography } from '@mui/material';
+import {
+  Alert,
+  Avatar,
+  Box,
+  CircularProgress,
+  Divider,
+  Paper,
+  Typography,
+  useTheme,
+} from '@mui/material';
 import React from 'react';
 import { MetricCard } from '../MetricCard';
 import { StatusBadge } from '../StatusBadge';
@@ -34,6 +45,7 @@ function fmt(d) {
 }
 
 const InfoDashboard = () => {
+  const theme = useTheme();
   // 📊 Datos de overview (totales + último circular por tienda)
   const { data: overview, isLoading, isError, error } = useCircularOverview();
   // 🔔 Alertas (expira pronto / gap warning)
@@ -49,13 +61,13 @@ const InfoDashboard = () => {
       <Box sx={{ mb: 3 }}>
         <Typography
           variant="h4"
-          sx={{ fontWeight: 600, color: '#2D3748', mb: 0.5 }}
+          sx={{ fontWeight: 600, color: 'text.primary', mb: 0.5 }}
         >
           Info Dashboard
         </Typography>
         <Typography
           variant="subtitle1"
-          sx={{ color: '#718096' }}
+          sx={{ color: 'text.secondary' }}
         >
           Overview of circular statistics
         </Typography>
@@ -93,46 +105,50 @@ const InfoDashboard = () => {
       >
         <MetricCard
           title="Total Stores"
+          href={routes.admin.management.circulars['subscribed-stores']}
           value={totalStores}
           subtitle="+0 this month"
           icon={ShoppingCartIcon}
-          borderColor="#E91E63"
-          iconColor="#E91E63"
+          borderColor={theme.palette.primary.main}
+          iconColor={theme.palette.primary.main}
         />
         <MetricCard
           title="Active Circulars"
+          href={routes.admin.management.circulars.manage}
           value={totals.active}
           subtitle="Currently running"
           icon={TrendingUpIcon}
-          borderColor="#4CAF50"
-          iconColor="#4CAF50"
+          borderColor={theme.palette.success.main}
+          iconColor={theme.palette.success.main}
         />
         <MetricCard
           title="Scheduled"
+          href={routes.admin.management.circulars.schedule}
           value={totals.scheduled}
           subtitle="Ready to launch"
           icon={ScheduleIcon}
-          borderColor="#FF9800"
-          iconColor="#FF9800"
+          borderColor={theme.palette.warning.main}
+          iconColor={theme.palette.warning.main}
         />
         <MetricCard
           title="Expired"
+          href={routes.admin.management.circulars.manage}
           value={totals.expired}
           subtitle="Need attention"
           icon={ErrorIcon}
-          borderColor="#F44336"
-          iconColor="#F44336"
+          borderColor={theme.palette.error.main}
+          iconColor={theme.palette.error.main}
         />
       </Box>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 3 }}>
         {/* Status Alerts (reales) */}
-        <Paper sx={{ borderRadius: 3, p: 3, height: 'fit-content' }}>
+        <Paper sx={{ p: 3, height: 'fit-content' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-            <WarningIcon sx={{ color: '#F44336', fontSize: 20 }} />
+            <WarningIcon sx={{ color: 'error.main', fontSize: 20 }} />
             <Typography
               variant="h6"
-              sx={{ fontWeight: 600, color: '#2D3748' }}
+              sx={{ fontWeight: 600, color: 'text.primary' }}
             >
               Status Alerts
             </Typography>
@@ -155,7 +171,7 @@ const InfoDashboard = () => {
                   severity="success"
                   sx={{ borderRadius: 2 }}
                 >
-                  No hay alertas por ahora ✅
+                  No hay alertas por ahora <CheckCircleRounded fontSize="small" sx={{ verticalAlign: 'middle' }} />
                 </Alert>
               )}
               {(alertsData?.alerts || []).map((a) => (
@@ -164,11 +180,17 @@ const InfoDashboard = () => {
                   severity={a.type === 'gap_warning' ? 'warning' : 'info'}
                   sx={{ borderRadius: 2, '& .MuiAlert-message': { fontSize: '0.875rem' } }}
                 >
-                  {a.type === 'gap_warning'
-                    ? `⚠ El circular de ${a.storeSlug} expira el ${fmt(
-                        a.endDate
-                      )} y NO hay otro agendado.`
-                    : `ℹ El circular de ${a.storeSlug} expira pronto (${fmt(a.endDate)}).`}
+                  {a.type === 'gap_warning' ? (
+                    <>
+                      <WarningIcon fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />
+                      {`El circular de ${a.storeSlug} expira el ${fmt(a.endDate)} y NO hay otro agendado.`}
+                    </>
+                  ) : (
+                    <>
+                      <InfoIcon fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />
+                      {`El circular de ${a.storeSlug} expira pronto (${fmt(a.endDate)}).`}
+                    </>
+                  )}
                 </Alert>
               ))}
             </Box>
@@ -176,12 +198,12 @@ const InfoDashboard = () => {
         </Paper>
 
         {/* Store Status Overview (real) */}
-        <Paper sx={{ borderRadius: 3, p: 3 }}>
+        <Paper sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-            <InfoIcon sx={{ color: '#E91E63', fontSize: 20 }} />
+            <InfoIcon sx={{ color: 'primary.main', fontSize: 20 }} />
             <Typography
               variant="h6"
-              sx={{ fontWeight: 600, color: '#2D3748' }}
+              sx={{ fontWeight: 600, color: 'text.primary' }}
             >
               Store Status Overview
             </Typography>
@@ -200,7 +222,7 @@ const InfoDashboard = () => {
                       sx={{
                         width: 40,
                         height: 40,
-                        backgroundColor: '#E91E63',
+                        backgroundColor: 'primary.main',
                         fontSize: '0.875rem',
                         fontWeight: 600,
                       }}
@@ -211,7 +233,7 @@ const InfoDashboard = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                         <Typography
                           variant="body2"
-                          sx={{ fontWeight: 500, color: '#2D3748' }}
+                          sx={{ fontWeight: 500, color: 'text.primary' }}
                         >
                           {s._id}
                         </Typography>
@@ -221,7 +243,7 @@ const InfoDashboard = () => {
                         {until && (
                           <Typography
                             variant="caption"
-                            sx={{ color: '#718096' }}
+                            sx={{ color: 'text.secondary' }}
                           >
                             {until}
                           </Typography>
@@ -229,7 +251,7 @@ const InfoDashboard = () => {
                         {start && (
                           <Typography
                             variant="caption"
-                            sx={{ color: '#2196F3' }}
+                            sx={{ color: 'info.main' }}
                           >
                             {start}
                           </Typography>

@@ -59,13 +59,11 @@ type UploadedFileItem = {
 };
 
 export const EditCircularDialog: React.FC<Props> = ({ target, onClose, onSaved }) => {
-  if (!target) return null;
-
-  const { circular, storeName } = target;
-
-  const [title, setTitle] = useState(circular.title);
-  const [startDate, setStartDate] = useState(isoToDateInput(circular.startDate));
-  const [endDate, setEndDate] = useState(isoToDateInput(circular.endDate));
+  // ✅ Hooks ALWAYS called unconditionally — Rules of Hooks requires no conditional hooks
+  // Safe defaults when target is null: hooks are no-ops until dialog opens with a real target
+  const [title, setTitle] = useState(target?.circular.title ?? '');
+  const [startDate, setStartDate] = useState(() => isoToDateInput(target?.circular.startDate));
+  const [endDate, setEndDate] = useState(() => isoToDateInput(target?.circular.endDate));
 
   const [file, setFile] = useState<File | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFileItem[]>([]);
@@ -73,7 +71,21 @@ export const EditCircularDialog: React.FC<Props> = ({ target, onClose, onSaved }
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // El diálogo se queda montado y `target` pasa de null → circular al abrir.
+  // Los initializers de useState solo corren una vez (con target=null), así que hay
+  // que re-sincronizar el form cada vez que cambia `target`, o se queda vacío.
+  React.useEffect(() => {
+    setTitle(target?.circular.title ?? '');
+    setStartDate(isoToDateInput(target?.circular.startDate));
+    setEndDate(isoToDateInput(target?.circular.endDate));
+    setFile(null);
+    setUploadedFiles([]);
+    setError(null);
+  }, [target]);
+
   const hasChanges = useMemo(() => {
+    if (!target) return false;
+    const { circular } = target;
     const originalStart = isoToDateInput(circular.startDate);
     const originalEnd = isoToDateInput(circular.endDate);
     return (
@@ -82,7 +94,14 @@ export const EditCircularDialog: React.FC<Props> = ({ target, onClose, onSaved }
       endDate !== originalEnd ||
       !!file
     );
-  }, [title, startDate, endDate, file, circular]);
+  }, [title, startDate, endDate, file, target]);
+
+  // ✅ Guard after all hooks
+  if (!target) return null;
+
+  const { circular, storeName } = target;
+
+
 
   const handleSave = async () => {
     setError(null);

@@ -10,15 +10,17 @@ import PageHeading from 'src/components/base/page-heading';
 import { AvatarState } from 'src/components/base/styles/avatar';
 import { useCustomization } from 'src/hooks/use-customization';
 
+// Static page metadata — no component state, safe at module scope.
+const pageMeta = {
+  title: 'Calendar',
+  description: 'Organize your schedule and events',
+  icon: <CalendarIcon />,
+};
+
 function Page(): React.JSX.Element {
   const customization = useCustomization();
   const theme = useTheme();
   const { t } = useTranslation();
-  const pageMeta = {
-    title: 'Calendar',
-    description: 'Organize your schedule and events',
-    icon: <CalendarIcon />,
-  };
   return (
     <>
       {pageMeta.title && (

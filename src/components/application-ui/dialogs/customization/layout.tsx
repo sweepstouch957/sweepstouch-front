@@ -23,7 +23,7 @@ import {
   useTheme,
 } from '@mui/material';
 
-import React, { useEffect, useState, type ReactElement } from 'react';
+import React, { type ReactElement } from 'react';
 import PlaceholderBox from 'src/components/base/placeholder-box';
 import { AvatarState } from 'src/components/base/styles/avatar';
 import BaseButtonTab from 'src/components/base/styles/button-tab';
@@ -177,29 +177,19 @@ export const OptionsLayout: React.FC<OptionsLayoutProps> = ({ onChange, value })
   const smDown = useMediaQuery(theme.breakpoints.down('sm'));
   const lgUp = useMediaQuery(theme.breakpoints.up('lg'));
 
-  const initialCategory = findCategoryOfSelectedOption(value);
-
-  const [activeCategory, setActiveCategory] = useState<string>(initialCategory);
-  const [selectedOption, setSelectedOption] = useState<string | undefined>(value);
+  // ✅ Derived directly from `value` prop — no state or useEffect needed.
+  // (react-doctor: Effect event handler ×12)
+  const selectedOption = value;
+  const activeCategory = findCategoryOfSelectedOption(value);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: string): void => {
-    if (categorizedOptions[newValue]) {
-      setActiveCategory(newValue);
-    }
+    const firstOption = categorizedOptions[newValue]?.options?.[0];
+    if (firstOption) onChange(firstOption.value);
   };
 
   const handleRadioChange = (optionValue: string): void => {
-    setSelectedOption(optionValue);
     onChange(optionValue);
   };
-
-  useEffect(() => {
-    if (value) {
-      setSelectedOption(value);
-      const newCategory = findCategoryOfSelectedOption(value);
-      setActiveCategory(newCategory);
-    }
-  }, [value]);
 
   const tabData = Object.entries(categorizedOptions).map(([key, category]) => ({
     value: key,
@@ -213,7 +203,8 @@ export const OptionsLayout: React.FC<OptionsLayoutProps> = ({ onChange, value })
     event: React.ChangeEvent<{ name?: string; value: unknown }>
   ): void => {
     const categoryKey = event.target.value as string;
-    setActiveCategory(categoryKey);
+    const firstOption = categorizedOptions[categoryKey]?.options?.[0];
+    if (firstOption) onChange(firstOption.value);
   };
 
   return (

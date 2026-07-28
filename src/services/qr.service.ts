@@ -61,14 +61,64 @@ export interface SweepstakeQr {
   sweepstake: string | { _id: string; [k: string]: any };
   store: string | { _id: string; [k: string]: any };
   slug: string;
-  baseLink: string; // confirmationLink base (sin slug)
-  link: string;     // base + ?slug=<slug>
+  baseLink: string;
+  link: string;
   qr: QrImage;
   createdAt: string;
   updatedAt: string;
 }
 
+export interface SweepstakeQrResponse {
+  success: boolean;
+  data: SweepstakeQr | null;
+  isFallback?: boolean;
+  fallbackLink?: string;
+  slug?: string;
+}
+
+export type QrKind = 'store' | 'sweepstake';
+
+export interface StorePopulated {
+  _id: string;
+  name?: string;
+  slug?: string;
+  image?: string;
+}
+
+// Unified item returned by GET /qr/list (store + sweepstake QRs merged)
+export interface QrListItem {
+  _id: string;
+  kind: QrKind;
+  store?: StorePopulated | string;
+  slug: string;
+  link: string;
+  baseLink?: string;      // only sweepstake
+  sweepstakeName?: string; // only sweepstake
+  qr: QrImage;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QrListResponse {
+  success: boolean;
+  total: number;
+  page: number;
+  limit: number;
+  data: QrListItem[];
+}
+
 /* ====== Endpoints ====== */
+
+// GET /qr/list → todos los QR persistidos (tienda + sorteo), filtrable por store
+export const listQrs = async (params?: {
+  store?: string;
+  kind?: 'all' | QrKind;
+  page?: number;
+  limit?: number;
+}): Promise<QrListResponse> => {
+  const { data } = await api.get(`${basePath}/list`, { params });
+  return data as QrListResponse;
+};
 
 // POST /qr → genera/sube un QR
 export const generateQr = async (payload: GenerateQrBody): Promise<GenerateQrResponse> => {
@@ -94,15 +144,34 @@ export const getStoreGenericQr = async (
   return data.data as StoreQr;
 };
 
-// GET /qr/sweepstake/:sweepstakeId/store/:storeId → SweepstakeQr completo
+// GET /qr/sweepstake/:sweepstakeId/store/:storeId → SweepstakeQr o fallback (nunca 404)
 export const getSweepstakeOptinQr = async (
   sweepstakeId: string,
   storeId: string,
   opts?: { populate?: boolean }
-): Promise<SweepstakeQr> => {
+): Promise<SweepstakeQrResponse> => {
   const { data } = await api.get(
     `${basePath}/sweepstake/${sweepstakeId}/store/${storeId}`,
     { params: { populate: opts?.populate ? 1 : undefined } }
   );
-  return data.data as SweepstakeQr;
+  return data as SweepstakeQrResponse;
+};
+
+// POST /qr/stores/:storeId/generic → genera/actualiza QR genérico de tienda
+export const upsertStoreGenericQr = async (storeId: string): Promise<{ success: boolean; generic: StoreQr }> => {
+  const { data } = await api.post(`${basePath}/stores/${storeId}/generic`);
+  return data;
+};
+
+// POST /qr/sweepstake/:sweepstakeId/store/ → genera QR opt-in del sorteo para una tienda
+export const upsertSweepstakeOptinQr = async (sweepstakeId: string, storeId: string): Promise<{ success: boolean; optin: SweepstakeQr }> => {
+  const { data } = await api.post(`${basePath}/sweepstake/${sweepstakeId}/store/`, { storeId });
+  return data;
+};
+
+// Descarga el binario de un QR remoto (Cloudinary, etc.) como Blob para su descarga en el navegador.
+export const fetchQrFileBlob = async (url: string): Promise<Blob> => {
+  const resp = await fetch(url, { credentials: 'omit' });
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  return resp.blob();
 };

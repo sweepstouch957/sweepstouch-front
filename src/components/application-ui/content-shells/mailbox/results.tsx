@@ -1,6 +1,6 @@
 import { Box, Card, Divider, Pagination, Stack, Typography } from '@mui/material';
 import type { FC } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 // ✅ zustand
 import useMailStore, { getMails, runMailThunk } from 'src/slices/mailbox';
@@ -47,6 +47,7 @@ export const MailboxResults: FC<MailboxResultsProps> = (props) => {
 
   const totalSelected = selectedMails.length;
   const totalMails = allIds.length;
+  const selectedMailsSet = new Set(selectedMails);
 
   return (
     <Box>
@@ -84,7 +85,7 @@ export const MailboxResults: FC<MailboxResultsProps> = (props) => {
                 href={tag && tag !== 'inbox' ? `?mailId=${mailId}&tag=${tag}` : `?mailId=${mailId}`}
                 onDeselect={() => handleDeselectOneMail(mailId)}
                 onSelect={() => handleSelectOneMail(mailId)}
-                selected={selectedMails.includes(mailId)}
+                selected={selectedMailsSet.has(mailId)}
               />
             ))}
           </Stack>

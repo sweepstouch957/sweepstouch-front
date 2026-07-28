@@ -8,6 +8,7 @@ import {
   Box,
   CircularProgress,
   Typography,
+  useTheme,
 } from '@mui/material';
 import {
   Error as ErrorIcon,
@@ -24,6 +25,7 @@ import { EditCircularDialog, EditTarget } from '@/components/application-ui/dial
 import { CircularsTable, PreviewLabel } from '../tables/CircularsTable';
 
 const ManageCirculars: React.FC = () => {
+  const theme = useTheme();
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState('');
@@ -57,13 +59,13 @@ const ManageCirculars: React.FC = () => {
       <Box sx={{ mb: 3 }}>
         <Typography
           variant="h4"
-          sx={{ fontWeight: 600, color: '#2D3748', mb: 0.5 }}
+          sx={{ fontWeight: 600, color: 'text.primary', mb: 0.5 }}
         >
           Manage Circulars
         </Typography>
         <Typography
           variant="subtitle1"
-          sx={{ color: '#718096' }}
+          sx={{ color: 'text.secondary' }}
         >
           Manage circular schedule of stores
         </Typography>
@@ -103,19 +105,19 @@ const ManageCirculars: React.FC = () => {
           title="Active Circulars"
           value={totals.active}
           icon={TrendingUpIcon}
-          borderColor="#4CAF50"
+          borderColor={theme.palette.success.main}
         />
         <MetricCard
           title="Scheduled"
           value={totals.scheduled}
           icon={ScheduleIcon}
-          borderColor="#FF9800"
+          borderColor={theme.palette.warning.main}
         />
         <MetricCard
           title="Expired"
           value={totals.expired}
           icon={ErrorIcon}
-          borderColor="#F44336"
+          borderColor={theme.palette.error.main}
         />
       </Box>
 

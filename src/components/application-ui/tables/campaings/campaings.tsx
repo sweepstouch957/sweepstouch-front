@@ -2,46 +2,522 @@
 
 import PageHeading from '@/components/base/page-heading';
 import { campaignClient } from '@/services/campaing.service';
-import { Box, Button, CircularProgress, Unstable_Grid2 as Grid, Typography } from '@mui/material';
+import type { FilterStatsResponse } from '@/services/campaing.service';
+import {
+  alpha,
+  Box,
+  Collapse,
+  CircularProgress,
+  Divider,
+  IconButton,
+  LinearProgress,
+  Skeleton,
+  Stack,
+  Tooltip,
+  Typography,
+  Unstable_Grid2 as Grid,
+  useTheme,
+} from '@mui/material';
+import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
+import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
+import ScheduleRoundedIcon from '@mui/icons-material/ScheduleRounded';
+import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
+import CampaignRoundedIcon from '@mui/icons-material/CampaignRounded';
+import PeopleOutlineRoundedIcon from '@mui/icons-material/PeopleOutlineRounded';
+import SmsRoundedIcon from '@mui/icons-material/SmsRounded';
+import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
+import RouterRoundedIcon from '@mui/icons-material/RouterRounded';
+import MonetizationOnRoundedIcon from '@mui/icons-material/MonetizationOnRounded';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { ReactNode } from 'react';
 import ExportButton from '../../buttons/export-button';
 import Results from './results';
+import type { Theme } from '@mui/material/styles';
+import { tint, tintBorder } from '@/theme/semantic';
 
 interface CampaignsGridProps {
   storeId?: string;
+  forceCards?: boolean;
 }
 
-function CampaignsGrid({ storeId }: CampaignsGridProps) {
+/* ─── Platform color map ─── */
+const platformMeta = (theme: Theme): Record<string, { label: string; color: string }> => ({
+  infobip: { label: 'Infobip', color: theme.palette.primary.main },
+  bandwidth: { label: 'Bandwidth', color: theme.palette.info.main },
+  twillio: { label: 'Twilio', color: theme.palette.secondary.main },
+  twilio: { label: 'Twilio', color: theme.palette.secondary.main },
+  unknown: { label: 'Sin plataforma', color: theme.palette.text.secondary },
+  '': { label: 'Sin plataforma', color: theme.palette.text.secondary },
+});
+
+/* ─────────────────────────────────────────
+   KPI CARD  —  executive left-border style
+───────────────────────────────────────────*/
+function KpiCard({
+  icon,
+  label,
+  description,
+  value,
+  color,
+  loading,
+}: {
+  icon: ReactNode;
+  label: string;
+  description: string;
+  value: number | undefined;
+  color: string;
+  loading?: boolean;
+}) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+
+  return (
+    <Box
+      sx={{
+        position: 'relative',
+        borderRadius: 2.5,
+        border: '1px solid',
+        borderColor: alpha(color, isDark ? 0.22 : 0.18),
+        bgcolor: alpha(color, isDark ? 0.06 : 0.03),
+        overflow: 'hidden',
+        p: 1,
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        '&:hover': {
+          borderColor: alpha(color, 0.5),
+          bgcolor: alpha(color, isDark ? 0.12 : 0.07),
+          transform: 'translateY(-2px)',
+        },
+      }}
+    >
+      {/* Left accent bar */}
+      <Box
+        sx={{
+          position: 'absolute',
+          left: 0, top: 0, bottom: 0,
+          width: 3,
+          bgcolor: color,
+          borderRadius: '4px 0 0 4px',
+        }}
+      />
+
+      <Stack spacing={0.5} sx={{ pl: 0.5 }}>
+        {/* Icon + label row */}
+        <Stack direction="row" alignItems="center" spacing={0.75}>
+          <Box
+            sx={{
+              width: 20,
+              height: 20,
+              borderRadius: 1,
+              bgcolor: alpha(color, isDark ? 0.18 : 0.12),
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color,
+              flexShrink: 0,
+            }}
+          >
+            {icon}
+          </Box>
+          <Typography
+            noWrap
+            sx={{
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              color: 'text.secondary',
+            }}
+          >
+            {label}
+          </Typography>
+        </Stack>
+
+        {/* Number */}
+        {loading ? (
+          <Skeleton width={56} height={28} sx={{ borderRadius: 1 }} />
+        ) : (
+          <Typography
+            sx={{
+              fontSize: 18,
+              fontWeight: 800,
+              lineHeight: 1,
+              fontVariantNumeric: 'tabular-nums',
+              color,
+              letterSpacing: '-0.5px',
+            }}
+          >
+            {value?.toLocaleString() ?? 0}
+          </Typography>
+        )}
+
+        {/* Description */}
+        <Typography sx={{ fontSize: 10, color: 'text.disabled', lineHeight: 1.2 }}>
+          {description}
+        </Typography>
+      </Stack>
+    </Box>
+  );
+}
+
+/* ─────────────────────────────────────────
+   STAT CELL  — ✅ module scope extract: defining inside MessagingPanel created
+   a new component class every render (react-doctor: Nested component definition)
+───────────────────────────────────────────*/
+interface StatCellProps {
+  icon: ReactNode;
+  color: string;
+  label: string;
+  sublabel: string;
+  value: number;
+  pct?: number;
+  extraInfo?: ReactNode;
+  isCurrency?: boolean;
+  loading?: boolean;
+  isDark?: boolean;
+}
+
+function StatCell({ icon, color, label, sublabel, value, pct, extraInfo, isCurrency, loading, isDark }: StatCellProps) {
+  return (
+    <Stack
+      spacing={0.25}
+      sx={{
+        flex: 1,
+        minWidth: 0,
+        px: 1,
+        py: 0.75,
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        '&:hover': {
+          transform: 'translateY(-2px)',
+          bgcolor: (t: Theme) =>
+            alpha(isDark ? t.palette.common.white : t.palette.common.black, 0.02),
+        },
+      }}
+    >
+      <Stack direction="row" alignItems="center" spacing={0.75} mb={0.25}>
+        <Box sx={{ color, display: 'flex', opacity: 0.9 }}>{icon}</Box>
+        <Typography noWrap sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'text.secondary' }}>
+          {label}
+        </Typography>
+        {pct !== undefined && (
+          <Box
+            sx={{
+              ml: 'auto',
+              px: 0.75,
+              py: 0.2,
+              borderRadius: 1,
+              bgcolor: alpha(color, isDark ? 0.15 : 0.1),
+              border: `1px solid ${alpha(color, 0.2)}`,
+            }}
+          >
+            <Typography sx={{ fontSize: 10, fontWeight: 700, color, fontVariantNumeric: 'tabular-nums' }}>
+              {pct}%
+            </Typography>
+          </Box>
+        )}
+      </Stack>
+
+      {loading ? (
+        <Skeleton width={80} height={30} sx={{ borderRadius: 1 }} />
+      ) : (
+        <Stack direction="row" alignItems="baseline" spacing={0.5}>
+          {isCurrency && <Typography sx={{ fontSize: 16, fontWeight: 700, color: 'text.secondary' }}>$</Typography>}
+          <Typography
+            sx={{
+              fontSize: 16,
+              fontWeight: 800,
+              lineHeight: 1,
+              color,
+              fontVariantNumeric: 'tabular-nums',
+              letterSpacing: '-0.5px',
+            }}
+          >
+            {isCurrency ? value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : value.toLocaleString()}
+          </Typography>
+        </Stack>
+      )}
+
+      <Typography sx={{ fontSize: 10, color: 'text.disabled', lineHeight: 1.2 }}>
+        {sublabel}
+      </Typography>
+      {extraInfo && (
+        <Typography sx={{ fontSize: 10, color: color, fontWeight: 600, mt: 0.5, opacity: 0.8 }}>
+          {extraInfo}
+        </Typography>
+      )}
+    </Stack>
+  );
+}
+
+/* ─────────────────────────────────────────
+   MESSAGING INTELLIGENCE PANEL
+   Unified card: SMS · MMS · Audiencia · Plataformas
+───────────────────────────────────────────*/
+function MessagingPanel({ stats, loading }: { stats: FilterStatsResponse; loading: boolean }) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+  const { messages, byPlatform, byType, total } = stats;
+
+  const sms = byType['SMS'] ?? 0;
+  const mms = byType['MMS'] ?? 0;
+  const total_typed = sms + mms;
+  const sms_pct = total_typed > 0 ? Math.round((sms / total_typed) * 100) : 0;
+  const mms_pct = total_typed > 0 ? Math.round((mms / total_typed) * 100) : 0;
+
+  const platforms = Object.entries(byPlatform)
+    .filter(([key, count]) => count > 0 && key !== 'unknown' && key !== '')
+    .sort(([, a], [, b]) => b - a);
+
+
+  return (
+    <Box
+      sx={{
+        borderRadius: 2.5,
+        border: '1px solid',
+        borderColor: 'divider',
+        bgcolor: alpha(isDark ? theme.palette.common.white : theme.palette.common.black, isDark ? 0.02 : 0.015),
+        overflow: 'hidden',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        '&:hover': {
+          borderColor: tintBorder(theme, 'primary'),
+          bgcolor: tint(theme, 'primary', 0.04),
+        },
+      }}
+    >
+      {/* Header */}
+      <Box
+        sx={{
+          px: 2,
+          py: 0.75,
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 1,
+          bgcolor: alpha(isDark ? theme.palette.common.white : theme.palette.common.black, isDark ? 0.02 : 0.015),
+        }}
+      >
+        <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'text.secondary' }}>
+          Desglose de envíos
+        </Typography>
+        <Typography sx={{ fontSize: 10, color: 'text.disabled' }}>
+          Refleja el filtro activo · {loading ? '…' : `${total.toLocaleString()} campañas`}
+        </Typography>
+      </Box>
+
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(5, 1fr)' },
+          gap: 0,
+          flex: 1,
+        }}
+      >
+        {/* SMS */}
+        <Box sx={{ position: 'relative', borderRight: { sm: '1px solid', lg: '1px solid' }, borderBottom: { xs: '1px solid', md: '1px solid', lg: 'none' }, borderColor: 'divider' }}>
+          <Box sx={{ position: 'absolute', left: 0, top: '25%', bottom: '25%', width: 3, bgcolor: theme.palette.info.main, borderRadius: 2 }} />
+          <StatCell
+            icon={<SmsRoundedIcon sx={{ fontSize: 16 }} />}
+            color={theme.palette.info.main}
+            label="SMS"
+            sublabel="campañas de texto"
+            value={sms}
+            pct={sms_pct}
+            extraInfo={`${(messages.totalSmsSent ?? 0).toLocaleString()} msjs. enviados`}
+          />
+        </Box>
+
+        {/* MMS */}
+        <Box sx={{ position: 'relative', borderRight: { md: '1px solid', lg: '1px solid' }, borderBottom: { xs: '1px solid', md: '1px solid', lg: 'none' }, borderColor: 'divider' }}>
+          <Box sx={{ position: 'absolute', left: 0, top: '25%', bottom: '25%', width: 3, bgcolor: theme.palette.secondary.main, borderRadius: 2 }} />
+          <StatCell
+            icon={<ImageRoundedIcon sx={{ fontSize: 16 }} />}
+            color={theme.palette.secondary.main}
+            label="MMS"
+            sublabel="campañas con imagen"
+            value={mms}
+            pct={mms_pct}
+            extraInfo={`${(messages.totalMmsSent ?? 0).toLocaleString()} msjs. enviados`}
+          />
+        </Box>
+
+        {/* Audiencia */}
+        <Box sx={{ position: 'relative', borderRight: { sm: '1px solid', md: 'none', lg: '1px solid' }, borderBottom: { xs: '1px solid', md: '1px solid', lg: 'none' }, borderColor: 'divider' }}>
+          <Box sx={{ position: 'absolute', left: 0, top: '25%', bottom: '25%', width: 3, bgcolor: theme.palette.success.main, borderRadius: 2 }} />
+          <StatCell
+            icon={<PeopleOutlineRoundedIcon sx={{ fontSize: 16 }} />}
+            color={theme.palette.success.main}
+            label="Audiencia total"
+            sublabel="contactos únicos alcanzados"
+            value={messages.totalAudience}
+            extraInfo="tamaño de audiencia objetivo"
+          />
+        </Box>
+
+        {/* Entregados */}
+        <Box sx={{ position: 'relative', borderRight: { sm: '1px solid', md: '1px solid', lg: '1px solid' }, borderBottom: { xs: '1px solid', sm: '1px solid', md: 'none', lg: 'none' }, borderColor: 'divider' }}>
+          <Box sx={{ position: 'absolute', left: 0, top: '25%', bottom: '25%', width: 3, bgcolor: theme.palette.warning.main, borderRadius: 2 }} />
+          <StatCell
+            icon={<CheckCircleOutlineRoundedIcon sx={{ fontSize: 16 }} />}
+            color={theme.palette.warning.main}
+            label="Entregados"
+            sublabel="mensajes entregados con éxito"
+            value={messages.totalDelivered ?? 0}
+          />
+        </Box>
+
+        {/* Costo */}
+        <Box sx={{ position: 'relative', borderRight: 'none', borderBottom: 'none', borderColor: 'divider' }}>
+          <Box sx={{ position: 'absolute', left: 0, top: '25%', bottom: '25%', width: 3, bgcolor: theme.palette.error.main, borderRadius: 2 }} />
+          <StatCell
+            icon={<MonetizationOnRoundedIcon sx={{ fontSize: 16 }} />}
+            color={theme.palette.error.main}
+            label="Costo Total"
+            sublabel="costo estimado de campañas"
+            value={messages.totalCost ?? 0}
+            isCurrency={true}
+            extraInfo="estimación por plataforma"
+          />
+        </Box>
+
+        {/* Platforms — full-width bottom strip */}
+        <Box
+          sx={{
+            gridColumn: '1 / -1',
+            borderTop: '1px solid',
+            borderColor: 'divider',
+            px: 2,
+            py: 1.25,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            flexWrap: 'wrap',
+            bgcolor: alpha(isDark ? theme.palette.common.white : theme.palette.common.black, 0.01),
+          }}
+        >
+          <Stack direction="row" alignItems="center" spacing={0.75} flexShrink={0}>
+            <RouterRoundedIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+            <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'text.secondary' }}>
+              Plataformas
+            </Typography>
+          </Stack>
+          <Divider orientation="vertical" flexItem sx={{ height: 16, alignSelf: 'center' }} />
+          {loading ? (
+            <Stack direction="row" spacing={2}>
+              <Skeleton width={80} height={20} sx={{ borderRadius: 1 }} />
+              <Skeleton width={60} height={20} sx={{ borderRadius: 1 }} />
+            </Stack>
+          ) : platforms.length === 0 ? (
+            <Typography sx={{ fontSize: 12, color: 'text.disabled' }}>Sin datos de plataforma</Typography>
+          ) : (
+            <Stack direction="row" spacing={3} flexWrap="wrap">
+              {platforms.map(([key, count]) => {
+                const meta = platformMeta(theme)[key] ?? { label: key, color: theme.palette.text.disabled };
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                return (
+                  <Tooltip key={key} title={`${count} campañas · ${pct}% del total`} arrow placement="top">
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: meta.color, flexShrink: 0 }} />
+                      <Typography sx={{ fontSize: 12, fontWeight: 700, color: meta.color }}>
+                        {meta.label}
+                      </Typography>
+                      <Typography sx={{ fontSize: 12, fontWeight: 800, color: meta.color, fontVariantNumeric: 'tabular-nums' }}>
+                        {count.toLocaleString()}
+                      </Typography>
+                      <Box sx={{ width: 48, height: 4, borderRadius: 2, bgcolor: alpha(meta.color, 0.15), overflow: 'hidden' }}>
+                        <Box sx={{ width: `${pct}%`, height: '100%', bgcolor: meta.color, borderRadius: 2 }} />
+                      </Box>
+                    </Stack>
+                  </Tooltip>
+                );
+              })}
+            </Stack>
+          )}
+        </Box>
+      </Box>
+    </Box>
+  );
+}
+
+/* ─────────────────────────────────────────
+   EMPTY STATE
+───────────────────────────────────────────*/
+const EMPTY_STATS: FilterStatsResponse = {
+  ok: true,
+  total: 0,
+  byStatus: {},
+  byType: {},
+  byPlatform: {},
+  messages: { totalSent: 0, totalQueued: 0, totalNotSent: 0, totalErrors: 0, totalAudience: 0, avgDeliveryRate: 0, totalCost: 0, totalDelivered: 0, totalSmsSent: 0, totalMmsSent: 0 },
+};
+
+/* ─────────────────────────────────────────
+   MAIN GRID
+───────────────────────────────────────────*/
+function CampaignsGrid({ storeId, forceCards = false }: CampaignsGridProps) {
+  const [showMetrics, setShowMetrics] = useState(false);
   const [filters, setFilters] = useState({
     status: '',
-    title: '', // ✅ antes era name
-    storeName: '', // ✅ nuevo
-    type: '', // ✅ nuevo (SMS/MMS)
+    title: '',
+    storeName: '',
+    type: '',
+    platform: '',
     startDate: '',
     endDate: '',
     page: 1,
-    limit: 50,
+    limit: 15,
     storeId,
   });
   const { t } = useTranslation();
+  const theme = useTheme();
 
   const { data, isPending, error, refetch, isFetching } = useQuery({
     queryKey: ['campaigns', filters],
     queryFn: () => campaignClient.getFilteredCampaigns(filters),
-    staleTime: 1000 * 60, // 1 minuto
-    placeholderData: (previousData) => previousData,
+    staleTime: 30_000,
+    placeholderData: (prev) => prev,
   });
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const statsKey = useMemo(() => ({
+    status: filters.status,
+    title: filters.title,
+    type: filters.type,
+    platform: filters.platform,
+    startDate: filters.startDate,
+    endDate: filters.endDate,
+    storeId: filters.storeId,
+  }), [filters.status, filters.title, filters.type, filters.platform, filters.startDate, filters.endDate, filters.storeId]);
+
+  const { data: stats, isFetching: statsFetching } = useQuery({
+    queryKey: ['campaigns-stats', statsKey],
+    queryFn: () =>
+      campaignClient.getFilterStats({
+        status: filters.status || undefined,
+        title: filters.title || undefined,
+        type: filters.type || undefined,
+        platform: filters.platform || undefined,
+        startDate: filters.startDate || undefined,
+        endDate: filters.endDate || undefined,
+        storeId: filters.storeId || undefined,
+      }),
+    staleTime: 30_000,
+    placeholderData: (prev) => prev ?? EMPTY_STATS,
+  });
+
+  // ✅ MUST be before any early return — Rules of Hooks
+  const handleSetFilters = useCallback((next: typeof filters) => {
+    setFilters(next);
+  }, []);
 
   if (isPending) {
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        height="300px"
-      >
+      <Box display="flex" justifyContent="center" alignItems="center" height="300px">
         <CircularProgress size={48} />
       </Box>
     );
@@ -49,46 +525,157 @@ function CampaignsGrid({ storeId }: CampaignsGridProps) {
 
   if (error) {
     return (
-      <Box
-        textAlign="center"
-        py={4}
-      >
-        <Typography
-          color="error"
-          variant="body1"
-        >
-          Error al cargar campañas
-        </Typography>
+      <Box textAlign="center" py={4}>
+        <Typography color="error">Error al cargar campañas</Typography>
       </Box>
     );
   }
+
+  const s = stats ?? EMPTY_STATS;
+  const isLoading = statsFetching && !stats;
 
   return (
     <>
       <PageHeading
         title={t('Campaigns')}
         description={t('Overview of ongoing campaigns')}
-        actions={
-          <ExportButton
-            eventName="campaigns:export"
-            emitOnly
-          />
-        }
+        actions={<ExportButton eventName="campaigns:export" emitOnly />}
       />
-      <Grid
-        container
-        mt={2}
-        spacing={{ xs: 2, sm: 3 }}
-      >
+
+      <Box sx={{ mt: 3, mb: 1.5 }}>
+        {(isFetching || statsFetching) && !isPending && (
+          <LinearProgress sx={{ mb: 1.5, borderRadius: 1, height: 2, opacity: 0.5 }} />
+        )}
+
+        {/* ── Metrics Toggle & Preview ── */}
+        <Box
+          onClick={() => setShowMetrics((p) => !p)}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            cursor: 'pointer',
+            mb: showMetrics ? 1.5 : 2.5,
+            px: 2,
+            py: 1.25,
+            borderRadius: 2,
+            bgcolor: alpha(
+              theme.palette.mode === 'dark' ? theme.palette.common.white : theme.palette.common.black,
+              theme.palette.mode === 'dark' ? 0.02 : 0.015
+            ),
+            border: '1px solid',
+            borderColor: 'divider',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            '&:hover': {
+              borderColor: tintBorder(theme, 'primary'),
+              bgcolor: tint(theme, 'primary', 0.04),
+            }
+          }}
+        >
+          <Stack direction="row" alignItems="center" spacing={2} divider={<Divider orientation="vertical" flexItem sx={{ height: 24, alignSelf: 'center' }} />}>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <CampaignRoundedIcon sx={{ fontSize: 20, color: theme.palette.primary.main }} />
+              <Typography sx={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+                Métricas y Desglose
+              </Typography>
+            </Stack>
+
+            {/* Small Preview when closed */}
+            {!showMetrics && (
+              <Stack direction="row" alignItems="center" spacing={3} sx={{ pl: 1, animation: 'fadeIn 0.3s ease-in-out' }}>
+                <Box>
+                  <Typography sx={{ fontSize: 10, color: 'text.secondary', textTransform: 'uppercase', fontWeight: 700, lineHeight: 1.2 }}>Total Filtrado</Typography>
+                  <Typography sx={{ fontSize: 14, fontWeight: 800, color: theme.palette.primary.main, lineHeight: 1.2 }}>{s.total.toLocaleString()}</Typography>
+                </Box>
+                <Box>
+                  <Typography sx={{ fontSize: 10, color: 'text.secondary', textTransform: 'uppercase', fontWeight: 700, lineHeight: 1.2 }}>Completadas</Typography>
+                  <Typography sx={{ fontSize: 14, fontWeight: 800, color: 'success.main', lineHeight: 1.2 }}>{(s.byStatus.completed ?? 0).toLocaleString()}</Typography>
+                </Box>
+                <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                  <Typography sx={{ fontSize: 10, color: 'text.secondary', textTransform: 'uppercase', fontWeight: 700, lineHeight: 1.2 }}>Audiencia</Typography>
+                  <Typography sx={{ fontSize: 14, fontWeight: 800, color: 'secondary.main', lineHeight: 1.2 }}>{s.messages.totalAudience.toLocaleString()}</Typography>
+                </Box>
+              </Stack>
+            )}
+          </Stack>
+
+          <IconButton
+            size="small"
+            sx={{
+              transform: showMetrics ? 'rotate(180deg)' : 'none',
+              transition: 'transform 0.2s',
+            }}
+          >
+            <ExpandMoreRoundedIcon sx={{ fontSize: 20 }} />
+          </IconButton>
+        </Box>
+
+        <Collapse in={showMetrics} unmountOnExit>
+          <Grid container spacing={1} sx={{ mb: 1.5 }}>
+            {/* ── KPI Cards ── */}
+            <Grid xs={12} lg={5} xl={4}>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: 'repeat(2, 1fr)' },
+                  gap: 1,
+                  height: '100%',
+                }}
+              >
+                <KpiCard
+                  icon={<CampaignRoundedIcon sx={{ fontSize: 16 }} />}
+                  label="Total filtrado"
+                  description="campañas en el filtro activo"
+                  value={s.total}
+                  color={theme.palette.primary.main}
+                  loading={isLoading}
+                />
+                <KpiCard
+                  icon={<CheckCircleOutlineRoundedIcon sx={{ fontSize: 16 }} />}
+                  label="Completadas"
+                  description="campañas enviadas con éxito"
+                  value={s.byStatus.completed ?? 0}
+                  color={theme.palette.success.main}
+                  loading={isLoading}
+                />
+                <KpiCard
+                  icon={<ScheduleRoundedIcon sx={{ fontSize: 16 }} />}
+                  label="Programadas"
+                  description="campañas en cola de envío"
+                  value={s.byStatus.scheduled ?? 0}
+                  color={theme.palette.warning.main}
+                  loading={isLoading}
+                />
+                <KpiCard
+                  icon={<CancelOutlinedIcon sx={{ fontSize: 16 }} />}
+                  label="Canceladas"
+                  description="campañas no ejecutadas"
+                  value={s.byStatus.cancelled ?? 0}
+                  color={theme.palette.error.main}
+                  loading={isLoading}
+                />
+              </Box>
+            </Grid>
+
+            {/* ── Messaging Intelligence Panel ── */}
+            <Grid xs={12} lg={7} xl={8}>
+              <MessagingPanel stats={s} loading={isLoading} />
+            </Grid>
+          </Grid>
+        </Collapse>
+      </Box>
+
+      <Grid container mt={0} spacing={{ xs: 2, sm: 3 }}>
         <Grid xs={12}>
           <Results
             campaigns={data?.data || []}
             filters={filters}
-            setFilters={setFilters}
+            setFilters={handleSetFilters}
             total={data?.total || 0}
             refetch={refetch}
             storeId={storeId}
             isLoading={isFetching}
+            forceCards={forceCards}
           />
         </Grid>
       </Grid>

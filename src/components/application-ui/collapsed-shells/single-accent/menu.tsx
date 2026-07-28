@@ -42,7 +42,7 @@ const MenuItemComponent: FC<{
   item: MenuItem;
   isSub?: boolean;
 }> = ({ item, isSub }) => {
-  const router = useRouter();
+  const { push } = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -89,7 +89,7 @@ const MenuItemComponent: FC<{
         <Button
           fullWidth
           endIcon={item.subMenu ? <KeyboardArrowRightTwoToneIcon fontSize="small" /> : null}
-          onClick={() => item.route && router.push(item.route)}
+          onClick={() => item.route && push(item.route)}
           sx={{
             textAlign: 'left',
             justifyContent: 'space-between',
@@ -142,7 +142,7 @@ const MenuItemComponent: FC<{
           title={!item.subMenu && item.title}
         >
           <IconButtonWrapper
-            onClick={() => item.route && router.push(item.route)}
+            onClick={() => item.route && push(item.route)}
             {...commonProps}
             sx={{
               color: (theme) =>
@@ -200,7 +200,7 @@ const MenuItemComponent: FC<{
               >
                 {item.subMenu.map((subItem, index) => (
                   <MenuItemComponent
-                    key={index}
+                    key={subItem.title}
                     item={subItem}
                     isSub
                   />
@@ -245,7 +245,7 @@ export const NavMenu: React.FC<NavMenuProps> = ({ menuItems }) => {
         >
           {menuItems.map((item, index) => (
             <MenuItemComponent
-              key={index}
+              key={item.title}
               item={item}
             />
           ))}

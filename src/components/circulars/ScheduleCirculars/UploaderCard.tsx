@@ -14,7 +14,7 @@ export function CircularsUploaderCard({ maxMb, onFileUpload }: CircularsUploader
                 borderRadius: 3,
                 overflow: 'hidden',
                 mb: 3,
-                border: '1px solid #EDF2F7',
+                border: '1px solid', borderColor: 'divider',
             }}
             elevation={0}
         >
@@ -23,23 +23,23 @@ export function CircularsUploaderCard({ maxMb, onFileUpload }: CircularsUploader
                     px: 3,
                     py: 2,
                     minHeight: 56,
-                    borderBottom: '1px solid #EDF2F7',
-                    bgcolor: '#FAFAFB',
+                    borderBottom: '1px solid', borderColor: 'divider',
+                    bgcolor: 'action.hover',
                     display: 'flex',
                     gap: 1.5,
                 }}
             >
-                <UploadIcon sx={{ color: '#64748B' }} />
+                <UploadIcon sx={{ color: 'text.secondary' }} />
                 <Typography
                     variant="subtitle1"
-                    sx={{ fontWeight: 600, color: '#2D3748' }}
+                    sx={{ fontWeight: 600, color: 'text.primary' }}
                 >
                     Subir PDFs (drag & drop)
                 </Typography>
                 <Chip
                     label={`Máx ${maxMb}MB`}
                     size="small"
-                    sx={{ ml: 'auto', bgcolor: '#F1F5F9', color: '#334155', fontWeight: 600 }}
+                    sx={{ ml: 'auto', bgcolor: 'action.hover', color: 'text.secondary', fontWeight: 600 }}
                 />
             </Toolbar>
 
@@ -49,7 +49,7 @@ export function CircularsUploaderCard({ maxMb, onFileUpload }: CircularsUploader
                 <Divider sx={{ mt: 2 }} />
                 <Typography
                     variant="caption"
-                    sx={{ color: '#64748B', display: 'block', mt: 1.5 }}
+                    sx={{ color: 'text.secondary', display: 'block', mt: 1.5 }}
                 >
                     Tip: el nombre del archivo debe incluir el <b>slug</b> de la tienda (ej.{' '}
                     <i>new-rochelle.pdf</i>) para auto-rellenar la columna.

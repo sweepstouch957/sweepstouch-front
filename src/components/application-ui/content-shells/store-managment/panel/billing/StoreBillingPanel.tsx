@@ -111,8 +111,6 @@ export function StoreBillingPanel({ storeId, storeName }: Props) {
       {/* Card grande: título + botones + resumen */}
       <Card
         sx={{
-          borderRadius: 3,
-          boxShadow: '0 18px 45px rgba(15, 23, 42, 0.08)',
           overflow: 'hidden',
         }}
       >
@@ -196,12 +194,7 @@ export function StoreBillingPanel({ storeId, storeName }: Props) {
       </Card>
 
       {/* Card de facturas */}
-      <Card
-        sx={{
-          borderRadius: 3,
-          boxShadow: '0 18px 45px rgba(15, 23, 42, 0.06)',
-        }}
-      >
+      <Card>
         <CardHeader
           sx={{ px: 3, py: 2 }}
           title={

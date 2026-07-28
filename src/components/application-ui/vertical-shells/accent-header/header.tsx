@@ -46,6 +46,13 @@ interface HeaderProps {
   onMobileNav?: () => void;
 }
 
+// Datos estáticos del usuario — sin dependencias del componente
+const user = {
+  avatar: '/avatars/1.png',
+  name: 'Ethan Donovan',
+  jobTitle: 'Principal Engineer',
+};
+
 export const Header: FC<HeaderProps> = (props) => {
   const { onMobileNav } = props;
   const lgUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('lg'));
@@ -56,12 +63,6 @@ export const Header: FC<HeaderProps> = (props) => {
   const theme = useTheme();
   const notifications = useDialog();
   const widgets = useDialog();
-
-  const user = {
-    avatar: '/avatars/1.png',
-    name: 'Ethan Donovan',
-    jobTitle: 'Principal Engineer',
-  };
 
   return (
     <HeaderWrapper

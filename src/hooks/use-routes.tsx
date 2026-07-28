@@ -2,6 +2,7 @@ import type { UserRole } from '@/contexts/auth/user';
 import {
   AdsClickOutlined,
   BookOutlined,
+  BuildRounded,
   Campaign,
   Person2Outlined,
   Redeem,
@@ -9,6 +10,7 @@ import {
 } from '@mui/icons-material';
 import AppsRoundedIcon from '@mui/icons-material/AppsRounded';
 import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
+import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import { List } from '@mui/material';
 import { MenuItem } from 'src/router/menuItem';
 import { routes } from 'src/router/routes';
@@ -27,19 +29,33 @@ const dashboardsMenu = (t: (token: string) => string): MenuItem =>
     buildMenu(t('Metrics'), undefined, [
       { title: t('Reports'), icon: <List />, route: routes.admin.dashboards.reports },
       {
+        title: t('Sweepstakes'),
+        icon: <List />,
+        route: routes.admin.dashboards.sweepstakes,
+      },
+      {
         title: t('Messages sent'),
         icon: <List />,
         route: routes.admin.dashboards['messages-sent'],
       },
       { title: t('Audience'), icon: <List />, route: routes.admin.dashboards.audience },
+      { title: t('Promotoras'), icon: <List />, route: routes.admin.management.promotors.metrics },
     ]),
   ]);
 
 const applicationsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Applications'), <AppsRoundedIcon />, [
+    // Sin iconos: el submenú ya se identifica por el ícono del padre (Applications)
+    // y el guion de jerarquía. Los iconos por ítem agregaban ruido visual.
+    { title: t('Optin Cashiers'), route: routes.admin.applications['optin-cashiers'] },
+    { title: t('Projects Board'), route: routes.admin.applications['projects-board'] },
+    { title: t('Tasks'), route: routes.admin.applications.tasks },
     { title: t('Store Maps'), route: routes.admin.applications.maps },
     { title: t('Calendar'), route: routes.admin.applications.calendar },
-    //{ title: t('debug'), route: routes.admin.applications['debug-numbers'] },
+    { title: t('Depurar Numeros'), route: routes.admin.applications['debug-numbers'] },
+    { title: t('Demos'), route: routes.admin.applications.demos },
+    { title: t('QR'), route: routes.admin.management.qr },
+    { title: t('Utilidades'), route: routes.admin.applications.utilities },
     //{ title: t('File manager'), route: routes.admin.applications['file-manager'] },
     //{ title: t('Messenger'), route: routes.admin.applications.messenger },
   ]);
@@ -47,12 +63,19 @@ const applicationsMenu = (t: (token: string) => string): MenuItem =>
 const usersMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Users'), <PeopleRoundedIcon />, [
     { title: t('Listing'), route: routes.admin.management.users.listing },
+    { title: t('Merchants'), route: routes.admin.management.merchants.listing },
+    { title: t('Departments'), route: routes.admin.management.departments.listing },
     //{ title: t('User profile'), route: routes.admin.management.users.profile },
   ]);
 
 const campaignsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Campaigns'), <Campaign />, [
     { title: t('Listing'), route: routes.admin.management.campaings.listing },
+    { title: t('Send Test'), route: routes.admin.management.campaings['send-test'], roles: ['admin'] },
+    { title: t('MMS Generator'), route: routes.admin.management.campaings.mms, roles: ['admin'] },
+    { title: t('RCS Monitoring'), route: routes.admin.dashboards['campaign-analytics'], roles: ['admin'] },
+    { title: t('Opt-in MMS'), route: routes.admin.management.campaings.optin, roles: ['admin', 'general_manager', 'campaign_manager'] },
+    { title: t('Solicitudes de Campaña'), route: routes.admin.management['campaign-requests'].listing, roles: ['admin', 'campaign_manager', 'design', 'general_manager'] },
   ]);
 
 const promotorsMenu = (t: (token: string) => string): MenuItem =>
@@ -68,6 +91,11 @@ const promotorsMenu = (t: (token: string) => string): MenuItem =>
         title: t('Applies'),
         icon: <List />,
         route: routes.admin.management.solicitudes.promotoras,
+      },
+      {
+        title: t('Plan de Ganancias'),
+        icon: <List />,
+        route: routes.admin.management.promotors.earningsTiers,
       },
     ]),
 
@@ -85,7 +113,8 @@ const promotorsMenu = (t: (token: string) => string): MenuItem =>
       },
     ]),
 
-    { title: t('featured stores'), route: routes.admin.management.promotors.featuredStores },
+    { title: t('Tiendas Candidatas'), route: routes.admin.management.promotors.featuredStores },
+    { title: t('Métricas'), route: routes.admin.management.promotors.metrics },
   ]);
 
 //const requestMenu = (t: (token: string) => string): MenuItem =>
@@ -104,7 +133,10 @@ const storesMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Stores'), <Store />, [
     { title: t('Listing'), route: routes.admin.management.stores.listing },
     { title: t('Create Store'), route: routes.admin.management.stores.create },
+    { title: t('Brands'), route: routes.admin.management.stores.brands },
     { title: t('Appointments & Schedule'), route: routes.admin.management.stores.appointments },
+    { title: t('Contracts'), route: routes.admin.management.stores.contracts },
+    { title: t('New Contract'), route: routes.admin.management.stores['contracts-create'] },
   ]);
 
 const addsMenu = (t: (token: string) => string): MenuItem =>
@@ -117,13 +149,33 @@ const circularsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Schedule Circulars'), route: routes.admin.management.circulars.schedule },
   ]);
 
+const supportMenu = (t: (token: string) => string): MenuItem =>
+  buildMenu(t('Soporte Técnico'), <BuildRounded />, [
+    { title: t('Dashboard'), route: routes.admin.management.support.dashboard },
+    { title: t('Tickets'), route: routes.admin.management.support.tickets },
+    { title: t('Visitas'), route: routes.admin.management.support.visits },
+  ]);
+
 export const useMenuItemsCollapsedShells = (
   t: (token: string) => string,
   role: UserRole
 ): MenuItem[] => {
-  const general: MenuItem[] = [dashboardsMenu(t)];
+  const aiSubItems: MenuItem[] = [
+    { title: t('Chat'), route: routes.admin.applications['ai-assistant'] },
+    ...(role === 'admin'
+      ? [{ title: t('Configuration'), route: routes.admin.applications['ai-config'] }]
+      : []),
+  ];
+  const aiMenu: MenuItem[] = [
+    buildMenu(t('AI Assistant'), <SmartToyRoundedIcon />, aiSubItems),
+  ];
 
-  const others: MenuItem[] = [applicationsMenu(t)];
+  const general: MenuItem[] = [
+    // Optin Cashiers pasó a ser el primer item de Applications (ya no cuelga suelto acá)
+    ...aiMenu,
+    dashboardsMenu(t),
+    applicationsMenu(t),
+  ];
 
   const roleMenus: Record<UserRole, MenuItem[]> = {
     admin: [
@@ -134,15 +186,19 @@ export const useMenuItemsCollapsedShells = (
       promotorsMenu(t),
       addsMenu(t),
       circularsMenu(t),
+      supportMenu(t),
       //requestMenu(t),
     ],
-    general_manager: [campaignsMenu(t), promotorsMenu(t), storesMenu(t)],
+    general_manager: [campaignsMenu(t), promotorsMenu(t), storesMenu(t), supportMenu(t)],
     promotor_manager: [sweepstakesMenu(t), promotorsMenu(t), storesMenu(t), circularsMenu(t)],
-    campaign_manager: [campaignsMenu(t), circularsMenu(t)],
+    campaign_manager: [campaignsMenu(t), circularsMenu(t), storesMenu(t)],
+    marketing: [campaignsMenu(t), circularsMenu(t), storesMenu(t), addsMenu(t)],
     cashier: [],
     merchant: [],
     promotor: [storesMenu(t)],
     design: [storesMenu(t), circularsMenu(t)],
+    merchant_manager: [storesMenu(t)],
+    tecnico: [supportMenu(t)],
   };
 
   const management = roleMenus[role] || [];
@@ -150,7 +206,6 @@ export const useMenuItemsCollapsedShells = (
   return [
     { title: t('General'), subMenu: general },
     ...(management.length > 0 ? [{ title: t('Management'), subMenu: management }] : []),
-    ...(management.length > 0 ? [{ title: t('Others'), subMenu: others }] : []),
   ];
 };
 

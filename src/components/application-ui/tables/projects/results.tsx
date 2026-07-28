@@ -45,11 +45,10 @@ import {
   useTheme,
 } from '@mui/material';
 import { format, formatDistance } from 'date-fns';
-import PropTypes from 'prop-types';
 import { ChangeEvent, FC, MouseEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import BulkDelete from 'src/components/application-ui/tables/users/bulk-delete';
-import { CardWrapper } from 'src/components/application-ui/tables/users/results';
+import { CardWrapper } from 'src/components/application-ui/tables/users/styles';
 import { ButtonIcon } from 'src/components/base/styles/button-icon';
 import { ButtonSoft } from 'src/components/base/styles/button-soft';
 import { LinearProgressSlim } from 'src/components/base/styles/progress-bar';
@@ -203,6 +202,7 @@ const Results: FC<ResultsProps> = ({ projects }) => {
 
   const filteredProjects = applyFilters(projects, query, filters);
   const paginatedProjects = applyPagination(filteredProjects, page, limit);
+  const selectedItemsSet = new Set(selectedItems);
   const selectedBulkActions = selectedItems.length > 0;
   const selectedSomeProjects = selectedItems.length > 0 && selectedItems.length < projects.length;
   const selectedAllProjects = selectedItems.length === projects.length;
@@ -615,7 +615,7 @@ const Results: FC<ResultsProps> = ({ projects }) => {
                     </TableHead>
                     <TableBody>
                       {paginatedProjects.map((project) => {
-                        const isProjectSelected = selectedItems.includes(project.id);
+                        const isProjectSelected = selectedItemsSet.has(project.id);
                         return (
                           <TableRow
                             hover
@@ -851,7 +851,7 @@ const Results: FC<ResultsProps> = ({ projects }) => {
                   spacing={{ xs: 2, sm: 3 }}
                 >
                   {paginatedProjects.map((project) => {
-                    const isProjectSelected = selectedItems.includes(project.id);
+                    const isProjectSelected = selectedItemsSet.has(project.id);
 
                     return (
                       <Grid

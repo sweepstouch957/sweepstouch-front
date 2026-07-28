@@ -10,15 +10,17 @@ import PageHeading from 'src/components/base/page-heading';
 import { AvatarState } from 'src/components/base/styles/avatar';
 import { useCustomization } from 'src/hooks/use-customization';
 
+// Static page metadata; no component state, hoisted to module scope.
+const pageMeta = {
+  title: 'Store Maps',
+  description: 'Explore and manage store maps effectively.',
+  icon: <MapSharp />,
+};
+
 function Page(): React.JSX.Element {
   const customization = useCustomization();
   const theme = useTheme();
   const { t } = useTranslation();
-  const pageMeta = {
-    title: 'Store Maps',
-    description: 'Explore and manage store maps effectively.',
-    icon: <MapSharp />,
-  };
   return (
     <>
       {pageMeta.title && (

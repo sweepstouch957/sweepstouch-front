@@ -22,7 +22,7 @@ const MenuItemComponent: FC<{
   item: MenuItem;
   isSub?: boolean;
 }> = ({ item, isSub }) => {
-  const router = useRouter();
+  const { push } = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -57,7 +57,7 @@ const MenuItemComponent: FC<{
     >
       {isSub ? (
         <ButtonBase
-          onClick={() => item.route && router.push(item.route)}
+          onClick={() => item.route && push(item.route)}
           sx={{
             justifyContent: 'space-between',
             width: '100%',
@@ -107,7 +107,7 @@ const MenuItemComponent: FC<{
         </ButtonBase>
       ) : (
         <ButtonBase
-          onClick={() => item.route && router.push(item.route)}
+          onClick={() => item.route && push(item.route)}
           {...commonProps}
           sx={{
             height: HEADER_HEIGHT * 1.3,

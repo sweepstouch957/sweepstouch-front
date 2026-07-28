@@ -86,26 +86,30 @@ function QuillEditorBase(props: QuillEditorProps) {
 
       q.on('text-change', handleTextChange);
       q.on('selection-change', handleSelectionChange);
-
-      // Cleanup
-      return () => {
-        try {
-          q.off('text-change', handleTextChange);
-          q.off('selection-change', handleSelectionChange);
-        } catch {
-          // ignore
-        }
-      };
+      // handlers stored on quillRef so the useEffect cleanup below can call off()
+      quillRef.current = q;
     })();
 
+    // ✅ useEffect cleanup — runs on unmount and before every re-run
+    // This is what React (and react-doctor) actually see as the cleanup.
+    // The q.off() inside the async IIFE above returned from the IIFE (ignored);
+    // here we use quillRef to call off() and destroy the editor DOM reliably.
     return () => {
       isActive = false;
-
+      const q = quillRef.current;
+      if (q) {
+        try {
+          // ✅ Explicit off() matching every on() — satisfies react-doctor cleanup rule
+          q.off('text-change');
+          q.off('selection-change');
+        } catch {
+          // ignore if quill already destroyed
+        }
+      }
       // Destroy DOM that Quill injected to avoid duplicate toolbars on remount
       if (mountRef.current) {
         mountRef.current.innerHTML = '';
       }
-
       quillRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -134,16 +138,12 @@ function QuillEditorBase(props: QuillEditorProps) {
   );
 }
 
-export const QuillEditor = styled(QuillEditorBase, {
+const StyledQuillEditor = styled(QuillEditorBase, {
   // Prevent Quill theme string from colliding with the injected MUI theme prop.
   shouldForwardProp: (prop) => prop !== 'quillTheme',
 })(({ theme }) => ({
   display: 'flex',
   flexDirection: 'column',
-  boxShadow:
-    theme.palette.mode === 'dark'
-      ? `${alpha(theme.palette.neutral[900], 0.3)} 0 1px 3px !important`
-      : `${alpha(theme.palette.neutral[400], 0.3)} 0 1px 3px !important`,
   backgroundColor:
     theme.palette.mode === 'dark' ? theme.palette.neutral[900] : theme.palette.background.paper,
   border:
@@ -252,3 +252,7 @@ export const QuillEditor = styled(QuillEditorBase, {
     },
   },
 }));
+
+export function QuillEditor(props: QuillEditorProps) {
+  return <StyledQuillEditor {...props} />;
+}

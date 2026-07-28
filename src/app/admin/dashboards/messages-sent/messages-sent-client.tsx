@@ -23,7 +23,10 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import { BarChart } from '@mui/x-charts/BarChart';
+import dynamic from 'next/dynamic';
+const BarChart = dynamic(() => import('@mui/x-charts/BarChart').then((m) => m.BarChart), {
+  ssr: false,
+});
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DateCalendar, LocalizationProvider } from '@mui/x-date-pickers';
 import { PickersDay } from '@mui/x-date-pickers/PickersDay';
@@ -69,6 +72,53 @@ type RangePickerValue = {
   endYmd: string;
 };
 
+// ✅ CustomDay extracted to module scope — defining inside RangePickerField created a
+// new component instance every render, destroying DateCalendar's internal day state.
+interface CustomDayProps extends PickersDayProps<Date> {
+  draftStart: Date | null;
+  draftEnd: Date | null;
+}
+
+function CustomDay({ day, outsideCurrentMonth, draftStart, draftEnd, ...other }: CustomDayProps) {
+  const s = draftStart;
+  const e = draftEnd ?? draftStart;
+  const time = new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime();
+  const startTime = s ? new Date(s.getFullYear(), s.getMonth(), s.getDate()).getTime() : null;
+  const endTime = e ? new Date(e.getFullYear(), e.getMonth(), e.getDate()).getTime() : null;
+
+  const inRange =
+    startTime != null &&
+    endTime != null &&
+    time >= Math.min(startTime, endTime) &&
+    time <= Math.max(startTime, endTime);
+
+  const isStart = startTime != null && time === startTime;
+  const isEnd = endTime != null && time === endTime;
+
+  return (
+    <PickersDay
+      {...(other as any)}
+      day={day}
+      outsideCurrentMonth={outsideCurrentMonth}
+      sx={{
+        ...(inRange && {
+          bgcolor: 'action.selected',
+          borderRadius: 0,
+          '&:hover': { bgcolor: 'action.selected' },
+        }),
+        ...(isStart && {
+          borderTopLeftRadius: 16,
+          borderBottomLeftRadius: 16,
+        }),
+        ...(isEnd && {
+          borderTopRightRadius: 16,
+          borderBottomRightRadius: 16,
+        }),
+      }}
+    />
+  );
+}
+
 function RangePickerField({
   label,
   value,
@@ -110,47 +160,6 @@ function RangePickerField({
   };
 
   const display = startYmd && endYmd ? `${startYmd} — ${endYmd}` : '';
-
-  const CustomDay = (props: PickersDayProps<Date>) => {
-    const { day, outsideCurrentMonth, ...other } = props;
-    const s = draftStart;
-    const e = draftEnd ?? draftStart;
-    const time = new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime();
-    const startTime = s ? new Date(s.getFullYear(), s.getMonth(), s.getDate()).getTime() : null;
-    const endTime = e ? new Date(e.getFullYear(), e.getMonth(), e.getDate()).getTime() : null;
-
-    const inRange =
-      startTime != null &&
-      endTime != null &&
-      time >= Math.min(startTime, endTime) &&
-      time <= Math.max(startTime, endTime);
-
-    const isStart = startTime != null && time === startTime;
-    const isEnd = endTime != null && time === endTime;
-
-    return (
-      <PickersDay
-        {...(other as any)}
-        day={day}
-        outsideCurrentMonth={outsideCurrentMonth}
-        sx={{
-          ...(inRange && {
-            bgcolor: 'action.selected',
-            borderRadius: 0,
-            '&:hover': { bgcolor: 'action.selected' },
-          }),
-          ...(isStart && {
-            borderTopLeftRadius: 16,
-            borderBottomLeftRadius: 16,
-          }),
-          ...(isEnd && {
-            borderTopRightRadius: 16,
-            borderBottomRightRadius: 16,
-          }),
-        }}
-      />
-    );
-  };
 
   const onPick = (date: Date | null) => {
     if (!date || Number.isNaN(date.getTime())) return;
@@ -209,7 +218,11 @@ function RangePickerField({
                   onPick(v);
                 }
               }}
-              slots={{ day: CustomDay as any }}
+              slots={{
+                day: (props: PickersDayProps<Date>) => (
+                  <CustomDay {...props} draftStart={draftStart} draftEnd={draftEnd} />
+                ),
+              }}
               referenceDate={anchorMonth}
             />
           </Stack>
@@ -224,6 +237,7 @@ function RangePickerField({
     </>
   );
 }
+
 
 function startOfMonthIso(year: number, month1to12: number) {
   // IMPORTANT: match the same format the Campaigns filters use (toISOString())
@@ -281,10 +295,6 @@ function isMmsType(raw: unknown): boolean {
   const s = String(raw ?? '').toLowerCase();
   return s.includes('mms');
 }
-
-// Brand color used across Sweepstouch marketing assets.
-// We do NOT use theme.palette.primary here because the admin theme can be blue.
-const SWEEPSTOUCH_PINK = '#ff0f6e';
 
 async function fetchAllCampaignsFromStartDate(startDate: string) {
   // NOTE: getFilteredCampaigns is paginated. For charts we must fetch ALL pages,
@@ -491,7 +501,7 @@ function YearBlock({
               series={[
                 { data: sms, label: t('SMS'), color: theme.palette.grey[400] } as any,
                 { data: mms, label: t('MMS'), color: theme.palette.grey[700] } as any,
-                { data: totals, label: t('Total'), color: SWEEPSTOUCH_PINK } as any,
+                { data: totals, label: t('Total'), color: theme.palette.primary.main } as any,
               ]}
               grid={{ horizontal: true }}
             />
@@ -501,6 +511,48 @@ function YearBlock({
     </Paper>
   );
 }
+
+// Adds a clamped number of months to a YYYY-MM-DD string; pure, hoisted to module scope.
+function addMonthsClamped(ymd: string, deltaMonths: number): string {
+  const m = ymd.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return ymd;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+
+  const monthIndex = mo - 1;
+  const total = y * 12 + monthIndex + deltaMonths;
+  const ty = Math.floor(total / 12);
+  const tm = total % 12;
+  const month1to12 = tm + 1;
+  const dim = daysInMonth(ty, month1to12);
+  const dd = Math.min(d, dim);
+  return `${ty}-${pad2(month1to12)}-${pad2(dd)}`;
+}
+
+// Aggregates SMS/MMS audience totals for a date range; uses only module helpers, hoisted to module scope.
+async function getTotalsForRange(startYmd: string, endYmd: string): Promise<{ sms: number; mms: number; total: number }> {
+  const rows = await fetchAllCampaignsForRange({
+    startDate: startOfDayIso(startYmd),
+    endDate: endOfDayIso(endYmd),
+  });
+
+  let sms = 0;
+  let mms = 0;
+  for (const c of rows) {
+    const audience = n((c as any)?.audience);
+    if (isMmsType((c as any)?.type)) mms += audience;
+    else sms += audience;
+  }
+  return { sms, mms, total: sms + mms };
+}
+
+// Static page metadata; no component state, hoisted to module scope.
+const pageMeta = {
+  title: 'Messages sent',
+  description: 'Month-by-month overview of total messages sent by campaigns',
+  icon: <ChartBarIcon />,
+};
 
 export default function MessagesSentClient(): React.JSX.Element {
   const customization = useCustomization();
@@ -519,11 +571,14 @@ export default function MessagesSentClient(): React.JSX.Element {
 
   // Comparison range (used to compare the same date-range across previous months)
   const cmpDefaultStartYmd = useMemo(() => `${currentYear}-${pad2(currentMonthNumber)}-01`, [currentYear, currentMonthNumber]);
-  const cmpDefaultEndYmd = useMemo(() => {
-    // Default: from the 1st of the current month up to today.
-    const day = now.getDate();
-    return `${currentYear}-${pad2(currentMonthNumber)}-${pad2(day)}`;
-  }, [currentYear, currentMonthNumber, now]);
+  // Día actual como primitivo: `now` (new Date cada render) rompía el memo por
+  // ser una ref nueva en cada render. Dependemos del número, no del objeto.
+  const currentDay = now.getDate();
+  const cmpDefaultEndYmd = useMemo(
+    // Default: del 1ro del mes actual hasta hoy.
+    () => `${currentYear}-${pad2(currentMonthNumber)}-${pad2(currentDay)}`,
+    [currentYear, currentMonthNumber, currentDay]
+  );
 
   const [cmpRangeStartYmd, setCmpRangeStartYmd] = useState<string>(cmpDefaultStartYmd);
   const [cmpRangeEndYmd, setCmpRangeEndYmd] = useState<string>(cmpDefaultEndYmd);
@@ -575,39 +630,6 @@ export default function MessagesSentClient(): React.JSX.Element {
     mms: number;
     total: number;
   };
-
-  function addMonthsClamped(ymd: string, deltaMonths: number): string {
-    const m = ymd.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (!m) return ymd;
-    const y = Number(m[1]);
-    const mo = Number(m[2]);
-    const d = Number(m[3]);
-
-    const monthIndex = mo - 1;
-    const total = y * 12 + monthIndex + deltaMonths;
-    const ty = Math.floor(total / 12);
-    const tm = total % 12;
-    const month1to12 = tm + 1;
-    const dim = daysInMonth(ty, month1to12);
-    const dd = Math.min(d, dim);
-    return `${ty}-${pad2(month1to12)}-${pad2(dd)}`;
-  }
-
-  async function getTotalsForRange(startYmd: string, endYmd: string): Promise<{ sms: number; mms: number; total: number }> {
-    const rows = await fetchAllCampaignsForRange({
-      startDate: startOfDayIso(startYmd),
-      endDate: endOfDayIso(endYmd),
-    });
-
-    let sms = 0;
-    let mms = 0;
-    for (const c of rows) {
-      const audience = n((c as any)?.audience);
-      if (isMmsType((c as any)?.type)) mms += audience;
-      else sms += audience;
-    }
-    return { sms, mms, total: sms + mms };
-  }
 
   const comparePrevQ = useQuery<{ selected: CompareTotals; prev: CompareTotals[]; avg: CompareTotals }>({
     queryKey: ['dashboards', 'messages-sent', 'compare-prev3', { start: cmpRangeStartYmd, end: cmpRangeEndYmd, lang: i18n.language }],
@@ -720,12 +742,6 @@ export default function MessagesSentClient(): React.JSX.Element {
       staleTime: 1000 * 60 * 10,
     }
   );
-
-  const pageMeta = {
-    title: 'Messages sent',
-    description: 'Month-by-month overview of total messages sent by campaigns',
-    icon: <ChartBarIcon />,
-  };
 
   const yearQ = useQuery<Campaing[]>({
     queryKey: ['dashboards', 'messages-sent', { year: yearSelected, status: 'completed' }],
@@ -862,7 +878,7 @@ return (
                                 series={[
                                   { data: [selectedSms, avgSms], label: t('SMS'), color: theme.palette.grey[400] } as any,
                                   { data: [selectedMms, avgMms], label: t('MMS'), color: theme.palette.grey[700] } as any,
-                                  { data: [selectedTotal, avgTotal], label: t('Total'), color: SWEEPSTOUCH_PINK } as any,
+                                  { data: [selectedTotal, avgTotal], label: t('Total'), color: theme.palette.primary.main } as any,
                                 ]}
                                 grid={{ horizontal: true }}
                               />
@@ -906,7 +922,7 @@ return (
                                 series={[
                                   { data: sms, label: t('SMS'), color: theme.palette.grey[400] } as any,
                                   { data: mms, label: t('MMS'), color: theme.palette.grey[700] } as any,
-                                  { data: totals, label: t('Total'), color: SWEEPSTOUCH_PINK } as any,
+                                  { data: totals, label: t('Total'), color: theme.palette.primary.main } as any,
                                 ]}
                                 grid={{ horizontal: true }}
                               />
@@ -1020,7 +1036,7 @@ return (
                         series={[
                           { data: dailyQ.data!.sms, label: t('SMS'), color: theme.palette.grey[400] } as any,
                           { data: dailyQ.data!.mms, label: t('MMS'), color: theme.palette.grey[700] } as any,
-                          { data: dailyQ.data!.total, label: t('Total'), color: SWEEPSTOUCH_PINK } as any,
+                          { data: dailyQ.data!.total, label: t('Total'), color: theme.palette.primary.main } as any,
                         ]}
                         grid={{ horizontal: true }}
                       />

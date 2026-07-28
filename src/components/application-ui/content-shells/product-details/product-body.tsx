@@ -32,7 +32,7 @@ import 'swiper/css/thumbs';
 import React from 'react';
 import toast from 'react-hot-toast';
 import SelectQuantity from 'src/components/application-ui/input/number-selector/select-quantity';
-import { gradientDots } from 'src/components/application-ui/radio-groups/product-colors/product-colors';
+import { gradientDots } from 'src/components/application-ui/radio-groups/product-colors/dot-data';
 import RadioDotSelector from 'src/components/application-ui/radio-groups/product-colors/radio-dot-selector';
 import RadioSmallCardsLens from 'src/components/application-ui/radio-groups/small-cards/small-cards-lens';
 import RadioSmallCardsMemory from 'src/components/application-ui/radio-groups/small-cards/small-cards-memory';

@@ -45,6 +45,13 @@ export interface CreateSlotPayload {
   timezone?: string;
 }
 
+export interface RescheduleAppointmentPayload {
+  date: string; // YYYY-MM-DD
+  time: string; // HH:mm
+  scheduledAt?: string;
+  timezone?: string;
+}
+
 // ===== API Services =====
 
 class SchedulingService {
@@ -104,6 +111,19 @@ class SchedulingService {
   async cancelAppointment(id: string): Promise<Appointment> {
     const res = await api.patch(`/scheduling/appointments/${id}/cancel`);
     return res.data;
+  }
+
+  async rescheduleAppointment(id: string, data: RescheduleAppointmentPayload): Promise<Appointment> {
+    try {
+      const res = await api.patch(`/scheduling/appointments/${id}/reschedule`, data);
+      return res.data?.data || res.data;
+    } catch (err: any) {
+      const status = err?.response?.status;
+      if (status !== 404 && status !== 405) throw err;
+
+      const res = await api.patch(`/scheduling/appointments/${id}`, data);
+      return res.data?.data || res.data;
+    }
   }
 }
 

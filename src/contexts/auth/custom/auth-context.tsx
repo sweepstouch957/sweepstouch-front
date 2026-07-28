@@ -1,10 +1,9 @@
 import React from 'react';
 import type { User } from 'src/contexts/auth/user';
 import { authClient } from 'src/utils/auth/custom/client';
-import type { AuthContextValue } from '../types';
 import { api } from '@/libs/axios';
-
-export const UserContext = React.createContext<AuthContextValue | undefined>(undefined);
+import { removeAuthToken } from 'src/utils/auth/custom/storage';
+import { UserContext } from './context';
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -28,7 +27,7 @@ export function AuthProvider({ children }: AuthProviderProps): React.JSX.Element
       if (error) {
         console.error(error);
         setState((prev) => ({ ...prev, user: null, error: 'Something went wrong' }));
-        window.localStorage.removeItem('uifort-authentication');
+        removeAuthToken();
         delete api.defaults.headers.common['Authorization'];
         window.location.href = '/auth/custom/login';
         return;
@@ -51,13 +50,13 @@ export function AuthProvider({ children }: AuthProviderProps): React.JSX.Element
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Expected
   }, []);
 
+  const contextValue = React.useMemo(
+    () => ({ ...state, checkSession }),
+    [state, checkSession]
+  );
+
   return (
-    <UserContext.Provider
-      value={{
-        ...state,
-        checkSession,
-      }}
-    >
+    <UserContext.Provider value={contextValue}>
       {children}
     </UserContext.Provider>
   );

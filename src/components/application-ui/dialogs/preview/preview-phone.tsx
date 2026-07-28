@@ -4,9 +4,10 @@ import { useEffect, useMemo } from 'react';
 interface PreviewPhoneProps {
   content?: string;
   image?: File | string | null;
+  fontSize?: number;
 }
 
-export default function PreviewPhone({ content = '', image }: PreviewPhoneProps) {
+export default function PreviewPhone({ content = '', image, fontSize = 16 }: PreviewPhoneProps) {
   const imageUrl = useMemo(() => {
     if (!image) return null;
     if (typeof image === 'string') return image;
@@ -77,8 +78,9 @@ export default function PreviewPhone({ content = '', image }: PreviewPhoneProps)
               borderRadius: 3,
               mb: content?.trim() ? 2 : 0,
               objectFit: 'cover',
-              bgcolor: '#fafafa',
-              border: '1px solid #ececec',
+              bgcolor: 'grey.50',
+              border: '1px solid',
+              borderColor: 'grey.200',
             }}
           />
         )}
@@ -87,8 +89,8 @@ export default function PreviewPhone({ content = '', image }: PreviewPhoneProps)
           <Typography
             sx={{
               whiteSpace: 'pre-wrap',
-              color: '#111827',
-              fontSize: 16,
+              color: 'grey.900',
+              fontSize,
               lineHeight: 1.5,
               wordBreak: 'break-word',
             }}
@@ -98,12 +100,12 @@ export default function PreviewPhone({ content = '', image }: PreviewPhoneProps)
         ) : !hasContent ? (
           <Typography
             sx={{
-              color: '#111827',
-              fontSize: 16,
+              color: 'grey.400',
+              fontSize,
               lineHeight: 1.45,
             }}
           >
-            La vista previa del mensaje aparecerá aquí.
+            La vista previa aparecerá aquí.
           </Typography>
         ) : null}
       </Box>

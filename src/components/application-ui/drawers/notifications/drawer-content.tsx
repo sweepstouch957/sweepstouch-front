@@ -1,767 +1,257 @@
-import AddToDriveRoundedIcon from '@mui/icons-material/AddToDriveRounded';
-import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
-import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
-import FolderZipOutlinedIcon from '@mui/icons-material/FolderZipOutlined';
-import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
-import PostAddRoundedIcon from '@mui/icons-material/PostAddRounded';
 import {
   alpha,
-  Avatar,
-  Badge,
   Box,
   Button,
-  Card,
   DialogContent,
   Divider,
   IconButton,
-  Link,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemButton,
-  ListItemText,
   Stack,
+  Tab,
+  Tabs,
   Typography,
+  useTheme,
 } from '@mui/material';
-import { formatDistance, subHours, subMinutes } from 'date-fns';
-import { t } from 'i18next';
-import TimelineOnboarding from 'src/components/application-ui/timelines/onboarding/onboarding';
+import DoneAllRoundedIcon from '@mui/icons-material/DoneAllRounded';
+import NotificationsTwoToneIcon from '@mui/icons-material/NotificationsTwoTone';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import { formatDistance, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
+import NextLink from 'next/link';
+import { useState } from 'react';
 import { Scrollbar } from 'src/components/base/scrollbar';
-import { AvatarState } from 'src/components/base/styles/avatar';
-import { ButtonSoft } from 'src/components/base/styles/button-soft';
-import { InlineBadge } from 'src/components/base/styles/inline-badge';
-import { LinearProgressSlim } from 'src/components/base/styles/progress-bar';
 import { PulseBadge } from 'src/components/base/styles/pulse-badge';
-import { RingBadge } from 'src/components/base/styles/ring-badge';
+import { useNotificationsStore, AppNotification } from 'src/store/notificationsStore';
+import { useAuth } from 'src/hooks/use-auth';
+import {
+  NotifCategory,
+  CATEGORY_OF,
+  CATEGORY_ROLE,
+  CATEGORY_LABEL,
+  getNotifMeta,
+} from 'src/components/application-ui/dropdowns/notifications/notifications-dropdown';
+import { tint, type SemanticRole } from '@/theme/semantic';
 
-const Component = () => {
+// Notis viejas en DB apuntan a /admin/management/shifts (ruta inexistente -> 404
+// en cada prefetch/click). La seccion real es /solicitudes/turnos. Remapea al vuelo
+// preservando el query (?requestId=...). Fix de datos: migrar los registros viejos.
+function normalizeNotifLink(link: string): string {
+  return link.replace('/admin/management/shifts', '/admin/management/solicitudes/turnos');
+}
+
+const FILTER_TABS: NotifCategory[] = ['todos', 'tickets', 'tareas', 'turnos'];
+
+const EMPTY_COPY: Record<NotifCategory, string> = {
+  todos: 'Recibirás notificaciones de tickets asignados, tareas y turnos.',
+  tickets: 'Los tickets de soporte que te asignen aparecerán aquí.',
+  tareas: 'Las tareas que te asignen o actualicen aparecerán aquí.',
+  turnos: 'Las solicitudes y cambios de turno de promotoras aparecerán aquí.',
+};
+
+function DrawerNotificationItem({
+  n,
+  room,
+  markAsRead,
+}: {
+  n: AppNotification;
+  room: string;
+  markAsRead: (id: string, room: string) => void;
+}) {
+  const theme = useTheme();
+  const { icon, role } = getNotifMeta(n.type);
+  const color = theme.palette[role].main;
+  const category = CATEGORY_OF[n.type];
+  const catRole: SemanticRole = category ? CATEGORY_ROLE[category] : 'secondary';
+
+  const avatarEl = (
+    <Box
+      sx={{
+        width: 40,
+        height: 40,
+        borderRadius: '50%',
+        flexShrink: 0,
+        bgcolor: alpha(color, 0.14),
+        color,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 18,
+      }}
+    >
+      {icon}
+    </Box>
+  );
+
   return (
-    <Scrollbar>
-      <DialogContent sx={{ p: 0 }}>
-        {/*<Stack divider={<Divider />}>
-          <ListItemButton>
-            <IconButton
-              color="primary"
-              sx={{
-                p: 0.2,
-                position: 'absolute',
-                right: (theme) => theme.spacing(1),
-                top: (theme) => theme.spacing(1),
-              }}
+    <Box
+      sx={{
+        px: 2.5,
+        py: 1.75,
+        position: 'relative',
+        bgcolor: n.read ? 'transparent' : tint(theme, catRole, 0.04),
+        transition: 'background-color .12s',
+        '&:hover': { bgcolor: tint(theme, catRole, 0.07), cursor: n.link ? 'pointer' : 'default' },
+      }}
+    >
+      {!n.read && (
+        <IconButton
+          size="small"
+          onClick={(e) => { e.stopPropagation(); markAsRead(n.id, room); }}
+          sx={{
+            position: 'absolute', top: 10, right: 10,
+            width: 22, height: 22,
+            color: 'text.disabled',
+            '&:hover': { color: 'text.secondary' },
+          }}
+        >
+          <CloseRoundedIcon sx={{ fontSize: 13 }} />
+        </IconButton>
+      )}
+
+      <Stack direction="row" spacing={1.5} alignItems="flex-start">
+        {!n.read ? (
+          <PulseBadge
+            color="success"
+            variant="dot"
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            badgeContent=" "
+            overlap="circular"
+          >
+            {avatarEl}
+          </PulseBadge>
+        ) : avatarEl}
+
+        <Box flex={1} minWidth={0}>
+          <Typography variant="subtitle2" fontWeight={n.read ? 500 : 700} gutterBottom sx={{ lineHeight: 1.35, pr: n.read ? 0 : 3 }}>
+            {n.title}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.45, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+            {n.message}
+          </Typography>
+          <Typography variant="caption" color="text.disabled" display="block" mt={0.5}>
+            {formatDistance(parseISO(n.createdAt), new Date(), { addSuffix: true, locale: es })}
+          </Typography>
+          {n.link && (
+            <Box mt={1.25}>
+              <Button
+                component={NextLink}
+                href={normalizeNotifLink(n.link)}
+                prefetch={false}
+                size="small"
+                variant={n.read ? 'outlined' : 'contained'}
+                color={n.read ? 'secondary' : 'primary'}
+                sx={{ fontSize: 11 }}
+                onClick={() => { if (!n.read) markAsRead(n.id, room); }}
+              >
+                Ver detalle
+              </Button>
+            </Box>
+          )}
+        </Box>
+      </Stack>
+    </Box>
+  );
+}
+
+const DrawerContent = () => {
+  const theme = useTheme();
+  const { notifications, markAsRead, markAllAsRead, unreadCount } = useNotificationsStore();
+  const { user } = useAuth();
+
+  const userId = user?._id || user?.id;
+  const room = userId ? `user_${userId}` : 'admin';
+
+  const [activeTab, setActiveTab] = useState<number>(0);
+  const activeFilter = FILTER_TABS[activeTab];
+
+  const filtered = activeFilter === 'todos'
+    ? notifications
+    : notifications.filter((n) => CATEGORY_OF[n.type] === activeFilter);
+
+  const countUnread = (cat: NotifCategory) =>
+    cat === 'todos'
+      ? unreadCount
+      : notifications.filter((n) => !n.read && CATEGORY_OF[n.type] === cat).length;
+
+  return (
+    <>
+      {/* Filter tabs */}
+      <Box sx={{ borderBottom: `1px solid ${theme.palette.divider}`, flexShrink: 0 }}>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" px={2} pt={0.5}>
+          <Tabs
+            value={activeTab}
+            onChange={(_, v) => setActiveTab(v)}
+            sx={{
+              minHeight: 40,
+              '& .MuiTab-root': { minHeight: 40, fontSize: 12, fontWeight: 600, textTransform: 'none', px: 1.5, minWidth: 0 },
+            }}
+          >
+            {FILTER_TABS.map((cat) => {
+              const count = countUnread(cat);
+              const hex = theme.palette[CATEGORY_ROLE[cat]].main;
+              return (
+                <Tab
+                  key={cat}
+                  label={
+                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                      <span>{CATEGORY_LABEL[cat]}</span>
+                      {count > 0 && (
+                        <Box
+                          sx={{
+                            bgcolor: alpha(hex, 0.15),
+                            color: hex,
+                            borderRadius: 6,
+                            px: 0.6,
+                            fontSize: 9,
+                            fontWeight: 800,
+                            lineHeight: '14px',
+                          }}
+                        >
+                          {count}
+                        </Box>
+                      )}
+                    </Stack>
+                  }
+                />
+              );
+            })}
+          </Tabs>
+          {unreadCount > 0 && (
+            <Button
               size="small"
+              startIcon={<DoneAllRoundedIcon sx={{ fontSize: '13px !important' }} />}
+              onClick={() => markAllAsRead(room)}
+              sx={{ fontSize: 10.5, textTransform: 'none', color: 'text.secondary', whiteSpace: 'nowrap', flexShrink: 0 }}
             >
-              <CloseRoundedIcon fontSize="inherit" />
-            </IconButton>
-            <Box
-              sx={{
-                pl: 0,
-                pr: 1,
-                py: 1,
-                display: 'flex',
-                transition: 'none',
-                alignItems: 'flex-start',
-                '&:hover': {
-                  backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.01),
-                },
-              }}
-            >
-              <PulseBadge
-                color="success"
-                variant="dot"
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                badgeContent=" "
-                overlap="circular"
-              >
-                <Avatar
-                  sx={{
-                    width: 38,
-                    height: 38,
-                  }}
-                  src="/avatars/1.png"
-                />
-              </PulseBadge>
-              <Box
-                ml={1.5}
-                flex={1}
-                overflow="hidden"
-              >
-                <Typography
-                  pb={0.3}
-                  pr={1}
-                >
-                  <Link
-                    href=""
-                    onClick={(e) => e.preventDefault()}
-                    variant="subtitle2"
-                    fontWeight={600}
-                    color="text.primary"
-                    underline="hover"
-                  >
-                    John Martinez
-                  </Link>{' '}
-                  sent you a friend request
-                </Typography>
-                <Stack
-                  flexWrap="wrap"
-                  gap={{ xs: 0.5, sm: 1 }}
-                  direction="row"
-                  alignItems="center"
-                  divider={
-                    <Box
-                      display="inline-flex"
-                      sx={{
-                        width: 4,
-                        height: 4,
-                        borderRadius: 12,
-                        backgroundColor: 'text.disabled',
-                      }}
-                    />
-                  }
-                >
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    noWrap
-                  >
-                    {formatDistance(subMinutes(new Date(), 34), new Date(), {
-                      addSuffix: true,
-                    })}
-                  </Typography>
-                  <Link
-                    variant="body2"
-                    underline="hover"
-                    color="primary"
-                    fontWeight={600}
-                    fontSize={12}
-                  >
-                    Requests
-                  </Link>
-                </Stack>
-                <Stack
-                  mt={1.5}
-                  mb={0.5}
-                  spacing={1}
-                  direction="row"
-                >
-                  <Button
-                    variant="contained"
-                    size="small"
-                  >
-                    Accept
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="secondary"
-                    size="small"
-                  >
-                    Decline
-                  </Button>
-                </Stack>
-              </Box>
+              Leer todo
+            </Button>
+          )}
+        </Stack>
+      </Box>
+
+      {/* Content */}
+      <Scrollbar>
+        <DialogContent sx={{ p: 0 }}>
+          {filtered.length === 0 ? (
+            <Box py={7} px={3} textAlign="center">
+              <NotificationsTwoToneIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1.5 }} />
+              <Typography variant="body2" fontWeight={600} color="text.secondary" gutterBottom>
+                Sin notificaciones{activeFilter !== 'todos' ? ` de ${CATEGORY_LABEL[activeFilter].toLowerCase()}` : ''}
+              </Typography>
+              <Typography variant="caption" color="text.disabled">
+                {EMPTY_COPY[activeFilter]}
+              </Typography>
             </Box>
-          </ListItemButton>
-          <ListItemButton>
-            <InlineBadge
-              sx={{
-                p: 0.2,
-                position: 'absolute',
-                right: (theme) => theme.spacing(1.5),
-                top: (theme) => theme.spacing(1.5),
-              }}
-            >
-              <RingBadge
-                badgeContent="43"
-                color="success"
-                variant="dot"
-              />
-            </InlineBadge>
-            <Box
-              sx={{
-                pl: 0,
-                pr: 1,
-                py: 1,
-                display: 'flex',
-                transition: 'none',
-                alignItems: 'flex-start',
-                '&:hover': {
-                  backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.01),
-                },
-              }}
-            >
-              <Badge
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                badgeContent={
-                  <AvatarState
-                    useShadow
-                    state="secondary"
-                    sx={{
-                      width: 24,
-                      color: 'common.white',
-                      background: 'linear-gradient(135deg, #43CBFF 0%, #9708CC 100%)',
-                      height: 24,
-                    }}
-                  >
-                    <PostAddRoundedIcon fontSize="inherit" />
-                  </AvatarState>
-                }
-                overlap="circular"
-              >
-                <Avatar
-                  sx={{
-                    width: 38,
-                    height: 38,
-                  }}
-                  src="/avatars/2.png"
-                />
-              </Badge>
-              <Box
-                ml={1.5}
-                flex={1}
-                overflow="hidden"
-              >
-                <Typography
-                  pb={0.3}
-                  pr={1}
-                >
-                  <Link
-                    href=""
-                    onClick={(e) => e.preventDefault()}
-                    variant="subtitle2"
-                    fontWeight={600}
-                    color="text.primary"
-                    underline="hover"
-                  >
-                    Charlie Brown
-                  </Link>{' '}
-                  commented on your post
-                </Typography>
-                <Stack
-                  flexWrap="wrap"
-                  gap={{ xs: 0.5, sm: 1 }}
-                  direction="row"
-                  alignItems="center"
-                  divider={
-                    <Box
-                      display="inline-flex"
-                      sx={{
-                        width: 4,
-                        height: 4,
-                        borderRadius: 12,
-                        backgroundColor: 'text.disabled',
-                      }}
-                    />
-                  }
-                >
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    noWrap
-                  >
-                    {formatDistance(subMinutes(new Date(), 87), new Date(), {
-                      addSuffix: true,
-                    })}
-                  </Typography>
-                  <Link
-                    variant="body2"
-                    underline="hover"
-                    color="primary"
-                    fontWeight={600}
-                    fontSize={12}
-                  >
-                    Blog
-                  </Link>
-                </Stack>
-                <Card
-                  sx={{
-                    mt: 1.5,
-                    px: 1.5,
-                    py: 1,
-                  }}
-                  variant="outlined"
-                  elevation={0}
-                >
-                  <Typography variant="body2">
-                    <Typography
-                      variant="body2"
-                      component="span"
-                      fontWeight={500}
-                    >
-                      @jacob_amazon
-                    </Typography>{' '}
-                    I'm in the same boat as you. I'm tring to find a good solution for this right
-                    now.
-                  </Typography>
-                </Card>
-                <Stack
-                  mt={1.5}
-                  mb={0.5}
-                  spacing={1}
-                  direction="row"
-                >
-                  <Button
-                    variant="outlined"
-                    color="secondary"
-                    size="small"
-                  >
-                    View post
-                  </Button>
-                </Stack>
-              </Box>
-            </Box>
-          </ListItemButton>
-          <ListItemButton>
-            <Box
-              sx={{
-                pl: 0,
-                pr: 1,
-                py: 1,
-                display: 'flex',
-                transition: 'none',
-                alignItems: 'flex-start',
-                '&:hover': {
-                  backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.01),
-                },
-              }}
-            >
-              <Badge
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                badgeContent={
-                  <AvatarState
-                    useShadow
-                    state="secondary"
-                    sx={{
-                      width: 24,
-                      color: 'common.white',
-                      background: 'linear-gradient(60deg, #29323c 0%, #485563 100%) !important',
-                      height: 24,
-                    }}
-                  >
-                    <PeopleRoundedIcon fontSize="inherit" />
-                  </AvatarState>
-                }
-                overlap="circular"
-              >
-                <Avatar
-                  sx={{
-                    width: 38,
-                    height: 38,
-                  }}
-                  src="/avatars/1.png"
-                />
-              </Badge>
-              <Box
-                ml={1.5}
-                flex={1}
-                overflow="hidden"
-              >
-                <Typography
-                  pb={0.3}
-                  pr={1}
-                >
-                  <Link
-                    href=""
-                    onClick={(e) => e.preventDefault()}
-                    variant="subtitle2"
-                    fontWeight={600}
-                    color="text.primary"
-                    underline="hover"
-                  >
-                    Clark Kent
-                  </Link>{' '}
-                  updated his profile, changed his picture and profile cover photo
-                </Typography>
-                <Stack
-                  flexWrap="wrap"
-                  gap={{ xs: 0.5, sm: 1 }}
-                  direction="row"
-                  alignItems="center"
-                  divider={
-                    <Box
-                      display="inline-flex"
-                      sx={{
-                        width: 4,
-                        height: 4,
-                        borderRadius: 12,
-                        backgroundColor: 'text.disabled',
-                      }}
-                    />
-                  }
-                >
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    noWrap
-                  >
-                    {formatDistance(subMinutes(new Date(), 2), new Date(), {
-                      addSuffix: true,
-                    })}
-                  </Typography>
-                  <Link
-                    variant="body2"
-                    underline="hover"
-                    color="primary"
-                    fontWeight={600}
-                    fontSize={12}
-                  >
-                    Social
-                  </Link>
-                </Stack>
-              </Box>
-            </Box>
-          </ListItemButton>
-          <ListItemButton>
-            <Box
-              sx={{
-                pl: 0,
-                pr: 1,
-                py: 1,
-                display: 'flex',
-                transition: 'none',
-                alignItems: 'flex-start',
-                '&:hover': {
-                  backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.01),
-                },
-              }}
-            >
-              <Badge
-                anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
-                badgeContent={
-                  <InlineBadge>
-                    <Badge
-                      badgeContent="43"
-                      color="error"
-                      variant="dot"
-                    />
-                  </InlineBadge>
-                }
-                overlap="circular"
-              >
-                <AvatarState
-                  isSoft
-                  state="error"
-                  sx={{
-                    width: 38,
-                    height: 38,
-                  }}
-                >
-                  <AddToDriveRoundedIcon fontSize="small" />
-                </AvatarState>
-              </Badge>
-              <Box
-                ml={1.5}
-                flex={1}
-                overflow="hidden"
-              >
-                <Typography
-                  pb={0.3}
-                  pr={1}
-                >
-                  <Link
-                    href=""
-                    onClick={(e) => e.preventDefault()}
-                    variant="subtitle2"
-                    fontWeight={600}
-                    color="text.primary"
-                    underline="hover"
-                  >
-                    Steve Rogers
-                  </Link>{' '}
-                  uploaded new files to the{' '}
-                  <Link
-                    href=""
-                    onClick={(e) => e.preventDefault()}
-                    variant="subtitle2"
-                    fontWeight={600}
-                    color="text.primary"
-                    underline="hover"
-                  >
-                    Avengers
-                  </Link>
-                </Typography>
-                <Stack
-                  flexWrap="wrap"
-                  gap={{ xs: 0.5, sm: 1 }}
-                  direction="row"
-                  alignItems="center"
-                  divider={
-                    <Box
-                      display="inline-flex"
-                      sx={{
-                        width: 4,
-                        height: 4,
-                        borderRadius: 12,
-                        backgroundColor: 'text.disabled',
-                      }}
-                    />
-                  }
-                >
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    noWrap
-                  >
-                    {formatDistance(subMinutes(new Date(), 657), new Date(), {
-                      addSuffix: true,
-                    })}
-                  </Typography>
-                  <Link
-                    variant="body2"
-                    underline="hover"
-                    color="primary"
-                    fontWeight={600}
-                    fontSize={12}
-                  >
-                    Files
-                  </Link>
-                  <Link
-                    variant="body2"
-                    underline="hover"
-                    color="primary"
-                    fontWeight={600}
-                    fontSize={12}
-                  >
-                    Uploads
-                  </Link>
-                </Stack>
-                <Card
-                  sx={{
-                    mt: 1.5,
-                  }}
-                  variant="outlined"
-                  elevation={0}
-                >
-                  <List disablePadding>
-                    <ListItem
-                      sx={{
-                        flexDirection: { xs: 'column', md: 'row' },
-                        alignItems: { xs: 'flex-start', md: 'center' },
-                      }}
-                    >
-                      <ListItemAvatar
-                        sx={{
-                          display: 'flex',
-                          alignSelf: 'flex-start',
-                          minWidth: 38,
-                          color: 'info.main',
-                        }}
-                      >
-                        <ArticleOutlinedIcon />
-                      </ListItemAvatar>
-                      <ListItemText
-                        sx={{ my: { xs: 0.8, md: 0 } }}
-                        primary="feb2024_reports.xls"
-                        secondaryTypographyProps={{
-                          variant: 'body2',
-                          color: 'text.secondary',
-                        }}
-                        primaryTypographyProps={{
-                          fontWeight: 600,
-                          variant: 'body1',
-                        }}
-                        secondary="2.3MB"
-                      />
-                      <ButtonSoft
-                        sx={{
-                          mb: { xs: 0.5, md: 0 },
-                        }}
-                        size="small"
-                      >
-                        {t('Download')}
-                      </ButtonSoft>
-                    </ListItem>
-                    <Divider />
-                    <ListItem
-                      sx={{
-                        flexDirection: { xs: 'column', md: 'row' },
-                        alignItems: { xs: 'flex-start', md: 'center' },
-                      }}
-                    >
-                      <ListItemAvatar
-                        sx={{
-                          display: 'flex',
-                          alignSelf: 'flex-start',
-                          minWidth: 38,
-                          color: 'warning.main',
-                        }}
-                      >
-                        <FolderZipOutlinedIcon />
-                      </ListItemAvatar>
-                      <ListItemText
-                        sx={{ my: { xs: 0.8, md: 0 } }}
-                        primary="PhotosArchive.zip"
-                        secondaryTypographyProps={{
-                          variant: 'body2',
-                          color: 'text.secondary',
-                        }}
-                        primaryTypographyProps={{
-                          fontWeight: 600,
-                          variant: 'body1',
-                        }}
-                        secondary="54.32MB"
-                      />
-                      <ButtonSoft
-                        sx={{
-                          mb: { xs: 0.5, md: 0 },
-                        }}
-                        size="small"
-                      >
-                        {t('Download')}
-                      </ButtonSoft>
-                    </ListItem>
-                  </List>
-                </Card>
-                <Stack
-                  mt={1.5}
-                  mb={0.5}
-                  spacing={1}
-                  direction="row"
-                >
-                  <Button
-                    variant="outlined"
-                    color="secondary"
-                    size="small"
-                  >
-                    View all
-                  </Button>
-                </Stack>
-              </Box>
-            </Box>
-          </ListItemButton>
-          <ListItemButton>
-            <IconButton
-              color="secondary"
-              sx={{
-                p: 0.2,
-                position: 'absolute',
-                right: (theme) => theme.spacing(1),
-                top: (theme) => theme.spacing(1),
-              }}
-              size="small"
-            >
-              <CloseRoundedIcon fontSize="inherit" />
-            </IconButton>
-            <Box
-              sx={{
-                pl: 0,
-                pr: 1,
-                py: 1,
-                display: 'flex',
-                transition: 'none',
-                alignItems: 'flex-start',
-                '&:hover': {
-                  backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.01),
-                },
-              }}
-            >
-              <RingBadge
-                color="warning"
-                variant="dot"
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                badgeContent=" "
-                overlap="circular"
-              >
-                <Avatar
-                  sx={{
-                    width: 38,
-                    height: 38,
-                  }}
-                  src="/avatars/1.png"
-                />
-              </RingBadge>
-              <Box
-                ml={1.5}
-                flex={1}
-                overflow="hidden"
-              >
-                <Typography
-                  pb={0.3}
-                  pr={1}
-                >
-                  <Link
-                    href=""
-                    onClick={(e) => e.preventDefault()}
-                    variant="subtitle2"
-                    fontWeight={600}
-                    color="text.primary"
-                    underline="hover"
-                  >
-                    Nick Fury
-                  </Link>{' '}
-                  almost completed the full onboarding process
-                </Typography>
-                <Box pb={1}>
-                  <LinearProgressSlim
-                    variant="determinate"
-                    value={72}
-                  />
-                </Box>
-                <Stack
-                  flexWrap="wrap"
-                  gap={{ xs: 0.5, sm: 1 }}
-                  direction="row"
-                  alignItems="center"
-                  divider={
-                    <Box
-                      display="inline-flex"
-                      sx={{
-                        width: 4,
-                        height: 4,
-                        borderRadius: 12,
-                        backgroundColor: 'text.disabled',
-                      }}
-                    />
-                  }
-                >
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    noWrap
-                  >
-                    {formatDistance(subHours(new Date(), 52), new Date(), {
-                      addSuffix: true,
-                    })}
-                  </Typography>
-                  <Link
-                    variant="body2"
-                    underline="hover"
-                    color="primary"
-                    fontWeight={600}
-                    fontSize={12}
-                  >
-                    Onboarding
-                  </Link>
-                </Stack>
-                <Stack
-                  mt={1.5}
-                  spacing={1}
-                  direction="row"
-                >
-                  <Button
-                    variant="contained"
-                    color="secondary"
-                    size="small"
-                  >
-                    Chat
-                  </Button>
-                </Stack>
-                <Card
-                  sx={{
-                    mt: 1.5,
-                    px: 1.5,
-                    py: 1,
-                  }}
-                  variant="outlined"
-                  elevation={0}
-                >
-                  <TimelineOnboarding />
-                </Card>
-              </Box>
-            </Box>
-          </ListItemButton>
-        </Stack>*/}
-      </DialogContent>
-    </Scrollbar>
+          ) : (
+            <Stack divider={<Divider />}>
+              {filtered.map((n: AppNotification) => (
+                <DrawerNotificationItem key={n.id} n={n} room={room} markAsRead={markAsRead} />
+              ))}
+            </Stack>
+          )}
+        </DialogContent>
+      </Scrollbar>
+    </>
   );
 };
 
-export default Component;
+export default DrawerContent;

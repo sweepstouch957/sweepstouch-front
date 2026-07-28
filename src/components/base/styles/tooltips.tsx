@@ -20,7 +20,8 @@ export const TooltipLight = styled(({ className, ...props }: TooltipProps) => (
     color: neutral[900],
 
     borderRadius: theme.shape.borderRadius,
-    boxShadow: '0 .2rem .8rem rgba(0,0,0,.18), 0 .08rem .15rem rgba(0,0,0,.15)',
+    // Overlay real (tooltip): elevación del token, no un rgba quemado.
+    boxShadow: theme.shadows[8],
   },
   [`& .${tooltipClasses.arrow}`]: {
     color: alpha(theme.palette.common.white, 0.9),

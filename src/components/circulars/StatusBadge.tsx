@@ -2,52 +2,34 @@
 /* eslint-disable react/jsx-max-props-per-line */
 
 import React from 'react';
-import { Chip } from '@mui/material';
+import { Chip, alpha } from '@mui/material';
+import { tint, type SemanticRole } from '@/theme/semantic';
 
 interface StatusBadgeProps {
   status: any;
 }
 
-const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
-  const getStatusProps = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return {
-          color: '#4CAF50',
-          backgroundColor: '#E8F5E8',
-        };
-      case 'Inactive':
-        return {
-          color: '#F44336',
-          backgroundColor: '#FFEBEE',
-        };
-      case 'Incomplete':
-        return {
-          color: '#F44336',
-          backgroundColor: '#FFEBEE',
-        };
-      case 'Expired':
-        return {
-          color: '#F44336',
-          backgroundColor: '#FFEBEE',
-        };
-      default:
-        return {
-          color: '#718096',
-          backgroundColor: '#F7FAFC',
-        };
-    }
-  };
+/** Estado → rol semántico. Antes eran pares de hex (verde/rojo/gris) fijos. */
+const STATUS_ROLE: Record<string, SemanticRole | 'neutral'> = {
+  Active: 'success',
+  Inactive: 'error',
+  Incomplete: 'error',
+  Expired: 'error',
+};
 
-  const statusProps = getStatusProps(status);
+const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
+  const role = STATUS_ROLE[status] ?? 'neutral';
 
   return (
     <Chip
       label={status}
       size="small"
       sx={{
-        backgroundColor: statusProps.backgroundColor,
-        color: statusProps.color,
+        backgroundColor: (theme) =>
+          role === 'neutral'
+            ? alpha(theme.palette.text.secondary, 0.08)
+            : tint(theme, role),
+        color: role === 'neutral' ? 'text.secondary' : `${role}.main`,
         fontWeight: 500,
         fontSize: '0.75rem',
         height: 24,

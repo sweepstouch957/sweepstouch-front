@@ -1,7 +1,7 @@
 'use client';
 
 import { Box } from '@mui/material';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
     circularService,
     inferStoreSlugFromFilename,
@@ -19,6 +19,21 @@ import { getStoreBySlug } from '@/services/store.service';
 
 const MAX_MB = 10;
 
+// Contenido estático de instrucciones — sin dependencias del componente
+const instructionsContent = [
+    'Sube PDFs con el drag & drop (máximo 10MB por archivo).',
+    'El nombre del archivo DEBE incluir el slug de la tienda (ej: new-rochelle.pdf).',
+    'Configura fecha de inicio y fin por cada fila.',
+    'Puedes Guardar por fila o usar Guardar Todo.',
+    'Si no adjuntas archivo, puedes agendar solo con fechas y slug (adjunta luego).',
+];
+
+// Formatea el tamaño de archivo — función pura, sin dependencias del componente
+const prettySize = (bytes: number) =>
+    bytes < 1024 * 1024
+        ? `${Math.round(bytes / 1024)} KB`
+        : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+
 export function ScheduleCirculars() {
     const [showInstructions, setShowInstructions] = useState(false);
     const [rows, setRows] = useState<Row[]>([]);
@@ -27,19 +42,6 @@ export function ScheduleCirculars() {
         msg: '',
         sev: 'success',
     });
-
-    const instructionsContent = [
-        'Sube PDFs con el drag & drop (máximo 10MB por archivo).',
-        'El nombre del archivo DEBE incluir el slug de la tienda (ej: new-rochelle.pdf).',
-        'Configura fecha de inicio y fin por cada fila.',
-        'Puedes Guardar por fila o usar Guardar Todo.',
-        'Si no adjuntas archivo, puedes agendar solo con fechas y slug (adjunta luego).',
-    ];
-
-    const prettySize = (bytes: number) =>
-        bytes < 1024 * 1024
-            ? `${Math.round(bytes / 1024)} KB`
-            : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 
     const setRow = (id: string, patch: Partial<Row>) =>
         setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));

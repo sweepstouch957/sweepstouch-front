@@ -13,7 +13,7 @@ export function ResetPasswordButton({
   children,
   email,
 }: ResetPasswordButtonProps): React.JSX.Element {
-  const [supabaseClient] = React.useState(createSupabaseClient());
+  const [supabaseClient] = React.useState(() => createSupabaseClient());
   const [isPending, setIsPending] = React.useState<boolean>(false);
   const [submitError, setSubmitError] = React.useState<string>();
   const [timer, setTimer] = React.useState<number>(15);
@@ -28,21 +28,23 @@ export function ResetPasswordButton({
 
     setTimer(15);
 
-    const redirectToUrl = new URL(routes.auth['supabase.callback'], window.location.origin);
-    redirectToUrl.searchParams.set('next', routes.auth['supabase.update-password']);
+    try {
+      const redirectToUrl = new URL(routes.auth['supabase.callback'], window.location.origin);
+      redirectToUrl.searchParams.set('next', routes.auth['supabase.update-password']);
 
-    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectToUrl.href,
-    });
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectToUrl.href,
+      });
 
-    if (error) {
-      setSubmitError(error.message);
+      if (error) {
+        setSubmitError(error.message);
+        return;
+      }
+
+      toast.success('Recover link sent');
+    } finally {
       setIsPending(false);
-      return;
     }
-
-    setIsPending(false);
-    toast.success('Recover link sent');
   }, [supabaseClient, email]);
 
   React.useEffect(() => {

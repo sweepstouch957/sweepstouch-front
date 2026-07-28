@@ -67,7 +67,7 @@ const defaultValues = {
 } satisfies Values;
 
 export function AuthCustomRegisterForm(): React.JSX.Element {
-  const router = useRouter();
+  const { refresh } = useRouter();
   const { t } = useTranslation();
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
@@ -97,36 +97,40 @@ export function AuthCustomRegisterForm(): React.JSX.Element {
   const onAuth = React.useCallback(async (provider: OAuthProvider['id']): Promise<void> => {
     setIsPending(true);
 
-    const { error } = await authClient.signInWithOAuth({ provider });
+    try {
+      const { error } = await authClient.signInWithOAuth({ provider });
 
-    if (error) {
+      if (error) {
+        // toast.error(error);
+        return;
+      }
+    } finally {
       setIsPending(false);
-      // toast.error(error);
-      return;
     }
-
-    setIsPending(false);
   }, []);
 
   const onSubmit = React.useCallback(
     async (values: Values): Promise<void> => {
       setIsPending(true);
 
-      const { error } = await authClient.signUp(values);
+      try {
+        const { error } = await authClient.signUp(values);
 
-      if (error) {
-        setError('root', {
-          type: 'server',
-          message: error,
-        });
+        if (error) {
+          setError('root', {
+            type: 'server',
+            message: error,
+          });
+          return;
+        }
+
+        await checkSession();
+        refresh();
+      } finally {
         setIsPending(false);
-        return;
       }
-
-      await checkSession();
-      router.refresh();
     },
-    [router, setError, checkSession]
+    [refresh, setError, checkSession]
   );
 
   const [showPassword, setShowPassword] = useState(false);

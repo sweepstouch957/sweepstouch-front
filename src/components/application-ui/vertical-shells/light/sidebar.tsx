@@ -37,6 +37,40 @@ interface SidebarProps {
   menuItems?: MenuItem[];
 }
 
+// Static demo users; no component state, hoisted to module scope.
+const sampleUsers = [
+  {
+    id: 1,
+    name: 'Benjamin Wallace',
+    avatar: '/avatars/4.png',
+    userRole: 'Software Engineer',
+  },
+  {
+    id: 2,
+    name: 'Jane Smith',
+    avatar: '/avatars/1.png',
+    userRole: 'Product Manager',
+  },
+  {
+    id: 3,
+    name: 'Alice Johnson',
+    avatar: '/avatars/2.png',
+    userRole: 'UX Designer',
+  },
+  {
+    id: 4,
+    name: 'Robert Brown',
+    avatar: '/avatars/1.png',
+    userRole: 'Data Scientist',
+  },
+  {
+    id: 5,
+    name: 'Lucy Williams',
+    avatar: '/avatars/5.png',
+    userRole: 'Business Analyst',
+  },
+];
+
 export const Sidebar: FC<SidebarProps> = (props) => {
   const { onClose, onOpen, menuItems, open, ...other } = props;
 
@@ -59,39 +93,6 @@ export const Sidebar: FC<SidebarProps> = (props) => {
   };
 
   const theme = useTheme();
-
-  const sampleUsers = [
-    {
-      id: 1,
-      name: 'Benjamin Wallace',
-      avatar: '/avatars/4.png',
-      userRole: 'Software Engineer',
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      avatar: '/avatars/1.png',
-      userRole: 'Product Manager',
-    },
-    {
-      id: 3,
-      name: 'Alice Johnson',
-      avatar: '/avatars/2.png',
-      userRole: 'UX Designer',
-    },
-    {
-      id: 4,
-      name: 'Robert Brown',
-      avatar: '/avatars/1.png',
-      userRole: 'Data Scientist',
-    },
-    {
-      id: 5,
-      name: 'Lucy Williams',
-      avatar: '/avatars/5.png',
-      userRole: 'Business Analyst',
-    },
-  ];
 
   const [currentUser, setCurrentUser] = useState(sampleUsers[0]);
 

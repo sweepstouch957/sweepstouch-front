@@ -3,7 +3,7 @@ import React, { FC, useState } from 'react';
 import { RouterLink } from 'src/components/base/router-link';
 import { usePathname } from 'src/hooks/use-pathname';
 import { MenuItem } from 'src/router/menuItem';
-import { ListItemButtonWrapper } from './sidebar-nav-menu';
+import { ListItemButtonWrapper } from './sidebar-nav-menu-wrappers';
 
 interface NavItemProps {
   item: MenuItem;

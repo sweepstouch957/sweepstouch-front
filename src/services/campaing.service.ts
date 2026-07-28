@@ -15,6 +15,28 @@ export interface FilterCampaignParams {
   title?: string;
   storeName?: string;
   type?: string;
+  deliveryRate?: string;
+  platform?: string;
+}
+
+export interface FilterStatsResponse {
+  ok: boolean;
+  total: number;
+  byStatus: Record<string, number>;
+  byType: Record<string, number>;
+  byPlatform: Record<string, number>;
+  messages: {
+    totalSent: number;
+    totalQueued: number;
+    totalNotSent: number;
+    totalErrors: number;
+    totalAudience: number;
+    avgDeliveryRate: number;
+    totalCost?: number;
+    totalDelivered?: number;
+    totalSmsSent?: number;
+    totalMmsSent?: number;
+  };
 }
 
 export type MessageLogStatus = 'queued' | 'failed' | 'sent' | 'delivered' | 'undelivered';
@@ -429,6 +451,19 @@ class CampaignClient {
     return res.data as PaginatedResponse<Campaing>;
   }
 
+  async getLastCampaign(storeId: string): Promise<Campaing> {
+    const res = await api.get(`/campaigns/last/${storeId}`);
+    return res.data as Campaing;
+  }
+
+  async getFilterStats(params: Omit<FilterCampaignParams, 'page' | 'limit'>): Promise<FilterStatsResponse> {
+    const { status, startDate, endDate, storeId, title, type, deliveryRate, platform } = params;
+    const res = await api.get('/campaigns/filter/stats', {
+      params: { status, startDate, endDate, storeId, title, type, deliveryRate, platform },
+    });
+    return res.data as FilterStatsResponse;
+  }
+
   async getFilteredCampaigns(params: FilterCampaignParams) {
     const {
       page = 1,
@@ -438,12 +473,14 @@ class CampaignClient {
       endDate,
       storeId,
       title,
-      storeName, // ✅
-      type, // ✅
+      storeName,
+      type,
+      deliveryRate,
+      platform,
     } = params;
 
     const res = await api.get('/campaigns/filter', {
-      params: { page, limit, status, startDate, endDate, storeId, title, storeName, type },
+      params: { page, limit, status, startDate, endDate, storeId, title, storeName, type, deliveryRate, platform },
     });
 
     return res.data;
@@ -558,6 +595,132 @@ class CampaignClient {
   ): Promise<AudienceStoresGrowthResponse> {
     const res = await api.get(`${AUDIENCE_BASE}/stores-growth`, { params });
     return res.data as AudienceStoresGrowthResponse;
+  }
+
+  /* ===================== ✅ RESEND ===================== */
+
+  /** Preview de cuántos mensajes fallidos se reenviarán (dry-run, sin enviar nada). */
+  async getResendPreview(campaignId: string) {
+    const res = await api.get(`/tracking/campaigns/${campaignId}/resend-preview`);
+    return res.data;
+  }
+
+  /** Reenvía los mensajes en error de una campaña. Anti-duplicados en backend. */
+  async resendCampaignErrors(campaignId: string) {
+    const res = await api.post(`/tracking/campaigns/${campaignId}/resend-errors`);
+    return res.data;
+  }
+  /* ===================== ✅ SEND TEST MESSAGE ===================== */
+
+  /**
+   * Send a single test message to a phone number via the SMS worker.
+   * Does NOT create a campaign — just fires one message.
+   */
+  async sendTestMessage(params: {
+    phone: string;
+    message: string;
+    image?: string | null;
+    provider: string;
+    phoneNumber: string; // sourceTn / from number (bandwidthPhoneNumber)
+    id?: string;         // bandwidthId
+    customerId?: string;
+    storeId?: string;
+  }) {
+    const { phone, message, image, provider, phoneNumber, id, customerId, storeId } = params;
+    const uid = () => crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
+    const res = await api.post('/send/api/send', {
+      phone,
+      message,
+      image: image || undefined,
+      provider,
+      phoneNumber,
+      id: id || undefined,
+      type: image ? 'MMS' : 'SMS',
+      campaignId: `test-camaing-${uid()}`,
+      origin: 'manual-test',
+      originId: uid(),
+      customerId,
+      storeId,
+    });
+    return res.data;
+  }
+
+  /* ===================== ✅ SYNC INFOBIP/BW METRICS ===================== */
+
+  /**
+   * Trigger campaign metrics sync from Infobip/Bandwidth logs.
+   * Calls the tracking-service endpoint that fetches delivery reports
+   * and updates campaign sent/errors/cost/deliveryRate.
+   */
+  async syncCampaignMetrics(params?: {
+    campaignId?: string;
+    startDate?: string; // ISO date
+    endDate?: string;   // ISO date
+    includeZeroSent?: boolean;
+  }) {
+    const res = await api.post('/tracking/bandwidth/campaigns/update', {
+      campaignId: params?.campaignId || null,
+      startDate: params?.startDate || null,
+      endDate: params?.endDate || null,
+      includeZeroSent: params?.includeZeroSent ? 'true' : 'false',
+    });
+    return res.data;
+  }
+
+  /* ===================== ✅ OPT-IN MMS BILLING ===================== */
+
+  /**
+   * Cuenta los MMS de opt-in enviados vs omitidos en un periodo.
+   * Permite mostrar en la página de campañas el cargo "oculto" de opt-ins ($0.085/msg).
+   *
+   * Endpoint: GET /sweepstakes/participants/optin-mms-count
+   *   → { sent, skipped, total }
+   */
+  async getOptinMmsCount(params: {
+    startDate: string;
+    endDate:   string;
+    storeId?:  string;
+  }): Promise<{ sent: number; skipped: number; total: number; estimatedCost: number }> {
+    const res = await api.get('/sweepstakes/participants/optin-mms-count', {
+      params: {
+        startDate: params.startDate,
+        endDate:   params.endDate,
+        ...(params.storeId ? { storeId: params.storeId } : {}),
+      },
+    });
+    const data = res.data as { sent?: number; skipped?: number; total?: number };
+    const sent = data.sent ?? 0;
+    return {
+      sent,
+      skipped:       data.skipped       ?? 0,
+      total:         data.total         ?? 0,
+      estimatedCost: sent * 0.0585,
+    };
+  }
+
+  async getOptinMmsCountGrouped(params: {
+    startDate: string;
+    endDate:   string;
+  }): Promise<Record<string, { sent: number; skipped: number; total: number; estimatedCost: number }>> {
+    const res = await api.get('/sweepstakes/participants/optin-mms-count', {
+      params: {
+        startDate: params.startDate,
+        endDate:   params.endDate,
+        groupByStore: true,
+      },
+    });
+    const storesMap = res.data?.stores || {};
+    const result: Record<string, { sent: number; skipped: number; total: number; estimatedCost: number }> = {};
+    for (const [storeId, data] of Object.entries(storesMap)) {
+      const sent = (data as any).sent ?? 0;
+      result[storeId] = {
+        sent,
+        skipped:       (data as any).skipped       ?? 0,
+        total:         (data as any).total         ?? 0,
+        estimatedCost: sent * 0.0585,
+      };
+    }
+    return result;
   }
 }
 

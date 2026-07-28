@@ -9,6 +9,15 @@ import { MailboxResults } from './results';
 import { MailboxSidebar } from './sidebar';
 import { MailboxSingle } from './single';
 
+// Thunks de sidebar (no dependen de estado del componente)
+const handleCloseSidebar = () => {
+  runMailThunk(closeSidebar());
+};
+
+const handleOpenSidebar = () => {
+  runMailThunk(openSidebar());
+};
+
 const Component = () => {
   const { tags, sidebarOpen } = useMailStore((state) => ({
     tags: state.tags,
@@ -34,14 +43,6 @@ const Component = () => {
     } else {
       runMailThunk(openSidebar());
     }
-  };
-
-  const handleCloseSidebar = () => {
-    runMailThunk(closeSidebar());
-  };
-
-  const handleOpenSidebar = () => {
-    runMailThunk(openSidebar());
   };
 
   return (

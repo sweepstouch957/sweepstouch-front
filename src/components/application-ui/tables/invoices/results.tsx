@@ -197,6 +197,7 @@ const Results: FC<ResultsProps> = ({ invoices }) => {
   const selectedBulkActions = selectedItems.length > 0;
   const selectedSomeInvoices = selectedItems.length > 0 && selectedItems.length < invoices.length;
   const selectedAllInvoices = selectedItems.length === invoices.length;
+  const selectedItemsSet = new Set(selectedItems);
 
   return (
     <>
@@ -337,7 +338,7 @@ const Results: FC<ResultsProps> = ({ invoices }) => {
                 </TableHead>
                 <TableBody>
                   {paginatedInvoices.map((invoice) => {
-                    const isInvoiceSelected = selectedItems.includes(invoice.id);
+                    const isInvoiceSelected = selectedItemsSet.has(invoice.id);
                     return (
                       <TableRow
                         hover

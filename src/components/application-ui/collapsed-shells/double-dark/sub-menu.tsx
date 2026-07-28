@@ -61,7 +61,7 @@ const ListItemButtonWrapper = styled(ListItemButton)(({ theme }) => ({
 }));
 
 const SubMenu = ({ submenu }: { submenu: MenuItem | null }) => {
-  const router = useRouter();
+  const { push } = useRouter();
   const pathname = usePathname();
   const [openNested, setOpenNested] = useState<Record<string, boolean>>({});
 
@@ -135,7 +135,7 @@ const SubMenu = ({ submenu }: { submenu: MenuItem | null }) => {
                           <ListItemButtonWrapper
                             key={subItem.title}
                             selected={pathname === subItem.route}
-                            onClick={() => router.push(subItem.route || '#')}
+                            onClick={() => push(subItem.route || '#')}
                             sx={{ pl: 3, py: 0.5, fontWeight: 500, fontSize: 14 }}
                           >
                             <ListItemText
@@ -150,7 +150,7 @@ const SubMenu = ({ submenu }: { submenu: MenuItem | null }) => {
                 ) : (
                   <ListItemButtonWrapper
                     selected={pathname === item.route}
-                    onClick={() => router.push(item.route || '#')}
+                    onClick={() => push(item.route || '#')}
                   >
                     <ListItemText
                       disableTypography

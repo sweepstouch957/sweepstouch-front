@@ -467,8 +467,8 @@ export class BillingService {
 
     return api.post(`/billing/invoices/stores/${storeId}/payments`, formData, {
       headers: {
-        // importante para que NO lo trate como JSON
-        'Content-Type': 'multipart/form-data',
+        // let axios auto-set Content-Type with correct boundary
+        'Content-Type': undefined,
       },
     });
   }
@@ -527,9 +527,32 @@ export class BillingService {
   ): Promise<AxiosResponse<BulkImportPaymentsResponse>> {
     const formData = new FormData();
     formData.append('file', file); // multer upload.single("file")
-    return api.post('/billing/invoices/payments/bulk-import', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    return api.post('/billing/payments/bulk-import', formData, {
+      headers: { 'Content-Type': undefined },
     });
+  }
+
+  async importInvoicesBulkExcel(
+    file: File,
+    sendEmails = false
+  ): Promise<AxiosResponse<BulkImportPaymentsResponse>> { // Assuming BulkImportPaymentsResponse for now, adjust if a specific BulkImportInvoicesResponse is defined
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('sendEmails', String(sendEmails));
+    return api.post('/billing/invoices/bulk-import', formData, {
+      headers: { 'Content-Type': undefined },
+    });
+  }
+
+  /**
+   * Import manually resolved rows (from autocomplete matching).
+   * Called after the initial bulk import returns notFound rows.
+   */
+  async importResolvedInvoices(
+    resolvedRows: Array<{ storeId: string; openBalance: number; daysOverdue?: number }>,
+    sendEmails = false
+  ): Promise<AxiosResponse<{ ok: boolean; inserted: number; message: string }>> {
+    return api.post('/billing/invoices/bulk-import/resolve', { resolvedRows, sendEmails });
   }
 
   /* ===== [DEPRECATED] Métodos anteriores (eliminados del backend) =====

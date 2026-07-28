@@ -44,6 +44,13 @@ interface HeaderProps {
   onMobileNav?: () => void;
 }
 
+// Static demo user; no component state, hoisted to module scope.
+const user = {
+  avatar: '/avatars/1.png',
+  name: 'Ethan Donovan',
+  jobTitle: 'Principal Engineer',
+};
+
 export const Header: FC<HeaderProps> = (props) => {
   const { onMobileNav } = props;
   const scroll = useScrollDirection();
@@ -56,11 +63,6 @@ export const Header: FC<HeaderProps> = (props) => {
   const widgets = useDialog();
   const popoverChat = usePopover<HTMLButtonElement>();
 
-  const user = {
-    avatar: '/avatars/1.png',
-    name: 'Ethan Donovan',
-    jobTitle: 'Principal Engineer',
-  };
   return (
     <HeaderWrapper
       role="banner"

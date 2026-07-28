@@ -27,16 +27,18 @@ const CardWrapperSecondary = styled(Card)(
 `
 );
 
+// Datos estáticos del usuario — sin dependencias del componente
+const user = {
+  avatar: '/avatars/1.png',
+  name: 'Ethan Donovan',
+};
+
 function ChatContent() {
   const { t } = useTranslation();
-  const user = {
-    avatar: '/avatars/1.png',
-    name: 'Ethan Donovan',
-  };
 
   return (
     <Box py={{ xs: 2, sm: 3 }}>
-      <Divider>
+      <Divider suppressHydrationWarning>
         <Chip
           variant="outlined"
           color="secondary"
@@ -73,6 +75,7 @@ function ChatContent() {
           </CardWrapperSecondary>
           <Typography
             variant="subtitle1"
+            suppressHydrationWarning
             sx={{
               pt: 1,
               display: 'flex',
@@ -110,6 +113,7 @@ function ChatContent() {
           </CardWrapperPrimary>
           <Typography
             variant="subtitle1"
+            suppressHydrationWarning
             sx={{
               pt: 1,
               display: 'flex',
@@ -137,7 +141,7 @@ function ChatContent() {
           src={user.avatar}
         />
       </Box>
-      <Divider>
+      <Divider suppressHydrationWarning>
         <Chip
           variant="outlined"
           color="secondary"
@@ -168,6 +172,7 @@ function ChatContent() {
           </CardWrapperPrimary>
           <Typography
             variant="subtitle1"
+            suppressHydrationWarning
             sx={{
               pt: 1,
               display: 'flex',
@@ -240,6 +245,7 @@ function ChatContent() {
           </CardWrapperSecondary>
           <Typography
             variant="subtitle1"
+            suppressHydrationWarning
             sx={{
               pt: 1,
               display: 'flex',
@@ -284,6 +290,7 @@ function ChatContent() {
           </CardWrapperPrimary>
           <Typography
             variant="subtitle1"
+            suppressHydrationWarning
             sx={{
               pt: 1,
               display: 'flex',

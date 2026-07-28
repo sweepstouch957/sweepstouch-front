@@ -111,6 +111,7 @@ const Results: FC<ResultsProps> = ({ products }) => {
 
   const filteredProducts = applyFilters(products, query);
   const paginatedProducts = applyPagination(filteredProducts, page, limit);
+  const selectedItemsSet = new Set(selectedItems);
   const selectedBulkActions = selectedItems.length > 0;
   const selectedSomeProducts = selectedItems.length > 0 && selectedItems.length < products.length;
   const selectedAllProducts = selectedItems.length === products.length;
@@ -210,7 +211,7 @@ const Results: FC<ResultsProps> = ({ products }) => {
                 </TableHead>
                 <TableBody>
                   {paginatedProducts.map((product) => {
-                    const isProductSelected = selectedItems.includes(product.id);
+                    const isProductSelected = selectedItemsSet.has(product.id);
                     return (
                       <TableRow
                         hover

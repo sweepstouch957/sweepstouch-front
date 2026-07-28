@@ -1,4 +1,4 @@
-import { CloseRounded, DeleteOutlineRounded } from '@mui/icons-material';
+import { DeleteOutlineRounded } from '@mui/icons-material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { Box, Button, CircularProgress, FormControl, Stack, Typography } from '@mui/material';
 import { useCallback, useState } from 'react';

@@ -10,6 +10,9 @@ import type { CashierProgress, CashierReward } from '@/services/rewards.service'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import PaidIcon from '@mui/icons-material/Paid';
+import PhoneIcon from '@mui/icons-material/Phone';
+import DownloadIcon from '@mui/icons-material/Download';
+import { sweepstakesClient } from '@/services/sweepstakes.service';
 import {
   Avatar,
   Box,
@@ -56,8 +59,15 @@ type Props = {
   storeId?: string;
 
   /** KPIs adicionales visibles en el modal */
-  lifetimeTotals?: TotalsKPI; // p.ej. { total: 1249, new: 1249, existing: 0 }
-  sinceNov3Totals?: TotalsKPI; // p.ej. { total: 425,  new: 425,  existing: 0 }
+  lifetimeTotals?: TotalsKPI;
+  sinceNov3Totals?: TotalsKPI;
+  phoneAudit?: {
+    totalRegistered: number;
+    validPhones: number;
+    invalidPhones: number;
+    unknownPhones: number;
+    invalidPercent: number;
+  };
 };
 
 export default function CashierDetailsDialog({
@@ -72,6 +82,7 @@ export default function CashierDetailsDialog({
   storeId,
   lifetimeTotals,
   sinceNov3Totals,
+  phoneAudit,
 }: Props) {
   const enabled = Boolean(open && cashierId);
 
@@ -130,6 +141,47 @@ export default function CashierDetailsDialog({
     return undefined;
   }, [progress]);
 
+  const [isExporting, setIsExporting] = React.useState(false);
+
+  const onExportCSV = async () => {
+    if (!cashierId || !startDateYMD || !endDateYMD) return;
+    setIsExporting(true);
+    try {
+      const res = await sweepstakesClient.getParticipantsByPromotor({
+        promotorId: cashierId,
+        startDate: startDateYMD,
+        endDate: endDateYMD,
+        storeId
+      });
+      const participants = res?.participants || [];
+      
+      let csvContent = "data:text/csv;charset=utf-8,";
+      csvContent += "Telefono,Nuevo,Metodo,Valido,Status SMS,Fecha\n";
+      
+      participants.forEach((p: any) => {
+        const phone = p.customer?.phoneNumber || p.customerPhone || "";
+        const isNew = p.isNewUser ? "Si" : "No";
+        const valid = p.isPhoneValid === true ? "Bueno" : (p.isPhoneValid === false ? "Malo" : "Pendiente");
+        const status = p.smsStatus || "pending";
+        const date = new Date(p.registeredAt).toLocaleString('es-ES');
+        csvContent += `${phone},${isNew},${p.method},${valid},${status},${date}\n`;
+      });
+      
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `Numeros_${cashierName}_${startDateYMD}_${endDateYMD}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      console.error(e);
+      alert("Error al exportar");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // Etiqueta de fecha base (si viene del backend)
   const sinceLabel = progress?.since
     ? new Date(progress.since).toLocaleDateString('es-ES', {
@@ -156,7 +208,7 @@ export default function CashierDetailsDialog({
           mb={2}
         >
           <Avatar
-            sx={{ width: 56, height: 56, bgcolor: '#fc0680', fontWeight: 800 }}
+            sx={{ width: 56, height: 56, bgcolor: 'primary.main', fontWeight: 800 }}
             src={
               stats?.user?.profileImage
                 ? `https://api2.sweepstouch.com/uploads/${stats.user.profileImage}`
@@ -447,6 +499,73 @@ export default function CashierDetailsDialog({
           </Stack>
         )}
 
+        {/* ===== Auditoría de Números ===== */}
+        {phoneAudit && phoneAudit.totalRegistered > 0 && (
+          <>
+            <Divider sx={{ my: 2 }} />
+            <Stack gap={1.5}>
+              <Stack direction="row" alignItems="center" gap={1}>
+                <PhoneIcon fontSize="small" />
+                <Typography variant="subtitle1" fontWeight={800}>
+                  Auditoría de Números
+                </Typography>
+              </Stack>
+
+              <Grid container spacing={2}>
+                <Grid item xs={4}>
+                  <Card variant="outlined">
+                    <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+                      <Typography variant="caption" color="success.main" fontWeight={700}>VÁLIDOS</Typography>
+                      <Typography variant="h5" fontWeight={900} color="success.main">
+                        {phoneAudit.validPhones.toLocaleString()}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={4}>
+                  <Card variant="outlined">
+                    <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+                      <Typography variant="caption" color="error.main" fontWeight={700}>INVÁLIDOS</Typography>
+                      <Typography variant="h5" fontWeight={900} color="error.main">
+                        {phoneAudit.invalidPhones.toLocaleString()}
+                      </Typography>
+                      <Typography variant="caption" color="error.main">
+                        {phoneAudit.invalidPercent}% del total
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={4}>
+                  <Card variant="outlined">
+                    <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+                      <Typography variant="caption" color="text.secondary" fontWeight={700}>SIN VALIDAR</Typography>
+                      <Typography variant="h5" fontWeight={900}>
+                        {phoneAudit.unknownPhones.toLocaleString()}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+
+              <Stack gap={0.5}>
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography variant="caption" color="text.secondary">
+                    Tasa de números inválidos
+                  </Typography>
+                  <Typography variant="caption" fontWeight={700} color={phoneAudit.invalidPercent > 15 ? 'error.main' : phoneAudit.invalidPercent > 5 ? 'warning.main' : 'success.main'}>
+                    {phoneAudit.invalidPercent}%
+                  </Typography>
+                </Stack>
+                <LinearProgress
+                  variant="determinate"
+                  value={Math.min(100, phoneAudit.invalidPercent)}
+                  color={phoneAudit.invalidPercent > 15 ? 'error' : phoneAudit.invalidPercent > 5 ? 'warning' : 'success'}
+                />
+              </Stack>
+            </Stack>
+          </>
+        )}
+
         <Divider sx={{ my: 2 }} />
 
         {/* ===== Recompensas / Progreso ===== */}
@@ -649,8 +768,16 @@ export default function CashierDetailsDialog({
           )}
         </Stack>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Cerrar</Button>
+      <DialogActions sx={{ justifyContent: 'space-between', px: 3, pb: 2 }}>
+        <Button 
+          variant="outlined" 
+          startIcon={isExporting ? <CircularProgress size={16} /> : <DownloadIcon />} 
+          onClick={onExportCSV}
+          disabled={isExporting}
+        >
+          {isExporting ? 'Exportando...' : 'Exportar Números (CSV)'}
+        </Button>
+        <Button onClick={onClose} variant="contained" color="inherit">Cerrar</Button>
       </DialogActions>
     </Dialog>
   );

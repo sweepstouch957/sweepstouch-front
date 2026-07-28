@@ -45,6 +45,7 @@ import { DateRange, Range, RangeKeyDict } from 'react-date-range';
 import ShiftPreviewModal from '../../dialogs/shift-preview';
 import DeleteShiftDialog from '../../dialogs/shift/delete';
 import NewShiftModal from '../../dialogs/shift/modal';
+import { tint } from '@/theme/semantic';
 
 // === Small inline RangePicker (pure controlled) ===
 function RangePicker({
@@ -85,7 +86,7 @@ function RangePicker({
           readOnly: true,
           sx: {
             minWidth: 280,
-            background: theme.palette.mode === 'dark' ? '#1f1f1f' : '#fff',
+            background: theme.palette.background.paper,
             borderRadius: 2,
             cursor: 'pointer',
           },
@@ -163,6 +164,10 @@ type Group = {
 };
 
 const DEFAULT_TARGET_PER_SHIFT = 400;
+
+// Pure helper — computes a clamped percentage, allocated once at module scope
+const pct = (curr: number, target: number) =>
+  target > 0 ? Math.min(100, Math.round((curr / target) * 100)) : 0;
 
 const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({
   sweepstakes,
@@ -246,9 +251,6 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
   const toggle = (id: string) => setOpenMap((p) => ({ ...p, [id]: !p[id] }));
 
-  const pct = (curr: number, target: number) =>
-    target > 0 ? Math.min(100, Math.round((curr / target) * 100)) : 0;
-
   return (
     <Box>
       {/* Header + filtros + export */}
@@ -286,10 +288,10 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({
               onChange={(e) => setStatus(e.target.value as any)}
             >
               <MenuItem value="all">Todos</MenuItem>
-              <MenuItem value="available">available</MenuItem>
-              <MenuItem value="assigned">assigned</MenuItem>
-              <MenuItem value="active">active</MenuItem>
-              <MenuItem value="completed">completed</MenuItem>
+              <MenuItem value="available">Disponible</MenuItem>
+              <MenuItem value="assigned">Asignado</MenuItem>
+              <MenuItem value="active">Activo</MenuItem>
+              <MenuItem value="completed">Completado</MenuItem>
             </Select>
           </FormControl>
 
@@ -324,9 +326,9 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({
       ) : (
         <>
           {/* ===== Tabla agrupada por promotora ===== */}
-          <TableContainer sx={{ borderRadius: 4, background: '#f9f9f9' }}>
+          <TableContainer sx={{ borderRadius: 4, background: 'background.paper' }}>
             <Table>
-              <TableHead sx={{ backgroundColor: theme.palette.grey[200] }}>
+              <TableHead sx={{ backgroundColor: 'action.hover' }}>
                 <TableRow>
                   <TableCell width={56} />
                   <TableCell>Impulsadora</TableCell>
@@ -494,7 +496,7 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({
                                           sx={{
                                             backgroundColor: getStatusColor(shift.status || ''),
                                             fontWeight: 600,
-                                            color: '#ffffff',
+                                            color: 'common.white',
                                           }}
                                         />
                                       </TableCell>
@@ -556,7 +558,7 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({
                                             sx={{
                                               height: 8,
                                               borderRadius: 4,
-                                              backgroundColor: '#ffe4f0',
+                                              backgroundColor: tint(theme, 'primary'),
                                               '& .MuiLinearProgress-bar': {
                                                 backgroundColor: theme.palette.primary.main,
                                               },
@@ -694,7 +696,6 @@ const ShiftTableWithActions: FC<ShiftTableWithActionsProps> = ({
       <NewShiftModal
         open={editModalOpen}
         onClose={closeAllModals}
-        sweepstakes={sweepstakes}
         shiftId={selectedShiftId}
       />
       <DeleteShiftDialog

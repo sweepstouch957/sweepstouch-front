@@ -9,17 +9,18 @@ import InvoicesListing from 'src/components/application-ui/tables/invoices/invoi
 import PageHeading from 'src/components/base/page-heading';
 import { AvatarState } from 'src/components/base/styles/avatar';
 import { useCustomization } from 'src/hooks/use-customization';
-import { Layout } from 'src/layouts';
+
+// Static page metadata — no component state, safe at module scope.
+const pageMeta = {
+  title: 'Invoices',
+  description: 'Manage billing and invoice records',
+  icon: <ReceiptRefundIcon />,
+};
 
 function Page(): React.JSX.Element {
   const customization = useCustomization();
   const theme = useTheme();
   const { t } = useTranslation();
-  const pageMeta = {
-    title: 'Invoices',
-    description: 'Manage billing and invoice records',
-    icon: <ReceiptRefundIcon />,
-  };
   return (
     <>
       {pageMeta.title && (

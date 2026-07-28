@@ -93,11 +93,13 @@ const Component = () => {
       let tempJobs = jobs;
 
       if (selectedTags.length > 0) {
-        tempJobs = tempJobs.filter((job) => job.tags.some((tag) => selectedTags.includes(tag)));
+        const selectedTagSet = new Set(selectedTags);
+        tempJobs = tempJobs.filter((job) => job.tags.some((tag) => selectedTagSet.has(tag)));
       }
 
       if (selectedLocations.length > 0) {
-        tempJobs = tempJobs.filter((job) => selectedLocations.includes(job.location));
+        const selectedLocationSet = new Set(selectedLocations);
+        tempJobs = tempJobs.filter((job) => selectedLocationSet.has(job.location));
       }
 
       setFilteredJobs(tempJobs);

@@ -1,5 +1,6 @@
 import { api } from '@/libs/axios';
 import type { User } from 'src/contexts/auth/user';
+import { getAuthToken, removeAuthToken, setAuthToken } from './storage';
 
 function generateToken(): string {
   const arr = new Uint8Array(12);
@@ -30,7 +31,7 @@ export interface ResetPasswordParams {
 class AuthClient {
   async signUp(_: SignUpParams): Promise<{ error?: string }> {
     const token = generateToken();
-    localStorage.setItem('uifort-authentication', token);
+    setAuthToken(token);
     return {};
   }
 
@@ -49,7 +50,7 @@ class AuthClient {
       });
 
       if (res.data.token) {
-        localStorage.setItem('uifort-authentication', res.data.token);
+        setAuthToken(res.data.token);
         api.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
       }
 
@@ -66,7 +67,7 @@ class AuthClient {
   }
 
   async getUser(): Promise<{ data?: User | null; error?: string }> {
-    const token = localStorage.getItem('uifort-authentication');
+    const token = getAuthToken();
 
     if (!token) return { data: null };
 
@@ -100,7 +101,7 @@ class AuthClient {
   }
 
   async signOut(): Promise<{ error?: string }> {
-    localStorage.removeItem('uifort-authentication');
+    removeAuthToken();
     delete api.defaults.headers.common['Authorization'];
     return {};
   }

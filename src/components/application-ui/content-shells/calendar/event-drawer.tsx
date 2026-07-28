@@ -40,6 +40,37 @@ interface AddEditEventModalProps {
   range?: { start: number; end: number };
 }
 
+// Valores iniciales del formulario — función pura, sin dependencias del componente
+const getInitialValues = (evt?: Event, rng?: { start: number; end: number }) => {
+  if (evt) {
+    return {
+      allDay: evt.allDay,
+      description: evt.description ?? '',
+      end: new Date(evt.end),
+      start: new Date(evt.start),
+      title: evt.title ?? '',
+    };
+  }
+
+  if (rng) {
+    return {
+      allDay: false,
+      description: '',
+      end: new Date(rng.end),
+      start: new Date(rng.start),
+      title: '',
+    };
+  }
+
+  return {
+    allDay: false,
+    description: '',
+    end: setHours(setMinutes(subDays(new Date(), 1), 30), 19),
+    start: setHours(setMinutes(subDays(new Date(), 1), 30), 17),
+    title: '',
+  };
+};
+
 const EventDrawer: FC<AddEditEventModalProps> = ({
   event,
   range,
@@ -67,37 +98,7 @@ const EventDrawer: FC<AddEditEventModalProps> = ({
     []
   );
 
-  const getInitialValues = (evt?: Event, rng?: { start: number; end: number }) => {
-    if (evt) {
-      return {
-        allDay: evt.allDay,
-        description: evt.description ?? '',
-        end: new Date(evt.end),
-        start: new Date(evt.start),
-        title: evt.title ?? '',
-      };
-    }
-
-    if (rng) {
-      return {
-        allDay: false,
-        description: '',
-        end: new Date(rng.end),
-        start: new Date(rng.start),
-        title: '',
-      };
-    }
-
-    return {
-      allDay: false,
-      description: '',
-      end: setHours(setMinutes(subDays(new Date(), 1), 30), 19),
-      start: setHours(setMinutes(subDays(new Date(), 1), 30), 17),
-      title: '',
-    };
-  };
-
-  const [formState, setFormState] = useState(getInitialValues(event, range));
+  const [formState, setFormState] = useState(() => getInitialValues(event, range));
 
   const handleFieldChange = (field: string, value: any) => {
     setFormState((prev) => ({ ...prev, [field]: value }));

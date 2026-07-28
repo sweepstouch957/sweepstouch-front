@@ -35,8 +35,8 @@ const defaultValues = {
 } satisfies Values;
 
 export function UpdatePasswordForm(): React.JSX.Element {
-  const [supabaseClient] = React.useState(createSupabaseClient());
-  const router = useRouter();
+  const [supabaseClient] = React.useState(() => createSupabaseClient());
+  const { push } = useRouter();
   const [isPending, setIsPending] = React.useState<boolean>(false);
   const {
     register,
@@ -52,22 +52,25 @@ export function UpdatePasswordForm(): React.JSX.Element {
     async (values: Values): Promise<void> => {
       setIsPending(true);
 
-      const { error } = await supabaseClient.auth.updateUser({
-        password: values.password,
-      });
-
-      if (error) {
-        setError('root', {
-          type: 'server',
-          message: error.message,
+      try {
+        const { error } = await supabaseClient.auth.updateUser({
+          password: values.password,
         });
-        setIsPending(false);
-        return;
-      }
 
-      router.push(routes.admin.index);
+        if (error) {
+          setError('root', {
+            type: 'server',
+            message: error.message,
+          });
+          return;
+        }
+
+        push(routes.admin.index);
+      } finally {
+        setIsPending(false);
+      }
     },
-    [supabaseClient, router, setError]
+    [supabaseClient, push, setError]
   );
 
   return (

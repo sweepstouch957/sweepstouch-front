@@ -5,4 +5,9 @@ export interface PaginatedResponse<T> {
   totalPages: number;
   count: number;
   success: boolean;
+  stats?: {
+    total: number;
+    active: number;
+    inactive: number;
+  };
 }

@@ -9,9 +9,11 @@ interface AdditionalInfoTabProps {
   product: Product;
 }
 
+// Static masonry column heights; no component state, hoisted to module scope.
+const heights = [250, 175, 290, 170, 150, 150, 130, 280, 150, 190, 130, 150, 230, 150, 280];
+
 const AdditionalInfoTab: FC<AdditionalInfoTabProps> = ({ product }) => {
   const { t } = useTranslation();
-  const heights = [250, 175, 290, 170, 150, 150, 130, 280, 150, 190, 130, 150, 230, 150, 280];
 
   return (
     <Box p={{ xs: 2, sm: 3 }}>

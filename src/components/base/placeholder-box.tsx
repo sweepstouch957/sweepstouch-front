@@ -56,7 +56,7 @@ const PlaceholderBox: FC<PlaceholderBoxProps> = (props) => {
             : dark
               ? theme.palette.neutral[400]
               : theme.palette.neutral[25],
-          boxShadow: !disableHover && theme.shadows[7],
+          // Sin sombra: el hover se marca sólo con el borde.
         },
       }}
       {...other}

@@ -4,20 +4,19 @@ import {
   Box,
   Collapse,
   List,
-  ListItemButton,
   ListItemIcon,
   ListItemText,
   ListProps,
   ListSubheader,
   styled,
   Theme,
-  useMediaQuery,
-} from '@mui/material';
+  useMediaQuery } from '@mui/material';
 
 import React, { FC, useState } from 'react';
 import { RouterLink } from 'src/components/base/router-link';
 import { usePathname } from 'src/hooks/use-pathname';
 import { MenuItem } from 'src/router/menuItem';
+import { ListItemButtonWrapper } from './sidebar-nav-menu-wrappers';
 import { neutral } from 'src/theme/colors';
 
 interface NavItemProps {
@@ -28,90 +27,62 @@ const ListSubheaderWrapper = styled(ListSubheader)<ListProps<'div', { component:
   ({ theme }) => ({
     background: neutral[900],
     textTransform: 'uppercase',
-    fontWeight: 500,
-    fontSize: 13,
-    color: neutral[400],
-    lineHeight: theme.spacing(5),
-    padding: theme.spacing(0, 2),
+    fontWeight: 700,
+    fontSize: 10,
+    letterSpacing: '0.08em',
+    color: alpha(neutral[400], 0.6),
+    lineHeight: theme.spacing(4),
+    padding: theme.spacing(1, 2, 0.25),
   })
 );
 
-export const ListItemButtonWrapper = styled(ListItemButton)(({ theme }) => ({
-  color: neutral[300],
-  borderRadius: theme.shape.borderRadius,
-  transition: 'none',
-  fontWeight: 600,
-  fontSize: 14,
-  marginBottom: '2px',
-  borderWidth: 1,
-  borderStyle: 'solid',
-  borderColor: 'transparent',
-  padding: theme.spacing(0.8, 1, 0.8, 2),
-
-  '& .MuiListItemIcon-root': {
-    color: neutral[500],
-    minWidth: 44,
-  },
-
-  '& .MuiListItemText-root': {
-    color: neutral[500],
-  },
-
-  '&:hover': {
-    color: neutral[100],
-    background: alpha(neutral[700], 0.08),
-    borderColor: alpha(neutral[600], 0.08),
-
-    '& .MuiListItemIcon-root': {
-      color: neutral[100],
-    },
-
-    '& .MuiListItemText-root': {
-      color: neutral[100],
-    },
-  },
-
-  '&.Mui-selected, &.Mui-selected:hover': {
-    color: neutral[50],
-    background: alpha(neutral[500], 0.1),
-    borderColor: alpha(neutral[700], 0.15),
-
-    '& .MuiListItemIcon-root': {
-      color: neutral[50],
-    },
-
-    '& .MuiListItemText-root': {
-      color: neutral[50],
-    },
-  },
-}));
+// ListItemButtonWrapper imported from ./sidebar-nav-menu-wrappers
 
 const SubMenu = styled(List)<ListProps<'div', { component: 'div' }>>(({ theme }) => ({
-  paddingTop: theme.spacing(0.5),
+  paddingTop: theme.spacing(0.25),
+  paddingBottom: theme.spacing(0.25),
+  position: 'relative',
+
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    left: theme.spacing(3.2),
+    top: 0,
+    bottom: 0,
+    width: 1,
+    background: alpha(neutral[600], 0.2),
+    zIndex: 1,
+  },
 
   '& .MuiListItemButton-root': {
-    padding: theme.spacing(0.8, 2, 0.8, 7),
-    fontWeight: 500,
+    padding: theme.spacing(0.5, 2, 0.5, 6),
+    fontWeight: 400,
+    fontSize: 13,
+    minHeight: 34,
+    color: neutral[500],
+    borderRadius: theme.spacing(0.75),
 
     '&::before': {
-      content: '" "',
-      background: neutral[100],
-      opacity: 0,
+      content: '""',
+      background: neutral[600],
+      opacity: 0.3,
       position: 'absolute',
-      left: theme.spacing(2.8),
-      borderRadius: 4,
+      left: theme.spacing(3.2),
       top: '50%',
-      height: '6px',
-      width: '6px',
-      transform: 'scale(0)',
-      marginTop: '-3px',
-      transition: theme.transitions.create(['transform', 'opacity']),
+      height: 1,
+      width: theme.spacing(1.2),
+      transition: theme.transitions.create(['background', 'opacity', 'width']),
+      zIndex: 2,
     },
 
     '&.Mui-selected, &:hover': {
+      color: neutral[100],
+      background: alpha(neutral[500], 0.05),
+
       '&::before': {
         opacity: 1,
-        transform: 'scale(1)',
+        background: theme.palette.primary.main,
+        width: theme.spacing(1.5),
       },
     },
 
@@ -136,7 +107,7 @@ const NavItem: React.FC<NavItemProps> = ({ item }) => {
   };
 
   return (
-    <Box px={2}>
+    <Box px={1.5}>
       <ListItemButtonWrapper
         selected={isActive || isSubMenuActive}
         onClick={handleToggle}
@@ -152,12 +123,12 @@ const NavItem: React.FC<NavItemProps> = ({ item }) => {
         {subMenu && (
           <Box
             sx={{
-
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
               transform: open ? 'rotate(90deg)' : 'rotate(0deg)',
               transition: (theme) => theme.transitions.create(['transform']),
+              '& .MuiSvgIcon-root': { fontSize: 16, opacity: 0.5 },
             }}
           >
             <KeyboardArrowRightTwoToneIcon fontSize="small" />
@@ -168,7 +139,7 @@ const NavItem: React.FC<NavItemProps> = ({ item }) => {
         <Collapse in={open}>
           <SubMenu
             component="div"
-            sx={{ mx: -2 }}
+            sx={{ mx: -1.5 }}
             disablePadding
           >
             {subMenu.map((subItem) => (
@@ -188,7 +159,9 @@ interface SidebarNavMenuProps {
   menuItems?: MenuItem[];
 }
 
-export const SidebarNavMenu: FC<SidebarNavMenuProps> = ({ menuItems = [] }) => {
+const EMPTY_MENU_ITEMS: MenuItem[] = [];
+
+export const SidebarNavMenu: FC<SidebarNavMenuProps> = ({ menuItems = EMPTY_MENU_ITEMS }) => {
   const mdUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('md'));
 
   return (
@@ -218,4 +191,3 @@ export const SidebarNavMenu: FC<SidebarNavMenuProps> = ({ menuItems = [] }) => {
     </Box>
   );
 };
-

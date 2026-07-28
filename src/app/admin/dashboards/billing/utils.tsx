@@ -5,6 +5,10 @@ import { Box, Chip, Divider, Skeleton, Stack, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { PieChart, useDrawingArea } from '@mui/x-charts';
 
+// Formatter USD a module scope: Intl.NumberFormat carga tablas de locale caras
+// de reconstruir; una sola instancia reusada en todos los render/items.
+const usdFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
 const CenterText = styled('text')(({ theme }) => ({
   fill: theme.palette.text.primary,
   textAnchor: 'middle',
@@ -175,7 +179,7 @@ export function PieWithLegend({
         margin={{ right: 0 }}
       >
         <PieCenterLabel>
-          {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
+          {usdFmt.format(
             grandTotal ?? 0
           )}
         </PieCenterLabel>
@@ -200,7 +204,7 @@ export function PieWithLegend({
             }}
           >
             <Typography sx={{ color: colorSMS, px: 0.5 }}>
-              {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
+              {usdFmt.format(
                 smsValue ?? 0
               )}
             </Typography>
@@ -211,7 +215,7 @@ export function PieWithLegend({
         <LegendRow>
           <Dot color={colorMMS} />
           <Typography sx={{ color: colorMMS, px: 0.5 }}>
-            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
+            {usdFmt.format(
               mmsValue ?? 0
             )}
           </Typography>
@@ -221,7 +225,7 @@ export function PieWithLegend({
         <LegendRow>
           <Dot color={colorStores} />
           <Typography sx={{ color: colorStores, px: 0.5 }}>
-            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
+            {usdFmt.format(
               storesValue ?? 0
             )}
           </Typography>
@@ -232,7 +236,7 @@ export function PieWithLegend({
         <LegendRow>
           <Dot color={colorOptin} />
           <Typography sx={{ color: colorOptin, px: 0.5 }}>
-            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
+            {usdFmt.format(
               optinValue ?? 0
             )}
           </Typography>

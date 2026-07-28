@@ -2,7 +2,6 @@
 
 import CloseIcon from '@mui/icons-material/Close';
 import { Box, Dialog, DialogContent, DialogTitle, IconButton, Typography } from '@mui/material';
-import React from 'react';
 import SmsCampaignsTable from './SmsCampaignsTable';
 
 interface SmsCampaignsModalProps {

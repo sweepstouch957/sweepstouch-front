@@ -7,6 +7,28 @@ import { AxiosResponse } from 'axios';
 /* ===================== Types ===================== */
 export type DebtStatus = 'all' | 'ok' | 'min_low' | 'low' | 'mid' | 'high' | 'critical';
 
+export interface ContactInfoItem {
+  type: 'manager' | 'owner' | 'secretary' | 'assistant' | 'other';
+  name: string;
+  phone: string;
+}
+
+export interface EquipmentItem {
+  id: string;
+  label: string;
+  qty: number;
+  price: number;
+  type: 'tablet' | 'printer';
+}
+
+export interface MaterialItem {
+  id: string;
+  name: string;
+  material: string;
+  price: number;
+  qty: number;
+}
+
 export interface Store {
   id: string;
   _id: string;
@@ -21,6 +43,7 @@ export interface Store {
   ownerId: string;
   description?: string;
   slug?: string;
+  mmsTheme?: any;
   image: string;
   active: boolean;
   subscription?: string;
@@ -30,22 +53,66 @@ export interface Store {
   twilioPhoneNumberFriendlyName?: string;
   verifiedByTwilio?: boolean;
   bandwidthPhoneNumber?: string;
+  bandwithId?: string;
   customerCount: number;
-  provider: 'twilio' | 'bandwidth';
+  provider: 'twilio' | 'bandwidth' | 'infobip';
   createdAt: string;
   updatedAt: string;
   accessCode?: string;
   membershipType?: 'mensual' | 'semanal' | 'especial';
   paymentMethod?: 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
   startContractDate?: string | null; // ISO o null
+  circularss?: boolean;
+  cancelContractDate?: string | null;
+  cancelContractReason?: string;
+  status?: 'active' | 'inactive' | 'suspended' | 'cancelled';
+  inactiveReason?: string;
+  suspendedReason?: string;
+  billingNextDate?: string | null;
+  billingLastPeriodEnd?: string | null;
+  creditStatus?: 'ok' | 'delinquent' | 'suspended';
   lng?: number | null;
   lat?: number | null;
   email?: string;
+  infobipSenderId?: string;
+  infobipShortcode?: string;
+
+  // 🆕 Social Links
+  socialLinks?: {
+    facebook?: string;
+    instagram?: string;
+    website?: string;
+  };
 
   // 🆕 Tablet / Kiosko
   kioskTabletStatus?: 'instalada' | 'desinstalada' | 'sin_instalar';
   kioskTabletDate?: string | null; // YYYY-MM-DD o ISO
   kioskTabletQuantity?: number | null;
+
+  // 🆕 Equipment & Materials (Step 2)
+  equipment?: EquipmentItem[];
+  materials?: MaterialItem[];
+  equipmentTotal?: number;
+  sectionBTotal?: number;
+  grandTotal?: number;
+
+  // 🆕 Contact Info
+  contactInfo?: ContactInfoItem[];
+
+  // 🆕 Pause History
+  pauseHistory?: {
+    startDate?: string | null;
+    endDate?: string | null;
+    reason?: string;
+  }[];
+
+  // 🆕 Uploaded Contracts
+  contracts?: {
+    fileName?: string;
+    fileUrl?: string;
+    uploadedAt?: string;
+    signedAt?: string | null;
+  }[];
 }
 
 export interface UpdateStoreBody {
@@ -55,7 +122,9 @@ export interface UpdateStoreBody {
   type?: 'elite' | 'basic' | 'free';
   active?: boolean;
   phoneNumber?: string;
-  provider?: 'twilio' | 'bandwidth';
+  provider?: 'twilio' | 'bandwidth' | 'infobip';
+  infobipSenderId?: string;
+  infobipShortcode?: string;
   bandwidthPhoneNumber?: string;
   twilioPhoneNumber?: string;
   twilioPhoneNumberSid?: string;
@@ -65,11 +134,71 @@ export interface UpdateStoreBody {
   membershipType?: 'mensual' | 'semanal' | 'especial';
   paymentMethod?: 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
   startContractDate?: string | null; // ISO o null
+  circularss?: boolean;
+  cancelContractDate?: string | null;
+  cancelContractReason?: string;
+  status?: 'active' | 'inactive' | 'suspended' | 'cancelled';
+  inactiveReason?: string;
+  suspendedReason?: string;
+  billingNextDate?: string | null;
+  billingLastPeriodEnd?: string | null;
+  creditStatus?: 'ok' | 'delinquent' | 'suspended';
+
+  // 🆕 Social Links
+  socialLinks?: {
+    facebook?: string;
+    instagram?: string;
+    website?: string;
+  };
+
+  // 🆕 Slug (editable by admin)
+  slug?: string;
 
   // 🆕 Tablet / Kiosko
   kioskTabletStatus?: 'instalada' | 'desinstalada' | 'sin_instalar';
   kioskTabletDate?: string | null;
   kioskTabletQuantity?: number | null;
+
+  // 🆕 Equipment & Materials (Step 2)
+  equipment?: EquipmentItem[];
+  materials?: MaterialItem[];
+  equipmentTotal?: number;
+  sectionBTotal?: number;
+  grandTotal?: number;
+
+  // 🆕 Contact Info
+  contactInfo?: ContactInfoItem[];
+
+  // 🆕 Pause History
+  pauseHistory?: {
+    startDate?: string | null;
+    endDate?: string | null;
+    reason?: string;
+  }[];
+
+  // 🆕 Uploaded Contracts
+  contracts?: {
+    fileName?: string;
+    fileUrl?: string;
+    uploadedAt?: string;
+    signedAt?: string | null;
+  }[];
+
+  // 🆕 MMS Branding
+  mmsTheme?: {
+    primaryColor?: string;
+    primaryDark?: string;
+    accentColor?: string;
+    textOnPrimary?: string;
+    footerBg?: string;
+    logoUrl?: string;
+    ctaText?: string;
+    footerText?: string;
+    headerStyle?: 'classic' | 'modern' | 'minimal' | 'bold';
+  };
+
+  // 🆕 Brand reference
+  brand?: string;
 }
 
 export interface GetStoresResponse {
@@ -124,7 +253,8 @@ export const emptyStore: Store = {
   image: '',
   active: false,
   phoneNumber: '',
-  provider: 'twilio',
+  // Toda tienda nueva nace en infobip — bandwidth está deprecado
+  provider: 'infobip',
   createdAt: '',
   updatedAt: '',
   customerCount: 0,
@@ -137,7 +267,7 @@ export interface GetStoresParams {
   type?: 'elite' | 'basic' | 'free' | '';
   sortBy?: string;
   order?: 'asc' | 'desc';
-  status?: 'all' | 'active' | 'inactive';
+  status?: 'all' | 'active' | 'suspended' | 'cancelled';
 
   // ✅ filtros de morosidad (AMPLIADO)
   debtStatus?: DebtStatus;
@@ -146,6 +276,9 @@ export interface GetStoresParams {
   maxDebt?: string;
 
   audienceLt?: string;
+
+  // ⭐ filtro por proveedor SMS
+  provider?: 'all' | 'twilio' | 'bandwidth' | 'infobip';
 
   paymentMethod?: 'all' | 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
 }
@@ -171,6 +304,7 @@ export const getStores = async ({
   minDebt = '',
   maxDebt = '',
   paymentMethod = 'all',
+  provider = 'all',
 }: GetStoresParams): Promise<GetStoresResponse> => {
   const params: Record<string, any> = {
     page,
@@ -182,6 +316,7 @@ export const getStores = async ({
     maxDebt,
     order,
     paymentMethod,
+    provider,
   };
 
   if (type) params.type = type;
@@ -197,7 +332,7 @@ export const getStores = async ({
 
 // 🆕 Obtener resumen global de morosidad
 export const getStoresBillingSummary = async (opts?: {
-  status?: 'all' | 'active' | 'inactive';
+  status?: 'all' | 'active' | 'suspended' | 'cancelled';
 }): Promise<BillingSummaryResponse> => {
   const params: Record<string, any> = {};
   if (opts?.status && opts.status !== 'all') {
@@ -216,6 +351,25 @@ export const getAllStores = async (): Promise<Store[]> => {
 export const getStoreById = async (id: string): Promise<Store> => {
   const res = await api.get(`/store/${id}`);
   return res.data;
+};
+
+/** Búsqueda de tiendas por relevancia (AI) — usada por el command palette. */
+export const aiSearchStores = async (
+  q: string,
+  signal?: AbortSignal,
+): Promise<any[]> => {
+  const res = await api.get('/store/ai/search', {
+    params: { q, limit: 12, score: '1' },
+    signal,
+  });
+  return res.data?.data ?? [];
+};
+
+/** Descarga una imagen remota como Blob (para convertirla a dataURL en el cliente). */
+export const fetchImageBlob = async (src: string): Promise<Blob | null> => {
+  const response = await fetch(src);
+  if (!response.ok) return null;
+  return response.blob();
 };
 
 export const getStoreCustomers = async (
@@ -301,9 +455,131 @@ export const getStoreBySlug = async (slug: string): Promise<Store> => {
   return res.data;
 };
 
+export const updateStoreBySlug = async (slug: string, body: Partial<UpdateStoreBody & { mmsTheme?: any }>): Promise<Store> => {
+  const res = await api.patch<Store>(`/store/by-slug/${slug}`, body);
+  return res.data;
+};
+
 // 🆕 Obtener StoreRequests (Leads)
 export const getStoreRequests = async (params?: { status?: string }): Promise<any[]> => {
   const res = await api.get('/store/request', { params });
+  return res.data;
+};
+
+export const updateStoreRequest = async (id: string, body: Record<string, any>): Promise<any> => {
+  const res = await api.patch(`/store/request/${id}`, body);
+  return res.data?.data || res.data;
+};
+
+/* ===================== Store Contracts ===================== */
+export type ContractStatus = 'pending' | 'contract_created' | 'signed' | 'cancelled';
+
+export interface StoreContract {
+  _id: string;
+  storeName: string;
+  address: string;
+  phone: string;
+  email: string;
+  cashRegisters: number;
+  tabletType: 'large' | 'small' | 'none';
+  tabletCount: number;
+  tabletCostEach: number;
+  hasPrinters: boolean;
+  printerCount: number;
+  installationCost: number;
+  notes?: string;
+  status: ContractStatus;
+  storeId?: string;
+  createdBy?: { name: string; email: string };
+  source?: 'admin_panel' | 'landing' | 'other';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateContractBody {
+  storeName: string;
+  address: string;
+  phone: string;
+  email: string;
+  cashRegisters: number;
+  tabletType: 'large' | 'small' | 'none';
+  tabletCount: number;
+  tabletCostEach: number;
+  hasPrinters: boolean;
+  printerCount: number;
+  installationCost: number;
+  notes?: string;
+  storeId?: string;
+  createdBy?: { name: string; email: string };
+  source?: 'admin_panel' | 'landing' | 'other';
+}
+
+export interface ContractListResponse {
+  data: StoreContract[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+export interface ContractStatsResponse {
+  total: number;
+  pending: number;
+  created: number;
+  signed: number;
+  cancelled: number;
+}
+
+export const getContracts = async (params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+}): Promise<ContractListResponse> => {
+  const res = await api.get('/store/contracts', { params });
+  return res.data;
+};
+
+export const getContractStats = async (): Promise<ContractStatsResponse> => {
+  const res = await api.get('/store/contracts/stats');
+  return res.data;
+};
+
+export const getContractById = async (id: string): Promise<StoreContract> => {
+  const res = await api.get(`/store/contracts/${id}`);
+  return res.data;
+};
+
+export const createContractApi = async (body: CreateContractBody): Promise<StoreContract> => {
+  const res = await api.post('/store/contracts', body);
+  return res.data;
+};
+
+export const patchContract = async (id: string, body: Partial<StoreContract>): Promise<StoreContract> => {
+  const res = await api.patch(`/store/contracts/${id}`, body);
+  return res.data;
+};
+
+export const deleteContractApi = async (id: string): Promise<void> => {
+  await api.delete(`/store/contracts/${id}`);
+};
+
+// ── Duplicate Store (admin-only) ──────────────────────────────────────────────
+export interface DuplicateStorePayload {
+  name?: string; // optional new name (default: "Original (Copy)")
+}
+
+export interface DuplicateStoreResponse {
+  ok: boolean;
+  store: Store;
+  customersCopied: number;
+  message: string;
+}
+
+export const duplicateStore = async (
+  storeId: string,
+  payload?: DuplicateStorePayload
+): Promise<DuplicateStoreResponse> => {
+  const res = await api.post(`/store/${storeId}/duplicate`, payload || {});
   return res.data;
 };
 
@@ -327,6 +603,14 @@ const storesService = {
   getStoreByDescription,
   getStoreByIdAndOwnerId,
   getStoreRequests,
+  updateStoreRequest,
+  getContracts,
+  getContractStats,
+  getContractById: getContractById,
+  createContract: createContractApi,
+  patchContract,
+  deleteContract: deleteContractApi,
+  duplicateStore,
 };
 
 export default storesService;

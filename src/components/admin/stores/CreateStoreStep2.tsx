@@ -24,8 +24,8 @@ import PrintIcon from '@mui/icons-material/Print';
 import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 
 type InventoryItem = {
   id: string;
@@ -90,29 +90,29 @@ const initialBItems: BItem[] = [
 
 /* ===== Utils ===== */
 function selectedWithQty(items: InventoryItem[], qmap: QtyMap) {
-  return items
-    .filter((i) => (qmap[i.id] ?? 0) > 0)
-    .map((i) => ({ ...i, qty: qmap[i.id] ?? 0 }));
+  return items.flatMap((i) => {
+    const qty = qmap[i.id] ?? 0;
+    return qty > 0 ? [{ ...i, qty }] : [];
+  });
 }
 
-function expandByQty<T extends { id: string; qty: number }>(items: T[]) {
-  return items.flatMap((it) =>
-    Array.from({ length: it.qty }).map((_, i) => ({ ...it, uid: `${it.id}-${i}` })),
-  );
-}
-
-function ItemCardCompact({
-  title,
-  desc,
-  price,
+/** Card que muestra el resumen agregado de un tipo de dispositivo (tablets o impresoras) */
+function DeviceSummaryCard({
+  icon,
+  label,
+  description,
+  totalQty,
+  priceEach,
   image,
-  onRemove,
+  onDecrement,
 }: {
-  title: string;
-  desc?: string;
-  price: number;
+  icon?: React.ReactNode;
+  label: string;
+  description?: string;
+  totalQty: number;
+  priceEach: number;
   image?: string;
-  onRemove?: () => void;
+  onDecrement?: () => void;
 }) {
   return (
     <MuiCard
@@ -127,7 +127,7 @@ function ItemCardCompact({
         <CardMedia
           component="img"
           image={image}
-          alt={title}
+          alt={label}
           sx={{
             width: { xs: 96, sm: 120 },
             height: '100%',
@@ -139,7 +139,9 @@ function ItemCardCompact({
           }}
         />
       ) : (
-        <Box sx={{ width: 120, height: '100%', bgcolor: 'action.hover' }} />
+        <Box sx={{ width: 120, height: '100%', bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {icon}
+        </Box>
       )}
 
       <MuiCardContent
@@ -150,38 +152,24 @@ function ItemCardCompact({
           flexDirection: 'column',
         }}
       >
-        <Typography
-          variant="body2"
-          sx={{ fontWeight: 600, lineHeight: 1.2 }}
-        >
-          {title}
+        <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+          {label}
         </Typography>
 
-        {desc && (
-          <Typography
-            variant="caption"
-            sx={{ color: 'text.secondary', mt: 0.25 }}
-          >
-            {desc}
+        {description && (
+          <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.25 }}>
+            {description}
           </Typography>
         )}
 
-        <Box
-          sx={{
-            mt: 'auto',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          <Typography variant="caption">${price} c/u</Typography>
+        <Box sx={{ mt: 'auto', display: 'flex', alignItems: 'center' }}>
+          <Typography variant="caption">
+            {totalQty} unid. &nbsp;·&nbsp; ${priceEach * totalQty} total
+          </Typography>
 
           <Box sx={{ ml: 'auto' }}>
-            <IconButton
-              size="small"
-              aria-label="Eliminar"
-              onClick={onRemove}
-            >
-              <DeleteOutlineIcon fontSize="small" />
+            <IconButton size="small" aria-label="Reducir" onClick={onDecrement}>
+              <RemoveIcon fontSize="small" />
             </IconButton>
           </Box>
         </Box>
@@ -195,17 +183,28 @@ type Props = {
   onSubmit?: (data: any) => void | Promise<void>;
   initialData?: {
     tabletQty?: QtyMap;
+    tabletImei?: Record<string, string[]>;
     printerQty?: QtyMap;
     sectionB?: BItem[];
   };
 };
+
+// Ajusta la cantidad de un item en un mapa — función pura, sin estado de componente.
+const changeQty = (
+  setter: React.Dispatch<React.SetStateAction<QtyMap>>,
+  map: QtyMap,
+  id: string,
+  delta: number,
+) => setter({ ...map, [id]: Math.max(0, (map[id] ?? 0) + delta) });
 
 export default function CreateStoreStep2({
   onBack,
   onSubmit,
   initialData,
 }: Props) {
-  const router = useRouter();
+  const { back } = useRouter();
+  const { t } = useTranslation();
+  console.log("render");
 
   /** ===== Sección A ===== */
   const [tabletQty, setTabletQty] = React.useState<QtyMap>(
@@ -214,16 +213,21 @@ export default function CreateStoreStep2({
   const [printerQty, setPrinterQty] = React.useState<QtyMap>(
     initialData?.printerQty ?? {},
   );
+  // IMEI per tablet type: Record<tabletId, string[]> — one per unit
+  const [tabletImei, setTabletImei] = React.useState<Record<string, string[]>>(
+    initialData?.tabletImei ?? {},
+  );
+
+  const updateImei = (tabletId: string, index: number, value: string) => {
+    setTabletImei((prev) => {
+      const arr = [...(prev[tabletId] ?? [])];
+      arr[index] = value;
+      return { ...prev, [tabletId]: arr };
+    });
+  };
 
   const [openTablets, setOpenTablets] = React.useState(false);
   const [openPrinters, setOpenPrinters] = React.useState(false);
-
-  const changeQty = (
-    setter: React.Dispatch<React.SetStateAction<QtyMap>>,
-    map: QtyMap,
-    id: string,
-    delta: number,
-  ) => setter({ ...map, [id]: Math.max(0, (map[id] ?? 0) + delta) });
 
   const equipmentTotal = React.useMemo(() => {
     const all = [...tabletInventory, ...printerInventory];
@@ -246,10 +250,37 @@ export default function CreateStoreStep2({
   );
 
   const handleSave = async () => {
+    const equipment = [
+      ...tabletInventory
+        .filter((i) => (tabletQty[i.id] ?? 0) > 0)
+        .map((i) => ({
+          id: i.id,
+          label: i.label,
+          description: i.description,
+          qty: tabletQty[i.id],
+          price: i.price,
+          type: 'tablet' as const,
+          imei: (tabletImei[i.id] ?? []).filter(Boolean),
+        })),
+      ...printerInventory
+        .filter((i) => (printerQty[i.id] ?? 0) > 0)
+        .map((i) => ({
+          id: i.id,
+          label: i.label,
+          description: i.description,
+          qty: printerQty[i.id],
+          price: i.price,
+          type: 'printer' as const,
+        })),
+    ];
+
+    const materials = sectionB.flatMap(({ id, name, material, price, qty, checked }) =>
+      checked && qty > 0 ? [{ id, name, material, price, qty }] : [],
+    );
+
     const payload = {
-      tabletQty,
-      printerQty,
-      sectionB,
+      equipment,
+      materials,
       equipmentTotal,
       sectionBTotal,
       grandTotal: equipmentTotal + sectionBTotal,
@@ -258,7 +289,7 @@ export default function CreateStoreStep2({
     await onSubmit?.(payload);
   };
 
-  const handleBack = () => (onBack ? onBack() : router.back());
+  const handleBack = () => (onBack ? onBack() : back());
 
   return (
     <Container
@@ -269,7 +300,7 @@ export default function CreateStoreStep2({
         variant="h6"
         sx={{ mb: 2, fontWeight: 600 }}
       >
-        Equipos y Materiales
+        {t("Equipment and Materials")}
       </Typography>
 
       {/* ====== Sección A: Tablets ====== */}
@@ -296,26 +327,21 @@ export default function CreateStoreStep2({
           variant="outlined"
           onClick={() => setOpenTablets(true)}
         >
-          Agregar
+          {t("Add")}
         </Button>
       </Stack>
 
-      <Grid container
-        spacing={1.5}>
-        {expandByQty(selectedWithQty(tabletInventory, tabletQty)).map((it) => (
-          <Grid
-            key={it.uid}
-            item
-            xs={12}
-            sm={6}
-            md={4}
-          >
-            <ItemCardCompact
-              title={it.label}
-              desc={it.description}
-              price={it.price}
+      {/* Cards resumen tablets — máximo 1 card por tipo de tablet con qty > 0 */}
+      <Grid container spacing={1.5}>
+        {selectedWithQty(tabletInventory, tabletQty).map((it) => (
+          <Grid key={it.id} item xs={12} sm={6} md={4}>
+            <DeviceSummaryCard
+              label={it.label}
+              description={it.description}
+              totalQty={it.qty}
+              priceEach={it.price}
               image={it.image}
-              onRemove={() =>
+              onDecrement={() =>
                 setTabletQty((prev) => ({
                   ...prev,
                   [it.id]: Math.max(0, (prev[it.id] ?? 0) - 1),
@@ -350,43 +376,36 @@ export default function CreateStoreStep2({
           variant="outlined"
           onClick={() => setOpenPrinters(true)}
         >
-          Agregar
+          {t("Add")}
         </Button>
       </Stack>
 
-      <Grid container
-        spacing={1.5}>
-        {expandByQty(selectedWithQty(printerInventory, printerQty)).map(
-          (it) => (
-            <Grid
-              key={it.uid}
-              item
-              xs={12}
-              sm={6}
-              md={4}
-            >
-              <ItemCardCompact
-                title={it.label}
-                desc={it.description}
-                price={it.price}
-                image={it.image}
-                onRemove={() =>
-                  setPrinterQty((prev) => ({
-                    ...prev,
-                    [it.id]: Math.max(0, (prev[it.id] ?? 0) - 1),
-                  }))
-                }
-              />
-            </Grid>
-          ),
-        )}
+      {/* Cards resumen impresoras — máximo 1 card por tipo con qty > 0 */}
+      <Grid container spacing={1.5}>
+        {selectedWithQty(printerInventory, printerQty).map((it) => (
+          <Grid key={it.id} item xs={12} sm={6} md={4}>
+            <DeviceSummaryCard
+              label={it.label}
+              description={it.description}
+              totalQty={it.qty}
+              priceEach={it.price}
+              image={it.image}
+              onDecrement={() =>
+                setPrinterQty((prev) => ({
+                  ...prev,
+                  [it.id]: Math.max(0, (prev[it.id] ?? 0) - 1),
+                }))
+              }
+            />
+          </Grid>
+        ))}
       </Grid>
 
       <Typography
         variant="body2"
         sx={{ textAlign: 'right', mt: 2, color: 'text.secondary' }}
       >
-        Total equipos: <strong>${equipmentTotal}</strong>
+        {t("TOTAL")} equipos: <strong>${equipmentTotal}</strong>
       </Typography>
 
       {/* ===== Modales de selección ===== */}
@@ -397,7 +416,7 @@ export default function CreateStoreStep2({
         fullWidth
       >
         <DialogTitle sx={{ pr: 6 }}>
-          Seleccionar tablets del inventario
+          {t("Select Tablet")}
         </DialogTitle>
 
         <IconButton
@@ -491,6 +510,29 @@ export default function CreateStoreStep2({
                 >
                   <AddIcon fontSize="small" />
                 </IconButton>
+
+                {/* IMEI inputs — one per unit */}
+                {(tabletQty[it.id] ?? 0) > 0 && (
+                  <Box sx={{ width: '100%', mt: 1 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                      IMEI(s): ingresa uno por tablet
+                    </Typography>
+                    <Stack spacing={0.75}>
+                      {Array.from({ length: tabletQty[it.id] ?? 0 }).map((_, idx) => (
+                        <TextField
+                          key={idx}
+                          size="small"
+                          label={`IMEI #${idx + 1}`}
+                          placeholder="e.g. 357938070125740"
+                          value={(tabletImei[it.id] ?? [])[idx] ?? ''}
+                          onChange={(e) => updateImei(it.id, idx, e.target.value)}
+                          inputProps={{ maxLength: 20 }}
+                          fullWidth
+                        />
+                      ))}
+                    </Stack>
+                  </Box>
+                )}
               </Box>
             ))}
           </Stack>
@@ -507,7 +549,7 @@ export default function CreateStoreStep2({
             variant="contained"
             onClick={() => setOpenTablets(false)}
           >
-            Agregar
+            {t("Add")}
           </Button>
         </Box>
       </Dialog>
@@ -519,7 +561,7 @@ export default function CreateStoreStep2({
         fullWidth
       >
         <DialogTitle sx={{ pr: 6 }}>
-          Seleccionar impresoras del inventario
+          {t("Select Printer")}
         </DialogTitle>
 
         <IconButton
@@ -627,7 +669,7 @@ export default function CreateStoreStep2({
             variant="contained"
             onClick={() => setOpenPrinters(false)}
           >
-            Agregar
+            {t("Add")}
           </Button>
         </Box>
       </Dialog>
@@ -639,7 +681,7 @@ export default function CreateStoreStep2({
         variant="h6"
         sx={{ mb: 1, fontWeight: 600 }}
       >
-        Sección B: Posters y Materiales
+        {t("Section B: Posters and Materials")}
       </Typography>
 
       {/* Header: oculto en móvil */}
@@ -658,12 +700,12 @@ export default function CreateStoreStep2({
           fontWeight: 600,
         }}
       >
-        <Typography variant="caption">PRODUCTO</Typography>
-        <Typography variant="caption">MATERIAL</Typography>
-        <Typography variant="caption">PRECIO</Typography>
-        <Typography variant="caption">SELECCIONAR</Typography>
-        <Typography variant="caption">CANTIDAD</Typography>
-        <Typography variant="caption">TOTAL</Typography>
+        <Typography variant="caption">{t("PRODUCT")}</Typography>
+        <Typography variant="caption">{t("MATERIAL")}</Typography>
+        <Typography variant="caption">{t("PRICE")}</Typography>
+        <Typography variant="caption">{t("SELECT")}</Typography>
+        <Typography variant="caption">{t("QTY")}</Typography>
+        <Typography variant="caption">{t("TOTAL")}</Typography>
       </Box>
 
       {/* Filas */}
@@ -701,7 +743,7 @@ export default function CreateStoreStep2({
                 variant="body2"
                 sx={{ fontWeight: 600 }}
               >
-                {row.name}
+                {t(row.name)}
               </Typography>
 
               {/* Material */}
@@ -717,7 +759,7 @@ export default function CreateStoreStep2({
                   variant="caption"
                   color="text.secondary"
                 >
-                  Material
+                  {t("MATERIAL")}
                 </Typography>
 
                 <Typography variant="body2">{row.material}</Typography>
@@ -736,7 +778,7 @@ export default function CreateStoreStep2({
                   variant="caption"
                   color="text.secondary"
                 >
-                  Precio
+                  {t("PRICE")}
                 </Typography>
 
                 <Typography variant="body2">${row.price}</Typography>
@@ -765,7 +807,7 @@ export default function CreateStoreStep2({
                   variant="caption"
                   sx={{ ml: 1, display: { xs: 'inline', sm: 'none' } }}
                 >
-                  Seleccionar
+                  {t("SELECT")}
                 </Typography>
               </Box>
 
@@ -841,14 +883,14 @@ export default function CreateStoreStep2({
           variant="outlined"
           onClick={handleBack}
         >
-          Atrás
+          {t("Back")}
         </Button>
 
         <Button
           variant="contained"
           onClick={handleSave}
         >
-          Guardar
+          {t("Save")}
         </Button>
       </Box>
     </Container>

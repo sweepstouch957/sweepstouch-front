@@ -1,0 +1,242 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+'use client';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Box, Typography, Stack, Chip, IconButton, Tooltip } from '@mui/material';
+import TerminalIcon from '@mui/icons-material/Terminal';
+import CircleIcon from '@mui/icons-material/Circle';
+import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
+import BoltRounded from '@mui/icons-material/BoltRounded';
+import { io, type Socket } from 'socket.io-client';
+
+interface FeedEvent {
+  orderNumber?: string;
+  storeName?: string;
+  storeSlug?: string;
+  customerName?: string;
+  event: string;
+  fulfillmentStatus?: string;
+  paidOnline?: boolean;
+  totalCents?: number;
+  ts: string;
+}
+
+// Etiqueta legible de cada transición que emite order-service (notifySupportOrderEvent).
+const EVENT_LABEL: Record<string, string> = {
+  created: 'Creada · falta revisión',
+  reviewed: 'Revisada',
+  paid_online: 'Pagada ONLINE',
+  paid_in_store: 'Pagada en caja',
+  preparing: 'Preparando',
+  ready: 'Lista',
+  completed: 'Completada',
+  validated: 'Validada (QR)',
+  cancelled: 'Cancelada',
+};
+
+/**
+ * Chrome de la CONSOLA. No son tokens del theme a propósito: este widget imita
+ * una terminal y se mantiene oscuro en light y dark mode (igual que un editor de
+ * código embebido). Se centralizan acá para que no haya hex sueltos en el JSX.
+ */
+const TERM = {
+  bg: '#0b1020',
+  headerBg: '#0e1530',
+  border: 'rgba(255,255,255,0.08)',
+  headerBorder: 'rgba(255,255,255,0.06)',
+  text: '#e2e8f0',
+  muted: '#cbd5e1',
+  dim: '#94a3b8',
+  faint: '#64748b',
+  timestamp: '#475569',
+  accent: '#7dd3fc',
+  online: '#22c55e',
+  priority: '#f9a8d4',
+  priorityLine: '#ec4899',
+  priorityBg: 'rgba(236,72,153,0.10)',
+  priorityBgActive: 'rgba(236,72,153,0.25)',
+  priorityBgHover: 'rgba(236,72,153,0.15)',
+  priorityBorder: 'rgba(236,72,153,0.4)',
+} as const;
+
+const SOCKET_URL = process.env.NEXT_PUBLIC_NOTIFICATION_URL || 'http://localhost:4008';
+// Reused currency formatter; literal locale + options, hoisted to module scope.
+const usdFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+const usd = (c?: number) => usdFmt.format((c || 0) / 100);
+
+/**
+ * Feed en vivo para SOPORTE TÉCNICO: cada cambio de estado de pedido de CUALQUIER tienda.
+ * Escucha la sala global "support" (notification-service, evento "support_order_event").
+ * Las órdenes pagadas EN LÍNEA se resaltan (prioridad) y se pueden filtrar.
+ */
+export default function SupportOrderFeed() {
+  const [events, setEvents] = useState<FeedEvent[]>([]);
+  const [onlyPriority, setOnlyPriority] = useState(false);
+  const [connected, setConnected] = useState(false);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const autoScroll = useRef(true);
+
+  const push = useCallback((e: FeedEvent) => {
+    setEvents((prev) => [...prev.slice(-499), e]); // cap 500
+  }, []);
+
+  useEffect(() => {
+    const serverUrl = SOCKET_URL.startsWith('http') ? new URL(SOCKET_URL).origin : SOCKET_URL;
+    const socket: Socket = io(serverUrl, {
+      path: '/socket.io',
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 10,
+      reconnectionDelay: 3000,
+      withCredentials: true,
+    });
+    socket.on('connect', () => {
+      setConnected(true);
+      socket.emit('join_room', { room: 'support' });
+    });
+    socket.on('disconnect', () => setConnected(false));
+    socket.on('support_order_event', (data: any) => {
+      const m = data?.metadata || data || {};
+      push({
+        orderNumber: m.orderNumber,
+        storeName: m.storeName || m.storeSlug,
+        storeSlug: m.storeSlug,
+        customerName: m.customerName,
+        event: m.event || m.fulfillmentStatus || 'update',
+        fulfillmentStatus: m.fulfillmentStatus,
+        paidOnline: !!m.paidOnline,
+        totalCents: m.totalCents,
+        ts: m.ts || new Date().toISOString(),
+      });
+    });
+    return () => {
+      socket.off('connect');
+      socket.off('disconnect');
+      socket.off('support_order_event');
+      socket.disconnect();
+    };
+  }, [push]);
+
+  useEffect(() => {
+    if (autoScroll.current && bodyRef.current) {
+      bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
+    }
+  }, [events]);
+
+  const shown = onlyPriority ? events.filter((e) => e.paidOnline) : events;
+  const priorityCount = events.filter((e) => e.paidOnline).length;
+
+  return (
+    <Box
+      sx={{
+        borderRadius: '14px',
+        overflow: 'hidden',
+        border: `1px solid ${TERM.border}`,
+        bgcolor: TERM.bg,
+      }}
+    >
+      {/* Header */}
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={1.25}
+        sx={{ px: 2, py: 1.1, bgcolor: TERM.headerBg, borderBottom: `1px solid ${TERM.headerBorder}` }}
+      >
+        <TerminalIcon sx={{ color: TERM.accent, fontSize: 19 }} />
+        <Typography sx={{ color: TERM.text, fontWeight: 800, fontSize: 13.5, fontFamily: 'monospace' }}>
+          soporte · pedidos en vivo
+        </Typography>
+        <Tooltip title={connected ? 'En vivo' : 'Conectando…'}>
+          <CircleIcon
+            sx={{
+              fontSize: 10,
+              color: connected ? TERM.online : TERM.faint,
+              '@keyframes livedot': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.35 } },
+              animation: connected ? 'livedot 1.5s ease-in-out infinite' : 'none',
+            }}
+          />
+        </Tooltip>
+        <Box flex={1} />
+        <Chip
+          label={
+            <>
+              <BoltRounded sx={{ fontSize: 14, verticalAlign: 'middle', mr: 0.4 }} />
+              {`prioridad ${priorityCount}`}
+            </>
+          }
+          size="small"
+          onClick={() => setOnlyPriority((v) => !v)}
+          sx={{
+            height: 21,
+            fontSize: 10.5,
+            fontFamily: 'monospace',
+            cursor: 'pointer',
+            bgcolor: onlyPriority ? TERM.priorityBgActive : 'transparent',
+            color: TERM.priority,
+            border: `1px solid ${TERM.priorityBorder}`,
+            '&:hover': { bgcolor: TERM.priorityBgHover },
+          }}
+        />
+        <Tooltip title="Limpiar">
+          <IconButton size="small" onClick={() => setEvents([])} sx={{ color: TERM.dim }}>
+            <DeleteSweepIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+
+      {/* Body */}
+      <Box
+        ref={bodyRef}
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          autoScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+        }}
+        sx={{
+          height: 380,
+          overflowY: 'auto',
+          px: 2,
+          py: 1.4,
+          fontFamily: 'monospace',
+          fontSize: 12.5,
+          lineHeight: 1.7,
+          bgcolor: TERM.bg,
+        }}
+      >
+        {shown.length === 0 ? (
+          <Typography sx={{ color: TERM.faint, fontFamily: 'monospace', fontSize: 12.5 }}>
+            {'// esperando cambios de estado…'}
+          </Typography>
+        ) : (
+          shown.map((e, i) => (
+            <Box
+              key={`${e.event}-${e.orderNumber ?? ''}-${e.ts}`}
+              sx={{
+                display: 'flex',
+                gap: 1,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                px: e.paidOnline ? 0.75 : 0,
+                py: e.paidOnline ? 0.25 : 0,
+                my: e.paidOnline ? 0.25 : 0,
+                borderRadius: e.paidOnline ? 1 : 0,
+                bgcolor: e.paidOnline ? TERM.priorityBg : 'transparent',
+                borderLeft: e.paidOnline ? `2px solid ${TERM.priorityLine}` : '2px solid transparent',
+              }}
+            >
+              <span style={{ color: TERM.timestamp }}>
+                {new Date(e.ts).toLocaleTimeString('es-US', { hour12: false })}
+              </span>
+              {e.paidOnline ? <BoltRounded sx={{ color: TERM.priority, fontSize: 15 }} /> : null}
+              <span style={{ color: TERM.accent, minWidth: 120 }}>{e.storeName || '—'}</span>
+              <span style={{ color: TERM.text, fontWeight: 700, minWidth: 96 }}>{e.orderNumber || '—'}</span>
+              <span style={{ color: e.paidOnline ? TERM.priority : TERM.muted, flex: 1 }}>
+                {EVENT_LABEL[e.event] || e.event}
+                {e.customerName ? `  ·  ${e.customerName}` : ''}
+                {typeof e.totalCents === 'number' ? `  ·  ${usd(e.totalCents)}` : ''}
+              </span>
+            </Box>
+          ))
+        )}
+      </Box>
+    </Box>
+  );
+}

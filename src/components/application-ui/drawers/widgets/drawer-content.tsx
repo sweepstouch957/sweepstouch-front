@@ -140,6 +140,7 @@ const Component = () => {
               color="primary.main"
               noWrap
               fontWeight={500}
+              suppressHydrationWarning
             >
               {formatDistance(subMinutes(new Date(), 32), new Date(), { addSuffix: true })}
             </Typography>

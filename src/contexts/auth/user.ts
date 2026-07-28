@@ -6,7 +6,10 @@ export type UserRole =
   | 'promotor'
   | 'campaign_manager'
   | 'promotor_manager'
-  | 'general_manager';
+  | 'general_manager'
+  | 'merchant_manager'
+  | 'marketing'
+  | 'tecnico';
 
 
 export interface User {
@@ -18,4 +21,14 @@ export interface User {
   phone?: string;
   role: UserRole;
   phoneNumber?: string;
+  countryCode?: string;
+  profileImage?: string;
+  address?: string;
+  storeId?: string;
+  departmentId?: string;
+  department?: { _id: string; name: string; color: string; icon: string };
+  active?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  lastLogin?: string;
 }
