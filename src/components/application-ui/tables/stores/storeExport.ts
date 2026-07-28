@@ -98,6 +98,7 @@ export const STORE_EXPORT_FIELDS: StoreExportField[] = [
   { key: 'membership', label: 'Membership',     group: 'Comercial', width: 12, value: (s) => s?.membershipType || '' },
   { key: 'payment',    label: 'Payment method', group: 'Comercial', width: 15, value: (s) => s?.paymentMethod || '' },
   { key: 'provider',   label: 'Provider',       group: 'Comercial', width: 11, value: (s) => s?.provider || '' },
+  { key: 'circularss', label: 'Circularss',      group: 'Comercial', width: 11, value: (s) => (s?.circularss ? 'Sí' : 'No') },
   { key: 'createdAt',  label: 'Created',        group: 'Comercial', width: 12, value: (s) => fmtDate(s?.createdAt) },
 
   // ── Contacto ──
