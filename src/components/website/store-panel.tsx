@@ -17,6 +17,7 @@ import {
   ContentCopyOutlined,
   Delete,
   EditRounded,
+  LinkRounded,
   PersonAddRounded,
   PictureAsPdf,
   SaveRounded,
@@ -786,6 +787,58 @@ export default function StoreInfo({ store }: { store: Store }) {
                       <MenuItem value="delinquent">Moroso</MenuItem>
                       <MenuItem value="suspended">Suspendido</MenuItem>
                     </TextField>
+                  </Grid>
+                  <Grid
+                    item
+                    xs={12}
+                  >
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={!!(form as any).circularss}
+                          onChange={(e) =>
+                            setForm((s: any) => ({ ...s, circularss: e.target.checked }))
+                          }
+                          disabled={!edit}
+                          size="small"
+                        />
+                      }
+                      label={
+                        <Typography
+                          variant="caption"
+                          fontWeight={700}
+                          color="text.secondary"
+                        >
+                          Pertenece a Circularss
+                        </Typography>
+                      }
+                    />
+                  </Grid>
+                  <Grid
+                    item
+                    xs={12}
+                  >
+                    <TextField
+                      label="Circulars URL"
+                      fullWidth
+                      size="small"
+                      value={(form as any).circularssUrl || ''}
+                      onChange={(e) =>
+                        setForm((s: any) => ({ ...s, circularssUrl: e.target.value || null }))
+                      }
+                      disabled={!edit}
+                      placeholder="https://..."
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <LinkRounded
+                              fontSize="small"
+                              color="disabled"
+                            />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
                   </Grid>
                 </Grid>
               </Section>
