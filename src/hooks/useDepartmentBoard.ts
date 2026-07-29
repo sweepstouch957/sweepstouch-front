@@ -49,12 +49,13 @@ export const ROLE_STYLE: Record<string, { label: string; color: string }> = {
 };
 
 /**
- * Only staff roles — we don't show merchants/cashiers/promotors in the department board.
+ * Only staff roles — fuera merchants/cashiers/promotors y sus managers: no participan
+ * en departamentos ni en el flujo de tareas.
  * This drastically reduces the number of users fetched + rendered.
  */
 const STAFF_ROLES = [
   'admin', 'design', 'campaign_manager', 'general_manager',
-  'marketing', 'merchant_manager', 'promotor_manager', 'tecnico',
+  'marketing', 'tecnico',
 ];
 
 // ─── Slim user type (only fields we actually need) ────────────────────────────

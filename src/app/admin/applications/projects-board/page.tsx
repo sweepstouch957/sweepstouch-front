@@ -177,7 +177,7 @@ function EditProjectDrawer({
   }, [project]);
 
   const teamMembers = useMemo(() => {
-    const excluded = ['merchant', 'cashier', 'promotor'];
+    const excluded = ['merchant', 'cashier', 'promotor', 'merchant_manager', 'promotor_manager'];
     return allUsers.filter((u: any) => !excluded.includes(u.role));
   }, [allUsers]);
 
