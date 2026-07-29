@@ -58,6 +58,7 @@ const buildPatch = (orig, curr) => {
     'membershipType',
     'paymentMethod',
     'startContractDate',
+    'circularss',
     'cancelContractDate',
     'cancelContractReason',
     'status',
@@ -177,6 +178,7 @@ export function useStoreEditor(store) {
     membershipType: store.membershipType ?? 'semanal',
     paymentMethod: store.paymentMethod ?? 'card',
     startContractDate: store.startContractDate ?? null,
+    circularss: store.circularss ?? false,
     cancelContractDate: store.cancelContractDate ?? null,
     cancelContractReason: store.cancelContractReason || '',
 
@@ -324,6 +326,7 @@ export function useStoreEditor(store) {
       membershipType: store.membershipType ?? 'semanal',
       paymentMethod: store.paymentMethod ?? 'card',
       startContractDate: store.startContractDate ?? null,
+      circularss: store.circularss ?? false,
       cancelContractDate: store.cancelContractDate ?? null,
       cancelContractReason: store.cancelContractReason || '',
 
