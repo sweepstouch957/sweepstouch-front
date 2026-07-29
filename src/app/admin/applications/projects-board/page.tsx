@@ -15,6 +15,7 @@ import {
   Chip,
   CircularProgress,
   Container,
+  Skeleton,
   Dialog,
   DialogActions,
   DialogContent,
@@ -765,7 +766,17 @@ export default function ProjectsBoardPage() {
 
         {/* ── Loading ── */}
         {isLoading && (
-          <Box display="flex" justifyContent="center" py={8}><CircularProgress /></Box>
+          <Box
+            sx={{
+              display: 'grid',
+              gap: 2,
+              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' },
+            }}
+          >
+            {Array.from({ length: 6 }, (_, i) => (
+              <Skeleton key={i} variant="rounded" height={210} />
+            ))}
+          </Box>
         )}
 
         {/* ── Empty ── */}
@@ -1167,7 +1178,7 @@ export default function ProjectsBoardPage() {
               </Box>
             </>
           ) : (
-            <Box display="flex" justifyContent="center" py={4}><CircularProgress /></Box>
+            <Skeleton variant="rounded" height={220} />
           )}
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>

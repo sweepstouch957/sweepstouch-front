@@ -14,7 +14,14 @@ function CustomNProgress() {
   React.useEffect(() => {
     NProgress.configure({ showSpinner: false });
 
-    // Use a single, capturing click listener for all links.
+    let safetyTimer: number | undefined;
+    const finish = () => {
+      window.clearTimeout(safetyTimer);
+      NProgress.done();
+    };
+
+    // Bubbling phase (not capture): React's own handlers run first, so a link
+    // that calls preventDefault() is correctly ignored here.
     const onClick = (event: MouseEvent) => {
       const el = event.target as HTMLElement | null;
       const anchor = el?.closest?.('a[href]') as HTMLAnchorElement | null;
@@ -32,14 +39,27 @@ function CustomNProgress() {
         return;
       }
 
-      const targetUrl = anchor.href;
-      const currentUrl = window.location.href;
-      if (targetUrl && targetUrl !== currentUrl) {
-        NProgress.start();
-      }
+      // Estos casos navegan fuera de esta página (u no navegan): nunca habría
+      // pushState y la barra quedaba corriendo para siempre.
+      if (anchor.target && anchor.target !== '_self') return; // _blank etc.
+      if (anchor.hasAttribute('download')) return;
+      if (anchor.origin !== window.location.origin) return; // link externo
+
+      // Hash-only / misma URL: no hay navegación real.
+      const samePath =
+        anchor.pathname === window.location.pathname &&
+        anchor.search === window.location.search;
+      if (samePath) return;
+
+      NProgress.start();
+
+      // Red de seguridad: si por cualquier motivo la navegación no ocurre,
+      // la barra se cierra sola en vez de quedarse infinita.
+      window.clearTimeout(safetyTimer);
+      safetyTimer = window.setTimeout(() => NProgress.done(), 8000);
     };
 
-    document.addEventListener('click', onClick, true);
+    document.addEventListener('click', onClick);
 
     // Ensure we finish the progress bar when navigation completes.
     const originalPushState = window.history.pushState;
@@ -49,7 +69,7 @@ function CustomNProgress() {
       return new Proxy(fn, {
         apply: (target, thisArg, argArray) => {
           const res = target.apply(thisArg, argArray as any);
-          NProgress.done();
+          finish();
           return res;
         },
       });
@@ -59,15 +79,16 @@ function CustomNProgress() {
     window.history.replaceState = wrapHistoryMethod(originalReplaceState);
 
     const onPopState = () => {
-      NProgress.done();
+      finish();
     };
     window.addEventListener('popstate', onPopState);
 
     return () => {
-      document.removeEventListener('click', onClick, true);
+      document.removeEventListener('click', onClick);
       window.removeEventListener('popstate', onPopState);
       window.history.pushState = originalPushState;
       window.history.replaceState = originalReplaceState;
+      window.clearTimeout(safetyTimer);
       NProgress.done(true);
     };
   }, []);

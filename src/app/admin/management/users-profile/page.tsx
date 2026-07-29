@@ -11,6 +11,7 @@ import {
   CardMedia,
   Chip,
   CircularProgress,
+  Skeleton,
   Container,
   Divider,
   Unstable_Grid2 as Grid,
@@ -215,17 +216,26 @@ export default function UserProfilePage() {
   const roleMeta = roleMetaOf(theme, user?.role || 'admin');
 
   if (loadingUsers || !userId) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" height="60vh">
-        {!userId ? (
+    if (!userId) {
+      return (
+        <Box display="flex" justifyContent="center" alignItems="center" height="60vh">
           <Stack alignItems="center" spacing={2}>
             <Typography variant="h5" color="text.secondary">No user selected</Typography>
             <Button variant="outlined" onClick={() => push('/admin/management/users-listing')}>
               Go to Users
             </Button>
           </Stack>
-        ) : <CircularProgress />}
-      </Box>
+        </Box>
+      );
+    }
+    // Skeleton con la silueta del perfil: mismo alto aproximado que el contenido real (CLS)
+    return (
+      <Container maxWidth="xl">
+        <Stack spacing={2} mt={2}>
+          <Skeleton variant="rounded" height={220} />
+          <Skeleton variant="rounded" height={420} />
+        </Stack>
+      </Container>
     );
   }
 

@@ -467,6 +467,7 @@ function CampaignsGrid({ storeId, forceCards = false }: CampaignsGridProps) {
     storeName: '',
     type: '',
     platform: '',
+    circularss: '',
     startDate: '',
     endDate: '',
     page: 1,
@@ -489,10 +490,11 @@ function CampaignsGrid({ storeId, forceCards = false }: CampaignsGridProps) {
     title: filters.title,
     type: filters.type,
     platform: filters.platform,
+    circularss: filters.circularss,
     startDate: filters.startDate,
     endDate: filters.endDate,
     storeId: filters.storeId,
-  }), [filters.status, filters.title, filters.type, filters.platform, filters.startDate, filters.endDate, filters.storeId]);
+  }), [filters.status, filters.title, filters.type, filters.platform, filters.circularss, filters.startDate, filters.endDate, filters.storeId]);
 
   const { data: stats, isFetching: statsFetching } = useQuery({
     queryKey: ['campaigns-stats', statsKey],
@@ -502,6 +504,7 @@ function CampaignsGrid({ storeId, forceCards = false }: CampaignsGridProps) {
         title: filters.title || undefined,
         type: filters.type || undefined,
         platform: filters.platform || undefined,
+        circularss: filters.circularss || undefined,
         startDate: filters.startDate || undefined,
         endDate: filters.endDate || undefined,
         storeId: filters.storeId || undefined,

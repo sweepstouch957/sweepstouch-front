@@ -18,6 +18,7 @@ import {
   MenuItem,
   Paper,
   Select,
+  Skeleton,
   Stack,
   TextField,
   Typography,
@@ -465,16 +466,10 @@ function YearBlock({
       </Stack>
 
       {isLoading ? (
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: 260,
-          }}
-        >
-          <CircularProgress />
-        </Box>
+        <Skeleton
+          variant="rounded"
+          height={320}
+        />
       ) : isError ? (
         <Alert
           severity="error"
@@ -833,9 +828,10 @@ return (
 
                 <Box sx={{ mt: 1 }}>
                   {comparePrevQ.isLoading ? (
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 240 }}>
-                      <CircularProgress size={26} />
-                    </Box>
+                    <Skeleton
+                      variant="rounded"
+                      height={360}
+                    />
                   ) : comparePrevQ.isError ? (
                     <Alert severity="error" icon={<ErrorOutlineRoundedIcon />}>
                       {t('Could not load comparison data.')}
@@ -994,11 +990,10 @@ return (
                 </Stack>
 
                 {dailyQ.isLoading ? (
-                  <Box
-                    sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 260 }}
-                  >
-                    <CircularProgress />
-                  </Box>
+                  <Skeleton
+                    variant="rounded"
+                    height={320}
+                  />
                 ) : dailyQ.isError ? (
                   <Alert severity="error" icon={<ErrorOutlineRoundedIcon />}>
                     {t('Could not load daily data.')}

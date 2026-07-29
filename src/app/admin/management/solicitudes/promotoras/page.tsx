@@ -35,6 +35,7 @@ import {
   Divider,
   IconButton,
   Snackbar,
+  Skeleton,
   Stack,
   TextField,
   Tooltip,
@@ -248,8 +249,20 @@ const ActivationRequestsPage = () => {
         )}
 
         {isLoading ? (
-          <Box sx={{ display: 'grid', placeItems: 'center', height: 240 }}>
-            <CircularProgress />
+          <Box
+            sx={{
+              display: 'grid',
+              gap: 3,
+              gridTemplateColumns: {
+                xs: 'repeat(1, 1fr)',
+                sm: 'repeat(2, 1fr)',
+                md: 'repeat(3, 1fr)',
+              },
+            }}
+          >
+            {Array.from({ length: 6 }, (_, i) => (
+              <Skeleton key={i} variant="rounded" height={220} />
+            ))}
           </Box>
         ) : (
           <Box

@@ -39,6 +39,7 @@ import {
   Paper,
   Select,
   Snackbar,
+  Skeleton,
   Stack,
   Table,
   TableBody,
@@ -266,9 +267,11 @@ export default function ContractsListingPage() {
       {/* ── Table ── */}
       <Paper elevation={0} sx={{ borderRadius: 2.5, border: `1px solid ${border}`, bgcolor: surface, overflow: 'hidden' }}>
         {isLoading ? (
-          <Box display="flex" alignItems="center" justifyContent="center" py={6}>
-            <CircularProgress size={24} />
-          </Box>
+          <Stack spacing={1} p={2}>
+            {Array.from({ length: 6 }, (_, i) => (
+              <Skeleton key={i} variant="rounded" height={52} />
+            ))}
+          </Stack>
         ) : contracts.length === 0 ? (
           <Box textAlign="center" py={6}>
             <ArticleRoundedIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />

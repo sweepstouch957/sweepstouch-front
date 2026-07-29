@@ -8,9 +8,11 @@ import {
   Chip,
   CircularProgress,
   FormControl,
+  FormControlLabel,
   MenuItem,
   Select,
   Stack,
+  Switch,
   TextField,
   Tooltip,
   Typography,
@@ -34,6 +36,7 @@ type CampaignFilters = {
   storeId?: string;
   deliveryRate?: string;
   platform?: string;
+  circularss?: string;
 };
 
 type Props = {
@@ -80,7 +83,8 @@ export default function CampaignsFilters({ filters, setFilters, storeId }: Props
     !!filters.startDate ||
     !!filters.endDate ||
     !!(filters.storeId && !storeId) ||
-    !!filters.deliveryRate;
+    !!filters.deliveryRate ||
+    !!filters.circularss;
 
   const handleClearAll = () => {
     setFilters({
@@ -91,6 +95,7 @@ export default function CampaignsFilters({ filters, setFilters, storeId }: Props
       endDate: '',
       storeId: storeId || '',
       deliveryRate: '',
+      circularss: '',
       page: 1,
       limit: filters.limit,
     });
@@ -204,6 +209,29 @@ export default function CampaignsFilters({ filters, setFilters, storeId }: Props
             <MenuItem value="100" sx={{ fontSize: 13 }}>100%</MenuItem>
           </Select>
         </FormControl>
+
+        {/* Circularss — un clic: sólo campañas de tiendas Circularss */}
+        <Tooltip title="Mostrar sólo campañas de tiendas Circularss">
+          <FormControlLabel
+            sx={{ mx: 0, flex: { xs: '1 1 calc(50% - 6px)', sm: '0 0 auto' } }}
+            control={
+              <Switch
+                size="small"
+                checked={filters.circularss === 'true'}
+                onChange={(e) => patch({ circularss: e.target.checked ? 'true' : '' })}
+              />
+            }
+            label={
+              <Typography
+                fontSize={13}
+                color={filters.circularss === 'true' ? 'text.primary' : 'text.secondary'}
+                fontWeight={filters.circularss === 'true' ? 700 : 400}
+              >
+                Circularss
+              </Typography>
+            }
+          />
+        </Tooltip>
 
         {/* Store Autocomplete */}
         {shouldShowStorePicker && (

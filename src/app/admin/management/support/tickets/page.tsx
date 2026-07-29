@@ -30,6 +30,7 @@ import {
   Pagination,
   Popover,
   Select,
+  Skeleton,
   Stack,
   Table,
   TableBody,
@@ -542,7 +543,11 @@ export default function TicketsPage() {
         {/* Mobile View — Cards list */}
         <Box sx={{ display: { xs: 'block', md: 'none' } }}>
           {isLoading ? (
-            <Box display="flex" justifyContent="center" py={6}><CircularProgress size={32} /></Box>
+            <Stack spacing={2} p={2}>
+              {Array.from({ length: 4 }, (_, i) => (
+                <Skeleton key={i} variant="rounded" height={130} />
+              ))}
+            </Stack>
           ) : !data?.data?.length ? (
             <Box display="flex" justifyContent="center" py={6}><Typography color="text.secondary">No hay tickets</Typography></Box>
           ) : (
