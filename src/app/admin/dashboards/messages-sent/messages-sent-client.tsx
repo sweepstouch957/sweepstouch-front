@@ -23,10 +23,7 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import dynamic from 'next/dynamic';
-const BarChart = dynamic(() => import('@mui/x-charts/BarChart').then((m) => m.BarChart), {
-  ssr: false,
-});
+import { BarChart } from 'src/components/base/lazy-charts';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DateCalendar, LocalizationProvider } from '@mui/x-date-pickers';
 import { PickersDay } from '@mui/x-date-pickers/PickersDay';

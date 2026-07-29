@@ -214,8 +214,10 @@ export default function AudienceInsightsPage() {
         </Stack>
       </Stack>
 
-      {/* Loading bar */}
-      {isLoadingAny && <LinearProgress sx={{ mb: 2, borderRadius: 1 }} />}
+      {/* Loading bar: slot de altura fija para que el refetch no empuje la página (CLS) */}
+      <Box sx={{ height: 4, mb: 2 }}>
+        {isLoadingAny && <LinearProgress sx={{ borderRadius: 1 }} />}
+      </Box>
 
       {/* Filter card */}
       <Paper

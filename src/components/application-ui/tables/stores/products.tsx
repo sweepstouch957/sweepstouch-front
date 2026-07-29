@@ -11,11 +11,11 @@ import StoreExportDialog from './StoreExportDialog';
 import { buildExportRows } from './storeExport';
 
 /**
- * Exporta el listado COMPLETO de tiendas (ignora los filtros de pantalla:
- * el pedido es "todas las tiendas") con las columnas elegidas en el modal.
+ * Exporta el listado de tiendas RESPETANDO los filtros de pantalla
+ * (status, circularss, provider, etc.) con las columnas elegidas en el modal.
  * No usa estado del componente; hoisted a module scope.
  */
-async function exportAll(selectedKeys: string[]) {
+async function exportAll(selectedKeys: string[], filters: Record<string, any> = {}) {
   const limitPage = 500;
   let pageNo = 1;
   let all: any[] = [];
@@ -24,14 +24,16 @@ async function exportAll(selectedKeys: string[]) {
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const res: any = await svc.getStores({
-      page: pageNo,
-      limit: limitPage,
       status: 'all',
-      sortBy: 'name',
-      order: 'asc',
       debtStatus: 'all',
       paymentMethod: 'all',
       provider: 'all',
+      circularss: 'all',
+      ...filters,
+      page: pageNo,
+      limit: limitPage,
+      sortBy: 'name',
+      order: 'asc',
     });
 
     const data = res?.data || [];
@@ -175,7 +177,19 @@ function Component() {
       <StoreExportDialog
         open={exportOpen}
         onClose={() => setExportOpen(false)}
-        onExport={exportAll}
+        onExport={(keys) =>
+          exportAll(keys, {
+            search,
+            status,
+            audienceLt,
+            debtStatus,
+            minDebt,
+            maxDebt,
+            paymentMethod,
+            provider,
+            circularss,
+          })
+        }
       />
     </>
   );

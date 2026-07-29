@@ -220,7 +220,61 @@ Esta sección resume las reglas de código; el design system define el lenguaje 
 `PROJECT_COLORS` del selector de proyecto) — deben ser estables e
 independientes del theme. Se documenta con comentario el porqué.
 
-## 8. Buenas prácticas transversales
+## 8. Next.js — mejores prácticas (App Router)
+
+Este proyecto usa **App Router**. `getServerSideProps`/`getStaticProps` son del
+Pages Router y **no aplican aquí**; su equivalente es Server Components +
+`fetch` en servidor.
+
+### Server vs Client Components
+
+- Hoy 95 de 104 archivos de `app/` son `'use client'`. Para un panel autenticado
+  con datos vivos eso es razonable, pero el default de archivos **nuevos** debe
+  ser: server component salvo que necesite hooks/eventos.
+- `layout.tsx` y wrappers estáticos: server components siempre. Empujar
+  `'use client'` al componente hoja más pequeño posible — cada `'use client'`
+  arrastra todo su subtree al bundle del cliente.
+- Páginas públicas (demo, sweepstakes, auth) son las primeras candidatas a
+  fetch en servidor: menos JS, mejor TTFB/SEO.
+
+### Dynamic imports — regla
+
+`next/dynamic` (con `ssr: false` si toca `window`) es **obligatorio** para:
+
+- Dialogs/drawers pesados que no se ven en el primer render
+  (ya montamos condicional `{open && <Dialog>}` — dynamic además saca el código del bundle inicial).
+- Charts (ApexCharts/Chart.js), editores (Quill), calendario (FullCalendar),
+  mapas, y cualquier lib > ~30kb que no pinte above-the-fold.
+
+```tsx
+const TaskDialog = dynamic(() => import('./task-dialog').then(m => m.TaskDialog), {
+  loading: () => null, // dialogs no necesitan skeleton
+});
+const SalesChart = dynamic(() => import('./sales-chart'), {
+  ssr: false,
+  loading: () => <Skeleton variant="rounded" height={320} />, // misma altura = sin CLS
+});
+```
+
+Regla del skeleton: el `loading` de un dynamic **reserva la misma altura** que
+el componente final — si no, el dynamic import genera layout shift.
+
+### Resto del framework
+
+- **Imágenes**: `next/image` con `width`/`height` (o `fill` + contenedor con
+  aspect-ratio) — nunca `<img>` sin dimensiones. Es la fuente #1 de CLS.
+- **`loading.tsx` por segmento de ruta** para navegaciones: skeleton del layout
+  de la página, no spinner centrado (el spinner→contenido es un layout shift).
+- **Navegación**: `next/link` / `router.push` — nunca `window.location` interno.
+- **Metadata API** (`export const metadata`) en páginas server; título por página.
+- **Route handlers** (`app/api/`) solo para proxies/secretos (ej. `store-logo`);
+  la lógica de negocio vive en el backend, no en `app/api`.
+- **Fonts**: preload de woff2 en layout (ya hecho) o `next/font` — nunca CSS
+  `@import` de fuentes.
+- **Prohibido**: `getServerSideProps`, `getInitialProps`, `next/head` (App
+  Router usa Metadata API), `<img>` para assets propios.
+
+## 9. Buenas prácticas transversales
 
 - **Imports**: alias `@/` o `src/` (nunca `../../../`). Tipos con `import type`.
 - **TypeScript**: DTOs y entidades siempre tipados desde el service. `any` solo
@@ -236,7 +290,7 @@ independientes del theme. Se documenta con comentario el porqué.
   página ya usa `useTranslation`, los strings nuevos van por `t()`.
 - **Commits**: no mezclar refactor de estructura con cambios de comportamiento.
 
-## 9. Checklist para una feature nueva
+## 10. Checklist para una feature nueva
 
 1. Service en `src/services/<dominio>.service.ts` con tipos exportados.
 2. Hooks de query en `hooks/fetching/<dominio>/` (si son reutilizables).
@@ -244,10 +298,11 @@ independientes del theme. Se documenta con comentario el porqué.
 4. `page.tsx` de ~10 líneas que monta el shell.
 5. Mutations con `invalidateQueries` + toast.
 6. Colores vía theme/semantic, probado en dark mode.
-7. Loading, empty y error states.
-8. `npx tsc --noEmit` limpio antes de commitear.
+7. Loading, empty y error states (skeletons con altura reservada, no spinner que desplaza).
+8. Dialogs/charts/editores pesados via `next/dynamic`; imágenes via `next/image` con dimensiones.
+9. `npx tsc --noEmit` limpio antes de commitear.
 
-## 10. Roadmap — qué falta para nivel producción
+## 11. Roadmap — qué falta para nivel producción
 
 Lo que el proyecto todavía no tiene y debería, en orden de impacto:
 

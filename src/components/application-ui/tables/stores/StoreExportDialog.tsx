@@ -92,7 +92,7 @@ export function StoreExportDialog({ open, onClose, onExport }: Props) {
           Exportar tiendas
         </Typography>
         <Typography variant="caption" color="text.secondary">
-          Elige las columnas del archivo. Se exportan todas las tiendas, sin importar los filtros de pantalla.
+          Elige las columnas del archivo. Se exportan las tiendas según los filtros activos en pantalla.
         </Typography>
       </DialogTitle>
 
