@@ -19,12 +19,14 @@ import {
   Collapse,
   Divider,
   FormControl,
+  FormControlLabel,
   IconButton,
   InputAdornment,
   MenuItem,
   Paper,
   Select,
   Stack,
+  Switch,
   TextField,
   Tooltip,
   Typography,
@@ -372,30 +374,28 @@ export default function StoreFilters({
           </Select>
         </FormControl>
 
-        {/* Circularss */}
-        <FormControl
-          size="small"
-          sx={{ ...selectSx, flex: { xs: '1 1 calc(50% - 4px)', sm: '0 0 128px' } }}
-        >
-          <Select
-            value={circularss}
-            displayEmpty
-            onChange={(e) => onCircularssChange(e.target.value)}
-            renderValue={(val) => (
-              <Typography fontSize={13} color={!val || val === 'all' ? 'text.secondary' : 'text.primary'}>
-                {!val || val === 'all'
-                  ? 'Circularss'
-                  : val === 'true'
-                    ? 'Circularss: Sí'
-                    : 'Circularss: No'}
+        {/* Circularss — un clic: sólo las de Circularss */}
+        <Tooltip title="Mostrar sólo tiendas de Circularss">
+          <FormControlLabel
+            sx={{ mx: 0, flex: { xs: '1 1 calc(50% - 4px)', sm: '0 0 auto' } }}
+            control={
+              <Switch
+                size="small"
+                checked={circularss === 'true'}
+                onChange={(e) => onCircularssChange(e.target.checked ? 'true' : 'all')}
+              />
+            }
+            label={
+              <Typography
+                fontSize={13}
+                color={circularss === 'true' ? 'text.primary' : 'text.secondary'}
+                fontWeight={circularss === 'true' ? 700 : 400}
+              >
+                Circularss
               </Typography>
-            )}
-          >
-            <MenuItem value="all" sx={{ fontSize: 13 }}>Todas</MenuItem>
-            <MenuItem value="true" sx={{ fontSize: 13 }}>Sí pertenece</MenuItem>
-            <MenuItem value="false" sx={{ fontSize: 13 }}>No pertenece</MenuItem>
-          </Select>
-        </FormControl>
+            }
+          />
+        </Tooltip>
 
         {/* Sort */}
         <FormControl

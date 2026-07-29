@@ -82,6 +82,7 @@ type Props = {
     paymentMethod: NonNullable<Store['paymentMethod']>;
     startContractDate: string | null;
     circularss: boolean;
+    circularssUrl?: string | null;
     cancelContractDate?: string | null;
     cancelContractReason?: string;
     status?: Store['status'];
@@ -855,40 +856,45 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
                 }}
               />
             </LocalizationProvider>
-            <Box>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                display="block"
-              >
-                Circularss
-              </Typography>
-              <Stack
-                direction="row"
-                spacing={2}
-              >
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={form.circularss}
-                      onChange={() => onChange('circularss')({ value: true })}
-                      disabled={!edit}
-                    />
-                  }
-                  label="Sí"
+            {/* Circularss: un solo booleano ⇒ un solo control. Antes eran dos
+                checkboxes "Sí"/"No" que podían leerse como opciones independientes. */}
+            <FormControlLabel
+              sx={{ ml: 0 }}
+              control={
+                <Switch
+                  checked={!!form.circularss}
+                  onChange={(e) => onChange('circularss')({ value: e.target.checked })}
+                  disabled={!edit}
+                  size="small"
                 />
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={!form.circularss}
-                      onChange={() => onChange('circularss')({ value: false })}
-                      disabled={!edit}
-                    />
-                  }
-                  label="No"
-                />
-              </Stack>
-            </Box>
+              }
+              label={
+                <Typography
+                  variant="body2"
+                  fontSize={13}
+                >
+                  Pertenece a Circularss
+                </Typography>
+              }
+            />
+            {form.circularss && (
+              <TextField
+                label="URL del circular"
+                fullWidth
+                size="small"
+                value={(form as any).circularssUrl || ''}
+                onChange={(e) => onChange('circularssUrl')({ value: e.target.value || null })}
+                disabled={!edit}
+                placeholder="https://..."
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LinkRounded sx={{ fontSize: 16, color: 'text.disabled' }} />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            )}
           </Stack>
         </CollapsibleSection>
 
