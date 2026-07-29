@@ -1293,6 +1293,21 @@ export default function StoreInfo({ store }: { store: Store }) {
                       <Chip size="small" label="Suspendido" color="error" sx={{ mr: 1 }} />Suspendido
                     </MenuItem>
                   </TextField>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={!!(form as any).circularss}
+                        onChange={(e) => setForm((s: any) => ({ ...s, circularss: e.target.checked }))}
+                        disabled={!edit}
+                        size="small"
+                      />
+                    }
+                    label={
+                      <Typography variant="caption" fontWeight={700} color="text.secondary">
+                        Pertenece a Circularss
+                      </Typography>
+                    }
+                  />
                   <TextField
                     label="Circulars URL"
                     fullWidth

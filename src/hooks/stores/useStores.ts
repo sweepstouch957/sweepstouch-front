@@ -13,6 +13,7 @@ export type PaymentMethodFilter =
   | 'cash';
 
 export type ProviderFilter = 'all' | 'twilio' | 'bandwidth' | 'infobip';
+export type CircularssFilter = 'all' | 'true' | 'false';
 export type StoreStatusFilter = 'all' | 'active' | 'suspended' | 'cancelled';
 
 export interface UseStoresOptions {
@@ -34,6 +35,9 @@ export interface UseStoresOptions {
 
   // ⭐ nuevo: filtro por proveedor SMS
   provider?: ProviderFilter;
+
+  // ⭐ nuevo: pertenece a Circularss
+  circularss?: CircularssFilter;
 }
 
 export const useStores = (initialOptions: UseStoresOptions = {}) => {
@@ -63,6 +67,11 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
   // ⭐ provider
   const [provider, setProvider] = useState<ProviderFilter>(
     initialOptions.provider ?? 'all'
+  );
+
+  // ⭐ circularss
+  const [circularss, setCircularss] = useState<CircularssFilter>(
+    initialOptions.circularss ?? 'all'
   );
 
   const [searchInput, setSearchInput] = useState(search);
@@ -96,6 +105,7 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
       maxDebt,
       paymentMethod, // ⭐ entra al cache key
       provider,      // ⭐ entra al cache key
+      circularss,    // ⭐ entra al cache key
     ],
     queryFn: () =>
       storesService.getStores({
@@ -111,6 +121,7 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
         maxDebt,
         paymentMethod, // ⭐ se manda al backend
         provider,      // ⭐ se manda al backend
+        circularss,    // ⭐ se manda al backend
       }),
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
@@ -176,6 +187,11 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
     setPage(0);
   }, []);
 
+  const handleCircularssChange = useCallback((value: CircularssFilter) => {
+    setCircularss(value);
+    setPage(0);
+  }, []);
+
   // El backend ya filtra por `status` (enum real) y devuelve el total correcto.
   // Volver a filtrar en cliente rompía la paginación y el conteo.
   const stores = data?.data || [];
@@ -232,5 +248,9 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
     // ⭐ provider
     provider,
     handleProviderChange,
+
+    // ⭐ circularss
+    circularss,
+    handleCircularssChange,
   };
 };

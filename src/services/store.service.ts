@@ -280,6 +280,9 @@ export interface GetStoresParams {
   // ⭐ filtro por proveedor SMS
   provider?: 'all' | 'twilio' | 'bandwidth' | 'infobip';
 
+  // ⭐ pertenece a Circularss
+  circularss?: 'all' | 'true' | 'false';
+
   paymentMethod?: 'all' | 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
 }
 
@@ -305,6 +308,7 @@ export const getStores = async ({
   maxDebt = '',
   paymentMethod = 'all',
   provider = 'all',
+  circularss = 'all',
 }: GetStoresParams): Promise<GetStoresResponse> => {
   const params: Record<string, any> = {
     page,
@@ -321,6 +325,7 @@ export const getStores = async ({
 
   if (type) params.type = type;
   if (status !== 'all') params.status = status;
+  if (circularss !== 'all') params.circularss = circularss;
 
   if (!!audienceLt) {
     params.lt = audienceLt;

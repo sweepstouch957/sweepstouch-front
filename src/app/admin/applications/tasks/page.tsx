@@ -3,7 +3,13 @@
 import { useAuth } from '@/hooks/use-auth';
 import { usersApi } from '@/mocks/users';
 import { Department, departmentService } from '@/services/department.service';
-import { Task, taskClient, type BoardData } from '@/services/task.service';
+import {
+  RECURRENCE_LABEL,
+  Task,
+  taskClient,
+  type BoardData,
+  type Recurrence,
+} from '@/services/task.service';
 import { DragDropContext, Draggable, Droppable, type DropResult } from '@hello-pangea/dnd';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import CelebrationRoundedIcon from '@mui/icons-material/CelebrationRounded';
@@ -19,6 +25,7 @@ import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
 import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
 import FlagRoundedIcon from '@mui/icons-material/FlagRounded';
 import PersonOutlineRoundedIcon from '@mui/icons-material/PersonOutlineRounded';
+import RepeatRoundedIcon from '@mui/icons-material/RepeatRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import SubdirectoryArrowRightRoundedIcon from '@mui/icons-material/SubdirectoryArrowRightRounded';
@@ -78,6 +85,7 @@ type TaskFormState = {
   aiContext: string;
   tags: string;
   progress: number;
+  recurrence: Recurrence;
 };
 
 type ProjectFormState = {
@@ -793,7 +801,7 @@ function TasksPage(): React.JSX.Element {
   const [selectedDepts, setSelectedDepts] = useState<Department[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
   const [priorityFilter, setPriorityFilter] = useState('all');
-  const [viewTab, setViewTab] = useState<'board' | 'my_tasks'>('board');
+  const [viewTab, setViewTab] = useState<'board' | 'my_tasks' | 'routines'>('board');
   const [onlyMine, setOnlyMine] = useState(false);
   const { user: authUser } = useAuth();
 
@@ -815,6 +823,7 @@ function TasksPage(): React.JSX.Element {
     aiContext: '',
     tags: '',
     progress: 0,
+    recurrence: 'none',
   });
 
   /* ── New project dialog ── */
@@ -908,6 +917,14 @@ function TasksPage(): React.JSX.Element {
     staleTime: 30_000,
   });
 
+  /* ── Rutinarias (plantillas — no salen en el board) ── */
+  const { data: routines = [], isLoading: loadingRoutines } = useQuery({
+    queryKey: ['routines', selectedProjectId],
+    queryFn: () => taskClient.getRoutines(selectedProjectId || undefined),
+    enabled: viewTab === 'routines',
+    staleTime: 30_000,
+  });
+
   /* ── Client-side filter: search + priority only (dept/user handled by backend) ── */
   const filteredBoard = useMemo(() => {
     if (!board) return null;
@@ -956,6 +973,7 @@ function TasksPage(): React.JSX.Element {
     mutationFn: (p: any) => taskClient.createTask(p),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['board'] });
+      queryClient.invalidateQueries({ queryKey: ['routines'] });
       toast.success('Task created');
       closeDialog();
     },
@@ -964,6 +982,7 @@ function TasksPage(): React.JSX.Element {
     mutationFn: ({ id, ...p }: any) => taskClient.updateTask(id, p),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['board'] });
+      queryClient.invalidateQueries({ queryKey: ['routines'] });
       toast.success('Task updated');
       closeDialog();
     },
@@ -972,6 +991,7 @@ function TasksPage(): React.JSX.Element {
     mutationFn: (id: string) => taskClient.deleteTask(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['board'] });
+      queryClient.invalidateQueries({ queryKey: ['routines'] });
       toast.success('Task deleted');
     },
   });
@@ -1046,6 +1066,7 @@ function TasksPage(): React.JSX.Element {
       aiContext: '',
       tags: '',
       progress: 0,
+      recurrence: 'none',
     });
   }
 
@@ -1068,6 +1089,7 @@ function TasksPage(): React.JSX.Element {
       aiContext: task.aiContext || '',
       tags: task.tags?.join(', ') || '',
       progress: task.progress || 0,
+      recurrence: task.recurrence || 'none',
     });
     setNewTaskStatus(task.status);
     setTaskDialogOpen(true);
@@ -1093,6 +1115,9 @@ function TasksPage(): React.JSX.Element {
       progress: taskForm.progress,
       status: newTaskStatus,
       projectId: selectedProjectId,
+      recurrence: taskForm.recurrence,
+      // Una rutinaria es plantilla: la fecha la pone el generador en cada copia
+      ...(taskForm.recurrence !== 'none' ? { dueDate: null } : {}),
     };
     if (editingTask) updateTaskMut.mutate({ id: editingTask._id, ...payload });
     else createTaskMut.mutate(payload);
@@ -1300,6 +1325,12 @@ function TasksPage(): React.JSX.Element {
             icon={<AssignmentIndRoundedIcon sx={{ fontSize: 15 }} />}
             iconPosition="start"
             label={`My Tasks${myTasks.length > 0 ? ` (${myTasks.length})` : ''}`}
+          />
+          <Tab
+            value="routines"
+            icon={<RepeatRoundedIcon sx={{ fontSize: 15 }} />}
+            iconPosition="start"
+            label="Rutinarias"
           />
         </Tabs>
       </Container>
@@ -1534,6 +1565,132 @@ function TasksPage(): React.JSX.Element {
                 })}
             </Stack>
           )}
+        </Container>
+      )}
+      {/* ═══ RUTINARIAS ═══ */}
+      {viewTab === 'routines' && (
+        <Container
+          disableGutters={!mdUp}
+          maxWidth={customization.stretch ? false : 'xl'}
+          sx={{ flex: 1, overflow: 'auto', pb: 4 }}
+        >
+          <Card sx={{ borderRadius: 3, mt: 1 }}>
+            <Box
+              px={2}
+              py={1.25}
+              sx={{ borderBottom: `1px solid ${alpha(theme.palette.divider, 0.12)}` }}
+            >
+              <Typography
+                variant="subtitle2"
+                fontWeight={800}
+                fontSize={13}
+              >
+                Plantillas rutinarias
+              </Typography>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                No aparecen en el board. Cada día que toca se crea una copia en To Do
+                automáticamente. Para crear una, abre una tarea nueva y elige un valor en “Repetir”.
+              </Typography>
+            </Box>
+
+            {loadingRoutines ? (
+              <Box
+                display="flex"
+                justifyContent="center"
+                py={5}
+              >
+                <CircularProgress />
+              </Box>
+            ) : routines.length === 0 ? (
+              <Box
+                textAlign="center"
+                py={5}
+              >
+                <RepeatRoundedIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                >
+                  Sin tareas rutinarias todavía.
+                </Typography>
+              </Box>
+            ) : (
+              <Stack
+                divider={
+                  <Box sx={{ borderBottom: `1px solid ${alpha(theme.palette.divider, 0.06)}` }} />
+                }
+              >
+                {routines.map((r) => (
+                  <Stack
+                    key={r._id}
+                    direction="row"
+                    alignItems="center"
+                    spacing={1.5}
+                    px={2}
+                    py={1.5}
+                    sx={{ '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.04) } }}
+                  >
+                    <Tooltip title={r.runsToday ? 'Le toca hoy' : 'Hoy no le toca'}>
+                      <Box
+                        sx={{
+                          width: 9,
+                          height: 9,
+                          borderRadius: '50%',
+                          flexShrink: 0,
+                          bgcolor: r.runsToday ? 'success.main' : 'text.disabled',
+                        }}
+                      />
+                    </Tooltip>
+                    <Typography
+                      variant="body2"
+                      fontWeight={600}
+                      fontSize={13}
+                      noWrap
+                      sx={{ flex: 1, minWidth: 0 }}
+                    >
+                      {r.title}
+                    </Typography>
+                    <Chip
+                      icon={<RepeatRoundedIcon sx={{ fontSize: '13px !important' }} />}
+                      label={RECURRENCE_LABEL[r.recurrence || 'none']}
+                      size="small"
+                      sx={{ height: 22, fontSize: 10.5, fontWeight: 700 }}
+                    />
+                    {r.assigneeName && (
+                      <Tooltip title={r.assigneeName}>
+                        <Avatar
+                          src={r.assigneeAvatar}
+                          sx={{ width: 24, height: 24, fontSize: 10 }}
+                        >
+                          {r.assigneeName.charAt(0).toUpperCase()}
+                        </Avatar>
+                      </Tooltip>
+                    )}
+                    <Tooltip title="Editar">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleEditTask(r)}
+                      >
+                        <AssignmentIndRoundedIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Eliminar rutina">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDeleteTask(r._id)}
+                        sx={{ '&:hover': { color: 'error.main' } }}
+                      >
+                        <DeleteRoundedIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </Tooltip>
+                  </Stack>
+                ))}
+              </Stack>
+            )}
+          </Card>
         </Container>
       )}
       {/* ═══ BOARD VIEW: Project Tabs + Kanban ═══ */}
@@ -2185,11 +2342,49 @@ function TasksPage(): React.JSX.Element {
                   type="date"
                   size="small"
                   fullWidth
-                  value={taskForm.dueDate}
+                  disabled={taskForm.recurrence !== 'none'}
+                  value={taskForm.recurrence !== 'none' ? '' : taskForm.dueDate}
                   onChange={(e) => { const v = e.target.value; setTaskForm(prev => ({ ...prev, dueDate: v })); }}
                   InputLabelProps={{ shrink: true }}
+                  helperText={taskForm.recurrence !== 'none' ? 'La pone el sistema cada día' : undefined}
                 />
               </Stack>
+
+              {/* Rutinaria */}
+              <TextField
+                label="Repetir"
+                select
+                fullWidth
+                size="small"
+                value={taskForm.recurrence}
+                onChange={(e) => {
+                  const v = e.target.value as Recurrence;
+                  setTaskForm((prev) => ({ ...prev, recurrence: v }));
+                }}
+                helperText={
+                  taskForm.recurrence !== 'none'
+                    ? 'Plantilla rutinaria: no sale en el board, se copia sola cada día que toca.'
+                    : undefined
+                }
+              >
+                {(Object.keys(RECURRENCE_LABEL) as Recurrence[]).map((k) => (
+                  <MenuItem
+                    key={k}
+                    value={k}
+                  >
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      alignItems="center"
+                    >
+                      <RepeatRoundedIcon
+                        sx={{ fontSize: 15, opacity: k === 'none' ? 0.25 : 1, color: k === 'none' ? undefined : 'primary.main' }}
+                      />
+                      <span>{RECURRENCE_LABEL[k]}</span>
+                    </Stack>
+                  </MenuItem>
+                ))}
+              </TextField>
 
               {/* Tags */}
               <TextField

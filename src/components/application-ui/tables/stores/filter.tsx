@@ -124,6 +124,8 @@ export default function StoreFilters({
   onPaymentMethodChange,
   provider,
   onProviderChange,
+  circularss,
+  onCircularssChange,
   sortBy,
   order,
   onSortChange,
@@ -147,6 +149,8 @@ export default function StoreFilters({
   onPaymentMethodChange: (v: string) => void;
   provider: string;
   onProviderChange: (v: string) => void;
+  circularss: string;
+  onCircularssChange: (v: any) => void;
   sortBy: string;
   order: 'asc' | 'desc';
   onSortChange: (v: string) => void;
@@ -205,6 +209,7 @@ export default function StoreFilters({
     status !== 'all' ||
     paymentMethod !== 'all' ||
     provider !== 'all' ||
+    circularss !== 'all' ||
     hasAdvancedFilters;
 
   const handleClearAll = () => {
@@ -214,6 +219,7 @@ export default function StoreFilters({
     onStatusChange('all');
     onPaymentMethodChange('all');
     onProviderChange('all');
+    onCircularssChange('all');
     onAudienceLtChange('');
     onDebtStatusChange('all');
     onMinDebtChange('');
@@ -363,6 +369,31 @@ export default function StoreFilters({
             <MenuItem value="twilio" sx={{ fontSize: 13 }}><LocalPhone fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Twilio</MenuItem>
             <MenuItem value="bandwidth" sx={{ fontSize: 13 }}><SmsRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Bandwidth</MenuItem>
             <MenuItem value="infobip" sx={{ fontSize: 13 }}><BoltRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Infobip</MenuItem>
+          </Select>
+        </FormControl>
+
+        {/* Circularss */}
+        <FormControl
+          size="small"
+          sx={{ ...selectSx, flex: { xs: '1 1 calc(50% - 4px)', sm: '0 0 128px' } }}
+        >
+          <Select
+            value={circularss}
+            displayEmpty
+            onChange={(e) => onCircularssChange(e.target.value)}
+            renderValue={(val) => (
+              <Typography fontSize={13} color={!val || val === 'all' ? 'text.secondary' : 'text.primary'}>
+                {!val || val === 'all'
+                  ? 'Circularss'
+                  : val === 'true'
+                    ? 'Circularss: Sí'
+                    : 'Circularss: No'}
+              </Typography>
+            )}
+          >
+            <MenuItem value="all" sx={{ fontSize: 13 }}>Todas</MenuItem>
+            <MenuItem value="true" sx={{ fontSize: 13 }}>Sí pertenece</MenuItem>
+            <MenuItem value="false" sx={{ fontSize: 13 }}>No pertenece</MenuItem>
           </Select>
         </FormControl>
 

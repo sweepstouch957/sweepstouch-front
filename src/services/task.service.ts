@@ -58,7 +58,21 @@ export interface Task {
   aiContext: string;
   createdAt: string;
   updatedAt: string;
+  /** !== 'none' ⇒ es una plantilla rutinaria: no sale en el board, se clona sola */
+  recurrence?: Recurrence;
+  recurrenceTemplateId?: string | null;
 }
+
+export type Recurrence = 'none' | 'daily' | 'weekdays' | 'weekly';
+
+export const RECURRENCE_LABEL: Record<Recurrence, string> = {
+  none: 'No se repite',
+  daily: 'Todos los días',
+  weekdays: 'Lunes a viernes',
+  weekly: 'Cada semana',
+};
+
+export type RoutineTask = Task & { runsToday: boolean };
 
 export interface BoardMember {
   id: string;
@@ -145,6 +159,12 @@ export const taskClient = {
 
   deleteTask: async (id: string): Promise<void> => {
     await api.delete(`/tasks/tasks/${id}`);
+  },
+
+  // ── Rutinarias (plantillas)
+  getRoutines: async (projectId?: string): Promise<RoutineTask[]> => {
+    const { data } = await api.get('/tasks/tasks/routines', { params: projectId ? { projectId } : undefined });
+    return data.data;
   },
 
   // ── Board

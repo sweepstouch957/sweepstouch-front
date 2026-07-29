@@ -90,6 +90,8 @@ function Component() {
     handleMaxDebtChange,
     provider,
     handleProviderChange,
+    circularss,
+    handleCircularssChange,
     refetch,
   } = useStores();
 
@@ -139,6 +141,8 @@ function Component() {
         onPaymentMethodChange={handlePaymentMethodChange}
         provider={provider}
         onProviderChange={handleProviderChange}
+        circularss={circularss}
+        onCircularssChange={handleCircularssChange}
         sortBy={sortBy}
         order={order}
         onSortChange={handleSortChange}
