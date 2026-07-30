@@ -70,6 +70,15 @@ export const REQUEST_TYPE_LABEL: Record<RequestType, string> = {
   support_case: 'Caso de atención — 24 h hábiles',
 };
 
+export interface TaskFile {
+  url: string;
+  name: string;
+  type: string;
+  size: number;
+  at: string;
+  by: string;
+}
+
 export interface Task {
   _id: string;
   identifier: string; // SW-0001
@@ -103,6 +112,8 @@ export interface Task {
   urgentBy?: string;
   revisionRounds?: number;
   tags: string[];
+  /** Evidencias subidas (imágenes/archivos). `attachments` es sólo el contador. */
+  files?: TaskFile[];
   attachments: number;
   comments: number;
   progress: number;
@@ -252,6 +263,26 @@ export const taskClient = {
     if (filters?.search) params.search = filters.search;
     const { data } = await api.get(`/tasks/board/${projectId}`, { params });
     return data.data;
+  },
+
+  /** Registra una evidencia ya subida al servicio de upload */
+  addAttachment: async (
+    taskId: string,
+    file: { url: string; name?: string; type?: string; size?: number; by?: string }
+  ): Promise<Task> => {
+    const { data } = await api.post(`/tasks/tasks/${taskId}/attachments`, file);
+    return data.data;
+  },
+
+  removeAttachment: async (taskId: string, url: string): Promise<Task> => {
+    const { data } = await api.delete(`/tasks/tasks/${taskId}/attachments`, { params: { url } });
+    return data.data;
+  },
+
+  /** "¿Cómo va RCS?" — reporte de un tema que cruza áreas y proyectos + PDF */
+  getTopicReport: async (q: string): Promise<{ data: any; pdfUrl: string; text: string }> => {
+    const { data } = await api.get('/tasks/reports/topic', { params: { q } });
+    return data;
   },
 
   /** Los 2 enlaces de una tarea: panel (con login) y PDF de estado en vivo (sin login) */

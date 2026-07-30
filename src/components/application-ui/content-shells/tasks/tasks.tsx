@@ -11,6 +11,7 @@ import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import AssignmentIndRoundedIcon from '@mui/icons-material/AssignmentIndRounded';
 import RepeatRoundedIcon from '@mui/icons-material/RepeatRounded';
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
+import TravelExploreRoundedIcon from '@mui/icons-material/TravelExploreRounded';
 import ViewKanbanRoundedIcon from '@mui/icons-material/ViewKanbanRounded';
 import {
   alpha,
@@ -45,6 +46,7 @@ import { MyTasksView } from './my-tasks-view';
 import { ProjectDialog } from './project-dialog';
 import { RoutinesView } from './routines-view';
 import { TaskDialog } from './task-dialog';
+import { TopicReportDialog } from './topic-report-dialog';
 
 function Tasks(): React.JSX.Element {
   const theme = useTheme();
@@ -90,6 +92,9 @@ function Tasks(): React.JSX.Element {
   /* ── AI dialog ── */
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
 
+  /* ── Reporte por tema ("cómo va RCS") — sólo Dirección y CEO ── */
+  const [topicDialogOpen, setTopicDialogOpen] = useState(false);
+
   /* ── Data ── */
   const { data: departments = [] } = useQuery({
     queryKey: ['departments'],
@@ -111,6 +116,17 @@ function Tasks(): React.JSX.Element {
 
   // Sólo equipo interno: los managers de promotoras de campo no llevan tareas
   const teamMembers = useMemo(() => allUsers.filter(isInternalStaff), [allUsers]);
+
+  /**
+   * Reportes de estado ("cómo va X") = Dirección y CEO. Se resuelve por el área
+   * del usuario y, como respaldo, por su rol de permisos.
+   */
+  const canSeeReports = useMemo(() => {
+    const myDept = departments.find((d) => d._id === (authUser as any)?.departmentId);
+    const slug = (myDept?.slug || myDept?.name || '').toLowerCase();
+    if (['direccion', 'dirección', 'ceo', 'product'].includes(slug)) return true;
+    return ['admin', 'general_manager', 'assistant'].includes((authUser as any)?.role);
+  }, [departments, authUser]);
 
   /* ── Auto-select project from URL or first ── */
   React.useEffect(() => {
@@ -492,6 +508,26 @@ function Tasks(): React.JSX.Element {
             spacing={0.75}
             flexShrink={0}
           >
+            {/* "¿Cómo va RCS?" — reportes de estado: Dirección y CEO */}
+            {canSeeReports && (
+              <Button
+                variant="outlined"
+                size="small"
+                color="info"
+                startIcon={<TravelExploreRoundedIcon sx={{ fontSize: 13 }} />}
+                onClick={() => setTopicDialogOpen(true)}
+                sx={{
+                  borderRadius: 1.5,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  fontSize: 11,
+                  py: 0.3,
+                  px: 1.25,
+                }}
+              >
+                Cómo va…
+              </Button>
+            )}
             <Button
               variant="outlined"
               size="small"
@@ -707,6 +743,8 @@ function Tasks(): React.JSX.Element {
         />
       )}
       {/* ═══ AI Dialog ═══ */}
+      <TopicReportDialog open={topicDialogOpen} onClose={() => setTopicDialogOpen(false)} />
+
       {aiDialogOpen && (
         <AiDialog
           open={aiDialogOpen}

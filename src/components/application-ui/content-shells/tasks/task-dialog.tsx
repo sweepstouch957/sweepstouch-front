@@ -1,5 +1,8 @@
-import { RECURRENCE_LABEL, Task, taskClient, type Recurrence } from '@/services/task.service';
+import { RECURRENCE_LABEL, Task, taskClient, type Recurrence, type TaskFile } from '@/services/task.service';
+import { uploadTaskEvidence } from '@/services/upload.service';
 import PictureAsPdfRoundedIcon from '@mui/icons-material/PictureAsPdfRounded';
+import AttachFileRoundedIcon from '@mui/icons-material/AttachFileRounded';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import LinkRoundedIcon from '@mui/icons-material/LinkRounded';
 import toast from 'react-hot-toast';
 import FlagRoundedIcon from '@mui/icons-material/FlagRounded';
@@ -12,10 +15,12 @@ import {
   Box,
   Button,
   Chip,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  IconButton,
   InputAdornment,
   MenuItem,
   Slider,
@@ -24,7 +29,7 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   missingTaskFields,
   priorityEntries,
@@ -71,6 +76,53 @@ export function TaskDialog({
   const noVerb = titleLacksVerb(form.title);
   const isBlocked = status === 'blocked';
   const blockedIncomplete = isBlocked && (!form.blockedReason.trim() || !form.blockerOwner.trim());
+  // "Ninguna tarea sin fecha. Ninguna excepción" — sólo las rutinarias se salvan
+  const needsDueDate = form.recurrence === 'none' && !form.dueDate;
+
+  /* ── Evidencias ─────────────────────────────────────────────────────────
+     Las evidencias viven en la tarea, no en un chat: el archivo va al servicio
+     de upload (igual que el resto del panel) y aquí queda su URL. */
+  const [files, setFiles] = useState<TaskFile[]>(editingTask?.files || []);
+  const [uploading, setUploading] = useState(false);
+
+  React.useEffect(() => {
+    setFiles(editingTask?.files || []);
+  }, [editingTask]);
+
+  async function handleUploadEvidence(e: React.ChangeEvent<HTMLInputElement>) {
+    const picked = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (!picked.length || !editingTask) return;
+
+    setUploading(true);
+    try {
+      for (const f of picked) {
+        const url = await uploadTaskEvidence(f);
+        const updated = await taskClient.addAttachment(editingTask._id, {
+          url,
+          name: f.name,
+          type: f.type,
+          size: f.size,
+        });
+        setFiles(updated.files || []);
+      }
+      toast.success(picked.length === 1 ? 'Evidencia adjunta' : `${picked.length} evidencias adjuntas`);
+    } catch {
+      toast.error('No se pudo subir la evidencia');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleRemoveEvidence(url: string) {
+    if (!editingTask) return;
+    try {
+      const updated = await taskClient.removeAttachment(editingTask._id, url);
+      setFiles(updated.files || []);
+    } catch {
+      toast.error('No se pudo quitar la evidencia');
+    }
+  }
 
   /** Los mismos 2 enlaces que van por WhatsApp: PDF de estado y link al panel. */
   async function shareTask(kind: 'pdf' | 'panel') {
@@ -310,10 +362,13 @@ export function TaskDialog({
               value={form.recurrence !== 'none' ? '' : form.dueDate}
               onChange={(e) => { const v = e.target.value; setForm(prev => ({ ...prev, dueDate: v })); }}
               InputLabelProps={{ shrink: true }}
+              error={form.recurrence === 'none' && !form.dueDate}
               helperText={
                 form.recurrence !== 'none'
                   ? 'La pone el sistema cada día'
-                  : 'Si no se sabe, pon fecha para definir la fecha'
+                  : !form.dueDate
+                    ? 'Obligatoria. Si no se sabe, pon fecha para DEFINIR la fecha'
+                    : 'Si no se sabe, pon fecha para definir la fecha'
               }
             />
           </Stack>
@@ -406,6 +461,102 @@ export function TaskDialog({
             ))}
           </TextField>
 
+          {/* Evidencias — sólo cuando la tarea ya existe (necesita id) */}
+          {editingTask && (
+            <Box>
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                mb={0.75}
+              >
+                <Typography
+                  variant="caption"
+                  fontWeight={700}
+                  color="text.secondary"
+                >
+                  EVIDENCIAS ({files.length})
+                </Typography>
+                <Button
+                  size="small"
+                  component="label"
+                  startIcon={uploading ? <CircularProgress size={13} /> : <AttachFileRoundedIcon />}
+                  disabled={uploading}
+                  sx={{ textTransform: 'none', borderRadius: 1.5 }}
+                >
+                  {uploading ? 'Subiendo…' : 'Adjuntar'}
+                  <input
+                    hidden
+                    multiple
+                    type="file"
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv"
+                    onChange={handleUploadEvidence}
+                  />
+                </Button>
+              </Stack>
+
+              {files.length === 0 ? (
+                <Typography
+                  variant="caption"
+                  color="text.disabled"
+                >
+                  Subí acá las fotos o archivos que prueban que la tarea quedó lista. Salen en el
+                  PDF de estado.
+                </Typography>
+              ) : (
+                <Stack spacing={0.5}>
+                  {files.map((f) => (
+                    <Stack
+                      key={f.url}
+                      direction="row"
+                      alignItems="center"
+                      spacing={1}
+                      sx={{
+                        px: 1,
+                        py: 0.5,
+                        borderRadius: 1.5,
+                        border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                      }}
+                    >
+                      {f.type?.startsWith('image/') ? (
+                        <Avatar
+                          src={f.url}
+                          variant="rounded"
+                          sx={{ width: 28, height: 28 }}
+                        />
+                      ) : (
+                        <Avatar
+                          variant="rounded"
+                          sx={{ width: 28, height: 28, bgcolor: alpha(theme.palette.primary.main, 0.12) }}
+                        >
+                          <AttachFileRoundedIcon sx={{ fontSize: 14, color: 'primary.main' }} />
+                        </Avatar>
+                      )}
+                      <Typography
+                        component="a"
+                        href={f.url}
+                        target="_blank"
+                        rel="noopener"
+                        fontSize={12}
+                        flex={1}
+                        noWrap
+                        sx={{ color: 'primary.main', textDecoration: 'none' }}
+                      >
+                        {f.name || f.url}
+                      </Typography>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleRemoveEvidence(f.url)}
+                      >
+                        <CloseRoundedIcon sx={{ fontSize: 14 }} />
+                      </IconButton>
+                    </Stack>
+                  ))}
+                </Stack>
+              )}
+            </Box>
+          )}
+
           {/* Tags */}
           <TextField
             label="Tags"
@@ -481,10 +632,12 @@ export function TaskDialog({
         {missing.length > 0 && (
           <Typography
             variant="caption"
-            color="warning.main"
+            color={needsDueDate ? 'error.main' : 'warning.main'}
             sx={{ flex: 1, minWidth: 200 }}
           >
-            Falta {missing.join(', ')} — entra igual, pero saldrá en “datos incompletos”.
+            {needsDueDate
+              ? 'Sin fecha límite no se puede guardar: ninguna tarea sin fecha.'
+              : `Falta ${missing.join(', ')} — entra igual, pero saldrá en “datos incompletos”.`}
           </Typography>
         )}
         <Button
@@ -497,7 +650,7 @@ export function TaskDialog({
           variant="contained"
           onClick={onSubmit}
           disableElevation
-          disabled={!form.title || submitting || blockedIncomplete}
+          disabled={!form.title || submitting || blockedIncomplete || needsDueDate}
           sx={{
             fontWeight: 700,
             borderRadius: 1.5,
