@@ -8,6 +8,7 @@ import { DropResult } from '@hello-pangea/dnd';
 import { departmentService } from '@/services/department.service';
 import { api } from '@/libs/axios';
 import { User } from '@/contexts/auth/user';
+import { isInternalStaff, STAFF_ROLE_QUERY } from '@/utils/staff';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -54,15 +55,11 @@ export const ROLE_STYLE: Record<string, { label: string; color: string }> = {
 };
 
 /**
- * Only staff roles — fuera merchants/cashiers/promotors y sus managers: no participan
- * en departamentos ni en el flujo de tareas.
- * This drastically reduces the number of users fetched + rendered.
+ * Sólo equipo interno. Se piden los roles al backend y después se afina con
+ * isInternalStaff: un promotor_manager de campo NO va en el tablero, pero las
+ * Promotions Managers del equipo (que sí están en el catálogo) sí.
  */
-const STAFF_ROLES = [
-  'admin', 'design', 'campaign_manager', 'general_manager',
-  'marketing', 'tecnico', 'it', 'support', 'billing', 'operations',
-  'assistant', 'promotor_manager',
-];
+const STAFF_ROLES = STAFF_ROLE_QUERY;
 
 // ─── Slim user type (only fields we actually need) ────────────────────────────
 
@@ -136,11 +133,11 @@ export function useDepartmentBoard() {
         if (allUsers.length === 0) {
           const fallback = await api.get('/auth/users');
           const fbUsers: any[] = Array.isArray(fallback.data) ? fallback.data : (fallback.data?.data ?? []);
-          const staffOnly = fbUsers.filter((u: any) => STAFF_ROLES.includes(u.role));
+          const staffOnly = fbUsers.filter(isInternalStaff);
           return selectSlimUsers(staffOnly);
         }
 
-        return selectSlimUsers(allUsers);
+        return selectSlimUsers(allUsers.filter(isInternalStaff));
       } catch (err) {
         console.error('[dept-board] Failed to fetch users:', err);
         return [];

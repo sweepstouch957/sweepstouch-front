@@ -81,6 +81,7 @@ import { LinearProgressSlim } from 'src/components/base/styles/progress-bar';
 import { CardWrapper } from 'src/components/application-ui/tables/users/styles';
 import { tint, tintBorder } from 'src/theme/semantic';
 import { usersApi } from '@/mocks/users';
+import { isInternalStaff } from '@/utils/staff';
 
 /* ─── Constants ─── */
 
@@ -196,10 +197,7 @@ function EditProjectDrawer({
     }
   }, [project]);
 
-  const teamMembers = useMemo(() => {
-    const excluded = ['merchant', 'cashier', 'promotor', 'merchant_manager', 'promotor_manager'];
-    return allUsers.filter((u: any) => !excluded.includes(u.role));
-  }, [allUsers]);
+  const teamMembers = useMemo(() => allUsers.filter(isInternalStaff), [allUsers]);
 
   const memberObjects = useMemo(() => {
     const memberIdSet = new Set(memberIds);

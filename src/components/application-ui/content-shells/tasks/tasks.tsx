@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/hooks/use-auth';
 import { usersApi } from '@/mocks/users';
+import { isInternalStaff } from '@/utils/staff';
 import { Department, departmentService } from '@/services/department.service';
 import { Task, taskClient, type BoardData } from '@/services/task.service';
 import { type DropResult } from '@hello-pangea/dnd';
@@ -108,10 +109,8 @@ function Tasks(): React.JSX.Element {
     staleTime: 120_000,
   });
 
-  const teamMembers = useMemo(() => {
-    const excluded = ['merchant', 'cashier', 'promotor', 'merchant_manager', 'promotor_manager'];
-    return allUsers.filter((u: any) => !excluded.includes(u.role));
-  }, [allUsers]);
+  // Sólo equipo interno: los managers de promotoras de campo no llevan tareas
+  const teamMembers = useMemo(() => allUsers.filter(isInternalStaff), [allUsers]);
 
   /* ── Auto-select project from URL or first ── */
   React.useEffect(() => {

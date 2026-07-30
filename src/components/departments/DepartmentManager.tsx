@@ -30,6 +30,8 @@ import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
 import PaletteRoundedIcon from '@mui/icons-material/PaletteRounded';
 import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
+import SyncRoundedIcon from '@mui/icons-material/SyncRounded';
+import BadgeRoundedIcon from '@mui/icons-material/BadgeRounded';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   departmentService,
@@ -40,6 +42,8 @@ import {
   WorkType,
 } from '@/services/department.service';
 import { api } from '@/libs/axios';
+import { isInternalStaff } from '@/utils/staff';
+import { teamService } from '@/services/team.service';
 import toast from 'react-hot-toast';
 
 const PRESET_COLORS = [
@@ -87,7 +91,7 @@ const DepartmentManager: FC<DepartmentManagerProps> = ({ open, onClose }) => {
         params: { lean: 'true', select: 'firstName,lastName,role,position,profileImage,departmentId' },
       });
       const list: any[] = Array.isArray(res.data) ? res.data : res.data?.data ?? [];
-      return list.filter((u) => !['merchant', 'cashier', 'promotor'].includes(u.role));
+      return list.filter(isInternalStaff);
     },
     staleTime: 300_000,
   });
@@ -104,6 +108,39 @@ const DepartmentManager: FC<DepartmentManagerProps> = ({ open, onClose }) => {
       queryClient.invalidateQueries({ queryKey: ['departments'] });
       toast.success(`${res.created} creadas · ${res.updated ?? 0} actualizadas`);
     },
+  });
+
+  // Organigrama: cuánta gente ya tiene cargo aplicado y quién falta crear
+  const { data: org } = useQuery({
+    queryKey: ['team-org'],
+    queryFn: teamService.org,
+    enabled: open,
+    staleTime: 60_000,
+  });
+  const withPosition = useMemo(
+    () => (org?.people || []).filter((p) => p.position).length,
+    [org]
+  );
+
+  /**
+   * Paso 1: escribe los cargos del catálogo sobre los usuarios. Sin esto, las
+   * Promotions Managers del equipo no se distinguen de las de campo.
+   */
+  const teamSyncMutation = useMutation({
+    mutationFn: () => teamService.sync(true),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['team-org'] });
+      queryClient.invalidateQueries({ queryKey: ['dept-board-users'] });
+      queryClient.invalidateQueries({ queryKey: ['dept-manager-staff'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      toast.success(
+        `${res.updated} cargos aplicados${res.notFound.length ? ` · ${res.notFound.length} sin usuario` : ''}`
+      );
+      if (res.notFound.length) {
+        console.info('[team-sync] falta crearlos en la plataforma:', res.notFound);
+      }
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.error || 'No se pudieron aplicar los cargos'),
   });
 
   const syncLeadsMutation = useMutation({
@@ -188,31 +225,97 @@ const DepartmentManager: FC<DepartmentManagerProps> = ({ open, onClose }) => {
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pb: 1 }}>
         <GroupsRoundedIcon color="primary" />
         <Typography variant="h6" fontWeight={700} flex={1}>
-          Áreas
+          Áreas y equipo
         </Typography>
-        <Tooltip title="Crea/actualiza las áreas reales de la empresa (RCS no: es un proyecto)" arrow>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={() => seedMutation.mutate()}
-            disabled={seedMutation.isPending}
-          >
-            Sincronizar áreas
-          </Button>
-        </Tooltip>
-        <Tooltip title="Asigna el encargado de cada área según el catálogo del equipo" arrow>
-          <Button
-            size="small"
-            startIcon={<AutoFixHighRoundedIcon />}
-            onClick={() => syncLeadsMutation.mutate()}
-            disabled={syncLeadsMutation.isPending || departments.length === 0}
-          >
-            Encargados
-          </Button>
-        </Tooltip>
       </DialogTitle>
       <Divider />
       <DialogContent sx={{ p: 0 }}>
+        {/* ─── Sincronización con el catálogo del equipo ─── */}
+        <Box
+          sx={{
+            px: 2.5,
+            py: 1.75,
+            bgcolor: alpha(theme.palette.primary.main, isDark ? 0.08 : 0.04),
+            borderBottom: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
+          }}
+        >
+          <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
+            <SyncRoundedIcon sx={{ fontSize: 16, color: 'primary.main' }} />
+            <Typography fontWeight={700} fontSize={13}>
+              Sincronización
+            </Typography>
+          </Stack>
+          <Typography fontSize={11} color="text.secondary" mb={1.25}>
+            Corre los tres en orden la primera vez. Sin el paso 1 nadie tiene cargo, y
+            las Promotions Managers del equipo no aparecen en el tablero.
+          </Typography>
+
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            <Tooltip title="Escribe cargo, área, jefe y descripción sobre cada persona del catálogo" arrow>
+              <Button
+                size="small"
+                variant="contained"
+                disableElevation
+                startIcon={<BadgeRoundedIcon />}
+                onClick={() => teamSyncMutation.mutate()}
+                disabled={teamSyncMutation.isPending}
+                sx={{ borderRadius: 1.5, textTransform: 'none' }}
+              >
+                1 · Cargos del equipo
+              </Button>
+            </Tooltip>
+            <Tooltip title="Crea/actualiza las áreas reales de la empresa (RCS no: es un proyecto)" arrow>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => seedMutation.mutate()}
+                disabled={seedMutation.isPending}
+                sx={{ borderRadius: 1.5, textTransform: 'none' }}
+              >
+                2 · Áreas
+              </Button>
+            </Tooltip>
+            <Tooltip title="Asigna el encargado de cada área. Es a quien el bot manda cuando alguien pide ayuda" arrow>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<AutoFixHighRoundedIcon />}
+                onClick={() => syncLeadsMutation.mutate()}
+                disabled={syncLeadsMutation.isPending || departments.length === 0}
+                sx={{ borderRadius: 1.5, textTransform: 'none' }}
+              >
+                3 · Encargados
+              </Button>
+            </Tooltip>
+          </Stack>
+
+          {/* Estado: cuánta gente ya tiene cargo y quién falta */}
+          {org && (
+            <Stack direction="row" spacing={0.75} mt={1.25} flexWrap="wrap" useFlexGap>
+              <Chip
+                size="small"
+                label={`${withPosition} con cargo`}
+                sx={{ height: 20, fontSize: 10, fontWeight: 700 }}
+                color={withPosition > 0 ? 'success' : 'default'}
+                variant="outlined"
+              />
+              {org.missing.length > 0 && (
+                <Tooltip
+                  arrow
+                  title={org.missing.map((m) => `${m.name} — ${m.position}`).join(' · ')}
+                >
+                  <Chip
+                    size="small"
+                    color="warning"
+                    variant="outlined"
+                    label={`${org.missing.length} sin usuario en la plataforma`}
+                    sx={{ height: 20, fontSize: 10, fontWeight: 700 }}
+                  />
+                </Tooltip>
+              )}
+            </Stack>
+          )}
+        </Box>
         {/* ─── Department List ─── */}
         <List dense disablePadding>
           {departments.map((dept) => (
