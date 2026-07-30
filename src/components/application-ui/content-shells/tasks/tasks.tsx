@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/hooks/use-auth';
 import { usersApi } from '@/mocks/users';
-import { isInternalStaff } from '@/utils/staff';
+import { isInternalStaff, STAFF_ROLE_QUERY } from '@/utils/staff';
 import { Department, departmentService } from '@/services/department.service';
 import { Task, taskClient, type BoardData } from '@/services/task.service';
 import { type DropResult } from '@hello-pangea/dnd';
@@ -70,7 +70,6 @@ function Tasks(): React.JSX.Element {
   const [viewTab, setViewTab] = useState<'board' | 'my_tasks' | 'routines'>('board');
   const [onlyMine, setOnlyMine] = useState(false);
   const { user: authUser } = useAuth();
-  const myUserId = authUser?._id || authUser?.id;
 
   /* ── Project ── */
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -108,10 +107,21 @@ function Tasks(): React.JSX.Element {
     staleTime: 60_000,
   });
 
+  /**
+   * Sólo el equipo interno y sólo los campos que la pantalla pinta. Antes traía
+   * TODOS los usuarios de la plataforma (merchants, cajeras, promotores) con el
+   * documento completo: era lo más pesado de la página.
+   */
   const { data: allUsers = [] } = useQuery({
-    queryKey: ['users'],
-    queryFn: () => usersApi.getUsers({ lean: true }),
-    staleTime: 120_000,
+    queryKey: ['users', 'task-board'],
+    queryFn: () =>
+      usersApi.getUsers({
+        lean: true,
+        role: STAFF_ROLE_QUERY.join(','),
+        select: 'firstName,lastName,email,role,position,profileImage,departmentId',
+      }),
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
   });
 
   // Sólo equipo interno: los managers de promotoras de campo no llevan tareas
@@ -170,20 +180,49 @@ function Tasks(): React.JSX.Element {
   const userKey = JSON.stringify(activeUserIds);
 
   const { data: board, isLoading: loadingBoard } = useQuery({
-    queryKey: ['board', selectedProjectId, deptKey, userKey, onlyMine],
-    queryFn: () => {
-      const filterIds =
-        onlyMine && myUserId
-          ? [myUserId, ...activeUserIds].filter((v, i, a) => a.indexOf(v) === i)
-          : activeUserIds;
-      return taskClient.getBoard(selectedProjectId!, {
-        assigneeIds: filterIds.length > 0 ? filterIds : undefined,
+    queryKey: ['board', selectedProjectId, deptKey, userKey],
+    queryFn: () =>
+      taskClient.getBoard(selectedProjectId!, {
+        assigneeIds: activeUserIds.length > 0 ? activeUserIds : undefined,
         departmentIds: activeDeptIds.length > 0 ? activeDeptIds : undefined,
-      });
-    },
+      }),
     enabled: !!selectedProjectId,
-    staleTime: 30_000,
+    staleTime: 60_000,
+    // Al cambiar de filtro se mantiene el board anterior en pantalla: sin
+    // parpadeo y sin spinner en cada toque.
+    placeholderData: (prev) => prev,
+    refetchOnWindowFocus: false,
   });
+
+  /**
+   * Todos los ids con los que puede figurar el usuario logueado como asignado.
+   * "Sólo mías" daba 0 porque comparaba contra un único id que no siempre es el
+   * que quedó guardado en la tarea; ahora se resuelve también por email.
+   */
+  const myIds = useMemo(() => {
+    const ids = new Set<string>();
+    const a: any = authUser;
+    if (a?._id) ids.add(String(a._id));
+    if (a?.id) ids.add(String(a.id));
+    if (a?.email) {
+      for (const u of allUsers as any[]) {
+        if (u?.email && String(u.email).toLowerCase() === String(a.email).toLowerCase()) {
+          if (u._id) ids.add(String(u._id));
+          if (u.id) ids.add(String(u.id));
+        }
+      }
+    }
+    return ids;
+  }, [authUser, allUsers]);
+
+  /** El id con el que realmente quedan guardadas mis tareas (para /tasks/my). */
+  const myResolvedId = useMemo(() => {
+    const a: any = authUser;
+    const byEmail = (allUsers as any[]).find(
+      (u) => a?.email && u?.email && String(u.email).toLowerCase() === String(a.email).toLowerCase()
+    );
+    return String(byEmail?._id || byEmail?.id || a?._id || a?.id || '');
+  }, [authUser, allUsers]);
 
   const { data: aiContext } = useQuery({
     queryKey: ['ai-context'],
@@ -193,9 +232,9 @@ function Tasks(): React.JSX.Element {
 
   /* ── My Tasks query ── */
   const { data: myTasks = [], isLoading: loadingMyTasks } = useQuery({
-    queryKey: ['my-tasks', myUserId],
-    queryFn: () => taskClient.getMyTasks(myUserId!),
-    enabled: viewTab === 'my_tasks' && !!myUserId,
+    queryKey: ['my-tasks', myResolvedId],
+    queryFn: () => taskClient.getMyTasks(myResolvedId),
+    enabled: viewTab === 'my_tasks' && !!myResolvedId,
     staleTime: 30_000,
   });
 
@@ -207,10 +246,15 @@ function Tasks(): React.JSX.Element {
     staleTime: 30_000,
   });
 
-  /* ── Client-side filter: search + priority only (dept/user handled by backend) ── */
+  /* ── Filtros de cliente: búsqueda, prioridad y "sólo mías" ──
+     "Sólo mías" no vuelve al backend: es un toggle sobre lo ya cargado. */
   const filteredBoard = useMemo(() => {
     if (!board) return null;
     let filtered = Object.values(board.tasks);
+
+    if (onlyMine) {
+      filtered = filtered.filter((t) => t.assigneeId && myIds.has(String(t.assigneeId)));
+    }
 
     if (deferredSearch) {
       const q = deferredSearch.toLowerCase();
@@ -236,7 +280,7 @@ function Tasks(): React.JSX.Element {
     );
 
     return { byStatus, total: filtered.length, allTotal: Object.values(board.tasks).length };
-  }, [board, deferredSearch, priorityFilter]);
+  }, [board, deferredSearch, priorityFilter, onlyMine, myIds]);
 
   const statusCounts = useMemo(() => {
     if (!board) return {} as Record<string, number>;
@@ -305,7 +349,7 @@ function Tasks(): React.JSX.Element {
         return;
 
       const destStatus = destination.droppableId as Task['status'];
-      const qKey = ['board', selectedProjectId, deptKey, userKey, onlyMine];
+      const qKey = ['board', selectedProjectId, deptKey, userKey];
 
       // Bloquear exige decir qué falta y quién destraba → se abre el diálogo
       const dragged = board?.tasks?.[draggableId];
@@ -346,7 +390,7 @@ function Tasks(): React.JSX.Element {
     // handleEditTask se declara más abajo: se referencia dentro del cuerpo (ya
     // inicializado cuando el usuario arrastra), no en las dependencias.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [queryClient, selectedProjectId, deptKey, userKey, onlyMine, board]
+    [queryClient, selectedProjectId, deptKey, userKey, board]
   );
 
   /* ── Dialog helpers ── */
