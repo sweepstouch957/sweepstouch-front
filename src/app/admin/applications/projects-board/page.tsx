@@ -68,7 +68,14 @@ import { useRouter } from 'next/navigation';
 import { format, formatDistanceToNow, isPast } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
-import { taskClient, type Project, type WorkflowStatus } from '@/services/task.service';
+import {
+  taskClient,
+  PROJECT_TYPE_LABEL,
+  type Project,
+  type ProjectType,
+  type WorkflowStatus,
+} from '@/services/task.service';
+import { departmentService } from '@/services/department.service';
 import { useCustomization } from 'src/hooks/use-customization';
 import { LinearProgressSlim } from 'src/components/base/styles/progress-bar';
 import { CardWrapper } from 'src/components/application-ui/tables/users/styles';
@@ -100,6 +107,9 @@ const EMPTY_FORM = {
   name: '', description: '', color: PROJECT_COLORS[0], tags: '',
   workflowStatus: 'not_started' as WorkflowStatus,
   startDate: '', dueDate: '',
+  // Cómo se lleva y qué área lo dueña (Manual de Cowork)
+  type: 'project' as ProjectType,
+  departmentId: '' as string,
 };
 
 /* ─── Sub-components ─── */
@@ -161,6 +171,13 @@ function EditProjectDrawer({
   const [form, setForm] = useState<typeof EMPTY_FORM>(EMPTY_FORM);
   const [memberIds, setMemberIds] = useState<string[]>([]);
 
+  // Áreas para elegir la dueña del proyecto (misma queryKey que el resto: se comparte)
+  const { data: departments = [] } = useQuery({
+    queryKey: ['departments'],
+    queryFn: departmentService.list,
+    staleTime: 60_000,
+  });
+
   /* sync form when project changes */
   useMemo(() => {
     if (project) {
@@ -172,6 +189,8 @@ function EditProjectDrawer({
         workflowStatus: project.workflowStatus || 'not_started',
         startDate: project.startDate ? project.startDate.slice(0, 10) : '',
         dueDate: project.dueDate ? project.dueDate.slice(0, 10) : '',
+        type: project.type || 'project',
+        departmentId: project.departmentId || '',
       });
       setMemberIds(project.memberIds || []);
     }
@@ -206,6 +225,7 @@ function EditProjectDrawer({
       tags: form.tags ? form.tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
       startDate: form.startDate || null,
       dueDate: form.dueDate || null,
+      departmentId: form.departmentId || null,
       memberIds,
     });
   }
@@ -308,6 +328,28 @@ function EditProjectDrawer({
                       <span>{opt.name}</span>
                     </Stack>
                   </MenuItem>
+                ))}
+              </TextField>
+              {/* Cómo se lleva el proyecto + área dueña (Manual de Cowork) */}
+              <TextField
+                label="Cómo se lleva" select fullWidth
+                value={form.type}
+                onChange={(e) => setForm({ ...form, type: e.target.value as ProjectType })}
+                helperText="Un proyecto por hitos (ej. RCS) se mide por hito con fecha y criterio de cierre."
+              >
+                {(Object.keys(PROJECT_TYPE_LABEL) as ProjectType[]).map((k) => (
+                  <MenuItem key={k} value={k}>{PROJECT_TYPE_LABEL[k]}</MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                label="Área dueña" select fullWidth
+                value={form.departmentId}
+                onChange={(e) => setForm({ ...form, departmentId: e.target.value })}
+                helperText="Las tareas del proyecto se cuentan en el reporte de esta área."
+              >
+                <MenuItem value="">Sin área</MenuItem>
+                {departments.map((d) => (
+                  <MenuItem key={d._id} value={d._id}>{d.name}</MenuItem>
                 ))}
               </TextField>
               <Box>
@@ -1115,6 +1157,14 @@ export default function ProjectsBoardPage() {
             >
               {statusOptions.map((opt) => (
                 <MenuItem key={opt.id} value={opt.id}>{opt.name}</MenuItem>
+              ))}
+            </TextField>
+            {/* Un proyecto por hitos (ej. RCS) no es un área ni un cargo */}
+            <TextField label="Cómo se lleva" select fullWidth value={projectForm.type}
+              onChange={(e) => setProjectForm({ ...projectForm, type: e.target.value as ProjectType })}
+            >
+              {(Object.keys(PROJECT_TYPE_LABEL) as ProjectType[]).map((k) => (
+                <MenuItem key={k} value={k}>{PROJECT_TYPE_LABEL[k]}</MenuItem>
               ))}
             </TextField>
             <Stack direction="row" spacing={2}>

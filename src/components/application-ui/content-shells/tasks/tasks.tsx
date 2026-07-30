@@ -54,6 +54,9 @@ function Tasks(): React.JSX.Element {
   const searchParams = useSearchParams();
   const { push } = useRouter();
   const urlProjectId = searchParams.get('projectId');
+  /** Deep link de los avisos de WhatsApp: /admin/applications/tasks?taskId=<id> */
+  const urlTaskId = searchParams.get('taskId');
+  const openedDeepLink = React.useRef<string | null>(null);
 
   /* ── UI state ── */
   const [search, setSearch] = useState('');
@@ -117,6 +120,22 @@ function Tasks(): React.JSX.Element {
       setSelectedProjectId(target ? target._id : projects[0]._id);
     }
   }, [projects, selectedProjectId, urlProjectId]);
+
+  /* ── Deep link ?taskId= — abre la tarea que venía en el aviso de WhatsApp ── */
+  const { data: deepLinkedTask } = useQuery({
+    queryKey: ['task', urlTaskId],
+    queryFn: () => taskClient.getTask(urlTaskId!),
+    enabled: !!urlTaskId,
+    staleTime: 30_000,
+  });
+
+  React.useEffect(() => {
+    if (!deepLinkedTask || openedDeepLink.current === deepLinkedTask._id) return;
+    openedDeepLink.current = deepLinkedTask._id;
+    if (deepLinkedTask.projectId) setSelectedProjectId(deepLinkedTask.projectId);
+    handleEditTask(deepLinkedTask);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deepLinkedTask]);
 
   const selectedProject = useMemo(
     () => projects.find((p) => p._id === selectedProjectId),
@@ -222,18 +241,21 @@ function Tasks(): React.JSX.Element {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['board'] });
       queryClient.invalidateQueries({ queryKey: ['routines'] });
-      toast.success('Task created');
+      toast.success('Tarea creada');
       closeDialog();
     },
+    // 409 = rompe una regla del manual (urgencias, 3 en curso): se dice cuál
+    onError: (err: any) => toast.error(err?.response?.data?.error || 'No se pudo crear la tarea'),
   });
   const updateTaskMut = useMutation({
     mutationFn: ({ id, ...p }: any) => taskClient.updateTask(id, p),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['board'] });
       queryClient.invalidateQueries({ queryKey: ['routines'] });
-      toast.success('Task updated');
+      toast.success('Tarea actualizada');
       closeDialog();
     },
+    onError: (err: any) => toast.error(err?.response?.data?.error || 'No se pudo actualizar la tarea'),
   });
   const deleteTaskMut = useMutation({
     mutationFn: (id: string) => taskClient.deleteTask(id),
@@ -270,6 +292,14 @@ function Tasks(): React.JSX.Element {
       const destStatus = destination.droppableId as Task['status'];
       const qKey = ['board', selectedProjectId, deptKey, userKey, onlyMine];
 
+      // Bloquear exige decir qué falta y quién destraba → se abre el diálogo
+      const dragged = board?.tasks?.[draggableId];
+      if (destStatus === 'blocked' && dragged && !(dragged.blockedReason && dragged.blockerOwner)) {
+        handleEditTask({ ...dragged, status: 'blocked' });
+        toast('Indica qué se necesita y quién lo destraba', { icon: '🚧' });
+        return;
+      }
+
       // Snapshot for rollback and stop ongoing fetches to avoid race conditions (snap-back)
       await queryClient.cancelQueries({ queryKey: qKey });
       const previousBoard = queryClient.getQueryData<BoardData>(qKey);
@@ -290,13 +320,18 @@ function Tasks(): React.JSX.Element {
 
       try {
         await taskClient.moveTask(draggableId, destStatus, destination.index);
-      } catch {
+      } catch (err: any) {
         // Rollback
         if (previousBoard) queryClient.setQueryData(qKey, previousBoard);
-        toast.error('Failed to move task');
+        // El back frena el movimiento cuando rompe una regla del manual (3 En
+        // curso por persona, bloqueo sin nombre): se muestra el motivo real.
+        toast.error(err?.response?.data?.error || 'No se pudo mover la tarea');
       }
     },
-    [queryClient, selectedProjectId, deptKey, userKey, onlyMine]
+    // handleEditTask se declara más abajo: se referencia dentro del cuerpo (ya
+    // inicializado cuando el usuario arrastra), no en las dependencias.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [queryClient, selectedProjectId, deptKey, userKey, onlyMine, board]
   );
 
   /* ── Dialog helpers ── */
@@ -322,6 +357,9 @@ function Tasks(): React.JSX.Element {
       assigneeName: task.assigneeName || '',
       assigneeAvatar: task.assigneeAvatar || '',
       dueDate: task.dueDate ? task.dueDate.slice(0, 10) : '',
+      closureCriteria: task.closureCriteria || '',
+      blockedReason: task.blockedReason || '',
+      blockerOwner: task.blockerOwner || '',
       aiContext: task.aiContext || '',
       tags: task.tags?.join(', ') || '',
       progress: task.progress || 0,
@@ -346,6 +384,11 @@ function Tasks(): React.JSX.Element {
       assigneeName: taskForm.assigneeName,
       assigneeAvatar: taskForm.assigneeAvatar,
       dueDate: taskForm.dueDate || null,
+      closureCriteria: taskForm.closureCriteria,
+      // Sólo viajan cuando la tarea queda bloqueada; al salir el back los limpia
+      ...(newTaskStatus === 'blocked'
+        ? { blockedReason: taskForm.blockedReason, blockerOwner: taskForm.blockerOwner }
+        : {}),
       aiContext: taskForm.aiContext,
       tags: tagsArr,
       progress: taskForm.progress,

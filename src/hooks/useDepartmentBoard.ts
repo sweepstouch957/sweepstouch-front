@@ -46,6 +46,11 @@ export const ROLE_STYLE: Record<string, { label: string; color: string }> = {
   cashier: { label: 'Cashier', color: '#795548' },
   merchant: { label: 'Merchant', color: '#4caf50' },
   promotor: { label: 'Promotor', color: '#8bc34a' },
+  it: { label: 'IT', color: '#2196f3' },
+  support: { label: 'Soporte', color: '#607d8b' },
+  billing: { label: 'Facturación', color: '#795548' },
+  operations: { label: 'Operaciones', color: '#4caf50' },
+  assistant: { label: 'Asistencia', color: '#f44336' },
 };
 
 /**
@@ -55,7 +60,8 @@ export const ROLE_STYLE: Record<string, { label: string; color: string }> = {
  */
 const STAFF_ROLES = [
   'admin', 'design', 'campaign_manager', 'general_manager',
-  'marketing', 'tecnico',
+  'marketing', 'tecnico', 'it', 'support', 'billing', 'operations',
+  'assistant', 'promotor_manager',
 ];
 
 // ─── Slim user type (only fields we actually need) ────────────────────────────
@@ -66,6 +72,7 @@ interface SlimUser {
   firstName: string;
   lastName: string;
   role: string;
+  position?: string;
   profileImage?: string;
   avatar?: string;
   departmentId?: string | null;
@@ -79,6 +86,7 @@ function selectSlimUsers(rawUsers: any[]): SlimUser[] {
     firstName: u.firstName || '',
     lastName: u.lastName || '',
     role: u.role || '',
+    position: u.position || '',
     profileImage: u.profileImage || u.avatar || undefined,
     avatar: u.avatar || undefined,
     departmentId: normalizeDeptId(u),
@@ -118,7 +126,7 @@ export function useDepartmentBoard() {
           params: {
             role: STAFF_ROLES.join(','),
             lean: 'true',
-            select: 'firstName,lastName,role,profileImage,departmentId',
+            select: 'firstName,lastName,role,position,profileImage,departmentId',
           },
         });
         const allUsers: any[] = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);

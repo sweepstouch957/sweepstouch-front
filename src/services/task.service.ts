@@ -5,6 +5,18 @@ import { api } from '@/libs/axios';
 
 export type WorkflowStatus = 'not_started' | 'in_progress' | 'completed';
 
+/**
+ * Cómo se lleva el proyecto. RCS es `milestones`: es un PROYECTO por hitos, no
+ * un área ni un cargo.
+ */
+export type ProjectType = 'project' | 'milestones' | 'queue';
+
+export const PROJECT_TYPE_LABEL: Record<ProjectType, string> = {
+  project: 'Proyecto (tareas con entregable)',
+  milestones: 'Por hitos (hito con fecha y criterio de cierre)',
+  queue: 'Cola de solicitudes (con plazo comprometido)',
+};
+
 export interface ProjectMember {
   id: string;
   name: string;
@@ -20,6 +32,10 @@ export interface Project {
   color: string;
   status: string; // 'active' | 'archived'
   workflowStatus: WorkflowStatus;
+  /** milestones = se lleva por hitos (ej. RCS) · queue = cola de solicitudes */
+  type?: ProjectType;
+  /** Área dueña del proyecto. Las tareas la heredan. */
+  departmentId?: string | null;
   startDate: string | null;
   dueDate: string | null;
   memberIds: string[];
@@ -33,12 +49,33 @@ export interface Project {
   members?: ProjectMember[];
 }
 
+/** Estados del Manual de Cowork: backlog = respaldo, done = cerrada. */
+export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'blocked' | 'in_review' | 'done';
+
+/** Tipo de solicitud de cola (Diseño / Customer Service) — define el plazo. */
+export type RequestType =
+  | 'messaging_art'
+  | 'social_art'
+  | 'event_material'
+  | 'identity'
+  | 'minor_fix'
+  | 'support_case';
+
+export const REQUEST_TYPE_LABEL: Record<RequestType, string> = {
+  messaging_art: 'Arte de campaña (SMS/MMS/RCS) — 48 h hábiles',
+  social_art: 'Pieza para redes — 48 h hábiles',
+  event_material: 'Material para evento — 5 días hábiles',
+  identity: 'Identidad / proyecto mayor — mín. 10 días',
+  minor_fix: 'Ajuste menor — 24 h hábiles',
+  support_case: 'Caso de atención — 24 h hábiles',
+};
+
 export interface Task {
   _id: string;
   identifier: string; // SW-0001
   title: string;
   description: string;
-  status: 'backlog' | 'todo' | 'in_progress' | 'in_review' | 'done';
+  status: TaskStatus;
   priority: 'low' | 'medium' | 'high' | 'critical';
   projectId: string;
   listId: string;
@@ -50,6 +87,21 @@ export interface Task {
   reporterName: string;
   dueDate: string | null;
   completedAt: string | null;
+  /** Cuarto campo obligatorio: cómo sabremos que quedó lista. */
+  closureCriteria?: string;
+  departmentId?: string | null;
+  // ── Bloqueo
+  blockedReason?: string;
+  blockerOwner?: string;
+  blockedAt?: string | null;
+  wasBlocked?: boolean;
+  // ── Cola de solicitudes
+  requestType?: RequestType | null;
+  slaDueAt?: string | null;
+  requestComplete?: boolean;
+  isUrgent?: boolean;
+  urgentBy?: string;
+  revisionRounds?: number;
   tags: string[];
   attachments: number;
   comments: number;
@@ -86,6 +138,30 @@ export interface BoardData {
   lists: { id: string; name: string; color: string; taskIds: string[] }[];
   tasks: Record<string, Task>;
   members: BoardMember[];
+}
+
+/** Reporte diario de Cowork (secc. 10 del manual) — datos, no texto. */
+export interface CoworkReport {
+  header: {
+    dateKey: string;
+    yesterdayKey: string;
+    comparedTo: string;
+    closedYesterday: number;
+    closedDayBefore: number;
+    delta: number;
+    overdue: number;
+    noDueDate: number;
+    noAssignee: number;
+    blocked: number;
+    urgentActive: number;
+    urgentLimit: number;
+  };
+  areas: any[];
+  incomplete: { identifier: string; title: string; area: string; missing: string[] }[];
+  wipViolations: { userId: string; name: string; inProgress: number; limit: number }[];
+  alerts: { level: 'critical' | 'warning'; area: string; message: string }[];
+  orphanTasks: number;
+  isFriday: boolean;
 }
 
 export interface AiContextResponse {
@@ -175,6 +251,18 @@ export const taskClient = {
     if (filters?.priority && filters.priority !== 'all') params.priority = filters.priority;
     if (filters?.search) params.search = filters.search;
     const { data } = await api.get(`/tasks/board/${projectId}`, { params });
+    return data.data;
+  },
+
+  /** Los 2 enlaces de una tarea: panel (con login) y PDF de estado en vivo (sin login) */
+  getTaskLinks: async (id: string): Promise<{ identifier: string; panel: string; pdf: string }> => {
+    const { data } = await api.get(`/tasks/tasks/${id}/links`);
+    return data.data;
+  },
+
+  // ── Reportes de Cowork
+  getDailyReport: async (): Promise<CoworkReport> => {
+    const { data } = await api.get('/tasks/reports/daily');
     return data.data;
   },
 

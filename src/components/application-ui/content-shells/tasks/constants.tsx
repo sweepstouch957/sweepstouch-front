@@ -12,6 +12,11 @@ export type TaskFormState = {
   assigneeName: string;
   assigneeAvatar: string;
   dueDate: string;
+  /** Manual de Cowork: una línea que diga cómo sabremos que quedó lista. */
+  closureCriteria: string;
+  /** Sólo cuando el estado es "blocked". */
+  blockedReason: string;
+  blockerOwner: string;
   aiContext: string;
   tags: string;
   progress: number;
@@ -32,11 +37,31 @@ export const EMPTY_TASK_FORM: TaskFormState = {
   assigneeName: '',
   assigneeAvatar: '',
   dueDate: '',
+  closureCriteria: '',
+  blockedReason: '',
+  blockerOwner: '',
   aiContext: '',
   tags: '',
   progress: 0,
   recurrence: 'none',
 };
+
+/** Los 4 campos que hacen válida una tarea (Manual de Cowork, secc. 3). */
+export function missingTaskFields(form: TaskFormState): string[] {
+  const missing: string[] = [];
+  if (!form.title.trim()) missing.push('título');
+  if (!form.assigneeId) missing.push('responsable');
+  if (!form.dueDate && form.recurrence === 'none') missing.push('fecha límite');
+  if (!form.closureCriteria.trim()) missing.push('criterio de cierre');
+  return missing;
+}
+
+/** Un título sin verbo es un recordatorio, no una tarea ("Evento NSA"). */
+export function titleLacksVerb(title: string): boolean {
+  const t = title.trim();
+  if (!t) return false;
+  return !/^[a-záéíóúñ]+(ar|er|ir)\b/i.test(t) && t.split(/\s+/).length < 3;
+}
 
 export const PRIORITY_CONFIG: Record<string, { label: string; icon: string }> = {
   critical: { label: 'Critical', icon: '🔴' },
@@ -55,18 +80,21 @@ export function priorityEntries(theme: Theme) {
   return Object.keys(PRIORITY_CONFIG).map((k) => [k, priorityMeta(theme, k)] as const);
 }
 
+/** Nombres del Manual de Cowork — el tablero habla el mismo idioma que el manual. */
 export const STATUS_LABEL: Record<string, string> = {
-  backlog: 'Backlog',
-  todo: 'To Do',
-  in_progress: 'In Progress',
-  in_review: 'In Review',
-  done: 'Done',
+  backlog: 'Respaldo',
+  todo: 'Pendiente',
+  in_progress: 'En curso',
+  blocked: 'Bloqueada',
+  in_review: 'En revisión',
+  done: 'Cerrada',
 };
 
 const STATUS_ROLE: Record<string, SemanticRole> = {
   backlog: 'secondary',
   todo: 'info',
   in_progress: 'warning',
+  blocked: 'error',
   in_review: 'primary',
   done: 'success',
 };

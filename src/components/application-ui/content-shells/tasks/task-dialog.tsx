@@ -1,4 +1,7 @@
-import { RECURRENCE_LABEL, Task, type Recurrence } from '@/services/task.service';
+import { RECURRENCE_LABEL, Task, taskClient, type Recurrence } from '@/services/task.service';
+import PictureAsPdfRoundedIcon from '@mui/icons-material/PictureAsPdfRounded';
+import LinkRoundedIcon from '@mui/icons-material/LinkRounded';
+import toast from 'react-hot-toast';
 import FlagRoundedIcon from '@mui/icons-material/FlagRounded';
 import RepeatRoundedIcon from '@mui/icons-material/RepeatRounded';
 import TagRoundedIcon from '@mui/icons-material/TagRounded';
@@ -22,7 +25,13 @@ import {
   useTheme,
 } from '@mui/material';
 import React, { useMemo } from 'react';
-import { priorityEntries, statusEntries, type TaskFormState } from './constants';
+import {
+  missingTaskFields,
+  priorityEntries,
+  statusEntries,
+  titleLacksVerb,
+  type TaskFormState,
+} from './constants';
 
 type TaskDialogProps = {
   open: boolean;
@@ -55,6 +64,29 @@ export function TaskDialog({
     () => teamMembers.find((u: any) => (u.id || u._id) === form.assigneeId),
     [teamMembers, form.assigneeId]
   );
+
+  // Manual de Cowork: sin los 4 campos la tarea entra igual, pero sale marcada
+  // como dato incompleto en el reporte diario. Mejor avisarlo aquí.
+  const missing = useMemo(() => missingTaskFields(form), [form]);
+  const noVerb = titleLacksVerb(form.title);
+  const isBlocked = status === 'blocked';
+  const blockedIncomplete = isBlocked && (!form.blockedReason.trim() || !form.blockerOwner.trim());
+
+  /** Los mismos 2 enlaces que van por WhatsApp: PDF de estado y link al panel. */
+  async function shareTask(kind: 'pdf' | 'panel') {
+    if (!editingTask) return;
+    try {
+      const links = await taskClient.getTaskLinks(editingTask._id);
+      if (kind === 'pdf') {
+        window.open(links.pdf, '_blank', 'noopener');
+        return;
+      }
+      await navigator.clipboard.writeText(links.panel);
+      toast.success('Link del panel copiado');
+    } catch {
+      toast.error('No se pudieron generar los enlaces');
+    }
+  }
 
   return (
     <Dialog
@@ -92,9 +124,33 @@ export function TaskDialog({
               variant="h6"
               fontWeight={700}
             >
-              {editingTask ? 'Edit Task' : 'New Task'}
+              {editingTask ? 'Editar tarea' : 'Nueva tarea'}
             </Typography>
           </Stack>
+
+          {editingTask && (
+            <Stack
+              direction="row"
+              spacing={0.5}
+            >
+              <Button
+                size="small"
+                startIcon={<PictureAsPdfRoundedIcon />}
+                onClick={() => shareTask('pdf')}
+                sx={{ textTransform: 'none', borderRadius: 1.5 }}
+              >
+                PDF de estado
+              </Button>
+              <Button
+                size="small"
+                startIcon={<LinkRoundedIcon />}
+                onClick={() => shareTask('panel')}
+                sx={{ textTransform: 'none', borderRadius: 1.5 }}
+              >
+                Copiar link
+              </Button>
+            </Stack>
+          )}
         </Stack>
       </DialogTitle>
 
@@ -105,13 +161,19 @@ export function TaskDialog({
         <Stack spacing={2}>
           {/* Title */}
           <TextField
-            label="Title"
+            label="Título"
             fullWidth
             autoFocus
             required
             value={form.title}
             onChange={(e) => { const v = e.target.value; setForm(prev => ({ ...prev, title: v })); }}
-            placeholder="What needs to be done?"
+            placeholder="Empieza con un verbo: confirmar, enviar, diseñar, llamar…"
+            error={noVerb}
+            helperText={
+              noVerb
+                ? 'Empieza con un verbo de acción. "Evento NSA" es un recordatorio; "Confirmar salón para el evento NSA" es una tarea.'
+                : undefined
+            }
             sx={{ '& .MuiOutlinedInput-root': { fontWeight: 600 } }}
           />
 
@@ -239,17 +301,74 @@ export function TaskDialog({
               )}
             />
             <TextField
-              label="Due Date"
+              label="Fecha límite"
               type="date"
               size="small"
               fullWidth
+              required={form.recurrence === 'none'}
               disabled={form.recurrence !== 'none'}
               value={form.recurrence !== 'none' ? '' : form.dueDate}
               onChange={(e) => { const v = e.target.value; setForm(prev => ({ ...prev, dueDate: v })); }}
               InputLabelProps={{ shrink: true }}
-              helperText={form.recurrence !== 'none' ? 'La pone el sistema cada día' : undefined}
+              helperText={
+                form.recurrence !== 'none'
+                  ? 'La pone el sistema cada día'
+                  : 'Si no se sabe, pon fecha para definir la fecha'
+              }
             />
           </Stack>
+
+          {/* Criterio de cierre — cuarto campo obligatorio del manual */}
+          <TextField
+            label="Cierre cuando…"
+            fullWidth
+            size="small"
+            required
+            value={form.closureCriteria}
+            onChange={(e) => { const v = e.target.value; setForm(prev => ({ ...prev, closureCriteria: v })); }}
+            placeholder="exista contrato firmado con el salón y comprobante del depósito"
+            helperText="Una línea: cómo sabremos que quedó lista. Es el árbitro cuando se discuta si terminó."
+          />
+
+          {/* Bloqueo — sólo cuando el estado es Bloqueada */}
+          {isBlocked && (
+            <Stack
+              spacing={1.5}
+              sx={{
+                p: 1.5,
+                borderRadius: 2,
+                bgcolor: alpha(theme.palette.error.main, 0.06),
+                border: `1px solid ${alpha(theme.palette.error.main, 0.25)}`,
+              }}
+            >
+              <Typography
+                variant="caption"
+                fontWeight={700}
+                color="error.main"
+              >
+                Reportar el bloqueo no es una excusa: es lo que permite destrabarlo a tiempo.
+              </Typography>
+              <TextField
+                label="¿Qué se necesita?"
+                size="small"
+                fullWidth
+                required
+                value={form.blockedReason}
+                onChange={(e) => { const v = e.target.value; setForm(prev => ({ ...prev, blockedReason: v })); }}
+                placeholder="falta que la tienda mande los textos definitivos"
+              />
+              <TextField
+                label="¿Quién lo destraba?"
+                size="small"
+                fullWidth
+                required
+                value={form.blockerOwner}
+                onChange={(e) => { const v = e.target.value; setForm(prev => ({ ...prev, blockerOwner: v })); }}
+                placeholder="Nombre de la persona"
+                helperText="Un bloqueo sin nombre no es un bloqueo, es un atraso."
+              />
+            </Stack>
+          )}
 
           {/* Rutinaria */}
           <TextField
@@ -358,7 +477,16 @@ export function TaskDialog({
         </Stack>
       </DialogContent>
 
-      <DialogActions sx={{ p: 2, gap: 1 }}>
+      <DialogActions sx={{ p: 2, gap: 1, flexWrap: 'wrap' }}>
+        {missing.length > 0 && (
+          <Typography
+            variant="caption"
+            color="warning.main"
+            sx={{ flex: 1, minWidth: 200 }}
+          >
+            Falta {missing.join(', ')} — entra igual, pero saldrá en “datos incompletos”.
+          </Typography>
+        )}
         <Button
           onClick={onClose}
           sx={{ borderRadius: 1.5, textTransform: 'none' }}
@@ -369,7 +497,7 @@ export function TaskDialog({
           variant="contained"
           onClick={onSubmit}
           disableElevation
-          disabled={!form.title || submitting}
+          disabled={!form.title || submitting || blockedIncomplete}
           sx={{
             fontWeight: 700,
             borderRadius: 1.5,

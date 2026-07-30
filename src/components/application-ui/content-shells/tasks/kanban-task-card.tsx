@@ -227,6 +227,35 @@ export const KanbanTaskCard = React.memo(
               </Box>
             )}
 
+            {/* Bloqueo: qué falta y quién lo destraba — visible sin abrir la tarea */}
+            {task.status === 'blocked' && task.blockedReason && (
+              <Box
+                sx={{
+                  mt: 0.5,
+                  px: 0.75,
+                  py: 0.5,
+                  borderRadius: 1,
+                  bgcolor: (t) => alpha(t.palette.error.main, 0.08),
+                  borderLeft: (t) => `3px solid ${t.palette.error.main}`,
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{ fontSize: 10, display: 'block', lineHeight: 1.35 }}
+                >
+                  🚧 {task.blockedReason}
+                </Typography>
+                {task.blockerOwner && (
+                  <Typography
+                    variant="caption"
+                    sx={{ fontSize: 10, fontWeight: 700, color: 'error.main' }}
+                  >
+                    Destraba: {task.blockerOwner}
+                  </Typography>
+                )}
+              </Box>
+            )}
+
             {/* Footer: due date + assignee + meta icons */}
             <Stack
               direction="row"
