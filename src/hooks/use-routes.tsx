@@ -52,7 +52,7 @@ const applicationsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Tasks'), route: routes.admin.applications.tasks },
     { title: t('Store Maps'), route: routes.admin.applications.maps },
     { title: t('Calendar'), route: routes.admin.applications.calendar },
-    { title: t('Depurar Numeros'), route: routes.admin.applications['debug-numbers'] },
+    { title: t('Search Number'), route: routes.admin.applications['debug-numbers'] },
     { title: t('Demos'), route: routes.admin.applications.demos },
     { title: t('QR'), route: routes.admin.management.qr },
     { title: t('Utilidades'), route: routes.admin.applications.utilities },

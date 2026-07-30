@@ -29,7 +29,7 @@ function Page(): React.JSX.Element {
           color="text.secondary"
         >
           {t(
-            'Selecciona una tienda, revisa los contactos para desactivar los duplicados y opcionalmente sube un CSV con números para inactivar en lote'
+            'Consulta dónde está guardado un número, filtra los contactos de una tienda y revisa su fecha de creación'
           )}
         </Typography>
       </Box>

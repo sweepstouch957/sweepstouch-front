@@ -49,6 +49,7 @@ export const en = {
   "Tasks": "Tasks",
   "Account": "Account",
   "Promotors": "Promoters",
+  "Search Number": "Search Number",
   "Search by name...": "Search by name...",
   "Search...": "Search...",
   "Select status": "Select status",
