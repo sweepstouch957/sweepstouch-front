@@ -16,7 +16,8 @@ import {
   useTheme,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import SendTestMessagePage from 'src/app/admin/management/campaings/send-test/page';
 import { routes } from 'src/router/routes';
 
@@ -37,8 +38,35 @@ export default function OptinCashiersPage() {
   const white = theme.palette.common.white;
   const brand = theme.palette.primary.main;
   const { push } = useRouter();
+  const { i18n } = useTranslation();
   const [activeView, setActiveView] = useState<'kiosk' | 'send-test' | 'linktree'>('kiosk');
+  const [newYorkDateTime, setNewYorkDateTime] = useState('');
   const isPhoneView = activeView === 'linktree';
+  const currentLanguage = i18n.resolvedLanguage || i18n.language;
+  const newYorkDateTimeFormatter = useMemo(
+    () => new Intl.DateTimeFormat(currentLanguage || undefined, {
+      timeZone: 'America/New_York',
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+    }),
+    [currentLanguage]
+  );
+
+  useEffect(() => {
+    const updateNewYorkDateTime = () => {
+      setNewYorkDateTime(newYorkDateTimeFormatter.format(new Date()));
+    };
+
+    updateNewYorkDateTime();
+    const intervalId = window.setInterval(updateNewYorkDateTime, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [newYorkDateTimeFormatter]);
 
   const handleClose = () => {
     push(routes.admin.dashboards.reports);
@@ -198,35 +226,70 @@ export default function OptinCashiersPage() {
               }}
             >
               {activeView === 'kiosk' ? (
-                <Box
-                  component="iframe"
-                  title="Optin Cashiers"
-                  src={OPTIN_CASHIERS_URL}
-                  sx={{
-                    display: 'block',
-                    width: {
-                      xs: `${100 / iframeScale.xs}%`,
-                      sm: `${100 / iframeScale.sm}%`,
-                      md: `${100 / iframeScale.md}%`,
-                      xl: `${100 / iframeScale.xl}%`,
-                    },
-                    height: {
-                      xs: `${100 / iframeScale.xs}%`,
-                      sm: `${100 / iframeScale.sm}%`,
-                      md: `${100 / iframeScale.md}%`,
-                      xl: `${100 / iframeScale.xl}%`,
-                    },
-                    border: 0,
-                    transform: {
-                      xs: `scale(${iframeScale.xs})`,
-                      sm: `scale(${iframeScale.sm})`,
-                      md: `scale(${iframeScale.md})`,
-                      xl: `scale(${iframeScale.xl})`,
-                    },
-                    transformOrigin: 'top left',
-                  }}
-                  allow="clipboard-read; clipboard-write; fullscreen; geolocation"
-                />
+                <>
+                  <Box
+                    component="iframe"
+                    title="Optin Cashiers"
+                    src={OPTIN_CASHIERS_URL}
+                    sx={{
+                      display: 'block',
+                      width: {
+                        xs: `${100 / iframeScale.xs}%`,
+                        sm: `${100 / iframeScale.sm}%`,
+                        md: `${100 / iframeScale.md}%`,
+                        xl: `${100 / iframeScale.xl}%`,
+                      },
+                      height: {
+                        xs: `${100 / iframeScale.xs}%`,
+                        sm: `${100 / iframeScale.sm}%`,
+                        md: `${100 / iframeScale.md}%`,
+                        xl: `${100 / iframeScale.xl}%`,
+                      },
+                      border: 0,
+                      transform: {
+                        xs: `scale(${iframeScale.xs})`,
+                        sm: `scale(${iframeScale.sm})`,
+                        md: `scale(${iframeScale.md})`,
+                        xl: `scale(${iframeScale.xl})`,
+                      },
+                      transformOrigin: 'top left',
+                    }}
+                    allow="clipboard-read; clipboard-write; fullscreen; geolocation"
+                  />
+                  {newYorkDateTime && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        left: 0,
+                        bottom: 0,
+                        zIndex: 1,
+                        width: { xs: 242, sm: 267, md: 284, xl: 300 },
+                        maxWidth: '75%',
+                        boxSizing: 'border-box',
+                        px: 1,
+                        pb: { xs: 0.75, md: 1 },
+                        pt: 3,
+                        color: white,
+                        textAlign: 'center',
+                        pointerEvents: 'none',
+                        background: `linear-gradient(to bottom, transparent, ${alpha('#000', 0.88)} 65%)`,
+                      }}
+                    >
+                      <Typography
+                        component="time"
+                        dateTime={new Date().toISOString()}
+                        sx={{
+                          fontSize: { xs: 10, sm: 11, md: 12 },
+                          lineHeight: 1.25,
+                          fontWeight: 700,
+                          textShadow: '0 1px 3px rgba(0, 0, 0, 0.9)',
+                        }}
+                      >
+                        {newYorkDateTime}
+                      </Typography>
+                    </Box>
+                  )}
+                </>
               ) : (
                 <>
                   {activeView === 'send-test' ? (
