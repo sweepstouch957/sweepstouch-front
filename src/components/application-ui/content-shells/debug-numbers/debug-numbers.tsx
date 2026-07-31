@@ -2,7 +2,6 @@
 
 import { useStores } from '@/hooks/fetching/stores/useStores';
 import { customerClient } from '@/services/customerService';
-import FileUploadRoundedIcon from '@mui/icons-material/FileUploadRounded';
 import ManageSearchRoundedIcon from '@mui/icons-material/ManageSearchRounded';
 import {
   Alert,
@@ -14,13 +13,8 @@ import {
   CardContent,
   Chip,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   FormControl,
   InputLabel,
-  LinearProgress,
   MenuItem,
   Paper,
   Select,
@@ -37,28 +31,9 @@ import {
   Typography,
   useTheme } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
-type ParsedCsv = {
-  rawLines: string[];
-  phoneNumbers: string[];
-};
-
-type CsvMode = 'listed' | 'except-listed';
-
-type CsvSummary = {
-  mode: CsvMode;
-  totalCsv: number;
-  found: number;
-  notFound: number;
-  toDeactivate: number;
-  toKeep: number;
-};
-
-const BULK_UPDATE_DELAY_MS = 15_000;
-const RATE_LIMIT_RETRY_DELAY_MS = 120_000;
-const RATE_LIMIT_MAX_RETRIES = 2;
-const BULK_UPDATE_CONCURRENCY = 1;
+type DateOrder = 'newest' | 'oldest';
 
 function getCustomerId(c: any): string {
   // El backend puede devolver _id (Mongo) o id (SQL / DTO).
@@ -71,130 +46,6 @@ function normalizePhone(input: string): string {
   // Si viene con 1 al inicio (US) y tiene 11 dígitos, lo bajamos a 10.
   if (digits.length === 11 && digits.startsWith('1')) return digits.slice(1);
   return digits;
-}
-
-function detectDelimiter(firstLine: string): ',' | ';' | '\t' {
-  const comma = (firstLine.match(/,/g) || []).length;
-  const semi = (firstLine.match(/;/g) || []).length;
-  const tab = (firstLine.match(/\t/g) || []).length;
-  if (tab >= comma && tab >= semi && tab > 0) return '\t';
-  if (semi >= comma && semi > 0) return ';';
-  return ',';
-}
-
-function splitLine(line: string, delim: string): string[] {
-  // Split simple que respeta comillas dobles básicas
-  const out: string[] = [];
-  let cur = '';
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      inQuotes = !inQuotes;
-      continue;
-    }
-    if (!inQuotes && ch === delim) {
-      out.push(cur);
-      cur = '';
-      continue;
-    }
-    cur += ch;
-  }
-  out.push(cur);
-  return out.map((s) => s.trim());
-}
-
-function parseCsv(text: string): ParsedCsv {
-  const rawLines = (text || '')
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean);
-
-  if (rawLines.length === 0) {
-    return { rawLines: [], phoneNumbers: [] };
-  }
-
-  const delim = detectDelimiter(rawLines[0]);
-  const headerCells = splitLine(rawLines[0], delim);
-  const headerLooksLikeHeader = headerCells.some((c) => /[a-zA-Z]/.test(c));
-
-  let phoneIdx = 0;
-  let startAt = 0;
-
-  if (headerLooksLikeHeader) {
-    startAt = 1;
-    const norm = headerCells.map((c) => c.toLowerCase().replace(/\s+/g, ''));
-    phoneIdx = Math.max(
-      norm.findIndex((c) => ['phone', 'phonenumber', 'number', 'telefono', 'tel'].includes(c)),
-      0
-    );
-  }
-
-  const phoneNumbers: string[] = [];
-  for (let i = startAt; i < rawLines.length; i++) {
-    const cells = splitLine(rawLines[i], delim);
-    const candidate = (cells[phoneIdx] ?? cells[0] ?? '').toString();
-    const n = normalizePhone(candidate);
-    if (n) phoneNumbers.push(n);
-  }
-
-  // Dedup
-  const deduped = Array.from(new Set(phoneNumbers));
-  return { rawLines, phoneNumbers: deduped };
-}
-
-function parseRows(rows: unknown[][]): ParsedCsv {
-  const normalizedRows = rows.flatMap((row) => {
-    const normalized = row.map((cell) => (cell ?? '').toString().trim());
-    return normalized.some(Boolean) ? [normalized] : [];
-  });
-
-  if (normalizedRows.length === 0) {
-    return { rawLines: [], phoneNumbers: [] };
-  }
-
-  const headerCells = normalizedRows[0];
-  const headerLooksLikeHeader = headerCells.some((c) => /[a-zA-Z]/.test(c));
-  let phoneIdx = 0;
-  let startAt = 0;
-
-  if (headerLooksLikeHeader) {
-    startAt = 1;
-    const norm = headerCells.map((c) => c.toLowerCase().replace(/\s+/g, ''));
-    phoneIdx = Math.max(
-      norm.findIndex((c) => ['phone', 'phonenumber', 'number', 'telefono', 'tel'].includes(c)),
-      0
-    );
-  }
-
-  const phoneNumbers: string[] = [];
-  for (let i = startAt; i < normalizedRows.length; i++) {
-    const candidate = (normalizedRows[i][phoneIdx] ?? normalizedRows[i][0] ?? '').toString();
-    const n = normalizePhone(candidate);
-    if (n) phoneNumbers.push(n);
-  }
-
-  return {
-    rawLines: normalizedRows.map((row) => row.join(',')),
-    phoneNumbers: Array.from(new Set(phoneNumbers)),
-  };
-}
-
-async function parsePhoneFile(file: File): Promise<ParsedCsv> {
-  const lowerName = file.name.toLowerCase();
-  if (lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls')) {
-    const XLSX = await import('xlsx');
-    const buffer = await file.arrayBuffer();
-    const workbook = XLSX.read(buffer, { type: 'array' });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = sheetName ? workbook.Sheets[sheetName] : null;
-    if (!sheet) return { rawLines: [], phoneNumbers: [] };
-    const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: false });
-    return parseRows(rows);
-  }
-
-  const text = await file.text();
-  return parseCsv(text);
 }
 
 async function fetchAllCustomersByStore(storeId: string) {
@@ -213,79 +64,56 @@ async function fetchAllCustomersByStore(storeId: string) {
   return all;
 }
 
-function toImportCustomer(customer: any, active: boolean) {
-  return {
-    phoneNumber: (customer?.phoneNumber || '').toString(),
-    firstName: customer?.firstName,
-    countryCode: (customer?.countryCode || '').toString() || '1',
-    stores: Array.isArray(customer?.stores) && customer.stores.length ? customer.stores : [],
-    active,
-  };
+function getCreatedAtTime(customer: any): number {
+  const timestamp = customer?.createdAt ? new Date(customer.createdAt).getTime() : 0;
+  return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
-const sleep = (ms: number) => new Promise((resolve) => {
-  window.setTimeout(resolve, ms);
-});
-
-function isRateLimitedError(reason: any) {
-  const status = reason?.response?.status;
-  const code = reason?.response?.data?.code || reason?.response?.data?.error || reason?.message;
-  return status === 429 || String(code || '').toUpperCase().includes('RATE_LIMIT');
+function compareByCreatedAt(a: any, b: any, order: DateOrder): number {
+  const aTime = getCreatedAtTime(a);
+  const bTime = getCreatedAtTime(b);
+  if (!aTime && !bTime) return 0;
+  if (!aTime) return 1;
+  if (!bTime) return -1;
+  return order === 'newest' ? bTime - aTime : aTime - bTime;
 }
 
-async function runWithConcurrency<T>(
-  tasks: (() => Promise<T>)[],
-  concurrency = BULK_UPDATE_CONCURRENCY,
-  delayMs = BULK_UPDATE_DELAY_MS
-) {
-  const results: PromiseSettledResult<T>[] = [];
-  let idx = 0;
-  let stopForRateLimit = false;
-  const workers = new Array(concurrency).fill(0).map(async () => {
-    while (idx < tasks.length) {
-      const my = idx++;
-      if (stopForRateLimit) {
-        results[my] = { status: 'rejected', reason: new Error('Bulk process stopped after persistent RATE_LIMITED response.') };
-        continue;
-      }
-      try {
-        let value: T;
-        let attempts = 0;
-        while (true) {
-          try {
-            value = await tasks[my]();
-            break;
-          } catch (reason) {
-            if (!isRateLimitedError(reason)) throw reason;
-            attempts += 1;
-            if (attempts > RATE_LIMIT_MAX_RETRIES) {
-              stopForRateLimit = true;
-              throw reason;
-            }
-            await sleep(RATE_LIMIT_RETRY_DELAY_MS);
-          }
-        }
-        results[my] = { status: 'fulfilled', value };
-      } catch (reason) {
-        results[my] = { status: 'rejected', reason };
-      } finally {
-        if (idx < tasks.length && delayMs > 0) {
-          await sleep(delayMs);
-        }
-      }
-    }
-  });
-  await Promise.all(workers);
-  return results;
+function getCustomerCreator(customer: any): string {
+  const creator =
+    customer?.createdBy ??
+    customer?.enteredBy ??
+    customer?.addedBy ??
+    customer?.createdByUser ??
+    customer?.user;
+
+  if (typeof creator === 'string') return creator;
+  if (creator && typeof creator === 'object') {
+    const personName = [creator.firstName, creator.lastName].filter(Boolean).join(' ');
+    return (
+      creator.name ||
+      creator.fullName ||
+      personName ||
+      creator.userName ||
+      creator.username ||
+      creator.email ||
+      creator._id ||
+      creator.id ||
+      'No disponible'
+    ).toString();
+  }
+
+  return (
+    customer?.createdByName ||
+    customer?.enteredByName ||
+    customer?.addedByName ||
+    'No disponible'
+  ).toString();
 }
 
 export default function DebugNumbers(): React.JSX.Element {
   const theme = useTheme();
   const brandPink = theme.palette.primary.main;
-  const brandPinkDark = theme.palette.primary.dark;
   const qc = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const csvModeRef = useRef<CsvMode>('listed');
 
   const { data: stores, isPending: storesPending } = useStores();
   const [storeId, setStoreId] = useState('');
@@ -308,7 +136,42 @@ export default function DebugNumbers(): React.JSX.Element {
 
   const [numberSearch, setNumberSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [dateOrder, setDateOrder] = useState<DateOrder>('newest');
   const [duplicatesOnly, setDuplicatesOnly] = useState(false);
+  const [globalPhoneSearch, setGlobalPhoneSearch] = useState('');
+  const [submittedPhoneSearch, setSubmittedPhoneSearch] = useState('');
+  const submittedPhoneNormalized = normalizePhone(submittedPhoneSearch);
+
+  const storeLookup = useQuery({
+    queryKey: ['debug-number-store-lookup', submittedPhoneNormalized],
+    enabled: submittedPhoneNormalized.length >= 7,
+    queryFn: async () => {
+      const results = await customerClient.searchCustomers(submittedPhoneNormalized, 100);
+      const exactCustomers = results.filter(
+        (customer) => normalizePhone(customer.phoneNumber) === submittedPhoneNormalized
+      );
+      const storeIds = new Set<string>();
+
+      exactCustomers.forEach((customer) => {
+        (customer.stores || []).forEach((store: any) => {
+          const id =
+            typeof store === 'string'
+              ? store
+              : (store?._id || store?.id || store?.storeId || '').toString();
+          if (id) storeIds.add(id);
+        });
+      });
+
+      return { normalized: submittedPhoneNormalized, storeIds: Array.from(storeIds) };
+    },
+  });
+
+  const lookupStores = useMemo(() => {
+    return (storeLookup.data?.storeIds || []).map((id) => {
+      const store = (stores || []).find((item) => (item?._id || '').toString() === id);
+      return store || { _id: id, name: id };
+    });
+  }, [storeLookup.data?.storeIds, stores]);
   const {
     data: customersData,
     isPending: customersPending,
@@ -351,19 +214,21 @@ export default function DebugNumbers(): React.JSX.Element {
 
     return Array.from(duplicatePhones.entries())
       .flatMap(([normalizedPhone, group]) => {
-        const visibleCustomers = group.filter((c: any) => {
-          const activeOk =
-            activeFilter === 'all' ? true : activeFilter === 'active' ? !!c?.active : !c?.active;
-          if (!activeOk) return false;
-          if (!raw) return true;
-          const p = (c?.phoneNumber || '').toString();
-          const normP = normalizePhone(p);
-          return (
-            normalizedPhone.includes(normQ) ||
-            (normQ && normP.includes(normQ)) ||
-            p.toLowerCase().includes(qLower)
-          );
-        });
+        const visibleCustomers = group
+          .filter((c: any) => {
+            const activeOk =
+              activeFilter === 'all' ? true : activeFilter === 'active' ? !!c?.active : !c?.active;
+            if (!activeOk) return false;
+            if (!raw) return true;
+            const p = (c?.phoneNumber || '').toString();
+            const normP = normalizePhone(p);
+            return (
+              normalizedPhone.includes(normQ) ||
+              (normQ && normP.includes(normQ)) ||
+              p.toLowerCase().includes(qLower)
+            );
+          })
+          .sort((a: any, b: any) => compareByCreatedAt(a, b, dateOrder));
 
         if (visibleCustomers.length === 0) return [];
         return [{
@@ -372,30 +237,34 @@ export default function DebugNumbers(): React.JSX.Element {
           totalCustomers: group.length,
         }];
       })
-      .sort((a, b) => b.totalCustomers - a.totalCustomers);
-  }, [activeFilter, duplicatePhones, numberSearch]);
+      .sort((a, b) =>
+        compareByCreatedAt(a.visibleCustomers[0], b.visibleCustomers[0], dateOrder)
+      );
+  }, [activeFilter, dateOrder, duplicatePhones, numberSearch]);
 
   const filteredCustomers = useMemo(() => {
     const raw = numberSearch.trim();
     const normQ = normalizePhone(raw);
     const qLower = raw.toLowerCase();
 
-    return customers.filter((c: any) => {
-      const activeOk =
-        activeFilter === 'all' ? true : activeFilter === 'active' ? !!c?.active : !c?.active;
-      if (!activeOk) return false;
+    return customers
+      .filter((c: any) => {
+        const activeOk =
+          activeFilter === 'all' ? true : activeFilter === 'active' ? !!c?.active : !c?.active;
+        if (!activeOk) return false;
 
-      if (duplicatesOnly) {
-        const normalized = normalizePhone(c?.phoneNumber ?? '');
-        if (!normalized || !duplicatePhones.has(normalized)) return false;
-      }
+        if (duplicatesOnly) {
+          const normalized = normalizePhone(c?.phoneNumber ?? '');
+          if (!normalized || !duplicatePhones.has(normalized)) return false;
+        }
 
-      if (!raw) return true;
-      const p = (c?.phoneNumber || '').toString();
-      const normP = normalizePhone(p);
-      return (normQ && normP.includes(normQ)) || p.toLowerCase().includes(qLower);
-    });
-  }, [customers, numberSearch, activeFilter, duplicatesOnly, duplicatePhones]);
+        if (!raw) return true;
+        const p = (c?.phoneNumber || '').toString();
+        const normP = normalizePhone(p);
+        return (normQ && normP.includes(normQ)) || p.toLowerCase().includes(qLower);
+      })
+      .sort((a: any, b: any) => compareByCreatedAt(a, b, dateOrder));
+  }, [customers, numberSearch, activeFilter, duplicatesOnly, duplicatePhones, dateOrder]);
 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(50);
@@ -413,15 +282,8 @@ export default function DebugNumbers(): React.JSX.Element {
   useEffect(() => {
     // reset paginación cuando cambian filtros / tienda
     setPage(0);
-  }, [storeId, numberSearch, activeFilter, duplicatesOnly, rowsPerPage]);
+  }, [storeId, numberSearch, activeFilter, dateOrder, duplicatesOnly, rowsPerPage]);
 
-  const [csvOpen, setCsvOpen] = useState(false);
-  const [csv, setCsv] = useState<ParsedCsv | null>(null);
-  const [csvMode, setCsvMode] = useState<CsvMode>('listed');
-  const [summary, setSummary] = useState<null | CsvSummary>(null);
-
-  const [processing, setProcessing] = useState(false);
-  const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [message, setMessage] = useState<null | {
     type: 'success' | 'error' | 'info';
     text: string;
@@ -503,234 +365,6 @@ export default function DebugNumbers(): React.JSX.Element {
     }
   }
 
-  function openCsvPicker(mode: CsvMode) {
-    csvModeRef.current = mode;
-    setCsvMode(mode);
-    fileInputRef.current?.click();
-  }
-
-  async function handlePickCsvFile(file: File, mode: CsvMode) {
-    setMessage(null);
-    setSummary(null);
-    setCsv(null);
-    setCsvMode(mode);
-
-    const parsed = await parsePhoneFile(file);
-    setCsv(parsed);
-
-    if (parsed.phoneNumbers.length === 0) {
-      setMessage({ type: 'error', text: 'No se encontraron números válidos en el archivo.' });
-      return;
-    }
-
-    if (!storeId) {
-      setMessage({ type: 'error', text: 'Selecciona una tienda antes de procesar el archivo.' });
-      return;
-    }
-
-    setProcessing(true);
-    try {
-      const customers = customersData ?? (await fetchAllCustomersByStore(storeId));
-      const phoneToIds = new Map<string, string[]>();
-      const csvPhones = new Set(parsed.phoneNumbers);
-
-      for (const c of customers) {
-        const phoneNorm = normalizePhone(c?.phoneNumber ?? '');
-        if (!phoneNorm) continue;
-        const list = phoneToIds.get(phoneNorm) || [];
-        const id = getCustomerId(c);
-        if (id) list.push(id);
-        phoneToIds.set(phoneNorm, list);
-      }
-
-      const foundIds = new Set<string>();
-      let found = 0;
-      let notFound = 0;
-      for (const p of parsed.phoneNumbers) {
-        const ids = phoneToIds.get(p);
-        if (ids && ids.length) {
-          found += 1;
-          ids.forEach((id) => foundIds.add(id));
-        } else {
-          notFound += 1;
-        }
-      }
-
-      const toDeactivate =
-        mode === 'listed'
-          ? foundIds.size
-          : customers.filter((c) => {
-            const id = getCustomerId(c);
-            const phoneNorm = normalizePhone(c?.phoneNumber ?? '');
-            return id && c?.active && (!phoneNorm || !csvPhones.has(phoneNorm));
-          }).length;
-
-      setSummary({
-        mode,
-        totalCsv: parsed.phoneNumbers.length,
-        found,
-        notFound,
-        toDeactivate,
-        toKeep: foundIds.size,
-      });
-
-      setMessage({
-        type: 'info',
-        text:
-          mode === 'listed'
-            ? 'Listo. Revisa el resumen y luego presiona "Inactivar encontrados".'
-            : 'Listo. Revisa el resumen y luego presiona "Inactivar excepto archivo".',
-      });
-    } catch (e) {
-      console.error(e);
-      setMessage({ type: 'error', text: 'No se pudo procesar el archivo. Revisa la consola.' });
-    } finally {
-      setProcessing(false);
-    }
-  }
-
-  async function handleDeactivate() {
-    if (!csv || !storeId) return;
-    setMessage(null);
-    setProcessing(true);
-    setProgress({ done: 0, total: 0 });
-
-    try {
-      const customers = customersData ?? (await fetchAllCustomersByStore(storeId));
-      const phoneToCustomers = new Map<string, any[]>();
-      const csvPhones = new Set(csv.phoneNumbers);
-      for (const c of customers) {
-        const p = normalizePhone(c?.phoneNumber ?? '');
-        if (!p) continue;
-        const arr = phoneToCustomers.get(p) || [];
-        arr.push(c);
-        phoneToCustomers.set(p, arr);
-      }
-
-      const targets: any[] = [];
-      if (csvMode === 'listed') {
-        for (const p of csv.phoneNumbers) {
-          const arr = phoneToCustomers.get(p);
-          if (arr?.length) targets.push(...arr);
-        }
-      } else {
-        for (const c of customers) {
-          const phoneNorm = normalizePhone(c?.phoneNumber ?? '');
-          if (c?.active && (!phoneNorm || !csvPhones.has(phoneNorm))) {
-            targets.push(c);
-          }
-        }
-      }
-
-      const unique = Array.from(new Map(targets.map((c) => [getCustomerId(c), c])).values()).filter(
-        (c) => !!getCustomerId(c)
-      );
-      setProgress({ done: 0, total: unique.length });
-
-      const importRows = unique.map((c) => toImportCustomer(c, false));
-      const result = await customerClient.importCustomers(storeId, importRows, (done, total) => {
-        setProgress({ done, total });
-      });
-      const ok = result.updated + result.inserted;
-      const bad = result.failed;
-
-      // refrescar tabla (debug) + opcionalmente customers estándar si existe en otras pantallas
-      qc.invalidateQueries({ queryKey: ['debug-customers-by-store', storeId] });
-      qc.invalidateQueries({ queryKey: ['customers', storeId] });
-
-      setMessage({
-        type: bad ? 'error' : 'success',
-        text: bad
-          ? `Proceso terminado con errores. Exitos: ${ok}, Fallos: ${bad}.`
-          : csvMode === 'listed'
-            ? `Listo. Se inactivaron ${ok} customer(s).`
-            : `Listo. Se inactivaron ${ok} customer(s) fuera del archivo.`,
-      });
-    } catch (e) {
-      console.error(e);
-      setMessage({ type: 'error', text: 'No se pudo inactivar. Revisa la consola.' });
-    } finally {
-      setProcessing(false);
-    }
-  }
-
-  async function handleDeactivateDuplicates() {
-    if (!storeId || duplicatePhones.size === 0) return;
-    setMessage(null);
-    setProcessing(true);
-    setProgress({ done: 0, total: 0 });
-
-    try {
-      const tasks: (() => Promise<any>)[] = [];
-      let groupsWithoutNormalized = 0;
-
-      duplicatePhones.forEach((group, normalizedPhone) => {
-        const keeper =
-          group.find((c: any) => (c?.phoneNumber || '').toString().trim() === normalizedPhone) ||
-          group[0];
-        const keeperId = getCustomerId(keeper);
-
-        if (keeperId && !keeper?.active) {
-          tasks.push(async () => {
-            const res = await updateActive.mutateAsync({ customer: keeper, active: true });
-            setProgress((prev) => ({ ...prev, done: prev.done + 1 }));
-            return res;
-          });
-        }
-
-        if ((keeper?.phoneNumber || '').toString().trim() !== normalizedPhone) {
-          groupsWithoutNormalized += 1;
-        }
-
-        group.forEach((customer: any) => {
-          const id = getCustomerId(customer);
-          if (!id || id === keeperId || !customer?.active) return;
-          tasks.push(async () => {
-            const res = await updateActive.mutateAsync({ customer, active: false });
-            setProgress((prev) => ({ ...prev, done: prev.done + 1 }));
-            return res;
-          });
-        });
-      });
-
-      if (tasks.length === 0) {
-        setMessage({
-          type: 'info',
-          text: 'Los duplicados ya estaban inactivos o solo quedaba activo el numero principal.',
-        });
-        return;
-      }
-
-      setProgress({ done: 0, total: tasks.length });
-      const settled = await runWithConcurrency(tasks);
-      const ok = settled.filter((r) => r.status === 'fulfilled').length;
-      const bad = settled.filter((r) => r.status === 'rejected').length;
-      const stoppedByRateLimit = settled.some((r) => r.status === 'rejected' && isRateLimitedError(r.reason));
-
-      qc.invalidateQueries({ queryKey: ['debug-customers-by-store', storeId] });
-      qc.invalidateQueries({ queryKey: ['customers', storeId] });
-
-      setMessage({
-        type: bad ? 'error' : 'success',
-        text: stoppedByRateLimit
-          ? `Proceso pausado por RATE_LIMITED persistente para proteger tu sesion. Exitos: ${ok}, pendientes/fallos: ${bad}. Espera unos minutos antes de reintentar.`
-          : bad
-            ? `Proceso terminado con errores. Exitos: ${ok}, Fallos: ${bad}.`
-          : groupsWithoutNormalized
-            ? `Listo. Se actualizaron ${ok} customer(s). ${groupsWithoutNormalized} grupo(s) no tenian un numero escrito exactamente normalizado, asi que se conservo uno como principal.`
-            : `Listo. Se desactivaron duplicados y se dejo activo el numero normalizado.`,
-      });
-    } catch (e) {
-      console.error(e);
-      setMessage({
-        type: 'error',
-        text: 'No se pudieron desactivar los duplicados. Revisa la consola.',
-      });
-    } finally {
-      setProcessing(false);
-    }
-  }
-
   return (
     <Box sx={{ px: { xs: 2, sm: 3 }, py: 3 }}>
       <Card
@@ -742,6 +376,93 @@ export default function DebugNumbers(): React.JSX.Element {
       >
         <CardContent>
           <Stack spacing={2}>
+            <Paper
+              variant="outlined"
+              sx={{ p: 2, borderRadius: 2 }}
+            >
+              <Stack spacing={1.5}>
+                <Box>
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight={700}
+                  >
+                    Consultar número en todas las tiendas
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                  >
+                    Ingresa un número completo para ver en qué tiendas está guardado.
+                  </Typography>
+                </Box>
+                <Stack
+                  component="form"
+                  direction={{ xs: 'column', sm: 'row' }}
+                  spacing={1.5}
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    setSubmittedPhoneSearch(globalPhoneSearch.trim());
+                  }}
+                >
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Número de teléfono"
+                    placeholder="Ej. (305) 555-0123"
+                    value={globalPhoneSearch}
+                    onChange={(event) => {
+                      setGlobalPhoneSearch(event.target.value);
+                      setSubmittedPhoneSearch('');
+                    }}
+                    inputProps={{ inputMode: 'tel' }}
+                  />
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    disabled={!globalPhoneSearch.trim() || storeLookup.isFetching}
+                    sx={{ whiteSpace: 'nowrap', minWidth: 120 }}
+                  >
+                    {storeLookup.isFetching ? 'Buscando…' : 'Consultar'}
+                  </Button>
+                </Stack>
+
+                {submittedPhoneSearch && submittedPhoneNormalized.length < 7 ? (
+                  <Alert severity="warning">Ingresa un número de teléfono válido.</Alert>
+                ) : null}
+
+                {storeLookup.isError ? (
+                  <Alert severity="error">
+                    {storeLookup.error instanceof Error
+                      ? storeLookup.error.message
+                      : 'No se pudo consultar el número.'}
+                  </Alert>
+                ) : null}
+
+                {storeLookup.isSuccess ? (
+                  lookupStores.length > 0 ? (
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      flexWrap="wrap"
+                      useFlexGap
+                    >
+                      {lookupStores.map((store) => (
+                        <Chip
+                          key={(store?._id || '').toString()}
+                          label={store?.name || store?._id || 'Tienda sin nombre'}
+                          color="primary"
+                          variant="outlined"
+                        />
+                      ))}
+                    </Stack>
+                  ) : (
+                    <Alert severity="info">
+                      El número {storeLookup.data.normalized} no está guardado en ninguna tienda.
+                    </Alert>
+                  )
+                ) : null}
+              </Stack>
+            </Paper>
 
             <Stack spacing={1.5}>
               <Stack
@@ -768,8 +489,6 @@ export default function DebugNumbers(): React.JSX.Element {
                     setStoreSearch(value?.name || '');
                     setDuplicatesOnly(false);
                     setMessage(null);
-                    setCsv(null);
-                    setSummary(null);
                   }}
                   renderInput={(params) => (
                     <TextField
@@ -807,6 +526,23 @@ export default function DebugNumbers(): React.JSX.Element {
                     <MenuItem value="inactive">Inactivos</MenuItem>
                   </Select>
                 </FormControl>
+
+                <FormControl
+                  size="small"
+                  sx={{ minWidth: { xs: '100%', md: 210 }, flex: { md: '0 0 210px' } }}
+                  disabled={!storeId || customersPending}
+                >
+                  <InputLabel id="debug-date-order">Ordenar por fecha</InputLabel>
+                  <Select
+                    labelId="debug-date-order"
+                    label="Ordenar por fecha"
+                    value={dateOrder}
+                    onChange={(event) => setDateOrder(event.target.value as DateOrder)}
+                  >
+                    <MenuItem value="newest">Más recientes primero</MenuItem>
+                    <MenuItem value="oldest">Más antiguos primero</MenuItem>
+                  </Select>
+                </FormControl>
               </Stack>
 
               <Stack
@@ -815,23 +551,6 @@ export default function DebugNumbers(): React.JSX.Element {
                 justifyContent="flex-end"
                 alignItems={{ xs: 'stretch', sm: 'center' }}
               >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  aria-label="Subir archivo de numeros"
-                  accept=".csv,.xlsx,.xls,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                  hidden
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) {
-                      setCsvOpen(true);
-                      void handlePickCsvFile(f, csvModeRef.current);
-                    }
-                    // permitir volver a subir el mismo archivo
-                    if (fileInputRef.current) fileInputRef.current.value = '';
-                  }}
-                />
-
                 <Button
                   startIcon={<ManageSearchRoundedIcon />}
                   variant={duplicatesOnly ? 'contained' : 'outlined'}
@@ -854,66 +573,19 @@ export default function DebugNumbers(): React.JSX.Element {
                     bgcolor: duplicatesOnly ? brandPink : 'transparent',
                     borderColor: alpha(brandPink, 0.55),
                     '&:hover': {
-                      bgcolor: duplicatesOnly ? brandPinkDark : alpha(brandPink, 0.08),
+                      bgcolor: duplicatesOnly
+                        ? theme.palette.primary.dark
+                        : alpha(brandPink, 0.08),
                       borderColor: brandPink,
                     },
                   }}
                 >
                   {duplicatesOnly ? 'Ver todos' : 'Buscar repetidos'}
                 </Button>
-
-                <Button
-                  variant="contained"
-                  onClick={() => void handleDeactivateDuplicates()}
-                  disabled={!storeId || processing || duplicatePhones.size === 0}
-                  sx={{
-                    bgcolor: brandPink,
-                    whiteSpace: 'nowrap',
-                    '&:hover': {
-                      bgcolor: brandPinkDark,
-                    },
-                  }}
-                >
-                  Desactivar duplicados
-                </Button>
-
-                <Button
-                  startIcon={<FileUploadRoundedIcon />}
-                  variant="contained"
-                  onClick={() => openCsvPicker('listed')}
-                  disabled={!storeId || processing}
-                  sx={{
-                    bgcolor: brandPink,
-                    '&:hover': {
-                      bgcolor: brandPinkDark,
-                    },
-                  }}
-                >
-                  Desactivar desde archivo
-                </Button>
-
-                <Button
-                  startIcon={<FileUploadRoundedIcon />}
-                  variant="outlined"
-                  onClick={() => openCsvPicker('except-listed')}
-                  disabled={!storeId || processing}
-                  sx={{
-                    color: brandPink,
-                    borderColor: alpha(brandPink, 0.55),
-                    '&:hover': {
-                      bgcolor: alpha(brandPink, 0.08),
-                      borderColor: brandPink,
-                    },
-                  }}
-                >
-                  Desactivar excepto archivo
-                </Button>
               </Stack>
             </Stack>
 
             {message ? <Alert severity={message.type}>{message.text}</Alert> : null}
-
-            {processing ? <LinearProgress /> : null}
 
             {storeId ? (
               <Box mt={1}>
@@ -1012,10 +684,10 @@ export default function DebugNumbers(): React.JSX.Element {
                           <Table size="small">
                             <TableHead>
                               <TableRow>
-                                <TableCell>Phone</TableCell>
-                                <TableCell>Normalizado</TableCell>
-                                <TableCell>Active</TableCell>
-                                <TableCell>Created At</TableCell>
+                                <TableCell>Número</TableCell>
+                                <TableCell>Ingresado por</TableCell>
+                                <TableCell>Estado</TableCell>
+                                <TableCell>Fecha de creación</TableCell>
                               </TableRow>
                             </TableHead>
                             <TableBody>
@@ -1077,14 +749,7 @@ export default function DebugNumbers(): React.JSX.Element {
                                           <TableCell sx={{ pl: { xs: 2, sm: 4 } }}>
                                             {c?.phoneNumber || '-'}
                                           </TableCell>
-                                          <TableCell>
-                                            <Typography
-                                              variant="body2"
-                                              fontFamily="monospace"
-                                            >
-                                              {group.normalizedPhone}
-                                            </Typography>
-                                          </TableCell>
+                                          <TableCell>{getCustomerCreator(c)}</TableCell>
                                           <TableCell>
                                             <Switch
                                               checked={!!c?.active}
@@ -1093,8 +758,10 @@ export default function DebugNumbers(): React.JSX.Element {
                                                   ? void handleToggleActive(c, e.target.checked)
                                                   : undefined
                                               }
-                                              disabled={!id || isToggling(id) || processing}
-                                              inputProps={{ 'aria-label': 'toggle active' }}
+                                              disabled={!id || isToggling(id)}
+                                              inputProps={{
+                                                'aria-label': `Cambiar estado de ${c?.phoneNumber || 'número'}`,
+                                              }}
                                             />
                                           </TableCell>
                                           <TableCell>
@@ -1127,7 +794,6 @@ export default function DebugNumbers(): React.JSX.Element {
                                           : undefined
                                       }
                                     >
-                                      <TableCell>{c?.phoneNumber || '—'}</TableCell>
                                       <TableCell>
                                         <Stack
                                           direction="row"
@@ -1138,7 +804,7 @@ export default function DebugNumbers(): React.JSX.Element {
                                             variant="body2"
                                             fontFamily="monospace"
                                           >
-                                            {normalizedPhone || '-'}
+                                            {c?.phoneNumber || '—'}
                                           </Typography>
                                           {duplicateCount > 1 ? (
                                             <Chip
@@ -1150,6 +816,7 @@ export default function DebugNumbers(): React.JSX.Element {
                                           ) : null}
                                         </Stack>
                                       </TableCell>
+                                      <TableCell>{getCustomerCreator(c)}</TableCell>
                                       <TableCell>
                                         <Switch
                                           checked={!!c?.active}
@@ -1158,8 +825,10 @@ export default function DebugNumbers(): React.JSX.Element {
                                               ? void handleToggleActive(c, e.target.checked)
                                               : undefined
                                           }
-                                          disabled={!id || isToggling(id) || processing}
-                                          inputProps={{ 'aria-label': 'toggle active' }}
+                                          disabled={!id || isToggling(id)}
+                                          inputProps={{
+                                            'aria-label': `Cambiar estado de ${c?.phoneNumber || 'número'}`,
+                                          }}
                                         />
                                       </TableCell>
                                       <TableCell>
@@ -1226,109 +895,6 @@ export default function DebugNumbers(): React.JSX.Element {
         </CardContent>
       </Card>
 
-      <Dialog
-        open={csvOpen}
-        onClose={() => setCsvOpen(false)}
-        fullWidth
-        maxWidth="sm"
-      >
-        <DialogTitle>
-          {csvMode === 'listed' ? 'Inactivar por archivo' : 'Inactivar excepto archivo'}
-        </DialogTitle>
-        <DialogContent>
-          <Stack
-            spacing={2}
-            mt={1}
-          >
-            {!storeId ? <Alert severity="warning">Selecciona una tienda primero.</Alert> : null}
-
-            {processing && !summary ? (
-              <Box
-                display="flex"
-                alignItems="center"
-                gap={2}
-              >
-                <CircularProgress size={20} />
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                >
-                  Procesando archivo...
-                </Typography>
-              </Box>
-            ) : null}
-
-            {summary ? (
-              <Card variant="outlined">
-                <CardContent>
-                  <Stack spacing={1}>
-                    <Typography variant="subtitle1">Resumen</Typography>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                    >
-                      Numeros unicos en archivo: <b>{summary.totalCsv}</b>
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                    >
-                      Numeros encontrados (match por phoneNumber): <b>{summary.found}</b>
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                    >
-                      Numeros no encontrados: <b>{summary.notFound}</b>
-                    </Typography>
-                    {summary.mode === 'except-listed' ? (
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                      >
-                        Customers a conservar activos por archivo: <b>{summary.toKeep}</b>
-                      </Typography>
-                    ) : null}
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                    >
-                      {summary.mode === 'listed'
-                        ? 'Customers a inactivar (IDs unicos): '
-                        : 'Customers activos fuera del archivo a inactivar: '}
-                      <b>{summary.toDeactivate}</b>
-                    </Typography>
-                  </Stack>
-                </CardContent>
-              </Card>
-            ) : null}
-
-            {progress.total > 0 ? (
-              <Typography
-                variant="body2"
-                color="text.secondary"
-              >
-                Progreso: {progress.done}/{progress.total}
-              </Typography>
-            ) : null}
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => setCsvOpen(false)}
-            disabled={processing}
-          >
-            Cerrar
-          </Button>
-          <Button
-            variant="contained"
-            onClick={() => void handleDeactivate()}
-            disabled={!summary?.toDeactivate || processing}
-          >
-            {csvMode === 'listed' ? 'Inactivar encontrados' : 'Inactivar excepto archivo'}
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 }
