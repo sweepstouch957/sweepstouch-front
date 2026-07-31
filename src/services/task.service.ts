@@ -149,6 +149,9 @@ export interface BoardData {
   lists: { id: string; name: string; color: string; taskIds: string[] }[];
   tasks: Record<string, Task>;
   members: BoardMember[];
+  /** El board trae las últimas cerradas, no el histórico completo. */
+  doneTotal?: number;
+  doneShown?: number;
 }
 
 /** Reporte diario de Cowork (secc. 10 del manual) — datos, no texto. */
