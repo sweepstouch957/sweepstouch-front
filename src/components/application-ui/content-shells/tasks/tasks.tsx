@@ -35,12 +35,7 @@ import toast from 'react-hot-toast';
 import { useCustomization } from 'src/hooks/use-customization';
 import { AiDialog } from './ai-dialog';
 import { BoardView } from './board-view';
-import {
-  PROJECT_COLORS,
-  BOARD_STATUSES,
-  STATUS_LABEL,
-  type ProjectFormState,
-} from './constants';
+import { BOARD_STATUSES, STATUS_LABEL } from './constants';
 import { MyTasksView } from './my-tasks-view';
 import { ProjectDialog } from './project-dialog';
 import { RoutinesView } from './routines-view';
@@ -82,11 +77,6 @@ function Tasks(): React.JSX.Element {
 
   /* ── New project dialog ── */
   const [newProjectOpen, setNewProjectOpen] = useState(false);
-  const [projectForm, setProjectForm] = useState<ProjectFormState>({
-    name: '',
-    description: '',
-    color: PROJECT_COLORS[0],
-  });
 
   /* ── AI dialog ── */
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
@@ -334,7 +324,6 @@ function Tasks(): React.JSX.Element {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       setSelectedProjectId(d._id);
       setNewProjectOpen(false);
-      setProjectForm({ name: '', description: '', color: PROJECT_COLORS[0] });
       toast.success('Project created');
     },
   });
@@ -469,6 +458,7 @@ function Tasks(): React.JSX.Element {
     setPriorityFilter('all');
   }, []);
   const handleCreateProjectDialog = useCallback(() => setNewProjectOpen(true), []);
+  const handleCloseProjectDialog = useCallback(() => setNewProjectOpen(false), []);
 
   const totalTasks = filteredBoard?.allTotal || 0;
   const doneTasks = statusCounts['done'] || 0;
@@ -770,16 +760,19 @@ function Tasks(): React.JSX.Element {
       {/* ═══ New Project Dialog ═══ */}
       {newProjectOpen && (
         <ProjectDialog
-          open={newProjectOpen}
-          form={projectForm}
-          setForm={setProjectForm}
+          open
           submitting={creatingProject}
-          onClose={() => setNewProjectOpen(false)}
-          onSubmit={() => createProject(projectForm)}
+          onClose={handleCloseProjectDialog}
+          onSubmit={createProject}
         />
       )}
       {/* ═══ AI Dialog ═══ */}
-      <TopicReportDialog open={topicDialogOpen} onClose={() => setTopicDialogOpen(false)} />
+      {topicDialogOpen && (
+        <TopicReportDialog
+          open
+          onClose={() => setTopicDialogOpen(false)}
+        />
+      )}
 
       {aiDialogOpen && (
         <AiDialog

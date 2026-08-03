@@ -88,14 +88,69 @@ export const PRIORITY_CONFIG: Record<string, { label: string; icon: string }> = 
   low: { label: 'Low', icon: '🟢' },
 };
 
-/** Color de prioridad: sale del design system (`severityColor`), no de hex. */
-export function priorityMeta(theme: Theme, key: string) {
+/**
+ * Estos metadatos sólo dependen del theme, pero se piden en cada render de cada
+ * tarjeta y columna. Se calculan una vez por theme y se reutilizan: además de
+ * ahorrar el cálculo, la referencia estable no rompe los `memo` de abajo.
+ */
+type PriorityMeta = { label: string; icon: string; color: string };
+type StatusMeta = { label: string; color: string; bg: string };
+
+type ThemeMetaCache = {
+  priority: Record<string, PriorityMeta>;
+  status: Record<string, StatusMeta>;
+  priorityEntries: readonly (readonly [string, PriorityMeta])[];
+  statusEntries: readonly (readonly [string, StatusMeta])[];
+  boardStatusEntries: readonly (readonly [string, StatusMeta])[];
+};
+
+const themeMetaCache = new WeakMap<Theme, ThemeMetaCache>();
+
+function buildPriorityMeta(theme: Theme, key: string): PriorityMeta {
   const cfg = PRIORITY_CONFIG[key] ?? PRIORITY_CONFIG.medium;
   return { ...cfg, color: severityColor(theme, key) };
 }
 
+function buildStatusMeta(theme: Theme, key: string): StatusMeta {
+  const role = STATUS_ROLE[key] ?? 'info';
+  return {
+    label: STATUS_LABEL[key] ?? key,
+    color: theme.palette[role].main,
+    bg: tint(theme, role, 0.08),
+  };
+}
+
+function themeMeta(theme: Theme): ThemeMetaCache {
+  const hit = themeMetaCache.get(theme);
+  if (hit) return hit;
+
+  const priority: Record<string, PriorityMeta> = {};
+  Object.keys(PRIORITY_CONFIG).forEach((k) => {
+    priority[k] = buildPriorityMeta(theme, k);
+  });
+  const status: Record<string, StatusMeta> = {};
+  Object.keys(STATUS_LABEL).forEach((k) => {
+    status[k] = buildStatusMeta(theme, k);
+  });
+
+  const built: ThemeMetaCache = {
+    priority,
+    status,
+    priorityEntries: Object.keys(PRIORITY_CONFIG).map((k) => [k, priority[k]] as const),
+    statusEntries: Object.keys(STATUS_LABEL).map((k) => [k, status[k]] as const),
+    boardStatusEntries: BOARD_STATUSES.map((k) => [k, status[k]] as const),
+  };
+  themeMetaCache.set(theme, built);
+  return built;
+}
+
+/** Color de prioridad: sale del design system (`severityColor`), no de hex. */
+export function priorityMeta(theme: Theme, key: string): PriorityMeta {
+  return themeMeta(theme).priority[key] ?? themeMeta(theme).priority.medium;
+}
+
 export function priorityEntries(theme: Theme) {
-  return Object.keys(PRIORITY_CONFIG).map((k) => [k, priorityMeta(theme, k)] as const);
+  return themeMeta(theme).priorityEntries;
 }
 
 /** Nombres del Manual de Cowork — el tablero habla el mismo idioma que el manual. */
@@ -126,23 +181,18 @@ const STATUS_ROLE: Record<string, SemanticRole> = {
   cancelled: 'secondary',
 };
 
-export function statusMeta(theme: Theme, key: string) {
-  const role = STATUS_ROLE[key] ?? 'info';
-  return {
-    label: STATUS_LABEL[key] ?? key,
-    color: theme.palette[role].main,
-    bg: tint(theme, role, 0.08),
-  };
+export function statusMeta(theme: Theme, key: string): StatusMeta {
+  return themeMeta(theme).status[key] ?? buildStatusMeta(theme, key);
 }
 
 /** Todos los estados — para el selector del diálogo. */
 export function statusEntries(theme: Theme) {
-  return Object.keys(STATUS_LABEL).map((k) => [k, statusMeta(theme, k)] as const);
+  return themeMeta(theme).statusEntries;
 }
 
 /** Sólo los que son columna del tablero. */
 export function boardStatusEntries(theme: Theme) {
-  return BOARD_STATUSES.map((k) => [k, statusMeta(theme, k)] as const);
+  return themeMeta(theme).boardStatusEntries;
 }
 
 export const cbIcon = <CheckBoxOutlineBlankIcon fontSize="small" />;

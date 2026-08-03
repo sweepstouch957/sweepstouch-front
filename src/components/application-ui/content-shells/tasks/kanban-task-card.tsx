@@ -18,7 +18,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { format, isAfter } from 'date-fns';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { priorityMeta } from './constants';
 import { useDragTiltDom } from './use-drag-tilt';
 
@@ -37,10 +37,11 @@ export const KanbanTaskCard = React.memo(
     const theme = useTheme();
     const isDark = theme.palette.mode === 'dark';
     const pri = priorityMeta(theme, task.priority);
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => setMounted(true), []);
+    // Sin guard de hidratación: el board se pinta después del fetch en cliente,
+    // el servidor nunca renderiza tarjetas. Antes costaba un render extra por
+    // tarjeta al montar.
     const isOverdue =
-      mounted && task.dueDate && task.status !== 'done' && isAfter(new Date(), new Date(task.dueDate));
+      task.dueDate && task.status !== 'done' && isAfter(new Date(), new Date(task.dueDate));
 
     const paperRef = useDragTiltDom(dragging, style?.transform);
 

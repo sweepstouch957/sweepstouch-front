@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import React from 'react';
 
-export function RoutinesView({
+export const RoutinesView = React.memo(function RoutinesView({
   loading,
   routines,
   onEdit,
@@ -149,4 +149,4 @@ export function RoutinesView({
       )}
     </Card>
   );
-}
+});

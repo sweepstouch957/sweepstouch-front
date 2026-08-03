@@ -15,10 +15,10 @@ import {
   useTheme,
 } from '@mui/material';
 import { format, isAfter } from 'date-fns';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { priorityMeta, statusEntries } from './constants';
 
-export function MyTasksView({
+export const MyTasksView = React.memo(function MyTasksView({
   loading,
   tasks,
   onOpenTask,
@@ -29,8 +29,6 @@ export function MyTasksView({
 }) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
 
   if (loading) {
     return (
@@ -60,7 +58,8 @@ export function MyTasksView({
             variant="body2"
             color="text.secondary"
           >
-            You're all caught up! <CelebrationRoundedIcon fontSize="small" sx={{ ml: 0.5, verticalAlign: 'middle' }} />
+            You're all caught up! <CelebrationRoundedIcon fontSize="small"
+sx={{ ml: 0.5, verticalAlign: 'middle' }} />
           </Typography>
         </CardContent>
       </Card>
@@ -131,7 +130,6 @@ export function MyTasksView({
               {tasksInStatus.map((task) => {
                 const pri = priorityMeta(theme, task.priority);
                 const isOverdue =
-                  mounted &&
                   task.dueDate &&
                   task.status !== 'done' &&
                   isAfter(new Date(), new Date(task.dueDate));
@@ -260,4 +258,4 @@ export function MyTasksView({
       })}
     </Stack>
   );
-}
+});

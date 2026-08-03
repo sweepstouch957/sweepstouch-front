@@ -11,19 +11,24 @@ import {
   useTheme,
 } from '@mui/material';
 import React from 'react';
+import { Controller, useForm, useWatch, type Control } from 'react-hook-form';
 import { PROJECT_COLORS, type ProjectFormState } from './constants';
 
+/** Mismo criterio que el diálogo de tarea: el formulario no vive en la página. */
 type ProjectDialogProps = {
   open: boolean;
-  form: ProjectFormState;
-  setForm: React.Dispatch<React.SetStateAction<ProjectFormState>>;
   submitting: boolean;
   onClose: () => void;
-  onSubmit: () => void;
+  onSubmit: (values: ProjectFormState) => void;
 };
 
-export function ProjectDialog({ open, form, setForm, submitting, onClose, onSubmit }: ProjectDialogProps) {
-  const theme = useTheme();
+export function ProjectDialog({ open, submitting, onClose, onSubmit }: ProjectDialogProps) {
+  const { register, control, handleSubmit } = useForm<ProjectFormState>({
+    defaultValues: { name: '', description: '', color: PROJECT_COLORS[0] },
+  });
+
+  const { ref: nameRef, ...nameField } = register('name', { required: true });
+  const { ref: descRef, ...descField } = register('description');
 
   return (
     <Dialog
@@ -31,7 +36,11 @@ export function ProjectDialog({ open, form, setForm, submitting, onClose, onSubm
       onClose={onClose}
       maxWidth="xs"
       fullWidth
-      PaperProps={{ sx: { borderRadius: 3 } }}
+      PaperProps={{
+        sx: { borderRadius: 3 },
+        component: 'form',
+        onSubmit: handleSubmit(onSubmit),
+      }}
     >
       <DialogTitle sx={{ fontWeight: 700 }}>New Project</DialogTitle>
       <DialogContent dividers>
@@ -44,54 +53,18 @@ export function ProjectDialog({ open, form, setForm, submitting, onClose, onSubm
             fullWidth
             autoFocus
             required
-            value={form.name}
-            onChange={(e) => { const v = e.target.value; setForm(prev => ({ ...prev, name: v })); }}
+            inputRef={nameRef}
+            {...nameField}
           />
           <TextField
             label="Description"
             fullWidth
             multiline
             rows={2}
-            value={form.description}
-            onChange={(e) => { const v = e.target.value; setForm(prev => ({ ...prev, description: v })); }}
+            inputRef={descRef}
+            {...descField}
           />
-          <Box>
-            <Typography
-              variant="caption"
-              fontWeight={600}
-              color="text.secondary"
-              mb={0.75}
-              display="block"
-            >
-              Color
-            </Typography>
-            <Stack
-              direction="row"
-              gap={0.75}
-              flexWrap="wrap"
-            >
-              {PROJECT_COLORS.map((c) => (
-                <Box
-                  key={c}
-                  onClick={() => setForm(prev => ({ ...prev, color: c }))}
-                  sx={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: 1.5,
-                    bgcolor: c,
-                    cursor: 'pointer',
-                    border:
-                      form.color === c
-                        ? `3px solid ${theme.palette.background.paper}`
-                        : '3px solid transparent',
-                    outline: form.color === c ? `2px solid ${c}` : 'none',
-                    transition: 'all 0.15s',
-                    '&:hover': { transform: 'scale(1.12)' },
-                  }}
-                />
-              ))}
-            </Stack>
-          </Box>
+          <ColorPicker control={control} />
         </Stack>
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
@@ -101,16 +74,83 @@ export function ProjectDialog({ open, form, setForm, submitting, onClose, onSubm
         >
           Cancel
         </Button>
-        <Button
-          variant="contained"
-          disableElevation
-          onClick={onSubmit}
-          disabled={!form.name || submitting}
-          sx={{ fontWeight: 700, borderRadius: 1.5, textTransform: 'none' }}
-        >
-          Create Project
-        </Button>
+        <SubmitButton
+          control={control}
+          submitting={submitting}
+        />
       </DialogActions>
     </Dialog>
+  );
+}
+
+function ColorPicker({ control }: { control: Control<ProjectFormState> }) {
+  const theme = useTheme();
+
+  return (
+    <Controller
+      control={control}
+      name="color"
+      render={({ field }) => (
+        <Box>
+          <Typography
+            variant="caption"
+            fontWeight={600}
+            color="text.secondary"
+            mb={0.75}
+            display="block"
+          >
+            Color
+          </Typography>
+          <Stack
+            direction="row"
+            gap={0.75}
+            flexWrap="wrap"
+          >
+            {PROJECT_COLORS.map((c) => (
+              <Box
+                key={c}
+                onClick={() => field.onChange(c)}
+                sx={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 1.5,
+                  bgcolor: c,
+                  cursor: 'pointer',
+                  border:
+                    field.value === c
+                      ? `3px solid ${theme.palette.background.paper}`
+                      : '3px solid transparent',
+                  outline: field.value === c ? `2px solid ${c}` : 'none',
+                  transition: 'all 0.15s',
+                  '&:hover': { transform: 'scale(1.12)' },
+                }}
+              />
+            ))}
+          </Stack>
+        </Box>
+      )}
+    />
+  );
+}
+
+function SubmitButton({
+  control,
+  submitting,
+}: {
+  control: Control<ProjectFormState>;
+  submitting: boolean;
+}) {
+  const name = useWatch({ control, name: 'name' });
+
+  return (
+    <Button
+      variant="contained"
+      type="submit"
+      disableElevation
+      disabled={!name || submitting}
+      sx={{ fontWeight: 700, borderRadius: 1.5, textTransform: 'none' }}
+    >
+      Create Project
+    </Button>
   );
 }
