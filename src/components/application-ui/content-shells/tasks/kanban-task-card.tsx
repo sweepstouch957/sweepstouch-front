@@ -79,14 +79,11 @@ export const KanbanTaskCard = React.memo(
               ? alpha(theme.palette.background.paper, 0.95)
               : theme.palette.background.paper,
             transformOrigin: 'bottom center',
-            transition: dragging
-              ? 'none'
-              : 'background-color .18s, border-color .18s, box-shadow .18s',
+            transition: dragging ? 'none' : 'background-color .18s, border-color .18s',
             zIndex: dragging ? 9999 : 'auto',
             '&:hover': {
               bgcolor: alpha(pri.color, isDark ? 0.12 : 0.04),
               borderColor: alpha(pri.color, 0.6),
-              boxShadow: `0 2px 10px ${alpha(theme.palette.common.black, isDark ? 0.4 : 0.06)}`,
             },
             // El toque responde de inmediato, sin mover a los vecinos
             '&:active': { bgcolor: alpha(pri.color, isDark ? 0.16 : 0.07) },

@@ -45,6 +45,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import { HEADER_HEIGHT } from 'src/theme/utils';
 import { IMPACT_OPTIONS, priorityEntries, priorityMeta, statusEntries, statusMeta } from './constants';
 import { TaskComments } from './task-comments';
 
@@ -234,6 +235,9 @@ export function TaskDetail({ taskId }: { taskId: string }) {
         bgcolor: isDark
           ? alpha(theme.palette.common.black, 0.22)
           : alpha(theme.palette.common.black, 0.02),
+        // El shell reserva HEADER_HEIGHT * 1.5 pero su navbar mide HEADER_HEIGHT:
+        // esa media altura sobrante era la banda gris entre el navbar y la tarea.
+        mt: `-${HEADER_HEIGHT / 2}px`,
         pb: { xs: dirty ? 13 : 4, md: 6 },
       }}
     >
@@ -241,7 +245,8 @@ export function TaskDetail({ taskId }: { taskId: string }) {
       <Box
         sx={{
           position: 'sticky',
-          top: 0,
+          // Debajo del navbar fijo, no detrás de él
+          top: `${HEADER_HEIGHT}px`,
           zIndex: 10,
           bgcolor: alpha(theme.palette.background.paper, 0.86),
           backdropFilter: 'blur(12px)',
@@ -563,10 +568,10 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                           backgroundImage: `url(${f.url})`,
                           backgroundSize: 'cover',
                           backgroundPosition: 'center',
-                          transition: 'transform .18s, box-shadow .18s',
+                          transition: 'transform .18s, border-color .18s',
                           '&:hover': {
                             transform: 'scale(1.04)',
-                            boxShadow: theme.shadows[8],
+                            borderColor: theme.palette.primary.main,
                           },
                           '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                         }}
@@ -688,7 +693,8 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             md={4.5}
             lg={4}
           >
-            <Box sx={{ position: { md: 'sticky' }, top: { md: 76 } }}>
+            {/* Navbar + cabecera de la tarea: la barra lateral se pega debajo */}
+            <Box sx={{ position: { md: 'sticky' }, top: { md: `${HEADER_HEIGHT + 62}px` } }}>
               <Stack spacing={2}>
                 {/* Una sola acción principal: la que toca ahora */}
                 <Button
@@ -714,7 +720,6 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                     textTransform: 'none',
                     fontWeight: 800,
                     fontSize: 14,
-                    boxShadow: `0 6px 18px ${alpha(theme.palette[primary.role].main, 0.28)}`,
                   }}
                 >
                   {primary.label}
@@ -935,8 +940,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             pb: 'calc(env(safe-area-inset-bottom) + 12px)',
             bgcolor: alpha(theme.palette.background.paper, 0.92),
             backdropFilter: 'blur(12px)',
-            borderTop: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-            boxShadow: `0 -8px 30px ${alpha(theme.palette.common.black, isDark ? 0.5 : 0.1)}`,
+            borderTop: `2px solid ${theme.palette.warning.main}`,
             '@keyframes slideUp': { from: { transform: 'translateY(100%)' }, to: { transform: 'none' } },
             animation: 'slideUp .24s cubic-bezier(.2,.8,.2,1)',
             '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
@@ -1163,7 +1167,6 @@ function Panel({
           ? alpha(semantic, isDark ? 0.09 : 0.04)
           : theme.palette.background.paper,
         border: `1px solid ${alpha(semantic || theme.palette.divider, semantic ? 0.35 : 0.65)}`,
-        boxShadow: `0 1px 2px ${alpha(theme.palette.common.black, isDark ? 0.3 : 0.03)}`,
         ...RISE,
         animationDelay: `${delay * 45}ms`,
       }}

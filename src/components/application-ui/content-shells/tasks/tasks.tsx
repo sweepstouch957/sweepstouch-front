@@ -40,6 +40,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useCallback, useDeferredValue, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useCustomization } from 'src/hooks/use-customization';
+import { HEADER_HEIGHT } from 'src/theme/utils';
 import { AiDialog } from './ai-dialog';
 import { BoardView } from './board-view';
 import { BOARD_STATUSES, EpicsContext, STATUS_LABEL } from './constants';
@@ -539,6 +540,9 @@ function Tasks(): React.JSX.Element {
         bgcolor: isDark
           ? alpha(theme.palette.common.black, 0.2)
           : alpha(theme.palette.common.black, 0.015),
+        // El shell reserva HEADER_HEIGHT * 1.5 y su navbar mide HEADER_HEIGHT:
+        // esa media altura sobrante era la banda gris pegada al navbar.
+        mt: `-${HEADER_HEIGHT / 2}px`,
       }}
       p={{ xs: 1.5, sm: 2 }}
     >

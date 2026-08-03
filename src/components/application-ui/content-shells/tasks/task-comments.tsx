@@ -658,8 +658,13 @@ color="inherit" /> : <SendRoundedIcon sx={{ fontSize: 15 }} />}
         sx={{ zIndex: 2000, width: anchorRef.current?.clientWidth }}
       >
         <Paper
-          elevation={8}
-          sx={{ borderRadius: 2, overflow: 'hidden', mb: 0.5 }}
+          elevation={0}
+          sx={{
+            borderRadius: 2,
+            overflow: 'hidden',
+            mb: 0.5,
+            border: `1px solid ${alpha(theme.palette.divider, 0.9)}`,
+          }}
         >
           <Typography
             variant="caption"

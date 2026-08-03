@@ -485,8 +485,8 @@ export const BoardFilters = React.memo(function BoardFilters(props: BoardFilters
             sx: {
               mt: 0.75,
               borderRadius: 3,
-              border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-              boxShadow: theme.shadows[16],
+              border: `1px solid ${alpha(theme.palette.divider, 0.9)}`,
+              boxShadow: 'none',
             },
           },
         }}
