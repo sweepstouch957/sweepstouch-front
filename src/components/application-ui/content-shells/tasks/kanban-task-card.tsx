@@ -3,6 +3,7 @@ import AttachFileRoundedIcon from '@mui/icons-material/AttachFileRounded';
 import CalendarTodayRoundedIcon from '@mui/icons-material/CalendarTodayRounded';
 import ChatBubbleOutlineRoundedIcon from '@mui/icons-material/ChatBubbleOutlineRounded';
 import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
+import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
 import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import SubdirectoryArrowRightRoundedIcon from '@mui/icons-material/SubdirectoryArrowRightRounded';
 import {
@@ -58,27 +59,46 @@ export const KanbanTaskCard = React.memo(
         <Paper
           ref={paperRef}
           elevation={dragging ? 12 : 0}
+          role="button"
+          aria-label={`${task.identifier} ${task.title}`}
+          onKeyDown={(e: React.KeyboardEvent) => {
+            // Espacio lo usa el arrastre por teclado de pangea: sólo Enter abre
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              onEdit(task);
+            }
+          }}
           sx={{
             border: `1px solid ${
               dragging ? pri.color : alpha(theme.palette.divider, isDark ? 0.15 : 0.6)
             }`,
             borderLeft: `3px solid ${pri.color}`,
-            borderRadius: 2,
+            borderRadius: 2.5,
             cursor: 'grab',
             bgcolor: dragging
               ? alpha(theme.palette.background.paper, 0.95)
               : theme.palette.background.paper,
-            transformOrigin: 'bottom center', // Pegman hangs from the bottom or top depending on preference. Top is usually 'top center'
-            transition: dragging ? 'none' : 'background-color 0.15s, border-color 0.15s',
+            transformOrigin: 'bottom center',
+            transition: dragging
+              ? 'none'
+              : 'background-color .18s, border-color .18s, box-shadow .18s',
             zIndex: dragging ? 9999 : 'auto',
             '&:hover': {
-              bgcolor: alpha(pri.color, isDark ? 0.12 : 0.05),
+              bgcolor: alpha(pri.color, isDark ? 0.12 : 0.04),
               borderColor: alpha(pri.color, 0.6),
+              boxShadow: `0 2px 10px ${alpha(theme.palette.common.black, isDark ? 0.4 : 0.06)}`,
             },
+            // El toque responde de inmediato, sin mover a los vecinos
+            '&:active': { bgcolor: alpha(pri.color, isDark ? 0.16 : 0.07) },
+            '&:focus-visible': {
+              outline: `2px solid ${pri.color}`,
+              outlineOffset: 2,
+            },
+            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
           }}
           onClick={() => onEdit(task)}
         >
-          <Box sx={{ p: 1.5 }}>
+          <Box sx={{ p: { xs: 1.75, md: 1.5 } }}>
             {/* Top row: identifier + priority + delete */}
             <Stack
               direction="row"
@@ -127,15 +147,17 @@ export const KanbanTaskCard = React.memo(
               </Stack>
               <IconButton
                 size="small"
+                aria-label={`Borrar ${task.identifier}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete(task._id);
                 }}
                 sx={{
-                  opacity: 0,
+                  // En táctil no hay hover: si no se ve, no existe
+                  opacity: { xs: 0.35, md: 0 },
                   '.MuiPaper-root:hover &': { opacity: 0.4 },
                   '&:hover': { opacity: '1 !important', color: 'error.main' },
-                  p: 0.25,
+                  p: 0.5,
                 }}
               >
                 <DeleteRoundedIcon sx={{ fontSize: 14 }} />
@@ -324,15 +346,20 @@ export const KanbanTaskCard = React.memo(
                     alignItems="center"
                     spacing={0.25}
                   >
-                    <CalendarTodayRoundedIcon
-                      sx={{ fontSize: 10, color: isOverdue ? 'error.main' : 'text.disabled' }}
-                    />
+                    {/* Vencida se avisa con icono, no sólo con color rojo */}
+                    {isOverdue ? (
+                      <ErrorOutlineRoundedIcon sx={{ fontSize: 11, color: 'error.main' }} />
+                    ) : (
+                      <CalendarTodayRoundedIcon sx={{ fontSize: 10, color: 'text.disabled' }} />
+                    )}
                     <Typography
                       variant="caption"
                       sx={{
                         fontSize: 10,
                         color: isOverdue ? 'error.main' : 'text.secondary',
                         fontWeight: isOverdue ? 700 : 400,
+                        // Números tabulares: las fechas no bailan entre tarjetas
+                        fontVariantNumeric: 'tabular-nums',
                       }}
                     >
                       {formatDue(task.dueDate)}

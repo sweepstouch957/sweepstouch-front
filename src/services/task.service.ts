@@ -133,6 +133,11 @@ export interface Task {
   tags: string[];
   /** Evidencias subidas (imágenes/archivos). `attachments` es sólo el contador. */
   files?: TaskFile[];
+  /**
+   * Bitácora: qué se hizo y en qué orden. El board NO la trae (crece sin techo);
+   * sólo viene al pedir la tarea completa o en el PDF de estado.
+   */
+  activity?: { at: string; text: string; by: string; statusChange: string }[];
   attachments: number;
   comments: number;
   progress: number;

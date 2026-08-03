@@ -12,6 +12,7 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import AssignmentIndRoundedIcon from '@mui/icons-material/AssignmentIndRounded';
 import DashboardCustomizeRoundedIcon from '@mui/icons-material/DashboardCustomizeRounded';
+import MoreHorizRoundedIcon from '@mui/icons-material/MoreHorizRounded';
 import RepeatRoundedIcon from '@mui/icons-material/RepeatRounded';
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import TravelExploreRoundedIcon from '@mui/icons-material/TravelExploreRounded';
@@ -22,8 +23,11 @@ import {
   Button,
   Chip,
   Container,
+  Fab,
   IconButton,
   LinearProgress,
+  Menu,
+  MenuItem,
   Stack,
   Tab,
   Tabs,
@@ -94,6 +98,9 @@ function Tasks(): React.JSX.Element {
   /* ── Plantillas de tarea ── */
   const [templatesOpen, setTemplatesOpen] = useState(false);
 
+  /** Menú "más" de móvil: las acciones secundarias no caben en la cabecera. */
+  const [moreAnchor, setMoreAnchor] = useState<null | HTMLElement>(null);
+
   /* ── Data ── */
   const { data: departments = [] } = useQuery({
     queryKey: ['departments'],
@@ -158,21 +165,16 @@ function Tasks(): React.JSX.Element {
     }
   }, [projects, selectedProjectId, urlProjectId]);
 
-  /* ── Deep link ?taskId= — abre la tarea que venía en el aviso de WhatsApp ── */
-  const { data: deepLinkedTask } = useQuery({
-    queryKey: ['task', urlTaskId],
-    queryFn: () => taskClient.getTask(urlTaskId!),
-    enabled: !!urlTaskId,
-    staleTime: 30_000,
-  });
-
+  /**
+   * Deep link ?taskId= — los avisos de WhatsApp y los correos de mención ya
+   * enviados apuntan acá. Ahora la tarea vive en su propia página, así que se
+   * redirige en vez de abrir un modal: los enlaces viejos siguen sirviendo.
+   */
   React.useEffect(() => {
-    if (!deepLinkedTask || openedDeepLink.current === deepLinkedTask._id) return;
-    openedDeepLink.current = deepLinkedTask._id;
-    if (deepLinkedTask.projectId) setSelectedProjectId(deepLinkedTask.projectId);
-    handleEditTask(deepLinkedTask);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deepLinkedTask]);
+    if (!urlTaskId || openedDeepLink.current === urlTaskId) return;
+    openedDeepLink.current = urlTaskId;
+    push(`/admin/applications/tasks/${urlTaskId}`);
+  }, [urlTaskId, push]);
 
   const selectedProject = useMemo(
     () => projects.find((p) => p._id === selectedProjectId),
@@ -428,6 +430,17 @@ function Tasks(): React.JSX.Element {
     setTaskDialogOpen(true);
   }, []);
 
+  /**
+   * Abrir una tarea la lleva a su propia página. El modal se quedó sólo para
+   * CREAR: ahí la captura rápida gana; para trabajarla hacen falta comentarios,
+   * evidencias y bitácora, y eso no cabe en una ventanita.
+   */
+  const handleOpenTask = useCallback(
+    (task: Task) => push(`/admin/applications/tasks/${task._id}`),
+    [push]
+  );
+
+  /** Bloquear exige motivo: eso sí se resuelve en el diálogo, sin salir del board. */
   const handleEditTask = useCallback((task: Task) => {
     setEditingTask(task);
     setNewTaskStatus(task.status);
@@ -481,14 +494,7 @@ function Tasks(): React.JSX.Element {
     [editingTask, selectedProjectId, updateTask, createTask]
   );
 
-  const handleOpenMyTask = useCallback(
-    (task: Task) => {
-      if (task.projectId) setSelectedProjectId(task.projectId);
-      setViewTab('board');
-      handleEditTask(task);
-    },
-    [handleEditTask]
-  );
+  const handleOpenMyTask = handleOpenTask;
 
   /* Referencias estables para BoardView: si cambian en cada render, su memo y
      el de las columnas no sirven de nada. */
@@ -583,99 +589,116 @@ function Tasks(): React.JSX.Element {
               </Typography>
             )}
           </Stack>
+          {/* En móvil las acciones secundarias van al menú "más": cinco botones
+              apretados no se pueden tocar con el pulgar. */}
           <Stack
             direction="row"
             spacing={0.75}
             flexShrink={0}
+            alignItems="center"
           >
-            {/* "¿Cómo va RCS?" — reportes de estado: Dirección y CEO */}
-            {canSeeReports && (
-              <Button
-                variant="outlined"
-                size="small"
-                color="info"
-                startIcon={<TravelExploreRoundedIcon sx={{ fontSize: 13 }} />}
-                onClick={() => setTopicDialogOpen(true)}
-                sx={{
-                  borderRadius: 1.5,
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  fontSize: 11,
-                  py: 0.3,
-                  px: 1.25,
-                }}
+            {mdUp ? (
+              <>
+                {/* "¿Cómo va RCS?" — reportes de estado: Dirección y CEO */}
+                {canSeeReports && (
+                  <ActionButton
+                    color="info"
+                    icon={<TravelExploreRoundedIcon sx={{ fontSize: 13 }} />}
+                    onClick={() => setTopicDialogOpen(true)}
+                    label="Cómo va…"
+                  />
+                )}
+                <ActionButton
+                  color="warning"
+                  icon={<SmartToyRoundedIcon sx={{ fontSize: 13 }} />}
+                  onClick={() => setAiDialogOpen(true)}
+                  label="AI"
+                />
+                <ActionButton
+                  icon={<DashboardCustomizeRoundedIcon sx={{ fontSize: 13 }} />}
+                  onClick={() => setTemplatesOpen(true)}
+                  label="Plantillas"
+                />
+                <ActionButton
+                  icon={<AddRoundedIcon sx={{ fontSize: 13 }} />}
+                  onClick={() => setNewProjectOpen(true)}
+                  label="Proyecto"
+                />
+                <Button
+                  variant="contained"
+                  size="small"
+                  disableElevation
+                  startIcon={<AddRoundedIcon sx={{ fontSize: 13 }} />}
+                  onClick={() => handleOpenNewTask('todo')}
+                  sx={{
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    fontSize: 11.5,
+                    py: 0.5,
+                    px: 1.5,
+                    background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+                  }}
+                >
+                  Tarea
+                </Button>
+              </>
+            ) : (
+              <IconButton
+                aria-label="Más acciones"
+                onClick={(e) => setMoreAnchor(e.currentTarget)}
+                sx={{ width: 44, height: 44 }}
               >
-                Cómo va…
-              </Button>
+                <MoreHorizRoundedIcon />
+              </IconButton>
             )}
-            <Button
-              variant="outlined"
-              size="small"
-              color="warning"
-              startIcon={<SmartToyRoundedIcon sx={{ fontSize: 13 }} />}
-              onClick={() => setAiDialogOpen(true)}
-              sx={{
-                borderRadius: 1.5,
-                textTransform: 'none',
-                fontWeight: 600,
-                fontSize: 11,
-                py: 0.3,
-                px: 1.25,
-              }}
-            >
-              AI
-            </Button>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<DashboardCustomizeRoundedIcon sx={{ fontSize: 13 }} />}
-              onClick={() => setTemplatesOpen(true)}
-              sx={{
-                borderRadius: 1.5,
-                textTransform: 'none',
-                fontWeight: 600,
-                fontSize: 11,
-                py: 0.3,
-                px: 1.25,
-              }}
-            >
-              Plantillas
-            </Button>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<AddRoundedIcon sx={{ fontSize: 13 }} />}
-              onClick={() => setNewProjectOpen(true)}
-              sx={{
-                borderRadius: 1.5,
-                textTransform: 'none',
-                fontWeight: 600,
-                fontSize: 11,
-                py: 0.3,
-                px: 1.25,
-              }}
-            >
-              Project
-            </Button>
-            <Button
-              variant="contained"
-              size="small"
-              disableElevation
-              startIcon={<AddRoundedIcon sx={{ fontSize: 13 }} />}
-              onClick={() => handleOpenNewTask('todo')}
-              sx={{
-                borderRadius: 1.5,
-                textTransform: 'none',
-                fontWeight: 700,
-                fontSize: 11,
-                py: 0.3,
-                px: 1.25,
-                background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
-              }}
-            >
-              Task
-            </Button>
           </Stack>
+
+          <Menu
+            anchorEl={moreAnchor}
+            open={!!moreAnchor}
+            onClose={() => setMoreAnchor(null)}
+            slotProps={{ paper: { sx: { borderRadius: 2, minWidth: 210 } } }}
+          >
+            {canSeeReports && (
+              <MenuItem
+                onClick={() => {
+                  setMoreAnchor(null);
+                  setTopicDialogOpen(true);
+                }}
+                sx={{ minHeight: 48, gap: 1.5 }}
+              >
+                <TravelExploreRoundedIcon sx={{ fontSize: 18 }} /> Cómo va…
+              </MenuItem>
+            )}
+            <MenuItem
+              onClick={() => {
+                setMoreAnchor(null);
+                setAiDialogOpen(true);
+              }}
+              sx={{ minHeight: 48, gap: 1.5 }}
+            >
+              <SmartToyRoundedIcon sx={{ fontSize: 18 }} /> Asistente AI
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                setMoreAnchor(null);
+                setTemplatesOpen(true);
+              }}
+              sx={{ minHeight: 48, gap: 1.5 }}
+            >
+              <DashboardCustomizeRoundedIcon sx={{ fontSize: 18 }} /> Plantillas
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                setMoreAnchor(null);
+                setNewProjectOpen(true);
+              }}
+              sx={{ minHeight: 48, gap: 1.5 }}
+            >
+              <AddRoundedIcon sx={{ fontSize: 18 }} /> Nuevo proyecto
+            </MenuItem>
+          </Menu>
         </Stack>
       </Container>
       {/* ═══ Project progress bar ═══ */}
@@ -806,7 +829,7 @@ function Tasks(): React.JSX.Element {
           onPriorityChange={setPriorityFilter}
           onClearFilters={handleClearFilters}
           onDragEnd={handleDragEnd}
-          onEditTask={handleEditTask}
+          onEditTask={handleOpenTask}
           onDeleteTask={handleDeleteTask}
           onAddTask={handleOpenNewTask}
           onCreateProject={handleCreateProjectDialog}
@@ -861,8 +884,59 @@ function Tasks(): React.JSX.Element {
           aiContext={aiContext}
         />
       )}
+
+      {/* Crear tarea en móvil: al alcance del pulgar y por encima del scroll */}
+      {!mdUp && (
+        <Fab
+          color="primary"
+          aria-label="Nueva tarea"
+          onClick={() => handleOpenNewTask('todo')}
+          sx={{
+            position: 'fixed',
+            right: 16,
+            bottom: 'calc(env(safe-area-inset-bottom) + 20px)',
+            zIndex: 1200,
+            background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+          }}
+        >
+          <AddRoundedIcon />
+        </Fab>
+      )}
     </Box>
     </EpicsContext.Provider>
+  );
+}
+
+/** Botón secundario de la cabecera: mismo tamaño y radio en todos. */
+function ActionButton({
+  label,
+  icon,
+  color,
+  onClick,
+}: {
+  label: string;
+  icon: React.ReactElement;
+  color?: 'info' | 'warning';
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      variant="outlined"
+      size="small"
+      color={color}
+      startIcon={icon}
+      onClick={onClick}
+      sx={{
+        borderRadius: 2,
+        textTransform: 'none',
+        fontWeight: 600,
+        fontSize: 11.5,
+        py: 0.5,
+        px: 1.5,
+      }}
+    >
+      {label}
+    </Button>
   );
 }
 

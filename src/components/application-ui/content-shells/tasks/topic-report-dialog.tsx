@@ -101,11 +101,21 @@ export function TopicReportDialog({ open, onClose }: { open: boolean; onClose: (
               useFlexGap
               mb={1.5}
             >
-              <Chip size="small" label={`${t.total} tareas`} />
-              <Chip size="small" color="success" variant="outlined" label={`${t.done} cerradas (${t.progress}%)`} />
-              <Chip size="small" label={`${t.active} activas`} />
-              {t.overdue > 0 && <Chip size="small" color="error" label={`${t.overdue} vencidas`} />}
-              {t.blocked > 0 && <Chip size="small" color="error" variant="outlined" label={`${t.blocked} bloqueadas`} />}
+              <Chip size="small"
+label={`${t.total} tareas`} />
+              <Chip size="small"
+color="success"
+variant="outlined"
+label={`${t.done} cerradas (${t.progress}%)`} />
+              <Chip size="small"
+label={`${t.active} activas`} />
+              {t.overdue > 0 && <Chip size="small"
+color="error"
+label={`${t.overdue} vencidas`} />}
+              {t.blocked > 0 && <Chip size="small"
+color="error"
+variant="outlined"
+label={`${t.blocked} bloqueadas`} />}
             </Stack>
 
             {result.data.projects?.length > 0 && (

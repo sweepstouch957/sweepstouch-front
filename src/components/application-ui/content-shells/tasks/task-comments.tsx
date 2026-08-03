@@ -644,7 +644,8 @@ export function TaskComments({
               '&.Mui-disabled': { bgcolor: alpha(theme.palette.text.primary, 0.08) },
             }}
           >
-            {sending ? <CircularProgress size={14} color="inherit" /> : <SendRoundedIcon sx={{ fontSize: 15 }} />}
+            {sending ? <CircularProgress size={14}
+color="inherit" /> : <SendRoundedIcon sx={{ fontSize: 15 }} />}
           </IconButton>
         </Stack>
       </Box>
@@ -693,7 +694,8 @@ export function TaskComments({
                 >
                   {initials(name)}
                 </Avatar>
-                <Box flex={1} minWidth={0}>
+                <Box flex={1}
+minWidth={0}>
                   <Typography
                     fontSize={12}
                     fontWeight={600}

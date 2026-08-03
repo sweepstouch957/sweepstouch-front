@@ -953,7 +953,8 @@ function TemplatePicker({
               width="100%"
             >
               <span>{o.icon}</span>
-              <Box flex={1} minWidth={0}>
+              <Box flex={1}
+minWidth={0}>
                 <Typography
                   fontSize={12.5}
                   fontWeight={600}
@@ -1053,7 +1054,8 @@ function StoreField({
               >
                 {o.name?.[0]}
               </Avatar>
-              <Box flex={1} minWidth={0}>
+              <Box flex={1}
+minWidth={0}>
                 <Typography
                   fontSize={12.5}
                   noWrap

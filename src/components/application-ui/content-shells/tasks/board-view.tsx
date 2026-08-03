@@ -3,43 +3,27 @@ import { type Epic } from '@/services/epic.service';
 import { Task, type Project } from '@/services/task.service';
 import { DragDropContext, type DropResult } from '@hello-pangea/dnd';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import AlternateEmailRoundedIcon from '@mui/icons-material/AlternateEmailRounded';
-import FlagRoundedIcon from '@mui/icons-material/FlagRounded';
-import PersonOutlineRoundedIcon from '@mui/icons-material/PersonOutlineRounded';
-import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import ViewKanbanRoundedIcon from '@mui/icons-material/ViewKanbanRounded';
 import {
   alpha,
-  Autocomplete,
-  Avatar,
   Box,
   Button,
-  Checkbox,
-  Chip,
-  CircularProgress,
   Container,
-  Unstable_Grid2 as Grid,
-  InputAdornment,
   lighten,
   MenuItem,
   Select,
+  Skeleton,
   Stack,
   Tab,
   Tabs,
-  TextField,
   Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
 import React from 'react';
 import { useCustomization } from 'src/hooks/use-customization';
-import {
-  cbChecked,
-  cbIcon,
-  priorityEntries,
-  PROJECT_COLORS,
-  boardStatusEntries,
-} from './constants';
+import { BoardFilters } from './board-filters';
+import { boardStatusEntries, PROJECT_COLORS } from './constants';
 import { KanbanColumn } from './kanban-column';
 
 /** Referencia estable: `|| []` inline creaba un array nuevo y tumbaba el memo. */
@@ -121,17 +105,25 @@ export const BoardView = React.memo(function BoardView({
   const isDark = theme.palette.mode === 'dark';
   const customization = useCustomization();
 
-  const hasActiveFilters =
-    selectedDepts.length > 0 ||
-    selectedUsers.length > 0 ||
-    !!search ||
-    priorityFilter !== 'all' ||
-    epicFilter !== 'all' ||
-    onlyMentions;
+  const statuses = boardStatusEntries(theme);
+
+  /**
+   * En móvil no hay tablero: hay UNA columna a la vez. Seis columnas apiladas
+   * obligan a scrollear media pantalla para llegar a la que importa, y en
+   * horizontal se pierde el pulgar. Arranca en "En curso": es lo que se mira.
+   */
+  const [mobileStatus, setMobileStatus] = React.useState('in_progress');
+
+  /**
+   * Las columnas vacías no merecen el mismo espacio: Respaldo y Bloqueada casi
+   * siempre están en cero y se comían media pantalla con un "drop here" enorme.
+   * Siguen siendo destino de arrastre, sólo que discretas.
+   */
+  const isEmpty = (key: string) => (filteredBoard?.byStatus[key]?.length ?? 0) === 0;
 
   return (
     <>
-      {/* ═══ Project Tabs ═══ */}
+      {/* ═══ Proyectos ═══ */}
       <Container
         disableGutters={!mdUp}
         maxWidth={customization.stretch ? false : 'xl'}
@@ -151,14 +143,15 @@ export const BoardView = React.memo(function BoardView({
                 py: 0,
                 px: 2,
                 mr: 0.5,
-                borderRadius: '8px 8px 0 0',
+                borderRadius: '10px 10px 0 0',
                 textTransform: 'none',
                 fontWeight: 600,
                 fontSize: 12.5,
                 color: 'text.secondary',
                 border: `1px solid transparent`,
                 borderBottom: 'none',
-                transition: 'all 0.15s',
+                transition: 'background-color .18s, color .18s, border-color .18s',
+                '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                 '&.Mui-selected': {
                   bgcolor: isDark ? lighten(theme.palette.neutral[900], 0.04) : 'common.white',
                   color: 'text.primary',
@@ -166,9 +159,7 @@ export const BoardView = React.memo(function BoardView({
                     ? alpha(theme.palette.common.white, 0.08)
                     : alpha(theme.palette.common.black, 0.1),
                 },
-                '&:hover:not(.Mui-selected)': {
-                  bgcolor: alpha(theme.palette.text.primary, 0.04),
-                },
+                '&:hover:not(.Mui-selected)': { bgcolor: alpha(theme.palette.text.primary, 0.04) },
               },
             }}
           >
@@ -211,7 +202,7 @@ export const BoardView = React.memo(function BoardView({
             onChange={(e) => onSelectProject(e.target.value)}
             fullWidth
             size="small"
-            sx={{ mb: 2, borderRadius: 1.5 }}
+            sx={{ mb: 1.5, borderRadius: 2, '& .MuiSelect-select': { py: 1.25 } }}
           >
             {projects.map((p) => (
               <MenuItem
@@ -232,14 +223,6 @@ export const BoardView = React.memo(function BoardView({
                     }}
                   />
                   <span>{p.name}</span>
-                  {p.identifier && (
-                    <Typography
-                      variant="caption"
-                      sx={{ fontFamily: 'monospace', opacity: 0.5 }}
-                    >
-                      {p.identifier}
-                    </Typography>
-                  )}
                 </Stack>
               </MenuItem>
             ))}
@@ -247,7 +230,7 @@ export const BoardView = React.memo(function BoardView({
         )}
       </Container>
 
-      {/* ═══ Board card ═══ */}
+      {/* ═══ Tablero ═══ */}
       <Box
         sx={{
           flex: 1,
@@ -256,367 +239,135 @@ export const BoardView = React.memo(function BoardView({
           overflow: 'hidden',
           bgcolor: isDark ? lighten(theme.palette.neutral[900], 0.03) : 'common.white',
           border: `1px solid ${
-            isDark
-              ? alpha(theme.palette.common.white, 0.06)
-              : alpha(theme.palette.common.black, 0.08)
+            isDark ? alpha(theme.palette.common.white, 0.06) : alpha(theme.palette.common.black, 0.08)
           }`,
-          borderRadius: '0 8px 8px 8px',
-          pt: 1.25,
+          borderRadius: { xs: 3, md: '0 12px 12px 12px' },
+          pt: 1.5,
         }}
       >
-        <Container maxWidth={customization.stretch ? false : 'xl'}>
-          {/* ── Filters ── */}
-          <Grid
-            container
-            spacing={1}
-            mb={1}
-          >
-            <Grid
-              xs={12}
-              md={4}
-            >
-              <Autocomplete
-                multiple
-                limitTags={2}
-                size="small"
-                options={departments}
-                value={selectedDepts}
-                onChange={(_, v) => onDeptsChange(v)}
-                getOptionLabel={(o) => o.name}
-                disableCloseOnSelect
-                renderOption={({ key, ...props }, option, { selected }) => (
-                  <li
-                    key={option._id}
-                    {...props}
-                  >
-                    <Checkbox
-                      icon={cbIcon}
-                      checkedIcon={cbChecked}
-                      sx={{ mr: 1, p: 0 }}
-                      checked={selected}
-                    />
-                    <Box
-                      sx={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: '50%',
-                        bgcolor: option.color,
-                        mr: 1,
-                      }}
-                    />
-                    {option.name}
-                  </li>
-                )}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    placeholder="Filter by department…"
-                  />
-                )}
-                renderTags={(tags, getTagProps) =>
-                  tags.map((d, i) => (
-                    <Chip
-                      key={d._id}
-                      label={d.name}
-                      size="small"
-                      {...getTagProps({ index: i })}
-                      sx={{
-                        bgcolor: alpha(d.color, 0.1),
-                        color: d.color,
-                        fontWeight: 600,
-                        fontSize: 11,
-                      }}
-                    />
-                  ))
-                }
-              />
-            </Grid>
-            <Grid
-              xs={12}
-              md={4}
-            >
-              <Autocomplete
-                multiple
-                limitTags={2}
-                size="small"
-                options={teamMembers}
-                value={selectedUsers}
-                onChange={(_, v) => onUsersChange(v)}
-                getOptionLabel={(o: any) => `${o.firstName} ${o.lastName || ''}`}
-                disableCloseOnSelect
-                renderOption={(props, option: any, { selected }) => (
-                  <li {...props}>
-                    <Checkbox
-                      icon={cbIcon}
-                      checkedIcon={cbChecked}
-                      sx={{ mr: 1, p: 0 }}
-                      checked={selected}
-                    />
-                    <Avatar
-                      src={option.profileImage}
-                      sx={{ width: 22, height: 22, mr: 1, fontSize: 10 }}
-                    >
-                      {option.firstName?.[0]}
-                    </Avatar>
-                    {option.firstName} {option.lastName?.[0] || ''}
-                  </li>
-                )}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    placeholder="Filter by member…"
-                  />
-                )}
-                renderTags={(tags, getTagProps) =>
-                  tags.map((u: any, i: number) => (
-                    <Chip
-                      key={u.id || u._id}
-                      size="small"
-                      {...getTagProps({ index: i })}
-                      label={`${u.firstName} ${u.lastName?.[0] || ''}`}
-                      avatar={<Avatar src={u.profileImage}>{u.firstName?.[0]}</Avatar>}
-                    />
-                  ))
-                }
-              />
-            </Grid>
-            <Grid
-              xs={12}
-              md={4}
-            >
-              <Stack
-                direction="row"
-                spacing={0.75}
-                alignItems="center"
-              >
-                <Chip
-                  icon={<PersonOutlineRoundedIcon sx={{ fontSize: '14px !important' }} />}
-                  label="Only mine"
-                  size="small"
-                  variant={onlyMine ? 'filled' : 'outlined'}
-                  color={onlyMine ? 'primary' : 'default'}
-                  onClick={onToggleOnlyMine}
-                  sx={{
-                    height: 28,
-                    fontWeight: 700,
-                    fontSize: 11,
-                    borderRadius: 1.5,
-                    transition: 'all 0.15s',
-                    cursor: 'pointer',
-                  }}
-                />
-                {/* Dónde pidieron mi ayuda, aunque la tarea no sea mía */}
-                <Chip
-                  icon={<AlternateEmailRoundedIcon sx={{ fontSize: '14px !important' }} />}
-                  label="Me mencionaron"
-                  size="small"
-                  variant={onlyMentions ? 'filled' : 'outlined'}
-                  color={onlyMentions ? 'warning' : 'default'}
-                  onClick={onToggleOnlyMentions}
-                  sx={{
-                    height: 28,
-                    fontWeight: 700,
-                    fontSize: 11,
-                    borderRadius: 1.5,
-                    whiteSpace: 'nowrap',
-                    transition: 'all 0.15s',
-                    cursor: 'pointer',
-                  }}
-                />
-                <SearchField
-                  value={search}
-                  onChange={onSearchChange}
-                />
-                <Select
-                  size="small"
-                  value={priorityFilter}
-                  onChange={(e) => onPriorityChange(e.target.value)}
-                  sx={{ minWidth: 110, borderRadius: 1.5, fontSize: 11 }}
-                >
-                  <MenuItem value="all">All priority</MenuItem>
-                  {priorityEntries(theme).map(([k, c]) => (
-                    <MenuItem
-                      key={k}
-                      value={k}
-                    >
-                      <Stack
-                        direction="row"
-                        alignItems="center"
-                        spacing={0.5}
-                      >
-                        <FlagRoundedIcon sx={{ fontSize: 13, color: c.color }} />
-                        <span>{c.label}</span>
-                      </Stack>
-                    </MenuItem>
-                  ))}
-                </Select>
-              </Stack>
-            </Grid>
-          </Grid>
+        <Container
+          maxWidth={customization.stretch ? false : 'xl'}
+          disableGutters={!mdUp}
+          sx={{ px: { xs: 1.5, md: 3 } }}
+        >
+          <BoardFilters
+            departments={departments}
+            selectedDepts={selectedDepts}
+            onDeptsChange={onDeptsChange}
+            teamMembers={teamMembers}
+            selectedUsers={selectedUsers}
+            onUsersChange={onUsersChange}
+            priorityFilter={priorityFilter}
+            onPriorityChange={onPriorityChange}
+            onlyMine={onlyMine}
+            onToggleOnlyMine={onToggleOnlyMine}
+            onlyMentions={onlyMentions}
+            onToggleOnlyMentions={onToggleOnlyMentions}
+            epics={epics}
+            epicFilter={epicFilter}
+            onEpicFilterChange={onEpicFilterChange}
+            search={search}
+            onSearchChange={onSearchChange}
+            onClearFilters={onClearFilters}
+            shown={filteredBoard?.total || 0}
+            total={filteredBoard?.allTotal || 0}
+          />
 
-          {/* ── Épicas ──
-              Agrupan tareas de distintas áreas bajo un mismo objetivo ("Manual
-              de marca", "RCS"). No son otro tablero: filtran el que ya está. */}
-          {epics.length > 0 && (
-            <Stack
-              direction="row"
-              spacing={0.75}
-              mb={1}
-              sx={{ overflowX: 'auto', pb: 0.5, '&::-webkit-scrollbar': { height: 3 } }}
-            >
-              <Chip
-                label="Todas"
-                size="small"
-                variant={epicFilter === 'all' ? 'filled' : 'outlined'}
-                onClick={() => onEpicFilterChange('all')}
-                sx={{ height: 24, fontSize: 10.5, fontWeight: 700, borderRadius: 1.5, flexShrink: 0 }}
-              />
-              {epics.map((e) => {
-                const active = epicFilter === e._id;
-                return (
-                  <Chip
-                    key={e._id}
-                    size="small"
-                    onClick={() => onEpicFilterChange(active ? 'all' : e._id)}
-                    label={
-                      <Stack
-                        direction="row"
-                        alignItems="center"
-                        spacing={0.6}
-                      >
-                        <Box sx={{ width: 7, height: 7, borderRadius: '2px', bgcolor: e.color }} />
-                        <span>{e.name}</span>
-                        <Typography
-                          component="span"
-                          sx={{ fontSize: 9.5, opacity: 0.65 }}
-                        >
-                          {e.done}/{e.total}
-                        </Typography>
-                      </Stack>
-                    }
-                    sx={{
-                      height: 24,
-                      fontSize: 10.5,
-                      fontWeight: 700,
-                      borderRadius: 1.5,
-                      flexShrink: 0,
-                      border: `1px solid ${alpha(e.color, active ? 0.9 : 0.35)}`,
-                      bgcolor: active ? alpha(e.color, 0.16) : 'transparent',
-                      color: active ? e.color : 'text.secondary',
-                      '&:hover': { bgcolor: alpha(e.color, 0.1) },
-                    }}
-                  />
-                );
-              })}
-              <Chip
-                label="Sin épica"
-                size="small"
-                variant={epicFilter === 'none' ? 'filled' : 'outlined'}
-                onClick={() => onEpicFilterChange(epicFilter === 'none' ? 'all' : 'none')}
-                sx={{ height: 24, fontSize: 10.5, fontWeight: 600, borderRadius: 1.5, flexShrink: 0 }}
-              />
-            </Stack>
-          )}
-
-          {/* ── Status summary bar ── */}
+          {/* Estados: en escritorio informan, en móvil además navegan */}
           <Stack
             direction="row"
-            spacing={1}
-            mb={2}
-            flexWrap="wrap"
+            spacing={0.75}
+            sx={{
+              mt: 1.5,
+              mb: 1.5,
+              overflowX: 'auto',
+              pb: 0.5,
+              mx: { xs: -1.5, md: 0 },
+              px: { xs: 1.5, md: 0 },
+              '&::-webkit-scrollbar': { display: 'none' },
+              scrollbarWidth: 'none',
+            }}
           >
-            {boardStatusEntries(theme).map(([key, meta]) => (
-              <Box
-                key={key}
-                sx={{
-                  px: 1.25,
-                  py: 0.4,
-                  borderRadius: 1.5,
-                  border: `1px solid ${alpha(meta.color, 0.2)}`,
-                  bgcolor: alpha(meta.color, 0.05),
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.75,
-                }}
-              >
-                <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: meta.color }} />
-                <Typography
-                  variant="caption"
-                  fontWeight={700}
-                  fontSize={11}
-                  color={meta.color}
+            {statuses.map(([key, meta]) => {
+              const count = statusCounts[key] || 0;
+              const active = !mdUp && mobileStatus === key;
+              return (
+                <Box
+                  key={key}
+                  role={mdUp ? undefined : 'tab'}
+                  aria-selected={mdUp ? undefined : active}
+                  onClick={mdUp ? undefined : () => setMobileStatus(key)}
+                  sx={{
+                    px: 1.25,
+                    height: { xs: 40, md: 30 },
+                    borderRadius: 2,
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.75,
+                    cursor: mdUp ? 'default' : 'pointer',
+                    border: `1px solid ${alpha(meta.color, active ? 0.55 : 0.2)}`,
+                    bgcolor: alpha(meta.color, active ? 0.16 : 0.05),
+                    transition: 'background-color .18s, border-color .18s',
+                    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+                  }}
                 >
-                  {statusCounts[key] || 0}
-                </Typography>
-                <Typography
-                  variant="caption"
-                  fontSize={11}
-                  color="text.secondary"
-                >
-                  {meta.label}
-                </Typography>
-              </Box>
-            ))}
-            {hasActiveFilters && (
-              <>
-                <Box sx={{ flex: 1 }} />
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  spacing={0.5}
-                >
+                  <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: meta.color }} />
                   <Typography
                     variant="caption"
-                    color="text.secondary"
+                    fontWeight={800}
+                    fontSize={11.5}
+                    color={meta.color}
+                    sx={{ fontVariantNumeric: 'tabular-nums' }}
                   >
-                    {filteredBoard?.total || 0} of {filteredBoard?.allTotal || 0} tasks shown
+                    {count}
                   </Typography>
-                  <Button
-                    size="small"
-                    variant="text"
-                    sx={{ fontSize: 11, textTransform: 'none', py: 0 }}
-                    onClick={onClearFilters}
+                  <Typography
+                    variant="caption"
+                    fontSize={11.5}
+                    fontWeight={active ? 700 : 400}
+                    color={active ? 'text.primary' : 'text.secondary'}
+                    noWrap
                   >
-                    Clear
-                  </Button>
-                </Stack>
-              </>
-            )}
+                    {meta.label}
+                  </Typography>
+                </Box>
+              );
+            })}
           </Stack>
         </Container>
 
-        {/* ── Kanban Board ── */}
-        <Box sx={{ flex: 1, overflowY: 'hidden', overflowX: 'auto' }}>
+        {/* ── Columnas ── */}
+        <Box sx={{ flex: 1, overflowY: { xs: 'auto', md: 'hidden' }, overflowX: { md: 'auto' } }}>
           <Container
             maxWidth={customization.stretch ? false : 'xl'}
-            sx={{ pb: 2 }}
+            disableGutters={!mdUp}
+            sx={{ pb: { xs: 10, md: 2 }, px: { xs: 1.5, md: 3 } }}
           >
             {loadingBoard || loadingProjects ? (
-              <Box
-                display="flex"
-                justifyContent="center"
-                py={8}
-              >
-                <CircularProgress />
-              </Box>
+              <BoardSkeleton mdUp={mdUp} />
             ) : filteredBoard ? (
               <DragDropContext onDragEnd={onDragEnd}>
                 <Box
                   display="flex"
                   flexDirection={{ xs: 'column', md: 'row' }}
                   alignItems="flex-start"
-                  sx={{ minWidth: { md: 1100 }, pb: 1 }}
+                  sx={{ minWidth: { md: 'max-content' }, pb: 1 }}
                 >
-                  {boardStatusEntries(theme).map(([statusKey]) => (
-                    <KanbanColumn
-                      key={statusKey}
-                      statusKey={statusKey}
-                      tasks={filteredBoard.byStatus[statusKey] || NO_TASKS}
-                      onEdit={onEditTask}
-                      onDelete={onDeleteTask}
-                      onAdd={onAddTask}
-                    />
-                  ))}
+                  {statuses.map(([statusKey]) =>
+                    /* Móvil: sólo la columna elegida. Escritorio: todas. */
+                    !mdUp && statusKey !== mobileStatus ? null : (
+                      <KanbanColumn
+                        key={statusKey}
+                        statusKey={statusKey}
+                        tasks={filteredBoard.byStatus[statusKey] || NO_TASKS}
+                        onEdit={onEditTask}
+                        onDelete={onDeleteTask}
+                        onAdd={onAddTask}
+                        compact={mdUp && isEmpty(statusKey)}
+                      />
+                    )
+                  )}
                 </Box>
               </DragDropContext>
             ) : (
@@ -630,19 +381,17 @@ export const BoardView = React.memo(function BoardView({
                   color="text.secondary"
                   mb={0.5}
                 >
-                  {loadingProjects
-                    ? 'Loading projects…'
-                    : 'Select or create a project to start'}
+                  {loadingProjects ? 'Cargando proyectos…' : 'Elegí o creá un proyecto para empezar'}
                 </Typography>
                 <Button
                   variant="contained"
                   size="small"
                   startIcon={<AddRoundedIcon />}
                   onClick={onCreateProject}
-                  sx={{ mt: 2, borderRadius: 1.5, textTransform: 'none', fontWeight: 700 }}
+                  sx={{ mt: 2, borderRadius: 2, textTransform: 'none', fontWeight: 700 }}
                   disableElevation
                 >
-                  Create Project
+                  Crear proyecto
                 </Button>
               </Box>
             )}
@@ -654,41 +403,38 @@ export const BoardView = React.memo(function BoardView({
 });
 
 /**
- * El texto se pinta al instante (estado local) y el filtrado del board va en
- * `startTransition`: React prioriza la tecla sobre el repintado de las columnas.
+ * Esqueleto con la forma real del tablero. Un spinner centrado deja la pantalla
+ * en blanco y hace que la carga se sienta más larga de lo que es.
  */
-const SearchField = React.memo(function SearchField({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  const [local, setLocal] = React.useState(value);
-  const [, startTransition] = React.useTransition();
-
-  // Reset externo ("Clear")
-  React.useEffect(() => setLocal(value), [value]);
-
+function BoardSkeleton({ mdUp }: { mdUp: boolean }) {
+  const theme = useTheme();
+  const cols = mdUp ? boardStatusEntries(theme).slice(0, 5) : boardStatusEntries(theme).slice(0, 1);
   return (
-    <TextField
-      size="small"
-      placeholder="Search…"
-      value={local}
-      onChange={(e) => {
-        const v = e.target.value;
-        setLocal(v);
-        startTransition(() => onChange(v));
-      }}
-      fullWidth
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <SearchRoundedIcon sx={{ fontSize: 16, opacity: 0.4 }} />
-          </InputAdornment>
-        ),
-      }}
-      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
-    />
+    <Box
+      display="flex"
+      flexDirection={{ xs: 'column', md: 'row' }}
+      gap={1.5}
+    >
+      {cols.map(([key]) => (
+        <Box
+          key={key}
+          sx={{ flex: 1, minWidth: { md: 260 } }}
+        >
+          <Skeleton
+            variant="text"
+            width={110}
+            height={20}
+          />
+          {[0, 1, 2].map((i) => (
+            <Skeleton
+              key={i}
+              variant="rounded"
+              height={92}
+              sx={{ mb: 1.25, borderRadius: 2, opacity: 1 - i * 0.25 }}
+            />
+          ))}
+        </Box>
+      ))}
+    </Box>
   );
-});
+}

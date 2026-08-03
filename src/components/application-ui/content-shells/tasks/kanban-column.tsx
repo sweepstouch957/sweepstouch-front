@@ -22,12 +22,18 @@ export const KanbanColumn = React.memo(function KanbanColumn({
   onEdit,
   onDelete,
   onAdd,
+  compact = false,
 }: {
   statusKey: string;
   tasks: Task[];
   onEdit: (t: Task) => void;
   onDelete: (id: string) => void;
   onAdd: (status: string) => void;
+  /**
+   * Columna vacía: se encoge en vez de reservar media pantalla para un
+   * "arrastrá acá". Respaldo y Bloqueada casi siempre están en cero.
+   */
+  compact?: boolean;
 }) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -36,13 +42,17 @@ export const KanbanColumn = React.memo(function KanbanColumn({
   return (
     <Box
       sx={{
-        minWidth: { xs: '100%', md: 260 },
-        maxWidth: { md: 300 },
-        flex: { md: '1 1 260px' },
+        minWidth: { xs: '100%', md: compact ? 132 : 268 },
+        maxWidth: { md: compact ? 148 : 320 },
+        flex: { md: compact ? '0 0 132px' : '1 1 268px' },
         mr: { md: 1.5 },
         mb: { xs: 2, md: 0 },
         display: 'flex',
         flexDirection: 'column',
+        opacity: compact ? 0.6 : 1,
+        transition: 'opacity .2s, flex-basis .2s',
+        '&:hover': { opacity: 1 },
+        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
       }}
     >
       {/* Column Header */}
@@ -98,15 +108,16 @@ export const KanbanColumn = React.memo(function KanbanColumn({
             </Typography>
           </Box>
         </Stack>
-        <Tooltip title="Add task">
+        <Tooltip title={`Nueva tarea en ${meta.label}`}>
           <IconButton
             size="small"
             onClick={() => onAdd(statusKey)}
+            aria-label={`Nueva tarea en ${meta.label}`}
             sx={{
               opacity: 0.4,
               '&:hover': { opacity: 1, bgcolor: alpha(meta.color, 0.1), color: meta.color },
-              width: 24,
-              height: 24,
+              width: 28,
+              height: 28,
             }}
           >
             <AddRoundedIcon sx={{ fontSize: 16 }} />
@@ -122,7 +133,7 @@ export const KanbanColumn = React.memo(function KanbanColumn({
             {...provided.droppableProps}
             sx={{
               flex: 1,
-              minHeight: 140,
+              minHeight: compact ? 56 : 140,
               maxHeight: { xs: 'none', md: 'calc(100vh - 400px)' },
               overflowY: 'auto',
               p: 1,
@@ -166,20 +177,22 @@ export const KanbanColumn = React.memo(function KanbanColumn({
                 alignItems="center"
                 justifyContent="center"
                 sx={{
-                  py: 5,
-                  opacity: 0.35,
-                  border: `1px dashed ${alpha(meta.color, 0.3)}`,
+                  py: compact ? 1.25 : 3,
+                  opacity: 0.5,
+                  border: `1px dashed ${alpha(meta.color, 0.28)}`,
                   borderRadius: 2,
                 }}
               >
-                <ViewKanbanRoundedIcon sx={{ fontSize: 24, color: meta.color, mb: 0.5 }} />
+                {!compact && (
+                  <ViewKanbanRoundedIcon sx={{ fontSize: 22, color: meta.color, mb: 0.5 }} />
+                )}
                 <Typography
                   variant="caption"
                   color="text.disabled"
                   textAlign="center"
-                  fontSize={11}
+                  fontSize={10.5}
                 >
-                  Drop tasks here
+                  {compact ? 'Vacía' : 'Arrastrá tareas acá'}
                 </Typography>
               </Stack>
             )}
@@ -195,7 +208,7 @@ export const KanbanColumn = React.memo(function KanbanColumn({
         fullWidth
         sx={{
           mt: 0.75,
-          py: 0.5,
+          py: { xs: 1, md: 0.5 },
           borderRadius: 1.5,
           textTransform: 'none',
           fontSize: 11,
@@ -209,7 +222,7 @@ export const KanbanColumn = React.memo(function KanbanColumn({
           },
         }}
       >
-        Add task
+        {compact ? 'Añadir' : 'Añadir tarea'}
       </Button>
     </Box>
   );

@@ -303,7 +303,8 @@ export function TemplateDialog({
                       }}
                     >
                       <Box sx={{ fontSize: 18 }}>{t.icon}</Box>
-                      <Box flex={1} minWidth={0}>
+                      <Box flex={1}
+minWidth={0}>
                         <Typography
                           fontSize={12.5}
                           fontWeight={700}
