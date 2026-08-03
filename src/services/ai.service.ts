@@ -394,6 +394,27 @@ export async function aiComplete(params: {
   return data;
 }
 
+/* ─── Borrador de tarea a partir del título ───
+   La mitad de las tareas entran con título y nada más. Esto propone lo que
+   falta (descripción, criterio de cierre, siguiente paso, tags) para que el
+   responsable corrija en vez de escribir desde cero. No guarda nada. */
+
+export async function draftTaskFromTitle(params: {
+  title: string;
+  area?: string;
+  beneficiary?: string;
+  storeName?: string;
+  description?: string;
+}): Promise<{
+  description: string;
+  closureCriteria: string;
+  nextStep: string;
+  tags: string[];
+}> {
+  const { data } = await api.post('/ai/task-draft', params);
+  return data.data;
+}
+
 /* ─── Recipe Image Generation (one-shot) ─── */
 
 export async function generateRecipeImage(prompt: string): Promise<{ imageUrl?: string }> {

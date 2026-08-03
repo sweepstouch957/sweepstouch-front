@@ -133,4 +133,13 @@ export const templateService = {
     const { data } = await api.get(`/tasks/stores/${storeId}/history`);
     return data.data;
   },
+
+  /** Renombrar una etiqueta en todas las tareas y plantillas a la vez. */
+  renameTag: async (from: string, to: string): Promise<void> => {
+    await api.patch('/tasks/tags', { from, to });
+  },
+
+  removeTag: async (tag: string): Promise<void> => {
+    await api.delete(`/tasks/tags/${encodeURIComponent(tag)}`);
+  },
 };

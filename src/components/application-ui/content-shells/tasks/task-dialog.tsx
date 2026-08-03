@@ -1,3 +1,4 @@
+import { draftTaskFromTitle } from '@/services/ai.service';
 import { EPIC_COLORS, epicService, type Epic } from '@/services/epic.service';
 import { RECURRENCE_LABEL, Task, taskClient, type Recurrence, type TaskFile } from '@/services/task.service';
 import { templateService, type TaskTemplate } from '@/services/template.service';
@@ -7,8 +8,11 @@ import { useStoresWithoutFilters } from '@/hooks/stores/useStoresWithoutFilter';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import PictureAsPdfRoundedIcon from '@mui/icons-material/PictureAsPdfRounded';
 import AttachFileRoundedIcon from '@mui/icons-material/AttachFileRounded';
+import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import LinkRoundedIcon from '@mui/icons-material/LinkRounded';
+import PersonOutlineRoundedIcon from '@mui/icons-material/PersonOutlineRounded';
 import toast from 'react-hot-toast';
 import FlagRoundedIcon from '@mui/icons-material/FlagRounded';
 import RepeatRoundedIcon from '@mui/icons-material/RepeatRounded';
@@ -21,6 +25,7 @@ import {
   Button,
   Chip,
   CircularProgress,
+  Collapse,
   Dialog,
   DialogActions,
   DialogContent,
@@ -31,6 +36,7 @@ import {
   Slider,
   Stack,
   TextField,
+  Tooltip,
   Typography,
   useTheme,
 } from '@mui/material';
@@ -39,6 +45,7 @@ import {
   Control,
   Controller,
   useForm,
+  useFormState,
   useWatch,
   type UseFormRegister,
   type UseFormSetValue,
@@ -262,7 +269,7 @@ export function TaskDialog({
         dividers
         sx={{ pt: 2 }}
       >
-        <Stack spacing={2}>
+        <Stack spacing={2.5}>
           {/* Arrancar desde una plantilla — sólo al crear */}
           {!editingTask && (
             <TemplatePicker
@@ -271,137 +278,217 @@ export function TaskDialog({
             />
           )}
 
-          <TitleField
-            control={control}
-            register={register}
-          />
-
-          <TextField
-            label="Description"
-            fullWidth
-            multiline
-            rows={3}
-            {...bind(register, 'description')}
-            placeholder="Add more details…"
-          />
-
-          {/* Priority + Status */}
-          <Stack
-            direction="row"
-            spacing={1.5}
+          {/* ── 1. Qué hay que hacer ── */}
+          <Section
+            step={1}
+            title="Qué hay que hacer"
           >
-            <Controller
-              control={control}
-              name="priority"
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Priority"
-                  select
-                  fullWidth
-                  size="small"
-                >
-                  {priorityEntries(theme).map(([k, c]) => (
-                    <MenuItem
-                      key={k}
-                      value={k}
-                    >
-                      <Stack
-                        direction="row"
-                        spacing={1}
-                        alignItems="center"
-                      >
-                        <FlagRoundedIcon sx={{ fontSize: 15, color: c.color }} />
-                        <span>{c.label}</span>
-                      </Stack>
-                    </MenuItem>
-                  ))}
-                </TextField>
-              )}
-            />
-            <Controller
-              control={control}
-              name="status"
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Status"
-                  select
-                  fullWidth
-                  size="small"
-                >
-                  {statusEntries(theme).map(([k, m]) => (
-                    <MenuItem
-                      key={k}
-                      value={k}
-                    >
-                      <Stack
-                        direction="row"
-                        spacing={1}
-                        alignItems="center"
-                      >
-                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: m.color }} />
-                        <span>{m.label}</span>
-                      </Stack>
-                    </MenuItem>
-                  ))}
-                </TextField>
-              )}
-            />
-          </Stack>
-
-          {/* Assignee + Due date */}
-          <Stack
-            direction="row"
-            spacing={1.5}
-          >
-            <AssigneeField
-              control={control}
-              setValue={setValue}
-              teamMembers={teamMembers}
-            />
-            <ScheduleField
+            <TitleField
               control={control}
               register={register}
             />
-          </Stack>
 
-          <RescheduleField
-            control={control}
-            register={register}
-            editingTask={editingTask}
-          />
+            <DescriptionField
+              control={control}
+              register={register}
+              setValue={setValue}
+            />
+          </Section>
 
-          {editingTask && <Timeline task={editingTask} />}
+          {/* ── 2. Quién y cuándo ── */}
+          <Section
+            step={2}
+            title="Quién y cuándo"
+          >
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={1.5}
+            >
+              <AssigneeField
+                control={control}
+                setValue={setValue}
+                teamMembers={teamMembers}
+              />
+              <ScheduleField
+                control={control}
+                register={register}
+              />
+            </Stack>
 
-          {/* Criterio de cierre — cuarto campo obligatorio del manual */}
-          <TextField
-            label="Cierre cuando…"
-            fullWidth
-            size="small"
-            required
-            {...bind(register, 'closureCriteria')}
-            placeholder="exista contrato firmado con el salón y comprobante del depósito"
-            helperText="Una línea: cómo sabremos que quedó lista. Es el árbitro cuando se discuta si terminó."
-          />
+            <Stack
+              direction="row"
+              spacing={1.5}
+            >
+              <Controller
+                control={control}
+                name="priority"
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Prioridad"
+                    select
+                    fullWidth
+                    size="small"
+                  >
+                    {priorityEntries(theme).map(([k, c]) => (
+                      <MenuItem
+                        key={k}
+                        value={k}
+                      >
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          alignItems="center"
+                        >
+                          <FlagRoundedIcon sx={{ fontSize: 15, color: c.color }} />
+                          <span>{c.label}</span>
+                        </Stack>
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                )}
+              />
+              <Controller
+                control={control}
+                name="status"
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Estado"
+                    select
+                    fullWidth
+                    size="small"
+                  >
+                    {statusEntries(theme).map(([k, m]) => (
+                      <MenuItem
+                        key={k}
+                        value={k}
+                      >
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          alignItems="center"
+                        >
+                          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: m.color }} />
+                          <span>{m.label}</span>
+                        </Stack>
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                )}
+              />
+            </Stack>
+
+            <RescheduleField
+              control={control}
+              register={register}
+              editingTask={editingTask}
+            />
+
+            {editingTask && <Timeline task={editingTask} />}
+          </Section>
+
+          {/* ── 3. Cómo se cierra ── */}
+          <Section
+            step={3}
+            title="Cómo se cierra"
+          >
+            <TextField
+              label="Cierre cuando…"
+              fullWidth
+              size="small"
+              required
+              {...bind(register, 'closureCriteria')}
+              placeholder="exista contrato firmado con el salón y comprobante del depósito"
+              helperText="Una línea verificable. Es el árbitro cuando se discuta si terminó."
+            />
+            <TextField
+              label="Siguiente paso"
+              size="small"
+              fullWidth
+              {...bind(register, 'nextStep')}
+              placeholder="enviar la versión final a revisión"
+              helperText="Es lo primero que pregunta Dirección."
+            />
+          </Section>
 
           <BlockedSection
             control={control}
             register={register}
           />
 
-          <Stack
-            direction="row"
-            spacing={1.5}
+          {/* ── 4. Contexto: todo opcional, se dice una vez ── */}
+          <Section
+            step={4}
+            title="Contexto"
+            hint="Todo opcional. Suma al reporte y nunca frena el guardado."
           >
-            <EpicField
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={1.5}
+            >
+              <TextField
+                label="Para quién es"
+                size="small"
+                fullWidth
+                {...bind(register, 'beneficiary')}
+                placeholder="Key Food, Marketing, interno…"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <PersonOutlineRoundedIcon sx={{ fontSize: 16, opacity: 0.45 }} />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <Controller
+                control={control}
+                name="impact"
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Qué mueve"
+                    select
+                    size="small"
+                    fullWidth
+                  >
+                    {IMPACT_OPTIONS.map((o) => (
+                      <MenuItem
+                        key={o.value || 'none'}
+                        value={o.value}
+                      >
+                        {o.label}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                )}
+              />
+            </Stack>
+
+            <StoreField
               control={control}
               setValue={setValue}
-              epics={epics}
-              projectId={projectId}
+              highlight={needsStore}
             />
-            <RecurrenceField control={control} />
-          </Stack>
+
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={1.5}
+            >
+              <EpicField
+                control={control}
+                setValue={setValue}
+                epics={epics}
+                projectId={projectId}
+              />
+              <RecurrenceField control={control} />
+            </Stack>
+
+            <TagsField
+              control={control}
+              setValue={setValue}
+            />
+          </Section>
 
           {/* Evidencias — sólo cuando la tarea ya existe (necesita id) */}
           {editingTask && (
@@ -499,76 +586,19 @@ export function TaskDialog({
             </Box>
           )}
 
-          {/* Contexto opcional — suma para el reporte, nunca frena el guardado */}
-          <Stack
-            direction="row"
-            spacing={1.5}
-          >
+          {/* Lo que casi nadie toca queda plegado: el formulario se ve corto */}
+          <Advanced>
+            <ProgressField control={control} />
             <TextField
-              label="Para quién"
-              size="small"
+              label="Nota para la IA"
               fullWidth
-              {...bind(register, 'beneficiary')}
-              placeholder="Key Food, Marketing, interno…"
-              helperText="Opcional"
+              multiline
+              rows={2}
+              size="small"
+              {...bind(register, 'aiContext')}
+              placeholder="Qué implica esta tarea, para que el asistente entienda el trabajo del equipo…"
             />
-            <Controller
-              control={control}
-              name="impact"
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Impacto"
-                  select
-                  size="small"
-                  fullWidth
-                  helperText="Opcional"
-                >
-                  {IMPACT_OPTIONS.map((o) => (
-                    <MenuItem
-                      key={o.value || 'none'}
-                      value={o.value}
-                    >
-                      {o.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              )}
-            />
-          </Stack>
-
-          <TextField
-            label="Siguiente paso"
-            size="small"
-            fullWidth
-            {...bind(register, 'nextStep')}
-            placeholder="enviar la versión final a revisión"
-            helperText="Opcional, pero es lo primero que pregunta Dirección"
-          />
-
-          <StoreField
-            control={control}
-            setValue={setValue}
-            highlight={needsStore}
-          />
-
-          <TagsField
-            control={control}
-            setValue={setValue}
-          />
-
-          <ProgressField control={control} />
-
-          <TextField
-            label="AI Context"
-            fullWidth
-            multiline
-            rows={2}
-            size="small"
-            {...bind(register, 'aiContext')}
-            placeholder="Describe what this task involves so AI can learn your team's work…"
-            helperText="AI training context — helps the assistant understand team activities"
-          />
+          </Advanced>
 
           {/* Conversación — sólo con la tarea creada: las menciones necesitan id */}
           {editingTask && (
@@ -599,6 +629,198 @@ export function TaskDialog({
    Cada trozo que depende de un valor se suscribe con `useWatch`, así una tecla
    sólo repinta ese trozo y no el diálogo entero.
    ══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * El formulario en bloques numerados. Diecisiete campos sueltos en una columna
+ * se leen como un trámite; cuatro preguntas con nombre se contestan.
+ */
+function Section({
+  step,
+  title,
+  hint,
+  children,
+}: {
+  step: number;
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  const theme = useTheme();
+  return (
+    <Box>
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={1}
+        mb={1.25}
+      >
+        <Box
+          sx={{
+            width: 20,
+            height: 20,
+            borderRadius: '50%',
+            display: 'grid',
+            placeItems: 'center',
+            fontSize: 10,
+            fontWeight: 800,
+            bgcolor: alpha(theme.palette.primary.main, 0.12),
+            color: 'primary.main',
+            flexShrink: 0,
+          }}
+        >
+          {step}
+        </Box>
+        <Typography
+          variant="caption"
+          fontWeight={800}
+          sx={{ fontSize: 11.5, letterSpacing: 0.3 }}
+        >
+          {title}
+        </Typography>
+        {hint && (
+          <Typography
+            variant="caption"
+            color="text.disabled"
+            sx={{ fontSize: 10.5, flex: 1, minWidth: 0 }}
+            noWrap
+          >
+            {hint}
+          </Typography>
+        )}
+      </Stack>
+      <Stack
+        spacing={1.5}
+        sx={{ pl: { sm: 3.5 } }}
+      >
+        {children}
+      </Stack>
+    </Box>
+  );
+}
+
+/** Progreso y nota para la IA: existen, pero no se ponen en el camino. */
+function Advanced({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Box>
+      <Button
+        size="small"
+        onClick={() => setOpen((v) => !v)}
+        endIcon={
+          <ExpandMoreRoundedIcon
+            sx={{ fontSize: 16, transform: open ? 'rotate(180deg)' : 'none', transition: '.2s' }}
+          />
+        }
+        sx={{ textTransform: 'none', fontSize: 11.5, fontWeight: 700, color: 'text.secondary' }}
+      >
+        {open ? 'Ocultar avanzado' : 'Más opciones'}
+      </Button>
+      <Collapse in={open}>
+        <Stack
+          spacing={1.5}
+          sx={{ pt: 1.5 }}
+        >
+          {children}
+        </Stack>
+      </Collapse>
+    </Box>
+  );
+}
+
+/**
+ * Descripción con ayuda de la IA: a partir del título propone descripción,
+ * criterio de cierre, siguiente paso y etiquetas. Es un borrador — se pega en
+ * el formulario y el responsable corrige. Nunca pisa lo que ya se escribió a
+ * mano en el criterio de cierre sin avisar.
+ */
+function DescriptionField({
+  control,
+  register,
+  setValue,
+}: {
+  control: Control<TaskFormValues>;
+  register: UseFormRegister<TaskFormValues>;
+  setValue: UseFormSetValue<TaskFormValues>;
+}) {
+  const theme = useTheme();
+  const [title, description, beneficiary, storeName] = useWatch({
+    control,
+    name: ['title', 'description', 'beneficiary', 'storeName'],
+  });
+
+  const { mutate: draft, isPending } = useMutation({
+    mutationFn: () =>
+      draftTaskFromTitle({
+        title: title || '',
+        beneficiary: beneficiary || undefined,
+        storeName: storeName || undefined,
+        description: description || undefined,
+      }),
+    onSuccess: (d) => {
+      if (d.description) setValue('description', d.description, { shouldDirty: true });
+      if (d.closureCriteria) setValue('closureCriteria', d.closureCriteria, { shouldDirty: true });
+      if (d.nextStep) setValue('nextStep', d.nextStep, { shouldDirty: true });
+      if (d.tags?.length) setValue('tags', d.tags.join(', '), { shouldDirty: true });
+      toast.success('Borrador listo — revisalo antes de guardar');
+    },
+    onError: (e: any) =>
+      toast.error(e?.response?.data?.error || 'La IA no pudo redactarla. Escribila a mano.'),
+  });
+
+  const canDraft = (title || '').trim().length >= 6;
+
+  return (
+    <Box sx={{ position: 'relative' }}>
+      <TextField
+        label="Descripción"
+        fullWidth
+        multiline
+        rows={3}
+        {...bind(register, 'description')}
+        placeholder="Contá el contexto: qué se acordó, qué hace falta, con quién…"
+      />
+
+      <Tooltip
+        title={
+          canDraft
+            ? 'Redactar con IA a partir del título'
+            : 'Escribí primero el título'
+        }
+        arrow
+      >
+        <Box
+          sx={{ position: 'absolute', right: 8, bottom: 8 }}
+          component="span"
+        >
+          <Button
+            size="small"
+            disabled={!canDraft || isPending}
+            onClick={() => draft()}
+            startIcon={
+              isPending ? (
+                <CircularProgress size={13} />
+              ) : (
+                <AutoAwesomeRoundedIcon sx={{ fontSize: 14 }} />
+              )
+            }
+            sx={{
+              textTransform: 'none',
+              fontSize: 11,
+              fontWeight: 700,
+              borderRadius: 5,
+              px: 1.25,
+              minHeight: 28,
+              bgcolor: alpha(theme.palette.primary.main, 0.1),
+              '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.18) },
+            }}
+          >
+            {isPending ? 'Redactando…' : 'Redactar con IA'}
+          </Button>
+        </Box>
+      </Tooltip>
+    </Box>
+  );
+}
 
 function TitleField({
   control,
@@ -701,6 +923,10 @@ function ScheduleField({
   const recurrence = useWatch({ control, name: 'recurrence' });
   const dueDate = useWatch({ control, name: 'dueDate' });
   const isRoutine = recurrence !== 'none';
+  // Nadie merece un formulario en rojo antes de haber escrito nada: el aviso
+  // aparece cuando la persona ya pasó por el campo y lo dejó vacío.
+  const { touchedFields } = useFormState({ control, name: 'dueDate' });
+  const missing = !isRoutine && !dueDate && !!touchedFields.dueDate;
 
   return (
     <Stack
@@ -717,13 +943,11 @@ function ScheduleField({
         disabled={isRoutine}
         {...bind(register, 'dueDate')}
         InputLabelProps={{ shrink: true }}
-        error={!isRoutine && !dueDate}
+        error={missing}
         helperText={
           isRoutine
             ? 'La pone el sistema cada día'
-            : !dueDate
-              ? 'Obligatoria. Si no se sabe, pon fecha para DEFINIR la fecha'
-              : 'Si no se sabe, pon fecha para definir la fecha'
+            : 'Si todavía no se sabe, poné fecha para definirla'
         }
       />
       {/* La hora es opcional: sin ella la tarea vence al final del día. Con
@@ -1529,19 +1753,19 @@ function SubmitBar({
       {missing.length > 0 && (
         <Typography
           variant="caption"
-          color={needsDueDate ? 'error.main' : 'warning.main'}
+          color="text.secondary"
           sx={{ flex: 1, minWidth: 200 }}
         >
           {needsDueDate
-            ? 'Sin fecha límite no se puede guardar: ninguna tarea sin fecha.'
+            ? 'Falta la fecha límite para poder guardar.'
             : `Falta ${missing.join(', ')} — entra igual, pero saldrá en “datos incompletos”.`}
         </Typography>
       )}
       <Button
         onClick={onClose}
-        sx={{ borderRadius: 1.5, textTransform: 'none' }}
+        sx={{ borderRadius: 2, textTransform: 'none' }}
       >
-        Cancel
+        Cancelar
       </Button>
       <Button
         variant="contained"
@@ -1549,13 +1773,14 @@ function SubmitBar({
         disableElevation
         disabled={!title || submitting || blockedIncomplete || needsDueDate}
         sx={{
-          fontWeight: 700,
-          borderRadius: 1.5,
+          fontWeight: 800,
+          borderRadius: 2,
           textTransform: 'none',
+          px: 2.5,
           background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
         }}
       >
-        {editingTask ? 'Save Changes' : 'Create Task'}
+        {editingTask ? 'Guardar cambios' : 'Crear tarea'}
       </Button>
     </>
   );

@@ -42,15 +42,16 @@ export const KanbanColumn = React.memo(function KanbanColumn({
   return (
     <Box
       sx={{
-        minWidth: { xs: '100%', md: compact ? 132 : 268 },
-        maxWidth: { md: compact ? 148 : 320 },
-        flex: { md: compact ? '0 0 132px' : '1 1 268px' },
+        // Todas las columnas miden lo mismo: una más ancha que otra se lee como
+        // que una importa más. La vacía se apaga, pero no se encoge.
+        width: { xs: '100%', md: 296 },
+        flex: { md: '0 0 296px' },
         mr: { md: 1.5 },
         mb: { xs: 2, md: 0 },
         display: 'flex',
         flexDirection: 'column',
-        opacity: compact ? 0.6 : 1,
-        transition: 'opacity .2s, flex-basis .2s',
+        opacity: compact ? 0.55 : 1,
+        transition: 'opacity .2s',
         '&:hover': { opacity: 1 },
         '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
       }}
@@ -192,7 +193,7 @@ export const KanbanColumn = React.memo(function KanbanColumn({
                   textAlign="center"
                   fontSize={10.5}
                 >
-                  {compact ? 'Vacía' : 'Arrastrá tareas acá'}
+                  {compact ? 'Sin tareas' : 'Arrastrá tareas acá'}
                 </Typography>
               </Stack>
             )}
@@ -222,7 +223,7 @@ export const KanbanColumn = React.memo(function KanbanColumn({
           },
         }}
       >
-        {compact ? 'Añadir' : 'Añadir tarea'}
+        Añadir tarea
       </Button>
     </Box>
   );

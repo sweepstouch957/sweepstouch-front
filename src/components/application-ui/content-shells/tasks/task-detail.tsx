@@ -1,20 +1,25 @@
 'use client';
 
-import { useAuth } from '@/hooks/use-auth';
 import { usersApi } from '@/mocks/users';
 import { departmentService } from '@/services/department.service';
 import { epicService } from '@/services/epic.service';
 import { Task, taskClient, type TaskFile } from '@/services/task.service';
 import { uploadTaskEvidence } from '@/services/upload.service';
-import { isInternalStaff, STAFF_ROLE_QUERY } from '@/utils/staff';
 import { combineDueDate, formatDue, timeInputValue, toDateInput } from '@/utils/due-date';
+import { isInternalStaff, STAFF_ROLE_QUERY } from '@/utils/staff';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import AttachFileRoundedIcon from '@mui/icons-material/AttachFileRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
+import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
+import EventRoundedIcon from '@mui/icons-material/EventRounded';
+import FlagRoundedIcon from '@mui/icons-material/FlagRounded';
 import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
+import LockOpenRoundedIcon from '@mui/icons-material/LockOpenRounded';
 import PictureAsPdfRoundedIcon from '@mui/icons-material/PictureAsPdfRounded';
+import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
+import ReplayRoundedIcon from '@mui/icons-material/ReplayRounded';
 import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import {
   alpha,
@@ -34,31 +39,44 @@ import {
   TextField,
   Tooltip,
   Typography,
-  useMediaQuery,
   useTheme,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { IMPACT_OPTIONS, priorityEntries, statusEntries, statusMeta } from './constants';
+import { IMPACT_OPTIONS, priorityEntries, priorityMeta, statusEntries, statusMeta } from './constants';
 import { TaskComments } from './task-comments';
 
 /** Sólo se manda lo que cambió: un PATCH con todo pisa lo que otro acaba de tocar. */
 type Draft = Partial<Task> & { dueDateInput?: string; dueTimeInput?: string };
 
+/** Entrada escalonada. Se apaga sola con prefers-reduced-motion. */
+const RISE = {
+  '@keyframes rise': {
+    from: { opacity: 0, transform: 'translateY(8px)' },
+    to: { opacity: 1, transform: 'none' },
+  },
+  animation: 'rise .32s cubic-bezier(.2,.8,.2,1) both',
+  '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
+};
+
 export function TaskDetail({ taskId }: { taskId: string }) {
   const theme = useTheme();
-  const mdUp = useMediaQuery(theme.breakpoints.up('md'));
   const isDark = theme.palette.mode === 'dark';
   const { push, back } = useRouter();
   const queryClient = useQueryClient();
-  const { user: authUser } = useAuth();
 
+  /**
+   * El board siembra ['task', id] antes de navegar, así que normalmente esto ya
+   * tiene datos y la página abre pintada. `isLoading` sólo es true cuando se
+   * entra por link directo (WhatsApp, correo) y no hay nada en caché.
+   */
   const { data: task, isLoading } = useQuery({
     queryKey: ['task', taskId],
     queryFn: () => taskClient.getTask(taskId),
     enabled: !!taskId,
+    staleTime: 15_000,
   });
 
   const { data: allUsers = [] } = useQuery({
@@ -121,7 +139,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   });
 
   /** Cambiar de estado se aplica al toque: es lo que más se toca y no es "editar". */
-  const { mutate: setStatus } = useMutation({
+  const { mutate: setStatus, isPending: changingStatus } = useMutation({
     mutationFn: (status: string) => taskClient.updateTask(taskId, { status } as any),
     onSuccess: (updated) => {
       queryClient.setQueryData(['task', taskId], updated);
@@ -191,35 +209,50 @@ export function TaskDetail({ taskId }: { taskId: string }) {
     );
   }
 
-  const meta = statusMeta(theme, value('status'));
-  const epic = epics.find((e) => e._id === task.epicId);
+  const status = value('status');
+  const meta = statusMeta(theme, status);
+  const pri = priorityMeta(theme, value('priority'));
+  const epic = epics.find((e) => e._id === value('epicId'));
+  const assignee = teamMembers.find((u: any) => (u._id || u.id) === value('assigneeId'));
   const overdue =
-    task.dueDate && task.status !== 'done' && new Date(task.dueDate).getTime() < Date.now();
+    task.dueDate && status !== 'done' && new Date(task.dueDate).getTime() < Date.now();
+
+  /** Una sola acción principal, la que toca según dónde está la tarea. */
+  const primary =
+    status === 'done'
+      ? { label: 'Reabrir', to: 'in_progress', icon: <ReplayRoundedIcon />, role: 'secondary' as const }
+      : status === 'blocked'
+        ? { label: 'Destrabar', to: 'in_progress', icon: <LockOpenRoundedIcon />, role: 'warning' as const }
+        : status === 'in_progress' || status === 'in_review'
+          ? { label: 'Cerrar tarea', to: 'done', icon: <CheckCircleRoundedIcon />, role: 'success' as const }
+          : { label: 'Empezar ahora', to: 'in_progress', icon: <PlayArrowRoundedIcon />, role: 'primary' as const };
 
   return (
     <Box
       sx={{
         minHeight: '100dvh',
         bgcolor: isDark
-          ? alpha(theme.palette.common.black, 0.2)
-          : alpha(theme.palette.common.black, 0.015),
-        pb: { xs: dirty ? 12 : 4, md: 6 },
+          ? alpha(theme.palette.common.black, 0.22)
+          : alpha(theme.palette.common.black, 0.02),
+        pb: { xs: dirty ? 13 : 4, md: 6 },
       }}
     >
-      {/* ═══ Cabecera pegada: identidad + estado + acciones ═══ */}
+      {/* ═══ Cabecera pegada ═══ */}
       <Box
         sx={{
           position: 'sticky',
           top: 0,
           zIndex: 10,
-          bgcolor: theme.palette.background.paper,
-          borderBottom: `1px solid ${alpha(theme.palette.divider, 0.7)}`,
-          backdropFilter: 'blur(8px)',
+          bgcolor: alpha(theme.palette.background.paper, 0.86),
+          backdropFilter: 'blur(12px)',
+          borderBottom: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
         }}
       >
+        {/* Hilo de color del estado: se sabe dónde está la tarea antes de leer */}
+        <Box sx={{ height: 3, bgcolor: meta.color }} />
         <Container
           maxWidth="xl"
-          sx={{ py: 1.25 }}
+          sx={{ py: 1 }}
         >
           <Stack
             direction="row"
@@ -228,7 +261,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
           >
             <IconButton
               onClick={() => (window.history.length > 1 ? back() : push('/admin/applications/tasks'))}
-              aria-label="Volver"
+              aria-label="Volver al tablero"
               sx={{ width: 40, height: 40 }}
             >
               <ArrowBackRoundedIcon sx={{ fontSize: 20 }} />
@@ -241,6 +274,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                 fontFamily: 'monospace',
                 fontWeight: 800,
                 fontSize: 11,
+                letterSpacing: 0.3,
                 bgcolor: alpha(theme.palette.primary.main, 0.1),
                 color: 'primary.main',
               }}
@@ -263,23 +297,25 @@ export function TaskDetail({ taskId }: { taskId: string }) {
 
             <Box flex={1} />
 
-            {/* Estado: selector directo, con el color del estado */}
             <TextField
               select
               size="small"
-              value={value('status')}
+              value={status}
+              disabled={changingStatus}
               onChange={(e) => setStatus(e.target.value)}
               SelectProps={{ 'aria-label': 'Estado de la tarea' } as any}
               sx={{
-                minWidth: 140,
+                minWidth: { xs: 132, sm: 148 },
                 '& .MuiOutlinedInput-root': {
                   height: 38,
-                  borderRadius: 2,
-                  fontWeight: 700,
+                  borderRadius: 5,
+                  fontWeight: 800,
                   fontSize: 12.5,
                   color: meta.color,
                   bgcolor: alpha(meta.color, 0.1),
+                  transition: 'background-color .2s',
                   '& fieldset': { borderColor: alpha(meta.color, 0.35) },
+                  '&:hover fieldset': { borderColor: meta.color },
                 },
               }}
             >
@@ -343,73 +379,114 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             lg={8}
           >
             <Stack spacing={2}>
-              <Panel>
-                <TextField
-                  variant="standard"
-                  fullWidth
-                  multiline
-                  value={value('title') ?? ''}
-                  onChange={(e) => set({ title: e.target.value })}
-                  inputProps={{ 'aria-label': 'Título de la tarea' }}
-                  InputProps={{ disableUnderline: true }}
-                  sx={{
-                    '& textarea': {
-                      fontSize: { xs: 20, md: 26 },
-                      fontWeight: 800,
-                      lineHeight: 1.25,
-                      letterSpacing: -0.4,
-                    },
-                  }}
-                />
+              {/* Portada */}
+              <Panel
+                accent={pri.color}
+                delay={0}
+                pad={false}
+              >
+                <Box sx={{ p: { xs: 2, md: 3 } }}>
+                  <InlineTitle
+                    value={value('title') ?? ''}
+                    onChange={(v) => set({ title: v })}
+                  />
 
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  flexWrap="wrap"
-                  useFlexGap
-                  sx={{ mt: 1 }}
-                >
-                  {task.storeName && (
+                  {/* Quién, cuándo y para quién — de un vistazo */}
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    flexWrap="wrap"
+                    useFlexGap
+                    alignItems="center"
+                    sx={{ mt: 1.75 }}
+                  >
+                    {(assignee || value('assigneeName')) && (
+                      <Chip
+                        avatar={
+                          <Avatar src={assignee?.profileImage || value('assigneeAvatar')}>
+                            {(value('assigneeName') || '?')[0]}
+                          </Avatar>
+                        }
+                        label={value('assigneeName') || 'Sin responsable'}
+                        size="small"
+                        sx={{ height: 28, fontSize: 11.5, fontWeight: 700, pl: 0.25 }}
+                      />
+                    )}
                     <Chip
-                      icon={<StorefrontRoundedIcon sx={{ fontSize: '14px !important' }} />}
-                      label={task.storeName}
-                      size="small"
-                      sx={{ height: 24, fontSize: 11, fontWeight: 600 }}
-                    />
-                  )}
-                  {task.tags?.map((t) => (
-                    <Chip
-                      key={t}
-                      label={t}
+                      icon={
+                        overdue ? (
+                          <ErrorOutlineRoundedIcon sx={{ fontSize: '14px !important' }} />
+                        ) : (
+                          <EventRoundedIcon sx={{ fontSize: '14px !important' }} />
+                        )
+                      }
+                      label={formatDue(task.dueDate)}
                       size="small"
                       sx={{
-                        height: 24,
-                        fontSize: 11,
-                        fontWeight: 600,
-                        bgcolor: alpha(theme.palette.primary.main, 0.08),
-                        color: 'primary.main',
+                        height: 28,
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        fontVariantNumeric: 'tabular-nums',
+                        bgcolor: alpha(overdue ? theme.palette.error.main : theme.palette.text.primary, 0.08),
+                        color: overdue ? theme.palette.error.main : theme.palette.text.secondary,
+                        '& .MuiChip-icon': { color: 'inherit' },
                       }}
                     />
-                  ))}
-                </Stack>
+                    <Chip
+                      icon={<FlagRoundedIcon sx={{ fontSize: '14px !important' }} />}
+                      label={pri.label}
+                      size="small"
+                      sx={{
+                        height: 28,
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        bgcolor: alpha(pri.color, 0.12),
+                        color: pri.color,
+                        '& .MuiChip-icon': { color: 'inherit' },
+                      }}
+                    />
+                    {task.storeName && (
+                      <Chip
+                        icon={<StorefrontRoundedIcon sx={{ fontSize: '14px !important' }} />}
+                        label={task.storeName}
+                        size="small"
+                        sx={{ height: 28, fontSize: 11.5, fontWeight: 600 }}
+                      />
+                    )}
+                    {task.tags?.map((t) => (
+                      <Chip
+                        key={t}
+                        label={t}
+                        size="small"
+                        sx={{
+                          height: 28,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          bgcolor: alpha(theme.palette.primary.main, 0.08),
+                          color: 'primary.main',
+                        }}
+                      />
+                    ))}
+                  </Stack>
 
-                <TextField
-                  fullWidth
-                  multiline
-                  minRows={3}
-                  placeholder="Contá de qué se trata…"
-                  value={value('description') ?? ''}
-                  onChange={(e) => set({ description: e.target.value })}
-                  inputProps={{ 'aria-label': 'Descripción' }}
-                  sx={{ mt: 2, '& .MuiOutlinedInput-root': { borderRadius: 2, fontSize: 14 } }}
-                />
+                  <Box sx={{ mt: 2.5 }}>
+                    <SectionLabel>Descripción</SectionLabel>
+                    <InlineText
+                      value={value('description') ?? ''}
+                      onChange={(v) => set({ description: v })}
+                      placeholder="Contá de qué se trata, qué se acordó, qué hace falta…"
+                      minRows={3}
+                    />
+                  </Box>
+                </Box>
               </Panel>
 
               {/* Bloqueo: lo primero que hay que ver */}
-              {value('status') === 'blocked' && (
+              {status === 'blocked' && (
                 <Panel
                   role="error"
-                  title="¿Qué la tiene frenada?"
+                  title="Qué la tiene frenada"
+                  delay={1}
                 >
                   <Stack spacing={1.5}>
                     <TextField
@@ -431,58 +508,43 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                 </Panel>
               )}
 
-              <Panel title="Cierre cuando…">
-                <TextField
-                  fullWidth
-                  size="small"
+              {/* Cierre */}
+              <Panel delay={2}>
+                <SectionLabel>Cierre cuando…</SectionLabel>
+                <InlineText
                   value={value('closureCriteria') ?? ''}
-                  onChange={(e) => set({ closureCriteria: e.target.value })}
+                  onChange={(v) => set({ closureCriteria: v })}
                   placeholder="exista contrato firmado y comprobante del depósito"
-                  helperText="Es el árbitro cuando se discuta si la tarea terminó."
+                  bold
                 />
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Siguiente paso"
-                  value={value('nextStep') ?? ''}
-                  onChange={(e) => set({ nextStep: e.target.value })}
-                  placeholder="enviar la versión final a revisión"
-                  sx={{ mt: 2 }}
-                />
+                <Typography
+                  variant="caption"
+                  color="text.disabled"
+                  sx={{ display: 'block', mt: 0.75, fontSize: 11 }}
+                >
+                  Es el árbitro cuando se discuta si la tarea terminó.
+                </Typography>
+
+                <Box sx={{ mt: 2.5 }}>
+                  <SectionLabel>Siguiente paso</SectionLabel>
+                  <InlineText
+                    value={value('nextStep') ?? ''}
+                    onChange={(v) => set({ nextStep: v })}
+                    placeholder="enviar la versión final a revisión"
+                  />
+                </Box>
               </Panel>
 
               {/* Evidencias */}
-              <Panel title={`Evidencias (${files.length})`}>
-                <Button
-                  size="small"
-                  component="label"
-                  startIcon={
-                    uploading ? <CircularProgress size={13} /> : <AttachFileRoundedIcon />
-                  }
-                  disabled={uploading}
-                  sx={{
-                    textTransform: 'none',
-                    borderRadius: 2,
-                    height: 40,
-                    px: 1.5,
-                    mb: files.length ? 1.5 : 0,
-                    border: `1px dashed ${alpha(theme.palette.divider, 0.9)}`,
-                  }}
-                >
-                  {uploading ? 'Subiendo…' : 'Adjuntar archivo o foto'}
-                  <input
-                    hidden
-                    multiple
-                    type="file"
-                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv"
-                    onChange={uploadEvidence}
-                  />
-                </Button>
-
+              <Panel
+                title={`Evidencias · ${files.length}`}
+                delay={3}
+              >
                 <Stack
                   direction="row"
                   flexWrap="wrap"
                   gap={1}
+                  alignItems="center"
                 >
                   {files.map((f) =>
                     f.type?.startsWith('image/') ? (
@@ -496,13 +558,16 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                         sx={{
                           width: 104,
                           height: 104,
-                          borderRadius: 2,
+                          borderRadius: 2.5,
                           border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
                           backgroundImage: `url(${f.url})`,
                           backgroundSize: 'cover',
                           backgroundPosition: 'center',
-                          transition: 'transform .18s',
-                          '&:hover': { transform: 'scale(1.03)' },
+                          transition: 'transform .18s, box-shadow .18s',
+                          '&:hover': {
+                            transform: 'scale(1.04)',
+                            boxShadow: theme.shadows[8],
+                          },
                           '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                         }}
                       />
@@ -515,17 +580,53 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                         href={f.url}
                         target="_blank"
                         clickable
-                        sx={{ height: 34, maxWidth: 220, fontSize: 11.5 }}
+                        sx={{ height: 36, maxWidth: 220, fontSize: 11.5, borderRadius: 2 }}
                       />
                     )
                   )}
+
+                  <Button
+                    component="label"
+                    disabled={uploading}
+                    sx={{
+                      width: 104,
+                      height: 104,
+                      borderRadius: 2.5,
+                      flexDirection: 'column',
+                      gap: 0.5,
+                      textTransform: 'none',
+                      fontSize: 10.5,
+                      fontWeight: 600,
+                      color: 'text.secondary',
+                      border: `1.5px dashed ${alpha(theme.palette.divider, 0.9)}`,
+                      '&:hover': {
+                        borderColor: 'primary.main',
+                        color: 'primary.main',
+                        bgcolor: alpha(theme.palette.primary.main, 0.04),
+                      },
+                    }}
+                  >
+                    {uploading ? (
+                      <CircularProgress size={18} />
+                    ) : (
+                      <AttachFileRoundedIcon sx={{ fontSize: 20 }} />
+                    )}
+                    {uploading ? 'Subiendo…' : 'Adjuntar'}
+                    <input
+                      hidden
+                      multiple
+                      type="file"
+                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv"
+                      onChange={uploadEvidence}
+                    />
+                  </Button>
                 </Stack>
 
                 {files.length === 0 && (
                   <Typography
                     variant="caption"
                     color="text.disabled"
-                    sx={{ display: 'block', mt: 1 }}
+                    sx={{ display: 'block', mt: 1.25, fontSize: 11 }}
                   >
                     Lo que pruebe que el criterio de cierre se cumplió. Sale en el PDF de estado.
                   </Typography>
@@ -533,7 +634,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
               </Panel>
 
               {/* Conversación */}
-              <Panel>
+              <Panel delay={4}>
                 <TaskComments
                   taskId={taskId}
                   teamMembers={teamMembers}
@@ -542,8 +643,11 @@ export function TaskDetail({ taskId }: { taskId: string }) {
 
               {/* Bitácora */}
               {(task.activity?.length ?? 0) > 0 && (
-                <Panel title="Bitácora">
-                  <Stack spacing={1.25}>
+                <Panel
+                  title="Bitácora"
+                  delay={5}
+                >
+                  <Stack spacing={1.5}>
                     {[...(task.activity || [])].reverse().map((a, i) => (
                       <Stack
                         key={i}
@@ -578,188 +682,242 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             </Stack>
           </Grid>
 
-          {/* ═══ Detalles ═══ */}
+          {/* ═══ Barra lateral ═══ */}
           <Grid
             xs={12}
             md={4.5}
             lg={4}
           >
-            <Panel title="Detalles">
+            <Box sx={{ position: { md: 'sticky' }, top: { md: 76 } }}>
               <Stack spacing={2}>
-                <Autocomplete
-                  size="small"
-                  options={teamMembers}
-                  value={teamMembers.find((u: any) => (u._id || u.id) === value('assigneeId')) || null}
-                  onChange={(_, v: any) =>
-                    set({
-                      assigneeId: v ? String(v._id || v.id) : null,
-                      assigneeName: v ? `${v.firstName} ${v.lastName || ''}`.trim() : '',
-                      assigneeAvatar: v?.profileImage || '',
-                    })
+                {/* Una sola acción principal: la que toca ahora */}
+                <Button
+                  fullWidth
+                  variant="contained"
+                  disableElevation
+                  color={primary.role}
+                  disabled={changingStatus}
+                  onClick={() => setStatus(primary.to)}
+                  startIcon={
+                    changingStatus ? (
+                      <CircularProgress
+                        size={16}
+                        color="inherit"
+                      />
+                    ) : (
+                      primary.icon
+                    )
                   }
-                  getOptionLabel={(o: any) => `${o.firstName} ${o.lastName || ''}`.trim()}
-                  renderOption={(props, o: any) => (
-                    <li {...props}>
-                      <Avatar
-                        src={o.profileImage}
-                        sx={{ width: 24, height: 24, mr: 1, fontSize: 10 }}
-                      >
-                        {o.firstName?.[0]}
-                      </Avatar>
-                      {o.firstName} {o.lastName || ''}
-                    </li>
-                  )}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Responsable"
+                  sx={{
+                    height: 48,
+                    borderRadius: 2.5,
+                    textTransform: 'none',
+                    fontWeight: 800,
+                    fontSize: 14,
+                    boxShadow: `0 6px 18px ${alpha(theme.palette[primary.role].main, 0.28)}`,
+                  }}
+                >
+                  {primary.label}
+                </Button>
+
+                <Panel
+                  title="Detalles"
+                  delay={1}
+                >
+                  <Stack spacing={2}>
+                    <Autocomplete
+                      size="small"
+                      options={teamMembers}
+                      value={assignee || null}
+                      onChange={(_, v: any) =>
+                        set({
+                          assigneeId: v ? String(v._id || v.id) : null,
+                          assigneeName: v ? `${v.firstName} ${v.lastName || ''}`.trim() : '',
+                          assigneeAvatar: v?.profileImage || '',
+                        })
+                      }
+                      getOptionLabel={(o: any) => `${o.firstName} ${o.lastName || ''}`.trim()}
+                      renderOption={(props, o: any) => (
+                        <li {...props}>
+                          <Avatar
+                            src={o.profileImage}
+                            sx={{ width: 24, height: 24, mr: 1, fontSize: 10 }}
+                          >
+                            {o.firstName?.[0]}
+                          </Avatar>
+                          <Box minWidth={0}>
+                            <Typography
+                              fontSize={12.5}
+                              noWrap
+                            >
+                              {`${o.firstName} ${o.lastName || ''}`.trim()}
+                            </Typography>
+                            {o.position && (
+                              <Typography
+                                fontSize={10}
+                                color="text.secondary"
+                                noWrap
+                              >
+                                {o.position}
+                              </Typography>
+                            )}
+                          </Box>
+                        </li>
+                      )}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Responsable"
+                          InputProps={{
+                            ...params.InputProps,
+                            startAdornment: assignee ? (
+                              <Avatar
+                                src={assignee.profileImage}
+                                sx={{ width: 22, height: 22, ml: 0.5, mr: 0.25, fontSize: 10 }}
+                              >
+                                {assignee.firstName?.[0]}
+                              </Avatar>
+                            ) : undefined,
+                          }}
+                        />
+                      )}
                     />
-                  )}
-                />
 
-                <Stack
-                  direction="row"
-                  spacing={1}
-                >
-                  <TextField
-                    label="Fecha límite"
-                    type="date"
-                    size="small"
-                    fullWidth
-                    value={draft.dueDateInput ?? toDateInput(task.dueDate)}
-                    onChange={(e) => set({ dueDateInput: e.target.value })}
-                    InputLabelProps={{ shrink: true }}
-                    error={!!overdue}
-                    helperText={overdue ? 'Vencida' : undefined}
-                  />
-                  <TextField
-                    label="Hora"
-                    type="time"
-                    size="small"
-                    sx={{ width: 128, flexShrink: 0 }}
-                    value={draft.dueTimeInput ?? timeInputValue(task.dueDate)}
-                    onChange={(e) => set({ dueTimeInput: e.target.value })}
-                    InputLabelProps={{ shrink: true }}
-                  />
-                </Stack>
-
-                <TextField
-                  select
-                  label="Prioridad"
-                  size="small"
-                  fullWidth
-                  value={value('priority')}
-                  onChange={(e) => set({ priority: e.target.value as Task['priority'] })}
-                >
-                  {priorityEntries(theme).map(([k, c]) => (
-                    <MenuItem
-                      key={k}
-                      value={k}
+                    <Stack
+                      direction="row"
+                      spacing={1}
                     >
-                      <Stack
-                        direction="row"
-                        alignItems="center"
-                        spacing={1}
-                      >
-                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: c.color }} />
-                        <span>{c.label}</span>
-                      </Stack>
-                    </MenuItem>
-                  ))}
-                </TextField>
+                      <TextField
+                        label="Fecha límite"
+                        type="date"
+                        size="small"
+                        fullWidth
+                        value={draft.dueDateInput ?? toDateInput(task.dueDate)}
+                        onChange={(e) => set({ dueDateInput: e.target.value })}
+                        InputLabelProps={{ shrink: true }}
+                        error={!!overdue}
+                        helperText={overdue ? 'Vencida' : undefined}
+                      />
+                      <TextField
+                        label="Hora"
+                        type="time"
+                        size="small"
+                        sx={{ width: 122, flexShrink: 0 }}
+                        value={draft.dueTimeInput ?? timeInputValue(task.dueDate)}
+                        onChange={(e) => set({ dueTimeInput: e.target.value })}
+                        InputLabelProps={{ shrink: true }}
+                      />
+                    </Stack>
 
-                <TextField
-                  select
-                  label="Épica"
-                  size="small"
-                  fullWidth
-                  value={value('epicId') || ''}
-                  onChange={(e) => set({ epicId: e.target.value || null })}
-                >
-                  <MenuItem value="">Sin épica</MenuItem>
-                  {epics.map((e) => (
-                    <MenuItem
-                      key={e._id}
-                      value={e._id}
+                    <TextField
+                      select
+                      label="Prioridad"
+                      size="small"
+                      fullWidth
+                      value={value('priority')}
+                      onChange={(e) => set({ priority: e.target.value as Task['priority'] })}
                     >
-                      <Stack
-                        direction="row"
-                        alignItems="center"
-                        spacing={1}
-                      >
-                        <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: e.color }} />
-                        <span>{e.name}</span>
-                      </Stack>
-                    </MenuItem>
-                  ))}
-                </TextField>
+                      {priorityEntries(theme).map(([k, c]) => (
+                        <MenuItem
+                          key={k}
+                          value={k}
+                        >
+                          <Stack
+                            direction="row"
+                            alignItems="center"
+                            spacing={1}
+                          >
+                            <FlagRoundedIcon sx={{ fontSize: 14, color: c.color }} />
+                            <span>{c.label}</span>
+                          </Stack>
+                        </MenuItem>
+                      ))}
+                    </TextField>
 
-                <Stack
-                  direction="row"
-                  spacing={1}
+                    <TextField
+                      select
+                      label="Épica"
+                      size="small"
+                      fullWidth
+                      value={value('epicId') || ''}
+                      onChange={(e) => set({ epicId: e.target.value || null })}
+                    >
+                      <MenuItem value="">Sin épica</MenuItem>
+                      {epics.map((e) => (
+                        <MenuItem
+                          key={e._id}
+                          value={e._id}
+                        >
+                          <Stack
+                            direction="row"
+                            alignItems="center"
+                            spacing={1}
+                          >
+                            <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: e.color }} />
+                            <span>{e.name}</span>
+                          </Stack>
+                        </MenuItem>
+                      ))}
+                    </TextField>
+
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                    >
+                      <TextField
+                        label="Para quién"
+                        size="small"
+                        fullWidth
+                        value={value('beneficiary') ?? ''}
+                        onChange={(e) => set({ beneficiary: e.target.value })}
+                      />
+                      <TextField
+                        select
+                        label="Impacto"
+                        size="small"
+                        fullWidth
+                        value={value('impact') || ''}
+                        onChange={(e) => set({ impact: e.target.value as Task['impact'] })}
+                      >
+                        {IMPACT_OPTIONS.map((o) => (
+                          <MenuItem
+                            key={o.value || 'none'}
+                            value={o.value}
+                          >
+                            {o.label}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </Stack>
+
+                    <Divider sx={{ opacity: 0.7 }} />
+
+                    <Meta
+                      label="Área"
+                      value={departments.find((d) => d._id === task.departmentId)?.name || '—'}
+                    />
+                    <Meta
+                      label="Creada por"
+                      value={task.reporterName || '—'}
+                    />
+                    {(task.rescheduleCount || 0) > 0 && (
+                      <Meta
+                        label="Reprogramada"
+                        value={`${task.rescheduleCount}× · ${task.lastRescheduleReason || 'sin motivo'}`}
+                        role="warning"
+                      />
+                    )}
+                  </Stack>
+                </Panel>
+
+                <Panel
+                  title="Línea de tiempo"
+                  delay={2}
                 >
-                  <TextField
-                    label="Para quién"
-                    size="small"
-                    fullWidth
-                    value={value('beneficiary') ?? ''}
-                    onChange={(e) => set({ beneficiary: e.target.value })}
-                  />
-                  <TextField
-                    select
-                    label="Impacto"
-                    size="small"
-                    fullWidth
-                    value={value('impact') || ''}
-                    onChange={(e) => set({ impact: e.target.value as Task['impact'] })}
-                  >
-                    {IMPACT_OPTIONS.map((o) => (
-                      <MenuItem
-                        key={o.value || 'none'}
-                        value={o.value}
-                      >
-                        {o.label}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Stack>
-
-                <Divider />
-
-                <Meta
-                  label="Área"
-                  value={departments.find((d) => d._id === task.departmentId)?.name || '—'}
-                />
-                <Meta
-                  label="Creada por"
-                  value={task.reporterName || '—'}
-                />
-                <Meta
-                  label="Creada"
-                  value={formatDue(task.createdAt)}
-                />
-                {task.startedAt && (
-                  <Meta
-                    label="Empezada"
-                    value={formatDue(task.startedAt)}
-                  />
-                )}
-                {task.completedAt && (
-                  <Meta
-                    label="Cerrada"
-                    value={formatDue(task.completedAt)}
-                    role="success"
-                  />
-                )}
-                {(task.rescheduleCount || 0) > 0 && (
-                  <Meta
-                    label="Reprogramada"
-                    value={`${task.rescheduleCount}× · ${task.lastRescheduleReason || 'sin motivo'}`}
-                    role="warning"
-                  />
-                )}
+                  <Timeline task={task} />
+                </Panel>
               </Stack>
-            </Panel>
+            </Box>
           </Grid>
         </Grid>
       </Container>
@@ -775,9 +933,13 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             zIndex: 20,
             p: { xs: 1.5, md: 2 },
             pb: 'calc(env(safe-area-inset-bottom) + 12px)',
-            bgcolor: theme.palette.background.paper,
+            bgcolor: alpha(theme.palette.background.paper, 0.92),
+            backdropFilter: 'blur(12px)',
             borderTop: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-            boxShadow: theme.shadows[12],
+            boxShadow: `0 -8px 30px ${alpha(theme.palette.common.black, isDark ? 0.5 : 0.1)}`,
+            '@keyframes slideUp': { from: { transform: 'translateY(100%)' }, to: { transform: 'none' } },
+            animation: 'slideUp .24s cubic-bezier(.2,.8,.2,1)',
+            '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
           }}
         >
           <Container maxWidth="xl">
@@ -786,17 +948,32 @@ export function TaskDetail({ taskId }: { taskId: string }) {
               spacing={1}
               alignItems="center"
             >
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  bgcolor: 'warning.main',
+                  flexShrink: 0,
+                  display: { xs: 'none', sm: 'block' },
+                }}
+              />
               <Typography
                 variant="caption"
                 color="text.secondary"
-                sx={{ flex: 1, display: { xs: 'none', sm: 'block' } }}
+                sx={{ flex: 1, display: { xs: 'none', sm: 'block' }, fontWeight: 600 }}
               >
                 Tenés cambios sin guardar
               </Typography>
               <Button
                 onClick={() => setDraft({})}
                 startIcon={<CloseRoundedIcon sx={{ fontSize: 16 }} />}
-                sx={{ height: 44, borderRadius: 2, textTransform: 'none', flex: { xs: 1, sm: 'none' } }}
+                sx={{
+                  height: 46,
+                  borderRadius: 2.5,
+                  textTransform: 'none',
+                  flex: { xs: 1, sm: 'none' },
+                }}
               >
                 Descartar
               </Button>
@@ -816,9 +993,9 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                   )
                 }
                 sx={{
-                  height: 44,
+                  height: 46,
                   px: 3,
-                  borderRadius: 2,
+                  borderRadius: 2.5,
                   textTransform: 'none',
                   fontWeight: 800,
                   flex: { xs: 1, sm: 'none' },
@@ -834,39 +1011,183 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   );
 }
 
+/* ─── Edición en el sitio ─────────────────────────────────────────────────── */
+
+/**
+ * El título se ve como título, no como formulario. Al pasar por encima aparece
+ * un fondo que dice "esto se puede tocar"; al enfocarlo, el borde. Enter guarda
+ * el foco (no salta de línea) y Escape deshace lo que se acaba de escribir.
+ */
+function InlineTitle({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const theme = useTheme();
+  const initial = React.useRef(value);
+
+  return (
+    <TextField
+      fullWidth
+      multiline
+      variant="outlined"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          (e.target as HTMLElement).blur();
+        }
+        if (e.key === 'Escape') {
+          onChange(initial.current);
+          (e.target as HTMLElement).blur();
+        }
+      }}
+      // El corrector ortográfico subrayaba en rojo cada nombre de tienda
+      inputProps={{ spellCheck: false, 'aria-label': 'Título de la tarea' }}
+      sx={{
+        '& .MuiOutlinedInput-root': {
+          px: 1,
+          py: 0.5,
+          mx: -1,
+          borderRadius: 2,
+          transition: 'background-color .18s',
+          '& fieldset': { borderColor: 'transparent' },
+          '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.04) },
+          '&:hover fieldset': { borderColor: 'transparent' },
+          '&.Mui-focused': { bgcolor: alpha(theme.palette.primary.main, 0.04) },
+          '&.Mui-focused fieldset': { borderColor: theme.palette.primary.main, borderWidth: 1 },
+          '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+        },
+        '& textarea': {
+          fontSize: { xs: 21, md: 27 },
+          fontWeight: 800,
+          lineHeight: 1.22,
+          letterSpacing: -0.6,
+        },
+      }}
+    />
+  );
+}
+
+/** Igual que el título pero en tamaño texto: para descripción, cierre y paso. */
+function InlineText({
+  value,
+  onChange,
+  placeholder,
+  minRows = 1,
+  bold = false,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  minRows?: number;
+  bold?: boolean;
+}) {
+  const theme = useTheme();
+  const initial = React.useRef(value);
+
+  return (
+    <TextField
+      fullWidth
+      multiline
+      minRows={minRows}
+      placeholder={placeholder}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          onChange(initial.current);
+          (e.target as HTMLElement).blur();
+        }
+      }}
+      inputProps={{ spellCheck: false }}
+      sx={{
+        '& .MuiOutlinedInput-root': {
+          px: 1.25,
+          py: 1,
+          mx: -1.25,
+          borderRadius: 2,
+          fontSize: 14,
+          lineHeight: 1.6,
+          fontWeight: bold ? 600 : 400,
+          transition: 'background-color .18s',
+          '& fieldset': { borderColor: 'transparent' },
+          '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.04) },
+          '&:hover fieldset': { borderColor: 'transparent' },
+          '&.Mui-focused': { bgcolor: alpha(theme.palette.primary.main, 0.04) },
+          '&.Mui-focused fieldset': { borderColor: theme.palette.primary.main, borderWidth: 1 },
+          '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+        },
+      }}
+    />
+  );
+}
+
 /* ─── Piezas ──────────────────────────────────────────────────────────────── */
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <Typography
+      variant="caption"
+      color="text.secondary"
+      sx={{ display: 'block', mb: 0.75, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6 }}
+    >
+      {String(children).toUpperCase()}
+    </Typography>
+  );
+}
 
 function Panel({
   title,
   role,
+  accent,
+  delay = 0,
+  pad = true,
   children,
 }: {
   title?: string;
   role?: 'error' | 'success';
+  /** Hilo de color arriba del panel (prioridad de la tarea). */
+  accent?: string;
+  delay?: number;
+  pad?: boolean;
   children: React.ReactNode;
 }) {
   const theme = useTheme();
-  const accent = role ? theme.palette[role].main : null;
+  const isDark = theme.palette.mode === 'dark';
+  const semantic = role ? theme.palette[role].main : null;
+
   return (
     <Box
       sx={{
-        p: { xs: 2, md: 2.5 },
         borderRadius: 3,
-        bgcolor: theme.palette.background.paper,
-        border: `1px solid ${alpha(accent || theme.palette.divider, accent ? 0.35 : 0.7)}`,
-        ...(accent ? { bgcolor: alpha(accent, 0.04) } : {}),
+        overflow: 'hidden',
+        bgcolor: semantic
+          ? alpha(semantic, isDark ? 0.09 : 0.04)
+          : theme.palette.background.paper,
+        border: `1px solid ${alpha(semantic || theme.palette.divider, semantic ? 0.35 : 0.65)}`,
+        boxShadow: `0 1px 2px ${alpha(theme.palette.common.black, isDark ? 0.3 : 0.03)}`,
+        ...RISE,
+        animationDelay: `${delay * 45}ms`,
       }}
     >
-      {title && (
-        <Typography
-          variant="caption"
-          sx={{ display: 'block', mb: 1.5, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.5 }}
-          color={accent ? role : 'text.secondary'}
-        >
-          {title.toUpperCase()}
-        </Typography>
+      {accent && (
+        <Box
+          sx={{
+            height: 3,
+            background: `linear-gradient(90deg, ${accent}, ${alpha(accent, 0)})`,
+          }}
+        />
       )}
-      {children}
+      <Box sx={pad ? { p: { xs: 2, md: 2.5 } } : undefined}>
+        {title && (
+          <Typography
+            variant="caption"
+            sx={{ display: 'block', mb: 1.5, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6 }}
+            color={semantic ? role : 'text.secondary'}
+          >
+            {title.toUpperCase()}
+          </Typography>
+        )}
+        {children}
+      </Box>
     </Box>
   );
 }
@@ -886,9 +1207,7 @@ function Meta({
       alignItems="baseline"
       spacing={1}
     >
-      <Typography
-        sx={{ fontSize: 11, color: 'text.disabled', width: 92, flexShrink: 0 }}
-      >
+      <Typography sx={{ fontSize: 11, color: 'text.disabled', width: 92, flexShrink: 0 }}>
         {label}
       </Typography>
       <Typography
@@ -897,6 +1216,89 @@ function Meta({
       >
         {value}
       </Typography>
+    </Stack>
+  );
+}
+
+/**
+ * Creada → Empezada → Cerrada. Es lo que la tarea rutinaria nunca dejó ver:
+ * cuánto estuvo esperando y cuánto tardó de verdad.
+ */
+function Timeline({ task }: { task: Task }) {
+  const theme = useTheme();
+
+  const gap = (from?: string | null, to?: string | null) => {
+    if (!from || !to) return null;
+    const h = (new Date(to).getTime() - new Date(from).getTime()) / 3_600_000;
+    if (h < 1) return `${Math.max(1, Math.round(h * 60))} min`;
+    if (h < 48) return `${h.toFixed(1)} h`;
+    return `${Math.round(h / 24)} días`;
+  };
+
+  const steps = [
+    { label: 'Creada', at: task.createdAt, color: theme.palette.text.disabled },
+    { label: 'Empezada', at: task.startedAt, color: theme.palette.warning.main },
+    { label: 'Cerrada', at: task.completedAt, color: theme.palette.success.main },
+  ];
+
+  return (
+    <Stack spacing={0}>
+      {steps.map((s, i) => {
+        const prev = steps[i - 1];
+        const between = prev?.at && s.at ? gap(prev.at, s.at) : null;
+        const done = !!s.at;
+        return (
+          <Box key={s.label}>
+            {i > 0 && (
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={1.5}
+                sx={{ pl: '5px', height: 26 }}
+              >
+                <Box
+                  sx={{
+                    width: 2,
+                    height: '100%',
+                    bgcolor: alpha(done ? s.color : theme.palette.divider, done ? 0.4 : 1),
+                  }}
+                />
+                {between && (
+                  <Typography sx={{ fontSize: 10, color: 'text.disabled' }}>{between}</Typography>
+                )}
+              </Stack>
+            )}
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={1.5}
+            >
+              <Box
+                sx={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: '50%',
+                  flexShrink: 0,
+                  bgcolor: done ? s.color : 'transparent',
+                  border: `2px solid ${done ? s.color : theme.palette.divider}`,
+                  boxShadow: done ? `0 0 0 4px ${alpha(s.color, 0.14)}` : 'none',
+                }}
+              />
+              <Box minWidth={0}>
+                <Typography
+                  sx={{ fontSize: 12, fontWeight: 700, lineHeight: 1.2 }}
+                  color={done ? 'text.primary' : 'text.disabled'}
+                >
+                  {s.label}
+                </Typography>
+                <Typography sx={{ fontSize: 10.5, color: 'text.disabled' }}>
+                  {s.at ? formatDue(s.at) : 'todavía no'}
+                </Typography>
+              </Box>
+            </Stack>
+          </Box>
+        );
+      })}
     </Stack>
   );
 }

@@ -436,8 +436,20 @@ function Tasks(): React.JSX.Element {
    * evidencias y bitácora, y eso no cabe en una ventanita.
    */
   const handleOpenTask = useCallback(
-    (task: Task) => push(`/admin/applications/tasks/${task._id}`),
-    [push]
+    (task: Task) => {
+      /**
+       * La tarea ya está en memoria: se siembra la caché con la copia del board
+       * para que la página abra pintada y sin spinner. El fetch completo (que
+       * suma bitácora y evidencias) llega después y sólo rellena.
+       */
+      queryClient.setQueryData(['task', task._id], (prev: Task | undefined) => prev ?? task);
+      queryClient.prefetchQuery({
+        queryKey: ['task', task._id],
+        queryFn: () => taskClient.getTask(task._id),
+      });
+      push(`/admin/applications/tasks/${task._id}`);
+    },
+    [push, queryClient]
   );
 
   /** Bloquear exige motivo: eso sí se resuelve en el diálogo, sin salir del board. */
@@ -617,7 +629,7 @@ function Tasks(): React.JSX.Element {
                 <ActionButton
                   icon={<DashboardCustomizeRoundedIcon sx={{ fontSize: 13 }} />}
                   onClick={() => setTemplatesOpen(true)}
-                  label="Plantillas"
+                  label="Ajustes"
                 />
                 <ActionButton
                   icon={<AddRoundedIcon sx={{ fontSize: 13 }} />}
@@ -687,7 +699,7 @@ function Tasks(): React.JSX.Element {
               }}
               sx={{ minHeight: 48, gap: 1.5 }}
             >
-              <DashboardCustomizeRoundedIcon sx={{ fontSize: 18 }} /> Plantillas
+              <DashboardCustomizeRoundedIcon sx={{ fontSize: 18 }} /> Plantillas, épicas y etiquetas
             </MenuItem>
             <MenuItem
               onClick={() => {

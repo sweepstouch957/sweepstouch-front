@@ -1,7 +1,7 @@
 'use client';
 
 import { type Department } from '@/services/department.service';
-import { type Epic } from '@/services/epic.service';
+import { EPIC_COLORS, epicService, type Epic, type EpicDto } from '@/services/epic.service';
 import { type Project } from '@/services/task.service';
 import {
   TEMPLATE_ICONS,
@@ -12,8 +12,12 @@ import {
 } from '@/services/template.service';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
+import DashboardCustomizeRoundedIcon from '@mui/icons-material/DashboardCustomizeRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import EventRepeatRoundedIcon from '@mui/icons-material/EventRepeatRounded';
+import FolderSpecialRoundedIcon from '@mui/icons-material/FolderSpecialRounded';
+import LocalOfferRoundedIcon from '@mui/icons-material/LocalOfferRounded';
 import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import {
   alpha,
@@ -31,6 +35,8 @@ import {
   MenuItem,
   Stack,
   Switch,
+  Tab,
+  Tabs,
   TextField,
   Tooltip,
   Typography,
@@ -40,6 +46,448 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { IMPACT_OPTIONS, priorityEntries } from './constants';
+
+/* ═══ Épicas ═══════════════════════════════════════════════════════════════
+   Acá se crean y se retocan. En el diálogo de tarea se pueden crear al vuelo,
+   pero renombrarlas, cambiarles el color o cerrarlas se hace desde acá. */
+
+function EpicsTab({ projects }: { projects: Project[] }) {
+  const theme = useTheme();
+  const queryClient = useQueryClient();
+  const [draft, setDraft] = useState<(EpicDto & { _id?: string }) | null>(null);
+
+  const { data: epics = [], isLoading } = useQuery({
+    queryKey: ['epics'],
+    queryFn: () => epicService.list(),
+    staleTime: 60_000,
+  });
+
+  const done = () => {
+    queryClient.invalidateQueries({ queryKey: ['epics'] });
+    queryClient.invalidateQueries({ queryKey: ['board'] });
+    setDraft(null);
+  };
+
+  const { mutate: save, isPending } = useMutation({
+    mutationFn: (d: EpicDto & { _id?: string }) =>
+      d._id ? epicService.update(d._id, d) : epicService.create(d),
+    onSuccess: () => {
+      done();
+      toast.success('Épica guardada');
+    },
+    onError: () => toast.error('No se pudo guardar la épica'),
+  });
+
+  const { mutate: remove } = useMutation({
+    mutationFn: (id: string) => epicService.remove(id),
+    onSuccess: () => {
+      done();
+      toast.success('Épica borrada — sus tareas quedan sueltas');
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <Stack
+        alignItems="center"
+        py={4}
+      >
+        <CircularProgress size={22} />
+      </Stack>
+    );
+  }
+
+  return (
+    <Stack spacing={1.5}>
+      <Stack
+        direction="row"
+        alignItems="center"
+      >
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          flex={1}
+          sx={{ fontSize: 11.5 }}
+        >
+          Agrupan tareas de distintas áreas bajo un mismo objetivo. No son otro tablero.
+        </Typography>
+        <Button
+          size="small"
+          startIcon={<AddRoundedIcon sx={{ fontSize: 15 }} />}
+          onClick={() =>
+            setDraft({ name: '', description: '', color: EPIC_COLORS[epics.length % EPIC_COLORS.length] })
+          }
+          sx={{ textTransform: 'none', fontWeight: 700 }}
+        >
+          Nueva épica
+        </Button>
+      </Stack>
+
+      {epics.length === 0 && !draft && (
+        <EmptyHint>
+          Todavía no hay épicas. “Manual de marca”, “RCS”: un objetivo que cruza varias áreas.
+        </EmptyHint>
+      )}
+
+      {epics.map((e) => (
+        <Box
+          key={e._id}
+          sx={{
+            p: 1.5,
+            borderRadius: 2,
+            border: `1px solid ${alpha(e.color, 0.35)}`,
+            bgcolor: alpha(e.color, 0.04),
+          }}
+        >
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1}
+          >
+            <Box sx={{ width: 10, height: 10, borderRadius: '3px', bgcolor: e.color }} />
+            <Typography
+              fontSize={13}
+              fontWeight={700}
+              flex={1}
+              noWrap
+            >
+              {e.name}
+            </Typography>
+            <Typography
+              fontSize={11}
+              color="text.secondary"
+              sx={{ fontVariantNumeric: 'tabular-nums' }}
+            >
+              {e.done}/{e.total}
+            </Typography>
+            <IconButton
+              size="small"
+              aria-label={`Editar ${e.name}`}
+              onClick={() =>
+                setDraft({ _id: e._id, name: e.name, description: e.description, color: e.color })
+              }
+            >
+              <EditRoundedIcon sx={{ fontSize: 15 }} />
+            </IconButton>
+            <IconButton
+              size="small"
+              aria-label={`Borrar ${e.name}`}
+              onClick={() => remove(e._id)}
+            >
+              <DeleteOutlineRoundedIcon sx={{ fontSize: 15 }} />
+            </IconButton>
+          </Stack>
+
+          <Box
+            sx={{
+              mt: 1,
+              height: 5,
+              borderRadius: 3,
+              bgcolor: alpha(e.color, 0.15),
+              overflow: 'hidden',
+            }}
+          >
+            <Box
+              sx={{
+                width: `${e.progress || 0}%`,
+                height: '100%',
+                bgcolor: e.color,
+                transition: 'width .3s',
+              }}
+            />
+          </Box>
+          {(e.overdue > 0 || e.blocked > 0) && (
+            <Stack
+              direction="row"
+              spacing={1}
+              mt={0.75}
+            >
+              {e.overdue > 0 && (
+                <Typography
+                  fontSize={10}
+                  color="error.main"
+                  fontWeight={700}
+                >
+                  {e.overdue} vencidas
+                </Typography>
+              )}
+              {e.blocked > 0 && (
+                <Typography
+                  fontSize={10}
+                  color="warning.main"
+                  fontWeight={700}
+                >
+                  {e.blocked} bloqueadas
+                </Typography>
+              )}
+            </Stack>
+          )}
+        </Box>
+      ))}
+
+      {draft && (
+        <Box
+          sx={{
+            p: 1.75,
+            borderRadius: 2,
+            border: `1px solid ${alpha(theme.palette.primary.main, 0.35)}`,
+            bgcolor: alpha(theme.palette.primary.main, 0.04),
+          }}
+        >
+          <Stack spacing={1.5}>
+            <TextField
+              size="small"
+              autoFocus
+              label="Nombre"
+              value={draft.name || ''}
+              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+              placeholder="Manual de marca"
+            />
+            <TextField
+              size="small"
+              label="Para qué es"
+              value={draft.description || ''}
+              onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+            />
+            <TextField
+              select
+              size="small"
+              label="Proyecto"
+              value={draft.projectId || ''}
+              onChange={(e) => setDraft({ ...draft, projectId: e.target.value || null })}
+            >
+              <MenuItem value="">Todos</MenuItem>
+              {projects.map((p) => (
+                <MenuItem
+                  key={p._id}
+                  value={p._id}
+                >
+                  {p.name}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <Stack
+              direction="row"
+              spacing={0.75}
+            >
+              {EPIC_COLORS.map((c) => (
+                <Box
+                  key={c}
+                  role="button"
+                  aria-label={`Color ${c}`}
+                  onClick={() => setDraft({ ...draft, color: c })}
+                  sx={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 1.5,
+                    bgcolor: c,
+                    cursor: 'pointer',
+                    outline: draft.color === c ? `2px solid ${c}` : 'none',
+                    outlineOffset: 2,
+                  }}
+                />
+              ))}
+            </Stack>
+
+            <Stack
+              direction="row"
+              spacing={1}
+              justifyContent="flex-end"
+            >
+              <Button
+                size="small"
+                onClick={() => setDraft(null)}
+                sx={{ textTransform: 'none' }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                disableElevation
+                disabled={isPending || !draft.name?.trim()}
+                onClick={() => save(draft)}
+                sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 1.5 }}
+              >
+                Guardar
+              </Button>
+            </Stack>
+          </Stack>
+        </Box>
+      )}
+    </Stack>
+  );
+}
+
+/* ═══ Etiquetas ════════════════════════════════════════════════════════════
+   El catálogo sale de lo que el equipo ya usa. Lo que hace falta es poder
+   arreglarlo: un typo parte "campañas" en dos etiquetas para siempre. */
+
+function TagsTab() {
+  const theme = useTheme();
+  const queryClient = useQueryClient();
+  const [renaming, setRenaming] = useState<{ from: string; to: string } | null>(null);
+
+  const { data: tags = [], isLoading } = useQuery({
+    queryKey: ['task-tags'],
+    queryFn: () => templateService.tags(),
+    staleTime: 60_000,
+  });
+
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['task-tags'] });
+    queryClient.invalidateQueries({ queryKey: ['board'] });
+  };
+
+  const { mutate: rename, isPending } = useMutation({
+    mutationFn: ({ from, to }: { from: string; to: string }) => templateService.renameTag(from, to),
+    onSuccess: () => {
+      refresh();
+      setRenaming(null);
+      toast.success('Etiqueta renombrada en todas las tareas');
+    },
+    onError: () => toast.error('No se pudo renombrar'),
+  });
+
+  const { mutate: remove } = useMutation({
+    mutationFn: (tag: string) => templateService.removeTag(tag),
+    onSuccess: () => {
+      refresh();
+      toast.success('Etiqueta quitada de todas las tareas');
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <Stack
+        alignItems="center"
+        py={4}
+      >
+        <CircularProgress size={22} />
+      </Stack>
+    );
+  }
+
+  if (!tags.length) {
+    return <EmptyHint>Todavía nadie etiquetó una tarea. Las etiquetas salen solas del uso.</EmptyHint>;
+  }
+
+  return (
+    <Stack spacing={1.25}>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ fontSize: 11.5 }}
+      >
+        Salen de lo que el equipo ya usa. Renombrar arregla los typos en todas las tareas de una vez.
+      </Typography>
+
+      {tags.map((t) => (
+        <Stack
+          key={t.tag}
+          direction="row"
+          alignItems="center"
+          spacing={1}
+          sx={{
+            px: 1.25,
+            py: 0.75,
+            borderRadius: 2,
+            border: `1px solid ${alpha(theme.palette.divider, 0.7)}`,
+          }}
+        >
+          {renaming?.from === t.tag ? (
+            <>
+              <TextField
+                size="small"
+                autoFocus
+                fullWidth
+                value={renaming.to}
+                onChange={(e) => setRenaming({ ...renaming, to: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && renaming.to.trim()) rename(renaming);
+                  if (e.key === 'Escape') setRenaming(null);
+                }}
+              />
+              <Button
+                size="small"
+                disabled={isPending || !renaming.to.trim()}
+                onClick={() => rename(renaming)}
+                sx={{ textTransform: 'none', fontWeight: 700 }}
+              >
+                Aplicar
+              </Button>
+              <Button
+                size="small"
+                onClick={() => setRenaming(null)}
+                sx={{ textTransform: 'none' }}
+              >
+                Cancelar
+              </Button>
+            </>
+          ) : (
+            <>
+              <Chip
+                label={t.tag}
+                size="small"
+                sx={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  bgcolor: alpha(theme.palette.primary.main, 0.1),
+                  color: 'primary.main',
+                }}
+              />
+              <Typography
+                fontSize={11}
+                color="text.disabled"
+                flex={1}
+                sx={{ fontVariantNumeric: 'tabular-nums' }}
+              >
+                {t.count} {t.count === 1 ? 'tarea' : 'tareas'}
+              </Typography>
+              <IconButton
+                size="small"
+                aria-label={`Renombrar ${t.tag}`}
+                onClick={() => setRenaming({ from: t.tag, to: t.tag })}
+              >
+                <EditRoundedIcon sx={{ fontSize: 15 }} />
+              </IconButton>
+              <IconButton
+                size="small"
+                aria-label={`Borrar ${t.tag}`}
+                onClick={() => remove(t.tag)}
+              >
+                <DeleteOutlineRoundedIcon sx={{ fontSize: 15 }} />
+              </IconButton>
+            </>
+          )}
+        </Stack>
+      ))}
+    </Stack>
+  );
+}
+
+function EmptyHint({ children }: { children: React.ReactNode }) {
+  const theme = useTheme();
+  return (
+    <Box
+      sx={{
+        textAlign: 'center',
+        py: 4,
+        px: 2,
+        borderRadius: 2,
+        border: `1px dashed ${alpha(theme.palette.divider, 0.8)}`,
+      }}
+    >
+      <Typography
+        variant="caption"
+        color="text.secondary"
+      >
+        {children}
+      </Typography>
+    </Box>
+  );
+}
 
 const EMPTY: TemplateDto = {
   name: '',
@@ -124,6 +572,7 @@ export function TemplateDialog({
 }) {
   const theme = useTheme();
   const queryClient = useQueryClient();
+  const [tab, setTab] = useState<'templates' | 'epics' | 'tags'>('templates');
   const [editing, setEditing] = useState<TaskTemplate | null>(null);
   const [form, setForm] = useState<TemplateDto | null>(null);
 
@@ -183,7 +632,7 @@ export function TemplateDialog({
       fullWidth
       PaperProps={{ sx: { borderRadius: 3 } }}
     >
-      <DialogTitle sx={{ pb: 1 }}>
+      <DialogTitle sx={{ pb: 0 }}>
         <Stack
           direction="row"
           alignItems="center"
@@ -205,9 +654,13 @@ export function TemplateDialog({
             fontWeight={700}
             flex={1}
           >
-            {form ? (editing ? 'Editar plantilla' : 'Nueva plantilla') : 'Plantillas de tarea'}
+            {form
+              ? editing
+                ? 'Editar plantilla'
+                : 'Nueva plantilla'
+              : 'Ajustes del tablero'}
           </Typography>
-          {!form && (
+          {!form && tab === 'templates' && (
             <Button
               size="small"
               variant="contained"
@@ -223,14 +676,57 @@ export function TemplateDialog({
             </Button>
           )}
         </Stack>
+
+        {/* Acá se gestiona todo lo transversal del tablero, no sólo plantillas */}
+        {!form && (
+          <Tabs
+            value={tab}
+            onChange={(_, v) => setTab(v)}
+            sx={{
+              mt: 1,
+              minHeight: 38,
+              '& .MuiTab-root': {
+                minHeight: 38,
+                py: 0,
+                px: 1.5,
+                textTransform: 'none',
+                fontWeight: 700,
+                fontSize: 12.5,
+                gap: 0.75,
+              },
+            }}
+          >
+            <Tab
+              value="templates"
+              icon={<DashboardCustomizeRoundedIcon sx={{ fontSize: 16 }} />}
+              iconPosition="start"
+              label="Plantillas"
+            />
+            <Tab
+              value="epics"
+              icon={<FolderSpecialRoundedIcon sx={{ fontSize: 16 }} />}
+              iconPosition="start"
+              label="Épicas"
+            />
+            <Tab
+              value="tags"
+              icon={<LocalOfferRoundedIcon sx={{ fontSize: 16 }} />}
+              iconPosition="start"
+              label="Etiquetas"
+            />
+          </Tabs>
+        )}
       </DialogTitle>
 
       <DialogContent
         dividers
         sx={{ pt: 2 }}
       >
-        {/* ── Lista ── */}
-        {!form && (
+        {!form && tab === 'epics' && <EpicsTab projects={projects} />}
+        {!form && tab === 'tags' && <TagsTab />}
+
+        {/* ── Lista de plantillas ── */}
+        {!form && tab === 'templates' && (
           <>
             {isLoading && (
               <Stack

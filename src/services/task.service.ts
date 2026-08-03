@@ -161,6 +161,14 @@ export const RECURRENCE_LABEL: Record<Recurrence, string> = {
 
 export type RoutineTask = Task & { runsToday: boolean };
 
+/** Lo que la IA propone a partir del título. Es un borrador, no se guarda solo. */
+export interface TaskDraft {
+  description: string;
+  closureCriteria: string;
+  nextStep: string;
+  tags: string[];
+}
+
 export interface BoardMember {
   id: string;
   name: string;
