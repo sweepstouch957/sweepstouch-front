@@ -95,7 +95,14 @@ export interface Task {
   reporterId: string | null;
   reporterName: string;
   dueDate: string | null;
+  /** Cuándo se empezó de verdad: la primera vez que pasó a "En curso". */
+  startedAt?: string | null;
   completedAt: string | null;
+  /** Tienda referenciada. Opcional: soporte, campo o audiencia la usan. */
+  storeId?: string | null;
+  storeName?: string;
+  /** De qué plantilla salió, si salió de una. */
+  templateId?: string | null;
   /** Para quién es el trabajo: tienda, cliente, área o interno. Opcional. */
   beneficiary?: string;
   /** Qué sigue después de lo último que se hizo. Opcional. */
@@ -107,6 +114,10 @@ export interface Task {
   /** Cuarto campo obligatorio: cómo sabremos que quedó lista. */
   closureCriteria?: string;
   departmentId?: string | null;
+  /** Épica que agrupa la tarea ("Manual de marca", "RCS"). No es otro tablero. */
+  epicId?: string | null;
+  /** Quiénes fueron mencionados en los comentarios — para el filtro "me mencionaron". */
+  mentionedUserIds?: string[];
   // ── Bloqueo
   blockedReason?: string;
   blockerOwner?: string;

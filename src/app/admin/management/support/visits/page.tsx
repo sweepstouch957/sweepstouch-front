@@ -52,6 +52,7 @@ import { chartPalette, tint, tintBorder, type SemanticRole } from 'src/theme/sem
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
+import { Controller, useForm, useWatch, type Control, type UseFormRegister } from 'react-hook-form';
 import { useCustomization } from 'src/hooks/use-customization';
 import { getStores } from 'src/services/store.service';
 import supportService, {
@@ -150,7 +151,6 @@ export default function VisitsPage() {
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editVisit, setEditVisit] = useState<SupportVisit | null>(null);
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [useWeekFilter, setUseWeekFilter] = useState(true);
 
   // Store autocomplete — debounced server search
@@ -255,31 +255,19 @@ export default function VisitsPage() {
 
   const openCreate = () => {
     setEditVisit(null);
-    setForm(EMPTY_FORM);
     setDialogOpen(true);
   };
 
   const openEdit = (visit: SupportVisit) => {
     setEditVisit(visit);
-    const tech = technicians.find((t) => t._id === visit.technicianId) ?? null;
-    const store = stores.find((s) => s._id === visit.storeId) ?? null;
-    setForm({
-      type: visit.type,
-      status: visit.status,
-      technician: tech ?? (visit.technicianId ? { _id: visit.technicianId, id: visit.technicianId, name: visit.technicianName, email: '' } : null),
-      store: store ?? (visit.storeId ? { _id: visit.storeId, name: visit.storeName, address: visit.storeAddress } : null),
-      scheduledDate: visit.scheduledDate ? new Date(visit.scheduledDate).toISOString().slice(0, 16) : '',
-      notes: visit.notes,
-      isEmergency: visit.isEmergency,
-    });
     setDialogOpen(true);
   };
 
-  const closeDialog = () => { setDialogOpen(false); setEditVisit(null); setForm(EMPTY_FORM); };
+  const closeDialog = () => { setDialogOpen(false); setEditVisit(null); };
 
-  const handleSubmit = () => {
-    if (editVisit) updateMutation.mutate({ id: editVisit._id, f: form });
-    else createMutation.mutate(form);
+  const handleSubmit = (values: FormState) => {
+    if (editVisit) updateMutation.mutate({ id: editVisit._id, f: values });
+    else createMutation.mutate(values);
   };
 
   const prevWeek = () => { if (week === 1) { setWeek(52); setYear(y => y - 1); } else setWeek(w => w - 1); };
@@ -444,141 +432,20 @@ export default function VisitsPage() {
       </Card>
 
       {/* Dialog */}
-      <Dialog open={dialogOpen} onClose={closeDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>{editVisit ? 'Editar Visita' : 'Programar Visita'}</DialogTitle>
-        <Divider />
-        <DialogContent>
-          <Stack spacing={2.5} pt={1}>
-            <Stack direction="row" spacing={2}>
-              <FormControl size="small" fullWidth>
-                <InputLabel>Tipo de visita</InputLabel>
-                <Select value={form.type} label="Tipo de visita" onChange={(e) => setForm({ ...form, type: e.target.value as VisitType })}>
-                  {Object.entries(TYPE_LABEL).map(([k, v]) => <MenuItem key={k} value={k}>{v}</MenuItem>)}
-                </Select>
-              </FormControl>
-              {editVisit && (
-                <FormControl size="small" fullWidth>
-                  <InputLabel>Estado</InputLabel>
-                  <Select value={form.status} label="Estado" onChange={(e) => setForm({ ...form, status: e.target.value as VisitStatus })}>
-                    <MenuItem value="scheduled">Programada</MenuItem>
-                    <MenuItem value="in_progress">En curso</MenuItem>
-                    <MenuItem value="completed">Completada</MenuItem>
-                    <MenuItem value="cancelled">Cancelada</MenuItem>
-                  </Select>
-                </FormControl>
-              )}
-            </Stack>
-
-            {/* Technician autocomplete */}
-            <Autocomplete
-              options={technicians}
-              value={form.technician}
-              onChange={(_, val) => setForm({ ...form, technician: val })}
-              getOptionLabel={(o) => o.name}
-              isOptionEqualToValue={(a, b) => a._id === b._id}
-              renderInput={(params) => (
-                <TextField {...params} label="Técnico" size="small" placeholder="Buscar técnico..." />
-              )}
-              noOptionsText="Sin técnicos registrados"
-            />
-
-            {/* Store autocomplete — search-as-you-type */}
-            <Autocomplete
-              options={stores}
-              value={form.store}
-              onChange={(_, val) => setForm({ ...form, store: val })}
-              onInputChange={(_, val) => setStoreRaw(val)}
-              filterOptions={(x) => x}
-              loading={loadingStores}
-              getOptionLabel={(o) => o.name}
-              isOptionEqualToValue={(a, b) => a._id === b._id}
-              renderOption={(props, o) => {
-                const color = storeTypeColor(theme, o.type);
-                const aud = getAudienceInfo(o.customerCount);
-                return (
-                  <Box component="li" {...props} sx={{ gap: 1.5, alignItems: 'flex-start !important', py: '8px !important' }}>
-                    <Avatar sx={{ width: 36, height: 36, fontSize: 13, fontWeight: 700, bgcolor: alpha(color, 0.15), color, flexShrink: 0, mt: 0.25 }}>
-                      {o.name?.[0]?.toUpperCase()}
-                    </Avatar>
-                    <Box minWidth={0} flex={1}>
-                      <Stack direction="row" alignItems="center" spacing={0.75}>
-                        <Typography variant="body2" fontWeight={700} noWrap flex={1}>{o.name}</Typography>
-                        {aud && (
-                          <Chip
-                            label={aud.label}
-                            size="small"
-                            sx={{
-                              height: 18, fontSize: 10, fontWeight: 700, flexShrink: 0,
-                              bgcolor: tint(theme, aud.role),
-                              color: `${aud.role}.main`,
-                              border: `1px solid ${tintBorder(theme, aud.role, 0.3)}`,
-                            }}
-                          />
-                        )}
-                      </Stack>
-                      {o.address && (
-                        <Typography variant="caption" color="text.secondary" noWrap display="block">{o.address}</Typography>
-                      )}
-                    </Box>
-                  </Box>
-                );
-              }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Tienda"
-                  size="small"
-                  placeholder="Escribe para buscar..."
-                  InputProps={{
-                    ...params.InputProps,
-                    endAdornment: (
-                      <>
-                        {loadingStores ? <CircularProgress size={14} color="inherit" /> : null}
-                        {params.InputProps.endAdornment}
-                      </>
-                    ),
-                  }}
-                />
-              )}
-              noOptionsText={storeSearch ? 'Sin resultados' : 'Escribe para buscar una tienda...'}
-            />
-
-            <TextField
-              label="Fecha y hora programada"
-              type="datetime-local"
-              value={form.scheduledDate}
-              onChange={(e) => setForm({ ...form, scheduledDate: e.target.value })}
-              fullWidth
-              size="small"
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField
-              label="Notas"
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              fullWidth
-              size="small"
-              multiline
-              rows={2}
-            />
-            <FormControlLabel
-              control={<Switch checked={form.isEmergency} onChange={(e) => setForm({ ...form, isEmergency: e.target.checked })} />}
-              label="Visita de emergencia"
-            />
-          </Stack>
-        </DialogContent>
-        <Divider />
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={closeDialog} variant="outlined">Cancelar</Button>
-          <Button
-            variant="contained"
-            onClick={handleSubmit}
-            disabled={!form.technician || isSaving}
-          >
-            {isSaving ? 'Guardando...' : editVisit ? 'Guardar' : 'Programar'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {dialogOpen && (
+        <VisitDialog
+          open
+          editVisit={editVisit}
+          technicians={technicians}
+          stores={stores}
+          loadingStores={loadingStores}
+          storeSearch={storeSearch}
+          onStoreInputChange={setStoreRaw}
+          isSaving={isSaving}
+          onClose={closeDialog}
+          onSubmit={handleSubmit}
+        />
+      )}
 
       {/* ── Quick Status Popover ── */}
       <Popover
@@ -627,5 +494,250 @@ export default function VisitsPage() {
         confirmLabel="Eliminar"
       />
     </Container>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   VISIT DIALOG
+   Formulario con react-hook-form dentro del diálogo: escribir ya no
+   repinta el calendario semanal ni la tabla de visitas.
+   ══════════════════════════════════════════════════════════════════ */
+
+function visitDefaults(
+  visit: SupportVisit | null,
+  technicians: Technician[],
+  stores: StoreOption[]
+): FormState {
+  if (!visit) return { ...EMPTY_FORM, scheduledDate: new Date().toISOString().slice(0, 16) };
+
+  const tech = technicians.find((t) => t._id === visit.technicianId) ?? null;
+  const store = stores.find((s) => s._id === visit.storeId) ?? null;
+  return {
+    type: visit.type,
+    status: visit.status,
+    technician: tech ?? (visit.technicianId ? { _id: visit.technicianId, id: visit.technicianId, name: visit.technicianName, email: '' } : null),
+    store: store ?? (visit.storeId ? { _id: visit.storeId, name: visit.storeName, address: visit.storeAddress } : null),
+    scheduledDate: visit.scheduledDate ? new Date(visit.scheduledDate).toISOString().slice(0, 16) : '',
+    notes: visit.notes,
+    isEmergency: visit.isEmergency,
+  };
+}
+
+/** MUI espera el ref del input en `inputRef`, no en `ref`. */
+function rhf(register: UseFormRegister<FormState>, name: keyof FormState) {
+  const { ref, ...rest } = register(name);
+  return { inputRef: ref, ...rest };
+}
+
+function VisitDialog({
+  open,
+  editVisit,
+  technicians,
+  stores,
+  loadingStores,
+  storeSearch,
+  onStoreInputChange,
+  isSaving,
+  onClose,
+  onSubmit,
+}: {
+  open: boolean;
+  editVisit: SupportVisit | null;
+  technicians: Technician[];
+  stores: StoreOption[];
+  loadingStores: boolean;
+  storeSearch: string;
+  onStoreInputChange: (v: string) => void;
+  isSaving: boolean;
+  onClose: () => void;
+  onSubmit: (values: FormState) => void;
+}) {
+  const theme = useTheme();
+  const { register, control, handleSubmit } = useForm<FormState>({
+    defaultValues: visitDefaults(editVisit, technicians, stores),
+  });
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{ component: 'form', onSubmit: handleSubmit(onSubmit) }}
+    >
+      <DialogTitle>{editVisit ? 'Editar Visita' : 'Programar Visita'}</DialogTitle>
+      <Divider />
+      <DialogContent>
+        <Stack spacing={2.5} pt={1}>
+          <Stack direction="row" spacing={2}>
+            <Controller
+              control={control}
+              name="type"
+              render={({ field }) => (
+                <FormControl size="small" fullWidth>
+                  <InputLabel>Tipo de visita</InputLabel>
+                  <Select {...field} label="Tipo de visita">
+                    {Object.entries(TYPE_LABEL).map(([k, v]) => <MenuItem key={k} value={k}>{v}</MenuItem>)}
+                  </Select>
+                </FormControl>
+              )}
+            />
+            {editVisit && (
+              <Controller
+                control={control}
+                name="status"
+                render={({ field }) => (
+                  <FormControl size="small" fullWidth>
+                    <InputLabel>Estado</InputLabel>
+                    <Select {...field} label="Estado">
+                      <MenuItem value="scheduled">Programada</MenuItem>
+                      <MenuItem value="in_progress">En curso</MenuItem>
+                      <MenuItem value="completed">Completada</MenuItem>
+                      <MenuItem value="cancelled">Cancelada</MenuItem>
+                    </Select>
+                  </FormControl>
+                )}
+              />
+            )}
+          </Stack>
+
+          {/* Technician autocomplete */}
+          <Controller
+            control={control}
+            name="technician"
+            render={({ field }) => (
+              <Autocomplete
+                options={technicians}
+                value={field.value}
+                onChange={(_, val) => field.onChange(val)}
+                getOptionLabel={(o) => o.name}
+                isOptionEqualToValue={(a, b) => a._id === b._id}
+                renderInput={(params) => (
+                  <TextField {...params} label="Técnico" size="small" placeholder="Buscar técnico..." />
+                )}
+                noOptionsText="Sin técnicos registrados"
+              />
+            )}
+          />
+
+          {/* Store autocomplete — search-as-you-type */}
+          <Controller
+            control={control}
+            name="store"
+            render={({ field }) => (
+              <Autocomplete
+                options={stores}
+                value={field.value}
+                onChange={(_, val) => field.onChange(val)}
+                onInputChange={(_, val) => onStoreInputChange(val)}
+                filterOptions={(x) => x}
+                loading={loadingStores}
+                getOptionLabel={(o) => o.name}
+                isOptionEqualToValue={(a, b) => a._id === b._id}
+                renderOption={(props, o) => {
+                  const color = storeTypeColor(theme, o.type);
+                  const aud = getAudienceInfo(o.customerCount);
+                  return (
+                    <Box component="li" {...props} sx={{ gap: 1.5, alignItems: 'flex-start !important', py: '8px !important' }}>
+                      <Avatar sx={{ width: 36, height: 36, fontSize: 13, fontWeight: 700, bgcolor: alpha(color, 0.15), color, flexShrink: 0, mt: 0.25 }}>
+                        {o.name?.[0]?.toUpperCase()}
+                      </Avatar>
+                      <Box minWidth={0} flex={1}>
+                        <Stack direction="row" alignItems="center" spacing={0.75}>
+                          <Typography variant="body2" fontWeight={700} noWrap flex={1}>{o.name}</Typography>
+                          {aud && (
+                            <Chip
+                              label={aud.label}
+                              size="small"
+                              sx={{
+                                height: 18, fontSize: 10, fontWeight: 700, flexShrink: 0,
+                                bgcolor: tint(theme, aud.role),
+                                color: `${aud.role}.main`,
+                                border: `1px solid ${tintBorder(theme, aud.role, 0.3)}`,
+                              }}
+                            />
+                          )}
+                        </Stack>
+                        {o.address && (
+                          <Typography variant="caption" color="text.secondary" noWrap display="block">{o.address}</Typography>
+                        )}
+                      </Box>
+                    </Box>
+                  );
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Tienda"
+                    size="small"
+                    placeholder="Escribe para buscar..."
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {loadingStores ? <CircularProgress size={14} color="inherit" /> : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
+                noOptionsText={storeSearch ? 'Sin resultados' : 'Escribe para buscar una tienda...'}
+              />
+            )}
+          />
+
+          <TextField
+            label="Fecha y hora programada"
+            type="datetime-local"
+            {...rhf(register, 'scheduledDate')}
+            fullWidth
+            size="small"
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            label="Notas"
+            {...rhf(register, 'notes')}
+            fullWidth
+            size="small"
+            multiline
+            rows={2}
+          />
+          <Controller
+            control={control}
+            name="isEmergency"
+            render={({ field }) => (
+              <FormControlLabel
+                control={<Switch checked={field.value} onChange={(e) => field.onChange(e.target.checked)} />}
+                label="Visita de emergencia"
+              />
+            )}
+          />
+        </Stack>
+      </DialogContent>
+      <Divider />
+      <DialogActions sx={{ px: 3, py: 2 }}>
+        <Button onClick={onClose} variant="outlined">Cancelar</Button>
+        <SaveVisitButton control={control} isSaving={isSaving} isEdit={!!editVisit} />
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+function SaveVisitButton({
+  control,
+  isSaving,
+  isEdit,
+}: {
+  control: Control<FormState>;
+  isSaving: boolean;
+  isEdit: boolean;
+}) {
+  const technician = useWatch({ control, name: 'technician' });
+
+  return (
+    <Button variant="contained" type="submit" disabled={!technician || isSaving}>
+      {isSaving ? 'Guardando...' : isEdit ? 'Guardar' : 'Programar'}
+    </Button>
   );
 }

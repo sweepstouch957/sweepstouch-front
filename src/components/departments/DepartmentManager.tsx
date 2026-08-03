@@ -1,6 +1,7 @@
 'use client';
 
 import { FC, useMemo, useState } from 'react';
+import { Controller, useForm, useWatch, type Control, type UseFormRegister } from 'react-hook-form';
 import {
   alpha,
   Autocomplete,
@@ -75,7 +76,9 @@ const DepartmentManager: FC<DepartmentManagerProps> = ({ open, onClose }) => {
 
   const [editing, setEditing] = useState<Department | null>(null);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState<CreateDepartmentDto>(EMPTY_FORM);
+  const { register, control, handleSubmit: rhfHandleSubmit, reset } = useForm<CreateDepartmentDto>({
+    defaultValues: EMPTY_FORM,
+  });
 
   const { data: departments = [], isLoading } = useQuery({
     queryKey: ['departments'],
@@ -161,7 +164,7 @@ const DepartmentManager: FC<DepartmentManagerProps> = ({ open, onClose }) => {
       queryClient.invalidateQueries({ queryKey: ['departments'] });
       toast.success('Área creada');
       setCreating(false);
-      setForm(EMPTY_FORM);
+      reset(EMPTY_FORM);
     },
     onError: (err: any) => toast.error(err?.response?.data?.error || 'Error'),
   });
@@ -184,18 +187,18 @@ const DepartmentManager: FC<DepartmentManagerProps> = ({ open, onClose }) => {
     },
   });
 
-  const handleSave = () => {
+  const handleSave = rhfHandleSubmit((values) => {
     if (editing) {
-      updateMutation.mutate({ id: editing._id, dto: form });
+      updateMutation.mutate({ id: editing._id, dto: values });
     } else {
-      createMutation.mutate(form);
+      createMutation.mutate(values);
     }
-  };
+  });
 
   const handleStartEdit = (dept: Department) => {
     setEditing(dept);
     setCreating(true);
-    setForm({
+    reset({
       name: dept.name,
       color: dept.color,
       description: dept.description,
@@ -210,7 +213,7 @@ const DepartmentManager: FC<DepartmentManagerProps> = ({ open, onClose }) => {
   const handleCancel = () => {
     setEditing(null);
     setCreating(false);
-    setForm(EMPTY_FORM);
+    reset(EMPTY_FORM);
   };
 
   return (
@@ -418,26 +421,28 @@ const DepartmentManager: FC<DepartmentManagerProps> = ({ open, onClose }) => {
               <TextField
                 label="Nombre"
                 size="small"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                {...rhf(register, 'name')}
                 fullWidth
               />
               <TextField
                 label="Descripción"
                 size="small"
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                {...rhf(register, 'description')}
                 fullWidth
                 multiline
                 rows={2}
               />
 
               {/* Encargado del área — es a quien el bot manda cuando alguien pide ayuda */}
+              <Controller
+                control={control}
+                name="lead"
+                render={({ field }) => (
               <Autocomplete
                 size="small"
                 options={staff}
-                value={form.lead ? staffById[form.lead] || null : null}
-                onChange={(_, v: any) => setForm({ ...form, lead: v ? v._id || v.id : null })}
+                value={field.value ? staffById[field.value] || null : null}
+                onChange={(_, v: any) => field.onChange(v ? v._id || v.id : null)}
                 getOptionLabel={(o: any) => `${o.firstName || ''} ${o.lastName || ''}`.trim()}
                 renderOption={(props, option: any) => (
                   <li {...props}>
@@ -464,54 +469,24 @@ const DepartmentManager: FC<DepartmentManagerProps> = ({ open, onClose }) => {
                   />
                 )}
               />
+                )}
+              />
 
               {/* Tipo de trabajo — decide cómo se mide el área en el reporte diario */}
-              <TextField
-                label="Tipo de trabajo"
-                select
-                size="small"
-                fullWidth
-                value={form.workType || 'project'}
-                onChange={(e) => setForm({ ...form, workType: e.target.value as WorkType })}
-                helperText={WORK_TYPE_HINT[(form.workType || 'project') as WorkType]}
-              >
-                {(Object.keys(WORK_TYPE_LABEL) as WorkType[]).map((k) => (
-                  <MenuItem key={k} value={k}>
-                    {WORK_TYPE_LABEL[k]}
-                  </MenuItem>
-                ))}
-              </TextField>
-
-              {/* Sólo áreas recurrentes: qué número se reporta y contra qué meta */}
-              {form.workType === 'recurring' && (
-                <Stack direction="row" spacing={1.5}>
-                  <TextField
-                    label="Número que se reporta"
-                    size="small"
-                    fullWidth
-                    value={form.metricLabel || ''}
-                    onChange={(e) => setForm({ ...form, metricLabel: e.target.value })}
-                    placeholder="Contactos netos incorporados"
-                  />
-                  <TextField
-                    label="Meta semanal"
-                    size="small"
-                    type="number"
-                    sx={{ width: 140 }}
-                    value={form.weeklyGoal ?? 0}
-                    onChange={(e) => setForm({ ...form, weeklyGoal: Number(e.target.value) })}
-                  />
-                </Stack>
-              )}
+              <WorkTypeFields control={control} register={register} />
 
               {/* Temas: las palabras con las que la gente llega a esta área por WhatsApp */}
+              <Controller
+                control={control}
+                name="helpTopics"
+                render={({ field }) => (
               <Autocomplete
                 multiple
                 freeSolo
                 size="small"
                 options={[]}
-                value={form.helpTopics || []}
-                onChange={(_, v) => setForm({ ...form, helpTopics: v as string[] })}
+                value={field.value || []}
+                onChange={(_, v) => field.onChange(v as string[])}
                 renderTags={(value: readonly string[], getTagProps) =>
                   value.map((option, index) => (
                     <Chip label={option} size="small" {...getTagProps({ index })} key={option} />
@@ -526,43 +501,47 @@ const DepartmentManager: FC<DepartmentManagerProps> = ({ open, onClose }) => {
                   />
                 )}
               />
+                )}
+              />
               <Box>
                 <Typography variant="caption" fontWeight={600} color="text.secondary" mb={0.5} display="block">
                   <PaletteRoundedIcon sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
                   Color
                 </Typography>
-                <Stack direction="row" flexWrap="wrap" gap={0.5}>
-                  {PRESET_COLORS.map((c) => (
-                    <Box
-                      key={c}
-                      onClick={() => setForm({ ...form, color: c })}
-                      sx={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: 1,
-                        bgcolor: c,
-                        cursor: 'pointer',
-                        border: form.color === c ? `3px solid ${theme.palette.background.paper}` : '3px solid transparent',
-                        boxShadow: form.color === c ? `0 0 0 2px ${c}` : 'none',
-                        transition: 'all 0.15s',
-                        '&:hover': { transform: 'scale(1.2)' },
-                      }}
-                    />
-                  ))}
-                </Stack>
+                <Controller
+                  control={control}
+                  name="color"
+                  render={({ field }) => (
+                    <Stack direction="row" flexWrap="wrap" gap={0.5}>
+                      {PRESET_COLORS.map((c) => (
+                        <Box
+                          key={c}
+                          onClick={() => field.onChange(c)}
+                          sx={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: 1,
+                            bgcolor: c,
+                            cursor: 'pointer',
+                            border: field.value === c ? `3px solid ${theme.palette.background.paper}` : '3px solid transparent',
+                            boxShadow: field.value === c ? `0 0 0 2px ${c}` : 'none',
+                            transition: 'all 0.15s',
+                            '&:hover': { transform: 'scale(1.2)' },
+                          }}
+                        />
+                      ))}
+                    </Stack>
+                  )}
+                />
               </Box>
               <Stack direction="row" spacing={1} justifyContent="flex-end">
                 <Button size="small" onClick={handleCancel}>Cancelar</Button>
-                <Button
-                  size="small"
-                  variant="contained"
+                <SaveDepartmentButton
+                  control={control}
                   onClick={handleSave}
-                  disabled={!form.name.trim() || createMutation.isPending || updateMutation.isPending}
-                  disableElevation
-                  sx={{ borderRadius: 1.5 }}
-                >
-                  {editing ? 'Guardar' : 'Crear'}
-                </Button>
+                  saving={createMutation.isPending || updateMutation.isPending}
+                  isEdit={!!editing}
+                />
               </Stack>
             </Stack>
           </Box>
@@ -590,3 +569,99 @@ const DepartmentManager: FC<DepartmentManagerProps> = ({ open, onClose }) => {
 };
 
 export default DepartmentManager;
+
+
+/* ══════════════════════════════════════════════════════════════════
+   Trozos del formulario suscritos con `useWatch`: escribir un campo
+   no repinta la lista de áreas ni el resto del diálogo.
+   ══════════════════════════════════════════════════════════════════ */
+
+/** MUI espera el ref del input en `inputRef`, no en `ref`. */
+function rhf(register: UseFormRegister<CreateDepartmentDto>, name: keyof CreateDepartmentDto) {
+  const { ref, ...rest } = register(name);
+  return { inputRef: ref, ...rest };
+}
+
+/** El tipo de trabajo decide si se piden meta y número a reportar. */
+function WorkTypeFields({
+  control,
+  register,
+}: {
+  control: Control<CreateDepartmentDto>;
+  register: UseFormRegister<CreateDepartmentDto>;
+}) {
+  const workType = (useWatch({ control, name: 'workType' }) || 'project') as WorkType;
+
+  return (
+    <>
+      <Controller
+        control={control}
+        name="workType"
+        render={({ field }) => (
+          <TextField
+            {...field}
+            value={field.value || 'project'}
+            label="Tipo de trabajo"
+            select
+            size="small"
+            fullWidth
+            helperText={WORK_TYPE_HINT[workType]}
+          >
+            {(Object.keys(WORK_TYPE_LABEL) as WorkType[]).map((k) => (
+              <MenuItem key={k} value={k}>
+                {WORK_TYPE_LABEL[k]}
+              </MenuItem>
+            ))}
+          </TextField>
+        )}
+      />
+
+      {/* Sólo áreas recurrentes: qué número se reporta y contra qué meta */}
+      {workType === 'recurring' && (
+        <Stack direction="row" spacing={1.5}>
+          <TextField
+            label="Número que se reporta"
+            size="small"
+            fullWidth
+            {...rhf(register, 'metricLabel')}
+            placeholder="Contactos netos incorporados"
+          />
+          <TextField
+            label="Meta semanal"
+            size="small"
+            type="number"
+            sx={{ width: 140 }}
+            {...register('weeklyGoal', { valueAsNumber: true })}
+          />
+        </Stack>
+      )}
+    </>
+  );
+}
+
+function SaveDepartmentButton({
+  control,
+  onClick,
+  saving,
+  isEdit,
+}: {
+  control: Control<CreateDepartmentDto>;
+  onClick: () => void;
+  saving: boolean;
+  isEdit: boolean;
+}) {
+  const name = useWatch({ control, name: 'name' });
+
+  return (
+    <Button
+      size="small"
+      variant="contained"
+      onClick={onClick}
+      disabled={!name?.trim() || saving}
+      disableElevation
+      sx={{ borderRadius: 1.5 }}
+    >
+      {isEdit ? 'Guardar' : 'Crear'}
+    </Button>
+  );
+}

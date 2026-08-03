@@ -1,5 +1,10 @@
+import { EPIC_COLORS, epicService, type Epic } from '@/services/epic.service';
 import { RECURRENCE_LABEL, Task, taskClient, type Recurrence, type TaskFile } from '@/services/task.service';
+import { templateService, type TaskTemplate } from '@/services/template.service';
 import { uploadTaskEvidence } from '@/services/upload.service';
+import { formatDue, timeInputValue, toDateInput } from '@/utils/due-date';
+import { useStoresWithoutFilters } from '@/hooks/stores/useStoresWithoutFilter';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import PictureAsPdfRoundedIcon from '@mui/icons-material/PictureAsPdfRounded';
 import AttachFileRoundedIcon from '@mui/icons-material/AttachFileRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
@@ -43,10 +48,12 @@ import {
   IMPACT_OPTIONS,
   missingTaskFields,
   priorityEntries,
+  STATUS_LABEL,
   statusEntries,
   titleLacksVerb,
   type TaskFormState,
 } from './constants';
+import { TaskComments } from './task-comments';
 
 export type TaskFormValues = TaskFormState & { status: string };
 
@@ -61,6 +68,8 @@ type TaskDialogProps = {
   editingTask: Task | null;
   initialStatus: string;
   teamMembers: any[];
+  epics: Epic[];
+  projectId: string | null;
   submitting: boolean;
   onClose: () => void;
   onSubmit: (values: TaskFormValues) => void;
@@ -81,7 +90,8 @@ function toFormValues(task: Task | null, status: string): TaskFormValues {
     assigneeId: task.assigneeId || '',
     assigneeName: task.assigneeName || '',
     assigneeAvatar: task.assigneeAvatar || '',
-    dueDate: task.dueDate ? task.dueDate.slice(0, 10) : '',
+    dueDate: task.dueDate ? toDateInput(task.dueDate) : '',
+    dueTime: timeInputValue(task.dueDate),
     closureCriteria: task.closureCriteria || '',
     beneficiary: task.beneficiary || '',
     nextStep: task.nextStep || '',
@@ -89,6 +99,10 @@ function toFormValues(task: Task | null, status: string): TaskFormValues {
     rescheduleReason: '',
     blockedReason: task.blockedReason || '',
     blockerOwner: task.blockerOwner || '',
+    epicId: task.epicId || '',
+    storeId: task.storeId || '',
+    storeName: task.storeName || '',
+    templateId: task.templateId || '',
     aiContext: task.aiContext || '',
     tags: task.tags?.join(', ') || '',
     progress: task.progress || 0,
@@ -102,6 +116,8 @@ export function TaskDialog({
   editingTask,
   initialStatus,
   teamMembers,
+  epics,
+  projectId,
   submitting,
   onClose,
   onSubmit,
@@ -118,6 +134,8 @@ export function TaskDialog({
      de upload (igual que el resto del panel) y aquí queda su URL. */
   const [files, setFiles] = useState<TaskFile[]>(editingTask?.files || []);
   const [uploading, setUploading] = useState(false);
+  /** La plantilla elegida dijo que este trabajo es de una tienda. */
+  const [needsStore, setNeedsStore] = useState(false);
 
   async function handleUploadEvidence(e: React.ChangeEvent<HTMLInputElement>) {
     const picked = Array.from(e.target.files || []);
@@ -245,6 +263,14 @@ export function TaskDialog({
         sx={{ pt: 2 }}
       >
         <Stack spacing={2}>
+          {/* Arrancar desde una plantilla — sólo al crear */}
+          {!editingTask && (
+            <TemplatePicker
+              setValue={setValue}
+              onApply={(tpl) => setNeedsStore(!!tpl?.requiresStore)}
+            />
+          )}
+
           <TitleField
             control={control}
             register={register}
@@ -346,6 +372,8 @@ export function TaskDialog({
             editingTask={editingTask}
           />
 
+          {editingTask && <Timeline task={editingTask} />}
+
           {/* Criterio de cierre — cuarto campo obligatorio del manual */}
           <TextField
             label="Cierre cuando…"
@@ -362,7 +390,18 @@ export function TaskDialog({
             register={register}
           />
 
-          <RecurrenceField control={control} />
+          <Stack
+            direction="row"
+            spacing={1.5}
+          >
+            <EpicField
+              control={control}
+              setValue={setValue}
+              epics={epics}
+              projectId={projectId}
+            />
+            <RecurrenceField control={control} />
+          </Stack>
 
           {/* Evidencias — sólo cuando la tarea ya existe (necesita id) */}
           {editingTask && (
@@ -507,19 +546,15 @@ export function TaskDialog({
             helperText="Opcional, pero es lo primero que pregunta Dirección"
           />
 
-          <TextField
-            label="Tags"
-            size="small"
-            fullWidth
-            {...bind(register, 'tags')}
-            placeholder="frontend, bug, ux  (comma-separated)"
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <TagRoundedIcon sx={{ fontSize: 15, opacity: 0.4 }} />
-                </InputAdornment>
-              ),
-            }}
+          <StoreField
+            control={control}
+            setValue={setValue}
+            highlight={needsStore}
+          />
+
+          <TagsField
+            control={control}
+            setValue={setValue}
           />
 
           <ProgressField control={control} />
@@ -534,6 +569,17 @@ export function TaskDialog({
             placeholder="Describe what this task involves so AI can learn your team's work…"
             helperText="AI training context — helps the assistant understand team activities"
           />
+
+          {/* Conversación — sólo con la tarea creada: las menciones necesitan id */}
+          {editingTask && (
+            <>
+              <Box sx={{ height: '1px', bgcolor: alpha(theme.palette.divider, 0.8) }} />
+              <TaskComments
+                taskId={editingTask._id}
+                teamMembers={teamMembers}
+              />
+            </>
+          )}
         </Stack>
       </DialogContent>
 
@@ -657,24 +703,42 @@ function ScheduleField({
   const isRoutine = recurrence !== 'none';
 
   return (
-    <TextField
-      label="Fecha límite"
-      type="date"
-      size="small"
-      fullWidth
-      required={!isRoutine}
-      disabled={isRoutine}
-      {...bind(register, 'dueDate')}
-      InputLabelProps={{ shrink: true }}
-      error={!isRoutine && !dueDate}
-      helperText={
-        isRoutine
-          ? 'La pone el sistema cada día'
-          : !dueDate
-            ? 'Obligatoria. Si no se sabe, pon fecha para DEFINIR la fecha'
-            : 'Si no se sabe, pon fecha para definir la fecha'
-      }
-    />
+    <Stack
+      direction="row"
+      spacing={1.5}
+      sx={{ width: '100%' }}
+    >
+      <TextField
+        label="Fecha límite"
+        type="date"
+        size="small"
+        fullWidth
+        required={!isRoutine}
+        disabled={isRoutine}
+        {...bind(register, 'dueDate')}
+        InputLabelProps={{ shrink: true }}
+        error={!isRoutine && !dueDate}
+        helperText={
+          isRoutine
+            ? 'La pone el sistema cada día'
+            : !dueDate
+              ? 'Obligatoria. Si no se sabe, pon fecha para DEFINIR la fecha'
+              : 'Si no se sabe, pon fecha para definir la fecha'
+        }
+      />
+      {/* La hora es opcional: sin ella la tarea vence al final del día. Con
+          ella, el bot puede avisar "vence a las 3" en vez de "vence hoy". */}
+      <TextField
+        label="Hora"
+        type="time"
+        size="small"
+        sx={{ width: 150, flexShrink: 0 }}
+        disabled={isRoutine || !dueDate}
+        {...bind(register, 'dueTime')}
+        InputLabelProps={{ shrink: true }}
+        helperText="Opcional"
+      />
+    </Stack>
   );
 }
 
@@ -754,6 +818,577 @@ function BlockedSection({
         helperText="Un bloqueo sin nombre no es un bloqueo, es un atraso."
       />
     </Stack>
+  );
+}
+
+/**
+ * Cuándo se empezó y cuándo se cerró. Es lo que la tarea rutinaria nunca dejó
+ * ver: se clonaba sola y nadie sabía cuánto tardó de verdad.
+ */
+function Timeline({ task }: { task: Task }) {
+  const theme = useTheme();
+  if (!task.startedAt && !task.completedAt) return null;
+
+  const start = task.startedAt ? new Date(task.startedAt) : null;
+  const end = task.completedAt ? new Date(task.completedAt) : null;
+  const hours = start && end ? (end.getTime() - start.getTime()) / 3_600_000 : null;
+  const duracion =
+    hours === null
+      ? null
+      : hours < 1
+        ? `${Math.max(1, Math.round(hours * 60))} min`
+        : hours < 24
+          ? `${hours.toFixed(1)} h`
+          : `${Math.round(hours / 24)} d`;
+
+  return (
+    <Stack
+      direction="row"
+      spacing={2}
+      sx={{
+        px: 1.25,
+        py: 0.75,
+        borderRadius: 2,
+        bgcolor: alpha(theme.palette.text.primary, 0.03),
+      }}
+    >
+      {start && (
+        <Box>
+          <Typography sx={{ fontSize: 9.5, color: 'text.disabled' }}>EMPEZADA</Typography>
+          <Typography sx={{ fontSize: 11.5, fontWeight: 600 }}>{formatDue(task.startedAt)}</Typography>
+        </Box>
+      )}
+      {end && (
+        <Box>
+          <Typography sx={{ fontSize: 9.5, color: 'text.disabled' }}>CERRADA</Typography>
+          <Typography sx={{ fontSize: 11.5, fontWeight: 600 }}>{formatDue(task.completedAt)}</Typography>
+        </Box>
+      )}
+      {duracion && (
+        <Box>
+          <Typography sx={{ fontSize: 9.5, color: 'text.disabled' }}>TARDÓ</Typography>
+          <Typography
+            sx={{ fontSize: 11.5, fontWeight: 700 }}
+            color="success.main"
+          >
+            {duracion}
+          </Typography>
+        </Box>
+      )}
+    </Stack>
+  );
+}
+
+/**
+ * "A partir de esta plantilla" — el molde ya trae título, criterio de cierre,
+ * responsable, tags y la fecha calculada en días hábiles. Prellena y se queda
+ * fuera del camino: todo se puede cambiar antes de guardar.
+ */
+function TemplatePicker({
+  setValue,
+  onApply,
+}: {
+  setValue: UseFormSetValue<TaskFormValues>;
+  onApply: (tpl: TaskTemplate | null) => void;
+}) {
+  const theme = useTheme();
+  const [applied, setApplied] = useState<TaskTemplate | null>(null);
+
+  const { data: templates = [] } = useQuery({
+    queryKey: ['task-templates'],
+    queryFn: () => templateService.list(),
+    staleTime: 120_000,
+  });
+
+  if (!templates.length) return null;
+
+  function apply(tpl: TaskTemplate | null) {
+    setApplied(tpl);
+    onApply(tpl);
+    if (!tpl) return setValue('templateId', '');
+
+    setValue('templateId', tpl._id);
+    setValue('title', tpl.title);
+    setValue('description', tpl.taskDescription || '');
+    setValue('priority', tpl.priority);
+    setValue('closureCriteria', tpl.closureCriteria || '');
+    setValue('beneficiary', tpl.beneficiary || '');
+    setValue('nextStep', tpl.nextStep || '');
+    setValue('impact', tpl.impact || '');
+    setValue('tags', (tpl.tags || []).join(', '));
+    if (tpl.epicId) setValue('epicId', tpl.epicId);
+    if (tpl.assigneeId) {
+      setValue('assigneeId', tpl.assigneeId);
+      setValue('assigneeName', tpl.assigneeName || '');
+      setValue('assigneeAvatar', tpl.assigneeAvatar || '');
+    }
+    if (tpl.nextDueDate) {
+      setValue('dueDate', toDateInput(tpl.nextDueDate));
+      setValue('dueTime', tpl.dueTime || '');
+    }
+  }
+
+  return (
+    <Box
+      sx={{
+        p: 1.25,
+        borderRadius: 2,
+        bgcolor: alpha(theme.palette.primary.main, 0.05),
+        border: `1px dashed ${alpha(theme.palette.primary.main, 0.3)}`,
+      }}
+    >
+      <Autocomplete
+        size="small"
+        options={templates}
+        value={applied}
+        onChange={(_, v) => apply(v)}
+        getOptionLabel={(o) => o.name}
+        groupBy={(o) => o.departmentName || 'Sin área'}
+        renderOption={(props, o) => (
+          <li {...props}>
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={1}
+              width="100%"
+            >
+              <span>{o.icon}</span>
+              <Box flex={1} minWidth={0}>
+                <Typography
+                  fontSize={12.5}
+                  fontWeight={600}
+                  noWrap
+                >
+                  {o.name}
+                </Typography>
+                <Typography
+                  fontSize={10}
+                  color="text.secondary"
+                  noWrap
+                >
+                  {o.title}
+                </Typography>
+              </Box>
+              {o.scheduleEnabled && (
+                <Chip
+                  label="agendada"
+                  size="small"
+                  sx={{ height: 15, fontSize: 8.5, fontWeight: 700 }}
+                />
+              )}
+            </Stack>
+          </li>
+        )}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="Empezar desde una plantilla"
+            placeholder="Opcional — elegí un molde ya armado"
+          />
+        )}
+      />
+      {applied && (
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: 'block', mt: 0.75, fontSize: 10.5 }}
+        >
+          Rellenado con <b>{applied.name}</b>
+          {applied.nextDueDate ? ` · vence ${formatDue(applied.nextDueDate)}` : ''}
+          {applied.requiresStore ? ' · esta plantilla pide tienda' : ''}. Cambiá lo que haga falta.
+        </Typography>
+      )}
+    </Box>
+  );
+}
+
+/**
+ * Tienda referenciada. Siempre opcional: soporte e instalación de tablets la
+ * necesitan para llevar la cuenta de visitas, pero campo y audiencia también la
+ * ponen cuando el trabajo es para una tienda concreta.
+ */
+function StoreField({
+  control,
+  setValue,
+  highlight = false,
+}: {
+  control: Control<TaskFormValues>;
+  setValue: UseFormSetValue<TaskFormValues>;
+  /** La plantilla dijo que este trabajo es de una tienda: se marca, no se frena. */
+  highlight?: boolean;
+}) {
+  const storeId = useWatch({ control, name: 'storeId' });
+  const { data: stores = [], isLoading } = useStoresWithoutFilters();
+
+  const selected = useMemo(
+    () => stores.find((s: any) => String(s._id || s.id) === storeId) || null,
+    [stores, storeId]
+  );
+
+  return (
+    <Box>
+      <Autocomplete
+        fullWidth
+        size="small"
+        options={stores}
+        value={selected}
+        loading={isLoading}
+        onChange={(_, v: any) => {
+          setValue('storeId', v ? String(v._id || v.id) : '');
+          setValue('storeName', v?.name || '');
+        }}
+        getOptionLabel={(o: any) => o.name || ''}
+        renderOption={(props, o: any) => (
+          <li {...props}>
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={1}
+              width="100%"
+            >
+              <Avatar
+                src={o.image}
+                variant="rounded"
+                sx={{ width: 22, height: 22, fontSize: 10 }}
+              >
+                {o.name?.[0]}
+              </Avatar>
+              <Box flex={1} minWidth={0}>
+                <Typography
+                  fontSize={12.5}
+                  noWrap
+                >
+                  {o.name}
+                </Typography>
+                {o.address && (
+                  <Typography
+                    fontSize={10}
+                    color="text.secondary"
+                    noWrap
+                  >
+                    {o.address}
+                  </Typography>
+                )}
+              </Box>
+            </Stack>
+          </li>
+        )}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="Tienda"
+            placeholder="Opcional — instalación, reparación, visita, campaña de una tienda"
+            error={highlight && !storeId}
+            helperText={
+              highlight && !storeId
+                ? 'Esta plantilla es de trabajo en tienda: sin ella no queda el historial de visitas.'
+                : 'Referenciarla deja el historial: cuántas veces se ha ido y qué se hizo.'
+            }
+          />
+        )}
+      />
+      {storeId && <StoreHistoryPanel storeId={storeId} />}
+    </Box>
+  );
+}
+
+/** "Qué se ha hecho en esta tienda" — se responde sin salir de la tarea. */
+function StoreHistoryPanel({ storeId }: { storeId: string }) {
+  const theme = useTheme();
+  const { data, isLoading } = useQuery({
+    queryKey: ['store-history', storeId],
+    queryFn: () => templateService.storeHistory(storeId),
+    staleTime: 60_000,
+  });
+
+  if (isLoading) {
+    return (
+      <Stack
+        alignItems="center"
+        py={1}
+      >
+        <CircularProgress size={14} />
+      </Stack>
+    );
+  }
+  if (!data || data.total === 0) {
+    return (
+      <Typography
+        variant="caption"
+        color="text.disabled"
+        sx={{ display: 'block', mt: 0.75, fontSize: 10.5 }}
+      >
+        Primera tarea registrada para esta tienda.
+      </Typography>
+    );
+  }
+
+  return (
+    <Box
+      sx={{
+        mt: 1,
+        p: 1.25,
+        borderRadius: 2,
+        bgcolor: alpha(theme.palette.info.main, 0.05),
+        border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+      }}
+    >
+      <Stack
+        direction="row"
+        spacing={1.5}
+        mb={0.75}
+        flexWrap="wrap"
+      >
+        <Metric
+          value={data.total}
+          label="tareas"
+        />
+        <Metric
+          value={data.closed}
+          label="cerradas"
+        />
+        <Metric
+          value={data.open}
+          label="abiertas"
+        />
+        {data.lastVisit && (
+          <Metric
+            value={formatDue(data.lastVisit)}
+            label="última vez"
+          />
+        )}
+      </Stack>
+      <Stack spacing={0.35}>
+        {data.tasks.slice(0, 5).map((t) => (
+          <Stack
+            key={t._id}
+            direction="row"
+            spacing={0.75}
+            alignItems="center"
+          >
+            <Typography
+              sx={{ fontSize: 9.5, fontFamily: 'monospace', color: 'text.disabled', flexShrink: 0 }}
+            >
+              {t.identifier}
+            </Typography>
+            <Typography
+              sx={{ fontSize: 11, flex: 1, minWidth: 0 }}
+              noWrap
+            >
+              {t.title}
+            </Typography>
+            <Typography
+              sx={{ fontSize: 9.5, color: 'text.disabled', flexShrink: 0 }}
+            >
+              {t.completedAt ? formatDue(t.completedAt) : STATUS_LABEL[t.status] || t.status}
+            </Typography>
+          </Stack>
+        ))}
+      </Stack>
+      {data.total > data.shown && (
+        <Typography
+          variant="caption"
+          color="text.disabled"
+          sx={{ fontSize: 10 }}
+        >
+          …y {data.total - data.shown} más
+        </Typography>
+      )}
+    </Box>
+  );
+}
+
+function Metric({ value, label }: { value: React.ReactNode; label: string }) {
+  return (
+    <Box>
+      <Typography
+        sx={{ fontSize: 13, fontWeight: 800, lineHeight: 1.1 }}
+        color="info.main"
+      >
+        {value}
+      </Typography>
+      <Typography sx={{ fontSize: 9.5 }}>{label}</Typography>
+    </Box>
+  );
+}
+
+/**
+ * Tags con catálogo: se eligen de lo que el equipo YA usa y se pueden escribir
+ * nuevos. El catálogo sale de las tareas existentes, así que nunca queda
+ * desactualizado ni hay que mantener una lista aparte.
+ */
+function TagsField({
+  control,
+  setValue,
+}: {
+  control: Control<TaskFormValues>;
+  setValue: UseFormSetValue<TaskFormValues>;
+}) {
+  const raw = useWatch({ control, name: 'tags' });
+  const { data: catalog = [] } = useQuery({
+    queryKey: ['task-tags'],
+    queryFn: () => templateService.tags(),
+    staleTime: 300_000,
+  });
+
+  const value = useMemo(
+    () => (raw || '').split(',').map((t) => t.trim()).filter(Boolean),
+    [raw]
+  );
+
+  return (
+    <Autocomplete
+      multiple
+      freeSolo
+      size="small"
+      options={catalog.map((c) => c.tag)}
+      value={value}
+      onChange={(_, v) => setValue('tags', (v as string[]).map((t) => t.trim()).filter(Boolean).join(', '))}
+      renderTags={(tags, getTagProps) =>
+        tags.map((t, i) => (
+          <Chip
+            key={t}
+            label={t}
+            size="small"
+            {...getTagProps({ index: i })}
+            sx={{ fontSize: 11, fontWeight: 600 }}
+          />
+        ))
+      }
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          label="Tags"
+          placeholder="Escribí y Enter para uno nuevo"
+          InputProps={{
+            ...params.InputProps,
+            startAdornment: (
+              <>
+                <InputAdornment position="start">
+                  <TagRoundedIcon sx={{ fontSize: 15, opacity: 0.4 }} />
+                </InputAdornment>
+                {params.InputProps.startAdornment}
+              </>
+            ),
+          }}
+        />
+      )}
+    />
+  );
+}
+
+/**
+ * Épica = etiqueta que agrupa ("Manual de marca", "RCS"). No mueve la tarea de
+ * proyecto ni abre otro tablero. Se puede crear escribiendo el nombre: obligar
+ * a salir a otra pantalla para crearla es lo que hace que nadie las use.
+ */
+function EpicField({
+  control,
+  setValue,
+  epics,
+  projectId,
+}: {
+  control: Control<TaskFormValues>;
+  setValue: UseFormSetValue<TaskFormValues>;
+  epics: Epic[];
+  projectId: string | null;
+}) {
+  const epicId = useWatch({ control, name: 'epicId' });
+  const queryClient = useQueryClient();
+  const selected = useMemo(() => epics.find((e) => e._id === epicId) || null, [epics, epicId]);
+
+  const { mutate: createEpic, isPending } = useMutation({
+    mutationFn: (name: string) =>
+      epicService.create({
+        name,
+        projectId,
+        color: EPIC_COLORS[epics.length % EPIC_COLORS.length],
+      }),
+    onSuccess: (epic) => {
+      queryClient.invalidateQueries({ queryKey: ['epics'] });
+      setValue('epicId', epic._id);
+      toast.success(`Épica “${epic.name}” creada`);
+    },
+    onError: () => toast.error('No se pudo crear la épica'),
+  });
+
+  return (
+    <Autocomplete
+      fullWidth
+      size="small"
+      freeSolo
+      options={epics}
+      value={selected}
+      disabled={isPending}
+      onChange={(_, v: any) => {
+        if (!v) return setValue('epicId', '');
+        // Texto libre = épica nueva
+        if (typeof v === 'string') return createEpic(v.trim());
+        if (v.__create) return createEpic(v.inputValue);
+        setValue('epicId', v._id);
+      }}
+      filterOptions={(options, state) => {
+        const q = state.inputValue.trim().toLowerCase();
+        const hits = options.filter((o: any) => o.name.toLowerCase().includes(q));
+        if (q && !options.some((o: any) => o.name.toLowerCase() === q)) {
+          return [...hits, { __create: true, inputValue: state.inputValue, name: state.inputValue } as any];
+        }
+        return hits;
+      }}
+      getOptionLabel={(o: any) => (typeof o === 'string' ? o : o.name || '')}
+      renderOption={(props, option: any) => (
+        <li {...props}>
+          {option.__create ? (
+            <Typography
+              fontSize={12.5}
+              fontWeight={600}
+              color="primary.main"
+            >
+              + Crear épica “{option.inputValue}”
+            </Typography>
+          ) : (
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={1}
+              width="100%"
+            >
+              <Box sx={{ width: 9, height: 9, borderRadius: '2px', bgcolor: option.color }} />
+              <Typography
+                fontSize={12.5}
+                flex={1}
+                noWrap
+              >
+                {option.name}
+              </Typography>
+              {option.total > 0 && (
+                <Typography
+                  fontSize={10}
+                  color="text.disabled"
+                >
+                  {option.done}/{option.total}
+                </Typography>
+              )}
+            </Stack>
+          )}
+        </li>
+      )}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          label="Épica"
+          helperText="Opcional. Agrupa tareas de distintas áreas bajo un mismo objetivo."
+          InputProps={{
+            ...params.InputProps,
+            startAdornment: selected ? (
+              <Box
+                sx={{ width: 9, height: 9, borderRadius: '2px', bgcolor: selected.color, ml: 0.75, mr: 0.25 }}
+              />
+            ) : undefined,
+          }}
+        />
+      )}
+    />
   );
 }
 

@@ -12,7 +12,7 @@ Si un archivo viola estas reglas, se arregla cuando se toca (boy-scout rule).
 | Server state | TanStack React Query 5 | **Único** mecanismo de fetching. Nunca `useEffect` + `useState` para datos |
 | Client state global | Zustand 5 | Solo para estado que cruza páginas (sockets, notificaciones, sesión) |
 | HTTP | axios (`src/libs/axios.ts`) | Nunca `fetch` ni axios directo en componentes; siempre vía service |
-| Formularios | estado local / Formik donde ya existe | No agregar librerías nuevas de forms |
+| Formularios | react-hook-form 7 (+ zod para validar) | **Único** manejador de forms. No Formik, no estado del form en el padre |
 
 ## Capas (dirección de dependencia: de arriba hacia abajo)
 
@@ -177,6 +177,7 @@ Queries de una sola pantalla pueden vivir en el shell, pero siempre vía service
 | Datos del servidor | React Query | board, projects, users |
 | Global de cliente, cross-página | Zustand (`src/store/`) | `notificationsStore` (socket + unreadCount) |
 | UI local de una pantalla | `useState` en el shell | dialog abierto, filtros, tab activa |
+| **Campos de un formulario** | **react-hook-form, dentro del form** | título, fecha, responsable de una tarea |
 | Derivado | `useMemo` | `filteredBoard`, `statusCounts` |
 | URL (compartible/bookmarkeable) | `useSearchParams` | `?projectId=...` |
 
@@ -184,7 +185,53 @@ Zustand: un store por concern (`notificationsStore.ts`), con tipos, acciones
 dentro del store, y efectos externos (socket.io) encapsulados ahí. No usar
 Zustand como cache de API ni para estado que muere con la pantalla.
 
-## 6. Custom hooks (`src/hooks/`)
+## 6. Formularios — react-hook-form
+
+**El estado de un formulario vive dentro del formulario. Nunca en la página.**
+
+Esta es la regla que más caro se paga cuando se rompe: un `useState` del form en
+el shell y un `setForm` bajado como prop hace que **cada tecla** re-renderice la
+pantalla completa. Pasó literal en `tasks`: escribir el título de una tarea
+repintaba las 6 columnas del kanban con todas sus tarjetas.
+
+```tsx
+// ❌ Mal — el padre se re-renderiza en cada tecla
+<TaskDialog form={taskForm} setForm={setTaskForm} onSubmit={handleSubmit} />
+
+// ✅ Bien — el diálogo es dueño de su form; el padre sólo recibe el resultado
+<TaskDialog editingTask={task} onSubmit={(values) => saveTask(values)} />
+```
+
+Reglas:
+
+1. **`useForm` dentro del componente del formulario**, con `defaultValues`. Si el
+   diálogo se monta al abrir (`{open && <Dialog/>}`), los defaults se calculan
+   una sola vez y no hace falta `reset`.
+2. **`register` para inputs de texto** (no controlados = cero re-renders al
+   escribir). En MUI hay que pasar el ref como `inputRef`, no como `ref`:
+   ```tsx
+   const { ref, ...field } = register('title');
+   <TextField inputRef={ref} {...field} />
+   ```
+3. **`Controller` sólo para lo que no es un input nativo**: `Select`,
+   `Autocomplete`, `Slider`, date pickers.
+4. **`useWatch` en subcomponentes chicos**, no `watch()` en el componente grande.
+   Un valor observado arriba re-renderiza todo el form en cada tecla; observado
+   en un hijo (helper text, botón de submit, sección condicional) repinta sólo
+   ese hijo. Ver `tasks/task-dialog.tsx` (`TitleField`, `SubmitBar`,
+   `BlockedSection`).
+5. **Submit nativo**: `PaperProps={{ component: 'form', onSubmit: handleSubmit(onSubmit) }}`
+   en el `Dialog` + `<Button type="submit">`. Enter guarda gratis.
+6. **Validación con zod** vía `zodResolver` cuando hay reglas de verdad
+   (`auth-custom-login-form.tsx`). Para 2 campos obligatorios alcanza con
+   `required` en el `register`.
+7. El padre recibe los valores en `onSubmit(values)` y arma el payload de la
+   mutation. El padre **no** conoce campos individuales.
+
+Prohibido: Formik, `useState` por campo, `onChange` que hace `setState` en un
+componente padre.
+
+## 7. Custom hooks (`src/hooks/`)
 
 - Naming: `use-<cosa>.ts` / `use<Cosa>.ts` (seguir el estilo del vecino más cercano).
 - `hooks/fetching/<dominio>/` → hooks de React Query.
@@ -195,7 +242,7 @@ Zustand como cache de API ni para estado que muere con la pantalla.
   necesita una segunda feature.
 - Un hook que devuelve JSX no es un hook: eso es un componente.
 
-## 7. Theme y diseño (`src/theme/`)
+## 8. Theme y diseño (`src/theme/`)
 
 Complemento obligatorio: **`DESIGN-SYSTEM.md`** (raíz del repo) — tokens, rosa
 de marca `#FC0C83` vía `colorPreset`, componentes base y plantilla de página.
@@ -220,7 +267,7 @@ Esta sección resume las reglas de código; el design system define el lenguaje 
 `PROJECT_COLORS` del selector de proyecto) — deben ser estables e
 independientes del theme. Se documenta con comentario el porqué.
 
-## 8. Next.js — mejores prácticas (App Router)
+## 9. Next.js — mejores prácticas (App Router)
 
 Este proyecto usa **App Router**. `getServerSideProps`/`getStaticProps` son del
 Pages Router y **no aplican aquí**; su equivalente es Server Components +
@@ -274,7 +321,7 @@ el componente final — si no, el dynamic import genera layout shift.
 - **Prohibido**: `getServerSideProps`, `getInitialProps`, `next/head` (App
   Router usa Metadata API), `<img>` para assets propios.
 
-## 9. Buenas prácticas transversales
+## 10. Buenas prácticas transversales
 
 - **Imports**: alias `@/` o `src/` (nunca `../../../`). Tipos con `import type`.
 - **TypeScript**: DTOs y entidades siempre tipados desde el service. `any` solo
@@ -290,19 +337,21 @@ el componente final — si no, el dynamic import genera layout shift.
   página ya usa `useTranslation`, los strings nuevos van por `t()`.
 - **Commits**: no mezclar refactor de estructura con cambios de comportamiento.
 
-## 10. Checklist para una feature nueva
+## 11. Checklist para una feature nueva
 
 1. Service en `src/services/<dominio>.service.ts` con tipos exportados.
 2. Hooks de query en `hooks/fetching/<dominio>/` (si son reutilizables).
 3. Carpeta `content-shells/<feature>/` con shell + vistas + dialogs + constants.
 4. `page.tsx` de ~10 líneas que monta el shell.
 5. Mutations con `invalidateQueries` + toast.
-6. Colores vía theme/semantic, probado en dark mode.
-7. Loading, empty y error states (skeletons con altura reservada, no spinner que desplaza).
-8. Dialogs/charts/editores pesados via `next/dynamic`; imágenes via `next/image` con dimensiones.
-9. `npx tsc --noEmit` limpio antes de commitear.
+6. Formularios con `useForm` **dentro** del dialog/form; el shell sólo recibe
+   `onSubmit(values)`. Ningún `setForm` bajado como prop.
+7. Colores vía theme/semantic, probado en dark mode.
+8. Loading, empty y error states (skeletons con altura reservada, no spinner que desplaza).
+9. Dialogs/charts/editores pesados via `next/dynamic`; imágenes via `next/image` con dimensiones.
+10. `npx tsc --noEmit` limpio antes de commitear.
 
-## 11. Roadmap — qué falta para nivel producción
+## 12. Roadmap — qué falta para nivel producción
 
 Lo que el proyecto todavía no tiene y debería, en orden de impacto:
 

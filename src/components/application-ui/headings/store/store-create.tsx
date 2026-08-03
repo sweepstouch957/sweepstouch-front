@@ -1,7 +1,9 @@
 'use client';
 
 import { Store } from '@/services/store.service';
+import { uploadCampaignImage } from '@/services/upload.service';
 import {
+  CameraAltRounded,
   EditLocationAltRounded,
   OpenInNewRounded,
   QrCodeRounded,
@@ -11,8 +13,10 @@ import {
 import {
   alpha,
   Avatar,
+  Badge,
   Box,
   Button,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -28,6 +32,7 @@ import {
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
+import toast from 'react-hot-toast';
 
 const TYPE_LABEL: Record<Store['type'], string> = {
   elite: 'Elite',
@@ -123,6 +128,12 @@ type Props = {
   statusLabel: string;
   statusColor: string;
   onNameChange?: (val: string) => void;
+  /**
+   * Imagen DE ESTA TIENDA (`store.image`). No toca el logo de la marca
+   * (`mmsTheme.logoUrl`, pestaña Brand): dos tiendas de la misma marca pueden
+   * tener foto propia.
+   */
+  onImageChange?: (url: string) => void;
 };
 
 // Pure helper — extracts the `slug` query param, allocated once at module scope
@@ -147,10 +158,33 @@ export default function StoreHeader({
   statusLabel,
   statusColor,
   onNameChange,
+  onImageChange,
 }: Props) {
   const theme = useTheme();
   const searchParams = useSearchParams();
   const [qrOpen, setQrOpen] = React.useState(false);
+  const [uploadingImage, setUploadingImage] = React.useState(false);
+
+  const canEditImage = edit && !!onImageChange;
+
+  async function handlePickImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setUploadingImage(true);
+    try {
+      // Carpeta propia: la foto de la tienda no se mezcla con los logos de marca
+      const { url } = await uploadCampaignImage(file, 'store-images');
+      if (!url) throw new Error('sin url');
+      onImageChange?.(url);
+      toast.success('Imagen lista. Guarda los cambios para aplicarla.');
+    } catch {
+      toast.error('No se pudo subir la imagen');
+    } finally {
+      setUploadingImage(false);
+    }
+  }
 
   const slug = extractSlug(kioskUrl);
   const qrHref = slug ? `https://st.sweepstouch.com/?slug=${encodeURIComponent(slug)}` : undefined;
@@ -180,22 +214,60 @@ export default function StoreHeader({
           spacing={{ xs: 1.5, md: 2 }}
           flexWrap={{ xs: 'wrap', md: 'nowrap' }}
         >
-          <Avatar
-            src={image}
-            alt={name}
-            variant="rounded"
-            sx={{
-              width: { xs: 46, md: 52 },
-              height: { xs: 46, md: 52 },
-              borderRadius: 2,
-              flexShrink: 0,
-              bgcolor: (t) =>
-                alpha(t.palette.primary.main, t.palette.mode === 'dark' ? 0.16 : 0.08),
-              color: 'primary.main',
-            }}
+          <Badge
+            overlap="circular"
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            badgeContent={
+              canEditImage ? (
+                <Tooltip
+                  title="Cambiar imagen de la tienda"
+                  arrow
+                >
+                  <IconButton
+                    component="label"
+                    size="small"
+                    disabled={uploadingImage}
+                    sx={{
+                      width: 24,
+                      height: 24,
+                      bgcolor: 'background.paper',
+                      border: `1px solid ${theme.palette.divider}`,
+                      '&:hover': { bgcolor: 'primary.main', color: 'common.white' },
+                    }}
+                  >
+                    {uploadingImage ? (
+                      <CircularProgress size={12} />
+                    ) : (
+                      <CameraAltRounded sx={{ fontSize: 13 }} />
+                    )}
+                    <input
+                      hidden
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePickImage}
+                    />
+                  </IconButton>
+                </Tooltip>
+              ) : null
+            }
           >
-            <StoreMallDirectoryRounded sx={{ fontSize: 24 }} />
-          </Avatar>
+            <Avatar
+              src={image}
+              alt={name}
+              variant="rounded"
+              sx={{
+                width: { xs: 46, md: 52 },
+                height: { xs: 46, md: 52 },
+                borderRadius: 2,
+                flexShrink: 0,
+                bgcolor: (t) =>
+                  alpha(t.palette.primary.main, t.palette.mode === 'dark' ? 0.16 : 0.08),
+                color: 'primary.main',
+              }}
+            >
+              <StoreMallDirectoryRounded sx={{ fontSize: 24 }} />
+            </Avatar>
+          </Badge>
 
           <Box
             flex={1}

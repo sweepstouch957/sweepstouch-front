@@ -50,7 +50,7 @@ import AccountCircleTwoToneIcon from '@mui/icons-material/AccountCircleTwoTone';
 const handleLogout = async () => {
   try {
     await authClient.signOut();
-    window.location.href = '/auth/custom/login';
+    window.location.href = '/auth/login';
   } catch (error) {
     console.error('Logout error:', error);
   }

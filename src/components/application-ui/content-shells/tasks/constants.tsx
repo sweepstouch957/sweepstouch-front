@@ -1,8 +1,18 @@
 import type { Recurrence } from '@/services/task.service';
+import type { Epic } from '@/services/epic.service';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import type { Theme } from '@mui/material/styles';
+import { createContext, useContext } from 'react';
 import { severityColor, tint, type SemanticRole } from 'src/theme/semantic';
+
+/**
+ * Las épicas se leen una vez arriba y las tarjetas las consultan por contexto.
+ * Pasarlas como prop obligaba a re-renderizar la columna entera cada vez que
+ * cambia la lista, que es justo lo que el `memo` de las tarjetas evita.
+ */
+export const EpicsContext = createContext<Record<string, Epic>>({});
+export const useEpic = (id?: string | null) => useContext(EpicsContext)[id || ''] || null;
 
 export type TaskFormState = {
   title: string;
@@ -12,6 +22,8 @@ export type TaskFormState = {
   assigneeName: string;
   assigneeAvatar: string;
   dueDate: string;
+  /** Hora límite opcional (HH:mm). Sin ella la tarea vence al final del día. */
+  dueTime: string;
   /** Manual de Cowork: una línea que diga cómo sabremos que quedó lista. */
   closureCriteria: string;
   /** Opcionales: suman contexto, nunca frenan el guardado. */
@@ -23,6 +35,13 @@ export type TaskFormState = {
   /** Sólo cuando el estado es "blocked". */
   blockedReason: string;
   blockerOwner: string;
+  /** Épica que agrupa la tarea. Vacío = suelta. */
+  epicId: string;
+  /** Tienda referenciada. Opcional siempre. */
+  storeId: string;
+  storeName: string;
+  /** De qué plantilla salió. Sólo se manda al crear. */
+  templateId: string;
   aiContext: string;
   tags: string;
   progress: number;
@@ -43,6 +62,7 @@ export const EMPTY_TASK_FORM: TaskFormState = {
   assigneeName: '',
   assigneeAvatar: '',
   dueDate: '',
+  dueTime: '',
   closureCriteria: '',
   beneficiary: '',
   nextStep: '',
@@ -50,6 +70,10 @@ export const EMPTY_TASK_FORM: TaskFormState = {
   rescheduleReason: '',
   blockedReason: '',
   blockerOwner: '',
+  epicId: '',
+  storeId: '',
+  storeName: '',
+  templateId: '',
   aiContext: '',
   tags: '',
   progress: 0,

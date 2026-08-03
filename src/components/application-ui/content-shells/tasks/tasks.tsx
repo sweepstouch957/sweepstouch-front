@@ -3,12 +3,15 @@
 import { useAuth } from '@/hooks/use-auth';
 import { usersApi } from '@/mocks/users';
 import { isInternalStaff, STAFF_ROLE_QUERY } from '@/utils/staff';
+import { combineDueDate } from '@/utils/due-date';
 import { Department, departmentService } from '@/services/department.service';
+import { epicService } from '@/services/epic.service';
 import { Task, taskClient, type BoardData } from '@/services/task.service';
 import { type DropResult } from '@hello-pangea/dnd';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import AssignmentIndRoundedIcon from '@mui/icons-material/AssignmentIndRounded';
+import DashboardCustomizeRoundedIcon from '@mui/icons-material/DashboardCustomizeRounded';
 import RepeatRoundedIcon from '@mui/icons-material/RepeatRounded';
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import TravelExploreRoundedIcon from '@mui/icons-material/TravelExploreRounded';
@@ -35,11 +38,12 @@ import toast from 'react-hot-toast';
 import { useCustomization } from 'src/hooks/use-customization';
 import { AiDialog } from './ai-dialog';
 import { BoardView } from './board-view';
-import { BOARD_STATUSES, STATUS_LABEL } from './constants';
+import { BOARD_STATUSES, EpicsContext, STATUS_LABEL } from './constants';
 import { MyTasksView } from './my-tasks-view';
 import { ProjectDialog } from './project-dialog';
 import { RoutinesView } from './routines-view';
 import { TaskDialog, type TaskFormValues } from './task-dialog';
+import { TemplateDialog } from './template-dialog';
 import { TopicReportDialog } from './topic-report-dialog';
 
 function Tasks(): React.JSX.Element {
@@ -63,6 +67,9 @@ function Tasks(): React.JSX.Element {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [viewTab, setViewTab] = useState<'board' | 'my_tasks' | 'routines'>('board');
   const [onlyMine, setOnlyMine] = useState(false);
+  /** Agrupadores: épica seleccionada y "donde me mencionaron". */
+  const [epicFilter, setEpicFilter] = useState('all');
+  const [onlyMentions, setOnlyMentions] = useState(false);
   const { user: authUser } = useAuth();
 
   /* ── Project ── */
@@ -84,12 +91,27 @@ function Tasks(): React.JSX.Element {
   /* ── Reporte por tema ("cómo va RCS") — sólo Dirección y CEO ── */
   const [topicDialogOpen, setTopicDialogOpen] = useState(false);
 
+  /* ── Plantillas de tarea ── */
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+
   /* ── Data ── */
   const { data: departments = [] } = useQuery({
     queryKey: ['departments'],
     queryFn: departmentService.list,
     staleTime: 120_000,
   });
+
+  /** Épicas: pocas y estables, se traen todas y se resuelven en cliente. */
+  const { data: epics = [] } = useQuery({
+    queryKey: ['epics'],
+    queryFn: () => epicService.list(),
+    staleTime: 120_000,
+  });
+
+  const epicsById = useMemo(
+    () => Object.fromEntries(epics.map((e) => [e._id, e])),
+    [epics]
+  );
 
   const { data: projects = [], isLoading: loadingProjects } = useQuery({
     queryKey: ['projects'],
@@ -246,6 +268,20 @@ function Tasks(): React.JSX.Element {
       filtered = filtered.filter((t) => t.assigneeId && myIds.has(String(t.assigneeId)));
     }
 
+    // "Me mencionaron": dónde pidieron mi ayuda, aunque la tarea no sea mía
+    if (onlyMentions) {
+      filtered = filtered.filter((t) =>
+        (t.mentionedUserIds || []).some((id) => myIds.has(String(id)))
+      );
+    }
+
+    if (epicFilter !== 'all') {
+      filtered =
+        epicFilter === 'none'
+          ? filtered.filter((t) => !t.epicId)
+          : filtered.filter((t) => t.epicId === epicFilter);
+    }
+
     if (deferredSearch) {
       const q = deferredSearch.toLowerCase();
       filtered = filtered.filter(
@@ -270,7 +306,7 @@ function Tasks(): React.JSX.Element {
     );
 
     return { byStatus, total: filtered.length, allTotal: Object.values(board.tasks).length };
-  }, [board, deferredSearch, priorityFilter, onlyMine, myIds]);
+  }, [board, deferredSearch, priorityFilter, onlyMine, onlyMentions, epicFilter, myIds]);
 
   const statusCounts = useMemo(() => {
     if (!board) return {} as Record<string, number>;
@@ -413,7 +449,8 @@ function Tasks(): React.JSX.Element {
         assigneeId: values.assigneeId || null,
         assigneeName: values.assigneeName,
         assigneeAvatar: values.assigneeAvatar,
-        dueDate: values.dueDate || null,
+        // Con hora si la eligieron; sin hora vence al final del día
+        dueDate: combineDueDate(values.dueDate, values.dueTime),
         closureCriteria: values.closureCriteria,
         beneficiary: values.beneficiary,
         nextStep: values.nextStep,
@@ -424,6 +461,11 @@ function Tasks(): React.JSX.Element {
         ...(values.status === 'blocked'
           ? { blockedReason: values.blockedReason, blockerOwner: values.blockerOwner }
           : {}),
+        epicId: values.epicId || null,
+        storeId: values.storeId || null,
+        storeName: values.storeName || '',
+        // Sólo al crear: sirve para contar de qué molde salió cada tarea
+        ...(editingTask ? {} : { templateId: values.templateId || null }),
         aiContext: values.aiContext,
         tags: tagsArr,
         progress: values.progress,
@@ -451,11 +493,14 @@ function Tasks(): React.JSX.Element {
   /* Referencias estables para BoardView: si cambian en cada render, su memo y
      el de las columnas no sirven de nada. */
   const handleToggleOnlyMine = useCallback(() => setOnlyMine((v) => !v), []);
+  const handleToggleOnlyMentions = useCallback(() => setOnlyMentions((v) => !v), []);
   const handleClearFilters = useCallback(() => {
     setSelectedDepts([]);
     setSelectedUsers([]);
     setSearch('');
     setPriorityFilter('all');
+    setEpicFilter('all');
+    setOnlyMentions(false);
   }, []);
   const handleCreateProjectDialog = useCallback(() => setNewProjectOpen(true), []);
   const handleCloseProjectDialog = useCallback(() => setNewProjectOpen(false), []);
@@ -465,6 +510,7 @@ function Tasks(): React.JSX.Element {
   const projectProgress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
   return (
+    <EpicsContext.Provider value={epicsById}>
     <Box
       display="flex"
       flex={1}
@@ -578,6 +624,22 @@ function Tasks(): React.JSX.Element {
               }}
             >
               AI
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<DashboardCustomizeRoundedIcon sx={{ fontSize: 13 }} />}
+              onClick={() => setTemplatesOpen(true)}
+              sx={{
+                borderRadius: 1.5,
+                textTransform: 'none',
+                fontWeight: 600,
+                fontSize: 11,
+                py: 0.3,
+                px: 1.25,
+              }}
+            >
+              Plantillas
             </Button>
             <Button
               variant="outlined"
@@ -733,6 +795,11 @@ function Tasks(): React.JSX.Element {
           onUsersChange={setSelectedUsers}
           onlyMine={onlyMine}
           onToggleOnlyMine={handleToggleOnlyMine}
+          onlyMentions={onlyMentions}
+          onToggleOnlyMentions={handleToggleOnlyMentions}
+          epics={epics}
+          epicFilter={epicFilter}
+          onEpicFilterChange={setEpicFilter}
           search={search}
           onSearchChange={setSearch}
           priorityFilter={priorityFilter}
@@ -752,6 +819,8 @@ function Tasks(): React.JSX.Element {
           editingTask={editingTask}
           initialStatus={newTaskStatus}
           teamMembers={teamMembers}
+          epics={epics}
+          projectId={selectedProjectId}
           submitting={creatingTask || updatingTask}
           onClose={closeDialog}
           onSubmit={handleSubmitTask}
@@ -764,6 +833,17 @@ function Tasks(): React.JSX.Element {
           submitting={creatingProject}
           onClose={handleCloseProjectDialog}
           onSubmit={createProject}
+        />
+      )}
+      {/* ═══ Plantillas de tarea ═══ */}
+      {templatesOpen && (
+        <TemplateDialog
+          open
+          onClose={() => setTemplatesOpen(false)}
+          departments={departments}
+          projects={projects}
+          epics={epics}
+          teamMembers={teamMembers}
         />
       )}
       {/* ═══ AI Dialog ═══ */}
@@ -782,6 +862,7 @@ function Tasks(): React.JSX.Element {
         />
       )}
     </Box>
+    </EpicsContext.Provider>
   );
 }
 

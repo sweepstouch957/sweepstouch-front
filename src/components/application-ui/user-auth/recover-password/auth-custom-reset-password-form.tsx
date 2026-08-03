@@ -433,7 +433,7 @@ export function ResetPasswordForm(): React.JSX.Element {
             </Typography>
             <Button
               component={RouterLink}
-              href={routes.auth['custom.login']}
+              href={routes.auth.login}
               variant="contained"
               size="large"
               fullWidth
@@ -454,7 +454,7 @@ export function ResetPasswordForm(): React.JSX.Element {
             <Divider sx={{ my: 3 }} />
             <Button
               component={RouterLink}
-              href={routes.auth['custom.login']}
+              href={routes.auth.login}
               size="large"
               startIcon={<KeyboardBackspaceRoundedIcon />}
               sx={{ textTransform: 'none' }}

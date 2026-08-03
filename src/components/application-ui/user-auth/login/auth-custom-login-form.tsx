@@ -205,7 +205,7 @@ export function AuthCustomLoginForm(): React.JSX.Element {
                 />
                 <Link
                   component={RouterLink}
-                  href={routes.auth['custom.reset-password']}
+                  href={routes.auth['reset-password']}
                   underline="hover"
                 >
                   {t('Recover password')}

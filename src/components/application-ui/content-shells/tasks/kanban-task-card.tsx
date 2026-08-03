@@ -3,6 +3,7 @@ import AttachFileRoundedIcon from '@mui/icons-material/AttachFileRounded';
 import CalendarTodayRoundedIcon from '@mui/icons-material/CalendarTodayRounded';
 import ChatBubbleOutlineRoundedIcon from '@mui/icons-material/ChatBubbleOutlineRounded';
 import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
+import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import SubdirectoryArrowRightRoundedIcon from '@mui/icons-material/SubdirectoryArrowRightRounded';
 import {
   alpha,
@@ -17,9 +18,10 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import { format, isAfter } from 'date-fns';
+import { isAfter } from 'date-fns';
+import { formatDue } from '@/utils/due-date';
 import React from 'react';
-import { priorityMeta } from './constants';
+import { priorityMeta, useEpic } from './constants';
 import { useDragTiltDom } from './use-drag-tilt';
 
 export const KanbanTaskCard = React.memo(
@@ -37,6 +39,7 @@ export const KanbanTaskCard = React.memo(
     const theme = useTheme();
     const isDark = theme.palette.mode === 'dark';
     const pri = priorityMeta(theme, task.priority);
+    const epic = useEpic(task.epicId);
     // Sin guard de hidratación: el board se pinta después del fetch en cliente,
     // el servidor nunca renderiza tarjetas. Antes costaba un render extra por
     // tarjeta al montar.
@@ -139,6 +142,33 @@ export const KanbanTaskCard = React.memo(
               </IconButton>
             </Stack>
 
+            {/* Épica — agrupa sin sacar la tarea de su proyecto */}
+            {epic && (
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={0.5}
+                mb={0.5}
+              >
+                <Box
+                  sx={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '2px',
+                    bgcolor: epic.color,
+                    flexShrink: 0,
+                  }}
+                />
+                <Typography
+                  variant="caption"
+                  sx={{ fontSize: 9.5, fontWeight: 800, color: epic.color, letterSpacing: 0.3 }}
+                  noWrap
+                >
+                  {epic.name.toUpperCase()}
+                </Typography>
+              </Stack>
+            )}
+
             {/* Title */}
             <Typography
               variant="body2"
@@ -158,6 +188,25 @@ export const KanbanTaskCard = React.memo(
                 {task.description.slice(0, 80)}
                 {task.description.length > 80 ? '…' : ''}
               </Typography>
+            )}
+
+            {/* Tienda: quién recibe el trabajo, sin abrir la tarea */}
+            {task.storeName && (
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={0.4}
+                mb={0.75}
+              >
+                <StorefrontRoundedIcon sx={{ fontSize: 11, color: 'text.disabled' }} />
+                <Typography
+                  variant="caption"
+                  sx={{ fontSize: 10, color: 'text.secondary' }}
+                  noWrap
+                >
+                  {task.storeName}
+                </Typography>
+              </Stack>
             )}
 
             {/* Tags */}
@@ -286,7 +335,7 @@ export const KanbanTaskCard = React.memo(
                         fontWeight: isOverdue ? 700 : 400,
                       }}
                     >
-                      {format(new Date(task.dueDate), 'MMM d')}
+                      {formatDue(task.dueDate)}
                     </Typography>
                   </Stack>
                 )}

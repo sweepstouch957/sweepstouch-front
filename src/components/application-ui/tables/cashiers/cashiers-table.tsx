@@ -38,6 +38,7 @@ import {
 import { addDays, formatISO, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import * as React from 'react';
+import { useForm, type UseFormRegister } from 'react-hook-form';
 import { DateRange } from 'react-date-range';
 import CashierDetailsDialog from './modal';
 
@@ -208,31 +209,33 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
 
   // Modal crear cajera
   const [openCreate, setOpenCreate] = React.useState(false);
-  const [form, setForm] = React.useState({ name: '', phoneNumber: '', email: '' });
+  const { register, handleSubmit, reset } = useForm<CashierFormValues>({
+    defaultValues: EMPTY_CASHIER_FORM,
+  });
   const createMut = useCreateCashier({
     onSuccess: () => {
       setOpenCreate(false);
-      setForm({ name: '', phoneNumber: '', email: '' });
+      reset(EMPTY_CASHIER_FORM);
       setPage0(0);
     },
     onError: () => alert('No se pudo crear la cajera'),
   });
 
-  const onCreate = async () => {
+  const onCreate = handleSubmit(async (values) => {
     if (!storeId) return;
-    const name = form.name.trim();
+    const name = values.name.trim();
     const [firstName, ...rest] = name.split(/\s+/);
     const lastName = rest.join(' ');
-    if (!firstName || !form.phoneNumber) return;
+    if (!firstName || !values.phoneNumber) return;
     await createMut.mutateAsync({
       firstName,
       lastName,
       storeId,
-      email: form.email || undefined,
-      phoneNumber: form.phoneNumber,
+      email: values.email || undefined,
+      phoneNumber: values.phoneNumber,
       active: true,
     });
-  };
+  });
 
   // Calendario (cualquier rango entre minDate y maxDate)
   const onPendingChange = (ranges: any) => {
@@ -523,19 +526,16 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
             >
               <TextField
                 label="Nombre completo"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                {...rhfCashier(register, 'name')}
               />
               <TextField
                 label="Teléfono"
-                value={form.phoneNumber}
-                onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
+                {...rhfCashier(register, 'phoneNumber')}
               />
               <TextField
                 label="Email"
                 type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                {...rhfCashier(register, 'email')}
               />
             </Stack>
           </DialogContent>
@@ -616,3 +616,12 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
 };
 
 export default CashiersTable;
+
+type CashierFormValues = { name: string; phoneNumber: string; email: string };
+const EMPTY_CASHIER_FORM: CashierFormValues = { name: '', phoneNumber: '', email: '' };
+
+/** MUI espera el ref del input en `inputRef`, no en `ref`. */
+function rhfCashier(register: UseFormRegister<CashierFormValues>, name: keyof CashierFormValues) {
+  const { ref, ...rest } = register(name);
+  return { inputRef: ref, ...rest };
+}

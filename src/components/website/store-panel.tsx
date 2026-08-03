@@ -643,7 +643,7 @@ export default function StoreInfo({ store }: { store: Store }) {
         }}
       >
         <StoreHeader
-          image={store.image}
+          image={form.image}
           address={form.address}
           kioskUrl={kioskUrl}
           showQrBadge
@@ -654,6 +654,7 @@ export default function StoreInfo({ store }: { store: Store }) {
           statusLabel={statusMeta.label}
           statusColor={statusMeta.color}
           onNameChange={(val) => setForm((s) => ({ ...s, name: val }))}
+          onImageChange={(url) => setForm((s) => ({ ...s, image: url }))}
         />
 
         {/* ── Resumen: sólo lectura, y sólo fuera del modo edición ──

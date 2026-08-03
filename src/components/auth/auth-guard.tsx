@@ -3,8 +3,6 @@ import React from 'react';
 import { useAuth } from 'src/hooks/use-auth';
 import { useRouter } from 'src/hooks/use-router';
 import { routes } from 'src/router/routes';
-import { AuthStrategy } from 'src/utils/auth/strategy';
-import { config } from 'src/utils/config';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -27,16 +25,8 @@ export function AuthGuard({ children }: AuthGuardProps): React.JSX.Element | nul
 
     if (!user) {
       console.debug('User is not logged in, redirecting to sign in');
-      switch (config.auth.strategy) {
-        case AuthStrategy.CUSTOM: {
-          push(routes.auth['custom.login']);
-          return;
-        }
-        case AuthStrategy.SUPABASE: {
-          push(routes.auth['supabase.login']);
-          return;
-        }
-      }
+      push(routes.auth.login);
+      return;
     }
 
     setIsChecking(false);

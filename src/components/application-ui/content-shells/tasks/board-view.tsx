@@ -1,7 +1,9 @@
 import { Department } from '@/services/department.service';
+import { type Epic } from '@/services/epic.service';
 import { Task, type Project } from '@/services/task.service';
 import { DragDropContext, type DropResult } from '@hello-pangea/dnd';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import AlternateEmailRoundedIcon from '@mui/icons-material/AlternateEmailRounded';
 import FlagRoundedIcon from '@mui/icons-material/FlagRounded';
 import PersonOutlineRoundedIcon from '@mui/icons-material/PersonOutlineRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
@@ -65,6 +67,11 @@ type BoardViewProps = {
   onUsersChange: (v: any[]) => void;
   onlyMine: boolean;
   onToggleOnlyMine: () => void;
+  onlyMentions: boolean;
+  onToggleOnlyMentions: () => void;
+  epics: Epic[];
+  epicFilter: string;
+  onEpicFilterChange: (v: string) => void;
   search: string;
   onSearchChange: (v: string) => void;
   priorityFilter: string;
@@ -93,6 +100,11 @@ export const BoardView = React.memo(function BoardView({
   onUsersChange,
   onlyMine,
   onToggleOnlyMine,
+  onlyMentions,
+  onToggleOnlyMentions,
+  epics,
+  epicFilter,
+  onEpicFilterChange,
   search,
   onSearchChange,
   priorityFilter,
@@ -110,7 +122,12 @@ export const BoardView = React.memo(function BoardView({
   const customization = useCustomization();
 
   const hasActiveFilters =
-    selectedDepts.length > 0 || selectedUsers.length > 0 || !!search || priorityFilter !== 'all';
+    selectedDepts.length > 0 ||
+    selectedUsers.length > 0 ||
+    !!search ||
+    priorityFilter !== 'all' ||
+    epicFilter !== 'all' ||
+    onlyMentions;
 
   return (
     <>
@@ -388,6 +405,24 @@ export const BoardView = React.memo(function BoardView({
                     cursor: 'pointer',
                   }}
                 />
+                {/* Dónde pidieron mi ayuda, aunque la tarea no sea mía */}
+                <Chip
+                  icon={<AlternateEmailRoundedIcon sx={{ fontSize: '14px !important' }} />}
+                  label="Me mencionaron"
+                  size="small"
+                  variant={onlyMentions ? 'filled' : 'outlined'}
+                  color={onlyMentions ? 'warning' : 'default'}
+                  onClick={onToggleOnlyMentions}
+                  sx={{
+                    height: 28,
+                    fontWeight: 700,
+                    fontSize: 11,
+                    borderRadius: 1.5,
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.15s',
+                    cursor: 'pointer',
+                  }}
+                />
                 <SearchField
                   value={search}
                   onChange={onSearchChange}
@@ -418,6 +453,70 @@ export const BoardView = React.memo(function BoardView({
               </Stack>
             </Grid>
           </Grid>
+
+          {/* ── Épicas ──
+              Agrupan tareas de distintas áreas bajo un mismo objetivo ("Manual
+              de marca", "RCS"). No son otro tablero: filtran el que ya está. */}
+          {epics.length > 0 && (
+            <Stack
+              direction="row"
+              spacing={0.75}
+              mb={1}
+              sx={{ overflowX: 'auto', pb: 0.5, '&::-webkit-scrollbar': { height: 3 } }}
+            >
+              <Chip
+                label="Todas"
+                size="small"
+                variant={epicFilter === 'all' ? 'filled' : 'outlined'}
+                onClick={() => onEpicFilterChange('all')}
+                sx={{ height: 24, fontSize: 10.5, fontWeight: 700, borderRadius: 1.5, flexShrink: 0 }}
+              />
+              {epics.map((e) => {
+                const active = epicFilter === e._id;
+                return (
+                  <Chip
+                    key={e._id}
+                    size="small"
+                    onClick={() => onEpicFilterChange(active ? 'all' : e._id)}
+                    label={
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        spacing={0.6}
+                      >
+                        <Box sx={{ width: 7, height: 7, borderRadius: '2px', bgcolor: e.color }} />
+                        <span>{e.name}</span>
+                        <Typography
+                          component="span"
+                          sx={{ fontSize: 9.5, opacity: 0.65 }}
+                        >
+                          {e.done}/{e.total}
+                        </Typography>
+                      </Stack>
+                    }
+                    sx={{
+                      height: 24,
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      borderRadius: 1.5,
+                      flexShrink: 0,
+                      border: `1px solid ${alpha(e.color, active ? 0.9 : 0.35)}`,
+                      bgcolor: active ? alpha(e.color, 0.16) : 'transparent',
+                      color: active ? e.color : 'text.secondary',
+                      '&:hover': { bgcolor: alpha(e.color, 0.1) },
+                    }}
+                  />
+                );
+              })}
+              <Chip
+                label="Sin épica"
+                size="small"
+                variant={epicFilter === 'none' ? 'filled' : 'outlined'}
+                onClick={() => onEpicFilterChange(epicFilter === 'none' ? 'all' : 'none')}
+                sx={{ height: 24, fontSize: 10.5, fontWeight: 600, borderRadius: 1.5, flexShrink: 0 }}
+              />
+            </Stack>
+          )}
 
           {/* ── Status summary bar ── */}
           <Stack

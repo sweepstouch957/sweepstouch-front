@@ -375,7 +375,7 @@ export function AuthCustomRegisterForm(): React.JSX.Element {
                 </Typography>{' '}
                 <Link
                   component={RouterLink}
-                  href={routes.auth['custom.login']}
+                  href={routes.auth.login}
                   underline="hover"
                   fontWeight={500}
                 >

@@ -29,7 +29,7 @@ export function AuthProvider({ children }: AuthProviderProps): React.JSX.Element
         setState((prev) => ({ ...prev, user: null, error: 'Something went wrong' }));
         removeAuthToken();
         delete api.defaults.headers.common['Authorization'];
-        window.location.href = '/auth/custom/login';
+        window.location.href = '/auth/login';
         return;
       }
 

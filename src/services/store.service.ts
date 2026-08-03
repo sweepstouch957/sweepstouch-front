@@ -117,6 +117,8 @@ export interface Store {
 
 export interface UpdateStoreBody {
   name?: string;
+  /** Imagen de ESTA tienda. El logo de la marca vive en mmsTheme.logoUrl. */
+  image?: string;
   address?: string;
   zipCode?: string;
   type?: 'elite' | 'basic' | 'free';

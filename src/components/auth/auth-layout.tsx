@@ -4,12 +4,10 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Logo } from 'src/components/base/logo';
 import { routes } from 'src/router/routes';
-import { AuthStrategy } from 'src/utils/auth/strategy';
 import { RouterLink } from '../base/router-link';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
-  strategy?: keyof typeof AuthStrategy;
 }
 
 export function AuthLayout({ children }: AuthLayoutProps): React.JSX.Element {
