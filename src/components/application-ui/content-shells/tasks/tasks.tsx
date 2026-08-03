@@ -36,16 +36,15 @@ import { useCustomization } from 'src/hooks/use-customization';
 import { AiDialog } from './ai-dialog';
 import { BoardView } from './board-view';
 import {
-  EMPTY_TASK_FORM,
   PROJECT_COLORS,
+  BOARD_STATUSES,
   STATUS_LABEL,
   type ProjectFormState,
-  type TaskFormState,
 } from './constants';
 import { MyTasksView } from './my-tasks-view';
 import { ProjectDialog } from './project-dialog';
 import { RoutinesView } from './routines-view';
-import { TaskDialog } from './task-dialog';
+import { TaskDialog, type TaskFormValues } from './task-dialog';
 import { TopicReportDialog } from './topic-report-dialog';
 
 function Tasks(): React.JSX.Element {
@@ -74,11 +73,12 @@ function Tasks(): React.JSX.Element {
   /* ── Project ── */
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
-  /* ── Task detail dialog ── */
+  /* ── Task detail dialog ──
+     El formulario vive dentro del diálogo (react-hook-form): aquí sólo se
+     guarda QUÉ tarea se está editando, no lo que el usuario va escribiendo. */
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [newTaskStatus, setNewTaskStatus] = useState('todo');
-  const [taskForm, setTaskForm] = useState<TaskFormState>({ ...EMPTY_TASK_FORM });
 
   /* ── New project dialog ── */
   const [newProjectOpen, setNewProjectOpen] = useState(false);
@@ -268,7 +268,7 @@ function Tasks(): React.JSX.Element {
     if (priorityFilter !== 'all') filtered = filtered.filter((t) => t.priority === priorityFilter);
 
     const byStatus: Record<string, Task[]> = {};
-    Object.keys(STATUS_LABEL).forEach((k) => {
+    BOARD_STATUSES.forEach((k) => {
       byStatus[k] = [];
     });
     filtered.forEach((t) => {
@@ -295,7 +295,7 @@ function Tasks(): React.JSX.Element {
   }, [board]);
 
   /* ── Mutations ── */
-  const createTaskMut = useMutation({
+  const { mutate: createTask, isPending: creatingTask } = useMutation({
     mutationFn: (p: any) => taskClient.createTask(p),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['board'] });
@@ -306,7 +306,7 @@ function Tasks(): React.JSX.Element {
     // 409 = rompe una regla del manual (urgencias, 3 en curso): se dice cuál
     onError: (err: any) => toast.error(err?.response?.data?.error || 'No se pudo crear la tarea'),
   });
-  const updateTaskMut = useMutation({
+  const { mutate: updateTask, isPending: updatingTask } = useMutation({
     mutationFn: ({ id, ...p }: any) => taskClient.updateTask(id, p),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['board'] });
@@ -316,7 +316,10 @@ function Tasks(): React.JSX.Element {
     },
     onError: (err: any) => toast.error(err?.response?.data?.error || 'No se pudo actualizar la tarea'),
   });
-  const deleteTaskMut = useMutation({
+  // `mutate` sí es estable en react-query v5; el objeto de la mutación NO. Antes
+  // se dependía del objeto: el callback cambiaba en cada render y tumbaba el
+  // React.memo de columnas y tarjetas.
+  const { mutate: deleteTask } = useMutation({
     mutationFn: (id: string) => taskClient.deleteTask(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['board'] });
@@ -324,13 +327,8 @@ function Tasks(): React.JSX.Element {
       toast.success('Task deleted');
     },
   });
-  const handleDeleteTask = useCallback(
-    (id: string) => {
-      deleteTaskMut.mutate(id);
-    },
-    [deleteTaskMut]
-  );
-  const createProjectMut = useMutation({
+  const handleDeleteTask = useCallback((id: string) => deleteTask(id), [deleteTask]);
+  const { mutate: createProject, isPending: creatingProject } = useMutation({
     mutationFn: (p: any) => taskClient.createProject(p),
     onSuccess: (d) => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
@@ -394,72 +392,63 @@ function Tasks(): React.JSX.Element {
   );
 
   /* ── Dialog helpers ── */
-  function closeDialog() {
+  const closeDialog = useCallback(() => {
     setTaskDialogOpen(false);
     setEditingTask(null);
-    setTaskForm({ ...EMPTY_TASK_FORM });
-  }
+  }, []);
 
   const handleOpenNewTask = useCallback((status: string) => {
-    closeDialog();
+    setEditingTask(null);
     setNewTaskStatus(status);
     setTaskDialogOpen(true);
   }, []);
 
   const handleEditTask = useCallback((task: Task) => {
     setEditingTask(task);
-    setTaskForm({
-      title: task.title,
-      description: task.description,
-      priority: task.priority,
-      assigneeId: task.assigneeId || '',
-      assigneeName: task.assigneeName || '',
-      assigneeAvatar: task.assigneeAvatar || '',
-      dueDate: task.dueDate ? task.dueDate.slice(0, 10) : '',
-      closureCriteria: task.closureCriteria || '',
-      blockedReason: task.blockedReason || '',
-      blockerOwner: task.blockerOwner || '',
-      aiContext: task.aiContext || '',
-      tags: task.tags?.join(', ') || '',
-      progress: task.progress || 0,
-      recurrence: task.recurrence || 'none',
-    });
     setNewTaskStatus(task.status);
     setTaskDialogOpen(true);
   }, []);
 
-  function handleSubmitTask() {
-    const tagsArr = taskForm.tags
-      ? taskForm.tags
-          .split(',')
-          .map((t) => t.trim())
-          .filter(Boolean)
-      : [];
-    const payload: any = {
-      title: taskForm.title,
-      description: taskForm.description,
-      priority: taskForm.priority,
-      assigneeId: taskForm.assigneeId || null,
-      assigneeName: taskForm.assigneeName,
-      assigneeAvatar: taskForm.assigneeAvatar,
-      dueDate: taskForm.dueDate || null,
-      closureCriteria: taskForm.closureCriteria,
-      // Sólo viajan cuando la tarea queda bloqueada; al salir el back los limpia
-      ...(newTaskStatus === 'blocked'
-        ? { blockedReason: taskForm.blockedReason, blockerOwner: taskForm.blockerOwner }
-        : {}),
-      aiContext: taskForm.aiContext,
-      tags: tagsArr,
-      progress: taskForm.progress,
-      status: newTaskStatus,
-      projectId: selectedProjectId,
-      recurrence: taskForm.recurrence,
-      // Una rutinaria es plantilla: la fecha la pone el generador en cada copia
-      ...(taskForm.recurrence !== 'none' ? { dueDate: null } : {}),
-    };
-    if (editingTask) updateTaskMut.mutate({ id: editingTask._id, ...payload });
-    else createTaskMut.mutate(payload);
-  }
+  const handleSubmitTask = useCallback(
+    (values: TaskFormValues) => {
+      const tagsArr = values.tags
+        ? values.tags
+            .split(',')
+            .map((t) => t.trim())
+            .filter(Boolean)
+        : [];
+      const payload: any = {
+        title: values.title,
+        description: values.description,
+        priority: values.priority,
+        assigneeId: values.assigneeId || null,
+        assigneeName: values.assigneeName,
+        assigneeAvatar: values.assigneeAvatar,
+        dueDate: values.dueDate || null,
+        closureCriteria: values.closureCriteria,
+        beneficiary: values.beneficiary,
+        nextStep: values.nextStep,
+        impact: values.impact,
+        // Sólo viaja si el usuario escribió un motivo al mover la fecha
+        ...(values.rescheduleReason ? { rescheduleReason: values.rescheduleReason } : {}),
+        // Sólo viajan cuando la tarea queda bloqueada; al salir el back los limpia
+        ...(values.status === 'blocked'
+          ? { blockedReason: values.blockedReason, blockerOwner: values.blockerOwner }
+          : {}),
+        aiContext: values.aiContext,
+        tags: tagsArr,
+        progress: values.progress,
+        status: values.status,
+        projectId: selectedProjectId,
+        recurrence: values.recurrence,
+        // Una rutinaria es plantilla: la fecha la pone el generador en cada copia
+        ...(values.recurrence !== 'none' ? { dueDate: null } : {}),
+      };
+      if (editingTask) updateTask({ id: editingTask._id, ...payload });
+      else createTask(payload);
+    },
+    [editingTask, selectedProjectId, updateTask, createTask]
+  );
 
   const handleOpenMyTask = useCallback(
     (task: Task) => {
@@ -469,6 +458,17 @@ function Tasks(): React.JSX.Element {
     },
     [handleEditTask]
   );
+
+  /* Referencias estables para BoardView: si cambian en cada render, su memo y
+     el de las columnas no sirven de nada. */
+  const handleToggleOnlyMine = useCallback(() => setOnlyMine((v) => !v), []);
+  const handleClearFilters = useCallback(() => {
+    setSelectedDepts([]);
+    setSelectedUsers([]);
+    setSearch('');
+    setPriorityFilter('all');
+  }, []);
+  const handleCreateProjectDialog = useCallback(() => setNewProjectOpen(true), []);
 
   const totalTasks = filteredBoard?.allTotal || 0;
   const doneTasks = statusCounts['done'] || 0;
@@ -742,22 +742,17 @@ function Tasks(): React.JSX.Element {
           selectedUsers={selectedUsers}
           onUsersChange={setSelectedUsers}
           onlyMine={onlyMine}
-          onToggleOnlyMine={() => setOnlyMine(!onlyMine)}
+          onToggleOnlyMine={handleToggleOnlyMine}
           search={search}
           onSearchChange={setSearch}
           priorityFilter={priorityFilter}
           onPriorityChange={setPriorityFilter}
-          onClearFilters={() => {
-            setSelectedDepts([]);
-            setSelectedUsers([]);
-            setSearch('');
-            setPriorityFilter('all');
-          }}
+          onClearFilters={handleClearFilters}
           onDragEnd={handleDragEnd}
           onEditTask={handleEditTask}
           onDeleteTask={handleDeleteTask}
           onAddTask={handleOpenNewTask}
-          onCreateProject={() => setNewProjectOpen(true)}
+          onCreateProject={handleCreateProjectDialog}
         />
       )}
       {/* ═══ Task Detail Dialog ═══ */}
@@ -765,12 +760,9 @@ function Tasks(): React.JSX.Element {
         <TaskDialog
           open={taskDialogOpen}
           editingTask={editingTask}
-          form={taskForm}
-          setForm={setTaskForm}
-          status={newTaskStatus}
-          onStatusChange={setNewTaskStatus}
+          initialStatus={newTaskStatus}
           teamMembers={teamMembers}
-          submitting={createTaskMut.isPending || updateTaskMut.isPending}
+          submitting={creatingTask || updatingTask}
           onClose={closeDialog}
           onSubmit={handleSubmitTask}
         />
@@ -781,9 +773,9 @@ function Tasks(): React.JSX.Element {
           open={newProjectOpen}
           form={projectForm}
           setForm={setProjectForm}
-          submitting={createProjectMut.isPending}
+          submitting={creatingProject}
           onClose={() => setNewProjectOpen(false)}
-          onSubmit={() => createProjectMut.mutate(projectForm)}
+          onSubmit={() => createProject(projectForm)}
         />
       )}
       {/* ═══ AI Dialog ═══ */}

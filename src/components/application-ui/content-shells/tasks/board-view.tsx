@@ -36,9 +36,12 @@ import {
   cbIcon,
   priorityEntries,
   PROJECT_COLORS,
-  statusEntries,
+  boardStatusEntries,
 } from './constants';
 import { KanbanColumn } from './kanban-column';
+
+/** Referencia estable: `|| []` inline creaba un array nuevo y tumbaba el memo. */
+const NO_TASKS: Task[] = [];
 
 export type FilteredBoard = {
   byStatus: Record<string, Task[]>;
@@ -74,7 +77,7 @@ type BoardViewProps = {
   onCreateProject: () => void;
 };
 
-export function BoardView({
+export const BoardView = React.memo(function BoardView({
   projects,
   selectedProjectId,
   onSelectProject,
@@ -385,20 +388,9 @@ export function BoardView({
                     cursor: 'pointer',
                   }}
                 />
-                <TextField
-                  size="small"
-                  placeholder="Search…"
+                <SearchField
                   value={search}
-                  onChange={(e) => onSearchChange(e.target.value)}
-                  fullWidth
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchRoundedIcon sx={{ fontSize: 16, opacity: 0.4 }} />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                  onChange={onSearchChange}
                 />
                 <Select
                   size="small"
@@ -434,7 +426,7 @@ export function BoardView({
             mb={2}
             flexWrap="wrap"
           >
-            {statusEntries(theme).map(([key, meta]) => (
+            {boardStatusEntries(theme).map(([key, meta]) => (
               <Box
                 key={key}
                 sx={{
@@ -516,11 +508,11 @@ export function BoardView({
                   alignItems="flex-start"
                   sx={{ minWidth: { md: 1100 }, pb: 1 }}
                 >
-                  {statusEntries(theme).map(([statusKey]) => (
+                  {boardStatusEntries(theme).map(([statusKey]) => (
                     <KanbanColumn
                       key={statusKey}
                       statusKey={statusKey}
-                      tasks={filteredBoard.byStatus[statusKey] || []}
+                      tasks={filteredBoard.byStatus[statusKey] || NO_TASKS}
                       onEdit={onEditTask}
                       onDelete={onDeleteTask}
                       onAdd={onAddTask}
@@ -560,4 +552,44 @@ export function BoardView({
       </Box>
     </>
   );
-}
+});
+
+/**
+ * El texto se pinta al instante (estado local) y el filtrado del board va en
+ * `startTransition`: React prioriza la tecla sobre el repintado de las columnas.
+ */
+const SearchField = React.memo(function SearchField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [local, setLocal] = React.useState(value);
+  const [, startTransition] = React.useTransition();
+
+  // Reset externo ("Clear")
+  React.useEffect(() => setLocal(value), [value]);
+
+  return (
+    <TextField
+      size="small"
+      placeholder="Search…"
+      value={local}
+      onChange={(e) => {
+        const v = e.target.value;
+        setLocal(v);
+        startTransition(() => onChange(v));
+      }}
+      fullWidth
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <SearchRoundedIcon sx={{ fontSize: 16, opacity: 0.4 }} />
+          </InputAdornment>
+        ),
+      }}
+      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+    />
+  );
+});

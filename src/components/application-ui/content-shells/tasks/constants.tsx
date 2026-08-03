@@ -14,6 +14,12 @@ export type TaskFormState = {
   dueDate: string;
   /** Manual de Cowork: una línea que diga cómo sabremos que quedó lista. */
   closureCriteria: string;
+  /** Opcionales: suman contexto, nunca frenan el guardado. */
+  beneficiary: string;
+  nextStep: string;
+  impact: string;
+  /** Sólo se manda cuando se mueve la fecha de una tarea que ya existía. */
+  rescheduleReason: string;
   /** Sólo cuando el estado es "blocked". */
   blockedReason: string;
   blockerOwner: string;
@@ -38,6 +44,10 @@ export const EMPTY_TASK_FORM: TaskFormState = {
   assigneeAvatar: '',
   dueDate: '',
   closureCriteria: '',
+  beneficiary: '',
+  nextStep: '',
+  impact: '',
+  rescheduleReason: '',
   blockedReason: '',
   blockerOwner: '',
   aiContext: '',
@@ -62,6 +72,14 @@ export function titleLacksVerb(title: string): boolean {
   if (!t) return false;
   return !/^[a-záéíóúñ]+(ar|er|ir)\b/i.test(t) && t.split(/\s+/).length < 3;
 }
+
+export const IMPACT_OPTIONS: { value: string; label: string }[] = [
+  { value: "", label: "Sin especificar" },
+  { value: "ingreso", label: "💵 Ingreso" },
+  { value: "campanas", label: "📣 Campañas" },
+  { value: "audiencia", label: "👥 Audiencia" },
+  { value: "interno", label: "🏢 Interno" },
+];
 
 export const PRIORITY_CONFIG: Record<string, { label: string; icon: string }> = {
   critical: { label: 'Critical', icon: '🔴' },
@@ -88,7 +106,15 @@ export const STATUS_LABEL: Record<string, string> = {
   blocked: 'Bloqueada',
   in_review: 'En revisión',
   done: 'Cerrada',
+  cancelled: 'Cancelada',
 };
+
+/**
+ * Columnas del tablero. "Cancelada" se puede elegir en el diálogo pero no tiene
+ * columna: una tarea cancelada desaparece del board en vez de quedarse ahí
+ * vencida para siempre.
+ */
+export const BOARD_STATUSES = ['backlog', 'todo', 'in_progress', 'blocked', 'in_review', 'done'];
 
 const STATUS_ROLE: Record<string, SemanticRole> = {
   backlog: 'secondary',
@@ -97,6 +123,7 @@ const STATUS_ROLE: Record<string, SemanticRole> = {
   blocked: 'error',
   in_review: 'primary',
   done: 'success',
+  cancelled: 'secondary',
 };
 
 export function statusMeta(theme: Theme, key: string) {
@@ -108,8 +135,14 @@ export function statusMeta(theme: Theme, key: string) {
   };
 }
 
+/** Todos los estados — para el selector del diálogo. */
 export function statusEntries(theme: Theme) {
   return Object.keys(STATUS_LABEL).map((k) => [k, statusMeta(theme, k)] as const);
+}
+
+/** Sólo los que son columna del tablero. */
+export function boardStatusEntries(theme: Theme) {
+  return BOARD_STATUSES.map((k) => [k, statusMeta(theme, k)] as const);
 }
 
 export const cbIcon = <CheckBoxOutlineBlankIcon fontSize="small" />;

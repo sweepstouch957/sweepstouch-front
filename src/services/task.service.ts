@@ -50,7 +50,7 @@ export interface Project {
 }
 
 /** Estados del Manual de Cowork: backlog = respaldo, done = cerrada. */
-export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'blocked' | 'in_review' | 'done';
+export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'blocked' | 'in_review' | 'done' | 'cancelled';
 
 /** Tipo de solicitud de cola (Diseño / Customer Service) — define el plazo. */
 export type RequestType =
@@ -96,6 +96,14 @@ export interface Task {
   reporterName: string;
   dueDate: string | null;
   completedAt: string | null;
+  /** Para quién es el trabajo: tienda, cliente, área o interno. Opcional. */
+  beneficiary?: string;
+  /** Qué sigue después de lo último que se hizo. Opcional. */
+  nextStep?: string;
+  /** Qué mueve esta tarea si sale bien. Opcional. */
+  impact?: '' | 'ingreso' | 'campanas' | 'audiencia' | 'interno';
+  rescheduleCount?: number;
+  lastRescheduleReason?: string;
   /** Cuarto campo obligatorio: cómo sabremos que quedó lista. */
   closureCriteria?: string;
   departmentId?: string | null;
