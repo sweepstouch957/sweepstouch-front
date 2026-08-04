@@ -5,6 +5,7 @@ import { uploadCampaignImage } from '@/services/upload.service';
 import {
   CameraAltRounded,
   EditLocationAltRounded,
+  LinkRounded,
   OpenInNewRounded,
   QrCodeRounded,
   RocketLaunch,
@@ -188,6 +189,10 @@ export default function StoreHeader({
 
   const slug = extractSlug(kioskUrl);
   const qrHref = slug ? `https://st.sweepstouch.com/?slug=${encodeURIComponent(slug)}` : undefined;
+  /** Linktree público de la tienda — mismo slug que el kiosko. */
+  const linktreeHref = slug
+    ? `https://links.sweepstouch.com/?slug=${encodeURIComponent(slug)}`
+    : undefined;
   const fallbackQrSrc = qrHref
     ? `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qrHref)}&size=512x512`
     : undefined;
@@ -360,6 +365,15 @@ export default function StoreHeader({
             >
               <OpenInNewRounded sx={{ fontSize: 18 }} />
             </IBtn>
+
+            {linktreeHref && (
+              <IBtn
+                title="Abrir linktree de la tienda"
+                onClick={() => window.open(linktreeHref, '_blank', 'noopener')}
+              >
+                <LinkRounded sx={{ fontSize: 18 }} />
+              </IBtn>
+            )}
 
             <IBtn
               title="Impulsar tienda"
