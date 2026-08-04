@@ -36,6 +36,7 @@ import ExportButton from '../../buttons/export-button';
 import Results from './results';
 import type { Theme } from '@mui/material/styles';
 import { tint, tintBorder } from '@/theme/semantic';
+import { panelBorder } from '../../content-shells/store-managment/panel-kit';
 
 interface CampaignsGridProps {
   storeId?: string;
@@ -77,21 +78,17 @@ function KpiCard({
     <Box
       sx={{
         position: 'relative',
-        borderRadius: 2.5,
-        border: '1px solid',
-        borderColor: alpha(color, isDark ? 0.22 : 0.18),
-        bgcolor: alpha(color, isDark ? 0.06 : 0.03),
+        // Diseño: tarjeta blanca de radio 16, no un bloque teñido del color del
+        // KPI. Cinco fondos de colores distintos convierten la fila en un
+        // semáforo y el dato deja de leerse.
+        borderRadius: '16px',
+        border: panelBorder(theme),
+        bgcolor: 'background.paper',
         overflow: 'hidden',
-        p: 1,
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        '&:hover': {
-          borderColor: alpha(color, 0.5),
-          bgcolor: alpha(color, isDark ? 0.12 : 0.07),
-          transform: 'translateY(-2px)',
-        },
+        p: 1.25,
       }}
     >
-      {/* Left accent bar */}
+      {/* El color del KPI queda en una barra fina, no en todo el fondo */}
       <Box
         sx={{
           position: 'absolute',
@@ -102,9 +99,12 @@ function KpiCard({
         }}
       />
 
-      <Stack spacing={0.5} sx={{ pl: 0.5 }}>
+      <Stack spacing={0.5}
+sx={{ pl: 0.5 }}>
         {/* Icon + label row */}
-        <Stack direction="row" alignItems="center" spacing={0.75}>
+        <Stack direction="row"
+alignItems="center"
+spacing={0.75}>
           <Box
             sx={{
               width: 20,
@@ -124,8 +124,8 @@ function KpiCard({
             noWrap
             sx={{
               fontSize: 10,
-              fontWeight: 700,
-              letterSpacing: '0.05em',
+              fontWeight: 800,
+              letterSpacing: 1,
               textTransform: 'uppercase',
               color: 'text.secondary',
             }}
@@ -134,18 +134,19 @@ function KpiCard({
           </Typography>
         </Stack>
 
-        {/* Number */}
+        {/* La cifra: grande y en color de texto, como en el diseño */}
         {loading ? (
-          <Skeleton width={56} height={28} sx={{ borderRadius: 1 }} />
+          <Skeleton width={70}
+height={30}
+sx={{ borderRadius: 1 }} />
         ) : (
           <Typography
             sx={{
-              fontSize: 18,
-              fontWeight: 800,
+              fontSize: 25,
+              fontWeight: 700,
               lineHeight: 1,
               fontVariantNumeric: 'tabular-nums',
-              color,
-              letterSpacing: '-0.5px',
+              letterSpacing: '-0.7px',
             }}
           >
             {value?.toLocaleString() ?? 0}
@@ -153,7 +154,7 @@ function KpiCard({
         )}
 
         {/* Description */}
-        <Typography sx={{ fontSize: 10, color: 'text.disabled', lineHeight: 1.2 }}>
+        <Typography sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1.3 }}>
           {description}
         </Typography>
       </Stack>
@@ -178,40 +179,38 @@ interface StatCellProps {
   isDark?: boolean;
 }
 
-function StatCell({ icon, color, label, sublabel, value, pct, extraInfo, isCurrency, loading, isDark }: StatCellProps) {
+/**
+ * KPI del Store Panel 2.0: la cifra manda. El icono a color y el porcentaje
+ * acompañan; el número va en el color del texto y grande (25px), no en el color
+ * de acento — cuatro números de cuatro colores distintos compiten entre sí y
+ * ninguno destaca. El `translateY` al pasar por encima se fue: es un dato, no
+ * un botón.
+ */
+function StatCell({ icon, color, label, sublabel, value, pct, extraInfo, isCurrency, loading }: StatCellProps) {
   return (
     <Stack
-      spacing={0.25}
-      sx={{
-        flex: 1,
-        minWidth: 0,
-        px: 1,
-        py: 0.75,
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        '&:hover': {
-          transform: 'translateY(-2px)',
-          bgcolor: (t: Theme) =>
-            alpha(isDark ? t.palette.common.white : t.palette.common.black, 0.02),
-        },
-      }}
+      spacing={0.5}
+      sx={{ flex: 1, minWidth: 0, px: 1.25, py: 1 }}
     >
-      <Stack direction="row" alignItems="center" spacing={0.75} mb={0.25}>
-        <Box sx={{ color, display: 'flex', opacity: 0.9 }}>{icon}</Box>
-        <Typography noWrap sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'text.secondary' }}>
+      <Stack direction="row"
+alignItems="center"
+spacing={0.75}>
+        <Box sx={{ color, display: 'flex' }}>{icon}</Box>
+        <Typography noWrap
+sx={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: 'text.secondary' }}>
           {label}
         </Typography>
         {pct !== undefined && (
           <Box
             sx={{
               ml: 'auto',
-              px: 0.75,
+              px: 0.85,
               py: 0.2,
-              borderRadius: 1,
-              bgcolor: alpha(color, isDark ? 0.15 : 0.1),
-              border: `1px solid ${alpha(color, 0.2)}`,
+              borderRadius: '7px',
+              bgcolor: alpha(color, 0.12),
             }}
           >
-            <Typography sx={{ fontSize: 10, fontWeight: 700, color, fontVariantNumeric: 'tabular-nums' }}>
+            <Typography sx={{ fontSize: 10, fontWeight: 800, color, fontVariantNumeric: 'tabular-nums' }}>
               {pct}%
             </Typography>
           </Box>
@@ -219,18 +218,21 @@ function StatCell({ icon, color, label, sublabel, value, pct, extraInfo, isCurre
       </Stack>
 
       {loading ? (
-        <Skeleton width={80} height={30} sx={{ borderRadius: 1 }} />
+        <Skeleton width={90}
+height={30}
+sx={{ borderRadius: 1 }} />
       ) : (
-        <Stack direction="row" alignItems="baseline" spacing={0.5}>
-          {isCurrency && <Typography sx={{ fontSize: 16, fontWeight: 700, color: 'text.secondary' }}>$</Typography>}
+        <Stack direction="row"
+alignItems="baseline"
+spacing={0.35}>
+          {isCurrency && <Typography sx={{ fontSize: 17, fontWeight: 700, color: 'text.secondary' }}>$</Typography>}
           <Typography
             sx={{
-              fontSize: 16,
-              fontWeight: 800,
+              fontSize: 25,
+              fontWeight: 700,
               lineHeight: 1,
-              color,
               fontVariantNumeric: 'tabular-nums',
-              letterSpacing: '-0.5px',
+              letterSpacing: '-0.7px',
             }}
           >
             {isCurrency ? value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : value.toLocaleString()}
@@ -238,11 +240,11 @@ function StatCell({ icon, color, label, sublabel, value, pct, extraInfo, isCurre
         </Stack>
       )}
 
-      <Typography sx={{ fontSize: 10, color: 'text.disabled', lineHeight: 1.2 }}>
+      <Typography sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1.3 }}>
         {sublabel}
       </Typography>
       {extraInfo && (
-        <Typography sx={{ fontSize: 10, color: color, fontWeight: 600, mt: 0.5, opacity: 0.8 }}>
+        <Typography sx={{ fontSize: 10.5, color, fontWeight: 700 }}>
           {extraInfo}
         </Typography>
       )}
@@ -273,19 +275,15 @@ function MessagingPanel({ stats, loading }: { stats: FilterStatsResponse; loadin
   return (
     <Box
       sx={{
-        borderRadius: 2.5,
-        border: '1px solid',
-        borderColor: 'divider',
-        bgcolor: alpha(isDark ? theme.palette.common.white : theme.palette.common.black, isDark ? 0.02 : 0.015),
+        // Tarjeta del diseño: blanca, radio 18, borde casi invisible. Sin cambio
+        // de color al pasar por encima — no es clicable, no debe parecerlo.
+        borderRadius: '18px',
+        border: panelBorder(theme),
+        bgcolor: 'background.paper',
         overflow: 'hidden',
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        '&:hover': {
-          borderColor: tintBorder(theme, 'primary'),
-          bgcolor: tint(theme, 'primary', 0.04),
-        },
       }}
     >
       {/* Header */}
@@ -400,28 +398,45 @@ function MessagingPanel({ stats, loading }: { stats: FilterStatsResponse; loadin
             bgcolor: alpha(isDark ? theme.palette.common.white : theme.palette.common.black, 0.01),
           }}
         >
-          <Stack direction="row" alignItems="center" spacing={0.75} flexShrink={0}>
+          <Stack direction="row"
+alignItems="center"
+spacing={0.75}
+flexShrink={0}>
             <RouterRoundedIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
             <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'text.secondary' }}>
               Plataformas
             </Typography>
           </Stack>
-          <Divider orientation="vertical" flexItem sx={{ height: 16, alignSelf: 'center' }} />
+          <Divider orientation="vertical"
+flexItem
+sx={{ height: 16, alignSelf: 'center' }} />
           {loading ? (
-            <Stack direction="row" spacing={2}>
-              <Skeleton width={80} height={20} sx={{ borderRadius: 1 }} />
-              <Skeleton width={60} height={20} sx={{ borderRadius: 1 }} />
+            <Stack direction="row"
+spacing={2}>
+              <Skeleton width={80}
+height={20}
+sx={{ borderRadius: 1 }} />
+              <Skeleton width={60}
+height={20}
+sx={{ borderRadius: 1 }} />
             </Stack>
           ) : platforms.length === 0 ? (
             <Typography sx={{ fontSize: 12, color: 'text.disabled' }}>Sin datos de plataforma</Typography>
           ) : (
-            <Stack direction="row" spacing={3} flexWrap="wrap">
+            <Stack direction="row"
+spacing={3}
+flexWrap="wrap">
               {platforms.map(([key, count]) => {
                 const meta = platformMeta(theme)[key] ?? { label: key, color: theme.palette.text.disabled };
                 const pct = total > 0 ? Math.round((count / total) * 100) : 0;
                 return (
-                  <Tooltip key={key} title={`${count} campañas · ${pct}% del total`} arrow placement="top">
-                    <Stack direction="row" alignItems="center" spacing={1}>
+                  <Tooltip key={key}
+title={`${count} campañas · ${pct}% del total`}
+arrow
+placement="top">
+                    <Stack direction="row"
+alignItems="center"
+spacing={1}>
                       <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: meta.color, flexShrink: 0 }} />
                       <Typography sx={{ fontSize: 12, fontWeight: 700, color: meta.color }}>
                         {meta.label}
@@ -520,7 +535,10 @@ function CampaignsGrid({ storeId, forceCards = false }: CampaignsGridProps) {
 
   if (isPending) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" height="300px">
+      <Box display="flex"
+justifyContent="center"
+alignItems="center"
+height="300px">
         <CircularProgress size={48} />
       </Box>
     );
@@ -528,7 +546,8 @@ function CampaignsGrid({ storeId, forceCards = false }: CampaignsGridProps) {
 
   if (error) {
     return (
-      <Box textAlign="center" py={4}>
+      <Box textAlign="center"
+py={4}>
         <Typography color="error">Error al cargar campañas</Typography>
       </Box>
     );
@@ -542,7 +561,8 @@ function CampaignsGrid({ storeId, forceCards = false }: CampaignsGridProps) {
       <PageHeading
         title={t('Campaigns')}
         description={t('Overview of ongoing campaigns')}
-        actions={<ExportButton eventName="campaigns:export" emitOnly />}
+        actions={<ExportButton eventName="campaigns:export"
+emitOnly />}
       />
 
       <Box sx={{ mt: 3, mb: 1.5 }}>
@@ -575,8 +595,15 @@ function CampaignsGrid({ storeId, forceCards = false }: CampaignsGridProps) {
             }
           }}
         >
-          <Stack direction="row" alignItems="center" spacing={2} divider={<Divider orientation="vertical" flexItem sx={{ height: 24, alignSelf: 'center' }} />}>
-            <Stack direction="row" alignItems="center" spacing={1}>
+          <Stack direction="row"
+alignItems="center"
+spacing={2}
+divider={<Divider orientation="vertical"
+flexItem
+sx={{ height: 24, alignSelf: 'center' }} />}>
+            <Stack direction="row"
+alignItems="center"
+spacing={1}>
               <CampaignRoundedIcon sx={{ fontSize: 20, color: theme.palette.primary.main }} />
               <Typography sx={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
                 Métricas y Desglose
@@ -585,7 +612,10 @@ function CampaignsGrid({ storeId, forceCards = false }: CampaignsGridProps) {
 
             {/* Small Preview when closed */}
             {!showMetrics && (
-              <Stack direction="row" alignItems="center" spacing={3} sx={{ pl: 1, animation: 'fadeIn 0.3s ease-in-out' }}>
+              <Stack direction="row"
+alignItems="center"
+spacing={3}
+sx={{ pl: 1, animation: 'fadeIn 0.3s ease-in-out' }}>
                 <Box>
                   <Typography sx={{ fontSize: 10, color: 'text.secondary', textTransform: 'uppercase', fontWeight: 700, lineHeight: 1.2 }}>Total Filtrado</Typography>
                   <Typography sx={{ fontSize: 14, fontWeight: 800, color: theme.palette.primary.main, lineHeight: 1.2 }}>{s.total.toLocaleString()}</Typography>
@@ -613,10 +643,15 @@ function CampaignsGrid({ storeId, forceCards = false }: CampaignsGridProps) {
           </IconButton>
         </Box>
 
-        <Collapse in={showMetrics} unmountOnExit>
-          <Grid container spacing={1} sx={{ mb: 1.5 }}>
+        <Collapse in={showMetrics}
+unmountOnExit>
+          <Grid container
+spacing={1}
+sx={{ mb: 1.5 }}>
             {/* ── KPI Cards ── */}
-            <Grid xs={12} lg={5} xl={4}>
+            <Grid xs={12}
+lg={5}
+xl={4}>
               <Box
                 sx={{
                   display: 'grid',
@@ -661,14 +696,19 @@ function CampaignsGrid({ storeId, forceCards = false }: CampaignsGridProps) {
             </Grid>
 
             {/* ── Messaging Intelligence Panel ── */}
-            <Grid xs={12} lg={7} xl={8}>
-              <MessagingPanel stats={s} loading={isLoading} />
+            <Grid xs={12}
+lg={7}
+xl={8}>
+              <MessagingPanel stats={s}
+loading={isLoading} />
             </Grid>
           </Grid>
         </Collapse>
       </Box>
 
-      <Grid container mt={0} spacing={{ xs: 2, sm: 3 }}>
+      <Grid container
+mt={0}
+spacing={{ xs: 2, sm: 3 }}>
         <Grid xs={12}>
           <Results
             campaigns={data?.data || []}

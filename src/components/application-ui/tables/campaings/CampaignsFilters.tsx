@@ -52,13 +52,21 @@ const PLATFORM_OPTIONS = [
   { value: 'twilio', label: 'Twilio' },
 ];
 
-// Estilos estáticos de los selects
+/**
+ * Filtros en píldora, como el Store Panel 2.0: 31px de alto, radio 9 y borde
+ * fino. Antes eran selects de 36px con el radio del theme, que sobre la tabla
+ * pesaban más que los datos que filtran.
+ */
 const selectSx = {
   '& .MuiOutlinedInput-root': {
-    height: 36,
-    fontSize: 13,
-    borderRadius: 2,
+    height: 32,
+    fontSize: 12.5,
+    borderRadius: '9px',
+    fontWeight: 600,
+    '& fieldset': { borderColor: 'divider' },
+    '&:hover fieldset': { borderColor: 'text.disabled' },
   },
+  '& .MuiSelect-select': { py: 0 },
 } as const;
 
 export default function CampaignsFilters({ filters, setFilters, storeId }: Props) {
@@ -136,13 +144,16 @@ export default function CampaignsFilters({ filters, setFilters, storeId }: Props
         </Box>
 
         {/* Status */}
-        <FormControl size="small" sx={{ flex: { xs: '1 1 calc(50% - 6px)', sm: '0 0 128px' }, ...selectSx }}>
+        <FormControl size="small"
+sx={{ flex: { xs: '1 1 calc(50% - 6px)', sm: '0 0 128px' }, ...selectSx }}>
           <Select
             value={filters.status || 'all'}
             onChange={(e) => patch({ status: e.target.value === 'all' ? '' : String(e.target.value) })}
           >
             {['all', 'active', 'completed', 'draft', 'scheduled', 'cancelled'].map((opt) => (
-              <MenuItem key={opt} value={opt} sx={{ fontSize: 13 }}>
+              <MenuItem key={opt}
+value={opt}
+sx={{ fontSize: 13 }}>
                 {opt === 'all' ? t('All Status') : t(opt.charAt(0).toUpperCase() + opt.slice(1))}
               </MenuItem>
             ))}
@@ -150,13 +161,16 @@ export default function CampaignsFilters({ filters, setFilters, storeId }: Props
         </FormControl>
 
         {/* Type */}
-        <FormControl size="small" sx={{ flex: { xs: '1 1 calc(50% - 6px)', sm: '0 0 88px' }, ...selectSx }}>
+        <FormControl size="small"
+sx={{ flex: { xs: '1 1 calc(50% - 6px)', sm: '0 0 88px' }, ...selectSx }}>
           <Select
             value={filters.type || 'all'}
             onChange={(e) => patch({ type: e.target.value === 'all' ? '' : String(e.target.value) })}
           >
             {['all', 'SMS', 'MMS'].map((opt) => (
-              <MenuItem key={opt} value={opt} sx={{ fontSize: 13 }}>
+              <MenuItem key={opt}
+value={opt}
+sx={{ fontSize: 13 }}>
                 {opt === 'all' ? t('All Types') : opt}
               </MenuItem>
             ))}
@@ -164,25 +178,35 @@ export default function CampaignsFilters({ filters, setFilters, storeId }: Props
         </FormControl>
 
         {/* Platform */}
-        <FormControl size="small" sx={{ flex: { xs: '1 1 calc(50% - 6px)', sm: '0 0 124px' }, ...selectSx }}>
+        <FormControl size="small"
+sx={{ flex: { xs: '1 1 calc(50% - 6px)', sm: '0 0 124px' }, ...selectSx }}>
           <Select
             value={filters.platform || 'all'}
             displayEmpty
             onChange={(e) => patch({ platform: e.target.value === 'all' ? '' : String(e.target.value) })}
             renderValue={(val) => {
-              if (!val || val === 'all') return <Typography fontSize={13} color="text.secondary">Provider</Typography>;
+              if (!val || val === 'all') return <Typography fontSize={13}
+color="text.secondary">Provider</Typography>;
               const color = PLATFORM_COLORS[val as string];
               return (
-                <Stack direction="row" alignItems="center" spacing={0.75}>
+                <Stack direction="row"
+alignItems="center"
+spacing={0.75}>
                   {color && <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: color, flexShrink: 0 }} />}
-                  <Typography fontSize={13} fontWeight={600} textTransform="capitalize">{val}</Typography>
+                  <Typography fontSize={13}
+fontWeight={600}
+textTransform="capitalize">{val}</Typography>
                 </Stack>
               );
             }}
           >
             {PLATFORM_OPTIONS.map((opt) => (
-              <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: 13 }}>
-                <Stack direction="row" alignItems="center" spacing={1}>
+              <MenuItem key={opt.value}
+value={opt.value}
+sx={{ fontSize: 13 }}>
+                <Stack direction="row"
+alignItems="center"
+spacing={1}>
                   {PLATFORM_COLORS[opt.value] && (
                     <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: PLATFORM_COLORS[opt.value], flexShrink: 0 }} />
                   )}
@@ -194,19 +218,27 @@ export default function CampaignsFilters({ filters, setFilters, storeId }: Props
         </FormControl>
 
         {/* Delivery Rate */}
-        <FormControl size="small" sx={{ flex: { xs: '1 1 calc(50% - 6px)', sm: '0 0 104px' }, ...selectSx }}>
+        <FormControl size="small"
+sx={{ flex: { xs: '1 1 calc(50% - 6px)', sm: '0 0 104px' }, ...selectSx }}>
           <Select
             value={filters.deliveryRate || 'all'}
             displayEmpty
             onChange={(e) => patch({ deliveryRate: e.target.value === 'all' ? '' : String(e.target.value) })}
           >
-            <MenuItem value="all" sx={{ fontSize: 13 }}>{t('All Rates')}</MenuItem>
-            <MenuItem value="0" sx={{ fontSize: 13 }}>0%</MenuItem>
-            <MenuItem value="lt_20" sx={{ fontSize: 13 }}>&lt; 20%</MenuItem>
-            <MenuItem value="lt_50" sx={{ fontSize: 13 }}>&lt; 50%</MenuItem>
-            <MenuItem value="gt_50" sx={{ fontSize: 13 }}>&gt; 50%</MenuItem>
-            <MenuItem value="gt_80" sx={{ fontSize: 13 }}>&gt; 80%</MenuItem>
-            <MenuItem value="100" sx={{ fontSize: 13 }}>100%</MenuItem>
+            <MenuItem value="all"
+sx={{ fontSize: 13 }}>{t('All Rates')}</MenuItem>
+            <MenuItem value="0"
+sx={{ fontSize: 13 }}>0%</MenuItem>
+            <MenuItem value="lt_20"
+sx={{ fontSize: 13 }}>&lt; 20%</MenuItem>
+            <MenuItem value="lt_50"
+sx={{ fontSize: 13 }}>&lt; 50%</MenuItem>
+            <MenuItem value="gt_50"
+sx={{ fontSize: 13 }}>&gt; 50%</MenuItem>
+            <MenuItem value="gt_80"
+sx={{ fontSize: 13 }}>&gt; 80%</MenuItem>
+            <MenuItem value="100"
+sx={{ fontSize: 13 }}>100%</MenuItem>
           </Select>
         </FormControl>
 
@@ -245,17 +277,30 @@ export default function CampaignsFilters({ filters, setFilters, storeId }: Props
             isOptionEqualToValue={(opt, val) => opt._id === val._id}
             clearOnEscape
             renderOption={(props, option) => (
-              <li key={option._id} {...props}>
-                <Stack direction="row" spacing={1.25} alignItems="center" sx={{ py: 0.25 }}>
-                  <Avatar src={option.image} sx={{ width: 26, height: 26 }} variant="rounded" />
+              <li key={option._id}
+{...props}>
+                <Stack direction="row"
+spacing={1.25}
+alignItems="center"
+sx={{ py: 0.25 }}>
+                  <Avatar src={option.image}
+sx={{ width: 26, height: 26 }}
+variant="rounded" />
                   <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="body2" fontWeight={700} noWrap>{option.name}</Typography>
-                    <Typography variant="caption" color="text.secondary" noWrap>
+                    <Typography variant="body2"
+fontWeight={700}
+noWrap>{option.name}</Typography>
+                    <Typography variant="caption"
+color="text.secondary"
+noWrap>
                       {option.address || ''}{option.zipCode ? ` · ${option.zipCode}` : ''}
                     </Typography>
                   </Box>
                   {!option.active && (
-                    <Chip size="small" label={t('Inactive')} variant="outlined" sx={{ ml: 'auto' }} />
+                    <Chip size="small"
+label={t('Inactive')}
+variant="outlined"
+sx={{ ml: 'auto' }} />
                   )}
                 </Stack>
               </li>

@@ -23,16 +23,17 @@ interface NavItemProps {
   item: MenuItem;
 }
 
+/** Encabezado de grupo: 9.5px con tracking amplio, como en el diseño. */
 const ListSubheaderWrapper = styled(ListSubheader)<ListProps<'div', { component: 'div' }>>(
   ({ theme }) => ({
     background: neutral[900],
     textTransform: 'uppercase',
     fontWeight: 700,
-    fontSize: 10,
-    letterSpacing: '0.08em',
-    color: alpha(neutral[400], 0.6),
-    lineHeight: theme.spacing(4),
-    padding: theme.spacing(1, 2, 0.25),
+    fontSize: 9.5,
+    letterSpacing: '1.4px',
+    color: alpha(neutral[400], 0.75),
+    lineHeight: theme.spacing(3.4),
+    padding: theme.spacing(1.6, 1.25, 0.75),
   })
 );
 

@@ -432,6 +432,11 @@ export const createComponents = ({ palette }: ComponentsConfig): Components => {
       },
     },
     MuiAvatar: {
+      // Un avatar siempre va acompañado del nombre en texto: es decorativo.
+      // Sin `alt` el <img> queda sin atributo y falla la auditoría; con alt=""
+      // el lector de pantalla lo salta, que es lo correcto. Poner un alt real
+      // haría que se lea el nombre dos veces.
+      defaultProps: { alt: '' },
       styleOverrides: {
         colorDefault: {
           backgroundColor: palette.background!.default,
@@ -440,6 +445,11 @@ export const createComponents = ({ palette }: ComponentsConfig): Components => {
           color: palette.neutral![800],
         },
       },
+    },
+    MuiLinearProgress: {
+      // Sin nombre, el lector de pantalla anuncia "barra de progreso, 78" sin
+      // decir de qué. Cada uso puede pasar el suyo y pisa este.
+      defaultProps: { 'aria-label': 'Progreso' },
     },
     MuiChip: {
       styleOverrides: {

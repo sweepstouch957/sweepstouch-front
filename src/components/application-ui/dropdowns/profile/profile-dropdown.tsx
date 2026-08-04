@@ -1,4 +1,5 @@
 import { useAuth } from '@/hooks/use-auth';
+import { avatarSrc } from '@/utils/avatar';
 import ChevronRightTwoToneIcon from '@mui/icons-material/ChevronRightTwoTone';
 import LockOpenTwoToneIcon from '@mui/icons-material/LockOpenTwoTone';
 import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded';
@@ -116,8 +117,8 @@ export const ProfileDropdown: FC<ProfileDropdownProps> = (props) => {
           }}
         >
           <Avatar
-            src={user?.profileImage || ''}
-            alt={user?.firstName || 'User'}
+            src={avatarSrc(user?.profileImage, 46)}
+            alt=""
             sx={{
               width: 46,
               height: 46,
@@ -130,8 +131,11 @@ export const ProfileDropdown: FC<ProfileDropdownProps> = (props) => {
           >
             {initials}
           </Avatar>
-          <Box flex={1} minWidth={0}>
-            <Typography variant="subtitle2" fontWeight={700} noWrap>
+          <Box flex={1}
+minWidth={0}>
+            <Typography variant="subtitle2"
+fontWeight={700}
+noWrap>
               {user?.firstName} {user?.lastName}
             </Typography>
             <Chip

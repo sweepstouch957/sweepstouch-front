@@ -23,6 +23,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import type { Theme } from '@mui/material/styles';
 import { tint, tintBorder } from '@/theme/semantic';
+import { panelBorder, panelBorderColor } from '../../content-shells/store-managment/panel-kit';
 
 export type BillingBucketSummary = {
   count: number;
@@ -101,9 +102,9 @@ export function StoresBillingHeader({ status = 'all', onFilterByDebt, activeDebt
       elevation={0}
       sx={{
         mb: 1.5,
-        borderRadius: 2.5,
-        border: '1px solid',
-        borderColor: 'divider',
+        // Radio 18 y borde casi invisible: la tarjeta del Store Panel 2.0
+        borderRadius: '18px',
+        border: (t) => panelBorder(t),
         overflow: 'hidden',
       }}
     >
@@ -128,13 +129,23 @@ export function StoresBillingHeader({ status = 'all', onFilterByDebt, activeDebt
           {STATUS_SCOPE_LABEL[status] ?? 'Todas'}
         </Typography>
 
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
+        <Divider orientation="vertical"
+flexItem
+sx={{ mx: 0.25 }} />
 
         {isLoading ? (
-          <Stack direction="row" spacing={1} sx={{ flex: 1 }}>
-            <Skeleton width={80} height={24} sx={{ borderRadius: 1 }} />
-            <Skeleton width={70} height={24} sx={{ borderRadius: 1 }} />
-            <Skeleton width={100} height={24} sx={{ borderRadius: 1 }} />
+          <Stack direction="row"
+spacing={1}
+sx={{ flex: 1 }}>
+            <Skeleton width={80}
+height={24}
+sx={{ borderRadius: 1 }} />
+            <Skeleton width={70}
+height={24}
+sx={{ borderRadius: 1 }} />
+            <Skeleton width={100}
+height={24}
+sx={{ borderRadius: 1 }} />
           </Stack>
         ) : (
           <Stack
@@ -222,27 +233,35 @@ export function StoresBillingHeader({ status = 'all', onFilterByDebt, activeDebt
             const bucket = data?.[cfg.key] as BillingBucketSummary | undefined;
             const isActive = activeDebtStatus === cfg.key;
             return (
-              <Tooltip key={cfg.key} title={cfg.tooltip} placement="top" arrow>
+              <Tooltip key={cfg.key}
+title={cfg.tooltip}
+placement="top"
+arrow>
                 <Box
                   onClick={() => onFilterByDebt?.(isActive ? 'all' : cfg.key)}
+                  role="button"
+                  aria-pressed={isActive}
                   sx={{
-                    display: 'flex', flexDirection: 'column', gap: 0.5,
-                    px: 2, py: 1.5, borderRadius: 2.5, minWidth: 96,
-                    bgcolor: isActive
-                      ? alpha(cfg.color, theme.palette.mode === 'dark' ? 0.32 : 0.18)
-                      : alpha(cfg.color, theme.palette.mode === 'dark' ? 0.14 : 0.07),
-                    border: '2px solid',
-                    borderColor: isActive ? cfg.color : alpha(cfg.color, 0.3),
+                    display: 'flex', flexDirection: 'column', gap: 0.6,
+                    px: 2, py: 1.5, borderRadius: '16px', minWidth: 108,
+                    // Sin seleccionar la cubeta es una tarjeta blanca; el color
+                    // vive en el punto y la etiqueta. Seis bloques teñidos a la
+                    // vez son un semáforo y no se distingue cuál está activo.
+                    bgcolor: isActive ? alpha(cfg.color, 0.12) : 'background.paper',
+                    border: '1px solid',
+                    borderColor: isActive ? alpha(cfg.color, 0.55) : (t) => panelBorderColor(t),
                     cursor: onFilterByDebt ? 'pointer' : 'default',
-                    transition: 'background-color 0.15s, transform 0.15s, border-color 0.15s',
+                    transition: 'background-color .18s, border-color .18s',
                     '&:hover': onFilterByDebt ? {
-                      borderColor: alpha(cfg.color, 0.6),
-                      bgcolor: alpha(cfg.color, theme.palette.mode === 'dark' ? 0.24 : 0.13),
-                      transform: 'translateY(-1px)',
+                      borderColor: alpha(cfg.color, 0.5),
+                      bgcolor: alpha(cfg.color, 0.06),
                     } : {},
+                    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                   }}
                 >
-                  <Stack direction="row" alignItems="center" spacing={0.6}>
+                  <Stack direction="row"
+alignItems="center"
+spacing={0.6}>
                     <Box
                       sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: cfg.color, flexShrink: 0 }}
                     />
@@ -260,13 +279,15 @@ export function StoresBillingHeader({ status = 'all', onFilterByDebt, activeDebt
                   </Stack>
                   <Typography
                     sx={{
-                      fontSize: 22, fontWeight: 800, lineHeight: 1.1,
+                      fontSize: 25, fontWeight: 700, lineHeight: 1,
+                      letterSpacing: '-0.7px',
                       fontVariantNumeric: 'tabular-nums',
                     }}
                   >
                     {bucket?.count ?? 0}
                   </Typography>
-                  <Typography color="text.secondary" sx={{ fontSize: 11, fontWeight: 600 }}>
+                  <Typography color="text.secondary"
+sx={{ fontSize: 11, fontWeight: 600 }}>
                     {formatMoney(bucket?.totalPending ?? 0)}
                   </Typography>
                 </Box>

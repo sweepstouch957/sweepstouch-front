@@ -1,6 +1,7 @@
 'use client';
 
 import { type Department } from '@/services/department.service';
+import { avatarSrc } from '@/utils/avatar';
 import { EPIC_COLORS, epicService, type Epic, type EpicDto } from '@/services/epic.service';
 import { type Project } from '@/services/task.service';
 import {
@@ -1046,7 +1047,7 @@ minWidth={0}>
               renderOption={(props, o: any) => (
                 <li {...props}>
                   <Avatar
-                    src={o.profileImage}
+                    src={avatarSrc(o.profileImage)}
                     sx={{ width: 22, height: 22, mr: 1, fontSize: 10 }}
                   >
                     {o.firstName?.[0]}

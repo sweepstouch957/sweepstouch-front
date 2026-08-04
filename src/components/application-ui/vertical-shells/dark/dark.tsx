@@ -41,7 +41,18 @@ export const VerticalShellsDark: FC<VerticalShellsDarkProps> = (props) => {
         }}
       >
         <Header onMobileNav={mobileNav.handleOpen} />
-        {children}
+        {/* Landmark <main>: sin él, un lector de pantalla no puede saltarse el
+            menú y la cabecera para llegar al contenido de la página. */}
+        <Box
+          component="main"
+          id="contenido"
+          flex={1}
+          display="flex"
+          flexDirection="column"
+          minHeight={0}
+        >
+          {children}
+        </Box>
       </Box>
     </>
   );

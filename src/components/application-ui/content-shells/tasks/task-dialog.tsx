@@ -1,3 +1,4 @@
+import { avatarSrc } from '@/utils/avatar';
 import { draftTaskFromTitle } from '@/services/ai.service';
 import { EPIC_COLORS, epicService, type Epic } from '@/services/epic.service';
 import { RECURRENCE_LABEL, Task, taskClient, type Recurrence, type TaskFile } from '@/services/task.service';
@@ -884,7 +885,7 @@ function AssigneeField({
       renderOption={(props, option: any) => (
         <li {...props}>
           <Avatar
-            src={option.profileImage}
+            src={avatarSrc(option.profileImage)}
             sx={{ width: 24, height: 24, mr: 1, fontSize: 10 }}
           >
             {option.firstName?.[0]}
@@ -900,7 +901,7 @@ function AssigneeField({
             ...params.InputProps,
             startAdornment: assigneeId ? (
               <Avatar
-                src={assigneeAvatar}
+                src={avatarSrc(assigneeAvatar)}
                 sx={{ width: 20, height: 20, mr: 0.5, ml: 0.5, fontSize: 9 }}
               >
                 {assigneeName?.[0]}

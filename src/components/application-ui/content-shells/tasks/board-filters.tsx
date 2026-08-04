@@ -1,6 +1,7 @@
 'use client';
 
 import { type Department } from '@/services/department.service';
+import { avatarSrc } from '@/utils/avatar';
 import { type Epic } from '@/services/epic.service';
 import AlternateEmailRoundedIcon from '@mui/icons-material/AlternateEmailRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
@@ -208,7 +209,7 @@ export const BoardFilters = React.memo(function BoardFilters(props: BoardFilters
                 checked={selected}
               />
               <Avatar
-                src={option.profileImage}
+                src={avatarSrc(option.profileImage)}
                 sx={{ width: 24, height: 24, mr: 1, fontSize: 10 }}
               >
                 {option.firstName?.[0]}
@@ -239,7 +240,7 @@ export const BoardFilters = React.memo(function BoardFilters(props: BoardFilters
                 size="small"
                 {...getTagProps({ index: i })}
                 label={fullName(u)}
-                avatar={<Avatar src={u.profileImage}>{u.firstName?.[0]}</Avatar>}
+                avatar={<Avatar src={avatarSrc(u.profileImage)}>{u.firstName?.[0]}</Avatar>}
               />
             ))
           }
@@ -383,7 +384,7 @@ export const BoardFilters = React.memo(function BoardFilters(props: BoardFilters
                 title={fullName(u)}
                 arrow
               >
-                <Avatar src={u.profileImage}>{u.firstName?.[0]}</Avatar>
+                <Avatar src={avatarSrc(u.profileImage)}>{u.firstName?.[0]}</Avatar>
               </Tooltip>
             ))}
           </AvatarGroup>

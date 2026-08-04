@@ -53,6 +53,7 @@ import { format } from 'date-fns';
 import React, { useState } from 'react';
 import { DateRange } from 'react-date-range';
 import { useTranslation } from 'react-i18next';
+import { panelDivider } from '../application-ui/content-shells/store-managment/panel-kit';
 import StoreKioskCard from '../application-ui/composed-blocks/kiosk';
 import StoreGeneralForm from '../application-ui/form-layouts/store/edit';
 import StoreHeader from '../application-ui/headings/store/store-create';
@@ -143,7 +144,10 @@ const MEMBERSHIP_LABEL: Record<string, string> = {
  * para estado accionable (crédito, pausa vigente, borrar).
  */
 
-/* ── Encabezado de sección: etiqueta + regla fina ─────────────── */
+/* ── Sección: tarjeta blanca con cabecera, del Store Panel 2.0 ──────────────
+   Antes era una etiqueta suelta con una regla fina; el diseño encierra cada
+   bloque en su propia tarjeta, que es lo que hace que la página deje de leerse
+   como un formulario largo y pase a leerse como fichas. */
 function Section({
   label,
   hint,
@@ -165,44 +169,44 @@ function Section({
       <Stack
         direction="row"
         alignItems="center"
-        spacing={1.25}
-        mb={hint ? 0.5 : 1.5}
+        flexWrap="wrap"
+        useFlexGap
+        gap={1}
+        sx={(t) => ({
+          pb: 1.25,
+          mb: 1.75,
+          borderBottom: `1px solid ${panelDivider(t)}`,
+          minWidth: 0,
+        })}
       >
         <Typography
-          variant="caption"
-          fontWeight={600}
-          letterSpacing={0.8}
-          textTransform="uppercase"
-          color="text.secondary"
-          sx={{ fontSize: 11, flexShrink: 0 }}
+          component="h2"
+          sx={{ fontSize: 14.5, fontWeight: 700, m: 0 }}
         >
           {label}
         </Typography>
-        <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />
-        {action}
+        {hint && (
+          <Typography sx={{ fontSize: 11.5, color: 'text.secondary' }}>{hint}</Typography>
+        )}
+        {action && <Box sx={{ ml: 'auto', flexShrink: 0 }}>{action}</Box>}
       </Stack>
-      {hint && (
-        <Typography
-          variant="caption"
-          color="text.disabled"
-          sx={{ display: 'block', mb: 1.5, fontSize: 11.5 }}
-        >
-          {hint}
-        </Typography>
-      )}
       {children}
     </Box>
   );
 }
 
-/* ── Dato de solo lectura del resumen ─────────────────────────── */
+/* ── Dato de solo lectura: etiqueta en versalitas y el valor debajo ──────── */
 function Stat({ label, value, dot }: { label: string; value: React.ReactNode; dot?: string }) {
   return (
     <Box sx={{ px: { xs: 0, sm: 2.5 }, py: 0.25, minWidth: 0 }}>
       <Typography
-        variant="caption"
-        color="text.disabled"
-        sx={{ fontSize: 10.5, letterSpacing: 0.6, textTransform: 'uppercase' }}
+        sx={{
+          fontSize: 10,
+          fontWeight: 800,
+          letterSpacing: 1,
+          textTransform: 'uppercase',
+          color: 'text.disabled',
+        }}
       >
         {label}
       </Typography>
@@ -210,7 +214,7 @@ function Stat({ label, value, dot }: { label: string; value: React.ReactNode; do
         direction="row"
         alignItems="center"
         spacing={0.75}
-        mt={0.25}
+        mt={0.4}
       >
         {dot && (
           <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: dot, flexShrink: 0 }} />
@@ -228,7 +232,9 @@ function Stat({ label, value, dot }: { label: string; value: React.ReactNode; do
   );
 }
 
-/* ── Credencial: valor monoespaciado + copiar ─────────────────── */
+/* ── Credencial: valor monoespaciado + copiar ─────────────────────────────
+   Cada fila va separada por una línea, como en el diseño: son datos que se
+   copian de a uno, y el separador ayuda a no equivocarse de fila. */
 function Credential({
   label,
   value,
@@ -246,16 +252,19 @@ function Credential({
 }) {
   const target = copyValue ?? value;
   return (
-    <Box>
+    <Box
+      sx={(t) => ({
+        py: 1.15,
+        '&:not(:last-of-type)': { borderBottom: `1px solid ${panelDivider(t)}` },
+      })}
+    >
       <Stack
         direction="row"
         alignItems="center"
         spacing={1}
       >
         <Typography
-          variant="caption"
-          color="text.disabled"
-          sx={{ width: 88, flexShrink: 0, fontSize: 11.5 }}
+          sx={{ width: 88, flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'text.disabled' }}
         >
           {label}
         </Typography>
@@ -266,7 +275,7 @@ function Credential({
             minWidth: 0,
             fontFamily: mask ? 'inherit' : 'ui-monospace, SFMono-Regular, Menlo, monospace',
             fontSize: 12.5,
-            fontWeight: 600,
+            fontWeight: 650,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -280,8 +289,10 @@ function Credential({
           <span>
             <IconButton
               size="small"
+              aria-label={`Copiar ${label}`}
               onClick={() => onCopy(target, label)}
               disabled={!target}
+              sx={{ color: 'primary.main' }}
             >
               <ContentCopyOutlined sx={{ fontSize: 14 }} />
             </IconButton>
@@ -290,9 +301,7 @@ function Credential({
       </Stack>
       {helper && (
         <Typography
-          variant="caption"
-          color="text.disabled"
-          sx={{ display: 'block', pl: '96px', fontSize: 10.5, mt: -0.25 }}
+          sx={{ display: 'block', pl: '96px', fontSize: 10.5, mt: -0.25, color: 'text.disabled' }}
         >
           {helper}
         </Typography>
@@ -305,11 +314,10 @@ function Credential({
 function ListRow({ children, first }: { children: React.ReactNode; first?: boolean }) {
   return (
     <Box
-      sx={{
+      sx={(t) => ({
         py: 1.5,
-        borderTop: first ? 'none' : '1px solid',
-        borderColor: 'divider',
-      }}
+        borderTop: first ? 'none' : `1px solid ${panelDivider(t)}`,
+      })}
     >
       {children}
     </Box>
@@ -319,7 +327,6 @@ function ListRow({ children, first }: { children: React.ReactNode; first?: boole
 function EmptyLine({ children }: { children: React.ReactNode }) {
   return (
     <Typography
-      variant="body2"
       color="text.disabled"
       sx={{ fontSize: 12.5, py: 1.5 }}
     >

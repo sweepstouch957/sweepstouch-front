@@ -1,3 +1,4 @@
+import { avatarSrc } from '@/utils/avatar';
 import { Task } from '@/services/task.service';
 import AttachFileRoundedIcon from '@mui/icons-material/AttachFileRounded';
 import CalendarTodayRoundedIcon from '@mui/icons-material/CalendarTodayRounded';
@@ -60,7 +61,9 @@ export const KanbanTaskCard = React.memo(
           ref={paperRef}
           elevation={dragging ? 12 : 0}
           role="button"
-          aria-label={`${task.identifier} ${task.title}`}
+          // Sin aria-label: el contenido de la tarjeta YA es su nombre accesible.
+          // Un label propio que no incluya todo el texto visible (la prioridad)
+          // rompe la regla "label-content-name-mismatch".
           onKeyDown={(e: React.KeyboardEvent) => {
             // Espacio lo usa el arrastre por teclado de pangea: sólo Enter abre
             if (e.key === 'Enter') {
@@ -283,6 +286,7 @@ export const KanbanTaskCard = React.memo(
                 <LinearProgress
                   variant="determinate"
                   value={task.progress}
+                  aria-label={`Avance: ${task.progress}%`}
                   sx={{
                     height: 3,
                     borderRadius: 2,
@@ -424,7 +428,7 @@ export const KanbanTaskCard = React.memo(
                   placement="top"
                 >
                   <Avatar
-                    src={task.assigneeAvatar}
+                    src={avatarSrc(task.assigneeAvatar)}
                     sx={{
                       width: 22,
                       height: 22,

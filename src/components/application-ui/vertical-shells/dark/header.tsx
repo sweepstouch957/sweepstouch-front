@@ -1,4 +1,5 @@
 import { useAuth } from '@/hooks/use-auth';
+import { avatarSrc } from '@/utils/avatar';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import WidgetsOutlinedIcon from '@mui/icons-material/WidgetsOutlined';
@@ -6,6 +7,7 @@ import {
   alpha,
   AppBar,
   Avatar,
+  Box,
   Chip,
   IconButton,
   Stack,
@@ -80,15 +82,30 @@ export const Header: FC<HeaderProps> = (props) => {
     ? `${(authUser.firstName || '')[0] || ''}${(authUser.lastName || '')[0] || ''}`.toUpperCase()
     : 'U';
 
+  /**
+   * Botones del clúster de acciones (Store Panel 2.0): 30×30 con radio 9,
+   * agrupados dentro de una sola cápsula. Antes flotaban sueltos y la cabecera
+   * se leía como seis controles inconexos.
+   */
   const iconBtnSx = {
-    '&:hover': {
-      background: alpha(theme.palette.primary.main, 0.06),
-    },
-    '& .MuiSvgIcon-root': {
-      fontSize: 21,
-    },
-    p: 0.8,
-    borderRadius: 1.5,
+    width: 30,
+    height: 30,
+    borderRadius: '9px',
+    p: 0,
+    '&:hover': { background: alpha(theme.palette.primary.main, 0.08) },
+    '& .MuiSvgIcon-root': { fontSize: 19 },
+  };
+
+  /** La cápsula que agrupa los botones. */
+  const clusterSx = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 0.25,
+    height: 38,
+    px: 0.5,
+    borderRadius: '12px',
+    bgcolor: alpha(theme.palette.text.primary, isDark ? 0.06 : 0.028),
+    border: `1px solid ${alpha(theme.palette.divider, 0.9)}`,
   };
 
   return (
@@ -110,11 +127,15 @@ export const Header: FC<HeaderProps> = (props) => {
         alignItems="center"
       >
         {/* ─── Left side ─── */}
-        <Stack direction="row" alignItems="center" spacing={1}>
+        <Stack direction="row"
+alignItems="center"
+spacing={1}>
           {!lgUp && <Logo isLinkStatic />}
-          <Tooltip title="Search (Ctrl+M)" arrow>
+          <Tooltip title="Search (Ctrl+M)"
+arrow>
             <IconButton
               color="inherit"
+              aria-label="Buscar en el panel"
               onClick={dialog.handleOpen}
               sx={iconBtnSx}
             >
@@ -132,36 +153,52 @@ export const Header: FC<HeaderProps> = (props) => {
                 fontSize: 10,
                 fontWeight: 700,
                 cursor: 'pointer',
-                opacity: 0.4,
+                // 0.4 dejaba el texto por debajo de 4.5:1 sobre la cabecera
+                opacity: 0.75,
                 borderRadius: 1,
-                '&:hover': { opacity: 0.8 },
+                '&:hover': { opacity: 1 },
               }}
             />
           )}
         </Stack>
 
         {/* ─── Right side ─── */}
-        <Stack direction="row" alignItems="center" spacing={0.5}>
-          {smUp && (
-            <>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1}
+        >
+          <Box sx={clusterSx}>
+            {smUp && (
+              <>
                 <NotificationsDropdown />
-              <IconButton
-                sx={iconBtnSx}
-                color="inherit"
-                onClick={widgets.handleOpen}
-              >
-                <WidgetsOutlinedIcon />
-              </IconButton>
-              <LanguageDropdown
-                color="inherit"
-                sx={iconBtnSx}
-              />
-            </>
-          )}
-          <CustomizationButton
-            color="inherit"
-            sx={iconBtnSx}
-          />
+                <IconButton
+                  sx={iconBtnSx}
+                  color="inherit"
+                  aria-label="Accesos rápidos"
+                  onClick={widgets.handleOpen}
+                >
+                  <WidgetsOutlinedIcon />
+                </IconButton>
+                <LanguageDropdown
+                  color="inherit"
+                  sx={iconBtnSx}
+                />
+                <Box
+                  sx={{
+                    width: '1px',
+                    height: 18,
+                    bgcolor: alpha(theme.palette.divider, 0.9),
+                    mx: 0.25,
+                  }}
+                />
+              </>
+            )}
+            <CustomizationButton
+              color="inherit"
+              sx={iconBtnSx}
+            />
+          </Box>
 
           {/* ─── Profile avatar ─── */}
           <IconButton
@@ -184,8 +221,8 @@ export const Header: FC<HeaderProps> = (props) => {
             ref={popover.anchorRef}
           >
             <Avatar
-              alt={authUser?.firstName || 'User'}
-              src={authUser?.profileImage || ''}
+              alt=""
+              src={avatarSrc(authUser?.profileImage, 32)}
               sx={{
                 height: 32,
                 width: 32,
@@ -203,6 +240,7 @@ export const Header: FC<HeaderProps> = (props) => {
             <IconButton
               onClick={onMobileNav}
               color="inherit"
+              aria-label="Abrir el menú"
               sx={iconBtnSx}
             >
               <MenuRoundedIcon />

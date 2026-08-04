@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/hooks/use-auth';
+import { avatarSrc } from '@/utils/avatar';
 import {
   commentService,
   mentionToken,
@@ -350,7 +351,7 @@ export function TaskComments({
                 }}
               >
                 <Avatar
-                  src={c.authorAvatar || undefined}
+                  src={avatarSrc(c.authorAvatar)}
                   sx={{
                     width: 28,
                     height: 28,
@@ -694,7 +695,7 @@ color="inherit" /> : <SendRoundedIcon sx={{ fontSize: 15 }} />}
                 }}
               >
                 <Avatar
-                  src={u.profileImage}
+                  src={avatarSrc(u.profileImage)}
                   sx={{ width: 24, height: 24, fontSize: 10, bgcolor: alpha(color, 0.16), color }}
                 >
                   {initials(name)}

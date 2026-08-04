@@ -466,6 +466,8 @@ export const createComponents = ({ palette }: ComponentsConfig): Components => {
       },
     },
     MuiAvatar: {
+      // Decorativo: el nombre siempre está al lado en texto. Ver el tema claro.
+      defaultProps: { alt: '' },
       styleOverrides: {
         colorDefault: {
           backgroundColor: 'transparent',
@@ -474,6 +476,9 @@ export const createComponents = ({ palette }: ComponentsConfig): Components => {
           color: palette.neutral![300],
         },
       },
+    },
+    MuiLinearProgress: {
+      defaultProps: { 'aria-label': 'Progreso' },
     },
     MuiChip: {
       styleOverrides: {

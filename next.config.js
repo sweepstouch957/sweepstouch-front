@@ -48,6 +48,23 @@ const config = {
   reactStrictMode: false,
   transpilePackages: ['@mui/x-charts'],
 
+  experimental: {
+    /**
+     * Sin esto, `import { Box, Stack } from '@mui/material'` arrastra el barrel
+     * entero: el panel cargaba ~1,35 s de JS en dos chunks (TBT 670 ms). Next
+     * reescribe cada import a su ruta profunda y sólo entra lo que se usa.
+     */
+    optimizePackageImports: [
+      '@mui/material',
+      '@mui/icons-material',
+      '@mui/lab',
+      '@mui/x-charts',
+      '@mui/x-date-pickers',
+      'date-fns',
+      'lodash',
+    ],
+  },
+
   // ✅ Remove console.log in production builds
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,

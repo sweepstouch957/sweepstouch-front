@@ -568,6 +568,7 @@ function Tasks(): React.JSX.Element {
           >
             <IconButton
               size="small"
+              aria-label="Volver a los proyectos"
               onClick={() => push('/admin/applications/projects-board')}
               sx={{ p: 0.5 }}
             >
@@ -598,10 +599,10 @@ function Tasks(): React.JSX.Element {
             {totalTasks > 0 && (
               <Typography
                 variant="caption"
-                color="text.secondary"
-                sx={{ ml: 0.5, fontSize: 11, whiteSpace: 'nowrap' }}
+                color="text.primary"
+                sx={{ ml: 0.5, fontSize: 11.5, fontWeight: 600, whiteSpace: 'nowrap', opacity: 0.75 }}
               >
-                {doneTasks}/{totalTasks} done · {projectProgress}%
+                {doneTasks}/{totalTasks} cerradas · {projectProgress}%
               </Typography>
             )}
           </Stack>
@@ -727,6 +728,7 @@ function Tasks(): React.JSX.Element {
           <LinearProgress
             variant="determinate"
             value={projectProgress}
+            aria-label={`Avance del proyecto: ${projectProgress}%`}
             sx={{
               height: 3,
               borderRadius: 2,
@@ -935,20 +937,27 @@ function ActionButton({
   color?: 'info' | 'warning';
   onClick: () => void;
 }) {
+  const theme = useTheme();
+  // El texto usa el tono OSCURO del color, no el `main`: en 11.5px sobre blanco
+  // el `main` de info y warning no llega a 4.5:1. El borde sí puede ser claro.
+  const tone = color ? theme.palette[color].dark : theme.palette.text.primary;
+
   return (
     <Button
       variant="outlined"
       size="small"
-      color={color}
       startIcon={icon}
       onClick={onClick}
       sx={{
         borderRadius: 2,
         textTransform: 'none',
-        fontWeight: 600,
+        fontWeight: 700,
         fontSize: 11.5,
         py: 0.5,
         px: 1.5,
+        color: tone,
+        borderColor: alpha(tone, 0.35),
+        '&:hover': { borderColor: tone, bgcolor: alpha(tone, 0.06) },
       }}
     >
       {label}

@@ -1,6 +1,7 @@
 'use client';
 
 import { usersApi } from '@/mocks/users';
+import { avatarSrc } from '@/utils/avatar';
 import { departmentService } from '@/services/department.service';
 import { epicService } from '@/services/epic.service';
 import { Task, taskClient, type TaskFile } from '@/services/task.service';
@@ -408,7 +409,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                     {(assignee || value('assigneeName')) && (
                       <Chip
                         avatar={
-                          <Avatar src={assignee?.profileImage || value('assigneeAvatar')}>
+                          <Avatar src={avatarSrc(assignee?.profileImage || value('assigneeAvatar'))}>
                             {(value('assigneeName') || '?')[0]}
                           </Avatar>
                         }
@@ -745,7 +746,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                       renderOption={(props, o: any) => (
                         <li {...props}>
                           <Avatar
-                            src={o.profileImage}
+                            src={avatarSrc(o.profileImage)}
                             sx={{ width: 24, height: 24, mr: 1, fontSize: 10 }}
                           >
                             {o.firstName?.[0]}
@@ -777,7 +778,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                             ...params.InputProps,
                             startAdornment: assignee ? (
                               <Avatar
-                                src={assignee.profileImage}
+                                src={avatarSrc(assignee.profileImage)}
                                 sx={{ width: 22, height: 22, ml: 0.5, mr: 0.25, fontSize: 10 }}
                               >
                                 {assignee.firstName?.[0]}
