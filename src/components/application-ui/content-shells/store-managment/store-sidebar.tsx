@@ -80,33 +80,33 @@ const STORE_GROUPS: {
   {
     title: 'La tienda',
     items: [
-      { id: 'general-info', label: 'General', icon: <InfoIcon /> },
-      { id: 'brand', label: 'Marca', icon: <BrandIcon /> },
-      { id: 'equipment', label: 'Equipo', icon: <DevicesIcon /> },
+      { id: 'general-info', label: 'Perfil de la tienda', icon: <InfoIcon /> },
+      { id: 'brand', label: 'Marca y arte', icon: <BrandIcon /> },
     ],
   },
   {
-    title: 'Su gente',
+    title: 'Marketing',
     items: [
       { id: 'campaigns', label: 'Campañas', icon: <CampaignsIcon /> },
-      { id: 'customers', label: 'Clientes', icon: <PeopleIcon /> },
-      { id: 'opt-in', label: 'Opt-in MMS', icon: <SmsIcon /> },
+      { id: 'sweepstakes', label: 'Sorteos', icon: <RewardIcon /> },
+      { id: 'welcome-coupons', label: 'Cupones de bienvenida', icon: <CouponIcon /> },
+      { id: 'opt-in', label: 'Captación de opt-in', icon: <SmsIcon /> },
+      { id: 'ads', label: 'Publicidad en kiosko', icon: <Analytics /> },
+    ],
+  },
+  {
+    title: 'Operación',
+    items: [
+      { id: 'equipment', label: 'Tablets y equipos', icon: <DevicesIcon /> },
+      { id: 'qr', label: 'Códigos QR', icon: <QrCode2Outlined /> },
       { id: 'cajeras', label: 'Cajeras', icon: <Woman2 /> },
     ],
   },
   {
-    title: 'Promociones',
+    title: 'Datos y dinero',
     items: [
-      { id: 'sweepstakes', label: 'Sorteos', icon: <RewardIcon /> },
-      { id: 'welcome-coupons', label: 'Cupones', icon: <CouponIcon /> },
-      { id: 'qr', label: 'QR', icon: <QrCode2Outlined /> },
-    ],
-  },
-  {
-    title: 'Dinero',
-    items: [
+      { id: 'customers', label: 'Clientes', icon: <PeopleIcon /> },
       { id: 'billing', label: 'Facturación', icon: <MonetizationOn /> },
-      { id: 'ads', label: 'Ads', icon: <Analytics /> },
     ],
   },
 ];

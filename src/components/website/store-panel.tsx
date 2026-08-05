@@ -53,7 +53,18 @@ import { format } from 'date-fns';
 import React, { useState } from 'react';
 import { DateRange } from 'react-date-range';
 import { useTranslation } from 'react-i18next';
-import { panelDivider } from '../application-ui/content-shells/store-managment/panel-kit';
+import { campaignClient } from '@/services/campaing.service';
+import CampaignRounded from '@mui/icons-material/CampaignRounded';
+import PaymentsRounded from '@mui/icons-material/PaymentsRounded';
+import PeopleAltRounded from '@mui/icons-material/PeopleAltRounded';
+import TabletAndroidRounded from '@mui/icons-material/TabletAndroidRounded';
+import {
+  KpiCard,
+  KpiRow,
+  panelDivider,
+  PanelCard,
+  SectionHeader,
+} from '../application-ui/content-shells/store-managment/panel-kit';
 import StoreKioskCard from '../application-ui/composed-blocks/kiosk';
 import StoreGeneralForm from '../application-ui/form-layouts/store/edit';
 import StoreHeader from '../application-ui/headings/store/store-create';
@@ -162,36 +173,14 @@ function Section({
   sx?: any;
 }) {
   return (
-    <Box
-      component="section"
-      sx={sx}
-    >
-      <Stack
-        direction="row"
-        alignItems="center"
-        flexWrap="wrap"
-        useFlexGap
-        gap={1}
-        sx={(t) => ({
-          pb: 1.25,
-          mb: 1.75,
-          borderBottom: `1px solid ${panelDivider(t)}`,
-          minWidth: 0,
-        })}
-      >
-        <Typography
-          component="h2"
-          sx={{ fontSize: 14.5, fontWeight: 700, m: 0 }}
-        >
-          {label}
-        </Typography>
-        {hint && (
-          <Typography sx={{ fontSize: 11.5, color: 'text.secondary' }}>{hint}</Typography>
-        )}
-        {action && <Box sx={{ ml: 'auto', flexShrink: 0 }}>{action}</Box>}
-      </Stack>
-      {children}
-    </Box>
+    <PanelCard sx={sx}>
+      <SectionHeader
+        title={label}
+        hint={hint}
+        action={action}
+      />
+      <Box sx={{ p: { xs: 2, sm: 2.25 } }}>{children}</Box>
+    </PanelCard>
   );
 }
 
@@ -485,6 +474,18 @@ export default function StoreInfo({ store }: { store: Store }) {
     });
   };
 
+  /**
+   * Campañas enviadas por esta tienda. Es el único de los cuatro KPIs que no
+   * viene en el objeto `store`, así que sale del servicio que ya existe —el
+   * mismo que alimenta la pantalla de Campañas— en vez de un endpoint nuevo.
+   */
+  const { data: campaignStats, isLoading: loadingCampaignStats } = useQuery({
+    queryKey: ['store-campaign-stats', store._id],
+    enabled: Boolean(store?._id),
+    staleTime: 1000 * 60 * 5,
+    queryFn: () => campaignClient.getFilterStats({ storeId: String(store._id) }),
+  });
+
   const {
     data: merchantUser,
     isLoading: loadingMerchant,
@@ -644,11 +645,19 @@ export default function StoreInfo({ store }: { store: Store }) {
     <Box sx={{ pb: { xs: 11, md: 13 } }}>
       <Card
         sx={{
-          overflow: 'hidden',
-          borderRadius: 3,
-          border: (tm) => `1px solid ${tm.palette.divider}`,
+          // Lienzo, no tarjeta: cada sección de adentro ya es su propia
+          // tarjeta. Encerrarlas en una card grande anidaba bordes.
+          overflow: 'visible',
+          borderRadius: 0,
+          border: 0,
+          bgcolor: 'transparent',
         }}
       >
+        {/* Portada: su propia tarjeta sobre el lienzo, con el resumen debajo */}
+        <PanelCard
+          hero
+          sx={{ mb: 1.5 }}
+        >
         <StoreHeader
           image={form.image}
           address={form.address}
@@ -667,56 +676,60 @@ export default function StoreInfo({ store }: { store: Store }) {
         {/* ── Resumen: sólo lectura, y sólo fuera del modo edición ──
             En edición los campos de abajo son la verdad; repetirlos arriba
             crea dos fuentes para el mismo dato. */}
+        </PanelCard>
+
+        {/* ── Los cuatro KPIs del diseño ──
+            Fuera del modo edición: ahí los campos de abajo son la verdad y
+            repetir el dato arriba crea dos fuentes para lo mismo. */}
         {!edit && (
-          <>
-            <Stack
-              direction="row"
-              divider={
-                <Divider
-                  orientation="vertical"
-                  flexItem
-                  sx={{ my: 0.5 }}
-                />
-              }
-              sx={{
-                px: { xs: 2, md: 3 },
-                py: 1.75,
-                gap: { xs: 2, sm: 0 },
-                overflowX: 'auto',
-                '&::-webkit-scrollbar': { display: 'none' },
-              }}
-            >
-              <Stat
-                label="Audiencia"
-                value={`${store.customerCount?.toLocaleString?.() ?? 0}`}
+          <Box sx={{ mb: 1.5 }}>
+            <KpiRow>
+              <KpiCard
+                icon={<PeopleAltRounded sx={{ fontSize: 17, color: 'primary.main' }} />}
+                label="Audiencia opt-in"
+                value={(store.customerCount ?? 0).toLocaleString()}
               />
-              <Stat
-                label="Membresía"
-                value={MEMBERSHIP_LABEL[form.membershipType as string] ?? '—'}
+              <KpiCard
+                icon={<CampaignRounded sx={{ fontSize: 17, color: 'info.main' }} />}
+                label="Campañas enviadas"
+                value={
+                  loadingCampaignStats ? '—' : (campaignStats?.total ?? 0).toLocaleString()
+                }
+                delta={
+                  campaignStats?.messages
+                    ? `${(campaignStats.messages.totalAudience ?? 0).toLocaleString()} alcanzadas`
+                    : undefined
+                }
               />
-              <Stat
+              <KpiCard
+                icon={<TabletAndroidRounded sx={{ fontSize: 17, color: 'success.main' }} />}
+                label="Tablets en piso"
+                value={store.equipment?.length ?? store.equipmentTotal ?? 0}
+                delta={MEMBERSHIP_LABEL[form.membershipType as string] ?? undefined}
+              />
+              <KpiCard
+                icon={<PaymentsRounded sx={{ fontSize: 17, color: 'warning.main' }} />}
                 label="Antigüedad"
                 value={formatAge(form.startContractDate as any)}
+                delta={statusMeta.label}
+                tone={statusMeta.label === 'Activa' ? 'success' : 'warning'}
               />
-              <Stat
-                label="Estado"
-                value={statusMeta.label}
-                dot={statusMeta.color}
-              />
-            </Stack>
-            <Divider />
-          </>
+            </KpiRow>
+          </Box>
         )}
 
-        <Grid container>
+        <Grid
+          container
+          spacing={1.5}
+        >
           {/* ── Columna principal: todo lo editable ─────────────── */}
           <Grid
             item
             xs={12}
             md={7}
             sx={{
-              borderRight: { md: `1px solid ${theme.palette.divider}` },
-              borderBottom: { xs: `1px solid ${theme.palette.divider}`, md: 'none' },
+              pr: { md: 1.5 },
+              pb: { xs: 1.5, md: 0 },
             }}
           >
             <Box p={{ xs: 2, md: 3 }}>
@@ -731,7 +744,7 @@ export default function StoreInfo({ store }: { store: Store }) {
 
               <Section
                 label="Facturación"
-                sx={{ mt: 4 }}
+                sx={{ mt: 1.5 }}
               >
                 <Grid
                   container

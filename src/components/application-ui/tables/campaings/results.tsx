@@ -523,19 +523,19 @@ sx={{ width: 80 }}>{t('Actions')}</TableCell>
                         onClick={() => handleStats(campaign._id)}
                       >
                         <TableCell onClick={(e) => e.stopPropagation()}>
-                          <Chip size="small"
-label={campaign.type}
-variant="outlined"
-sx={{ fontWeight: 900 }} />
+                          <Typography
+                            sx={{ fontSize: 12, fontWeight: 800, color: 'text.secondary' }}
+                          >
+                            {campaign.type}
+                          </Typography>
                         </TableCell>
 
                         <TableCell onClick={(e) => e.stopPropagation()}>
-                          <Typography variant="body2"
-fontWeight={600}
+                          <Typography sx={{ fontSize: 13, fontWeight: 650 }}
 noWrap>{localDate}</Typography>
                           {nyTime && (
                             <Typography variant="caption"
-color="info.main"
+color="text.secondary"
 fontWeight={600}
 noWrap
 display="block">
@@ -553,7 +553,8 @@ alignItems="center"
 gap={1}
 sx={{ minWidth: 0 }}>
                             <Avatar
-                              sx={{ width: 28, height: 28, cursor: 'pointer', border: `1px solid ${theme.palette.divider}`, flexShrink: 0 }}
+                              variant="rounded"
+                              sx={{ width: 30, height: 30, borderRadius: '9px', cursor: 'pointer', border: `1px solid ${theme.palette.divider}`, flexShrink: 0 }}
                               src={campaign.store?.image}
                               onClick={(e) => { e.stopPropagation(); campaign.store?._id && window.open(`/admin/management/stores/edit/${campaign.store._id}`, '_blank'); }}
                             />
