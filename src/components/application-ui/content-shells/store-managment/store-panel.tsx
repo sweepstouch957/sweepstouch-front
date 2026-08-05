@@ -51,6 +51,10 @@ const StoreManagementPage = () => {
         storeSlug={store?.slug}
         image={store?.image || ''}
         accessCode={store?.accessCode}
+        counts={{
+          customers: store?.customerCount,
+          equipment: store?.equipment?.length ?? store?.equipmentTotal,
+        }}
       />
 
       <Box

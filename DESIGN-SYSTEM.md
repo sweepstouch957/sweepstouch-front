@@ -63,6 +63,20 @@ El truco del diseño: el contenedor se pinta del color de la línea y las celdas
 </PanelCard>
 ```
 
+### Ya viene del tema — no lo repitas en cada página
+
+Estas tres cosas están en `src/theme/{light,dark}/create-components.ts`, así que
+**toda página del panel las hereda sin tocar nada**:
+
+| Componente | Qué hereda |
+|---|---|
+| `MuiCard` | radio **18**, borde de 1px, **`elevation: 0` y `boxShadow: none`** |
+| `MuiTableHead` | celdas en versalitas **10/800**, tracking 1, sobre banda apenas teñida |
+| `MuiTableCell` | **`tabular-nums`** en todo el cuerpo — las columnas de dinero alinean solas |
+
+Si una pantalla vieja se veía con sombra o con cabecera de tabla en 13px, ya no.
+No hace falta migrarla a mano para eso.
+
 ### Reglas de esta capa
 - **Un solo CTA rosa por bloque.** El resto son `outlined` o texto.
 - **Sin sombras.** La separación se consigue con el borde de 1px. Nada de `boxShadow`,

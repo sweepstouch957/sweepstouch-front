@@ -36,7 +36,7 @@ import ExportButton from '../../buttons/export-button';
 import Results from './results';
 import type { Theme } from '@mui/material/styles';
 import { tint, tintBorder } from '@/theme/semantic';
-import { panelBorder } from '../../content-shells/store-managment/panel-kit';
+import { PageHero, panelBorder } from '../../content-shells/store-managment/panel-kit';
 
 interface CampaignsGridProps {
   storeId?: string;
@@ -558,12 +558,27 @@ py={4}>
 
   return (
     <>
-      <PageHeading
-        title={t('Campaigns')}
-        description={t('Overview of ongoing campaigns')}
-        actions={<ExportButton eventName="campaigns:export"
-emitOnly />}
-      />
+      {/* Portada del Store Panel 2.0: el resumen de la red en una línea, con
+          los números del filtro activo — no un subtítulo genérico. */}
+      <Box sx={{ mb: 1.5 }}>
+        <PageHero
+          eyebrow={storeId ? 'Tienda · Campañas' : 'Management · Campaigns'}
+          title={storeId ? t('Campañas') : t('Campañas de la red')}
+          subtitle={
+            stats
+              ? `${(stats.total ?? 0).toLocaleString()} envíos · ${(
+                  stats.messages?.totalAudience ?? 0
+                ).toLocaleString()} personas alcanzadas`
+              : undefined
+          }
+          actions={
+            <ExportButton
+              eventName="campaigns:export"
+              emitOnly
+            />
+          }
+        />
+      </Box>
 
       <Box sx={{ mt: 3, mb: 1.5 }}>
         {(isFetching || statsFetching) && !isPending && (

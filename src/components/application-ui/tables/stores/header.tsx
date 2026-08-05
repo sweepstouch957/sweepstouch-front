@@ -23,7 +23,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import type { Theme } from '@mui/material/styles';
 import { tint, tintBorder } from '@/theme/semantic';
-import { panelBorder, panelBorderColor } from '../../content-shells/store-managment/panel-kit';
+import { DebtBucket, panelBorder } from '../../content-shells/store-managment/panel-kit';
 
 export type BillingBucketSummary = {
   count: number;
@@ -224,72 +224,35 @@ sx={{ borderRadius: 1 }} />
           sx={{
             px: { xs: 1.5, sm: 2 },
             py: 1.5,
-            display: 'flex',
-            gap: 1,
-            flexWrap: 'wrap',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+            gap: 1.25,
           }}
         >
           {bucketConfigs(theme).map((cfg) => {
             const bucket = data?.[cfg.key] as BillingBucketSummary | undefined;
-            const isActive = activeDebtStatus === cfg.key;
             return (
-              <Tooltip key={cfg.key}
-title={cfg.tooltip}
-placement="top"
-arrow>
-                <Box
-                  onClick={() => onFilterByDebt?.(isActive ? 'all' : cfg.key)}
-                  role="button"
-                  aria-pressed={isActive}
-                  sx={{
-                    display: 'flex', flexDirection: 'column', gap: 0.6,
-                    px: 2, py: 1.5, borderRadius: '16px', minWidth: 108,
-                    // Sin seleccionar la cubeta es una tarjeta blanca; el color
-                    // vive en el punto y la etiqueta. Seis bloques teñidos a la
-                    // vez son un semáforo y no se distingue cuál está activo.
-                    bgcolor: isActive ? alpha(cfg.color, 0.12) : 'background.paper',
-                    border: '1px solid',
-                    borderColor: isActive ? alpha(cfg.color, 0.55) : (t) => panelBorderColor(t),
-                    cursor: onFilterByDebt ? 'pointer' : 'default',
-                    transition: 'background-color .18s, border-color .18s',
-                    '&:hover': onFilterByDebt ? {
-                      borderColor: alpha(cfg.color, 0.5),
-                      bgcolor: alpha(cfg.color, 0.06),
-                    } : {},
-                    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                  }}
-                >
-                  <Stack direction="row"
-alignItems="center"
-spacing={0.6}>
-                    <Box
-                      sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: cfg.color, flexShrink: 0 }}
-                    />
-                    <Typography
-                      sx={{
-                        fontSize: 10, fontWeight: 900, textTransform: 'uppercase',
-                        letterSpacing: 0.7, color: cfg.color, lineHeight: 1,
-                      }}
-                    >
-                      {cfg.label}
-                    </Typography>
-                    <Typography sx={{ fontSize: 10, color: 'text.secondary', ml: 'auto' }}>
-                      {cfg.subtitle}
-                    </Typography>
-                  </Stack>
-                  <Typography
-                    sx={{
-                      fontSize: 25, fontWeight: 700, lineHeight: 1,
-                      letterSpacing: '-0.7px',
-                      fontVariantNumeric: 'tabular-nums',
-                    }}
-                  >
-                    {bucket?.count ?? 0}
-                  </Typography>
-                  <Typography color="text.secondary"
-sx={{ fontSize: 11, fontWeight: 600 }}>
-                    {formatMoney(bucket?.totalPending ?? 0)}
-                  </Typography>
+              <Tooltip
+                key={cfg.key}
+                title={cfg.tooltip}
+                placement="top"
+                arrow
+              >
+                <Box sx={{ minWidth: 0 }}>
+                  <DebtBucket
+                    label={cfg.label}
+                    age={cfg.subtitle}
+                    count={bucket?.count ?? 0}
+                    amount={formatMoney(bucket?.totalPending ?? 0)}
+                    color={cfg.color}
+                    share={overallPending > 0 ? (bucket?.totalPending ?? 0) / overallPending : 0}
+                    active={activeDebtStatus === cfg.key}
+                    onClick={
+                      onFilterByDebt
+                        ? () => onFilterByDebt(activeDebtStatus === cfg.key ? 'all' : cfg.key)
+                        : undefined
+                    }
+                  />
                 </Box>
               </Tooltip>
             );

@@ -119,10 +119,26 @@ export const createComponents = ({ palette }: ComponentsConfig): Components => {
         },
       },
     },
+    MuiCard: {
+      defaultProps: { elevation: 0 },
+      styleOverrides: {
+        root: {
+          // Superficie del Store Panel 2.0: radio 18, borde casi invisible y
+          // CERO sombra. La separación la da el borde, no la elevación.
+          borderRadius: 18,
+          border: `1px solid ${alpha(palette.neutral![100]!, 0.1)}`,
+          boxShadow: 'none',
+          backgroundImage: 'none',
+        },
+      },
+    },
     MuiTableCell: {
       styleOverrides: {
         root: {
           borderBottomColor: palette.divider,
+          // Store Panel 2.0: los números de una columna se comparan entre
+          // filas. Con cifras proporcionales los dígitos bailan.
+          fontVariantNumeric: 'tabular-nums',
         },
       },
     },
@@ -130,9 +146,14 @@ export const createComponents = ({ palette }: ComponentsConfig): Components => {
       styleOverrides: {
         root: {
           [`& .${tableCellClasses.root}`]: {
-            backgroundColor: alpha(palette.neutral![100], 0.04),
-            color: palette.neutral![25],
+            // Versalitas de 10px: la cabecera informa, no compite con los datos.
+            backgroundColor: alpha(palette.neutral![100]!, 0.04),
+            color: palette.text!.secondary,
             borderBottomColor: palette.divider,
+            fontSize: 10,
+            fontWeight: 800,
+            letterSpacing: 1,
+            textTransform: 'uppercase',
           },
         },
       },

@@ -1,9 +1,15 @@
 import type { UserRole } from '@/contexts/auth/user';
 import {
+  AddBusinessRounded,
   AdsClickOutlined,
   BookOutlined,
   BuildRounded,
   Campaign,
+  DescriptionRounded,
+  EventRounded,
+  ListAltRounded,
+  LocalOfferRounded,
+  NoteAddRounded,
   Person2Outlined,
   Redeem,
   Store,
@@ -130,13 +136,15 @@ const sweepstakesMenu = (t: (token: string) => string): MenuItem =>
   ]);
 
 const storesMenu = (t: (token: string) => string): MenuItem =>
+  // Submenú "MÓDULO" del Store Panel 2.0: cada entrada con su icono. Seis
+  // títulos sueltos en texto obligan a leerlos; con icono se reconocen de un ojo.
   buildMenu(t('Stores'), <Store />, [
-    { title: t('Listing'), route: routes.admin.management.stores.listing },
-    { title: t('Create Store'), route: routes.admin.management.stores.create },
-    { title: t('Brands'), route: routes.admin.management.stores.brands },
-    { title: t('Appointments & Schedule'), route: routes.admin.management.stores.appointments },
-    { title: t('Contracts'), route: routes.admin.management.stores.contracts },
-    { title: t('New Contract'), route: routes.admin.management.stores['contracts-create'] },
+    { title: t('Listado de tiendas'), route: routes.admin.management.stores.listing, icon: <ListAltRounded /> },
+    { title: t('Crear tienda'), route: routes.admin.management.stores.create, icon: <AddBusinessRounded /> },
+    { title: t('Marcas'), route: routes.admin.management.stores.brands, icon: <LocalOfferRounded /> },
+    { title: t('Citas y agenda'), route: routes.admin.management.stores.appointments, icon: <EventRounded /> },
+    { title: t('Contratos'), route: routes.admin.management.stores.contracts, icon: <DescriptionRounded /> },
+    { title: t('Nuevo contrato'), route: routes.admin.management.stores['contracts-create'], icon: <NoteAddRounded /> },
   ]);
 
 const addsMenu = (t: (token: string) => string): MenuItem =>

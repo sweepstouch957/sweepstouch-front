@@ -1,6 +1,7 @@
 import { useStores } from '@/hooks/stores/useStores';
 import ExportButton from '@/components/application-ui/buttons/export-button';
-import PageHeading from '@/components/base/page-heading';
+import { PageHero } from '@/components/application-ui/content-shells/store-managment/panel-kit';
+import { Box } from '@mui/material';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import StoreFilter from './filter';
@@ -113,11 +114,21 @@ function Component() {
 
   return (
     <>
-      <PageHeading
-        title={t('Stores')}
-        description={t('Overview of all stores')}
-        actions={<ExportButton eventName="stores:export" emitOnly />}
-      />
+      {/* Portada del Store Panel 2.0: la ruta, el título y — lo que importa —
+          los tres números que resumen la cartera antes de mirar la tabla. */}
+      <Box sx={{ mb: 1.5 }}>
+        <PageHero
+          eyebrow="Management · Stores"
+          title={t('Tiendas')}
+          subtitle={
+            total > 0
+              ? `${total.toLocaleString()} tiendas${status === 'active' ? ' activas' : ''}`
+              : undefined
+          }
+          actions={<ExportButton eventName="stores:export"
+emitOnly />}
+        />
+      </Box>
 
       <StoresBillingHeader
         status={status}

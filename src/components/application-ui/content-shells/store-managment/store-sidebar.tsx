@@ -53,6 +53,12 @@ interface StoreSidebarProps {
   accessCode: string;
   portalRedirectPath?: string;
   portalOpenInNewTab?: boolean;
+  /**
+   * Conteos por sección. Los pasa el panel desde el `store` que ya tiene
+   * cargado: el rail se monta en cada sección, y pedirlos acá serían tres
+   * queries por render para un número al lado de una etiqueta.
+   */
+  counts?: Partial<Record<string, number>>;
 }
 
 const MERCHANT_ORIGIN =
@@ -105,6 +111,14 @@ const STORE_GROUPS: {
   },
 ];
 
+/** 51 498 → "51.5k". Un número largo en una fila de 12px la parte. */
+function shortCount(n?: number): string | undefined {
+  if (n === undefined || n === null) return undefined;
+  if (n < 1000) return String(n);
+  if (n < 1_000_000) return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0)}k`;
+  return `${(n / 1_000_000).toFixed(1)}M`;
+}
+
 export const StoreSidebar: FC<StoreSidebarProps> = ({
   parentContainer,
   storeName,
@@ -113,6 +127,7 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
   storeSlug,
   portalOpenInNewTab = true,
   accessCode,
+  counts,
 }) => {
   const theme = useTheme();
   const lgUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('lg'));
@@ -223,7 +238,7 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
             {group.items.map((section) => (
               <StoreSidebarItem
                 key={section.id}
-                section={section}
+                section={{ ...section, meta: shortCount(counts?.[section.id]) }}
                 active={activeSection === section.id}
                 onClick={() => handleSectionClick(section.id)}
               />

@@ -378,6 +378,211 @@ export function EmptyBlock({ title, hint }: { title: string; hint: string }) {
   );
 }
 
+/* ─── Portada de página ───────────────────────────────────────────────────── */
+
+/**
+ * La portada del diseño: ruta en versalitas, título grande, una línea que
+ * resume la vista con números reales, y las acciones a la derecha. Reemplaza al
+ * `PageHeading` genérico en las pantallas migradas.
+ */
+export function PageHero({
+  eyebrow,
+  title,
+  subtitle,
+  actions,
+}: {
+  eyebrow: string;
+  title: string;
+  subtitle?: React.ReactNode;
+  actions?: React.ReactNode;
+}) {
+  const theme = useTheme();
+  return (
+    <Box
+      component="section"
+      sx={{
+        borderRadius: `${PANEL.radiusHero}px`,
+        bgcolor: 'background.paper',
+        border: panelBorder(theme),
+        px: 2.5,
+        py: 2.25,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2,
+        flexWrap: 'wrap',
+      }}
+    >
+      <Box sx={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.6 }}>
+        <Eyebrow>{eyebrow}</Eyebrow>
+        <Typography
+          component="h1"
+          sx={{ m: 0, fontSize: 24, fontWeight: 700, letterSpacing: -0.6, lineHeight: 1.2 }}
+        >
+          {title}
+        </Typography>
+        {subtitle && (
+          <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>{subtitle}</Typography>
+        )}
+      </Box>
+      {actions && (
+        <Box sx={{ ml: 'auto', display: 'flex', gap: 1, flexWrap: 'wrap' }}>{actions}</Box>
+      )}
+    </Box>
+  );
+}
+
+/**
+ * Cubeta de la cartera por antigüedad de deuda. El color vive en el punto, la
+ * etiqueta y la barra de avance; el fondo se tiñe sólo cuando está seleccionada.
+ */
+export function DebtBucket({
+  label,
+  age,
+  count,
+  amount,
+  color,
+  share,
+  active = false,
+  onClick,
+}: {
+  label: string;
+  age: string;
+  count: number;
+  amount: string;
+  color: string;
+  /** Porción del total, 0–1, para la barra. */
+  share: number;
+  active?: boolean;
+  onClick?: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Box
+      role={onClick ? 'button' : undefined}
+      aria-pressed={onClick ? active : undefined}
+      onClick={onClick}
+      sx={{
+        borderRadius: `${PANEL.radiusKpi}px`,
+        px: 1.75,
+        py: 1.5,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 0.75,
+        minWidth: 0,
+        cursor: onClick ? 'pointer' : 'default',
+        bgcolor: active ? alpha(color, 0.12) : alpha(color, 0.045),
+        border: `1px solid ${alpha(color, active ? 0.55 : 0.18)}`,
+        transition: 'background-color .18s, border-color .18s',
+        '&:hover': onClick ? { borderColor: alpha(color, 0.5) } : undefined,
+        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+      }}
+    >
+      <Stack
+        direction="row"
+        alignItems="center"
+        gap={0.75}
+      >
+        <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: color, flexShrink: 0 }} />
+        <Typography
+          sx={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.7, color, lineHeight: 1 }}
+          noWrap
+        >
+          {label}
+        </Typography>
+        <Typography
+          sx={{ ml: 'auto', fontSize: 10, fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap' }}
+        >
+          {age}
+        </Typography>
+      </Stack>
+
+      <Typography
+        sx={{
+          fontSize: 24,
+          fontWeight: 700,
+          letterSpacing: -0.7,
+          lineHeight: 1,
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {count}
+      </Typography>
+
+      <Typography sx={{ fontSize: 12, fontWeight: 650, color: 'text.secondary' }}>
+        {amount}
+      </Typography>
+
+      {/* Cuánto de la cartera está acá: se compara sin leer los montos */}
+      <Box
+        sx={{
+          height: 4,
+          borderRadius: 2,
+          bgcolor: alpha(theme.palette.text.primary, 0.06),
+          overflow: 'hidden',
+        }}
+      >
+        <Box
+          sx={{
+            width: `${Math.min(100, Math.max(0, share * 100))}%`,
+            height: '100%',
+            bgcolor: color,
+            borderRadius: 2,
+          }}
+        />
+      </Box>
+    </Box>
+  );
+}
+
+/** Píldora de filtro del diseño: 33px, radio 9, borde fino. */
+export function FilterPill({
+  label,
+  active = false,
+  tone,
+  onClick,
+  endIcon,
+}: {
+  label: React.ReactNode;
+  active?: boolean;
+  /** Color propio (por ejemplo el de la cubeta de deuda). */
+  tone?: string;
+  onClick?: () => void;
+  endIcon?: React.ReactNode;
+}) {
+  const theme = useTheme();
+  const c = tone || theme.palette.primary.main;
+  return (
+    <Box
+      component={onClick ? 'button' : 'span'}
+      type={onClick ? 'button' : undefined}
+      onClick={onClick}
+      aria-pressed={onClick ? active : undefined}
+      sx={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 0.75,
+        height: 33,
+        px: 1.4,
+        borderRadius: '9px',
+        fontSize: 12.5,
+        fontWeight: active ? 700 : 600,
+        fontFamily: 'inherit',
+        whiteSpace: 'nowrap',
+        cursor: onClick ? 'pointer' : 'default',
+        color: active ? c : theme.palette.text.secondary,
+        bgcolor: active ? alpha(c, 0.12) : 'transparent',
+        border: `1px solid ${alpha(active ? c : theme.palette.divider, active ? 0.5 : 0.9)}`,
+        transition: 'background-color .18s, border-color .18s, color .18s',
+        '&:hover': onClick ? { bgcolor: alpha(c, active ? 0.18 : 0.06) } : undefined,
+        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+      }}
+    >
+      {label}
+      {endIcon}
+    </Box>
+  );
+}
+
 /** Etiqueta suelta en versalitas, para encabezar grupos fuera de una tarjeta. */
 export function Eyebrow({ children }: { children: React.ReactNode }) {
   return (

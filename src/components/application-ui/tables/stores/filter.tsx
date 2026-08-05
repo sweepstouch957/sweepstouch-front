@@ -49,7 +49,7 @@ const STATUS_LABELS: Record<StoreStatusFilter, string> = {
 
 // Estilo estático de los selects — sin dependencias del componente
 const selectSx = {
-  '& .MuiOutlinedInput-root': { height: 36, fontSize: 13, borderRadius: 2 },
+  '& .MuiOutlinedInput-root': { height: 33, fontSize: 12.5, fontWeight: 600, borderRadius: '9px' },
 } as const;
 
 function useAISuggestion(
@@ -233,7 +233,7 @@ export default function StoreFilters({
       component={Paper}
       elevation={0}
       sx={{
-        borderRadius: 2.5,
+        borderRadius: '18px',
         mt: 2,
         mb: 1.5,
         border: '1px solid',
@@ -286,7 +286,10 @@ export default function StoreFilters({
                     }}
                   >
                     <AutoAwesomeRoundedIcon sx={{ fontSize: 10, color: 'primary.main' }} />
-                    <Typography fontSize={10} fontWeight={700} color="text.secondary" sx={{ letterSpacing: '0.02em' }}>
+                    <Typography fontSize={10}
+fontWeight={700}
+color="text.secondary"
+sx={{ letterSpacing: '0.02em' }}>
                       {kbdHint}
                     </Typography>
                   </Box>
@@ -313,10 +316,14 @@ export default function StoreFilters({
               </Typography>
             )}
           >
-            <MenuItem value="all" sx={{ fontSize: 13 }}>Todas las tiendas</MenuItem>
-            <MenuItem value="active" sx={{ fontSize: 13 }}>Activas</MenuItem>
-            <MenuItem value="suspended" sx={{ fontSize: 13 }}>Suspendidas</MenuItem>
-            <MenuItem value="cancelled" sx={{ fontSize: 13 }}>Canceladas</MenuItem>
+            <MenuItem value="all"
+sx={{ fontSize: 13 }}>Todas las tiendas</MenuItem>
+            <MenuItem value="active"
+sx={{ fontSize: 13 }}>Activas</MenuItem>
+            <MenuItem value="suspended"
+sx={{ fontSize: 13 }}>Suspendidas</MenuItem>
+            <MenuItem value="cancelled"
+sx={{ fontSize: 13 }}>Canceladas</MenuItem>
           </Select>
         </FormControl>
 
@@ -330,19 +337,28 @@ export default function StoreFilters({
             displayEmpty
             onChange={(e) => onPaymentMethodChange(e.target.value)}
             renderValue={(val) => (
-              <Typography fontSize={13} color={!val || val === 'all' ? 'text.secondary' : 'text.primary'}>
+              <Typography fontSize={13}
+color={!val || val === 'all' ? 'text.secondary' : 'text.primary'}>
                 {!val || val === 'all' ? 'Método pago' : val === 'central_billing' ? 'Central billing' : val.charAt(0).toUpperCase() + val.slice(1)}
               </Typography>
             )}
           >
-            <MenuItem value="all" sx={{ fontSize: 13 }}>Todos</MenuItem>
-            <MenuItem value="central_billing" sx={{ fontSize: 13 }}>Central billing</MenuItem>
-            <MenuItem value="check" sx={{ fontSize: 13 }}>Check</MenuItem>
-            <MenuItem value="card" sx={{ fontSize: 13 }}>Card</MenuItem>
-            <MenuItem value="quickbooks" sx={{ fontSize: 13 }}>QuickBooks</MenuItem>
-            <MenuItem value="ach" sx={{ fontSize: 13 }}>ACH</MenuItem>
-            <MenuItem value="wire" sx={{ fontSize: 13 }}>Wire</MenuItem>
-            <MenuItem value="cash" sx={{ fontSize: 13 }}>Cash</MenuItem>
+            <MenuItem value="all"
+sx={{ fontSize: 13 }}>Todos</MenuItem>
+            <MenuItem value="central_billing"
+sx={{ fontSize: 13 }}>Central billing</MenuItem>
+            <MenuItem value="check"
+sx={{ fontSize: 13 }}>Check</MenuItem>
+            <MenuItem value="card"
+sx={{ fontSize: 13 }}>Card</MenuItem>
+            <MenuItem value="quickbooks"
+sx={{ fontSize: 13 }}>QuickBooks</MenuItem>
+            <MenuItem value="ach"
+sx={{ fontSize: 13 }}>ACH</MenuItem>
+            <MenuItem value="wire"
+sx={{ fontSize: 13 }}>Wire</MenuItem>
+            <MenuItem value="cash"
+sx={{ fontSize: 13 }}>Cash</MenuItem>
           </Select>
         </FormControl>
 
@@ -356,21 +372,32 @@ export default function StoreFilters({
             displayEmpty
             onChange={(e) => onProviderChange(e.target.value)}
             renderValue={(val) => (
-              <Typography fontSize={13} color={!val || val === 'all' ? 'text.secondary' : 'text.primary'}>
+              <Typography fontSize={13}
+color={!val || val === 'all' ? 'text.secondary' : 'text.primary'}>
                 {!val || val === 'all' ? 'Provider' : val === 'twilio' ? (
-                  <><LocalPhone fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Twilio</>
+                  <><LocalPhone fontSize="small"
+sx={{ mr: 1, verticalAlign: 'middle' }} />Twilio</>
                 ) : val === 'bandwidth' ? (
-                  <><SmsRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Bandwidth</>
+                  <><SmsRounded fontSize="small"
+sx={{ mr: 1, verticalAlign: 'middle' }} />Bandwidth</>
                 ) : (
-                  <><BoltRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Infobip</>
+                  <><BoltRounded fontSize="small"
+sx={{ mr: 1, verticalAlign: 'middle' }} />Infobip</>
                 )}
               </Typography>
             )}
           >
-            <MenuItem value="all" sx={{ fontSize: 13 }}>Todos</MenuItem>
-            <MenuItem value="twilio" sx={{ fontSize: 13 }}><LocalPhone fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Twilio</MenuItem>
-            <MenuItem value="bandwidth" sx={{ fontSize: 13 }}><SmsRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Bandwidth</MenuItem>
-            <MenuItem value="infobip" sx={{ fontSize: 13 }}><BoltRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Infobip</MenuItem>
+            <MenuItem value="all"
+sx={{ fontSize: 13 }}>Todos</MenuItem>
+            <MenuItem value="twilio"
+sx={{ fontSize: 13 }}><LocalPhone fontSize="small"
+sx={{ mr: 1, verticalAlign: 'middle' }} />Twilio</MenuItem>
+            <MenuItem value="bandwidth"
+sx={{ fontSize: 13 }}><SmsRounded fontSize="small"
+sx={{ mr: 1, verticalAlign: 'middle' }} />Bandwidth</MenuItem>
+            <MenuItem value="infobip"
+sx={{ fontSize: 13 }}><BoltRounded fontSize="small"
+sx={{ mr: 1, verticalAlign: 'middle' }} />Infobip</MenuItem>
           </Select>
         </FormControl>
 
@@ -406,10 +433,14 @@ export default function StoreFilters({
             value={sortBy}
             onChange={(e) => onSortChange(e.target.value as any)}
           >
-            <MenuItem value="customerCount" sx={{ fontSize: 13 }}>Clientes</MenuItem>
-            <MenuItem value="maxDaysOverdue" sx={{ fontSize: 13 }}>Días vencido</MenuItem>
-            <MenuItem value="name" sx={{ fontSize: 13 }}>Nombre</MenuItem>
-            <MenuItem value="active" sx={{ fontSize: 13 }}>Estado</MenuItem>
+            <MenuItem value="customerCount"
+sx={{ fontSize: 13 }}>Clientes</MenuItem>
+            <MenuItem value="maxDaysOverdue"
+sx={{ fontSize: 13 }}>Días vencido</MenuItem>
+            <MenuItem value="name"
+sx={{ fontSize: 13 }}>Nombre</MenuItem>
+            <MenuItem value="active"
+sx={{ fontSize: 13 }}>Estado</MenuItem>
           </Select>
         </FormControl>
 
@@ -447,15 +478,26 @@ export default function StoreFilters({
           </IconButton>
         </Tooltip>
 
-        {/* Results count */}
+        {/* Cuántas quedan tras filtrar — píldora rosa maciza del diseño, no un
+            chip con borde: es el resultado de todo lo de la izquierda. */}
         {total > 0 && (
-          <Chip
-            size="small"
-            label={`${total} resultados`}
-            variant="outlined"
-            color="primary"
-            sx={{ fontSize: 11, fontWeight: 700, height: 28, flexShrink: 0 }}
-          />
+          <Box
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              height: 33,
+              px: 1.4,
+              borderRadius: '9px',
+              flexShrink: 0,
+              fontSize: 12.5,
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+              bgcolor: (t) => alpha(t.palette.primary.main, 0.12),
+              color: 'primary.dark',
+            }}
+          >
+            {total.toLocaleString()} resultados
+          </Box>
         )}
 
         {/* Clear all */}
@@ -493,12 +535,14 @@ export default function StoreFilters({
             sx={{ fontSize: 14, color: 'primary.main', flexShrink: 0 }}
           />
           {aiThinking ? (
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption"
+color="text.secondary">
               Buscando sugerencias...
             </Typography>
           ) : (
             <>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption"
+color="text.secondary">
                 ¿Quisiste decir:
               </Typography>
               <Chip
@@ -512,8 +556,11 @@ export default function StoreFilters({
                 variant="outlined"
                 sx={{ fontSize: 12, height: 24, cursor: 'pointer', fontWeight: 700 }}
               />
-              <IconButton size="small" onClick={clearAI} sx={{ width: 22, height: 22, p: 0 }}>
-                <CancelRounded fontSize="small" sx={{ color: 'text.secondary' }} />
+              <IconButton size="small"
+onClick={clearAI}
+sx={{ width: 22, height: 22, p: 0 }}>
+                <CancelRounded fontSize="small"
+sx={{ color: 'text.secondary' }} />
               </IconButton>
             </>
           )}
@@ -539,7 +586,7 @@ export default function StoreFilters({
                 fontWeight={700}
                 sx={{ flexShrink: 0 }}
               >
-                Deuda:
+                DEUDA
               </Typography>
               {debtChipConfigs(theme).map((cfg) => (
                 <Chip
@@ -549,7 +596,7 @@ export default function StoreFilters({
                   onClick={() => onDebtStatusChange(cfg.value)}
                   variant={debtStatus === cfg.value ? 'filled' : 'outlined'}
                   sx={{
-                    height: 26, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                    height: 33, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', borderRadius: '9px',
                     ...(cfg.color
                       ? debtStatus === cfg.value
                         ? {

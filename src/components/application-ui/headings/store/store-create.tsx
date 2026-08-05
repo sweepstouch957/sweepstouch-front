@@ -5,6 +5,7 @@ import { uploadCampaignImage } from '@/services/upload.service';
 import {
   CameraAltRounded,
   EditLocationAltRounded,
+  ContentCopyRounded,
   LinkRounded,
   OpenInNewRounded,
   QrCodeRounded,
@@ -34,6 +35,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import toast from 'react-hot-toast';
+import { StatusPill } from '../../content-shells/store-managment/panel-kit';
 
 const TYPE_LABEL: Record<Store['type'], string> = {
   elite: 'Elite',
@@ -187,6 +189,16 @@ export default function StoreHeader({
     }
   }
 
+  /** El color que llega es un hex; la píldora habla en roles del theme. */
+  const statusTone: 'success' | 'warning' | 'error' | 'neutral' =
+    statusColor === theme.palette.success.main
+      ? 'success'
+      : statusColor === theme.palette.warning.main
+        ? 'warning'
+        : statusColor === theme.palette.error.main
+          ? 'error'
+          : 'neutral';
+
   const slug = extractSlug(kioskUrl);
   const qrHref = slug ? `https://st.sweepstouch.com/?slug=${encodeURIComponent(slug)}` : undefined;
   /** Linktree público de la tienda — mismo slug que el kiosko. */
@@ -261,16 +273,16 @@ export default function StoreHeader({
               alt={name}
               variant="rounded"
               sx={{
-                width: { xs: 46, md: 52 },
-                height: { xs: 46, md: 52 },
-                borderRadius: 2,
+                width: { xs: 64, md: 88 },
+                height: { xs: 64, md: 88 },
+                borderRadius: '20px',
                 flexShrink: 0,
                 bgcolor: (t) =>
                   alpha(t.palette.primary.main, t.palette.mode === 'dark' ? 0.16 : 0.08),
                 color: 'primary.main',
               }}
             >
-              <StoreMallDirectoryRounded sx={{ fontSize: 24 }} />
+              <StoreMallDirectoryRounded sx={{ fontSize: { xs: 26, md: 34 } }} />
             </Avatar>
           </Badge>
 
@@ -278,6 +290,31 @@ export default function StoreHeader({
             flex={1}
             minWidth={0}
           >
+            {/* Estado, tipo y proveedor ARRIBA del título, como en el diseño.
+                Debajo eran tres textos separados por rayitas que se leían como
+                metadatos de relleno; acá son lo primero que se ve, porque son
+                lo que decide si la tienda está funcionando o no. */}
+            <Stack
+              direction="row"
+              gap={0.85}
+              useFlexGap
+              flexWrap="wrap"
+              sx={{ mb: 1 }}
+            >
+              <StatusPill
+                label={statusLabel.toUpperCase()}
+                tone={statusTone}
+              />
+              <StatusPill
+                label={`TIPO ${(TYPE_LABEL[type] ?? 'Free').toUpperCase()}`}
+                dot={false}
+              />
+              <StatusPill
+                label={(PROVIDER_LABEL[provider] ?? 'Sin proveedor').toUpperCase()}
+                dot={false}
+              />
+            </Stack>
+
             {edit ? (
               <TextField
                 size="small"
@@ -294,8 +331,8 @@ export default function StoreHeader({
                 fontWeight={700}
                 lineHeight={1.25}
                 sx={{
-                  fontSize: { xs: 17, md: 19 },
-                  letterSpacing: -0.2,
+                  fontSize: { xs: 20, md: 26 },
+                  letterSpacing: -0.7,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
@@ -318,19 +355,120 @@ export default function StoreHeader({
               </Typography>
             )}
 
+            {/* Botonera del diseño: debajo del título, no a la derecha en
+                iconos sueltos. Kiosko es la acción principal de esta pantalla
+                (Merchant vive en el rail), y el Linktree va como combo con su
+                URL a la vista y el botón de copiar — es un link que se manda a
+                la tienda, así que verlo antes de copiarlo evita mandar el que
+                no era. */}
             <Stack
               direction="row"
-              spacing={1.5}
-              divider={
-                <Box sx={{ width: '1px', bgcolor: 'divider', alignSelf: 'stretch', my: 0.25 }} />
-              }
+              gap={1}
               useFlexGap
               flexWrap="wrap"
-              mt={0.85}
+              alignItems="center"
+              sx={{ mt: 1.5 }}
             >
-              <Meta dot={statusColor}>{statusLabel}</Meta>
-              <Meta>{TYPE_LABEL[type] ?? 'Free'}</Meta>
-              <Meta>{PROVIDER_LABEL[provider] ?? 'Sin proveedor'}</Meta>
+              <Button
+                variant="contained"
+                disableElevation
+                startIcon={<OpenInNewRounded sx={{ fontSize: 17 }} />}
+                onClick={() => window.open(kioskUrl, '_blank')}
+                sx={{
+                  height: 36,
+                  px: 1.75,
+                  borderRadius: '10px',
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  fontSize: 12.5,
+                }}
+              >
+                Abrir Kiosko
+              </Button>
+
+              {linktreeHref && (
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  sx={{
+                    height: 36,
+                    borderRadius: '10px',
+                    border: `1px solid ${theme.palette.divider}`,
+                    overflow: 'hidden',
+                    maxWidth: 340,
+                    minWidth: 0,
+                  }}
+                >
+                  <Box
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => window.open(linktreeHref, '_blank', 'noopener')}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        window.open(linktreeHref, '_blank', 'noopener');
+                      }
+                    }}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.85,
+                      px: 1.4,
+                      height: '100%',
+                      cursor: 'pointer',
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                      '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.04) },
+                    }}
+                  >
+                    <LinkRounded sx={{ fontSize: 17, color: 'success.main' }} />
+                    Linktree
+                  </Box>
+                  <Box
+                    sx={{
+                      flex: 1,
+                      minWidth: 0,
+                      px: 1.25,
+                      borderLeft: `1px solid ${theme.palette.divider}`,
+                      fontFamily: 'ui-monospace, Menlo, monospace',
+                      fontSize: 11.5,
+                      color: 'text.secondary',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      display: { xs: 'none', sm: 'block' },
+                      lineHeight: '34px',
+                    }}
+                    title={linktreeHref}
+                  >
+                    {linktreeHref.replace(/^https?:\/\//, '')}
+                  </Box>
+                  <Tooltip
+                    title="Copiar link"
+                    arrow
+                  >
+                    <IconButton
+                      size="small"
+                      aria-label="Copiar link de Linktree"
+                      onClick={() => {
+                        navigator.clipboard.writeText(linktreeHref);
+                        toast.success('Link copiado');
+                      }}
+                      sx={{
+                        width: 34,
+                        height: '100%',
+                        borderRadius: 0,
+                        borderLeft: `1px solid ${theme.palette.divider}`,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <ContentCopyRounded sx={{ fontSize: 15 }} />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
+              )}
             </Stack>
           </Box>
 
@@ -359,22 +497,8 @@ export default function StoreHeader({
               <EditLocationAltRounded sx={{ fontSize: 18 }} />
             </IBtn>
 
-            <IBtn
-              title="Abrir kiosko"
-              onClick={() => window.open(kioskUrl, '_blank')}
-            >
-              <OpenInNewRounded sx={{ fontSize: 18 }} />
-            </IBtn>
-
-            {linktreeHref && (
-              <IBtn
-                title="Abrir linktree de la tienda"
-                onClick={() => window.open(linktreeHref, '_blank', 'noopener')}
-              >
-                <LinkRounded sx={{ fontSize: 18 }} />
-              </IBtn>
-            )}
-
+            {/* Kiosko y Linktree ya están en la botonera de arriba: repetirlos
+                acá como iconos daba dos caminos para lo mismo. */}
             <IBtn
               title="Impulsar tienda"
               href={`/admin/management/work-stores?q=${encodeURIComponent(name)}`}

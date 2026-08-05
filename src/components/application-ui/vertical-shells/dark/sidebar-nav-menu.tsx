@@ -55,13 +55,22 @@ const SubMenu = styled(List)<ListProps<'div', { component: 'div' }>>(({ theme })
     zIndex: 1,
   },
 
+  // Con icono, la sangría de 6 dejaba el texto en el borde derecho. El icono
+  // ocupa el lugar de la viñeta, así que la fila arranca antes.
   '& .MuiListItemButton-root': {
-    padding: theme.spacing(0.5, 2, 0.5, 6),
-    fontWeight: 400,
-    fontSize: 13,
+    padding: theme.spacing(0.6, 1.25, 0.6, 4.6),
+    gap: theme.spacing(1.1),
+    fontWeight: 600,
+    fontSize: 12.5,
     minHeight: 34,
     color: neutral[500],
-    borderRadius: theme.spacing(0.75),
+    borderRadius: 10,
+
+    '& .MuiListItemIcon-root': {
+      minWidth: 0,
+      color: 'inherit',
+      '& .MuiSvgIcon-root': { fontSize: 16 },
+    },
 
     '&::before': {
       content: '""',
