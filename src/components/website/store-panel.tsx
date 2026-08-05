@@ -10,17 +10,27 @@ import { uploadPdfToS3 } from '@/services/upload.service';
 import {
   AddCircle,
   Autorenew,
+  BadgeRounded,
   CalendarMonthOutlined,
   CheckRounded,
   CloseRounded,
   CloudUpload,
   ContentCopyOutlined,
+  DescriptionRounded,
   Delete,
   EditRounded,
+  Facebook,
+  Instagram,
+  LanguageRounded,
   LinkRounded,
+  LocationOnRounded,
+  MonitorHeartRounded,
+  PauseCircleRounded,
   PersonAddRounded,
   PictureAsPdf,
   SaveRounded,
+  SensorsRounded,
+  VpnKeyRounded,
   WarningAmberRounded,
 } from '@mui/icons-material';
 import {
@@ -32,7 +42,6 @@ import {
   Checkbox,
   Chip,
   CircularProgress,
-  Divider,
   Fab,
   FormControlLabel,
   Grid,
@@ -59,11 +68,15 @@ import PaymentsRounded from '@mui/icons-material/PaymentsRounded';
 import PeopleAltRounded from '@mui/icons-material/PeopleAltRounded';
 import TabletAndroidRounded from '@mui/icons-material/TabletAndroidRounded';
 import {
+  EmptyBlock,
+  Field,
+  FieldGrid,
   KpiCard,
   KpiRow,
   panelDivider,
   PanelCard,
   SectionHeader,
+  StatusPill,
 } from '../application-ui/content-shells/store-managment/panel-kit';
 import StoreKioskCard from '../application-ui/composed-blocks/kiosk';
 import StoreGeneralForm from '../application-ui/form-layouts/store/edit';
@@ -149,6 +162,38 @@ const MEMBERSHIP_LABEL: Record<string, string> = {
   none: 'No paga',
 };
 
+const TYPE_LABEL: Record<string, string> = { elite: 'Elite', basic: 'Basic', free: 'Free' };
+
+const PAYMENT_LABEL: Record<string, string> = {
+  card: 'Tarjeta',
+  check: 'Check',
+  central_billing: 'Central Billing',
+  quickbooks: 'QuickBooks',
+  ach: 'ACH',
+  wire: 'Wire',
+  cash: 'Efectivo',
+};
+
+const CREDIT_LABEL: Record<string, { label: string; tone: 'success' | 'warning' | 'error' }> = {
+  ok: { label: 'Al día', tone: 'success' },
+  delinquent: { label: 'Moroso', tone: 'warning' },
+  suspended: { label: 'Suspendido', tone: 'error' },
+};
+
+const PROVIDER_LABEL: Record<string, string> = {
+  twilio: 'Twilio',
+  bandwidth: 'Bandwidth',
+  infobip: 'Infobip',
+};
+
+const CONTACT_TYPE_LABEL: Record<string, string> = {
+  manager: 'Gerente',
+  owner: 'Dueño',
+  secretary: 'Secretaria',
+  assistant: 'Asistente',
+  other: 'Otro',
+};
+
 /**
  * Vocabulario visual de la página. Tres piezas, cero color decorativo:
  * el rosado del theme es el ÚNICO acento, y success/warning/error se reservan
@@ -162,12 +207,16 @@ const MEMBERSHIP_LABEL: Record<string, string> = {
 function Section({
   label,
   hint,
+  icon,
+  count,
   action,
   children,
   sx,
 }: {
   label: string;
   hint?: string;
+  icon?: React.ReactNode;
+  count?: number | string;
   action?: React.ReactNode;
   children: React.ReactNode;
   sx?: any;
@@ -175,8 +224,10 @@ function Section({
   return (
     <PanelCard sx={sx}>
       <SectionHeader
+        icon={icon}
         title={label}
         hint={hint}
+        count={count}
         action={action}
       />
       <Box sx={{ p: { xs: 2, sm: 2.25 } }}>{children}</Box>
@@ -639,7 +690,120 @@ export default function StoreInfo({ store }: { store: Store }) {
   })();
 
   const contracts = form.contracts || [];
+
+  /**
+   * Los cuatro chequeos de "Salud de la tienda" del diseño. Nada de esto pide
+   * datos nuevos: cruza lo que la pantalla ya cargó. Cada línea dice el hecho,
+   * no la regla — "sin contrato firmado" se entiende; "contractStatus: false" no.
+   */
+  const tabletsInstaladas = store.equipment?.length ?? store.equipmentTotal ?? 0;
+  const campanasEnviadas = campaignStats?.total ?? 0;
+  const chequeosSalud = [
+    {
+      ok: tabletsInstaladas > 0,
+      texto: tabletsInstaladas > 0
+        ? `${tabletsInstaladas} tablet${tabletsInstaladas === 1 ? '' : 's'} registrada${tabletsInstaladas === 1 ? '' : 's'}`
+        : 'Sin tablets registradas',
+      area: 'Equipos',
+    },
+    {
+      ok: campanasEnviadas > 0,
+      texto: campanasEnviadas > 0
+        ? `${campanasEnviadas.toLocaleString()} campañas enviadas`
+        : 'Todavía sin campañas',
+      area: 'Campañas',
+    },
+    {
+      ok: contracts.length > 0,
+      texto: contracts.length > 0
+        ? `${contracts.length} contrato${contracts.length === 1 ? '' : 's'} en archivo`
+        : 'Sin contrato firmado en archivo',
+      area: 'Contratos',
+    },
+    {
+      ok: Boolean(form.phoneNumber || form.email),
+      texto: form.phoneNumber || form.email
+        ? 'Contacto registrado'
+        : 'Sin teléfono ni email de contacto',
+      area: 'Contacto',
+    },
+  ];
+  const pendientesSalud = chequeosSalud.filter((c) => !c.ok).length;
   const pauses = form.pauseHistory || [];
+  const contactos = (form as any).contactInfo || [];
+
+  /* ── Vista de lectura ─────────────────────────────────────────────────────
+     El diseño separa leer de editar: fuera del modo edición la página es una
+     ficha —etiqueta arriba, dato debajo— y cada bloque lleva su propio botón
+     "Editar". Antes eran los mismos campos de formulario deshabilitados, que
+     ocupan el triple y hacen que todo pese igual. */
+  const editBtn = (
+    <Button
+      size="small"
+      variant="outlined"
+      onClick={() => setEdit(true)}
+      sx={{
+        height: 29,
+        px: 1.5,
+        borderRadius: '9px',
+        textTransform: 'none',
+        fontWeight: 700,
+        fontSize: 12,
+        color: 'text.secondary',
+        borderColor: 'divider',
+      }}
+    >
+      Editar
+    </Button>
+  );
+
+  const linktreeHref = storeSlug
+    ? `https://links.sweepstouch.com/?slug=${encodeURIComponent(storeSlug)}`
+    : '';
+
+  /** Los enlaces que la tienda enseña al cliente. Los que faltan se ven, en
+      punteado: un hueco visible se llena; uno invisible no existe. */
+  const publicLinks = [
+    { key: 'linktree', label: 'Linktree', href: linktreeHref, icon: <LinkRounded sx={{ fontSize: 15, color: 'success.main' }} /> },
+    { key: 'facebook', label: 'Facebook', href: form.socialLinks?.facebook || '', icon: <Facebook sx={{ fontSize: 15, color: '#1877F2' }} /> },
+    { key: 'instagram', label: 'Instagram', href: form.socialLinks?.instagram || '', icon: <Instagram sx={{ fontSize: 15, color: '#E1306C' }} /> },
+    { key: 'website', label: 'Website', href: form.socialLinks?.website || '', icon: <LanguageRounded sx={{ fontSize: 15, color: 'text.disabled' }} /> },
+  ];
+
+  const credito = CREDIT_LABEL[(form as any).creditStatus || 'ok'] ?? CREDIT_LABEL.ok;
+
+  /** Por qué la tienda no está activa. Sólo aparece cuando hay algo que decir. */
+  const motivoEstado =
+    form.status === 'suspended'
+      ? form.suspendedReason
+      : form.status === 'inactive'
+        ? form.inactiveReason
+        : form.status === 'cancelled'
+          ? (form as any).cancelContractReason
+          : '';
+
+  const remitente =
+    form.provider === 'infobip'
+      ? form.infobipSenderId
+      : form.provider === 'bandwidth'
+        ? form.bandwidthPhoneNumber
+        : form.twilioPhoneNumber;
+
+  const mapaTienda = (
+    <StoreMap
+      mapboxToken={MAPBOX_TOKEN}
+      lng={lng}
+      lat={lat}
+      zoom={zoom}
+      setZoom={setZoom}
+      hasCoords={hasCoords}
+      edit={edit}
+      image={store.image}
+      name={form.name}
+      onClick={onMapClick}
+      onMarkerDragEnd={onMarkerDragEnd}
+    />
+  );
 
   return (
     <Box sx={{ pb: { xs: 11, md: 13 } }}>
@@ -722,7 +886,7 @@ export default function StoreInfo({ store }: { store: Store }) {
           container
           spacing={1.5}
         >
-          {/* ── Columna principal: todo lo editable ─────────────── */}
+          {/* ── Columna principal: la ficha de la tienda ─────────── */}
           <Grid
             item
             xs={12}
@@ -732,20 +896,352 @@ export default function StoreInfo({ store }: { store: Store }) {
               pb: { xs: 1.5, md: 0 },
             }}
           >
-            <Box p={{ xs: 2, md: 3 }}>
-              <StoreGeneralForm
-                form={form as any}
-                edit={edit}
-                onChange={handleChange}
-                lng={lng}
-                lat={lat}
-                onRequestEdit={() => setEdit(true)}
-              />
+            <Stack spacing={1.5}>
+              {!edit && (
+                <>
+                  {/* ── Identidad: lo que ve el cliente ───────────── */}
+                  <PanelCard>
+                    <SectionHeader
+                      icon={<BadgeRounded sx={{ fontSize: 18, color: 'primary.main' }} />}
+                      title="Identidad, imagen y enlaces"
+                      hint="Lo que ve el cliente"
+                      action={editBtn}
+                    />
+                    <FieldGrid min={190}>
+                      <Field
+                        label="Nombre comercial"
+                        value={form.name}
+                        span={2}
+                      />
+                      <Field
+                        label="Teléfono"
+                        value={form.phoneNumber}
+                      />
+                      <Field
+                        label="Email"
+                        value={form.email}
+                      />
+                      <Field
+                        label="Slug"
+                        value={storeSlug}
+                        mono
+                      />
+                      <Field
+                        label="Tipo de tienda"
+                        value={TYPE_LABEL[form.type as string] ?? form.type}
+                      />
+                      <Field
+                        label="Enlaces públicos"
+                        span={2}
+                      >
+                        <Stack
+                          direction="row"
+                          gap={0.9}
+                          useFlexGap
+                          flexWrap="wrap"
+                          sx={{ mt: 0.25 }}
+                        >
+                          {publicLinks.map((l) =>
+                            l.href ? (
+                              <Box
+                                key={l.key}
+                                component="a"
+                                href={l.href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                sx={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 0.75,
+                                  height: 28,
+                                  px: 1.4,
+                                  borderRadius: '9px',
+                                  bgcolor: alpha(theme.palette.text.primary, 0.05),
+                                  color: 'text.secondary',
+                                  fontSize: 12,
+                                  fontWeight: 650,
+                                  textDecoration: 'none',
+                                  '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.09) },
+                                }}
+                              >
+                                {l.icon}
+                                {l.label}
+                              </Box>
+                            ) : (
+                              <Box
+                                key={l.key}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => setEdit(true)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    setEdit(true);
+                                  }
+                                }}
+                                sx={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  height: 28,
+                                  px: 1.4,
+                                  borderRadius: '9px',
+                                  border: `1px dashed ${theme.palette.divider}`,
+                                  color: 'text.disabled',
+                                  fontSize: 12,
+                                  fontWeight: 650,
+                                  cursor: 'pointer',
+                                  '&:hover': { color: 'text.secondary' },
+                                }}
+                              >
+                                + {l.label}
+                              </Box>
+                            )
+                          )}
+                        </Stack>
+                      </Field>
+                    </FieldGrid>
+                  </PanelCard>
+                </>
+              )}
 
-              <Section
-                label="Facturación"
-                sx={{ mt: 1.5 }}
-              >
+              {edit && (
+                <StoreGeneralForm
+                  form={form as any}
+                  edit={edit}
+                  onChange={handleChange}
+                  lng={lng}
+                  lat={lat}
+                  onRequestEdit={() => setEdit(true)}
+                />
+              )}
+
+              {/* ── Ubicación: los datos y el mapa, en la misma tarjeta ──
+                  El mapa vivía en la columna lateral, lejos de la dirección
+                  que describe; juntos se verifican de una mirada. */}
+              <PanelCard>
+                <SectionHeader
+                  icon={<LocationOnRounded sx={{ fontSize: 18, color: 'secondary.main' }} />}
+                  title="Ubicación"
+                  hint={edit ? 'Haz clic en el mapa para mover el pin' : undefined}
+                  action={edit ? undefined : editBtn}
+                />
+                <Box sx={{ display: 'flex', flexWrap: 'wrap' }}>
+                  {!edit && (
+                    <Box sx={{ flex: '2 1 300px', minWidth: 0 }}>
+                      <FieldGrid min={135}>
+                        <Field
+                          label="Dirección"
+                          value={form.address}
+                          span={2}
+                        />
+                        <Field
+                          label="ZIP"
+                          value={form.zipCode}
+                        />
+                        <Field
+                          label="Longitud"
+                          value={hasCoords ? lng.toFixed(6) : ''}
+                          empty="Sin pin"
+                          mono
+                        />
+                        <Field
+                          label="Latitud"
+                          value={hasCoords ? lat.toFixed(6) : ''}
+                          empty="Sin pin"
+                          mono
+                        />
+                      </FieldGrid>
+                    </Box>
+                  )}
+                  <Box
+                    sx={{
+                      flex: edit ? '1 1 100%' : '1 1 230px',
+                      minWidth: { xs: '100%', sm: 210 },
+                      p: 1.5,
+                      borderLeft: {
+                        xs: 'none',
+                        sm: edit ? 'none' : `1px solid ${panelDivider(theme)}`,
+                      },
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        height: edit ? 260 : { xs: 180, sm: '100%' },
+                        minHeight: 150,
+                        borderRadius: '12px',
+                        overflow: 'hidden',
+                        border: `1px solid ${theme.palette.divider}`,
+                      }}
+                    >
+                      {mapaTienda}
+                    </Box>
+                  </Box>
+                </Box>
+              </PanelCard>
+
+              {!edit && (
+                <>
+                  {/* ── Plan, contrato y cobro: todo lo comercial junto ── */}
+                  <PanelCard>
+                    <SectionHeader
+                      icon={<PaymentsRounded sx={{ fontSize: 18, color: 'warning.main' }} />}
+                      title="Plan, contrato y cobro"
+                      hint="Todo lo comercial en un bloque"
+                      action={editBtn}
+                    />
+                    <FieldGrid min={150}>
+                      <Field
+                        label="Tipo"
+                        value={TYPE_LABEL[form.type as string] ?? form.type}
+                      />
+                      <Field
+                        label="Membresía"
+                        value={MEMBERSHIP_LABEL[form.membershipType as string]}
+                      />
+                      <Field
+                        label="Método de pago"
+                        value={PAYMENT_LABEL[form.paymentMethod as string]}
+                      />
+                      <Field
+                        label="Inicio de contrato"
+                        value={form.startContractDate ? safeDateLabel(form.startContractDate as any) : ''}
+                        empty="Sin definir"
+                      />
+                      <Field
+                        label="Próxima factura"
+                        value={
+                          (form as any).billingNextDate
+                            ? safeDateLabel((form as any).billingNextDate)
+                            : ''
+                        }
+                        empty="Sin definir"
+                      />
+                      <Field label="Estado de crédito">
+                        <Typography
+                          sx={{
+                            fontSize: 14,
+                            fontWeight: 650,
+                            color: `${credito.tone}.main`,
+                          }}
+                        >
+                          {credito.label}
+                        </Typography>
+                      </Field>
+                      {motivoEstado && (
+                        <Field
+                          label={`Motivo · ${statusMeta.label}`}
+                          value={motivoEstado}
+                          span={2}
+                        />
+                      )}
+                    </FieldGrid>
+                    {/* Circularss: el interruptor del diseño, en modo lectura */}
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      gap={1.5}
+                      flexWrap="wrap"
+                      useFlexGap
+                      sx={{ px: 2.25, py: 1.75, borderTop: `1px solid ${panelDivider(theme)}` }}
+                    >
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        gap={1}
+                      >
+                        <Box
+                          sx={{
+                            width: 32,
+                            height: 19,
+                            borderRadius: '10px',
+                            p: '2px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: (form as any).circularss ? 'flex-end' : 'flex-start',
+                            bgcolor: (form as any).circularss
+                              ? 'primary.main'
+                              : alpha(theme.palette.text.primary, 0.18),
+                          }}
+                        >
+                          <Box
+                            sx={{ width: 15, height: 15, borderRadius: '50%', bgcolor: '#fff' }}
+                          />
+                        </Box>
+                        <Typography sx={{ fontSize: 13, fontWeight: 650 }}>
+                          {(form as any).circularss
+                            ? 'Pertenece a Circularss'
+                            : 'No pertenece a Circularss'}
+                        </Typography>
+                      </Stack>
+                      {(form as any).circularssUrl && (
+                        <Typography
+                          component="a"
+                          href={(form as any).circularssUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          sx={{
+                            fontSize: 12.5,
+                            fontFamily: 'ui-monospace, Menlo, monospace',
+                            color: 'text.secondary',
+                            bgcolor: alpha(theme.palette.text.primary, 0.05),
+                            borderRadius: '9px',
+                            px: 1.25,
+                            py: 0.75,
+                            textDecoration: 'none',
+                            wordBreak: 'break-all',
+                            minWidth: 0,
+                          }}
+                        >
+                          {String((form as any).circularssUrl).replace(/^https?:\/\//, '')}
+                        </Typography>
+                      )}
+                    </Stack>
+                  </PanelCard>
+
+                  {/* ── Mensajería: por dónde sale la campaña ─────── */}
+                  <PanelCard>
+                    <SectionHeader
+                      icon={<SensorsRounded sx={{ fontSize: 18, color: 'info.main' }} />}
+                      title="Mensajería"
+                      hint="Por dónde salen las campañas"
+                      action={editBtn}
+                    />
+                    <FieldGrid min={150}>
+                      <Field
+                        label="Proveedor"
+                        value={PROVIDER_LABEL[form.provider as string] ?? form.provider}
+                      />
+                      <Field
+                        label="Remitente"
+                        value={remitente}
+                        empty="Número global del sistema"
+                        mono
+                      />
+                      {form.provider === 'infobip' && (
+                        <Field
+                          label="Shortcode OTP"
+                          value={form.infobipShortcode}
+                          empty="Default del sistema"
+                          mono
+                        />
+                      )}
+                      {form.provider === 'twilio' && (
+                        <Field
+                          label="Twilio SID"
+                          value={form.twilioPhoneNumberSid}
+                          mono
+                        />
+                      )}
+                    </FieldGrid>
+                  </PanelCard>
+                </>
+              )}
+
+              {edit && (
+                <Section
+                  label="Facturación"
+                  icon={<PaymentsRounded sx={{ fontSize: 18, color: 'warning.main' }} />}
+                >
                 <Grid
                   container
                   spacing={1.5}
@@ -862,8 +1358,9 @@ export default function StoreInfo({ store }: { store: Store }) {
                     />
                   </Grid>
                 </Grid>
-              </Section>
-            </Box>
+                </Section>
+              )}
+            </Stack>
           </Grid>
 
           {/* ── Columna lateral: herramientas y contexto ────────── */}
@@ -872,12 +1369,10 @@ export default function StoreInfo({ store }: { store: Store }) {
             xs={12}
             md={5}
           >
-            <Stack
-              spacing={3.5}
-              p={{ xs: 2, md: 3 }}
-            >
+            <Stack spacing={1.5}>
               <Section
                 label="Acceso del merchant"
+                icon={<VpnKeyRounded sx={{ fontSize: 18, color: 'text.secondary' }} />}
                 action={
                   <Tooltip title={t('merchantAccess.copyAll')}>
                     <span>
@@ -1107,34 +1602,6 @@ export default function StoreInfo({ store }: { store: Store }) {
                 </Stack>
               </Section>
 
-              <Section
-                label="Ubicación"
-                hint={edit ? 'Haz clic en el mapa para mover el pin.' : undefined}
-              >
-                <Box
-                  sx={{
-                    borderRadius: 2,
-                    overflow: 'hidden',
-                    height: 220,
-                    border: (tm) => `1px solid ${tm.palette.divider}`,
-                  }}
-                >
-                  <StoreMap
-                    mapboxToken={MAPBOX_TOKEN}
-                    lng={lng}
-                    lat={lat}
-                    zoom={zoom}
-                    setZoom={setZoom}
-                    hasCoords={hasCoords}
-                    edit={edit}
-                    image={store.image}
-                    name={form.name}
-                    onClick={onMapClick}
-                    onMarkerDragEnd={onMarkerDragEnd}
-                  />
-                </Box>
-              </Section>
-
               <StoreKioskCard
                 kioskUrl={kioskUrl}
                 storeId={store._id}
@@ -1142,27 +1609,137 @@ export default function StoreInfo({ store }: { store: Store }) {
                 form={form as any}
                 setForm={setForm as any}
               />
+
+              {/* ── Salud de la tienda ──
+                  Los cuatro chequeos del diseño. No pide datos nuevos: los
+                  cruza de lo que la pantalla ya tiene cargado. Es lo que
+                  responde "¿esta tienda está entera?" sin recorrer la página. */}
+              {!edit && (
+                <PanelCard>
+                  <SectionHeader
+                    icon={<MonitorHeartRounded sx={{ fontSize: 18, color: 'success.main' }} />}
+                    title="Salud de la tienda"
+                    action={
+                      pendientesSalud > 0 ? (
+                        <StatusPill
+                          label={`${pendientesSalud} pendiente${pendientesSalud === 1 ? '' : 's'}`}
+                          tone="warning"
+                        />
+                      ) : (
+                        <StatusPill
+                          label="Todo en orden"
+                          tone="success"
+                        />
+                      )
+                    }
+                  />
+                  <Stack sx={{ p: 2.25 }}>
+                    {chequeosSalud.map((c) => (
+                      <Stack
+                        key={c.texto}
+                        direction="row"
+                        alignItems="center"
+                        gap={1.25}
+                        sx={{ py: 0.85 }}
+                      >
+                        {c.ok ? (
+                          <CheckRounded sx={{ fontSize: 17, color: 'success.main' }} />
+                        ) : (
+                          <WarningAmberRounded sx={{ fontSize: 17, color: 'warning.main' }} />
+                        )}
+                        <Typography sx={{ fontSize: 12.5, flex: 1, minWidth: 0 }}>
+                          {c.texto}
+                        </Typography>
+                        <Typography
+                          sx={{ fontSize: 11, fontWeight: 600, color: 'text.disabled', flexShrink: 0 }}
+                        >
+                          {c.area}
+                        </Typography>
+                      </Stack>
+                    ))}
+                  </Stack>
+                </PanelCard>
+              )}
+
+              {/* ── Contactos: a quién llamar cuando algo pasa ──
+                  En edición viven en el formulario; acá se leen de un vistazo
+                  en vez de estar dentro de un acordeón cerrado. */}
+              {!edit && (
+                <PanelCard>
+                  <SectionHeader
+                    icon={<PeopleAltRounded sx={{ fontSize: 18, color: 'primary.main' }} />}
+                    title="Contactos"
+                    count={contactos.length}
+                    action={editBtn}
+                  />
+                  {contactos.length === 0 ? (
+                    <EmptyBlock
+                      title="Sin contactos"
+                      hint="Agrega al dueño o al gerente para saber a quién llamar cuando algo pasa en la tienda."
+                    />
+                  ) : (
+                    <Stack sx={{ px: 2.25, py: 0.5 }}>
+                      {contactos.map((c: any, i: number) => (
+                        <Stack
+                          key={`${c.name}-${c.phone}-${i}`}
+                          direction="row"
+                          alignItems="center"
+                          gap={1.25}
+                          sx={{
+                            py: 1.15,
+                            borderTop: i ? `1px solid ${panelDivider(theme)}` : 'none',
+                          }}
+                        >
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography
+                              sx={{ fontSize: 13, fontWeight: 650 }}
+                              noWrap
+                            >
+                              {c.name || 'Sin nombre'}
+                            </Typography>
+                            <Typography sx={{ fontSize: 11, color: 'text.disabled' }}>
+                              {CONTACT_TYPE_LABEL[c.type] ?? 'Otro'}
+                            </Typography>
+                          </Box>
+                          <Typography
+                            sx={{
+                              fontSize: 12.5,
+                              fontFamily: 'ui-monospace, Menlo, monospace',
+                              color: c.phone ? 'text.secondary' : 'text.disabled',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {c.phone || '—'}
+                          </Typography>
+                        </Stack>
+                      ))}
+                    </Stack>
+                  )}
+                </PanelCard>
+              )}
             </Stack>
           </Grid>
         </Grid>
 
-        <Divider />
-
-        {/* ── Archivo de la relación: contratos y pausas ────────── */}
-        <Grid container>
-          <Grid
-            item
-            xs={12}
-            md={6}
-            sx={{
-              borderRight: { md: `1px solid ${theme.palette.divider}` },
-              borderBottom: { xs: `1px solid ${theme.palette.divider}`, md: 'none' },
-            }}
-          >
-            <Box p={{ xs: 2, md: 3 }}>
+        {/* ── Archivo de la relación: contratos y pausas ──────────
+            Dos tarjetas del mismo peso, lado a lado: son historial, no
+            configuración, así que cierran la página en vez de partirla. */}
+        <Box
+          sx={{
+            mt: 1.5,
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(272px, 1fr))',
+            gap: 1.5,
+            alignItems: 'start',
+          }}
+        >
+          <Box>
               <Section
                 label="Contratos"
-                hint="PDF firmados, almacenados en S3."
+                icon={<DescriptionRounded sx={{ fontSize: 18, color: 'text.secondary' }} />}
+                count={contracts.length}
+                hint="PDF firmados en S3"
+                action={edit ? undefined : editBtn}
               >
                 {edit && (
                   <Stack
@@ -1214,7 +1791,12 @@ export default function StoreInfo({ store }: { store: Store }) {
                   </Stack>
                 )}
 
-                {contracts.length === 0 ? (
+                {contracts.length === 0 && !edit ? (
+                  <EmptyBlock
+                    title="Sin contratos firmados"
+                    hint="Sube el PDF firmado para ligarlo a la fecha de inicio del contrato."
+                  />
+                ) : contracts.length === 0 ? (
                   <EmptyLine>Sin contratos subidos.</EmptyLine>
                 ) : (
                   contracts.map((contract: any, index: number) => (
@@ -1298,18 +1880,15 @@ export default function StoreInfo({ store }: { store: Store }) {
                   ))
                 )}
               </Section>
-            </Box>
-          </Grid>
+          </Box>
 
-          <Grid
-            item
-            xs={12}
-            md={6}
-          >
-            <Box p={{ xs: 2, md: 3 }}>
+          <Box>
               <Section
                 label="Pausas del servicio"
-                hint="Períodos sin envío de campañas."
+                icon={<PauseCircleRounded sx={{ fontSize: 18, color: 'text.secondary' }} />}
+                count={pauses.length}
+                hint="Sin envío de campañas"
+                action={edit ? undefined : editBtn}
               >
                 {edit && (
                   <Stack
@@ -1432,7 +2011,12 @@ export default function StoreInfo({ store }: { store: Store }) {
                   </Stack>
                 )}
 
-                {pauses.length === 0 ? (
+                {pauses.length === 0 && !edit ? (
+                  <EmptyBlock
+                    title="Sin pausas registradas"
+                    hint="Una pausa detiene el envío de campañas en el rango elegido."
+                  />
+                ) : pauses.length === 0 ? (
                   <EmptyLine>Sin pausas registradas.</EmptyLine>
                 ) : (
                   pauses.map((pause: any, index: number) => {
@@ -1516,9 +2100,8 @@ export default function StoreInfo({ store }: { store: Store }) {
                   })
                 )}
               </Section>
-            </Box>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </Card>
 
       {/* ── Editar / guardar: un solo lugar, siempre alcanzable ── */}

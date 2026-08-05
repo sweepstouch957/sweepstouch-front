@@ -11,6 +11,7 @@ import {
   QrCodeRounded,
   RocketLaunch,
   StoreMallDirectoryRounded,
+  TabletAndroidRounded,
 } from '@mui/icons-material';
 import {
   alpha,
@@ -48,6 +49,11 @@ const PROVIDER_LABEL: Record<string, string> = {
   bandwidth: 'Bandwidth',
   infobip: 'Infobip',
 };
+
+/** Panel del comerciante. Mismo origen que usa la tarjeta de credenciales. */
+const MERCHANT_ORIGIN = (
+  process.env.NEXT_PUBLIC_MERCHANT_ORIGIN || 'https://merchant.sweepstouch.com'
+).replace(/\/$/, '');
 
 /* ── Botón de acción: neutro, sin color de categoría ──────────── */
 function IBtn({
@@ -221,8 +227,7 @@ export default function StoreHeader({
         sx={{
           px: { xs: 2, md: 3 },
           pt: { xs: 2, md: 2.5 },
-          pb: { xs: 1.75, md: 2 },
-          borderBottom: `1px solid ${theme.palette.divider}`,
+          pb: { xs: 2, md: 2.25 },
         }}
       >
         <Stack
@@ -356,11 +361,11 @@ export default function StoreHeader({
             )}
 
             {/* Botonera del diseño: debajo del título, no a la derecha en
-                iconos sueltos. Kiosko es la acción principal de esta pantalla
-                (Merchant vive en el rail), y el Linktree va como combo con su
-                URL a la vista y el botón de copiar — es un link que se manda a
-                la tienda, así que verlo antes de copiarlo evita mandar el que
-                no era. */}
+                iconos sueltos. Los tres destinos de la tienda —panel del
+                comerciante, kiosko de piso y linktree público— en el orden en
+                que se usan, y el Linktree como combo con su URL a la vista:
+                es un link que se manda a la tienda, así que verlo antes de
+                copiarlo evita mandar el que no era. */}
             <Stack
               direction="row"
               gap={1}
@@ -373,7 +378,7 @@ export default function StoreHeader({
                 variant="contained"
                 disableElevation
                 startIcon={<OpenInNewRounded sx={{ fontSize: 17 }} />}
-                onClick={() => window.open(kioskUrl, '_blank')}
+                onClick={() => window.open(MERCHANT_ORIGIN, '_blank', 'noopener')}
                 sx={{
                   height: 36,
                   px: 1.75,
@@ -381,6 +386,25 @@ export default function StoreHeader({
                   textTransform: 'none',
                   fontWeight: 700,
                   fontSize: 12.5,
+                }}
+              >
+                Abrir Merchant
+              </Button>
+
+              <Button
+                variant="outlined"
+                startIcon={<TabletAndroidRounded sx={{ fontSize: 17, color: 'text.disabled' }} />}
+                onClick={() => window.open(kioskUrl, '_blank', 'noopener')}
+                sx={{
+                  height: 36,
+                  px: 1.75,
+                  borderRadius: '10px',
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  fontSize: 12.5,
+                  color: 'text.secondary',
+                  borderColor: 'divider',
+                  '&:hover': { borderColor: 'text.disabled', bgcolor: 'action.hover' },
                 }}
               >
                 Abrir Kiosko

@@ -44,24 +44,40 @@ function getProviderPhoneNumber(store: Store): string {
 const ContentLoadingSkeleton: FC = () => (
   <Box p={3}>
     <Stack spacing={2.5}>
-      <Box display="flex" alignItems="center" gap={2}>
-        <Skeleton variant="circular" width={36} height={36} />
+      <Box display="flex"
+alignItems="center"
+gap={2}>
+        <Skeleton variant="circular"
+width={36}
+height={36} />
         <Box flex={1}>
-          <Skeleton variant="text" width="28%" height={26} sx={{ mb: 0.5 }} />
-          <Skeleton variant="text" width="45%" height={18} />
+          <Skeleton variant="text"
+width="28%"
+height={26}
+sx={{ mb: 0.5 }} />
+          <Skeleton variant="text"
+width="45%"
+height={18} />
         </Box>
       </Box>
-      <Skeleton variant="rounded" height={110} sx={{ borderRadius: 2 }} />
+      <Skeleton variant="rounded"
+height={110}
+sx={{ borderRadius: 2 }} />
       <Box
         display="grid"
         gridTemplateColumns={{ xs: '1fr', sm: 'repeat(3, 1fr)' }}
         gap={2}
       >
         {[0, 1, 2].map((i) => (
-          <Skeleton key={i} variant="rounded" height={76} sx={{ borderRadius: 2 }} />
+          <Skeleton key={i}
+variant="rounded"
+height={76}
+sx={{ borderRadius: 2 }} />
         ))}
       </Box>
-      <Skeleton variant="rounded" height={220} sx={{ borderRadius: 2 }} />
+      <Skeleton variant="rounded"
+height={220}
+sx={{ borderRadius: 2 }} />
     </Stack>
   </Box>
 );
@@ -92,10 +108,13 @@ const ContentErrorState: FC = () => (
       <ErrorOutlineRoundedIcon sx={{ fontSize: 32, color: 'error.main' }} />
     </Box>
     <Box>
-      <Typography variant="h6" fontWeight={600} gutterBottom>
+      <Typography variant="h6"
+fontWeight={600}
+gutterBottom>
         No se pudo cargar la tienda
       </Typography>
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="body2"
+color="text.secondary">
         Verifica tu conexión e intenta de nuevo.
       </Typography>
     </Box>
@@ -125,7 +144,8 @@ export const StoreContentRouter: FC<Props> = ({
   if (tag === 'campaigns') {
     if (action === 'create') {
       return (
-        <Box px={{ xs: 1, md: 2 }} pt={2}>
+        <Box px={{ xs: 1, md: 2 }}
+pt={2}>
           <CreateCampaignContainer
             provider={store.provider}
             phoneNumber={getProviderPhoneNumber(store)}
@@ -136,7 +156,8 @@ export const StoreContentRouter: FC<Props> = ({
         </Box>
       );
     }
-    return <CampaignsPanel storeId={storeId} storeName={store.name || ''} />;
+    return <CampaignsPanel storeId={storeId}
+storeName={store.name || ''} />;
   }
 
   switch (tag) {
@@ -167,7 +188,8 @@ export const StoreContentRouter: FC<Props> = ({
     case 'sms-provider':
       return (
         <Box p={3}>
-          <Typography variant="h5" gutterBottom>
+          <Typography variant="h5"
+gutterBottom>
             Proveedor SMS
           </Typography>
           <Typography color="text.secondary">
@@ -179,10 +201,12 @@ export const StoreContentRouter: FC<Props> = ({
       );
 
     case 'equipment':
-      return <StoreEquipmentPanel store={store} storeId={storeId} />;
+      return <StoreEquipmentPanel store={store}
+storeId={storeId} />;
 
     case 'brand':
-      return <StoreBrandPanel storeId={storeId} store={store} />;
+      return <StoreBrandPanel storeId={storeId}
+store={store} />;
 
     case 'general-info':
       return (
@@ -194,7 +218,8 @@ export const StoreContentRouter: FC<Props> = ({
     case 'sweepstakes':
       return (
         <Box p={3}>
-          <Typography variant="h5" gutterBottom>
+          <Typography variant="h5"
+gutterBottom>
             Sorteo
           </Typography>
           <ActiveSweepstakeCard storeId={storeId} />

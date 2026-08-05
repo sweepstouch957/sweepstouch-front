@@ -9,6 +9,7 @@ import { InactiveStoreDialog } from './InactiveStoreDialog';
 import { StoreContentRouter } from './StoreContentRouter';
 import { StoreManagementHeader } from './StoreManagementHeader';
 import QuickCampaignDialog from './panel/campaigns/QuickCampaignDialog';
+import { HEADER_HEIGHT } from 'src/theme/utils';
 import { StoreSidebar } from './store-sidebar';
 
 const StoreManagementPage = () => {
@@ -43,6 +44,11 @@ const StoreManagementPage = () => {
       zIndex={2}
       ref={pageRef}
       overflow="hidden"
+      sx={{
+        // El shell reserva HEADER_HEIGHT * 1.5 y su navbar mide HEADER_HEIGHT:
+        // esa media altura sobrante era la franja blanca de arriba.
+        mt: `-${HEADER_HEIGHT / 2}px`,
+      }}
     >
       <StoreSidebar
         parentContainer={pageRef.current}

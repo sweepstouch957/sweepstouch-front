@@ -182,6 +182,7 @@ export function Field({
   /** Texto cuando no hay dato. Se pinta apagado, nunca en blanco. */
   empty?: string;
   mono?: boolean;
+  /** >1 ⇒ la celda ocupa la fila entera, cuente la rejilla las columnas que cuente. */
   span?: number;
   children?: React.ReactNode;
 }) {
@@ -195,7 +196,9 @@ export function Field({
         display: 'flex',
         flexDirection: 'column',
         gap: 0.5,
-        gridColumn: span > 1 ? `span ${span}` : undefined,
+        // `1 / -1` y no `span N`: la rejilla es auto-fit, así que en móvil
+        // queda en una sola columna y un `span 2` inventaría una segunda.
+        gridColumn: span > 1 ? '1 / -1' : undefined,
         minWidth: 0,
       }}
     >

@@ -12,6 +12,7 @@ interface LogoProps {
 export const Logo = ({ dark = false, isLinkStatic = false, isCollapsed }: LogoProps) => {
   const theme = useTheme();
   const isMobile = useMediaQuery('(max-width:768px)');
+  const mini = Boolean(isCollapsed || isMobile);
 
   const color = dark
     ? theme.palette.common.white

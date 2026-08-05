@@ -42,7 +42,7 @@ export const StoreManagementHeader: FC<Props> = ({
   return (
     <Box
       px={{ xs: 2, md: 4 }}
-      py={2.5}
+      py={1.25}
       display="flex"
       alignItems="center"
       justifyContent="space-between"
@@ -53,7 +53,10 @@ export const StoreManagementHeader: FC<Props> = ({
         mb: 1,
       }}
     >
-      <Stack direction="row" alignItems="center" spacing={1.5} minWidth={0}>
+      <Stack direction="row"
+alignItems="center"
+spacing={1.5}
+minWidth={0}>
         <IconButton
           onClick={onBack}
           size="small"
@@ -78,7 +81,9 @@ export const StoreManagementHeader: FC<Props> = ({
             },
           }}
         >
-          <Typography color="text.secondary" variant="body2" noWrap>
+          <Typography color="text.secondary"
+variant="body2"
+noWrap>
             Tiendas
           </Typography>
           <Typography
@@ -100,7 +105,9 @@ export const StoreManagementHeader: FC<Props> = ({
             {tag}
           </Typography>
           {action && (
-            <Typography color="text.primary" variant="body2" noWrap>
+            <Typography color="text.primary"
+variant="body2"
+noWrap>
               {action}
             </Typography>
           )}
@@ -108,7 +115,9 @@ export const StoreManagementHeader: FC<Props> = ({
       </Stack>
 
       {tag === 'campaigns' && (
-        <Stack direction="row" spacing={1.5} flexShrink={0}>
+        <Stack direction="row"
+spacing={1.5}
+flexShrink={0}>
           {action === 'create' ? (
             <Button
               variant="contained"

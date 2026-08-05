@@ -18,7 +18,7 @@ import { Scrollbar } from 'src/components/base/scrollbar';
 import { useSidebarContext } from 'src/contexts/sidebar-context';
 import { MenuItem } from 'src/router/menuItem';
 import { neutral } from 'src/theme/colors';
-import { SIDEBAR_WIDTH, SIDEBAR_WIDTH_COLLAPSED } from 'src/theme/utils';
+import { HEADER_HEIGHT, SIDEBAR_WIDTH, SIDEBAR_WIDTH_COLLAPSED } from 'src/theme/utils';
 import SidebarFooter from './sidebar-footer';
 import { SidebarNavMenu } from './sidebar-nav-menu';
 import { SidebarNavMenuCollapsed } from './sidebar-nav-menu-collapsed';
@@ -74,7 +74,14 @@ export const Sidebar: FC<SidebarProps> = (props) => {
       }}
     >
       <Box
-        p={2}
+        // Misma altura y línea inferior que la cabecera: así el logo y el
+        // buscador quedan sobre el mismo eje, no a dos alturas distintas.
+        sx={{
+          height: HEADER_HEIGHT,
+          flexShrink: 0,
+          px: 2,
+          borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.06)}`,
+        }}
         display="flex"
         justifyContent={{
           xs: 'flex-start',
