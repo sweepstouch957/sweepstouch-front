@@ -13,12 +13,10 @@ import {
   BadgeRounded,
   CalendarMonthOutlined,
   CheckRounded,
-  CloseRounded,
   CloudUpload,
   ContentCopyOutlined,
   DescriptionRounded,
   Delete,
-  EditRounded,
   Facebook,
   Instagram,
   LanguageRounded,
@@ -42,7 +40,6 @@ import {
   Checkbox,
   Chip,
   CircularProgress,
-  Fab,
   FormControlLabel,
   Grid,
   IconButton,
@@ -55,7 +52,6 @@ import {
   Tooltip,
   Typography,
   useTheme,
-  Zoom,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -79,7 +75,6 @@ import {
   StatusPill,
 } from '../application-ui/content-shells/store-managment/panel-kit';
 import StoreKioskCard from '../application-ui/composed-blocks/kiosk';
-import StoreGeneralForm from '../application-ui/form-layouts/store/edit';
 import StoreHeader from '../application-ui/headings/store/store-create';
 import StoreMap from '../application-ui/map/store-map';
 
@@ -193,6 +188,98 @@ const CONTACT_TYPE_LABEL: Record<string, string> = {
   assistant: 'Asistente',
   other: 'Otro',
 };
+
+/** Las tarjetas que se pueden abrir a editar, de a una por vez. */
+type SeccionId =
+  | 'identidad'
+  | 'ubicacion'
+  | 'plan'
+  | 'mensajeria'
+  | 'contactos'
+  | 'kiosko'
+  | 'contratos'
+  | 'pausas';
+
+/* ── Campo de la ficha: se lee, y cuando la sección abre se escribe ────────
+   La misma celda en los dos modos. Reemplazarla por un formulario aparte
+   movía todo de lugar al entrar a editar y había que volver a buscar el dato. */
+function DataField({
+  editing,
+  label,
+  value,
+  empty,
+  mono,
+  span,
+  input,
+}: {
+  editing: boolean;
+  label: string;
+  value?: React.ReactNode;
+  empty?: string;
+  mono?: boolean;
+  span?: number;
+  input: React.ReactNode;
+}) {
+  if (!editing)
+    return (
+      <Field
+        label={label}
+        value={value}
+        empty={empty}
+        mono={mono}
+        span={span}
+      />
+    );
+  return (
+    <Field
+      label={label}
+      span={span}
+    >
+      {input}
+    </Field>
+  );
+}
+
+/** Input sin caja: dentro de la rejilla, el borde de la celda ya encuadra. */
+function Inp({
+  value,
+  onChange,
+  placeholder,
+  type,
+  select,
+  mono,
+  children,
+}: {
+  value: any;
+  onChange: (e: any) => void;
+  placeholder?: string;
+  type?: string;
+  select?: boolean;
+  mono?: boolean;
+  children?: React.ReactNode;
+}) {
+  return (
+    <TextField
+      variant="standard"
+      fullWidth
+      select={select}
+      type={type}
+      value={value ?? ''}
+      onChange={onChange}
+      placeholder={placeholder}
+      InputProps={{
+        sx: {
+          fontSize: 14,
+          fontWeight: 650,
+          ...(mono ? { fontFamily: 'ui-monospace, Menlo, monospace' } : {}),
+        },
+      }}
+      InputLabelProps={type === 'date' ? { shrink: true } : undefined}
+    >
+      {children}
+    </TextField>
+  );
+}
 
 /**
  * Vocabulario visual de la página. Tres piezas, cero color decorativo:
@@ -459,6 +546,29 @@ export default function StoreInfo({ store }: { store: Store }) {
         key: 'selection',
       },
     ]);
+  };
+
+  const actualizarContacto = (index: number, campo: string, valor: string) => {
+    setForm((s: any) => ({
+      ...s,
+      contactInfo: (s.contactInfo || []).map((c: any, i: number) =>
+        i === index ? { ...c, [campo]: valor } : c
+      ),
+    }));
+  };
+
+  const agregarContacto = () => {
+    setForm((s: any) => ({
+      ...s,
+      contactInfo: [...(s.contactInfo || []), { type: 'other', name: '', phone: '' }],
+    }));
+  };
+
+  const quitarContacto = (index: number) => {
+    setForm((s: any) => ({
+      ...s,
+      contactInfo: (s.contactInfo || []).filter((_: any, i: number) => i !== index),
+    }));
   };
 
   const handleRemovePause = (index: number) => {
@@ -732,30 +842,83 @@ export default function StoreInfo({ store }: { store: Store }) {
   const pauses = form.pauseHistory || [];
   const contactos = (form as any).contactInfo || [];
 
-  /* ── Vista de lectura ─────────────────────────────────────────────────────
-     El diseño separa leer de editar: fuera del modo edición la página es una
-     ficha —etiqueta arriba, dato debajo— y cada bloque lleva su propio botón
-     "Editar". Antes eran los mismos campos de formulario deshabilitados, que
-     ocupan el triple y hacen que todo pese igual. */
-  const editBtn = (
-    <Button
-      size="small"
-      variant="outlined"
-      onClick={() => setEdit(true)}
-      sx={{
-        height: 29,
-        px: 1.5,
-        borderRadius: '9px',
-        textTransform: 'none',
-        fontWeight: 700,
-        fontSize: 12,
-        color: 'text.secondary',
-        borderColor: 'divider',
-      }}
-    >
-      Editar
-    </Button>
-  );
+  /* ── Edición por sección ──────────────────────────────────────────────────
+     La página se lee como ficha y cada tarjeta se abre sola. Antes un botón
+     flotante ponía TODO en modo formulario a la vez: para corregir un teléfono
+     había que ver los cuarenta campos de la tienda. El patch que se manda
+     sigue siendo igual de chico, porque el hook compara contra el original. */
+  const [editing, setEditing] = useState<SeccionId | null>(null);
+  const enEdicion = (id: SeccionId) => editing === id;
+
+  const abrirEdicion = (id: SeccionId) => {
+    setEditing(id);
+    setEdit(true);
+  };
+
+  /* El hook baja `edit` al guardar bien y al cancelar: esa es la señal de
+     cierre, y así una sección no se queda abierta si el guardado falla. */
+  React.useEffect(() => {
+    if (!edit) setEditing(null);
+  }, [edit]);
+
+  const botonSeccion = {
+    height: 29,
+    px: 1.5,
+    borderRadius: '9px',
+    textTransform: 'none' as const,
+    fontWeight: 700,
+    fontSize: 12,
+  };
+
+  /** Editar, o Guardar/Cancelar cuando la sección está abierta. */
+  const accionSeccion = (id: SeccionId) =>
+    enEdicion(id) ? (
+      <Stack
+        direction="row"
+        gap={0.75}
+      >
+        <Button
+          size="small"
+          onClick={handleCancel}
+          disabled={saving}
+          sx={{ ...botonSeccion, color: 'text.secondary' }}
+        >
+          Cancelar
+        </Button>
+        <Button
+          size="small"
+          variant="contained"
+          disableElevation
+          onClick={handleSave}
+          disabled={saving}
+          startIcon={
+            saving ? (
+              <CircularProgress
+                size={13}
+                color="inherit"
+              />
+            ) : (
+              <SaveRounded sx={{ fontSize: 16 }} />
+            )
+          }
+          sx={botonSeccion}
+        >
+          Guardar
+        </Button>
+      </Stack>
+    ) : (
+      <Button
+        size="small"
+        variant="outlined"
+        onClick={() => abrirEdicion(id)}
+        // Una sección a la vez: dos abiertas comparten un solo `form` y el
+        // Cancelar de una descartaría lo escrito en la otra.
+        disabled={Boolean(editing)}
+        sx={{ ...botonSeccion, color: 'text.secondary', borderColor: 'divider' }}
+      >
+        Editar
+      </Button>
+    );
 
   const linktreeHref = storeSlug
     ? `https://links.sweepstouch.com/?slug=${encodeURIComponent(storeSlug)}`
@@ -772,15 +935,17 @@ export default function StoreInfo({ store }: { store: Store }) {
 
   const credito = CREDIT_LABEL[(form as any).creditStatus || 'ok'] ?? CREDIT_LABEL.ok;
 
-  /** Por qué la tienda no está activa. Sólo aparece cuando hay algo que decir. */
-  const motivoEstado =
+  /** Por qué la tienda no está activa. Cada estado guarda su motivo aparte, así
+      que el campo escribe en la clave del estado vigente. */
+  const claveMotivo =
     form.status === 'suspended'
-      ? form.suspendedReason
+      ? 'suspendedReason'
       : form.status === 'inactive'
-        ? form.inactiveReason
+        ? 'inactiveReason'
         : form.status === 'cancelled'
-          ? (form as any).cancelContractReason
-          : '';
+          ? 'cancelContractReason'
+          : null;
+  const motivoEstado = claveMotivo ? (form as any)[claveMotivo] || '' : '';
 
   const remitente =
     form.provider === 'infobip'
@@ -797,10 +962,12 @@ export default function StoreInfo({ store }: { store: Store }) {
       zoom={zoom}
       setZoom={setZoom}
       hasCoords={hasCoords}
-      edit={edit}
+      // El pin sólo se mueve con Ubicación abierta: con el panel en otra
+      // sección, un clic en el mapa sería un cambio que nadie pidió.
+      edit={enEdicion('ubicacion')}
       image={store.image}
       name={form.name}
-      onClick={onMapClick}
+      onClick={(e: any) => enEdicion('ubicacion') && onMapClick(e)}
       onMarkerDragEnd={onMarkerDragEnd}
     />
   );
@@ -827,7 +994,7 @@ export default function StoreInfo({ store }: { store: Store }) {
           address={form.address}
           kioskUrl={kioskUrl}
           showQrBadge
-          edit={edit}
+          edit={enEdicion('identidad')}
           name={form.name}
           type={form.type}
           provider={form.provider}
@@ -843,11 +1010,10 @@ export default function StoreInfo({ store }: { store: Store }) {
         </PanelCard>
 
         {/* ── Los cuatro KPIs del diseño ──
-            Fuera del modo edición: ahí los campos de abajo son la verdad y
-            repetir el dato arriba crea dos fuentes para lo mismo. */}
-        {!edit && (
-          <Box sx={{ mb: 1.5 }}>
-            <KpiRow>
+            Se quedan siempre: ahora se edita de a una tarjeta, así que el
+            resumen de arriba nunca compite con un formulario de página. */}
+        <Box sx={{ mb: 1.5 }}>
+          <KpiRow>
               <KpiCard
                 icon={<PeopleAltRounded sx={{ fontSize: 17, color: 'primary.main' }} />}
                 label="Audiencia opt-in"
@@ -878,9 +1044,8 @@ export default function StoreInfo({ store }: { store: Store }) {
                 delta={statusMeta.label}
                 tone={statusMeta.label === 'Activa' ? 'success' : 'warning'}
               />
-            </KpiRow>
-          </Box>
-        )}
+          </KpiRow>
+        </Box>
 
         <Grid
           container
@@ -897,123 +1062,216 @@ export default function StoreInfo({ store }: { store: Store }) {
             }}
           >
             <Stack spacing={1.5}>
-              {!edit && (
-                <>
-                  {/* ── Identidad: lo que ve el cliente ───────────── */}
-                  <PanelCard>
-                    <SectionHeader
-                      icon={<BadgeRounded sx={{ fontSize: 18, color: 'primary.main' }} />}
-                      title="Identidad, imagen y enlaces"
-                      hint="Lo que ve el cliente"
-                      action={editBtn}
-                    />
-                    <FieldGrid min={190}>
-                      <Field
-                        label="Nombre comercial"
-                        value={form.name}
-                        span={2}
-                      />
-                      <Field
-                        label="Teléfono"
-                        value={form.phoneNumber}
-                      />
-                      <Field
-                        label="Email"
-                        value={form.email}
-                      />
-                      <Field
-                        label="Slug"
-                        value={storeSlug}
-                        mono
-                      />
-                      <Field
-                        label="Tipo de tienda"
-                        value={TYPE_LABEL[form.type as string] ?? form.type}
-                      />
-                      <Field
-                        label="Enlaces públicos"
-                        span={2}
-                      >
-                        <Stack
-                          direction="row"
-                          gap={0.9}
-                          useFlexGap
-                          flexWrap="wrap"
-                          sx={{ mt: 0.25 }}
-                        >
-                          {publicLinks.map((l) =>
-                            l.href ? (
-                              <Box
-                                key={l.key}
-                                component="a"
-                                href={l.href}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                sx={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 0.75,
-                                  height: 28,
-                                  px: 1.4,
-                                  borderRadius: '9px',
-                                  bgcolor: alpha(theme.palette.text.primary, 0.05),
-                                  color: 'text.secondary',
-                                  fontSize: 12,
-                                  fontWeight: 650,
-                                  textDecoration: 'none',
-                                  '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.09) },
-                                }}
-                              >
-                                {l.icon}
-                                {l.label}
-                              </Box>
-                            ) : (
-                              <Box
-                                key={l.key}
-                                role="button"
-                                tabIndex={0}
-                                onClick={() => setEdit(true)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault();
-                                    setEdit(true);
-                                  }
-                                }}
-                                sx={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  height: 28,
-                                  px: 1.4,
-                                  borderRadius: '9px',
-                                  border: `1px dashed ${theme.palette.divider}`,
-                                  color: 'text.disabled',
-                                  fontSize: 12,
-                                  fontWeight: 650,
-                                  cursor: 'pointer',
-                                  '&:hover': { color: 'text.secondary' },
-                                }}
-                              >
-                                + {l.label}
-                              </Box>
-                            )
-                          )}
-                        </Stack>
-                      </Field>
-                    </FieldGrid>
-                  </PanelCard>
-                </>
-              )}
-
-              {edit && (
-                <StoreGeneralForm
-                  form={form as any}
-                  edit={edit}
-                  onChange={handleChange}
-                  lng={lng}
-                  lat={lat}
-                  onRequestEdit={() => setEdit(true)}
+              {/* ── Identidad: lo que ve el cliente ───────────── */}
+              <PanelCard>
+                <SectionHeader
+                  icon={<BadgeRounded sx={{ fontSize: 18, color: 'primary.main' }} />}
+                  title="Identidad, imagen y enlaces"
+                  hint="Lo que ve el cliente"
+                  action={accionSeccion('identidad')}
                 />
-              )}
+                <FieldGrid min={190}>
+                  <DataField
+                    editing={enEdicion('identidad')}
+                    label="Nombre comercial"
+                    value={form.name}
+                    span={2}
+                    input={
+                      <Inp
+                        value={form.name}
+                        onChange={handleChange('name')}
+                        placeholder="Nombre de la tienda"
+                      />
+                    }
+                  />
+                  <DataField
+                    editing={enEdicion('identidad')}
+                    label="Teléfono"
+                    value={form.phoneNumber}
+                    input={
+                      <Inp
+                        value={form.phoneNumber}
+                        onChange={handleChange('phoneNumber')}
+                        placeholder="+1 (555) 000-0000"
+                      />
+                    }
+                  />
+                  <DataField
+                    editing={enEdicion('identidad')}
+                    label="Email"
+                    value={form.email}
+                    input={
+                      <Inp
+                        value={form.email}
+                        onChange={handleChange('email')}
+                        type="email"
+                        placeholder="tienda@correo.com"
+                      />
+                    }
+                  />
+                  <DataField
+                    editing={enEdicion('identidad')}
+                    label="Slug"
+                    value={storeSlug}
+                    mono
+                    input={
+                      <Inp
+                        value={form.slug}
+                        onChange={handleChange('slug')}
+                        mono
+                        placeholder="mi-tienda"
+                      />
+                    }
+                  />
+                  <Field label="Estado">
+                    {enEdicion('identidad') ? (
+                      <Inp
+                        select
+                        value={form.status || 'active'}
+                        onChange={handleChange('status')}
+                      >
+                        <MenuItem value="active">Activa</MenuItem>
+                        <MenuItem value="inactive">Inactiva</MenuItem>
+                        <MenuItem value="suspended">Suspendida</MenuItem>
+                        <MenuItem value="cancelled">Cancelada</MenuItem>
+                      </Inp>
+                    ) : (
+                      <Box sx={{ mt: 0.25 }}>
+                        <StatusPill
+                          label={statusMeta.label.toUpperCase()}
+                          tone={
+                            statusMeta.label === 'Activa'
+                              ? 'success'
+                              : statusMeta.label === 'Cancelada'
+                                ? 'error'
+                                : statusMeta.label === 'Suspendida'
+                                  ? 'warning'
+                                  : 'neutral'
+                          }
+                        />
+                      </Box>
+                    )}
+                  </Field>
+                  {/* El motivo vive pegado al estado que lo explica: separarlos
+                      obligaba a recordar en qué tarjeta estaba el porqué. */}
+                  {claveMotivo &&
+                    (enEdicion('identidad') ? (
+                      <DataField
+                        editing
+                        label={`Motivo · ${statusMeta.label}`}
+                        span={2}
+                        input={
+                          <Inp
+                            value={motivoEstado}
+                            onChange={handleChange(claveMotivo as any)}
+                            placeholder="Remodelación, deuda pendiente, cierre…"
+                          />
+                        }
+                      />
+                    ) : (
+                      motivoEstado && (
+                        <Field
+                          label={`Motivo · ${statusMeta.label}`}
+                          value={motivoEstado}
+                          span={2}
+                        />
+                      )
+                    ))}
+                  <Field
+                    label="Enlaces públicos"
+                    span={2}
+                  >
+                    {enEdicion('identidad') ? (
+                      <Stack
+                        spacing={1}
+                        sx={{ mt: 0.5 }}
+                      >
+                        {(['facebook', 'instagram', 'website'] as const).map((k) => (
+                          <TextField
+                            key={k}
+                            size="small"
+                            fullWidth
+                            label={k === 'website' ? 'Website' : k === 'facebook' ? 'Facebook' : 'Instagram'}
+                            value={form.socialLinks?.[k] || ''}
+                            onChange={(e) =>
+                              setForm((s: any) => ({
+                                ...s,
+                                socialLinks: { ...(s.socialLinks || {}), [k]: e.target.value },
+                              }))
+                            }
+                            placeholder={k === 'website' ? 'tu-tienda.com' : `${k}.com/tu-tienda`}
+                          />
+                        ))}
+                      </Stack>
+                    ) : (
+                      <Stack
+                        direction="row"
+                        gap={0.9}
+                        useFlexGap
+                        flexWrap="wrap"
+                        sx={{ mt: 0.25 }}
+                      >
+                        {publicLinks.map((l) =>
+                          l.href ? (
+                            <Box
+                              key={l.key}
+                              component="a"
+                              href={l.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              sx={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 0.75,
+                                height: 28,
+                                px: 1.4,
+                                borderRadius: '9px',
+                                bgcolor: alpha(theme.palette.text.primary, 0.05),
+                                color: 'text.secondary',
+                                fontSize: 12,
+                                fontWeight: 650,
+                                textDecoration: 'none',
+                                '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.09) },
+                              }}
+                            >
+                              {l.icon}
+                              {l.label}
+                            </Box>
+                          ) : (
+                            <Box
+                              key={l.key}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => abrirEdicion('identidad')}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  abrirEdicion('identidad');
+                                }
+                              }}
+                              sx={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                height: 28,
+                                px: 1.4,
+                                borderRadius: '9px',
+                                border: `1px dashed ${theme.palette.divider}`,
+                                color: 'text.disabled',
+                                fontSize: 12,
+                                fontWeight: 650,
+                                cursor: 'pointer',
+                                '&:hover': { color: 'text.secondary' },
+                              }}
+                            >
+                              + {l.label}
+                            </Box>
+                          )
+                        )}
+                      </Stack>
+                    )}
+                  </Field>
+                </FieldGrid>
+              </PanelCard>
 
               {/* ── Ubicación: los datos y el mapa, en la misma tarjeta ──
                   El mapa vivía en la columna lateral, lejos de la dirección
@@ -1022,51 +1280,97 @@ export default function StoreInfo({ store }: { store: Store }) {
                 <SectionHeader
                   icon={<LocationOnRounded sx={{ fontSize: 18, color: 'secondary.main' }} />}
                   title="Ubicación"
-                  hint={edit ? 'Haz clic en el mapa para mover el pin' : undefined}
-                  action={edit ? undefined : editBtn}
+                  hint={enEdicion('ubicacion') ? 'Haz clic en el mapa para mover el pin' : undefined}
+                  action={accionSeccion('ubicacion')}
                 />
                 <Box sx={{ display: 'flex', flexWrap: 'wrap' }}>
-                  {!edit && (
-                    <Box sx={{ flex: '2 1 300px', minWidth: 0 }}>
-                      <FieldGrid min={135}>
-                        <Field
-                          label="Dirección"
-                          value={form.address}
-                          span={2}
-                        />
-                        <Field
-                          label="ZIP"
-                          value={form.zipCode}
-                        />
-                        <Field
-                          label="Longitud"
-                          value={hasCoords ? lng.toFixed(6) : ''}
-                          empty="Sin pin"
-                          mono
-                        />
-                        <Field
-                          label="Latitud"
-                          value={hasCoords ? lat.toFixed(6) : ''}
-                          empty="Sin pin"
-                          mono
-                        />
-                      </FieldGrid>
-                    </Box>
-                  )}
+                  <Box sx={{ flex: '2 1 300px', minWidth: 0 }}>
+                    <FieldGrid min={135}>
+                      <DataField
+                        editing={enEdicion('ubicacion')}
+                        label="Dirección"
+                        value={form.address}
+                        span={2}
+                        input={
+                          <Inp
+                            value={form.address}
+                            onChange={handleChange('address')}
+                            placeholder="Calle, ciudad, estado"
+                          />
+                        }
+                      />
+                      <DataField
+                        editing={enEdicion('ubicacion')}
+                        label="ZIP"
+                        value={form.zipCode}
+                        input={
+                          <Inp
+                            value={form.zipCode}
+                            onChange={handleChange('zipCode')}
+                          />
+                        }
+                      />
+                      <DataField
+                        editing={enEdicion('ubicacion')}
+                        label="Longitud"
+                        value={hasCoords ? lng.toFixed(6) : ''}
+                        empty="Sin pin"
+                        mono
+                        input={
+                          <Inp
+                            value={hasCoords ? lng : ''}
+                            mono
+                            onChange={(e) => {
+                              const v = Number(e.target.value);
+                              if (!Number.isFinite(v)) return;
+                              setForm((s: any) => ({
+                                ...s,
+                                location: {
+                                  type: 'Point',
+                                  coordinates: [v, s.location?.coordinates?.[1] ?? lat],
+                                },
+                              }));
+                            }}
+                          />
+                        }
+                      />
+                      <DataField
+                        editing={enEdicion('ubicacion')}
+                        label="Latitud"
+                        value={hasCoords ? lat.toFixed(6) : ''}
+                        empty="Sin pin"
+                        mono
+                        input={
+                          <Inp
+                            value={hasCoords ? lat : ''}
+                            mono
+                            onChange={(e) => {
+                              const v = Number(e.target.value);
+                              if (!Number.isFinite(v)) return;
+                              setForm((s: any) => ({
+                                ...s,
+                                location: {
+                                  type: 'Point',
+                                  coordinates: [s.location?.coordinates?.[0] ?? lng, v],
+                                },
+                              }));
+                            }}
+                          />
+                        }
+                      />
+                    </FieldGrid>
+                  </Box>
                   <Box
                     sx={{
-                      flex: edit ? '1 1 100%' : '1 1 230px',
+                      flex: '1 1 230px',
                       minWidth: { xs: '100%', sm: 210 },
                       p: 1.5,
-                      borderLeft: {
-                        xs: 'none',
-                        sm: edit ? 'none' : `1px solid ${panelDivider(theme)}`,
-                      },
+                      borderLeft: { xs: 'none', sm: `1px solid ${panelDivider(theme)}` },
                     }}
                   >
                     <Box
                       sx={{
-                        height: edit ? 260 : { xs: 180, sm: '100%' },
+                        height: { xs: 180, sm: '100%' },
                         minHeight: 150,
                         borderRadius: '12px',
                         overflow: 'hidden',
@@ -1079,35 +1383,100 @@ export default function StoreInfo({ store }: { store: Store }) {
                 </Box>
               </PanelCard>
 
-              {!edit && (
-                <>
                   {/* ── Plan, contrato y cobro: todo lo comercial junto ── */}
                   <PanelCard>
                     <SectionHeader
                       icon={<PaymentsRounded sx={{ fontSize: 18, color: 'warning.main' }} />}
                       title="Plan, contrato y cobro"
                       hint="Todo lo comercial en un bloque"
-                      action={editBtn}
+                      action={accionSeccion('plan')}
                     />
                     <FieldGrid min={150}>
-                      <Field
+                      <DataField
+                        editing={enEdicion('plan')}
                         label="Tipo"
                         value={TYPE_LABEL[form.type as string] ?? form.type}
+                        input={
+                          <Inp
+                            select
+                            value={form.type}
+                            onChange={handleChange('type')}
+                          >
+                            {Object.entries(TYPE_LABEL).map(([v, l]) => (
+                              <MenuItem
+                                key={v}
+                                value={v}
+                              >
+                                {l}
+                              </MenuItem>
+                            ))}
+                          </Inp>
+                        }
                       />
-                      <Field
+                      <DataField
+                        editing={enEdicion('plan')}
                         label="Membresía"
                         value={MEMBERSHIP_LABEL[form.membershipType as string]}
+                        input={
+                          <Inp
+                            select
+                            value={form.membershipType}
+                            onChange={handleChange('membershipType')}
+                          >
+                            {Object.entries(MEMBERSHIP_LABEL).map(([v, l]) => (
+                              <MenuItem
+                                key={v}
+                                value={v}
+                              >
+                                {l}
+                              </MenuItem>
+                            ))}
+                          </Inp>
+                        }
                       />
-                      <Field
+                      <DataField
+                        editing={enEdicion('plan')}
                         label="Método de pago"
                         value={PAYMENT_LABEL[form.paymentMethod as string]}
+                        input={
+                          <Inp
+                            select
+                            value={form.paymentMethod}
+                            onChange={handleChange('paymentMethod')}
+                          >
+                            {Object.entries(PAYMENT_LABEL).map(([v, l]) => (
+                              <MenuItem
+                                key={v}
+                                value={v}
+                              >
+                                {l}
+                              </MenuItem>
+                            ))}
+                          </Inp>
+                        }
                       />
-                      <Field
+                      <DataField
+                        editing={enEdicion('plan')}
                         label="Inicio de contrato"
                         value={form.startContractDate ? safeDateLabel(form.startContractDate as any) : ''}
                         empty="Sin definir"
+                        input={
+                          <Inp
+                            type="date"
+                            value={toInputDate(form.startContractDate)}
+                            onChange={(e) =>
+                              setForm((s: any) => ({
+                                ...s,
+                                startContractDate: e.target.value
+                                  ? new Date(e.target.value).toISOString()
+                                  : null,
+                              }))
+                            }
+                          />
+                        }
                       />
-                      <Field
+                      <DataField
+                        editing={enEdicion('plan')}
                         label="Próxima factura"
                         value={
                           (form as any).billingNextDate
@@ -1115,27 +1484,67 @@ export default function StoreInfo({ store }: { store: Store }) {
                             : ''
                         }
                         empty="Sin definir"
+                        input={
+                          <Inp
+                            type="date"
+                            value={toInputDate((form as any).billingNextDate)}
+                            onChange={(e) =>
+                              setForm((s: any) => ({
+                                ...s,
+                                billingNextDate: e.target.value || null,
+                              }))
+                            }
+                          />
+                        }
                       />
                       <Field label="Estado de crédito">
-                        <Typography
-                          sx={{
-                            fontSize: 14,
-                            fontWeight: 650,
-                            color: `${credito.tone}.main`,
-                          }}
-                        >
-                          {credito.label}
-                        </Typography>
+                        {enEdicion('plan') ? (
+                          <Inp
+                            select
+                            value={(form as any).creditStatus || 'ok'}
+                            onChange={(e) =>
+                              setForm((s: any) => ({ ...s, creditStatus: e.target.value }))
+                            }
+                          >
+                            {Object.entries(CREDIT_LABEL).map(([v, c]) => (
+                              <MenuItem
+                                key={v}
+                                value={v}
+                              >
+                                {c.label}
+                              </MenuItem>
+                            ))}
+                          </Inp>
+                        ) : (
+                          <Typography
+                            sx={{ fontSize: 14, fontWeight: 650, color: `${credito.tone}.main` }}
+                          >
+                            {credito.label}
+                          </Typography>
+                        )}
                       </Field>
-                      {motivoEstado && (
-                        <Field
-                          label={`Motivo · ${statusMeta.label}`}
-                          value={motivoEstado}
+                      {enEdicion('plan') && (
+                        <DataField
+                          editing
+                          label="Fin último período"
                           span={2}
+                          input={
+                            <Inp
+                              type="date"
+                              value={toInputDate((form as any).billingLastPeriodEnd)}
+                              onChange={(e) =>
+                                setForm((s: any) => ({
+                                  ...s,
+                                  billingLastPeriodEnd: e.target.value || null,
+                                }))
+                              }
+                            />
+                          }
                         />
                       )}
                     </FieldGrid>
-                    {/* Circularss: el interruptor del diseño, en modo lectura */}
+                    {/* Circularss: un booleano, un solo control. El interruptor
+                        se lee igual apagado que encendido y en edición se toca. */}
                     <Stack
                       direction="row"
                       alignItems="center"
@@ -1150,6 +1559,22 @@ export default function StoreInfo({ store }: { store: Store }) {
                         gap={1}
                       >
                         <Box
+                          role={enEdicion('plan') ? 'switch' : undefined}
+                          aria-checked={enEdicion('plan') ? !!(form as any).circularss : undefined}
+                          aria-label={enEdicion('plan') ? 'Pertenece a Circularss' : undefined}
+                          tabIndex={enEdicion('plan') ? 0 : undefined}
+                          onClick={
+                            enEdicion('plan')
+                              ? () => setForm((s: any) => ({ ...s, circularss: !s.circularss }))
+                              : undefined
+                          }
+                          onKeyDown={(e) => {
+                            if (!enEdicion('plan')) return;
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setForm((s: any) => ({ ...s, circularss: !s.circularss }));
+                            }
+                          }}
                           sx={{
                             width: 32,
                             height: 19,
@@ -1158,9 +1583,12 @@ export default function StoreInfo({ store }: { store: Store }) {
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: (form as any).circularss ? 'flex-end' : 'flex-start',
+                            cursor: enEdicion('plan') ? 'pointer' : 'default',
+                            transition: 'background-color .18s',
                             bgcolor: (form as any).circularss
                               ? 'primary.main'
                               : alpha(theme.palette.text.primary, 0.18),
+                            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                           }}
                         >
                           <Box
@@ -1173,27 +1601,48 @@ export default function StoreInfo({ store }: { store: Store }) {
                             : 'No pertenece a Circularss'}
                         </Typography>
                       </Stack>
-                      {(form as any).circularssUrl && (
-                        <Typography
-                          component="a"
-                          href={(form as any).circularssUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          sx={{
-                            fontSize: 12.5,
-                            fontFamily: 'ui-monospace, Menlo, monospace',
-                            color: 'text.secondary',
-                            bgcolor: alpha(theme.palette.text.primary, 0.05),
-                            borderRadius: '9px',
-                            px: 1.25,
-                            py: 0.75,
-                            textDecoration: 'none',
-                            wordBreak: 'break-all',
-                            minWidth: 0,
+
+                      {enEdicion('plan') ? (
+                        <TextField
+                          size="small"
+                          label="URL del circular"
+                          value={(form as any).circularssUrl || ''}
+                          onChange={(e) =>
+                            setForm((s: any) => ({ ...s, circularssUrl: e.target.value || null }))
+                          }
+                          placeholder="https://..."
+                          sx={{ flex: '1 1 240px', minWidth: 0 }}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <LinkRounded sx={{ fontSize: 16, color: 'text.disabled' }} />
+                              </InputAdornment>
+                            ),
                           }}
-                        >
-                          {String((form as any).circularssUrl).replace(/^https?:\/\//, '')}
-                        </Typography>
+                        />
+                      ) : (
+                        (form as any).circularssUrl && (
+                          <Typography
+                            component="a"
+                            href={(form as any).circularssUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{
+                              fontSize: 12.5,
+                              fontFamily: 'ui-monospace, Menlo, monospace',
+                              color: 'text.secondary',
+                              bgcolor: alpha(theme.palette.text.primary, 0.05),
+                              borderRadius: '9px',
+                              px: 1.25,
+                              py: 0.75,
+                              textDecoration: 'none',
+                              wordBreak: 'break-all',
+                              minWidth: 0,
+                            }}
+                          >
+                            {String((form as any).circularssUrl).replace(/^https?:\/\//, '')}
+                          </Typography>
+                        )
                       )}
                     </Stack>
                   </PanelCard>
@@ -1204,162 +1653,85 @@ export default function StoreInfo({ store }: { store: Store }) {
                       icon={<SensorsRounded sx={{ fontSize: 18, color: 'info.main' }} />}
                       title="Mensajería"
                       hint="Por dónde salen las campañas"
-                      action={editBtn}
+                      action={accionSeccion('mensajeria')}
                     />
                     <FieldGrid min={150}>
-                      <Field
+                      <DataField
+                        editing={enEdicion('mensajeria')}
                         label="Proveedor"
                         value={PROVIDER_LABEL[form.provider as string] ?? form.provider}
+                        input={
+                          <Inp
+                            select
+                            value={form.provider}
+                            onChange={handleChange('provider')}
+                          >
+                            {/* Bandwidth quedó deprecado: se muestra si la tienda
+                                ya lo tiene, pero no se puede elegir de nuevo. */}
+                            <MenuItem value="twilio">Twilio</MenuItem>
+                            <MenuItem value="infobip">Infobip</MenuItem>
+                            {form.provider === 'bandwidth' && (
+                              <MenuItem value="bandwidth">Bandwidth (deprecado)</MenuItem>
+                            )}
+                          </Inp>
+                        }
                       />
-                      <Field
+                      <DataField
+                        editing={enEdicion('mensajeria')}
                         label="Remitente"
                         value={remitente}
                         empty="Número global del sistema"
                         mono
+                        input={
+                          <Inp
+                            mono
+                            value={remitente}
+                            placeholder="Vacío = número global"
+                            onChange={handleChange(
+                              form.provider === 'infobip'
+                                ? 'infobipSenderId'
+                                : form.provider === 'bandwidth'
+                                  ? 'bandwidthPhoneNumber'
+                                  : 'twilioPhoneNumber'
+                            )}
+                          />
+                        }
                       />
                       {form.provider === 'infobip' && (
-                        <Field
+                        <DataField
+                          editing={enEdicion('mensajeria')}
                           label="Shortcode OTP"
                           value={form.infobipShortcode}
                           empty="Default del sistema"
                           mono
+                          input={
+                            <Inp
+                              mono
+                              value={form.infobipShortcode}
+                              onChange={handleChange('infobipShortcode')}
+                              placeholder="912608"
+                            />
+                          }
                         />
                       )}
                       {form.provider === 'twilio' && (
-                        <Field
+                        <DataField
+                          editing={enEdicion('mensajeria')}
                           label="Twilio SID"
                           value={form.twilioPhoneNumberSid}
                           mono
+                          input={
+                            <Inp
+                              mono
+                              value={form.twilioPhoneNumberSid}
+                              onChange={handleChange('twilioPhoneNumberSid')}
+                            />
+                          }
                         />
                       )}
                     </FieldGrid>
                   </PanelCard>
-                </>
-              )}
 
-              {edit && (
-                <Section
-                  label="Facturación"
-                  icon={<PaymentsRounded sx={{ fontSize: 18, color: 'warning.main' }} />}
-                >
-                <Grid
-                  container
-                  spacing={1.5}
-                >
-                  <Grid
-                    item
-                    xs={12}
-                    sm={6}
-                  >
-                    <TextField
-                      label="Próxima factura"
-                      type="date"
-                      fullWidth
-                      size="small"
-                      value={toInputDate((form as any).billingNextDate)}
-                      onChange={(e) =>
-                        setForm((s: any) => ({ ...s, billingNextDate: e.target.value || null }))
-                      }
-                      InputLabelProps={{ shrink: true }}
-                      disabled={!edit}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sm={6}
-                  >
-                    <TextField
-                      label="Fin último período"
-                      type="date"
-                      fullWidth
-                      size="small"
-                      value={toInputDate((form as any).billingLastPeriodEnd)}
-                      onChange={(e) =>
-                        setForm((s: any) => ({
-                          ...s,
-                          billingLastPeriodEnd: e.target.value || null,
-                        }))
-                      }
-                      InputLabelProps={{ shrink: true }}
-                      disabled={!edit}
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                  >
-                    <TextField
-                      select
-                      label="Estado de crédito"
-                      fullWidth
-                      size="small"
-                      value={(form as any).creditStatus || 'ok'}
-                      onChange={(e) =>
-                        setForm((s: any) => ({ ...s, creditStatus: e.target.value }))
-                      }
-                      disabled={!edit}
-                    >
-                      <MenuItem value="ok">Al día</MenuItem>
-                      <MenuItem value="delinquent">Moroso</MenuItem>
-                      <MenuItem value="suspended">Suspendido</MenuItem>
-                    </TextField>
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                  >
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={!!(form as any).circularss}
-                          onChange={(e) =>
-                            setForm((s: any) => ({ ...s, circularss: e.target.checked }))
-                          }
-                          disabled={!edit}
-                          size="small"
-                        />
-                      }
-                      label={
-                        <Typography
-                          variant="caption"
-                          fontWeight={700}
-                          color="text.secondary"
-                        >
-                          Pertenece a Circularss
-                        </Typography>
-                      }
-                    />
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                  >
-                    <TextField
-                      label="Circulars URL"
-                      fullWidth
-                      size="small"
-                      value={(form as any).circularssUrl || ''}
-                      onChange={(e) =>
-                        setForm((s: any) => ({ ...s, circularssUrl: e.target.value || null }))
-                      }
-                      disabled={!edit}
-                      placeholder="https://..."
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <LinkRounded
-                              fontSize="small"
-                              color="disabled"
-                            />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  </Grid>
-                </Grid>
-                </Section>
-              )}
             </Stack>
           </Grid>
 
@@ -1604,8 +1976,8 @@ export default function StoreInfo({ store }: { store: Store }) {
 
               <StoreKioskCard
                 kioskUrl={kioskUrl}
-                storeId={store._id}
-                edit={edit}
+                edit={enEdicion('kiosko')}
+                action={accionSeccion('kiosko')}
                 form={form as any}
                 setForm={setForm as any}
               />
@@ -1614,8 +1986,7 @@ export default function StoreInfo({ store }: { store: Store }) {
                   Los cuatro chequeos del diseño. No pide datos nuevos: los
                   cruza de lo que la pantalla ya tiene cargado. Es lo que
                   responde "¿esta tienda está entera?" sin recorrer la página. */}
-              {!edit && (
-                <PanelCard>
+              <PanelCard>
                   <SectionHeader
                     icon={<MonitorHeartRounded sx={{ fontSize: 18, color: 'success.main' }} />}
                     title="Salud de la tienda"
@@ -1659,27 +2030,83 @@ export default function StoreInfo({ store }: { store: Store }) {
                     ))}
                   </Stack>
                 </PanelCard>
-              )}
 
-              {/* ── Contactos: a quién llamar cuando algo pasa ──
-                  En edición viven en el formulario; acá se leen de un vistazo
-                  en vez de estar dentro de un acordeón cerrado. */}
-              {!edit && (
-                <PanelCard>
-                  <SectionHeader
-                    icon={<PeopleAltRounded sx={{ fontSize: 18, color: 'primary.main' }} />}
-                    title="Contactos"
-                    count={contactos.length}
-                    action={editBtn}
+              {/* ── Contactos: a quién llamar cuando algo pasa ── */}
+              <PanelCard>
+                <SectionHeader
+                  icon={<PeopleAltRounded sx={{ fontSize: 18, color: 'primary.main' }} />}
+                  title="Contactos"
+                  count={contactos.length}
+                  action={accionSeccion('contactos')}
+                />
+                {contactos.length === 0 && !enEdicion('contactos') ? (
+                  <EmptyBlock
+                    title="Sin contactos"
+                    hint="Agrega al dueño o al gerente para saber a quién llamar cuando algo pasa en la tienda."
                   />
-                  {contactos.length === 0 ? (
-                    <EmptyBlock
-                      title="Sin contactos"
-                      hint="Agrega al dueño o al gerente para saber a quién llamar cuando algo pasa en la tienda."
-                    />
-                  ) : (
-                    <Stack sx={{ px: 2.25, py: 0.5 }}>
-                      {contactos.map((c: any, i: number) => (
+                ) : (
+                  <Stack sx={{ px: 2.25, py: enEdicion('contactos') ? 1.75 : 0.5 }}>
+                    {contactos.map((c: any, i: number) =>
+                      enEdicion('contactos') ? (
+                        <Stack
+                          key={i}
+                          spacing={1}
+                          sx={{
+                            py: 1.5,
+                            borderTop: i ? `1px solid ${panelDivider(theme)}` : 'none',
+                          }}
+                        >
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                          >
+                            <TextField
+                              select
+                              size="small"
+                              label="Tipo"
+                              value={c.type || 'other'}
+                              onChange={(e) => actualizarContacto(i, 'type', e.target.value)}
+                              sx={{ width: 130, flexShrink: 0 }}
+                            >
+                              {Object.entries(CONTACT_TYPE_LABEL).map(([v, l]) => (
+                                <MenuItem
+                                  key={v}
+                                  value={v}
+                                >
+                                  {l}
+                                </MenuItem>
+                              ))}
+                            </TextField>
+                            <TextField
+                              size="small"
+                              fullWidth
+                              label="Nombre"
+                              value={c.name || ''}
+                              onChange={(e) => actualizarContacto(i, 'name', e.target.value)}
+                              placeholder="Juan Pérez"
+                            />
+                            <Tooltip title="Eliminar contacto">
+                              <IconButton
+                                size="small"
+                                aria-label={`Eliminar contacto ${i + 1}`}
+                                onClick={() => quitarContacto(i)}
+                                sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}
+                              >
+                                <Delete sx={{ fontSize: 16 }} />
+                              </IconButton>
+                            </Tooltip>
+                          </Stack>
+                          <TextField
+                            size="small"
+                            fullWidth
+                            label="Teléfono"
+                            value={c.phone || ''}
+                            onChange={(e) => actualizarContacto(i, 'phone', e.target.value)}
+                            placeholder="+1 (555) 000-0000"
+                            inputProps={{ inputMode: 'tel' }}
+                          />
+                        </Stack>
+                      ) : (
                         <Stack
                           key={`${c.name}-${c.phone}-${i}`}
                           direction="row"
@@ -1712,11 +2139,30 @@ export default function StoreInfo({ store }: { store: Store }) {
                             {c.phone || '—'}
                           </Typography>
                         </Stack>
-                      ))}
-                    </Stack>
-                  )}
-                </PanelCard>
-              )}
+                      )
+                    )}
+
+                    {enEdicion('contactos') && (
+                      <Button
+                        onClick={agregarContacto}
+                        startIcon={<AddCircle sx={{ fontSize: 17 }} />}
+                        sx={{
+                          mt: 1.5,
+                          py: 1.1,
+                          borderRadius: '10px',
+                          border: `1.5px dashed ${theme.palette.divider}`,
+                          textTransform: 'none',
+                          fontWeight: 700,
+                          fontSize: 12.5,
+                          color: 'primary.main',
+                        }}
+                      >
+                        Agregar contacto
+                      </Button>
+                    )}
+                  </Stack>
+                )}
+              </PanelCard>
             </Stack>
           </Grid>
         </Grid>
@@ -1739,9 +2185,9 @@ export default function StoreInfo({ store }: { store: Store }) {
                 icon={<DescriptionRounded sx={{ fontSize: 18, color: 'text.secondary' }} />}
                 count={contracts.length}
                 hint="PDF firmados en S3"
-                action={edit ? undefined : editBtn}
+                action={accionSeccion('contratos')}
               >
-                {edit && (
+                {enEdicion('contratos') && (
                   <Stack
                     direction={{ xs: 'column', sm: 'row' }}
                     spacing={1}
@@ -1791,7 +2237,7 @@ export default function StoreInfo({ store }: { store: Store }) {
                   </Stack>
                 )}
 
-                {contracts.length === 0 && !edit ? (
+                {contracts.length === 0 && !enEdicion('contratos') ? (
                   <EmptyBlock
                     title="Sin contratos firmados"
                     hint="Sube el PDF firmado para ligarlo a la fecha de inicio del contrato."
@@ -1802,7 +2248,7 @@ export default function StoreInfo({ store }: { store: Store }) {
                   contracts.map((contract: any, index: number) => (
                     <ListRow
                       key={`${contract.fileUrl}-${contract.uploadedAt}`}
-                      first={index === 0 && !edit}
+                      first={index === 0 && !enEdicion('contratos')}
                     >
                       <Stack
                         direction="row"
@@ -1829,7 +2275,7 @@ export default function StoreInfo({ store }: { store: Store }) {
                             Subido {safeDateLabel(contract.uploadedAt)} · Firmado{' '}
                             {safeDateLabel(contract.signedAt)}
                           </Typography>
-                          {edit && (
+                          {enEdicion('contratos') && (
                             <TextField
                               type="date"
                               size="small"
@@ -1862,7 +2308,7 @@ export default function StoreInfo({ store }: { store: Store }) {
                           >
                             Ver
                           </Button>
-                          {edit && (
+                          {enEdicion('contratos') && (
                             <Tooltip title="Eliminar contrato">
                               <IconButton
                                 size="small"
@@ -1888,9 +2334,9 @@ export default function StoreInfo({ store }: { store: Store }) {
                 icon={<PauseCircleRounded sx={{ fontSize: 18, color: 'text.secondary' }} />}
                 count={pauses.length}
                 hint="Sin envío de campañas"
-                action={edit ? undefined : editBtn}
+                action={accionSeccion('pausas')}
               >
-                {edit && (
+                {enEdicion('pausas') && (
                   <Stack
                     spacing={1}
                     mb={1}
@@ -2011,7 +2457,7 @@ export default function StoreInfo({ store }: { store: Store }) {
                   </Stack>
                 )}
 
-                {pauses.length === 0 && !edit ? (
+                {pauses.length === 0 && !enEdicion('pausas') ? (
                   <EmptyBlock
                     title="Sin pausas registradas"
                     hint="Una pausa detiene el envío de campañas en el rango elegido."
@@ -2026,7 +2472,7 @@ export default function StoreInfo({ store }: { store: Store }) {
                         key={`${pause.startDate}-${pause.endDate || 'indefinido'}-${
                           pause.reason || ''
                         }`}
-                        first={index === 0 && !edit}
+                        first={index === 0 && !enEdicion('pausas')}
                       >
                         <Stack
                           direction="row"
@@ -2076,7 +2522,7 @@ export default function StoreInfo({ store }: { store: Store }) {
                               </Typography>
                             )}
                           </Box>
-                          {edit && (
+                          {enEdicion('pausas') && (
                             <Tooltip title="Eliminar pausa">
                               <IconButton
                                 size="small"
@@ -2103,69 +2549,6 @@ export default function StoreInfo({ store }: { store: Store }) {
           </Box>
         </Box>
       </Card>
-
-      {/* ── Editar / guardar: un solo lugar, siempre alcanzable ── */}
-      <Box
-        sx={{
-          position: 'fixed',
-          bottom: { xs: 24, md: 40 },
-          right: { xs: 24, md: 40 },
-          zIndex: 1000,
-          display: 'flex',
-          flexDirection: 'row-reverse',
-          gap: 1.5,
-          alignItems: 'center',
-        }}
-      >
-        <Zoom in>
-          <Fab
-            aria-label={edit ? 'Guardar cambios' : 'Editar tienda'}
-            color="primary"
-            variant={edit ? 'extended' : 'circular'}
-            onClick={edit ? handleSave : () => setEdit(true)}
-            disabled={saving}
-            sx={{
-              boxShadow: theme.shadows[6],
-              textTransform: 'none',
-              fontWeight: 700,
-              transition: 'transform 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
-              '&:hover': { transform: 'translateY(-2px)' },
-            }}
-          >
-            {saving ? (
-              <CircularProgress
-                size={22}
-                color="inherit"
-              />
-            ) : edit ? (
-              <>
-                <SaveRounded sx={{ mr: 1 }} />
-                Guardar
-              </>
-            ) : (
-              <EditRounded />
-            )}
-          </Fab>
-        </Zoom>
-
-        <Zoom in={edit}>
-          <Fab
-            aria-label="Cancelar edición"
-            size="medium"
-            onClick={handleCancel}
-            disabled={saving}
-            sx={{
-              boxShadow: theme.shadows[2],
-              bgcolor: 'background.paper',
-              color: 'text.secondary',
-              transition: 'transform 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
-              '&:hover': { transform: 'translateY(-2px)', bgcolor: 'background.paper' },
-            }}
-          >
-            <CloseRounded />
-          </Fab>
-        </Zoom>
-      </Box>
 
       <ConfirmDialog
         open={regenConfirmOpen}

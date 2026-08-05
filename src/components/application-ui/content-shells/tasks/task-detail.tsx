@@ -236,9 +236,6 @@ export function TaskDetail({ taskId }: { taskId: string }) {
         bgcolor: isDark
           ? alpha(theme.palette.common.black, 0.22)
           : alpha(theme.palette.common.black, 0.02),
-        // El shell reserva HEADER_HEIGHT * 1.5 pero su navbar mide HEADER_HEIGHT:
-        // esa media altura sobrante era la banda gris entre el navbar y la tarea.
-        mt: `-${HEADER_HEIGHT / 2}px`,
         pb: { xs: dirty ? 13 : 4, md: 6 },
       }}
     >
@@ -249,8 +246,9 @@ export function TaskDetail({ taskId }: { taskId: string }) {
           // Debajo del navbar fijo, no detrás de él
           top: `${HEADER_HEIGHT}px`,
           zIndex: 10,
-          bgcolor: alpha(theme.palette.background.paper, 0.86),
-          backdropFilter: 'blur(12px)',
+          // Opaca, no translúcida: el título pasa por debajo al hacer scroll y
+          // a través del velo se leía como un texto cortado por la mitad.
+          bgcolor: 'background.paper',
           borderBottom: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
         }}
       >

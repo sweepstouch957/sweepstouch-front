@@ -85,7 +85,8 @@ export function SectionHeader({
 }: {
   icon?: React.ReactNode;
   title: string;
-  hint?: string;
+  /** Texto de apoyo, o un nodo (una píldora de estado, por ejemplo). */
+  hint?: React.ReactNode;
   count?: number | string;
   action?: React.ReactNode;
 }) {
@@ -126,12 +127,14 @@ export function SectionHeader({
           {count}
         </Box>
       )}
-      {hint && (
+      {typeof hint === 'string' ? (
         <Typography
           sx={{ fontSize: 11.5, color: 'text.secondary', flexShrink: 0 }}
         >
           {hint}
         </Typography>
+      ) : (
+        hint
       )}
       {action && <Box sx={{ ml: 'auto', flexShrink: 0 }}>{action}</Box>}
     </Stack>

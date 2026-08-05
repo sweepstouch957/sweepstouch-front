@@ -33,7 +33,10 @@ export const VerticalShellsDark: FC<VerticalShellsDarkProps> = (props) => {
         sx={{
           display: 'flex',
           flexDirection: 'column',
-          paddingTop: `${HEADER_HEIGHT * 1.5}px`,
+          // Exactamente lo que mide el navbar fijo. Reservaba 1.5× de cuando
+          // la cabecera crecía al hacer scroll hacia arriba; esa cabecera ya
+          // es de altura fija, y el sobrante quedaba como una banda gris.
+          paddingTop: `${HEADER_HEIGHT}px`,
           ml: {
             xs: 0,
             lg: isSidebarCollapsed && `${SIDEBAR_WIDTH_COLLAPSED}px`,
