@@ -5,6 +5,10 @@ consistente. **Toda página nueva debe construirse sobre el tema y los component
 
 > Referencia visual interactiva: ver el archivo `Design System.dc.html` (guía navegable con
 > colores, tipografía, componentes y la plantilla base de página).
+>
+> **Store Panel 2.0** (Claude Design, proyecto *Sweepstouch panel access*) es la referencia
+> vigente para superficies, tarjetas, KPIs y navegación. Lo que dice la §2bis manda sobre
+> cualquier estilo anterior.
 
 ---
 
@@ -18,6 +22,79 @@ consistente. **Toda página nueva debe construirse sobre el tema y los component
 3. **Reutiliza componentes** de `src/components/base/` y `src/components/application-ui/` antes de
    crear algo nuevo.
 4. **Un solo idioma visual:** mismas cards, mismas cabeceras, mismos chips de estado en todas las páginas.
+5. **El color no decora, informa.** Un fondo teñido significa "esto está seleccionado" o "esto
+   requiere acción". Cinco tarjetas con cinco fondos de colores distintos son un semáforo y
+   ninguna cifra destaca: el color va en el icono, en la barrita o en la píldora — nunca en toda
+   la superficie de un dato.
+6. **La cifra manda.** En cualquier KPI el número es lo más grande de la tarjeta (25px/700) y va
+   en color de texto, no de acento.
+
+---
+
+## 2bis. Store Panel 2.0 — superficies y bloques
+
+Las piezas viven en
+`src/components/application-ui/content-shells/store-managment/panel-kit.tsx`.
+**Impórtalas; no repliques estos valores a mano.**
+
+| Pieza | Qué es | Métrica |
+|---|---|---|
+| `PanelCard` | Tarjeta de contenido | radio **18** (`hero` → 20), borde `panelBorder`, fondo `background.paper` |
+| `SectionHeader` | Cabecera de tarjeta | icono a color + título **14.5/700** + aclaración 11.5 + acción a la derecha |
+| `FieldGrid` / `Field` | Rejilla de datos de solo lectura | etiqueta **10/800** con tracking 1 · valor 14/650 |
+| `KpiCard` / `KpiRow` | Indicadores | cifra **25/700**, tracking −0.7, `tabular-nums` |
+| `StatusPill` | Estado | alto 22, radio 7, punto + texto |
+| `EmptyBlock` | Bloque vacío | título 13/700 + una línea que dice qué hacer |
+| `panelBorder` / `panelBorderColor` / `panelDivider` | Borde y línea interna | `text.primary` al 7% (claro) / 10% (oscuro) |
+
+### Rejillas de datos: líneas, no bordes
+El truco del diseño: el contenedor se pinta del color de la línea y las celdas van blancas con
+`gap: 1px`. Así nunca hay bordes dobles ni esquinas partidas.
+
+```tsx
+<PanelCard>
+  <SectionHeader title="Plan, contrato y cobro" hint="Todo lo comercial en un bloque"
+                 action={<Button size="small">Editar</Button>} />
+  <FieldGrid min={150}>
+    <Field label="Tipo" value="Free" />
+    <Field label="Próxima factura" empty="Sin definir" />
+    <Field label="Longitud" value="-74.173845" mono />
+  </FieldGrid>
+</PanelCard>
+```
+
+### Ya viene del tema — no lo repitas en cada página
+
+Estas tres cosas están en `src/theme/{light,dark}/create-components.ts`, así que
+**toda página del panel las hereda sin tocar nada**:
+
+| Componente | Qué hereda |
+|---|---|
+| `MuiCard` | radio **18**, borde de 1px, **`elevation: 0` y `boxShadow: none`** |
+| `MuiTableHead` | celdas en versalitas **10/800**, tracking 1, sobre banda apenas teñida |
+| `MuiTableCell` | **`tabular-nums`** en todo el cuerpo — las columnas de dinero alinean solas |
+
+Si una pantalla vieja se veía con sombra o con cabecera de tabla en 13px, ya no.
+No hace falta migrarla a mano para eso.
+
+### Reglas de esta capa
+- **Un solo CTA rosa por bloque.** El resto son `outlined` o texto.
+- **Sin sombras.** La separación se consigue con el borde de 1px. Nada de `boxShadow`,
+  `elevation > 0` ni resplandores de color. Las únicas sombras admitidas son las de menús y
+  diálogos flotantes que MUI aporta.
+- **Sin `translateY` al pasar el mouse** en elementos que no son clicables.
+- **Estados vacíos con instrucción**, nunca un guion suelto: `Field` usa `empty`, los bloques
+  usan `EmptyBlock`.
+- Números en columnas, precios y contadores: `fontVariantNumeric: 'tabular-nums'`.
+
+### Navegación
+- **Sidebar** (`vertical-shells/dark`): filas de alto 38, radio 10, etiqueta 13/600, icono 19.
+  Grupo con encabezado 9.5/700 y tracking 1.4. El activo lleva relleno rosa al 14% **y una barra
+  de 3px a la izquierda** — no basta con el tono.
+- **Cabecera**: los iconos de acción van agrupados en una cápsula (alto 38, radio 12) con
+  botones de 30×30 y radio 9. Sueltos, la cabecera se lee como controles inconexos.
+- **Rail de sección** (paneles con muchas pestañas): agrupar en bloques de 3–4 con encabezado en
+  versalitas. Más de ~8 ítems planos obligan a leerlos todos para encontrar uno.
 
 ---
 
@@ -112,9 +189,31 @@ export default function MiPaginaClient() {
 **Patrón obligatorio de toda página:**
 1. `Container maxWidth="xl"` como wrapper.
 2. `PageHeading` arriba (título + `description` opcional + `actions`).
-3. Contenido agrupado en `Card` / `CardContent`.
-4. KPIs en una fila de cards (`Grid`/`Stack` con `spacing={2}`).
+3. Contenido agrupado en **`PanelCard` + `SectionHeader`** (§2bis). `Card`/`CardContent` queda
+   sólo para las pantallas que aún no se migraron.
+4. KPIs con **`KpiRow` + `KpiCard`**, nunca tarjetas teñidas del color de su métrica.
 5. El shell (sidebar oscuro de marca + cabecera) lo aporta el layout de `/admin`; no lo repliques.
+6. **Tarjetas sueltas sobre el lienzo**, no una tarjeta gigante con rejilla interna: cada bloque
+   es su propia `PanelCard` separada por `gap: 1.5`. Anidar tarjetas dentro de tarjetas duplica
+   bordes y es el error más común al migrar una pantalla vieja.
+
+```tsx
+<Container maxWidth="xl" sx={{ py: 2 }}>
+  <PageHeading title="Tiendas" description="…" actions={<Button variant="contained">Nueva</Button>} />
+
+  <Stack spacing={1.5} sx={{ mt: 2 }}>
+    <KpiRow>
+      <KpiCard label="Audiencia" value="12.480" delta="+312 esta semana" tone="success" />
+      <KpiCard label="Deuda" value="$1.204" tone="warning" />
+    </KpiRow>
+
+    <PanelCard>
+      <SectionHeader title="Sección" hint="Para qué sirve" />
+      <FieldGrid>…</FieldGrid>
+    </PanelCard>
+  </Stack>
+</Container>
+```
 
 > Si la página hace fetch, usa un Server Component (`page.tsx`) que renderice tu
 > `*-client.tsx` con `'use client'`, como ya hacen `messages-sent` o `reports`.
@@ -174,12 +273,28 @@ Bloques de mayor nivel en `src/components/application-ui/` (diálogos, formulari
 
 ## 8. Checklist antes de abrir un PR
 
-- [ ] ¿Usé `Container` + `PageHeading` + `Card`?
+- [ ] ¿Usé `Container` + `PageHeading` + `PanelCard`/`SectionHeader` (§2bis)?
 - [ ] ¿Cero hex/valores hardcodeados? (todo vía `palette.*`, `variant`, `sx` con escala)
-- [ ] ¿Botones `contained`/`primary`, solo `small`/`medium`?
-- [ ] ¿Tipografía con `Typography variant`?
-- [ ] ¿Radio 6px y espaciado en escala?
-- [ ] ¿Reutilicé componentes de `base/` en vez de duplicar?
+- [ ] ¿Botones `contained`/`primary`, solo `small`/`medium`, **un CTA rosa por bloque**?
+- [ ] ¿Tipografía con `Typography variant` o con las métricas de §2bis en tarjetas de datos?
+- [ ] ¿**Cero sombras** en tarjetas y KPIs? ¿Cero `translateY` en cosas no clicables?
+- [ ] ¿Los KPIs tienen fondo blanco y la cifra en color de texto?
+- [ ] ¿Las tarjetas están sueltas sobre el lienzo, sin anidarse unas dentro de otras?
+- [ ] ¿Los estados vacíos dicen qué hacer, en vez de un guion?
+- [ ] ¿Números en columna con `tabular-nums`?
+- [ ] ¿Reutilicé componentes de `base/` y `panel-kit` en vez de duplicar?
+
+### Estado de la migración
+
+| Pantalla | Estado |
+|---|---|
+| Sidebar global + cabecera | ✅ migrado |
+| Rail de secciones de tienda | ✅ migrado |
+| Tienda · General Info | ◐ tipografía y cabeceras migradas; falta romper la `Card` única en tarjetas sueltas |
+| Campañas | ◐ KPIs y filtros migrados; falta la portada y la tabla de 7 columnas |
+| Tiendas (listado) | ◐ cubetas y resumen migrados; falta la tabla |
+| Tareas (`/admin/applications/tasks`) | ✅ migrado (lenguaje propio, ya sin sombras) |
+| Resto del panel | ⬜ pendiente — al tocarlas, migrarlas |
 
 ---
 

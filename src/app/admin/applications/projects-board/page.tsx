@@ -3,7 +3,9 @@
 import {
   useState,
   useMemo,
+  useEffect,
 } from 'react';
+import { Controller, useForm, useWatch, type Control, type UseFormRegister } from 'react-hook-form';
 import {
   alpha,
   Autocomplete,
@@ -15,6 +17,7 @@ import {
   Chip,
   CircularProgress,
   Container,
+  Skeleton,
   Dialog,
   DialogActions,
   DialogContent,
@@ -67,12 +70,20 @@ import { useRouter } from 'next/navigation';
 import { format, formatDistanceToNow, isPast } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
-import { taskClient, type Project, type WorkflowStatus } from '@/services/task.service';
+import {
+  taskClient,
+  PROJECT_TYPE_LABEL,
+  type Project,
+  type ProjectType,
+  type WorkflowStatus,
+} from '@/services/task.service';
+import { departmentService } from '@/services/department.service';
 import { useCustomization } from 'src/hooks/use-customization';
 import { LinearProgressSlim } from 'src/components/base/styles/progress-bar';
 import { CardWrapper } from 'src/components/application-ui/tables/users/styles';
 import { tint, tintBorder } from 'src/theme/semantic';
 import { usersApi } from '@/mocks/users';
+import { isInternalStaff } from '@/utils/staff';
 
 /* ─── Constants ─── */
 
@@ -99,7 +110,21 @@ const EMPTY_FORM = {
   name: '', description: '', color: PROJECT_COLORS[0], tags: '',
   workflowStatus: 'not_started' as WorkflowStatus,
   startDate: '', dueDate: '',
+  // Cómo se lleva y qué área lo dueña (Manual de Cowork)
+  type: 'project' as ProjectType,
+  departmentId: '' as string,
 };
+
+export type ProjectFormValues = typeof EMPTY_FORM;
+
+/**
+ * MUI espera el ref del input en `inputRef`; el `ref` que devuelve
+ * react-hook-form apuntaría al div raíz del TextField.
+ */
+function rhf(register: UseFormRegister<ProjectFormValues>, name: keyof ProjectFormValues) {
+  const { ref, ...rest } = register(name);
+  return { inputRef: ref, ...rest };
+}
 
 /* ─── Sub-components ─── */
 
@@ -157,29 +182,37 @@ function EditProjectDrawer({
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
 
-  const [form, setForm] = useState<typeof EMPTY_FORM>(EMPTY_FORM);
+  const { register, control, handleSubmit, reset } = useForm<ProjectFormValues>({
+    defaultValues: EMPTY_FORM,
+  });
   const [memberIds, setMemberIds] = useState<string[]>([]);
 
-  /* sync form when project changes */
-  useMemo(() => {
-    if (project) {
-      setForm({
-        name: project.name || '',
-        description: project.description || '',
-        color: project.color || PROJECT_COLORS[0],
-        tags: (project.tags || []).join(', '),
-        workflowStatus: project.workflowStatus || 'not_started',
-        startDate: project.startDate ? project.startDate.slice(0, 10) : '',
-        dueDate: project.dueDate ? project.dueDate.slice(0, 10) : '',
-      });
-      setMemberIds(project.memberIds || []);
-    }
-  }, [project]);
+  // Áreas para elegir la dueña del proyecto (misma queryKey que el resto: se comparte)
+  const { data: departments = [] } = useQuery({
+    queryKey: ['departments'],
+    queryFn: departmentService.list,
+    staleTime: 60_000,
+  });
 
-  const teamMembers = useMemo(() => {
-    const excluded = ['merchant', 'cashier', 'promotor'];
-    return allUsers.filter((u: any) => !excluded.includes(u.role));
-  }, [allUsers]);
+  /* sync form when project changes — antes era un setState dentro de useMemo
+     (state derivado en pleno render); ahora es un reset del form en un efecto. */
+  useEffect(() => {
+    if (!project) return;
+    reset({
+      name: project.name || '',
+      description: project.description || '',
+      color: project.color || PROJECT_COLORS[0],
+      tags: (project.tags || []).join(', '),
+      workflowStatus: project.workflowStatus || 'not_started',
+      startDate: project.startDate ? project.startDate.slice(0, 10) : '',
+      dueDate: project.dueDate ? project.dueDate.slice(0, 10) : '',
+      type: project.type || 'project',
+      departmentId: project.departmentId || '',
+    });
+    setMemberIds(project.memberIds || []);
+  }, [project, reset]);
+
+  const teamMembers = useMemo(() => allUsers.filter(isInternalStaff), [allUsers]);
 
   const memberObjects = useMemo(() => {
     const memberIdSet = new Set(memberIds);
@@ -198,16 +231,17 @@ function EditProjectDrawer({
     setMemberIds((prev) => prev.filter((id) => id !== userId));
   }
 
-  function handleSave() {
+  const handleSave = handleSubmit((values) => {
     if (!project) return;
     onSave(project._id, {
-      ...form,
-      tags: form.tags ? form.tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
-      startDate: form.startDate || null,
-      dueDate: form.dueDate || null,
+      ...values,
+      tags: values.tags ? values.tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
+      startDate: values.startDate || null,
+      dueDate: values.dueDate || null,
+      departmentId: values.departmentId || null,
       memberIds,
     });
-  }
+  });
 
   const isOverdue = project?.dueDate && isPast(new Date(project.dueDate)) && project.workflowStatus !== 'completed';
 
@@ -264,19 +298,16 @@ function EditProjectDrawer({
             <Stack spacing={2}>
               <TextField
                 label="Project Name *" fullWidth autoFocus
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                {...rhf(register, 'name')}
               />
               <TextField
                 label="Description" fullWidth multiline rows={3}
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                {...rhf(register, 'description')}
                 placeholder="What is this project about?"
               />
               <TextField
                 label="Tags" fullWidth
-                value={form.tags}
-                onChange={(e) => setForm({ ...form, tags: e.target.value })}
+                {...rhf(register, 'tags')}
                 placeholder="design, frontend, backend"
                 helperText="Separate with commas"
               />
@@ -291,29 +322,69 @@ function EditProjectDrawer({
               Status & Color
             </Typography>
             <Stack spacing={2}>
-              <TextField
-                label="Workflow Status" select fullWidth
-                value={form.workflowStatus}
-                onChange={(e) => setForm({ ...form, workflowStatus: e.target.value as WorkflowStatus })}
-              >
-                {statusOptions.map((opt) => (
-                  <MenuItem key={opt.id} value={opt.id}>
-                    <Stack direction="row" alignItems="center" spacing={1}>
-                      <Box sx={{
-                        width: 8, height: 8, borderRadius: '50%',
-                        bgcolor: STATUS_MAP[opt.id].color === 'error' ? 'error.main'
-                          : STATUS_MAP[opt.id].color === 'info' ? 'info.main' : 'success.main',
-                      }} />
-                      <span>{opt.name}</span>
-                    </Stack>
-                  </MenuItem>
-                ))}
-              </TextField>
+              <Controller
+                control={control}
+                name="workflowStatus"
+                render={({ field }) => (
+                  <TextField {...field} label="Workflow Status" select fullWidth>
+                    {statusOptions.map((opt) => (
+                      <MenuItem key={opt.id} value={opt.id}>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <Box sx={{
+                            width: 8, height: 8, borderRadius: '50%',
+                            bgcolor: STATUS_MAP[opt.id].color === 'error' ? 'error.main'
+                              : STATUS_MAP[opt.id].color === 'info' ? 'info.main' : 'success.main',
+                          }} />
+                          <span>{opt.name}</span>
+                        </Stack>
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                )}
+              />
+              {/* Cómo se lleva el proyecto + área dueña (Manual de Cowork) */}
+              <Controller
+                control={control}
+                name="type"
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Cómo se lleva" select fullWidth
+                    helperText="Un proyecto por hitos (ej. RCS) se mide por hito con fecha y criterio de cierre."
+                  >
+                    {(Object.keys(PROJECT_TYPE_LABEL) as ProjectType[]).map((k) => (
+                      <MenuItem key={k} value={k}>{PROJECT_TYPE_LABEL[k]}</MenuItem>
+                    ))}
+                  </TextField>
+                )}
+              />
+              <Controller
+                control={control}
+                name="departmentId"
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Área dueña" select fullWidth
+                    helperText="Las tareas del proyecto se cuentan en el reporte de esta área."
+                  >
+                    <MenuItem value="">Sin área</MenuItem>
+                    {departments.map((d) => (
+                      <MenuItem key={d._id} value={d._id}>{d.name}</MenuItem>
+                    ))}
+                  </TextField>
+                )}
+              />
               <Box>
                 <Typography variant="caption" fontWeight={600} color="text.secondary" mb={0.75} display="block">
                   Project Color
                 </Typography>
-                <ColorPicker value={form.color} onChange={(c) => setForm({ ...form, color: c })} />
+                <Controller
+                  control={control}
+                  name="color"
+                  render={({ field }) => (
+                    <ColorPicker value={field.value} onChange={field.onChange} />
+                  )}
+                />
               </Box>
             </Stack>
           </Box>
@@ -331,14 +402,12 @@ function EditProjectDrawer({
             <Stack direction="row" spacing={1.5}>
               <TextField
                 label="Start Date" type="date" fullWidth
-                value={form.startDate}
-                onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                {...rhf(register, 'startDate')}
                 InputLabelProps={{ shrink: true }}
               />
               <TextField
                 label="Due Date" type="date" fullWidth
-                value={form.dueDate}
-                onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+                {...rhf(register, 'dueDate')}
                 InputLabelProps={{ shrink: true }}
                 error={!!isOverdue}
                 helperText={isOverdue ? 'Overdue' : undefined}
@@ -503,20 +572,162 @@ function EditProjectDrawer({
         }}
       >
         <Button onClick={onClose} sx={{ borderRadius: 1.5, textTransform: 'none' }}>Cancel</Button>
-        <Button
-          variant="contained"
-          disableElevation
-          disabled={!form.name || isSaving}
+        <SaveProjectButton
+          control={control}
+          isSaving={isSaving}
           onClick={handleSave}
-          sx={{
-            fontWeight: 700, borderRadius: 1.5, textTransform: 'none',
-            background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
-          }}
-        >
-          {isSaving ? 'Saving…' : 'Save Changes'}
-        </Button>
+        />
       </Box>
     </Drawer>
+  );
+}
+
+/** Se suscribe sólo al nombre: escribirlo no repinta el drawer entero. */
+function SaveProjectButton({
+  control,
+  isSaving,
+  onClick,
+}: {
+  control: Control<ProjectFormValues>;
+  isSaving: boolean;
+  onClick: () => void;
+}) {
+  const theme = useTheme();
+  const name = useWatch({ control, name: 'name' });
+
+  return (
+    <Button
+      variant="contained"
+      disableElevation
+      disabled={!name || isSaving}
+      onClick={onClick}
+      sx={{
+        fontWeight: 700, borderRadius: 1.5, textTransform: 'none',
+        background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+      }}
+    >
+      {isSaving ? 'Saving…' : 'Save Changes'}
+    </Button>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════ */
+/*  NEW PROJECT DIALOG                                                 */
+/* ══════════════════════════════════════════════════════════════════ */
+
+function NewProjectDialog({
+  open,
+  isPending,
+  onClose,
+  onCreate,
+}: {
+  open: boolean;
+  isPending: boolean;
+  onClose: () => void;
+  onCreate: (payload: any) => void;
+}) {
+  const theme = useTheme();
+  // Se monta al abrir: los defaults se calculan una vez y no hace falta reset.
+  const { register, control, handleSubmit } = useForm<ProjectFormValues>({
+    defaultValues: EMPTY_FORM,
+  });
+
+  const submit = handleSubmit((values) =>
+    onCreate({
+      ...values,
+      tags: values.tags ? values.tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
+      startDate: values.startDate || undefined,
+      dueDate: values.dueDate || undefined,
+    })
+  );
+
+  return (
+    <Dialog
+      open={open} onClose={onClose} maxWidth="sm" fullWidth
+      PaperProps={{ sx: { borderRadius: 3 }, component: 'form', onSubmit: submit }}
+    >
+      <DialogTitle sx={{ fontWeight: 700 }}>New Project</DialogTitle>
+      <DialogContent dividers>
+        <Stack spacing={2.5} pt={1}>
+          <TextField label="Project Name *" fullWidth autoFocus {...rhf(register, 'name')} />
+          <TextField label="Description" fullWidth multiline rows={2} {...rhf(register, 'description')} />
+          <TextField
+            label="Tags (comma-separated)" fullWidth
+            {...rhf(register, 'tags')}
+            placeholder="design, frontend, api"
+          />
+          <Controller
+            control={control}
+            name="workflowStatus"
+            render={({ field }) => (
+              <TextField {...field} label="Status" select fullWidth>
+                {statusOptions.map((opt) => (
+                  <MenuItem key={opt.id} value={opt.id}>{opt.name}</MenuItem>
+                ))}
+              </TextField>
+            )}
+          />
+          {/* Un proyecto por hitos (ej. RCS) no es un área ni un cargo */}
+          <Controller
+            control={control}
+            name="type"
+            render={({ field }) => (
+              <TextField {...field} label="Cómo se lleva" select fullWidth>
+                {(Object.keys(PROJECT_TYPE_LABEL) as ProjectType[]).map((k) => (
+                  <MenuItem key={k} value={k}>{PROJECT_TYPE_LABEL[k]}</MenuItem>
+                ))}
+              </TextField>
+            )}
+          />
+          <Stack direction="row" spacing={2}>
+            <TextField
+              label="Start Date" type="date" fullWidth
+              {...rhf(register, 'startDate')}
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              label="Due Date" type="date" fullWidth
+              {...rhf(register, 'dueDate')}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Stack>
+          <Box>
+            <Typography variant="caption" fontWeight={600} color="text.secondary" mb={0.75} display="block">Color</Typography>
+            <Controller
+              control={control}
+              name="color"
+              render={({ field }) => <ColorPicker value={field.value} onChange={field.onChange} />}
+            />
+          </Box>
+        </Stack>
+      </DialogContent>
+      <DialogActions sx={{ p: 2 }}>
+        <Button onClick={onClose} sx={{ borderRadius: 1.5, textTransform: 'none' }}>Cancel</Button>
+        <CreateProjectButton control={control} isPending={isPending} theme={theme} />
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+function CreateProjectButton({
+  control,
+  isPending,
+  theme,
+}: {
+  control: Control<ProjectFormValues>;
+  isPending: boolean;
+  theme: any;
+}) {
+  const name = useWatch({ control, name: 'name' });
+
+  return (
+    <Button
+      variant="contained" disableElevation type="submit"
+      disabled={!name || isPending}
+      sx={{ fontWeight: 700, borderRadius: 1.5, textTransform: 'none', background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)` }}
+    >
+      Create Project
+    </Button>
   );
 }
 
@@ -543,7 +754,6 @@ export default function ProjectsBoardPage() {
 
   /* ── Dialogs ── */
   const [newProjectOpen, setNewProjectOpen] = useState(false);
-  const [projectForm, setProjectForm] = useState(EMPTY_FORM);
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
 
   /* ── Edit drawer ── */
@@ -574,7 +784,6 @@ export default function ProjectsBoardPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       setNewProjectOpen(false);
-      setProjectForm(EMPTY_FORM);
       toast.success('Project created');
     },
   });
@@ -765,7 +974,17 @@ export default function ProjectsBoardPage() {
 
         {/* ── Loading ── */}
         {isLoading && (
-          <Box display="flex" justifyContent="center" py={8}><CircularProgress /></Box>
+          <Box
+            sx={{
+              display: 'grid',
+              gap: 2,
+              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' },
+            }}
+          >
+            {Array.from({ length: 6 }, (_, i) => (
+              <Skeleton key={i} variant="rounded" height={210} />
+            ))}
+          </Box>
         )}
 
         {/* ── Empty ── */}
@@ -1083,62 +1302,14 @@ export default function ProjectsBoardPage() {
       />
 
       {/* ══ NEW PROJECT DIALOG ══ */}
-      <Dialog open={newProjectOpen} onClose={() => setNewProjectOpen(false)} maxWidth="sm" fullWidth
-        PaperProps={{ sx: { borderRadius: 3 } }}
-      >
-        <DialogTitle sx={{ fontWeight: 700 }}>New Project</DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={2.5} pt={1}>
-            <TextField label="Project Name *" fullWidth autoFocus value={projectForm.name}
-              onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })}
-            />
-            <TextField label="Description" fullWidth multiline rows={2} value={projectForm.description}
-              onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })}
-            />
-            <TextField label="Tags (comma-separated)" fullWidth value={projectForm.tags}
-              onChange={(e) => setProjectForm({ ...projectForm, tags: e.target.value })}
-              placeholder="design, frontend, api"
-            />
-            <TextField label="Status" select fullWidth value={projectForm.workflowStatus}
-              onChange={(e) => setProjectForm({ ...projectForm, workflowStatus: e.target.value as WorkflowStatus })}
-            >
-              {statusOptions.map((opt) => (
-                <MenuItem key={opt.id} value={opt.id}>{opt.name}</MenuItem>
-              ))}
-            </TextField>
-            <Stack direction="row" spacing={2}>
-              <TextField label="Start Date" type="date" fullWidth value={projectForm.startDate}
-                onChange={(e) => setProjectForm({ ...projectForm, startDate: e.target.value })}
-                InputLabelProps={{ shrink: true }}
-              />
-              <TextField label="Due Date" type="date" fullWidth value={projectForm.dueDate}
-                onChange={(e) => setProjectForm({ ...projectForm, dueDate: e.target.value })}
-                InputLabelProps={{ shrink: true }}
-              />
-            </Stack>
-            <Box>
-              <Typography variant="caption" fontWeight={600} color="text.secondary" mb={0.75} display="block">Color</Typography>
-              <ColorPicker value={projectForm.color} onChange={(c) => setProjectForm({ ...projectForm, color: c })} />
-            </Box>
-          </Stack>
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setNewProjectOpen(false)} sx={{ borderRadius: 1.5, textTransform: 'none' }}>Cancel</Button>
-          <Button
-            variant="contained" disableElevation
-            onClick={() => createProjectMut.mutate({
-              ...projectForm,
-              tags: projectForm.tags ? projectForm.tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
-              startDate: projectForm.startDate || undefined,
-              dueDate: projectForm.dueDate || undefined,
-            })}
-            disabled={!projectForm.name || createProjectMut.isPending}
-            sx={{ fontWeight: 700, borderRadius: 1.5, textTransform: 'none', background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)` }}
-          >
-            Create Project
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {newProjectOpen && (
+        <NewProjectDialog
+          open
+          isPending={createProjectMut.isPending}
+          onClose={() => setNewProjectOpen(false)}
+          onCreate={(payload) => createProjectMut.mutate(payload)}
+        />
+      )}
 
       {/* ══ AI CONTEXT DIALOG ══ */}
       <Dialog open={aiDialogOpen} onClose={() => setAiDialogOpen(false)} maxWidth="md" fullWidth
@@ -1167,7 +1338,7 @@ export default function ProjectsBoardPage() {
               </Box>
             </>
           ) : (
-            <Box display="flex" justifyContent="center" py={4}><CircularProgress /></Box>
+            <Skeleton variant="rounded" height={220} />
           )}
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>

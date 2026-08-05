@@ -11,6 +11,52 @@ export interface Customer {
   createdAt?: string;
 }
 
+/**
+ * Clasificación de un número según su historial de entregas:
+ * - `optout`    el usuario mandó STOP o el carrier lo bloqueó
+ * - `invalid`   el número no existe o no puede recibir SMS
+ * - `recurrent` sólo errores blandos, pero repetidos y sin una sola entrega
+ * - `watch`     falló poco o llegó a recibir: NO se toca
+ */
+export type PhoneAnalysisClass = 'optout' | 'invalid' | 'recurrent' | 'watch';
+
+export interface PhoneAnalysisRow {
+  phone: string;
+  provider: string;
+  class: PhoneAnalysisClass;
+  purgeable: boolean;
+  attempts: number;
+  failures: number;
+  deliveries: number;
+  spanDays: number;
+  firstFailAt: string | null;
+  lastFailAt: string | null;
+  lastDeliveredAt: string | null;
+  codes: { code: string; reason: string; class: string; permanent: boolean }[];
+  mainReason: string;
+}
+
+export interface PhoneAnalysisResponse {
+  dryRun: boolean;
+  windowDays: number;
+  minFailures: number;
+  classes?: PhoneAnalysisClass[];
+  totals: Record<PhoneAnalysisClass | 'purgeable', number>;
+  rows?: PhoneAnalysisRow[];
+  totalRows?: number;
+  page?: number;
+  pageSize?: number;
+  matched?: number;
+  /** Cuántos se quitaron de la audiencia de esta tienda. */
+  updated?: number;
+  /** De esos, cuántos quedaron sin ninguna tienda y se apagaron del todo. */
+  deactivated?: number;
+  scope?: 'store';
+  storeId?: string;
+  samplePhones?: string[];
+  note?: string;
+}
+
 class CustomerClient {
   async getCustomers(page = 1, limit = 100): Promise<PaginatedResponse<Customer>> {
     const res = await api.get('/customers', {
@@ -164,6 +210,24 @@ class CustomerClient {
     dryRun: boolean;
   }): Promise<any> {
     const res = await api.post('/tracking/phones/depurar', body);
+    return res.data;
+  }
+
+  /**
+   * Clasifica los números de una tienda dentro de una ventana (90 días por
+   * defecto) antes de inactivar nada: opt-out, inválidos y reincidentes
+   * (fallan una y otra vez sin que entre un solo mensaje).
+   */
+  async analizarPhones(body: {
+    storeId: string;
+    windowDays?: number;
+    minFailures?: number;
+    classes?: PhoneAnalysisClass[];
+    page?: number;
+    pageSize?: number;
+    dryRun: boolean;
+  }): Promise<PhoneAnalysisResponse> {
+    const res = await api.post('/tracking/phones/analizar', body);
     return res.data;
   }
 

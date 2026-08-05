@@ -14,29 +14,38 @@ import {
   TabletAndroidRounded,
 } from '@mui/icons-material';
 import {
+  alpha,
   Box,
   Button,
-  Card,
-  CardContent,
-  Chip,
-  Divider,
   IconButton,
   InputAdornment,
   MenuItem,
   Stack,
   TextField,
   Tooltip,
-  Typography } from '@mui/material';
+  Typography,
+  useTheme,
+} from '@mui/material';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { format, parseISO } from 'date-fns';
 import esLocale from 'date-fns/locale/es';
 import { useState, type ReactElement } from 'react';
+import {
+  Field,
+  FieldGrid,
+  PanelCard,
+  panelDivider,
+  SectionHeader,
+  StatusPill,
+} from '../../content-shells/store-managment/panel-kit';
 
 type Props = {
   kioskUrl: string;
-  storeId: string;
+  /** Esta sección está en edición. Lo decide el panel, no la tarjeta. */
   edit: boolean;
+  /** Botones de la cabecera (Editar, o Guardar/Cancelar), que arma el panel. */
+  action?: React.ReactNode;
   form: {
     kioskTabletStatus?: string | null;
     kioskTabletDate?: string | null;
@@ -58,13 +67,29 @@ const toDate = (value?: string | null) => {
   }
 };
 
-const STATUS_CONFIG: Record<string, { label: string; color: 'success' | 'error' | 'default'; icon: ReactElement }> = {
-  instalada:    { label: 'Instalada',    color: 'success', icon: <CheckCircleRounded sx={{ fontSize: 16 }} /> },
-  desinstalada: { label: 'Desinstalada', color: 'error',   icon: <CancelRounded sx={{ fontSize: 16 }} /> },
-  sin_instalar: { label: 'Sin instalar', color: 'default', icon: <Inventory2Rounded sx={{ fontSize: 16 }} /> },
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; tone: 'success' | 'error' | 'warning'; icon: ReactElement }
+> = {
+  instalada: {
+    label: 'Instalada',
+    tone: 'success',
+    icon: <CheckCircleRounded sx={{ fontSize: 16 }} />,
+  },
+  desinstalada: {
+    label: 'Desinstalada',
+    tone: 'error',
+    icon: <CancelRounded sx={{ fontSize: 16 }} />,
+  },
+  sin_instalar: {
+    label: 'Sin instalar',
+    tone: 'warning',
+    icon: <Inventory2Rounded sx={{ fontSize: 16 }} />,
+  },
 };
 
-export default function StoreKioskCard({ kioskUrl, storeId, edit, form, setForm }: Props) {
+export default function StoreKioskCard({ kioskUrl, edit, action, form, setForm }: Props) {
+  const theme = useTheme();
   const [copied, setCopied] = useState(false);
   const status = (form as any).kioskTabletStatus ?? 'sin_instalar';
   const showInstalledFields = isInstalledLike(status);
@@ -76,218 +101,231 @@ export default function StoreKioskCard({ kioskUrl, storeId, edit, form, setForm 
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const fechaInstalacion = toDate((form as any).kioskTabletDate);
+
   return (
-    <Card
-      variant="outlined"
-      sx={{
-        borderLeft: (t) => `4px solid ${t.palette.warning.main}`,
-      }}
-    >
-      {/* Header */}
-      <Box
-        display="flex"
-        alignItems="center"
-        justifyContent="space-between"
-        px={2}
-        pt={2}
-        pb={1}
-        flexWrap="wrap"
-        gap={1}
-      >
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 32,
-              height: 32,
-              borderRadius: 1.5,
-              bgcolor: 'warning.main',
-              color: 'warning.contrastText',
+    <PanelCard>
+      <SectionHeader
+        icon={<TabletAndroidRounded sx={{ fontSize: 18, color: 'success.main' }} />}
+        title="Tablet / Kiosko"
+        hint={
+          <StatusPill
+            label={statusCfg.label}
+            tone={statusCfg.tone}
+          />
+        }
+        action={action}
+      />
+
+      {edit ? (
+        <Stack
+          spacing={1.75}
+          sx={{ px: 2.25, py: 2 }}
+        >
+          <TextField
+            select
+            fullWidth
+            size="small"
+            label="Estado de la tablet"
+            value={status}
+            onChange={(e) => {
+              const next = e.target.value;
+              setForm((s: any) => ({
+                ...s,
+                kioskTabletStatus: next,
+                ...(next === 'sin_instalar'
+                  ? { kioskTabletDate: null, kioskTabletQuantity: null }
+                  : {}),
+              }));
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <DevicesRounded
+                    fontSize="small"
+                    color="disabled"
+                  />
+                </InputAdornment>
+              ),
             }}
           >
-            <TabletAndroidRounded sx={{ fontSize: 18 }} />
-          </Box>
-          <Typography variant="subtitle1" fontWeight={700}>
-            Tablet / Kiosko
-          </Typography>
-        </Stack>
+            <MenuItem value="instalada">
+              <CheckCircleRounded
+                fontSize="small"
+                sx={{ mr: 1, verticalAlign: 'middle' }}
+              />
+              Instalada
+            </MenuItem>
+            <MenuItem value="desinstalada">
+              <CancelRounded
+                fontSize="small"
+                sx={{ mr: 1, verticalAlign: 'middle' }}
+              />
+              Desinstalada
+            </MenuItem>
+            <MenuItem value="sin_instalar">
+              <Inventory2Rounded
+                fontSize="small"
+                sx={{ mr: 1, verticalAlign: 'middle' }}
+              />
+              Sin Instalar
+            </MenuItem>
+          </TextField>
 
-        <Chip
-          size="small"
-          icon={statusCfg.icon}
-          label={statusCfg.label}
-          color={statusCfg.color}
-          variant="outlined"
-          sx={{ fontWeight: 600 }}
-        />
-      </Box>
+          {showInstalledFields && (
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={1.5}
+            >
+              <LocalizationProvider
+                dateAdapter={AdapterDateFns}
+                adapterLocale={esLocale}
+              >
+                <DatePicker
+                  label="Fecha de instalación"
+                  value={fechaInstalacion}
+                  onChange={(date: Date | null) => {
+                    setForm((s: any) => ({
+                      ...s,
+                      kioskTabletDate: date ? format(date, 'yyyy-MM-dd') : null,
+                    }));
+                  }}
+                  slotProps={{
+                    textField: {
+                      size: 'small',
+                      fullWidth: true,
+                      InputProps: {
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <EventNoteRounded
+                              fontSize="small"
+                              color="disabled"
+                            />
+                          </InputAdornment>
+                        ),
+                      },
+                    },
+                  }}
+                />
+              </LocalizationProvider>
 
-      <Divider />
-
-      <CardContent sx={{ pt: 2 }}>
-        {/* Status selector */}
-        <TextField
-          select
-          fullWidth
-          size="small"
-          label="Estado de la tablet"
-          value={status}
-          onChange={(e) => {
-            const next = e.target.value;
-            setForm((s: any) => ({
-              ...s,
-              kioskTabletStatus: next,
-              ...(next === 'sin_instalar' ? { kioskTabletDate: null, kioskTabletQuantity: null } : {}),
-            }));
-          }}
-          disabled={!edit}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <DevicesRounded fontSize="small" color="disabled" />
-              </InputAdornment>
-            ),
-          }}
-          sx={{ mb: 2 }}
-        >
-          <MenuItem value="instalada"><CheckCircleRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Instalada</MenuItem>
-          <MenuItem value="desinstalada"><CancelRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Desinstalada</MenuItem>
-          <MenuItem value="sin_instalar"><Inventory2Rounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Sin Instalar</MenuItem>
-        </TextField>
-
-        {/* Date + Quantity (only if installed/uninstalled) */}
-        {showInstalledFields && (
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={1.5}
-            mb={2}
-          >
-            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={esLocale}>
-              <DatePicker
-                label="Fecha de instalación"
-                value={toDate((form as any).kioskTabletDate)}
-                onChange={(date: Date | null) => {
-                  if (!edit) return;
+              <TextField
+                size="small"
+                fullWidth
+                label="Cantidad de tablets"
+                type="number"
+                inputProps={{ min: 0 }}
+                value={(form as any).kioskTabletQuantity ?? ''}
+                onChange={(e) => {
+                  const v = e.target.value;
                   setForm((s: any) => ({
                     ...s,
-                    kioskTabletDate: date ? format(date, 'yyyy-MM-dd') : null,
+                    kioskTabletQuantity: v === '' ? null : Number(v),
                   }));
                 }}
-                slotProps={{
-                  textField: {
-                    size: 'small',
-                    fullWidth: true,
-                    disabled: !edit,
-                    InputProps: {
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <EventNoteRounded fontSize="small" color="disabled" />
-                        </InputAdornment>
-                      ),
-                    },
-                  },
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <TabletAndroidRounded
+                        fontSize="small"
+                        color="disabled"
+                      />
+                    </InputAdornment>
+                  ),
                 }}
               />
-            </LocalizationProvider>
-
-            <TextField
-              size="small"
-              fullWidth
-              label="Cantidad de tablets"
-              type="number"
-              inputProps={{ min: 0 }}
-              value={(form as any).kioskTabletQuantity ?? ''}
-              onChange={(e) => {
-                const v = e.target.value;
-                setForm((s: any) => ({
-                  ...s,
-                  kioskTabletQuantity: v === '' ? null : Number(v),
-                }));
-              }}
-              disabled={!edit}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <TabletAndroidRounded fontSize="small" color="disabled" />
-                  </InputAdornment>
-                ),
-              }}
+            </Stack>
+          )}
+        </Stack>
+      ) : (
+        showInstalledFields && (
+          <FieldGrid min={140}>
+            <Field
+              label="Instalada el"
+              value={fechaInstalacion ? format(fechaInstalacion, 'dd MMM yyyy') : ''}
+              empty="Sin fecha"
             />
-          </Stack>
-        )}
+            <Field
+              label="Tablets"
+              value={(form as any).kioskTabletQuantity ?? ''}
+              empty="Sin contar"
+            />
+          </FieldGrid>
+        )
+      )}
 
-        {/* Kiosk URL box */}
-        <Box
+      {/* La URL se copia y se abre en los dos modos: es la razón de ser de la
+          tarjeta, no un detalle de configuración. */}
+      <Stack
+        spacing={1.25}
+        sx={{ px: 2.25, py: 1.75, borderTop: `1px solid ${panelDivider(theme)}` }}
+      >
+        <Typography
+          sx={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, color: 'text.disabled' }}
+        >
+          URL DEL KIOSKO
+        </Typography>
+
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1}
           sx={{
-            border: (t) => `1px solid ${t.palette.divider}`,
-            borderRadius: 1.5,
-            p: 1.5,
-            bgcolor: (t) => t.palette.mode === 'dark' ? 'neutral.800' : 'grey.50',
+            height: 35,
+            px: 1.4,
+            borderRadius: '10px',
+            bgcolor: alpha(theme.palette.text.primary, 0.05),
           }}
         >
-          <Typography variant="caption" color="text.secondary" fontWeight={600} mb={0.5} display="block">
-            URL del Kiosko
+          <Typography
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              fontFamily: 'ui-monospace, Menlo, monospace',
+              fontSize: 12,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+            title={kioskUrl}
+          >
+            {kioskUrl}
           </Typography>
-
-          <Stack direction="row" alignItems="center" spacing={1} mb={1.5}>
-            <Typography
-              variant="body2"
-              sx={{
-                flex: 1,
-                fontFamily: 'monospace',
-                fontSize: '0.75rem',
-                color: 'text.primary',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                bgcolor: (t) => t.palette.mode === 'dark' ? 'neutral.900' : 'white',
-                border: (t) => `1px solid ${t.palette.divider}`,
-                borderRadius: 1,
-                px: 1.2,
-                py: 0.6,
-              }}
-              title={kioskUrl}
-            >
-              {kioskUrl}
-            </Typography>
-            <Tooltip title={copied ? '¡Copiado!' : 'Copiar URL'}>
-              <IconButton size="small" onClick={handleCopy} color={copied ? 'success' : 'default'}>
-                {copied ? (
-                  <CheckCircleOutlineRounded fontSize="small" />
-                ) : (
-                  <ContentCopyRounded fontSize="small" />
-                )}
-              </IconButton>
-            </Tooltip>
-          </Stack>
-
-          {/* Action buttons */}
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-            <Button
-              fullWidth
-              variant="contained"
-              color="warning"
+          <Tooltip title={copied ? '¡Copiado!' : 'Copiar URL'}>
+            <IconButton
               size="small"
-              startIcon={<OpenInNewRounded />}
-              onClick={() => window.open(kioskUrl, '_blank')}
-              sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2 }}
+              onClick={handleCopy}
+              sx={{ color: copied ? 'success.main' : 'primary.main', flexShrink: 0 }}
             >
-              Abrir Kiosko
-            </Button>
-          </Stack>
-        </Box>
+              {copied ? (
+                <CheckCircleOutlineRounded sx={{ fontSize: 16 }} />
+              ) : (
+                <ContentCopyRounded sx={{ fontSize: 16 }} />
+              )}
+            </IconButton>
+          </Tooltip>
+        </Stack>
 
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          display="block"
-          mt={1}
-        >
-          Conecta esta URL en la tablet para registrar clientes en piso de venta.
+        <Typography sx={{ fontSize: 11.5, color: 'text.secondary', lineHeight: 1.5 }}>
+          Abre esta URL en la tablet de piso para registrar clientes.
         </Typography>
-      </CardContent>
-    </Card>
+
+        <Button
+          variant="contained"
+          disableElevation
+          startIcon={<OpenInNewRounded sx={{ fontSize: 17 }} />}
+          onClick={() => window.open(kioskUrl, '_blank', 'noopener')}
+          sx={{
+            height: 35,
+            borderRadius: '10px',
+            textTransform: 'none',
+            fontWeight: 700,
+            fontSize: 12.5,
+          }}
+        >
+          Abrir kiosko
+        </Button>
+      </Stack>
+    </PanelCard>
   );
 }

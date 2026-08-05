@@ -18,15 +18,13 @@ import {
   MenuItem,
   Paper,
   Select,
+  Skeleton,
   Stack,
   TextField,
   Typography,
   useTheme,
 } from '@mui/material';
-import dynamic from 'next/dynamic';
-const BarChart = dynamic(() => import('@mui/x-charts/BarChart').then((m) => m.BarChart), {
-  ssr: false,
-});
+import { BarChart } from 'src/components/base/lazy-charts';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DateCalendar, LocalizationProvider } from '@mui/x-date-pickers';
 import { PickersDay } from '@mui/x-date-pickers/PickersDay';
@@ -468,16 +466,10 @@ function YearBlock({
       </Stack>
 
       {isLoading ? (
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: 260,
-          }}
-        >
-          <CircularProgress />
-        </Box>
+        <Skeleton
+          variant="rounded"
+          height={320}
+        />
       ) : isError ? (
         <Alert
           severity="error"
@@ -836,9 +828,10 @@ return (
 
                 <Box sx={{ mt: 1 }}>
                   {comparePrevQ.isLoading ? (
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 240 }}>
-                      <CircularProgress size={26} />
-                    </Box>
+                    <Skeleton
+                      variant="rounded"
+                      height={360}
+                    />
                   ) : comparePrevQ.isError ? (
                     <Alert severity="error" icon={<ErrorOutlineRoundedIcon />}>
                       {t('Could not load comparison data.')}
@@ -997,11 +990,10 @@ return (
                 </Stack>
 
                 {dailyQ.isLoading ? (
-                  <Box
-                    sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 260 }}
-                  >
-                    <CircularProgress />
-                  </Box>
+                  <Skeleton
+                    variant="rounded"
+                    height={320}
+                  />
                 ) : dailyQ.isError ? (
                   <Alert severity="error" icon={<ErrorOutlineRoundedIcon />}>
                     {t('Could not load daily data.')}

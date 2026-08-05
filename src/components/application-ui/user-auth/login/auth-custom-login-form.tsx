@@ -7,7 +7,6 @@ import {
   Box,
   Button,
   Checkbox,
-  Container,
   FilledInput,
   FormControl,
   FormControlLabel,
@@ -28,20 +27,6 @@ import { useRouter } from 'src/hooks/use-router';
 import { routes } from 'src/router/routes';
 import { authClient } from 'src/utils/auth/custom/client';
 import { z as zod } from 'zod';
-
-interface OAuthProvider {
-  id: 'google' | 'github';
-  name: string;
-  logo: string;
-}
-
-const oAuthProviders = [
-  {
-    id: 'google',
-    name: 'Google',
-    logo: '/placeholders/logo/google-icon.svg',
-  },
-] satisfies OAuthProvider[];
 
 const schema = zod.object({
   email: zod.string().min(1, { message: 'Email is required' }),
@@ -105,29 +90,23 @@ export function AuthCustomLoginForm(): React.JSX.Element {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
-      <Container maxWidth="sm">
+      <Stack spacing={1}>
         <Typography
           align="center"
           variant="h3"
-          gutterBottom
         >
-          Sign in
+          {t('Sign in')}
         </Typography>
         <Typography
           align="center"
-          variant="h6"
-          fontWeight={400}
+          variant="body1"
+          color="text.secondary"
         >
-          Access your account and continue your journey
+          {t('Access your account and continue your journey')}
         </Typography>
-      </Container>
-      <Stack
-        mt={{ xs: 2, sm: 3 }}
-        justifyContent="center"
-        alignItems="center"
-        spacing={{ xs: 2, sm: 3 }}
-      >
-        <Container maxWidth="sm">
+      </Stack>
+      <Stack mt={{ xs: 3, sm: 4 }}>
+        <Box>
           <Grid
             container
             spacing={2}
@@ -138,18 +117,22 @@ export function AuthCustomLoginForm(): React.JSX.Element {
                 error={Boolean(errors.email)}
               >
                 <Typography
-                  variant="h6"
+                  variant="subtitle1"
                   gutterBottom
                   component="label"
                   htmlFor="email-input"
                   fontWeight={500}
                 >
-                  Email
+                  {t('Email')}
                 </Typography>
                 <FilledInput
                   hiddenLabel
                   {...register('email')}
-                  placeholder="Write your email"
+                  id="email-input"
+                  type="email"
+                  autoComplete="email"
+                  autoFocus
+                  placeholder={t('Write your email')}
                   startAdornment={
                     <InputAdornment position="start">
                       <MailOutlineRoundedIcon fontSize="small" />
@@ -165,25 +148,27 @@ export function AuthCustomLoginForm(): React.JSX.Element {
                 error={Boolean(errors.password)}
               >
                 <Typography
-                  variant="h6"
+                  variant="subtitle1"
                   gutterBottom
                   component="label"
                   htmlFor="password-input"
                   fontWeight={500}
                 >
-                  Password
+                  {t('Password')}
                 </Typography>
                 <FilledInput
                   hiddenLabel
                   {...register('password')}
                   type={showPassword ? 'text' : 'password'}
                   id="password-input"
-                  placeholder="Write your password"
+                  autoComplete="current-password"
+                  placeholder={t('Write your password')}
                   endAdornment={
                     <InputAdornment position="end">
                       <ButtonIcon
                         variant="outlined"
                         color="secondary"
+                        aria-label={t('Toggle password visibility')}
                         sx={{ mr: -0.8 }}
                         onClick={handlePasswordVisibility}
                       >
@@ -220,37 +205,31 @@ export function AuthCustomLoginForm(): React.JSX.Element {
                 />
                 <Link
                   component={RouterLink}
-                  href={routes.auth['custom.reset-password']}
+                  href={routes.auth['reset-password']}
                   underline="hover"
                 >
                   {t('Recover password')}
                 </Link>
               </Box>
             </Grid>
+            {errors.root && (
+              <Grid xs={12}>
+                <Alert severity="error">{errors.root.message}</Alert>
+              </Grid>
+            )}
             <Grid xs={12}>
               <Button
                 disabled={isPending}
                 variant="contained"
+                color="primary"
                 type="submit"
-                size="large"
                 fullWidth
               >
-                Sign in
+                {isPending ? t('Signing in…') : t('Sign in')}
               </Button>
             </Grid>
-            {errors.root && (
-              <Grid xs={12}>
-                <Alert
-                  variant="outlined"
-                  severity="error"
-                >
-                  {errors.root.message}
-                </Alert>
-              </Grid>
-            )}
-
           </Grid>
-        </Container>
+        </Box>
       </Stack>
     </form>
   );

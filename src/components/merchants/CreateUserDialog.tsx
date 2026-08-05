@@ -2,6 +2,13 @@
 
 import React, { useState } from 'react';
 import {
+  Controller,
+  useForm,
+  useWatch,
+  type RegisterOptions,
+  type UseFormRegister,
+} from 'react-hook-form';
+import {
   Alert,
   alpha,
   Box,
@@ -81,12 +88,30 @@ const INITIAL: CreateUserPayload & { departmentId?: string } = {
   departmentId: '',
 };
 
+type CreateUserFormValues = typeof INITIAL;
+
+/** MUI espera el ref del input en `inputRef`, no en `ref`. */
+function rhf(
+  register: UseFormRegister<CreateUserFormValues>,
+  name: keyof CreateUserFormValues,
+  options?: RegisterOptions<CreateUserFormValues, any>
+) {
+  const { ref, ...rest } = register(name, options as any);
+  return { inputRef: ref, ...rest };
+}
+
 export default function CreateUserDialog({ open, onClose, onCreated }: CreateUserDialogProps) {
   const theme = useTheme();
-  const [form, setForm] = useState(INITIAL);
+  const {
+    register,
+    control,
+    handleSubmit: rhfHandleSubmit,
+    reset,
+    setValue,
+    formState: { errors },
+  } = useForm<CreateUserFormValues>({ defaultValues: INITIAL });
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false, message: '', severity: 'success',
   });
@@ -97,39 +122,21 @@ export default function CreateUserDialog({ open, onClose, onCreated }: CreateUse
     staleTime: 120_000,
   });
 
-  const isStaffRole = STAFF_ROLE_VALUES.includes(form.role);
+  // El rol decide si se muestra el departamento: se observa solo ese campo.
+  const role = useWatch({ control, name: 'role' });
+  const isStaffRole = STAFF_ROLE_VALUES.includes(role);
 
-  const handleChange = (field: string) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setForm((prev) => ({ ...prev, [field]: e.target.value }));
-    setErrors((prev) => ({ ...prev, [field]: undefined }));
-  };
-
-  const validate = (): boolean => {
-    const newErrors: Record<string, string> = {};
-    if (!form.firstName.trim()) newErrors.firstName = 'First name is required';
-    if (!form.role) newErrors.role = 'Role is required';
-    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      newErrors.email = 'Invalid email format';
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async () => {
-    if (!validate()) return;
+  const handleSubmit = rhfHandleSubmit(async (values) => {
     setSaving(true);
     try {
       await merchantService.createUser({
-        ...form,
-        password: form.password || undefined,
-        accessCode: form.accessCode || undefined,
-        departmentId: form.departmentId || undefined,
+        ...values,
+        password: values.password || undefined,
+        accessCode: values.accessCode || undefined,
+        departmentId: values.departmentId || undefined,
       } as any);
-      setSnack({ open: true, message: `User "${form.firstName}" created successfully`, severity: 'success' });
-      setForm(INITIAL);
-      setErrors({});
+      setSnack({ open: true, message: `User "${values.firstName}" created successfully`, severity: 'success' });
+      reset(INITIAL);
       setTimeout(() => onCreated(), 800);
     } catch (err: any) {
       setSnack({
@@ -140,12 +147,11 @@ export default function CreateUserDialog({ open, onClose, onCreated }: CreateUse
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   const handleClose = () => {
     if (saving) return;
-    setForm(INITIAL);
-    setErrors({});
+    reset(INITIAL);
     onClose();
   };
 
@@ -196,39 +202,45 @@ export default function CreateUserDialog({ open, onClose, onCreated }: CreateUse
             {/* First Name */}
             <Grid item xs={12} sm={6}>
               <TextField label="First Name *" fullWidth size="small"
-                value={form.firstName} onChange={handleChange('firstName')}
-                error={!!errors.firstName} helperText={errors.firstName} autoFocus
+                {...rhf(register, 'firstName', { required: 'First name is required' })}
+                error={!!errors.firstName} helperText={errors.firstName?.message} autoFocus
               />
             </Grid>
             {/* Last Name */}
             <Grid item xs={12} sm={6}>
               <TextField label="Last Name" fullWidth size="small"
-                value={form.lastName} onChange={handleChange('lastName')}
+                {...rhf(register, 'lastName')}
               />
             </Grid>
             {/* Email */}
             <Grid item xs={12}>
               <TextField label="Email" type="email" fullWidth size="small"
-                value={form.email} onChange={handleChange('email')}
-                error={!!errors.email} helperText={errors.email}
+                {...rhf(register, 'email', {
+                  pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Invalid email format' },
+                })}
+                error={!!errors.email} helperText={errors.email?.message}
               />
             </Grid>
             {/* Phone */}
             <Grid item xs={4}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Code</InputLabel>
-                <Select value={form.countryCode} label="Code"
-                  onChange={(e) => setForm((p) => ({ ...p, countryCode: e.target.value }))}
-                >
-                  {COUNTRY_CODES.map((c) => (
-                    <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <Controller
+                control={control}
+                name="countryCode"
+                render={({ field }) => (
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Code</InputLabel>
+                    <Select {...field} label="Code">
+                      {COUNTRY_CODES.map((c) => (
+                        <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                )}
+              />
             </Grid>
             <Grid item xs={8}>
               <TextField label="Phone Number" fullWidth size="small"
-                value={form.phoneNumber} onChange={handleChange('phoneNumber')}
+                {...rhf(register, 'phoneNumber')}
               />
             </Grid>
 
@@ -237,16 +249,13 @@ export default function CreateUserDialog({ open, onClose, onCreated }: CreateUse
               <FormControl fullWidth size="small" error={!!errors.role}>
                 <InputLabel>Role *</InputLabel>
                 <Select
-                  value={form.role}
+                  value={role}
                   label="Role *"
                   onChange={(e) => {
                     const newRole = e.target.value;
-                    setForm((p) => ({
-                      ...p,
-                      role: newRole,
-                      // Clear department if switching to external
-                      departmentId: STAFF_ROLE_VALUES.includes(newRole) ? p.departmentId : '',
-                    }));
+                    setValue('role', newRole);
+                    // Clear department if switching to external
+                    if (!STAFF_ROLE_VALUES.includes(newRole)) setValue('departmentId', '');
                   }}
                 >
                   <ListSubheader sx={{ fontWeight: 700, fontSize: 11, letterSpacing: 1, color: 'primary.main', bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
@@ -281,9 +290,9 @@ export default function CreateUserDialog({ open, onClose, onCreated }: CreateUse
                 <FormControl fullWidth size="small">
                   <InputLabel>Department</InputLabel>
                   <Select
-                    value={form.departmentId}
+                    {...register('departmentId')}
+                    defaultValue=""
                     label="Department"
-                    onChange={(e) => setForm((p) => ({ ...p, departmentId: e.target.value }))}
                   >
                     <MenuItem value="">
                       <Typography variant="body2" color="text.secondary">No department</Typography>
@@ -305,7 +314,7 @@ export default function CreateUserDialog({ open, onClose, onCreated }: CreateUse
             <Grid item xs={12}>
               <TextField label="Password" fullWidth size="small"
                 type={showPassword ? 'text' : 'password'}
-                value={form.password} onChange={handleChange('password')}
+                {...rhf(register, 'password')}
                 helperText="Leave blank to auto-generate: firstname2024!"
                 InputProps={{
                   endAdornment: (
@@ -322,7 +331,7 @@ export default function CreateUserDialog({ open, onClose, onCreated }: CreateUse
             {/* Access Code */}
             <Grid item xs={12}>
               <TextField label="Access Code" fullWidth size="small"
-                value={form.accessCode} onChange={handleChange('accessCode')}
+                {...rhf(register, 'accessCode')}
                 helperText="Optional code for cashier/merchant quick login"
               />
             </Grid>

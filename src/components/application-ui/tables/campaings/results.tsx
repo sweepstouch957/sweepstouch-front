@@ -68,7 +68,10 @@ const platformColors = (theme: Theme): Record<string, string> => ({
 
 const getStatusChip = (status: CampaingStatus) => {
   const cfg = STATUS_CONFIG[status] ?? { label: String(status), color: 'default' as const };
-  return <Chip size="small" variant="outlined" label={cfg.label} color={cfg.color} />;
+  return <Chip size="small"
+variant="outlined"
+label={cfg.label}
+color={cfg.color} />;
 };
 
 const getRateColor = (theme: Theme, rate: number) =>
@@ -118,13 +121,17 @@ const CampaignCard: FC<CampaignCardProps> = ({ campaign, onStats, onEdit, onDele
 
       <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
         {/* Header: store + chips */}
-        <Stack direction="row" spacing={1.5} alignItems="flex-start" mb={1.25}>
+        <Stack direction="row"
+spacing={1.5}
+alignItems="flex-start"
+mb={1.25}>
           <Avatar
             src={campaign.store?.image}
             sx={{ width: 38, height: 38, borderRadius: 1.5, flexShrink: 0, cursor: 'pointer', border: '1px solid', borderColor: 'divider' }}
             onClick={() => campaign.store?._id && window.open(`/admin/management/stores/edit/${campaign.store._id}`, '_blank')}
           />
-          <Box flex={1} minWidth={0}>
+          <Box flex={1}
+minWidth={0}>
             <Typography
               variant="subtitle2"
               fontWeight={800}
@@ -139,8 +146,15 @@ const CampaignCard: FC<CampaignCardProps> = ({ campaign, onStats, onEdit, onDele
             >
               {campaign.store?.name || '-'}
             </Typography>
-            <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap mt={0.4}>
-              <Chip size="small" label={campaign.type} variant="outlined" sx={{ fontWeight: 700, height: 20, fontSize: 10 }} />
+            <Stack direction="row"
+spacing={0.5}
+flexWrap="wrap"
+useFlexGap
+mt={0.4}>
+              <Chip size="small"
+label={campaign.type}
+variant="outlined"
+sx={{ fontWeight: 700, height: 20, fontSize: 10 }} />
               {getStatusChip(campaign.status)}
               {campaign.platform && (
                 <Chip
@@ -170,24 +184,47 @@ const CampaignCard: FC<CampaignCardProps> = ({ campaign, onStats, onEdit, onDele
           sx={{ bgcolor: (t) => alpha(t.palette.text.primary, 0.04), borderRadius: 2, p: 1, mb: 1.25 }}
           divider={<Box sx={{ width: '1px', bgcolor: 'divider', mx: 1 }} />}
         >
-          <Box flex={1} textAlign="center">
-            <Typography variant="caption" color="text.disabled" display="block">Audiencia</Typography>
-            <Typography variant="body2" fontWeight={700} fontSize={12}>{audience.toLocaleString()}</Typography>
+          <Box flex={1}
+textAlign="center">
+            <Typography variant="caption"
+color="text.disabled"
+display="block">Audiencia</Typography>
+            <Typography variant="body2"
+fontWeight={700}
+fontSize={12}>{audience.toLocaleString()}</Typography>
           </Box>
-          <Box flex={1} textAlign="center">
-            <Typography variant="caption" color="text.disabled" display="block">Costo</Typography>
-            <Typography variant="body2" fontWeight={700} fontSize={12}>{numeral(campaign.cost || 0).format('$0,0.00')}</Typography>
+          <Box flex={1}
+textAlign="center">
+            <Typography variant="caption"
+color="text.disabled"
+display="block">Costo</Typography>
+            <Typography variant="body2"
+fontWeight={700}
+fontSize={12}>{numeral(campaign.cost || 0).format('$0,0.00')}</Typography>
           </Box>
-          <Box flex={1} textAlign="center">
-            <Typography variant="caption" color="text.disabled" display="block">Entrega</Typography>
-            <Typography variant="body2" fontWeight={800} fontSize={13} sx={{ color: rateColor }}>{rate}%</Typography>
+          <Box flex={1}
+textAlign="center">
+            <Typography variant="caption"
+color="text.disabled"
+display="block">Entrega</Typography>
+            <Typography variant="body2"
+fontWeight={800}
+fontSize={13}
+sx={{ color: rateColor }}>{rate}%</Typography>
           </Box>
         </Stack>
 
         {/* Date row */}
-        <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.25}>
-          <Stack direction="row" spacing={0.75} alignItems="center">
-            <Typography variant="caption" color="text.secondary" fontWeight={600}>{localDate}</Typography>
+        <Stack direction="row"
+alignItems="center"
+justifyContent="space-between"
+mb={1.25}>
+          <Stack direction="row"
+spacing={0.75}
+alignItems="center">
+            <Typography variant="caption"
+color="text.secondary"
+fontWeight={600}>{localDate}</Typography>
             {nyTime && (
               <Chip
                 size="small"
@@ -199,22 +236,30 @@ const CampaignCard: FC<CampaignCardProps> = ({ campaign, onStats, onEdit, onDele
         </Stack>
 
         {/* Actions */}
-        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+        <Stack direction="row"
+spacing={0.5}
+justifyContent="flex-end">
           <Tooltip title="Ver estadísticas">
-            <IconButton size="small" color="info" onClick={() => onStats(campaign._id)}>
+            <IconButton size="small"
+color="info"
+onClick={() => onStats(campaign._id)}>
               <OpenInNewRounded sx={{ fontSize: 18 }} />
             </IconButton>
           </Tooltip>
           {campaign.status !== 'completed' && (
             <Tooltip title="Editar">
-              <IconButton size="small" color="primary" onClick={() => onEdit(campaign._id)}>
+              <IconButton size="small"
+color="primary"
+onClick={() => onEdit(campaign._id)}>
                 <Edit sx={{ fontSize: 18 }} />
               </IconButton>
             </Tooltip>
           )}
           {campaign.status === 'scheduled' && (
             <Tooltip title="Eliminar">
-              <IconButton size="small" color="error" onClick={() => onDelete(campaign._id)}>
+              <IconButton size="small"
+color="error"
+onClick={() => onDelete(campaign._id)}>
                 <DeleteRounded sx={{ fontSize: 18 }} />
               </IconButton>
             </Tooltip>
@@ -228,24 +273,50 @@ const CampaignCard: FC<CampaignCardProps> = ({ campaign, onStats, onEdit, onDele
 // ─── Skeleton Card ──────────────────────────────────────────────────────────
 
 const SkeletonCampaignCard = () => (
-  <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
+  <Card elevation={0}
+sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
     <Box sx={{ height: 3, bgcolor: 'action.selected' }} />
     <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-      <Stack direction="row" spacing={1.5} alignItems="flex-start" mb={1.25}>
-        <Skeleton variant="rounded" width={38} height={38} sx={{ borderRadius: 1.5, flexShrink: 0 }} />
+      <Stack direction="row"
+spacing={1.5}
+alignItems="flex-start"
+mb={1.25}>
+        <Skeleton variant="rounded"
+width={38}
+height={38}
+sx={{ borderRadius: 1.5, flexShrink: 0 }} />
         <Box flex={1}>
-          <Skeleton width="70%" height={18} />
-          <Stack direction="row" spacing={0.5} mt={0.5}>
-            <Skeleton variant="rounded" width={44} height={20} sx={{ borderRadius: 1 }} />
-            <Skeleton variant="rounded" width={68} height={20} sx={{ borderRadius: 1 }} />
+          <Skeleton width="70%"
+height={18} />
+          <Stack direction="row"
+spacing={0.5}
+mt={0.5}>
+            <Skeleton variant="rounded"
+width={44}
+height={20}
+sx={{ borderRadius: 1 }} />
+            <Skeleton variant="rounded"
+width={68}
+height={20}
+sx={{ borderRadius: 1 }} />
           </Stack>
         </Box>
       </Stack>
-      <Skeleton variant="rounded" height={52} sx={{ borderRadius: 2, mb: 1.25 }} />
-      <Skeleton width="40%" height={16} sx={{ mb: 1.25 }} />
-      <Stack direction="row" justifyContent="flex-end" spacing={0.5}>
-        <Skeleton variant="circular" width={30} height={30} />
-        <Skeleton variant="circular" width={30} height={30} />
+      <Skeleton variant="rounded"
+height={52}
+sx={{ borderRadius: 2, mb: 1.25 }} />
+      <Skeleton width="40%"
+height={16}
+sx={{ mb: 1.25 }} />
+      <Stack direction="row"
+justifyContent="flex-end"
+spacing={0.5}>
+        <Skeleton variant="circular"
+width={30}
+height={30} />
+        <Skeleton variant="circular"
+width={30}
+height={30} />
       </Stack>
     </CardContent>
   </Card>
@@ -334,7 +405,9 @@ const Results: FC<ResultsProps> = ({
   const handleEdit = useCallback((id: string) => window.open(`/admin/management/campaings/edit/${id}`), []);
 
   const pagination = (
-    <Box p={2} display="flex" justifyContent="flex-end">
+    <Box p={2}
+display="flex"
+justifyContent="flex-end">
       <TablePagination
         component="div"
         count={total}
@@ -355,7 +428,9 @@ const Results: FC<ResultsProps> = ({
         border: `1px solid ${theme.palette.divider}`,
       }}
     >
-      <CampaignsFilters filters={filters} setFilters={setFilters} storeId={storeId} />
+      <CampaignsFilters filters={filters}
+setFilters={setFilters}
+storeId={storeId} />
 
       {/* Mobile: card grid */}
       {showCards ? (
@@ -380,8 +455,10 @@ const Results: FC<ResultsProps> = ({
               ))}
           </Box>
           {!isLoading && campaigns.length === 0 && (
-            <Box textAlign="center" py={6}>
-              <Typography color="text.secondary" fontWeight={600}>No hay campañas para los filtros seleccionados</Typography>
+            <Box textAlign="center"
+py={6}>
+              <Typography color="text.secondary"
+fontWeight={600}>No hay campañas para los filtros seleccionados</Typography>
             </Box>
           )}
           {pagination}
@@ -402,20 +479,21 @@ const Results: FC<ResultsProps> = ({
             >
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 68 }}>{t('Type')}</TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 120 }}>{t('Start Date')} (NY)</TableCell>
+                  <TableCell sx={{ width: 68 }}>{t('Type')}</TableCell>
+                  <TableCell sx={{ width: 120 }}>{t('Start Date')} (NY)</TableCell>
                   <TableCell
-                    sx={{ fontWeight: 900, color: 'text.secondary', width: '20%' }}
+                    sx={{ width: '20%' }}
                   >
                     {t('Store')}
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: '15%' }}>Campaña</TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 88 }}>Provider</TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 78 }}>{t('Audience')}</TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 88 }}>{t('Cost')}</TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 64 }}>ENTREGA</TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: 'text.secondary', width: 108 }}>{t('Status')}</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 900, color: 'text.secondary', width: 80 }}>{t('Actions')}</TableCell>
+                  <TableCell sx={{ width: '15%' }}>Campaña</TableCell>
+                  <TableCell sx={{ width: 88 }}>Provider</TableCell>
+                  <TableCell sx={{ width: 78 }}>{t('Audience')}</TableCell>
+                  <TableCell sx={{ width: 88 }}>{t('Cost')}</TableCell>
+                  <TableCell sx={{ width: 64 }}>ENTREGA</TableCell>
+                  <TableCell sx={{ width: 108 }}>{t('Status')}</TableCell>
+                  <TableCell align="center"
+sx={{ width: 80 }}>{t('Actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -445,13 +523,22 @@ const Results: FC<ResultsProps> = ({
                         onClick={() => handleStats(campaign._id)}
                       >
                         <TableCell onClick={(e) => e.stopPropagation()}>
-                          <Chip size="small" label={campaign.type} variant="outlined" sx={{ fontWeight: 900 }} />
+                          <Typography
+                            sx={{ fontSize: 12, fontWeight: 800, color: 'text.secondary' }}
+                          >
+                            {campaign.type}
+                          </Typography>
                         </TableCell>
 
                         <TableCell onClick={(e) => e.stopPropagation()}>
-                          <Typography variant="body2" fontWeight={600} noWrap>{localDate}</Typography>
+                          <Typography sx={{ fontSize: 13, fontWeight: 650 }}
+noWrap>{localDate}</Typography>
                           {nyTime && (
-                            <Typography variant="caption" color="info.main" fontWeight={600} noWrap display="block">
+                            <Typography variant="caption"
+color="text.secondary"
+fontWeight={600}
+noWrap
+display="block">
                               {nyTime} NY
                             </Typography>
                           )}
@@ -461,13 +548,19 @@ const Results: FC<ResultsProps> = ({
                           sx={{ width: '20%' }}
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <Box display="flex" alignItems="center" gap={1} sx={{ minWidth: 0 }}>
+                          <Box display="flex"
+alignItems="center"
+gap={1}
+sx={{ minWidth: 0 }}>
                             <Avatar
-                              sx={{ width: 28, height: 28, cursor: 'pointer', border: `1px solid ${theme.palette.divider}`, flexShrink: 0 }}
+                              variant="rounded"
+                              sx={{ width: 30, height: 30, borderRadius: '9px', cursor: 'pointer', border: `1px solid ${theme.palette.divider}`, flexShrink: 0 }}
                               src={campaign.store?.image}
                               onClick={(e) => { e.stopPropagation(); campaign.store?._id && window.open(`/admin/management/stores/edit/${campaign.store._id}`, '_blank'); }}
                             />
-                            <Tooltip title={campaign.store?.name || ''} placement="top" arrow>
+                            <Tooltip title={campaign.store?.name || ''}
+placement="top"
+arrow>
                               <Typography
                                 variant="subtitle2"
                                 fontWeight={800}
@@ -490,7 +583,9 @@ const Results: FC<ResultsProps> = ({
 
                         {/* Campaign Title */}
                         <TableCell sx={{ display: { lg: 'none', xl: 'table-cell' } }}>
-                          <Tooltip title={campaign.title || ''} placement="top" arrow>
+                          <Tooltip title={campaign.title || ''}
+placement="top"
+arrow>
                             <Typography
                               variant="body2"
                               fontWeight={700}
@@ -503,36 +598,51 @@ const Results: FC<ResultsProps> = ({
                                 fontSize: 12,
                               }}
                             >
-                              {campaign.title || <Typography component="span" variant="caption" color="text.disabled">Sin título</Typography>}
+                              {campaign.title || <Typography component="span"
+variant="caption"
+color="text.disabled">Sin título</Typography>}
                             </Typography>
                           </Tooltip>
                         </TableCell>
 
                         <TableCell onClick={(e) => e.stopPropagation()}>
                           {campaign.platform ? (
-                            <Stack direction="row" spacing={0.75} alignItems="center" sx={{ minWidth: 0 }}>
+                            <Stack direction="row"
+spacing={0.75}
+alignItems="center"
+sx={{ minWidth: 0 }}>
                               <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: platformColor ?? 'text.disabled', flexShrink: 0 }} />
-                              <Typography variant="caption" fontWeight={700} textTransform="capitalize" noWrap>
+                              <Typography variant="caption"
+fontWeight={700}
+textTransform="capitalize"
+noWrap>
                                 {campaign.platform}
                               </Typography>
                             </Stack>
                           ) : (
-                            <Typography variant="caption" color="text.disabled">N/A</Typography>
+                            <Typography variant="caption"
+color="text.disabled">N/A</Typography>
                           )}
                         </TableCell>
 
                         <TableCell>
-                          <Typography variant="body2" noWrap>{(campaign.audience ?? 0).toLocaleString()}</Typography>
+                          <Typography variant="body2"
+noWrap>{(campaign.audience ?? 0).toLocaleString()}</Typography>
                         </TableCell>
 
                         <TableCell>
-                          <Typography variant="body2" fontWeight={900}>{numeral(campaign.cost || 0).format('$0,0.00')}</Typography>
+                          <Typography variant="body2"
+fontWeight={900}>{numeral(campaign.cost || 0).format('$0,0.00')}</Typography>
                         </TableCell>
 
                         {/* Delivery Rate */}
                         <TableCell>
-                          <Tooltip title={`${sent.toLocaleString()} / ${audience.toLocaleString()}`} placement="top" arrow>
-                            <Typography variant="body2" fontWeight={900} sx={{ color: rateColor, fontVariantNumeric: 'tabular-nums' }}>
+                          <Tooltip title={`${sent.toLocaleString()} / ${audience.toLocaleString()}`}
+placement="top"
+arrow>
+                            <Typography variant="body2"
+fontWeight={900}
+sx={{ color: rateColor, fontVariantNumeric: 'tabular-nums' }}>
                               {rate}%
                             </Typography>
                           </Tooltip>
@@ -540,23 +650,38 @@ const Results: FC<ResultsProps> = ({
 
                         <TableCell onClick={(e) => e.stopPropagation()}>{getStatusChip(campaign.status)}</TableCell>
 
-                        <TableCell align="center" onClick={(e) => e.stopPropagation()}>
-                          <Stack direction="row" spacing={0.25} justifyContent="center">
-                            <Tooltip title={t('Go to Stats')} arrow>
-                              <IconButton onClick={() => handleStats(campaign._id)} color="info" size="small" sx={{ p: 0.5 }}>
+                        <TableCell align="center"
+onClick={(e) => e.stopPropagation()}>
+                          <Stack direction="row"
+spacing={0.25}
+justifyContent="center">
+                            <Tooltip title={t('Go to Stats')}
+arrow>
+                              <IconButton onClick={() => handleStats(campaign._id)}
+color="info"
+size="small"
+sx={{ p: 0.5 }}>
                                 <OpenInNewRounded fontSize="small" />
                               </IconButton>
                             </Tooltip>
                             {campaign.status !== 'completed' && (
-                              <Tooltip title={t('Edit Campaign')} arrow>
-                                <IconButton onClick={() => handleEdit(campaign._id)} color="primary" size="small" sx={{ p: 0.5 }}>
+                              <Tooltip title={t('Edit Campaign')}
+arrow>
+                                <IconButton onClick={() => handleEdit(campaign._id)}
+color="primary"
+size="small"
+sx={{ p: 0.5 }}>
                                   <Edit fontSize="small" />
                                 </IconButton>
                               </Tooltip>
                             )}
                             {campaign.status === 'scheduled' && (
-                              <Tooltip title={t('Delete Campaign')} arrow>
-                                <IconButton onClick={() => setSelectedToDelete(campaign._id)} color="error" size="small" sx={{ p: 0.5 }}>
+                              <Tooltip title={t('Delete Campaign')}
+arrow>
+                                <IconButton onClick={() => setSelectedToDelete(campaign._id)}
+color="error"
+size="small"
+sx={{ p: 0.5 }}>
                                   <DeleteRounded fontSize="small" />
                                 </IconButton>
                               </Tooltip>
@@ -574,14 +699,18 @@ const Results: FC<ResultsProps> = ({
       )}
 
       {/* Delete confirmation */}
-      <Dialog open={Boolean(selectedToDelete)} onClose={() => setSelectedToDelete(null)}>
+      <Dialog open={Boolean(selectedToDelete)}
+onClose={() => setSelectedToDelete(null)}>
         <DialogTitle>¿Estás seguro?</DialogTitle>
         <DialogContent>
           <Typography>¿Deseas eliminar esta campaña programada?</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setSelectedToDelete(null)}>Cancelar</Button>
-          <Button onClick={handleDelete} color="error" startIcon={<DeleteRounded />} variant="contained">
+          <Button onClick={handleDelete}
+color="error"
+startIcon={<DeleteRounded />}
+variant="contained">
             Eliminar
           </Button>
         </DialogActions>

@@ -26,7 +26,9 @@ export function useStoreManagementPage() {
   const searchParams = useSearchParams();
   const params = useParams();
   const storeId = params?.id as string;
-  const tag = (searchParams.get('tag') as string) || 'campaigns';
+  // Al entrar sin ?tag, la primera pantalla es el perfil de la tienda: es el
+  // contexto que hace falta antes de mirar campañas, no al revés.
+  const tag = (searchParams.get('tag') as string) || 'general-info';
   const action = searchParams.get('action');
 
   const { data: store, isLoading, error } = useStoreById(storeId);

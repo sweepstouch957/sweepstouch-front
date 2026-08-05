@@ -17,6 +17,7 @@ import {
   ListItem,
   ListItemText,
   Paper,
+  Skeleton,
   Slider,
   Stack,
   Switch,
@@ -806,9 +807,7 @@ mb={2}>
               </Typography>
 
               {loadingPreview ? (
-                <Box display="flex"
-justifyContent="center"
-py={6}><CircularProgress /></Box>
+                <Skeleton variant="rounded" height={320} />
               ) : (
                 <Box
                   sx={{

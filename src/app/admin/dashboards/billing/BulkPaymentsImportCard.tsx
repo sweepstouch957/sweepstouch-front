@@ -34,10 +34,7 @@ import {
   Typography,
   Skeleton,
 } from '@mui/material';
-import dynamic from 'next/dynamic';
-const PieChart = dynamic(() => import('@mui/x-charts/PieChart').then((m) => m.PieChart), {
-  ssr: false,
-});
+import { PieChart } from 'src/components/base/lazy-charts';
 import numeral from 'numeral';
 import { useMemo, useReducer, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';

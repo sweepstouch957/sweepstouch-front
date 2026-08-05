@@ -1,24 +1,24 @@
 'use client';
 
 import { Store } from '@/services/store.service';
-import { getProviderChip } from '@/utils/ui/store.page';
+import { uploadCampaignImage } from '@/services/upload.service';
 import {
-  CloseRounded,
+  CameraAltRounded,
   EditLocationAltRounded,
-  EditRounded,
+  ContentCopyRounded,
+  LinkRounded,
   OpenInNewRounded,
   QrCodeRounded,
   RocketLaunch,
-  SaveRounded,
   StoreMallDirectoryRounded,
-  VerifiedRounded,
+  TabletAndroidRounded,
 } from '@mui/icons-material';
 import {
   alpha,
   Avatar,
+  Badge,
   Box,
   Button,
-  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -30,69 +30,99 @@ import {
   TextField,
   Tooltip,
   Typography,
-  useMediaQuery,
   useTheme,
 } from '@mui/material';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
+import toast from 'react-hot-toast';
+import { StatusPill } from '../../content-shells/store-managment/panel-kit';
 
+const TYPE_LABEL: Record<Store['type'], string> = {
+  elite: 'Elite',
+  basic: 'Basic',
+  free: 'Free',
+};
 
-/* ── small icon action button ────────────────────────────── */
+const PROVIDER_LABEL: Record<string, string> = {
+  twilio: 'Twilio',
+  bandwidth: 'Bandwidth',
+  infobip: 'Infobip',
+};
+
+/** Panel del comerciante. Mismo origen que usa la tarjeta de credenciales. */
+const MERCHANT_ORIGIN = (
+  process.env.NEXT_PUBLIC_MERCHANT_ORIGIN || 'https://merchant.sweepstouch.com'
+).replace(/\/$/, '');
+
+/* ── Botón de acción: neutro, sin color de categoría ──────────── */
 function IBtn({
   title,
   onClick,
   href,
-  disabled,
-  tint,
   children,
 }: {
   title: string;
   children: React.ReactNode;
   onClick?: () => void;
   href?: string;
-  disabled?: boolean;
-  tint?: string;
 }) {
-  const theme = useTheme();
   const btn = (
-    <Tooltip title={title} arrow placement="bottom">
-      <span>
-        <IconButton
-          size="small"
-          onClick={onClick}
-          disabled={disabled}
-          sx={{
-            width: 34, height: 34,
-            borderRadius: 1.5,
-            bgcolor: tint
-              ? alpha(tint, theme.palette.mode === 'dark' ? 0.18 : 0.1)
-              : theme.palette.mode === 'dark'
-                ? alpha(theme.palette.common.white, 0.07)
-                : alpha(theme.palette.common.black, 0.05),
-            color: tint || 'text.secondary',
-            transition: 'all 0.15s ease',
-            '&:hover': {
-              bgcolor: tint
-                ? alpha(tint, theme.palette.mode === 'dark' ? 0.3 : 0.18)
-                : theme.palette.mode === 'dark'
-                  ? alpha(theme.palette.common.white, 0.13)
-                  : alpha(theme.palette.common.black, 0.1),
-              transform: 'translateY(-1px)',
-            },
-            '&.Mui-disabled': { opacity: 0.35 },
-          }}
-        >
-          {children}
-        </IconButton>
-      </span>
+    <Tooltip
+      title={title}
+      arrow
+      placement="bottom"
+    >
+      <IconButton
+        size="small"
+        onClick={onClick}
+        sx={{
+          width: 34,
+          height: 34,
+          borderRadius: 1.5,
+          color: 'text.secondary',
+          transition: 'color 0.15s ease, background-color 0.15s ease',
+          '&:hover': { color: 'primary.main', bgcolor: 'action.hover' },
+        }}
+      >
+        {children}
+      </IconButton>
     </Tooltip>
   );
-  if (href) return <Link href={href} style={{ textDecoration: 'none', display: 'inline-flex' }}>{btn}</Link>;
+  if (href)
+    return (
+      <Link
+        href={href}
+        style={{ textDecoration: 'none', display: 'inline-flex' }}
+      >
+        {btn}
+      </Link>
+    );
   return btn;
 }
 
-/* ── props ───────────────────────────────────────────────── */
+/* ── Etiqueta de metadato: texto, no cápsula de color ─────────── */
+function Meta({ children, dot }: { children: React.ReactNode; dot?: string }) {
+  return (
+    <Stack
+      direction="row"
+      alignItems="center"
+      spacing={0.6}
+    >
+      {dot && (
+        <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: dot, flexShrink: 0 }} />
+      )}
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ fontSize: 11.5, fontWeight: 500 }}
+      >
+        {children}
+      </Typography>
+    </Stack>
+  );
+}
+
 type Props = {
   image?: string;
   address: string;
@@ -100,62 +130,93 @@ type Props = {
   qrImageUrl?: string;
   showQrBadge?: boolean;
   edit: boolean;
-  saving: boolean;
   name: string;
   type: Store['type'];
   provider: Store['provider'];
-  active: boolean;
-  verifiedByTwilio?: boolean;
-  onEdit: () => void;
-  onSave: () => void;
-  onCancel: () => void;
+  /** Estado resuelto por el panel. Único color con significado del encabezado. */
+  statusLabel: string;
+  statusColor: string;
   onNameChange?: (val: string) => void;
+  /**
+   * Imagen DE ESTA TIENDA (`store.image`). No toca el logo de la marca
+   * (`mmsTheme.logoUrl`, pestaña Brand): dos tiendas de la misma marca pueden
+   * tener foto propia.
+   */
+  onImageChange?: (url: string) => void;
 };
 
 // Pure helper — extracts the `slug` query param, allocated once at module scope
 const extractSlug = (url?: string) => {
-  try { return new URL(url || '').searchParams.get('slug') ?? undefined; } catch { return undefined; }
+  try {
+    return new URL(url || '').searchParams.get('slug') ?? undefined;
+  } catch {
+    return undefined;
+  }
 };
 
 export default function StoreHeader({
-  image, address, kioskUrl, qrImageUrl, showQrBadge,
-  edit, saving, name, type, provider, active,
-  onEdit, onSave, onCancel, onNameChange,
+  image,
+  address,
+  kioskUrl,
+  qrImageUrl,
+  showQrBadge,
+  edit,
+  name,
+  type,
+  provider,
+  statusLabel,
+  statusColor,
+  onNameChange,
+  onImageChange,
 }: Props) {
   const theme = useTheme();
-  const mdUp = useMediaQuery(theme.breakpoints.up('md'));
   const searchParams = useSearchParams();
   const [qrOpen, setQrOpen] = React.useState(false);
-  const isDark = theme.palette.mode === 'dark';
+  const [uploadingImage, setUploadingImage] = React.useState(false);
+
+  const canEditImage = edit && !!onImageChange;
+
+  async function handlePickImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setUploadingImage(true);
+    try {
+      // Carpeta propia: la foto de la tienda no se mezcla con los logos de marca
+      const { url } = await uploadCampaignImage(file, 'store-images');
+      if (!url) throw new Error('sin url');
+      onImageChange?.(url);
+      toast.success('Imagen lista. Guarda los cambios para aplicarla.');
+    } catch {
+      toast.error('No se pudo subir la imagen');
+    } finally {
+      setUploadingImage(false);
+    }
+  }
+
+  /** El color que llega es un hex; la píldora habla en roles del theme. */
+  const statusTone: 'success' | 'warning' | 'error' | 'neutral' =
+    statusColor === theme.palette.success.main
+      ? 'success'
+      : statusColor === theme.palette.warning.main
+        ? 'warning'
+        : statusColor === theme.palette.error.main
+          ? 'error'
+          : 'neutral';
 
   const slug = extractSlug(kioskUrl);
   const qrHref = slug ? `https://st.sweepstouch.com/?slug=${encodeURIComponent(slug)}` : undefined;
+  /** Linktree público de la tienda — mismo slug que el kiosko. */
+  const linktreeHref = slug
+    ? `https://links.sweepstouch.com/?slug=${encodeURIComponent(slug)}`
+    : undefined;
   const fallbackQrSrc = qrHref
     ? `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qrHref)}&size=512x512`
     : undefined;
 
   const inferredShow = (searchParams.get('tag') || '').toLowerCase() === 'general-info';
   const shouldShowQr = typeof showQrBadge === 'boolean' ? showQrBadge : inferredShow;
-
-  const TIERS: Record<Store['type'], { accent: string; label: string; gradient: string }> = {
-    elite: {
-      accent: theme.palette.primary.main,
-      label: 'Elite',
-      gradient: `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
-    },
-    basic: {
-      accent: theme.palette.info.main,
-      label: 'Basic',
-      gradient: `linear-gradient(135deg, ${theme.palette.info.dark}, ${theme.palette.info.main})`,
-    },
-    free: {
-      accent: theme.palette.text.secondary,
-      label: 'Free',
-      gradient: `linear-gradient(135deg, ${alpha(theme.palette.text.secondary, 0.85)}, ${alpha(theme.palette.text.secondary, 0.6)})`,
-    },
-  };
-  const tier = TIERS[type] ?? TIERS.free;
-  const providerChip = getProviderChip(provider);
 
   /* Don't duplicate address if name already contains it */
   const showAddress = address && !name.toLowerCase().includes(address.toLowerCase().slice(0, 20));
@@ -164,60 +225,101 @@ export default function StoreHeader({
     <>
       <Box
         sx={{
-          position: 'relative',
-          overflow: 'hidden',
-          px: { xs: 2, md: 2.5 },
-          pt: { xs: 1.75, md: 2 },
-          pb: { xs: 1.5, md: 1.75 },
-          background: isDark
-            ? `linear-gradient(135deg, ${alpha(tier.accent, 0.2)} 0%, ${alpha(tier.accent, 0.06)} 100%)`
-            : `linear-gradient(135deg, ${alpha(tier.accent, 0.09)} 0%, ${alpha(tier.accent, 0.03)} 100%)`,
-          borderBottom: `1px solid ${alpha(tier.accent, 0.18)}`,
+          px: { xs: 2, md: 3 },
+          pt: { xs: 2, md: 2.5 },
+          pb: { xs: 2, md: 2.25 },
         }}
       >
-        {/* Top accent bar */}
-        <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: tier.gradient }} />
-
-        {/* Glow blob */}
-        <Box sx={{
-          position: 'absolute', top: -60, right: -60,
-          width: 200, height: 200, borderRadius: '50%',
-          background: alpha(tier.accent, 0.08), filter: 'blur(50px)', pointerEvents: 'none',
-        }} />
-
-        {/* ── Layout ── */}
         <Stack
           direction="row"
-          alignItems="center"
+          alignItems="flex-start"
           spacing={{ xs: 1.5, md: 2 }}
           flexWrap={{ xs: 'wrap', md: 'nowrap' }}
         >
-
-          {/* Avatar */}
-          <Box sx={{ position: 'relative', flexShrink: 0 }}>
+          <Badge
+            overlap="circular"
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            badgeContent={
+              canEditImage ? (
+                <Tooltip
+                  title="Cambiar imagen de la tienda"
+                  arrow
+                >
+                  <IconButton
+                    component="label"
+                    size="small"
+                    disabled={uploadingImage}
+                    sx={{
+                      width: 24,
+                      height: 24,
+                      bgcolor: 'background.paper',
+                      border: `1px solid ${theme.palette.divider}`,
+                      '&:hover': { bgcolor: 'primary.main', color: 'common.white' },
+                    }}
+                  >
+                    {uploadingImage ? (
+                      <CircularProgress size={12} />
+                    ) : (
+                      <CameraAltRounded sx={{ fontSize: 13 }} />
+                    )}
+                    <input
+                      hidden
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePickImage}
+                    />
+                  </IconButton>
+                </Tooltip>
+              ) : null
+            }
+          >
             <Avatar
               src={image}
               alt={name}
+              variant="rounded"
               sx={{
-                width: { xs: 50, md: 58 },
-                height: { xs: 50, md: 58 },
-                border: `2.5px solid ${alpha(tier.accent, 0.45)}`,
-                bgcolor: alpha(tier.accent, 0.15),
+                width: { xs: 64, md: 88 },
+                height: { xs: 64, md: 88 },
+                borderRadius: '20px',
+                flexShrink: 0,
+                bgcolor: (t) =>
+                  alpha(t.palette.primary.main, t.palette.mode === 'dark' ? 0.16 : 0.08),
+                color: 'primary.main',
               }}
             >
-              <StoreMallDirectoryRounded sx={{ fontSize: 26, color: tier.accent }} />
+              <StoreMallDirectoryRounded sx={{ fontSize: { xs: 26, md: 34 } }} />
             </Avatar>
-            {/* Online dot */}
-            <Box sx={{
-              position: 'absolute', bottom: 1, right: 1,
-              width: 11, height: 11, borderRadius: '50%',
-              bgcolor: active ? theme.palette.success.main : theme.palette.warning.main,
-              border: `2px solid ${theme.palette.background.paper}`,
-            }} />
-          </Box>
+          </Badge>
 
-          {/* Name + chips */}
-          <Box flex={1} minWidth={0}>
+          <Box
+            flex={1}
+            minWidth={0}
+          >
+            {/* Estado, tipo y proveedor ARRIBA del título, como en el diseño.
+                Debajo eran tres textos separados por rayitas que se leían como
+                metadatos de relleno; acá son lo primero que se ve, porque son
+                lo que decide si la tienda está funcionando o no. */}
+            <Stack
+              direction="row"
+              gap={0.85}
+              useFlexGap
+              flexWrap="wrap"
+              sx={{ mb: 1 }}
+            >
+              <StatusPill
+                label={statusLabel.toUpperCase()}
+                tone={statusTone}
+              />
+              <StatusPill
+                label={`TIPO ${(TYPE_LABEL[type] ?? 'Free').toUpperCase()}`}
+                dot={false}
+              />
+              <StatusPill
+                label={(PROVIDER_LABEL[provider] ?? 'Sin proveedor').toUpperCase()}
+                dot={false}
+              />
+            </Stack>
+
             {edit ? (
               <TextField
                 size="small"
@@ -225,20 +327,20 @@ export default function StoreHeader({
                 value={name}
                 onChange={(e) => onNameChange?.(e.target.value)}
                 placeholder="Nombre de la tienda"
-                sx={{ mb: 0.75, maxWidth: 420 }}
-                inputProps={{ style: { fontWeight: 700, fontSize: 14 } }}
+                sx={{ mb: 0.75, maxWidth: 460 }}
+                inputProps={{ style: { fontWeight: 700, fontSize: 16 } }}
               />
             ) : (
               <Typography
-                variant="subtitle1"
-                fontWeight={800}
+                variant="h6"
+                fontWeight={700}
                 lineHeight={1.25}
                 sx={{
-                  letterSpacing: 0.1,
+                  fontSize: { xs: 20, md: 26 },
+                  letterSpacing: -0.7,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
-                  maxWidth: { xs: '100%', md: 520 },
                 }}
                 title={name}
               >
@@ -248,240 +350,280 @@ export default function StoreHeader({
 
             {showAddress && (
               <Typography
-                variant="caption"
-                color="text.disabled"
-                sx={{ display: 'block', mb: 0.5, fontSize: 11 }}
+                variant="body2"
+                color="text.secondary"
+                sx={{ display: 'block', fontSize: 12.5, mt: 0.15 }}
                 noWrap
+                title={address}
               >
                 {address}
               </Typography>
             )}
 
-            {/* Status chips */}
-            <Stack direction="row" spacing={0.6} useFlexGap flexWrap="wrap" mt={showAddress ? 0.25 : 0.5}>
-              <Chip
-                size="small"
-                label={tier.label.toUpperCase()}
+            {/* Botonera del diseño: debajo del título, no a la derecha en
+                iconos sueltos. Los tres destinos de la tienda —panel del
+                comerciante, kiosko de piso y linktree público— en el orden en
+                que se usan, y el Linktree como combo con su URL a la vista:
+                es un link que se manda a la tienda, así que verlo antes de
+                copiarlo evita mandar el que no era. */}
+            <Stack
+              direction="row"
+              gap={1}
+              useFlexGap
+              flexWrap="wrap"
+              alignItems="center"
+              sx={{ mt: 1.5 }}
+            >
+              <Button
+                variant="contained"
+                disableElevation
+                startIcon={<OpenInNewRounded sx={{ fontSize: 17 }} />}
+                onClick={() => window.open(MERCHANT_ORIGIN, '_blank', 'noopener')}
                 sx={{
-                  height: 19, fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
-                  background: tier.gradient, color: theme.palette.common.white,
-                  '& .MuiChip-label': { px: 1 },
+                  height: 36,
+                  px: 1.75,
+                  borderRadius: '10px',
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  fontSize: 12.5,
                 }}
-              />
-              <Chip
-                size="small"
-                color={providerChip.color}
-                icon={React.cloneElement(providerChip.icon as React.ReactElement<{ style?: React.CSSProperties }>, { style: { fontSize: 11 } })}
-                label={providerChip.label}
-                sx={{ height: 19, fontSize: 10, fontWeight: 600, '& .MuiChip-label': { px: 0.75 } }}
-              />
-              <Chip
-                size="small"
-                color={active ? 'success' : 'warning'}
-                icon={active ? <VerifiedRounded style={{ fontSize: 11 }} /> : undefined}
-                label={active ? 'Activa' : 'Inactiva'}
-                sx={{ height: 19, fontSize: 10, fontWeight: 600, '& .MuiChip-label': { px: 0.75 } }}
-              />
+              >
+                Abrir Merchant
+              </Button>
+
+              <Button
+                variant="outlined"
+                startIcon={<TabletAndroidRounded sx={{ fontSize: 17, color: 'text.disabled' }} />}
+                onClick={() => window.open(kioskUrl, '_blank', 'noopener')}
+                sx={{
+                  height: 36,
+                  px: 1.75,
+                  borderRadius: '10px',
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  fontSize: 12.5,
+                  color: 'text.secondary',
+                  borderColor: 'divider',
+                  '&:hover': { borderColor: 'text.disabled', bgcolor: 'action.hover' },
+                }}
+              >
+                Abrir Kiosko
+              </Button>
+
+              {linktreeHref && (
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  sx={{
+                    height: 36,
+                    borderRadius: '10px',
+                    border: `1px solid ${theme.palette.divider}`,
+                    overflow: 'hidden',
+                    maxWidth: 340,
+                    minWidth: 0,
+                  }}
+                >
+                  <Box
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => window.open(linktreeHref, '_blank', 'noopener')}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        window.open(linktreeHref, '_blank', 'noopener');
+                      }
+                    }}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.85,
+                      px: 1.4,
+                      height: '100%',
+                      cursor: 'pointer',
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                      '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.04) },
+                    }}
+                  >
+                    <LinkRounded sx={{ fontSize: 17, color: 'success.main' }} />
+                    Linktree
+                  </Box>
+                  <Box
+                    sx={{
+                      flex: 1,
+                      minWidth: 0,
+                      px: 1.25,
+                      borderLeft: `1px solid ${theme.palette.divider}`,
+                      fontFamily: 'ui-monospace, Menlo, monospace',
+                      fontSize: 11.5,
+                      color: 'text.secondary',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      display: { xs: 'none', sm: 'block' },
+                      lineHeight: '34px',
+                    }}
+                    title={linktreeHref}
+                  >
+                    {linktreeHref.replace(/^https?:\/\//, '')}
+                  </Box>
+                  <Tooltip
+                    title="Copiar link"
+                    arrow
+                  >
+                    <IconButton
+                      size="small"
+                      aria-label="Copiar link de Linktree"
+                      onClick={() => {
+                        navigator.clipboard.writeText(linktreeHref);
+                        toast.success('Link copiado');
+                      }}
+                      sx={{
+                        width: 34,
+                        height: '100%',
+                        borderRadius: 0,
+                        borderLeft: `1px solid ${theme.palette.divider}`,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <ContentCopyRounded sx={{ fontSize: 15 }} />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
+              )}
             </Stack>
           </Box>
 
-          {/* ── Actions ─────────────────────────────────── */}
           <Stack
             direction="row"
             alignItems="center"
-            spacing={0.5}
+            spacing={0.25}
             flexShrink={0}
             sx={{
-              /* on xs: full-width row below avatar+name */
               width: { xs: '100%', md: 'auto' },
-              justifyContent: { xs: 'flex-end', md: 'flex-end' },
+              justifyContent: 'flex-end',
               mt: { xs: 0.5, md: 0 },
             }}
           >
-            {!edit ? (
-              <>
-                <IBtn title="Editar" onClick={onEdit} tint={tier.accent}>
-                  <EditRounded sx={{ fontSize: 17 }} />
-                </IBtn>
+            <IBtn
+              title="Ver en Google Maps"
+              onClick={() =>
+                window.open(
+                  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                    address || ''
+                  )}`,
+                  '_blank'
+                )
+              }
+            >
+              <EditLocationAltRounded sx={{ fontSize: 18 }} />
+            </IBtn>
 
-                <IBtn
-                  title="Ver en Google Maps"
-                  onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address || '')}`, '_blank')}
+            {/* Kiosko y Linktree ya están en la botonera de arriba: repetirlos
+                acá como iconos daba dos caminos para lo mismo. */}
+            <IBtn
+              title="Impulsar tienda"
+              href={`/admin/management/work-stores?q=${encodeURIComponent(name)}`}
+            >
+              <RocketLaunch sx={{ fontSize: 18 }} />
+            </IBtn>
+
+            {shouldShowQr && qrHref && (
+              <Tooltip
+                title="Ver QR del sorteo"
+                arrow
+              >
+                <Box
+                  role="button"
+                  aria-label="Ver código QR del sorteo"
+                  tabIndex={0}
+                  onClick={() => setQrOpen(true)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setQrOpen(true);
+                    }
+                  }}
+                  sx={{
+                    ml: 0.75,
+                    width: 34,
+                    height: 34,
+                    borderRadius: 1.5,
+                    border: `1px solid ${theme.palette.divider}`,
+                    bgcolor: 'background.paper',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    outline: 'none',
+                    transition: 'border-color 0.15s ease',
+                    '&:focus-visible, &:hover': { borderColor: 'primary.main' },
+                  }}
                 >
-                  <EditLocationAltRounded sx={{ fontSize: 17 }} />
-                </IBtn>
-
-                <IBtn
-                  title="Abrir Kiosko"
-                  onClick={() => window.open(kioskUrl, '_blank')}
-                >
-                  <OpenInNewRounded sx={{ fontSize: 17 }} />
-                </IBtn>
-
-                <IBtn
-                  title="Impulsar tienda"
-                  href={`/admin/management/work-stores?q=${encodeURIComponent(name)}`}
-                  tint={tier.accent}
-                >
-                  <RocketLaunch sx={{ fontSize: 17 }} />
-                </IBtn>
-
-                {/* Vertical divider */}
-                {shouldShowQr && qrHref && (
-                  <Box sx={{ width: '1px', height: 22, bgcolor: alpha(tier.accent, 0.25), mx: 0.25 }} />
-                )}
-
-                {/* QR thumbnail */}
-                {shouldShowQr && qrHref && (
-                  <Tooltip title="Ver QR" arrow>
+                  {qrImageUrl || fallbackQrSrc ? (
                     <Box
-                      role="button"
-                      aria-label="Ver código QR del sorteo"
-                      tabIndex={0}
-                      onClick={() => setQrOpen(true)}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setQrOpen(true); } }}
-                      sx={{
-                        width: 34, height: 34,
-                        borderRadius: 1.5,
-                        border: `1.5px solid ${alpha(tier.accent, 0.35)}`,
-                        bgcolor: isDark ? alpha(theme.palette.common.white, 0.06) : 'background.paper',
-                        overflow: 'hidden',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        outline: 'none',
-                        '&:focus-visible': { boxShadow: `0 0 0 3px ${alpha(tier.accent, 0.4)}` },
-                        transition: 'all 0.15s ease',
-                        '&:hover': {
-                          transform: 'translateY(-1px) scale(1.06)',
-                          borderColor: alpha(tier.accent, 0.6),
-                          bgcolor: alpha(tier.accent, 0.08),
-                        },
-                      }}
-                    >
-                      {qrImageUrl || fallbackQrSrc
-                        ? <Box component="img" src={qrImageUrl || fallbackQrSrc} alt="QR" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        : <QrCodeRounded sx={{ fontSize: 18, color: tier.accent }} />
-                      }
-                    </Box>
-                  </Tooltip>
-                )}
-              </>
-            ) : (
-              /* Edit mode buttons */
-              <>
-                <Tooltip title="Cancelar" arrow>
-                  <span>
-                    <IconButton
-                      size="small"
-                      onClick={onCancel}
-                      disabled={saving}
-                      sx={{
-                        width: 34, height: 34, borderRadius: 1.5,
-                        bgcolor: alpha(theme.palette.error.main, isDark ? 0.2 : 0.1),
-                        color: 'error.main',
-                        '&:hover': { bgcolor: alpha(theme.palette.error.main, isDark ? 0.32 : 0.18), transform: 'translateY(-1px)' },
-                      }}
-                    >
-                      <CloseRounded sx={{ fontSize: 17 }} />
-                    </IconButton>
-                  </span>
-                </Tooltip>
-
-                <Tooltip title="Guardar cambios" arrow>
-                  <span>
-                    <IconButton
-                      size="small"
-                      onClick={onSave}
-                      disabled={saving}
-                      sx={{
-                        width: 34, height: 34, borderRadius: 1.5,
-                        bgcolor: alpha(theme.palette.success.main, isDark ? 0.2 : 0.1),
-                        color: 'success.main',
-                        '&:hover': { bgcolor: alpha(theme.palette.success.main, isDark ? 0.32 : 0.18), transform: 'translateY(-1px)' },
-                      }}
-                    >
-                      {saving
-                        ? <CircularProgress size={15} color="inherit" />
-                        : <SaveRounded sx={{ fontSize: 17 }} />
-                      }
-                    </IconButton>
-                  </span>
-                </Tooltip>
-
-                {shouldShowQr && qrHref && (
-                  <>
-                    <Box sx={{ width: '1px', height: 22, bgcolor: alpha(tier.accent, 0.25), mx: 0.25 }} />
-                    <Tooltip title="Ver QR" arrow>
-                      <Box
-                        role="button"
-                        aria-label="Ver código QR del sorteo"
-                        tabIndex={0}
-                        onClick={() => setQrOpen(true)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setQrOpen(true); } }}
-                        sx={{
-                          width: 34, height: 34, borderRadius: 1.5,
-                          border: `1.5px solid ${alpha(tier.accent, 0.35)}`,
-                          bgcolor: isDark ? alpha(theme.palette.common.white, 0.06) : 'background.paper',
-                          overflow: 'hidden',
-                          cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          outline: 'none',
-                          '&:focus-visible': { boxShadow: `0 0 0 3px ${alpha(tier.accent, 0.4)}` },
-                          transition: 'all 0.15s ease',
-                          '&:hover': {
-                            transform: 'scale(1.06)',
-                            borderColor: alpha(tier.accent, 0.6),
-                            bgcolor: alpha(tier.accent, 0.08),
-                          },
-                        }}
-                      >
-                        {qrImageUrl || fallbackQrSrc
-                          ? <Box component="img" src={qrImageUrl || fallbackQrSrc} alt="QR" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          : <QrCodeRounded sx={{ fontSize: 18, color: tier.accent }} />
-                        }
-                      </Box>
-                    </Tooltip>
-                  </>
-                )}
-              </>
+                      component="img"
+                      src={qrImageUrl || fallbackQrSrc}
+                      alt="QR"
+                      sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <QrCodeRounded sx={{ fontSize: 18, color: 'text.secondary' }} />
+                  )}
+                </Box>
+              </Tooltip>
             )}
           </Stack>
         </Stack>
       </Box>
 
-      {/* ── QR Dialog ────────────────────────────────────── */}
       <Dialog
         open={qrOpen}
         onClose={() => setQrOpen(false)}
         maxWidth="xs"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden' } }}
+        PaperProps={{ sx: { borderRadius: 3 } }}
       >
-        <Box sx={{ height: 3, background: tier.gradient }} />
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pb: 1 }}>
-          <QrCodeRounded sx={{ color: tier.accent, fontSize: 20 }} />
-          <Typography fontWeight={700}>QR del sorteo</Typography>
-        </DialogTitle>
-        <DialogContent dividers sx={{ display: 'grid', placeItems: 'center', p: 3 }}>
+        <DialogTitle sx={{ fontSize: 16, fontWeight: 700, pb: 1 }}>QR del sorteo</DialogTitle>
+        <DialogContent
+          dividers
+          sx={{ display: 'grid', placeItems: 'center', p: 3 }}
+        >
           {qrImageUrl || fallbackQrSrc ? (
             <Box
               component="img"
               src={qrImageUrl || fallbackQrSrc}
               alt="QR sorteo"
               sx={{
-                width: '100%', maxWidth: 300, height: 'auto',
+                width: '100%',
+                maxWidth: 300,
+                height: 'auto',
                 borderRadius: 2,
-                border: `1px solid ${alpha(tier.accent, 0.25)}`,
+                border: `1px solid ${theme.palette.divider}`,
               }}
             />
           ) : (
-            <Typography variant="body2" color="text.secondary">Sin imagen de QR.</Typography>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+            >
+              Sin imagen de QR.
+            </Typography>
           )}
           {qrHref && (
-            <Typography variant="caption" sx={{ mt: 2, textAlign: 'center', wordBreak: 'break-all', color: 'text.secondary' }}>
-              <MuiLink href={qrHref} target="_blank" rel="noopener noreferrer" sx={{ color: tier.accent }}>
+            <Typography
+              variant="caption"
+              sx={{ mt: 2, textAlign: 'center', wordBreak: 'break-all' }}
+            >
+              <MuiLink
+                href={qrHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                color="primary"
+              >
                 {qrHref}
               </MuiLink>
             </Typography>
@@ -493,12 +635,17 @@ export default function StoreHeader({
               onClick={() => window.open(qrHref, '_blank')}
               variant="contained"
               size="small"
-              sx={{ borderRadius: 2, textTransform: 'none', background: tier.gradient, boxShadow: 'none' }}
+              disableElevation
+              sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700 }}
             >
               Abrir enlace
             </Button>
           )}
-          <Button onClick={() => setQrOpen(false)} size="small" sx={{ borderRadius: 2, textTransform: 'none' }}>
+          <Button
+            onClick={() => setQrOpen(false)}
+            size="small"
+            sx={{ borderRadius: 2, textTransform: 'none' }}
+          >
             Cerrar
           </Button>
         </DialogActions>

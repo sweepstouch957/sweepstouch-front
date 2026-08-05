@@ -1,5 +1,6 @@
 'use client';
 
+import AlternateEmailRoundedIcon from '@mui/icons-material/AlternateEmailRounded';
 import AssignmentTurnedInRoundedIcon from '@mui/icons-material/AssignmentTurnedInRounded';
 import BugReportTwoToneIcon from '@mui/icons-material/BugReportTwoTone';
 import CancelTwoToneIcon from '@mui/icons-material/CancelTwoTone';
@@ -49,6 +50,7 @@ export const CATEGORY_OF: Record<string, NotifCategory> = {
   // Tareas
   task_assigned: 'tareas',
   task_updated: 'tareas',
+  task_mention: 'tareas',
   whatsapp_task_update: 'tareas',
   // Turnos / promotoras
   'new-shift-request': 'turnos',
@@ -97,6 +99,9 @@ export function getNotifMeta(type: string): { icon: React.ReactNode; role: Seman
       return { icon: <AssignmentTurnedInRoundedIcon sx={{ fontSize: 15 }} />, role: 'info' };
     case 'task_updated':
       return { icon: <AssignmentTurnedInRoundedIcon sx={{ fontSize: 15 }} />, role: 'warning' };
+    // Te mencionaron en el chat de una tarea: alguien pide tu ayuda ahí
+    case 'task_mention':
+      return { icon: <AlternateEmailRoundedIcon sx={{ fontSize: 15 }} />, role: 'warning' };
     case 'whatsapp_task_update':
       return { icon: <WhatsAppIcon sx={{ fontSize: 15 }} />, role: 'success' };
     case 'new-shift-request':

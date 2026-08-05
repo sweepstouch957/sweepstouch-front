@@ -109,10 +109,26 @@ export const createComponents = ({ palette }: ComponentsConfig): Components => {
         },
       },
     },
+    MuiCard: {
+      defaultProps: { elevation: 0 },
+      styleOverrides: {
+        root: {
+          // Superficie del Store Panel 2.0: radio 18, borde casi invisible y
+          // CERO sombra. La separación la da el borde, no la elevación.
+          borderRadius: 18,
+          border: `1px solid ${alpha(palette.neutral![900]!, 0.07)}`,
+          boxShadow: 'none',
+          backgroundImage: 'none',
+        },
+      },
+    },
     MuiTableCell: {
       styleOverrides: {
         root: {
           borderBottomColor: palette.divider,
+          // Store Panel 2.0: los números de una columna se comparan entre
+          // filas. Con cifras proporcionales los dígitos bailan.
+          fontVariantNumeric: 'tabular-nums',
         },
       },
     },
@@ -120,9 +136,14 @@ export const createComponents = ({ palette }: ComponentsConfig): Components => {
       styleOverrides: {
         root: {
           [`& .${tableCellClasses.root}`]: {
-            backgroundColor: alpha(palette.neutral![100], 0.5),
-            color: palette.neutral![800],
+            // Versalitas de 10px: la cabecera informa, no compite con los datos.
+            backgroundColor: alpha(palette.neutral![900]!, 0.02),
+            color: palette.text!.secondary,
             borderBottomColor: palette.divider,
+            fontSize: 10,
+            fontWeight: 800,
+            letterSpacing: 1,
+            textTransform: 'uppercase',
           },
         },
       },
@@ -432,6 +453,11 @@ export const createComponents = ({ palette }: ComponentsConfig): Components => {
       },
     },
     MuiAvatar: {
+      // Un avatar siempre va acompañado del nombre en texto: es decorativo.
+      // Sin `alt` el <img> queda sin atributo y falla la auditoría; con alt=""
+      // el lector de pantalla lo salta, que es lo correcto. Poner un alt real
+      // haría que se lea el nombre dos veces.
+      defaultProps: { alt: '' },
       styleOverrides: {
         colorDefault: {
           backgroundColor: palette.background!.default,
@@ -440,6 +466,11 @@ export const createComponents = ({ palette }: ComponentsConfig): Components => {
           color: palette.neutral![800],
         },
       },
+    },
+    MuiLinearProgress: {
+      // Sin nombre, el lector de pantalla anuncia "barra de progreso, 78" sin
+      // decir de qué. Cada uso puede pasar el suyo y pisa este.
+      defaultProps: { 'aria-label': 'Progreso' },
     },
     MuiChip: {
       styleOverrides: {

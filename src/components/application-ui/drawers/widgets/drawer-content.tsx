@@ -14,8 +14,6 @@ import {
 } from '@mui/material';
 import { formatDistance, subMinutes } from 'date-fns';
 import { PulseBadge } from 'src/components/base/styles/pulse-badge';
-import WeatherWeekly from './weather-weekly';
-import WeatherWidgets from './weather-widgets';
 
 const Component = () => {
   return (
@@ -64,10 +62,6 @@ const Component = () => {
             </Box>
           </Stack>
         </Box>
-      </Card>
-      <WeatherWidgets />
-      <Card elevation={23}>
-        <WeatherWeekly />
       </Card>
       <Card elevation={23}>
         <Box

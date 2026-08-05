@@ -9,11 +9,13 @@ import DepurarPhonesModal from './depurar-phones-modal';
 import ReactivarPhonesModal from './reactivar-phones-modal';
 import NormalizeFormatModal from './normalize-format-modal';
 import BulkInactivateModal from './bulk-inactivate-modal';
+import AnalisisNumerosModal from './analisis-numeros-modal';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   SettingsBackupRestoreRounded,
   AutoFixHighRounded,
   DeleteSweepRounded,
+  TroubleshootRounded,
   TuneRounded,
 } from '@mui/icons-material';
 
@@ -29,6 +31,7 @@ const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName, provider 
   const [openReactivar, setOpenReactivar] = useState(false);
   const [openNormalize, setOpenNormalize] = useState(false);
   const [openBulkInactivate, setOpenBulkInactivate] = useState(false);
+  const [openAnalisis, setOpenAnalisis] = useState(false);
   const queryClient = useQueryClient();
 
   const handleImportSuccess = () => {
@@ -79,6 +82,13 @@ const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName, provider 
       color: 'error' as const,
       icon: <CleaningServicesRoundedIcon />,
       onClick: () => setOpenDepurar(true),
+    },
+    {
+      label: 'Analizar Números',
+      help: 'Clasifica opt-out, inválidos y reincidentes antes de inactivar',
+      color: 'error' as const,
+      icon: <TroubleshootRounded />,
+      onClick: () => setOpenAnalisis(true),
     },
   ];
 
@@ -182,6 +192,16 @@ const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName, provider 
         storeId={storeId}
         onSuccess={handleImportSuccess}
       />
+
+      {/* Análisis de números: opt-out / inválidos / reincidentes */}
+      {openAnalisis && (
+        <AnalisisNumerosModal
+          open
+          storeId={storeId}
+          onClose={() => setOpenAnalisis(false)}
+          onDone={handleDepurarSuccess}
+        />
+      )}
 
       {/* Modal de Depuración */}
       <DepurarPhonesModal

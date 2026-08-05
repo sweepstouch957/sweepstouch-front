@@ -88,11 +88,14 @@ export function StoreExportDialog({ open, onClose, onExport }: Props) {
       }}
     >
       <DialogTitle sx={{ pb: 1 }}>
-        <Typography component="div" fontSize={17} fontWeight={800}>
+        <Typography component="div"
+fontSize={17}
+fontWeight={800}>
           Exportar tiendas
         </Typography>
-        <Typography variant="caption" color="text.secondary">
-          Elige las columnas del archivo. Se exportan todas las tiendas, sin importar los filtros de pantalla.
+        <Typography variant="caption"
+color="text.secondary">
+          Elige las columnas del archivo. Se exportan las tiendas según los filtros activos en pantalla.
         </Typography>
       </DialogTitle>
 
@@ -146,7 +149,9 @@ export function StoreExportDialog({ open, onClose, onExport }: Props) {
             const allOn = groupKeys.every((k) => selectedSet.has(k));
             return (
               <Box key={group}>
-                <Stack direction="row" alignItems="center" sx={{ mb: 0.5 }}>
+                <Stack direction="row"
+alignItems="center"
+sx={{ mb: 0.5 }}>
                   <Typography
                     variant="caption"
                     sx={{
@@ -206,7 +211,10 @@ export function StoreExportDialog({ open, onClose, onExport }: Props) {
       <Divider />
 
       <DialogActions sx={{ px: 3, py: 1.75, gap: 1 }}>
-        <Button onClick={onClose} disabled={exporting} color="inherit" sx={{ fontWeight: 700 }}>
+        <Button onClick={onClose}
+disabled={exporting}
+color="inherit"
+sx={{ fontWeight: 700 }}>
           Cancelar
         </Button>
         <Button
@@ -215,7 +223,8 @@ export function StoreExportDialog({ open, onClose, onExport }: Props) {
           disabled={!count || exporting}
           startIcon={
             exporting ? (
-              <CircularProgress size={15} color="inherit" />
+              <CircularProgress size={15}
+color="inherit" />
             ) : (
               <FileDownloadOutlinedIcon fontSize="small" />
             )

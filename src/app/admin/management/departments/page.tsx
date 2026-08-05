@@ -20,7 +20,7 @@ import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 
-import { Department } from '@/services/department.service';
+import { Department, WORK_TYPE_LABEL } from '@/services/department.service';
 import { User } from '@/contexts/auth/user';
 import DepartmentManager from 'src/components/departments/DepartmentManager';
 import { useDepartmentBoard, getUserId, getInitials, ROLE_STYLE } from '@/hooks/useDepartmentBoard';
@@ -60,9 +60,16 @@ const UserRow: FC<{
           width: 24, height: 24, fontSize: 9, fontWeight: 700,
           bgcolor: alpha(r.color, 0.14), color: r.color, flexShrink: 0,
         }}>{getInitials(user)}</Avatar>
-        <Typography fontSize={11} fontWeight={600} noWrap flex={1} minWidth={0} lineHeight={1.2}>
-          {user.firstName} {user.lastName}
-        </Typography>
+        <Box flex={1} minWidth={0}>
+          <Typography fontSize={11} fontWeight={600} noWrap lineHeight={1.2}>
+            {user.firstName} {user.lastName}
+          </Typography>
+          {(user as any).position && (
+            <Typography fontSize={9} color="text.secondary" noWrap lineHeight={1.2}>
+              {(user as any).position}
+            </Typography>
+          )}
+        </Box>
         <Chip label={r.label} size="small" sx={{
           height: 15, fontSize: 8, fontWeight: 600, flexShrink: 0,
           bgcolor: alpha(r.color, 0.1), color: r.color,
@@ -121,7 +128,21 @@ const DeptSection: FC<DeptSectionProps> = memo(({ dept, users, search, defaultOp
               bgcolor: alpha(c, isDark ? 0.2 : 0.1), color: c,
               '& .MuiChip-label': { px: 0.4 }, flexShrink: 0,
             }} />
+            <Chip label={WORK_TYPE_LABEL[dept.workType || 'project']} size="small" sx={{
+              height: 15, fontSize: 8, fontWeight: 600, flexShrink: 0,
+              bgcolor: alpha(theme.palette.text.primary, 0.05),
+              color: 'text.secondary',
+              '& .MuiChip-label': { px: 0.5 },
+            }} />
           </Stack>
+          {/* El encargado es a quien el bot manda cuando alguien pide ayuda de esta área */}
+          <Typography
+            fontSize={9}
+            noWrap
+            color={dept.leadName ? 'text.secondary' : 'warning.main'}
+          >
+            {dept.leadName ? `Encargado: ${dept.leadName}` : 'Sin encargado — asígnalo en Administrar'}
+          </Typography>
         </Box>
         <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: c, flexShrink: 0 }} />
         {open ? <ExpandLessRoundedIcon sx={{ fontSize: 16, color: 'text.secondary' }} /> : <ExpandMoreRoundedIcon sx={{ fontSize: 16, color: 'text.secondary' }} />}

@@ -25,14 +25,17 @@ import {
   PaletteTwoTone as BrandIcon,
 } from '@mui/icons-material';
 import PeopleIcon from '@mui/icons-material/People';
+import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import {
   alpha,
   Box,
   Button,
   Drawer,
   List,
+  Stack,
   SwipeableDrawer,
   Theme,
+  Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
@@ -50,6 +53,12 @@ interface StoreSidebarProps {
   accessCode: string;
   portalRedirectPath?: string;
   portalOpenInNewTab?: boolean;
+  /**
+   * Conteos por sección. Los pasa el panel desde el `store` que ya tiene
+   * cargado: el rail se monta en cada sección, y pedirlos acá serían tres
+   * queries por render para un número al lado de una etiqueta.
+   */
+  counts?: Partial<Record<string, number>>;
 }
 
 const MERCHANT_ORIGIN =
@@ -59,20 +68,56 @@ function buildSwitchUrl(storeId: string) {
   return `${MERCHANT_ORIGIN}/?ac=${storeId}`;
 }
 
-const STORE_SECTIONS = [
-  { id: 'campaigns', label: 'Campaigns', icon: <CampaignsIcon /> },
-  { id: 'general-info', label: 'General Info', icon: <InfoIcon /> },
-  { id: 'brand', label: 'Branding', icon: <BrandIcon /> },
-  { id: 'equipment', label: 'Equipment', icon: <DevicesIcon /> },
-  { id: 'sweepstakes', label: 'Sweepstakes', icon: <RewardIcon /> },
-  { id: 'welcome-coupons', label: 'Welcome Coupons', icon: <CouponIcon /> },
-  { id: 'opt-in', label: 'Opt-in MMS', icon: <SmsIcon /> },
-  { id: 'billing', label: 'Billing', icon: <MonetizationOn /> },
-  { id: 'qr', label: 'QR', icon: <QrCode2Outlined /> },
-  { id: 'customers', label: 'Customers', icon: <PeopleIcon /> },
-  { id: 'cajeras', label: 'Cajeras', icon: <Woman2 /> },
-  { id: 'ads', label: 'Ads', icon: <Analytics /> },
+/**
+ * Doce secciones en una lista plana obligan a leerlas todas para encontrar una.
+ * El diseño las agrupa por lo que la persona viene a hacer: entender la tienda,
+ * hablarle a su gente, promocionar, o cobrarle.
+ */
+const STORE_GROUPS: {
+  title: string;
+  items: { id: string; label: string; icon: React.ReactNode }[];
+}[] = [
+  {
+    title: 'La tienda',
+    items: [
+      { id: 'general-info', label: 'Perfil de la tienda', icon: <InfoIcon /> },
+      { id: 'brand', label: 'Marca y arte', icon: <BrandIcon /> },
+    ],
+  },
+  {
+    title: 'Marketing',
+    items: [
+      { id: 'campaigns', label: 'Campañas', icon: <CampaignsIcon /> },
+      { id: 'sweepstakes', label: 'Sorteos', icon: <RewardIcon /> },
+      { id: 'welcome-coupons', label: 'Cupones de bienvenida', icon: <CouponIcon /> },
+      { id: 'opt-in', label: 'Captación de opt-in', icon: <SmsIcon /> },
+      { id: 'ads', label: 'Publicidad en kiosko', icon: <Analytics /> },
+    ],
+  },
+  {
+    title: 'Operación',
+    items: [
+      { id: 'equipment', label: 'Tablets y equipos', icon: <DevicesIcon /> },
+      { id: 'qr', label: 'Códigos QR', icon: <QrCode2Outlined /> },
+      { id: 'cajeras', label: 'Cajeras', icon: <Woman2 /> },
+    ],
+  },
+  {
+    title: 'Datos y dinero',
+    items: [
+      { id: 'customers', label: 'Clientes', icon: <PeopleIcon /> },
+      { id: 'billing', label: 'Facturación', icon: <MonetizationOn /> },
+    ],
+  },
 ];
+
+/** 51 498 → "51.5k". Un número largo en una fila de 12px la parte. */
+function shortCount(n?: number): string | undefined {
+  if (n === undefined || n === null) return undefined;
+  if (n < 1000) return String(n);
+  if (n < 1_000_000) return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0)}k`;
+  return `${(n / 1_000_000).toFixed(1)}M`;
+}
 
 export const StoreSidebar: FC<StoreSidebarProps> = ({
   parentContainer,
@@ -82,6 +127,7 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
   storeSlug,
   portalOpenInNewTab = true,
   accessCode,
+  counts,
 }) => {
   const theme = useTheme();
   const lgUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('lg'));
@@ -116,109 +162,118 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
     await runStoreManagementThunk(closeSidebar());
   }, []);
 
-  const visibleSections = useMemo(
-    () =>
-      STORE_SECTIONS.filter(
-        (s) =>
-          (s.id !== 'customers' && s.id !== 'cajeras') ||
-          userRole === 'admin' ||
-          userRole === 'promotor_manager'
-      ),
-    [userRole]
-  );
+  const visibleGroups = useMemo(() => {
+    const puedeVerGente = userRole === 'admin' || userRole === 'promotor_manager';
+    return STORE_GROUPS.map((g) => ({
+      ...g,
+      items: g.items.filter((i) => (i.id !== 'customers' && i.id !== 'cajeras') || puedeVerGente),
+    })).filter((g) => g.items.length > 0);
+  }, [userRole]);
 
   const sidebarContent = (
-    <Box p={{ xs: 2, sm: 3 }}>
-      {/* Store identity */}
-      <Box
-        display="flex"
-        flexDirection="column"
+    <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {/* Identidad: mini-ficha, no un retrato. El nombre ya está en la cabecera. */}
+      <Stack
+        direction="row"
         alignItems="center"
-        mb={2}
-        textAlign="center"
+        gap={1.25}
+        sx={{
+          px: 1,
+          pb: 1.5,
+          borderBottom: `1px solid ${alpha(theme.palette.text.primary, 0.06)}`,
+        }}
       >
         <Box
-          component="img"
-          src={image || '/no-image.jpg'}
-          alt={storeName}
           sx={{
-            width: 76,
-            height: 76,
-            borderRadius: '50%',
-            objectFit: 'cover',
-            mb: 1,
-            border: `2px solid ${theme.palette.primary.main}`,
-          }}
-        />
-        <Box
-          component="span"
-          sx={{
-            fontWeight: 700,
-            fontSize: '0.9rem',
-            color: theme.palette.text.primary,
-            wordBreak: 'break-word',
-            lineHeight: 1.3,
-            mb: 1.5,
-          }}
-          title={storeName}
-        >
-          {storeName}
-        </Box>
-
-        {/* Merchant + Kiosk buttons: row on desktop, column on mobile */}
-        <Box
-          sx={{
+            width: 32,
+            height: 32,
+            borderRadius: '10px',
+            flexShrink: 0,
+            overflow: 'hidden',
             display: 'flex',
-            flexDirection: { xs: 'column', sm: 'row' },
-            gap: 1,
-            width: '100%',
+            alignItems: 'center',
+            justifyContent: 'center',
+            bgcolor: alpha(theme.palette.primary.main, 0.1),
           }}
         >
-          <Button
-            fullWidth
-            variant="contained"
-            size="small"
-            startIcon={<WebIcon sx={{ fontSize: '1rem !important' }} />}
-            onClick={openPortal}
-            sx={{
-              textTransform: 'none',
-              fontWeight: 700,
-              borderRadius: 2,
-              fontSize: '0.78rem',
-              py: 0.75,
-            }}
-          >
-            Merchant
-          </Button>
-          <Button
-            fullWidth
-            variant="outlined"
-            size="small"
-            startIcon={<KioskIcon sx={{ fontSize: '1rem !important' }} />}
-            onClick={openKiosk}
-            sx={{
-              textTransform: 'none',
-              fontWeight: 700,
-              borderRadius: 2,
-              fontSize: '0.78rem',
-              py: 0.75,
-            }}
-          >
-            Kiosk
-          </Button>
+          {image ? (
+            <Box
+              component="img"
+              src={image}
+              alt=""
+              sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : (
+            <StorefrontRoundedIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+          )}
         </Box>
-      </Box>
+        <Box sx={{ minWidth: 0, lineHeight: 1.3 }}>
+          <Typography
+            sx={{ fontSize: 11.5, fontWeight: 750 }}
+            noWrap
+            title={storeName}
+          >
+            {storeName || 'Tienda'}
+          </Typography>
+          <Typography sx={{ fontSize: 10, color: 'text.secondary' }}>Secciones</Typography>
+        </Box>
+      </Stack>
 
-      <List disablePadding>
-        {visibleSections.map((section) => (
-          <StoreSidebarItem
-            key={section.id}
-            section={section}
-            active={activeSection === section.id}
-            onClick={() => handleSectionClick(section.id)}
-          />
-        ))}
-      </List>
+      {visibleGroups.map((group) => (
+        <Box key={group.title}>
+          <Typography
+            sx={{
+              fontSize: 9,
+              fontWeight: 800,
+              letterSpacing: 1.2,
+              color: 'text.disabled',
+              px: 1.25,
+              pb: 0.75,
+              display: 'block',
+            }}
+          >
+            {group.title.toUpperCase()}
+          </Typography>
+          <List disablePadding>
+            {group.items.map((section) => (
+              <StoreSidebarItem
+                key={section.id}
+                section={{ ...section, meta: shortCount(counts?.[section.id]) }}
+                active={activeSection === section.id}
+                onClick={() => handleSectionClick(section.id)}
+              />
+            ))}
+          </List>
+        </Box>
+      ))}
+
+      {/* Salidas al exterior: abajo y discretas, no compiten con las secciones */}
+      <Stack
+        gap={0.75}
+        sx={{ pt: 1.5, borderTop: `1px solid ${alpha(theme.palette.text.primary, 0.06)}` }}
+      >
+        <Button
+          fullWidth
+          variant="contained"
+          size="small"
+          disableElevation
+          startIcon={<WebIcon sx={{ fontSize: '1rem !important' }} />}
+          onClick={openPortal}
+          sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2.5, fontSize: 12, py: 0.85 }}
+        >
+          Abrir Merchant
+        </Button>
+        <Button
+          fullWidth
+          variant="outlined"
+          size="small"
+          startIcon={<KioskIcon sx={{ fontSize: '1rem !important' }} />}
+          onClick={openKiosk}
+          sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2.5, fontSize: 12, py: 0.85 }}
+        >
+          Abrir Kiosko
+        </Button>
+      </Stack>
     </Box>
   );
 
@@ -231,9 +286,9 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
         SlideProps={{ container: parentContainer }}
         PaperProps={{
           sx: {
-            backgroundColor:
-              theme.palette.mode === 'dark' ? alpha(theme.palette.neutral[25], 0.02) : 'neutral.25',
-            width: 260,
+            backgroundColor: 'background.paper',
+            borderRight: `1px solid ${alpha(theme.palette.text.primary, 0.07)}`,
+            width: 232,
             position: 'relative',
           },
         }}

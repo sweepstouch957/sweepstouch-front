@@ -8,6 +8,7 @@ import { DropResult } from '@hello-pangea/dnd';
 import { departmentService } from '@/services/department.service';
 import { api } from '@/libs/axios';
 import { User } from '@/contexts/auth/user';
+import { isInternalStaff, STAFF_ROLE_QUERY } from '@/utils/staff';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -46,16 +47,19 @@ export const ROLE_STYLE: Record<string, { label: string; color: string }> = {
   cashier: { label: 'Cashier', color: '#795548' },
   merchant: { label: 'Merchant', color: '#4caf50' },
   promotor: { label: 'Promotor', color: '#8bc34a' },
+  it: { label: 'IT', color: '#2196f3' },
+  support: { label: 'Soporte', color: '#607d8b' },
+  billing: { label: 'Facturación', color: '#795548' },
+  operations: { label: 'Operaciones', color: '#4caf50' },
+  assistant: { label: 'Asistencia', color: '#f44336' },
 };
 
 /**
- * Only staff roles — we don't show merchants/cashiers/promotors in the department board.
- * This drastically reduces the number of users fetched + rendered.
+ * Sólo equipo interno. Se piden los roles al backend y después se afina con
+ * isInternalStaff: un promotor_manager de campo NO va en el tablero, pero las
+ * Promotions Managers del equipo (que sí están en el catálogo) sí.
  */
-const STAFF_ROLES = [
-  'admin', 'design', 'campaign_manager', 'general_manager',
-  'marketing', 'merchant_manager', 'promotor_manager', 'tecnico',
-];
+const STAFF_ROLES = STAFF_ROLE_QUERY;
 
 // ─── Slim user type (only fields we actually need) ────────────────────────────
 
@@ -65,6 +69,7 @@ interface SlimUser {
   firstName: string;
   lastName: string;
   role: string;
+  position?: string;
   profileImage?: string;
   avatar?: string;
   departmentId?: string | null;
@@ -78,6 +83,7 @@ function selectSlimUsers(rawUsers: any[]): SlimUser[] {
     firstName: u.firstName || '',
     lastName: u.lastName || '',
     role: u.role || '',
+    position: u.position || '',
     profileImage: u.profileImage || u.avatar || undefined,
     avatar: u.avatar || undefined,
     departmentId: normalizeDeptId(u),
@@ -117,7 +123,7 @@ export function useDepartmentBoard() {
           params: {
             role: STAFF_ROLES.join(','),
             lean: 'true',
-            select: 'firstName,lastName,role,profileImage,departmentId',
+            select: 'firstName,lastName,role,position,profileImage,departmentId',
           },
         });
         const allUsers: any[] = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
@@ -127,11 +133,11 @@ export function useDepartmentBoard() {
         if (allUsers.length === 0) {
           const fallback = await api.get('/auth/users');
           const fbUsers: any[] = Array.isArray(fallback.data) ? fallback.data : (fallback.data?.data ?? []);
-          const staffOnly = fbUsers.filter((u: any) => STAFF_ROLES.includes(u.role));
+          const staffOnly = fbUsers.filter(isInternalStaff);
           return selectSlimUsers(staffOnly);
         }
 
-        return selectSlimUsers(allUsers);
+        return selectSlimUsers(allUsers.filter(isInternalStaff));
       } catch (err) {
         console.error('[dept-board] Failed to fetch users:', err);
         return [];

@@ -72,6 +72,8 @@ const buildPatch = (orig, curr) => {
     'kioskTabletDate',
     'kioskTabletQuantity',
     'slug',
+    // Imagen propia de la tienda (no el logo de la marca)
+    'image',
   ];
 
   // contactInfo: array comparison via JSON
@@ -146,6 +148,7 @@ export function useStoreEditor(store) {
   // Prellenar el form con datos reales (evita defaults vacíos)
   const [form, setForm] = useState({
     name: store.name || '',
+    image: store.image || '',
     address: store.address || '',
     zipCode: store.zipCode || '',
     type: store.type || 'free',
@@ -294,6 +297,7 @@ export function useStoreEditor(store) {
     // reset al estado original
     setForm({
       name: store.name || '',
+      image: store.image || '',
       address: store.address || '',
       zipCode: store.zipCode || '',
       type: store.type || 'free',

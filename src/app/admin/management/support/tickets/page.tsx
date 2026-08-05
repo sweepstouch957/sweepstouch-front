@@ -30,6 +30,7 @@ import {
   Pagination,
   Popover,
   Select,
+  Skeleton,
   Stack,
   Table,
   TableBody,
@@ -48,6 +49,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import React, { useEffect, useRef, useState } from 'react';
+import {
+  Controller,
+  useForm,
+  useWatch,
+  type Control,
+  type UseFormRegister,
+  type UseFormSetValue,
+} from 'react-hook-form';
 import { useAuth } from '@/hooks/use-auth';
 import { useCustomization } from 'src/hooks/use-customization';
 import { getStores } from 'src/services/store.service';
@@ -198,7 +207,6 @@ export default function TicketsPage() {
   const customization = useCustomization();
   const theme = useTheme();
   const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const currentUserName = (user as any)?.name ?? (user as any)?.firstName ?? '';
 
@@ -209,9 +217,6 @@ export default function TicketsPage() {
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editTicket, setEditTicket] = useState<SupportTicket | null>(null);
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [uploadingEvidence, setUploadingEvidence] = useState(false);
-  const [evidenceError, setEvidenceError] = useState('');
 
   // Store autocomplete debounced search
   const [storeRaw, setStoreRaw] = useState('');
@@ -262,26 +267,6 @@ export default function TicketsPage() {
     queryClient.invalidateQueries({ queryKey: ['support-metrics'] });
   };
 
-  /* ── Evidence upload ── */
-  const handleEvidenceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    if (!files.length) return;
-    setEvidenceError('');
-    setUploadingEvidence(true);
-    try {
-      const urls = await Promise.all(files.map(uploadSupportEvidence));
-      setForm((f) => ({ ...f, evidenceUrls: [...f.evidenceUrls, ...urls] }));
-    } catch {
-      setEvidenceError('Error al subir archivo. Intenta de nuevo.');
-    } finally {
-      setUploadingEvidence(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
-  const removeEvidence = (idx: number) =>
-    setForm((f) => ({ ...f, evidenceUrls: f.evidenceUrls.filter((_, i) => i !== idx) }));
-
   /* ── Mutations ── */
   const createMutation = useMutation({
     mutationFn: (f: FormState) => supportService.createTicket(buildBody(f)),
@@ -304,45 +289,24 @@ export default function TicketsPage() {
   /* ── Dialog helpers ── */
   const openCreate = () => {
     setEditTicket(null);
-    setForm({ ...EMPTY_FORM, reporterName: currentUserName, reporterIsCurrentUser: true });
     setStoreRaw('');
-    setEvidenceError('');
     setDialogOpen(true);
   };
 
   const openEdit = (ticket: SupportTicket) => {
     setEditTicket(ticket);
-    const store = stores.find((s) => s._id === ticket.storeId) ?? null;
-    const assignee = technicians.find((t) => t._id === ticket.assigneeId) ?? null;
-    setForm({
-      title: ticket.title,
-      description: ticket.description,
-      notes: ticket.notes || '',
-      area: (ticket.area as TicketArea) || 'it',
-      type: ticket.type,
-      status: ticket.status,
-      priority: ticket.priority,
-      store: store ?? (ticket.storeId ? { _id: ticket.storeId, name: ticket.storeName, address: ticket.storeAddress } : null),
-      assignee: assignee ?? (ticket.assigneeId ? { _id: ticket.assigneeId, id: ticket.assigneeId, name: ticket.assigneeName, email: '' } : null),
-      reporterName: ticket.reporterName || currentUserName,
-      reporterIsCurrentUser: !ticket.reporterName || ticket.reporterName === currentUserName,
-      evidenceUrls: ticket.evidenceUrls ?? [],
-    });
-    setEvidenceError('');
     setDialogOpen(true);
   };
 
   const closeDialog = () => {
     setDialogOpen(false);
     setEditTicket(null);
-    setForm(EMPTY_FORM);
     setStoreRaw('');
-    setEvidenceError('');
   };
 
-  const handleSubmit = () => {
-    if (editTicket) updateMutation.mutate({ id: editTicket._id, f: form });
-    else createMutation.mutate(form);
+  const handleSubmit = (values: FormState) => {
+    if (editTicket) updateMutation.mutate({ id: editTicket._id, f: values });
+    else createMutation.mutate(values);
   };
 
   /* ── Quick status popover ── */
@@ -542,7 +506,11 @@ export default function TicketsPage() {
         {/* Mobile View — Cards list */}
         <Box sx={{ display: { xs: 'block', md: 'none' } }}>
           {isLoading ? (
-            <Box display="flex" justifyContent="center" py={6}><CircularProgress size={32} /></Box>
+            <Stack spacing={2} p={2}>
+              {Array.from({ length: 4 }, (_, i) => (
+                <Skeleton key={i} variant="rounded" height={130} />
+              ))}
+            </Stack>
           ) : !data?.data?.length ? (
             <Box display="flex" justifyContent="center" py={6}><Typography color="text.secondary">No hay tickets</Typography></Box>
           ) : (
@@ -674,364 +642,22 @@ export default function TicketsPage() {
         </Box>
       </Card>
 
-      {/* ── Dialog ── */}
-      <Dialog open={dialogOpen} onClose={closeDialog} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>
-          {editTicket ? `Editar ${editTicket.identifier}` : 'Nuevo Ticket'}
-        </DialogTitle>
-        <Divider />
-
-        <DialogContent sx={{ pt: 2 }}>
-          <Stack spacing={2.5}>
-
-            {/* Title */}
-            <TextField
-              label="Título *"
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              fullWidth size="small"
-              autoFocus
-            />
-
-            {/* Description */}
-            <TextField
-              label="Descripción"
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              fullWidth size="small" multiline rows={3}
-            />
-
-            {/* Area + Type */}
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <FormControl size="small" fullWidth>
-                <InputLabel>Área / Departamento *</InputLabel>
-                <Select
-                  value={form.area}
-                  label="Área / Departamento *"
-                  onChange={(e) => setForm({ ...form, area: e.target.value as TicketArea })}
-                >
-                  {Object.entries(AREA_LABEL).map(([k, v]) => (
-                    <MenuItem key={k} value={k}>
-                      <Stack direction="row" alignItems="center" spacing={1}>
-                        <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: areaColor(theme, k), flexShrink: 0 }} />
-                        <span>{v}</span>
-                      </Stack>
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl size="small" fullWidth>
-                <InputLabel>Tipo de problema</InputLabel>
-                <Select value={form.type} label="Tipo de problema" onChange={(e) => setForm({ ...form, type: e.target.value as TicketType })}>
-                  {Object.entries(TYPE_LABEL).map(([k, v]) => <MenuItem key={k} value={k}>{v}</MenuItem>)}
-                </Select>
-              </FormControl>
-            </Stack>
-
-            {/* Priority + Status */}
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <FormControl size="small" fullWidth>
-                <InputLabel>Prioridad</InputLabel>
-                <Select value={form.priority} label="Prioridad" onChange={(e) => setForm({ ...form, priority: e.target.value as TicketPriority })}>
-                  <MenuItem value="low">Bajo</MenuItem>
-                  <MenuItem value="medium">Medio</MenuItem>
-                  <MenuItem value="high">Alto</MenuItem>
-                  <MenuItem value="critical">Crítico</MenuItem>
-                </Select>
-              </FormControl>
-              {editTicket && (
-                <FormControl size="small" fullWidth>
-                  <InputLabel>Estado</InputLabel>
-                  <Select value={form.status} label="Estado" onChange={(e) => setForm({ ...form, status: e.target.value as TicketStatus })}>
-                    <MenuItem value="open">Abierto</MenuItem>
-                    <MenuItem value="in_progress">En Progreso</MenuItem>
-                    <MenuItem value="resolved">Resuelto</MenuItem>
-                    <MenuItem value="closed">Cerrado</MenuItem>
-                  </Select>
-                </FormControl>
-              )}
-            </Stack>
-
-            {/* Store autocomplete */}
-            <Autocomplete
-              options={stores}
-              value={form.store}
-              onChange={(_, val) => setForm({ ...form, store: val })}
-              onInputChange={(_, val) => setStoreRaw(val)}
-              filterOptions={(x) => x}
-              loading={loadingStores}
-              getOptionLabel={(o) => o.name}
-              isOptionEqualToValue={(a, b) => a._id === b._id}
-              renderOption={(props, o) => {
-                const color = storeTypeColor(theme, o.type);
-                const aud = getAudienceInfo(o.customerCount);
-                return (
-                  <Box component="li" {...props} sx={{ gap: 1.5, alignItems: 'flex-start !important', py: '8px !important' }}>
-                    <Avatar sx={{ width: 36, height: 36, fontSize: 13, fontWeight: 700, bgcolor: alpha(color, 0.15), color, flexShrink: 0, mt: 0.25 }}>
-                      {o.name?.[0]?.toUpperCase()}
-                    </Avatar>
-                    <Box minWidth={0} flex={1}>
-                      <Stack direction="row" alignItems="center" spacing={0.75}>
-                        <Typography variant="body2" fontWeight={700} noWrap flex={1}>{o.name}</Typography>
-                        {aud && (
-                          <Chip
-                            label={aud.label}
-                            size="small"
-                            sx={{
-                              height: 18, fontSize: 10, fontWeight: 700, flexShrink: 0,
-                              bgcolor: tint(theme, aud.role),
-                              color: `${aud.role}.main`,
-                              border: `1px solid ${tintBorder(theme, aud.role, 0.3)}`,
-                            }}
-                          />
-                        )}
-                      </Stack>
-                      {o.address && <Typography variant="caption" color="text.secondary" noWrap display="block">{o.address}</Typography>}
-                    </Box>
-                  </Box>
-                );
-              }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Tienda (opcional)"
-                  size="small"
-                  placeholder="Escribe para buscar..."
-                  InputProps={{
-                    ...params.InputProps,
-                    endAdornment: (
-                      <>
-                        {loadingStores ? <CircularProgress size={14} color="inherit" /> : null}
-                        {params.InputProps.endAdornment}
-                      </>
-                    ),
-                  }}
-                />
-              )}
-              noOptionsText={storeSearch ? 'Sin resultados' : 'Escribe para buscar una tienda...'}
-            />
-
-            {/* Assignee (technician) — notification on assign — only show when editing */}
-            {editTicket && (
-              <Autocomplete
-                options={technicians}
-                value={form.assignee}
-                onChange={(_, val) => setForm({ ...form, assignee: val })}
-                getOptionLabel={(o) => o.name}
-                isOptionEqualToValue={(a, b) => a._id === b._id}
-                renderOption={(props, o) => (
-                  <Box component="li" {...props} sx={{ gap: 1.5 }}>
-                    <Avatar sx={{ width: 32, height: 32, fontSize: 12, bgcolor: 'secondary.main', flexShrink: 0 }}>
-                      {o.name?.[0]?.toUpperCase()}
-                    </Avatar>
-                    <Box minWidth={0}>
-                      <Typography variant="body2" fontWeight={600} noWrap>{o.name}</Typography>
-                      {o.email && <Typography variant="caption" color="text.secondary" noWrap display="block">{o.email}</Typography>}
-                    </Box>
-                  </Box>
-                )}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Asignado a"
-                    size="small"
-                    placeholder="Buscar técnico..."
-                    helperText="El técnico asignado recibirá una notificación automática"
-                  />
-                )}
-                noOptionsText="Sin técnicos registrados"
-              />
-            )}
-
-            {/* Reporter toggle */}
-            <Box>
-              <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ display: 'block', mb: 0.75, fontSize: 11 }}>
-                Reportado por
-              </Typography>
-              <Stack direction="row" spacing={0.75} mb={1}>
-                <Chip
-                  label="Yo (usuario actual)"
-                  size="small"
-                  onClick={() => setForm({ ...form, reporterIsCurrentUser: true, reporterName: currentUserName })}
-                  sx={{
-                    cursor: 'pointer', fontWeight: form.reporterIsCurrentUser ? 700 : 500,
-                    bgcolor: form.reporterIsCurrentUser ? 'primary.main' : 'transparent',
-                    color: form.reporterIsCurrentUser ? 'common.white' : 'text.secondary',
-                    border: '1px solid',
-                    borderColor: form.reporterIsCurrentUser ? 'primary.main' : 'divider',
-                  }}
-                />
-                <Chip
-                  label="Tercero"
-                  size="small"
-                  onClick={() => setForm({ ...form, reporterIsCurrentUser: false, reporterName: '' })}
-                  sx={{
-                    cursor: 'pointer', fontWeight: !form.reporterIsCurrentUser ? 700 : 500,
-                    bgcolor: !form.reporterIsCurrentUser ? 'primary.main' : 'transparent',
-                    color: !form.reporterIsCurrentUser ? 'common.white' : 'text.secondary',
-                    border: '1px solid',
-                    borderColor: !form.reporterIsCurrentUser ? 'primary.main' : 'divider',
-                  }}
-                />
-              </Stack>
-              {form.reporterIsCurrentUser ? (
-                <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 1.25, py: 0.85, borderRadius: 1.5, bgcolor: alpha(theme.palette.primary.main, 0.05), border: `1px solid ${alpha(theme.palette.primary.main, 0.15)}` }}>
-                  <Avatar sx={{ width: 26, height: 26, fontSize: 11, fontWeight: 700, bgcolor: 'primary.main', flexShrink: 0 }}>
-                    {currentUserName?.[0]?.toUpperCase() ?? 'U'}
-                  </Avatar>
-                  <Typography variant="body2" fontWeight={600} flex={1} noWrap>
-                    {currentUserName || 'Usuario actual'}
-                  </Typography>
-                  <Chip label="Tú" size="small" color="primary" variant="outlined" sx={{ height: 16, fontSize: 9, fontWeight: 700, '& .MuiChip-label': { px: 0.5 } }} />
-                </Stack>
-              ) : (
-                <TextField
-                  label="Nombre del reportante"
-                  value={form.reporterName}
-                  onChange={(e) => setForm({ ...form, reporterName: e.target.value })}
-                  fullWidth size="small"
-                  placeholder="Nombre completo del tercero..."
-                  autoFocus
-                />
-              )}
-            </Box>
-
-            <TextField
-              label="Notas internas"
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              fullWidth size="small" multiline rows={2}
-              placeholder="Notas para el equipo (no visibles al cliente)..."
-              helperText="Solo visible para técnicos y administradores"
-            />
-
-            {/* ── Evidence section ── */}
-            <Divider />
-            <Box>
-              <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2} mb={1.5}>
-                <Box>
-                  <Typography variant="subtitle2" fontWeight={700}>
-                    Evidencia {form.evidenceUrls.length > 0 && `(${form.evidenceUrls.length} archivo${form.evidenceUrls.length !== 1 ? 's' : ''})`}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">Fotos, capturas de pantalla o PDFs relacionados al ticket</Typography>
-                </Box>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={uploadingEvidence ? <CircularProgress size={14} /> : <AttachFileTwoToneIcon />}
-                  disabled={uploadingEvidence}
-                  component="label"
-                  sx={{ flexShrink: 0 }}
-                >
-                  {uploadingEvidence ? 'Subiendo...' : 'Agregar'}
-                  <input
-                    ref={fileInputRef}
-                    hidden
-                    type="file"
-                    accept="image/*,application/pdf"
-                    multiple
-                    onChange={handleEvidenceUpload}
-                  />
-                </Button>
-              </Stack>
-
-              {evidenceError && (
-                <Typography variant="caption" color="error" display="block" mb={1.5}>{evidenceError}</Typography>
-              )}
-
-              {form.evidenceUrls.length > 0 ? (
-                <Stack direction="row" flexWrap="wrap" gap={1}>
-                  {form.evidenceUrls.map((url, i) => (
-                    <Box key={url} sx={{ position: 'relative' }}>
-                      {isImageUrl(url) ? (
-                        <Box
-                          component="img"
-                          src={url}
-                          alt={`evidencia-${i + 1}`}
-                          onClick={() => window.open(url, '_blank')}
-                          sx={{
-                            width: 72, height: 72,
-                            objectFit: 'cover',
-                            borderRadius: 1,
-                            border: '1.5px solid',
-                            borderColor: 'divider',
-                            display: 'block',
-                            cursor: 'pointer',
-                            transition: 'opacity .15s',
-                            '&:hover': { opacity: 0.85 },
-                          }}
-                        />
-                      ) : (
-                        <Box
-                          onClick={() => window.open(url, '_blank')}
-                          sx={{
-                            width: 72, height: 72,
-                            borderRadius: 1,
-                            border: '1.5px solid',
-                            borderColor: 'divider',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            bgcolor: 'action.hover',
-                            gap: 0.5,
-                            transition: 'background .15s',
-                            '&:hover': { bgcolor: 'action.selected' },
-                          }}
-                        >
-                          <AttachFileTwoToneIcon sx={{ fontSize: 22, color: 'text.secondary' }} />
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: 9, textAlign: 'center', px: 0.5, lineHeight: 1.2, wordBreak: 'break-all' }}>
-                            {url.split('/').pop()?.slice(-14) ?? 'Archivo'}
-                          </Typography>
-                        </Box>
-                      )}
-                      <IconButton
-                        size="small"
-                        onClick={() => removeEvidence(i)}
-                        sx={{
-                          position: 'absolute', top: -7, right: -7,
-                          width: 18, height: 18,
-                          bgcolor: 'error.main', color: 'common.white',
-                          border: '1.5px solid white',
-                          '&:hover': { bgcolor: 'error.dark' },
-                        }}
-                      >
-                        <CloseRoundedIcon sx={{ fontSize: 10 }} />
-                      </IconButton>
-                    </Box>
-                  ))}
-                </Stack>
-              ) : (
-                <Box
-                  sx={{
-                    border: '1.5px dashed',
-                    borderColor: 'divider',
-                    borderRadius: 1.5,
-                    p: 2.5,
-                    textAlign: 'center',
-                    color: 'text.disabled',
-                  }}
-                >
-                  <AttachFileTwoToneIcon sx={{ fontSize: 30, mb: 0.5 }} />
-                  <Typography variant="caption" display="block">
-                    Sin archivos adjuntos. Agrega fotos, capturas o PDFs como evidencia del problema.
-                  </Typography>
-                </Box>
-              )}
-            </Box>
-
-          </Stack>
-        </DialogContent>
-
-        <Divider />
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={closeDialog} variant="outlined">Cancelar</Button>
-          <Button variant="contained" onClick={handleSubmit} disabled={!form.title || isSaving}>
-            {isSaving ? 'Guardando...' : editTicket ? 'Guardar cambios' : 'Crear ticket'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* -- Dialog -- */}
+      {dialogOpen && (
+        <TicketDialog
+          open
+          editTicket={editTicket}
+          stores={stores}
+          loadingStores={loadingStores}
+          storeSearch={storeSearch}
+          onStoreInputChange={setStoreRaw}
+          technicians={technicians}
+          currentUserName={currentUserName}
+          isSaving={isSaving}
+          onClose={closeDialog}
+          onSubmit={handleSubmit}
+        />
+      )}
 
       {/* ── Quick Status Popover ── */}
       <Popover
@@ -1082,3 +708,546 @@ export default function TicketsPage() {
     </Container>
   );
 }
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   TICKET DIALOG
+   El formulario vive acÃ¡ dentro (react-hook-form). Antes su estado
+   estaba en la pÃ¡gina: cada tecla repintaba la tabla de tickets entera.
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+
+function ticketDefaults(
+  ticket: SupportTicket | null,
+  stores: StoreOption[],
+  technicians: Technician[],
+  currentUserName: string
+): FormState {
+  if (!ticket) return { ...EMPTY_FORM, reporterName: currentUserName, reporterIsCurrentUser: true };
+
+  const store = stores.find((s) => s._id === ticket.storeId) ?? null;
+  const assignee = technicians.find((t) => t._id === ticket.assigneeId) ?? null;
+  return {
+    title: ticket.title,
+    description: ticket.description,
+    notes: ticket.notes || '',
+    area: (ticket.area as TicketArea) || 'it',
+    type: ticket.type,
+    status: ticket.status,
+    priority: ticket.priority,
+    store: store ?? (ticket.storeId ? { _id: ticket.storeId, name: ticket.storeName, address: ticket.storeAddress } : null),
+    assignee: assignee ?? (ticket.assigneeId ? { _id: ticket.assigneeId, id: ticket.assigneeId, name: ticket.assigneeName, email: '' } : null),
+    reporterName: ticket.reporterName || currentUserName,
+    reporterIsCurrentUser: !ticket.reporterName || ticket.reporterName === currentUserName,
+    evidenceUrls: ticket.evidenceUrls ?? [],
+  };
+}
+
+/** MUI espera el ref del input en `inputRef`, no en `ref`. */
+function rhf(register: UseFormRegister<FormState>, name: keyof FormState) {
+  const { ref, ...rest } = register(name);
+  return { inputRef: ref, ...rest };
+}
+
+function TicketDialog({
+  open,
+  editTicket,
+  stores,
+  loadingStores,
+  storeSearch,
+  onStoreInputChange,
+  technicians,
+  currentUserName,
+  isSaving,
+  onClose,
+  onSubmit,
+}: {
+  open: boolean;
+  editTicket: SupportTicket | null;
+  stores: StoreOption[];
+  loadingStores: boolean;
+  storeSearch: string;
+  onStoreInputChange: (v: string) => void;
+  technicians: Technician[];
+  currentUserName: string;
+  isSaving: boolean;
+  onClose: () => void;
+  onSubmit: (values: FormState) => void;
+}) {
+  const theme = useTheme();
+  // Se monta al abrir: los defaults se calculan una sola vez.
+  const { register, control, handleSubmit, setValue } = useForm<FormState>({
+    defaultValues: ticketDefaults(editTicket, stores, technicians, currentUserName),
+  });
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{ component: 'form', onSubmit: handleSubmit(onSubmit) }}
+    >
+      <DialogTitle sx={{ fontWeight: 700 }}>
+        {editTicket ? `Editar ${editTicket.identifier}` : 'Nuevo Ticket'}
+      </DialogTitle>
+      <Divider />
+
+      <DialogContent sx={{ pt: 2 }}>
+        <Stack spacing={2.5}>
+
+          <TextField label="TÃ­tulo *" {...rhf(register, 'title')} fullWidth size="small" autoFocus />
+
+          <TextField
+            label="DescripciÃ³n"
+            {...rhf(register, 'description')}
+            fullWidth size="small" multiline rows={3}
+          />
+
+          {/* Area + Type */}
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Controller
+              control={control}
+              name="area"
+              render={({ field }) => (
+                <FormControl size="small" fullWidth>
+                  <InputLabel>Ãrea / Departamento *</InputLabel>
+                  <Select {...field} label="Ãrea / Departamento *">
+                    {Object.entries(AREA_LABEL).map(([k, v]) => (
+                      <MenuItem key={k} value={k}>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: areaColor(theme, k), flexShrink: 0 }} />
+                          <span>{v}</span>
+                        </Stack>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
+            />
+            <Controller
+              control={control}
+              name="type"
+              render={({ field }) => (
+                <FormControl size="small" fullWidth>
+                  <InputLabel>Tipo de problema</InputLabel>
+                  <Select {...field} label="Tipo de problema">
+                    {Object.entries(TYPE_LABEL).map(([k, v]) => <MenuItem key={k} value={k}>{v}</MenuItem>)}
+                  </Select>
+                </FormControl>
+              )}
+            />
+          </Stack>
+
+          {/* Priority + Status */}
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Controller
+              control={control}
+              name="priority"
+              render={({ field }) => (
+                <FormControl size="small" fullWidth>
+                  <InputLabel>Prioridad</InputLabel>
+                  <Select {...field} label="Prioridad">
+                    <MenuItem value="low">Bajo</MenuItem>
+                    <MenuItem value="medium">Medio</MenuItem>
+                    <MenuItem value="high">Alto</MenuItem>
+                    <MenuItem value="critical">CrÃ­tico</MenuItem>
+                  </Select>
+                </FormControl>
+              )}
+            />
+            {editTicket && (
+              <Controller
+                control={control}
+                name="status"
+                render={({ field }) => (
+                  <FormControl size="small" fullWidth>
+                    <InputLabel>Estado</InputLabel>
+                    <Select {...field} label="Estado">
+                      <MenuItem value="open">Abierto</MenuItem>
+                      <MenuItem value="in_progress">En Progreso</MenuItem>
+                      <MenuItem value="resolved">Resuelto</MenuItem>
+                      <MenuItem value="closed">Cerrado</MenuItem>
+                    </Select>
+                  </FormControl>
+                )}
+              />
+            )}
+          </Stack>
+
+          {/* Store autocomplete */}
+          <Controller
+            control={control}
+            name="store"
+            render={({ field }) => (
+              <Autocomplete
+                options={stores}
+                value={field.value}
+                onChange={(_, val) => field.onChange(val)}
+                onInputChange={(_, val) => onStoreInputChange(val)}
+                filterOptions={(x) => x}
+                loading={loadingStores}
+                getOptionLabel={(o) => o.name}
+                isOptionEqualToValue={(a, b) => a._id === b._id}
+                renderOption={(props, o) => {
+                  const color = storeTypeColor(theme, o.type);
+                  const aud = getAudienceInfo(o.customerCount);
+                  return (
+                    <Box component="li" {...props} sx={{ gap: 1.5, alignItems: 'flex-start !important', py: '8px !important' }}>
+                      <Avatar sx={{ width: 36, height: 36, fontSize: 13, fontWeight: 700, bgcolor: alpha(color, 0.15), color, flexShrink: 0, mt: 0.25 }}>
+                        {o.name?.[0]?.toUpperCase()}
+                      </Avatar>
+                      <Box minWidth={0} flex={1}>
+                        <Stack direction="row" alignItems="center" spacing={0.75}>
+                          <Typography variant="body2" fontWeight={700} noWrap flex={1}>{o.name}</Typography>
+                          {aud && (
+                            <Chip
+                              label={aud.label}
+                              size="small"
+                              sx={{
+                                height: 18, fontSize: 10, fontWeight: 700, flexShrink: 0,
+                                bgcolor: tint(theme, aud.role),
+                                color: `${aud.role}.main`,
+                                border: `1px solid ${tintBorder(theme, aud.role, 0.3)}`,
+                              }}
+                            />
+                          )}
+                        </Stack>
+                        {o.address && <Typography variant="caption" color="text.secondary" noWrap display="block">{o.address}</Typography>}
+                      </Box>
+                    </Box>
+                  );
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Tienda (opcional)"
+                    size="small"
+                    placeholder="Escribe para buscar..."
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {loadingStores ? <CircularProgress size={14} color="inherit" /> : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
+                noOptionsText={storeSearch ? 'Sin resultados' : 'Escribe para buscar una tienda...'}
+              />
+            )}
+          />
+
+          {/* Assignee (technician) â€” notification on assign â€” only show when editing */}
+          {editTicket && (
+            <Controller
+              control={control}
+              name="assignee"
+              render={({ field }) => (
+                <Autocomplete
+                  options={technicians}
+                  value={field.value}
+                  onChange={(_, val) => field.onChange(val)}
+                  getOptionLabel={(o) => o.name}
+                  isOptionEqualToValue={(a, b) => a._id === b._id}
+                  renderOption={(props, o) => (
+                    <Box component="li" {...props} sx={{ gap: 1.5 }}>
+                      <Avatar sx={{ width: 32, height: 32, fontSize: 12, bgcolor: 'secondary.main', flexShrink: 0 }}>
+                        {o.name?.[0]?.toUpperCase()}
+                      </Avatar>
+                      <Box minWidth={0}>
+                        <Typography variant="body2" fontWeight={600} noWrap>{o.name}</Typography>
+                        {o.email && <Typography variant="caption" color="text.secondary" noWrap display="block">{o.email}</Typography>}
+                      </Box>
+                    </Box>
+                  )}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Asignado a"
+                      size="small"
+                      placeholder="Buscar tÃ©cnico..."
+                      helperText="El tÃ©cnico asignado recibirÃ¡ una notificaciÃ³n automÃ¡tica"
+                    />
+                  )}
+                  noOptionsText="Sin tÃ©cnicos registrados"
+                />
+              )}
+            />
+          )}
+
+          <ReporterField
+            control={control}
+            register={register}
+            setValue={setValue}
+            currentUserName={currentUserName}
+            theme={theme}
+          />
+
+          <TextField
+            label="Notas internas"
+            {...rhf(register, 'notes')}
+            fullWidth size="small" multiline rows={2}
+            placeholder="Notas para el equipo (no visibles al cliente)..."
+            helperText="Solo visible para tÃ©cnicos y administradores"
+          />
+
+          {/* â”€â”€ Evidence section â”€â”€ */}
+          <Divider />
+          <EvidenceField control={control} setValue={setValue} />
+
+        </Stack>
+      </DialogContent>
+
+      <Divider />
+      <DialogActions sx={{ px: 3, py: 2 }}>
+        <Button onClick={onClose} variant="outlined">Cancelar</Button>
+        <SaveTicketButton control={control} isSaving={isSaving} isEdit={!!editTicket} />
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+/** Reportante: los dos chips y el nombre dependen entre sÃ­, van juntos. */
+function ReporterField({
+  control,
+  register,
+  setValue,
+  currentUserName,
+  theme,
+}: {
+  control: Control<FormState>;
+  register: UseFormRegister<FormState>;
+  setValue: UseFormSetValue<FormState>;
+  currentUserName: string;
+  theme: Theme;
+}) {
+  const isCurrentUser = useWatch({ control, name: 'reporterIsCurrentUser' });
+
+  return (
+    <Box>
+      <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ display: 'block', mb: 0.75, fontSize: 11 }}>
+        Reportado por
+      </Typography>
+      <Stack direction="row" spacing={0.75} mb={1}>
+        <Chip
+          label="Yo (usuario actual)"
+          size="small"
+          onClick={() => {
+            setValue('reporterIsCurrentUser', true);
+            setValue('reporterName', currentUserName);
+          }}
+          sx={{
+            cursor: 'pointer', fontWeight: isCurrentUser ? 700 : 500,
+            bgcolor: isCurrentUser ? 'primary.main' : 'transparent',
+            color: isCurrentUser ? 'common.white' : 'text.secondary',
+            border: '1px solid',
+            borderColor: isCurrentUser ? 'primary.main' : 'divider',
+          }}
+        />
+        <Chip
+          label="Tercero"
+          size="small"
+          onClick={() => {
+            setValue('reporterIsCurrentUser', false);
+            setValue('reporterName', '');
+          }}
+          sx={{
+            cursor: 'pointer', fontWeight: !isCurrentUser ? 700 : 500,
+            bgcolor: !isCurrentUser ? 'primary.main' : 'transparent',
+            color: !isCurrentUser ? 'common.white' : 'text.secondary',
+            border: '1px solid',
+            borderColor: !isCurrentUser ? 'primary.main' : 'divider',
+          }}
+        />
+      </Stack>
+      {isCurrentUser ? (
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 1.25, py: 0.85, borderRadius: 1.5, bgcolor: alpha(theme.palette.primary.main, 0.05), border: `1px solid ${alpha(theme.palette.primary.main, 0.15)}` }}>
+          <Avatar sx={{ width: 26, height: 26, fontSize: 11, fontWeight: 700, bgcolor: 'primary.main', flexShrink: 0 }}>
+            {currentUserName?.[0]?.toUpperCase() ?? 'U'}
+          </Avatar>
+          <Typography variant="body2" fontWeight={600} flex={1} noWrap>
+            {currentUserName || 'Usuario actual'}
+          </Typography>
+          <Chip label="TÃº" size="small" color="primary" variant="outlined" sx={{ height: 16, fontSize: 9, fontWeight: 700, '& .MuiChip-label': { px: 0.5 } }} />
+        </Stack>
+      ) : (
+        <TextField
+          label="Nombre del reportante"
+          {...rhf(register, 'reporterName')}
+          fullWidth size="small"
+          placeholder="Nombre completo del tercero..."
+          autoFocus
+        />
+      )}
+    </Box>
+  );
+}
+
+/** Evidencias: el archivo va al servicio de upload; en el form sÃ³lo viven las URLs. */
+function EvidenceField({
+  control,
+  setValue,
+}: {
+  control: Control<FormState>;
+  setValue: UseFormSetValue<FormState>;
+}) {
+  const evidenceUrls = useWatch({ control, name: 'evidenceUrls' }) ?? [];
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    setError('');
+    setUploading(true);
+    try {
+      const urls = await Promise.all(files.map(uploadSupportEvidence));
+      setValue('evidenceUrls', [...evidenceUrls, ...urls]);
+    } catch {
+      setError('Error al subir archivo. Intenta de nuevo.');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const removeEvidence = (idx: number) =>
+    setValue('evidenceUrls', evidenceUrls.filter((_, i) => i !== idx));
+
+  return (
+    <Box>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2} mb={1.5}>
+        <Box>
+          <Typography variant="subtitle2" fontWeight={700}>
+            Evidencia {evidenceUrls.length > 0 && `(${evidenceUrls.length} archivo${evidenceUrls.length !== 1 ? 's' : ''})`}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">Fotos, capturas de pantalla o PDFs relacionados al ticket</Typography>
+        </Box>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={uploading ? <CircularProgress size={14} /> : <AttachFileTwoToneIcon />}
+          disabled={uploading}
+          component="label"
+          sx={{ flexShrink: 0 }}
+        >
+          {uploading ? 'Subiendo...' : 'Agregar'}
+          <input
+            ref={fileInputRef}
+            hidden
+            type="file"
+            accept="image/*,application/pdf"
+            multiple
+            onChange={handleUpload}
+          />
+        </Button>
+      </Stack>
+
+      {error && (
+        <Typography variant="caption" color="error" display="block" mb={1.5}>{error}</Typography>
+      )}
+
+      {evidenceUrls.length > 0 ? (
+        <Stack direction="row" flexWrap="wrap" gap={1}>
+          {evidenceUrls.map((url, i) => (
+            <Box key={url} sx={{ position: 'relative' }}>
+              {isImageUrl(url) ? (
+                <Box
+                  component="img"
+                  src={url}
+                  alt={`evidencia-${i + 1}`}
+                  onClick={() => window.open(url, '_blank')}
+                  sx={{
+                    width: 72, height: 72,
+                    objectFit: 'cover',
+                    borderRadius: 1,
+                    border: '1.5px solid',
+                    borderColor: 'divider',
+                    display: 'block',
+                    cursor: 'pointer',
+                    transition: 'opacity .15s',
+                    '&:hover': { opacity: 0.85 },
+                  }}
+                />
+              ) : (
+                <Box
+                  onClick={() => window.open(url, '_blank')}
+                  sx={{
+                    width: 72, height: 72,
+                    borderRadius: 1,
+                    border: '1.5px solid',
+                    borderColor: 'divider',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    bgcolor: 'action.hover',
+                    gap: 0.5,
+                    transition: 'background .15s',
+                    '&:hover': { bgcolor: 'action.selected' },
+                  }}
+                >
+                  <AttachFileTwoToneIcon sx={{ fontSize: 22, color: 'text.secondary' }} />
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: 9, textAlign: 'center', px: 0.5, lineHeight: 1.2, wordBreak: 'break-all' }}>
+                    {url.split('/').pop()?.slice(-14) ?? 'Archivo'}
+                  </Typography>
+                </Box>
+              )}
+              <IconButton
+                size="small"
+                onClick={() => removeEvidence(i)}
+                sx={{
+                  position: 'absolute', top: -7, right: -7,
+                  width: 18, height: 18,
+                  bgcolor: 'error.main', color: 'common.white',
+                  border: '1.5px solid white',
+                  '&:hover': { bgcolor: 'error.dark' },
+                }}
+              >
+                <CloseRoundedIcon sx={{ fontSize: 10 }} />
+              </IconButton>
+            </Box>
+          ))}
+        </Stack>
+      ) : (
+        <Box
+          sx={{
+            border: '1.5px dashed',
+            borderColor: 'divider',
+            borderRadius: 1.5,
+            p: 2.5,
+            textAlign: 'center',
+            color: 'text.disabled',
+          }}
+        >
+          <AttachFileTwoToneIcon sx={{ fontSize: 30, mb: 0.5 }} />
+          <Typography variant="caption" display="block">
+            Sin archivos adjuntos. Agrega fotos, capturas o PDFs como evidencia del problema.
+          </Typography>
+        </Box>
+      )}
+    </Box>
+  );
+}
+
+function SaveTicketButton({
+  control,
+  isSaving,
+  isEdit,
+}: {
+  control: Control<FormState>;
+  isSaving: boolean;
+  isEdit: boolean;
+}) {
+  const title = useWatch({ control, name: 'title' });
+
+  return (
+    <Button variant="contained" type="submit" disabled={!title || isSaving}>
+      {isSaving ? 'Guardando...' : isEdit ? 'Guardar cambios' : 'Crear ticket'}
+    </Button>
+  );
+}
+

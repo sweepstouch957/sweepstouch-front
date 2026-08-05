@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Controller, useForm, useWatch, type Control, type UseFormRegister } from 'react-hook-form';
 import {
   alpha,
   Avatar,
@@ -71,32 +72,33 @@ export default function AccountPage() {
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingCv, setUploadingCv] = useState(false);
-  const [form, setForm] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phoneNumber: '',
-    countryCode: '+504',
-    address: '',
-    profileImage: '',
+  const { register, control, handleSubmit, reset, setValue } = useForm<AccountFormValues>({
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      phoneNumber: '',
+      countryCode: '+504',
+      address: '',
+      profileImage: '',
+    },
   });
   const [cvUrl, setCvUrl] = useState<string | null>(null);
   const [cvFileName, setCvFileName] = useState<string | null>(null);
 
   // Load user data
   useEffect(() => {
-    if (user) {
-      setForm({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        email: user.email || '',
-        phoneNumber: user.phoneNumber || '',
-        countryCode: user.countryCode || '+504',
-        address: user.address || '',
-        profileImage: user.profileImage || '',
-      });
-    }
-  }, [user]);
+    if (!user) return;
+    reset({
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      email: user.email || '',
+      phoneNumber: user.phoneNumber || '',
+      countryCode: user.countryCode || '+504',
+      address: user.address || '',
+      profileImage: user.profileImage || '',
+    });
+  }, [user, reset]);
 
   const userId = useMemo(() => user?.id || (user as any)?._id, [user]);
 
@@ -108,7 +110,7 @@ export default function AccountPage() {
   });
 
   // ── Save profile
-  const handleSave = async () => {
+  const handleSave = handleSubmit(async (values) => {
     if (!userId) {
       toast.error('User ID not available');
       return;
@@ -116,11 +118,11 @@ export default function AccountPage() {
     setSaving(true);
     try {
       await merchantService.updateUser(userId, {
-        firstName: form.firstName,
-        lastName: form.lastName,
-        phoneNumber: form.phoneNumber,
-        countryCode: form.countryCode,
-        address: form.address,
+        firstName: values.firstName,
+        lastName: values.lastName,
+        phoneNumber: values.phoneNumber,
+        countryCode: values.countryCode,
+        address: values.address,
       });
       toast.success('Profile updated!');
       // Refresh the auth session so sidebar/header reflect changes
@@ -130,7 +132,7 @@ export default function AccountPage() {
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   // ── Upload profile image (Cloudinary via upload-service)
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -143,7 +145,7 @@ export default function AccountPage() {
       const imageUrl = result.url;
       if (imageUrl) {
         await merchantService.updateUser(userId, { profileImage: imageUrl });
-        setForm((f) => ({ ...f, profileImage: imageUrl }));
+        setValue('profileImage', imageUrl);
         toast.success('Profile photo updated!');
         checkSession?.();
       }
@@ -234,20 +236,7 @@ export default function AccountPage() {
                     </IconButton>
                   }
                 >
-                  <Avatar
-                    src={form.profileImage !== 'default-profile.png' ? form.profileImage : undefined}
-                    sx={{
-                      width: 90,
-                      height: 90,
-                      border: '4px solid',
-                      borderColor: 'background.paper',
-                      fontSize: 32,
-                      fontWeight: 800,
-                      bgcolor: 'primary.main',
-                    }}
-                  >
-                    {form.firstName?.charAt(0)?.toUpperCase()}
-                  </Avatar>
+                  <ProfileAvatar control={control} />
                 </Badge>
                 <input
                   type="file"
@@ -257,9 +246,7 @@ export default function AccountPage() {
                   onChange={handleImageUpload}
                 />
 
-                <Typography variant="h5" fontWeight={800} mt={1.5}>
-                  {form.firstName} {form.lastName}
-                </Typography>
+                <ProfileName control={control} />
                 <Chip
                   label={roleLabel}
                   size="small"
@@ -273,13 +260,11 @@ export default function AccountPage() {
                 <Stack spacing={1.5} alignItems="flex-start" px={1}>
                   <Stack direction="row" alignItems="center" spacing={1}>
                     <EmailRoundedIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                    <Typography variant="caption">{form.email}</Typography>
+                    <ProfileEmail control={control} />
                   </Stack>
                   <Stack direction="row" alignItems="center" spacing={1}>
                     <PhoneRoundedIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                    <Typography variant="caption">
-                      {COUNTRY_CODES.find((c) => c.code === form.countryCode)?.flag || ''} {form.countryCode} {form.phoneNumber}
-                    </Typography>
+                    <ProfilePhone control={control} />
                   </Stack>
                 </Stack>
 
@@ -450,60 +435,62 @@ export default function AccountPage() {
                     <TextField
                       label="First Name"
                       fullWidth
-                      value={form.firstName}
-                      onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+                      {...rhf(register, 'firstName')}
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <TextField
                       label="Last Name"
                       fullWidth
-                      value={form.lastName}
-                      onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+                      {...rhf(register, 'lastName')}
                     />
                   </Grid>
                   <Grid item xs={12}>
                     <TextField
                       label="Email"
                       fullWidth
-                      value={form.email}
+                      {...rhf(register, 'email')}
                       disabled
                       helperText="Email cannot be changed"
                     />
                   </Grid>
                   <Grid item xs={4} sm={3}>
-                    <Select
-                      value={form.countryCode}
-                      onChange={(e) => setForm({ ...form, countryCode: e.target.value as string })}
-                      fullWidth
-                      renderValue={(val) => {
-                        const c = COUNTRY_CODES.find((cc) => cc.code === val);
-                        return c ? `${c.flag} ${c.code}` : val;
-                      }}
-                      sx={{
-                        height: 56,
-                        '.MuiSelect-select': { display: 'flex', alignItems: 'center', gap: 0.5 },
-                      }}
-                    >
-                      {COUNTRY_CODES.map((cc) => (
-                        <MenuItem key={cc.code} value={cc.code}>
-                          <ListItemIcon sx={{ minWidth: 32, fontSize: 20 }}>{cc.flag}</ListItemIcon>
-                          <ListItemText
-                            primary={cc.label}
-                            secondary={cc.code}
-                            primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}
-                            secondaryTypographyProps={{ variant: 'caption' }}
-                          />
-                        </MenuItem>
-                      ))}
-                    </Select>
+                    <Controller
+                      control={control}
+                      name="countryCode"
+                      render={({ field }) => (
+                        <Select
+                          {...field}
+                          fullWidth
+                          renderValue={(val) => {
+                            const c = COUNTRY_CODES.find((cc) => cc.code === val);
+                            return c ? `${c.flag} ${c.code}` : val;
+                          }}
+                          sx={{
+                            height: 56,
+                            '.MuiSelect-select': { display: 'flex', alignItems: 'center', gap: 0.5 },
+                          }}
+                        >
+                          {COUNTRY_CODES.map((cc) => (
+                            <MenuItem key={cc.code} value={cc.code}>
+                              <ListItemIcon sx={{ minWidth: 32, fontSize: 20 }}>{cc.flag}</ListItemIcon>
+                              <ListItemText
+                                primary={cc.label}
+                                secondary={cc.code}
+                                primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}
+                                secondaryTypographyProps={{ variant: 'caption' }}
+                              />
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      )}
+                    />
                   </Grid>
                   <Grid item xs={8} sm={9}>
                     <TextField
                       label="Phone Number"
                       fullWidth
-                      value={form.phoneNumber}
-                      onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
+                      {...rhf(register, 'phoneNumber')}
                       placeholder="555-123-4567"
                     />
                   </Grid>
@@ -511,8 +498,7 @@ export default function AccountPage() {
                     <TextField
                       label="Address"
                       fullWidth
-                      value={form.address}
-                      onChange={(e) => setForm({ ...form, address: e.target.value })}
+                      {...rhf(register, 'address')}
                       placeholder="123 Main St, City"
                     />
                   </Grid>
@@ -544,5 +530,77 @@ export default function AccountPage() {
         </Grid>
       </Container>
     </Box>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Vista previa en vivo del perfil.
+   Cada trozo se suscribe sólo a lo suyo con `useWatch`: escribir el
+   nombre repinta el nombre, no la página entera (que trae la lista de
+   tareas del usuario).
+   ══════════════════════════════════════════════════════════════════ */
+
+export type AccountFormValues = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  countryCode: string;
+  address: string;
+  profileImage: string;
+};
+
+/** MUI espera el ref del input en `inputRef`, no en `ref`. */
+function rhf(register: UseFormRegister<AccountFormValues>, name: keyof AccountFormValues) {
+  const { ref, ...rest } = register(name);
+  return { inputRef: ref, ...rest };
+}
+
+function ProfileAvatar({ control }: { control: Control<AccountFormValues> }) {
+  const profileImage = useWatch({ control, name: 'profileImage' });
+  const firstName = useWatch({ control, name: 'firstName' });
+
+  return (
+    <Avatar
+      src={profileImage !== 'default-profile.png' ? profileImage : undefined}
+      sx={{
+        width: 90,
+        height: 90,
+        border: '4px solid',
+        borderColor: 'background.paper',
+        fontSize: 32,
+        fontWeight: 800,
+        bgcolor: 'primary.main',
+      }}
+    >
+      {firstName?.charAt(0)?.toUpperCase()}
+    </Avatar>
+  );
+}
+
+function ProfileName({ control }: { control: Control<AccountFormValues> }) {
+  const firstName = useWatch({ control, name: 'firstName' });
+  const lastName = useWatch({ control, name: 'lastName' });
+
+  return (
+    <Typography variant="h5" fontWeight={800} mt={1.5}>
+      {firstName} {lastName}
+    </Typography>
+  );
+}
+
+function ProfileEmail({ control }: { control: Control<AccountFormValues> }) {
+  const email = useWatch({ control, name: 'email' });
+  return <Typography variant="caption">{email}</Typography>;
+}
+
+function ProfilePhone({ control }: { control: Control<AccountFormValues> }) {
+  const countryCode = useWatch({ control, name: 'countryCode' });
+  const phoneNumber = useWatch({ control, name: 'phoneNumber' });
+
+  return (
+    <Typography variant="caption">
+      {COUNTRY_CODES.find((c) => c.code === countryCode)?.flag || ''} {countryCode} {phoneNumber}
+    </Typography>
   );
 }

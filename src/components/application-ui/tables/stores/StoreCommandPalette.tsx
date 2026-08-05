@@ -45,7 +45,9 @@ function Highlight({ text, query }: { text: string; query: string }) {
     <>
       {parts.map((part, i) =>
         re.test(part)
-          ? <Box key={i} component="mark" sx={{ bgcolor: 'warning.main', color: 'warning.contrastText', borderRadius: 0.5, px: 0.2 }}>{part}</Box>
+          ? <Box key={i}
+component="mark"
+sx={{ bgcolor: 'warning.main', color: 'warning.contrastText', borderRadius: 0.5, px: 0.2 }}>{part}</Box>
           : part
       )}
     </>
@@ -99,19 +101,29 @@ const ResultRow: FC<{
         </Avatar>
 
         {/* Text */}
-        <Box flex={1} minWidth={0}>
-          <Typography fontSize={13} fontWeight={700} noWrap>
-            <Highlight text={name} query={query} />
+        <Box flex={1}
+minWidth={0}>
+          <Typography fontSize={13}
+fontWeight={700}
+noWrap>
+            <Highlight text={name}
+query={query} />
           </Typography>
           {snippet && (
-            <Typography fontSize={11} color="text.secondary" noWrap>
-              <Highlight text={snippet} query={query} />
+            <Typography fontSize={11}
+color="text.secondary"
+noWrap>
+              <Highlight text={snippet}
+query={query} />
             </Typography>
           )}
         </Box>
 
         {/* Right badges */}
-        <Stack direction="row" spacing={0.5} alignItems="center" flexShrink={0}>
+        <Stack direction="row"
+spacing={0.5}
+alignItems="center"
+flexShrink={0}>
           {store.active !== undefined && (
             <Box sx={{
               width: 7, height: 7, borderRadius: '50%',
@@ -242,7 +254,8 @@ export const StoreCommandPalette: FC<Props> = ({ open, onClose, onSelectSearch }
         borderBottom: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
       }}>
         {loading
-          ? <CircularProgress size={18} sx={{ flexShrink: 0 }} />
+          ? <CircularProgress size={18}
+sx={{ flexShrink: 0 }} />
           : <SearchRounded sx={{ fontSize: 20, color: 'text.secondary', flexShrink: 0 }} />
         }
         <TextField
@@ -258,7 +271,9 @@ export const StoreCommandPalette: FC<Props> = ({ open, onClose, onSelectSearch }
             sx: { fontSize: 15, fontWeight: 500 },
             endAdornment: query ? (
               <InputAdornment position="end">
-                <IconButton size="small" onClick={() => setQuery('')} sx={{ p: 0.25 }}>
+                <IconButton size="small"
+onClick={() => setQuery('')}
+sx={{ p: 0.25 }}>
                   <Close sx={{ fontSize: 14 }} />
                 </IconButton>
               </InputAdornment>
@@ -273,11 +288,15 @@ export const StoreCommandPalette: FC<Props> = ({ open, onClose, onSelectSearch }
             flexShrink: 0,
           }}>
             <AutoAwesome sx={{ fontSize: 11, color: 'primary.main' }} />
-            <Typography fontSize={10} fontWeight={700} color="primary.main">AI</Typography>
+            <Typography fontSize={10}
+fontWeight={700}
+color="primary.main">AI</Typography>
           </Box>
         </Tooltip>
         <Tooltip title="Cerrar (Esc)">
-          <IconButton size="small" onClick={handleClose} sx={{ flexShrink: 0, p: 0.5 }}>
+          <IconButton size="small"
+onClick={handleClose}
+sx={{ flexShrink: 0, p: 0.5 }}>
             <Close sx={{ fontSize: 16 }} />
           </IconButton>
         </Tooltip>
@@ -292,10 +311,13 @@ export const StoreCommandPalette: FC<Props> = ({ open, onClose, onSelectSearch }
         {!query.trim() && (
           <Box sx={{ px: 3, py: 3, textAlign: 'center' }}>
             <SearchRounded sx={{ fontSize: 32, color: 'text.disabled', mb: 1 }} />
-            <Typography fontSize={13} color="text.secondary">
+            <Typography fontSize={13}
+color="text.secondary">
               Escribe para buscar tiendas...
             </Typography>
-            <Typography fontSize={11} color="text.disabled" mt={0.5}>
+            <Typography fontSize={11}
+color="text.disabled"
+mt={0.5}>
               Busca por nombre, dirección, ciudad o código de acceso
             </Typography>
           </Box>
@@ -304,7 +326,8 @@ export const StoreCommandPalette: FC<Props> = ({ open, onClose, onSelectSearch }
         {/* Short query */}
         {query.trim().length === 1 && (
           <Box sx={{ px: 3, py: 2, textAlign: 'center' }}>
-            <Typography fontSize={12} color="text.disabled">Escribe al menos 2 caracteres...</Typography>
+            <Typography fontSize={12}
+color="text.disabled">Escribe al menos 2 caracteres...</Typography>
           </Box>
         )}
 
@@ -312,7 +335,8 @@ export const StoreCommandPalette: FC<Props> = ({ open, onClose, onSelectSearch }
         {loading && query.trim().length > 1 && (
           <Box sx={{ px: 2, py: 1.5 }}>
             {[1, 2, 3].map(i => (
-              <Box key={i} sx={{
+              <Box key={i}
+sx={{
                 height: 52, borderRadius: 2, mb: 0.75,
                 bgcolor: alpha(theme.palette.text.primary, 0.04),
                 animation: 'pulse 1.5s infinite',
@@ -325,7 +349,9 @@ export const StoreCommandPalette: FC<Props> = ({ open, onClose, onSelectSearch }
         {/* Results list */}
         {!loading && results.length > 0 && (
           <Box>
-            <Typography fontSize={10} fontWeight={700} color="text.disabled"
+            <Typography fontSize={10}
+fontWeight={700}
+color="text.disabled"
               sx={{ px: 2.75, py: 0.5, letterSpacing: '0.08em' }}>
               {results.length} RESULTADOS
             </Typography>
@@ -347,10 +373,14 @@ export const StoreCommandPalette: FC<Props> = ({ open, onClose, onSelectSearch }
         {isEmpty && (
           <Box sx={{ px: 3, py: 4, textAlign: 'center' }}>
             <StoreRounded sx={{ fontSize: 36, color: 'text.disabled', mb: 1 }} />
-            <Typography fontSize={13} color="text.secondary" fontWeight={600}>
+            <Typography fontSize={13}
+color="text.secondary"
+fontWeight={600}>
               Sin resultados para "{query}"
             </Typography>
-            <Typography fontSize={11} color="text.disabled" mt={0.5}>
+            <Typography fontSize={11}
+color="text.disabled"
+mt={0.5}>
               Intenta con el nombre, dirección o código de acceso
             </Typography>
           </Box>
@@ -359,26 +389,37 @@ export const StoreCommandPalette: FC<Props> = ({ open, onClose, onSelectSearch }
 
       {/* Footer */}
       <Divider />
-      <Stack direction="row" alignItems="center" justifyContent="space-between"
+      <Stack direction="row"
+alignItems="center"
+justifyContent="space-between"
         sx={{ px: 2, py: 0.75, bgcolor: isDark ? alpha('#000', 0.2) : alpha(theme.palette.grey[100], 0.5) }}>
-        <Stack direction="row" spacing={1.5} alignItems="center">
+        <Stack direction="row"
+spacing={1.5}
+alignItems="center">
           {[
             { key: '↑↓', label: 'navegar' },
             { key: '↵', label: 'abrir' },
             { key: 'Esc', label: 'cerrar' },
           ].map(({ key, label }) => (
-            <Stack key={key} direction="row" alignItems="center" spacing={0.4}>
+            <Stack key={key}
+direction="row"
+alignItems="center"
+spacing={0.4}>
               <Box sx={{
                 px: 0.6, py: 0.1, borderRadius: 0.75, border: `1px solid ${alpha(theme.palette.text.primary, 0.15)}`,
                 bgcolor: alpha(theme.palette.text.primary, 0.05), fontSize: 10, fontWeight: 700, color: 'text.secondary',
               }}>{key}</Box>
-              <Typography fontSize={10} color="text.disabled">{label}</Typography>
+              <Typography fontSize={10}
+color="text.disabled">{label}</Typography>
             </Stack>
           ))}
         </Stack>
-        <Stack direction="row" alignItems="center" spacing={0.4}>
+        <Stack direction="row"
+alignItems="center"
+spacing={0.4}>
           <AutoAwesome sx={{ fontSize: 11, color: alpha(theme.palette.primary.main, 0.6) }} />
-          <Typography fontSize={10} color="text.disabled">Potenciado por AI</Typography>
+          <Typography fontSize={10}
+color="text.disabled">Potenciado por AI</Typography>
         </Stack>
       </Stack>
     </Dialog>

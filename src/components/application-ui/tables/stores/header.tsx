@@ -23,6 +23,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import type { Theme } from '@mui/material/styles';
 import { tint, tintBorder } from '@/theme/semantic';
+import { DebtBucket, panelBorder } from '../../content-shells/store-managment/panel-kit';
 
 export type BillingBucketSummary = {
   count: number;
@@ -101,9 +102,9 @@ export function StoresBillingHeader({ status = 'all', onFilterByDebt, activeDebt
       elevation={0}
       sx={{
         mb: 1.5,
-        borderRadius: 2.5,
-        border: '1px solid',
-        borderColor: 'divider',
+        // Radio 18 y borde casi invisible: la tarjeta del Store Panel 2.0
+        borderRadius: '18px',
+        border: (t) => panelBorder(t),
         overflow: 'hidden',
       }}
     >
@@ -128,13 +129,23 @@ export function StoresBillingHeader({ status = 'all', onFilterByDebt, activeDebt
           {STATUS_SCOPE_LABEL[status] ?? 'Todas'}
         </Typography>
 
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
+        <Divider orientation="vertical"
+flexItem
+sx={{ mx: 0.25 }} />
 
         {isLoading ? (
-          <Stack direction="row" spacing={1} sx={{ flex: 1 }}>
-            <Skeleton width={80} height={24} sx={{ borderRadius: 1 }} />
-            <Skeleton width={70} height={24} sx={{ borderRadius: 1 }} />
-            <Skeleton width={100} height={24} sx={{ borderRadius: 1 }} />
+          <Stack direction="row"
+spacing={1}
+sx={{ flex: 1 }}>
+            <Skeleton width={80}
+height={24}
+sx={{ borderRadius: 1 }} />
+            <Skeleton width={70}
+height={24}
+sx={{ borderRadius: 1 }} />
+            <Skeleton width={100}
+height={24}
+sx={{ borderRadius: 1 }} />
           </Stack>
         ) : (
           <Stack
@@ -213,62 +224,35 @@ export function StoresBillingHeader({ status = 'all', onFilterByDebt, activeDebt
           sx={{
             px: { xs: 1.5, sm: 2 },
             py: 1.5,
-            display: 'flex',
-            gap: 1,
-            flexWrap: 'wrap',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+            gap: 1.25,
           }}
         >
           {bucketConfigs(theme).map((cfg) => {
             const bucket = data?.[cfg.key] as BillingBucketSummary | undefined;
-            const isActive = activeDebtStatus === cfg.key;
             return (
-              <Tooltip key={cfg.key} title={cfg.tooltip} placement="top" arrow>
-                <Box
-                  onClick={() => onFilterByDebt?.(isActive ? 'all' : cfg.key)}
-                  sx={{
-                    display: 'flex', flexDirection: 'column', gap: 0.5,
-                    px: 2, py: 1.5, borderRadius: 2.5, minWidth: 96,
-                    bgcolor: isActive
-                      ? alpha(cfg.color, theme.palette.mode === 'dark' ? 0.32 : 0.18)
-                      : alpha(cfg.color, theme.palette.mode === 'dark' ? 0.14 : 0.07),
-                    border: '2px solid',
-                    borderColor: isActive ? cfg.color : alpha(cfg.color, 0.3),
-                    cursor: onFilterByDebt ? 'pointer' : 'default',
-                    transition: 'background-color 0.15s, transform 0.15s, border-color 0.15s',
-                    '&:hover': onFilterByDebt ? {
-                      borderColor: alpha(cfg.color, 0.6),
-                      bgcolor: alpha(cfg.color, theme.palette.mode === 'dark' ? 0.24 : 0.13),
-                      transform: 'translateY(-1px)',
-                    } : {},
-                  }}
-                >
-                  <Stack direction="row" alignItems="center" spacing={0.6}>
-                    <Box
-                      sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: cfg.color, flexShrink: 0 }}
-                    />
-                    <Typography
-                      sx={{
-                        fontSize: 10, fontWeight: 900, textTransform: 'uppercase',
-                        letterSpacing: 0.7, color: cfg.color, lineHeight: 1,
-                      }}
-                    >
-                      {cfg.label}
-                    </Typography>
-                    <Typography sx={{ fontSize: 10, color: 'text.secondary', ml: 'auto' }}>
-                      {cfg.subtitle}
-                    </Typography>
-                  </Stack>
-                  <Typography
-                    sx={{
-                      fontSize: 22, fontWeight: 800, lineHeight: 1.1,
-                      fontVariantNumeric: 'tabular-nums',
-                    }}
-                  >
-                    {bucket?.count ?? 0}
-                  </Typography>
-                  <Typography color="text.secondary" sx={{ fontSize: 11, fontWeight: 600 }}>
-                    {formatMoney(bucket?.totalPending ?? 0)}
-                  </Typography>
+              <Tooltip
+                key={cfg.key}
+                title={cfg.tooltip}
+                placement="top"
+                arrow
+              >
+                <Box sx={{ minWidth: 0 }}>
+                  <DebtBucket
+                    label={cfg.label}
+                    age={cfg.subtitle}
+                    count={bucket?.count ?? 0}
+                    amount={formatMoney(bucket?.totalPending ?? 0)}
+                    color={cfg.color}
+                    share={overallPending > 0 ? (bucket?.totalPending ?? 0) / overallPending : 0}
+                    active={activeDebtStatus === cfg.key}
+                    onClick={
+                      onFilterByDebt
+                        ? () => onFilterByDebt(activeDebtStatus === cfg.key ? 'all' : cfg.key)
+                        : undefined
+                    }
+                  />
                 </Box>
               </Tooltip>
             );

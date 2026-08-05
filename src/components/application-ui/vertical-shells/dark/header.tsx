@@ -1,4 +1,5 @@
 import { useAuth } from '@/hooks/use-auth';
+import { avatarSrc } from '@/utils/avatar';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import WidgetsOutlinedIcon from '@mui/icons-material/WidgetsOutlined';
@@ -6,6 +7,7 @@ import {
   alpha,
   AppBar,
   Avatar,
+  Box,
   Chip,
   IconButton,
   Stack,
@@ -80,15 +82,30 @@ export const Header: FC<HeaderProps> = (props) => {
     ? `${(authUser.firstName || '')[0] || ''}${(authUser.lastName || '')[0] || ''}`.toUpperCase()
     : 'U';
 
+  /**
+   * Botones del clúster de acciones (Store Panel 2.0): 30×30 con radio 9,
+   * agrupados dentro de una sola cápsula. Antes flotaban sueltos y la cabecera
+   * se leía como seis controles inconexos.
+   */
   const iconBtnSx = {
-    '&:hover': {
-      background: alpha(theme.palette.primary.main, 0.06),
-    },
-    '& .MuiSvgIcon-root': {
-      fontSize: 21,
-    },
-    p: 0.8,
-    borderRadius: 1.5,
+    width: 30,
+    height: 30,
+    borderRadius: '9px',
+    p: 0,
+    '&:hover': { background: alpha(theme.palette.primary.main, 0.08) },
+    '& .MuiSvgIcon-root': { fontSize: 19 },
+  };
+
+  /** La cápsula que agrupa los botones. */
+  const clusterSx = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 0.25,
+    height: 38,
+    px: 0.5,
+    borderRadius: '12px',
+    bgcolor: alpha(theme.palette.text.primary, isDark ? 0.06 : 0.028),
+    border: `1px solid ${alpha(theme.palette.divider, 0.9)}`,
   };
 
   return (
@@ -110,99 +127,221 @@ export const Header: FC<HeaderProps> = (props) => {
         alignItems="center"
       >
         {/* ─── Left side ─── */}
-        <Stack direction="row" alignItems="center" spacing={1}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1}
+          sx={{ flex: 1, minWidth: 0, mr: 1 }}
+        >
           {!lgUp && <Logo isLinkStatic />}
-          <Tooltip title="Search (Ctrl+M)" arrow>
-            <IconButton
-              color="inherit"
+          {/* Buscador ancho del diseño: se ve QUÉ se puede buscar, en vez de
+              una lupa que hay que adivinar. En móvil vuelve a ser sólo icono. */}
+          {smUp ? (
+            <Box
+              role="button"
+              tabIndex={0}
+              aria-label="Buscar en el panel"
               onClick={dialog.handleOpen}
-              sx={iconBtnSx}
-            >
-              <SearchRoundedIcon />
-            </IconButton>
-          </Tooltip>
-          {smUp && (
-            <Chip
-              label="Ctrl+M"
-              size="small"
-              variant="outlined"
-              onClick={dialog.handleOpen}
-              sx={{
-                height: 24,
-                fontSize: 10,
-                fontWeight: 700,
-                cursor: 'pointer',
-                opacity: 0.4,
-                borderRadius: 1,
-                '&:hover': { opacity: 0.8 },
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  dialog.handleOpen();
+                }
               }}
-            />
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.1,
+                height: 38,
+                px: 1.6,
+                borderRadius: '12px',
+                cursor: 'pointer',
+                flex: 1,
+                maxWidth: 420,
+                minWidth: 0,
+                bgcolor: alpha(theme.palette.text.primary, isDark ? 0.06 : 0.028),
+                border: `1px solid ${alpha(theme.palette.divider, 0.9)}`,
+                transition: 'border-color .18s',
+                '&:hover': { borderColor: alpha(theme.palette.primary.main, 0.5) },
+                '&:focus-visible': { outline: `2px solid ${theme.palette.primary.main}`, outlineOffset: 2 },
+                '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+              }}
+            >
+              <SearchRoundedIcon sx={{ fontSize: 18, color: 'text.disabled', flexShrink: 0 }} />
+              <Box
+                component="span"
+                sx={{
+                  fontSize: 13,
+                  color: 'text.secondary',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                Buscar tiendas, campañas, cajeras, tablets…
+              </Box>
+              <Box
+                component="span"
+                sx={{
+                  ml: 'auto',
+                  flexShrink: 0,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: 'text.secondary',
+                  bgcolor: 'background.paper',
+                  border: `1px solid ${alpha(theme.palette.divider, 0.9)}`,
+                  borderRadius: '6px',
+                  px: 0.75,
+                  py: 0.25,
+                }}
+              >
+                Ctrl+M
+              </Box>
+            </Box>
+          ) : (
+            <Tooltip
+              title="Buscar (Ctrl+M)"
+              arrow
+            >
+              <IconButton
+                color="inherit"
+                aria-label="Buscar en el panel"
+                onClick={dialog.handleOpen}
+                sx={iconBtnSx}
+              >
+                <SearchRoundedIcon />
+              </IconButton>
+            </Tooltip>
           )}
         </Stack>
 
         {/* ─── Right side ─── */}
-        <Stack direction="row" alignItems="center" spacing={0.5}>
-          {smUp && (
-            <>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1}
+        >
+          <Box sx={clusterSx}>
+            {smUp && (
+              <>
                 <NotificationsDropdown />
-              <IconButton
-                sx={iconBtnSx}
-                color="inherit"
-                onClick={widgets.handleOpen}
-              >
-                <WidgetsOutlinedIcon />
-              </IconButton>
-              <LanguageDropdown
-                color="inherit"
-                sx={iconBtnSx}
-              />
-            </>
-          )}
-          <CustomizationButton
-            color="inherit"
-            sx={iconBtnSx}
-          />
+                <IconButton
+                  sx={iconBtnSx}
+                  color="inherit"
+                  aria-label="Accesos rápidos"
+                  onClick={widgets.handleOpen}
+                >
+                  <WidgetsOutlinedIcon />
+                </IconButton>
+                <LanguageDropdown
+                  color="inherit"
+                  sx={iconBtnSx}
+                />
+                <Box
+                  sx={{
+                    width: '1px',
+                    height: 18,
+                    bgcolor: alpha(theme.palette.divider, 0.9),
+                    mx: 0.25,
+                  }}
+                />
+              </>
+            )}
+            <CustomizationButton
+              color="inherit"
+              sx={iconBtnSx}
+            />
+          </Box>
 
-          {/* ─── Profile avatar ─── */}
-          <IconButton
+          {/* ─── Ficha de usuario ───
+              El diseño muestra quién sos y con qué rol estás entrando. En un
+              panel donde admin y gerencia ven cosas distintas, el rol a la
+              vista evita la pregunta "¿por qué a mí no me sale eso?". */}
+          <Box
             id="profile-button"
-            sx={{
-              p: 0.4,
-              ml: 0.5,
-              borderRadius: 2,
-              border: `2px solid transparent`,
-              transition: 'all 0.2s',
-              '&:hover': {
-                borderColor: alpha(theme.palette.primary.main, 0.4),
-              },
-            }}
-            color="inherit"
+            role="button"
+            tabIndex={0}
             aria-controls={popover.open ? 'profile-menu' : undefined}
             aria-haspopup="true"
             aria-expanded={popover.open ? 'true' : undefined}
+            aria-label="Abrir menú de perfil"
             onClick={popover.handleOpen}
-            ref={popover.anchorRef}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                popover.handleOpen();
+              }
+            }}
+            ref={popover.anchorRef as any}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.1,
+              height: 38,
+              pl: { xs: 0.5, sm: 1.5 },
+              pr: 0.6,
+              borderRadius: '12px',
+              cursor: 'pointer',
+              bgcolor: alpha(theme.palette.text.primary, isDark ? 0.06 : 0.028),
+              border: `1px solid ${alpha(theme.palette.divider, 0.9)}`,
+              transition: 'border-color .18s',
+              '&:hover': { borderColor: alpha(theme.palette.primary.main, 0.5) },
+              '&:focus-visible': { outline: `2px solid ${theme.palette.primary.main}`, outlineOffset: 2 },
+              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+            }}
           >
-            <Avatar
-              alt={authUser?.firstName || 'User'}
-              src={authUser?.profileImage || ''}
-              sx={{
-                height: 32,
-                width: 32,
-                fontSize: 13,
-                fontWeight: 700,
-                bgcolor: 'primary.main',
-                color: 'primary.contrastText',
-              }}
-            >
-              {initials}
-            </Avatar>
-          </IconButton>
+            {smUp && (
+              <Box sx={{ lineHeight: 1.2, minWidth: 0, textAlign: 'right' }}>
+                <Box
+                  sx={{ fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap' }}
+                >
+                  {`${authUser?.firstName || ''} ${authUser?.lastName || ''}`.trim() || 'Usuario'}
+                </Box>
+                <Box
+                  sx={{ fontSize: 9.5, fontWeight: 600, color: 'text.secondary', whiteSpace: 'nowrap' }}
+                >
+                  {authUser?.role ? `${authUser.role} · sweepstouch` : 'sweepstouch'}
+                </Box>
+              </Box>
+            )}
+            <Box sx={{ position: 'relative', flexShrink: 0, display: 'flex' }}>
+              <Avatar
+                alt=""
+                src={avatarSrc(authUser?.profileImage, 28)}
+                sx={{
+                  height: 28,
+                  width: 28,
+                  borderRadius: '9px',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  bgcolor: 'primary.main',
+                  color: 'primary.contrastText',
+                }}
+                variant="rounded"
+              >
+                {initials}
+              </Avatar>
+              {/* Sesión activa */}
+              <Box
+                sx={{
+                  position: 'absolute',
+                  bottom: -1,
+                  right: -1,
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  bgcolor: 'success.main',
+                  boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
+                }}
+              />
+            </Box>
+          </Box>
 
           {!lgUp && (
             <IconButton
               onClick={onMobileNav}
               color="inherit"
+              aria-label="Abrir el menú"
               sx={iconBtnSx}
             >
               <MenuRoundedIcon />

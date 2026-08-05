@@ -3,7 +3,8 @@
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { Box, Chip, Divider, Skeleton, Stack, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import { PieChart, useDrawingArea } from '@mui/x-charts';
+import { useDrawingArea } from '@mui/x-charts/hooks';
+import { PieChart } from 'src/components/base/lazy-charts';
 
 // Formatter USD a module scope: Intl.NumberFormat carga tablas de locale caras
 // de reconstruir; una sola instancia reusada en todos los render/items.

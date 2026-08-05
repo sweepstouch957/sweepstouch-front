@@ -38,6 +38,28 @@ export const uploadSupportEvidence = async (file: File): Promise<string> => {
   return response.data.url as string;
 };
 
+// Evidencias de tareas de Cowork — imágenes/archivos (folder: task-evidence)
+export const uploadTaskEvidence = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append('image', file);
+  formData.append('folder', 'task-evidence');
+  const response = await api.post('/upload', formData, {
+    headers: { 'Content-Type': undefined },
+  });
+  return response.data.url as string;
+};
+
+// Adjuntos del chat de una tarea (folder: task-comments)
+export const uploadCommentFile = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append('image', file);
+  formData.append('folder', 'task-comments');
+  const response = await api.post('/upload', formData, {
+    headers: { 'Content-Type': undefined },
+  });
+  return response.data.url as string;
+};
+
 // S3 — field name must be "file" (matches multer.single("file") on s3-service)
 // Only accepts PDF files
 export const uploadPdfToS3 = async (file: File): Promise<S3UploadResponse> => {

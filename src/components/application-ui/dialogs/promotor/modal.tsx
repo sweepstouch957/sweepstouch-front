@@ -24,6 +24,7 @@ import {
 } from '@mui/material';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useForm, type UseFormRegister } from 'react-hook-form';
 
 interface NewPromoterModalProps {
   open: boolean;
@@ -43,12 +44,22 @@ const EMPTY_FORM = {
 // Estilo estático de los campos — sin dependencias del componente
 const fieldSx = { '& .MuiOutlinedInput-root': { borderRadius: 2 } };
 
+type PromoterFormValues = typeof EMPTY_FORM;
+
+/** MUI espera el ref del input en `inputRef`, no en `ref`. */
+function rhf(register: UseFormRegister<PromoterFormValues>, name: keyof PromoterFormValues) {
+  const { ref, ...rest } = register(name);
+  return { inputRef: ref, ...rest };
+}
+
 export default function NewPromoterModal({ open, onClose, onCreated }: NewPromoterModalProps) {
   const theme  = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const primary = theme.palette.primary.main;
 
-  const [form,             setForm]             = useState(EMPTY_FORM);
+  const { register, handleSubmit: rhfHandleSubmit, reset } = useForm<PromoterFormValues>({
+    defaultValues: EMPTY_FORM,
+  });
   const [createdPromoter,  setCreatedPromoter]  = useState<any | null>(null);
   const [copied,           setCopied]           = useState(false);
   const [snackOpen,        setSnackOpen]        = useState(false);
@@ -58,7 +69,7 @@ export default function NewPromoterModal({ open, onClose, onCreated }: NewPromot
     mutationFn: (payload: any) => promoterService.createPromoter(payload),
     onSuccess: (data) => {
       setCreatedPromoter(data);
-      setForm(EMPTY_FORM);
+      reset(EMPTY_FORM);
       onCreated?.();
     },
     onError: () => {
@@ -67,24 +78,21 @@ export default function NewPromoterModal({ open, onClose, onCreated }: NewPromot
     },
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
-
-  const handleSubmit = () => {
-    if (!form.firstName.trim() || !form.lastName.trim()) {
+  const handleSubmit = rhfHandleSubmit((values) => {
+    if (!values.firstName.trim() || !values.lastName.trim()) {
       setSnackMsg('Nombre y apellido son requeridos.');
       setSnackOpen(true);
       return;
     }
     mutation.mutate({
-      firstName:   form.firstName,
-      lastName:    form.lastName,
-      email:       form.email,
-      phoneNumber: form.phone,
-      status:      form.status,
-      address:     form.address,
+      firstName:   values.firstName,
+      lastName:    values.lastName,
+      email:       values.email,
+      phoneNumber: values.phone,
+      status:      values.status,
+      address:     values.address,
     });
-  };
+  });
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -150,18 +158,19 @@ export default function NewPromoterModal({ open, onClose, onCreated }: NewPromot
               gap: 2,
             }}
           >
-            <TextField fullWidth name="firstName" label="Nombre" placeholder="Ana" size="small"
-              value={form.firstName} onChange={handleChange} sx={fieldSx} />
-            <TextField fullWidth name="lastName" label="Apellido" placeholder="Lopez" size="small"
-              value={form.lastName} onChange={handleChange} sx={fieldSx} />
-            <TextField fullWidth name="email" label="Email" placeholder="ana@ejemplo.com" size="small"
-              value={form.email} onChange={handleChange} sx={fieldSx} />
-            <TextField fullWidth name="phone" label="Telefono" placeholder="+1 555 123 4567" size="small"
-              value={form.phone} onChange={handleChange} sx={fieldSx} />
-            <TextField fullWidth name="address" label="Direccion" placeholder="Ciudad, Estado" size="small"
-              value={form.address} onChange={handleChange} sx={fieldSx} />
-            <TextField fullWidth name="status" label="Estado" select size="small"
-              value={form.status} onChange={handleChange} sx={fieldSx}>
+            <TextField fullWidth label="Nombre" placeholder="Ana" size="small"
+              {...rhf(register, 'firstName')} sx={fieldSx} />
+            <TextField fullWidth label="Apellido" placeholder="Lopez" size="small"
+              {...rhf(register, 'lastName')} sx={fieldSx} />
+            <TextField fullWidth label="Email" placeholder="ana@ejemplo.com" size="small"
+              {...rhf(register, 'email')} sx={fieldSx} />
+            <TextField fullWidth label="Telefono" placeholder="+1 555 123 4567" size="small"
+              {...rhf(register, 'phone')} sx={fieldSx} />
+            <TextField fullWidth label="Direccion" placeholder="Ciudad, Estado" size="small"
+              {...rhf(register, 'address')} sx={fieldSx} />
+            <TextField fullWidth label="Estado" select size="small"
+              defaultValue={EMPTY_FORM.status}
+              {...rhf(register, 'status')} sx={fieldSx}>
               <MenuItem value="Activa">Activa</MenuItem>
               <MenuItem value="Inactiva">Inactiva</MenuItem>
             </TextField>

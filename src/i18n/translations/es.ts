@@ -50,6 +50,7 @@ export const es = {
   "Tasks": "Tareas",
   "Account": "Mi Cuenta",
   "Promotors": "Impulsadoras",
+  "Search Number": "Buscar número",
   "Search by name...": "Buscar por nombre...",
   "Search...": "Buscar...",
   "Select status": "Seleccionar estado",

@@ -43,13 +43,7 @@ import BoltRoundedIcon from '@mui/icons-material/BoltRounded';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import AdsClickRoundedIcon from '@mui/icons-material/AdsClickRounded';
 import TimelineRoundedIcon from '@mui/icons-material/TimelineRounded';
-import dynamic from 'next/dynamic';
-const BarChart = dynamic(() => import('@mui/x-charts/BarChart').then((m) => m.BarChart), {
-  ssr: false,
-});
-const LineChart = dynamic(() => import('@mui/x-charts/LineChart').then((m) => m.LineChart), {
-  ssr: false,
-});
+import { BarChart, LineChart } from 'src/components/base/lazy-charts';
 
 import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
 import SupportOrderFeed from '@/components/admin/support/SupportOrderFeed';

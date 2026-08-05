@@ -23,16 +23,17 @@ interface NavItemProps {
   item: MenuItem;
 }
 
+/** Encabezado de grupo: 9.5px con tracking amplio, como en el diseño. */
 const ListSubheaderWrapper = styled(ListSubheader)<ListProps<'div', { component: 'div' }>>(
   ({ theme }) => ({
     background: neutral[900],
     textTransform: 'uppercase',
     fontWeight: 700,
-    fontSize: 10,
-    letterSpacing: '0.08em',
-    color: alpha(neutral[400], 0.6),
-    lineHeight: theme.spacing(4),
-    padding: theme.spacing(1, 2, 0.25),
+    fontSize: 9.5,
+    letterSpacing: '1.4px',
+    color: alpha(neutral[400], 0.75),
+    lineHeight: theme.spacing(3.4),
+    padding: theme.spacing(1.6, 1.25, 0.75),
   })
 );
 
@@ -54,13 +55,22 @@ const SubMenu = styled(List)<ListProps<'div', { component: 'div' }>>(({ theme })
     zIndex: 1,
   },
 
+  // Con icono, la sangría de 6 dejaba el texto en el borde derecho. El icono
+  // ocupa el lugar de la viñeta, así que la fila arranca antes.
   '& .MuiListItemButton-root': {
-    padding: theme.spacing(0.5, 2, 0.5, 6),
-    fontWeight: 400,
-    fontSize: 13,
+    padding: theme.spacing(0.6, 1.25, 0.6, 4.6),
+    gap: theme.spacing(1.1),
+    fontWeight: 600,
+    fontSize: 12.5,
     minHeight: 34,
     color: neutral[500],
-    borderRadius: theme.spacing(0.75),
+    borderRadius: 10,
+
+    '& .MuiListItemIcon-root': {
+      minWidth: 0,
+      color: 'inherit',
+      '& .MuiSvgIcon-root': { fontSize: 16 },
+    },
 
     '&::before': {
       content: '""',

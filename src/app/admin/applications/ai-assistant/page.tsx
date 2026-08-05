@@ -888,10 +888,10 @@ const StreamingIndicator: React.FC = () => {
    MAIN PAGE
    ═══════════════════════════════════════════════════════════ */
 
-// Altura del chat — solo depende de HEADER_HEIGHT (constante de módulo)
+// Altura del chat: lo que queda bajo el navbar, que es lo que el shell reserva
 const chatHeight = {
-  xs: `calc(100dvh - ${HEADER_HEIGHT * 1.5}px)`,
-  md: `calc(100vh - ${HEADER_HEIGHT * 1.5}px)`,
+  xs: `calc(100dvh - ${HEADER_HEIGHT}px)`,
+  md: `calc(100vh - ${HEADER_HEIGHT}px)`,
 };
 
 export default function AIAssistantPage() {

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { Controller, useForm, type UseFormRegister } from 'react-hook-form';
 import {
   Alert,
   alpha,
@@ -46,9 +47,17 @@ const getAvatarColor = (id: string, palette: string[]) => {
   return palette[h % palette.length];
 };
 
+/** MUI espera el ref del input en `inputRef`, no en `ref`. */
+function rhf(register: UseFormRegister<UpdateUserPayload>, name: keyof UpdateUserPayload) {
+  const { ref, ...rest } = register(name);
+  return { inputRef: ref, ...rest };
+}
+
 export default function EditUserDialog({ open, user, onClose, onUpdated }: EditUserDialogProps) {
   const theme = useTheme();
-  const [form, setForm] = useState<UpdateUserPayload>({});
+  const { register, control, handleSubmit: rhfHandleSubmit, reset } = useForm<UpdateUserPayload>({
+    defaultValues: {},
+  });
   const [saving, setSaving] = useState(false);
   const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false,
@@ -57,30 +66,23 @@ export default function EditUserDialog({ open, user, onClose, onUpdated }: EditU
   });
 
   useEffect(() => {
-    if (user) {
-      setForm({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        email: user.email || '',
-        phoneNumber: user.phoneNumber || '',
-        accessCode: user.accessCode || '',
-        active: user.active !== false,
-      });
-    }
-  }, [user]);
+    if (!user) return;
+    reset({
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      email: user.email || '',
+      phoneNumber: user.phoneNumber || '',
+      accessCode: user.accessCode || '',
+      active: user.active !== false,
+    });
+  }, [user, reset]);
 
-  const handleChange = (field: keyof UpdateUserPayload) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setForm((prev) => ({ ...prev, [field]: e.target.value }));
-  };
-
-  const handleSubmit = async () => {
+  const handleSubmit = rhfHandleSubmit(async (values) => {
     setSaving(true);
     const idToUpdate = user._id || (user as any).id;
     try {
-      await merchantService.updateUser(idToUpdate, form);
-      setSnack({ open: true, message: `User "${form.firstName || user.firstName}" updated`, severity: 'success' });
+      await merchantService.updateUser(idToUpdate, values);
+      setSnack({ open: true, message: `User "${values.firstName || user.firstName}" updated`, severity: 'success' });
       setTimeout(() => onUpdated(), 900);
     } catch (err: any) {
       setSnack({
@@ -91,7 +93,7 @@ export default function EditUserDialog({ open, user, onClose, onUpdated }: EditU
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   const userIdForAvatar = user._id || (user as any).id || '';
   const accentColor = getAvatarColor(userIdForAvatar, chartPalette(theme));
@@ -159,8 +161,7 @@ export default function EditUserDialog({ open, user, onClose, onUpdated }: EditU
                 label="First Name *"
                 fullWidth
                 size="small"
-                value={form.firstName || ''}
-                onChange={handleChange('firstName')}
+                {...rhf(register, 'firstName')}
                 autoFocus
               />
             </Grid>
@@ -171,8 +172,7 @@ export default function EditUserDialog({ open, user, onClose, onUpdated }: EditU
                 label="Last Name"
                 fullWidth
                 size="small"
-                value={form.lastName || ''}
-                onChange={handleChange('lastName')}
+                {...rhf(register, 'lastName')}
               />
             </Grid>
 
@@ -183,8 +183,7 @@ export default function EditUserDialog({ open, user, onClose, onUpdated }: EditU
                 type="email"
                 fullWidth
                 size="small"
-                value={form.email || ''}
-                onChange={handleChange('email')}
+                {...rhf(register, 'email')}
               />
             </Grid>
 
@@ -194,8 +193,7 @@ export default function EditUserDialog({ open, user, onClose, onUpdated }: EditU
                 label="Phone Number"
                 fullWidth
                 size="small"
-                value={form.phoneNumber || ''}
-                onChange={handleChange('phoneNumber')}
+                {...rhf(register, 'phoneNumber')}
               />
             </Grid>
 
@@ -205,33 +203,38 @@ export default function EditUserDialog({ open, user, onClose, onUpdated }: EditU
                 label="Access Code"
                 fullWidth
                 size="small"
-                value={form.accessCode || ''}
-                onChange={handleChange('accessCode')}
+                {...rhf(register, 'accessCode')}
                 helperText="Quick-login code for cashiers/merchants"
               />
             </Grid>
 
             {/* Active toggle */}
             <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={form.active !== false}
-                    onChange={(e) => setForm((p) => ({ ...p, active: e.target.checked }))}
-                    color="success"
+              <Controller
+                control={control}
+                name="active"
+                render={({ field }) => (
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={field.value !== false}
+                        onChange={(e) => field.onChange(e.target.checked)}
+                        color="success"
+                      />
+                    }
+                    label={
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography variant="body2">Account Status</Typography>
+                        <Chip
+                          label={field.value !== false ? 'Active' : 'Inactive'}
+                          size="small"
+                          color={field.value !== false ? 'success' : 'default'}
+                          sx={{ fontSize: 10, height: 20 }}
+                        />
+                      </Stack>
+                    }
                   />
-                }
-                label={
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Typography variant="body2">Account Status</Typography>
-                    <Chip
-                      label={form.active !== false ? 'Active' : 'Inactive'}
-                      size="small"
-                      color={form.active !== false ? 'success' : 'default'}
-                      sx={{ fontSize: 10, height: 20 }}
-                    />
-                  </Stack>
-                }
+                )}
               />
             </Grid>
           </Grid>

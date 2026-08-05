@@ -17,6 +17,7 @@ export interface FilterCampaignParams {
   type?: string;
   deliveryRate?: string;
   platform?: string;
+  circularss?: string;
 }
 
 export interface FilterStatsResponse {
@@ -457,9 +458,9 @@ class CampaignClient {
   }
 
   async getFilterStats(params: Omit<FilterCampaignParams, 'page' | 'limit'>): Promise<FilterStatsResponse> {
-    const { status, startDate, endDate, storeId, title, type, deliveryRate, platform } = params;
+    const { status, startDate, endDate, storeId, title, type, deliveryRate, platform, circularss } = params;
     const res = await api.get('/campaigns/filter/stats', {
-      params: { status, startDate, endDate, storeId, title, type, deliveryRate, platform },
+      params: { status, startDate, endDate, storeId, title, type, deliveryRate, platform, circularss },
     });
     return res.data as FilterStatsResponse;
   }
@@ -477,10 +478,11 @@ class CampaignClient {
       type,
       deliveryRate,
       platform,
+      circularss,
     } = params;
 
     const res = await api.get('/campaigns/filter', {
-      params: { page, limit, status, startDate, endDate, storeId, title, storeName, type, deliveryRate, platform },
+      params: { page, limit, status, startDate, endDate, storeId, title, storeName, type, deliveryRate, platform, circularss },
     });
 
     return res.data;

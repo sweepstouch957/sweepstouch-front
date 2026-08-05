@@ -25,6 +25,8 @@ type GetUsersParams = {
   // lean=true -> backend skips .populate('store') (no se renderiza) y usa .lean().
   // Mata N populates de store + hidratacion mongoose en el listado de usuarios.
   lean?: boolean;
+  /** Proyección: "firstName,lastName,role". Sin esto viaja el documento entero. */
+  select?: string;
 };
 
 type FlexibleUserSearchParams = {
@@ -42,7 +44,8 @@ class UsersApi {
         q: params?.q ?? undefined,
         page: params?.page ?? undefined,
         limit: params?.limit ?? undefined,
-        lean: params?.lean ? 'true' : undefined
+        lean: params?.lean ? 'true' : undefined,
+        select: params?.select ?? undefined
       }
     });
 

@@ -1,6 +1,7 @@
 import { useStores } from '@/hooks/stores/useStores';
 import ExportButton from '@/components/application-ui/buttons/export-button';
-import PageHeading from '@/components/base/page-heading';
+import { PageHero } from '@/components/application-ui/content-shells/store-managment/panel-kit';
+import { Box } from '@mui/material';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import StoreFilter from './filter';
@@ -11,11 +12,11 @@ import StoreExportDialog from './StoreExportDialog';
 import { buildExportRows } from './storeExport';
 
 /**
- * Exporta el listado COMPLETO de tiendas (ignora los filtros de pantalla:
- * el pedido es "todas las tiendas") con las columnas elegidas en el modal.
+ * Exporta el listado de tiendas RESPETANDO los filtros de pantalla
+ * (status, circularss, provider, etc.) con las columnas elegidas en el modal.
  * No usa estado del componente; hoisted a module scope.
  */
-async function exportAll(selectedKeys: string[]) {
+async function exportAll(selectedKeys: string[], filters: Record<string, any> = {}) {
   const limitPage = 500;
   let pageNo = 1;
   let all: any[] = [];
@@ -24,14 +25,16 @@ async function exportAll(selectedKeys: string[]) {
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const res: any = await svc.getStores({
-      page: pageNo,
-      limit: limitPage,
       status: 'all',
-      sortBy: 'name',
-      order: 'asc',
       debtStatus: 'all',
       paymentMethod: 'all',
       provider: 'all',
+      circularss: 'all',
+      ...filters,
+      page: pageNo,
+      limit: limitPage,
+      sortBy: 'name',
+      order: 'asc',
     });
 
     const data = res?.data || [];
@@ -90,6 +93,8 @@ function Component() {
     handleMaxDebtChange,
     provider,
     handleProviderChange,
+    circularss,
+    handleCircularssChange,
     refetch,
   } = useStores();
 
@@ -109,11 +114,21 @@ function Component() {
 
   return (
     <>
-      <PageHeading
-        title={t('Stores')}
-        description={t('Overview of all stores')}
-        actions={<ExportButton eventName="stores:export" emitOnly />}
-      />
+      {/* Portada del Store Panel 2.0: la ruta, el título y — lo que importa —
+          los tres números que resumen la cartera antes de mirar la tabla. */}
+      <Box sx={{ mb: 1.5 }}>
+        <PageHero
+          eyebrow="Management · Stores"
+          title={t('Tiendas')}
+          subtitle={
+            total > 0
+              ? `${total.toLocaleString()} tiendas${status === 'active' ? ' activas' : ''}`
+              : undefined
+          }
+          actions={<ExportButton eventName="stores:export"
+emitOnly />}
+        />
+      </Box>
 
       <StoresBillingHeader
         status={status}
@@ -139,6 +154,8 @@ function Component() {
         onPaymentMethodChange={handlePaymentMethodChange}
         provider={provider}
         onProviderChange={handleProviderChange}
+        circularss={circularss}
+        onCircularssChange={handleCircularssChange}
         sortBy={sortBy}
         order={order}
         onSortChange={handleSortChange}
@@ -171,7 +188,19 @@ function Component() {
       <StoreExportDialog
         open={exportOpen}
         onClose={() => setExportOpen(false)}
-        onExport={exportAll}
+        onExport={(keys) =>
+          exportAll(keys, {
+            search,
+            status,
+            audienceLt,
+            debtStatus,
+            minDebt,
+            maxDebt,
+            paymentMethod,
+            provider,
+            circularss,
+          })
+        }
       />
     </>
   );
