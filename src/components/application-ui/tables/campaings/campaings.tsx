@@ -6,10 +6,8 @@ import type { FilterStatsResponse } from '@/services/campaing.service';
 import {
   alpha,
   Box,
-  Collapse,
   CircularProgress,
   Divider,
-  IconButton,
   LinearProgress,
   Skeleton,
   Stack,
@@ -18,10 +16,7 @@ import {
   Unstable_Grid2 as Grid,
   useTheme,
 } from '@mui/material';
-import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
-import ScheduleRoundedIcon from '@mui/icons-material/ScheduleRounded';
-import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import CampaignRoundedIcon from '@mui/icons-material/CampaignRounded';
 import PeopleOutlineRoundedIcon from '@mui/icons-material/PeopleOutlineRounded';
 import SmsRoundedIcon from '@mui/icons-material/SmsRounded';
@@ -35,8 +30,39 @@ import type { ReactNode } from 'react';
 import ExportButton from '../../buttons/export-button';
 import Results from './results';
 import type { Theme } from '@mui/material/styles';
-import { tint, tintBorder } from '@/theme/semantic';
-import { PageHero, panelBorder } from '../../content-shells/store-managment/panel-kit';
+import { tint } from '@/theme/semantic';
+import {
+  KpiCard as PanelKpiCard,
+  KpiRow,
+  PageHero,
+  panelBorder,
+} from '../../content-shells/store-managment/panel-kit';
+import AddCircleOutlineRoundedIcon from '@mui/icons-material/AddCircleOutlineRounded';
+import ScienceRoundedIcon from '@mui/icons-material/ScienceRounded';
+import TrendingUpRoundedIcon from '@mui/icons-material/TrendingUpRounded';
+import Button from '@mui/material/Button';
+import Link from 'next/link';
+
+/** $1.72M en vez de $1,720,000: en una tarjeta de KPI el orden de magnitud
+    importa más que el centavo, y el número largo rompía la línea. */
+const compactUsd = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  notation: 'compact',
+  maximumFractionDigits: 2,
+});
+
+/** Botones de la portada: mismo alto y radio que en Tiendas. */
+const heroBtn = {
+  height: 44,
+  px: 2,
+  borderRadius: '12px',
+  textTransform: 'none' as const,
+  fontWeight: 700,
+  color: 'text.secondary',
+  borderColor: 'divider',
+  '&:hover': { borderColor: 'text.disabled', bgcolor: 'action.hover' },
+};
 
 interface CampaignsGridProps {
   storeId?: string;
@@ -572,153 +598,87 @@ py={4}>
               : undefined
           }
           actions={
-            <ExportButton
-              eventName="campaigns:export"
-              emitOnly
-            />
+            <>
+              <ExportButton
+                eventName="campaigns:export"
+                emitOnly
+                variant="outlined"
+                sx={heroBtn}
+              >
+                Exportar
+              </ExportButton>
+
+              {/* Enviar prueba vivía como ítem suelto del menú lateral. Es una
+                  acción sobre campañas, no una sección: acá está donde se usa
+                  y el menú deja de tener un renglón más que leer. */}
+              {!storeId && (
+                <Button
+                  component={Link}
+                  href="/admin/management/campaings/send-test"
+                  variant="outlined"
+                  startIcon={<ScienceRoundedIcon />}
+                  sx={heroBtn}
+                >
+                  Enviar prueba
+                </Button>
+              )}
+
+              <Button
+                component={Link}
+                href="/admin/management/campaings/create"
+                variant="contained"
+                disableElevation
+                startIcon={<AddCircleOutlineRoundedIcon />}
+                sx={{ ...heroBtn, color: undefined, borderColor: undefined }}
+              >
+                Nueva campaña
+              </Button>
+            </>
           }
         />
       </Box>
 
-      <Box sx={{ mt: 3, mb: 1.5 }}>
+      {/* Los cinco KPIs del diseño. Antes era una tira "Métricas y desglose"
+          que había que desplegar para ver los números, y cerrada mostraba tres
+          sueltos sin jerarquía. Acá el resumen de la red se lee de entrada. */}
+      <Box sx={{ mb: 1.5 }}>
         {(isFetching || statsFetching) && !isPending && (
           <LinearProgress sx={{ mb: 1.5, borderRadius: 1, height: 2, opacity: 0.5 }} />
         )}
 
-        {/* ── Metrics Toggle & Preview ── */}
-        <Box
-          onClick={() => setShowMetrics((p) => !p)}
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            cursor: 'pointer',
-            mb: showMetrics ? 1.5 : 2.5,
-            px: 2,
-            py: 1.25,
-            borderRadius: 2,
-            bgcolor: alpha(
-              theme.palette.mode === 'dark' ? theme.palette.common.white : theme.palette.common.black,
-              theme.palette.mode === 'dark' ? 0.02 : 0.015
-            ),
-            border: '1px solid',
-            borderColor: 'divider',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            '&:hover': {
-              borderColor: tintBorder(theme, 'primary'),
-              bgcolor: tint(theme, 'primary', 0.04),
-            }
-          }}
-        >
-          <Stack direction="row"
-alignItems="center"
-spacing={2}
-divider={<Divider orientation="vertical"
-flexItem
-sx={{ height: 24, alignSelf: 'center' }} />}>
-            <Stack direction="row"
-alignItems="center"
-spacing={1}>
-              <CampaignRoundedIcon sx={{ fontSize: 20, color: theme.palette.primary.main }} />
-              <Typography sx={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
-                Métricas y Desglose
-              </Typography>
-            </Stack>
-
-            {/* Small Preview when closed */}
-            {!showMetrics && (
-              <Stack direction="row"
-alignItems="center"
-spacing={3}
-sx={{ pl: 1, animation: 'fadeIn 0.3s ease-in-out' }}>
-                <Box>
-                  <Typography sx={{ fontSize: 10, color: 'text.secondary', textTransform: 'uppercase', fontWeight: 700, lineHeight: 1.2 }}>Total Filtrado</Typography>
-                  <Typography sx={{ fontSize: 14, fontWeight: 800, color: theme.palette.primary.main, lineHeight: 1.2 }}>{s.total.toLocaleString()}</Typography>
-                </Box>
-                <Box>
-                  <Typography sx={{ fontSize: 10, color: 'text.secondary', textTransform: 'uppercase', fontWeight: 700, lineHeight: 1.2 }}>Completadas</Typography>
-                  <Typography sx={{ fontSize: 14, fontWeight: 800, color: 'success.main', lineHeight: 1.2 }}>{(s.byStatus.completed ?? 0).toLocaleString()}</Typography>
-                </Box>
-                <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
-                  <Typography sx={{ fontSize: 10, color: 'text.secondary', textTransform: 'uppercase', fontWeight: 700, lineHeight: 1.2 }}>Audiencia</Typography>
-                  <Typography sx={{ fontSize: 14, fontWeight: 800, color: 'secondary.main', lineHeight: 1.2 }}>{s.messages.totalAudience.toLocaleString()}</Typography>
-                </Box>
-              </Stack>
-            )}
-          </Stack>
-
-          <IconButton
-            size="small"
-            sx={{
-              transform: showMetrics ? 'rotate(180deg)' : 'none',
-              transition: 'transform 0.2s',
-            }}
-          >
-            <ExpandMoreRoundedIcon sx={{ fontSize: 20 }} />
-          </IconButton>
-        </Box>
-
-        <Collapse in={showMetrics}
-unmountOnExit>
-          <Grid container
-spacing={1}
-sx={{ mb: 1.5 }}>
-            {/* ── KPI Cards ── */}
-            <Grid xs={12}
-lg={5}
-xl={4}>
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: 'repeat(2, 1fr)' },
-                  gap: 1,
-                  height: '100%',
-                }}
-              >
-                <KpiCard
-                  icon={<CampaignRoundedIcon sx={{ fontSize: 16 }} />}
-                  label="Total filtrado"
-                  description="campañas en el filtro activo"
-                  value={s.total}
-                  color={theme.palette.primary.main}
-                  loading={isLoading}
-                />
-                <KpiCard
-                  icon={<CheckCircleOutlineRoundedIcon sx={{ fontSize: 16 }} />}
-                  label="Completadas"
-                  description="campañas enviadas con éxito"
-                  value={s.byStatus.completed ?? 0}
-                  color={theme.palette.success.main}
-                  loading={isLoading}
-                />
-                <KpiCard
-                  icon={<ScheduleRoundedIcon sx={{ fontSize: 16 }} />}
-                  label="Programadas"
-                  description="campañas en cola de envío"
-                  value={s.byStatus.scheduled ?? 0}
-                  color={theme.palette.warning.main}
-                  loading={isLoading}
-                />
-                <KpiCard
-                  icon={<CancelOutlinedIcon sx={{ fontSize: 16 }} />}
-                  label="Canceladas"
-                  description="campañas no ejecutadas"
-                  value={s.byStatus.cancelled ?? 0}
-                  color={theme.palette.error.main}
-                  loading={isLoading}
-                />
-              </Box>
-            </Grid>
-
-            {/* ── Messaging Intelligence Panel ── */}
-            <Grid xs={12}
-lg={7}
-xl={8}>
-              <MessagingPanel stats={s}
-loading={isLoading} />
-            </Grid>
-          </Grid>
-        </Collapse>
+        <KpiRow min={196}>
+          <PanelKpiCard
+            icon={<CampaignRoundedIcon sx={{ fontSize: 17, color: 'primary.main' }} />}
+            label="Envíos"
+            value={isLoading ? '—' : s.total.toLocaleString()}
+            delta="en el filtro activo"
+          />
+          <PanelKpiCard
+            icon={<CheckCircleOutlineRoundedIcon sx={{ fontSize: 17, color: 'success.main' }} />}
+            label="Completadas"
+            value={isLoading ? '—' : (s.byStatus.completed ?? 0).toLocaleString()}
+            delta={`${(s.byStatus.scheduled ?? 0).toLocaleString()} programadas`}
+          />
+          <PanelKpiCard
+            icon={<PeopleOutlineRoundedIcon sx={{ fontSize: 17, color: 'info.main' }} />}
+            label="Audiencia"
+            value={isLoading ? '—' : s.messages.totalAudience.toLocaleString()}
+            delta="mensajes entregables"
+          />
+          <PanelKpiCard
+            icon={<MonetizationOnRoundedIcon sx={{ fontSize: 17, color: 'warning.main' }} />}
+            label="Costo"
+            value={isLoading ? '—' : compactUsd.format(s.messages.totalCost ?? 0)}
+            delta="facturado a tiendas"
+          />
+          <PanelKpiCard
+            icon={<TrendingUpRoundedIcon sx={{ fontSize: 17, color: 'success.main' }} />}
+            label="Entrega media"
+            value={isLoading ? '—' : `${Math.round(s.messages.avgDeliveryRate ?? 0)}%`}
+            delta={storeId ? 'esta tienda' : 'red completa'}
+            tone={(s.messages.avgDeliveryRate ?? 0) >= 85 ? 'success' : 'warning'}
+          />
+        </KpiRow>
       </Box>
 
       <Grid container

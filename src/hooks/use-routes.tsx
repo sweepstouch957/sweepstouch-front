@@ -77,7 +77,9 @@ const usersMenu = (t: (token: string) => string): MenuItem =>
 const campaignsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Campaigns'), <Campaign />, [
     { title: t('Listing'), route: routes.admin.management.campaings.listing },
-    { title: t('Send Test'), route: routes.admin.management.campaings['send-test'], roles: ['admin'] },
+    // Send Test salió del menú: es una acción sobre campañas, no una sección.
+    // Vive en el botón "Enviar prueba" de la portada del listado; la ruta sigue
+    // existiendo para quien la tenga guardada.
     { title: t('MMS Generator'), route: routes.admin.management.campaings.mms, roles: ['admin'] },
     { title: t('RCS Monitoring'), route: routes.admin.dashboards['campaign-analytics'], roles: ['admin'] },
     { title: t('Opt-in MMS'), route: routes.admin.management.campaings.optin, roles: ['admin', 'general_manager', 'campaign_manager'] },

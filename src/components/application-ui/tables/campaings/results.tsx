@@ -428,9 +428,12 @@ justifyContent="flex-end">
         border: `1px solid ${theme.palette.divider}`,
       }}
     >
-      <CampaignsFilters filters={filters}
-setFilters={setFilters}
-storeId={storeId} />
+      <CampaignsFilters
+        filters={filters}
+        setFilters={setFilters}
+        storeId={storeId}
+        total={total}
+      />
 
       {/* Mobile: card grid */}
       {showCards ? (

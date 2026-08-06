@@ -43,6 +43,8 @@ type Props = {
   filters: CampaignFilters;
   setFilters: (next: CampaignFilters) => void;
   storeId?: string;
+  /** Cuántas campañas quedan tras filtrar. Cierra la fila, como en Tiendas. */
+  total?: number;
 };
 
 const PLATFORM_OPTIONS = [
@@ -59,9 +61,9 @@ const PLATFORM_OPTIONS = [
  */
 const selectSx = {
   '& .MuiOutlinedInput-root': {
-    height: 32,
-    fontSize: 12.5,
-    borderRadius: '9px',
+    height: 40,
+    fontSize: 13,
+    borderRadius: '12px',
     fontWeight: 600,
     '& fieldset': { borderColor: 'divider' },
     '&:hover fieldset': { borderColor: 'text.disabled' },
@@ -69,7 +71,7 @@ const selectSx = {
   '& .MuiSelect-select': { py: 0 },
 } as const;
 
-export default function CampaignsFilters({ filters, setFilters, storeId }: Props) {
+export default function CampaignsFilters({ filters, setFilters, storeId, total }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -121,15 +123,14 @@ export default function CampaignsFilters({ filters, setFilters, storeId }: Props
   return (
     <Box
       sx={{
-        px: { xs: 2, sm: 3 },
-        py: 1.75,
+        px: { xs: 2, sm: 2.5 },
+        py: 1.25,
         borderBottom: `1px solid ${theme.palette.divider}`,
-        background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.04)} 0%, ${alpha(theme.palette.secondary.main, 0.04)} 100%)`,
       }}
     >
       <Stack
         direction={{ xs: 'column', md: 'row' }}
-        gap={1.5}
+        gap={1}
         alignItems={{ xs: 'stretch', md: 'center' }}
         flexWrap="wrap"
         useFlexGap
@@ -312,7 +313,7 @@ sx={{ ml: 'auto' }} />
                 label={t('Store')}
                 placeholder={t('Select store')}
                 fullWidth
-                sx={{ '& .MuiOutlinedInput-root': { height: 36, fontSize: 13, borderRadius: 2 } }}
+                sx={{ '& .MuiOutlinedInput-root': { height: 40, fontSize: 13, borderRadius: '12px' } }}
                 InputProps={{
                   ...params.InputProps,
                   endAdornment: (
@@ -327,6 +328,28 @@ sx={{ ml: 'auto' }} />
           />
         )}
 
+        {/* Cuántas quedan tras filtrar — píldora rosa del diseño */}
+        {!!total && total > 0 && (
+          <Box
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              height: 40,
+              px: 1.75,
+              borderRadius: '12px',
+              flexShrink: 0,
+              fontSize: 12.5,
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+              ml: { md: 'auto' },
+              bgcolor: alpha(theme.palette.primary.main, 0.12),
+              color: 'primary.dark',
+            }}
+          >
+            {total.toLocaleString()} resultados
+          </Box>
+        )}
+
         {/* Clear all */}
         {hasActiveFilters && (
           <Tooltip title="Limpiar filtros">
@@ -339,12 +362,13 @@ sx={{ ml: 'auto' }} />
                 fontSize: 12,
                 fontWeight: 600,
                 cursor: 'pointer',
-                height: 32,
+                height: 40,
+                borderRadius: '12px',
                 border: '1px solid',
-                borderColor: 'error.main',
+                borderColor: 'divider',
                 color: 'error.main',
-                bgcolor: alpha(theme.palette.error.main, 0.06),
-                '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.12) },
+                bgcolor: 'transparent',
+                '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.08) },
               }}
             />
           </Tooltip>
