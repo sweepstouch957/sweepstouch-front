@@ -29,6 +29,12 @@ export interface MaterialItem {
   qty: number;
 }
 
+/**
+ * Sender Infobip por defecto cuando la tienda no tiene uno propio.
+ * Debe coincidir con INFOBIP_SENDER_ID del backend (sms-worker/providers/infobip.js).
+ */
+export const DEFAULT_INFOBIP_SENDER = '18554407056';
+
 export interface Store {
   id: string;
   _id: string;

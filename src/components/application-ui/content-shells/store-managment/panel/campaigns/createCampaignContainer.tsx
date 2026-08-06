@@ -1,6 +1,7 @@
 'use client';
 
 import { campaignClient } from '@/services/campaing.service';
+import { DEFAULT_INFOBIP_SENDER } from '@/services/store.service';
 import { uploadCampaignImage } from '@/services/upload.service';
 import {
   Alert,
@@ -59,7 +60,7 @@ export default function CampaignFormContainer({
           imagePublicId: uploadedImage?.public_id || data.imagePublicId || null,
           customAudience: totalAudience,
           platform: provider || '',
-          sourceTn: phoneNumber ? `+${phoneNumber}` : '',
+          sourceTn: phoneNumber || DEFAULT_INFOBIP_SENDER,
         };
 
         const response = isEditing

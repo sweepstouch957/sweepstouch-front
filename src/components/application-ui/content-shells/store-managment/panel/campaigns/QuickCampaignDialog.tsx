@@ -3,6 +3,7 @@
 import PreviewPhone from '@/components/application-ui/dialogs/preview/preview-phone';
 import AvatarUploadLogo from '@/components/application-ui/upload/avatar/avatar-upload-logo';
 import { campaignClient } from '@/services/campaing.service';
+import { DEFAULT_INFOBIP_SENDER } from '@/services/store.service';
 import { uploadCampaignImage } from '@/services/upload.service';
 import CalendarTodayRoundedIcon from '@mui/icons-material/CalendarTodayRounded';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
@@ -123,7 +124,7 @@ export default function QuickCampaignDialog({
         image: imgUrl, imagePublicId: imgPid,
         customAudience: totalAudience,
         platform: provider,
-        sourceTn: phoneNumber ? `+${phoneNumber}` : '',
+        sourceTn: phoneNumber || DEFAULT_INFOBIP_SENDER,
       } as any, storeId);
     },
     onSuccess: () => {

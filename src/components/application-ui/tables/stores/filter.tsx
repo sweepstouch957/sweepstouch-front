@@ -3,14 +3,12 @@
 import { useAuth } from '@/hooks/use-auth';
 import { sendChatMessage } from '@/services/ai.service';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
-import BoltRounded from '@mui/icons-material/BoltRounded';
 import CancelRounded from '@mui/icons-material/CancelRounded';
 import FilterAltOffRoundedIcon from '@mui/icons-material/FilterAltOffRounded';
 import LocalPhone from '@mui/icons-material/LocalPhone';
 import SmsRounded from '@mui/icons-material/SmsRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
-import SwapVertRoundedIcon from '@mui/icons-material/SwapVertRounded';
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
 import {
   alpha,
@@ -49,7 +47,7 @@ const STATUS_LABELS: Record<StoreStatusFilter, string> = {
 
 // Estilo estático de los selects — sin dependencias del componente
 const selectSx = {
-  '& .MuiOutlinedInput-root': { height: 33, fontSize: 12.5, fontWeight: 600, borderRadius: '9px' },
+  '& .MuiOutlinedInput-root': { height: 40, fontSize: 13, fontWeight: 600, borderRadius: '12px' },
 } as const;
 
 function useAISuggestion(
@@ -124,14 +122,8 @@ export default function StoreFilters({
   maxDebt,
   paymentMethod,
   onPaymentMethodChange,
-  provider,
-  onProviderChange,
   circularss,
   onCircularssChange,
-  sortBy,
-  order,
-  onSortChange,
-  onOrderChange,
   handleSearchChange,
   onStatusChange,
   onAudienceLtChange,
@@ -149,14 +141,8 @@ export default function StoreFilters({
   maxDebt: string;
   paymentMethod: string;
   onPaymentMethodChange: (v: string) => void;
-  provider: string;
-  onProviderChange: (v: string) => void;
   circularss: string;
   onCircularssChange: (v: any) => void;
-  sortBy: string;
-  order: 'asc' | 'desc';
-  onSortChange: (v: string) => void;
-  onOrderChange: (v: 'asc' | 'desc') => void;
   handleSearchChange: (v: string) => void;
   onStatusChange: (s: StoreStatusFilter) => void;
   onAudienceLtChange: (v: string) => void;
@@ -210,7 +196,6 @@ export default function StoreFilters({
     !!searchProp ||
     status !== 'all' ||
     paymentMethod !== 'all' ||
-    provider !== 'all' ||
     circularss !== 'all' ||
     hasAdvancedFilters;
 
@@ -220,7 +205,6 @@ export default function StoreFilters({
     handleSearchChange('');
     onStatusChange('all');
     onPaymentMethodChange('all');
-    onProviderChange('all');
     onCircularssChange('all');
     onAudienceLtChange('');
     onDebtStatusChange('all');
@@ -252,7 +236,7 @@ export default function StoreFilters({
           size="small"
           value={searchInput}
           onChange={(e) => onSearchInput(e.target.value)}
-          placeholder="Buscar tienda..."
+          placeholder="Buscar tienda, código o teléfono"
           onClick={onOpenCommandPalette ? (e) => {
             // On small screens, tap opens command palette
             if (window.innerWidth < 600 && onOpenCommandPalette) {
@@ -261,8 +245,8 @@ export default function StoreFilters({
             }
           } : undefined}
           sx={{
-            flex: { xs: '1 1 100%', sm: '1 1 180px' },
-            '& .MuiOutlinedInput-root': { height: 36, fontSize: 13, borderRadius: 2 },
+            flex: { xs: '1 1 100%', sm: '2 1 260px' },
+            '& .MuiOutlinedInput-root': { height: 40, fontSize: 13, borderRadius: '12px' },
           }}
           InputProps={{
             startAdornment: (
@@ -302,7 +286,7 @@ sx={{ letterSpacing: '0.02em' }}>
         {/* Estado — control único del status (el header refleja este valor) */}
         <FormControl
           size="small"
-          sx={{ ...selectSx, flex: { xs: '1 1 calc(50% - 4px)', sm: '0 0 138px' } }}
+          sx={{ ...selectSx, flex: { xs: '1 1 calc(50% - 4px)', sm: '0 0 150px' } }}
         >
           <Select
             value={status}
@@ -330,7 +314,7 @@ sx={{ fontSize: 13 }}>Canceladas</MenuItem>
         {/* Payment method */}
         <FormControl
           size="small"
-          sx={{ ...selectSx, flex: { xs: '1 1 calc(50% - 4px)', sm: '0 0 138px' } }}
+          sx={{ ...selectSx, flex: { xs: '1 1 calc(50% - 4px)', sm: '0 0 150px' } }}
         >
           <Select
             value={paymentMethod}
@@ -362,33 +346,6 @@ sx={{ fontSize: 13 }}>Cash</MenuItem>
           </Select>
         </FormControl>
 
-        {/* Provider SMS */}
-        <FormControl
-          size="small"
-          sx={{ ...selectSx, flex: { xs: '1 1 calc(50% - 4px)', sm: '0 0 128px' } }}
-        >
-          <Select
-            value={provider}
-            displayEmpty
-            onChange={(e) => onProviderChange(e.target.value)}
-            renderValue={(val) => (
-              <Typography fontSize={13}
-color={!val || val === 'all' ? 'text.secondary' : 'text.primary'}>
-                {!val || val === 'all' ? 'Provider' : (
-                  <><BoltRounded fontSize="small"
-sx={{ mr: 1, verticalAlign: 'middle' }} />Infobip</>
-                )}
-              </Typography>
-            )}
-          >
-            <MenuItem value="all"
-sx={{ fontSize: 13 }}>Todos</MenuItem>
-            <MenuItem value="infobip"
-sx={{ fontSize: 13 }}><BoltRounded fontSize="small"
-sx={{ mr: 1, verticalAlign: 'middle' }} />Infobip</MenuItem>
-          </Select>
-        </FormControl>
-
         {/* Circularss — un clic: sólo las de Circularss */}
         <Tooltip title="Mostrar sólo tiendas de Circularss">
           <FormControlLabel
@@ -412,44 +369,7 @@ sx={{ mr: 1, verticalAlign: 'middle' }} />Infobip</MenuItem>
           />
         </Tooltip>
 
-        {/* Sort */}
-        <FormControl
-          size="small"
-          sx={{ ...selectSx, flex: { xs: '1 1 calc(50% - 4px)', sm: '0 0 128px' } }}
-        >
-          <Select
-            value={sortBy}
-            onChange={(e) => onSortChange(e.target.value as any)}
-          >
-            <MenuItem value="customerCount"
-sx={{ fontSize: 13 }}>Clientes</MenuItem>
-            <MenuItem value="maxDaysOverdue"
-sx={{ fontSize: 13 }}>Días vencido</MenuItem>
-            <MenuItem value="name"
-sx={{ fontSize: 13 }}>Nombre</MenuItem>
-            <MenuItem value="active"
-sx={{ fontSize: 13 }}>Estado</MenuItem>
-          </Select>
-        </FormControl>
 
-        {/* Sort order toggle */}
-        <Tooltip title={order === 'asc' ? 'Ascendente' : 'Descendente'}>
-          <IconButton
-            size="small"
-            onClick={() => onOrderChange(order === 'asc' ? 'desc' : 'asc')}
-            sx={{
-              border: '1px solid', borderColor: 'divider', borderRadius: 1.5,
-              width: 36, height: 36, flexShrink: 0,
-            }}
-          >
-            <SwapVertRoundedIcon
-              fontSize="small"
-              sx={{ transform: order === 'asc' ? 'none' : 'scaleY(-1)', transition: 'transform 0.2s' }}
-            />
-          </IconButton>
-        </Tooltip>
-
-        {/* Advanced filters toggle */}
         <Tooltip title={showAdvanced ? 'Ocultar filtros avanzados' : 'Filtros avanzados'}>
           <IconButton
             size="small"
@@ -457,7 +377,7 @@ sx={{ fontSize: 13 }}>Estado</MenuItem>
             sx={{
               border: '1px solid',
               borderColor: hasAdvancedFilters ? 'primary.main' : 'divider',
-              borderRadius: 1.5, width: 36, height: 36, flexShrink: 0,
+              borderRadius: '12px', width: 40, height: 40, flexShrink: 0,
               bgcolor: hasAdvancedFilters ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
               color: hasAdvancedFilters ? 'primary.main' : 'text.secondary',
             }}
@@ -473,9 +393,9 @@ sx={{ fontSize: 13 }}>Estado</MenuItem>
             sx={{
               display: 'inline-flex',
               alignItems: 'center',
-              height: 33,
-              px: 1.4,
-              borderRadius: '9px',
+              height: 40,
+              px: 1.75,
+              borderRadius: '12px',
               flexShrink: 0,
               fontSize: 12.5,
               fontWeight: 700,
@@ -495,8 +415,8 @@ sx={{ fontSize: 13 }}>Estado</MenuItem>
               size="small"
               onClick={handleClearAll}
               sx={{
-                border: '1px solid', borderColor: 'error.main', borderRadius: 1.5,
-                width: 36, height: 36, flexShrink: 0,
+                border: '1px solid', borderColor: 'error.main', borderRadius: '12px',
+                width: 40, height: 40, flexShrink: 0,
                 color: 'error.main',
                 bgcolor: alpha(theme.palette.error.main, 0.06),
                 '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.12) },
@@ -555,53 +475,57 @@ sx={{ color: 'text.secondary' }} />
         </Box>
       )}
 
+      {/* Fila 2: deuda. Siempre visible — es el filtro principal, no un
+          detalle avanzado, y repetía el estado de las cubetas de arriba. */}
+      <Divider />
+      <Box sx={{ px: { xs: 1.5, sm: 2 }, py: 1.25 }}>
+        <Stack
+          direction="row"
+          spacing={0.75}
+          alignItems="center"
+          flexWrap="wrap"
+          sx={{ rowGap: 0.75 }}
+        >
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            fontWeight={700}
+            sx={{ flexShrink: 0 }}
+          >
+            DEUDA
+          </Typography>
+          {debtChipConfigs(theme).map((cfg) => (
+            <Chip
+              key={cfg.value}
+              size="small"
+              label={cfg.label}
+              onClick={() => onDebtStatusChange(cfg.value)}
+              variant={debtStatus === cfg.value ? 'filled' : 'outlined'}
+              sx={{
+                height: 36, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', borderRadius: '10px',
+                ...(cfg.color
+                  ? debtStatus === cfg.value
+                    ? {
+                        bgcolor: alpha(cfg.color, theme.palette.mode === 'dark' ? 0.25 : 0.15),
+                        color: cfg.color,
+                        borderColor: alpha(cfg.color, 0.5),
+                      }
+                    : {
+                        borderColor: alpha(cfg.color, 0.4),
+                        color: cfg.color,
+                      }
+                  : {}),
+              }}
+            />
+          ))}
+        </Stack>
+      </Box>
+
       {/* Advanced filters panel */}
       <Collapse in={showAdvanced}>
         <Divider />
         <Box sx={{ px: { xs: 1.5, sm: 2 }, py: 1.5 }}>
           <Stack spacing={1.5}>
-            {/* Debt status chips */}
-            <Stack
-              direction="row"
-              spacing={0.75}
-              alignItems="center"
-              flexWrap="wrap"
-              sx={{ rowGap: 0.75 }}
-            >
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                fontWeight={700}
-                sx={{ flexShrink: 0 }}
-              >
-                DEUDA
-              </Typography>
-              {debtChipConfigs(theme).map((cfg) => (
-                <Chip
-                  key={cfg.value}
-                  size="small"
-                  label={cfg.label}
-                  onClick={() => onDebtStatusChange(cfg.value)}
-                  variant={debtStatus === cfg.value ? 'filled' : 'outlined'}
-                  sx={{
-                    height: 33, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', borderRadius: '9px',
-                    ...(cfg.color
-                      ? debtStatus === cfg.value
-                        ? {
-                            bgcolor: alpha(cfg.color, theme.palette.mode === 'dark' ? 0.25 : 0.15),
-                            color: cfg.color,
-                            borderColor: alpha(cfg.color, 0.5),
-                          }
-                        : {
-                            borderColor: alpha(cfg.color, 0.4),
-                            color: cfg.color,
-                          }
-                      : {}),
-                  }}
-                />
-              ))}
-            </Stack>
-
             {/* Audience + debt range */}
             <Stack
               direction={{ xs: 'column', sm: 'row' }}

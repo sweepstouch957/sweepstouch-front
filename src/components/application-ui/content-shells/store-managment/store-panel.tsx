@@ -1,6 +1,7 @@
 'use client';
 
 import { useStoreManagementPage } from '@/hooks/pages/useStoreManagementPage';
+import { DEFAULT_INFOBIP_SENDER } from '@/services/store.service';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import { Box, Divider, Theme, useMediaQuery, useTheme } from '@mui/material';
 import { useRef } from 'react';
@@ -122,7 +123,7 @@ const StoreManagementPage = () => {
             onClose={() => setQuickOpen(false)}
             storeId={storeId}
             provider={store.provider || ''}
-            phoneNumber={store.infobipSenderId || ''}
+            phoneNumber={store.infobipSenderId || DEFAULT_INFOBIP_SENDER}
             totalAudience={store.customerCount || 0}
             onCreated={() => setQuickOpen(false)}
           />

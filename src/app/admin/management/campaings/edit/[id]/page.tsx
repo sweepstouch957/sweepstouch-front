@@ -2,7 +2,7 @@
 
 import CampaignFormContainer from '@/components/application-ui/content-shells/store-managment/panel/campaigns/createCampaignContainer';
 import { campaignClient } from '@/services/campaing.service';
-import storesService from '@/services/store.service';
+import storesService, { DEFAULT_INFOBIP_SENDER } from '@/services/store.service';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import { Box, Container, IconButton, Skeleton, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
@@ -114,7 +114,7 @@ export default function EditCampaignPage() {
       <CampaignFormContainer
         storeId={store.id}
         provider={store.provider}
-        phoneNumber={store.infobipSenderId || ''}
+        phoneNumber={store.infobipSenderId || DEFAULT_INFOBIP_SENDER}
         totalAudience={store.customerCount}
         initialData={campaign}
         onCreate={() => {

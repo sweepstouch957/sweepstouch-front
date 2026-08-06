@@ -1,7 +1,7 @@
 'use client';
 
 import StoreInfo from '@/components/website/store-panel';
-import { Store } from '@/services/store.service';
+import { DEFAULT_INFOBIP_SENDER, Store } from '@/services/store.service';
 import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
 import { Box, Button, Skeleton, Stack, Typography } from '@mui/material';
 import type { FC } from 'react';
@@ -30,8 +30,10 @@ interface Props {
   onBack: () => void;
 }
 
+/** Sender real de la tienda. Alimenta el sourceTn de la campaña, así que nunca
+ *  puede caer al teléfono del local ni a un texto de UI. */
 function getProviderPhoneNumber(store: Store): string {
-  return store.infobipSenderId || store.phoneNumber || 'Número global del sistema';
+  return store.infobipSenderId || DEFAULT_INFOBIP_SENDER;
 }
 
 const ContentLoadingSkeleton: FC = () => (
