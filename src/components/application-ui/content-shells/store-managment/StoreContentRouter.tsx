@@ -31,14 +31,7 @@ interface Props {
 }
 
 function getProviderPhoneNumber(store: Store): string {
-  switch (store.provider) {
-    case 'bandwidth':
-      return store.bandwidthPhoneNumber || '';
-    case 'infobip':
-      return store.infobipSenderId || store.phoneNumber || 'Número global del sistema';
-    default:
-      return store.phoneNumber || '';
-  }
+  return store.infobipSenderId || store.phoneNumber || 'Número global del sistema';
 }
 
 const ContentLoadingSkeleton: FC = () => (
@@ -193,9 +186,7 @@ gutterBottom>
             Proveedor SMS
           </Typography>
           <Typography color="text.secondary">
-            {store.provider === 'twilio'
-              ? `Twilio: ${store.twilioPhoneNumber || 'No asignado'}`
-              : `Bandwidth: ${store.bandwidthPhoneNumber || 'No asignado'}`}
+            {`Infobip: ${store.infobipSenderId || 'No asignado'}`}
           </Typography>
         </Box>
       );

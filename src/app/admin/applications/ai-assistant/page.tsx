@@ -61,7 +61,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { HEADER_HEIGHT } from 'src/theme/utils';
+import { headerOffset } from 'src/theme/utils';
 import { BarChart } from '@mui/x-charts/BarChart';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { PieChart } from '@mui/x-charts/PieChart';
@@ -888,10 +888,10 @@ const StreamingIndicator: React.FC = () => {
    MAIN PAGE
    ═══════════════════════════════════════════════════════════ */
 
-// Altura del chat: lo que queda bajo el navbar, que es lo que el shell reserva
+// Altura del chat: lo que queda bajo el navbar, medido por la cabecera
 const chatHeight = {
-  xs: `calc(100dvh - ${HEADER_HEIGHT}px)`,
-  md: `calc(100vh - ${HEADER_HEIGHT}px)`,
+  xs: `calc(100dvh - ${headerOffset})`,
+  md: `calc(100vh - ${headerOffset})`,
 };
 
 export default function AIAssistantPage() {

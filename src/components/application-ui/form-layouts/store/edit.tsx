@@ -66,13 +66,8 @@ type Props = {
     active: boolean;
     provider: Store['provider'];
     phoneNumber: string;
-    bandwidthPhoneNumber: string;
-    twilioPhoneNumber: string;
-    twilioPhoneNumberSid: string;
-    twilioPhoneNumberFriendlyName: string;
     infobipSenderId?: string;
     infobipShortcode?: string;
-    verifiedByTwilio: boolean;
     address: string;
     zipCode: string;
     type: Store['type'];
@@ -279,10 +274,8 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
       : 'Sin configurar');
 
   const smsSummary = form.provider
-    ? `${form.provider.charAt(0).toUpperCase()}${form.provider.slice(1)}${form.provider === 'twilio' && form.twilioPhoneNumber
-      ? ` · ${form.twilioPhoneNumber}`
-      : form.provider === 'bandwidth' && form.bandwidthPhoneNumber
-        ? ` · ${form.bandwidthPhoneNumber}`
+    ? `${form.provider.charAt(0).toUpperCase()}${form.provider.slice(1)}${form.infobipSenderId
+      ? ` · ${form.infobipSenderId}`
         : ''
     }`
     : 'Sin configurar';
@@ -700,98 +693,29 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
               onChange={onChange('provider')}
               disabled={!edit}
             >
-              <MenuItem value="twilio"><LocalPhone fontSize="small" sx={{ mr: 1 }} />Twilio</MenuItem>
-              {/* DEPRECADO — Bandwidth ya no se usa, no se puede elegir en tiendas nuevas
-              <MenuItem value="bandwidth">Bandwidth</MenuItem> */}
               <MenuItem value="infobip"><BoltRounded fontSize="small" sx={{ mr: 1 }} />Infobip</MenuItem>
             </TextField>
 
-            {form.provider === 'infobip' && (
-              <TextField
-                fullWidth
-                size="small"
-                label="Infobip Sender ID / Number"
-                value={form.infobipSenderId || ''}
-                onChange={onChange('infobipSenderId')}
-                disabled={!edit}
-                helperText="Toll-free para campañas. Dejar vacío para usar el número predeterminado del sistema."
-              />
-            )}
+            <TextField
+              fullWidth
+              size="small"
+              label="Infobip Sender ID / Number"
+              value={form.infobipSenderId || ''}
+              onChange={onChange('infobipSenderId')}
+              disabled={!edit}
+              helperText="Toll-free para campañas. Dejar vacío para usar el número predeterminado del sistema."
+            />
 
-            {form.provider === 'infobip' && (
-              <TextField
-                fullWidth
-                size="small"
-                label="Infobip Shortcode (OTP)"
-                value={form.infobipShortcode || ''}
-                onChange={onChange('infobipShortcode')}
-                disabled={!edit}
-                helperText="Shortcode para OTP/verificación (ej: 912608). Vacío = default del sistema."
-              />
-            )}
+            <TextField
+              fullWidth
+              size="small"
+              label="Infobip Shortcode (OTP)"
+              value={form.infobipShortcode || ''}
+              onChange={onChange('infobipShortcode')}
+              disabled={!edit}
+              helperText="Shortcode para OTP/verificación (ej: 912608). Vacío = default del sistema."
+            />
 
-            {form.provider === 'bandwidth' && (
-              <TextField
-                fullWidth
-                size="small"
-                label="Bandwidth Number"
-                value={form.bandwidthPhoneNumber}
-                onChange={onChange('bandwidthPhoneNumber')}
-                disabled={!edit}
-              />
-            )}
-
-            {form.provider === 'twilio' && (
-              <>
-                <Stack direction="row" spacing={1.25}>
-                  <TextField
-                    size="small"
-                    label="Twilio Number"
-                    sx={{ flex: 1 }}
-                    value={form.twilioPhoneNumber}
-                    onChange={onChange('twilioPhoneNumber')}
-                    disabled={!edit}
-                  />
-                  <TextField
-                    size="small"
-                    label="Twilio SID"
-                    sx={{ flex: 1 }}
-                    value={form.twilioPhoneNumberSid}
-                    onChange={onChange('twilioPhoneNumberSid')}
-                    disabled={!edit}
-                  />
-                </Stack>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Nombre Amigable"
-                  value={form.twilioPhoneNumberFriendlyName}
-                  onChange={onChange('twilioPhoneNumberFriendlyName')}
-                  disabled={!edit}
-                />
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  spacing={1.5}
-                  sx={{
-                    px: 1.5,
-                    py: 0.75,
-                    borderRadius: 1.5,
-                    border: (t) => `1px solid ${t.palette.divider}`,
-                  }}
-                >
-                  <LockRounded fontSize="small" color="disabled" />
-                  <Typography variant="body2" flex={1}>
-                    Verificada por Twilio
-                  </Typography>
-                  <Switch
-                    checked={form.verifiedByTwilio}
-                    onChange={onChange('verifiedByTwilio')}
-                    disabled={!edit}
-                  />
-                </Stack>
-              </>
-            )}
           </Stack>
         </CollapsibleSection>
 

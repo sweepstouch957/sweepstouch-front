@@ -45,8 +45,6 @@ const TYPE_LABEL: Record<Store['type'], string> = {
 };
 
 const PROVIDER_LABEL: Record<string, string> = {
-  twilio: 'Twilio',
-  bandwidth: 'Bandwidth',
   infobip: 'Infobip',
 };
 
@@ -136,6 +134,11 @@ type Props = {
   /** Estado resuelto por el panel. Único color con significado del encabezado. */
   statusLabel: string;
   statusColor: string;
+  /**
+   * Editar / Guardar de la portada. Lo arma el panel, que es quien sabe qué
+   * sección está abierta; acá sólo se le da lugar junto a las otras acciones.
+   */
+  action?: React.ReactNode;
   onNameChange?: (val: string) => void;
   /**
    * Imagen DE ESTA TIENDA (`store.image`). No toca el logo de la marca
@@ -166,6 +169,7 @@ export default function StoreHeader({
   provider,
   statusLabel,
   statusColor,
+  action,
   onNameChange,
   onImageChange,
 }: Props) {
@@ -236,6 +240,13 @@ export default function StoreHeader({
           spacing={{ xs: 1.5, md: 2 }}
           flexWrap={{ xs: 'wrap', md: 'nowrap' }}
         >
+          {/* Foto: en lectura es sólo la imagen; en edición suma el botón del
+              diseño debajo, porque la chapita de la cámara sola se pasa por alto. */}
+          <Stack
+            alignItems="center"
+            spacing={1}
+            flexShrink={0}
+          >
           <Badge
             overlap="circular"
             anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
@@ -290,6 +301,34 @@ export default function StoreHeader({
               <StoreMallDirectoryRounded sx={{ fontSize: { xs: 26, md: 34 } }} />
             </Avatar>
           </Badge>
+
+          {canEditImage && (
+            <Button
+              component="label"
+              size="small"
+              disabled={uploadingImage}
+              sx={{
+                height: 27,
+                px: 1.4,
+                borderRadius: '8px',
+                border: `1px solid ${theme.palette.divider}`,
+                textTransform: 'none',
+                fontWeight: 700,
+                fontSize: 11.5,
+                color: 'text.secondary',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {uploadingImage ? 'Subiendo…' : 'Cambiar foto'}
+              <input
+                hidden
+                type="file"
+                accept="image/*"
+                onChange={handlePickImage}
+              />
+            </Button>
+          )}
+          </Stack>
 
           <Box
             flex={1}
@@ -507,6 +546,8 @@ export default function StoreHeader({
               mt: { xs: 0.5, md: 0 },
             }}
           >
+            {action && <Box sx={{ mr: 0.75 }}>{action}</Box>}
+
             <IBtn
               title="Ver en Google Maps"
               onClick={() =>

@@ -374,13 +374,7 @@ sx={{ fontSize: 13 }}>Cash</MenuItem>
             renderValue={(val) => (
               <Typography fontSize={13}
 color={!val || val === 'all' ? 'text.secondary' : 'text.primary'}>
-                {!val || val === 'all' ? 'Provider' : val === 'twilio' ? (
-                  <><LocalPhone fontSize="small"
-sx={{ mr: 1, verticalAlign: 'middle' }} />Twilio</>
-                ) : val === 'bandwidth' ? (
-                  <><SmsRounded fontSize="small"
-sx={{ mr: 1, verticalAlign: 'middle' }} />Bandwidth</>
-                ) : (
+                {!val || val === 'all' ? 'Provider' : (
                   <><BoltRounded fontSize="small"
 sx={{ mr: 1, verticalAlign: 'middle' }} />Infobip</>
                 )}
@@ -389,12 +383,6 @@ sx={{ mr: 1, verticalAlign: 'middle' }} />Infobip</>
           >
             <MenuItem value="all"
 sx={{ fontSize: 13 }}>Todos</MenuItem>
-            <MenuItem value="twilio"
-sx={{ fontSize: 13 }}><LocalPhone fontSize="small"
-sx={{ mr: 1, verticalAlign: 'middle' }} />Twilio</MenuItem>
-            <MenuItem value="bandwidth"
-sx={{ fontSize: 13 }}><SmsRounded fontSize="small"
-sx={{ mr: 1, verticalAlign: 'middle' }} />Bandwidth</MenuItem>
             <MenuItem value="infobip"
 sx={{ fontSize: 13 }}><BoltRounded fontSize="small"
 sx={{ mr: 1, verticalAlign: 'middle' }} />Infobip</MenuItem>

@@ -12,7 +12,7 @@ export type PaymentMethodFilter =
   | 'wire'
   | 'cash';
 
-export type ProviderFilter = 'all' | 'twilio' | 'bandwidth' | 'infobip';
+export type ProviderFilter = 'all' | 'infobip';
 export type CircularssFilter = 'all' | 'true' | 'false';
 export type StoreStatusFilter = 'all' | 'active' | 'suspended' | 'cancelled';
 

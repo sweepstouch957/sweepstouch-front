@@ -174,16 +174,7 @@ function providerInfo(
   store: any,
   theme: Theme
 ): { label: string; icon: React.ReactElement; sender: string; color: string } {
-  const p = store.provider || 'twilio';
-  switch (p) {
-    case 'infobip':
-      return { label: 'Infobip', icon: <BoltRounded sx={{ fontSize: 16 }} />, sender: store.infobipSenderId || '—', color: theme.palette.warning.main };
-    case 'bandwidth':
-      return { label: 'Bandwidth', icon: <SmsRounded sx={{ fontSize: 16 }} />, sender: store.bandwidthPhoneNumber || '—', color: theme.palette.info.main };
-    case 'twilio':
-    default:
-      return { label: 'Twilio', icon: <LocalPhone sx={{ fontSize: 16 }} />, sender: store.twilioPhoneNumber || '—', color: theme.palette.error.main };
-  }
+  return { label: 'Infobip', icon: <BoltRounded sx={{ fontSize: 16 }} />, sender: store.infobipSenderId || '—', color: theme.palette.warning.main };
 }
 
 type TechStore = {

@@ -906,10 +906,7 @@ function MmsGeneratorPage(): React.JSX.Element {
                           circularFileUrl={circularFileUrl}
                           onGenerated={setGenerationResult}
                           storeProvider={selectedStore.provider}
-                          storeBandwidthPhone={selectedStore.bandwidthPhoneNumber}
-                          storeBandwidthId={selectedStore.bandwithId}
                           storeInfobipSenderId={selectedStore.infobipSenderId}
-                          storeTwilioPhone={selectedStore.twilioPhoneNumber}
                         />
                       </Box>
 

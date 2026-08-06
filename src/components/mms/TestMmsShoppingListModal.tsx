@@ -49,10 +49,7 @@ interface Props {
   circularId?: string;
   circularFileUrl?: string;
   storeProvider?: string;
-  storeBandwidthPhone?: string;
-  storeBandwidthId?: string;
   storeInfobipSenderId?: string;
-  storeTwilioPhone?: string;
 }
 
 type Step = 'select' | 'compose' | 'sent';
@@ -126,8 +123,8 @@ LinkDisplay.displayName = 'LinkDisplay';
 // ─── Main Modal ─────────────────────────────────────────
 export default function TestMmsShoppingListModal({
   open, onClose, storeId, storeSlug, storeName, products, headline, circularId,
-  circularFileUrl, storeProvider, storeBandwidthPhone, storeBandwidthId,
-  storeInfobipSenderId, storeTwilioPhone,
+  circularFileUrl, storeProvider,
+  storeInfobipSenderId,
 }: Props) {
   const [step, setStep] = useState<Step>('select');
   const [editingText, setEditingText] = useState(false);
@@ -143,8 +140,8 @@ export default function TestMmsShoppingListModal({
   const customerSearch = useCustomerSearch(storeId, open);
   const mmsSend = useMmsSend({
     storeSlug, storeName, circularId,
-    storeProvider, storeBandwidthPhone, storeBandwidthId,
-    storeInfobipSenderId, storeTwilioPhone,
+    storeProvider,
+    storeInfobipSenderId,
   });
 
   // ─── Handlers ───

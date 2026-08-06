@@ -89,34 +89,19 @@ export function useShortLink() {
 export interface ProviderConfig {
   provider: string;
   senderPhone: string;
-  senderId?: string;
 }
 
 export function resolveProvider(opts: {
-  storeProvider?: string;
-  storeBandwidthPhone?: string;
-  storeBandwidthId?: string;
   storeInfobipSenderId?: string;
-  storeTwilioPhone?: string;
   storeName: string;
 }): ProviderConfig {
-  const provider = opts.storeProvider || 'bandwidth';
-  let senderPhone = opts.storeBandwidthPhone || '';
-  let senderId: string | undefined = opts.storeBandwidthId;
-
-  if (provider === 'infobip') {
-    senderPhone = opts.storeInfobipSenderId || '';
-    senderId = undefined;
-  } else if (provider === 'twilio') {
-    senderPhone = opts.storeTwilioPhone || '';
-    senderId = undefined;
-  }
+  const senderPhone = opts.storeInfobipSenderId || '';
 
   if (!senderPhone) {
-    throw new Error(`Store "${opts.storeName}" has no sender for "${provider}". Check store settings.`);
+    throw new Error(`Store "${opts.storeName}" has no Infobip sender ID. Check store settings.`);
   }
 
-  return { provider, senderPhone, senderId };
+  return { provider: 'infobip', senderPhone };
 }
 
 // ─── Shopping list + send hook ───────────────────────────
@@ -132,10 +117,7 @@ export function useMmsSend(opts: {
   storeName: string;
   circularId?: string;
   storeProvider?: string;
-  storeBandwidthPhone?: string;
-  storeBandwidthId?: string;
   storeInfobipSenderId?: string;
-  storeTwilioPhone?: string;
 }) {
   const [creatingList, setCreatingList] = useState(false);
   const [sending, setSending] = useState(false);
@@ -215,12 +197,8 @@ export function useMmsSend(opts: {
         imgToSend = up.url;
       }
 
-      const { provider, senderPhone, senderId } = resolveProvider({
-        storeProvider: opts.storeProvider,
-        storeBandwidthPhone: opts.storeBandwidthPhone,
-        storeBandwidthId: opts.storeBandwidthId,
+      const { provider, senderPhone } = resolveProvider({
         storeInfobipSenderId: opts.storeInfobipSenderId,
-        storeTwilioPhone: opts.storeTwilioPhone,
         storeName: opts.storeName,
       });
 
@@ -230,7 +208,6 @@ export function useMmsSend(opts: {
         image: imgToSend,
         provider,
         phoneNumber: senderPhone,
-        id: senderId,
       });
       setSentSuccess(true);
       return true;

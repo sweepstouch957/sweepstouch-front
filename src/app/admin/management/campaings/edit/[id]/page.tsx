@@ -114,7 +114,7 @@ export default function EditCampaignPage() {
       <CampaignFormContainer
         storeId={store.id}
         provider={store.provider}
-        phoneNumber={store.twilioPhoneNumber || store.bandwidthPhoneNumber || ''}
+        phoneNumber={store.infobipSenderId || ''}
         totalAudience={store.customerCount}
         initialData={campaign}
         onCreate={() => {

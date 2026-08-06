@@ -2,7 +2,7 @@ import { Alert, AlertTitle, Box, Typography } from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 interface ProviderImageConstraintsProps {
-  provider: string; // 'twilio', 'bandwidth', 'infobip', etc.
+  provider: string; // 'infobip'
 }
 
 export default function ProviderImageConstraints({ provider }: ProviderImageConstraintsProps) {

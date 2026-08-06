@@ -229,7 +229,7 @@ const CampaignResendModal: React.FC<Props> = ({ open, onClose, campaignId }) => 
                 <Stack direction="row" flexWrap="wrap" gap={1}>
                   <Chip label={`Campaign: ${preview.campaign?.title ?? campaignId}`} size="small" variant="outlined" />
                   <Chip label={`Tipo: ${preview.campaign?.type?.toUpperCase() ?? '-'}`} size="small" color="primary" variant="outlined" />
-                  <Chip label={`Platform: ${preview.campaign?.platform ?? 'bandwidth'}`} size="small" color="secondary" variant="outlined" />
+                  <Chip label={`Platform: ${preview.campaign?.platform ?? 'infobip'}`} size="small" color="secondary" variant="outlined" />
                 </Stack>
 
                 {/* Errores RESENDABLES */}
@@ -331,7 +331,7 @@ const CampaignResendModal: React.FC<Props> = ({ open, onClose, campaignId }) => 
               )}
             </Stack>
             <Alert severity="success" sx={{ width: '100%' }}>
-              Los mensajes fueron encolados. Las métricas subirán conforme Bandwidth confirme las entregas.
+              Los mensajes fueron encolados. Las métricas subirán conforme el proveedor confirme las entregas.
             </Alert>
           </Stack>
         )}

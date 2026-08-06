@@ -13,17 +13,11 @@ export const getTierColor = (type: 'elite' | 'basic' | 'free') => {
 };
 
 
-export const getProviderChip = (provider: 'twilio' | 'bandwidth' | 'infobip') => {
-  switch (provider) {
-    case 'twilio':
-      return { label: 'Twilio', color: 'secondary' as const, icon: <SimCardIcon fontSize="small" /> };
-    case 'bandwidth':
-      return { label: 'Bandwidth', color: 'primary' as const, icon: <SimCardIcon fontSize="small" /> };
-    case 'infobip':
-      return { label: 'Infobip', color: 'success' as const, icon: <SimCardIcon fontSize="small" /> };
-    default:
-      return { label: 'Unknown', color: 'default' as const, icon: <SimCardIcon fontSize="small" /> };
+export const getProviderChip = (provider: 'infobip') => {
+  if (provider === 'infobip') {
+    return { label: 'Infobip', color: 'success' as const, icon: <SimCardIcon fontSize="small" /> };
   }
+  return { label: 'Unknown', color: 'default' as const, icon: <SimCardIcon fontSize="small" /> };
 };
 
 export const formatPhone = (p?: string) => (p ? p : 'No disponible');
