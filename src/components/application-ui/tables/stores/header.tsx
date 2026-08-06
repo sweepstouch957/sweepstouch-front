@@ -1,7 +1,7 @@
 'use client';
 
 import storesService from '@/services/store.service';
-import { Box, LinearProgress, Paper, Stack, Tooltip, Typography, useTheme } from '@mui/material';
+import { Box, LinearProgress, Paper, Skeleton, Stack, Tooltip, Typography, useTheme } from '@mui/material';
 import type { Theme } from '@mui/material/styles';
 import { useQuery } from '@tanstack/react-query';
 import { DebtBucket, Eyebrow, panelBorder } from '../../content-shells/store-managment/panel-kit';
@@ -75,7 +75,7 @@ const bucketConfigs = (theme: Theme) => [
  */
 export function StoresBillingHeader({ status = 'all', onFilterByDebt, activeDebtStatus }: Props) {
   const theme = useTheme();
-  const { data, isFetching } = useStoresBillingSummary(status);
+  const { data, isLoading, isFetching } = useStoresBillingSummary(status);
 
   const overallPending = data?.overall?.totalPending ?? 0;
 
@@ -95,7 +95,7 @@ export function StoresBillingHeader({ status = 'all', onFilterByDebt, activeDebt
         flexWrap="wrap"
         useFlexGap
         gap={1.25}
-        sx={{ px: { xs: 2, sm: 2.5 }, pt: 2, pb: 0.5 }}
+        sx={{ px: { xs: 2, sm: 2.5 }, pt: 1.75, pb: 0.25 }}
       >
         <Eyebrow>Cartera por antigüedad de deuda</Eyebrow>
         <Typography sx={{ fontSize: 11.5, color: 'text.secondary' }}>
@@ -115,19 +115,35 @@ export function StoresBillingHeader({ status = 'all', onFilterByDebt, activeDebt
         </Typography>
       </Stack>
 
-      {isFetching && <LinearProgress sx={{ height: 2 }} />}
+      {isFetching && !isLoading && <LinearProgress sx={{ height: 2 }} />}
 
       <Box
         sx={{
           px: { xs: 2, sm: 2.5 },
-          pt: 1.5,
-          pb: 2,
+          pt: 1.25,
+          pb: 1.75,
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(186px, 1fr))',
-          gap: 1.5,
+          // Seis columnas fijas en escritorio, no `auto-fit`: con `minmax` la
+          // sexta cubeta se caía a una segunda fila en cuanto la ventana bajaba
+          // de ~1180px, y la fila partida empujaba la tabla fuera de pantalla.
+          gridTemplateColumns: {
+            xs: 'repeat(2, minmax(0, 1fr))',
+            sm: 'repeat(3, minmax(0, 1fr))',
+            lg: 'repeat(6, minmax(0, 1fr))',
+          },
+          gap: { xs: 1, sm: 1.25 },
         }}
       >
-        {bucketConfigs(theme).map((cfg) => {
+        {isLoading
+          ? Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton
+                key={i}
+                variant="rounded"
+                height={112}
+                sx={{ borderRadius: '16px' }}
+              />
+            ))
+          : bucketConfigs(theme).map((cfg) => {
           const bucket = data?.[cfg.key] as BillingBucketSummary | undefined;
           return (
             <Tooltip
@@ -153,8 +169,8 @@ export function StoresBillingHeader({ status = 'all', onFilterByDebt, activeDebt
                 />
               </Box>
             </Tooltip>
-          );
-        })}
+            );
+            })}
       </Box>
     </Paper>
   );

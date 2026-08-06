@@ -411,7 +411,7 @@ export function PageHero({
         bgcolor: 'background.paper',
         border: panelBorder(theme),
         px: 2.5,
-        py: 2.25,
+        py: 2,
         display: 'flex',
         alignItems: 'center',
         gap: 2,
@@ -426,9 +426,12 @@ export function PageHero({
         >
           {title}
         </Typography>
-        {subtitle && (
-          <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>{subtitle}</Typography>
-        )}
+        {/* Siempre ocupa su renglón, aunque el dato todavía no llegue: si la
+            línea aparece cuando responde el servidor, empuja hacia abajo la
+            tarjeta de abajo y la página salta bajo el cursor. */}
+        <Typography sx={{ fontSize: 13, color: 'text.secondary', minHeight: 20 }}>
+          {subtitle}
+        </Typography>
       </Box>
       {actions && (
         <Box sx={{ ml: 'auto', display: 'flex', gap: 1, flexWrap: 'wrap' }}>{actions}</Box>

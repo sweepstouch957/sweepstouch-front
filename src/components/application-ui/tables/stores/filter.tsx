@@ -13,6 +13,7 @@ import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
 import {
   alpha,
   Box,
+  Button,
   Chip,
   Collapse,
   Divider,
@@ -218,7 +219,7 @@ export default function StoreFilters({
       elevation={0}
       sx={{
         borderRadius: '18px',
-        mt: 2,
+        // Sin `mt`: la tarjeta de cartera ya trae su `mb`. Sumaban 28px.
         mb: 1.5,
         border: '1px solid',
         borderColor: 'divider',
@@ -229,7 +230,7 @@ export default function StoreFilters({
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
         alignItems={{ xs: 'stretch', sm: 'center' }}
-        sx={{ px: { xs: 1.5, sm: 2 }, py: 1.25, gap: 1, flexWrap: 'wrap' }}
+        sx={{ px: { xs: 1.5, sm: 2 }, py: 1, gap: 1, flexWrap: 'wrap' }}
       >
         {/* Search field — desktop: live search, mobile: opens command palette */}
         <TextField
@@ -261,21 +262,29 @@ export default function StoreFilters({
                     component="button"
                     onClick={(e) => { e.stopPropagation(); onOpenCommandPalette(); }}
                     sx={{
-                      all: 'unset', display: 'flex', alignItems: 'center', gap: 0.3,
-                      px: 0.6, py: 0.15, borderRadius: 1, cursor: 'pointer',
-                      border: `1px solid ${alpha(theme.palette.text.primary, 0.15)}`,
-                      bgcolor: alpha(theme.palette.text.primary, 0.04),
-                      '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08), borderColor: alpha(theme.palette.primary.main, 0.3) },
-                      transition: 'all 0.15s',
+                      // Tecla gris discreta, como en el diseño. La cápsula rosa
+                      // con destello competía con la píldora de resultados, que
+                      // es lo único que debería tirar del ojo en esta fila.
+                      all: 'unset',
+                      display: 'flex',
+                      alignItems: 'center',
+                      px: 0.75,
+                      py: 0.25,
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      color: 'text.secondary',
+                      border: `1px solid ${alpha(theme.palette.text.primary, 0.12)}`,
+                      bgcolor: 'background.paper',
+                      transition: 'color .15s, border-color .15s',
+                      '&:hover': {
+                        color: 'primary.main',
+                        borderColor: alpha(theme.palette.primary.main, 0.4),
+                      },
                     }}
                   >
-                    <AutoAwesomeRoundedIcon sx={{ fontSize: 10, color: 'primary.main' }} />
-                    <Typography fontSize={10}
-fontWeight={700}
-color="text.secondary"
-sx={{ letterSpacing: '0.02em' }}>
-                      {kbdHint}
-                    </Typography>
+                    {kbdHint}
                   </Box>
                 </Tooltip>
               </InputAdornment>
@@ -376,10 +385,14 @@ sx={{ fontSize: 13 }}>Cash</MenuItem>
             onClick={() => setShowAdvanced(!showAdvanced)}
             sx={{
               border: '1px solid',
-              borderColor: hasAdvancedFilters ? 'primary.main' : 'divider',
+              borderColor: hasAdvancedFilters
+                ? alpha(theme.palette.text.primary, 0.35)
+                : 'divider',
               borderRadius: '12px', width: 40, height: 40, flexShrink: 0,
-              bgcolor: hasAdvancedFilters ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
-              color: hasAdvancedFilters ? 'primary.main' : 'text.secondary',
+              bgcolor: hasAdvancedFilters
+                ? alpha(theme.palette.text.primary, 0.06)
+                : 'transparent',
+              color: hasAdvancedFilters ? 'text.primary' : 'text.secondary',
             }}
           >
             <TuneRoundedIcon fontSize="small" />
@@ -408,24 +421,6 @@ sx={{ fontSize: 13 }}>Cash</MenuItem>
           </Box>
         )}
 
-        {/* Clear all */}
-        {hasAnyFilter && (
-          <Tooltip title="Limpiar todos los filtros">
-            <IconButton
-              size="small"
-              onClick={handleClearAll}
-              sx={{
-                border: '1px solid', borderColor: 'error.main', borderRadius: '12px',
-                width: 40, height: 40, flexShrink: 0,
-                color: 'error.main',
-                bgcolor: alpha(theme.palette.error.main, 0.06),
-                '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.12) },
-              }}
-            >
-              <FilterAltOffRoundedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        )}
       </Stack>
 
       {/* AI suggestion strip */}
@@ -478,7 +473,7 @@ sx={{ color: 'text.secondary' }} />
       {/* Fila 2: deuda. Siempre visible — es el filtro principal, no un
           detalle avanzado, y repetía el estado de las cubetas de arriba. */}
       <Divider />
-      <Box sx={{ px: { xs: 1.5, sm: 2 }, py: 1.25 }}>
+      <Box sx={{ px: { xs: 1.5, sm: 2 }, py: 1 }}>
         <Stack
           direction="row"
           spacing={0.75}
@@ -502,19 +497,27 @@ sx={{ color: 'text.secondary' }} />
               onClick={() => onDebtStatusChange(cfg.value)}
               variant={debtStatus === cfg.value ? 'filled' : 'outlined'}
               sx={{
-                height: 36, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', borderRadius: '10px',
-                ...(cfg.color
-                  ? debtStatus === cfg.value
-                    ? {
-                        bgcolor: alpha(cfg.color, theme.palette.mode === 'dark' ? 0.25 : 0.15),
-                        color: cfg.color,
-                        borderColor: alpha(cfg.color, 0.5),
-                      }
-                    : {
-                        borderColor: alpha(cfg.color, 0.4),
-                        color: cfg.color,
-                      }
-                  : {}),
+                height: 36,
+                fontSize: 12.5,
+                fontWeight: 700,
+                cursor: 'pointer',
+                borderRadius: '10px',
+                // Neutras, como en el diseño: el color de cada nivel ya lo
+                // llevan las cubetas de arriba, que son este mismo filtro.
+                // Repetirlo acá daba una fila de siete colores compitiendo.
+                ...(debtStatus === cfg.value
+                  ? {
+                      bgcolor: 'text.primary',
+                      color: 'background.paper',
+                      borderColor: 'transparent',
+                      '&:hover': { bgcolor: 'text.primary' },
+                    }
+                  : {
+                      bgcolor: 'transparent',
+                      color: 'text.secondary',
+                      borderColor: alpha(theme.palette.text.primary, 0.14),
+                      '&:hover': { borderColor: alpha(theme.palette.text.primary, 0.3) },
+                    }),
               }}
             />
           ))}
@@ -571,6 +574,29 @@ sx={{ color: 'text.secondary' }} />
                 }}
                 InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
               />
+
+              {/* Limpiar vive acá, no en la fila principal: en el diseño no hay
+                  nada después de la píldora de resultados, y borrar todo no es
+                  una acción que convenga tener a un clic de distancia. */}
+              {hasAnyFilter && (
+                <Button
+                  onClick={handleClearAll}
+                  startIcon={<FilterAltOffRoundedIcon sx={{ fontSize: 16 }} />}
+                  sx={{
+                    height: 36,
+                    px: 1.5,
+                    borderRadius: '10px',
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    fontSize: 12.5,
+                    color: 'error.main',
+                    flexShrink: 0,
+                    ml: { sm: 'auto' },
+                  }}
+                >
+                  Limpiar filtros
+                </Button>
+              )}
             </Stack>
           </Stack>
         </Box>
