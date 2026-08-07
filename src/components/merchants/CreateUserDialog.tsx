@@ -58,6 +58,12 @@ const STAFF_ROLES = [
   { value: 'promotor_manager', label: 'Promotor Manager', desc: 'Manages field promotors' },
   { value: 'merchant_manager', label: 'Merchant Manager', desc: 'Manages merchant accounts' },
   { value: 'marketing', label: 'Marketing', desc: 'Marketing team' },
+  { value: 'operations', label: 'Operations', desc: 'Operaciones: tiendas, promotoras y circulares' },
+  { value: 'it', label: 'IT / Development', desc: 'Desarrollo y sistemas' },
+  { value: 'tecnico', label: 'Tech Support', desc: 'Soporte técnico en campo' },
+  { value: 'support', label: 'Support / Admin', desc: 'Soporte y administración' },
+  { value: 'billing', label: 'Billing', desc: 'Facturación y cobranza' },
+  { value: 'assistant', label: 'Executive Assistant', desc: 'Asistencia de Dirección' },
 ];
 
 const EXTERNAL_ROLES = [
