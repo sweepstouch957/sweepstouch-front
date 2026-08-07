@@ -324,7 +324,8 @@ export function TaskComments({
               variant="caption"
               color="text.disabled"
             >
-              Escribí <b>@</b> y el nombre de alguien para pedirle ayuda: le llega notificación y correo.
+              Escribí <b>@</b> y el nombre de alguien para pedirle ayuda: le llega notificación,
+              correo y WhatsApp.
             </Typography>
           </Box>
         )}
@@ -725,7 +726,7 @@ color="inherit" /> : <SendRoundedIcon sx={{ fontSize: 15 }} />}
             variant="caption"
             sx={{ px: 1.5, pt: 1, pb: 0.5, display: 'block', color: 'text.disabled', fontSize: 10 }}
           >
-            MENCIONAR — le llega notificación y correo
+            MENCIONAR — le llega notificación, correo y WhatsApp
           </Typography>
           {candidates.map((u: any, i: number) => {
             const name = `${u.firstName || ''} ${u.lastName || ''}`.trim();
