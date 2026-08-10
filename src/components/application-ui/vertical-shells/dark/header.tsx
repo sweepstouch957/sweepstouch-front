@@ -18,7 +18,7 @@ import {
   useTheme,
 } from '@mui/material';
 
-import { FC, useEffect } from 'react';
+import { FC, useEffect, useRef } from 'react';
 import { NotificationsDropdown } from 'src/components/application-ui/dropdowns/notifications/notifications-dropdown';
 import { WidgetsHeader } from 'src/components/application-ui/drawers/widgets/widgets-header';
 import LanguageDropdown from 'src/components/application-ui/dropdowns/language/language-dropdown';
@@ -31,6 +31,7 @@ import { useDialog } from 'src/hooks/use-dialog';
 import { usePopover } from 'src/hooks/use-popover';
 import useScrollDirection from 'src/hooks/use-scroll-direction';
 import { HEADER_HEIGHT, SIDEBAR_WIDTH, SIDEBAR_WIDTH_COLLAPSED } from 'src/theme/utils';
+import { usePublishHeaderHeight } from 'src/hooks/use-header-height';
 import { useNotificationsStore } from 'src/store/notificationsStore';
 
 const HeaderWrapper = styled(AppBar)(({ theme }) => ({
@@ -53,6 +54,10 @@ interface HeaderProps {
 export const Header: FC<HeaderProps> = (props) => {
   const { onMobileNav } = props;
   const scroll = useScrollDirection();
+  // El shell y las páginas leen de acá cuánto mide el navbar, en vez de copiar
+  // la constante y desincronizarse.
+  const headerRef = useRef<HTMLElement | null>(null);
+  usePublishHeaderHeight(headerRef);
   const lgUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('lg'));
   const smUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('sm'));
   const { isSidebarCollapsed } = useSidebarContext();
@@ -110,6 +115,7 @@ export const Header: FC<HeaderProps> = (props) => {
 
   return (
     <HeaderWrapper
+      ref={headerRef}
       role="banner"
       sx={{
         height: scroll === 'down' ? HEADER_HEIGHT : HEADER_HEIGHT,

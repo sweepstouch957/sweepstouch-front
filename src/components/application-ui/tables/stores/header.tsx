@@ -1,29 +1,10 @@
 'use client';
 
 import storesService from '@/services/store.service';
-import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
-import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
-import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
-import {
-  alpha,
-  Box,
-  Chip,
-  Collapse,
-  Divider,
-  IconButton,
-  LinearProgress,
-  Paper,
-  Skeleton,
-  Stack,
-  Tooltip,
-  Typography,
-  useTheme,
-} from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { Box, LinearProgress, Paper, Skeleton, Stack, Tooltip, Typography, useTheme } from '@mui/material';
 import type { Theme } from '@mui/material/styles';
-import { tint, tintBorder } from '@/theme/semantic';
-import { DebtBucket, panelBorder } from '../../content-shells/store-managment/panel-kit';
+import { useQuery } from '@tanstack/react-query';
+import { DebtBucket, Eyebrow, panelBorder } from '../../content-shells/store-managment/panel-kit';
 
 export type BillingBucketSummary = {
   count: number;
@@ -51,13 +32,6 @@ type Props = {
   activeDebtStatus?: string;
 };
 
-const STATUS_SCOPE_LABEL: Record<string, string> = {
-  all: 'Todas',
-  active: 'Activas',
-  suspended: 'Suspendidas',
-  cancelled: 'Canceladas',
-};
-
 // Formateador de moneda reutilizable — evita reconstruir Intl en cada llamada.
 const usdFmt = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -65,200 +39,139 @@ const usdFmt = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0,
 });
 
-function formatMoney(value: number) {
+export function formatMoney(value: number) {
   return usdFmt.format(value || 0);
 }
 
-const bucketConfigs = (theme: Theme) => [
-  { key: 'ok',       label: 'OK',       subtitle: '0 sem', color: theme.palette.success.main,   tooltip: 'Tiendas al día — sin semanas de retraso' },
-  { key: 'min_low',  label: 'MIN LOW',  subtitle: '1 sem', color: theme.palette.text.secondary, tooltip: '1 semana de retraso — deuda mínima, monitorear' },
-  { key: 'low',      label: 'LOW',      subtitle: '2 sem', color: theme.palette.warning.main,   tooltip: '2 semanas de retraso — deuda baja, contactar pronto' },
-  { key: 'mid',      label: 'MID',      subtitle: '3 sem', color: theme.palette.warning.dark,   tooltip: '3 semanas de retraso — atención recomendada' },
-  { key: 'high',     label: 'HIGH',     subtitle: '4 sem', color: theme.palette.error.main,     tooltip: '4 semanas de retraso — acción urgente requerida' },
-  { key: 'critical', label: 'CRITICAL', subtitle: '5+',    color: theme.palette.error.dark,     tooltip: '5 o más semanas — deuda crítica, acción inmediata' },
-] as const;
-
-export function StoresBillingHeader({ status = 'all', onFilterByDebt, activeDebtStatus }: Props) {
-  const theme = useTheme();
-  const [expanded, setExpanded] = useState(true);
-
-  const { data, isLoading, isFetching } = useQuery<BillingSummaryResponse>({
+/**
+ * Resumen de cartera. Lo consultan la portada (para su línea de resumen) y esta
+ * tarjeta; React Query comparte la misma key, así que es una sola petición.
+ */
+export function useStoresBillingSummary(status: Props['status'] = 'all') {
+  return useQuery<BillingSummaryResponse>({
     queryKey: ['stores', 'billing-summary', status],
     queryFn: () => storesService.getStoresBillingSummary({ status }) as any,
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
   });
+}
 
-  const issueCount = useMemo(
-    () => (data ? data.low.count + data.mid.count + data.high.count + data.critical.count : 0),
-    [data]
-  );
+const bucketConfigs = (theme: Theme) => [
+  { key: 'ok',       label: 'Al día',   subtitle: '0 sem', color: theme.palette.success.main,   tooltip: 'Tiendas al día — sin semanas de retraso' },
+  { key: 'min_low',  label: 'Min low',  subtitle: '1 sem', color: theme.palette.text.secondary, tooltip: '1 semana de retraso — deuda mínima, monitorear' },
+  { key: 'low',      label: 'Low',      subtitle: '2 sem', color: theme.palette.warning.main,   tooltip: '2 semanas de retraso — deuda baja, contactar pronto' },
+  { key: 'mid',      label: 'Mid',      subtitle: '3 sem', color: theme.palette.warning.dark,   tooltip: '3 semanas de retraso — atención recomendada' },
+  { key: 'high',     label: 'High',     subtitle: '4 sem', color: theme.palette.error.main,     tooltip: '4 semanas de retraso — acción urgente requerida' },
+  { key: 'critical', label: 'Critical', subtitle: '5+ sem', color: theme.palette.error.dark,    tooltip: '5 o más semanas — deuda crítica, acción inmediata' },
+] as const;
+
+/**
+ * Cartera por antigüedad de deuda.
+ *
+ * Antes esta tarjeta repetía arriba los mismos números que la portada (tiendas,
+ * al día, con deuda) y escondía las cubetas tras un acordeón. Ahora la portada
+ * cuenta el resumen y acá viven sólo las cubetas, siempre a la vista: son el
+ * filtro principal de la pantalla, no un detalle opcional.
+ */
+export function StoresBillingHeader({ status = 'all', onFilterByDebt, activeDebtStatus }: Props) {
+  const theme = useTheme();
+  const { data, isLoading, isFetching } = useStoresBillingSummary(status);
+
   const overallPending = data?.overall?.totalPending ?? 0;
-  const totalStores = data?.overall?.totalStores ?? 0;
-  const okCount = data?.ok.count ?? 0;
 
   return (
     <Paper
       elevation={0}
       sx={{
         mb: 1.5,
-        // Radio 18 y borde casi invisible: la tarjeta del Store Panel 2.0
         borderRadius: '18px',
         border: (t) => panelBorder(t),
         overflow: 'hidden',
       }}
     >
-      {/* Compact summary bar */}
       <Stack
         direction="row"
-        alignItems="center"
-        sx={{ px: { xs: 1.5, sm: 2 }, py: 1, gap: 1, minHeight: 52, flexWrap: 'wrap' }}
+        alignItems="baseline"
+        flexWrap="wrap"
+        useFlexGap
+        gap={1.25}
+        sx={{ px: { xs: 2, sm: 2.5 }, pt: 1.75, pb: 0.25 }}
       >
-        {/* Alcance actual — refleja el filtro de estado de la barra (control único). */}
+        <Eyebrow>Cartera por antigüedad de deuda</Eyebrow>
+        <Typography sx={{ fontSize: 11.5, color: 'text.secondary' }}>
+          Semanas sin pagar · monto acumulado
+        </Typography>
         <Typography
-          variant="caption"
           sx={{
-            flexShrink: 0,
-            fontWeight: 800,
-            textTransform: 'uppercase',
-            letterSpacing: '0.06em',
-            fontSize: '0.65rem',
+            ml: 'auto',
+            fontSize: 12.5,
+            fontWeight: 700,
             color: 'text.secondary',
+            fontVariantNumeric: 'tabular-nums',
+            whiteSpace: 'nowrap',
           }}
         >
-          {STATUS_SCOPE_LABEL[status] ?? 'Todas'}
+          Total {formatMoney(overallPending)}
         </Typography>
-
-        <Divider orientation="vertical"
-flexItem
-sx={{ mx: 0.25 }} />
-
-        {isLoading ? (
-          <Stack direction="row"
-spacing={1}
-sx={{ flex: 1 }}>
-            <Skeleton width={80}
-height={24}
-sx={{ borderRadius: 1 }} />
-            <Skeleton width={70}
-height={24}
-sx={{ borderRadius: 1 }} />
-            <Skeleton width={100}
-height={24}
-sx={{ borderRadius: 1 }} />
-          </Stack>
-        ) : (
-          <Stack
-            direction="row"
-            spacing={0.75}
-            alignItems="center"
-            sx={{ flex: 1, minWidth: 0, flexWrap: 'wrap', rowGap: 0.5 }}
-          >
-            <Chip
-              size="small"
-              label={`${totalStores} tiendas`}
-              variant="outlined"
-              sx={{ fontSize: 11, fontWeight: 700, height: 24 }}
-            />
-            <Chip
-              size="small"
-              icon={<CheckCircleOutlineRoundedIcon sx={{ fontSize: '13px !important', color: `${theme.palette.success.main} !important` }} />}
-              label={`${okCount} al día`}
-              sx={{
-                fontSize: 11, fontWeight: 700, height: 24,
-                bgcolor: tint(theme, 'success', theme.palette.mode === 'dark' ? 0.18 : 0.1),
-                color: 'success.main',
-                border: '1px solid', borderColor: tintBorder(theme, 'success', 0.35),
-              }}
-            />
-            {issueCount > 0 && (
-              <Chip
-                size="small"
-                icon={<WarningAmberRoundedIcon sx={{ fontSize: '13px !important', color: `${theme.palette.error.main} !important` }} />}
-                label={`${issueCount} con deuda`}
-                sx={{
-                  fontSize: 11, fontWeight: 700, height: 24,
-                  bgcolor: tint(theme, 'error', theme.palette.mode === 'dark' ? 0.18 : 0.08),
-                  color: 'error.main',
-                  border: '1px solid', borderColor: tintBorder(theme, 'error', 0.3),
-                }}
-              />
-            )}
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              fontWeight={700}
-              sx={{ ml: 'auto', display: { xs: 'none', md: 'block' }, fontVariantNumeric: 'tabular-nums' }}
-            >
-              {formatMoney(overallPending)}
-            </Typography>
-          </Stack>
-        )}
-
-        <Tooltip title={expanded ? 'Ocultar detalle' : 'Ver por categoría'}>
-          <IconButton
-            size="small"
-            onClick={() => setExpanded(!expanded)}
-            sx={{
-              border: '1px solid', borderColor: 'divider', borderRadius: 1.5,
-              width: 30, height: 30, flexShrink: 0,
-            }}
-          >
-            <ExpandMoreRoundedIcon
-              sx={{
-                fontSize: 18,
-                transition: 'transform 0.25s ease',
-                transform: expanded ? 'rotate(180deg)' : 'none',
-              }}
-            />
-          </IconButton>
-        </Tooltip>
       </Stack>
 
-      {isFetching && <LinearProgress sx={{ height: 2 }} />}
+      {isFetching && !isLoading && <LinearProgress sx={{ height: 2 }} />}
 
-      {/* Expanded: 6 status buckets as compact chips */}
-      <Collapse in={expanded && !!data}>
-        <Divider />
-        <Box
-          sx={{
-            px: { xs: 1.5, sm: 2 },
-            py: 1.5,
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-            gap: 1.25,
-          }}
-        >
-          {bucketConfigs(theme).map((cfg) => {
-            const bucket = data?.[cfg.key] as BillingBucketSummary | undefined;
-            return (
-              <Tooltip
-                key={cfg.key}
-                title={cfg.tooltip}
-                placement="top"
-                arrow
-              >
-                <Box sx={{ minWidth: 0 }}>
-                  <DebtBucket
-                    label={cfg.label}
-                    age={cfg.subtitle}
-                    count={bucket?.count ?? 0}
-                    amount={formatMoney(bucket?.totalPending ?? 0)}
-                    color={cfg.color}
-                    share={overallPending > 0 ? (bucket?.totalPending ?? 0) / overallPending : 0}
-                    active={activeDebtStatus === cfg.key}
-                    onClick={
-                      onFilterByDebt
-                        ? () => onFilterByDebt(activeDebtStatus === cfg.key ? 'all' : cfg.key)
-                        : undefined
-                    }
-                  />
-                </Box>
-              </Tooltip>
+      <Box
+        sx={{
+          px: { xs: 2, sm: 2.5 },
+          pt: 1.25,
+          pb: 1.75,
+          display: 'grid',
+          // Seis columnas fijas en escritorio, no `auto-fit`: con `minmax` la
+          // sexta cubeta se caía a una segunda fila en cuanto la ventana bajaba
+          // de ~1180px, y la fila partida empujaba la tabla fuera de pantalla.
+          gridTemplateColumns: {
+            xs: 'repeat(2, minmax(0, 1fr))',
+            sm: 'repeat(3, minmax(0, 1fr))',
+            lg: 'repeat(6, minmax(0, 1fr))',
+          },
+          gap: { xs: 1, sm: 1.25 },
+        }}
+      >
+        {isLoading
+          ? Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton
+                key={i}
+                variant="rounded"
+                height={112}
+                sx={{ borderRadius: '16px' }}
+              />
+            ))
+          : bucketConfigs(theme).map((cfg) => {
+          const bucket = data?.[cfg.key] as BillingBucketSummary | undefined;
+          return (
+            <Tooltip
+              key={cfg.key}
+              title={cfg.tooltip}
+              placement="top"
+              arrow
+            >
+              <Box sx={{ minWidth: 0 }}>
+                <DebtBucket
+                  label={cfg.label}
+                  age={cfg.subtitle}
+                  count={bucket?.count ?? 0}
+                  amount={formatMoney(bucket?.totalPending ?? 0)}
+                  color={cfg.color}
+                  share={overallPending > 0 ? (bucket?.totalPending ?? 0) / overallPending : 0}
+                  active={activeDebtStatus === cfg.key}
+                  onClick={
+                    onFilterByDebt
+                      ? () => onFilterByDebt(activeDebtStatus === cfg.key ? 'all' : cfg.key)
+                      : undefined
+                  }
+                />
+              </Box>
+            </Tooltip>
             );
-          })}
-        </Box>
-      </Collapse>
+            })}
+      </Box>
     </Paper>
   );
 }

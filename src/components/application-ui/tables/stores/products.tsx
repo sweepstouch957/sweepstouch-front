@@ -1,11 +1,13 @@
 import { useStores } from '@/hooks/stores/useStores';
 import ExportButton from '@/components/application-ui/buttons/export-button';
 import { PageHero } from '@/components/application-ui/content-shells/store-managment/panel-kit';
-import { Box } from '@mui/material';
+import AddBusinessRoundedIcon from '@mui/icons-material/AddBusinessRounded';
+import { Box, Button } from '@mui/material';
+import Link from 'next/link';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import StoreFilter from './filter';
-import { StoresBillingHeader } from './header';
+import { formatMoney, StoresBillingHeader, useStoresBillingSummary } from './header';
 import Results from './results';
 import { StoreCommandPalette, useCommandPalette } from './StoreCommandPalette';
 import StoreExportDialog from './StoreExportDialog';
@@ -91,14 +93,36 @@ function Component() {
     handlePaymentMethodChange,
     paymentMethod,
     handleMaxDebtChange,
-    provider,
-    handleProviderChange,
     circularss,
     handleCircularssChange,
     refetch,
   } = useStores();
 
   const { open: paletteOpen, openPalette, closePalette } = useCommandPalette();
+
+  /**
+   * La línea del diseño: cuántas tiendas, cuánto hay por cobrar y cuántas
+   * deben. Sale del mismo resumen que pinta las cubetas —misma queryKey, una
+   * sola petición— así que no cuesta nada tenerlo arriba.
+   */
+  const { data: billing } = useStoresBillingSummary(status);
+  const conDeuda = billing
+    ? billing.min_low.count +
+      billing.low.count +
+      billing.mid.count +
+      billing.high.count +
+      billing.critical.count
+    : 0;
+  const resumen =
+    total > 0
+      ? [
+          `${total.toLocaleString()} tiendas${status === 'active' ? ' activas' : ''}`,
+          billing ? `${formatMoney(billing.overall.totalPending)} por cobrar` : null,
+          conDeuda > 0 ? `${conDeuda} con deuda` : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')
+      : undefined;
 
   const [exportOpen, setExportOpen] = React.useState(false);
 
@@ -120,13 +144,45 @@ function Component() {
         <PageHero
           eyebrow="Management · Stores"
           title={t('Tiendas')}
-          subtitle={
-            total > 0
-              ? `${total.toLocaleString()} tiendas${status === 'active' ? ' activas' : ''}`
-              : undefined
+          subtitle={resumen}
+          actions={
+            <>
+              <ExportButton
+                eventName="stores:export"
+                emitOnly
+                variant="outlined"
+                sx={{
+                  height: 44,
+                  px: 2,
+                  borderRadius: '12px',
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  color: 'text.secondary',
+                  borderColor: 'divider',
+                  '&:hover': { borderColor: 'text.disabled', bgcolor: 'action.hover' },
+                }}
+              >
+                Exportar
+              </ExportButton>
+
+              <Button
+                component={Link}
+                href="/admin/management/stores/create"
+                variant="contained"
+                disableElevation
+                startIcon={<AddBusinessRoundedIcon />}
+                sx={{
+                  height: 44,
+                  px: 2.25,
+                  borderRadius: '12px',
+                  textTransform: 'none',
+                  fontWeight: 700,
+                }}
+              >
+                Nueva tienda
+              </Button>
+            </>
           }
-          actions={<ExportButton eventName="stores:export"
-emitOnly />}
         />
       </Box>
 
@@ -152,14 +208,8 @@ emitOnly />}
         onMaxDebtChange={handleMaxDebtChange}
         paymentMethod={paymentMethod}
         onPaymentMethodChange={handlePaymentMethodChange}
-        provider={provider}
-        onProviderChange={handleProviderChange}
         circularss={circularss}
         onCircularssChange={handleCircularssChange}
-        sortBy={sortBy}
-        order={order}
-        onSortChange={handleSortChange}
-        onOrderChange={handleOrderChange}
         onOpenCommandPalette={openPalette}
       />
 
@@ -197,7 +247,6 @@ emitOnly />}
             minDebt,
             maxDebt,
             paymentMethod,
-            provider,
             circularss,
           })
         }

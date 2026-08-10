@@ -102,6 +102,12 @@ const ROLE_LABEL: Record<string, string> = {
   cashier: 'Cashier',
   promotor: 'Promotor',
   marketing: 'Marketing',
+  tecnico: 'Tech Support',
+  it: 'IT / Development',
+  support: 'Support / Admin',
+  billing: 'Billing',
+  operations: 'Operations',
+  assistant: 'Executive Assistant',
 };
 
 const ROLE_KEYS = Object.keys(ROLE_LABEL);

@@ -29,6 +29,12 @@ export interface MaterialItem {
   qty: number;
 }
 
+/**
+ * Sender Infobip por defecto cuando la tienda no tiene uno propio.
+ * Debe coincidir con INFOBIP_SENDER_ID del backend (sms-worker/providers/infobip.js).
+ */
+export const DEFAULT_INFOBIP_SENDER = '18554407056';
+
 export interface Store {
   id: string;
   _id: string;
@@ -48,14 +54,8 @@ export interface Store {
   active: boolean;
   subscription?: string;
   phoneNumber?: string;
-  twilioPhoneNumber?: string;
-  twilioPhoneNumberSid?: string;
-  twilioPhoneNumberFriendlyName?: string;
-  verifiedByTwilio?: boolean;
-  bandwidthPhoneNumber?: string;
-  bandwithId?: string;
   customerCount: number;
-  provider: 'twilio' | 'bandwidth' | 'infobip';
+  provider: 'infobip';
   createdAt: string;
   updatedAt: string;
   accessCode?: string;
@@ -124,14 +124,9 @@ export interface UpdateStoreBody {
   type?: 'elite' | 'basic' | 'free';
   active?: boolean;
   phoneNumber?: string;
-  provider?: 'twilio' | 'bandwidth' | 'infobip';
+  provider?: 'infobip';
   infobipSenderId?: string;
   infobipShortcode?: string;
-  bandwidthPhoneNumber?: string;
-  twilioPhoneNumber?: string;
-  twilioPhoneNumberSid?: string;
-  twilioPhoneNumberFriendlyName?: string;
-  verifiedByTwilio?: boolean;
   location?: { type: 'Point'; coordinates: [number, number] };
   membershipType?: 'mensual' | 'semanal' | 'especial';
   paymentMethod?: 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
@@ -255,7 +250,6 @@ export const emptyStore: Store = {
   image: '',
   active: false,
   phoneNumber: '',
-  // Toda tienda nueva nace en infobip — bandwidth está deprecado
   provider: 'infobip',
   createdAt: '',
   updatedAt: '',
@@ -280,7 +274,7 @@ export interface GetStoresParams {
   audienceLt?: string;
 
   // ⭐ filtro por proveedor SMS
-  provider?: 'all' | 'twilio' | 'bandwidth' | 'infobip';
+  provider?: 'all' | 'infobip';
 
   // ⭐ pertenece a Circularss
   circularss?: 'all' | 'true' | 'false';

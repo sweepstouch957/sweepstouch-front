@@ -623,12 +623,11 @@ class CampaignClient {
     message: string;
     image?: string | null;
     provider: string;
-    phoneNumber: string; // sourceTn / from number (bandwidthPhoneNumber)
-    id?: string;         // bandwidthId
+    phoneNumber: string; // sourceTn / infobipSenderId
     customerId?: string;
     storeId?: string;
   }) {
-    const { phone, message, image, provider, phoneNumber, id, customerId, storeId } = params;
+    const { phone, message, image, provider, phoneNumber, customerId, storeId } = params;
     const uid = () => crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
     const res = await api.post('/send/api/send', {
       phone,
@@ -636,7 +635,7 @@ class CampaignClient {
       image: image || undefined,
       provider,
       phoneNumber,
-      id: id || undefined,
+      infobipSenderId: phoneNumber,
       type: image ? 'MMS' : 'SMS',
       campaignId: `test-camaing-${uid()}`,
       origin: 'manual-test',
@@ -647,10 +646,10 @@ class CampaignClient {
     return res.data;
   }
 
-  /* ===================== ✅ SYNC INFOBIP/BW METRICS ===================== */
+  /* ===================== ✅ SYNC INFOBIP METRICS ===================== */
 
   /**
-   * Trigger campaign metrics sync from Infobip/Bandwidth logs.
+   * Trigger campaign metrics sync from Infobip logs.
    * Calls the tracking-service endpoint that fetches delivery reports
    * and updates campaign sent/errors/cost/deliveryRate.
    */
@@ -660,7 +659,7 @@ class CampaignClient {
     endDate?: string;   // ISO date
     includeZeroSent?: boolean;
   }) {
-    const res = await api.post('/tracking/bandwidth/campaigns/update', {
+    const res = await api.post('/tracking/campaigns/update', {
       campaignId: params?.campaignId || null,
       startDate: params?.startDate || null,
       endDate: params?.endDate || null,

@@ -243,29 +243,12 @@ export default function SendTestMessagePage({
         setUploadedImageUrl(up.url);
       }
 
-      // Resolve provider-specific sender based on the store's provider
-      const storeProvider = selectedStore.provider || 'bandwidth';
-      let senderPhone: string;
-      let senderId: string | undefined;
-
-      switch (storeProvider) {
-        case 'infobip':
-          senderPhone = selectedStore.infobipSenderId || '';
-          break;
-        case 'twilio':
-          senderPhone = selectedStore.twilioPhoneNumber || '';
-          break;
-        case 'bandwidth':
-        default:
-          senderPhone = selectedStore.bandwidthPhoneNumber || '';
-          senderId = selectedStore.bandwithId || undefined;
-          break;
-      }
+      const senderPhone = selectedStore.infobipSenderId || '';
 
       if (!senderPhone) {
         throw new Error(
-          `Store "${selectedStore.name}" has no sender configured for provider "${storeProvider}". ` +
-          `Please set the ${storeProvider === 'infobip' ? 'Infobip Sender ID' : storeProvider === 'twilio' ? 'Twilio Phone Number' : 'Bandwidth Phone Number'} in store settings.`
+          `Store "${selectedStore.name}" has no sender configured. ` +
+          `Please set the Infobip Sender ID in store settings.`
         );
       }
 
@@ -273,9 +256,8 @@ export default function SendTestMessagePage({
         phone: destinationPhone.replace(/\D/g, ''),
         message: copyText,
         image: imgUrl,
-        provider: storeProvider,
+        provider: 'infobip',
         phoneNumber: senderPhone,
-        id: senderId,
         customerId: selectedCustomer?._id,
         storeId: selectedStore._id,
       });
@@ -437,7 +419,7 @@ export default function SendTestMessagePage({
                           {option.name}
                         </Typography>
                         <Typography variant="caption" color="text.disabled">
-                          {option.provider} · {option.provider === 'infobip' ? option.infobipSenderId : option.provider === 'bandwidth' ? `+${option.bandwidthPhoneNumber || 'N/A'}` : `+${option.twilioPhoneNumber || 'N/A'}`}
+                          {option.provider} · {option.infobipSenderId || 'N/A'}
                         </Typography>
                       </Box>
                     </Stack>
@@ -477,7 +459,7 @@ export default function SendTestMessagePage({
                         sx={{ fontSize: 10, height: 20, textTransform: 'uppercase' }}
                       />
                       <Typography variant="caption" color="text.disabled" sx={{ fontFamily: 'monospace' }}>
-                        {selectedStore.provider === 'infobip' ? selectedStore.infobipSenderId : `+${selectedStore.bandwidthPhoneNumber || selectedStore.twilioPhoneNumber || 'N/A'}`}
+                        {selectedStore.infobipSenderId || 'N/A'}
                       </Typography>
                     </Stack>
                   </Box>
@@ -1151,11 +1133,7 @@ export default function SendTestMessagePage({
             <SummaryRow
               label="From"
               value={
-                selectedStore
-                  ? selectedStore.provider === 'infobip'
-                    ? selectedStore.infobipSenderId || '—'
-                    : `+${selectedStore.bandwidthPhoneNumber || selectedStore.twilioPhoneNumber || '—'}`
-                  : '—'
+                selectedStore ? selectedStore.infobipSenderId || '—' : '—'
               }
              
               even={false}
@@ -1254,7 +1232,7 @@ export default function SendTestMessagePage({
             {[
               ['To', selectedCustomer ? formatPhone(selectedCustomer.phoneNumber) : '—'],
               ['Customer', selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName || ''}` : '—'],
-              ['From', selectedStore ? (selectedStore.provider === 'infobip' ? (selectedStore.infobipSenderId || '—') : `+${selectedStore.bandwidthPhoneNumber || selectedStore.twilioPhoneNumber || '—'}`) : '—'],
+              ['From', selectedStore ? (selectedStore.infobipSenderId || '—') : '—'],
               ['Store', selectedStore?.name || '—'],
               ['Type', messageType],
               ['Provider', (selectedStore?.provider || '—').toUpperCase()],

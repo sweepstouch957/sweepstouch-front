@@ -34,7 +34,6 @@ interface DepurarPhonesModalProps {
   onClose: () => void;
   storeId: string;
   storeName?: string;
-  provider?: string; // 'bandwidth' | 'infobip' | 'all'
   onSuccess?: () => void;
 }
 
@@ -66,15 +65,13 @@ export default function DepurarPhonesModal({
   onClose,
   storeId,
   storeName,
-  provider: storeProv,
   onSuccess,
 }: DepurarPhonesModalProps) {
   const theme = useTheme();
 
-  // Normalize provider: infobip | bandwidth | all (default: bandwidth)
-  const provider = storeProv === 'infobip' ? 'infobip' : storeProv === 'all' ? 'all' : 'bandwidth';
-  const providerLabel = provider === 'infobip' ? 'Infobip' : provider === 'all' ? 'Todos' : 'Bandwidth';
-  const providerColor = provider === 'infobip' ? 'warning' : provider === 'all' ? 'secondary' : 'primary';
+  const provider = 'infobip';
+  const providerLabel = 'Infobip';
+  const providerColor = 'warning';
 
   // Date range state
   const today = new Date().toISOString().slice(0, 10);

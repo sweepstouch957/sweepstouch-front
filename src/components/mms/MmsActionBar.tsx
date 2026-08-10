@@ -38,16 +38,13 @@ interface Props {
   onGenerated: (result: { generated: number; skipped: number }) => void;
   // Store provider info for sending
   storeProvider?: string;
-  storeBandwidthPhone?: string;
-  storeBandwidthId?: string;
   storeInfobipSenderId?: string;
-  storeTwilioPhone?: string;
 }
 
 export default function MmsActionBar({
   circularId, storeId, storeSlug, storeName, campaignCode, products, recipes, headline,
-  circularFileUrl, onGenerated, storeProvider, storeBandwidthPhone, storeBandwidthId,
-  storeInfobipSenderId, storeTwilioPhone,
+  circularFileUrl, onGenerated, storeProvider,
+  storeInfobipSenderId,
 }: Props) {
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -156,10 +153,7 @@ export default function MmsActionBar({
         circularId={circularId}
         circularFileUrl={circularFileUrl}
         storeProvider={storeProvider}
-        storeBandwidthPhone={storeBandwidthPhone}
-        storeBandwidthId={storeBandwidthId}
         storeInfobipSenderId={storeInfobipSenderId}
-        storeTwilioPhone={storeTwilioPhone}
       />
     </Box>
   );

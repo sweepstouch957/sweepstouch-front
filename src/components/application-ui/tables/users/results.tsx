@@ -81,6 +81,12 @@ const ROLE_PALETTE_KEY: Record<string, string> = {
   campaign_manager: 'success',
   promotor_manager: 'warning',
   marketing: 'primary',
+  tecnico: 'warning',
+  it: 'secondary',
+  support: 'warning',
+  billing: 'success',
+  operations: 'info',
+  assistant: 'primary',
 };
 
 const getRolePalette = (roleKey: string, theme: Theme) => {
@@ -141,6 +147,12 @@ const ROLE_META: Record<
   campaign_manager: { text: 'Campaign Manager', color: 'success' },
   promotor_manager: { text: 'Promotor Manager', color: 'warning' },
   marketing: { text: 'Marketing', color: 'primary' },
+  tecnico: { text: 'Tech Support', color: 'warning' },
+  it: { text: 'IT / Development', color: 'secondary' },
+  support: { text: 'Support / Admin', color: 'warning' },
+  billing: { text: 'Billing', color: 'success' },
+  operations: { text: 'Operations', color: 'info' },
+  assistant: { text: 'Executive Assistant', color: 'primary' },
 };
 
 const ROLE_TABS_LABEL: Record<string, string> = {

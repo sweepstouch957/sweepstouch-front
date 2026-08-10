@@ -4,7 +4,7 @@ import { type FC, type ReactNode } from 'react';
 import { useSidebarContext } from 'src/contexts/sidebar-context';
 import { useMobileNav } from 'src/hooks/use-mobile-nav';
 import { MenuItem } from 'src/router/menuItem';
-import { HEADER_HEIGHT, SIDEBAR_WIDTH_COLLAPSED } from 'src/theme/utils';
+import { headerOffset, SIDEBAR_WIDTH_COLLAPSED } from 'src/theme/utils';
 import { Header } from './header';
 import { Sidebar } from './sidebar';
 
@@ -33,10 +33,10 @@ export const VerticalShellsDark: FC<VerticalShellsDarkProps> = (props) => {
         sx={{
           display: 'flex',
           flexDirection: 'column',
-          // Exactamente lo que mide el navbar fijo. Reservaba 1.5× de cuando
-          // la cabecera crecía al hacer scroll hacia arriba; esa cabecera ya
-          // es de altura fija, y el sobrante quedaba como una banda gris.
-          paddingTop: `${HEADER_HEIGHT}px`,
+          // El navbar es fixed: acá se reserva su hueco. La cabecera publica su
+          // alto real, así que esto no puede quedar desfasado como cuando era
+          // `HEADER_HEIGHT * 1.5` sobre un navbar de altura fija.
+          paddingTop: headerOffset,
           ml: {
             xs: 0,
             lg: isSidebarCollapsed && `${SIDEBAR_WIDTH_COLLAPSED}px`,

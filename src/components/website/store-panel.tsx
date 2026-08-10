@@ -175,12 +175,6 @@ const CREDIT_LABEL: Record<string, { label: string; tone: 'success' | 'warning' 
   suspended: { label: 'Suspendido', tone: 'error' },
 };
 
-const PROVIDER_LABEL: Record<string, string> = {
-  twilio: 'Twilio',
-  bandwidth: 'Bandwidth',
-  infobip: 'Infobip',
-};
-
 const CONTACT_TYPE_LABEL: Record<string, string> = {
   manager: 'Gerente',
   owner: 'Dueño',
@@ -947,12 +941,7 @@ export default function StoreInfo({ store }: { store: Store }) {
           : null;
   const motivoEstado = claveMotivo ? (form as any)[claveMotivo] || '' : '';
 
-  const remitente =
-    form.provider === 'infobip'
-      ? form.infobipSenderId
-      : form.provider === 'bandwidth'
-        ? form.bandwidthPhoneNumber
-        : form.twilioPhoneNumber;
+  const remitente = form.infobipSenderId;
 
   const mapaTienda = (
     <StoreMap
@@ -1000,6 +989,9 @@ export default function StoreInfo({ store }: { store: Store }) {
           provider={form.provider}
           statusLabel={statusMeta.label}
           statusColor={statusMeta.color}
+          // La portada es la cara de "Identidad": editarla desde acá abre esa
+          // misma sección, así el nombre y la foto se tocan donde se ven.
+          action={accionSeccion('identidad')}
           onNameChange={(val) => setForm((s) => ({ ...s, name: val }))}
           onImageChange={(url) => setForm((s) => ({ ...s, image: url }))}
         />
@@ -1657,24 +1649,10 @@ export default function StoreInfo({ store }: { store: Store }) {
                     />
                     <FieldGrid min={150}>
                       <DataField
-                        editing={enEdicion('mensajeria')}
+                        editing={false}
                         label="Proveedor"
-                        value={PROVIDER_LABEL[form.provider as string] ?? form.provider}
-                        input={
-                          <Inp
-                            select
-                            value={form.provider}
-                            onChange={handleChange('provider')}
-                          >
-                            {/* Bandwidth quedó deprecado: se muestra si la tienda
-                                ya lo tiene, pero no se puede elegir de nuevo. */}
-                            <MenuItem value="twilio">Twilio</MenuItem>
-                            <MenuItem value="infobip">Infobip</MenuItem>
-                            {form.provider === 'bandwidth' && (
-                              <MenuItem value="bandwidth">Bandwidth (deprecado)</MenuItem>
-                            )}
-                          </Inp>
-                        }
+                        value="Infobip"
+                        input={null}
                       />
                       <DataField
                         editing={enEdicion('mensajeria')}
@@ -1687,48 +1665,25 @@ export default function StoreInfo({ store }: { store: Store }) {
                             mono
                             value={remitente}
                             placeholder="Vacío = número global"
-                            onChange={handleChange(
-                              form.provider === 'infobip'
-                                ? 'infobipSenderId'
-                                : form.provider === 'bandwidth'
-                                  ? 'bandwidthPhoneNumber'
-                                  : 'twilioPhoneNumber'
-                            )}
+                            onChange={handleChange('infobipSenderId')}
                           />
                         }
                       />
-                      {form.provider === 'infobip' && (
-                        <DataField
-                          editing={enEdicion('mensajeria')}
-                          label="Shortcode OTP"
-                          value={form.infobipShortcode}
-                          empty="Default del sistema"
-                          mono
-                          input={
-                            <Inp
-                              mono
-                              value={form.infobipShortcode}
-                              onChange={handleChange('infobipShortcode')}
-                              placeholder="912608"
-                            />
-                          }
-                        />
-                      )}
-                      {form.provider === 'twilio' && (
-                        <DataField
-                          editing={enEdicion('mensajeria')}
-                          label="Twilio SID"
-                          value={form.twilioPhoneNumberSid}
-                          mono
-                          input={
-                            <Inp
-                              mono
-                              value={form.twilioPhoneNumberSid}
-                              onChange={handleChange('twilioPhoneNumberSid')}
-                            />
-                          }
-                        />
-                      )}
+                      <DataField
+                        editing={enEdicion('mensajeria')}
+                        label="Shortcode OTP"
+                        value={form.infobipShortcode}
+                        empty="Default del sistema"
+                        mono
+                        input={
+                          <Inp
+                            mono
+                            value={form.infobipShortcode}
+                            onChange={handleChange('infobipShortcode')}
+                            placeholder="912608"
+                          />
+                        }
+                      />
                     </FieldGrid>
                   </PanelCard>
 

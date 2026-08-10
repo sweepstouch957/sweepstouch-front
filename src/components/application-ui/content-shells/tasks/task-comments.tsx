@@ -121,18 +121,31 @@ export function TaskComments({
         authorAvatar: me?.profileImage || me?.avatar || '',
         files: payload.files,
       }),
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
       setText('');
       setPending([]);
       queryClient.invalidateQueries({ queryKey: ['comments', taskId] });
       queryClient.invalidateQueries({ queryKey: ['board'] });
+      // Lo adjuntado acá entra como evidencia de la tarea: hay que repintar el panel
+      if (vars.files.length) {
+        queryClient.invalidateQueries({ queryKey: ['task', taskId] });
+        toast.success(
+          vars.files.length === 1
+            ? 'Adjunto guardado como evidencia'
+            : `${vars.files.length} adjuntos guardados como evidencia`
+        );
+      }
     },
     onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo enviar'),
   });
 
   const { mutate: remove } = useMutation({
     mutationFn: (id: string) => commentService.remove(id, myId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['comments', taskId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['comments', taskId] });
+      // Borrar el comentario retira también su evidencia
+      queryClient.invalidateQueries({ queryKey: ['task', taskId] });
+    },
     onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo borrar'),
   });
 
@@ -237,6 +250,9 @@ export function TaskComments({
 
   /* ── Render ── */
 
+  /** Ventana para agrupar mensajes seguidos de la misma persona. */
+  const GROUP_WINDOW_MS = 5 * 60 * 1000;
+
   let lastDay = '';
 
   return (
@@ -249,8 +265,8 @@ export function TaskComments({
       >
         <Typography
           variant="caption"
-          fontWeight={700}
           color="text.secondary"
+          sx={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.7 }}
         >
           CONVERSACIÓN
         </Typography>
@@ -265,11 +281,11 @@ export function TaskComments({
 
       {/* Hilo */}
       <Stack
-        spacing={0.5}
         sx={{
-          maxHeight: 320,
+          maxHeight: 380,
           overflowY: 'auto',
-          pr: 0.5,
+          px: 1,
+          mx: -1,
           '&::-webkit-scrollbar': { width: 4 },
           '&::-webkit-scrollbar-thumb': {
             bgcolor: alpha(theme.palette.text.primary, 0.12),
@@ -308,17 +324,26 @@ export function TaskComments({
               variant="caption"
               color="text.disabled"
             >
-              Escribí <b>@</b> y el nombre de alguien para pedirle ayuda: le llega notificación y correo.
+              Escribí <b>@</b> y el nombre de alguien para pedirle ayuda: le llega notificación,
+              correo y WhatsApp.
             </Typography>
           </Box>
         )}
 
-        {comments.map((c: TaskComment) => {
-          const mine = String(c.authorId) === myId;
+        {comments.map((c: TaskComment, i: number) => {
+          const prev = comments[i - 1];
           const color = personColor(c.authorName || c.authorId, AVATAR_PALETTE);
           const day = dayLabel(c.createdAt);
           const showDay = day !== lastDay;
           lastDay = day;
+
+          // Mensajes seguidos de la misma persona se agrupan: repetir el avatar
+          // y el nombre cada dos líneas es lo que hace que un hilo parezca chat.
+          const grouped =
+            !showDay &&
+            !!prev &&
+            String(prev.authorId) === String(c.authorId) &&
+            new Date(c.createdAt).getTime() - new Date(prev.createdAt).getTime() < GROUP_WINDOW_MS;
 
           return (
             <React.Fragment key={c._id}>
@@ -327,13 +352,18 @@ export function TaskComments({
                   direction="row"
                   alignItems="center"
                   spacing={1}
-                  sx={{ py: 1 }}
+                  sx={{ py: 1.25 }}
                 >
                   <Box sx={{ flex: 1, height: '1px', bgcolor: alpha(theme.palette.divider, 0.7) }} />
                   <Typography
                     variant="caption"
-                    color="text.disabled"
-                    sx={{ fontSize: 10, textTransform: 'capitalize' }}
+                    sx={{
+                      fontSize: 9.5,
+                      fontWeight: 700,
+                      letterSpacing: 0.7,
+                      textTransform: 'uppercase',
+                      color: 'text.disabled',
+                    }}
                   >
                     {day}
                   </Typography>
@@ -343,79 +373,73 @@ export function TaskComments({
 
               <Stack
                 direction="row"
-                spacing={1}
+                spacing={1.25}
                 sx={{
-                  flexDirection: mine ? 'row-reverse' : 'row',
                   alignItems: 'flex-start',
+                  px: 1,
+                  mx: -1,
+                  py: grouped ? 0.3 : 0.85,
+                  borderRadius: 1.5,
+                  transition: 'background-color .12s',
+                  '&:hover': { bgcolor: alpha(theme.palette.text.primary, isDark ? 0.05 : 0.035) },
                   '&:hover .comment-actions': { opacity: 1 },
                 }}
               >
-                <Avatar
-                  src={avatarSrc(c.authorAvatar)}
-                  sx={{
-                    width: 28,
-                    height: 28,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    bgcolor: alpha(color, 0.16),
-                    color,
-                    flexShrink: 0,
-                    mt: 0.25,
-                  }}
-                >
-                  {initials(c.authorName)}
-                </Avatar>
-
-                <Box sx={{ maxWidth: '78%' }}>
-                  <Stack
-                    direction="row"
-                    spacing={0.75}
-                    alignItems="center"
-                    sx={{ mb: 0.25, flexDirection: mine ? 'row-reverse' : 'row' }}
-                  >
+                <Box sx={{ width: 30, flexShrink: 0 }}>
+                  {grouped ? (
                     <Typography
-                      variant="caption"
-                      fontWeight={700}
-                      sx={{ fontSize: 11, color }}
+                      className="comment-actions"
+                      sx={{
+                        opacity: 0,
+                        transition: 'opacity .12s',
+                        fontSize: 9.5,
+                        color: 'text.disabled',
+                        textAlign: 'right',
+                        pr: 0.25,
+                        lineHeight: '20px',
+                      }}
                     >
-                      {mine ? 'Vos' : c.authorName || 'Alguien'}
+                      {new Date(c.createdAt).toLocaleTimeString('es-HN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                     </Typography>
-                    <Typography
-                      variant="caption"
-                      color="text.disabled"
-                      sx={{ fontSize: 10 }}
+                  ) : (
+                    <Avatar
+                      src={avatarSrc(c.authorAvatar)}
+                      sx={{
+                        width: 30,
+                        height: 30,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        bgcolor: alpha(color, 0.16),
+                        color,
+                      }}
                     >
-                      {relativeTime(c.createdAt)}
-                      {c.editedAt ? ' · editado' : ''}
-                    </Typography>
-                    {mine && (
-                      <IconButton
-                        size="small"
-                        className="comment-actions"
-                        onClick={() => remove(c._id)}
-                        sx={{ opacity: 0, p: 0.2, transition: 'opacity .15s' }}
-                      >
-                        <DeleteOutlineRoundedIcon sx={{ fontSize: 13 }} />
-                      </IconButton>
-                    )}
-                  </Stack>
+                      {initials(c.authorName)}
+                    </Avatar>
+                  )}
+                </Box>
 
-                  <Box
-                    sx={{
-                      px: 1.5,
-                      py: 1,
-                      borderRadius: 2,
-                      borderTopLeftRadius: mine ? 16 : 4,
-                      borderTopRightRadius: mine ? 4 : 16,
-                      bgcolor: mine
-                        ? alpha(theme.palette.primary.main, isDark ? 0.18 : 0.09)
-                        : alpha(theme.palette.text.primary, isDark ? 0.06 : 0.04),
-                      border: `1px solid ${alpha(
-                        mine ? theme.palette.primary.main : theme.palette.divider,
-                        mine ? 0.25 : 0.6
-                      )}`,
-                    }}
-                  >
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  {!grouped && (
+                    <Stack
+                      direction="row"
+                      spacing={0.75}
+                      alignItems="baseline"
+                      sx={{ mb: 0.15 }}
+                    >
+                      <Typography sx={{ fontSize: 12.5, fontWeight: 700, lineHeight: 1.4 }}>
+                        {c.authorName || 'Alguien'}
+                      </Typography>
+                      <Typography sx={{ fontSize: 10.5, color: 'text.disabled' }}>
+                        {relativeTime(c.createdAt)}
+                        {c.editedAt ? ' · editado' : ''}
+                      </Typography>
+                    </Stack>
+                  )}
+
+                  <Box>
                     {c.text && (
                       <Typography
                         variant="body2"
@@ -455,54 +479,82 @@ export function TaskComments({
                       </Typography>
                     )}
 
-                    {/* Adjuntos */}
+                    {/* Adjuntos — son evidencia de la tarea, y se dice */}
                     {c.files?.length > 0 && (
-                      <Stack
-                        direction="row"
-                        flexWrap="wrap"
-                        gap={0.75}
-                        mt={c.text ? 1 : 0}
-                      >
-                        {c.files.map((f) =>
-                          isImage(f) ? (
-                            <Box
-                              key={f.url}
-                              component="a"
-                              href={f.url}
-                              target="_blank"
-                              rel="noopener"
-                              sx={{
-                                display: 'block',
-                                width: 96,
-                                height: 96,
-                                borderRadius: 1.5,
-                                overflow: 'hidden',
-                                border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-                                backgroundImage: `url(${f.url})`,
-                                backgroundSize: 'cover',
-                                backgroundPosition: 'center',
-                                transition: 'transform .15s',
-                                '&:hover': { transform: 'scale(1.03)' },
-                              }}
-                            />
-                          ) : (
-                            <Chip
-                              key={f.url}
-                              icon={<DescriptionRoundedIcon sx={{ fontSize: 14 }} />}
-                              label={f.name || 'archivo'}
-                              size="small"
-                              component="a"
-                              href={f.url}
-                              target="_blank"
-                              clickable
-                              sx={{ maxWidth: 220, fontSize: 11 }}
-                            />
-                          )
-                        )}
-                      </Stack>
+                      <Box sx={{ mt: c.text ? 0.9 : 0 }}>
+                        <Typography
+                          sx={{ mb: 0.5, fontSize: 10, fontWeight: 700, color: 'text.disabled' }}
+                        >
+                          {c.files.length} ADJUNTO{c.files.length > 1 ? 'S' : ''} · EVIDENCIA DE LA
+                          TAREA
+                        </Typography>
+                        <Stack
+                          direction="row"
+                          flexWrap="wrap"
+                          gap={0.75}
+                        >
+                          {c.files.map((f) =>
+                            isImage(f) ? (
+                              <Box
+                                key={f.url}
+                                component="a"
+                                href={f.url}
+                                target="_blank"
+                                rel="noopener"
+                                aria-label={f.name || 'Ver adjunto'}
+                                sx={{
+                                  display: 'block',
+                                  width: 88,
+                                  height: 88,
+                                  borderRadius: 2,
+                                  overflow: 'hidden',
+                                  border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+                                  backgroundImage: `url(${f.url})`,
+                                  backgroundSize: 'cover',
+                                  backgroundPosition: 'center',
+                                  transition: 'transform .15s, border-color .15s',
+                                  '&:hover': {
+                                    transform: 'scale(1.03)',
+                                    borderColor: theme.palette.primary.main,
+                                  },
+                                  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+                                }}
+                              />
+                            ) : (
+                              <Chip
+                                key={f.url}
+                                icon={<DescriptionRoundedIcon sx={{ fontSize: 14 }} />}
+                                label={f.name || 'archivo'}
+                                size="small"
+                                component="a"
+                                href={f.url}
+                                target="_blank"
+                                clickable
+                                sx={{ maxWidth: 220, fontSize: 11, borderRadius: 1.5 }}
+                              />
+                            )
+                          )}
+                        </Stack>
+                      </Box>
                     )}
                   </Box>
                 </Box>
+
+                {String(c.authorId) === myId && (
+                  <Tooltip
+                    title="Borrar comentario"
+                    arrow
+                  >
+                    <IconButton
+                      size="small"
+                      className="comment-actions"
+                      onClick={() => remove(c._id)}
+                      sx={{ opacity: 0, transition: 'opacity .12s', p: 0.35, flexShrink: 0 }}
+                    >
+                      <DeleteOutlineRoundedIcon sx={{ fontSize: 14 }} />
+                    </IconButton>
+                  </Tooltip>
+                )}
               </Stack>
             </React.Fragment>
           );
@@ -513,12 +565,15 @@ export function TaskComments({
       <Box
         ref={anchorRef}
         sx={{
-          mt: 1.5,
-          borderRadius: 2,
+          mt: 2,
+          borderRadius: 2.5,
           border: `1px solid ${alpha(theme.palette.divider, 0.9)}`,
           bgcolor: theme.palette.background.paper,
-          '&:focus-within': { borderColor: theme.palette.primary.main },
-          transition: 'border-color .15s',
+          '&:focus-within': {
+            borderColor: theme.palette.primary.main,
+            boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.12)}`,
+          },
+          transition: 'border-color .15s, box-shadow .15s',
         }}
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
@@ -598,7 +653,7 @@ export function TaskComments({
             spacing={0.5}
           >
             <Tooltip
-              title="Adjuntar imagen o archivo"
+              title="Adjuntar foto o archivo · queda como evidencia de la tarea"
               arrow
             >
               <IconButton
@@ -671,7 +726,7 @@ color="inherit" /> : <SendRoundedIcon sx={{ fontSize: 15 }} />}
             variant="caption"
             sx={{ px: 1.5, pt: 1, pb: 0.5, display: 'block', color: 'text.disabled', fontSize: 10 }}
           >
-            MENCIONAR — le llega notificación y correo
+            MENCIONAR — le llega notificación, correo y WhatsApp
           </Typography>
           {candidates.map((u: any, i: number) => {
             const name = `${u.firstName || ''} ${u.lastName || ''}`.trim();

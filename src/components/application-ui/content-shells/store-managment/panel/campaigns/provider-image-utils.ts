@@ -3,7 +3,7 @@ export function isValidImageSizeForProvider(fileSize: number, provider: string):
   if (provider.toLowerCase() === 'infobip') {
     return fileSize <= 2 * 1024 * 1024; // 2MB
   }
-  // Twilio / Bandwidth u otros (conservador)
+  // Otros proveedores (conservador)
   return fileSize <= 500 * 1024; // 500 KB
 }
 

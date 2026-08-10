@@ -209,7 +209,6 @@ const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName, provider 
         onClose={() => setOpenDepurar(false)}
         storeId={storeId}
         storeName={storeName}
-        provider={provider}
         onSuccess={handleDepurarSuccess}
       />
 

@@ -77,7 +77,9 @@ const usersMenu = (t: (token: string) => string): MenuItem =>
 const campaignsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Campaigns'), <Campaign />, [
     { title: t('Listing'), route: routes.admin.management.campaings.listing },
-    { title: t('Send Test'), route: routes.admin.management.campaings['send-test'], roles: ['admin'] },
+    // Send Test salió del menú: es una acción sobre campañas, no una sección.
+    // Vive en el botón "Enviar prueba" de la portada del listado; la ruta sigue
+    // existiendo para quien la tenga guardada.
     { title: t('MMS Generator'), route: routes.admin.management.campaings.mms, roles: ['admin'] },
     { title: t('RCS Monitoring'), route: routes.admin.dashboards['campaign-analytics'], roles: ['admin'] },
     { title: t('Opt-in MMS'), route: routes.admin.management.campaings.optin, roles: ['admin', 'general_manager', 'campaign_manager'] },
@@ -164,6 +166,23 @@ const supportMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Visitas'), route: routes.admin.management.support.visits },
   ]);
 
+/**
+ * Aplica el `roles` de cada ítem. Estaba en el tipo pero nadie lo leía: "MMS
+ * Generator" y "RCS Monitoring" decían ser sólo de admin y los veía cualquiera
+ * que tuviera el menú de campañas.
+ */
+const filterByRole = (role: UserRole) => {
+  const keep = (item: MenuItem): MenuItem | null => {
+    if (item.roles && !item.roles.includes(role)) return null;
+    if (!item.subMenu?.length) return item;
+    const subMenu = item.subMenu.map(keep).filter(Boolean) as MenuItem[];
+    // Un padre que se quedó sin hijos y sin ruta propia no lleva a ningún lado
+    if (!subMenu.length && !item.route) return null;
+    return { ...item, subMenu };
+  };
+  return (items: MenuItem[]) => items.map(keep).filter(Boolean) as MenuItem[];
+};
+
 export const useMenuItemsCollapsedShells = (
   t: (token: string) => string,
   role: UserRole
@@ -207,12 +226,23 @@ export const useMenuItemsCollapsedShells = (
     design: [storesMenu(t), circularsMenu(t)],
     merchant_manager: [storesMenu(t)],
     tecnico: [supportMenu(t)],
+
+    // Roles del organigrama nuevo. Sin entrada acá el panel abría sin sección
+    // Management y la persona sólo veía Dashboards y Applications.
+    operations: [storesMenu(t), promotorsMenu(t), circularsMenu(t), campaignsMenu(t), supportMenu(t)],
+    it: [usersMenu(t), storesMenu(t), campaignsMenu(t), supportMenu(t)],
+    support: [supportMenu(t), storesMenu(t)],
+    // Facturación ya tiene su tablero en General; acá sólo lo de contratos.
+    billing: [storesMenu(t)],
+    // Asistencia de Dirección ve lo mismo que Gerencia General.
+    assistant: [campaignsMenu(t), promotorsMenu(t), storesMenu(t), supportMenu(t)],
   };
 
-  const management = roleMenus[role] || [];
+  const visible = filterByRole(role);
+  const management = visible(roleMenus[role] || []);
 
   return [
-    { title: t('General'), subMenu: general },
+    { title: t('General'), subMenu: visible(general) },
     ...(management.length > 0 ? [{ title: t('Management'), subMenu: management }] : []),
   ];
 };
