@@ -78,6 +78,13 @@ class AuthClient {
         },
       });
 
+      // El rol vive dentro del JWT y el gateway autoriza con ése. Si le cambiaron
+      // el rol al usuario, /auth/me devuelve un token re-firmado: hay que guardarlo,
+      // si no el panel lo muestra con el rol nuevo y la API le responde FORBIDDEN.
+      if (res.data.token) {
+        setAuthToken(res.data.token);
+        api.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+      }
 
       return { data: res.data.user };
     } catch (error: any) {
