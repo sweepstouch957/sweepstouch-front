@@ -134,6 +134,11 @@ const config = {
   webpack(config) {
     config.module.rules.push({
       test: /\.svg$/,
+      // Next procesa los SVG de metadata (src/app/icon.svg) con su propio loader y les
+      // agrega ?__next_metadata__. Sin excluirlos, SVGR los convierte en componente React,
+      // image-size recibe JS en vez de SVG y el build muere con
+      // "unsupported file type: undefined".
+      resourceQuery: { not: [/__next_metadata__/] },
       use: ['@svgr/webpack'],
     });
     return config;
