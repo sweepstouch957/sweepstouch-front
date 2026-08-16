@@ -25,6 +25,7 @@ import {
 } from '@mui/material';
 import { useMemo, useState } from 'react';
 import KpiCard from '@/components/application-ui/card-shells/kpi-card';
+import { QboReceivables } from '@/components/application-ui/content-shells/qbo-receivables/qbo-receivables';
 import { routes } from 'src/router/routes';
 import BulkPaymentsImportCard from './BulkPaymentsImportCard';
 import BillingFilters, { PaymentMethod } from './filters';
@@ -492,6 +493,13 @@ export default function BillingPage() {
           </Paper>
         </Grid>
       </Grid>
+
+      {/* Cartera QuickBooks — deuda real por tienda y último pago.
+          Va después de los KPIs del rango porque responde otra pregunta:
+          los KPIs son "cuánto se facturó", esto es "cuánto está sin cobrar". */}
+      <Box sx={{ mb: 2.5 }}>
+        <QboReceivables />
+      </Box>
 
       {/* Bulk Payments */}
       <BulkPaymentsImportCard />
