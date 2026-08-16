@@ -135,6 +135,12 @@ export const routes = {
       demos: '/admin/applications/demos',
       utilities: '/admin/applications/utilities',
     },
+    // Designs Studio — herramientas del equipo de diseño. Flyers es un
+    // placeholder; Shelfsigns genera los cartones de precio para góndola.
+    designs: {
+      flyers: '/admin/designs/flyers',
+      shelfsigns: '/admin/designs/shelfsigns',
+    },
     management: {
       users: {
         listing: '/admin/management/users-listing',
