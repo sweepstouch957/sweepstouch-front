@@ -4,6 +4,7 @@ import {
   AddBusinessRounded,
   AdsClickOutlined,
   BookOutlined,
+  BrushRounded,
   BuildRounded,
   Campaign,
   DescriptionRounded,
@@ -164,6 +165,20 @@ const circularsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Schedule Circulars'), route: routes.admin.management.circulars.schedule },
   ]);
 
+// Designs Studio: sólo diseño y admin por ahora. El `roles` del padre lo aplica
+// filterByRole, así que no hace falta repetirlo en cada hijo.
+const designsMenu = (t: (token: string) => string): MenuItem =>
+  buildMenu(
+    t('Designs Studio'),
+    <BrushRounded />,
+    [
+      { title: t('Flyers'), route: routes.admin.designs.flyers },
+      { title: t('Shelfsigns'), route: routes.admin.designs.shelfsigns },
+    ],
+    undefined,
+    ['admin', 'design']
+  );
+
 const supportMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Soporte Técnico'), <BuildRounded />, [
     { title: t('Dashboard'), route: routes.admin.management.support.dashboard },
@@ -207,6 +222,7 @@ export const useMenuItemsCollapsedShells = (
     ...aiMenu,
     dashboardsMenu(t),
     applicationsMenu(t),
+    designsMenu(t),
   ];
 
   const roleMenus: Record<UserRole, MenuItem[]> = {
