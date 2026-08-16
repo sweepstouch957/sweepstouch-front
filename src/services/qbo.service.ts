@@ -48,7 +48,14 @@ export interface QboBalanceRow {
 }
 
 export interface QboTotals {
+  /** Saldo neto: suma de Customer.Balance, ya descontados créditos sin aplicar. */
   balance: number;
+  /** Suma de facturas abiertas. Es la base de la antigüedad y es ≥ balance. */
+  invoiceTotal: number;
+  /** invoiceTotal − balance. Créditos y pagos que el contador no aplicó a una factura. */
+  unappliedCredits: number;
+  /** Facturas abiertas con vencimiento pasado. Se calcula sobre invoiceTotal. */
+  overdue: number;
   openInvoices: number;
   customers: number;
   linked: number;
@@ -61,6 +68,9 @@ export interface QboBalancesResponse {
   ok: boolean;
   totals: QboTotals;
   stores: QboBalanceRow[];
+  /** El backend cachea 3 min: son 3 queries a QuickBooks y ~5 s en frío. */
+  cached?: boolean;
+  cachedAt?: string;
 }
 
 export interface QboInvoiceRow {
@@ -213,8 +223,9 @@ export const qboService = {
     return data;
   },
 
-  balances: async (): Promise<QboBalancesResponse> => {
-    const { data } = await api.get(`${BASE}/balances`);
+  /** `force` salta el cache de 3 min del backend. Solo para el botón de actualizar. */
+  balances: async (force = false): Promise<QboBalancesResponse> => {
+    const { data } = await api.get(`${BASE}/balances${force ? '?force=1' : ''}`);
     return data;
   },
 

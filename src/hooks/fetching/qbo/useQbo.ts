@@ -25,16 +25,32 @@ export function useQboStatus() {
 }
 
 /**
- * Cartera completa. Son 3 queries a la API de QuickBooks del lado del backend,
- * así que staleTime alto: esto no cambia cada segundo y cada refetch cuesta.
+ * Cartera completa. Son 3 queries a QuickBooks (~5 s en frío) que el backend cachea 3 min.
+ * staleTime alto y sin refetch al enfocar la ventana: cada refetch cuesta de verdad.
  */
 export function useQboBalances(opts?: { enabled?: boolean }) {
   return useQuery<QboBalancesResponse>({
     queryKey: qboQK.balances(),
-    queryFn: qboService.balances,
+    queryFn: () => qboService.balances(false),
     staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     enabled: opts?.enabled ?? true,
     retry: false,
+  });
+}
+
+/** Refresco explícito: salta el cache del backend. Lo dispara el botón "Actualizar". */
+export function useQboRefreshBalances() {
+  const qc = useQueryClient();
+  return useMutation<QboBalancesResponse, Error, void>({
+    mutationFn: () => qboService.balances(true),
+    onSuccess: (data) => {
+      qc.setQueryData(qboQK.balances(), data);
+      toast.success('Cartera actualizada desde QuickBooks');
+    },
+    onError: (e) => toast.error(e.message || 'No se pudo actualizar'),
   });
 }
 

@@ -3,6 +3,7 @@
 import {
   useQboBalances,
   useQboLinkCustomers,
+  useQboRefreshBalances,
   useQboRetryPending,
   useQboStatus,
 } from '@hooks/fetching/qbo/useQbo';
@@ -47,6 +48,7 @@ export function QboReceivables({ embedded = false, onSelectStore }: Props) {
 
   // Sin conexión no se pide la cartera: serían 3 llamadas a QBO que fallan igual.
   const balances = useQboBalances({ enabled: connected });
+  const refresh = useQboRefreshBalances();
   const linkCustomers = useQboLinkCustomers();
   const retryPending = useQboRetryPending();
 
@@ -78,7 +80,8 @@ export function QboReceivables({ embedded = false, onSelectStore }: Props) {
     });
   }, [balances.data, deferredSearch, filter]);
 
-  const busy = balances.isFetching || linkCustomers.isPending || retryPending.isPending;
+  const busy =
+    balances.isFetching || refresh.isPending || linkCustomers.isPending || retryPending.isPending;
 
   /* ── Sin conectar ───────────────────────────────────────────────────── */
   if (status.isSuccess && !connected) {
@@ -165,7 +168,7 @@ spacing={1}>
               variant="contained"
               startIcon={<RefreshRoundedIcon />}
               disabled={busy}
-              onClick={() => balances.refetch()}
+              onClick={() => refresh.mutate()}
             >
               Actualizar
             </Button>

@@ -19,6 +19,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { memo, useState } from 'react';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import { AgingBar } from './aging-bar';
 import { DRIFT_EPSILON, daysSince, fmtDate, money, overdueColor } from './constants';
 
@@ -27,12 +28,19 @@ type Props = {
   onSelect?: (row: QboBalanceRow) => void;
 };
 
+/** Oculta columnas secundarias bajo el breakpoint dado. */
+const hideBelow = (bp: 'sm' | 'md' | 'lg') => ({
+  display: { xs: 'none', [bp]: 'table-cell' },
+});
+
 const Row = memo(function Row({
   row,
   onSelect,
+  compact,
 }: {
   row: QboBalanceRow;
   onSelect?: (row: QboBalanceRow) => void;
+  compact: boolean;
 }) {
   const theme = useTheme();
   const sinceLastPayment = daysSince(row.lastPayment?.date);
@@ -73,6 +81,13 @@ color="error" />
             </Tooltip>
           )}
         </Stack>
+
+        {compact && row.lastPayment && (
+          <Typography variant="caption"
+color="text.secondary">
+            {`Últ. pago ${money(row.lastPayment.amount)} · ${fmtDate(row.lastPayment.date)}`}
+          </Typography>
+        )}
       </TableCell>
 
       <TableCell align="right">
@@ -85,7 +100,8 @@ color="error" />
         </Typography>
       </TableCell>
 
-      <TableCell align="center">
+      <TableCell align="center"
+sx={hideBelow('md')}>
         <Typography variant="body2"
 color="text.secondary">
           {row.openInvoices || '—'}
@@ -108,11 +124,11 @@ color="text.secondary">
         )}
       </TableCell>
 
-      <TableCell sx={{ minWidth: 130 }}>
+      <TableCell sx={{ minWidth: 130, ...hideBelow('lg') }}>
         <AgingBar aging={row.aging} />
       </TableCell>
 
-      <TableCell>
+      <TableCell sx={hideBelow('md')}>
         {row.lastPayment ? (
           <Box>
             <Typography variant="body2"
@@ -134,7 +150,8 @@ color="text.secondary">
         )}
       </TableCell>
 
-      <TableCell align="right">
+      <TableCell align="right"
+sx={hideBelow('lg')}>
         {hasDrift ? (
           <Tooltip
             title={`QuickBooks ${money(row.balance)} · Mongo ${money(row.mongoPending)}`}
@@ -164,6 +181,7 @@ color="text.secondary">
 export function ReceivablesTable({ rows, onSelect }: Props) {
   const [page, setPage] = useState(0);
   const [perPage, setPerPage] = useState(25);
+  const compact = useMediaQuery((t: any) => t.breakpoints.down('md'));
 
   // Paginación en cliente: son ~200 tiendas, no vale un endpoint paginado.
   const visible = rows.slice(page * perPage, page * perPage + perPage);
@@ -186,18 +204,21 @@ stickyHeader>
             <TableRow>
               <TableCell>Tienda</TableCell>
               <TableCell align="right">Debe</TableCell>
-              <TableCell align="center">Facturas</TableCell>
+              <TableCell align="center"
+sx={hideBelow('md')}>Facturas</TableCell>
               <TableCell align="center">Atraso</TableCell>
-              <TableCell>Antigüedad</TableCell>
-              <TableCell>Último pago</TableCell>
-              <TableCell align="right">vs. Mongo</TableCell>
+              <TableCell sx={hideBelow('lg')}>Antigüedad</TableCell>
+              <TableCell sx={hideBelow('md')}>Último pago</TableCell>
+              <TableCell align="right"
+sx={hideBelow('lg')}>vs. Mongo</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {visible.map((r) => (
               <Row key={r.qboCustomerId}
 row={r}
-onSelect={onSelect} />
+onSelect={onSelect}
+compact={compact} />
             ))}
           </TableBody>
         </Table>
