@@ -23,6 +23,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+import QboStoreBillingCard from '@/components/qbo/QboStoreBillingCard';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { BillingSummaryCards } from './BillingSummaryCards';
@@ -108,6 +109,10 @@ export function StoreBillingPanel({ storeId, storeName }: Props) {
       spacing={3}
       p={3}
     >
+      {/* Cartera real según QuickBooks. Va arriba porque incluye los cargos que el
+          contador emite a mano y el pipeline nunca vio — es el saldo que se cobra. */}
+      <QboStoreBillingCard storeId={storeId} />
+
       {/* Card grande: título + botones + resumen */}
       <Card
         sx={{

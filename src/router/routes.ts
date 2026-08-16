@@ -146,6 +146,8 @@ export const routes = {
       projects: '/admin/management/projects',
       account: '/admin/management/account',
       qr: '/admin/management/qr',
+      // Centro de facturación + QuickBooks. Es la URL que ve Intuit en el perfil de la app.
+      billing: '/admin/management/billing',
       stores: {
         listing: '/admin/management/stores',
         create: '/admin/management/stores/create',

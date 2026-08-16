@@ -1,5 +1,6 @@
 import type { UserRole } from '@/contexts/auth/user';
 import {
+  AccountBalanceRounded,
   AddBusinessRounded,
   AdsClickOutlined,
   BookOutlined,
@@ -149,6 +150,10 @@ const storesMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Nuevo contrato'), route: routes.admin.management.stores['contracts-create'], icon: <NoteAddRounded /> },
   ]);
 
+/** Facturación y QuickBooks. Es la URL que Intuit tiene registrada en el perfil de la app. */
+const billingMenu = (t: (token: string) => string): MenuItem =>
+  buildMenu(t('Facturación'), <AccountBalanceRounded />, [], routes.admin.management.billing);
+
 const addsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Ads'), <AdsClickOutlined />, [], routes.admin.management.promos.listing);
 
@@ -208,6 +213,7 @@ export const useMenuItemsCollapsedShells = (
     admin: [
       usersMenu(t),
       storesMenu(t),
+      billingMenu(t),
       campaignsMenu(t),
       sweepstakesMenu(t),
       promotorsMenu(t),
@@ -232,8 +238,8 @@ export const useMenuItemsCollapsedShells = (
     operations: [storesMenu(t), promotorsMenu(t), circularsMenu(t), campaignsMenu(t), supportMenu(t)],
     it: [usersMenu(t), storesMenu(t), campaignsMenu(t), supportMenu(t)],
     support: [supportMenu(t), storesMenu(t)],
-    // Facturación ya tiene su tablero en General; acá sólo lo de contratos.
-    billing: [storesMenu(t)],
+    // El rol de facturación entra directo a su centro: cartera, vinculación y conexión.
+    billing: [billingMenu(t), storesMenu(t)],
     // Asistencia de Dirección ve lo mismo que Gerencia General.
     assistant: [campaignsMenu(t), promotorsMenu(t), storesMenu(t), supportMenu(t)],
   };

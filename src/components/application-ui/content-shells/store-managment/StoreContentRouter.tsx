@@ -14,6 +14,7 @@ import CreateCampaignContainer from './panel/campaigns/createCampaignContainer';
 import CustomersPanel from './panel/customers/customers-panel';
 import { StoreEquipmentPanel } from './panel/equipment/StoreEquipmentPanel';
 import StoreOptinPanel from './panel/optin/StoreOptinPanel';
+import StoreQuickbooksPanel from './panel/quickbooks/StoreQuickbooksPanel';
 import QrDuetMUI from './panel/qr/QrContainer';
 import StoreAudienceOverview from './panel/sweepstakes/StoreAudienceOverview';
 import StoreSweepstakeStats from './panel/sweepstakes/StoreSweepstakeStats';
@@ -158,6 +159,10 @@ storeName={store.name || ''} />;
   switch (tag) {
     case 'billing':
       return <StoreBillingPanel storeId={storeId} />;
+
+    case 'quickbooks':
+      return <StoreQuickbooksPanel storeId={storeId}
+storeName={store.name} />;
 
     case 'customers':
       return (

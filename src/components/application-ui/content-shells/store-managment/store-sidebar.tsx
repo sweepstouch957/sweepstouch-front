@@ -24,6 +24,7 @@ import {
   SmsTwoTone as SmsIcon,
   PaletteTwoTone as BrandIcon,
 } from '@mui/icons-material';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalanceTwoTone';
 import PeopleIcon from '@mui/icons-material/People';
 import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import {
@@ -107,6 +108,7 @@ const STORE_GROUPS: {
     items: [
       { id: 'customers', label: 'Clientes', icon: <PeopleIcon /> },
       { id: 'billing', label: 'Facturación', icon: <MonetizationOn /> },
+      { id: 'quickbooks', label: 'QuickBooks', icon: <AccountBalanceIcon /> },
     ],
   },
 ];

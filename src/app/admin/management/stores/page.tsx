@@ -1,6 +1,7 @@
 'use client';
 
 import StoreListing from '@/components/application-ui/tables/stores/products';
+import StoresReceivablesSection from '@/components/application-ui/content-shells/qbo-receivables/stores-receivables-section';
 import { Container } from '@mui/material';
 import React from 'react';
 import { useCustomization } from 'src/hooks/use-customization';
@@ -13,6 +14,7 @@ function Page(): React.JSX.Element {
       sx={{ pt: { xs: 1, sm: 1.5 }, pb: { xs: 2, sm: 3 } }}
     >
       <StoreListing />
+      <StoresReceivablesSection />
     </Container>
   );
 }
