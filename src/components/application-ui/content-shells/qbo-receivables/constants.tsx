@@ -47,14 +47,32 @@ export function overdueColor(days: number): 'success' | 'info' | 'warning' | 'er
 /** Diferencias por debajo de un centavo son redondeo, no descuadre. */
 export const DRIFT_EPSILON = 0.01;
 
-export type ReceivablesFilter = 'all' | 'debt' | 'overdue' | 'unlinked' | 'drift';
+/**
+ * Dos ejes independientes, antes mezclados en un solo control.
+ * "Sin vincular" no es lo mismo que "con deuda": una tienda puede ser las dos
+ * cosas a la vez, y con un único toggle era imposible pedir esa intersección.
+ */
+export type ReceivablesFilter = 'all' | 'debt' | 'overdue' | 'drift';
 
 export const FILTER_OPTIONS: Array<{ value: ReceivablesFilter; label: string }> = [
   { value: 'all', label: 'Todas' },
   { value: 'debt', label: 'Con deuda' },
   { value: 'overdue', label: 'Vencidas' },
-  { value: 'unlinked', label: 'Sin vincular' },
   { value: 'drift', label: 'Descuadradas' },
+];
+
+/**
+ * Dos dimensiones en un solo control: si el cliente de QuickBooks está vinculado
+ * a una tienda, y si esa tienda sigue activa. Una tienda dada de baja que todavía
+ * debe es un caso de cobranza distinto de un cliente que nadie reclama.
+ */
+export type LinkFilter = 'all' | 'active' | 'inactive' | 'unlinked';
+
+export const LINK_FILTER_OPTIONS: Array<{ value: LinkFilter; label: string; hint: string }> = [
+  { value: 'all', label: 'Todas', hint: 'Todos los clientes de QuickBooks' },
+  { value: 'active', label: 'Activas', hint: 'Vinculadas a una tienda operando' },
+  { value: 'inactive', label: 'Inactivas', hint: 'Vinculadas a una tienda dada de baja — si deben, siguen siendo cobrables' },
+  { value: 'unlinked', label: 'Sin vincular', hint: 'Existen en QuickBooks pero ninguna tienda las reclama' },
 ];
 
 /* ── Rango de fechas ──────────────────────────────────────────────── */

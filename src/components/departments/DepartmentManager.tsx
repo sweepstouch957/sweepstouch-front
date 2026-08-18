@@ -38,6 +38,8 @@ import {
   departmentService,
   Department,
   CreateDepartmentDto,
+  METRIC_SOURCE_LABEL,
+  MetricSource,
   WORK_TYPE_HINT,
   WORK_TYPE_LABEL,
   WorkType,
@@ -72,6 +74,8 @@ const DepartmentManager: FC<DepartmentManagerProps> = ({ open, onClose }) => {
     helpTopics: [],
     metricLabel: '',
     weeklyGoal: 0,
+    monthlyGoal: 0,
+    metricSource: '',
   };
 
   const [editing, setEditing] = useState<Department | null>(null);
@@ -207,6 +211,8 @@ const DepartmentManager: FC<DepartmentManagerProps> = ({ open, onClose }) => {
       helpTopics: dept.helpTopics || [],
       metricLabel: dept.metricLabel || '',
       weeklyGoal: dept.weeklyGoal || 0,
+      monthlyGoal: dept.monthlyGoal || 0,
+      metricSource: dept.metricSource || '',
     });
   };
 
@@ -616,24 +622,57 @@ function WorkTypeFields({
         )}
       />
 
-      {/* Sólo áreas recurrentes: qué número se reporta y contra qué meta */}
+      {/* Sólo áreas recurrentes: qué número se reporta, de dónde sale y contra
+          qué metas. Sin meta cargada el reporte dice "sin meta" y el número no
+          se puede leer: por eso van acá y no en un archivo de configuración. */}
       {workType === 'recurring' && (
-        <Stack direction="row" spacing={1.5}>
-          <TextField
-            label="Número que se reporta"
-            size="small"
-            fullWidth
-            {...rhf(register, 'metricLabel')}
-            placeholder="Contactos netos incorporados"
+        <>
+          <Stack direction="row" spacing={1.5}>
+            <TextField
+              label="Número que se reporta"
+              size="small"
+              fullWidth
+              {...rhf(register, 'metricLabel')}
+              placeholder="Contactos netos incorporados"
+            />
+            <TextField
+              label="Meta semanal"
+              size="small"
+              type="number"
+              sx={{ width: 140 }}
+              {...register('weeklyGoal', { valueAsNumber: true })}
+            />
+            <TextField
+              label="Meta mensual"
+              size="small"
+              type="number"
+              sx={{ width: 140 }}
+              {...register('monthlyGoal', { valueAsNumber: true })}
+            />
+          </Stack>
+
+          <Controller
+            control={control}
+            name="metricSource"
+            render={({ field }) => (
+              <TextField
+                {...field}
+                value={field.value || ''}
+                label="De dónde sale el número"
+                select
+                size="small"
+                fullWidth
+                helperText="Con fuente automática el reporte lo lee de la plataforma; la carga por WhatsApp queda de respaldo."
+              >
+                {(Object.keys(METRIC_SOURCE_LABEL) as MetricSource[]).map((k) => (
+                  <MenuItem key={k || 'manual'} value={k}>
+                    {METRIC_SOURCE_LABEL[k]}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
           />
-          <TextField
-            label="Meta semanal"
-            size="small"
-            type="number"
-            sx={{ width: 140 }}
-            {...register('weeklyGoal', { valueAsNumber: true })}
-          />
-        </Stack>
+        </>
       )}
     </>
   );

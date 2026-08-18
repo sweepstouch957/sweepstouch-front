@@ -39,12 +39,14 @@ import { useDeferredValue, useMemo, useState } from 'react';
 import {
   DRIFT_EPSILON,
   FILTER_OPTIONS,
+  LINK_FILTER_OPTIONS,
   RANGE_PRESETS,
   presetToRange,
+  type LinkFilter,
   type RangePreset,
   type ReceivablesFilter,
 } from './constants';
-import { CustomerInvoicesDialog } from './customer-invoices-dialog';
+import { CustomerInvoicesDialog, type LedgerTarget } from './customer-invoices-dialog';
 import { QboSummaryCards } from './qbo-summary-cards';
 import { ReceivablesTable } from './receivables-table';
 
@@ -74,9 +76,10 @@ export function QboReceivables({ embedded = false, onSelectStore }: Props) {
   const linkCustomers = useQboLinkCustomers();
   const retryPending = useQboRetryPending();
 
-  const [ledgerRow, setLedgerRow] = useState<QboBalanceRow | null>(null);
+  const [ledgerRow, setLedgerRow] = useState<LedgerTarget | null>(null);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<ReceivablesFilter>('debt');
+  const [linkFilter, setLinkFilter] = useState<LinkFilter>('all');
   const deferredSearch = useDeferredValue(search);
 
   const rows = useMemo(() => {
@@ -88,20 +91,24 @@ export function QboReceivables({ embedded = false, onSelectStore }: Props) {
         const hay = `${r.storeName ?? ''} ${r.qboName} ${r.storeSlug ?? ''}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
+
+      // Los dos ejes se aplican en cadena: se puede pedir "inactivas Y vencidas"
+      if (linkFilter === 'unlinked' && r.linked) return false;
+      if (linkFilter === 'active' && (!r.linked || r.storeActive === false)) return false;
+      if (linkFilter === 'inactive' && (!r.linked || r.storeActive !== false)) return false;
+
       switch (filter) {
         case 'debt':
           return r.balance > 0;
         case 'overdue':
           return r.balance > 0 && r.maxDaysOverdue > 0;
-        case 'unlinked':
-          return !r.linked;
         case 'drift':
           return r.drift !== null && Math.abs(r.drift) >= DRIFT_EPSILON;
         default:
           return true;
       }
     });
-  }, [balances.data, deferredSearch, filter]);
+  }, [balances.data, deferredSearch, filter, linkFilter]);
 
   const busy =
     balances.isFetching || refresh.isPending || linkCustomers.isPending || retryPending.isPending;
@@ -251,19 +258,37 @@ isLoading={balances.isLoading} />
             alignItems={{ xs: 'stretch', md: 'center' }}
             sx={{ mb: 2 }}
           >
-            <ToggleButtonGroup
-              size="small"
-              exclusive
-              value={filter}
-              onChange={(_, v) => v && setFilter(v as ReceivablesFilter)}
-            >
-              {FILTER_OPTIONS.map((o) => (
-                <ToggleButton key={o.value}
+            <Stack direction={{ xs: 'column', sm: 'row' }}
+spacing={1.5}>
+              <ToggleButtonGroup
+                size="small"
+                exclusive
+                color="primary"
+                value={linkFilter}
+                onChange={(_, v) => v && setLinkFilter(v as LinkFilter)}
+              >
+                {LINK_FILTER_OPTIONS.map((o) => (
+                  <Tooltip key={o.value}
+title={o.hint}>
+                    <ToggleButton value={o.value}>{o.label}</ToggleButton>
+                  </Tooltip>
+                ))}
+              </ToggleButtonGroup>
+
+              <ToggleButtonGroup
+                size="small"
+                exclusive
+                value={filter}
+                onChange={(_, v) => v && setFilter(v as ReceivablesFilter)}
+              >
+                {FILTER_OPTIONS.map((o) => (
+                  <ToggleButton key={o.value}
 value={o.value}>
-                  {o.label}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
+                    {o.label}
+                  </ToggleButton>
+                ))}
+              </ToggleButtonGroup>
+            </Stack>
 
             <Stack direction={{ xs: 'column', sm: 'row' }}
 spacing={1.5}>

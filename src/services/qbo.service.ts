@@ -29,6 +29,8 @@ export interface QboBalanceRow {
   storeId: string | null;
   storeName: string | null;
   storeSlug: string | null;
+  /** `active` de la tienda en Mongo. null = sin vincular. */
+  storeActive: boolean | null;
   membershipType: string | null;
   paymentMethod: string | null;
   /** false = el Customer existe en QBO pero ninguna tienda de Mongo lo reclama */

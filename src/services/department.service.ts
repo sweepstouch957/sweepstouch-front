@@ -16,6 +16,19 @@ export const WORK_TYPE_HINT: Record<WorkType, string> = {
   recurring: 'Se mide por números diarios contra meta. Mostrar 0 tareas cerradas es correcto.',
 };
 
+/**
+ * De dónde sale el número del área. Con fuente configurada el reporte lo lee
+ * solo de la plataforma; sin ella depende de que alguien lo mande por WhatsApp,
+ * que es justo lo que fallaba.
+ */
+export type MetricSource = '' | 'audience_net_contacts' | 'campaigns_sent';
+
+export const METRIC_SOURCE_LABEL: Record<MetricSource, string> = {
+  '': 'Manual (por WhatsApp)',
+  audience_net_contacts: 'Contactos netos — automático',
+  campaigns_sent: 'Campañas enviadas — automático',
+};
+
 export interface Department {
   _id: string;
   name: string;
@@ -33,6 +46,8 @@ export interface Department {
   helpTopics?: string[];
   metricLabel?: string;
   weeklyGoal?: number;
+  monthlyGoal?: number;
+  metricSource?: MetricSource;
   defaultSlaDays?: number;
   activeTaskLimit?: number;
   order?: number;
@@ -52,6 +67,8 @@ export interface CreateDepartmentDto {
   helpTopics?: string[];
   metricLabel?: string;
   weeklyGoal?: number;
+  monthlyGoal?: number;
+  metricSource?: MetricSource;
   activeTaskLimit?: number;
 }
 

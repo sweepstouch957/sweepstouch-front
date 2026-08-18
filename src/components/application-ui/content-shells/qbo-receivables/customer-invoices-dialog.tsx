@@ -1,6 +1,5 @@
 'use client';
 
-import type { QboBalanceRow } from '@/services/qbo.service';
 import { useQboCustomerLedger } from '@hooks/fetching/qbo/useQbo';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
@@ -30,8 +29,17 @@ import { AgingBar } from './aging-bar';
 import { fmtDate, money, overdueColor } from './constants';
 import { InvoiceDialog } from './invoice-dialog';
 
+/** Lo mínimo para abrir el libro: el cliente de QBO y, si la hay, la tienda. */
+export type LedgerTarget = {
+  qboCustomerId: string;
+  qboName: string;
+  storeId?: string | null;
+  storeName?: string | null;
+  linked?: boolean;
+};
+
 type Props = {
-  row: QboBalanceRow | null;
+  row: LedgerTarget | null;
   onClose: () => void;
   /** Solo para las filas vinculadas: abre el panel de la tienda. */
   onOpenStore?: (storeId: string) => void;
@@ -118,7 +126,7 @@ color="text.secondary">
                 </Typography>
               )}
             </Box>
-            {row && !row.linked && (
+            {row && row.linked === false && (
               <Chip size="small"
 color="warning"
 variant="outlined"

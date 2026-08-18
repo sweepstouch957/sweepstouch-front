@@ -1,6 +1,11 @@
 'use client';
 
 import { money } from '@/components/application-ui/content-shells/qbo-receivables/constants';
+import {
+  CustomerInvoicesDialog,
+  type LedgerTarget,
+} from '@/components/application-ui/content-shells/qbo-receivables/customer-invoices-dialog';
+import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import type { QboProposal } from '@/services/qbo.service';
 import { useQboLinkCustomers, useQboProposals } from '@hooks/fetching/qbo/useQbo';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
@@ -60,10 +65,34 @@ const META: Record<
   },
 };
 
-function ProposalRow({ p, onOpen }: { p: QboProposal; onOpen: (id: string) => void }) {
+function ProposalRow({
+  p,
+  onOpen,
+  onLedger,
+}: {
+  p: QboProposal;
+  onOpen: (id: string) => void;
+  onLedger: (t: LedgerTarget) => void;
+}) {
   const best = p.candidates[0];
   return (
-    <TableRow hover>
+    // Toda la fila abre el libro del candidato: antes de vincular hay que poder
+    // mirar sus facturas para confirmar que es el comercio correcto.
+    <TableRow
+      hover
+      sx={{ cursor: best ? 'pointer' : 'default' }}
+      onClick={
+        best
+          ? () =>
+              onLedger({
+                qboCustomerId: best.qboCustomerId,
+                qboName: best.qboName,
+                storeId: p.storeId,
+                storeName: p.storeName,
+              })
+          : undefined
+      }
+    >
       <TableCell>
         <Typography variant="body2"
 fontWeight={600}>
@@ -137,12 +166,38 @@ color="error" />}
       <TableCell align="right">{best ? money(best.balance) : '—'}</TableCell>
 
       <TableCell align="right">
-        <Tooltip title="Abrir la tienda para vincular a mano">
-          <IconButton size="small"
-onClick={() => onOpen(p.storeId)}>
-            <OpenInNewRoundedIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <Stack direction="row"
+justifyContent="flex-end">
+          {best && (
+            <Tooltip title="Ver las facturas de este candidato">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onLedger({
+                    qboCustomerId: best.qboCustomerId,
+                    qboName: best.qboName,
+                    storeId: p.storeId,
+                    storeName: p.storeName,
+                  });
+                }}
+              >
+                <ReceiptLongRoundedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+          <Tooltip title="Abrir la tienda para vincular a mano">
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpen(p.storeId);
+              }}
+            >
+              <OpenInNewRoundedIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Stack>
       </TableCell>
     </TableRow>
   );
@@ -160,6 +215,7 @@ export function LinkingView() {
   const proposals = useQboProposals();
   const apply = useQboLinkCustomers();
   const [filter, setFilter] = useState<Filter>('auto');
+  const [ledger, setLedger] = useState<LedgerTarget | null>(null);
 
   const counts = proposals.data?.summary;
   const rows = useMemo(
@@ -287,7 +343,8 @@ textAlign="center">
                   {rows.map((p) => (
                     <ProposalRow key={p.storeId}
 p={p}
-onOpen={openStore} />
+onOpen={openStore}
+onLedger={setLedger} />
                   ))}
                 </TableBody>
               </Table>
@@ -295,6 +352,15 @@ onOpen={openStore} />
           )}
         </CardContent>
       </Card>
+
+      <CustomerInvoicesDialog
+        row={ledger}
+        onClose={() => setLedger(null)}
+        onOpenStore={(storeId) => {
+          setLedger(null);
+          openStore(storeId);
+        }}
+      />
     </Stack>
   );
 }

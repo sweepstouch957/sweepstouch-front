@@ -2,6 +2,7 @@
 
 import type { QboBalanceRow } from '@/services/qbo.service';
 import LinkOffRoundedIcon from '@mui/icons-material/LinkOffRounded';
+import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import {
   Box,
   Chip,
@@ -78,6 +79,12 @@ noWrap>
             <Tooltip title="Este cliente de QuickBooks no está vinculado a ninguna tienda">
               <LinkOffRoundedIcon fontSize="small"
 color="error" />
+            </Tooltip>
+          )}
+          {row.linked && row.storeActive === false && (
+            <Tooltip title="La tienda está dada de baja. Si tiene saldo, sigue siendo cobrable.">
+              <StorefrontRoundedIcon fontSize="small"
+color="warning" />
             </Tooltip>
           )}
         </Stack>

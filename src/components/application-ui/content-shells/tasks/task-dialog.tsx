@@ -313,6 +313,7 @@ export function TaskDialog({
               <ScheduleField
                 control={control}
                 register={register}
+                setValue={setValue}
               />
             </Stack>
 
@@ -917,52 +918,122 @@ function AssigneeField({
 function ScheduleField({
   control,
   register,
+  setValue,
 }: {
   control: Control<TaskFormValues>;
   register: UseFormRegister<TaskFormValues>;
+  setValue: UseFormSetValue<TaskFormValues>;
 }) {
   const recurrence = useWatch({ control, name: 'recurrence' });
-  const dueDate = useWatch({ control, name: 'dueDate' });
+  const [dueDate, title, description, priority] = useWatch({
+    control,
+    name: ['dueDate', 'title', 'description', 'priority'],
+  });
   const isRoutine = recurrence !== 'none';
   // Nadie merece un formulario en rojo antes de haber escrito nada: el aviso
   // aparece cuando la persona ya pasó por el campo y lo dejó vacío.
   const { touchedFields } = useFormState({ control, name: 'dueDate' });
   const missing = !isRoutine && !dueDate && !!touchedFields.dueDate;
 
+  // "Ayúdame IA": estima el vencimiento a partir del título. La fecha se pone
+  // en el campo y el motivo queda a la vista para poder discutirla.
+  const [reason, setReason] = useState('');
+  const { mutate: estimate, isPending } = useMutation({
+    mutationFn: () =>
+      draftTaskFromTitle({
+        title: title || '',
+        description: description || undefined,
+        priority: priority || undefined,
+      }),
+    onSuccess: (d) => {
+      if (!d.dueDate) {
+        toast.error('La IA no pudo estimar la fecha. Ponela a mano.');
+        return;
+      }
+      setValue('dueDate', d.dueDate, { shouldDirty: true, shouldTouch: true });
+      setReason(d.dueReason || '');
+      toast.success('Fecha estimada — revisala antes de guardar');
+    },
+    onError: (e: any) =>
+      toast.error(e?.response?.data?.error || 'La IA no pudo estimar la fecha.'),
+  });
+
+  const canEstimate = !isRoutine && (title || '').trim().length >= 6;
+
   return (
     <Stack
-      direction="row"
-      spacing={1.5}
+      spacing={0.75}
       sx={{ width: '100%' }}
     >
-      <TextField
-        label="Fecha límite"
-        type="date"
-        size="small"
-        fullWidth
-        required={!isRoutine}
-        disabled={isRoutine}
-        {...bind(register, 'dueDate')}
-        InputLabelProps={{ shrink: true }}
-        error={missing}
-        helperText={
-          isRoutine
-            ? 'La pone el sistema cada día'
-            : 'Si todavía no se sabe, poné fecha para definirla'
-        }
-      />
-      {/* La hora es opcional: sin ella la tarea vence al final del día. Con
-          ella, el bot puede avisar "vence a las 3" en vez de "vence hoy". */}
-      <TextField
-        label="Hora"
-        type="time"
-        size="small"
-        sx={{ width: 150, flexShrink: 0 }}
-        disabled={isRoutine || !dueDate}
-        {...bind(register, 'dueTime')}
-        InputLabelProps={{ shrink: true }}
-        helperText="Opcional"
-      />
+      <Stack
+        direction="row"
+        spacing={1.5}
+        sx={{ width: '100%' }}
+      >
+        <TextField
+          label="Fecha límite"
+          type="date"
+          size="small"
+          fullWidth
+          required={!isRoutine}
+          disabled={isRoutine}
+          {...bind(register, 'dueDate')}
+          InputLabelProps={{ shrink: true }}
+          error={missing}
+          helperText={
+            isRoutine
+              ? 'La pone el sistema cada día'
+              : 'Si todavía no se sabe, poné fecha para definirla'
+          }
+          InputProps={{
+            endAdornment: isRoutine ? undefined : (
+              <InputAdornment position="end">
+                <Tooltip
+                  title={canEstimate ? 'Estimar el vencimiento con IA' : 'Escribí primero el título'}
+                  arrow
+                >
+                  <Box component="span">
+                    <IconButton
+                      size="small"
+                      disabled={!canEstimate || isPending}
+                      onClick={() => estimate()}
+                      aria-label="Ayúdame IA con la fecha"
+                    >
+                      {isPending ? (
+                        <CircularProgress size={14} />
+                      ) : (
+                        <AutoAwesomeRoundedIcon sx={{ fontSize: 16 }} />
+                      )}
+                    </IconButton>
+                  </Box>
+                </Tooltip>
+              </InputAdornment>
+            ),
+          }}
+        />
+        {/* La hora es opcional: sin ella la tarea vence al final del día. Con
+            ella, el bot puede avisar "vence a las 3" en vez de "vence hoy". */}
+        <TextField
+          label="Hora"
+          type="time"
+          size="small"
+          sx={{ width: 150, flexShrink: 0 }}
+          disabled={isRoutine || !dueDate}
+          {...bind(register, 'dueTime')}
+          InputLabelProps={{ shrink: true }}
+          helperText="Opcional"
+        />
+      </Stack>
+
+      {reason && (
+        <Typography
+          variant="caption"
+          color="text.secondary"
+        >
+          <AutoAwesomeRoundedIcon sx={{ fontSize: 12, mr: 0.5, verticalAlign: 'middle' }} />
+          {reason}
+        </Typography>
+      )}
     </Stack>
   );
 }
@@ -1735,8 +1806,8 @@ function SubmitBar({
       ],
     });
 
-  // Manual de Cowork: sin los 4 campos la tarea entra igual, pero sale marcada
-  // como dato incompleto en el reporte diario. Mejor avisarlo aquí.
+  // Manual de Cowork: los 4 campos son obligatorios y el servidor los exige al
+  // crear. Avisarlo acá evita el viaje de ida y vuelta con un error.
   const missing = missingTaskFields({
     title: title || '',
     assigneeId: assigneeId || '',
@@ -1746,8 +1817,13 @@ function SubmitBar({
   } as TaskFormState);
   const blockedIncomplete =
     status === 'blocked' && (!blockedReason?.trim() || !blockerOwner?.trim());
+  const isRoutine = recurrence !== 'none';
   // "Ninguna tarea sin fecha. Ninguna excepción" — sólo las rutinarias se salvan
-  const needsDueDate = recurrence === 'none' && !dueDate;
+  const needsDueDate = !isRoutine && !dueDate;
+  // Sin responsable ni criterio la tarea NO se crea: una tarea de todos no es de
+  // nadie, y sin criterio no hay árbitro cuando se discuta si terminó.
+  const blocksSave =
+    !isRoutine && !editingTask && (needsDueDate || !assigneeId || !closureCriteria?.trim());
 
   return (
     <>
@@ -1757,8 +1833,8 @@ function SubmitBar({
           color="text.secondary"
           sx={{ flex: 1, minWidth: 200 }}
         >
-          {needsDueDate
-            ? 'Falta la fecha límite para poder guardar.'
+          {blocksSave
+            ? `Falta ${missing.join(', ')} — sin eso la tarea no se puede crear.`
             : `Falta ${missing.join(', ')} — entra igual, pero saldrá en “datos incompletos”.`}
         </Typography>
       )}
@@ -1772,7 +1848,7 @@ function SubmitBar({
         variant="contained"
         type="submit"
         disableElevation
-        disabled={!title || submitting || blockedIncomplete || needsDueDate}
+        disabled={!title || submitting || blockedIncomplete || needsDueDate || blocksSave}
         sx={{
           fontWeight: 800,
           borderRadius: 2,

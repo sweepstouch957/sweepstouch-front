@@ -396,8 +396,12 @@ export async function aiComplete(params: {
 
 /* ─── Borrador de tarea a partir del título ───
    La mitad de las tareas entran con título y nada más. Esto propone lo que
-   falta (descripción, criterio de cierre, siguiente paso, tags) para que el
-   responsable corrija en vez de escribir desde cero. No guarda nada. */
+   falta (descripción, criterio de cierre, siguiente paso, tags y fecha límite
+   estimada) para que el responsable corrija en vez de escribir desde cero.
+   No guarda nada.
+
+   El botón "Ayúdame IA" de la fecha llama a este mismo endpoint y aplica sólo
+   dueDate: un endpoint, dos botones. */
 
 export async function draftTaskFromTitle(params: {
   title: string;
@@ -405,11 +409,16 @@ export async function draftTaskFromTitle(params: {
   beneficiary?: string;
   storeName?: string;
   description?: string;
+  priority?: string;
 }): Promise<{
   description: string;
   closureCriteria: string;
   nextStep: string;
   tags: string[];
+  /** "YYYY-MM-DD" — vacío si la IA no propuso una fecha usable */
+  dueDate: string;
+  /** Una línea con de dónde sale la fecha, para poder discutirla */
+  dueReason: string;
 }> {
   const { data } = await api.post('/ai/task-draft', params);
   return data.data;
