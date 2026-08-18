@@ -7,6 +7,7 @@ import {
   overdueColor,
 } from '@/components/application-ui/content-shells/qbo-receivables/constants';
 import { AgingBar } from '@/components/application-ui/content-shells/qbo-receivables/aging-bar';
+import { InvoiceDialog } from '@/components/application-ui/content-shells/qbo-receivables/invoice-dialog';
 import { useQboStoreDetail } from '@hooks/fetching/qbo/useQbo';
 import AccountBalanceRoundedIcon from '@mui/icons-material/AccountBalanceRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
@@ -43,6 +44,7 @@ type Props = { storeId: string };
 export function QboStoreBillingCard({ storeId }: Props) {
   const { data, isLoading, isError, error } = useQboStoreDetail(storeId);
   const [openInvoices, setOpenInvoices] = useState(false);
+  const [invoiceId, setInvoiceId] = useState<string | null>(null);
 
   if (isLoading) {
     return <Skeleton variant="rounded"
@@ -197,7 +199,13 @@ sx={{ mt: 1 }}>
                 </TableHead>
                 <TableBody>
                   {open.map((i) => (
-                    <TableRow key={i.qboId}>
+                    // Fila clicable: cobranza necesita el detalle y el PDF para reclamar
+                    <TableRow
+                      key={i.qboId}
+                      hover
+                      sx={{ cursor: 'pointer' }}
+                      onClick={() => setInvoiceId(i.qboId)}
+                    >
                       <TableCell>{i.docNumber || i.qboId}</TableCell>
                       <TableCell>{fmtDate(i.txnDate)}</TableCell>
                       <TableCell>{fmtDate(i.dueDate)}</TableCell>
@@ -253,6 +261,9 @@ fontWeight={600}>
           </Box>
         )}
       </CardContent>
+
+      <InvoiceDialog qboId={invoiceId}
+onClose={() => setInvoiceId(null)} />
     </Card>
   );
 }

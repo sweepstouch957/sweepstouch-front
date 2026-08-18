@@ -64,8 +64,17 @@ export interface QboTotals {
   aging: QboAging;
 }
 
+export interface QboDateRange {
+  /** YYYY-MM-DD. null = sin límite. */
+  from: string | null;
+  to: string | null;
+  /** true = los saldos salen de las facturas del rango, no de Customer.Balance. */
+  ranged: boolean;
+}
+
 export interface QboBalancesResponse {
   ok: boolean;
+  range: QboDateRange;
   totals: QboTotals;
   stores: QboBalanceRow[];
   /** El backend cachea 3 min: son 3 queries a QuickBooks y ~5 s en frío. */
@@ -114,6 +123,38 @@ export type QboStoreDetail =
       storeId?: string;
       storeName?: string;
     };
+
+export interface QboInvoiceLine {
+  description: string | null;
+  item: string | null;
+  itemId: string | null;
+  qty: number | null;
+  unitPrice: number | null;
+  amount: number;
+}
+
+export interface QboInvoiceDetail {
+  ok: boolean;
+  found: boolean;
+  qboId: string;
+  docNumber: string | null;
+  txnDate: string | null;
+  dueDate: string | null;
+  customer: { qboCustomerId: string | null; name: string | null; email: string | null };
+  billAddr: string | null;
+  terms: string | null;
+  memo: string | null;
+  privateNote: string | null;
+  currency: string;
+  lines: QboInvoiceLine[];
+  subtotal: number;
+  total: number;
+  balance: number;
+  paid: number;
+  status: 'open' | 'partial' | 'paid';
+  daysOverdue: number;
+  applied: Array<{ type: string; qboId: string }>;
+}
 
 export interface QboStatus {
   ok: boolean;
@@ -223,11 +264,27 @@ export const qboService = {
     return data;
   },
 
-  /** `force` salta el cache de 3 min del backend. Solo para el botón de actualizar. */
-  balances: async (force = false): Promise<QboBalancesResponse> => {
-    const { data } = await api.get(`${BASE}/balances${force ? '?force=1' : ''}`);
+  /** `force` salta el cache de 10 min del backend. Solo para el botón de actualizar. */
+  balances: async (
+    params: { from?: string | null; to?: string | null; force?: boolean } = {}
+  ): Promise<QboBalancesResponse> => {
+    const qs = new URLSearchParams();
+    if (params.from) qs.set('from', params.from);
+    if (params.to) qs.set('to', params.to);
+    if (params.force) qs.set('force', '1');
+    const suffix = qs.toString();
+    const { data } = await api.get(`${BASE}/balances${suffix ? `?${suffix}` : ''}`);
     return data;
   },
+
+  invoice: async (qboId: string): Promise<QboInvoiceDetail> => {
+    const { data } = await api.get(`${BASE}/invoices/${qboId}`);
+    return data;
+  },
+
+  /** URL del PDF que sirve QuickBooks. Se abre en pestaña nueva, no pasa por React. */
+  invoicePdfUrl: (qboId: string, download = false) =>
+    `${api.defaults.baseURL ?? ''}${BASE}/invoices/${qboId}/pdf${download ? '?download=1' : ''}`,
 
   storeDetail: async (storeId: string): Promise<QboStoreDetail> => {
     const { data } = await api.get(`${BASE}/stores/${storeId}`);
@@ -287,7 +344,9 @@ export const qboService = {
 
 export const qboQK = {
   status: () => ['qbo', 'status'] as const,
-  balances: () => ['qbo', 'balances'] as const,
+  balances: (from?: string | null, to?: string | null) =>
+    ['qbo', 'balances', from ?? '*', to ?? '*'] as const,
+  invoice: (qboId: string) => ['qbo', 'invoice', qboId] as const,
   storeDetail: (storeId: string) => ['qbo', 'store', storeId] as const,
   customers: (search: string) => ['qbo', 'customers', search] as const,
   proposals: (storeId?: string) => ['qbo', 'proposals', storeId ?? 'all'] as const,

@@ -50,7 +50,7 @@ xs={12}
 sm={6}
 lg={3}>
             <Skeleton variant="rounded"
-height={116}
+height={86}
 sx={{ borderRadius: 2 }} />
           </Grid>
         ))}
@@ -112,22 +112,22 @@ xs={12}
 sm={6}
 lg={3}>
               <Paper variant="outlined"
-sx={{ p: 2.5, borderRadius: 2, height: '100%' }}>
+sx={{ p: 1.75, borderRadius: 2, height: '100%' }}>
                 <Stack direction="row"
-spacing={1.5}
-alignItems="flex-start">
+spacing={1.25}
+alignItems="center">
                   <Avatar
                     variant="rounded"
                     sx={{
-                      width: 38,
-                      height: 38,
+                      width: 32,
+                      height: 32,
                       flexShrink: 0,
                       bgcolor: alpha(color, 0.12),
                       color,
-                      borderRadius: 1.5,
+                      borderRadius: 1.25,
                     }}
                   >
-                    <Icon fontSize="small" />
+                    <Icon sx={{ fontSize: 18 }} />
                   </Avatar>
 
                   {/* minWidth:0 es lo que permite que el hijo se encoja dentro del flex.
@@ -148,10 +148,9 @@ flex={1}>
                       <Typography
                         fontWeight={700}
                         sx={{
-                          mt: 0.25,
-                          lineHeight: 1.15,
+                          lineHeight: 1.2,
                           // Escala con el ancho disponible: a 200px no rompe la tarjeta
-                          fontSize: { xs: '1.75rem', sm: '1.5rem', lg: '1.6rem', xl: '1.9rem' },
+                          fontSize: { xs: '1.3rem', sm: '1.15rem', lg: '1.2rem', xl: '1.35rem' },
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
@@ -166,11 +165,11 @@ flex={1}>
                         variant="caption"
                         color="text.secondary"
                         sx={{
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
+                          display: 'block',
                           overflow: 'hidden',
-                          minHeight: 32, // dos líneas fijas: las 4 tarjetas quedan a la misma altura
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          fontSize: '0.7rem',
                         }}
                       >
                         {t.hint}
@@ -185,7 +184,7 @@ flex={1}>
       </Grid>
 
       <Paper variant="outlined"
-sx={{ p: 2.5, borderRadius: 2 }}>
+sx={{ p: 1.75, borderRadius: 2 }}>
         <Stack
           direction={{ xs: 'column', sm: 'row' }}
           justifyContent="space-between"

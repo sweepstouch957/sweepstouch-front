@@ -56,3 +56,40 @@ export const FILTER_OPTIONS: Array<{ value: ReceivablesFilter; label: string }> 
   { value: 'unlinked', label: 'Sin vincular' },
   { value: 'drift', label: 'Descuadradas' },
 ];
+
+/* ── Rango de fechas ──────────────────────────────────────────────── */
+
+export type RangePreset = 'all' | 'thisYear' | 'lastYear' | 'last90' | 'custom';
+
+const ymd = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/**
+ * Atajos de rango. "Todo el histórico" es el default a propósito: es el único
+ * modo en que el saldo sale de Customer.Balance, que ya viene neto de créditos.
+ * Con rango, el saldo se recalcula sumando las facturas emitidas dentro.
+ */
+export function presetToRange(preset: RangePreset): { from: string | null; to: string | null } {
+  const now = new Date();
+  switch (preset) {
+    case 'thisYear':
+      return { from: `${now.getFullYear()}-01-01`, to: null };
+    case 'lastYear':
+      return { from: `${now.getFullYear() - 1}-01-01`, to: `${now.getFullYear() - 1}-12-31` };
+    case 'last90': {
+      const d = new Date(now);
+      d.setDate(d.getDate() - 90);
+      return { from: ymd(d), to: null };
+    }
+    default:
+      return { from: null, to: null };
+  }
+}
+
+export const RANGE_PRESETS: Array<{ value: RangePreset; label: string }> = [
+  { value: 'all', label: 'Todo el histórico' },
+  { value: 'thisYear', label: `Año ${new Date().getFullYear()}` },
+  { value: 'lastYear', label: `Año ${new Date().getFullYear() - 1}` },
+  { value: 'last90', label: 'Últimos 90 días' },
+  { value: 'custom', label: 'Rango…' },
+];

@@ -31,8 +31,19 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import MenuItem from '@mui/material/MenuItem';
+import RangePickerField, { type RangePickerValue } from '@/components/base/range-picker-field';
 import { useDeferredValue, useMemo, useState } from 'react';
-import { DRIFT_EPSILON, FILTER_OPTIONS, type ReceivablesFilter } from './constants';
+import {
+  DRIFT_EPSILON,
+  FILTER_OPTIONS,
+  RANGE_PRESETS,
+  presetToRange,
+  type RangePreset,
+  type ReceivablesFilter,
+} from './constants';
 import { QboSummaryCards } from './qbo-summary-cards';
 import { ReceivablesTable } from './receivables-table';
 
@@ -46,9 +57,18 @@ export function QboReceivables({ embedded = false, onSelectStore }: Props) {
   const status = useQboStatus();
   const connected = status.data?.connected ?? false;
 
+  const [preset, setPreset] = useState<RangePreset>('all');
+  const [custom, setCustom] = useState<RangePickerValue>({ startYmd: '', endYmd: '' });
+
+  // En modo 'custom' manda lo que eligió el usuario; si aún no eligió, no se filtra.
+  const range = useMemo(() => {
+    if (preset !== 'custom') return presetToRange(preset);
+    return { from: custom.startYmd || null, to: custom.endYmd || null };
+  }, [preset, custom]);
+
   // Sin conexión no se pide la cartera: serían 3 llamadas a QBO que fallan igual.
-  const balances = useQboBalances({ enabled: connected });
-  const refresh = useQboRefreshBalances();
+  const balances = useQboBalances(range, { enabled: connected });
+  const refresh = useQboRefreshBalances(range);
   const linkCustomers = useQboLinkCustomers();
   const retryPending = useQboRetryPending();
 
@@ -207,6 +227,14 @@ spacing={1}>
         </Alert>
       )}
 
+      {balances.data?.range?.ranged && (
+        <Alert severity="info"
+sx={{ py: 0.5 }}>
+          Periodo acotado: los saldos suman solo las facturas emitidas en el rango, no el
+          saldo total del cliente.
+        </Alert>
+      )}
+
       <QboSummaryCards totals={balances.data?.totals}
 isLoading={balances.isLoading} />
 
@@ -234,6 +262,35 @@ value={o.value}>
               ))}
             </ToggleButtonGroup>
 
+            <Stack direction={{ xs: 'column', sm: 'row' }}
+spacing={1.5}>
+              <TextField
+                select
+                size="small"
+                label="Periodo"
+                value={preset}
+                onChange={(e) => setPreset(e.target.value as RangePreset)}
+                sx={{ minWidth: 170 }}
+              >
+                {RANGE_PRESETS.map((o) => (
+                  <MenuItem key={o.value}
+value={o.value}>
+                    {o.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              {preset === 'custom' && (
+                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                  <RangePickerField
+                    label="Emitidas entre"
+                    value={custom}
+                    onChange={setCustom}
+                    sx={{ minWidth: { sm: 230 } }}
+                  />
+                </LocalizationProvider>
+              )}
+
             <TextField
               size="small"
               placeholder="Buscar tienda…"
@@ -248,6 +305,7 @@ value={o.value}>
                 ),
               }}
             />
+            </Stack>
           </Stack>
 
           {balances.isLoading ? (
@@ -261,6 +319,7 @@ onSelect={onSelectStore} />
           )}
         </CardContent>
       </Card>
+
     </Stack>
   );
 }
