@@ -7,6 +7,7 @@ import {
   type QboLinkResult,
   type QboRetryResult,
   type QboStatus,
+  type QboCustomerLedger,
   type QboInvoiceDetail,
   type QboStoreDetail,
   type QboSyncPreview,
@@ -59,6 +60,17 @@ export function useQboRefreshBalances(range?: { from?: string | null; to?: strin
       toast.success('Cartera actualizada desde QuickBooks');
     },
     onError: (e) => toast.error(e.message || 'No se pudo actualizar'),
+  });
+}
+
+/** Todas las facturas y pagos de un cliente. Solo se pide con el modal abierto. */
+export function useQboCustomerLedger(qboCustomerId: string | null) {
+  return useQuery<QboCustomerLedger>({
+    queryKey: qboQK.customerLedger(qboCustomerId ?? ''),
+    queryFn: () => qboService.customerLedger(qboCustomerId as string),
+    enabled: Boolean(qboCustomerId),
+    staleTime: 1000 * 60 * 5,
+    retry: false,
   });
 }
 

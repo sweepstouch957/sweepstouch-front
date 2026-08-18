@@ -101,6 +101,26 @@ export interface QboPaymentRow {
   note: string | null;
 }
 
+/** Libro de un cliente de QuickBooks: sirva o no una tienda de Mongo. */
+export interface QboCustomerLedger {
+  ok: boolean;
+  found: boolean;
+  qboCustomerId: string;
+  qboName: string;
+  /** Neto de créditos, tal como lo calcula QuickBooks. */
+  balance: number;
+  /** Suma de facturas abiertas. Puede ser mayor que `balance`. */
+  invoiceBalance: number;
+  openInvoices: number;
+  totalInvoices: number;
+  totalPaid: number;
+  maxDaysOverdue: number;
+  aging: QboAging;
+  lastPayment: QboPaymentRow | null;
+  invoices: QboInvoiceRow[];
+  payments: QboPaymentRow[];
+}
+
 export type QboStoreDetail =
   | {
       ok: boolean;
@@ -277,6 +297,11 @@ export const qboService = {
     return data;
   },
 
+  customerLedger: async (qboCustomerId: string): Promise<QboCustomerLedger> => {
+    const { data } = await api.get(`${BASE}/customers/${qboCustomerId}/ledger`);
+    return data;
+  },
+
   invoice: async (qboId: string): Promise<QboInvoiceDetail> => {
     const { data } = await api.get(`${BASE}/invoices/${qboId}`);
     return data;
@@ -347,6 +372,7 @@ export const qboQK = {
   balances: (from?: string | null, to?: string | null) =>
     ['qbo', 'balances', from ?? '*', to ?? '*'] as const,
   invoice: (qboId: string) => ['qbo', 'invoice', qboId] as const,
+  customerLedger: (qboCustomerId: string) => ['qbo', 'ledger', qboCustomerId] as const,
   storeDetail: (storeId: string) => ['qbo', 'store', storeId] as const,
   customers: (search: string) => ['qbo', 'customers', search] as const,
   proposals: (storeId?: string) => ['qbo', 'proposals', storeId ?? 'all'] as const,

@@ -44,12 +44,14 @@ import {
   type RangePreset,
   type ReceivablesFilter,
 } from './constants';
+import { CustomerInvoicesDialog } from './customer-invoices-dialog';
 import { QboSummaryCards } from './qbo-summary-cards';
 import { ReceivablesTable } from './receivables-table';
 
 type Props = {
   /** Sin cabecera ni acciones: para incrustar bajo otra pantalla. */
   embedded?: boolean;
+  /** Navegación al panel de la tienda. Solo aplica a filas vinculadas. */
   onSelectStore?: (row: QboBalanceRow) => void;
 };
 
@@ -72,6 +74,7 @@ export function QboReceivables({ embedded = false, onSelectStore }: Props) {
   const linkCustomers = useQboLinkCustomers();
   const retryPending = useQboRetryPending();
 
+  const [ledgerRow, setLedgerRow] = useState<QboBalanceRow | null>(null);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<ReceivablesFilter>('debt');
   const deferredSearch = useDeferredValue(search);
@@ -315,7 +318,7 @@ textAlign="center">
             </Box>
           ) : (
             <ReceivablesTable rows={rows}
-onSelect={onSelectStore} />
+onSelect={setLedgerRow} />
           )}
         </CardContent>
       </Card>
