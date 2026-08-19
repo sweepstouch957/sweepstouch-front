@@ -55,3 +55,76 @@ export function priceLabel(p: Pick<ShelfSignProduct, 'qty' | 'dollars' | 'cents'
   if (format === 'multi') return `${qty}/$${dollars}${decimals}${unit ? ` ${unit}. FOR` : ''}`;
   return `$${dollars}${decimals}${suffix}`;
 }
+
+/* ── Savings ─────────────────────────────────────────────────────────────── */
+
+/**
+ * Lee un precio del texto libre que trae el flyer en "regular price".
+ * Devuelve CENTAVOS POR UNIDAD, o null si no hay un número usable.
+ *
+ * Formas que aparecen en los flyers reales:
+ *   "$2.99 LB."      → 299
+ *   "$5"             → 500
+ *   "79¢ EA"         → 79
+ *   "4 LB./$25.99"   → 650  (precio del paquete ÷ 4)
+ *   "2/$7"           → 350
+ */
+export function parseRegularCents(text: string): number | null {
+  const t = String(text || '').trim();
+  if (!t) return null;
+
+  // "4/$25.99" o "4 LB./$25.99" — el precio es por el paquete, no por unidad.
+  const pack = t.match(/(\d+)\s*(?:LB|EA)?\.?\s*\/\s*\$\s*(\d+)(?:[.,](\d{1,2}))?/i);
+  if (pack) {
+    const n = Math.max(1, Number(pack[1]));
+    const cents = Number(pack[2]) * 100 + (pack[3] ? Number(pack[3].padEnd(2, '0')) : 0);
+    return Math.round(cents / n);
+  }
+
+  const dollars = t.match(/\$\s*(\d+)(?:[.,](\d{1,2}))?/);
+  if (dollars) {
+    return Number(dollars[1]) * 100 + (dollars[2] ? Number(dollars[2].padEnd(2, '0')) : 0);
+  }
+
+  const cents = t.match(/(\d{1,3})\s*¢/);
+  if (cents) return Number(cents[1]);
+
+  return null;
+}
+
+/** Centavos → como se imprime en el cartón: 70¢ · $4.97 */
+export function formatMoney(totalCents: number): string {
+  if (totalCents < 100) return `${totalCents}¢`;
+  return `$${(totalCents / 100).toFixed(2)}`;
+}
+
+/**
+ * Calcula el texto de "Save" comparando el regular price del flyer con el
+ * precio de oferta del cartón. Devuelve '' si no se puede calcular.
+ *
+ * Todo en centavos enteros: con floats, $2.99 - $2.29 daba 0.6999999999999998
+ * y el cartón salía con un ahorro de "69¢" en vez de 70¢.
+ *
+ * En promos múltiples el ahorro es POR OFERTA (comprando las N unidades), que
+ * es el número que le importa al cliente parado en la góndola:
+ *   3/$10 contra $4.99 EA → 3×499 − 1000 = "$4.97 PER OFFER"
+ */
+export function computeSave(
+  p: Pick<ShelfSignProduct, 'qty' | 'dollars' | 'cents' | 'unit' | 'regularPrice'>
+): string {
+  const regularPerUnit = parseRegularCents(p.regularPrice);
+  if (regularPerUnit === null) return '';
+
+  const { qty, dollars, cents, unit } = priceValues(p);
+  const offerTotal = dollars * 100 + cents;
+  if (offerTotal <= 0) return '';
+
+  if (qty > 1) {
+    const saving = regularPerUnit * qty - offerTotal;
+    return saving > 0 ? `${formatMoney(saving)} PER OFFER` : '';
+  }
+
+  const saving = regularPerUnit - offerTotal;
+  if (saving <= 0) return '';
+  return `${formatMoney(saving)} PER ${unit || 'ITEM'}`;
+}

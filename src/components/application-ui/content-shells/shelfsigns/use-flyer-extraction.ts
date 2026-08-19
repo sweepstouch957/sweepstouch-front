@@ -61,6 +61,8 @@ export function useFlyerExtraction({ onProducts, onPatchProduct }: Options) {
   const [flyerPreview, setFlyerPreview] = React.useState<string | null>(null);
   /** Flyer en Cloudinary: el backend recorta desde acá, y también lo usa "Mejorar con IA". */
   const [flyerUrl, setFlyerUrl] = React.useState<string | null>(null);
+  /** Cartones esperando su recorte: el editor les muestra un skeleton. */
+  const [pendingPhotoIds, setPendingPhotoIds] = React.useState<string[]>([]);
 
   /** Original en resolución completa, para el recorte local de emergencia. */
   const originalRef = React.useRef<string | null>(null);
@@ -74,6 +76,7 @@ export function useFlyerExtraction({ onProducts, onPatchProduct }: Options) {
     async (file: File) => {
       setLoading(true);
       setError('');
+      setPendingPhotoIds([]);
       try {
         setStatus('Preparando imagen…');
         const original = await readAsDataURL(file);
@@ -153,6 +156,7 @@ export function useFlyerExtraction({ onProducts, onPatchProduct }: Options) {
         let done = 0;
         let failed = 0;
         const withBox = targets.filter((t) => t.box);
+        setPendingPhotoIds(withBox.map((t) => t.product.id));
 
         setStatus(`Recortando ${withBox.length} foto(s) y quitando el fondo…`);
         await mapLimit(withBox, CUTOUT_CONCURRENCY, async ({ product, box }) => {
@@ -178,6 +182,7 @@ export function useFlyerExtraction({ onProducts, onPatchProduct }: Options) {
               /* se queda sin foto; el diseñador puede subirla a mano */
             }
           }
+          setPendingPhotoIds((ids) => ids.filter((id) => id !== product.id));
           setStatus(
             `Recortando fotos… ${done + failed}/${withBox.length}` +
               (fromLibrary ? ` · ${fromLibrary} de librería` : '')
@@ -205,6 +210,7 @@ export function useFlyerExtraction({ onProducts, onPatchProduct }: Options) {
         );
         setStatus('');
       } finally {
+        setPendingPhotoIds([]);
         setLoading(false);
       }
     },
@@ -217,6 +223,7 @@ export function useFlyerExtraction({ onProducts, onPatchProduct }: Options) {
     error,
     flyerPreview,
     flyerUrl,
+    pendingPhotoIds,
     analyze,
     clearError: () => setError(''),
     setStatus,

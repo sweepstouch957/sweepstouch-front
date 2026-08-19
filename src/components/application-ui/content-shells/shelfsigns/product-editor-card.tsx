@@ -10,6 +10,7 @@ import {
   CircularProgress,
   IconButton,
   MenuItem,
+  Skeleton,
   Stack,
   TextField,
   Tooltip,
@@ -17,7 +18,7 @@ import {
 } from '@mui/material';
 import React from 'react';
 import { readAsDataURL } from './image';
-import { clampCents, clampDollars, clampQty, priceLabel } from './price';
+import { clampCents, clampDollars, clampQty, computeSave, priceLabel } from './price';
 import type { ShelfSignProduct } from './types';
 
 /**
@@ -37,6 +38,8 @@ interface Props {
   enhancing?: boolean;
   /** Foto subida a mano: el padre la sube a Cloudinary y la guarda en la librería. */
   onPhotoFile?: (product: ShelfSignProduct, file: File) => void;
+  /** La foto de este cartón se está recortando o subiendo. */
+  photoLoading?: boolean;
 }
 
 const labelSx = {
@@ -57,10 +60,13 @@ function ProductEditorCardBase({
   onEnhance,
   enhancing = false,
   onPhotoFile,
+  photoLoading = false,
 }: Props): React.JSX.Element {
   const fileRef = React.useRef<HTMLInputElement>(null);
 
   const set = (patch: Partial<ShelfSignProduct>) => onChange(p.id, patch);
+
+  const suggestedSave = computeSave(p);
 
   const pickPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -214,6 +220,19 @@ function ProductEditorCardBase({
               value={p.save}
               onChange={(e) => set({ save: e.target.value })}
             />
+            {/* El flyer no siempre imprime el ahorro, pero casi siempre imprime
+                el regular price. Con eso el número sale solo — y si el diseñador
+                corrige el regular a mano, la sugerencia se recalcula. */}
+            {suggestedSave && suggestedSave !== p.save && (
+              <Button
+                size="small"
+                variant="text"
+                sx={{ alignSelf: 'flex-start', mt: -0.5 }}
+                onClick={() => set({ save: suggestedSave })}
+              >
+                Calcular ahorro: {suggestedSave}
+              </Button>
+            )}
           </Stack>
 
           {/* ── Condiciones y foto ── */}
@@ -244,13 +263,29 @@ function ProductEditorCardBase({
                 onChange={pickPhoto}
               />
 
-              {p.photo ? (
+              {photoLoading && !p.photo ? (
+                <Stack spacing={0.5}>
+                  <Skeleton
+                    variant="rounded"
+                    width={90}
+                    height={90}
+                    animation="wave"
+                  />
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                  >
+                    Recortando y quitando fondo…
+                  </Typography>
+                </Stack>
+              ) : p.photo ? (
                 <Stack spacing={0.5}>
                   <Box
                     component="img"
                     src={p.photo}
                     alt=""
                     sx={{
+                      opacity: photoLoading ? 0.45 : 1,
                       maxHeight: 90,
                       objectFit: 'contain',
                       alignSelf: 'flex-start',
@@ -261,6 +296,14 @@ function ProductEditorCardBase({
                       p: 0.5,
                     }}
                   />
+                  {photoLoading && (
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      Subiendo a la librería…
+                    </Typography>
+                  )}
                   <Stack
                     direction="row"
                     spacing={1}
@@ -268,6 +311,7 @@ function ProductEditorCardBase({
                     <Button
                       size="small"
                       color="error"
+                      disabled={photoLoading}
                       onClick={() => set({ photo: null, photoBox: null })}
                     >
                       Quitar

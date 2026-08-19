@@ -4,7 +4,7 @@
  * La revisión humana es obligatoria por diseño, pero cuanto más limpio llegue
  * el dato al editor, menos correcciones hace el diseñador.
  */
-import { clampCents, clampDollars, clampQty, clampUnit } from './price';
+import { clampCents, clampDollars, clampQty, clampUnit, computeSave } from './price';
 import type { PhotoBox, ShelfSignProduct } from './types';
 
 export const uid = (): string => Math.random().toString(36).slice(2, 9);
@@ -47,7 +47,21 @@ export function toProducts(raw: unknown[] | undefined): ShelfSignProduct[] {
       photo: null,
       photoBox: normalizePhotoBox(item?.photoBox),
     }))
+    .map(withComputedSave)
     .map(dedupeShared);
+}
+
+/**
+ * Rellena "Save" cuando el flyer traía el regular price pero no el ahorro.
+ *
+ * Sólo cuando está vacío: si el flyer imprime su propio texto de ahorro, ese
+ * gana — es el que el cliente va a comparar contra la góndola. Y si no hay
+ * regular price no se inventa nada.
+ */
+function withComputedSave(p: ShelfSignProduct): ShelfSignProduct {
+  if (p.save.trim()) return p;
+  const save = computeSave(p);
+  return save ? { ...p, save } : p;
 }
 
 /**

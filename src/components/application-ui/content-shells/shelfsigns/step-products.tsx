@@ -63,10 +63,14 @@ export function StepProducts({
     [onAppendProducts, onSetProducts]
   );
 
-  const { loading, status, error, flyerPreview, flyerUrl, analyze, setStatus } = useFlyerExtraction({
-    onProducts: handleProducts,
-    onPatchProduct,
-  });
+  const { loading, status, error, flyerPreview, flyerUrl, pendingPhotoIds, analyze, setStatus } =
+    useFlyerExtraction({
+      onProducts: handleProducts,
+      onPatchProduct,
+    });
+
+  /** Subidas manuales en vuelo. Se suman a las del pipeline para el skeleton. */
+  const [uploadingIds, setUploadingIds] = React.useState<string[]>([]);
 
   const enhance = useEnhanceProductImage();
   const saveToLibrary = useSaveProductImages();
@@ -120,6 +124,7 @@ export function StepProducts({
     async (p: ShelfSignProduct, file: File) => {
       const slug = productSlug(p.name);
       if (!slug) return;
+      setUploadingIds((ids) => [...ids, p.id]);
       try {
         const uploaded = await designsService.uploadFlyer(file);
         await saveToLibrary.mutateAsync([
@@ -130,6 +135,8 @@ export function StepProducts({
         // La vista previa local ya quedó puesta: el cartón sale igual, sólo no
         // se guardó en la librería.
         setPhotoNote(`La foto de "${p.name}" no se pudo guardar en la librería.`);
+      } finally {
+        setUploadingIds((ids) => ids.filter((id) => id !== p.id));
       }
     },
     [onPatchProduct, saveToLibrary]
@@ -312,6 +319,7 @@ color="inherit" /> : <UploadFileRoundedIcon />
               onEnhance={p.photo?.startsWith('http') || (flyerUrl && p.photoBox) ? handleEnhance : undefined}
               enhancing={enhancingId === p.id}
               onPhotoFile={handlePhotoFile}
+              photoLoading={pendingPhotoIds.includes(p.id) || uploadingIds.includes(p.id)}
             />
           ))}
         </>
