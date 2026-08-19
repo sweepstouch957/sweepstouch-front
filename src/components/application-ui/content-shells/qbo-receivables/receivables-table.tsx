@@ -41,12 +41,17 @@ const hideBelow = (bp: 'md' | 'lg' | 'xl') => ({
  * absorbe la columna de tienda.
  */
 const W = {
-  debe: 96,
-  facturas: 56,
-  atraso: 66,
-  aging: 96,
+  // Porcentaje, no píxeles: con tableLayout fixed la primera columna se quedaba
+  // con todo el sobrante y el nombre ocupaba media tabla.
+  tienda: '30%',
+  debe: 100,
+  facturas: 52,
+  // 80 y 104: con 66/78 se truncaban los atrasos de 3 dígitos ("770 d" → "77…")
+  // y los descuadres de 4 cifras ("+$3,190.43" → "+$3,1…").
+  atraso: 80,
+  aging: 88,
   lastPayment: 116,
-  drift: 78,
+  drift: 104,
 } as const;
 
 const cell = { py: 0.75, px: 1 } as const;
@@ -68,16 +73,26 @@ const Row = memo(function Row({
       onClick={onSelect ? () => onSelect(row) : undefined}
       sx={{ cursor: onSelect ? 'pointer' : 'default', '& td': { borderColor: 'divider' } }}
     >
-      <TableCell sx={{ ...cell, minWidth: 180 }}>
+      <TableCell sx={{ ...cell, width: W.tienda }}>
         <Stack direction="row"
-alignItems="center"
+alignItems="flex-start"
 spacing={0.75}>
           <Box minWidth={0}
 flex={1}>
-            <Typography variant="body2"
-fontWeight={600}
-noWrap
-lineHeight={1.35}>
+            {/* Los nombres son direcciones completas y no caben en una línea.
+                En vez de estirar la columna, se parte en dos y se corta ahí. */}
+            <Typography
+              variant="body2"
+              fontWeight={600}
+              lineHeight={1.3}
+              sx={{
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                overflowWrap: 'anywhere',
+              }}
+            >
               {row.storeName || row.qboName}
             </Typography>
             {/* El nombre del contador solo cuando difiere del de Mongo: repetirlo
@@ -280,7 +295,7 @@ sx={{ tableLayout: 'fixed', minWidth: 560 }}>
                 },
               }}
             >
-              <TableCell sx={{ minWidth: 180 }}>Tienda</TableCell>
+              <TableCell sx={{ width: W.tienda }}>Tienda</TableCell>
               <TableCell align="right"
 sx={{ width: W.debe }}>Debe</TableCell>
               <TableCell align="center"
