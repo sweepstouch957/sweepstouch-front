@@ -251,80 +251,89 @@ isLoading={balances.isLoading} />
       <Card>
         {busy && <LinearProgress />}
         <CardContent>
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={1.5}
-            justifyContent="space-between"
-            alignItems={{ xs: 'stretch', md: 'center' }}
-            sx={{ mb: 2 }}
+          <Box
+            sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              gap: 1.5,
+              mb: 2,
+            }}
           >
-            <Stack direction={{ xs: 'column', sm: 'row' }}
-spacing={1.5}>
-              <ToggleButtonGroup
-                size="small"
-                exclusive
-                color="primary"
-                value={linkFilter}
-                onChange={(_, v) => v && setLinkFilter(v as LinkFilter)}
-              >
-                {LINK_FILTER_OPTIONS.map((o) => (
-                  <Tooltip key={o.value}
+            {/* Grupo 1 — estado del vínculo */}
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              color="primary"
+              value={linkFilter}
+              onChange={(_, v) => v && setLinkFilter(v as LinkFilter)}
+              sx={{ flexShrink: 0 }}
+            >
+              {LINK_FILTER_OPTIONS.map((o) => (
+                <Tooltip key={o.value}
 title={o.hint}>
-                    <ToggleButton value={o.value}>{o.label}</ToggleButton>
-                  </Tooltip>
-                ))}
-              </ToggleButtonGroup>
-
-              <ToggleButtonGroup
-                size="small"
-                exclusive
-                value={filter}
-                onChange={(_, v) => v && setFilter(v as ReceivablesFilter)}
-              >
-                {FILTER_OPTIONS.map((o) => (
-                  <ToggleButton key={o.value}
-value={o.value}>
+                  <ToggleButton value={o.value}
+sx={{ px: 1.25, whiteSpace: 'nowrap' }}>
                     {o.label}
                   </ToggleButton>
-                ))}
-              </ToggleButtonGroup>
-            </Stack>
+                </Tooltip>
+              ))}
+            </ToggleButtonGroup>
 
-            <Stack direction={{ xs: 'column', sm: 'row' }}
-spacing={1.5}>
-              <TextField
-                select
-                size="small"
-                label="Periodo"
-                value={preset}
-                onChange={(e) => setPreset(e.target.value as RangePreset)}
-                sx={{ minWidth: 170 }}
-              >
-                {RANGE_PRESETS.map((o) => (
-                  <MenuItem key={o.value}
+            {/* Grupo 2 — estado de la cartera */}
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={filter}
+              onChange={(_, v) => v && setFilter(v as ReceivablesFilter)}
+              sx={{ flexShrink: 0 }}
+            >
+              {FILTER_OPTIONS.map((o) => (
+                <ToggleButton key={o.value}
+value={o.value}
+sx={{ px: 1.25, whiteSpace: 'nowrap' }}>
+                  {o.label}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+
+            {/* Empuja periodo y búsqueda a la derecha mientras quepan; al no caber,
+                el wrap del contenedor los baja de línea en vez de desbordar. */}
+            <Box sx={{ flexGrow: 1, minWidth: 0 }} />
+
+            <TextField
+              select
+              size="small"
+              label="Periodo"
+              value={preset}
+              onChange={(e) => setPreset(e.target.value as RangePreset)}
+              sx={{ width: 160, flexShrink: 0 }}
+            >
+              {RANGE_PRESETS.map((o) => (
+                <MenuItem key={o.value}
 value={o.value}>
-                    {o.label}
-                  </MenuItem>
-                ))}
-              </TextField>
+                  {o.label}
+                </MenuItem>
+              ))}
+            </TextField>
 
-              {preset === 'custom' && (
-                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                  <RangePickerField
-                    label="Emitidas entre"
-                    value={custom}
-                    onChange={setCustom}
-                    sx={{ minWidth: { sm: 230 } }}
-                  />
-                </LocalizationProvider>
-              )}
+            {preset === 'custom' && (
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <RangePickerField
+                  label="Emitidas entre"
+                  value={custom}
+                  onChange={setCustom}
+                  sx={{ width: 230, flexShrink: 0 }}
+                />
+              </LocalizationProvider>
+            )}
 
             <TextField
               size="small"
               placeholder="Buscar tienda…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              sx={{ minWidth: { md: 260 } }}
+              sx={{ flex: '1 1 200px', minWidth: 160, maxWidth: { md: 280 } }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -333,8 +342,7 @@ value={o.value}>
                 ),
               }}
             />
-            </Stack>
-          </Stack>
+          </Box>
 
           {balances.isLoading ? (
             <Box py={6}
@@ -348,6 +356,21 @@ onSelect={setLedgerRow} />
         </CardContent>
       </Card>
 
+      {/* Click en cualquier fila abre el libro del cliente: facturas, pagos y
+          antigüedad. Funciona igual esté vinculada o no, porque va por qboCustomerId. */}
+      <CustomerInvoicesDialog
+        row={ledgerRow}
+        onClose={() => setLedgerRow(null)}
+        onOpenStore={
+          onSelectStore && ledgerRow?.storeId
+            ? (storeId) => {
+                const full = balances.data?.stores.find((s) => s.storeId === storeId);
+                setLedgerRow(null);
+                if (full) onSelectStore(full);
+              }
+            : undefined
+        }
+      />
     </Stack>
   );
 }

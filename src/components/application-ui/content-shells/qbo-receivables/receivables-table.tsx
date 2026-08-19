@@ -34,6 +34,21 @@ const hideBelow = (bp: 'sm' | 'md' | 'lg') => ({
   display: { xs: 'none', [bp]: 'table-cell' },
 });
 
+/**
+ * Anchos fijos. La columna de tienda absorbe el resto, así el ancho de las demás
+ * no depende del largo del nombre y las filas dejan de moverse al filtrar.
+ */
+const W = {
+  debe: 120,
+  facturas: 84,
+  atraso: 92,
+  aging: 132,
+  lastPayment: 150,
+  drift: 96,
+} as const;
+
+const cellSx = { py: 1.25 } as const;
+
 const Row = memo(function Row({
   row,
   onSelect,
@@ -56,11 +71,12 @@ const Row = memo(function Row({
         '& td': { borderColor: 'divider' },
       }}
     >
-      <TableCell>
+      <TableCell sx={{ ...cellSx, minWidth: 220 }}>
         <Stack direction="row"
 alignItems="center"
 spacing={1}>
-          <Box minWidth={0}>
+          <Box minWidth={0}
+flex={1}>
             <Typography variant="body2"
 fontWeight={600}
 noWrap>
@@ -97,7 +113,8 @@ color="text.secondary">
         )}
       </TableCell>
 
-      <TableCell align="right">
+      <TableCell align="right"
+sx={{ ...cellSx, width: W.debe, whiteSpace: 'nowrap' }}>
         <Typography
           variant="body2"
           fontWeight={700}
@@ -108,14 +125,15 @@ color="text.secondary">
       </TableCell>
 
       <TableCell align="center"
-sx={hideBelow('md')}>
+sx={{ ...cellSx, ...hideBelow('md'), width: W.facturas }}>
         <Typography variant="body2"
 color="text.secondary">
           {row.openInvoices || '—'}
         </Typography>
       </TableCell>
 
-      <TableCell align="center">
+      <TableCell align="center"
+sx={{ ...cellSx, width: W.atraso }}>
         {row.balance > 0 ? (
           <Chip
             size="small"
@@ -131,22 +149,26 @@ color="text.secondary">
         )}
       </TableCell>
 
-      <TableCell sx={{ minWidth: 130, ...hideBelow('lg') }}>
+      <TableCell sx={{ ...cellSx, ...hideBelow('lg'), width: W.aging }}>
         <AgingBar aging={row.aging} />
       </TableCell>
 
-      <TableCell sx={hideBelow('md')}>
+      <TableCell sx={{ ...cellSx, ...hideBelow('md'), width: W.lastPayment }}>
         {row.lastPayment ? (
-          <Box>
+          <Box sx={{ whiteSpace: 'nowrap' }}>
             <Typography variant="body2"
-fontWeight={600}>
+fontWeight={600}
+lineHeight={1.3}>
               {money(row.lastPayment.amount)}
             </Typography>
             <Typography variant="caption"
-color="text.secondary">
-              {`${fmtDate(row.lastPayment.date)}${
-                sinceLastPayment !== null ? ` · hace ${sinceLastPayment} d` : ''
-              }`}
+color="text.secondary"
+lineHeight={1.3}>
+              {fmtDate(row.lastPayment.date)}
+              {sinceLastPayment !== null && (
+                <Box component="span"
+sx={{ opacity: 0.75 }}>{` · ${sinceLastPayment} d`}</Box>
+              )}
             </Typography>
           </Box>
         ) : (
@@ -158,7 +180,7 @@ color="text.secondary">
       </TableCell>
 
       <TableCell align="right"
-sx={hideBelow('lg')}>
+sx={{ ...cellSx, ...hideBelow('lg'), width: W.drift }}>
         {hasDrift ? (
           <Tooltip
             title={`QuickBooks ${money(row.balance)} · Mongo ${money(row.mongoPending)}`}
@@ -204,20 +226,37 @@ textAlign="center">
 
   return (
     <>
-      <TableContainer>
+      <TableContainer sx={{ overflowX: 'auto' }}>
         <Table size="small"
-stickyHeader>
+stickyHeader
+sx={{ minWidth: 640 }}>
           <TableHead>
-            <TableRow>
-              <TableCell>Tienda</TableCell>
-              <TableCell align="right">Debe</TableCell>
-              <TableCell align="center"
-sx={hideBelow('md')}>Facturas</TableCell>
-              <TableCell align="center">Atraso</TableCell>
-              <TableCell sx={hideBelow('lg')}>Antigüedad</TableCell>
-              <TableCell sx={hideBelow('md')}>Último pago</TableCell>
+            <TableRow
+              sx={{
+                '& th': {
+                  bgcolor: 'background.paper',
+                  fontWeight: 600,
+                  fontSize: '0.72rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.4,
+                  color: 'text.secondary',
+                  borderColor: 'divider',
+                },
+              }}
+            >
+              <TableCell sx={{ minWidth: 220 }}>Tienda</TableCell>
               <TableCell align="right"
-sx={hideBelow('lg')}>vs. Mongo</TableCell>
+sx={{ width: W.debe }}>Debe</TableCell>
+              <TableCell align="center"
+sx={{ ...hideBelow('md'), width: W.facturas }}>Facturas</TableCell>
+              <TableCell align="center"
+sx={{ width: W.atraso }}>Atraso</TableCell>
+              <TableCell sx={{ ...hideBelow('lg'), width: W.aging }}>Antigüedad</TableCell>
+              <TableCell sx={{ ...hideBelow('md'), width: W.lastPayment }}>Último pago</TableCell>
+              <TableCell align="right"
+sx={{ ...hideBelow('lg'), width: W.drift, whiteSpace: 'nowrap' }}>
+                vs. Mongo
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>

@@ -6,6 +6,48 @@ estos puntos es un olvido.
 
 ---
 
+## Estado: fase 2 implementada (backend + integracion)
+
+Los puntos 1, 2, 3, 4 y 6 de abajo ya estan construidos. Backend nuevo: modulo
+`designs` de **ai-service** (`services/ai-service/src/routes/designs.routes.js` +
+`src/services/designs/`), expuesto por el gateway en `/api/designs` solo para
+roles `admin` y `design`. No se modifico ninguna ruta del AI Assistant.
+
+| Endpoint | Que hace |
+|---|---|
+| `POST /api/designs/shelfsigns/extract` | Claude lee el flyer con `max_tokens: 8000`, **sin crear conversacion**. Devuelve `{products, truncated}` con salvage server-side. |
+| `POST /api/designs/shelfsigns/detect-boxes` | Gemini localiza la foto de cada producto (0-1000 -> porcentajes). `refine: true` hace la segunda pasada sobre el recorte. |
+| `POST /api/designs/shelfsigns/remove-background` | Recorta en resolucion original (sharp) y quita el fondo con `@imgly/background-removal-node`. Local, gratis. Sube el PNG a `shelfsigns-products/`. |
+| `POST /api/designs/shelfsigns/enhance` | Nano Banana con prompt fijo del servidor. Solo por accion explicita del disenador; queda logueado con user + contador. |
+| `GET/POST/DELETE /api/designs/shelfsigns/product-images` | Libreria `shelfsign_product_images` (upsert por slug, alta bulk con `source: "designer"`). |
+
+Frontend (sigue las reglas de ARCHITECTURE.md):
+
+- `src/services/designs.service.ts` — unico punto HTTP del modulo, sobre `libs/axios`.
+  Aca vive `productSlug()`, que **tiene que coincidir** con `slugify()` del backend.
+- `src/hooks/fetching/designs/use-shelfsign-images.ts` — React Query: una query
+  para la libreria y una mutation por escritura.
+- `use-flyer-extraction.ts` — orquesta el pipeline y va parcheando cada carton a
+  medida que su foto llega, en este orden de costo: **libreria -> Gemini ->
+  imgly -> recorte local del navegador** (red de seguridad si el backend falla).
+- `product-editor-card.tsx` — boton **"Mejorar con IA"** por carton, y las fotos
+  que el disenador sube a mano se guardan en la libreria con `source: "designer"`.
+
+Lo que se borro del front porque ahora vive en el backend: `EXTRACT_PROMPT`,
+`continuePromptSuffix` (ya no hace falta: una sola pasada), `salvageJSON`,
+`attachPhotos` y `services/shelfsigns.service.ts`.
+
+Self-check de la logica pura (slug, salvage de JSON truncado, mapeo de
+coordenadas): `node src/scripts/check-shelfsigns.js` en ai-service.
+
+**Pendiente de fase 2:** solo el punto 5, el PDF con Puppeteer. Sigue con print
+CSS del navegador.
+
+**Deploy:** `ai-service` suma dos dependencias, `sharp` y
+`@imgly/background-removal-node`. No hay variables de entorno nuevas.
+
+---
+
 ## Deuda técnica de v1
 
 ### 1. Las extracciones quedan en el historial del AI Assistant

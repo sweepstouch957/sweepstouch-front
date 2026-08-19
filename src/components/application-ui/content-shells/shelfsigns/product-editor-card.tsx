@@ -1,11 +1,13 @@
 'use client';
 
+import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import {
   Box,
   Button,
   Card,
   CardContent,
+  CircularProgress,
   IconButton,
   MenuItem,
   Stack,
@@ -30,6 +32,11 @@ interface Props {
   color: string;
   onChange: (id: string, patch: Partial<ShelfSignProduct>) => void;
   onRemove: (id: string) => void;
+  /** "Mejorar con IA" (Nano Banana). Ausente = no disponible para este cartón. */
+  onEnhance?: (product: ShelfSignProduct) => void;
+  enhancing?: boolean;
+  /** Foto subida a mano: el padre la sube a Cloudinary y la guarda en la librería. */
+  onPhotoFile?: (product: ShelfSignProduct, file: File) => void;
 }
 
 const labelSx = {
@@ -47,6 +54,9 @@ function ProductEditorCardBase({
   color,
   onChange,
   onRemove,
+  onEnhance,
+  enhancing = false,
+  onPhotoFile,
 }: Props): React.JSX.Element {
   const fileRef = React.useRef<HTMLInputElement>(null);
 
@@ -56,7 +66,10 @@ function ProductEditorCardBase({
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
+    // Vista previa inmediata desde el archivo local; el padre la reemplaza por
+    // la URL de Cloudinary cuando termina de guardarla en la librería.
     set({ photo: await readAsDataURL(file), photoBox: null });
+    onPhotoFile?.(p, file);
   };
 
   return (
@@ -266,6 +279,31 @@ function ProductEditorCardBase({
                       Reemplazar
                     </Button>
                   </Stack>
+                  {/* Paso caro y con riesgo de que el modelo redibuje logos: por eso
+                      es manual, por cartón, y el resultado vuelve a revisión. */}
+                  {onEnhance && (
+                    <Tooltip title="Quita gráficos encima del producto y lo deja en fondo blanco. Usa créditos: revisá que no haya cambiado el empaque.">
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        disabled={enhancing}
+                        onClick={() => onEnhance(p)}
+                        startIcon={
+                          enhancing ? (
+                            <CircularProgress
+                              size={14}
+                              color="inherit"
+                            />
+                          ) : (
+                            <AutoFixHighRoundedIcon fontSize="small" />
+                          )
+                        }
+                        sx={{ alignSelf: 'flex-start' }}
+                      >
+                        {enhancing ? 'Mejorando…' : 'Mejorar con IA'}
+                      </Button>
+                    </Tooltip>
+                  )}
                 </Stack>
               ) : (
                 <Stack

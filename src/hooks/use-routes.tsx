@@ -23,6 +23,19 @@ import { List } from '@mui/material';
 import { MenuItem } from 'src/router/menuItem';
 import { routes } from 'src/router/routes';
 
+/**
+ * Espejo de STAFF_ROLES del api-gateway (routes/index.js). Es el equipo interno:
+ * lo que cuelga de la seccion General (AI, Dashboards, Applications) pega contra
+ * /api/tasks, /api/hub y /api/ai, y todos exigen este set. Sin este filtro un
+ * cashier o una promotora veian el menu completo y cada click volvia 403.
+ * Si se toca alla, se toca aca.
+ */
+const STAFF_ROLES: UserRole[] = [
+  'admin', 'general_manager', 'campaign_manager', 'design', 'marketing',
+  'it', 'tecnico', 'support', 'billing', 'operations', 'assistant',
+  'promotor_manager', 'merchant_manager',
+];
+
 const buildMenu = (
   title: string,
   icon: React.ReactNode,
@@ -49,7 +62,7 @@ const dashboardsMenu = (t: (token: string) => string): MenuItem =>
       { title: t('Audience'), icon: <List />, route: routes.admin.dashboards.audience },
       { title: t('Promotoras'), icon: <List />, route: routes.admin.management.promotors.metrics },
     ]),
-  ]);
+  ], undefined, STAFF_ROLES);
 
 const applicationsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Applications'), <AppsRoundedIcon />, [
@@ -66,7 +79,7 @@ const applicationsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Utilidades'), route: routes.admin.applications.utilities },
     //{ title: t('File manager'), route: routes.admin.applications['file-manager'] },
     //{ title: t('Messenger'), route: routes.admin.applications.messenger },
-  ]);
+  ], undefined, STAFF_ROLES);
 
 const usersMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Users'), <PeopleRoundedIcon />, [
@@ -214,7 +227,11 @@ export const useMenuItemsCollapsedShells = (
       : []),
   ];
   const aiMenu: MenuItem[] = [
-    buildMenu(t('AI Assistant'), <SmartToyRoundedIcon />, aiSubItems),
+    // El gateway permite merchant en /api/ai, no en el resto del staff-only.
+    buildMenu(t('AI Assistant'), <SmartToyRoundedIcon />, aiSubItems, undefined, [
+      ...STAFF_ROLES,
+      'merchant',
+    ]),
   ];
 
   const general: MenuItem[] = [

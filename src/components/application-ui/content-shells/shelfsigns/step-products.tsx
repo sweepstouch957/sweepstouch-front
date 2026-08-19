@@ -1,6 +1,10 @@
 'use client';
 
-import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
+import {
+  useEnhanceProductImage,
+  useSaveProductImages,
+} from '@/hooks/fetching/designs/use-shelfsign-images';
+import designsService, { productSlug } from '@/services/designs.service';
 import PlaylistAddRoundedIcon from '@mui/icons-material/PlaylistAddRounded';
 import UploadFileRoundedIcon from '@mui/icons-material/UploadFileRounded';
 import {
@@ -48,6 +52,8 @@ export function StepProducts({
   const [manualOpen, setManualOpen] = React.useState(false);
   const [manualText, setManualText] = React.useState('');
   const [manualNote, setManualNote] = React.useState('');
+  const [enhancingId, setEnhancingId] = React.useState<string | null>(null);
+  const [photoNote, setPhotoNote] = React.useState('');
 
   const handleProducts = React.useCallback(
     (items: ShelfSignProduct[], mode: 'replace' | 'append') => {
@@ -57,14 +63,77 @@ export function StepProducts({
     [onAppendProducts, onSetProducts]
   );
 
-  const { loading, status, error, flyerPreview, canContinue, analyze, continueAnalysis, setStatus } =
-    useFlyerExtraction({ onProducts: handleProducts });
+  const { loading, status, error, flyerPreview, flyerUrl, analyze, setStatus } = useFlyerExtraction({
+    onProducts: handleProducts,
+    onPatchProduct,
+  });
+
+  const enhance = useEnhanceProductImage();
+  const saveToLibrary = useSaveProductImages();
 
   const onPickFlyer = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (file) analyze(file);
   };
+
+  /**
+   * "Mejorar con IA": parte de la foto limpia si ya existe, o del flyer + la
+   * caja del producto. Siempre vuelve a revisión: el modelo a veces redibuja
+   * etiquetas y logos.
+   */
+  const handleEnhance = React.useCallback(
+    async (p: ShelfSignProduct) => {
+      const fromCutout = p.photo?.startsWith('http');
+      const imageUrl = fromCutout ? p.photo! : flyerUrl;
+      if (!imageUrl) return;
+
+      setEnhancingId(p.id);
+      setPhotoNote('');
+      try {
+        const url = await enhance.mutateAsync({
+          imageUrl,
+          box: fromCutout ? null : p.photoBox,
+          slug: productSlug(p.name),
+          name: p.name,
+        });
+        if (url) onPatchProduct(p.id, { photo: url });
+        else setPhotoNote(`No se pudo mejorar "${p.name}".`);
+      } catch (e: any) {
+        setPhotoNote(
+          `No se pudo mejorar "${p.name}": ${e?.response?.data?.error || e?.message || e}`
+        );
+      } finally {
+        setEnhancingId(null);
+      }
+    },
+    [enhance, flyerUrl, onPatchProduct]
+  );
+
+  /**
+   * Foto subida a mano por el diseñador. Se muestra al instante desde el
+   * archivo local y en paralelo se guarda en la librería con origen "designer":
+   * son los PNG limpios de Photoshop, la fuente más confiable, y así la próxima
+   * semana ese producto no necesita ni detección ni recorte.
+   */
+  const handlePhotoFile = React.useCallback(
+    async (p: ShelfSignProduct, file: File) => {
+      const slug = productSlug(p.name);
+      if (!slug) return;
+      try {
+        const uploaded = await designsService.uploadFlyer(file);
+        await saveToLibrary.mutateAsync([
+          { slug, name: p.name, url: uploaded.url, source: 'designer' },
+        ]);
+        onPatchProduct(p.id, { photo: uploaded.url, photoBox: null });
+      } catch {
+        // La vista previa local ya quedó puesta: el cartón sale igual, sólo no
+        // se guardó en la librería.
+        setPhotoNote(`La foto de "${p.name}" no se pudo guardar en la librería.`);
+      }
+    },
+    [onPatchProduct, saveToLibrary]
+  );
 
   const generateFromList = () => {
     const items = manualText.split('\n').map(parseManualLine).filter(Boolean) as ShelfSignProduct[];
@@ -130,7 +199,8 @@ export function StepProducts({
               disabled={loading}
               onClick={() => fileRef.current?.click()}
               startIcon={
-                loading ? <CircularProgress size={16} color="inherit" /> : <UploadFileRoundedIcon />
+                loading ? <CircularProgress size={16}
+color="inherit" /> : <UploadFileRoundedIcon />
               }
             >
               {loading ? 'Procesando…' : 'Subir flyer y analizar con IA'}
@@ -143,17 +213,6 @@ export function StepProducts({
             >
               Agregar manual (lista)
             </Button>
-
-            {canContinue && !loading && (
-              <Button
-                variant="contained"
-                color="secondary"
-                startIcon={<AutoAwesomeRoundedIcon />}
-                onClick={continueAnalysis}
-              >
-                Continuar análisis
-              </Button>
-            )}
           </Stack>
 
           {status && !error && (
@@ -171,6 +230,15 @@ export function StepProducts({
               sx={{ mt: 1.5 }}
             >
               {error}
+            </Alert>
+          )}
+          {photoNote && (
+            <Alert
+              severity="warning"
+              sx={{ mt: 1.5 }}
+              onClose={() => setPhotoNote('')}
+            >
+              {photoNote}
             </Alert>
           )}
 
@@ -230,8 +298,8 @@ export function StepProducts({
         <>
           <Alert severity="warning">
             Revisá cada precio antes de generar el PDF. Un precio mal leído impreso en góndola es
-            un problema con el cliente. Las cajas de recorte que devuelve la IA son aproximadas: si
-            una foto salió mal encuadrada, quitala o subí una manual.
+            un problema con el cliente. Si una foto salió mal encuadrada o con gráficos encima,
+            probá "Mejorar con IA", quitala o subí una manual.
           </Alert>
           {products.map((p, i) => (
             <ProductEditorCard
@@ -241,6 +309,9 @@ export function StepProducts({
               color={color}
               onChange={onPatchProduct}
               onRemove={onRemoveProduct}
+              onEnhance={p.photo?.startsWith('http') || (flyerUrl && p.photoBox) ? handleEnhance : undefined}
+              enhancing={enhancingId === p.id}
+              onPhotoFile={handlePhotoFile}
             />
           ))}
         </>

@@ -9,42 +9,6 @@ import type { PhotoBox, ShelfSignProduct } from './types';
 
 export const uid = (): string => Math.random().toString(36).slice(2, 9);
 
-/**
- * Interpreta el JSON aunque venga truncado: corta en el último producto
- * completo y cierra el array.
- *
- * Red de seguridad, no el camino normal: la validación contra /ai/chat mostró
- * que la respuesta llega limpia y `JSON.parse` directo funciona. Esto cubre el
- * caso de que el flyer no entre en el `max_tokens` que fija AIConfig.
- */
-export function salvageJSON(text: string): { products?: unknown[] } | null {
-  const clean = text.replace(/```json|```/g, '').trim();
-  const start = clean.indexOf('{');
-  if (start < 0) return null;
-
-  const body = clean.slice(start);
-  try {
-    return JSON.parse(body);
-  } catch {
-    /* sigue por el rescate */
-  }
-
-  for (let i = body.length - 1, tries = 0; i > 0 && tries < 200; i--) {
-    if (body[i] !== '}') continue;
-    tries++;
-    const cut = body.slice(0, i + 1);
-    for (const tail of [']}', '}]}', '']) {
-      try {
-        const parsed = JSON.parse(cut + tail);
-        if (parsed && parsed.products) return parsed;
-      } catch {
-        /* probar el siguiente cierre */
-      }
-    }
-  }
-  return null;
-}
-
 const asText = (v: unknown): string => (typeof v === 'string' ? v : '');
 
 function normalizePhotoBox(raw: any): PhotoBox | null {

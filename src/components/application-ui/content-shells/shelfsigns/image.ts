@@ -67,23 +67,3 @@ export function cropFromImage(img: HTMLImageElement, box: PhotoBox): string | nu
     return null;
   }
 }
-
-/**
- * Recorta la foto de cada producto desde el flyer original.
- *
- * Las cajas de Claude son aproximadas — a veces salen bastante más grandes que
- * la foto (ver deuda técnica: refinar con Gemini es fase 2). Por eso el editor
- * deja quitar o reemplazar la foto cartón por cartón.
- */
-export async function attachPhotos(
-  items: ShelfSignProduct[],
-  fullResDataURL: string
-): Promise<ShelfSignProduct[]> {
-  try {
-    const img = await loadImage(fullResDataURL);
-    if (!img.naturalWidth) return items;
-    return items.map((p) => (p.photoBox ? { ...p, photo: cropFromImage(img, p.photoBox) } : p));
-  } catch {
-    return items;
-  }
-}
