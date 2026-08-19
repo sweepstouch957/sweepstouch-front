@@ -36,6 +36,9 @@ const STAFF_ROLES: UserRole[] = [
   'promotor_manager', 'merchant_manager',
 ];
 
+/** Roles con acceso completo al panel administrativo. */
+const ADMIN_ACCESS_ROLES: UserRole[] = ['admin', 'general_manager'];
+
 const buildMenu = (
   title: string,
   icon: React.ReactNode,
@@ -95,8 +98,8 @@ const campaignsMenu = (t: (token: string) => string): MenuItem =>
     // Send Test salió del menú: es una acción sobre campañas, no una sección.
     // Vive en el botón "Enviar prueba" de la portada del listado; la ruta sigue
     // existiendo para quien la tenga guardada.
-    { title: t('MMS Generator'), route: routes.admin.management.campaings.mms, roles: ['admin'] },
-    { title: t('RCS Monitoring'), route: routes.admin.dashboards['campaign-analytics'], roles: ['admin'] },
+    { title: t('MMS Generator'), route: routes.admin.management.campaings.mms, roles: ADMIN_ACCESS_ROLES },
+    { title: t('RCS Monitoring'), route: routes.admin.dashboards['campaign-analytics'], roles: ADMIN_ACCESS_ROLES },
     { title: t('Opt-in MMS'), route: routes.admin.management.campaings.optin, roles: ['admin', 'general_manager', 'campaign_manager'] },
     { title: t('Solicitudes de Campaña'), route: routes.admin.management['campaign-requests'].listing, roles: ['admin', 'campaign_manager', 'design', 'general_manager'] },
   ]);
@@ -178,7 +181,7 @@ const circularsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Schedule Circulars'), route: routes.admin.management.circulars.schedule },
   ]);
 
-// Designs Studio: sólo diseño y admin por ahora. El `roles` del padre lo aplica
+// Designs Studio: diseño y roles con acceso administrativo completo. El `roles` del padre lo aplica
 // filterByRole, así que no hace falta repetirlo en cada hijo.
 const designsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(
@@ -189,7 +192,7 @@ const designsMenu = (t: (token: string) => string): MenuItem =>
       { title: t('Shelfsigns'), route: routes.admin.designs.shelfsigns },
     ],
     undefined,
-    ['admin', 'design']
+    [...ADMIN_ACCESS_ROLES, 'design']
   );
 
 const supportMenu = (t: (token: string) => string): MenuItem =>
@@ -222,7 +225,7 @@ export const useMenuItemsCollapsedShells = (
 ): MenuItem[] => {
   const aiSubItems: MenuItem[] = [
     { title: t('Chat'), route: routes.admin.applications['ai-assistant'] },
-    ...(role === 'admin'
+    ...(ADMIN_ACCESS_ROLES.includes(role)
       ? [{ title: t('Configuration'), route: routes.admin.applications['ai-config'] }]
       : []),
   ];
@@ -242,20 +245,22 @@ export const useMenuItemsCollapsedShells = (
     designsMenu(t),
   ];
 
+  const adminManagementMenus = [
+    usersMenu(t),
+    storesMenu(t),
+    billingMenu(t),
+    campaignsMenu(t),
+    sweepstakesMenu(t),
+    promotorsMenu(t),
+    addsMenu(t),
+    circularsMenu(t),
+    supportMenu(t),
+    //requestMenu(t),
+  ];
+
   const roleMenus: Record<UserRole, MenuItem[]> = {
-    admin: [
-      usersMenu(t),
-      storesMenu(t),
-      billingMenu(t),
-      campaignsMenu(t),
-      sweepstakesMenu(t),
-      promotorsMenu(t),
-      addsMenu(t),
-      circularsMenu(t),
-      supportMenu(t),
-      //requestMenu(t),
-    ],
-    general_manager: [campaignsMenu(t), promotorsMenu(t), storesMenu(t), supportMenu(t)],
+    admin: adminManagementMenus,
+    general_manager: adminManagementMenus,
     promotor_manager: [sweepstakesMenu(t), promotorsMenu(t), storesMenu(t), circularsMenu(t)],
     campaign_manager: [campaignsMenu(t), circularsMenu(t), storesMenu(t)],
     marketing: [campaignsMenu(t), circularsMenu(t), storesMenu(t), addsMenu(t)],
@@ -273,7 +278,7 @@ export const useMenuItemsCollapsedShells = (
     support: [supportMenu(t), storesMenu(t)],
     // El rol de facturación entra directo a su centro: cartera, vinculación y conexión.
     billing: [billingMenu(t), storesMenu(t)],
-    // Asistencia de Dirección ve lo mismo que Gerencia General.
+    // Asistencia de Dirección conserva el acceso operativo definido para su rol.
     assistant: [campaignsMenu(t), promotorsMenu(t), storesMenu(t), supportMenu(t)],
   };
 
