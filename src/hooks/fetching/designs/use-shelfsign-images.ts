@@ -2,7 +2,6 @@
 
 import designsService, {
   type DetectedBox,
-  type ExtractResponse,
   type PhotoBoxDto,
   type ProductImage,
   type SaveProductImageDto,
@@ -56,12 +55,6 @@ export function useProductImageLookup() {
 }
 
 /* ══════════ Escrituras ══════════ */
-
-export function useExtractFlyer() {
-  return useMutation<ExtractResponse, unknown, string>({
-    mutationFn: (imageUrl) => designsService.extractFlyer(imageUrl),
-  });
-}
 
 export function useDetectPhotoBoxes() {
   return useMutation<

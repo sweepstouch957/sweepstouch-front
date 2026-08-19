@@ -13,9 +13,12 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import RangePickerField from '@/components/base/range-picker-field';
+import type { StoreHintDto } from '@/services/designs.service';
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { fmtOfferDate } from './dates';
+import { matchStoreByHint } from './store-match';
 import { paginate, Sheet } from './sheet';
 import type { ShelfSignConfig, ShelfSignProduct } from './types';
 import { useActiveStores, useStoreGenericQr } from './use-shelfsign-data';
@@ -32,6 +35,8 @@ interface Props {
   config: ShelfSignConfig;
   onChange: (patch: Partial<ShelfSignConfig>) => void;
   products: ShelfSignProduct[];
+  /** Lo que la IA leyó del encabezado del flyer. Preselecciona, no decide. */
+  storeHint?: StoreHintDto | null;
 }
 
 /**
@@ -47,7 +52,7 @@ function PrintArea({ children }: { children: React.ReactNode }): React.JSX.Eleme
   return createPortal(<div className="ss-print-area">{children}</div>, document.body);
 }
 
-export function StepPreview({ config, onChange, products }: Props): React.JSX.Element {
+export function StepPreview({ config, onChange, products, storeHint }: Props): React.JSX.Element {
   const { stores, loadingStores } = useActiveStores();
   const { qrUrl, loadingQr, qrMissing } = useStoreGenericQr(config.storeId);
 
@@ -55,6 +60,26 @@ export function StepPreview({ config, onChange, products }: Props): React.JSX.El
     () => stores.find((s) => (s._id || s.id) === config.storeId) || null,
     [stores, config.storeId]
   );
+
+  const hintedStore = React.useMemo(
+    () => matchStoreByHint(storeHint || null, stores),
+    [storeHint, stores]
+  );
+
+  /**
+   * Preselecciona la tienda que la IA leyó del flyer, SÓLO si todavía no hay
+   * ninguna elegida: si el diseñador ya eligió, manda él. El Autocomplete queda
+   * igual de editable — la IA se equivoca y el QR equivocado sólo se descubre
+   * con los cartones ya impresos.
+   */
+  React.useEffect(() => {
+    if (!hintedStore || config.storeId) return;
+    onChange({
+      storeId: hintedStore._id || hintedStore.id,
+      storeName: hintedStore.name || '',
+      qrUrl: null,
+    });
+  }, [hintedStore, config.storeId, onChange]);
 
   // El QR viaja en la config para que cada cartón lo reciba junto al resto de
   // la plantilla, sin que ShelfSign tenga que saber de tiendas ni de red.
@@ -156,38 +181,25 @@ export function StepPreview({ config, onChange, products }: Props): React.JSX.El
               )}
             />
 
-            <Box>
-              <TextField
-                size="small"
-                type="date"
-                label="Válido desde"
-                InputLabelProps={{ shrink: true }}
-                value={config.dateFrom}
-                onChange={(e) => onChange({ dateFrom: e.target.value })}
+            {/* Un solo campo de rango (el del resto del panel) en vez de dos
+                inputs sueltos: la vigencia de una oferta es UN dato, y el picker
+                ya ordena las fechas, así que no se puede elegir un hasta
+                anterior al desde. */}
+            <Box sx={{ minWidth: 240 }}>
+              <RangePickerField
+                label="Vigencia de la oferta"
+                value={{ startYmd: config.dateFrom, endYmd: config.dateTo }}
+                onChange={({ startYmd, endYmd }) =>
+                  onChange({ dateFrom: startYmd, dateTo: endYmd })
+                }
               />
               <Typography
                 variant="caption"
                 sx={{ display: 'block', mt: 0.5, fontWeight: 700, color: config.color }}
               >
-                {fmtOfferDate(config.dateFrom) || '—'}
-              </Typography>
-            </Box>
-
-            <Box>
-              <TextField
-                size="small"
-                type="date"
-                label="Válido hasta"
-                InputLabelProps={{ shrink: true }}
-                value={config.dateTo}
-                onChange={(e) => onChange({ dateTo: e.target.value })}
-                error={datesInverted}
-              />
-              <Typography
-                variant="caption"
-                sx={{ display: 'block', mt: 0.5, fontWeight: 700, color: config.color }}
-              >
-                {fmtOfferDate(config.dateTo, true) || '—'}
+                {config.dateFrom && config.dateTo
+                  ? `${fmtOfferDate(config.dateFrom)} → ${fmtOfferDate(config.dateTo, true)}`
+                  : 'Sin fechas'}
               </Typography>
             </Box>
 
@@ -201,6 +213,23 @@ export function StepPreview({ config, onChange, products }: Props): React.JSX.El
               Imprimir / Guardar PDF ({pages.length} {pages.length === 1 ? 'hoja' : 'hojas'})
             </Button>
           </Stack>
+
+          {/* Que se vea de dónde salió la tienda: una preselección silenciosa es
+              justo la que nadie revisa, y el QR equivocado se descubre con los
+              cartones ya impresos. */}
+          {storeHint?.name && (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: 'block', mt: 1.5 }}
+            >
+              {hintedStore
+                ? `Tienda tomada del flyer: «${storeHint.name}${
+                    storeHint.address ? ` — ${storeHint.address}` : ''
+                  }». Cambiala si no es la correcta.`
+                : `El flyer dice «${storeHint.name}», pero no encontré esa tienda en el catálogo: elegila a mano.`}
+            </Typography>
+          )}
 
           <Typography
             variant="caption"

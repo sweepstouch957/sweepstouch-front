@@ -40,6 +40,30 @@ Lo que se borro del front porque ahora vive en el backend: `EXTRACT_PROMPT`,
 Self-check de la logica pura (slug, salvage de JSON truncado, mapeo de
 coordenadas): `node src/scripts/check-shelfsigns.js` en ai-service.
 
+### Progresivo y rendimiento (agregado despues del primer flyer real de 40+ productos)
+
+El pipeline en fases bloqueantes daba ~3 minutos de pantalla vacia. Cambios:
+
+- **`POST /designs/shelfsigns/extract-stream` (SSE)** — emite un evento `product`
+  por cada producto que Claude termina de escribir. El parser incremental
+  (`createProductStreamParser`) camina el texto una sola vez contando llaves, sin
+  reintentar `JSON.parse` sobre el buffer entero.
+- **Lotes de 5 en el front** — cada lote busca sus fotos MIENTRAS el resto se
+  sigue extrayendo. El primer carton tiene foto en segundos.
+- **`max_tokens: 16000`** — con 8000 el ultimo tercio de un flyer de 45 productos
+  salia truncado. El prompt tambien pide explicitamente barrer todas las
+  secciones (meat, produce, grocery...).
+- **Fondo blanco = no se segmenta** — media seccion de grocery ya viene sobre
+  blanco; pasarla por onnx era gastar CPU para no cambiar nada. Se detecta
+  mirando solo el borde del recorte.
+- **`sharp.trim()` sobre el recorte** — sin esto el PNG llegaba con aire de sobra
+  y `object-fit: contain` escalaba el marco, no el producto: la foto se veia
+  chica en un carton grande.
+- **Worker aislado para imgly** — `@imgly/background-removal-node` pide
+  `sharp ~0.32`; con `^0.33` instalado convivian dos libvips y el proceso moria
+  con `munmap_chunk(): invalid pointer` (exit 134), llevandose ai-service entero.
+  Ahora corre en proceso hijo con el modelo caliente y cola de un job.
+
 **Pendiente de fase 2:** solo el punto 5, el PDF con Puppeteer. Sigue con print
 CSS del navegador.
 

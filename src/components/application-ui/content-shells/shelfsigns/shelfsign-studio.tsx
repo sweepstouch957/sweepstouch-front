@@ -2,6 +2,7 @@
 
 import { Box, Chip, Divider, Stack, Tab, Tabs, Typography } from '@mui/material';
 import React from 'react';
+import type { StoreHintDto } from '@/services/designs.service';
 import { defaultConfig } from './constants';
 import ShelfSignPrintStyles from './print-styles';
 import { StepMaster } from './step-master';
@@ -31,6 +32,8 @@ export function ShelfSignStudio(): React.JSX.Element {
   const [step, setStep] = React.useState(0);
   const [config, setConfig] = React.useState<ShelfSignConfig>(defaultConfig);
   const [products, setProducts] = React.useState<ShelfSignProduct[]>([]);
+  /** Tienda leída del flyer. Vive acá porque la detecta el paso 2 y la usa el 3. */
+  const [storeHint, setStoreHint] = React.useState<StoreHintDto | null>(null);
 
   // Las fechas se siembran en el cliente: calcularlas durante el render haría
   // que el HTML del servidor y el del navegador no coincidan.
@@ -126,6 +129,7 @@ export function ShelfSignStudio(): React.JSX.Element {
             onAppendProducts={appendProducts}
             onPatchProduct={patchProduct}
             onRemoveProduct={removeProduct}
+            onStoreHint={setStoreHint}
           />
         )}
         {step === 2 && (
@@ -133,6 +137,7 @@ export function ShelfSignStudio(): React.JSX.Element {
             config={config}
             onChange={patchConfig}
             products={products}
+            storeHint={storeHint}
           />
         )}
       </Box>

@@ -149,18 +149,34 @@ export function ShelfSign({ product: p, config: cfg, isBottom = false }: Props):
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'flex-end',
-            justifyContent: p.photo ? 'space-between' : 'flex-end',
+            justifyContent: 'flex-end',
             textAlign: 'right',
             paddingBottom: 10,
             minWidth: 0,
           }}
         >
+          {/* La foto se come TODO el alto libre que queda sobre los nombres, en
+              vez de un tope fijo de 2.4in. El backend ya le recortó el margen
+              muerto, así que lo que se escala es el producto y no su marco: un
+              carton visto a 3 metros en gondola necesita la foto grande. */}
           {p.photo && (
-            <img
-              src={p.photo}
-              alt=""
-              style={{ maxWidth: '100%', maxHeight: '2.4in', objectFit: 'contain' }}
-            />
+            <div
+              style={{
+                flex: 1,
+                minHeight: 0,
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                paddingBottom: 8,
+              }}
+            >
+              <img
+                src={p.photo}
+                alt=""
+                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+              />
+            </div>
           )}
           <div>
             <div style={{ fontWeight: 800, fontSize: 22, color: '#111', lineHeight: 1.05 }}>

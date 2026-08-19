@@ -4,7 +4,7 @@ import {
   useEnhanceProductImage,
   useSaveProductImages,
 } from '@/hooks/fetching/designs/use-shelfsign-images';
-import designsService, { productSlug } from '@/services/designs.service';
+import designsService, { productSlug, type StoreHintDto } from '@/services/designs.service';
 import PlaylistAddRoundedIcon from '@mui/icons-material/PlaylistAddRounded';
 import UploadFileRoundedIcon from '@mui/icons-material/UploadFileRounded';
 import {
@@ -38,6 +38,8 @@ interface Props {
   onAppendProducts: (items: ShelfSignProduct[]) => void;
   onPatchProduct: (id: string, patch: Partial<ShelfSignProduct>) => void;
   onRemoveProduct: (id: string) => void;
+  /** La tienda que dice el flyer, para que el paso 3 la preseleccione. */
+  onStoreHint?: (hint: StoreHintDto) => void;
 }
 
 export function StepProducts({
@@ -47,6 +49,7 @@ export function StepProducts({
   onAppendProducts,
   onPatchProduct,
   onRemoveProduct,
+  onStoreHint,
 }: Props): React.JSX.Element {
   const fileRef = React.useRef<HTMLInputElement>(null);
   const [manualOpen, setManualOpen] = React.useState(false);
@@ -63,11 +66,24 @@ export function StepProducts({
     [onAppendProducts, onSetProducts]
   );
 
-  const { loading, status, error, flyerPreview, flyerUrl, pendingPhotoIds, analyze, setStatus } =
-    useFlyerExtraction({
-      onProducts: handleProducts,
-      onPatchProduct,
-    });
+  const {
+    loading,
+    status,
+    error,
+    flyerPreview,
+    flyerUrl,
+    pendingPhotoIds,
+    storeHint,
+    analyze,
+    setStatus,
+  } = useFlyerExtraction({
+    onProducts: handleProducts,
+    onPatchProduct,
+  });
+
+  React.useEffect(() => {
+    if (storeHint) onStoreHint?.(storeHint);
+  }, [storeHint, onStoreHint]);
 
   /** Subidas manuales en vuelo. Se suman a las del pipeline para el skeleton. */
   const [uploadingIds, setUploadingIds] = React.useState<string[]>([]);

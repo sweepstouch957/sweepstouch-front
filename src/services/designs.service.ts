@@ -10,6 +10,7 @@
  */
 import { api } from '@/libs/axios';
 import { uploadFile, type Attachment } from '@/services/ai.service';
+import { getAuthToken } from 'src/utils/auth/custom/storage';
 
 const BASE = '/designs/shelfsigns';
 
@@ -45,6 +46,19 @@ export interface ExtractResponse {
   truncated?: boolean;
   inputTokens?: number;
   outputTokens?: number;
+}
+
+export interface ExtractStreamSummary {
+  total: number;
+  truncated: boolean;
+}
+
+/** Lo que dice el flyer sobre su tienda. Se matchea contra el catálogo en el front. */
+export interface StoreHintDto {
+  name: string;
+  address: string;
+  city: string;
+  state: string;
 }
 
 export interface DetectedBox extends PhotoBoxDto {
@@ -94,7 +108,77 @@ export const productSlug = (name: string): string =>
 
 /* ══════════ API ══════════ */
 
+/**
+ * Extraccion en streaming (SSE). Emite cada producto en cuanto el modelo termina
+ * de escribirlo, para que el primer carton aparezca a los segundos y no a los
+ * ~30 s que tarda un flyer entero.
+ *
+ * Va por `fetch` y no por el cliente axios: axios no expone el body como stream
+ * en el navegador. Es la misma excepcion que ya tiene `ai.service.ts` para
+ * `/ai/chat`, con los mismos headers (token, x-app-id, credentials).
+ */
+export async function extractFlyerStream(
+  imageUrl: string,
+  onProduct: (product: RawExtractedProduct) => void,
+  options: { signal?: AbortSignal } = {}
+): Promise<ExtractStreamSummary> {
+  const token = getAuthToken();
+  const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3010/api/';
+
+  const response = await fetch(`${baseURL}designs/shelfsigns/extract-stream`, {
+    method: 'POST',
+    credentials: 'include',
+    signal: options.signal,
+    headers: {
+      'Content-Type': 'application/json',
+      'x-app-id': 'panel',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ imageUrl }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || `La extraccion fallo (${response.status})`);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error('El navegador no pudo leer el stream');
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let summary: ExtractStreamSummary = { total: 0, truncated: false };
+  let streamError = '';
+
+  const handleLine = (line: string) => {
+    const trimmed = line.trimEnd();
+    if (!trimmed.startsWith('data: ')) return;
+    try {
+      const event = JSON.parse(trimmed.slice(6));
+      if (event.type === 'product') onProduct(event.product);
+      else if (event.type === 'done') summary = { total: event.total || 0, truncated: !!event.truncated };
+      else if (event.type === 'error') streamError = event.error || 'Error en la extraccion';
+    } catch {
+      /* linea partida o evento desconocido */
+    }
+  };
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+    for (const line of lines) handleLine(line);
+  }
+  if (buffer.trim()) handleLine(buffer);
+
+  if (streamError) throw new Error(streamError);
+  return summary;
+}
+
 export const designsService = {
+  extractFlyerStream,
   /**
    * Sube el flyer a Cloudinary. Reusa `/ai/upload` (mismo Cloudinary, mismo
    * límite de 20 MB) — el backend necesita una URL, no el archivo.
@@ -108,6 +192,13 @@ export const designsService = {
   extractFlyer: async (imageUrl: string): Promise<ExtractResponse> => {
     const { data } = await api.post(`${BASE}/extract`, { imageUrl });
     return { products: data?.products || [], truncated: !!data?.truncated, ...data };
+  },
+
+  /** Lee la cabecera del flyer: qué cadena y en qué dirección. Paso barato. */
+  detectStore: async (imageUrl: string): Promise<StoreHintDto | null> => {
+    const { data } = await api.post(`${BASE}/detect-store`, { imageUrl });
+    const store = data?.store;
+    return store?.name || store?.address ? store : null;
   },
 
   /** Gemini localiza la foto de cada producto. `refine` = segunda pasada, más precisa. */
