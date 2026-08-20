@@ -129,6 +129,14 @@ export function QboReceivables({ embedded = false, onSelectStore }: Props) {
       .sort((a, b) => b.balance - a.balance);
   }, [balances.data, deferredSearch, filter, linkFilter, cats]);
 
+  const catLabels = useMemo(
+    () =>
+      (balances.data?.categories ?? [])
+        .filter((c) => cats.includes(c.id))
+        .map((c) => c.label),
+    [balances.data, cats]
+  );
+
   const busy =
     balances.isFetching || refresh.isPending || linkCustomers.isPending || retryPending.isPending;
 
@@ -386,6 +394,8 @@ onSelect={setLedgerRow} />
       <CustomerInvoicesDialog
         row={ledgerRow}
         range={range}
+        categories={cats}
+        categoryLabels={catLabels}
         onClose={() => setLedgerRow(null)}
         onOpenStore={
           onSelectStore && ledgerRow?.storeId

@@ -101,6 +101,8 @@ export interface QboBalancesResponse {
 export interface QboInvoiceRow {
   /** Categorías que toca la factura, en formato "Padre:Hijo". */
   categories?: string[];
+  /** Porción atribuible a las categorías filtradas. null si no hay filtro. */
+  filtered?: { total: number; balance: number } | null;
   qboId: string;
   docNumber: string | null;
   txnDate: string | null;
@@ -125,6 +127,13 @@ export interface QboCustomerLedger {
   found: boolean;
   /** El mismo rango que filtra la tabla; el modal ya no muestra todo el histórico. */
   range: QboDateRange;
+  /** Categorías aplicadas y cuántas facturas quedaron fuera por ellas. */
+  filters: {
+    items: string[];
+    hiddenByCategory: number;
+    /** Suma de la porción filtrada sobre lo mostrado. null si no hay filtro. */
+    totals: { total: number; balance: number } | null;
+  };
   qboCustomerId: string;
   qboName: string;
   /** Neto de créditos, tal como lo calcula QuickBooks. */
@@ -319,11 +328,12 @@ export const qboService = {
 
   customerLedger: async (
     qboCustomerId: string,
-    range?: { from?: string | null; to?: string | null }
+    opts?: { from?: string | null; to?: string | null; items?: string[] }
   ): Promise<QboCustomerLedger> => {
     const qs = new URLSearchParams();
-    if (range?.from) qs.set('from', range.from);
-    if (range?.to) qs.set('to', range.to);
+    if (opts?.from) qs.set('from', opts.from);
+    if (opts?.to) qs.set('to', opts.to);
+    if (opts?.items?.length) qs.set('items', opts.items.join(','));
     const suffix = qs.toString();
     const { data } = await api.get(
       `${BASE}/customers/${qboCustomerId}/ledger${suffix ? `?${suffix}` : ''}`
@@ -401,8 +411,12 @@ export const qboQK = {
   balances: (from?: string | null, to?: string | null) =>
     ['qbo', 'balances', from ?? '*', to ?? '*'] as const,
   invoice: (qboId: string) => ['qbo', 'invoice', qboId] as const,
-  customerLedger: (qboCustomerId: string, from?: string | null, to?: string | null) =>
-    ['qbo', 'ledger', qboCustomerId, from ?? '*', to ?? '*'] as const,
+  customerLedger: (
+    qboCustomerId: string,
+    from?: string | null,
+    to?: string | null,
+    items?: string[]
+  ) => ['qbo', 'ledger', qboCustomerId, from ?? '*', to ?? '*', (items ?? []).join(',')] as const,
   storeDetail: (storeId: string) => ['qbo', 'store', storeId] as const,
   customers: (search: string) => ['qbo', 'customers', search] as const,
   proposals: (storeId?: string) => ['qbo', 'proposals', storeId ?? 'all'] as const,

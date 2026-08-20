@@ -2,6 +2,7 @@
 
 import { useQboCustomerLedger } from '@hooks/fetching/qbo/useQbo';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
+import FilterAltRoundedIcon from '@mui/icons-material/FilterAltRounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import {
   Alert,
@@ -42,6 +43,10 @@ type Props = {
   row: LedgerTarget | null;
   /** El mismo rango de la tabla. Sin esto el modal contradecía a la fila de atrás. */
   range?: { from: string | null; to: string | null };
+  /** Ids de categoría activos en la tabla. Vacío = sin filtrar. */
+  categories?: string[];
+  /** Etiquetas legibles de esas categorías, solo para el aviso. */
+  categoryLabels?: string[];
   onClose: () => void;
   /** Solo para las filas vinculadas: abre el panel de la tienda. */
   onOpenStore?: (storeId: string) => void;
@@ -88,8 +93,19 @@ sx={{ display: 'block' }}>
  * Entra por qboCustomerId y no por tienda: de los 270 clientes de QuickBooks solo
  * un puñado está vinculado a Mongo, y hay que poder revisar el detalle de todos.
  */
-export function CustomerInvoicesDialog({ row, range, onClose, onOpenStore }: Props) {
-  const { data, isLoading, isError, error } = useQboCustomerLedger(row?.qboCustomerId ?? null, range);
+export function CustomerInvoicesDialog({
+  row,
+  range,
+  categories,
+  categoryLabels,
+  onClose,
+  onOpenStore,
+}: Props) {
+  const { data, isLoading, isError, error } = useQboCustomerLedger(row?.qboCustomerId ?? null, {
+    from: range?.from ?? null,
+    to: range?.to ?? null,
+    items: categories,
+  });
   const [scope, setScope] = useState<Scope>('open');
   const [invoiceId, setInvoiceId] = useState<string | null>(null);
 
@@ -97,6 +113,11 @@ export function CustomerInvoicesDialog({ row, range, onClose, onOpenStore }: Pro
     const all = data?.invoices ?? [];
     return scope === 'open' ? all.filter((i) => i.balance > 0) : all;
   }, [data, scope]);
+
+  // Con categorías activas se muestran las dos cifras: el total de la factura
+  // (que cuadra con el PDF) y la parte que corresponde al filtro.
+  const showFiltered = (data?.filters?.items?.length ?? 0) > 0;
+  const filteredTotals = data?.filters?.totals ?? null;
 
   const handleClose = () => {
     setScope('open');
@@ -153,14 +174,45 @@ height={320} />}
             <Alert severity="warning">Este cliente ya no existe en QuickBooks.</Alert>
           )}
 
-          {data?.found && data.range?.ranged && (
+          {data?.found && (data.range?.ranged || (data.filters?.items?.length ?? 0) > 0) && (
             <Alert severity="info"
-sx={{ mb: 2, py: 0.25 }}>
-              {`Solo facturas emitidas ${
-                data.range.from ? `desde ${fmtDate(data.range.from)}` : ''
-              }${data.range.from && data.range.to ? ' ' : ''}${
-                data.range.to ? `hasta ${fmtDate(data.range.to)}` : ''
-              }.`}
+sx={{ mb: 2, py: 0.25 }}
+icon={<FilterAltRoundedIcon fontSize="small" />}>
+              <Stack direction="row"
+flexWrap="wrap"
+useFlexGap
+spacing={0.75}
+alignItems="center">
+                <Typography variant="caption">Filtros de la tabla aplicados:</Typography>
+                {data.range?.ranged && (
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    label={`${data.range.from ? fmtDate(data.range.from) : '…'} – ${
+                      data.range.to ? fmtDate(data.range.to) : 'hoy'
+                    }`}
+                    sx={{ height: 18, '& .MuiChip-label': { px: 0.6, fontSize: '0.65rem' } }}
+                  />
+                )}
+                {(categoryLabels ?? []).map((c) => (
+                  <Chip
+                    key={c}
+                    size="small"
+                    variant="outlined"
+                    color="primary"
+                    label={c}
+                    sx={{ height: 18, '& .MuiChip-label': { px: 0.6, fontSize: '0.65rem' } }}
+                  />
+                ))}
+                {(data.filters?.hiddenByCategory ?? 0) > 0 && (
+                  <Typography variant="caption"
+color="text.secondary">
+                    {`· ${data.filters.hiddenByCategory} factura${
+                      data.filters.hiddenByCategory === 1 ? '' : 's'
+                    } sin esas categorías quedan fuera`}
+                  </Typography>
+                )}
+              </Stack>
             </Alert>
           )}
 
@@ -218,7 +270,11 @@ fontWeight={700}>
                   onChange={(_, v) => v && setScope(v as Scope)}
                 >
                   <ToggleButton value="open">{`Abiertas (${data.openInvoices})`}</ToggleButton>
-                  <ToggleButton value="all">{`Todas (${data.totalInvoices})`}</ToggleButton>
+                  <ToggleButton value="all">
+                    {(data.range?.ranged || (data.filters?.items?.length ?? 0) > 0)
+                      ? `Del filtro (${data.totalInvoices})`
+                      : `Todas (${data.totalInvoices})`}
+                  </ToggleButton>
                 </ToggleButtonGroup>
               </Stack>
 
@@ -238,7 +294,16 @@ textAlign="center">
                         <TableCell>Emitida</TableCell>
                         <TableCell>Vence</TableCell>
                         <TableCell align="right">Total</TableCell>
-                        <TableCell align="right">Pagado</TableCell>
+                        {showFiltered && (
+                          <TableCell align="right"
+sx={{ color: 'primary.main' }}>
+                            De filtro
+                          </TableCell>
+                        )}
+                        <TableCell align="right"
+sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
+                          Pagado
+                        </TableCell>
                         <TableCell align="right">Debe</TableCell>
                         <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                           Categoría
@@ -259,7 +324,17 @@ textAlign="center">
                           <TableCell>{fmtDate(i.txnDate)}</TableCell>
                           <TableCell>{fmtDate(i.dueDate)}</TableCell>
                           <TableCell align="right">{money(i.total)}</TableCell>
-                          <TableCell align="right">
+                          {showFiltered && (
+                            <TableCell align="right">
+                              <Typography variant="body2"
+fontWeight={600}
+color="primary.main">
+                                {money(i.filtered?.total ?? 0)}
+                              </Typography>
+                            </TableCell>
+                          )}
+                          <TableCell align="right"
+sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                             <Typography variant="body2"
 color="success.main">
                               {money(i.paid)}
@@ -316,6 +391,30 @@ color="action" />
                     </TableBody>
                   </Table>
                 </Box>
+              )}
+
+              {showFiltered && filteredTotals && (
+                <Stack
+                  direction="row"
+                  justifyContent="flex-end"
+                  alignItems="baseline"
+                  spacing={1}
+                  sx={{ mt: 1.5, pt: 1.5, borderTop: 1, borderColor: 'divider' }}
+                >
+                  <Typography variant="caption"
+color="text.secondary">
+                    De las categorías filtradas:
+                  </Typography>
+                  <Typography variant="subtitle2"
+fontWeight={700}
+color="primary.main">
+                    {money(filteredTotals.balance)}
+                  </Typography>
+                  <Typography variant="caption"
+color="text.secondary">
+                    {`abierto · ${money(filteredTotals.total)} facturado`}
+                  </Typography>
+                </Stack>
               )}
 
               {data.payments.length > 0 && (

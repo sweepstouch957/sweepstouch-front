@@ -66,13 +66,14 @@ export function useQboRefreshBalances(range?: { from?: string | null; to?: strin
 /** Todas las facturas y pagos de un cliente. Solo se pide con el modal abierto. */
 export function useQboCustomerLedger(
   qboCustomerId: string | null,
-  range?: { from?: string | null; to?: string | null }
+  opts?: { from?: string | null; to?: string | null; items?: string[] }
 ) {
-  const from = range?.from ?? null;
-  const to = range?.to ?? null;
+  const from = opts?.from ?? null;
+  const to = opts?.to ?? null;
+  const items = opts?.items ?? [];
   return useQuery<QboCustomerLedger>({
-    queryKey: qboQK.customerLedger(qboCustomerId ?? '', from, to),
-    queryFn: () => qboService.customerLedger(qboCustomerId as string, { from, to }),
+    queryKey: qboQK.customerLedger(qboCustomerId ?? '', from, to, items),
+    queryFn: () => qboService.customerLedger(qboCustomerId as string, { from, to, items }),
     enabled: Boolean(qboCustomerId),
     staleTime: 1000 * 60 * 5,
     retry: false,
