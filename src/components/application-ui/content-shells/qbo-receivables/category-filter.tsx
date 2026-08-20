@@ -31,9 +31,10 @@ type Props = {
  * haría crecer el doble. El botón muestra el conteo activo, así el filtro nunca
  * queda escondido sin señal.
  *
- * Las categorías vienen de las facturas abiertas reales, no del catálogo completo
- * de QuickBooks: de 19 items del contador solo ~10 tienen saldo, y un checkbox
- * que no filtra nada es ruido.
+ * Lista el catálogo completo de QuickBooks, no solo lo que tiene saldo en el
+ * periodo. Antes se armaba con las facturas del rango y las categorías aparecían
+ * y desaparecían al cambiar de fecha — se leía como un bug. Las que no tienen
+ * saldo salen atenuadas pero marcables.
  */
 export function CategoryFilter({ categories, selected, onChange }: Props) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
@@ -46,14 +47,18 @@ export function CategoryFilter({ categories, selected, onChange }: Props) {
       g.items.push(c);
       m.set(c.group, g);
     }
+    // El backend ya manda las categorías ordenadas (con saldo primero, vacías
+    // alfabéticas al final); acá solo se respeta ese orden dentro de cada grupo.
     return [...m.entries()]
-      .map(([group, v]) => ({
-        group,
-        total: v.total,
-        items: v.items.slice().sort((a, b) => b.amount - a.amount),
-      }))
-      .sort((a, b) => b.total - a.total);
+      .map(([group, v]) => ({ group, total: v.total, items: v.items }))
+      .sort((a, b) => {
+        if (a.total > 0 !== b.total > 0) return a.total > 0 ? -1 : 1;
+        if (a.total !== b.total) return b.total - a.total;
+        return a.group.localeCompare(b.group, 'es');
+      });
   }, [categories]);
+
+  const withBalance = categories.filter((c) => c.amount > 0).length;
 
   const set = new Set(selected);
   const toggle = (id: string) =>
@@ -112,7 +117,7 @@ fontWeight={700}>
 color="text.secondary">
               {selected.length
                 ? `${selected.length} activas · ${money(selectedTotal)}`
-                : 'Sin filtrar — se muestran todas'}
+                : `${categories.length} categorías · ${withBalance} con saldo`}
             </Typography>
           </Box>
           {selected.length > 0 && (
@@ -150,9 +155,12 @@ sx={{ mb: 0.5 }}>
 justifyContent="space-between"
 alignItems="baseline"
 spacing={1}>
-                      <Typography variant="body2"
-fontWeight={700}
-noWrap>
+                      <Typography
+                        variant="body2"
+                        fontWeight={700}
+                        noWrap
+                        sx={{ opacity: total > 0 ? 1 : 0.5 }}
+                      >
                         {group}
                       </Typography>
                       <Typography variant="caption"
@@ -183,6 +191,9 @@ onChange={() => toggle(it.id)} />
                         justifyContent="space-between"
                         alignItems="baseline"
                         spacing={1}
+                        // Sin saldo en el periodo: se deja marcable pero atenuada,
+                        // así la lista siempre está completa y no parece que falten.
+                        sx={{ opacity: it.amount > 0 ? 1 : 0.5 }}
                       >
                         <Typography variant="body2"
 noWrap>

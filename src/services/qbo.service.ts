@@ -346,6 +346,26 @@ export const qboService = {
     return data;
   },
 
+  /**
+   * URL de descarga del export. El navegador la abre directo: el endpoint manda
+   * Content-Disposition attachment, así que no pasa por React ni por memoria.
+   */
+  exportUrl: (opts: {
+    scope: 'stores' | 'invoices' | 'lines';
+    format: 'csv' | 'xlsx';
+    from?: string | null;
+    to?: string | null;
+    items?: string[];
+    includePaid?: boolean;
+  }) => {
+    const qs = new URLSearchParams({ scope: opts.scope, format: opts.format });
+    if (opts.from) qs.set('from', opts.from);
+    if (opts.to) qs.set('to', opts.to);
+    if (opts.items?.length) qs.set('items', opts.items.join(','));
+    if (opts.includePaid) qs.set('all', '1');
+    return `${api.defaults.baseURL ?? ''}${BASE}/export?${qs.toString()}`;
+  },
+
   /** URL del PDF que sirve QuickBooks. Se abre en pestaña nueva, no pasa por React. */
   invoicePdfUrl: (qboId: string, download = false) =>
     `${api.defaults.baseURL ?? ''}${BASE}/invoices/${qboId}/pdf${download ? '?download=1' : ''}`,

@@ -47,6 +47,7 @@ import {
   type ReceivablesFilter,
 } from './constants';
 import { CategoryFilter } from './category-filter';
+import { ExportMenu } from './export-menu';
 import { CustomerInvoicesDialog, type LedgerTarget } from './customer-invoices-dialog';
 import { QboSummaryCards } from './qbo-summary-cards';
 import { ReceivablesTable } from './receivables-table';
@@ -329,6 +330,10 @@ sx={{ px: 1.25, whiteSpace: 'nowrap' }}>
               selected={cats}
               onChange={setCats}
             />
+
+            <ExportMenu range={range}
+categories={cats}
+disabled={!connected || balances.isLoading} />
 
             {/* Empuja periodo y búsqueda a la derecha mientras quepan; al no caber,
                 el wrap del contenedor los baja de línea en vez de desbordar. */}
