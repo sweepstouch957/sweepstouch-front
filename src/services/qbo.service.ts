@@ -357,8 +357,11 @@ export const qboService = {
     to?: string | null;
     items?: string[];
     includePaid?: boolean;
+    /** 'issue' = fecha de emisión de la factura · 'service' = fecha del servicio */
+    basis?: 'issue' | 'service';
   }) => {
     const qs = new URLSearchParams({ scope: opts.scope, format: opts.format });
+    if (opts.basis === 'service') qs.set('basis', 'service');
     if (opts.from) qs.set('from', opts.from);
     if (opts.to) qs.set('to', opts.to);
     if (opts.items?.length) qs.set('items', opts.items.join(','));

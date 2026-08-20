@@ -11,6 +11,7 @@ import type { QboBalanceRow } from '@/services/qbo.service';
 import CloudDoneRoundedIcon from '@mui/icons-material/CloudDoneRounded';
 import CloudOffRoundedIcon from '@mui/icons-material/CloudOffRounded';
 import LinkRoundedIcon from '@mui/icons-material/LinkRounded';
+import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import SyncRoundedIcon from '@mui/icons-material/SyncRounded';
@@ -19,8 +20,6 @@ import {
   AlertTitle,
   Box,
   Button,
-  Card,
-  CardContent,
   Chip,
   InputAdornment,
   LinearProgress,
@@ -46,8 +45,14 @@ import {
   type RangePreset,
   type ReceivablesFilter,
 } from './constants';
+import {
+  PanelCard,
+  SectionHeader,
+} from '@/components/application-ui/content-shells/store-managment/panel-kit';
+import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
+import Skeleton from '@mui/material/Skeleton';
 import { CategoryFilter } from './category-filter';
-import { ExportMenu } from './export-menu';
+import { ExportDialog } from './export-dialog';
 import { CustomerInvoicesDialog, type LedgerTarget } from './customer-invoices-dialog';
 import { QboSummaryCards } from './qbo-summary-cards';
 import { ReceivablesTable } from './receivables-table';
@@ -83,6 +88,7 @@ export function QboReceivables({ embedded = false, onSelectStore }: Props) {
   const [filter, setFilter] = useState<ReceivablesFilter>('debt');
   const [linkFilter, setLinkFilter] = useState<LinkFilter>('all');
   const [cats, setCats] = useState<string[]>([]);
+  const [exportOpen, setExportOpen] = useState(false);
   const deferredSearch = useDeferredValue(search);
 
   const rows = useMemo(() => {
@@ -276,9 +282,19 @@ sx={{ py: 0.5 }}>
       <QboSummaryCards totals={balances.data?.totals}
 isLoading={balances.isLoading} />
 
-      <Card>
-        {busy && <LinearProgress />}
-        <CardContent>
+      <PanelCard sx={{ overflow: 'hidden' }}>
+        {busy && <LinearProgress sx={{ height: 2 }} />}
+        <SectionHeader
+          icon={<ReceiptLongRoundedIcon />}
+          title="Tiendas"
+          hint={
+            rows.length === (balances.data?.stores?.length ?? 0)
+              ? 'Ordenadas por lo que deben'
+              : `Filtradas de ${balances.data?.stores?.length ?? 0}`
+          }
+          count={rows.length}
+        />
+        <Box sx={{ px: 2.25, pb: 1 }}>
           <Box
             sx={{
               display: 'flex',
@@ -286,6 +302,13 @@ isLoading={balances.isLoading} />
               alignItems: 'center',
               gap: 1.5,
               mb: 2,
+              // Pegajosa: con 270 filas los filtros se perdían al bajar y había
+              // que volver arriba para cambiar uno.
+              position: 'sticky',
+              top: 0,
+              zIndex: 2,
+              bgcolor: 'background.paper',
+              py: 1,
             }}
           >
             {/* Grupo 1 — estado del vínculo */}
@@ -331,9 +354,16 @@ sx={{ px: 1.25, whiteSpace: 'nowrap' }}>
               onChange={setCats}
             />
 
-            <ExportMenu range={range}
-categories={cats}
-disabled={!connected || balances.isLoading} />
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<DownloadRoundedIcon />}
+              onClick={() => setExportOpen(true)}
+              disabled={!connected || balances.isLoading}
+              sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+            >
+              Exportar
+            </Button>
 
             {/* Empuja periodo y búsqueda a la derecha mientras quepan; al no caber,
                 el wrap del contenedor los baja de línea en vez de desbordar. */}
@@ -383,19 +413,36 @@ value={o.value}>
           </Box>
 
           {balances.isLoading ? (
-            <Box py={6}
-textAlign="center">
-              <Typography color="text.secondary">Leyendo QuickBooks…</Typography>
-            </Box>
+            // Esqueleto con la forma de la tabla, no una frase centrada: reserva
+            // el alto real y evita el salto cuando llegan los datos.
+            <Stack gap={1}
+sx={{ py: 1 }}
+aria-busy="true"
+aria-label="Cargando cartera">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Skeleton key={i}
+variant="rounded"
+height={38}
+sx={{ opacity: 1 - i * 0.09 }} />
+              ))}
+            </Stack>
           ) : (
             <ReceivablesTable rows={rows}
 onSelect={setLedgerRow} />
           )}
-        </CardContent>
-      </Card>
+        </Box>
+      </PanelCard>
 
       {/* Click en cualquier fila abre el libro del cliente: facturas, pagos y
           antigüedad. Funciona igual esté vinculada o no, porque va por qboCustomerId. */}
+      <ExportDialog
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        range={range}
+        categories={cats}
+        categoryLabels={catLabels}
+      />
+
       <CustomerInvoicesDialog
         row={ledgerRow}
         range={range}
