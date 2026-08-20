@@ -396,6 +396,50 @@ export const qboService = {
     URL.revokeObjectURL(url);
   },
 
+  /**
+   * Resumen ejecutivo. `md` se descarga como archivo (es el formato que una IA
+   * lee sin perder las tablas); `html` se abre en pestaña con el diálogo de
+   * impresión listo, de donde sale el PDF.
+   *
+   * Va por axios como el export: window.open no lleva el Bearer token.
+   */
+  summary: async (opts: {
+    format: 'md' | 'html';
+    from?: string | null;
+    to?: string | null;
+    basis?: 'issue' | 'service';
+    top?: number;
+  }): Promise<void> => {
+    const params: Record<string, string> = { format: opts.format };
+    if (opts.from) params.from = opts.from;
+    if (opts.to) params.to = opts.to;
+    if (opts.basis === 'service') params.basis = 'service';
+    if (opts.top) params.top = String(opts.top);
+    if (opts.format === 'html') params.print = '1';
+
+    const res = await api.get(`${BASE}/summary`, { params, responseType: 'blob' });
+    const stamp = new Date().toISOString().slice(0, 10);
+
+    if (opts.format === 'html') {
+      // Blob en pestaña nueva: hereda el origen, así que el auto-print del HTML
+      // se dispara y el usuario solo elige "Guardar como PDF".
+      const url = URL.createObjectURL(new Blob([res.data as Blob], { type: 'text/html' }));
+      window.open(url, '_blank', 'noopener');
+      // Revoke diferido: revocar de inmediato deja la pestaña en blanco
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      return;
+    }
+
+    const url = URL.createObjectURL(res.data as Blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cartera_${stamp}.md`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
+
   /** URL del PDF que sirve QuickBooks. Se abre en pestaña nueva, no pasa por React. */
   invoicePdfUrl: (qboId: string, download = false) =>
     `${api.defaults.baseURL ?? ''}${BASE}/invoices/${qboId}/pdf${download ? '?download=1' : ''}`,

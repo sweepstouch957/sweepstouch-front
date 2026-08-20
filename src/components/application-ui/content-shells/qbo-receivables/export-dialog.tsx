@@ -1,7 +1,9 @@
 'use client';
 
 import { qboService } from '@/services/qbo.service';
+import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
+import PrintRoundedIcon from '@mui/icons-material/PrintRounded';
 import EventRoundedIcon from '@mui/icons-material/EventRounded';
 import GridOnRoundedIcon from '@mui/icons-material/GridOnRounded';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
@@ -87,7 +89,7 @@ export function ExportDialog({
   // emisión daría otros números sin que se note.
   const [basis, setBasis] = useState<Basis>(initialBasis);
   const [includePaid, setIncludePaid] = useState(false);
-  const [busy, setBusy] = useState<'csv' | 'xlsx' | null>(null);
+  const [busy, setBusy] = useState<'csv' | 'xlsx' | 'md' | 'html' | null>(null);
 
   const hasRange = Boolean(range.from || range.to);
 
@@ -111,6 +113,22 @@ export function ExportDialog({
         e?.response?.status === 401
           ? 'Sesión expirada. Vuelve a entrar y reintenta.'
           : e?.message || 'No se pudo generar el archivo'
+      );
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const summary = async (format: 'md' | 'html') => {
+    setBusy(format);
+    try {
+      await qboService.summary({ format, from: range.from, to: range.to, basis, top: 50 });
+      if (format === 'md') onClose();
+    } catch (e: any) {
+      toast.error(
+        e?.response?.status === 401
+          ? 'Sesión expirada. Vuelve a entrar y reintenta.'
+          : e?.message || 'No se pudo generar el resumen'
       );
     } finally {
       setBusy(null);
@@ -247,6 +265,49 @@ sx={{ py: 0.25, mb: 2 }}>
             </Typography>
           </Alert>
         )}
+
+        <Divider sx={{ mb: 1.5 }} />
+
+        <Typography variant="subtitle2"
+fontWeight={700}
+sx={{ mb: 0.5 }}>
+          Resumen ejecutivo
+        </Typography>
+        <Typography variant="caption"
+color="text.secondary"
+sx={{ display: 'block', mb: 1.25 }}>
+          Totales, antigüedad, desglose por categoría, mayores deudores y focos de atención,
+          con una sección que explica cómo interpretar cada cifra.
+        </Typography>
+
+        <Stack direction={{ xs: 'column', sm: 'row' }}
+spacing={1}
+sx={{ mb: 2 }}>
+          <Button
+            fullWidth
+            variant="outlined"
+            startIcon={
+              busy === 'md' ? <CircularProgress size={14}
+color="inherit" /> : <AutoAwesomeRoundedIcon />
+            }
+            disabled={Boolean(busy)}
+            onClick={() => summary('md')}
+          >
+            Markdown (para IA)
+          </Button>
+          <Button
+            fullWidth
+            variant="outlined"
+            startIcon={
+              busy === 'html' ? <CircularProgress size={14}
+color="inherit" /> : <PrintRoundedIcon />
+            }
+            disabled={Boolean(busy)}
+            onClick={() => summary('html')}
+          >
+            PDF (imprimir)
+          </Button>
+        </Stack>
 
         <Divider sx={{ mb: 1 }} />
 
