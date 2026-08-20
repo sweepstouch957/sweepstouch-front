@@ -13,6 +13,7 @@ import {
   Box,
   Button,
   Chip,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -30,6 +31,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import { fmtDate } from './constants';
 
 type Scope = 'stores' | 'invoices' | 'lines';
@@ -41,6 +43,8 @@ type Props = {
   range: { from: string | null; to: string | null };
   categories: string[];
   categoryLabels: string[];
+  /** Base de fecha elegida en la barra; el diálogo arranca con la misma. */
+  basis?: 'issue' | 'service';
 };
 
 const SCOPES: Array<{
@@ -69,19 +73,28 @@ const SCOPES: Array<{
   },
 ];
 
-export function ExportDialog({ open, onClose, range, categories, categoryLabels }: Props) {
+export function ExportDialog({
+  open,
+  onClose,
+  range,
+  categories,
+  categoryLabels,
+  basis: initialBasis = 'issue',
+}: Props) {
   const theme = useTheme();
   const [scope, setScope] = useState<Scope>('stores');
-  const [basis, setBasis] = useState<Basis>('issue');
+  // Hereda lo elegido en la barra: si estás mirando por servicio, exportar por
+  // emisión daría otros números sin que se note.
+  const [basis, setBasis] = useState<Basis>(initialBasis);
   const [includePaid, setIncludePaid] = useState(false);
+  const [busy, setBusy] = useState<'csv' | 'xlsx' | null>(null);
 
   const hasRange = Boolean(range.from || range.to);
 
-  const download = (format: 'csv' | 'xlsx') => {
-    // El navegador se encarga de la descarga: el endpoint responde con
-    // Content-Disposition attachment, así que el archivo no pasa por memoria.
-    window.open(
-      qboService.exportUrl({
+  const download = async (format: 'csv' | 'xlsx') => {
+    setBusy(format);
+    try {
+      await qboService.downloadExport({
         scope,
         format,
         from: range.from,
@@ -89,11 +102,19 @@ export function ExportDialog({ open, onClose, range, categories, categoryLabels 
         items: categories,
         includePaid,
         basis,
-      }),
-      '_blank',
-      'noopener'
-    );
-    onClose();
+      });
+      onClose();
+    } catch (e: any) {
+      // El export tarda (consulta QuickBooks) y puede fallar por sesión vencida;
+      // sin este aviso el diálogo se quedaba mudo y parecía colgado.
+      toast.error(
+        e?.response?.status === 401
+          ? 'Sesión expirada. Vuelve a entrar y reintenta.'
+          : e?.message || 'No se pudo generar el archivo'
+      );
+    } finally {
+      setBusy(null);
+    }
   };
 
   return (
@@ -248,17 +269,28 @@ color="text.secondary">
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onClose}>Cancelar</Button>
+        <Button onClick={onClose}
+disabled={Boolean(busy)}>
+          Cancelar
+        </Button>
         <Button
           variant="outlined"
-          startIcon={<TableChartRoundedIcon />}
+          startIcon={
+            busy === 'csv' ? <CircularProgress size={14}
+color="inherit" /> : <TableChartRoundedIcon />
+          }
+          disabled={Boolean(busy)}
           onClick={() => download('csv')}
         >
           CSV
         </Button>
         <Button
           variant="contained"
-          startIcon={<GridOnRoundedIcon />}
+          startIcon={
+            busy === 'xlsx' ? <CircularProgress size={14}
+color="inherit" /> : <GridOnRoundedIcon />
+          }
+          disabled={Boolean(busy)}
           onClick={() => download('xlsx')}
         >
           Excel

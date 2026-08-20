@@ -70,12 +70,18 @@ export function QboReceivables({ embedded = false, onSelectStore }: Props) {
 
   const [preset, setPreset] = useState<RangePreset>('all');
   const [custom, setCustom] = useState<RangePickerValue>({ startYmd: '', endYmd: '' });
+  const [basis, setBasis] = useState<'issue' | 'service'>('issue');
 
   // En modo 'custom' manda lo que eligió el usuario; si aún no eligió, no se filtra.
   const range = useMemo(() => {
-    if (preset !== 'custom') return presetToRange(preset);
-    return { from: custom.startYmd || null, to: custom.endYmd || null };
-  }, [preset, custom]);
+    const base = preset !== 'custom'
+      ? presetToRange(preset)
+      : { from: custom.startYmd || null, to: custom.endYmd || null };
+    return { ...base, basis };
+  }, [preset, custom, basis]);
+
+  // Sin periodo, filtrar por fecha de servicio no cambia nada
+  const hasRange = Boolean(range.from || range.to);
 
   // Sin conexión no se pide la cartera: serían 3 llamadas a QBO que fallan igual.
   const balances = useQboBalances(range, { enabled: connected });
@@ -274,8 +280,9 @@ spacing={1}>
       {balances.data?.range?.ranged && (
         <Alert severity="info"
 sx={{ py: 0.5 }}>
-          Periodo acotado: los saldos suman solo las facturas emitidas en el rango, no el
-          saldo total del cliente.
+          {balances.data.range.basis === 'service'
+            ? 'Periodo por fecha de servicio: los saldos suman solo los cargos prestados en el rango, prorrateados dentro de cada factura.'
+            : 'Periodo por fecha de emisión: los saldos suman las facturas emitidas en el rango, no el saldo total del cliente.'}
         </Alert>
       )}
 
@@ -441,6 +448,7 @@ onSelect={setLedgerRow} />
         range={range}
         categories={cats}
         categoryLabels={catLabels}
+        basis={basis}
       />
 
       <CustomerInvoicesDialog

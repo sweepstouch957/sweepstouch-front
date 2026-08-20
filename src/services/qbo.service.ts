@@ -84,6 +84,8 @@ export interface QboDateRange {
   to: string | null;
   /** true = los saldos salen de las facturas del rango, no de Customer.Balance. */
   ranged: boolean;
+  /** 'service' = se filtró por la fecha del servicio, no por la de emisión. */
+  basis?: 'issue' | 'service';
 }
 
 export interface QboBalancesResponse {
@@ -315,11 +317,17 @@ export const qboService = {
 
   /** `force` salta el cache de 10 min del backend. Solo para el botón de actualizar. */
   balances: async (
-    params: { from?: string | null; to?: string | null; force?: boolean } = {}
+    params: {
+      from?: string | null;
+      to?: string | null;
+      force?: boolean;
+      basis?: 'issue' | 'service';
+    } = {}
   ): Promise<QboBalancesResponse> => {
     const qs = new URLSearchParams();
     if (params.from) qs.set('from', params.from);
     if (params.to) qs.set('to', params.to);
+    if (params.basis === 'service') qs.set('basis', 'service');
     if (params.force) qs.set('force', '1');
     const suffix = qs.toString();
     const { data } = await api.get(`${BASE}/balances${suffix ? `?${suffix}` : ''}`);
@@ -347,10 +355,13 @@ export const qboService = {
   },
 
   /**
-   * URL de descarga del export. El navegador la abre directo: el endpoint manda
-   * Content-Disposition attachment, así que no pasa por React ni por memoria.
+   * Descarga el export.
+   *
+   * Va por axios y no por window.open: la API pide Bearer token en cabecera y
+   * una ventana nueva no lo lleva — devolvía UNAUTHORIZED. Se trae como blob y
+   * se dispara la descarga con un enlace temporal.
    */
-  exportUrl: (opts: {
+  downloadExport: async (opts: {
     scope: 'stores' | 'invoices' | 'lines';
     format: 'csv' | 'xlsx';
     from?: string | null;
@@ -359,14 +370,30 @@ export const qboService = {
     includePaid?: boolean;
     /** 'issue' = fecha de emisión de la factura · 'service' = fecha del servicio */
     basis?: 'issue' | 'service';
-  }) => {
-    const qs = new URLSearchParams({ scope: opts.scope, format: opts.format });
-    if (opts.basis === 'service') qs.set('basis', 'service');
-    if (opts.from) qs.set('from', opts.from);
-    if (opts.to) qs.set('to', opts.to);
-    if (opts.items?.length) qs.set('items', opts.items.join(','));
-    if (opts.includePaid) qs.set('all', '1');
-    return `${api.defaults.baseURL ?? ''}${BASE}/export?${qs.toString()}`;
+  }): Promise<void> => {
+    const params: Record<string, string> = { scope: opts.scope, format: opts.format };
+    if (opts.from) params.from = opts.from;
+    if (opts.to) params.to = opts.to;
+    if (opts.items?.length) params.items = opts.items.join(',');
+    if (opts.includePaid) params.all = '1';
+    if (opts.basis === 'service') params.basis = 'service';
+
+    const res = await api.get(`${BASE}/export`, { params, responseType: 'blob' });
+
+    // El nombre lo manda el backend en Content-Disposition; si falta, uno decente
+    const disp = String(res.headers?.['content-disposition'] ?? '');
+    const match = disp.match(/filename="?([^"]+)"?/);
+    const filename = match?.[1] || `cartera_${opts.scope}.${opts.format}`;
+
+    const url = URL.createObjectURL(res.data as Blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // Sin revoke, el blob queda en memoria hasta recargar la página
+    URL.revokeObjectURL(url);
   },
 
   /** URL del PDF que sirve QuickBooks. Se abre en pestaña nueva, no pasa por React. */
@@ -431,8 +458,8 @@ export const qboService = {
 
 export const qboQK = {
   status: () => ['qbo', 'status'] as const,
-  balances: (from?: string | null, to?: string | null) =>
-    ['qbo', 'balances', from ?? '*', to ?? '*'] as const,
+  balances: (from?: string | null, to?: string | null, basis?: string) =>
+    ['qbo', 'balances', from ?? '*', to ?? '*', basis ?? 'issue'] as const,
   invoice: (qboId: string) => ['qbo', 'invoice', qboId] as const,
   customerLedger: (
     qboCustomerId: string,

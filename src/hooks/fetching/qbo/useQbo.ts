@@ -31,14 +31,15 @@ export function useQboStatus() {
  * staleTime alto y sin refetch al enfocar la ventana: cada refetch cuesta de verdad.
  */
 export function useQboBalances(
-  range?: { from?: string | null; to?: string | null },
+  range?: { from?: string | null; to?: string | null; basis?: 'issue' | 'service' },
   opts?: { enabled?: boolean }
 ) {
   const from = range?.from ?? null;
   const to = range?.to ?? null;
+  const basis = range?.basis ?? 'issue';
   return useQuery<QboBalancesResponse>({
-    queryKey: qboQK.balances(from, to),
-    queryFn: () => qboService.balances({ from, to }),
+    queryKey: qboQK.balances(from, to, basis),
+    queryFn: () => qboService.balances({ from, to, basis }),
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 30,
     refetchOnWindowFocus: false,
@@ -49,14 +50,19 @@ export function useQboBalances(
 }
 
 /** Refresco explícito: salta el cache del backend. Lo dispara el botón "Actualizar". */
-export function useQboRefreshBalances(range?: { from?: string | null; to?: string | null }) {
+export function useQboRefreshBalances(range?: {
+  from?: string | null;
+  to?: string | null;
+  basis?: 'issue' | 'service';
+}) {
   const qc = useQueryClient();
   const from = range?.from ?? null;
   const to = range?.to ?? null;
+  const basis = range?.basis ?? 'issue';
   return useMutation<QboBalancesResponse, Error, void>({
-    mutationFn: () => qboService.balances({ from, to, force: true }),
+    mutationFn: () => qboService.balances({ from, to, basis, force: true }),
     onSuccess: (data) => {
-      qc.setQueryData(qboQK.balances(from, to), data);
+      qc.setQueryData(qboQK.balances(from, to, basis), data);
       toast.success('Cartera actualizada desde QuickBooks');
     },
     onError: (e) => toast.error(e.message || 'No se pudo actualizar'),
