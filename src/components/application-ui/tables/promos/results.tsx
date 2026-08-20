@@ -19,13 +19,15 @@ import {
   Tooltip,
   Typography,
   alpha,
+  useMediaQuery,
   useTheme,
 } from '@mui/material';
 import { format } from 'date-fns';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Theme } from '@mui/material/styles';
 import { tint, tintBorder } from '@/theme/semantic';
+import { PromoCard } from './promo-card';
+import { StatusBadge } from './status-badge';
 
 export interface Promo {
   _id: string;
@@ -61,51 +63,6 @@ interface Props {
   onDelete: (id: string) => void;
 }
 
-const statusConfig = (theme: Theme) => ({
-  in_progress: { label: 'Active', color: theme.palette.info.main, bg: tint(theme, 'info') },
-  active: { label: 'Active', color: theme.palette.info.main, bg: tint(theme, 'info') },
-  pending: { label: 'Pending', color: theme.palette.warning.main, bg: tint(theme, 'warning') },
-  completed: { label: 'Completed', color: theme.palette.success.main, bg: tint(theme, 'success') },
-});
-
-const StatusBadge = ({ status }: { status: string }) => {
-  const theme = useTheme();
-  const cfg = statusConfig(theme)[status as keyof ReturnType<typeof statusConfig>];
-  if (!cfg) return <Typography variant="caption" color="text.disabled">{status}</Typography>;
-
-  return (
-    <Box
-      component="span"
-      sx={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 0.75,
-        px: 1.25,
-        py: 0.4,
-        borderRadius: 10,
-        bgcolor: cfg.bg,
-        color: cfg.color,
-        fontSize: '0.72rem',
-        fontWeight: 700,
-        letterSpacing: 0.3,
-        whiteSpace: 'nowrap',
-      }}
-    >
-      <Box
-        component="span"
-        sx={{
-          width: 5,
-          height: 5,
-          borderRadius: '50%',
-          bgcolor: cfg.color,
-          flexShrink: 0,
-        }}
-      />
-      {cfg.label}
-    </Box>
-  );
-};
-
 export const PromoResults = ({
   promos,
   total,
@@ -120,6 +77,8 @@ export const PromoResults = ({
   const { t } = useTranslation();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
+  // Debajo de md la tabla de 7 columnas no se lee: se cambia por tarjetas.
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [imageOpen, setImageOpen] = useState(false);
   const [currentImage, setCurrentImage] = useState<string | null>(null);
@@ -144,6 +103,58 @@ export const PromoResults = ({
 
   return (
     <>
+      {isMobile ? (
+        <Stack spacing={1.5}>
+          {promos.map((promo) => (
+            <PromoCard
+              key={promo._id}
+              promo={promo}
+              showStore={!idStore}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onPreview={handlePreview}
+            />
+          ))}
+
+          {promos.length === 0 && (
+            <Card
+              elevation={0}
+              sx={{
+                border: '1px dashed',
+                borderColor: 'divider',
+                borderRadius: 3,
+                py: 6,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 1,
+              }}
+            >
+              <CampaignOutlined sx={{ fontSize: 30, color: 'text.disabled' }} />
+              <Typography fontWeight={600}
+color="text.secondary">
+                {t('No ads found')}
+              </Typography>
+              <Typography variant="body2"
+color="text.disabled">
+                {t('Try clearing the filters')}
+              </Typography>
+            </Card>
+          )}
+
+          <TablePagination
+            component="div"
+            count={total}
+            page={page - 1}
+            onPageChange={(_, newPage) => onChangePage(newPage + 1)}
+            rowsPerPage={limit}
+            onRowsPerPageChange={(e) => onChangeLimit(parseInt(e.target.value, 10))}
+            rowsPerPageOptions={[5, 10, 15, 20]}
+            labelRowsPerPage=""
+            sx={{ '& .MuiTablePagination-toolbar': { px: 0, flexWrap: 'wrap' } }}
+          />
+        </Stack>
+      ) : (
       <Card
         elevation={0}
         sx={{
@@ -259,8 +270,16 @@ export const PromoResults = ({
                             transform: 'scale(1.06)',
                             borderColor: tintBorder(theme, 'primary'),
                           },
+                          '@media (prefers-reduced-motion: reduce)': {
+                            transition: 'border-color 0.15s ease',
+                            '&:hover': { transform: 'none' },
+                          },
                         }}
                         onClick={() => handlePreview(promo.imageMobile, promo.title)}
+                        imgProps={{
+                          loading: 'lazy',
+                          alt: promo.title || t('Ad image'),
+                        }}
                       />
                       <Box minWidth={0}>
                         <Typography
@@ -332,7 +351,7 @@ export const PromoResults = ({
                   </TableCell>
 
                   {/* Duration */}
-                  <TableCell>
+                  <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>
                     <Stack spacing={0.4}>
                       <Typography
                         variant="caption"
@@ -368,6 +387,7 @@ export const PromoResults = ({
                         <IconButton
                           size="small"
                           onClick={() => onEdit(promo)}
+                          aria-label={t('Edit ad')}
                           sx={{
                             color: 'text.disabled',
                             transition: 'all 0.15s ease',
@@ -387,6 +407,7 @@ export const PromoResults = ({
                         <IconButton
                           size="small"
                           onClick={() => onDelete(promo._id)}
+                          aria-label={t('Delete ad')}
                           sx={{
                             color: 'text.disabled',
                             transition: 'all 0.15s ease',
@@ -471,6 +492,7 @@ export const PromoResults = ({
           />
         </Box>
       </Card>
+      )}
 
       {/* Image preview dialog */}
       <Dialog
@@ -508,8 +530,11 @@ export const PromoResults = ({
             component="img"
             src={currentImage || ''}
             alt={currentTitle}
+            loading="lazy"
             sx={{
               width: '100%',
+              // Reserva el alto antes de cargar: evita el salto del modal
+              aspectRatio: '4 / 3',
               maxHeight: 560,
               objectFit: 'contain',
               borderRadius: 2,
