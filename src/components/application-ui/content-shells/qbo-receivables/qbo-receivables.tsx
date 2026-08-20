@@ -46,6 +46,7 @@ import {
   type RangePreset,
   type ReceivablesFilter,
 } from './constants';
+import { CategoryFilter } from './category-filter';
 import { CustomerInvoicesDialog, type LedgerTarget } from './customer-invoices-dialog';
 import { QboSummaryCards } from './qbo-summary-cards';
 import { ReceivablesTable } from './receivables-table';
@@ -80,13 +81,30 @@ export function QboReceivables({ embedded = false, onSelectStore }: Props) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<ReceivablesFilter>('debt');
   const [linkFilter, setLinkFilter] = useState<LinkFilter>('all');
+  const [cats, setCats] = useState<string[]>([]);
   const deferredSearch = useDeferredValue(search);
 
   const rows = useMemo(() => {
     const all = balances.data?.stores ?? [];
     const q = deferredSearch.trim().toLowerCase();
+    const catSet = new Set(cats);
 
-    return all.filter((r) => {
+    return all
+      .map((r) => {
+        // Con categorías activas el "Debe" pasa a ser el saldo de esas categorías,
+        // no el total. Si no, la fila diría $15,197 mientras el filtro dice "solo
+        // membresías" y los números no cuadrarían con nada.
+        if (!catSet.size) return r;
+        const balance = Object.entries(r.byCategory ?? {})
+          .filter(([id]) => catSet.has(id))
+          .reduce((s2, [, v]) => s2 + v, 0);
+        return { ...r, balance: Math.round(balance * 100) / 100 };
+      })
+      .filter((r) => {
+        if (catSet.size && r.balance <= 0) return false;
+        return true;
+      })
+      .filter((r) => {
       if (q) {
         const hay = `${r.storeName ?? ''} ${r.qboName} ${r.storeSlug ?? ''}`.toLowerCase();
         if (!hay.includes(q)) return false;
@@ -107,8 +125,9 @@ export function QboReceivables({ embedded = false, onSelectStore }: Props) {
         default:
           return true;
       }
-    });
-  }, [balances.data, deferredSearch, filter, linkFilter]);
+      })
+      .sort((a, b) => b.balance - a.balance);
+  }, [balances.data, deferredSearch, filter, linkFilter, cats]);
 
   const busy =
     balances.isFetching || refresh.isPending || linkCustomers.isPending || retryPending.isPending;
@@ -297,6 +316,12 @@ sx={{ px: 1.25, whiteSpace: 'nowrap' }}>
               ))}
             </ToggleButtonGroup>
 
+            <CategoryFilter
+              categories={balances.data?.categories ?? []}
+              selected={cats}
+              onChange={setCats}
+            />
+
             {/* Empuja periodo y búsqueda a la derecha mientras quepan; al no caber,
                 el wrap del contenedor los baja de línea en vez de desbordar. */}
             <Box sx={{ flexGrow: 1, minWidth: 0 }} />
@@ -360,6 +385,7 @@ onSelect={setLedgerRow} />
           antigüedad. Funciona igual esté vinculada o no, porque va por qboCustomerId. */}
       <CustomerInvoicesDialog
         row={ledgerRow}
+        range={range}
         onClose={() => setLedgerRow(null)}
         onOpenStore={
           onSelectStore && ledgerRow?.storeId

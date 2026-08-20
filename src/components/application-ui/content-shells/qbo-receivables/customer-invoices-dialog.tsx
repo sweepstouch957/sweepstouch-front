@@ -40,6 +40,8 @@ export type LedgerTarget = {
 
 type Props = {
   row: LedgerTarget | null;
+  /** El mismo rango de la tabla. Sin esto el modal contradecía a la fila de atrás. */
+  range?: { from: string | null; to: string | null };
   onClose: () => void;
   /** Solo para las filas vinculadas: abre el panel de la tienda. */
   onOpenStore?: (storeId: string) => void;
@@ -86,8 +88,8 @@ sx={{ display: 'block' }}>
  * Entra por qboCustomerId y no por tienda: de los 270 clientes de QuickBooks solo
  * un puñado está vinculado a Mongo, y hay que poder revisar el detalle de todos.
  */
-export function CustomerInvoicesDialog({ row, onClose, onOpenStore }: Props) {
-  const { data, isLoading, isError, error } = useQboCustomerLedger(row?.qboCustomerId ?? null);
+export function CustomerInvoicesDialog({ row, range, onClose, onOpenStore }: Props) {
+  const { data, isLoading, isError, error } = useQboCustomerLedger(row?.qboCustomerId ?? null, range);
   const [scope, setScope] = useState<Scope>('open');
   const [invoiceId, setInvoiceId] = useState<string | null>(null);
 
@@ -149,6 +151,17 @@ height={320} />}
 
           {data && !data.found && (
             <Alert severity="warning">Este cliente ya no existe en QuickBooks.</Alert>
+          )}
+
+          {data?.found && data.range?.ranged && (
+            <Alert severity="info"
+sx={{ mb: 2, py: 0.25 }}>
+              {`Solo facturas emitidas ${
+                data.range.from ? `desde ${fmtDate(data.range.from)}` : ''
+              }${data.range.from && data.range.to ? ' ' : ''}${
+                data.range.to ? `hasta ${fmtDate(data.range.to)}` : ''
+              }.`}
+            </Alert>
           )}
 
           {data?.found && (
@@ -227,6 +240,9 @@ textAlign="center">
                         <TableCell align="right">Total</TableCell>
                         <TableCell align="right">Pagado</TableCell>
                         <TableCell align="right">Debe</TableCell>
+                        <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                          Categoría
+                        </TableCell>
                         <TableCell align="center">Estado</TableCell>
                         <TableCell align="right" />
                       </TableRow>
@@ -254,6 +270,22 @@ color="success.main">
 fontWeight={700}>
                               {money(i.balance)}
                             </Typography>
+                          </TableCell>
+                          <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                            <Stack direction="row"
+spacing={0.5}
+flexWrap="wrap"
+useFlexGap>
+                              {(i.categories ?? []).map((c) => (
+                                <Chip
+                                  key={c}
+                                  size="small"
+                                  variant="outlined"
+                                  label={c.includes(':') ? c.split(':')[1] : c}
+                                  sx={{ height: 18, '& .MuiChip-label': { px: 0.6, fontSize: '0.62rem' } }}
+                                />
+                              ))}
+                            </Stack>
                           </TableCell>
                           <TableCell align="center">
                             <Stack direction="row"

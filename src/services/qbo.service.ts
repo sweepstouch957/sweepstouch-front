@@ -31,6 +31,8 @@ export interface QboBalanceRow {
   storeSlug: string | null;
   /** `active` de la tienda en Mongo. null = sin vincular. */
   storeActive: boolean | null;
+  /** { itemId: saldo prorrateado }. Alimenta el filtro por categoría en cliente. */
+  byCategory: Record<string, number>;
   membershipType: string | null;
   paymentMethod: string | null;
   /** false = el Customer existe en QBO pero ninguna tienda de Mongo lo reclama */
@@ -66,6 +68,16 @@ export interface QboTotals {
   aging: QboAging;
 }
 
+/** Item de QuickBooks presente en facturas abiertas. `full` = "Padre:Hijo". */
+export interface QboCategory {
+  id: string;
+  group: string;
+  label: string;
+  full: string;
+  amount: number;
+  invoices: number;
+}
+
 export interface QboDateRange {
   /** YYYY-MM-DD. null = sin límite. */
   from: string | null;
@@ -77,6 +89,8 @@ export interface QboDateRange {
 export interface QboBalancesResponse {
   ok: boolean;
   range: QboDateRange;
+  /** Solo las categorías con saldo abierto: un checkbox que no filtra nada es ruido. */
+  categories: QboCategory[];
   totals: QboTotals;
   stores: QboBalanceRow[];
   /** El backend cachea 3 min: son 3 queries a QuickBooks y ~5 s en frío. */
@@ -85,6 +99,8 @@ export interface QboBalancesResponse {
 }
 
 export interface QboInvoiceRow {
+  /** Categorías que toca la factura, en formato "Padre:Hijo". */
+  categories?: string[];
   qboId: string;
   docNumber: string | null;
   txnDate: string | null;
@@ -107,6 +123,8 @@ export interface QboPaymentRow {
 export interface QboCustomerLedger {
   ok: boolean;
   found: boolean;
+  /** El mismo rango que filtra la tabla; el modal ya no muestra todo el histórico. */
+  range: QboDateRange;
   qboCustomerId: string;
   qboName: string;
   /** Neto de créditos, tal como lo calcula QuickBooks. */
@@ -299,8 +317,17 @@ export const qboService = {
     return data;
   },
 
-  customerLedger: async (qboCustomerId: string): Promise<QboCustomerLedger> => {
-    const { data } = await api.get(`${BASE}/customers/${qboCustomerId}/ledger`);
+  customerLedger: async (
+    qboCustomerId: string,
+    range?: { from?: string | null; to?: string | null }
+  ): Promise<QboCustomerLedger> => {
+    const qs = new URLSearchParams();
+    if (range?.from) qs.set('from', range.from);
+    if (range?.to) qs.set('to', range.to);
+    const suffix = qs.toString();
+    const { data } = await api.get(
+      `${BASE}/customers/${qboCustomerId}/ledger${suffix ? `?${suffix}` : ''}`
+    );
     return data;
   },
 
@@ -374,7 +401,8 @@ export const qboQK = {
   balances: (from?: string | null, to?: string | null) =>
     ['qbo', 'balances', from ?? '*', to ?? '*'] as const,
   invoice: (qboId: string) => ['qbo', 'invoice', qboId] as const,
-  customerLedger: (qboCustomerId: string) => ['qbo', 'ledger', qboCustomerId] as const,
+  customerLedger: (qboCustomerId: string, from?: string | null, to?: string | null) =>
+    ['qbo', 'ledger', qboCustomerId, from ?? '*', to ?? '*'] as const,
   storeDetail: (storeId: string) => ['qbo', 'store', storeId] as const,
   customers: (search: string) => ['qbo', 'customers', search] as const,
   proposals: (storeId?: string) => ['qbo', 'proposals', storeId ?? 'all'] as const,
