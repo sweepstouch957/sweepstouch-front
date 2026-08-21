@@ -14,6 +14,8 @@ import {
   Box,
   Chip,
   colors,
+  Alert,
+  Button,
   Divider,
   Grid,
   LinearProgress,
@@ -25,9 +27,8 @@ import {
 } from '@mui/material';
 import { useMemo, useState } from 'react';
 import KpiCard from '@/components/application-ui/card-shells/kpi-card';
-import { QboReceivables } from '@/components/application-ui/content-shells/qbo-receivables/qbo-receivables';
+import AccountBalanceRoundedIcon from '@mui/icons-material/AccountBalanceRounded';
 import { routes } from 'src/router/routes';
-import BulkPaymentsImportCard from './BulkPaymentsImportCard';
 import BillingFilters, { PaymentMethod } from './filters';
 import { PieWithLegend } from './utils';
 
@@ -494,15 +495,24 @@ export default function BillingPage() {
         </Grid>
       </Grid>
 
-      {/* Cartera QuickBooks — deuda real por tienda y último pago.
-          Va después de los KPIs del rango porque responde otra pregunta:
-          los KPIs son "cuánto se facturó", esto es "cuánto está sin cobrar". */}
-      <Box sx={{ mb: 2.5 }}>
-        <QboReceivables />
-      </Box>
+      {/* Puente, no duplicado: la cartera completa vive en Facturación. Tenerla
+          embebida acá daba dos pantallas con los mismos números y ninguna manda. */}
+      <Alert
+        severity="info"
+        icon={<AccountBalanceRoundedIcon />}
+        action={
+          <Button size="small"
+href={routes.admin.management.billing}>
+            Abrir
+          </Button>
+        }
+        sx={{ mb: 2.5 }}
+      >
+        Lo que las tiendas deben, la antigüedad de la cartera y la conciliación con
+        QuickBooks están en <strong>Management → Facturación</strong>. Esta pantalla mide lo
+        que se generó en el periodo; aquella, lo que está sin cobrar.
+      </Alert>
 
-      {/* Bulk Payments */}
-      <BulkPaymentsImportCard />
     </Box>
   );
 }

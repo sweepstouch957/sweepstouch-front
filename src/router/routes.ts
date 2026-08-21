@@ -132,6 +132,7 @@ export const routes = {
       'debug-numbers': '/admin/applications/debug-numbers',
       'projects-board': '/admin/applications/projects-board',
       tasks: '/admin/applications/tasks',
+      meetings: '/admin/applications/meetings',
       demos: '/admin/applications/demos',
       utilities: '/admin/applications/utilities',
     },
@@ -154,6 +155,10 @@ export const routes = {
       qr: '/admin/management/qr',
       // Centro de facturación + QuickBooks. Es la URL que ve Intuit en el perfil de la app.
       billing: '/admin/management/billing',
+      // Pestañas de la misma página: el tab vive en la query para poder enlazarlo.
+      'billing-receivables': '/admin/management/billing?tab=cartera',
+      'billing-drafts': '/admin/management/billing?tab=prefacturas',
+      'billing-reconcile': '/admin/management/billing?tab=conciliacion',
       stores: {
         listing: '/admin/management/stores',
         create: '/admin/management/stores/create',

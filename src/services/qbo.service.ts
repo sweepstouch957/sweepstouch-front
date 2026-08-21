@@ -207,9 +207,160 @@ export interface QboInvoiceDetail {
   applied: Array<{ type: string; qboId: string }>;
 }
 
+/* ── Conciliación ── */
+
+export interface QboReconcileStore {
+  storeId: string;
+  storeName: string;
+  matchedCount: number;
+  billed: number;
+  system: number;
+  diff: number;
+  notBilledCount: number;
+  notBilledAmount: number;
+  billedNotFoundCount: number;
+  billedNotFoundAmount: number;
+}
+
+export interface QboNotBilled {
+  storeId: string;
+  storeName: string;
+  serviceDate: string;
+  type: 'MMS' | 'SMS';
+  audience: number | null;
+  systemCost: number;
+  status: string | null;
+  /** Días desde el servicio. Distingue el atraso normal de lo olvidado. */
+  ageDays: number;
+}
+
+export interface QboBilledNotFound {
+  storeId: string;
+  storeName: string;
+  docNumber: string;
+  issuedAt: string | null;
+  serviceDate: string;
+  audience: number | null;
+  type: 'MMS' | 'SMS';
+  amount: number;
+  description: string;
+}
+
+export interface QboWithDiff {
+  storeId: string;
+  storeName: string;
+  serviceDate: string;
+  type: 'MMS' | 'SMS';
+  docNumber: string;
+  issuedAt: string | null;
+  lagDays: number | null;
+  billedAmount: number;
+  systemCost: number;
+  diff: number;
+  billedAudience: number | null;
+  systemAudience: number | null;
+}
+
+export interface QboReconcileResponse {
+  ok: boolean;
+  error?: string;
+  message?: string;
+  range: { from: string; to: string; basis: 'service' };
+  totals: {
+    billedCampaigns: number;
+    systemCampaigns: number;
+    diff: number;
+    notBilled: number;
+    billedNotFound: number;
+    billedMembership: number;
+    billedOptin: number;
+    billedOtros: number;
+  };
+  counts: {
+    matched: number;
+    notBilled: number;
+    billedNotFound: number;
+    withDiff: number;
+    stores: number;
+  };
+  /** Retraso medido entre servicio y emisión, en días. */
+  lag: { median: number; max: number; min: number } | null;
+  stores: QboReconcileStore[];
+  notBilled: QboNotBilled[];
+  billedNotFound: QboBilledNotFound[];
+  withDiff: QboWithDiff[];
+}
+
+/* ── Prefacturas ── */
+
+export interface QboDraftLine {
+  kind: 'campaign' | 'optin' | 'membership';
+  itemId: string;
+  description: string;
+  amount: number;
+  serviceDate?: string;
+  audience?: number | null;
+  quantity?: number;
+  unitPrice?: number;
+  /** De dónde salió el precio, para poder auditarlo sin salir de la pantalla. */
+  source?: string;
+}
+
+export interface QboDraft {
+  storeId: string;
+  storeName: string;
+  qboCustomerId: string;
+  membershipType: string | null;
+  lines: QboDraftLine[];
+  /** Cargos que no entraron y por qué (ya facturados, sin costo). */
+  skipped: Array<{ reason: string; serviceDate?: string; audience?: number | null; amount: number }>;
+  total: number;
+  warnings: string[];
+}
+
+export interface QboDraftsResponse {
+  ok: boolean;
+  /** Ventana jueves→martes; cierra el miércoles. */
+  window: { from: string; to: string; closesOn: string };
+  drafts: QboDraft[];
+  totals: {
+    drafts: number;
+    amount: number;
+    campaigns: number;
+    membership: number;
+    optin: number;
+    optinSent: number;
+    alreadyBilled: number;
+    withoutMembership: number;
+  };
+  warnings: string[];
+}
+
+export interface QboCreateDraftsResult {
+  ok: boolean;
+  window: { from: string; to: string; closesOn: string };
+  created: number;
+  failed: number;
+  results: Array<{
+    storeId: string;
+    ok: boolean;
+    docNumber?: string | null;
+    qboId?: string;
+    total?: number;
+    error?: string;
+  }>;
+}
+
 export interface QboStatus {
   ok: boolean;
   connected: boolean;
+  /** Estado del cache del libro de facturas: la primera carga cuesta ~1 min. */
+  invoicesCache?: {
+    loaded: boolean;
+    count: number;
+    lastSync: string | null;
+    ageSeconds: number | null;
+  };
   companyName?: string | null;
   realmId: string | null;
   env?: 'sandbox' | 'production';
@@ -486,6 +637,31 @@ export const qboService = {
     return data;
   },
 
+  reconcile: async (from: string, to: string): Promise<QboReconcileResponse> => {
+    const { data } = await api.get(`${BASE}/reconcile`, { params: { from, to } });
+    return data;
+  },
+
+  drafts: async (weekStart?: string | null): Promise<QboDraftsResponse> => {
+    const { data } = await api.get(`${BASE}/drafts`, {
+      params: weekStart ? { weekStart } : undefined,
+    });
+    return data;
+  },
+
+  /** ⚠️ Emite facturas reales en QuickBooks. */
+  createDrafts: async (opts: {
+    weekStart?: string | null;
+    storeIds?: string[];
+  }): Promise<QboCreateDraftsResult> => {
+    const { data } = await api.post(`${BASE}/drafts/create`, {
+      weekStart: opts.weekStart ?? null,
+      storeIds: opts.storeIds ?? null,
+      confirm: true,
+    });
+    return data;
+  },
+
   retryPending: async (limit = 200): Promise<QboRetryResult> => {
     const { data } = await api.post(`${BASE}/retry-pending?limit=${limit}`);
     return data;
@@ -515,4 +691,6 @@ export const qboQK = {
   customers: (search: string) => ['qbo', 'customers', search] as const,
   proposals: (storeId?: string) => ['qbo', 'proposals', storeId ?? 'all'] as const,
   syncPreview: (storeId: string) => ['qbo', 'sync-preview', storeId] as const,
+  drafts: (weekStart?: string | null) => ['qbo', 'drafts', weekStart ?? 'actual'] as const,
+  reconcile: (from: string, to: string) => ['qbo', 'reconcile', from, to] as const,
 };

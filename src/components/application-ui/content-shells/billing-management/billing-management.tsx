@@ -4,6 +4,8 @@ import { QboReceivables } from '@/components/application-ui/content-shells/qbo-r
 import type { QboBalanceRow } from '@/services/qbo.service';
 import { useQboRetryPending } from '@hooks/fetching/qbo/useQbo';
 import HubRoundedIcon from '@mui/icons-material/HubRounded';
+import PendingActionsRoundedIcon from '@mui/icons-material/PendingActionsRounded';
+import RuleRoundedIcon from '@mui/icons-material/RuleRounded';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import SyncRoundedIcon from '@mui/icons-material/SyncRounded';
 import { Box, Button, Container, Stack, Tab, Tabs, Tooltip, Typography } from '@mui/material';
@@ -11,12 +13,16 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback } from 'react';
 import { useCustomization } from 'src/hooks/use-customization';
 import ConnectionCard from './connection-card';
+import DraftsView from './drafts-view';
 import LinkingView from './linking-view';
+import ReconcileView from './reconcile-view';
 
-// Dos pestañas: el estado de la conexión vive en la tarjeta fija de arriba,
-// no merece una pestaña propia que estaría vacía.
+// El estado de la conexión no tiene pestaña: vive en la tarjeta fija de arriba,
+// porque si se cayó, las cuatro salen vacías y hay que verlo desde cualquiera.
 const TABS = [
   { value: 'cartera', label: 'Cartera', icon: <ReceiptLongRoundedIcon /> },
+  { value: 'prefacturas', label: 'Prefacturas', icon: <PendingActionsRoundedIcon /> },
+  { value: 'conciliacion', label: 'Conciliación', icon: <RuleRoundedIcon /> },
   { value: 'vinculacion', label: 'Vinculación', icon: <HubRoundedIcon /> },
 ] as const;
 
@@ -117,6 +123,8 @@ iconPosition="start" />
 
       {tab === 'cartera' && <QboReceivables embedded
 onSelectStore={openStore} />}
+      {tab === 'prefacturas' && <DraftsView />}
+      {tab === 'conciliacion' && <ReconcileView />}
       {tab === 'vinculacion' && <LinkingView />}
     </Container>
   );

@@ -1357,6 +1357,8 @@ export default function AIAssistantPage() {
                 audience_channels: `📱 Analizando efectividad de canales de comunicación...`,
                 trends_analysis: `📉 Analizando tendencias de registros...`,
                 current_date: `🕒 Consultando fecha y hora actual...`,
+                search_meetings: `🎙️ Buscando reuniones en Otter${data.input?.date ? ` (${data.input.date})` : ''}...`,
+                meeting_content: `📝 Leyendo el transcript de la reunión...`,
                 explore_all: `🧭 Explorando registros de la base de datos...`,
               };
               modelText += `\n\n${toolLabels[data.tool] || `Running ${data.tool}...`}\n`;
@@ -1728,6 +1730,8 @@ export default function AIAssistantPage() {
           audience_channels: `📱 Analizando efectividad de canales de comunicación...`,
           trends_analysis: `📉 Analizando tendencias de registros...`,
           current_date: `🕒 Consultando fecha y hora actual...`,
+          search_meetings: `🎙️ Buscando reuniones en Otter${data.input?.date ? ` (${data.input.date})` : ''}...`,
+          meeting_content: `📝 Leyendo el transcript de la reunión...`,
           explore_all: `🧭 Explorando registros de la base de datos...`,
         };
         const label = toolLabels[data.tool] || `⚙️ Running ${data.tool}...`;

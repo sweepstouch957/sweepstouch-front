@@ -123,6 +123,16 @@ value={data?.realmId || '—'} />
 value={sandbox ? 'Sandbox de pruebas' : 'Producción'} />
               <Field label="Estado"
 value={connected ? 'Activa' : 'Requiere reconexión'} />
+              {/* La primera consulta del día carga 13.607 facturas y tarda ~1 min.
+                  Sin decirlo, la pantalla parece colgada. */}
+              <Field
+                label="Facturas en memoria"
+                value={
+                  data?.invoicesCache?.loaded
+                    ? `${data.invoicesCache.count.toLocaleString()} · sincronizadas`
+                    : 'sin cargar — la primera consulta tarda ~1 min'
+                }
+              />
             </Stack>
           </Box>
         </Stack>
