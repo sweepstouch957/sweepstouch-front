@@ -677,8 +677,48 @@ export const qboService = {
   },
 
   /** URL del PDF que sirve QuickBooks. Se abre en pestaña nueva, no pasa por React. */
+  /**
+   * URL cruda del PDF. Solo sirve para depurar: pegada en un href da
+   * UNAUTHORIZED porque un `<a>` no manda el Bearer. Para abrirlo usa
+   * `openInvoicePdf`.
+   */
   invoicePdfUrl: (qboId: string, download = false) =>
     `${api.defaults.baseURL ?? ''}${BASE}/invoices/${qboId}/pdf${download ? '?download=1' : ''}`,
+
+  /**
+   * Abre (o descarga) la factura de QuickBooks.
+   *
+   * Va por axios porque el interceptor es el que pone el Bearer: un href
+   * directo al endpoint responde UNAUTHORIZED. La pestaña se abre antes del
+   * await porque si se abre después el navegador la bloquea como popup.
+   */
+  openInvoicePdf: async (qboId: string, opts?: { download?: boolean; docNumber?: string }) => {
+    const filename = `factura_${opts?.docNumber || qboId}.pdf`;
+    const tab = opts?.download ? null : window.open('', '_blank');
+
+    try {
+      const res = await api.get(`${BASE}/invoices/${qboId}/pdf`, { responseType: 'blob' });
+      const blob = new Blob([res.data as Blob], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+
+      if (tab && !tab.closed) {
+        tab.location.href = url;
+      } else {
+        // Sin pestaña (bloqueada o descarga explícita): al disco
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+      // El revoke inmediato le gana a la pestaña que apenas está cargando
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (e) {
+      if (tab && !tab.closed) tab.close();
+      throw e;
+    }
+  },
 
   storeDetail: async (storeId: string): Promise<QboStoreDetail> => {
     const { data } = await api.get(`${BASE}/stores/${storeId}`);

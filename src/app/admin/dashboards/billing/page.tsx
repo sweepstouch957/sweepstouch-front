@@ -127,6 +127,15 @@ export default function BillingPage() {
   const optinCount = range.data?.breakdown.optin?.count ?? 0;
   const optinUnit = range.data?.breakdown.optin?.unitPrice ?? 0;
   const grandTotal = range.data?.total ?? 0;
+  const membershipMeta = range.data?.breakdown.membership;
+  const membershipHint =
+    membershipMeta?.source === 'no-disponible'
+      ? 'QuickBooks no respondió · Ver tiendas'
+      : `Facturado en QuickBooks${
+          membershipMeta?.unlinkedMembership
+            ? ` · ${fmt(membershipMeta.unlinkedMembership)} sin tienda vinculada`
+            : ''
+        }`;
 
   const cardSx = {
     border: `1px solid ${theme.palette.divider}`,
@@ -169,7 +178,9 @@ export default function BillingPage() {
     {
       label: 'Memberships',
       value: range.isLoading ? undefined : fmt(storesFee),
-      hint: `Periods ×${periods || 0} · Ver tiendas`,
+      // La membresía la crea la contadora en QuickBooks: aquí solo se lee lo
+      // facturado en el rango, ya no se multiplica por periodos.
+      hint: membershipHint,
       icon: <GroupRoundedIcon fontSize="small" />,
       variant: 'info',
       href: routes.admin.management.stores.listing,

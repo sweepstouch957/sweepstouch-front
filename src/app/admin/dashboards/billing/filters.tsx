@@ -52,7 +52,8 @@ type Props = {
   paymentMethod: PaymentMethod | '';
   onPaymentMethodChange: (m: PaymentMethod | '') => void;
 
-  /** Periodos para multiplicar la membresía (0–5) */
+  /** Ya no se multiplica nada: la membresía la factura QuickBooks. Se conserva
+   *  para el modal por tienda, que sigue mostrando el rango consultado. */
   periods: number;
   onPeriodsChange: (n: number) => void;
 };
@@ -178,28 +179,6 @@ export default function BillingFilters({
     handleCloseRange();
   };
 
-  /* ====== Periods: input type text con regex ^[0-5]$ (o vacío) ====== */
-  const [periodsText, setPeriodsText] = React.useState<string>(
-    String(Number.isFinite(periods) ? periods : 0)
-  );
-  React.useEffect(() => {
-    setPeriodsText(String(Number.isFinite(periods) ? periods : 0));
-  }, [periods]);
-
-  const handlePeriodsChange = (val: string) => {
-    if (/^[0-5]?$/.test(val)) {
-      setPeriodsText(val);
-      if (val === '') return;
-      onPeriodsChange(parseInt(val, 10));
-    }
-  };
-  const handlePeriodsBlur = () => {
-    if (periodsText === '') {
-      setPeriodsText('0');
-      onPeriodsChange(0);
-    }
-  };
-
   const handleExport = async () => {
     if (!startDate || !endDate) return;
 
@@ -216,11 +195,11 @@ export default function BillingFilters({
       }
 
       const { stores, totals, range } = data;
-      const includeMembership = (periods ?? 0) > 0;
+      // La membresía siempre entra: sale de lo que QuickBooks facturó, ya no
+      // depende de que alguien escriba un multiplicador.
+      const includeMembership = true;
 
-      const title = `Facturación por tiendas — en base a ${periods} periodo${
-        periods === 1 ? '' : 's'
-      } de membresía`;
+      const title = 'Facturación por tiendas';
       const subtitle = `Rango: ${range.start.slice(0, 10)} → ${range.end.slice(0, 10)}`;
 
       // ----- Construcción de filas -----
@@ -234,7 +213,8 @@ export default function BillingFilters({
           'Total campañas (USD)': +(s?.campaigns?.total ?? 0).toFixed(2),
           'Opt-in (count)': +(s?.optin?.count ?? 0),
           'Opt-in (USD)': +(s?.optin?.cost ?? 0).toFixed(2),
-          'Audiencia': +(s?.lastCampaignAudience ?? 0),
+          'Audiencia total': +(s?.campaignsAudience ?? 0),
+          'Campañas (count)': +(s?.campaignsCount ?? 0),
         };
 
         if (includeMembership) {
@@ -253,34 +233,22 @@ export default function BillingFilters({
       XLSX.utils.sheet_add_aoa(ws, [[subtitle]], { origin: 'A2' });
 
       // Headers (A4)
+      // Solo se usa si no hay ni una tienda: mantiene el encabezado del Excel
       const header = Object.keys(
-        rows[0] ??
-          (includeMembership
-            ? {
-                Tienda: '',
-                Membresía: '',
-                'Método de pago': '',
-                'SMS (USD)': 0,
-                'MMS (USD)': 0,
-                'Total campañas (USD)': 0,
-                'Opt-in (count)': 0,
-                'Opt-in (USD)': 0,
-                'Audiencia': 0,
-                'Membresía (USD)': 0,
-                'Gran total (USD)': 0,
-              }
-            : {
-                Tienda: '',
-                Membresía: '',
-                'Método de pago': '',
-                'SMS (USD)': 0,
-                'MMS (USD)': 0,
-                'Total campañas (USD)': 0,
-                'Opt-in (count)': 0,
-                'Opt-in (USD)': 0,
-                'Audiencia': 0,
-                'Gran total (USD)': 0,
-              })
+        rows[0] ?? {
+          Tienda: '',
+          Membresía: '',
+          'Método de pago': '',
+          'SMS (USD)': 0,
+          'MMS (USD)': 0,
+          'Total campañas (USD)': 0,
+          'Opt-in (count)': 0,
+          'Opt-in (USD)': 0,
+          'Audiencia total': 0,
+          'Campañas (count)': 0,
+          'Membresía (USD)': 0,
+          'Gran total (USD)': 0,
+        }
       );
       XLSX.utils.sheet_add_aoa(ws, [header], { origin: 'A4' });
 
@@ -300,7 +268,8 @@ export default function BillingFilters({
           'Total campañas (USD)': +(totals?.campaigns?.total ?? 0).toFixed(2),
           'Opt-in (count)': +(totals?.optin?.count ?? 0),
           'Opt-in (USD)': +(totals?.optin?.cost ?? 0).toFixed(2),
-          'Audiencia': '', // no aplica total
+          'Audiencia total': +(totals?.campaigns?.audience ?? 0),
+          'Campañas (count)': +(totals?.campaigns?.count ?? 0),
         };
         if (includeMembership) totalsRow['Membresía (USD)'] = +(totals?.membership ?? 0).toFixed(2);
         totalsRow['Gran total (USD)'] = +(totals?.grandTotal ?? 0).toFixed(2);
@@ -316,9 +285,7 @@ export default function BillingFilters({
       // ----- Libro y descarga -----
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Facturación');
-      const filename = `billing_stores_${range.start.slice(0, 10)}_${range.end.slice(0, 10)}_p${
-        periods || 0
-      }.xlsx`;
+      const filename = `billing_stores_${range.start.slice(0, 10)}_${range.end.slice(0, 10)}.xlsx`;
       XLSX.writeFile(wb, filename);
     } finally {
       setExporting(false);
@@ -332,7 +299,7 @@ export default function BillingFilters({
     >
       <CardHeader
         title="Filtros"
-        subheader="Selecciona el rango y, si quieres, el multiplicador de membresía (periods)."
+        subheader="Selecciona el rango. La membresía se lee de lo facturado en QuickBooks."
         action={
           <>
             <Button

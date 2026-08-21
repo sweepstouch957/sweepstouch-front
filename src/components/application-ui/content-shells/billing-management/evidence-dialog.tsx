@@ -1,10 +1,10 @@
 'use client';
 
 import { fmtDate, money } from '@/components/application-ui/content-shells/qbo-receivables/constants';
-import { qboService, type QboNotBilled, type QboWithDiff } from '@/services/qbo.service';
+import { InvoicePdfButton } from '@/components/application-ui/content-shells/qbo-receivables/invoice-pdf-button';
+import { type QboNotBilled, type QboWithDiff } from '@/services/qbo.service';
 import CampaignRoundedIcon from '@mui/icons-material/CampaignRounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
-import PictureAsPdfRoundedIcon from '@mui/icons-material/PictureAsPdfRounded';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import {
@@ -269,16 +269,15 @@ sx={{ mb: 2 }}>
           </Button>
         )}
         {isDiff && d?.invoiceQboId && (
-          <Button
+          <InvoicePdfButton
+            qboId={d.invoiceQboId}
+            docNumber={d.docNumber}
             variant="contained"
-            startIcon={<PictureAsPdfRoundedIcon />}
+            size="medium"
             endIcon={<OpenInNewRoundedIcon fontSize="small" />}
-            href={qboService.invoicePdfUrl(d.invoiceQboId)}
-            target="_blank"
-            rel="noopener"
           >
             Ver factura
-          </Button>
+          </InvoicePdfButton>
         )}
         <Button onClick={onClose}>Cerrar</Button>
       </DialogActions>

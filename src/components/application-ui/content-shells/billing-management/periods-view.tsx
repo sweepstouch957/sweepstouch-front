@@ -6,14 +6,13 @@ import {
   SectionHeader,
 } from '@/components/application-ui/content-shells/store-managment/panel-kit';
 import { fmtDate, money } from '@/components/application-ui/content-shells/qbo-receivables/constants';
-import { qboService, type QboPeriodRow, type QboPeriods } from '@/services/qbo.service';
+import { InvoicePdfButton } from '@/components/application-ui/content-shells/qbo-receivables/invoice-pdf-button';
+import { type QboPeriodRow, type QboPeriods } from '@/services/qbo.service';
 import CardMembershipRoundedIcon from '@mui/icons-material/CardMembershipRounded';
 import HowToRegRoundedIcon from '@mui/icons-material/HowToRegRounded';
-import PictureAsPdfRoundedIcon from '@mui/icons-material/PictureAsPdfRounded';
 import {
   Alert,
   Box,
-  Button,
   Chip,
   Divider,
   Stack,
@@ -42,22 +41,6 @@ const clamp2 = {
 };
 
 const nums = { fontVariantNumeric: 'tabular-nums' as const };
-
-function InvoiceButton({ id, doc }: { id: string; doc: string }) {
-  return (
-    <Button
-      size="small"
-      variant="outlined"
-      startIcon={<PictureAsPdfRoundedIcon fontSize="small" />}
-      href={qboService.invoicePdfUrl(id)}
-      target="_blank"
-      rel="noopener"
-      sx={{ whiteSpace: 'nowrap', minWidth: 0 }}
-    >
-      {doc}
-    </Button>
-  );
-}
 
 /* ── Opt-in ────────────────────────────────────────────────────────── */
 
@@ -88,8 +71,8 @@ color="text.secondary">
             {windowLabel(row)}
           </Typography>
         </Box>
-        <InvoiceButton id={row.invoiceQboId}
-doc={row.docNumber} />
+        <InvoicePdfButton qboId={row.invoiceQboId}
+docNumber={row.docNumber} />
       </Stack>
       <Divider sx={{ my: 1 }} />
       <Stack direction="row"
@@ -284,8 +267,8 @@ sx={nums}>
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
-                        <InvoiceButton id={r.invoiceQboId}
-doc={r.docNumber} />
+                        <InvoicePdfButton qboId={r.invoiceQboId}
+docNumber={r.docNumber} />
                       </TableCell>
                     </TableRow>
                   );
@@ -396,8 +379,8 @@ sx={clamp2}>
                         sx={{ mt: 0.5 }}
                       />
                     </Box>
-                    <InvoiceButton id={r.invoiceQboId}
-doc={r.docNumber} />
+                    <InvoicePdfButton qboId={r.invoiceQboId}
+docNumber={r.docNumber} />
                   </Stack>
                   <Typography variant="body2"
 color="text.secondary"
@@ -491,8 +474,8 @@ sx={nums}>
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
-                        <InvoiceButton id={r.invoiceQboId}
-doc={r.docNumber} />
+                        <InvoicePdfButton qboId={r.invoiceQboId}
+docNumber={r.docNumber} />
                       </TableCell>
                     </TableRow>
                   );

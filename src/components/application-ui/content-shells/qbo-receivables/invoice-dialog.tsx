@@ -1,10 +1,8 @@
 'use client';
 
-import { qboService } from '@/services/qbo.service';
+import { InvoicePdfButton } from './invoice-pdf-button';
 import { useQboInvoice } from '@hooks/fetching/qbo/useQbo';
-import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
-import PictureAsPdfRoundedIcon from '@mui/icons-material/PictureAsPdfRounded';
 import {
   Alert,
   Box,
@@ -218,24 +216,24 @@ sx={{ mt: 2 }}>
       <DialogActions>
         {found && (
           <>
-            <Button
-              startIcon={<DownloadRoundedIcon />}
-              href={qboService.invoicePdfUrl(found.qboId, true)}
-              target="_blank"
-              rel="noopener"
+            <InvoicePdfButton
+              qboId={found.qboId}
+              docNumber={found.docNumber}
+              download
+              variant="text"
+              size="medium"
             >
               Descargar
-            </Button>
-            <Button
+            </InvoicePdfButton>
+            <InvoicePdfButton
+              qboId={found.qboId}
+              docNumber={found.docNumber}
               variant="contained"
-              startIcon={<PictureAsPdfRoundedIcon />}
+              size="medium"
               endIcon={<OpenInNewRoundedIcon fontSize="small" />}
-              href={qboService.invoicePdfUrl(found.qboId)}
-              target="_blank"
-              rel="noopener"
             >
               Ver PDF
-            </Button>
+            </InvoicePdfButton>
           </>
         )}
         <Button onClick={onClose}>Cerrar</Button>

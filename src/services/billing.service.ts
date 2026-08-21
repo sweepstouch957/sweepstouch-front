@@ -13,6 +13,10 @@ export interface CampaignTotals {
   sms: number;
   mms: number;
   total: number;
+  /** Audiencia sumada de todas las campañas del rango. */
+  audience?: number;
+  /** Cuántas campañas entraron en la suma. */
+  count?: number;
 }
 
 /* ========================= /billing/range ========================= */
@@ -77,11 +81,18 @@ export interface MembershipCounts {
 }
 
 export interface MembershipMeta {
-  periods: number; // periods efectivos usados (0 si no aplica)
+  periods: number; // ya no se usa: la membresía la factura QuickBooks
   totalStores: number; // tiendas activas consideradas
   counts: MembershipCounts; // conteo por tipo
-  unitFees: MembershipUnitFees; // fee unitario por tipo
-  perTypeSubtotal: MembershipPerTypeSubtotal; // suma por tipo (unit * periods)
+  unitFees: MembershipUnitFees; // fee unitario de referencia por tipo
+  perTypeSubtotal: MembershipPerTypeSubtotal; // facturado en QuickBooks por tipo
+  /** De dónde salió el importe: 'quickbooks' o 'no-disponible' si la API falló. */
+  source?: 'quickbooks' | 'no-disponible';
+  qboError?: string | null;
+  /** Alta de comercio facturada en el rango. */
+  setupSubtotal?: number;
+  /** Membresía facturada a clientes de QuickBooks sin tienda activa vinculada. */
+  unlinkedMembership?: number;
 }
 
 export interface RangeBillingResponse {
@@ -116,9 +127,15 @@ export interface StoresReportParams {
 }
 
 export interface StoreMembershipBreakdown {
-  unitFee: number; // fee unitario según membershipType
-  periods: number; // periods efectivos aplicados
-  subtotal: number; // unitFee * periods
+  unitFee: number; // fee unitario de referencia según membershipType
+  periods: number; // siempre 0: la membresía ya no se multiplica
+  subtotal: number; // lo que QuickBooks facturó de membresía en el rango
+  windows?: number;
+  /** Alta de comercio facturada en el rango. */
+  setup?: number;
+  source?: 'quickbooks' | 'no-disponible';
+  /** false si la tienda no está vinculada a un cliente de QuickBooks. */
+  linked?: boolean;
 }
 export interface ListStorePaymentsResponse {
   ok: boolean;
@@ -141,6 +158,9 @@ export interface StoreReportRow {
   paymentMethod: PaymentMethod | null;
   campaigns: CampaignTotals; // por tienda en rango
   membership: StoreMembershipBreakdown;
+  /** Audiencia sumada de todas las campañas del rango. */
+  campaignsAudience?: number;
+  campaignsCount?: number;
   lastCampaignAudience: number | null; // tamaño audiencia última campaña enviada
   total: number; // campaigns.total + membership.subtotal
 }
@@ -158,6 +178,7 @@ export interface StoresReportResponse {
   totals: {
     campaigns: CampaignTotals; // agregados globales
     membership: number; // suma de membership.subtotal
+    membershipSource?: 'quickbooks' | 'no-disponible';
     grandTotal: number; // campaigns.total + membership
     optin: {
       cost: number; // costo total opt-in SMS
