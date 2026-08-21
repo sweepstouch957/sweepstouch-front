@@ -143,7 +143,7 @@ value={connected ? 'Activa' : 'Requiere reconexión'} />
 sx={{ mt: 2.5 }}>
               <AlertTitle>Cómo reconectar</AlertTitle>
               {data?.error || 'El refresh token venció o nunca se guardó.'}
-              <Typography variant="caption"
+              <Typography variant="body2"
 display="block"
 sx={{ mt: 1 }}>
                 En <strong>developer.intuit.com</strong> → tu app → <strong>OAuth 2.0 Playground</strong>,

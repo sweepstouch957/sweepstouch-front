@@ -225,6 +225,8 @@ export interface QboReconcileStore {
 export interface QboNotBilled {
   storeId: string;
   storeName: string;
+  campaignId: string;
+  campaignName: string | null;
   serviceDate: string;
   type: 'MMS' | 'SMS';
   audience: number | null;
@@ -249,16 +251,89 @@ export interface QboBilledNotFound {
 export interface QboWithDiff {
   storeId: string;
   storeName: string;
+  campaignId: string;
+  campaignName: string | null;
   serviceDate: string;
   type: 'MMS' | 'SMS';
   docNumber: string;
+  /** Id interno de QuickBooks: es el que abre el PDF, no el DocNumber. */
+  invoiceQboId: string;
+  description: string;
   issuedAt: string | null;
+  /** Importe ÷ audiencia de cada lado. Explica casi todas las diferencias. */
+  billedUnitPrice: number | null;
+  systemUnitPrice: number | null;
   lagDays: number | null;
   billedAmount: number;
   systemCost: number;
   diff: number;
   billedAudience: number | null;
   systemAudience: number | null;
+}
+
+/**
+ * Una línea de opt-in o membresía cobrada en una factura, con la ventana que
+ * cubre: desde el día siguiente a la factura anterior de esa tienda hasta esta.
+ * Es la única forma de fechar cargos que no llevan fecha de servicio en el texto.
+ */
+export interface QboPeriodRow {
+  storeId: string | null;
+  storeName: string;
+  customerName: string;
+  invoiceQboId: string;
+  docNumber: string;
+  issuedAt: string;
+  coversFrom: string | null;
+  coversTo: string;
+  days: number | null;
+  firstEver: boolean;
+  chargedAmount: number;
+  chargedQty: number;
+  unitPrice: number | null;
+  description: string;
+  itemName: string;
+  lines: number;
+  /** Opt-in: enviados reales en la ventana y lo que debió cobrarse. */
+  realSent?: number | null;
+  expectedAmount?: number | null;
+  /** Positivo = QuickBooks cobró de menos. */
+  diff?: number | null;
+  /** Membresía: hueco entre cobros, cobro doble, reactivación o primera vez. */
+  flag?: 'hueco' | 'doble' | 'reactivacion' | 'primera' | null;
+  expectedDays?: number;
+  weeksMissed?: number;
+  missedAmount?: number;
+}
+
+export interface QboPeriods {
+  optin: {
+    rows: QboPeriodRow[];
+    totals: {
+      charged: number;
+      expected: number;
+      diff: number;
+      realSent: number;
+      invoices: number;
+      measurable: number;
+    };
+    unitPrice: number;
+    error: string | null;
+  };
+  membership: {
+    rows: QboPeriodRow[];
+    cadenceDays: number;
+    totals: {
+      charged: number;
+      invoices: number;
+      flagged: number;
+      gaps: number;
+      doubles: number;
+      reactivations: number;
+      weeksMissed: number;
+      missedAmount: number;
+    };
+  };
+  setup: { rows: QboPeriodRow[]; totals: { charged: number; invoices: number } };
 }
 
 export interface QboReconcileResponse {
@@ -275,7 +350,17 @@ export interface QboReconcileResponse {
     billedMembership: number;
     billedOptin: number;
     billedOtros: number;
+    /** Foto del periodo por fecha de emisión. */
+    billedInRange: number;
+    paidInRange: number;
+    openFromRange: number;
+    invoicesInRange: number;
+    paymentsInRange: number;
   };
+  /** Opt-in y membresía conciliados por ventana entre facturas. */
+  periods: QboPeriods;
+  /** Todos los servicios cobrados en el rango, agrupados por categoría. */
+  billingMap: Array<{ group: string; label: string; full: string; amount: number; lines: number }>;
   counts: {
     matched: number;
     notBilled: number;

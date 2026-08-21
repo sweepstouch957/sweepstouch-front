@@ -260,7 +260,7 @@ sx={{ py: 0.25, mb: 2 }}>
         {basis === 'service' && !hasRange && (
           <Alert severity="warning"
 sx={{ py: 0.25, mb: 2 }}>
-            <Typography variant="caption">
+            <Typography variant="body2">
               Sin periodo seleccionado, filtrar por fecha de servicio no cambia nada.
             </Typography>
           </Alert>
@@ -273,7 +273,7 @@ fontWeight={700}
 sx={{ mb: 0.5 }}>
           Resumen ejecutivo
         </Typography>
-        <Typography variant="caption"
+        <Typography variant="body2"
 color="text.secondary"
 sx={{ display: 'block', mb: 1.25 }}>
           Totales, antigüedad, desglose por categoría, mayores deudores y focos de atención,

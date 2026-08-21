@@ -183,7 +183,7 @@ fontWeight={700}>
               </Table>
 
               {draft.skipped.length > 0 && (
-                <Typography variant="caption"
+                <Typography variant="body2"
 color="text.secondary"
 sx={{ display: 'block', mt: 1 }}>
                   {`${draft.skipped.filter((s) => s.reason === 'ya_facturada').length} cargo(s) omitidos por estar ya facturados en QuickBooks`}
@@ -286,7 +286,7 @@ onClick={() => setSelected(new Set(list.map((d) => d.storeId)))}>
           <AlertTitle sx={{ mb: 0 }}>
             {`${list.length} prefacturas listas para revisar · ${money(totals?.amount ?? 0)}`}
           </AlertTitle>
-          <Typography variant="caption">
+          <Typography variant="body2">
             {`Semana del ${win?.from} al ${win?.to}. Ninguna se crea en QuickBooks hasta que la confirmes.`}
           </Typography>
         </Alert>

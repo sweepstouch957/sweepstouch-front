@@ -113,7 +113,7 @@ export function CategoryFilter({ categories, selected, onChange }: Props) {
 fontWeight={700}>
               Filtrar por categoría
             </Typography>
-            <Typography variant="caption"
+            <Typography variant="body2"
 color="text.secondary">
               {selected.length
                 ? `${selected.length} activas · ${money(selectedTotal)}`

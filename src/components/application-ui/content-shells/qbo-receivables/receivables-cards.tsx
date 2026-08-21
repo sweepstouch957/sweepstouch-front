@@ -114,7 +114,7 @@ lineHeight={1.2}>
 height={5} />
           </Box>
 
-          <Typography variant="caption"
+          <Typography variant="body2"
 color="text.secondary"
 noWrap
 sx={{ display: 'block' }}>

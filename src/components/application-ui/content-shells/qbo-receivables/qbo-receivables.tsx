@@ -160,7 +160,7 @@ export function QboReceivables({ embedded = false, onSelectStore }: Props) {
 icon={<CloudOffRoundedIcon />}>
         <AlertTitle>QuickBooks sin conectar</AlertTitle>
         {status.data?.error || 'No se pudo hablar con QuickBooks.'}
-        <Typography variant="caption"
+        <Typography variant="body2"
 display="block"
 sx={{ mt: 1 }}>
           Falta guardar el refresh token del consentimiento inicial. Sale del OAuth Playground

@@ -495,28 +495,8 @@ export default function BillingFilters({
           </Box>
 
           {/* Periods (texto con regex 0–5) */}
-          <Box sx={{ ...itemSx, maxWidth: 220 }}>
-            <Stack
-              direction="row"
-              spacing={1}
-              alignItems="center"
-            >
-              <TextField
-                label="Periods (multiplicador)"
-                size="small"
-                type="text"
-                value={periodsText}
-                onChange={(e) => handlePeriodsChange(e.target.value)}
-                onBlur={handlePeriodsBlur}
-                inputProps={{ inputMode: 'numeric', pattern: '[0-5]?' }}
-                helperText="0–5 (ej. 4 = cobrar 4 periodos)"
-                fullWidth
-              />
-              <Tooltip title="Multiplicador para el fee de membresía. No afecta el cálculo de campañas.">
-                <InfoOutlinedIcon fontSize="small" />
-              </Tooltip>
-            </Stack>
-          </Box>
+          {/* El multiplicador de periodos se fue: la membresía la cobra
+              QuickBooks (Membership / Merchant Set-Up) y acá solo se lee. */}
 
           {/* Exportar */}
           <Box sx={{ flex: '0 0 auto' }}>
