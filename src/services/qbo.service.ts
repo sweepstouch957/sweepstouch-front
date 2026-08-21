@@ -254,7 +254,12 @@ export interface QboWithDiff {
   campaignId: string;
   campaignName: string | null;
   serviceDate: string;
+  /** Tipo cobrado en la línea de la factura. */
   type: 'MMS' | 'SMS';
+  /** Tipo de la campaña con la que se pareó. Si no coincide con `type`, la
+   *  comparación es entre cosas distintas y la diferencia no significa nada. */
+  systemType?: string | null;
+  typeMismatch?: boolean;
   docNumber: string;
   /** Id interno de QuickBooks: es el que abre el PDF, no el DocNumber. */
   invoiceQboId: string;

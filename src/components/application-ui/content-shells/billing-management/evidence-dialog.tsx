@@ -103,6 +103,10 @@ export function EvidenceDialog({ target, onClose }: Props) {
       ? Math.abs(d.billedUnitPrice - d.systemUnitPrice) > 0.0005
       : false;
 
+  // Una factura trae la línea de SMS y la de MMS del mismo día con la misma
+  // audiencia. Si el pareo cruzó los tipos, comparar los importes no dice nada.
+  const typeGap = isDiff && Boolean(d?.typeMismatch);
+
   const audGap =
     isDiff && d?.billedAudience != null && d?.systemAudience != null
       ? d.billedAudience !== d.systemAudience
@@ -139,21 +143,25 @@ sx={{ mt: 0.5 }}>
           <>
             {/* El diagnóstico primero: sin esto son dos números que no cuadran
                 y cada quien saca su conclusión. */}
-            <Alert severity={priceGap ? 'warning' : 'info'}
+            <Alert severity={typeGap ? 'error' : priceGap ? 'warning' : 'info'}
 sx={{ mb: 2 }}>
               <AlertTitle sx={{ mb: 0.25 }}>
-                {priceGap
-                  ? 'Tarifa distinta'
-                  : audGap
-                    ? 'Audiencia distinta'
-                    : 'Diferencia de redondeo'}
+                {typeGap
+                  ? 'Se están comparando cosas distintas'
+                  : priceGap
+                    ? 'Tarifa distinta'
+                    : audGap
+                      ? 'Audiencia distinta'
+                      : 'Diferencia de redondeo'}
               </AlertTitle>
               <Typography variant="body2">
-                {priceGap
-                  ? `QuickBooks cobró a $${d.billedUnitPrice} por mensaje y el sistema calcula a $${d.systemUnitPrice}. Es una tarifa negociada para esta tienda, no un error de conteo.`
-                  : audGap
-                    ? `La factura cobra ${d.billedAudience?.toLocaleString()} destinatarios y el sistema registró ${d.systemAudience?.toLocaleString()}.`
-                    : 'Los montos difieren por centavos: redondeo entre el cálculo del sistema y el de QuickBooks.'}
+                {typeGap
+                  ? `La factura cobra ${d.type} y la campaña del sistema es ${d.systemType}. Ese día no había ninguna campaña de ${d.type} para esta tienda, así que se pareó con la que había. La diferencia es el precio entre un tipo y otro, no un error de cobro.`
+                  : priceGap
+                    ? `QuickBooks cobró a $${d.billedUnitPrice} por mensaje y el sistema calcula a $${d.systemUnitPrice}. Es una tarifa negociada para esta tienda, no un error de conteo.`
+                    : audGap
+                      ? `La factura cobra ${d.billedAudience?.toLocaleString()} destinatarios y el sistema registró ${d.systemAudience?.toLocaleString()}.`
+                      : 'Los montos difieren por centavos: redondeo entre el cálculo del sistema y el de QuickBooks.'}
               </Typography>
             </Alert>
 
@@ -166,6 +174,7 @@ sx={{ mb: 2 }}>
                 tone="primary"
                 rows={[
                   ['Factura', d.docNumber],
+                  ['Tipo', d.type],
                   ['Emitida', fmtDate(d.issuedAt)],
                   ['Audiencia', d.billedAudience?.toLocaleString() ?? '—'],
                   ['Precio unit.', d.billedUnitPrice != null ? `$${d.billedUnitPrice}` : '—'],
@@ -178,6 +187,7 @@ sx={{ mb: 2 }}>
                 tone="success"
                 rows={[
                   ['Campaña', d.campaignName || '—'],
+                  ['Tipo', d.systemType || '—'],
                   ['Servicio', fmtDate(d.serviceDate)],
                   ['Audiencia', d.systemAudience?.toLocaleString() ?? '—'],
                   ['Precio unit.', d.systemUnitPrice != null ? `$${d.systemUnitPrice}` : '—'],
