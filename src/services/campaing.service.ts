@@ -762,3 +762,55 @@ export const campaignAudienceKeys = {
  * normalmente están en /hooks y llaman a campaignClient + campaignAudienceKeys.
  * Aquí solo restauramos el service completo sin romper imports existentes.
  */
+
+/* ── Recálculo de costos ──────────────────────────────────────────────── */
+
+export type RecalcDetail = {
+  id: string;
+  title?: string;
+  type: 'SMS' | 'MMS' | string;
+  storeId: string;
+  storeName: string | null;
+  audience: number;
+  sent: number;
+  status: string;
+  costBefore: string;
+  costAfter: string;
+  /** 'standard' = tarifa del código · 'custom' = tarifa de la tienda · 'flat' = tarifa plana */
+  basis: 'standard' | 'custom' | 'flat';
+  rate: number | null;
+  threshold: number | null;
+  changed: boolean;
+};
+
+export type RecalcResult = {
+  success: boolean;
+  matched: number;
+  updated: number;
+  totalBefore: number;
+  totalAfter: number;
+  changed: number;
+  byBasis?: Record<string, number>;
+  details: RecalcDetail[];
+  dryRun: boolean;
+};
+
+export type RecalcParams = {
+  storeId?: string;
+  type?: 'SMS' | 'MMS';
+  status?: string;
+  from?: string;
+  to?: string;
+  dryRun?: boolean;
+};
+
+/**
+ * Recalcula el costo de las campañas con las tarifas vigentes de cada tienda.
+ *
+ * Con `dryRun` no escribe nada y devuelve el detalle de lo que cambiaría: es
+ * como se revisa antes de tocar cientos de campañas ya facturadas.
+ */
+export async function recalcCampaignCosts(params: RecalcParams): Promise<RecalcResult> {
+  const res = await api.post('/campaigns/recalc-costs', params);
+  return res.data;
+}

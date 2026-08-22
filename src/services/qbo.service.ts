@@ -266,6 +266,9 @@ export interface QboWithDiff {
   description: string;
   issuedAt: string | null;
   /** Importe ÷ audiencia de cada lado. Explica casi todas las diferencias. */
+  /** 'servicio' = la factura traía la fecha escrita · 'emision' = se dedujo por
+   *  audiencia y fecha de emisión, porque la descripción no la lleva. */
+  matchedBy?: 'servicio' | 'emision';
   billedUnitPrice: number | null;
   systemUnitPrice: number | null;
   lagDays: number | null;
@@ -401,9 +404,31 @@ export interface QboDraft {
   storeName: string;
   qboCustomerId: string;
   membershipType: string | null;
+  /** Última factura emitida a esta tienda: contra ella se revisa la prefactura. */
+  lastInvoice: {
+    docNumber: string;
+    invoiceQboId: string;
+    issuedAt: string;
+    total: number;
+    balance: number;
+    lines: Array<{
+      item: string;
+      description: string;
+      amount: number;
+      serviceDate: string | null;
+      audience: number | null;
+    }>;
+  } | null;
   lines: QboDraftLine[];
   /** Cargos que no entraron y por qué (ya facturados, sin costo). */
-  skipped: Array<{ reason: string; serviceDate?: string; audience?: number | null; amount: number }>;
+  skipped: Array<{
+    reason: string;
+    serviceDate?: string;
+    audience?: number | null;
+    amount: number;
+    /** 'fecha' = la factura traía la fecha · 'audiencia' = se dedujo por tamaño */
+    detectedBy?: 'fecha' | 'audiencia';
+  }>;
   total: number;
   warnings: string[];
 }

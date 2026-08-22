@@ -30,10 +30,13 @@ import { BillingSummaryCards } from './BillingSummaryCards';
 import { InvoicesTable } from './InvoicesTable';
 import { NewInvoiceDialog } from './NewInvoiceDialog';
 import { RegisterPaymentDialog } from './RegisterPaymentDialog';
+import { StorePricingCard, type StorePricing } from './StorePricingCard';
 
 type Props = {
   storeId: string;
   storeName?: string;
+  /** Tarifas negociadas de la tienda, si tiene. */
+  pricing?: StorePricing | null;
 };
 
 type PaymentDialogState = {
@@ -41,7 +44,7 @@ type PaymentDialogState = {
   invoice?: StoreInvoice;
 };
 
-export function StoreBillingPanel({ storeId, storeName }: Props) {
+export function StoreBillingPanel({ storeId, storeName, pricing }: Props) {
   const qc = useQueryClient();
 
   const [openNew, setOpenNew] = useState(false);
@@ -112,6 +115,10 @@ export function StoreBillingPanel({ storeId, storeName }: Props) {
       {/* Cartera real según QuickBooks. Va arriba porque incluye los cargos que el
           contador emite a mano y el pipeline nunca vio — es el saldo que se cobra. */}
       <QboStoreBillingCard storeId={storeId} />
+
+      {/* Antes que las facturas: si la tarifa está mal, todo lo de abajo sale mal. */}
+      <StorePricingCard storeId={storeId}
+pricing={pricing} />
 
       {/* Card grande: título + botones + resumen */}
       <Card

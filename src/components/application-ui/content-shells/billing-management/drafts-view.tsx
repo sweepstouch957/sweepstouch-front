@@ -7,7 +7,8 @@ import {
   PanelCard,
   SectionHeader,
 } from '@/components/application-ui/content-shells/store-managment/panel-kit';
-import { money } from '@/components/application-ui/content-shells/qbo-receivables/constants';
+import { fmtDate, money } from '@/components/application-ui/content-shells/qbo-receivables/constants';
+import { InvoicePdfButton } from '@/components/application-ui/content-shells/qbo-receivables/invoice-pdf-button';
 import type { QboDraft } from '@/services/qbo.service';
 import { useQboCreateDrafts, useQboDrafts } from '@hooks/fetching/qbo/useQbo';
 import CampaignRoundedIcon from '@mui/icons-material/CampaignRounded';
@@ -182,11 +183,73 @@ fontWeight={700}>
                 </TableBody>
               </Table>
 
+              {/* Contra qué se comparó. Sin esto no hay forma de saber si la
+                  prefactura repite algo que la última factura ya cobró. */}
+              {draft.lastInvoice && (
+                <Box
+                  sx={{
+                    mt: 1.5,
+                    p: 1.25,
+                    borderRadius: 1.5,
+                    bgcolor: 'action.hover',
+                  }}
+                >
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    gap={1}
+                    flexWrap="wrap"
+                  >
+                    <Typography variant="body2"
+color="text.secondary">
+                      {`Última factura: ${draft.lastInvoice.docNumber} del ${fmtDate(
+                        draft.lastInvoice.issuedAt
+                      )} por ${money(draft.lastInvoice.total)}`}
+                      {draft.lastInvoice.balance > 0
+                        ? ` · debe ${money(draft.lastInvoice.balance)}`
+                        : ' · pagada'}
+                    </Typography>
+                    <InvoicePdfButton
+                      qboId={draft.lastInvoice.invoiceQboId}
+                      docNumber={draft.lastInvoice.docNumber}
+                    >
+                      Ver
+                    </InvoicePdfButton>
+                  </Stack>
+                  {draft.lastInvoice.lines
+                    .filter((l) => /campaign/i.test(l.item))
+                    .slice(0, 6)
+                    .map((l, i) => (
+                      <Typography
+                        key={`${l.item}-${i}`}
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ display: 'block', mt: 0.25 }}
+                      >
+                        {`· ${l.item} ${
+                          l.serviceDate ? fmtDate(l.serviceDate) : 'sin fecha'
+                        }${l.audience != null ? ` · ${l.audience.toLocaleString()} destinatarios` : ''} · ${money(
+                          l.amount
+                        )}`}
+                      </Typography>
+                    ))}
+                </Box>
+              )}
+
               {draft.skipped.length > 0 && (
                 <Typography variant="body2"
 color="text.secondary"
 sx={{ display: 'block', mt: 1 }}>
-                  {`${draft.skipped.filter((s) => s.reason === 'ya_facturada').length} cargo(s) omitidos por estar ya facturados en QuickBooks`}
+                  {(() => {
+                    const yb = draft.skipped.filter((s) => s.reason === 'ya_facturada');
+                    const porAud = yb.filter((s) => s.detectedBy === 'audiencia').length;
+                    return `${yb.length} cargo(s) omitidos por estar ya facturados en QuickBooks${
+                      porAud
+                        ? ` (${porAud} se detectaron por audiencia: esas facturas no llevan la fecha del servicio escrita)`
+                        : ''
+                    }`;
+                  })()}
                 </Typography>
               )}
               {draft.warnings.map((w) => (

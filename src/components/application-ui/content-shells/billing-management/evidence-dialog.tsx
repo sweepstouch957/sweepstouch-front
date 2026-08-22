@@ -214,6 +214,19 @@ color="text.secondary">
               </Typography>
             </Stack>
 
+            {/* Cómo se supo que esta factura corresponde a esta campaña: si se
+                dedujo, la fecha del servicio no está escrita en ningún lado. */}
+            {d.matchedBy === 'emision' && (
+              <Alert severity="info"
+sx={{ mt: 1.5 }}>
+                <Typography variant="body2">
+                  Esta factura no dice a qué día corresponde el servicio, solo la audiencia. Se
+                  emparejó con la campaña del mismo tamaño y tipo más cercana antes de la
+                  emisión.
+                </Typography>
+              </Alert>
+            )}
+
             {d.description && (
               <Typography variant="caption"
 color="text.secondary"

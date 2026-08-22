@@ -158,7 +158,8 @@ storeName={store.name || ''} />;
 
   switch (tag) {
     case 'billing':
-      return <StoreBillingPanel storeId={storeId} />;
+      return <StoreBillingPanel storeId={storeId}
+pricing={(store as any)?.pricing} />;
 
     case 'quickbooks':
       return <StoreQuickbooksPanel storeId={storeId}
