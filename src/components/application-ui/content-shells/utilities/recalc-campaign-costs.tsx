@@ -33,6 +33,9 @@ import {
   alpha,
   useTheme,
 } from '@mui/material';
+import { useStoreSearch } from '@/hooks/fetching/stores/useStoreSearch';
+import type { Store } from '@/services/store.service';
+import { Autocomplete, CircularProgress } from '@mui/material';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 
@@ -58,7 +61,15 @@ export function RecalcCampaignCosts() {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [type, setType] = useState('');
-  const [storeId, setStoreId] = useState('');
+  // Audiencia por default: es como está guardado hoy y como factura QuickBooks
+  const [countBasis, setCountBasis] = useState<'audience' | 'sent'>('audience');
+  const [store, setStore] = useState<Store | null>(null);
+  const [storeTerm, setStoreTerm] = useState('');
+  const {
+    options: storeOptions,
+    loading: loadingStores,
+    needsMoreChars,
+  } = useStoreSearch(storeTerm);
   const [preview, setPreview] = useState<RecalcResult | null>(null);
   const [applied, setApplied] = useState<RecalcResult | null>(null);
 
@@ -67,7 +78,8 @@ export function RecalcCampaignCosts() {
     ...(from ? { from } : {}),
     ...(to ? { to } : {}),
     ...(type ? { type: type as 'SMS' | 'MMS' } : {}),
-    ...(storeId.trim() ? { storeId: storeId.trim() } : {}),
+    countBasis,
+    ...(store?._id ? { storeId: store._id } : {}),
   });
 
   const run = useMutation({
@@ -138,12 +150,54 @@ sx={{ mb: 2 }}>
             <MenuItem value="MMS">MMS</MenuItem>
           </TextField>
           <TextField
-            label="Una sola tienda (id)"
-            value={storeId}
-            onChange={(e) => setStoreId(e.target.value)}
-            placeholder="opcional"
+            label="Calcular sobre"
+            select
+            value={countBasis}
+            onChange={(e) => setCountBasis(e.target.value as 'audience' | 'sent')}
             size="small"
             fullWidth
+          >
+            <MenuItem value="audience">Audiencia</MenuItem>
+            <MenuItem value="sent">Enviados</MenuItem>
+          </TextField>
+          <Autocomplete
+            size="small"
+            fullWidth
+            options={storeOptions}
+            loading={loadingStores}
+            value={store}
+            onChange={(_, v) => setStore(v)}
+            inputValue={storeTerm}
+            onInputChange={(_, v, reason) => {
+              if (reason !== 'reset') setStoreTerm(v);
+            }}
+            // El backend ya filtró: volver a filtrar acá esconde matches válidos
+            filterOptions={(x) => x}
+            getOptionLabel={(o) => o.name || ''}
+            isOptionEqualToValue={(a, b) => a._id === b._id}
+            noOptionsText={
+              needsMoreChars
+                ? 'Escribí al menos 2 letras…'
+                : storeTerm.trim()
+                  ? 'Sin resultados'
+                  : 'Buscá una tienda'
+            }
+            renderInput={(p) => (
+              <TextField
+                {...p}
+                label="Una sola tienda"
+                placeholder="Todas"
+                InputProps={{
+                  ...p.InputProps,
+                  endAdornment: (
+                    <>
+                      {loadingStores ? <CircularProgress size={16} /> : null}
+                      {p.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
+            )}
           />
         </Stack>
 
@@ -169,6 +223,17 @@ flexWrap="wrap">
             {preview ? `Aplicar a ${preview.changed} campañas` : 'Aplicar'}
           </Button>
         </Stack>
+
+        {countBasis === 'sent' && (
+          <Alert severity="warning"
+sx={{ mt: 2 }}>
+            <Typography variant="body2">
+              Los costos guardados hoy salen de la audiencia, y QuickBooks factura por audiencia.
+              Con enviados casi toda campaña completada baja alrededor de un 5% y deja de cuadrar
+              con las facturas.
+            </Typography>
+          </Alert>
+        )}
 
         {run.isPending && <LinearProgress sx={{ mt: 2, borderRadius: 1 }} />}
 
@@ -300,7 +365,9 @@ noWrap>
                             <Typography variant="body2"
 color="text.secondary">
                               {d.basis === 'flat'
-                                ? `Plana desde ${d.threshold?.toLocaleString()}`
+                                ? d.mode === 'replace'
+                                  ? `Plana: ${money(Number(d.costAfter))} desde ${d.threshold?.toLocaleString()}`
+                                  : `${d.threshold?.toLocaleString()} base + ${d.excess?.toLocaleString()} a $${d.rate}`
                                 : d.rate != null
                                   ? `$${d.rate} por mensaje`
                                   : '—'}

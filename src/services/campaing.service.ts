@@ -778,8 +778,12 @@ export type RecalcDetail = {
   costAfter: string;
   /** 'standard' = tarifa del código · 'custom' = tarifa de la tienda · 'flat' = tarifa plana */
   basis: 'standard' | 'custom' | 'flat';
+  /** 'tiered' = bloque base + excedente · 'replace' = solo el fijo */
+  mode?: 'tiered' | 'replace' | null;
   rate: number | null;
   threshold: number | null;
+  /** Mensajes por encima del umbral, cobrados por mensaje. */
+  excess?: number;
   changed: boolean;
 };
 
@@ -791,6 +795,7 @@ export type RecalcResult = {
   totalAfter: number;
   changed: number;
   byBasis?: Record<string, number>;
+  countBasis?: 'audience' | 'sent';
   details: RecalcDetail[];
   dryRun: boolean;
 };
@@ -801,6 +806,8 @@ export type RecalcParams = {
   status?: string;
   from?: string;
   to?: string;
+  /** Sobre qué se calcula. 'audience' es como factura QuickBooks. */
+  countBasis?: 'audience' | 'sent';
   dryRun?: boolean;
 };
 

@@ -15,6 +15,7 @@ import {
   Divider,
   InputAdornment,
   Snackbar,
+  MenuItem,
   Stack,
   TextField,
   Typography,
@@ -30,6 +31,7 @@ export type StorePricing = {
   mmsPrice?: number | null;
   flatRateThreshold?: number | null;
   flatRateAmount?: number | null;
+  flatRateMode?: 'tiered' | 'replace';
   notes?: string;
 };
 
@@ -60,6 +62,7 @@ export function StorePricingCard({ storeId, pricing }: Props) {
   const [mms, setMms] = useState('');
   const [threshold, setThreshold] = useState('');
   const [flat, setFlat] = useState('');
+  const [mode, setMode] = useState<'tiered' | 'replace'>('tiered');
   const [notes, setNotes] = useState('');
   const [saved, setSaved] = useState(false);
 
@@ -68,6 +71,7 @@ export function StorePricingCard({ storeId, pricing }: Props) {
     setMms(toText(pricing?.mmsPrice));
     setThreshold(toText(pricing?.flatRateThreshold));
     setFlat(toText(pricing?.flatRateAmount));
+    setMode(pricing?.flatRateMode === 'replace' ? 'replace' : 'tiered');
     setNotes(pricing?.notes ?? '');
   }, [pricing]);
 
@@ -79,6 +83,7 @@ export function StorePricingCard({ storeId, pricing }: Props) {
           mmsPrice: toNum(mms),
           flatRateThreshold: toNum(threshold),
           flatRateAmount: toNum(flat),
+          flatRateMode: mode,
           notes: notes.trim(),
         },
       } as any),
@@ -163,8 +168,8 @@ sx={{ mb: 0.5 }}>
         <Typography variant="body2"
 color="text.secondary"
 sx={{ mb: 1.5 }}>
-          Desde esa audiencia la campaña se cobra a precio fijo en vez de por mensaje. Los dos
-          campos tienen que estar puestos para que aplique.
+          Pasando esa audiencia la campaña deja de cobrarse solo por mensaje. Los dos campos
+          tienen que estar puestos para que aplique.
         </Typography>
 
         <Stack direction={{ xs: 'column', sm: 'row' }}
@@ -187,6 +192,24 @@ gap={1.5}>
             InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
           />
         </Stack>
+
+        <TextField
+          label="Cómo se cobra al pasar el umbral"
+          select
+          value={mode}
+          onChange={(e) => setMode(e.target.value as 'tiered' | 'replace')}
+          size="small"
+          fullWidth
+          sx={{ mt: 1.5 }}
+          helperText={
+            mode === 'tiered'
+              ? `Ej: ${threshold || '15000'} destinatarios cuestan $${flat || '750'}, y de ahí en adelante se suma por mensaje. Así factura QuickBooks hoy.`
+              : 'La campaña entera cuesta el monto fijo, sin importar cuánto más grande sea.'
+          }
+        >
+          <MenuItem value="tiered">Bloque base + el excedente por mensaje</MenuItem>
+          <MenuItem value="replace">Solo el monto fijo</MenuItem>
+        </TextField>
 
         {halfFlat && (
           <Alert severity="warning"
