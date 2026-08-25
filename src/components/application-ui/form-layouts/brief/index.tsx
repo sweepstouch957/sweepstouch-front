@@ -68,6 +68,21 @@ export const OPTIN_TYPE_OPTIONS: { value: SweepstakeOptinType; label: string; hi
   { value: 'nsa', label: 'NSA — Owner/Manager · Seller/Brand', hint: 'Pregunta el rol DESPUÉS de registrar' },
 ];
 
+/**
+ * Tienda del evento. Los sorteos 'event'/'nsa' (NSA tradeshow y similares) no
+ * corren dentro de un súper: se abre una tienda nueva sólo para ese evento, y
+ * sin ella los números no tienen dónde caer. Se crea junto con el sorteo.
+ */
+export type EventStoreDraft = {
+  create: boolean;
+  name: string;
+  address: string;
+  zipCode: string;
+};
+
+/** Tipos de opt-in que corren en un evento, no en una tienda existente. */
+export const EVENT_OPTIN_TYPES: SweepstakeOptinType[] = ['event', 'nsa'];
+
 export type BriefFormValues = {
   name: string;
   description: string;
@@ -77,6 +92,7 @@ export type BriefFormValues = {
   image?: string;
   hasQr: boolean;
   optinType?: SweepstakeOptinType;
+  eventStore?: EventStoreDraft;
   rules?: string;
   participationMessage: string;
   sweeptakeDescription?: string;
@@ -378,6 +394,7 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
       image: '',
       hasQr: false,
       optinType: '',
+      eventStore: { create: false, name: '', address: '', zipCode: '' },
       rules: '',
       participationMessage: DEFAULT_MSG,
       sweeptakeDescription: '',
@@ -402,6 +419,7 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
         image: '',
         hasQr: false,
         optinType: '',
+        eventStore: { create: false, name: '', address: '', zipCode: '' },
         rules: '',
         participationMessage: DEFAULT_MSG,
         sweeptakeDescription: '',
@@ -416,6 +434,9 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(initialValues)]);
+
+  const optinTypeValue = watch('optinType');
+  const createEventStore = watch('eventStore.create');
 
   // Snackbar
   const [snack, setSnack] = useState<{
@@ -831,6 +852,18 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
                       <TextField
                         {...field}
                         value={field.value ?? ''}
+                        onChange={(e) => {
+                          const next = e.target.value as SweepstakeOptinType;
+                          field.onChange(next);
+                          // Un sorteo de evento sin tienda propia no tiene dónde
+                          // meter los números: se propone crearla de una vez.
+                          if (mode === 'create') {
+                            setValue('eventStore.create', EVENT_OPTIN_TYPES.includes(next));
+                            if (!getValues('eventStore.name')) {
+                              setValue('eventStore.name', getValues('name') || '');
+                            }
+                          }
+                        }}
                         select
                         fullWidth
                         label="Tipo de opt-in (tablet)"
@@ -861,6 +894,117 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
                     )}
                   />
                 </Grid>
+
+                {/* Tienda del evento — sólo para opt-in 'event' / 'nsa' */}
+                {mode === 'create' && EVENT_OPTIN_TYPES.includes(optinTypeValue as SweepstakeOptinType) && (
+                  <Grid
+                    item
+                    xs={12}
+                  >
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        p: 2,
+                        borderRadius: 2,
+                        border: '1px dashed',
+                        borderColor: 'primary.main',
+                        bgcolor: alpha(theme.palette.primary.main, 0.04),
+                      }}
+                    >
+                      <Controller
+                        name="eventStore.create"
+                        control={control}
+                        render={({ field }) => (
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                checked={!!field.value}
+                                onChange={(e) => field.onChange(e.target.checked)}
+                                color="primary"
+                              />
+                            }
+                            label="Crear la tienda de este evento"
+                          />
+                        )}
+                      />
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        display="block"
+                        sx={{ mb: 2 }}
+                      >
+                        Los números del evento caen en esta tienda. Queda marcada como tienda de
+                        evento: no recibe campañas MMS ni facturación, y no aparece en el listado
+                        de tiendas.
+                      </Typography>
+
+                      {createEventStore && (
+                        <Grid
+                          container
+                          spacing={2}
+                        >
+                          <Grid
+                            item
+                            xs={12}
+                            md={6}
+                          >
+                            <Controller
+                              name="eventStore.name"
+                              control={control}
+                              render={({ field }) => (
+                                <TextField
+                                  {...field}
+                                  value={field.value ?? ''}
+                                  fullWidth
+                                  label="Nombre de la tienda del evento"
+                                  placeholder="NSA Tradeshow 2026"
+                                />
+                              )}
+                            />
+                          </Grid>
+                          <Grid
+                            item
+                            xs={12}
+                            md={6}
+                          >
+                            <Controller
+                              name="eventStore.address"
+                              control={control}
+                              render={({ field }) => (
+                                <TextField
+                                  {...field}
+                                  value={field.value ?? ''}
+                                  fullWidth
+                                  label="Lugar / dirección"
+                                  placeholder="Atlantic City Convention Center"
+                                />
+                              )}
+                            />
+                          </Grid>
+                          <Grid
+                            item
+                            xs={12}
+                            md={4}
+                          >
+                            <Controller
+                              name="eventStore.zipCode"
+                              control={control}
+                              render={({ field }) => (
+                                <TextField
+                                  {...field}
+                                  value={field.value ?? ''}
+                                  fullWidth
+                                  label="Código postal"
+                                  placeholder="08401"
+                                />
+                              )}
+                            />
+                          </Grid>
+                        </Grid>
+                      )}
+                    </Paper>
+                  </Grid>
+                )}
               </Grid>
             </Paper>
 
@@ -1464,6 +1608,7 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
                     image: '',
                     hasQr: false,
                     optinType: '',
+                    eventStore: { create: false, name: '', address: '', zipCode: '' },
                     rules: '',
                     participationMessage: DEFAULT_MSG,
                     sweeptakeDescription: '',

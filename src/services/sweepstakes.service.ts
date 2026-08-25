@@ -567,9 +567,96 @@ export class SweepstakesClient {
     const res = await api.get('/sweepstakes/audience/history', { params });
     return res.data;
   }
+
+  /* ====== Event stores (NSA, tradeshows) ======
+     POST /sweepstakes/:id/event-store — crea la tienda del evento y la engancha.
+  */
+  async createEventStore(sweepstakeId: string, data: CreateEventStoreDto) {
+    const res = await api.post(`/sweepstakes/${sweepstakeId}/event-store`, data);
+    return res.data as { success: boolean; store: EventStoreRow['store'] };
+  }
+
+  /* GET /sweepstakes/event-stores?days=30 — totales, serie diaria y filas */
+  async listEventStores(days = 30): Promise<EventStoresResponse> {
+    const res = await api.get('/sweepstakes/event-stores', { params: { days } });
+    return res.data;
+  }
 }
 
 export const sweepstakesClient = new SweepstakesClient();
+
+/* ===================== EVENT STORES ===================== */
+
+/**
+ * Tienda que existe sólo para un evento (NSA, tradeshows). Los números que caen
+ * ahí son dueños de súper y proveedores, no consumidores: no reciben campañas y
+ * `store/filter` las esconde de todos los listados normales.
+ */
+export interface CreateEventStoreDto {
+  /** Nombre de la tienda nueva. No hace falta si se manda `storeId`. */
+  name?: string;
+  address?: string;
+  zipCode?: string;
+  email?: string;
+  phoneNumber?: string;
+  /** Adopta una tienda que ya existe en vez de crear una: la marca como evento. */
+  storeId?: string;
+}
+
+export interface EventStoreRow {
+  store: {
+    _id: string;
+    name: string;
+    slug: string;
+    address?: string;
+    zipCode?: string;
+    active?: boolean;
+    genericOptinLink?: string;
+    genericQr?: { secureUrl?: string };
+    createdAt?: string;
+  };
+  sweepstake: {
+    _id: string;
+    name: string;
+    status: string;
+    optinType?: string;
+    startDate?: string;
+    endDate?: string;
+    confirmationLink?: string;
+    image?: string;
+  } | null;
+  participants: number;
+  newUsers: number;
+  existingUsers: number;
+  ownerManager: number;
+  sellerBrand: number;
+  /** Sólo se llena en sorteos NSA: participantes que nunca eligieron rol. */
+  noRole: number;
+  lastRegisteredAt: string | null;
+}
+
+export interface EventStoreTotals {
+  eventos: number;
+  activos: number;
+  numeros: number;
+  nuevos: number;
+  existentes: number;
+  ownerManager: number;
+  sellerBrand: number;
+}
+
+export interface EventStoreDailyPoint {
+  date: string;
+  total: number;
+  nuevos: number;
+  existentes: number;
+}
+
+export interface EventStoresResponse {
+  totals: EventStoreTotals;
+  daily: EventStoreDailyPoint[];
+  rows: EventStoreRow[];
+}
 
 /* ===================== PUBLIC RAFFLE DRAW (server-safe) =====================
    Usado por la página pública /sweepstakes/[id]/draw (server component).

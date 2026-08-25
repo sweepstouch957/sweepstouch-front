@@ -190,6 +190,11 @@ export const routes = {
         turnos: '/admin/management/solicitudes/turnos',
         promotoras: '/admin/management/solicitudes/promotoras',
       },
+      // Módulo Eventos: tiendas NSA/tradeshow, que no salen en el listado de tiendas
+      events: {
+        listing: '/admin/management/events',
+        create: '/admin/management/sweepstakes/create',
+      },
       sweepstakes: {
         listing: '/admin/management/sweepstakes',
         create: '/admin/management/sweepstakes/create',

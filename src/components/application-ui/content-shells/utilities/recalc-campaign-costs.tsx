@@ -33,6 +33,9 @@ import {
   alpha,
   useTheme,
 } from '@mui/material';
+import RangePickerField, { type RangePickerValue } from '@/components/base/range-picker-field';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers';
 import { useStoreSearch } from '@/hooks/fetching/stores/useStoreSearch';
 import type { Store } from '@/services/store.service';
 import { Autocomplete, CircularProgress } from '@mui/material';
@@ -58,8 +61,7 @@ const BASIS: Record<string, { label: string; color: 'default' | 'warning' | 'inf
  */
 export function RecalcCampaignCosts() {
   const theme = useTheme();
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  const [range, setRange] = useState<RangePickerValue>({ startYmd: '', endYmd: '' });
   const [type, setType] = useState('');
   // Audiencia por default: es como está guardado hoy y como factura QuickBooks
   const [countBasis, setCountBasis] = useState<'audience' | 'sent'>('audience');
@@ -75,8 +77,8 @@ export function RecalcCampaignCosts() {
 
   const params = (dryRun: boolean): RecalcParams => ({
     dryRun,
-    ...(from ? { from } : {}),
-    ...(to ? { to } : {}),
+    ...(range.startYmd ? { from: range.startYmd } : {}),
+    ...(range.endYmd ? { to: range.endYmd } : {}),
     ...(type ? { type: type as 'SMS' | 'MMS' } : {}),
     countBasis,
     ...(store?._id ? { storeId: store._id } : {}),
@@ -119,24 +121,14 @@ sx={{ mb: 2 }}>
         <Stack direction={{ xs: 'column', md: 'row' }}
 gap={1.5}
 sx={{ mb: 2 }}>
-          <TextField
-            label="Desde"
-            type="date"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            size="small"
-            fullWidth
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            label="Hasta"
-            type="date"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            size="small"
-            fullWidth
-            InputLabelProps={{ shrink: true }}
-          />
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <RangePickerField
+              label="Campañas entre"
+              value={range}
+              onChange={setRange}
+              sx={{ minWidth: 250 }}
+            />
+          </LocalizationProvider>
           <TextField
             label="Tipo"
             select

@@ -54,11 +54,32 @@ function Page(): React.JSX.Element {
   const createSweepstakeMutation = useMutation({
     mutationFn: async (values: any) => {
       // mapear prizeIds -> prize (lo que espera el backend)
+      const { eventStore, ...rest } = values;
       const payload = {
-        ...values,
+        ...rest,
         prize: values.prizeIds,
       };
       const created = await sweepstakesClient.createSweepstake(payload);
+
+      // Sorteo de evento (NSA, tradeshows): la tienda se crea y se engancha acá
+      // mismo. Si falla, el sorteo ya existe — se avisa y se asigna a mano desde
+      // el checklist en vez de perder lo creado.
+      if (eventStore?.create) {
+        try {
+          await sweepstakesClient.createEventStore(created.id || (created as any)._id, {
+            name: eventStore.name?.trim() || values.name,
+            address: eventStore.address,
+            zipCode: eventStore.zipCode,
+          });
+        } catch {
+          // ponytail: alert y no snackbar — el onSuccess redirige al checklist y
+          // se comería cualquier toast. Cambiar a snackbar si el redirect se demora.
+          window.alert(
+            'El sorteo se creó, pero no se pudo crear la tienda del evento. Asígnala a mano desde el checklist.'
+          );
+        }
+      }
+
       return created;
     },
     onSuccess: async (created: any) => {

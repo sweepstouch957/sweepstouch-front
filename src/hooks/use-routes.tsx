@@ -7,6 +7,7 @@ import {
   BrushRounded,
   BuildRounded,
   Campaign,
+  CelebrationRounded,
   DescriptionRounded,
   EventRounded,
   ListAltRounded,
@@ -159,6 +160,14 @@ const sweepstakesMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Prizes'), route: routes.admin.management.prizes.listing },
   ]);
 
+// Eventos es su propio módulo: las tiendas de evento no viven en el listado de
+// tiendas ni reciben campañas, así que buscarlas dentro de Sweepstakes no pega.
+const eventsMenu = (t: (token: string) => string): MenuItem =>
+  buildMenu(t('Eventos'), <CelebrationRounded />, [
+    { title: t('Eventos y métricas'), route: routes.admin.management.events.listing },
+    { title: t('Crear evento'), route: routes.admin.management.events.create },
+  ]);
+
 const storesMenu = (t: (token: string) => string): MenuItem =>
   // Submenú "MÓDULO" del Store Panel 2.0: cada entrada con su icono. Seis
   // títulos sueltos en texto obligan a leerlos; con icono se reconocen de un ojo.
@@ -259,6 +268,7 @@ export const useMenuItemsCollapsedShells = (
     billingMenu(t),
     campaignsMenu(t),
     sweepstakesMenu(t),
+    eventsMenu(t),
     promotorsMenu(t),
     addsMenu(t),
     circularsMenu(t),
@@ -269,7 +279,13 @@ export const useMenuItemsCollapsedShells = (
   const roleMenus: Record<UserRole, MenuItem[]> = {
     admin: adminManagementMenus,
     general_manager: adminManagementMenus,
-    promotor_manager: [sweepstakesMenu(t), promotorsMenu(t), storesMenu(t), circularsMenu(t)],
+    promotor_manager: [
+      sweepstakesMenu(t),
+      eventsMenu(t),
+      promotorsMenu(t),
+      storesMenu(t),
+      circularsMenu(t),
+    ],
     campaign_manager: [campaignsMenu(t), circularsMenu(t), storesMenu(t)],
     marketing: [campaignsMenu(t), circularsMenu(t), storesMenu(t), addsMenu(t)],
     cashier: [],
