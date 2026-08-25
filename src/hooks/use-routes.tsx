@@ -1,7 +1,6 @@
 import type { UserRole } from '@/contexts/auth/user';
 import {
   AccountBalanceRounded,
-  AddBusinessRounded,
   AdsClickOutlined,
   BookOutlined,
   BrushRounded,
@@ -9,21 +8,21 @@ import {
   Campaign,
   CelebrationRounded,
   DescriptionRounded,
+  Diversity3Rounded,
   EventRounded,
+  InsightsRounded,
   ListAltRounded,
   LocalOfferRounded,
-  NoteAddRounded,
+  LocalPlayRounded,
+  MapRounded,
   PendingActionsRounded,
   ReceiptLongRounded,
   RuleRounded,
-  Person2Outlined,
-  Redeem,
   Store,
 } from '@mui/icons-material';
 import AppsRoundedIcon from '@mui/icons-material/AppsRounded';
 import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
-import { List } from '@mui/material';
 import { MenuItem } from 'src/router/menuItem';
 import { routes } from 'src/router/routes';
 
@@ -43,6 +42,21 @@ const STAFF_ROLES: UserRole[] = [
 /** Roles con acceso completo al panel administrativo. */
 const ADMIN_ACCESS_ROLES: UserRole[] = ['admin', 'general_manager'];
 
+/**
+ * Criterio del sidebar — si agregás algo, seguilo:
+ *
+ * 1. Todo en español. Antes convivían "Listing/Create/Prizes" con "Listado de
+ *    tiendas/Crear tienda/Marcas" en la misma columna.
+ * 2. Crear NO es un ítem de menú. Es un botón del listado. Cuatro entradas
+ *    "Crear X" eran ruido puro; las rutas siguen existiendo para quien las tenga
+ *    guardadas.
+ * 3. Ícono en el módulo siempre. En los hijos, sólo si distingue: seis títulos
+ *    sueltos se reconocen mejor con ícono, pero el mismo `<List />` repetido
+ *    cinco veces no informa nada.
+ * 4. Dos niveles como máximo. Un submenú dentro de un submenú esconde cosas.
+ * 5. Un destino, un ítem. Nada de la misma ruta en dos módulos.
+ * 6. Un módulo con una sola página va como ruta directa, sin submenú.
+ */
 const buildMenu = (
   title: string,
   icon: React.ReactNode,
@@ -51,155 +65,36 @@ const buildMenu = (
   roles?: UserRole[]
 ): MenuItem => ({ title, icon, subMenu, route, roles });
 
+/* ═══════════════════════ General ═══════════════════════ */
+
+// Todas las métricas del negocio en un solo lugar. "Promotoras" vivía acá Y en
+// el módulo Promotoras apuntando a la misma ruta; queda sólo acá.
 const dashboardsMenu = (t: (token: string) => string): MenuItem =>
-  buildMenu(t('Dashboards'), <Person2Outlined />, [
-    { title: t('Billing'), route: routes.admin.dashboards.billing },
-    buildMenu(t('Metrics'), undefined, [
-      { title: t('Reports'), icon: <List />, route: routes.admin.dashboards.reports },
-      {
-        title: t('Sweepstakes'),
-        icon: <List />,
-        route: routes.admin.dashboards.sweepstakes,
-      },
-      {
-        title: t('Messages sent'),
-        icon: <List />,
-        route: routes.admin.dashboards['messages-sent'],
-      },
-      { title: t('Audience'), icon: <List />, route: routes.admin.dashboards.audience },
-      { title: t('Promotoras'), icon: <List />, route: routes.admin.management.promotors.metrics },
-    ]),
+  buildMenu(t('Métricas'), <InsightsRounded />, [
+    { title: t('Reportes'), route: routes.admin.dashboards.reports },
+    { title: t('Sweepstakes'), route: routes.admin.dashboards.sweepstakes },
+    { title: t('Mensajes enviados'), route: routes.admin.dashboards['messages-sent'] },
+    { title: t('Audiencia'), route: routes.admin.dashboards.audience },
+    { title: t('Promotoras'), route: routes.admin.management.promotors.metrics },
+    { title: t('Facturación'), route: routes.admin.dashboards.billing },
   ], undefined, STAFF_ROLES);
 
+// Herramientas internas del equipo. No es un módulo de negocio: es lo que no
+// pertenece a ninguno. "Store Maps" salió de acá y se fue a Tiendas, que es
+// donde lo busca quien lo necesita.
 const applicationsMenu = (t: (token: string) => string): MenuItem =>
-  buildMenu(t('Applications'), <AppsRoundedIcon />, [
-    // Sin iconos: el submenú ya se identifica por el ícono del padre (Applications)
-    // y el guion de jerarquía. Los iconos por ítem agregaban ruido visual.
-    { title: t('Optin Cashiers'), route: routes.admin.applications['optin-cashiers'] },
-    { title: t('Projects Board'), route: routes.admin.applications['projects-board'] },
-    { title: t('Tasks'), route: routes.admin.applications.tasks },
+  buildMenu(t('Aplicaciones'), <AppsRoundedIcon />, [
+    { title: t('Tareas'), route: routes.admin.applications.tasks },
+    { title: t('Proyectos'), route: routes.admin.applications['projects-board'] },
     { title: t('Reuniones'), route: routes.admin.applications.meetings },
-    { title: t('Store Maps'), route: routes.admin.applications.maps },
-    { title: t('Calendar'), route: routes.admin.applications.calendar },
-    { title: t('Search Number'), route: routes.admin.applications['debug-numbers'] },
+    { title: t('Calendario'), route: routes.admin.applications.calendar },
+    { title: t('Optin Cajeros'), route: routes.admin.applications['optin-cashiers'] },
+    { title: t('Buscar número'), route: routes.admin.applications['debug-numbers'] },
+    { title: t('Códigos QR'), route: routes.admin.management.qr },
     { title: t('Demos'), route: routes.admin.applications.demos },
-    { title: t('QR'), route: routes.admin.management.qr },
     { title: t('Utilidades'), route: routes.admin.applications.utilities },
-    //{ title: t('File manager'), route: routes.admin.applications['file-manager'] },
-    //{ title: t('Messenger'), route: routes.admin.applications.messenger },
   ], undefined, STAFF_ROLES);
 
-const usersMenu = (t: (token: string) => string): MenuItem =>
-  buildMenu(t('Users'), <PeopleRoundedIcon />, [
-    { title: t('Listing'), route: routes.admin.management.users.listing },
-    { title: t('Merchants'), route: routes.admin.management.merchants.listing },
-    { title: t('Departments'), route: routes.admin.management.departments.listing },
-    //{ title: t('User profile'), route: routes.admin.management.users.profile },
-  ]);
-
-const campaignsMenu = (t: (token: string) => string): MenuItem =>
-  buildMenu(t('Campaigns'), <Campaign />, [
-    { title: t('Listing'), route: routes.admin.management.campaings.listing },
-    // Send Test salió del menú: es una acción sobre campañas, no una sección.
-    // Vive en el botón "Enviar prueba" de la portada del listado; la ruta sigue
-    // existiendo para quien la tenga guardada.
-    { title: t('MMS Generator'), route: routes.admin.management.campaings.mms, roles: ADMIN_ACCESS_ROLES },
-    { title: t('RCS Monitoring'), route: routes.admin.dashboards['campaign-analytics'], roles: ADMIN_ACCESS_ROLES },
-    { title: t('Opt-in MMS'), route: routes.admin.management.campaings.optin, roles: ['admin', 'general_manager', 'campaign_manager'] },
-    { title: t('Solicitudes de Campaña'), route: routes.admin.management['campaign-requests'].listing, roles: ['admin', 'campaign_manager', 'design', 'general_manager'] },
-  ]);
-
-const promotorsMenu = (t: (token: string) => string): MenuItem =>
-  buildMenu(t('Promotors'), <Person2Outlined />, [
-    buildMenu(t('Personnel management'), undefined, [
-      {
-        title: t('Listing'),
-        icon: <List />,
-        route: routes.admin.management.promotors.listing,
-      },
-
-      {
-        title: t('Applies'),
-        icon: <List />,
-        route: routes.admin.management.solicitudes.promotoras,
-      },
-      {
-        title: t('Plan de Ganancias'),
-        icon: <List />,
-        route: routes.admin.management.promotors.earningsTiers,
-      },
-    ]),
-
-    buildMenu(t('shift management'), undefined, [
-      {
-        title: t('Listing'),
-        icon: <List />,
-        route: routes.admin.management.promotors.turnos,
-      },
-
-      {
-        title: t('Applies'),
-        icon: <List />,
-        route: routes.admin.management.solicitudes.turnos,
-      },
-    ]),
-
-    { title: t('Tiendas Candidatas'), route: routes.admin.management.promotors.featuredStores },
-    { title: t('Métricas'), route: routes.admin.management.promotors.metrics },
-  ]);
-
-//const requestMenu = (t: (token: string) => string): MenuItem =>
-// buildMenu(t('Solicitudes'), <Assignment />, [
-
-//]);
-
-const sweepstakesMenu = (t: (token: string) => string): MenuItem =>
-  buildMenu(t('Sweepstakes'), <Redeem />, [
-    { title: t('Listing'), route: routes.admin.management.sweepstakes.listing },
-    { title: t('Create Sweepstakes'), route: routes.admin.management.sweepstakes.create },
-    { title: t('Prizes'), route: routes.admin.management.prizes.listing },
-  ]);
-
-// Eventos es su propio módulo: las tiendas de evento no viven en el listado de
-// tiendas ni reciben campañas, así que buscarlas dentro de Sweepstakes no pega.
-const eventsMenu = (t: (token: string) => string): MenuItem =>
-  buildMenu(t('Eventos'), <CelebrationRounded />, [
-    { title: t('Eventos y métricas'), route: routes.admin.management.events.listing },
-    { title: t('Crear evento'), route: routes.admin.management.events.create },
-  ]);
-
-const storesMenu = (t: (token: string) => string): MenuItem =>
-  // Submenú "MÓDULO" del Store Panel 2.0: cada entrada con su icono. Seis
-  // títulos sueltos en texto obligan a leerlos; con icono se reconocen de un ojo.
-  buildMenu(t('Stores'), <Store />, [
-    { title: t('Listado de tiendas'), route: routes.admin.management.stores.listing, icon: <ListAltRounded /> },
-    { title: t('Crear tienda'), route: routes.admin.management.stores.create, icon: <AddBusinessRounded /> },
-    { title: t('Marcas'), route: routes.admin.management.stores.brands, icon: <LocalOfferRounded /> },
-    { title: t('Citas y agenda'), route: routes.admin.management.stores.appointments, icon: <EventRounded /> },
-    { title: t('Contratos'), route: routes.admin.management.stores.contracts, icon: <DescriptionRounded /> },
-    { title: t('Nuevo contrato'), route: routes.admin.management.stores['contracts-create'], icon: <NoteAddRounded /> },
-  ]);
-
-/** Facturación y QuickBooks. Es la URL que Intuit tiene registrada en el perfil de la app. */
-const billingMenu = (t: (token: string) => string): MenuItem =>
-  buildMenu(t('Facturación'), <AccountBalanceRounded />, [
-    { title: t('Cartera'), route: routes.admin.management['billing-receivables'], icon: <ReceiptLongRounded /> },
-    { title: t('Prefacturas'), route: routes.admin.management['billing-drafts'], icon: <PendingActionsRounded /> },
-    { title: t('Conciliación'), route: routes.admin.management['billing-reconcile'], icon: <RuleRounded /> },
-  ]);
-
-const addsMenu = (t: (token: string) => string): MenuItem =>
-  buildMenu(t('Ads'), <AdsClickOutlined />, [], routes.admin.management.promos.listing);
-
-const circularsMenu = (t: (token: string) => string): MenuItem =>
-  buildMenu(t('Circulars'), <BookOutlined />, [
-    { title: t('Info Dashboard'), route: routes.admin.management.circulars['info-dashboard'] },
-    { title: t('Manage Circulars'), route: routes.admin.management.circulars.manage },
-    { title: t('Schedule Circulars'), route: routes.admin.management.circulars.schedule },
-  ]);
-
-// Designs Studio: diseño y roles con acceso administrativo completo. El `roles` del padre lo aplica
-// filterByRole, así que no hace falta repetirlo en cada hijo.
 const designsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(
     t('Designs Studio'),
@@ -212,11 +107,83 @@ const designsMenu = (t: (token: string) => string): MenuItem =>
     [...ADMIN_ACCESS_ROLES, 'design']
   );
 
+/* ═══════════════════════ Management ═══════════════════════ */
+
+const storesMenu = (t: (token: string) => string): MenuItem =>
+  buildMenu(t('Tiendas'), <Store />, [
+    { title: t('Listado'), route: routes.admin.management.stores.listing, icon: <ListAltRounded /> },
+    { title: t('Mapa'), route: routes.admin.applications.maps, icon: <MapRounded /> },
+    { title: t('Marcas'), route: routes.admin.management.stores.brands, icon: <LocalOfferRounded /> },
+    { title: t('Citas y agenda'), route: routes.admin.management.stores.appointments, icon: <EventRounded /> },
+    { title: t('Contratos'), route: routes.admin.management.stores.contracts, icon: <DescriptionRounded /> },
+  ]);
+
+const campaignsMenu = (t: (token: string) => string): MenuItem =>
+  buildMenu(t('Campañas'), <Campaign />, [
+    { title: t('Listado'), route: routes.admin.management.campaings.listing },
+    // Enviar prueba salió del menú: es una acción sobre campañas, no una sección.
+    // Vive en el botón "Enviar prueba" de la portada del listado.
+    { title: t('Solicitudes'), route: routes.admin.management['campaign-requests'].listing, roles: ['admin', 'campaign_manager', 'design', 'general_manager'] },
+    { title: t('Opt-in MMS'), route: routes.admin.management.campaings.optin, roles: ['admin', 'general_manager', 'campaign_manager'] },
+    { title: t('Generador MMS'), route: routes.admin.management.campaings.mms, roles: ADMIN_ACCESS_ROLES },
+    { title: t('Monitoreo RCS'), route: routes.admin.dashboards['campaign-analytics'], roles: ADMIN_ACCESS_ROLES },
+    // Ads era un módulo entero para una sola página. Los `roles` replican
+    // exactamente quién lo veía cuando estaba arriba: admin, dirección y marketing.
+    { title: t('Ads'), route: routes.admin.management.promos.listing, icon: <AdsClickOutlined />, roles: [...ADMIN_ACCESS_ROLES, 'marketing'] },
+  ]);
+
+const circularsMenu = (t: (token: string) => string): MenuItem =>
+  buildMenu(t('Circulares'), <BookOutlined />, [
+    { title: t('Panel'), route: routes.admin.management.circulars['info-dashboard'] },
+    { title: t('Gestionar'), route: routes.admin.management.circulars.manage },
+    { title: t('Programar'), route: routes.admin.management.circulars.schedule },
+  ]);
+
+const sweepstakesMenu = (t: (token: string) => string): MenuItem =>
+  buildMenu(t('Sweepstakes'), <LocalPlayRounded />, [
+    { title: t('Listado'), route: routes.admin.management.sweepstakes.listing },
+    { title: t('Premios'), route: routes.admin.management.prizes.listing },
+  ]);
+
+// Una sola página: va como ruta directa. Las tiendas de evento no viven en el
+// listado de tiendas ni reciben campañas, por eso es módulo aparte y no cuelga
+// de Sweepstakes.
+const eventsMenu = (t: (token: string) => string): MenuItem =>
+  buildMenu(t('Eventos'), <CelebrationRounded />, [], routes.admin.management.events.listing);
+
+// Plano. Antes eran dos submenús anidados ("Personnel management" / "shift
+// management") con `<List />` repetido en cada nieto: tres niveles para llegar a
+// un listado.
+const promotorsMenu = (t: (token: string) => string): MenuItem =>
+  buildMenu(t('Promotoras'), <Diversity3Rounded />, [
+    { title: t('Listado'), route: routes.admin.management.promotors.listing },
+    { title: t('Postulaciones'), route: routes.admin.management.solicitudes.promotoras },
+    { title: t('Turnos'), route: routes.admin.management.promotors.turnos },
+    { title: t('Solicitudes de turno'), route: routes.admin.management.solicitudes.turnos },
+    { title: t('Plan de ganancias'), route: routes.admin.management.promotors.earningsTiers },
+    { title: t('Tiendas candidatas'), route: routes.admin.management.promotors.featuredStores },
+  ]);
+
 const supportMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Soporte Técnico'), <BuildRounded />, [
-    { title: t('Dashboard'), route: routes.admin.management.support.dashboard },
+    { title: t('Panel'), route: routes.admin.management.support.dashboard },
     { title: t('Tickets'), route: routes.admin.management.support.tickets },
     { title: t('Visitas'), route: routes.admin.management.support.visits },
+  ]);
+
+/** Facturación y QuickBooks. Es la URL que Intuit tiene registrada en el perfil de la app. */
+const billingMenu = (t: (token: string) => string): MenuItem =>
+  buildMenu(t('Facturación'), <AccountBalanceRounded />, [
+    { title: t('Cartera'), route: routes.admin.management['billing-receivables'], icon: <ReceiptLongRounded /> },
+    { title: t('Prefacturas'), route: routes.admin.management['billing-drafts'], icon: <PendingActionsRounded /> },
+    { title: t('Conciliación'), route: routes.admin.management['billing-reconcile'], icon: <RuleRounded /> },
+  ]);
+
+const usersMenu = (t: (token: string) => string): MenuItem =>
+  buildMenu(t('Usuarios'), <PeopleRoundedIcon />, [
+    { title: t('Listado'), route: routes.admin.management.users.listing },
+    { title: t('Merchants'), route: routes.admin.management.merchants.listing },
+    { title: t('Departamentos'), route: routes.admin.management.departments.listing },
   ]);
 
 /**
@@ -243,7 +210,7 @@ export const useMenuItemsCollapsedShells = (
   const aiSubItems: MenuItem[] = [
     { title: t('Chat'), route: routes.admin.applications['ai-assistant'] },
     ...(ADMIN_ACCESS_ROLES.includes(role)
-      ? [{ title: t('Configuration'), route: routes.admin.applications['ai-config'] }]
+      ? [{ title: t('Configuración'), route: routes.admin.applications['ai-config'] }]
       : []),
   ];
   const aiMenu: MenuItem[] = [
@@ -255,39 +222,38 @@ export const useMenuItemsCollapsedShells = (
   ];
 
   const general: MenuItem[] = [
-    // Optin Cashiers pasó a ser el primer item de Applications (ya no cuelga suelto acá)
     ...aiMenu,
     dashboardsMenu(t),
     applicationsMenu(t),
     designsMenu(t),
   ];
 
+  // Orden por uso: lo de todos los días arriba, la administración abajo.
+  // Usuarios y Facturación se tocan una vez por semana y estaban primeros.
   const adminManagementMenus = [
-    usersMenu(t),
     storesMenu(t),
-    billingMenu(t),
     campaignsMenu(t),
+    circularsMenu(t),
     sweepstakesMenu(t),
     eventsMenu(t),
     promotorsMenu(t),
-    addsMenu(t),
-    circularsMenu(t),
     supportMenu(t),
-    //requestMenu(t),
+    billingMenu(t),
+    usersMenu(t),
   ];
 
   const roleMenus: Record<UserRole, MenuItem[]> = {
     admin: adminManagementMenus,
     general_manager: adminManagementMenus,
     promotor_manager: [
+      storesMenu(t),
       sweepstakesMenu(t),
       eventsMenu(t),
       promotorsMenu(t),
-      storesMenu(t),
       circularsMenu(t),
     ],
-    campaign_manager: [campaignsMenu(t), circularsMenu(t), storesMenu(t)],
-    marketing: [campaignsMenu(t), circularsMenu(t), storesMenu(t), addsMenu(t)],
+    campaign_manager: [storesMenu(t), campaignsMenu(t), circularsMenu(t)],
+    marketing: [storesMenu(t), campaignsMenu(t), circularsMenu(t)],
     cashier: [],
     merchant: [],
     promotor: [storesMenu(t)],
@@ -297,13 +263,14 @@ export const useMenuItemsCollapsedShells = (
 
     // Roles del organigrama nuevo. Sin entrada acá el panel abría sin sección
     // Management y la persona sólo veía Dashboards y Applications.
-    operations: [storesMenu(t), promotorsMenu(t), circularsMenu(t), campaignsMenu(t), supportMenu(t)],
-    it: [usersMenu(t), storesMenu(t), campaignsMenu(t), supportMenu(t)],
+    operations: [storesMenu(t), campaignsMenu(t), circularsMenu(t), promotorsMenu(t), supportMenu(t)],
+    it: [storesMenu(t), campaignsMenu(t), supportMenu(t), usersMenu(t)],
+    // Cada rol entra directo a SU centro: el orden general (tiendas primero) es
+    // para quien ve todo el panel, no para quien sólo trabaja en un módulo.
     support: [supportMenu(t), storesMenu(t)],
-    // El rol de facturación entra directo a su centro: cartera, vinculación y conexión.
     billing: [billingMenu(t), storesMenu(t)],
     // Asistencia de Dirección conserva el acceso operativo definido para su rol.
-    assistant: [campaignsMenu(t), promotorsMenu(t), storesMenu(t), supportMenu(t)],
+    assistant: [storesMenu(t), campaignsMenu(t), promotorsMenu(t), supportMenu(t)],
   };
 
   const visible = filterByRole(role);
