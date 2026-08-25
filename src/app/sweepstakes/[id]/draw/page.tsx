@@ -5,6 +5,8 @@ import {
   getPublicParticipantSamplePhones,
 } from '@/services/sweepstakes.service';
 
+export const dynamic = 'force-dynamic';
+
 type PageParams = { id: string };
 type PageProps = { params: Promise<PageParams> };
 
@@ -16,9 +18,29 @@ type SweepstakeResponse = {
 type ParticipantSample = {
   phone?: string;
   phoneNumber?: string;
+  customerPhone?: string;
+  customer?: {
+    phone?: string;
+    phoneNumber?: string;
+  };
   storeName?: string;
   storeImage?: string;
+  store?: {
+    name?: string;
+    storeName?: string;
+    image?: string;
+    storeImage?: string;
+  };
 };
+
+type ParticipantSamplePayload =
+  | Array<ParticipantSample | string>
+  | {
+      data?: Array<ParticipantSample | string>;
+      participants?: Array<ParticipantSample | string>;
+      samplePhones?: Array<ParticipantSample | string>;
+      phones?: Array<ParticipantSample | string>;
+    };
 
 type RaffleParticipant = {
   phoneNumber: string;
@@ -38,15 +60,39 @@ function formatPhone(raw: string) {
   return raw;
 }
 
-function normalizeParticipants(samples: ParticipantSample[], fallbackStoreName: string): RaffleParticipant[] {
+function getParticipantSamples(payload: ParticipantSamplePayload | null): Array<ParticipantSample | string> {
+  if (Array.isArray(payload)) return payload;
+  if (!payload) return [];
+  return payload.data || payload.participants || payload.samplePhones || payload.phones || [];
+}
+
+function getSampleStoreName(sample: ParticipantSample | string): string | undefined {
+  if (typeof sample === 'string') return undefined;
+  return sample.storeName || sample.store?.storeName || sample.store?.name;
+}
+
+function normalizeParticipants(samples: Array<ParticipantSample | string>, fallbackStoreName: string): RaffleParticipant[] {
   const unique = new Map<string, RaffleParticipant>();
 
   for (const sample of samples) {
-    const rawPhone = sample.phoneNumber || sample.phone || '';
+    const source = typeof sample === 'string' ? { phone: sample } : sample;
+    const rawPhone =
+      source.phoneNumber ||
+      source.phone ||
+      source.customerPhone ||
+      source.customer?.phoneNumber ||
+      source.customer?.phone ||
+      '';
     const digits = rawPhone.replace(/\D/g, '');
     if (!digits) continue;
 
-    const storeName = (sample.storeName || fallbackStoreName || 'Supermercado participante').trim();
+    const storeName = (
+      source.storeName ||
+      source.store?.storeName ||
+      source.store?.name ||
+      fallbackStoreName ||
+      'Supermercado participante'
+    ).trim();
     const phoneNumber = formatPhone(rawPhone);
     const ticketNumber = digits.slice(-6).padStart(6, '0');
     const key = `${digits}-${storeName}`;
@@ -56,7 +102,7 @@ function normalizeParticipants(samples: ParticipantSample[], fallbackStoreName: 
         phoneNumber,
         ticketNumber,
         storeName,
-        storeImage: sample.storeImage,
+        storeImage: source.storeImage || source.store?.storeImage || source.store?.image,
       });
     }
   }
@@ -66,19 +112,22 @@ function normalizeParticipants(samples: ParticipantSample[], fallbackStoreName: 
 
 function injectRaffleData(html: string, data: unknown) {
   const serialized = JSON.stringify(data).replace(/</g, '\\u003c');
-  return html.replace('<script>\n(function(){', `<script>\nwindow.SWEEPSTOUCH_RAFFLE_DATA = ${serialized};\n(function(){`);
+  return html.replace(
+    /<script>\s*\(function\(\)\{/,
+    `<script>\nwindow.SWEEPSTOUCH_RAFFLE_DATA = ${serialized};\n(function(){`
+  );
 }
 
 export default async function PublicSweepstakeDrawPage({ params }: PageProps) {
   const { id } = await params;
-  const [sweepstake, samples] = await Promise.all([
+  const [sweepstake, samplesPayload] = await Promise.all([
     getPublicSweepstakeById<SweepstakeResponse>(id),
-    getPublicParticipantSamplePhones<ParticipantSample[]>(id),
+    getPublicParticipantSamplePhones<ParticipantSamplePayload>(id),
   ]);
 
-  const participantSamples = Array.isArray(samples) ? samples : [];
+  const participantSamples = getParticipantSamples(samplesPayload);
   const fallbackStoreName =
-    participantSamples.find((sample) => sample.storeName)?.storeName || 'Supermercado participante';
+    participantSamples.map(getSampleStoreName).find(Boolean) || 'Supermercado participante';
   const participants = normalizeParticipants(participantSamples, fallbackStoreName);
   const raffleData = {
     title: sweepstake?.name || 'Sorteo',
@@ -104,6 +153,7 @@ export default async function PublicSweepstakeDrawPage({ params }: PageProps) {
       <iframe
         srcDoc={raffleHtml}
         sandbox="allow-scripts"
+        allow="fullscreen"
         title="Sweepstouch raffle"
         style={{
           display: 'block',

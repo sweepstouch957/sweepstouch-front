@@ -182,7 +182,8 @@
 
   .controls{
     position:absolute;left:50%;bottom:8vh;transform:translateX(-50%);
-    display:flex;flex-direction:column;gap:16px;align-items:center;z-index:20;
+    display:flex;flex-direction:column;gap:16px;align-items:center;z-index:80;
+    pointer-events:auto;
   }
   .row{display:flex;gap:22px;}
   .btn{
@@ -198,6 +199,7 @@
       0 8px 18px rgba(0,0,0,.28),
       inset 0 1px 2px rgba(255,255,255,.85);
     transition:transform .12s ease, box-shadow .12s ease, background .2s;
+    position:relative;z-index:81;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
   }
   .btn:hover{
     transform:translateY(-2px);
@@ -220,6 +222,26 @@
   }
   .btn:disabled{opacity:.45;cursor:not-allowed;transform:none;}
   #mBallsNum,#mBalls,#mTickets,#btnDestroy{display:none;}
+  .frame,
+  .frame-gold,
+  #bulbs,
+  .bulb,
+  .draw-header,
+  .drum-wrap,
+  .marco-img,
+  .cylinder,
+  .cyl-body,
+  .cyl-inner-glow,
+  .cyl-axis,
+  .cyl-shine,
+  .cyl-shine2,
+  .under-glow,
+  #itemsLayer,
+  .item,
+  .ticket{pointer-events:none;}
+  .controls,
+  .controls *,
+  .fullscreen-btn{pointer-events:auto;}
 
   /* ============ WINNER ============ */
   .winner-overlay{
@@ -258,6 +280,13 @@
     white-space:nowrap;
   }
   .counter b{color:#fff;font-size:1.08em;}
+  .status-message{
+    position:absolute;left:50%;bottom:calc(8vh + 78px);transform:translateX(-50%);
+    z-index:82;display:none;max-width:min(560px,86vw);padding:10px 18px;border-radius:999px;
+    background:rgba(255,255,255,.94);color:var(--button-magenta);font-weight:900;font-size:clamp(12px,1vw,16px);
+    text-align:center;box-shadow:0 0 18px rgba(249,224,138,.65);pointer-events:none;
+  }
+  .status-message.show{display:block;}
 
   @media (max-height:950px){
     .frame{inset:22px;border-radius:42px;}
@@ -411,9 +440,9 @@
 
   <div class="controls">
     <div class="row">
-      <button class="btn" id="btnToggle">Start Spin</button>
-      <button class="btn" id="btnStop">Stop Spin</button>
-      <button class="btn" id="btnResult">Show Result</button>
+      <button class="btn" id="btnToggle" type="button">Start Spin</button>
+      <button class="btn" id="btnStop" type="button">Stop Spin</button>
+      <button class="btn" id="btnResult" type="button">Show Result</button>
     </div>
     <div class="row">
       <button class="btn mode" data-mode="balls-num" id="mBallsNum">Bolas con número</button>
@@ -423,6 +452,7 @@
     </div>
   </div>
   <button class="fullscreen-btn" id="btnFullscreen" type="button">Pantalla completa</button>
+  <div class="status-message" id="statusMessage"></div>
 </div>
 
 <div class="winner-overlay" id="winnerOverlay">
@@ -801,8 +831,26 @@
     document.getElementById("btnStop").classList.remove("active");
   }
 
-  document.getElementById("btnToggle").addEventListener("click", function(){ setSpin(true); });
-  document.getElementById("btnStop").addEventListener("click", function(){ setSpin(false); });
+  function bindButton(id, handler){
+    var el = document.getElementById(id);
+    var lastTap = 0;
+    function run(e){
+      if(e){
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      var now = Date.now();
+      if(now - lastTap < 650) return;
+      lastTap = now;
+      handler.call(el, e);
+    }
+    el.addEventListener("pointerup", run);
+    el.addEventListener("click", run);
+    el.addEventListener("touchend", run, {passive:false});
+  }
+
+  bindButton("btnToggle", function(){ setSpin(true); });
+  bindButton("btnStop", function(){ setSpin(false); });
 
   var fullscreenBtn = document.getElementById("btnFullscreen");
   if(fullscreenBtn){
@@ -829,6 +877,7 @@
 
   function showWinner(pick){
     lastWinner = pick;
+    setStatus("");
     var winnerNumberEl = document.getElementById("winnerNumber");
     var winnerText = pick.phoneNumber || pick.phone || "Sin numero";
     winnerNumberEl.textContent = winnerText;
@@ -840,14 +889,34 @@
     launchConfetti();
   }
 
-  document.getElementById("btnResult").addEventListener("click", function(){
-    if(PARTICIPANTS.length === 0){ alert("No quedan participantes disponibles."); return; }
-    setSpin(false);
-    var pick = PARTICIPANTS[Math.floor(Math.random()*PARTICIPANTS.length)] || {};
-    pendingWinner = pick;
-    if(stopping || spinning || spinPower > 0.01){
+  function setStatus(message){
+    var el = document.getElementById("statusMessage");
+    if(!el) return;
+    el.textContent = message || "";
+    el.classList.toggle("show", !!message);
+  }
+
+  function chooseWinner(){
+    if(!PARTICIPANTS.length) return null;
+    return PARTICIPANTS[Math.floor(Math.random()*PARTICIPANTS.length)] || null;
+  }
+
+  bindButton("btnResult", function(){
+    var pick = chooseWinner();
+    if(!pick){
+      setStatus("No participants were received from this sweepstake.");
       return;
     }
+    if(stopping || spinning || spinPower > 0.02){
+      pendingWinner = pick;
+      stopping = true;
+      spinning = false;
+      document.getElementById("btnToggle").classList.remove("active");
+      document.getElementById("btnStop").classList.add("active");
+      return;
+    }
+    showWinner(pick);
+    return;
     pendingWinner = null;
     lastWinner = pick;
     document.getElementById("winnerNumber").textContent =

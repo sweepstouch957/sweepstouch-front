@@ -674,7 +674,12 @@ async function getPublicJson<T>(path: string): Promise<T | null> {
   if (!url) return null;
 
   try {
-    const response = await fetch(url, { cache: 'no-store' });
+    const response = await fetch(url, {
+      cache: 'no-store',
+      headers: {
+        'x-app-id': 'panel',
+      },
+    });
     if (!response.ok) return null;
     return (await response.json()) as T;
   } catch {
