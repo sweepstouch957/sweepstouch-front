@@ -4,6 +4,7 @@ import StoreSweepstakeStats from '@/components/application-ui/content-shells/sto
 import { useSweepstakes } from '@/hooks/fetching/sweepstakes/useSweepstakes';
 import { sweepstakesClient } from '@/services/sweepstakes.service';
 import BarChartIcon from '@mui/icons-material/BarChart';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ExpandLessRounded from '@mui/icons-material/ExpandLessRounded';
 import PeopleIcon from '@mui/icons-material/People';
@@ -24,7 +25,9 @@ import {
   useTheme,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
 import { useState } from 'react';
+import { routes } from 'src/router/routes';
 import { tint } from '@/theme/semantic';
 
 interface ActiveSweepstakeCardProps {
@@ -69,28 +72,46 @@ export const ActiveSweepstakeCard = ({ storeId }: ActiveSweepstakeCardProps) => 
     if (selectedSweepstakeId.trim()) reassign(selectedSweepstakeId.trim());
   };
 
+  /** Elegir uno en el desplegable ya es señalarlo: el botón editar lo sigue. */
+  const editTargetId = selectedSweepstakeId || sweepstake?._id || sweepstake?.id || '';
+
   if (isLoading) return <CircularProgress />;
 
   if (isError || !sweepstake) {
     return (
       <Card sx={{ p: 3, bgcolor: (t) => tint(t, 'primary', 0.06), textAlign: 'center' }}>
-        <Typography variant="h6" fontWeight={700} color="primary.main" mb={2}>
+        <Typography variant="h6"
+fontWeight={700}
+color="primary.main"
+mb={2}>
           No hay un sweepstake activo
         </Typography>
-        <Typography variant="body1" color="text.secondary" mb={3}>
+        <Typography variant="body1"
+color="text.secondary"
+mb={3}>
           Puedes asignar uno nuevo desde el menú:
         </Typography>
         {loadingAll ? (
           <CircularProgress />
         ) : allSweepstakes?.length > 0 ? (
-          <Stack spacing={2} direction={isMobile ? 'column' : 'row'} justifyContent="center">
-            <Select size="small" value={selectedSweepstakeId} onChange={(e) => setSelectedSweepstakeId(e.target.value)} displayEmpty sx={{ minWidth: 220, bgcolor: 'background.paper' }}>
+          <Stack spacing={2}
+direction={isMobile ? 'column' : 'row'}
+justifyContent="center">
+            <Select size="small"
+value={selectedSweepstakeId}
+onChange={(e) => setSelectedSweepstakeId(e.target.value)}
+displayEmpty
+sx={{ minWidth: 220, bgcolor: 'background.paper' }}>
               <MenuItem value="">Selecciona un sweepstake</MenuItem>
               {allSweepstakes.map((sw) => (
-                <MenuItem key={sw.id} value={sw.id}>{sw.name}</MenuItem>
+                <MenuItem key={sw.id}
+value={sw.id}>{sw.name}</MenuItem>
               ))}
             </Select>
-            <Button variant="contained" color="secondary" onClick={handleReassign} disabled={!selectedSweepstakeId}>
+            <Button variant="contained"
+color="secondary"
+onClick={handleReassign}
+disabled={!selectedSweepstakeId}>
               Asignar
             </Button>
           </Stack>
@@ -129,26 +150,39 @@ export const ActiveSweepstakeCard = ({ storeId }: ActiveSweepstakeCardProps) => 
         />
 
         <Box flex={1}>
-          <Typography variant="h6" fontWeight="bold" color="info.dark" mb={1}>
+          <Typography variant="h6"
+fontWeight="bold"
+color="info.dark"
+mb={1}>
             {sweepstake.name}
           </Typography>
 
-          <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
+          <Stack direction="row"
+alignItems="center"
+spacing={1}
+mb={0.5}>
             <CalendarMonthIcon sx={{ color: 'primary.main' }} />
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2"
+color="text.secondary">
               {new Date(sweepstake.startDate).toLocaleDateString()} to{' '}
               {new Date(sweepstake.endDate).toLocaleDateString()}
             </Typography>
           </Stack>
 
-          <Stack direction="row" alignItems="center" spacing={1}>
+          <Stack direction="row"
+alignItems="center"
+spacing={1}>
             <PeopleIcon sx={{ color: 'primary.main' }} />
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2"
+color="text.secondary">
               Participantes: <strong>{sweepstake.participants}</strong>
             </Typography>
           </Stack>
 
-          <Stack direction={isMobile ? 'column' : 'row'} spacing={2} mt={3} flexWrap="wrap">
+          <Stack direction={isMobile ? 'column' : 'row'}
+spacing={2}
+mt={3}
+flexWrap="wrap">
             <Select
               size="small"
               value={selectedSweepstakeId}
@@ -158,15 +192,34 @@ export const ActiveSweepstakeCard = ({ storeId }: ActiveSweepstakeCardProps) => 
             >
               <MenuItem value="">Cambiar sweepstake</MenuItem>
               {allSweepstakes?.map((sw) => (
-                <MenuItem key={sw.id} value={sw.id}>{sw.name}</MenuItem>
+                <MenuItem key={sw.id}
+value={sw.id}>{sw.name}</MenuItem>
               ))}
             </Select>
 
             {selectedSweepstakeId && (
-              <Button variant="contained" color="secondary" onClick={handleReassign} disabled={isPending}>
+              <Button variant="contained"
+color="secondary"
+onClick={handleReassign}
+disabled={isPending}>
                 {isPending ? 'Cambiando...' : 'Guardar'}
               </Button>
             )}
+
+            {/* Editar el sorteo, no sólo cambiar cuál está asignado. Apunta al
+                que está seleccionado en el desplegable si hay uno; si no, al
+                activo. Así se corrige un nombre o una fecha sin salir a buscar
+                el sorteo al listado. */}
+            <Button
+              component={Link}
+              href={routes.admin.management.sweepstakes.edit(editTargetId)}
+              variant="outlined"
+              color="secondary"
+              startIcon={<EditRoundedIcon />}
+              sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2 }}
+            >
+              {selectedSweepstakeId ? 'Editar el seleccionado' : 'Editar sorteo'}
+            </Button>
 
             <Button
               variant={showStats ? 'contained' : 'outlined'}
@@ -191,10 +244,12 @@ export const ActiveSweepstakeCard = ({ storeId }: ActiveSweepstakeCardProps) => 
       </Card>
 
       {/* ── Inline Stats Panel (animated expand) ── */}
-      <Collapse in={showStats} unmountOnExit>
+      <Collapse in={showStats}
+unmountOnExit>
         <Box mt={3}>
           <Divider sx={{ mb: 3 }} />
-          <StoreSweepstakeStats storeId={storeId} sweepstakeId={sweepstake._id} />
+          <StoreSweepstakeStats storeId={storeId}
+sweepstakeId={sweepstake._id} />
         </Box>
       </Collapse>
     </Box>

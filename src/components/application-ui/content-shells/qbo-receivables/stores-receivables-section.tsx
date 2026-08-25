@@ -40,7 +40,7 @@ spacing={1.5}>
 fontWeight={700}>
               Cartera QuickBooks
             </Typography>
-            <Typography variant="caption"
+            <Typography variant="body2"
 color="text.secondary">
               Cuánto debe cada tienda y cuándo pagó por última vez
             </Typography>

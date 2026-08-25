@@ -11,6 +11,7 @@ import type { QboBalanceRow } from '@/services/qbo.service';
 import CloudDoneRoundedIcon from '@mui/icons-material/CloudDoneRounded';
 import CloudOffRoundedIcon from '@mui/icons-material/CloudOffRounded';
 import LinkRoundedIcon from '@mui/icons-material/LinkRounded';
+import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import SyncRoundedIcon from '@mui/icons-material/SyncRounded';
@@ -19,8 +20,6 @@ import {
   AlertTitle,
   Box,
   Button,
-  Card,
-  CardContent,
   Chip,
   InputAdornment,
   LinearProgress,
@@ -46,6 +45,14 @@ import {
   type RangePreset,
   type ReceivablesFilter,
 } from './constants';
+import {
+  PanelCard,
+  SectionHeader,
+} from '@/components/application-ui/content-shells/store-managment/panel-kit';
+import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
+import Skeleton from '@mui/material/Skeleton';
+import { CategoryFilter } from './category-filter';
+import { ExportDialog } from './export-dialog';
 import { CustomerInvoicesDialog, type LedgerTarget } from './customer-invoices-dialog';
 import { QboSummaryCards } from './qbo-summary-cards';
 import { ReceivablesTable } from './receivables-table';
@@ -63,12 +70,18 @@ export function QboReceivables({ embedded = false, onSelectStore }: Props) {
 
   const [preset, setPreset] = useState<RangePreset>('all');
   const [custom, setCustom] = useState<RangePickerValue>({ startYmd: '', endYmd: '' });
+  const [basis, setBasis] = useState<'issue' | 'service'>('issue');
 
   // En modo 'custom' manda lo que eligió el usuario; si aún no eligió, no se filtra.
   const range = useMemo(() => {
-    if (preset !== 'custom') return presetToRange(preset);
-    return { from: custom.startYmd || null, to: custom.endYmd || null };
-  }, [preset, custom]);
+    const base = preset !== 'custom'
+      ? presetToRange(preset)
+      : { from: custom.startYmd || null, to: custom.endYmd || null };
+    return { ...base, basis };
+  }, [preset, custom, basis]);
+
+  // Sin periodo, filtrar por fecha de servicio no cambia nada
+  const hasRange = Boolean(range.from || range.to);
 
   // Sin conexión no se pide la cartera: serían 3 llamadas a QBO que fallan igual.
   const balances = useQboBalances(range, { enabled: connected });
@@ -80,13 +93,31 @@ export function QboReceivables({ embedded = false, onSelectStore }: Props) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<ReceivablesFilter>('debt');
   const [linkFilter, setLinkFilter] = useState<LinkFilter>('all');
+  const [cats, setCats] = useState<string[]>([]);
+  const [exportOpen, setExportOpen] = useState(false);
   const deferredSearch = useDeferredValue(search);
 
   const rows = useMemo(() => {
     const all = balances.data?.stores ?? [];
     const q = deferredSearch.trim().toLowerCase();
+    const catSet = new Set(cats);
 
-    return all.filter((r) => {
+    return all
+      .map((r) => {
+        // Con categorías activas el "Debe" pasa a ser el saldo de esas categorías,
+        // no el total. Si no, la fila diría $15,197 mientras el filtro dice "solo
+        // membresías" y los números no cuadrarían con nada.
+        if (!catSet.size) return r;
+        const balance = Object.entries(r.byCategory ?? {})
+          .filter(([id]) => catSet.has(id))
+          .reduce((s2, [, v]) => s2 + v, 0);
+        return { ...r, balance: Math.round(balance * 100) / 100 };
+      })
+      .filter((r) => {
+        if (catSet.size && r.balance <= 0) return false;
+        return true;
+      })
+      .filter((r) => {
       if (q) {
         const hay = `${r.storeName ?? ''} ${r.qboName} ${r.storeSlug ?? ''}`.toLowerCase();
         if (!hay.includes(q)) return false;
@@ -107,8 +138,17 @@ export function QboReceivables({ embedded = false, onSelectStore }: Props) {
         default:
           return true;
       }
-    });
-  }, [balances.data, deferredSearch, filter, linkFilter]);
+      })
+      .sort((a, b) => b.balance - a.balance);
+  }, [balances.data, deferredSearch, filter, linkFilter, cats]);
+
+  const catLabels = useMemo(
+    () =>
+      (balances.data?.categories ?? [])
+        .filter((c) => cats.includes(c.id))
+        .map((c) => c.label),
+    [balances.data, cats]
+  );
 
   const busy =
     balances.isFetching || refresh.isPending || linkCustomers.isPending || retryPending.isPending;
@@ -120,7 +160,7 @@ export function QboReceivables({ embedded = false, onSelectStore }: Props) {
 icon={<CloudOffRoundedIcon />}>
         <AlertTitle>QuickBooks sin conectar</AlertTitle>
         {status.data?.error || 'No se pudo hablar con QuickBooks.'}
-        <Typography variant="caption"
+        <Typography variant="body2"
 display="block"
 sx={{ mt: 1 }}>
           Falta guardar el refresh token del consentimiento inicial. Sale del OAuth Playground
@@ -240,17 +280,28 @@ spacing={1}>
       {balances.data?.range?.ranged && (
         <Alert severity="info"
 sx={{ py: 0.5 }}>
-          Periodo acotado: los saldos suman solo las facturas emitidas en el rango, no el
-          saldo total del cliente.
+          {balances.data.range.basis === 'service'
+            ? 'Periodo por fecha de servicio: los saldos suman solo los cargos prestados en el rango, prorrateados dentro de cada factura.'
+            : 'Periodo por fecha de emisión: los saldos suman las facturas emitidas en el rango, no el saldo total del cliente.'}
         </Alert>
       )}
 
       <QboSummaryCards totals={balances.data?.totals}
 isLoading={balances.isLoading} />
 
-      <Card>
-        {busy && <LinearProgress />}
-        <CardContent>
+      <PanelCard sx={{ overflow: 'hidden' }}>
+        {busy && <LinearProgress sx={{ height: 2 }} />}
+        <SectionHeader
+          icon={<ReceiptLongRoundedIcon />}
+          title="Tiendas"
+          hint={
+            rows.length === (balances.data?.stores?.length ?? 0)
+              ? 'Ordenadas por lo que deben'
+              : `Filtradas de ${balances.data?.stores?.length ?? 0}`
+          }
+          count={rows.length}
+        />
+        <Box sx={{ px: 2.25, pb: 1 }}>
           <Box
             sx={{
               display: 'flex',
@@ -258,6 +309,13 @@ isLoading={balances.isLoading} />
               alignItems: 'center',
               gap: 1.5,
               mb: 2,
+              // Pegajosa: con 270 filas los filtros se perdían al bajar y había
+              // que volver arriba para cambiar uno.
+              position: 'sticky',
+              top: 0,
+              zIndex: 2,
+              bgcolor: 'background.paper',
+              py: 1,
             }}
           >
             {/* Grupo 1 — estado del vínculo */}
@@ -296,6 +354,23 @@ sx={{ px: 1.25, whiteSpace: 'nowrap' }}>
                 </ToggleButton>
               ))}
             </ToggleButtonGroup>
+
+            <CategoryFilter
+              categories={balances.data?.categories ?? []}
+              selected={cats}
+              onChange={setCats}
+            />
+
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<DownloadRoundedIcon />}
+              onClick={() => setExportOpen(true)}
+              disabled={!connected || balances.isLoading}
+              sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+            >
+              Exportar
+            </Button>
 
             {/* Empuja periodo y búsqueda a la derecha mientras quepan; al no caber,
                 el wrap del contenedor los baja de línea en vez de desbordar. */}
@@ -345,21 +420,42 @@ value={o.value}>
           </Box>
 
           {balances.isLoading ? (
-            <Box py={6}
-textAlign="center">
-              <Typography color="text.secondary">Leyendo QuickBooks…</Typography>
-            </Box>
+            // Esqueleto con la forma de la tabla, no una frase centrada: reserva
+            // el alto real y evita el salto cuando llegan los datos.
+            <Stack gap={1}
+sx={{ py: 1 }}
+aria-busy="true"
+aria-label="Cargando cartera">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Skeleton key={i}
+variant="rounded"
+height={38}
+sx={{ opacity: 1 - i * 0.09 }} />
+              ))}
+            </Stack>
           ) : (
             <ReceivablesTable rows={rows}
 onSelect={setLedgerRow} />
           )}
-        </CardContent>
-      </Card>
+        </Box>
+      </PanelCard>
 
       {/* Click en cualquier fila abre el libro del cliente: facturas, pagos y
           antigüedad. Funciona igual esté vinculada o no, porque va por qboCustomerId. */}
+      <ExportDialog
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        range={range}
+        categories={cats}
+        categoryLabels={catLabels}
+        basis={basis}
+      />
+
       <CustomerInvoicesDialog
         row={ledgerRow}
+        range={range}
+        categories={cats}
+        categoryLabels={catLabels}
         onClose={() => setLedgerRow(null)}
         onOpenStore={
           onSelectStore && ledgerRow?.storeId

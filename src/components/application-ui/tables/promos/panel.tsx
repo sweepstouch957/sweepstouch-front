@@ -28,6 +28,8 @@ import {
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CreateOrEditPromoModal } from '../../dialogs/promo/promoDialog';
+import { BulkByImageDialog } from '../../dialogs/promo/bulk-by-image-dialog';
+import { PromoFiltersBar, type PromoFilterValues } from './promo-filters';
 
 interface PromoDashboardProps {
   storeId?: string;
@@ -45,7 +47,7 @@ const StatCard = ({ label, value, icon, color, loading }: StatCardProps) => (
   <Card
     elevation={0}
     sx={{
-      p: 2.5,
+      p: { xs: 1.75, sm: 2.5 },
       border: '1px solid',
       borderColor: 'divider',
       display: 'flex',
@@ -56,12 +58,13 @@ const StatCard = ({ label, value, icon, color, loading }: StatCardProps) => (
         borderColor: color,
         bgcolor: alpha(color, 0.06),
       },
+      '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
     }}
   >
     <Box
       sx={{
-        width: 48,
-        height: 48,
+        width: { xs: 40, sm: 48 },
+        height: { xs: 40, sm: 48 },
         borderRadius: 2,
         bgcolor: alpha(color, 0.1),
         display: 'flex',
@@ -76,15 +79,28 @@ const StatCard = ({ label, value, icon, color, loading }: StatCardProps) => (
     <Box>
       {loading ? (
         <>
-          <Skeleton width={36} height={28} sx={{ mb: 0.25 }} />
-          <Skeleton width={72} height={14} />
+          <Skeleton width={36}
+height={28}
+sx={{ mb: 0.25 }} />
+          <Skeleton width={72}
+height={14} />
         </>
       ) : (
         <>
-          <Typography variant="h5" fontWeight={700} lineHeight={1.1}>
+          <Typography
+            variant="h5"
+            fontWeight={700}
+            lineHeight={1.1}
+            sx={{ fontVariantNumeric: 'tabular-nums' }}
+          >
             {value}
           </Typography>
-          <Typography variant="body2" color="text.secondary" mt={0.25}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            mt={0.25}
+            sx={{ fontSize: { xs: '0.78rem', sm: '0.875rem' } }}
+          >
             {label}
           </Typography>
         </>
@@ -106,13 +122,24 @@ export const PromoDashboard = ({ storeId }: PromoDashboardProps) => {
 
   const [openModal, setOpenModal] = useState(false);
   const [filters, setFilters] = useState({ page: 1, limit: 10 });
+  const [search, setSearch] = useState<PromoFilterValues>({});
+  // URL de la pieza que se va a arreglar en masa; vacío = diálogo cerrado
+  const [bulkImage, setBulkImage] = useState('');
   const [promo, setPromo] = useState<Promo>();
 
   const { data: promoData, isPending, refetch } = usePromos({
     page: filters.page,
     limit: filters.limit,
     storeId,
+    ...search,
   });
+
+  // Al cambiar un filtro se vuelve a la primera página: quedarse en la 4 de un
+  // resultado que ahora tiene 2 muestra una tabla vacía que parece un error.
+  const handleSearch = (next: PromoFilterValues) => {
+    setSearch(next);
+    setFilters((prev) => ({ ...prev, page: 1 }));
+  };
 
   const { data: sweepstakes, isLoading: loadingSweepstakes } = useSweepstakes();
 
@@ -208,6 +235,9 @@ export const PromoDashboard = ({ storeId }: PromoDashboardProps) => {
                 borderRadius: 2,
                 px: 3,
                 fontWeight: 600,
+                textTransform: 'none',
+                minHeight: 44,
+                width: { xs: '100%', md: 'auto' },
               }}
             >
               {t('New Ad')}
@@ -235,6 +265,13 @@ export const PromoDashboard = ({ storeId }: PromoDashboardProps) => {
             </Grid>
           ))}
         </Grid>
+
+        <PromoFiltersBar
+          value={search}
+          onChange={handleSearch}
+          onBulkByImage={setBulkImage}
+          resultCount={promoData?.meta?.total}
+        />
 
         {/* Table or states */}
         {isPending ? (
@@ -332,6 +369,12 @@ export const PromoDashboard = ({ storeId }: PromoDashboardProps) => {
         stores={stores}
         storeId={storeId}
         promo={promo}
+      />
+      <BulkByImageDialog
+        open={Boolean(bulkImage)}
+        imageUrl={bulkImage}
+        onClose={() => setBulkImage('')}
+        onDone={refetch}
       />
       <ConfirmDialog
         open={Boolean(pendingDelete)}

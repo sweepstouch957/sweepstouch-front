@@ -21,6 +21,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { memo, useState } from 'react';
+import { EmptyBlock } from '@/components/application-ui/content-shells/store-managment/panel-kit';
 import { AgingBar } from './aging-bar';
 import { ReceivablesCards } from './receivables-cards';
 import { DRIFT_EPSILON, daysSince, fmtDate, money, overdueColor } from './constants';
@@ -71,7 +72,27 @@ const Row = memo(function Row({
     <TableRow
       hover
       onClick={onSelect ? () => onSelect(row) : undefined}
-      sx={{ cursor: onSelect ? 'pointer' : 'default', '& td': { borderColor: 'divider' } }}
+      tabIndex={onSelect ? 0 : undefined}
+      onKeyDown={
+        onSelect
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onSelect(row);
+              }
+            }
+          : undefined
+      }
+      sx={{
+        cursor: onSelect ? 'pointer' : 'default',
+        '& td': { borderColor: 'divider' },
+        // Foco visible: la fila abre un modal, así que tiene que ser alcanzable
+        // por teclado y verse al tabular.
+        '&:focus-visible': {
+          outline: (t) => `2px solid ${t.palette.primary.main}`,
+          outlineOffset: -2,
+        },
+      }}
     >
       <TableCell sx={{ ...cell, width: W.tienda }}>
         <Stack direction="row"
@@ -264,10 +285,10 @@ onSelect={onSelect} />
 
   if (!rows.length) {
     return (
-      <Box py={6}
-textAlign="center">
-        <Typography color="text.secondary">Ninguna tienda coincide con el filtro.</Typography>
-      </Box>
+      <EmptyBlock
+        title="Ninguna tienda coincide"
+        hint="Prueba con «Todas» en los dos filtros de arriba, o amplía el periodo a todo el histórico."
+      />
     );
   }
 
@@ -280,21 +301,10 @@ textAlign="center">
 stickyHeader
 sx={{ tableLayout: 'fixed', minWidth: 560 }}>
           <TableHead>
-            <TableRow
-              sx={{
-                '& th': {
-                  ...cell,
-                  bgcolor: 'background.paper',
-                  fontWeight: 600,
-                  fontSize: '0.68rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.3,
-                  color: 'text.secondary',
-                  borderColor: 'divider',
-                  whiteSpace: 'nowrap',
-                },
-              }}
-            >
+            {/* Sin estilos propios de cabecera: el tema ya define versalitas
+                10/800 con tracking 1 para MuiTableHead. Pisarlo desalineaba esta
+                tabla del resto del panel. */}
+            <TableRow sx={{ '& th': { ...cell, whiteSpace: 'nowrap' } }}>
               <TableCell sx={{ width: W.tienda }}>Tienda</TableCell>
               <TableCell align="right"
 sx={{ width: W.debe }}>Debe</TableCell>

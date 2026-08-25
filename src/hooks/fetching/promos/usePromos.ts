@@ -1,18 +1,15 @@
 // hooks/fetching/promos/usePromos.ts
-import { useQuery } from '@tanstack/react-query';
-import { promoService } from '@/services/promo.service';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { promoService, type PromoFilters } from '@/services/promo.service';
 
-interface UsePromosOptions {
-  page?: number;
-  limit?: number;
-  storeId?: string;
-}
+export function usePromos(filters: PromoFilters = {}) {
+  const { page = 1, limit = 10, ...rest } = filters;
 
-export function usePromos({ page = 1, limit = 10, storeId }: UsePromosOptions = {}) {
   return useQuery({
-    queryKey: ['promos', page, limit, storeId],
-    queryFn: () =>
-      promoService.getAllPromosWithPagination({ page, limit, storeId }),
+    queryKey: ['promos', page, limit, rest],
+    queryFn: () => promoService.getAllPromosWithPagination({ page, limit, ...rest }),
+    // Al filtrar, la tabla mantiene lo anterior en vez de parpadear a esqueleto
+    placeholderData: keepPreviousData,
     staleTime: 1000 * 60 * 5,
   });
 }

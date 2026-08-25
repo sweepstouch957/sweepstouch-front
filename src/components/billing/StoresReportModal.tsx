@@ -56,17 +56,30 @@ type Row = {
   sms: number;
   mms: number;
   totalSmsMms: number;
+  /** Audiencia sumada de todas las campañas del rango. */
+  audience: number;
   optinCost: number;
   membershipSubtotal: number;
   grandTotal: number;
   detail: {
-    campaigns: { sms: number; mms: number; total: number; hasRules?: boolean };
+    campaigns: {
+      sms: number;
+      mms: number;
+      total: number;
+      hasRules?: boolean;
+      audience: number;
+      count: number;
+    };
     optin: { count: number; unitPrice: number; cost: number };
     membership: {
       unitFee: number;
       periods: number;
       subtotal: number;
       type?: MembershipType | 'none';
+      /** Alta de comercio facturada en el rango. */
+      setup?: number;
+      /** false si la tienda no está vinculada a un cliente de QuickBooks. */
+      linked?: boolean;
     };
   };
 };
@@ -79,6 +92,7 @@ const columns = [
   { id: 'sms', label: 'SMS' as const, align: 'right' as const, numeric: true },
   { id: 'mms', label: 'MMS' as const, align: 'right' as const, numeric: true },
   { id: 'totalSmsMms', label: 'TOTAL SMS+MMS' as const, align: 'right' as const, numeric: true },
+  { id: 'audience', label: 'AUDIENCIA' as const, align: 'right' as const, numeric: true },
   { id: 'optinCost', label: 'OPT-IN' as const, align: 'right' as const, numeric: true },
   { id: 'membershipSubtotal', label: 'MEMBRESÍA' as const, align: 'right' as const, numeric: true },
   { id: 'grandTotal', label: 'GRAN TOTAL' as const, align: 'right' as const, numeric: true },
@@ -164,6 +178,7 @@ const RowItem: React.FC<{ row: Row }> = ({ row }) => {
         <TableCell align="right">${numberFmt(row.sms)}</TableCell>
         <TableCell align="right">${numberFmt(row.mms)}</TableCell>
         <TableCell align="right">${numberFmt(row.totalSmsMms)}</TableCell>
+        <TableCell align="right">{row.audience.toLocaleString()}</TableCell>
         <TableCell align="right">${numberFmt(row.optinCost)}</TableCell>
         <TableCell align="right">${numberFmt(row.membershipSubtotal)}</TableCell>
         <TableCell align="right">${numberFmt(row.grandTotal)}</TableCell>
@@ -171,7 +186,7 @@ const RowItem: React.FC<{ row: Row }> = ({ row }) => {
 
       <TableRow>
         <TableCell
-          colSpan={7}
+          colSpan={8}
           sx={{ py: 0, border: 0 }}
         >
           <Collapse
@@ -199,6 +214,12 @@ const RowItem: React.FC<{ row: Row }> = ({ row }) => {
                       <Typography variant="body2">MMS:</Typography>
                       <strong>${numberFmt(row.detail.campaigns.mms)}</strong>
                     </Stack>
+                    <Typography variant="body2">
+                      Audiencia total: <strong>{row.detail.campaigns.audience.toLocaleString()}</strong>
+                      {row.detail.campaigns.count > 0
+                        ? ` en ${row.detail.campaigns.count} campaña${row.detail.campaigns.count === 1 ? '' : 's'}`
+                        : ''}
+                    </Typography>
                     <Stack direction="row" spacing={0.75} alignItems="center">
                       <Typography variant="body2">Total (SMS + MMS):</Typography>
                       <strong>${numberFmt(row.detail.campaigns.total)}</strong>
@@ -239,8 +260,15 @@ const RowItem: React.FC<{ row: Row }> = ({ row }) => {
                       Costo: <strong>${numberFmt(row.detail.membership.unitFee)}</strong>
                     </Typography>
                     <Typography variant="body2">
-                      Periodos: <strong>{row.detail.membership.periods}</strong>
+                      Facturado en QuickBooks
+                      {row.detail.membership.linked === false ? ' (tienda sin vincular)' : ''}
                     </Typography>
+                    {(row.detail.membership.setup ?? 0) > 0 && (
+                      <Typography variant="body2">
+                        Alta de comercio:{' '}
+                        <strong>${numberFmt(row.detail.membership.setup as number)}</strong>
+                      </Typography>
+                    )}
                     <Typography variant="body2">
                       Total: <strong>${numberFmt(row.detail.membership.subtotal)}</strong>
                     </Typography>
@@ -304,6 +332,10 @@ export default function StoresReportModal({
       const total = Number((src as any)?.campaigns?.total ?? sms + mms);
       const optCost = Number((src as any)?.optin?.cost ?? 0);
       const membSub = Number((src as any)?.membership?.subtotal ?? 0);
+      // Suma de todas las campañas del rango. Antes solo llegaba la última.
+      const audienceSum = Number(
+        (src as any)?.campaignsAudience ?? (src as any)?.lastCampaignAudience ?? 0
+      );
       const grand = Number((src as any)?.total ?? total + membSub);
 
       return {
@@ -316,6 +348,7 @@ export default function StoresReportModal({
         sms,
         mms,
         totalSmsMms: total,
+        audience: audienceSum,
         optinCost: optCost,
         membershipSubtotal: membSub,
         grandTotal: grand,
@@ -325,6 +358,8 @@ export default function StoresReportModal({
             mms,
             total,
             hasRules: Boolean((src as any)?.campaigns?.hasRules),
+            audience: audienceSum,
+            count: Number((src as any)?.campaignsCount ?? 0),
           },
           optin: {
             count: Number((src as any)?.optin?.count ?? 0),
@@ -336,6 +371,8 @@ export default function StoresReportModal({
             periods: Number((src as any)?.membership?.periods ?? 0),
             subtotal: membSub,
             type: pickMembershipType(src, membershipType ?? null),
+            setup: Number((src as any)?.membership?.setup ?? 0),
+            linked: (src as any)?.membership?.linked !== false,
           },
         },
       };
@@ -385,12 +422,13 @@ export default function StoresReportModal({
         acc.sms += r.sms;
         acc.mms += r.mms;
         acc.total += r.totalSmsMms;
+        acc.audience += r.audience;
         acc.opt += r.optinCost;
         acc.memb += r.membershipSubtotal;
         acc.grand += r.grandTotal;
         return acc;
       },
-      { sms: 0, mms: 0, total: 0, opt: 0, memb: 0, grand: 0 },
+      { sms: 0, mms: 0, total: 0, audience: 0, opt: 0, memb: 0, grand: 0 },
     );
   }, [filtered]);
 
@@ -487,7 +525,7 @@ export default function StoresReportModal({
                 {isLoading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={7}
+                      colSpan={8}
                       align="center"
                     >
                       <CircularProgress size={20} />
@@ -504,7 +542,7 @@ export default function StoresReportModal({
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={7}
+                      colSpan={8}
                       align="center"
                     >
                       <Typography
@@ -535,6 +573,10 @@ export default function StoresReportModal({
 
                   <TableCell align="right">
                     <strong>${numberFmt(totals.total)}</strong>
+                  </TableCell>
+
+                  <TableCell align="right">
+                    <strong>{totals.audience.toLocaleString()}</strong>
                   </TableCell>
 
                   <TableCell align="right">

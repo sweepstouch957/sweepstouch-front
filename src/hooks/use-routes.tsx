@@ -12,6 +12,9 @@ import {
   ListAltRounded,
   LocalOfferRounded,
   NoteAddRounded,
+  PendingActionsRounded,
+  ReceiptLongRounded,
+  RuleRounded,
   Person2Outlined,
   Redeem,
   Store,
@@ -74,6 +77,7 @@ const applicationsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Optin Cashiers'), route: routes.admin.applications['optin-cashiers'] },
     { title: t('Projects Board'), route: routes.admin.applications['projects-board'] },
     { title: t('Tasks'), route: routes.admin.applications.tasks },
+    { title: t('Reuniones'), route: routes.admin.applications.meetings },
     { title: t('Store Maps'), route: routes.admin.applications.maps },
     { title: t('Calendar'), route: routes.admin.applications.calendar },
     { title: t('Search Number'), route: routes.admin.applications['debug-numbers'] },
@@ -169,7 +173,11 @@ const storesMenu = (t: (token: string) => string): MenuItem =>
 
 /** Facturación y QuickBooks. Es la URL que Intuit tiene registrada en el perfil de la app. */
 const billingMenu = (t: (token: string) => string): MenuItem =>
-  buildMenu(t('Facturación'), <AccountBalanceRounded />, [], routes.admin.management.billing);
+  buildMenu(t('Facturación'), <AccountBalanceRounded />, [
+    { title: t('Cartera'), route: routes.admin.management['billing-receivables'], icon: <ReceiptLongRounded /> },
+    { title: t('Prefacturas'), route: routes.admin.management['billing-drafts'], icon: <PendingActionsRounded /> },
+    { title: t('Conciliación'), route: routes.admin.management['billing-reconcile'], icon: <RuleRounded /> },
+  ]);
 
 const addsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Ads'), <AdsClickOutlined />, [], routes.admin.management.promos.listing);

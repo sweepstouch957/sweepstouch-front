@@ -14,6 +14,8 @@ import {
   Box,
   Chip,
   colors,
+  Alert,
+  Button,
   Divider,
   Grid,
   LinearProgress,
@@ -25,9 +27,8 @@ import {
 } from '@mui/material';
 import { useMemo, useState } from 'react';
 import KpiCard from '@/components/application-ui/card-shells/kpi-card';
-import { QboReceivables } from '@/components/application-ui/content-shells/qbo-receivables/qbo-receivables';
+import AccountBalanceRoundedIcon from '@mui/icons-material/AccountBalanceRounded';
 import { routes } from 'src/router/routes';
-import BulkPaymentsImportCard from './BulkPaymentsImportCard';
 import BillingFilters, { PaymentMethod } from './filters';
 import { PieWithLegend } from './utils';
 
@@ -126,6 +127,15 @@ export default function BillingPage() {
   const optinCount = range.data?.breakdown.optin?.count ?? 0;
   const optinUnit = range.data?.breakdown.optin?.unitPrice ?? 0;
   const grandTotal = range.data?.total ?? 0;
+  const membershipMeta = range.data?.breakdown.membership;
+  const membershipHint =
+    membershipMeta?.source === 'no-disponible'
+      ? 'QuickBooks no respondió · Ver tiendas'
+      : `Facturado en QuickBooks${
+          membershipMeta?.unlinkedMembership
+            ? ` · ${fmt(membershipMeta.unlinkedMembership)} sin tienda vinculada`
+            : ''
+        }`;
 
   const cardSx = {
     border: `1px solid ${theme.palette.divider}`,
@@ -168,7 +178,9 @@ export default function BillingPage() {
     {
       label: 'Memberships',
       value: range.isLoading ? undefined : fmt(storesFee),
-      hint: `Periods ×${periods || 0} · Ver tiendas`,
+      // La membresía la crea la contadora en QuickBooks: aquí solo se lee lo
+      // facturado en el rango, ya no se multiplica por periodos.
+      hint: membershipHint,
       icon: <GroupRoundedIcon fontSize="small" />,
       variant: 'info',
       href: routes.admin.management.stores.listing,
@@ -494,15 +506,24 @@ export default function BillingPage() {
         </Grid>
       </Grid>
 
-      {/* Cartera QuickBooks — deuda real por tienda y último pago.
-          Va después de los KPIs del rango porque responde otra pregunta:
-          los KPIs son "cuánto se facturó", esto es "cuánto está sin cobrar". */}
-      <Box sx={{ mb: 2.5 }}>
-        <QboReceivables />
-      </Box>
+      {/* Puente, no duplicado: la cartera completa vive en Facturación. Tenerla
+          embebida acá daba dos pantallas con los mismos números y ninguna manda. */}
+      <Alert
+        severity="info"
+        icon={<AccountBalanceRoundedIcon />}
+        action={
+          <Button size="small"
+href={routes.admin.management.billing}>
+            Abrir
+          </Button>
+        }
+        sx={{ mb: 2.5 }}
+      >
+        Lo que las tiendas deben, la antigüedad de la cartera y la conciliación con
+        QuickBooks están en <strong>Management → Facturación</strong>. Esta pantalla mide lo
+        que se generó en el periodo; aquella, lo que está sin cobrar.
+      </Alert>
 
-      {/* Bulk Payments */}
-      <BulkPaymentsImportCard />
     </Box>
   );
 }

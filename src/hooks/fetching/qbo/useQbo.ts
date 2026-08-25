@@ -7,7 +7,10 @@ import {
   type QboLinkResult,
   type QboRetryResult,
   type QboStatus,
+  type QboCreateDraftsResult,
   type QboCustomerLedger,
+  type QboDraftsResponse,
+  type QboReconcileResponse,
   type QboInvoiceDetail,
   type QboStoreDetail,
   type QboSyncPreview,
@@ -31,14 +34,15 @@ export function useQboStatus() {
  * staleTime alto y sin refetch al enfocar la ventana: cada refetch cuesta de verdad.
  */
 export function useQboBalances(
-  range?: { from?: string | null; to?: string | null },
+  range?: { from?: string | null; to?: string | null; basis?: 'issue' | 'service' },
   opts?: { enabled?: boolean }
 ) {
   const from = range?.from ?? null;
   const to = range?.to ?? null;
+  const basis = range?.basis ?? 'issue';
   return useQuery<QboBalancesResponse>({
-    queryKey: qboQK.balances(from, to),
-    queryFn: () => qboService.balances({ from, to }),
+    queryKey: qboQK.balances(from, to, basis),
+    queryFn: () => qboService.balances({ from, to, basis }),
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 30,
     refetchOnWindowFocus: false,
@@ -49,14 +53,19 @@ export function useQboBalances(
 }
 
 /** Refresco explícito: salta el cache del backend. Lo dispara el botón "Actualizar". */
-export function useQboRefreshBalances(range?: { from?: string | null; to?: string | null }) {
+export function useQboRefreshBalances(range?: {
+  from?: string | null;
+  to?: string | null;
+  basis?: 'issue' | 'service';
+}) {
   const qc = useQueryClient();
   const from = range?.from ?? null;
   const to = range?.to ?? null;
+  const basis = range?.basis ?? 'issue';
   return useMutation<QboBalancesResponse, Error, void>({
-    mutationFn: () => qboService.balances({ from, to, force: true }),
+    mutationFn: () => qboService.balances({ from, to, basis, force: true }),
     onSuccess: (data) => {
-      qc.setQueryData(qboQK.balances(from, to), data);
+      qc.setQueryData(qboQK.balances(from, to, basis), data);
       toast.success('Cartera actualizada desde QuickBooks');
     },
     onError: (e) => toast.error(e.message || 'No se pudo actualizar'),
@@ -64,10 +73,16 @@ export function useQboRefreshBalances(range?: { from?: string | null; to?: strin
 }
 
 /** Todas las facturas y pagos de un cliente. Solo se pide con el modal abierto. */
-export function useQboCustomerLedger(qboCustomerId: string | null) {
+export function useQboCustomerLedger(
+  qboCustomerId: string | null,
+  opts?: { from?: string | null; to?: string | null; items?: string[] }
+) {
+  const from = opts?.from ?? null;
+  const to = opts?.to ?? null;
+  const items = opts?.items ?? [];
   return useQuery<QboCustomerLedger>({
-    queryKey: qboQK.customerLedger(qboCustomerId ?? ''),
-    queryFn: () => qboService.customerLedger(qboCustomerId as string),
+    queryKey: qboQK.customerLedger(qboCustomerId ?? '', from, to, items),
+    queryFn: () => qboService.customerLedger(qboCustomerId as string, { from, to, items }),
     enabled: Boolean(qboCustomerId),
     staleTime: 1000 * 60 * 5,
     retry: false,
@@ -206,6 +221,54 @@ export function useQboSyncStore(storeId: string) {
     },
     onError: (e: any) =>
       toast.error(e?.response?.data?.message || e.message || 'No se pudo sincronizar'),
+  });
+}
+
+/**
+ * Qué no cuadra entre lo registrado y lo facturado, por fecha de servicio.
+ * Recorre todas las facturas de QuickBooks: pesado, así que no se refresca solo.
+ */
+export function useQboReconcile(from: string, to: string, opts?: { enabled?: boolean }) {
+  return useQuery<QboReconcileResponse>({
+    queryKey: qboQK.reconcile(from, to),
+    queryFn: () => qboService.reconcile(from, to),
+    enabled: Boolean(from && to) && (opts?.enabled ?? true),
+    staleTime: 1000 * 60 * 10,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+}
+
+/**
+ * Prefacturas de la semana. Cada carga consulta QuickBooks y sweepstakes-service,
+ * así que no se refresca sola: la contadora decide cuándo recalcular.
+ */
+export function useQboDrafts(weekStart?: string | null, opts?: { enabled?: boolean }) {
+  return useQuery<QboDraftsResponse>({
+    queryKey: qboQK.drafts(weekStart),
+    queryFn: () => qboService.drafts(weekStart),
+    enabled: opts?.enabled ?? true,
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+}
+
+/** ⚠️ Emite facturas reales. Invalida cartera y prefacturas al terminar. */
+export function useQboCreateDrafts() {
+  const qc = useQueryClient();
+  return useMutation<QboCreateDraftsResult, Error, { weekStart?: string | null; storeIds?: string[] }>({
+    mutationFn: (vars) => qboService.createDrafts(vars),
+    onSuccess: (d) => {
+      if (d.failed > 0) {
+        toast.error(`${d.created} facturas creadas, ${d.failed} fallaron`);
+      } else {
+        toast.success(`${d.created} factura${d.created === 1 ? '' : 's'} creada${d.created === 1 ? '' : 's'} en QuickBooks`);
+      }
+      qc.invalidateQueries({ queryKey: ['qbo'] });
+    },
+    onError: (e: any) =>
+      toast.error(e?.response?.data?.message || e.message || 'No se pudieron crear las facturas'),
   });
 }
 

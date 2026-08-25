@@ -4,6 +4,7 @@ import { Box, Divider, Typography } from '@mui/material';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import AddNumberToStores from 'src/components/application-ui/content-shells/utilities/add-number-to-stores';
+import RecalcCampaignCosts from 'src/components/application-ui/content-shells/utilities/recalc-campaign-costs';
 
 function Page(): React.JSX.Element {
   const { t } = useTranslation();
@@ -32,6 +33,7 @@ function Page(): React.JSX.Element {
         </Typography>
       </Box>
       <Divider />
+      <RecalcCampaignCosts />
       <AddNumberToStores />
     </>
   );
