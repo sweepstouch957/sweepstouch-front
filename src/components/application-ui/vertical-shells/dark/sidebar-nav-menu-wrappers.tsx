@@ -4,7 +4,7 @@ import { neutral } from 'src/theme/colors';
 /**
  * Fila del menú lateral — métricas del Store Panel 2.0 (Claude Design).
  *
- * Radio 10, alto 38, etiqueta 13/600 e icono 19. El activo se marca con un
+ * Radio 10, alto 34, etiqueta 13/600 e icono 19. El activo se marca con un
  * relleno plano del rosa de marca al 14% y una barra a la izquierda: el
  * degradado anterior no se distinguía del hover en pantallas con poco brillo,
  * y sin barra había que comparar tonos para saber dónde estabas.
@@ -16,10 +16,10 @@ export const ListItemButtonWrapper = styled(ListItemButton)(({ theme }) => ({
   transition: 'background-color .18s, color .18s',
   fontWeight: 600,
   fontSize: 13,
-  minHeight: 38,
-  marginBottom: 2,
+  minHeight: 34,
+  marginBottom: 1,
   border: 'none',
-  padding: theme.spacing(0.9, 1.25),
+  padding: theme.spacing(0.65, 1.25),
   gap: theme.spacing(1.4),
 
   '& .MuiListItemIcon-root': {

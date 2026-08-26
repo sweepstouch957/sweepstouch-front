@@ -25,6 +25,7 @@ import {
   SearchRounded,
   SlideshowRounded,
   Store,
+  TuneRounded,
   TaskAltRounded,
   ViewKanbanRounded,
 } from '@mui/icons-material';
@@ -99,13 +100,19 @@ const workItems = (t: (token: string) => string): MenuItem[] => [
   { title: t('Calendario'), route: routes.admin.applications.calendar, icon: <CalendarMonthRounded />, roles: STAFF_ROLES },
 ];
 
-const toolItems = (t: (token: string) => string): MenuItem[] => [
-  { title: t('Optin Cajeros'), route: routes.admin.applications['optin-cashiers'], icon: <PointOfSaleRounded />, roles: STAFF_ROLES },
-  { title: t('Códigos QR'), route: routes.admin.management.qr, icon: <QrCode2Rounded />, roles: STAFF_ROLES },
-  { title: t('Buscar número'), route: routes.admin.applications['debug-numbers'], icon: <SearchRounded />, roles: STAFF_ROLES },
-  { title: t('Demos'), route: routes.admin.applications.demos, icon: <SlideshowRounded />, roles: STAFF_ROLES },
-  { title: t('Utilidades'), route: routes.admin.applications.utilities, icon: <HandymanRounded />, roles: STAFF_ROLES },
-];
+/**
+ * Herramientas sueltas, colapsadas en un módulo. Planas ocupaban cinco filas
+ * fijas que empujaban todo lo demás abajo del fold; se entra a ellas una vez
+ * por semana, no vale la pantalla que costaban.
+ */
+const toolsMenu = (t: (token: string) => string): MenuItem =>
+  buildMenu(t('Herramientas'), <HandymanRounded />, [
+    { title: t('Optin Cajeros'), route: routes.admin.applications['optin-cashiers'], icon: <PointOfSaleRounded /> },
+    { title: t('Códigos QR'), route: routes.admin.management.qr, icon: <QrCode2Rounded /> },
+    { title: t('Buscar número'), route: routes.admin.applications['debug-numbers'], icon: <SearchRounded /> },
+    { title: t('Demos'), route: routes.admin.applications.demos, icon: <SlideshowRounded /> },
+    { title: t('Utilidades'), route: routes.admin.applications.utilities, icon: <TuneRounded /> },
+  ], undefined, STAFF_ROLES);
 
 const designsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(
@@ -221,8 +228,8 @@ type MenuFactory = (t: (token: string) => string) => MenuItem;
  * solo encabezado "Management" con ocho módulos apilados sin criterio.
  */
 const MANAGEMENT_SECTIONS: { title: string; modules: MenuFactory[] }[] = [
-  // Lo que se le vende y se le manda al súper
-  { title: 'Comercial', modules: [storesMenu, campaignsMenu, circularsMenu] },
+  // Lo que se produce y se le manda al súper: campañas, circulares, la tienda
+  { title: 'Producción', modules: [storesMenu, campaignsMenu, circularsMenu] },
   // Cómo entran los números a la base
   { title: 'Captación', modules: [sweepstakesMenu, promotorsMenu] },
   // Se toca una vez por semana, no todos los días
@@ -281,14 +288,17 @@ export const useMenuItemsCollapsedShells = (
           'merchant',
         ]),
         dashboardsMenu(t),
+        designsMenu(t),
+        toolsMenu(t),
       ],
     },
+    // Arriba de los módulos de negocio: Tareas se abre todos los días y estaba
+    // al final de la barra, abajo del fold.
+    { title: t('Trabajo'), subMenu: workItems(t) },
     ...MANAGEMENT_SECTIONS.map((section) => ({
       title: t(section.title),
       subMenu: section.modules.filter((m) => allowed.has(m)).map((m) => m(t)),
     })),
-    { title: t('Trabajo'), subMenu: workItems(t) },
-    { title: t('Herramientas'), subMenu: [designsMenu(t), ...toolItems(t)] },
   ];
 
   // Una sección sin items es un encabezado huérfano: el rol no llega a nada de

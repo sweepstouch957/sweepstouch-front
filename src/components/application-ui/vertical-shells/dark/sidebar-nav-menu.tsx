@@ -23,7 +23,13 @@ interface NavItemProps {
   item: MenuItem;
 }
 
-/** Encabezado de grupo: 9.5px con tracking amplio, como en el diseño. */
+/**
+ * Encabezado de grupo: 9.5px con tracking amplio, como en el diseño.
+ *
+ * Alto y padding recortados: con cinco secciones, los 46px que ocupaba cada
+ * encabezado sumaban una pantalla entera de aire y Tareas quedaba abajo del
+ * fold. El tamaño de letra no se toca, sólo el espacio muerto.
+ */
 const ListSubheaderWrapper = styled(ListSubheader)<ListProps<'div', { component: 'div' }>>(
   ({ theme }) => ({
     background: neutral[900],
@@ -32,8 +38,8 @@ const ListSubheaderWrapper = styled(ListSubheader)<ListProps<'div', { component:
     fontSize: 9.5,
     letterSpacing: '1.4px',
     color: alpha(neutral[400], 0.75),
-    lineHeight: theme.spacing(3.4),
-    padding: theme.spacing(1.6, 1.25, 0.75),
+    lineHeight: theme.spacing(2.2),
+    padding: theme.spacing(1.1, 1.25, 0.35),
   })
 );
 
@@ -58,11 +64,11 @@ const SubMenu = styled(List)<ListProps<'div', { component: 'div' }>>(({ theme })
   // Con icono, la sangría de 6 dejaba el texto en el borde derecho. El icono
   // ocupa el lugar de la viñeta, así que la fila arranca antes.
   '& .MuiListItemButton-root': {
-    padding: theme.spacing(0.6, 1.25, 0.6, 4.6),
+    padding: theme.spacing(0.4, 1.25, 0.4, 4.6),
     gap: theme.spacing(1.1),
     fontWeight: 600,
     fontSize: 12.5,
-    minHeight: 34,
+    minHeight: 30,
     color: neutral[500],
     borderRadius: 10,
 
@@ -180,6 +186,10 @@ export const SidebarNavMenu: FC<SidebarNavMenuProps> = ({ menuItems = EMPTY_MENU
         <div key={menuItem.title}>
           <List
             component="nav"
+            // MUI mete 8px arriba y abajo por lista: por cinco secciones son
+            // 80px de nada. La separación la da el padding del encabezado.
+            disablePadding
+            sx={{ pb: 0.75 }}
             subheader={
               <ListSubheaderWrapper
                 component="div"
