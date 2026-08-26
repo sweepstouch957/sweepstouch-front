@@ -286,22 +286,34 @@ export interface AudienceSummaryGroup {
   netGrowth: number;
 }
 
-/** ✅ GET /campaigns/audience/summary */
+/**
+ * ✅ GET /campaigns/audience/summary
+ *
+ * Esta interfaz describía la respuesta vieja (`ok`, `sendersSummary`,
+ * `compare`…) y hacía años que el backend no devolvía eso. La página lo tapaba
+ * declarando `const summary: any`, así que el desfase nunca dio error y los
+ * componentes ya leían los campos reales. Acá está el contrato de verdad.
+ */
 export interface AudienceSummaryResponse {
-  ok: boolean;
-  start: string;
-  end: string;
-  prevStart: string;
-  prevEnd: string;
+  period: { start: string; end: string };
+  previousPeriod: { start: string; end: string };
 
-  sendersSummary: AudienceSummaryGroup;
-  nonSendersSummary: AudienceSummaryGroup;
+  senders: AudienceSummaryGroup;
+  nonSenders: AudienceSummaryGroup;
 
-  compare: {
-    sendersAudience: number;
-    nonSendersAudience: number;
-    sendersStores: number;
-    nonSendersStores: number;
+  chart: {
+    labels: string[];
+    values: number[];
+    storesCounts: number[];
+    growthPct: number[];
+    netGrowth: number[];
+    churn: number[];
+  };
+
+  meta: {
+    storesScope: string;
+    totalStores: number;
+    usingStoreCustomerCount: boolean;
   };
 }
 
@@ -440,12 +452,118 @@ export interface AudienceSimulationResponse {
   };
 }
 
+/** ✅ GET /campaigns/audience/multi-store — clientes que están en varias tiendas */
+export interface MultiStoreCustomer {
+  id: string;
+  name: string | null;
+  phoneNumber: string;
+  active: boolean;
+  createdAt: string;
+  storesCount: number;
+  stores: { id: string; name: string | null }[];
+}
+
+export interface MultiStoreResponse {
+  totalCustomers: number;
+  /** Personas distintas con al menos una tienda. */
+  withAnyStore: number;
+  inTwoPlus: number;
+  inThreePlus: number;
+  inFivePlus: number;
+  /** Suma de pertenencias: lo que suman los customerCount de todas las tiendas. */
+  totalMemberships: number;
+  /** Pertenencias que son la misma persona contada otra vez. */
+  duplicatedMemberships: number;
+  duplicationPct: number;
+  avgStoresPerCustomer: number;
+  minStores: number;
+  customers?: MultiStoreCustomer[];
+}
+
+export interface MultiStoreQueryParams {
+  minStores?: number;
+  list?: boolean;
+  limit?: number;
+}
+
+/** ✅ GET /campaigns/audience/non-senders/nearby */
+
+/**
+ * Qué es el vecino, porque la acción comercial cambia en cada caso:
+ * - `own_sender`: súper nuestro que ya manda campañas → activar, no vender.
+ * - `own_idle`: súper nuestro dormido → ya es cliente.
+ * - `lead`: súper de afuera (está en StoreRequest) → hay que salir a venderlo.
+ */
+export type NeighborKind = 'own_sender' | 'own_idle' | 'lead';
+
+export interface NearbyStore {
+  id: string;
+  name: string;
+  kind: NeighborKind;
+  zipCode: string | null;
+  city: string | null;
+  /** null en los de afuera: no son nuestros, no sabemos su audiencia. */
+  audience: number | null;
+  leadStatus: string | null;
+  sameZip: boolean;
+  /** null cuando el vecino no tiene coordenadas — se cruzó sólo por zip. */
+  distanceKm: number | null;
+}
+
+export interface NonSenderNearbyRow {
+  store: {
+    id: string;
+    name: string;
+    slug: string;
+    zipCode: string | null;
+    audience: number;
+    hasLocation: boolean;
+  };
+  nearby: NearbyStore[];
+}
+
+export interface NonSendersNearbyResponse {
+  period: { start: string; end: string };
+  radiusKm: number;
+  totalNonSenderAudience: number;
+  /** Tiene un súper nuestro al lado que ya manda: se activa. */
+  reachableAudience: number;
+  /** Sólo hay súperes de afuera cerca: hay que venderlos. */
+  prospectAudience: number;
+  /** Nadie alrededor. Ni activar ni vender. */
+  isolatedAudience: number;
+  storesWithNeighbors: number;
+  rows: NonSenderNearbyRow[];
+}
+
+export interface NonSendersNearbyQueryParams extends AudienceQueryParams {
+  limit?: number;
+  radiusKm?: number;
+  neighbors?: number;
+}
+
 /* ========================= CLIENTE ========================= */
 
 const AUDIENCE_BASE = '/campaigns/audience';
 
 class CampaignClient {
   /* ===================== ✅ CAMPAIGNS (RESTORED) ===================== */
+
+  /* ===================== AUDIENCE — insights nuevos ===================== */
+
+  /** Clientes compartidos entre tiendas. Barrido de colección: cache de 30 min en el backend. */
+  async getMultiStoreCustomers(params: MultiStoreQueryParams = {}): Promise<MultiStoreResponse> {
+    const res = await api.get(`${AUDIENCE_BASE}/multi-store`, { params });
+    return res.data as MultiStoreResponse;
+  }
+
+  /** Tiendas sin campañas y los súperes de su zona que sí mandan. */
+  async getNonSendersNearby(
+    params: NonSendersNearbyQueryParams = {}
+  ): Promise<NonSendersNearbyResponse> {
+    const res = await api.get(`${AUDIENCE_BASE}/non-senders/nearby`, { params });
+    return res.data as NonSendersNearbyResponse;
+  }
 
   async getCampaigns(page: number = 1, limit: number = 10): Promise<PaginatedResponse<Campaing>> {
     const res = await api.get(`/campaigns/filter`, { params: { page, limit } });
@@ -754,6 +872,12 @@ export const campaignAudienceKeys = {
     [...campaignAudienceKeys.all, 'simulator', params] as const,
   storesGrowth: (params: AudienceStoresGrowthQueryParams) =>
     [...campaignAudienceKeys.all, 'stores-growth', params] as const,
+
+  multiStore: (params: MultiStoreQueryParams) =>
+    [...campaignAudienceKeys.all, 'multi-store', params] as const,
+
+  nonSendersNearby: (params: NonSendersNearbyQueryParams) =>
+    [...campaignAudienceKeys.all, 'non-senders-nearby', params] as const,
 };
 
 /* ========================= (OPTIONAL) tiny helpers ========================= */

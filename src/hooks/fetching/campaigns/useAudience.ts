@@ -10,6 +10,10 @@ import {
   AudienceSummaryResponse,
   campaignAudienceKeys,
   campaignClient,
+  MultiStoreQueryParams,
+  MultiStoreResponse,
+  NonSendersNearbyQueryParams,
+  NonSendersNearbyResponse,
   WeeklyBreakdownQueryParams,
   WeeklyBreakdownResponse,
 } from '@/services/campaing.service';
@@ -96,6 +100,38 @@ export function useAudienceSimulation(
     queryKey: campaignAudienceKeys.simulate(params),
     queryFn: () => campaignClient.getAudienceSimulation(params),
     staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    ...options,
+  });
+}
+
+/* ═══════════ Insights nuevos: barridos de colección ═══════════
+   Van en hooks propios y no dentro del summary a propósito: son caros, cambian
+   por goteo, y la página no debe esperarlos para pintar los KPIs. staleTime
+   alto porque el backend ya los cachea 30 min — repetir el request no traería
+   un número distinto. */
+
+export function useMultiStoreCustomers(
+  params: MultiStoreQueryParams = {},
+  options?: Omit<UseQueryOptions<MultiStoreResponse>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery({
+    queryKey: campaignAudienceKeys.multiStore(params),
+    queryFn: () => campaignClient.getMultiStoreCustomers(params),
+    staleTime: 10 * 60_000,
+    refetchOnWindowFocus: false,
+    ...options,
+  });
+}
+
+export function useNonSendersNearby(
+  params: NonSendersNearbyQueryParams = {},
+  options?: Omit<UseQueryOptions<NonSendersNearbyResponse>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery({
+    queryKey: campaignAudienceKeys.nonSendersNearby(params),
+    queryFn: () => campaignClient.getNonSendersNearby(params),
+    staleTime: 10 * 60_000,
     refetchOnWindowFocus: false,
     ...options,
   });
