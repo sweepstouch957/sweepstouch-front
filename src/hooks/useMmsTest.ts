@@ -6,10 +6,11 @@ import { customerClient, type Customer } from '@/services/customerService';
 import { campaignClient } from '@/services/campaing.service';
 import { uploadCampaignImage } from '@/services/upload.service';
 import { getAuthToken } from 'src/utils/auth/custom/storage';
+import { LINKTREE_ORIGIN } from 'src/utils/sweepstouch-urls';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
 const TRACKING_URL = (process.env.NEXT_PUBLIC_TRACKING_URL || API_URL).replace(/\/+$/, '');
-const LINKTREE_URL = (process.env.NEXT_PUBLIC_LINKTREE_URL || 'https://links.sweepstouch.com').replace(/\/+$/, '');
+const LINKTREE_URL = LINKTREE_ORIGIN;
 
 function getAuthHeaders() {
   const token = getAuthToken();

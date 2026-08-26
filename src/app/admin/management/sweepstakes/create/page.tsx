@@ -10,6 +10,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import PageHeading from 'src/components/base/page-heading';
 import { useCustomization } from 'src/hooks/use-customization';
+import { routes } from 'src/router/routes';
 
 // Valores iniciales — sin dependencias del componente, se crean una sola vez
 const initialValues = {
@@ -64,6 +65,7 @@ function Page(): React.JSX.Element {
       // Sorteo de evento (NSA, tradeshows): la tienda se crea y se engancha acá
       // mismo. Si falla, el sorteo ya existe — se avisa y se asigna a mano desde
       // el checklist en vez de perder lo creado.
+      let eventStoreCreated = false;
       if (eventStore?.create) {
         try {
           await sweepstakesClient.createEventStore(created.id || (created as any)._id, {
@@ -71,22 +73,32 @@ function Page(): React.JSX.Element {
             address: eventStore.address,
             zipCode: eventStore.zipCode,
           });
+          eventStoreCreated = true;
         } catch {
-          // ponytail: alert y no snackbar — el onSuccess redirige al checklist y
-          // se comería cualquier toast. Cambiar a snackbar si el redirect se demora.
+          // ponytail: alert y no snackbar — el onSuccess redirige y se comería
+          // cualquier toast. Cambiar a snackbar si el redirect se demora.
           window.alert(
-            'El sorteo se creó, pero no se pudo crear la tienda del evento. Asígnala a mano desde el checklist.'
+            'El sorteo se creó, pero no se pudo crear la tienda del evento. Agregala desde Eventos con "Agregar existente".'
           );
         }
       }
 
-      return created;
+      return { created, eventStoreCreated };
     },
-    onSuccess: async (created: any) => {
+    onSuccess: async ({ created, eventStoreCreated }: any) => {
       const id = created.id || created._id;
       // refresca listados si los tienes cacheados
       await qc.invalidateQueries({ queryKey: ['sweepstakes'] });
-      // 🚀 redirige al checklist del sweepstake creado
+
+      // Con tienda de evento va a Eventos, no al checklist: ahí sale el link de
+      // kiosko que soporte técnico necesita para configurar las tablets, más el
+      // de opt-in y el QR. En el checklist esos links no están.
+      if (eventStoreCreated) {
+        await qc.invalidateQueries({ queryKey: ['event-stores'] });
+        push(routes.admin.management.events.listing);
+        return;
+      }
+
       push(`/admin/management/sweepstakes/${id}/checklist`);
     },
     onError: () => setSnack({ open: true, msg: 'No se pudo crear el sweepstake', sev: 'error' }),

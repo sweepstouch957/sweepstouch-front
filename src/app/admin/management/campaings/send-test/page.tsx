@@ -1,5 +1,7 @@
 'use client';
 
+import { kioskUrl as kioskUrlFor } from 'src/utils/sweepstouch-urls';
+
 import React, { useEffect, useState } from 'react';
 import PreviewPhone from '@/components/application-ui/dialogs/preview/preview-phone';
 import AvatarUploadLogo from '@/components/application-ui/upload/avatar/avatar-upload-logo';
@@ -50,7 +52,6 @@ import {
 import { useMutation, useQuery } from '@tanstack/react-query';
 
 /* ────────────────────────────── constants ────────────────────────────── */
-const KIOSK_BASE = 'https://kiosko.sweepstouch.com';
 const MAX_IMAGE_KB = 500;
 
 // Capa el render del Autocomplete de tiendas a 50 opciones (miles de tiendas
@@ -228,7 +229,7 @@ export default function SendTestMessagePage({
   const charCount = copyText.length;
   const destinationPhone = selectedCustomer?.phoneNumber || '';
   const canSend = !!selectedStore && !!copyText.trim() && !!selectedCustomer;
-  const kioskUrl = selectedStore?.slug ? `${KIOSK_BASE}/?slug=${selectedStore.slug}` : null;
+  const kioskUrl = kioskUrlFor(selectedStore?.slug) || null;
 
   /* ── Send mutation ─────────────────────────────── */
   const sendMutation = useMutation({

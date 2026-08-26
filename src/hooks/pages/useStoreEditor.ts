@@ -2,6 +2,7 @@
 import { updateStorePatch } from '@/services/store.service';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
+import { kioskUrl as buildKioskUrl } from 'src/utils/sweepstouch-urls';
 
 const isValidLngLat = (coords) => {
   if (!Array.isArray(coords) || coords.length !== 2) return false;
@@ -198,10 +199,7 @@ export function useStoreEditor(store) {
     contracts: store.contracts ?? [],
   });
 
-  const kioskUrl = useMemo(
-    () => `https://kiosko.sweepstouch.com/?slug=${encodeURIComponent(store.slug || '')}`,
-    [store.slug]
-  );
+  const kioskUrl = useMemo(() => buildKioskUrl(store.slug), [store.slug]);
 
   const hasCoords = isValidLngLat(form?.location?.coordinates);
   const lng = hasCoords

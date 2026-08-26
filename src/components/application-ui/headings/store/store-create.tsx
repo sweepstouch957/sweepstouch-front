@@ -1,5 +1,7 @@
 'use client';
 
+import { MERCHANT_ORIGIN, linktreeUrl, optinUrl } from 'src/utils/sweepstouch-urls';
+
 import { Store } from '@/services/store.service';
 import { uploadCampaignImage } from '@/services/upload.service';
 import {
@@ -49,9 +51,6 @@ const PROVIDER_LABEL: Record<string, string> = {
 };
 
 /** Panel del comerciante. Mismo origen que usa la tarjeta de credenciales. */
-const MERCHANT_ORIGIN = (
-  process.env.NEXT_PUBLIC_MERCHANT_ORIGIN || 'https://merchant.sweepstouch.com'
-).replace(/\/$/, '');
 
 /* ── Botón de acción: neutro, sin color de categoría ──────────── */
 function IBtn({
@@ -210,11 +209,9 @@ export default function StoreHeader({
           : 'neutral';
 
   const slug = extractSlug(kioskUrl);
-  const qrHref = slug ? `https://st.sweepstouch.com/?slug=${encodeURIComponent(slug)}` : undefined;
+  const qrHref = optinUrl(slug) || undefined;
   /** Linktree público de la tienda — mismo slug que el kiosko. */
-  const linktreeHref = slug
-    ? `https://links.sweepstouch.com/?slug=${encodeURIComponent(slug)}`
-    : undefined;
+  const linktreeHref = linktreeUrl(slug) || undefined;
   const fallbackQrSrc = qrHref
     ? `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qrHref)}&size=512x512`
     : undefined;

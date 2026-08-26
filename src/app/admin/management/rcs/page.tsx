@@ -1,4 +1,5 @@
 'use client';
+import { rcsTemplateUrl } from 'src/utils/sweepstouch-urls';
 
 import React, { useState, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -73,8 +74,8 @@ function RcsLinkCard({ storeSlug, circularId }: { storeSlug: string; circularId:
   const [copied, setCopied] = useState(false);
 
   const linkTemplate = storeSlug
-    ? `https://links.sweepstouch.com/rcs/{customerId}?store=${storeSlug}${circularId ? `&circular=${circularId}` : ''}`
-    : 'https://links.sweepstouch.com/rcs/{customerId}?store={storeSlug}';
+    ? rcsTemplateUrl(storeSlug, circularId)
+    : rcsTemplateUrl();
 
   const copy = () => {
     navigator.clipboard.writeText(linkTemplate).then(() => {

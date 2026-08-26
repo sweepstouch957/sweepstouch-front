@@ -1,6 +1,8 @@
 // app/components/stores/Results.tsx
 'use client';
 
+import { merchantSwitchUrl } from 'src/utils/sweepstouch-urls';
+
 import { Store } from '@/services/store.service';
 import { duplicateStore, getStoreById } from '@/services/store.service';
 import { useAuth } from '@/hooks/use-auth';
@@ -78,12 +80,7 @@ function splitByFirstNumber(raw: string, fallbackAddress?: string) {
   return { displayName: s, displayAddress: (fallbackAddress || '').trim() };
 }
 
-const MERCHANT_ORIGIN =
-  process.env.NEXT_PUBLIC_MERCHANT_ORIGIN || 'https://merchant.sweepstouch.com';
-
-function buildSwitchUrl(storeId: string) {
-  return `${MERCHANT_ORIGIN}/?ac=${storeId}`;
-}
+const buildSwitchUrl = merchantSwitchUrl;
 
 function formatMoney(value = 0, currency = 'USD') {
   return new Intl.NumberFormat('en-US', {

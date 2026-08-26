@@ -1,5 +1,7 @@
 'use client';
 
+import { kioskUrl, linktreeUrl } from 'src/utils/sweepstouch-urls';
+
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import LinkRoundedIcon from '@mui/icons-material/LinkRounded';
 import SmsRoundedIcon from '@mui/icons-material/SmsRounded';
@@ -20,10 +22,12 @@ import { useState } from 'react';
 import SendTestMessagePage from 'src/app/admin/management/campaings/send-test/page';
 import { routes } from 'src/router/routes';
 
-const OPTIN_CASHIERS_URL =
-  'https://kiosko.sweepstouch.com/?slug=merchant-r-street-lar-azul-55-barueri-sp';
-const LINKTREE_URL =
-  'https://links.sweepstouch.com/?slug=food-universe-marketplace-498-e-30th-st-paterson-nj-07504';
+// Tiendas de demo fijas: la página muestra el kiosko y el linktree reales
+// dentro de un iframe para que se vea cómo queda.
+const OPTIN_CASHIERS_URL = kioskUrl('merchant-r-street-lar-azul-55-barueri-sp');
+const LINKTREE_URL = linktreeUrl(
+  'food-universe-marketplace-498-e-30th-st-paterson-nj-07504'
+);
 const DEFAULT_TEST_STORE_NAME = 'Tienda de prueba super real';
 const iframeScale = {
   xs: 0.58,

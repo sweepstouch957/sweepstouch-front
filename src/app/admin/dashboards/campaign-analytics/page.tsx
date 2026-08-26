@@ -1,5 +1,7 @@
 'use client';
 
+import { MERCHANT_ORIGIN } from 'src/utils/sweepstouch-urls';
+
 /**
  * Monitor del flujo de compras en línea (RCS) — 3 frentes en un solo lugar:
  *   1. Administrador — analítica de TODAS las tiendas (componente AnalyticsDashboard existente).
@@ -86,7 +88,7 @@ function ChartCard({ title, icon, children, empty }: { title: string; icon: Reac
   );
 }
 
-const MERCHANT_URL = 'https://merchant.sweepstouch.com';
+const MERCHANT_URL = MERCHANT_ORIGIN;
 
 // Normaliza una URL pegada (agrega https:// si falta) — sin estado de componente.
 const normalize = (u: string) => {

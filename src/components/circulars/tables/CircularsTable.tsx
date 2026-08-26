@@ -1,6 +1,8 @@
 // src/components/circulars/CircularsTable.tsx
 'use client';
 
+import { linktreeUrl } from 'src/utils/sweepstouch-urls';
+
 import { RowItem } from '@/hooks/fetching/circulars/useManageCircularsData';
 import { fmt, initialsFromSlug } from '@/utils/format';
 import {
@@ -253,7 +255,7 @@ export const CircularsTable: React.FC<CircularsTableProps> = ({
                       <IconButton
                         size="small"
                         component="a"
-                        href={`https://links.sweepstouch.com/?slug=${slug}`}
+                        href={linktreeUrl(slug)}
                         target="_blank"
                         rel="noopener noreferrer"
                         sx={{

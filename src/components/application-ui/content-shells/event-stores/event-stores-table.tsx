@@ -3,6 +3,7 @@
 /** Tabla del módulo Eventos. Presentacional: recibe filas y callbacks por props. */
 
 import type { EventStoreRow } from '@/services/sweepstakes.service';
+import { kioskUrl } from 'src/utils/sweepstouch-urls';
 import ContentCopyRounded from '@mui/icons-material/ContentCopyRounded';
 import DownloadRounded from '@mui/icons-material/DownloadRounded';
 import InsightsRounded from '@mui/icons-material/InsightsRounded';
@@ -34,11 +35,16 @@ const OPTIN_LABEL: Record<string, string> = {
   generic: 'Genérico',
 };
 
-/** El link que se imprime en el QR y se carga en la tablet. */
+/** El link público del opt-in: el que va en el QR impreso. */
 export function optinLink(row: EventStoreRow): string {
   const base = row.sweepstake?.confirmationLink?.replace(/\/+$/, '');
   if (base) return `${base}/${row.store.slug}`;
   return row.store.genericOptinLink || '';
+}
+
+/** El link que soporte técnico carga en las tablets del evento. */
+export function kioskLink(row: EventStoreRow): string {
+  return kioskUrl(row.store.slug);
 }
 
 function fmt(d?: string | null, withTime = false): string {
@@ -46,6 +52,61 @@ function fmt(d?: string | null, withTime = false): string {
   const parsed = new Date(d);
   if (Number.isNaN(parsed.getTime())) return '—';
   return format(parsed, withTime ? 'dd/MM/yyyy HH:mm' : 'dd/MM/yyyy');
+}
+
+/** Etiqueta + URL truncada + copiar. Dos de estas por fila. */
+function LinkRow({
+  label,
+  url,
+  empty,
+  onCopy,
+}: {
+  label: string;
+  url: string;
+  empty: string;
+  onCopy: (url: string) => void;
+}) {
+  return (
+    <Stack
+      direction="row"
+      alignItems="center"
+      gap={0.75}
+    >
+      <Chip
+        size="small"
+        label={label}
+        variant="outlined"
+        sx={{ height: 18, fontSize: 10, minWidth: 54 }}
+      />
+      {url ? (
+        <>
+          <Typography
+            variant="caption"
+            noWrap
+            sx={{ maxWidth: 170, color: 'text.secondary' }}
+            title={url}
+          >
+            {url}
+          </Typography>
+          <Tooltip title={`Copiar ${label}`}>
+            <IconButton
+              size="small"
+              onClick={() => onCopy(url)}
+            >
+              <ContentCopyRounded sx={{ fontSize: 13 }} />
+            </IconButton>
+          </Tooltip>
+        </>
+      ) : (
+        <Typography
+          variant="caption"
+          color="text.disabled"
+        >
+          {empty}
+        </Typography>
+      )}
+    </Stack>
+  );
 }
 
 type Props = {
@@ -67,6 +128,7 @@ export default function EventStoresTable({ rows, exportingId, onCopy, onExport }
           <TableCell>Nuevos / Existentes</TableCell>
           <TableCell>Roles</TableCell>
           <TableCell>Último registro</TableCell>
+          <TableCell>Links</TableCell>
           <TableCell align="right">Acciones</TableCell>
         </TableRow>
       </TableHead>
@@ -78,6 +140,7 @@ export default function EventStoresTable({ rows, exportingId, onCopy, onExport }
             : 0;
           const isNsa = row.sweepstake?.optinType === 'nsa';
           const qrUrl = row.store.genericQr?.secureUrl;
+          const kiosk = kioskLink(row);
 
           return (
             <TableRow
@@ -207,22 +270,31 @@ export default function EventStoresTable({ rows, exportingId, onCopy, onExport }
                 <Typography variant="caption">{fmt(row.lastRegisteredAt, true)}</Typography>
               </TableCell>
 
+              {/* Soporte técnico configura las tablets con el link de kiosko: va
+                  visible, no escondido detrás de un ícono. */}
+              <TableCell sx={{ minWidth: 260 }}>
+                <Stack gap={0.5}>
+                  <LinkRow
+                    label="Opt-in"
+                    url={link}
+                    empty="Falta el link del sorteo"
+                    onCopy={onCopy}
+                  />
+                  <LinkRow
+                    label="Kiosko"
+                    url={kiosk}
+                    empty="Sin slug"
+                    onCopy={onCopy}
+                  />
+                </Stack>
+              </TableCell>
+
               <TableCell align="right">
                 <Stack
                   direction="row"
                   justifyContent="flex-end"
                   gap={0.5}
                 >
-                  {link && (
-                    <Tooltip title={`Copiar link: ${link}`}>
-                      <IconButton
-                        size="small"
-                        onClick={() => onCopy(link)}
-                      >
-                        <ContentCopyRounded fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  )}
                   {qrUrl && (
                     <Tooltip title="Abrir QR">
                       <IconButton

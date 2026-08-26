@@ -1,5 +1,7 @@
 'use client';
 
+import { kioskUrl, linktreeUrl } from 'src/utils/sweepstouch-urls';
+
 import type { ContactInfoItem, EquipmentItem } from '@/services/store.service';
 import { fetchImageBlob } from '@/services/store.service';
 import AssignmentIndRoundedIcon from '@mui/icons-material/AssignmentIndRounded';
@@ -74,8 +76,6 @@ type StoreTechModalProps = {
   contactInfo?: ContactInfoItem[] | null;
 };
 
-const KIOSKO_BASE = 'https://kiosko.sweepstouch.com/';
-const LINKS_BASE = 'https://links.sweepstouch.com/';
 
 const CONTACT_LABELS: Record<string, string> = {
   manager: 'Manager',
@@ -270,8 +270,8 @@ export default function StoreTechModal({
 
   const slug = (storeSlug || '').trim();
 
-  const kioskoUrl = useMemo(() => `${KIOSKO_BASE}?slug=${encodeURIComponent(slug)}`, [slug]);
-  const linkTreeUrl = useMemo(() => `${LINKS_BASE}?slug=${encodeURIComponent(slug)}`, [slug]);
+  const kioskoUrl = useMemo(() => kioskUrl(slug), [slug]);
+  const linkTreeUrl = useMemo(() => linktreeUrl(slug), [slug]);
   const mapsUrl = useMemo(() => address ? `https://maps.google.com/?q=${encodeURIComponent(address)}` : null, [address]);
 
   const tablets = useMemo(() => (equipment ?? []).filter((e) => e.type === 'tablet'), [equipment]);

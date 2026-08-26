@@ -1,6 +1,8 @@
 // src/components/application-ui/content-shells/store-managment/store-sidebar.tsx
 'use client';
 
+import { kioskUrl, kioskUrlByAccessCode, merchantSwitchUrl } from 'src/utils/sweepstouch-urls';
+
 import { UserContext } from '@/contexts/auth/auth-context';
 import {
   closeSidebar,
@@ -62,12 +64,7 @@ interface StoreSidebarProps {
   counts?: Partial<Record<string, number>>;
 }
 
-const MERCHANT_ORIGIN =
-  process.env.NEXT_PUBLIC_MERCHANT_ORIGIN || 'https://merchant.sweepstouch.com';
-
-function buildSwitchUrl(storeId: string) {
-  return `${MERCHANT_ORIGIN}/?ac=${storeId}`;
-}
+const buildSwitchUrl = merchantSwitchUrl;
 
 /**
  * Doce secciones en una lista plana obligan a leerlas todas para encontrar una.
@@ -148,14 +145,9 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
   };
 
   const openKiosk = () => {
-    const kioskBase = process.env.NEXT_PUBLIC_KIOSK_ORIGIN || 'https://kiosko.sweepstouch.com';
     // Normalizar: quitar comas y "_" final (formato ConfigurationName de tablets)
-    const cleanSlug = storeSlug
-      ? storeSlug.replace(/,/g, '').replace(/_+$/, '')
-      : null;
-    const target = cleanSlug
-      ? `${kioskBase}/?slug=${encodeURIComponent(cleanSlug)}`
-      : `${kioskBase}/?ac=${storeId}`;
+    const cleanSlug = storeSlug ? storeSlug.replace(/,/g, '').replace(/_+$/, '') : null;
+    const target = cleanSlug ? kioskUrl(cleanSlug) : kioskUrlByAccessCode(storeId);
     window.open(target, '_blank');
   };
 

@@ -1,6 +1,8 @@
 // app/components/stores/StoreInfo.tsx
 'use client';
 
+import { MERCHANT_ORIGIN, linktreeUrl } from 'src/utils/sweepstouch-urls';
+
 import ConfirmDialog from '@/components/base/confirm-dialog';
 import { useStoreEditor } from '@/hooks/pages/useStoreEditor';
 import { usersApi } from '@/mocks/users';
@@ -734,11 +736,7 @@ export default function StoreInfo({ store }: { store: Store }) {
     regenerateMerchantMutation.mutate();
   };
 
-  const merchantWebsite = (
-    process.env.NEXT_PUBLIC_MERCHANT_ORIGIN || 'https://merchant.sweepstouch.com'
-  )
-    .replace(/^https?:\/\//, '')
-    .replace(/\/$/, '');
+  const merchantWebsite = MERCHANT_ORIGIN.replace(/^https?:\/\//, '');
   const merchantPassword = getCredentialValue(
     { merchantUser, backfillResult, store },
     MERCHANT_PASSWORD_KEYS
@@ -914,9 +912,7 @@ export default function StoreInfo({ store }: { store: Store }) {
       </Button>
     );
 
-  const linktreeHref = storeSlug
-    ? `https://links.sweepstouch.com/?slug=${encodeURIComponent(storeSlug)}`
-    : '';
+  const linktreeHref = linktreeUrl(storeSlug);
 
   /** Los enlaces que la tienda enseña al cliente. Los que faltan se ven, en
       punteado: un hueco visible se llena; uno invisible no existe. */
