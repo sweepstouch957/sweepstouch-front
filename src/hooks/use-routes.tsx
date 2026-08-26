@@ -5,22 +5,29 @@ import {
   BookOutlined,
   BrushRounded,
   BuildRounded,
+  CalendarMonthRounded,
   Campaign,
-  CelebrationRounded,
   DescriptionRounded,
   Diversity3Rounded,
   EventRounded,
+  GroupsRounded,
+  HandymanRounded,
   InsightsRounded,
   ListAltRounded,
   LocalOfferRounded,
   LocalPlayRounded,
   MapRounded,
   PendingActionsRounded,
+  PointOfSaleRounded,
+  QrCode2Rounded,
   ReceiptLongRounded,
   RuleRounded,
+  SearchRounded,
+  SlideshowRounded,
   Store,
+  TaskAltRounded,
+  ViewKanbanRounded,
 } from '@mui/icons-material';
-import AppsRoundedIcon from '@mui/icons-material/AppsRounded';
 import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import { MenuItem } from 'src/router/menuItem';
@@ -79,21 +86,26 @@ const dashboardsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Facturación'), route: routes.admin.dashboards.billing },
   ], undefined, STAFF_ROLES);
 
-// Herramientas internas del equipo. No es un módulo de negocio: es lo que no
-// pertenece a ninguno. "Store Maps" salió de acá y se fue a Tiendas, que es
-// donde lo busca quien lo necesita.
-const applicationsMenu = (t: (token: string) => string): MenuItem =>
-  buildMenu(t('Aplicaciones'), <AppsRoundedIcon />, [
-    { title: t('Tareas'), route: routes.admin.applications.tasks },
-    { title: t('Proyectos'), route: routes.admin.applications['projects-board'] },
-    { title: t('Reuniones'), route: routes.admin.applications.meetings },
-    { title: t('Calendario'), route: routes.admin.applications.calendar },
-    { title: t('Optin Cajeros'), route: routes.admin.applications['optin-cashiers'] },
-    { title: t('Buscar número'), route: routes.admin.applications['debug-numbers'] },
-    { title: t('Códigos QR'), route: routes.admin.management.qr },
-    { title: t('Demos'), route: routes.admin.applications.demos },
-    { title: t('Utilidades'), route: routes.admin.applications.utilities },
-  ], undefined, STAFF_ROLES);
+/**
+ * Antes esto era un módulo "Aplicaciones" con nueve hijos sin relación entre sí:
+ * un cajón de sastre que había que abrir para ver qué tenía adentro. Ahora las
+ * dos mitades son secciones propias, planas, al estilo de la consola de AWS:
+ * el encabezado agrupa y los ítems se ven de una.
+ */
+const workItems = (t: (token: string) => string): MenuItem[] => [
+  { title: t('Tareas'), route: routes.admin.applications.tasks, icon: <TaskAltRounded />, roles: STAFF_ROLES },
+  { title: t('Proyectos'), route: routes.admin.applications['projects-board'], icon: <ViewKanbanRounded />, roles: STAFF_ROLES },
+  { title: t('Reuniones'), route: routes.admin.applications.meetings, icon: <GroupsRounded />, roles: STAFF_ROLES },
+  { title: t('Calendario'), route: routes.admin.applications.calendar, icon: <CalendarMonthRounded />, roles: STAFF_ROLES },
+];
+
+const toolItems = (t: (token: string) => string): MenuItem[] => [
+  { title: t('Optin Cajeros'), route: routes.admin.applications['optin-cashiers'], icon: <PointOfSaleRounded />, roles: STAFF_ROLES },
+  { title: t('Códigos QR'), route: routes.admin.management.qr, icon: <QrCode2Rounded />, roles: STAFF_ROLES },
+  { title: t('Buscar número'), route: routes.admin.applications['debug-numbers'], icon: <SearchRounded />, roles: STAFF_ROLES },
+  { title: t('Demos'), route: routes.admin.applications.demos, icon: <SlideshowRounded />, roles: STAFF_ROLES },
+  { title: t('Utilidades'), route: routes.admin.applications.utilities, icon: <HandymanRounded />, roles: STAFF_ROLES },
+];
 
 const designsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(
@@ -139,17 +151,15 @@ const circularsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Programar'), route: routes.admin.management.circulars.schedule },
   ]);
 
+// Eventos va acá adentro: un evento ES un sweepstake, el de optinType
+// 'event'/'nsa'. Como módulo aparte quedaban dos entradas pegadas diciendo
+// casi lo mismo. Lo único distinto es su tienda, y eso se ve dentro de Eventos.
 const sweepstakesMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Sweepstakes'), <LocalPlayRounded />, [
     { title: t('Listado'), route: routes.admin.management.sweepstakes.listing },
+    { title: t('Eventos'), route: routes.admin.management.events.listing },
     { title: t('Premios'), route: routes.admin.management.prizes.listing },
   ]);
-
-// Una sola página: va como ruta directa. Las tiendas de evento no viven en el
-// listado de tiendas ni reciben campañas, por eso es módulo aparte y no cuelga
-// de Sweepstakes.
-const eventsMenu = (t: (token: string) => string): MenuItem =>
-  buildMenu(t('Eventos'), <CelebrationRounded />, [], routes.admin.management.events.listing);
 
 // Plano. Antes eran dos submenús anidados ("Personnel management" / "shift
 // management") con `<List />` repetido en cada nieto: tres niveles para llegar a
@@ -203,6 +213,51 @@ const filterByRole = (role: UserRole) => {
   return (items: MenuItem[]) => items.map(keep).filter(Boolean) as MenuItem[];
 };
 
+type MenuFactory = (t: (token: string) => string) => MenuItem;
+
+/**
+ * Secciones de Management, en orden. Cada módulo vive en UNA sección; el rol
+ * decide cuáles ve (roleModules), la sección decide dónde caen. Antes había un
+ * solo encabezado "Management" con ocho módulos apilados sin criterio.
+ */
+const MANAGEMENT_SECTIONS: { title: string; modules: MenuFactory[] }[] = [
+  // Lo que se le vende y se le manda al súper
+  { title: 'Comercial', modules: [storesMenu, campaignsMenu, circularsMenu] },
+  // Cómo entran los números a la base
+  { title: 'Captación', modules: [sweepstakesMenu, promotorsMenu] },
+  // Se toca una vez por semana, no todos los días
+  { title: 'Administración', modules: [billingMenu, usersMenu, supportMenu] },
+];
+
+/**
+ * Qué módulos ve cada rol. Mismo conjunto que antes — sólo cambió que ahora se
+ * listan las factories y no los items ya construidos, para poder agruparlos por
+ * sección sin duplicar la lista.
+ */
+const ALL_MODULES: MenuFactory[] = MANAGEMENT_SECTIONS.flatMap((s) => s.modules);
+
+const roleModules: Record<UserRole, MenuFactory[]> = {
+  admin: ALL_MODULES,
+  general_manager: ALL_MODULES,
+  promotor_manager: [storesMenu, sweepstakesMenu, promotorsMenu, circularsMenu],
+  campaign_manager: [storesMenu, campaignsMenu, circularsMenu],
+  marketing: [storesMenu, campaignsMenu, circularsMenu],
+  cashier: [],
+  merchant: [],
+  promotor: [storesMenu],
+  design: [storesMenu, circularsMenu],
+  merchant_manager: [storesMenu],
+  tecnico: [supportMenu],
+
+  // Roles del organigrama nuevo. Sin entrada acá el panel abría sin sección
+  // Management y la persona sólo veía Métricas y las herramientas.
+  operations: [storesMenu, campaignsMenu, circularsMenu, promotorsMenu, supportMenu],
+  it: [storesMenu, campaignsMenu, supportMenu, usersMenu],
+  support: [supportMenu, storesMenu],
+  billing: [billingMenu, storesMenu],
+  assistant: [storesMenu, campaignsMenu, promotorsMenu, supportMenu],
+};
+
 export const useMenuItemsCollapsedShells = (
   t: (token: string) => string,
   role: UserRole
@@ -213,73 +268,35 @@ export const useMenuItemsCollapsedShells = (
       ? [{ title: t('Configuración'), route: routes.admin.applications['ai-config'] }]
       : []),
   ];
-  const aiMenu: MenuItem[] = [
-    // El gateway permite merchant en /api/ai, no en el resto del staff-only.
-    buildMenu(t('AI Assistant'), <SmartToyRoundedIcon />, aiSubItems, undefined, [
-      ...STAFF_ROLES,
-      'merchant',
-    ]),
+
+  const allowed = new Set(roleModules[role] || []);
+
+  const sections: MenuItem[] = [
+    {
+      title: t('Panel'),
+      subMenu: [
+        // El gateway permite merchant en /api/ai, no en el resto del staff-only.
+        buildMenu(t('AI Assistant'), <SmartToyRoundedIcon />, aiSubItems, undefined, [
+          ...STAFF_ROLES,
+          'merchant',
+        ]),
+        dashboardsMenu(t),
+      ],
+    },
+    ...MANAGEMENT_SECTIONS.map((section) => ({
+      title: t(section.title),
+      subMenu: section.modules.filter((m) => allowed.has(m)).map((m) => m(t)),
+    })),
+    { title: t('Trabajo'), subMenu: workItems(t) },
+    { title: t('Herramientas'), subMenu: [designsMenu(t), ...toolItems(t)] },
   ];
 
-  const general: MenuItem[] = [
-    ...aiMenu,
-    dashboardsMenu(t),
-    applicationsMenu(t),
-    designsMenu(t),
-  ];
-
-  // Orden por uso: lo de todos los días arriba, la administración abajo.
-  // Usuarios y Facturación se tocan una vez por semana y estaban primeros.
-  const adminManagementMenus = [
-    storesMenu(t),
-    campaignsMenu(t),
-    circularsMenu(t),
-    sweepstakesMenu(t),
-    eventsMenu(t),
-    promotorsMenu(t),
-    supportMenu(t),
-    billingMenu(t),
-    usersMenu(t),
-  ];
-
-  const roleMenus: Record<UserRole, MenuItem[]> = {
-    admin: adminManagementMenus,
-    general_manager: adminManagementMenus,
-    promotor_manager: [
-      storesMenu(t),
-      sweepstakesMenu(t),
-      eventsMenu(t),
-      promotorsMenu(t),
-      circularsMenu(t),
-    ],
-    campaign_manager: [storesMenu(t), campaignsMenu(t), circularsMenu(t)],
-    marketing: [storesMenu(t), campaignsMenu(t), circularsMenu(t)],
-    cashier: [],
-    merchant: [],
-    promotor: [storesMenu(t)],
-    design: [storesMenu(t), circularsMenu(t)],
-    merchant_manager: [storesMenu(t)],
-    tecnico: [supportMenu(t)],
-
-    // Roles del organigrama nuevo. Sin entrada acá el panel abría sin sección
-    // Management y la persona sólo veía Dashboards y Applications.
-    operations: [storesMenu(t), campaignsMenu(t), circularsMenu(t), promotorsMenu(t), supportMenu(t)],
-    it: [storesMenu(t), campaignsMenu(t), supportMenu(t), usersMenu(t)],
-    // Cada rol entra directo a SU centro: el orden general (tiendas primero) es
-    // para quien ve todo el panel, no para quien sólo trabaja en un módulo.
-    support: [supportMenu(t), storesMenu(t)],
-    billing: [billingMenu(t), storesMenu(t)],
-    // Asistencia de Dirección conserva el acceso operativo definido para su rol.
-    assistant: [storesMenu(t), campaignsMenu(t), promotorsMenu(t), supportMenu(t)],
-  };
-
+  // Una sección sin items es un encabezado huérfano: el rol no llega a nada de
+  // lo que agrupa. Se cae entera.
   const visible = filterByRole(role);
-  const management = visible(roleMenus[role] || []);
-
-  return [
-    { title: t('General'), subMenu: visible(general) },
-    ...(management.length > 0 ? [{ title: t('Management'), subMenu: management }] : []),
-  ];
+  return sections
+    .map((section) => ({ ...section, subMenu: visible(section.subMenu || []) }))
+    .filter((section) => section.subMenu.length > 0);
 };
 
 export default useMenuItemsCollapsedShells;
