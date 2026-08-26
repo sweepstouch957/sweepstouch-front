@@ -167,6 +167,28 @@ const AppointmentsList = () => {
         }
     });
 
+    /**
+     * Rubro del lead. Es el único campo del StoreRequest que se edita desde
+     * acá, y se guarda solo al elegirlo: abrir un formulario entero para un
+     * select de once opciones no lo justifica.
+     */
+    const updateLeadBusinessTypeMutation = useMutation({
+        mutationFn: ({ id, businessType }: { id: string; businessType: string }) =>
+            storesService.updateStoreRequest(id, { businessType }),
+        onSuccess: (_res, vars) => {
+            toast.success('Rubro actualizado');
+            queryClient.invalidateQueries({ queryKey: ['storeRequests'] });
+            // El drawer abierto muestra su propia copia del lead: si no se
+            // actualiza acá, el select vuelve al valor viejo hasta cerrarlo.
+            setSelectedEvent((prev: any) =>
+                prev && prev.id === vars.id ? { ...prev, businessType: vars.businessType } : prev
+            );
+        },
+        onError: () => {
+            toast.error('No se pudo guardar el rubro');
+        }
+    });
+
     const rescheduleAppointmentMutation = useMutation({
         mutationFn: async ({ id, data, source }: { id: string; data: RescheduleAppointmentPayload; source?: string }) => {
             if (source === 'store-request') {
@@ -308,6 +330,7 @@ const AppointmentsList = () => {
             email: app.contactEmail,
             city: (app as any).city,
             zipCode: (app as any).zipCode,
+            businessType: (app as any).businessType,
             estimatedVolume: (app as any).estimatedMonthlyMessages
         })),
         ...storeRequests.flatMap((req) =>
@@ -329,6 +352,9 @@ const AppointmentsList = () => {
                     email: req.contactEmail,
                     city: req.city,
                     zipCode: req.zipCode,
+                    // El rubro del lead: sin esto el dashboard de audiencia lo
+                    // tiene que adivinar por el nombre del negocio.
+                    businessType: req.businessType || 'unknown',
                     estimatedVolume: req.estimatedMonthlyMessages
                 }])
     ].sort((a, b) => getDateTimeValue(b.date, b.time) - getDateTimeValue(a.date, a.time));
@@ -758,6 +784,10 @@ const AppointmentsList = () => {
                                 onClose={() => setDrawerOpen(false)}
                                 onReschedule={handleRescheduleAppointment}
                                 rescheduling={rescheduleAppointmentMutation.isPending}
+                                onBusinessTypeChange={(id, businessType) =>
+                                    updateLeadBusinessTypeMutation.mutateAsync({ id, businessType })
+                                }
+                                savingBusinessType={updateLeadBusinessTypeMutation.isPending}
                             />
                         </Box>
                     )}

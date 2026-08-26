@@ -3,7 +3,7 @@
 /** Tabla del módulo Eventos. Presentacional: recibe filas y callbacks por props. */
 
 import type { EventStoreRow } from '@/services/sweepstakes.service';
-import { kioskUrl } from 'src/utils/sweepstouch-urls';
+import { kioskUrl, sweepstakeLandingUrl } from 'src/utils/sweepstouch-urls';
 import ContentCopyRounded from '@mui/icons-material/ContentCopyRounded';
 import DownloadRounded from '@mui/icons-material/DownloadRounded';
 import InsightsRounded from '@mui/icons-material/InsightsRounded';
@@ -141,6 +141,9 @@ export default function EventStoresTable({ rows, exportingId, onCopy, onExport }
           const isNsa = row.sweepstake?.optinType === 'nsa';
           const qrUrl = row.store.genericQr?.secureUrl;
           const kiosk = kioskLink(row);
+          // El link que se comparte en redes: la landing donde la gente se anota
+          // sola, sin tablet de por medio.
+          const sorteo = sweepstakeLandingUrl(row.sweepstake?._id);
 
           return (
             <TableRow
@@ -284,6 +287,12 @@ export default function EventStoresTable({ rows, exportingId, onCopy, onExport }
                     label="Kiosko"
                     url={kiosk}
                     empty="Sin slug"
+                    onCopy={onCopy}
+                  />
+                  <LinkRow
+                    label="Sorteo"
+                    url={sorteo}
+                    empty="Sin sorteo"
                     onCopy={onCopy}
                   />
                 </Stack>

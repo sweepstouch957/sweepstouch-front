@@ -1,24 +1,27 @@
 'use client';
 
-import {
-  alpha,
-  Box,
-  Chip,
-  Divider,
-  LinearProgress,
-  Stack,
-  styled,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
+/**
+ * Las dos gráficas de la página.
+ *
+ * Qué cambió y por qué:
+ *
+ * - El movimiento semanal tenía `yAxis.min = 0` con series apiladas. Una semana
+ *   con más bajas que altas da neto negativo, y con ese eje la barra
+ *   simplemente no se dibujaba: la semana mala se veía igual que una semana sin
+ *   datos. Ahora el dominio sale de los datos, hay línea de cero y las series
+ *   van agrupadas en vez de apiladas (apilar un positivo con un negativo suma
+ *   una barra que no significa nada).
+ * - Los fondos con `radial-gradient` detrás del donut y del área del chart se
+ *   fueron: bajaban el contraste de los datos sin aportar información.
+ * - Todo en español, como el resto del panel.
+ */
+import { alpha, Box, Skeleton, Stack, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { BarChart } from '@mui/x-charts/BarChart';
 import { PieChart } from '@mui/x-charts/PieChart';
 import { useMemo } from 'react';
 import { num } from './audience-utils';
-import { GlassCard, MetricPill } from './ui';
+import { numeric, PanelCard, TonePill } from './ui';
 
-/* ============================== Types ============================== */
 type Props = {
   summary?: any;
   weekly?: any;
@@ -26,22 +29,13 @@ type Props = {
   weeklyError?: boolean;
 };
 
-type LegendRowProps = {
-  label: string;
-  value: number;
-  percent: number; // 0..1
-  color: string;
-  subtitle?: string;
-};
-
-/* ============================== Helpers ============================== */
 function safeNum(v: any) {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
 }
 
+/** El backend manda `netGrowth` en unos endpoints y `delta` en otros. */
 function pickGrowth(obj: any): number {
-  // backend puede mandar netGrowth o delta
   return safeNum(obj?.netGrowth ?? obj?.delta ?? 0);
 }
 
@@ -62,19 +56,10 @@ function pct01(n01: number) {
 
 function fmtSigned(v: number) {
   const n = safeNum(v);
-  const sign = n > 0 ? '+' : '';
-  return `${sign}${num(n)}`;
+  return `${n > 0 ? '+' : ''}${num(n)}`;
 }
 
-/* ============================== Styled bits ============================== */
-const Dot = styled('span')<{ color: string }>(({ color }) => ({
-  display: 'inline-block',
-  width: 10,
-  height: 10,
-  borderRadius: 999,
-  background: color,
-}));
-
+/** El legend propio: el de x-charts no deja poner el valor ni la proporción. */
 function LegendRow(props: {
   label: string;
   value: number;
@@ -85,40 +70,75 @@ function LegendRow(props: {
   const { label, value, percent, color, subtitle } = props;
 
   return (
-    <Stack spacing={0.4}>
+    <Stack gap={0.75}>
       <Stack
         direction="row"
-        alignItems="center"
+        alignItems="baseline"
         justifyContent="space-between"
-        sx={{ gap: 1 }}
+        gap={1}
       >
         <Stack
           direction="row"
           alignItems="center"
-          spacing={1}
+          gap={1}
+          minWidth={0}
         >
-          <Box sx={{ width: 10, height: 10, borderRadius: 999, bgcolor: color }} />
+          <Box sx={{ width: 10, height: 10, borderRadius: 0.5, bgcolor: color, flexShrink: 0 }} />
           <Typography
-            fontWeight={900}
             variant="body2"
+            fontWeight={600}
+            noWrap
           >
             {label}
           </Typography>
         </Stack>
 
-        <Typography
-          fontWeight={800}
-          variant="body2"
-          color="text.secondary"
+        <Stack
+          direction="row"
+          alignItems="baseline"
+          gap={0.75}
+          flexShrink={0}
         >
-          {num(value)}
-        </Typography>
+          <Typography
+            variant="body2"
+            fontWeight={700}
+            sx={numeric}
+          >
+            {num(value)}
+          </Typography>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={numeric}
+          >
+            {pct01(percent)}
+          </Typography>
+        </Stack>
       </Stack>
+
+      {/* La barra da la proporción de un vistazo; el número de arriba, el dato. */}
+      <Box
+        sx={(t) => ({
+          height: 6,
+          borderRadius: 3,
+          overflow: 'hidden',
+          bgcolor: alpha(t.palette.text.primary, t.palette.mode === 'dark' ? 0.12 : 0.06),
+        })}
+      >
+        <Box
+          sx={{
+            width: `${clamp01(percent) * 100}%`,
+            height: '100%',
+            bgcolor: color,
+            borderRadius: 3,
+          }}
+        />
+      </Box>
 
       {subtitle ? (
         <Typography
           variant="caption"
-          sx={{ color: 'text.secondary', ml: 2.2 }}
+          color="text.secondary"
         >
           {subtitle}
         </Typography>
@@ -127,402 +147,333 @@ function LegendRow(props: {
   );
 }
 
-/** Footer compacto SIEMPRE bonito debajo del split */
-function SplitFooter(props: { senders: number; non: number; sp: number; np: number }) {
-  const { senders, non, sp, np } = props;
-
-  return (
-    <Stack
-      direction={{ xs: 'column', sm: 'row' }}
-      alignItems={{ xs: 'flex-start', sm: 'center' }}
-      justifyContent="space-between"
-      spacing={{ xs: 0.6, sm: 1.2 }}
-      sx={{ width: '100%' }}
-    >
-      <Typography
-        variant="caption"
-        sx={{ color: 'text.secondary', fontWeight: 850 }}
-      >
-        SENDERS <b>{num(senders)}</b> • {pct01(sp)}
-      </Typography>
-
-      <Typography
-        variant="caption"
-        sx={{ color: 'text.secondary', fontWeight: 850 }}
-      >
-        NON-SENDERS <b>{num(non)}</b> • {pct01(np)}
-      </Typography>
-
-      <Typography
-        variant="caption"
-        sx={{ color: 'text.secondary', fontWeight: 850 }}
-      >
-        SPLIT{' '}
-        <b>
-          {pct01(sp)} / {pct01(np)}
-        </b>
-      </Typography>
-    </Stack>
-  );
-}
-
-// Oculta el legend interno de x-charts (porque hacemos el nuestro).
-// No usa estado del componente; hoisted a module scope.
-const hideInternalLegendSx = {
-  '& .MuiChartsLegend-root': { display: 'none !important' },
-  '& .MuiChartsLegend-series': { display: 'none !important' },
-  '& .MuiChartsLegend-label': { display: 'none !important' },
-} as const;
-
-/* ============================== Main ============================== */
 export function AudienceCharts(props: Props) {
   const { summary, weekly, loading, weeklyError } = props;
   const theme = useTheme();
   const mdDown = useMediaQuery(theme.breakpoints.down('md'));
+  const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
 
-  const cSenders = theme.palette.primary.main;
+  const cSenders = theme.palette.success.main;
   const cNon = theme.palette.warning.main;
 
-  /* ----------------------------- Donut dataset ---------------------------- */
   const donut = useMemo(() => {
     const senders = safeNum(summary?.senders?.audienceCurr ?? summary?.chart?.values?.[0]);
     const non = safeNum(summary?.nonSenders?.audienceCurr ?? summary?.chart?.values?.[1]);
     const total = senders + non;
 
-    const sp = total ? senders / total : 0;
-    const np = total ? non / total : 0;
-
     return {
       senders,
       non,
       total,
-      sp: clamp01(sp),
-      np: clamp01(np),
+      sp: clamp01(total ? senders / total : 0),
+      np: clamp01(total ? non / total : 0),
       data: [
-        { id: 0, value: senders, label: 'Senders' },
-        { id: 1, value: non, label: 'Non-senders' },
+        { id: 0, value: senders, label: 'Con campañas', color: cSenders },
+        { id: 1, value: non, label: 'Sin campañas', color: cNon },
       ],
     };
-  }, [summary]);
+  }, [summary, cSenders, cNon]);
 
-  /* ------------------------------ Weekly chart ---------------------------- */
   const weeklyChart = useMemo(() => {
     const data = weekly?.data ?? [];
     const labels = data.map((x: any) => shortWeekLabel(x.label ?? ''));
 
     const sendersGrowth = data.map((x: any) => pickGrowth(x.senders));
     const nonGrowth = data.map((x: any) => pickGrowth(x.nonSenders));
-    const totalGrowth = data.map((x: any) => pickGrowth(x.senders) + pickGrowth(x.nonSenders));
 
-    const maxTotal = totalGrowth.reduce((m, v) => Math.max(m, safeNum(v)), 0);
-    const maxY = Math.max(1, Math.ceil(maxTotal * 1.15));
+    // Dominio a partir de los datos reales. Con min fijo en 0 las semanas
+    // negativas desaparecían del gráfico.
+    const all = [...sendersGrowth, ...nonGrowth].map(safeNum);
+    const rawMax = all.length ? Math.max(...all) : 0;
+    const rawMin = all.length ? Math.min(...all) : 0;
+    const pad = Math.max(1, Math.ceil(Math.max(Math.abs(rawMax), Math.abs(rawMin)) * 0.12));
 
-    return { labels, sendersGrowth, nonGrowth, totalGrowth, maxY };
+    return {
+      labels,
+      sendersGrowth,
+      nonGrowth,
+      max: Math.max(rawMax + pad, 1),
+      min: rawMin < 0 ? rawMin - pad : 0,
+      hasNegative: rawMin < 0,
+    };
   }, [weekly]);
 
   const weeklyTotals = useMemo(() => {
-    const s = weeklyChart.sendersGrowth.reduce((a, b) => a + safeNum(b), 0);
-    const n = weeklyChart.nonGrowth.reduce((a, b) => a + safeNum(b), 0);
+    const s = weeklyChart.sendersGrowth.reduce((a: number, b: any) => a + safeNum(b), 0);
+    const n = weeklyChart.nonGrowth.reduce((a: number, b: any) => a + safeNum(b), 0);
     return { senders: s, non: n, total: s + n };
   }, [weeklyChart]);
 
   const hasWeeklyData =
-    weeklyChart.sendersGrowth.some((v) => safeNum(v) !== 0) ||
-    weeklyChart.nonGrowth.some((v) => safeNum(v) !== 0);
+    weeklyChart.sendersGrowth.some((v: any) => safeNum(v) !== 0) ||
+    weeklyChart.nonGrowth.some((v: any) => safeNum(v) !== 0);
 
-  const donutBg = `radial-gradient(900px circle at 15% 0%, ${alpha(
-    theme.palette.primary.main,
-    0.09
-  )}, transparent 55%),
-  radial-gradient(900px circle at 95% 5%, ${alpha(
-    theme.palette.warning.main,
-    0.08
-  )}, transparent 55%)`;
+  const axisSx = {
+    '& .MuiChartsAxis-line, & .MuiChartsAxis-tick': {
+      stroke: alpha(theme.palette.text.primary, 0.15),
+    },
+    '& .MuiChartsAxis-tickLabel': { fill: theme.palette.text.secondary, fontSize: 11 },
+    '& .MuiChartsGrid-line': {
+      stroke: alpha(theme.palette.text.primary, 0.08),
+      strokeDasharray: '3 3',
+    },
+  } as const;
 
   return (
-    <Stack spacing={2.25}>
-      {loading ? <LinearProgress /> : null}
-
-      <Stack
-        direction={{ xs: 'column', md: 'row' }}
-        spacing={2.25}
-        alignItems="stretch"
+    <Box
+      sx={{
+        display: 'grid',
+        gap: 2.5,
+        gridTemplateColumns: { xs: '1fr', lg: '5fr 7fr' },
+        alignItems: 'stretch',
+      }}
+    >
+      {/* ===================== Reparto de la audiencia ===================== */}
+      <PanelCard
+        title="Reparto de la audiencia"
+        subtitle="Cuánta se está usando y cuánta está parada"
+        right={
+          <TonePill
+            label={`Total ${num(donut.total)}`}
+            tone="primary"
+          />
+        }
       >
-        {/* ============================== Audience Split ============================== */}
-        <Box sx={{ flex: { xs: '1 1 auto', md: '0 0 46%' }, minWidth: 0 }}>
-          <GlassCard
-            title="Audience Split"
-            right={
-              <Chip
-                size="small"
-                label={`Total: ${num(donut.total)}`}
-                sx={{
-                  fontWeight: 950,
-                  borderRadius: 999,
-                  bgcolor: alpha(theme.palette.common.white, 0.55),
-                }}
-              />
-            }
+        {loading && !donut.total ? (
+          <Skeleton
+            variant="rounded"
+            height={260}
+          />
+        ) : donut.total === 0 ? (
+          <Stack
+            alignItems="center"
+            justifyContent="center"
+            sx={{ height: 260 }}
           >
-            <Divider sx={{ mb: 1.25 }} />
-
-            {/* donut a la izquierda + info a la derecha */}
-            <Stack
-              direction={{ xs: 'column', sm: 'row' }}
-              spacing={2}
-              alignItems="stretch"
+            <Typography
+              variant="body2"
+              color="text.secondary"
             >
-              {/* LEFT: donut */}
-              <Box
-                sx={{
-                  ...hideInternalLegendSx,
-                  position: 'relative',
-                  flex: { xs: '1 1 auto', sm: '0 0 300px' },
-                  height: { xs: 300, sm: 300 },
-                  borderRadius: 3,
-                  background: donutBg,
-                  display: 'grid',
-                  placeItems: 'center',
-                  overflow: 'hidden',
-                }}
-              >
-                {/* Center overlay */}
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    inset: 0,
-                    display: 'grid',
-                    placeItems: 'center',
-                    pointerEvents: 'none',
-                    zIndex: 2,
-                    textAlign: 'center',
-                    px: 2,
-                  }}
-                >
-                  <Stack
-                    alignItems="center"
-                    spacing={0.55}
-                  >
-                    <Typography
-                      sx={{
-                        fontWeight: 1000,
-                        fontSize: { xs: 28, sm: 30 },
-                        letterSpacing: -0.9,
-                        lineHeight: 1,
-                      }}
-                    >
-                      {num(donut.total)}
-                    </Typography>
-
-                    <Typography
-                      variant="caption"
-                      sx={{ color: 'text.secondary', fontWeight: 850, letterSpacing: 0.6 }}
-                    >
-                      TOTAL AUDIENCE
-                    </Typography>
-
-                    <Stack
-                      direction="row"
-                      spacing={1}
-                      sx={{ mt: 0.2, flexWrap: 'wrap', justifyContent: 'center' }}
-                    >
-                      <Chip
-                        size="small"
-                        label={`Senders ${pct01(donut.sp)}`}
-                        sx={{
-                          fontWeight: 950,
-                          borderRadius: 999,
-                          bgcolor: alpha(cSenders, 0.12),
-                          color: theme.palette.primary.dark,
-                        }}
-                      />
-                      <Chip
-                        size="small"
-                        label={`Non ${pct01(donut.np)}`}
-                        sx={{
-                          fontWeight: 950,
-                          borderRadius: 999,
-                          bgcolor: alpha(cNon, 0.14),
-                          color: theme.palette.warning.dark,
-                        }}
-                      />
-                    </Stack>
-                  </Stack>
-                </Box>
-
-                {/* Donut (sin cx/cy fijos para que no se corte) */}
-                <Box sx={{ width: '100%', maxWidth: 420, mx: 'auto' }}>
-                  <PieChart
-                    height={300}
-                    series={[
-                      {
-                        data: donut.data,
-                        innerRadius: 92,
-                        outerRadius: 140,
-                        paddingAngle: 3,
-                        cornerRadius: 12,
-                        valueFormatter: (v: any) => num(safeNum(v)),
-                      },
-                    ]}
-                    margin={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  />
-                </Box>
-              </Box>
-
-              {/* RIGHT: legend/info */}
-              <Stack
-                spacing={1.4}
-                sx={{
-                  flex: 1,
-                  minWidth: 0,
-                  justifyContent: 'center',
-                }}
-              >
-                <Stack
-                  spacing={1.2}
-                  sx={{ mt: 1.4 }}
-                >
-                  <LegendRow
-                    label="Senders"
-                    value={donut.senders}
-                    percent={donut.sp}
-                    color={cSenders}
-                    subtitle="Audience generated by campaign-active stores"
-                  />
-
-                  <LegendRow
-                    label="Non-senders"
-                    value={donut.non}
-                    percent={donut.np}
-                    color={cNon}
-                    subtitle="Audience from stores without campaigns"
-                  />
-                </Stack>
-              </Stack>
-            </Stack>
-
-            {/* Footer EXACTAMENTE abajo del split */}
-            <Divider sx={{ my: 1.25 }} />
-            <SplitFooter
-              senders={donut.senders}
-              non={donut.non}
-              sp={donut.sp}
-              np={donut.np}
-            />
-          </GlassCard>
-        </Box>
-
-        {/* ============================== Weekly Movement ============================== */}
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <GlassCard
-            title="Weekly Movement"
-            right={
-              <Chip
-                size="small"
-                label={`Weeks: ${weekly?.meta?.weeks || weeklyChart.labels.length || 0}`}
-                sx={{
-                  fontWeight: 900,
-                  borderRadius: 999,
-                  bgcolor: alpha(theme.palette.common.white, 0.55),
-                }}
+              Todavía no hay audiencia registrada en este período.
+            </Typography>
+          </Stack>
+        ) : (
+          <Stack gap={2}>
+            <Box
+              sx={{
+                position: 'relative',
+                height: 240,
+                display: 'grid',
+                placeItems: 'center',
+              }}
+            >
+              <PieChart
+                height={240}
+                hideLegend
+                skipAnimation={reduceMotion}
+                series={[
+                  {
+                    data: donut.data,
+                    innerRadius: 74,
+                    outerRadius: 104,
+                    paddingAngle: 2,
+                    cornerRadius: 3,
+                    valueFormatter: (v: any) => num(safeNum(v?.value ?? v)),
+                  },
+                ]}
+                margin={{ top: 8, bottom: 8, left: 8, right: 8 }}
               />
-            }
+
+              {/* Total al centro: es el número que se busca primero. */}
+              <Stack
+                alignItems="center"
+                sx={{
+                  position: 'absolute',
+                  inset: 0,
+                  justifyContent: 'center',
+                  pointerEvents: 'none',
+                }}
+              >
+                <Typography
+                  variant="h4"
+                  sx={{ fontWeight: 700, lineHeight: 1, ...numeric }}
+                >
+                  {num(donut.total)}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                >
+                  contactos
+                </Typography>
+              </Stack>
+            </Box>
+
+            <Stack gap={1.75}>
+              <LegendRow
+                label="Con campañas"
+                value={donut.senders}
+                percent={donut.sp}
+                color={cSenders}
+                subtitle="Negocios que enviaron al menos una campaña en el período"
+              />
+              <LegendRow
+                label="Sin campañas"
+                value={donut.non}
+                percent={donut.np}
+                color={cNon}
+                subtitle="Audiencia parada: está cargada pero no recibe nada"
+              />
+            </Stack>
+          </Stack>
+        )}
+      </PanelCard>
+
+      {/* ===================== Movimiento semanal ===================== */}
+      <PanelCard
+        title="Movimiento semanal"
+        subtitle="Neto de altas menos bajas, semana por semana"
+        right={
+          <Stack
+            direction="row"
+            gap={0.75}
+            flexWrap="wrap"
           >
-            <Divider sx={{ mb: 1.25 }} />
+            <TonePill
+              label={`Con campañas ${fmtSigned(weeklyTotals.senders)}`}
+              tone="success"
+            />
+            <TonePill
+              label={`Sin campañas ${fmtSigned(weeklyTotals.non)}`}
+              tone="warning"
+            />
+            <TonePill
+              label={`Neto ${fmtSigned(weeklyTotals.total)}`}
+              tone={weeklyTotals.total >= 0 ? 'primary' : 'error'}
+            />
+          </Stack>
+        }
+      >
+        {weeklyError ? (
+          <Stack
+            alignItems="center"
+            justifyContent="center"
+            gap={0.5}
+            sx={{ height: 300 }}
+          >
+            <Typography
+              variant="body2"
+              color="error"
+            >
+              No se pudo cargar el desglose semanal.
+            </Typography>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+            >
+              El resto de la página sigue funcionando.
+            </Typography>
+          </Stack>
+        ) : loading && !hasWeeklyData ? (
+          <Skeleton
+            variant="rounded"
+            height={mdDown ? 280 : 320}
+          />
+        ) : !hasWeeklyData ? (
+          <Stack
+            alignItems="center"
+            justifyContent="center"
+            sx={{ height: 300 }}
+          >
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              textAlign="center"
+            >
+              Ninguna semana del período tuvo altas ni bajas.
+            </Typography>
+          </Stack>
+        ) : (
+          <>
+            <Box sx={axisSx}>
+              <BarChart
+                height={mdDown ? 280 : 320}
+                hideLegend
+                skipAnimation={reduceMotion}
+                grid={{ horizontal: true }}
+                borderRadius={4}
+                xAxis={[{ scaleType: 'band', data: weeklyChart.labels }]}
+                yAxis={[
+                  {
+                    min: weeklyChart.min,
+                    max: weeklyChart.max,
+                    valueFormatter: (v: any) => num(safeNum(v)),
+                  },
+                ]}
+                series={[
+                  {
+                    data: weeklyChart.sendersGrowth,
+                    label: 'Con campañas',
+                    color: cSenders,
+                    valueFormatter: (v: any) => fmtSigned(safeNum(v)),
+                  },
+                  {
+                    data: weeklyChart.nonGrowth,
+                    label: 'Sin campañas',
+                    color: cNon,
+                    valueFormatter: (v: any) => fmtSigned(safeNum(v)),
+                  },
+                ]}
+                margin={{ left: 62, right: 12, top: 8, bottom: 44 }}
+              />
+            </Box>
 
             <Stack
               direction="row"
-              spacing={1}
+              justifyContent="space-between"
+              alignItems="center"
+              gap={1}
               flexWrap="wrap"
-              sx={{ mb: 1 }}
+              sx={{ mt: 1 }}
             >
-              <MetricPill
-                label={`Senders ${fmtSigned(weeklyTotals.senders)}`}
-                tone="primary"
-              />
-              <MetricPill
-                label={`Non-senders ${fmtSigned(weeklyTotals.non)}`}
-                tone="info"
-              />
-              <MetricPill
-                label={`Total ${fmtSigned(weeklyTotals.total)}`}
-                tone="success"
-              />
+              <Stack
+                direction="row"
+                gap={1.5}
+                flexWrap="wrap"
+              >
+                {[
+                  { label: 'Con campañas', color: cSenders },
+                  { label: 'Sin campañas', color: cNon },
+                ].map((s) => (
+                  <Stack
+                    key={s.label}
+                    direction="row"
+                    alignItems="center"
+                    gap={0.75}
+                  >
+                    <Box sx={{ width: 10, height: 10, borderRadius: 0.5, bgcolor: s.color }} />
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      {s.label}
+                    </Typography>
+                  </Stack>
+                ))}
+              </Stack>
+
+              <Typography
+                variant="caption"
+                color="text.disabled"
+              >
+                {weeklyChart.hasNegative
+                  ? 'Las barras bajo la línea de cero son semanas con más bajas que altas.'
+                  : 'Pasá el mouse por una barra para ver el valor exacto.'}
+              </Typography>
             </Stack>
-
-            {!hasWeeklyData ? (
-              <Typography
-                variant="body2"
-                sx={{ color: 'text.secondary', p: 2 }}
-              >
-                No weekly net growth for this period.
-              </Typography>
-            ) : (
-              <Box
-                sx={{
-                  ...hideInternalLegendSx,
-                  borderRadius: 3,
-                  p: 1,
-                  background: `linear-gradient(180deg, ${alpha(
-                    theme.palette.common.white,
-                    0.35
-                  )}, transparent)`,
-                }}
-              >
-                <BarChart
-                  height={mdDown ? 300 : 340}
-                  xAxis={[
-                    {
-                      scaleType: 'band',
-                      data: weeklyChart.labels,
-                      tickLabelStyle: { fontSize: 11 },
-                    },
-                  ]}
-                  yAxis={[
-                    {
-                      min: 0,
-                      max: weeklyChart.maxY,
-                      valueFormatter: (v) => fmtSigned(safeNum(v)),
-                    },
-                  ]}
-                  series={[
-                    {
-                      data: weeklyChart.sendersGrowth,
-                      label: 'Senders (net)',
-                      stack: 'growth',
-                      valueFormatter: (v) => fmtSigned(safeNum(v)),
-                    },
-                    {
-                      data: weeklyChart.nonGrowth,
-                      label: 'Non-senders (net)',
-                      stack: 'growth',
-                      valueFormatter: (v) => fmtSigned(safeNum(v)),
-                    },
-                  ]}
-                  margin={{ left: 75, right: 18, top: 14, bottom: 50 }}
-                />
-              </Box>
-            )}
-
-            <Typography
-              variant="caption"
-              sx={{ color: 'text.secondary', mt: 1, display: 'block' }}
-            >
-              Hover bars to see exact values.
-            </Typography>
-
-            {weeklyError ? (
-              <Typography
-                color="error"
-                variant="body2"
-                sx={{ mt: 1 }}
-              >
-                Weekly breakdown failed. Verify /campaigns/audience/weekly.
-              </Typography>
-            ) : null}
-          </GlassCard>
-        </Box>
-      </Stack>
-    </Stack>
+          </>
+        )}
+      </PanelCard>
+    </Box>
   );
 }

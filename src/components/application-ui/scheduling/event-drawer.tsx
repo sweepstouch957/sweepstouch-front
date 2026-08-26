@@ -29,13 +29,23 @@ import LocationCityTwoToneIcon from '@mui/icons-material/LocationCityTwoTone';
 import MessageTwoToneIcon from '@mui/icons-material/MessageTwoTone';
 import { format, isPast, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { BUSINESS_TYPE_META } from '@/components/audience/business-types';
 
 interface EventDrawerProps {
     event: any;
     onClose: () => void;
     onReschedule?: (id: string, data: { date: string; time: string; scheduledAt: string; timezone?: string }) => Promise<unknown>;
     rescheduling?: boolean;
+    /** Sólo para leads (`source === 'store-request'`): guarda el rubro del negocio. */
+    onBusinessTypeChange?: (id: string, businessType: string) => Promise<unknown>;
+    savingBusinessType?: boolean;
 }
+
+/** Rubros del negocio, del mismo mapa que usa el dashboard de audiencia. */
+const BUSINESS_TYPE_OPTIONS = Object.entries(BUSINESS_TYPE_META).map(([value, meta]) => ({
+    value,
+    label: meta.label
+}));
 
 const MERIDIEM_OPTIONS = ['AM', 'PM'] as const;
 type Meridiem = (typeof MERIDIEM_OPTIONS)[number];
@@ -115,7 +125,14 @@ function isLinkDisabled(dateStr: string, timeStr: string) {
     }
 }
 
-const EventDrawer: React.FC<EventDrawerProps> = ({ event, onClose, onReschedule, rescheduling = false }) => {
+const EventDrawer: React.FC<EventDrawerProps> = ({
+    event,
+    onClose,
+    onReschedule,
+    rescheduling = false,
+    onBusinessTypeChange,
+    savingBusinessType = false
+}) => {
     const theme = useTheme();
     const [isRescheduling, setIsRescheduling] = useState(false);
     const [showMoreInfo, setShowMoreInfo] = useState(false);
@@ -139,7 +156,9 @@ const EventDrawer: React.FC<EventDrawerProps> = ({ event, onClose, onReschedule,
         city,
         zipCode,
         estimatedVolume,
-        timezone
+        timezone,
+        source,
+        businessType
     } = event || {};
 
     // Fallback if event is null
@@ -289,6 +308,74 @@ const EventDrawer: React.FC<EventDrawerProps> = ({ event, onClose, onReschedule,
                                     </Typography>
                                 </Stack>
                             )}
+
+                            {/* El rubro se edita sólo en leads: en una cita ya
+                                confirmada el dato vive en la tienda, no acá. */}
+                            {source === 'store-request' && onBusinessTypeChange ? (
+                                <Stack
+                                    direction="row"
+                                    spacing={1}
+                                    alignItems="center"
+                                >
+                                    <StorefrontTwoToneIcon
+                                        fontSize="small"
+                                        color="secondary"
+                                    />
+                                    <Typography
+                                        variant="body2"
+                                        fontWeight={500}
+                                        minWidth={100}
+                                    >
+                                        Rubro:
+                                    </Typography>
+                                    <TextField
+                                        select
+                                        size="small"
+                                        value={businessType || 'unknown'}
+                                        disabled={savingBusinessType}
+                                        onChange={(e) => {
+                                            if (!id) return;
+                                            onBusinessTypeChange(id, e.target.value);
+                                        }}
+                                        sx={{ minWidth: 190 }}
+                                        helperText={
+                                            (businessType || 'unknown') === 'unknown'
+                                                ? 'Sin cargar se infiere del nombre'
+                                                : undefined
+                                        }
+                                    >
+                                        {BUSINESS_TYPE_OPTIONS.map((opt) => (
+                                            <MenuItem
+                                                key={opt.value}
+                                                value={opt.value}
+                                            >
+                                                {opt.label}
+                                            </MenuItem>
+                                        ))}
+                                    </TextField>
+                                </Stack>
+                            ) : businessType && businessType !== 'unknown' ? (
+                                <Stack
+                                    direction="row"
+                                    spacing={1}
+                                    alignItems="center"
+                                >
+                                    <StorefrontTwoToneIcon
+                                        fontSize="small"
+                                        color="secondary"
+                                    />
+                                    <Typography
+                                        variant="body2"
+                                        fontWeight={500}
+                                        minWidth={100}
+                                    >
+                                        Rubro:
+                                    </Typography>
+                                    <Typography variant="body2">
+                                        {BUSINESS_TYPE_META[businessType as keyof typeof BUSINESS_TYPE_META]?.label || businessType}
+                                    </Typography>
+                                </Stack>
+                            ) : null}
 
                             {estimatedVolume && (
                                 <Stack direction="row" spacing={1} alignItems="center">

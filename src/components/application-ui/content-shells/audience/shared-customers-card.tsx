@@ -1,20 +1,19 @@
 'use client';
 
 /**
- * Clientes compartidos entre tiendas.
+ * Clientes compartidos entre negocios.
  *
- * La suma de `customerCount` de todas las tiendas no son personas: un número que
- * está en tres súperes se cuenta tres veces, se le manda tres veces y se factura
+ * La suma de `customerCount` de todos los negocios no son personas: un número que
+ * está en tres negocios se cuenta tres veces, se le manda tres veces y se factura
  * tres veces. Esta tarjeta muestra la brecha entre pertenencias y personas.
  */
-
+import { PanelCard, numeric as tabular } from '@/components/audience/ui';
 import { useMultiStoreCustomers } from '@/hooks/fetching/campaigns/useAudience';
 import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import {
   Alert,
   Box,
-  Card,
   Chip,
   Collapse,
   Divider,
@@ -28,9 +27,7 @@ import { alpha, useTheme } from '@mui/material/styles';
 import React, { useState } from 'react';
 
 const nf = new Intl.NumberFormat('es-US');
-
-/** Cifras en tabular para que no bailen los anchos al refrescar. */
-const numeric = { fontVariantNumeric: 'tabular-nums' } as const;
+const numeric = tabular;
 
 function Stat({
   label,
@@ -86,48 +83,13 @@ export default function SharedCustomersCard() {
   });
 
   return (
-    <Card sx={{ p: 2.5 }}>
-      <Stack
-        direction="row"
-        alignItems="center"
-        gap={1.5}
-        sx={{ mb: 2 }}
-      >
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 38,
-            height: 38,
-            borderRadius: 2,
-            flexShrink: 0,
-            color: 'info.main',
-            bgcolor: alpha(theme.palette.info.main, 0.12),
-          }}
-        >
-          <GroupsRoundedIcon fontSize="small" />
-        </Box>
-        <Box minWidth={0}>
-          <Typography
-            variant="subtitle1"
-            fontWeight={700}
-            lineHeight={1.2}
-          >
-            Clientes compartidos
-          </Typography>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-          >
-            Números que están en más de una tienda
-          </Typography>
-        </Box>
-      </Stack>
-
-      {isError && (
-        <Alert severity="error">No se pudo calcular. Reintentá en unos minutos.</Alert>
-      )}
+    <PanelCard
+      title="Clientes compartidos"
+      subtitle="Números que están en más de un negocio"
+      icon={<GroupsRoundedIcon fontSize="small" />}
+      tone="info"
+    >
+      {isError && <Alert severity="error">No se pudo calcular. Reintentá en unos minutos.</Alert>}
 
       {isLoading && !data && (
         <Stack gap={1.5}>
@@ -158,10 +120,10 @@ export default function SharedCustomersCard() {
             <Stat
               label="Personas distintas"
               value={nf.format(data.withAnyStore)}
-              hint="Con al menos una tienda"
+              hint="Con al menos un negocio"
             />
             <Stat
-              label="En 2 o más tiendas"
+              label="En 2 o más negocios"
               value={nf.format(data.inTwoPlus)}
               tone={theme.palette.warning.main}
             />
@@ -208,9 +170,9 @@ export default function SharedCustomersCard() {
               variant="caption"
               color="text.secondary"
             >
-              Las tiendas suman {nf.format(data.totalMemberships)} contactos, pero son{' '}
-              {nf.format(data.withAnyStore)} personas ({data.avgStoresPerCustomer.toFixed(2)} tiendas
-              por persona). A esa gente le llega la campaña de cada tienda por separado.
+              Los negocios suman {nf.format(data.totalMemberships)} contactos, pero son{' '}
+              {nf.format(data.withAnyStore)} personas ({data.avgStoresPerCustomer.toFixed(2)}{' '}
+              negocios por persona). A esa gente le llega la campaña de cada negocio por separado.
             </Typography>
             {/* La barra da la proporción de un vistazo; el % de arriba da el dato exacto. */}
             <LinearProgress
@@ -231,7 +193,7 @@ export default function SharedCustomersCard() {
               onClick={() => setShowList((v) => !v)}
               aria-expanded={showList}
             >
-              {showList ? 'Ocultar' : `Ver los que están en más de ${data.minStores - 1} tiendas`}
+              {showList ? 'Ocultar' : `Ver los que están en más de ${data.minStores - 1} negocios`}
             </Link>
           </Box>
 
@@ -250,7 +212,7 @@ export default function SharedCustomersCard() {
                 color="text.secondary"
                 sx={{ mt: 1.5 }}
               >
-                Ningún cliente llega a ese número de tiendas.
+                Ningún cliente llega a ese número de negocios.
               </Typography>
             )}
 
@@ -285,12 +247,15 @@ export default function SharedCustomersCard() {
                         variant="caption"
                         color="text.secondary"
                         noWrap
-                        title={c.stores.map((s) => s.name).filter(Boolean).join(' · ')}
+                        title={c.stores
+                          .map((s) => s.name)
+                          .filter(Boolean)
+                          .join(' · ')}
                       >
                         {c.stores
                           .map((s) => s.name)
                           .filter(Boolean)
-                          .join(' · ') || 'Tiendas sin nombre'}
+                          .join(' · ') || 'Negocios sin nombre'}
                       </Typography>
                     </Stack>
                     <Chip
@@ -308,6 +273,6 @@ export default function SharedCustomersCard() {
           </Collapse>
         </>
       )}
-    </Card>
+    </PanelCard>
   );
 }

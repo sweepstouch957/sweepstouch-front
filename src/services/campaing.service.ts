@@ -490,16 +490,43 @@ export interface MultiStoreQueryParams {
 
 /**
  * Qué es el vecino, porque la acción comercial cambia en cada caso:
- * - `own_sender`: súper nuestro que ya manda campañas → activar, no vender.
- * - `own_idle`: súper nuestro dormido → ya es cliente.
- * - `lead`: súper de afuera (está en StoreRequest) → hay que salir a venderlo.
+ * - `own_sender`: negocio nuestro que ya manda campañas → activar, no vender.
+ * - `own_idle`: negocio nuestro dormido → ya es cliente.
+ * - `lead`: negocio de afuera (está en StoreRequest) → hay que salir a venderlo.
  */
 export type NeighborKind = 'own_sender' | 'own_idle' | 'lead';
+
+/**
+ * Rubro del negocio. Espeja el enum de `@sweepstouch/mongoose-kit`
+ * (`business-types.js`): si allá se agrega uno, acá también.
+ *
+ * Cuando el negocio no lo tiene cargado, el backend lo infiere del nombre; si
+ * ni eso alcanza, llega `unknown`.
+ */
+export type BusinessType =
+  | 'supermarket'
+  | 'restaurant'
+  | 'gym'
+  | 'pharmacy'
+  | 'bakery'
+  | 'liquor'
+  | 'convenience'
+  | 'beauty'
+  | 'retail'
+  | 'other'
+  | 'unknown';
+
+export interface BusinessTypeBreakdown {
+  type: BusinessType;
+  stores: number;
+  audience: number;
+}
 
 export interface NearbyStore {
   id: string;
   name: string;
   kind: NeighborKind;
+  businessType: BusinessType;
   zipCode: string | null;
   city: string | null;
   /** null en los de afuera: no son nuestros, no sabemos su audiencia. */
@@ -516,6 +543,7 @@ export interface NonSenderNearbyRow {
     name: string;
     slug: string;
     zipCode: string | null;
+    businessType: BusinessType;
     audience: number;
     hasLocation: boolean;
   };
@@ -525,10 +553,14 @@ export interface NonSenderNearbyRow {
 export interface NonSendersNearbyResponse {
   period: { start: string; end: string };
   radiusKm: number;
+  /** Rubros pedidos en la query. Vacío = sin filtro. */
+  businessTypeFilter: BusinessType[];
+  /** Desglose por rubro de TODA la audiencia parada, sin el filtro aplicado. */
+  byBusinessType: BusinessTypeBreakdown[];
   totalNonSenderAudience: number;
-  /** Tiene un súper nuestro al lado que ya manda: se activa. */
+  /** Tiene un negocio nuestro al lado que ya manda: se activa. */
   reachableAudience: number;
-  /** Sólo hay súperes de afuera cerca: hay que venderlos. */
+  /** Sólo hay negocios de afuera cerca: hay que venderlos. */
   prospectAudience: number;
   /** Nadie alrededor. Ni activar ni vender. */
   isolatedAudience: number;
@@ -540,6 +572,8 @@ export interface NonSendersNearbyQueryParams extends AudienceQueryParams {
   limit?: number;
   radiusKm?: number;
   neighbors?: number;
+  /** Rubros a incluir. El backend espera `a,b`; el cliente arma la lista. */
+  businessType?: BusinessType[];
 }
 
 /* ========================= CLIENTE ========================= */
@@ -551,17 +585,20 @@ class CampaignClient {
 
   /* ===================== AUDIENCE — insights nuevos ===================== */
 
-  /** Clientes compartidos entre tiendas. Barrido de colección: cache de 30 min en el backend. */
+  /** Clientes compartidos entre negocios. Barrido de colección: cache de 30 min en el backend. */
   async getMultiStoreCustomers(params: MultiStoreQueryParams = {}): Promise<MultiStoreResponse> {
     const res = await api.get(`${AUDIENCE_BASE}/multi-store`, { params });
     return res.data as MultiStoreResponse;
   }
 
-  /** Tiendas sin campañas y los súperes de su zona que sí mandan. */
+  /** Negocios sin campañas y lo que tienen alrededor, sea del rubro que sea. */
   async getNonSendersNearby(
     params: NonSendersNearbyQueryParams = {}
   ): Promise<NonSendersNearbyResponse> {
-    const res = await api.get(`${AUDIENCE_BASE}/non-senders/nearby`, { params });
+    const { businessType, ...rest } = params;
+    const res = await api.get(`${AUDIENCE_BASE}/non-senders/nearby`, {
+      params: { ...rest, ...(businessType?.length ? { businessType: businessType.join(',') } : {}) },
+    });
     return res.data as NonSendersNearbyResponse;
   }
 

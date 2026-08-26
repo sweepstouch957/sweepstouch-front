@@ -26,6 +26,12 @@ export const MERCHANT_ORIGIN = origin(process.env.NEXT_PUBLIC_MERCHANT_ORIGIN, '
 /** Opt-in público: el destino de los QR impresos. */
 export const OPTIN_ORIGIN = origin(process.env.NEXT_PUBLIC_OPTIN_ORIGIN, 'https://st.sweepstouch.com');
 
+/** Landings de sorteo — la app de sweepstakes. */
+export const SWEEPSTAKES_ORIGIN = origin(
+  process.env.NEXT_PUBLIC_SWEEPSTAKES_ORIGIN,
+  'https://sorteos.sweepstouch.com'
+);
+
 /**
  * Link del kiosko para una tienda. Es el que carga soporte técnico en las
  * tablets. Devuelve '' sin slug para que el caller decida qué mostrar.
@@ -47,6 +53,16 @@ export function linktreeUrl(slug?: string | null): string {
 /** Opt-in público de la tienda (QR impreso, tablet). */
 export function optinUrl(slug?: string | null): string {
   return slug ? `${OPTIN_ORIGIN}/?slug=${encodeURIComponent(slug)}` : '';
+}
+
+/**
+ * Landing pública del sorteo: la persona elige negocios, verifica su número por
+ * SMS y queda registrada. Es el link que se comparte en redes y por WhatsApp.
+ */
+export function sweepstakeLandingUrl(sweepstakeId?: string | null): string {
+  return sweepstakeId
+    ? `${SWEEPSTAKES_ORIGIN}/sweepstakes/${encodeURIComponent(sweepstakeId)}/participar`
+    : '';
 }
 
 /**

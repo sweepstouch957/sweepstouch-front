@@ -11,7 +11,6 @@
  * Ahora se piden dos, y cada bloque muestra su propio esqueleto en vez de
  * bloquear la página entera hasta que termina la query más lenta.
  */
-
 import { AudienceCharts } from '@/components/audience/AudienceCharts';
 import { AudienceKpis } from '@/components/audience/AudienceKpis';
 import { AudienceSummaryExecutive } from '@/components/audience/AudienceSummaryExecutive';
@@ -22,7 +21,7 @@ import type {
   WeeklyBreakdownQueryParams,
 } from '@/services/campaing.service';
 import InsightsRoundedIcon from '@mui/icons-material/InsightsRounded';
-import { Alert, Box, Container, Grid, Stack } from '@mui/material';
+import { Alert, Box, Container, Stack } from '@mui/material';
 import React, { useMemo, useState } from 'react';
 import PageHeading from 'src/components/base/page-heading';
 import AudienceFilters from './audience-filters';
@@ -104,6 +103,7 @@ export default function Audience(): React.JSX.Element {
         <AudienceKpis
           senders={summary.data?.senders}
           nonSenders={summary.data?.nonSenders}
+          loading={summary.isLoading}
         />
 
         <AudienceCharts
@@ -116,25 +116,17 @@ export default function Audience(): React.JSX.Element {
         {/* Los dos bloques nuevos van juntos: uno dice cuántas personas hay de
             verdad detrás de los contactos, el otro a cuántas no les llega nada.
             Cada uno tiene su propia query y su propio esqueleto. */}
-        <Grid
-          container
-          spacing={2.5}
+        <Box
+          sx={{
+            display: 'grid',
+            gap: 2.5,
+            gridTemplateColumns: { xs: '1fr', lg: '5fr 7fr' },
+            alignItems: 'start',
+          }}
         >
-          <Grid
-            item
-            xs={12}
-            lg={5}
-          >
-            <SharedCustomersCard />
-          </Grid>
-          <Grid
-            item
-            xs={12}
-            lg={7}
-          >
-            <NearbyOpportunitiesCard params={baseParams} />
-          </Grid>
-        </Grid>
+          <SharedCustomersCard />
+          <NearbyOpportunitiesCard params={baseParams} />
+        </Box>
 
         <Box>
           <AudienceSummaryExecutive

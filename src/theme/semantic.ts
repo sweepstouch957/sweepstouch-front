@@ -21,6 +21,17 @@ export function tint(theme: Theme, role: SemanticRole = 'primary', amount?: numb
   return alpha(base, a);
 }
 
+/**
+ * Color de TEXTO sobre un fondo `tint()` del mismo rol.
+ *
+ * `palette[role].dark` sobre un tint funciona en light mode y se vuelve
+ * ilegible en dark (oscuro sobre oscuro). Esto invierte el tono según el modo
+ * para que el par cumpla contraste en los dos.
+ */
+export function toneText(theme: Theme, role: SemanticRole = 'primary'): string {
+  return theme.palette.mode === 'dark' ? theme.palette[role].light : theme.palette[role].dark;
+}
+
 /** Borde tenue del mismo rol — para cards/estados destacados. */
 export function tintBorder(theme: Theme, role: SemanticRole = 'primary', amount = 0.25): string {
   return alpha(theme.palette[role].main, amount);

@@ -45,6 +45,7 @@ const buildPatch = (orig, curr) => {
     'address',
     'zipCode',
     'type',
+    'businessType',
     'active',
     'email',
     'phoneNumber',
@@ -148,6 +149,9 @@ export function useStoreEditor(store) {
     address: store.address || '',
     zipCode: store.zipCode || '',
     type: store.type || 'free',
+    // Rubro del negocio (súper, restaurante, gimnasio…). `type` de arriba es el
+    // PLAN, no el rubro: son dos cosas distintas y se guardan aparte.
+    businessType: store.businessType || 'unknown',
     active: !!store.active,
     status: store.status || (store.active ? 'active' : 'inactive'),
     inactiveReason: store.inactiveReason || '',
@@ -289,6 +293,7 @@ export function useStoreEditor(store) {
       address: store.address || '',
       zipCode: store.zipCode || '',
       type: store.type || 'free',
+      businessType: store.businessType || 'unknown',
       active: !!store.active,
       status: store.status || (store.active ? 'active' : 'inactive'),
       inactiveReason: store.inactiveReason || '',

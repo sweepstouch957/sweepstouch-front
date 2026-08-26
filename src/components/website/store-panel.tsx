@@ -4,6 +4,7 @@
 import { MERCHANT_ORIGIN, linktreeUrl } from 'src/utils/sweepstouch-urls';
 
 import ConfirmDialog from '@/components/base/confirm-dialog';
+import { BUSINESS_TYPE_META } from '@/components/audience/business-types';
 import { useStoreEditor } from '@/hooks/pages/useStoreEditor';
 import { usersApi } from '@/mocks/users';
 import { merchantService } from '@/services/merchant.service';
@@ -160,6 +161,19 @@ const MEMBERSHIP_LABEL: Record<string, string> = {
 };
 
 const TYPE_LABEL: Record<string, string> = { elite: 'Elite', basic: 'Basic', free: 'Free' };
+
+/**
+ * Rubro del negocio. `TYPE_LABEL` de arriba es el PLAN (elite/basic/free): son
+ * dos campos distintos y hay que poder cargar los dos. Sin esto el panel no
+ * sabía si un cliente era un súper, un restaurante o un gimnasio, y el cruce
+ * por zona del dashboard de audiencia tenía que adivinarlo por el nombre.
+ *
+ * Las etiquetas salen del mismo mapa que usa el dashboard: dos listas de
+ * rubros se desincronizan el día que se agregue uno.
+ */
+const BUSINESS_TYPE_LABEL: Record<string, string> = Object.fromEntries(
+  Object.entries(BUSINESS_TYPE_META).map(([k, v]) => [k, v.label])
+);
 
 const PAYMENT_LABEL: Record<string, string> = {
   card: 'Tarjeta',
@@ -1109,6 +1123,27 @@ export default function StoreInfo({ store }: { store: Store }) {
                         mono
                         placeholder="mi-tienda"
                       />
+                    }
+                  />
+                  <DataField
+                    editing={enEdicion('identidad')}
+                    label="Rubro"
+                    value={BUSINESS_TYPE_LABEL[form.businessType as string] ?? 'Sin clasificar'}
+                    input={
+                      <Inp
+                        select
+                        value={form.businessType || 'unknown'}
+                        onChange={handleChange('businessType')}
+                      >
+                        {Object.entries(BUSINESS_TYPE_LABEL).map(([v, l]) => (
+                          <MenuItem
+                            key={v}
+                            value={v}
+                          >
+                            {l}
+                          </MenuItem>
+                        ))}
+                      </Inp>
                     }
                   />
                   <Field label="Estado">

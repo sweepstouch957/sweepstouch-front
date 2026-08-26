@@ -1,7 +1,6 @@
 'use client';
 
 /** Barra de filtros del dashboard de audiencia. Presentacional: todo por props. */
-
 import type { AudiencePeriod } from '@/services/campaing.service';
 import {
   Card,
@@ -46,7 +45,10 @@ export default function AudienceFilters({
   onIncludeInactiveChange,
 }: AudienceFiltersProps) {
   return (
-    <Card sx={{ p: 1.75 }}>
+    <Card
+      variant="outlined"
+      sx={{ p: 1.5, boxShadow: 'none' }}
+    >
       <Stack
         direction={{ xs: 'column', md: 'row' }}
         alignItems={{ md: 'center' }}

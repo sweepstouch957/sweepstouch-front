@@ -35,7 +35,8 @@ import { saveAs } from 'file-saver';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { DateRange, type RangeKeyDict } from 'react-date-range';
-import { GlassCard } from './ui';
+import { tint, tintBorder, toneText } from 'src/theme/semantic';
+import { numeric, PanelCard } from './ui';
 
 /* ===================== Types (mínimos) ===================== */
 type GroupSummary = {
@@ -99,78 +100,79 @@ function safeParseIsoDateOnly(s?: string) {
 
 /* ===================== Sort presets ===================== */
 const SORTS: Array<{ label: string; value: AudienceStoresGrowthSort }> = [
-  { label: 'Least growth ↑ (abs)', value: 'growthAbsAsc' }, // ✅ default
-  { label: 'Most growth ↓ (abs)', value: 'growthAbsDesc' },
-  { label: 'Least growth ↑ (%)', value: 'growthPctAsc' },
-  { label: 'Most growth ↓ (%)', value: 'growthPctDesc' },
-  { label: 'Audience ↓', value: 'audienceDesc' },
-  { label: 'Audience ↑', value: 'audienceAsc' },
-  { label: 'Net growth ↑', value: 'netGrowthAsc' },
-  { label: 'Net growth ↓', value: 'netGrowthDesc' },
-  { label: 'New ↑', value: 'newAsc' },
-  { label: 'New ↓', value: 'newDesc' },
-  { label: 'Churn ↑', value: 'churnAsc' },
-  { label: 'Churn ↓', value: 'churnDesc' },
-  { label: 'Name A→Z', value: 'nameAsc' },
-  { label: 'Name Z→A', value: 'nameDesc' },
+  { label: 'Los que menos crecieron', value: 'growthAbsAsc' }, // ✅ default
+  { label: 'Los que más crecieron', value: 'growthAbsDesc' },
+  { label: 'Menor crecimiento %', value: 'growthPctAsc' },
+  { label: 'Mayor crecimiento %', value: 'growthPctDesc' },
+  { label: 'Más audiencia', value: 'audienceDesc' },
+  { label: 'Menos audiencia', value: 'audienceAsc' },
+  { label: 'Menor neto', value: 'netGrowthAsc' },
+  { label: 'Mayor neto', value: 'netGrowthDesc' },
+  { label: 'Menos altas', value: 'newAsc' },
+  { label: 'Más altas', value: 'newDesc' },
+  { label: 'Menos bajas', value: 'churnAsc' },
+  { label: 'Más bajas', value: 'churnDesc' },
+  { label: 'Nombre A→Z', value: 'nameAsc' },
+  { label: 'Nombre Z→A', value: 'nameDesc' },
 ];
 
 const PAGE_SIZES = [10, 15, 20, 30, 50, 100, 200] as const;
 
-/* ===================== Compact summary tile ===================== */
-function SummaryTile(props: { label: string; value: string; tone: 'success' | 'warning' }) {
-  const { label, value, tone } = props;
+/* ===================== Summary tile ===================== */
+/**
+ * Píldora de resumen. Antes era `borderRadius: 999` con `fontWeight: 980`: un
+ * peso que no existe en la escala y un radio de botón sobre un bloque de datos.
+ */
+function SummaryTile(props: {
+  label: string;
+  value: string;
+  hint?: string;
+  tone: 'success' | 'warning' | 'info';
+}) {
+  const { label, value, hint, tone } = props;
 
   return (
     <Stack
       sx={(t) => ({
-        borderRadius: 999,
-        border: `1px solid ${alpha(t.palette[tone].main, 0.22)}`,
-        bgcolor: alpha(t.palette[tone].main, 0.08),
-        px: 2,
-        py: 1.1,
-        minHeight: 60,
-        justifyContent: 'center',
-        overflow: 'hidden',
+        borderRadius: 1.5,
+        border: `1px solid ${tintBorder(t, tone, 0.2)}`,
+        bgcolor: tint(t, tone),
+        px: 1.75,
+        py: 1.25,
+        gap: 0.25,
+        minWidth: 0,
       })}
-      spacing={0.2}
     >
       <Typography
         variant="caption"
-        sx={{
-          color: 'text.secondary',
-          fontWeight: 950,
-          letterSpacing: 0.35,
-          textTransform: 'uppercase',
-          lineHeight: 1.05,
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}
+        sx={{ color: 'text.secondary', fontWeight: 600 }}
+        noWrap
       >
         {label}
       </Typography>
-
       <Typography
-        variant="body1"
-        sx={{
-          fontWeight: 980,
-          letterSpacing: -0.2,
-          lineHeight: 1.05,
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}
+        variant="h6"
+        sx={(t) => ({ fontWeight: 700, lineHeight: 1.2, color: toneText(t, tone), ...numeric })}
+        noWrap
       >
         {value}
       </Typography>
+      {hint ? (
+        <Typography
+          variant="caption"
+          sx={{ color: 'text.secondary' }}
+          noWrap
+        >
+          {hint}
+        </Typography>
+      ) : null}
     </Stack>
   );
 }
 
 /* ===================== Store row (no slug + clickable) ===================== */
 function StoreRowItem({ row, idx }: { row: AudienceStoreGrowthRow; idx: number }) {
-  const name = row.name || 'Unknown store';
+  const name = row.name || 'Negocio sin nombre';
   const id = row.storeId;
 
   // ✅ tu backend retorna "image"
@@ -209,7 +211,7 @@ function StoreRowItem({ row, idx }: { row: AudienceStoreGrowthRow; idx: number }
             px: 1.25,
             py: 0.95,
             borderBottom: `1px solid ${alpha(t.palette.divider, 0.6)}`,
-            '&:hover': { bgcolor: alpha(t.palette.primary.main, 0.045) },
+            '&:hover': { bgcolor: alpha(t.palette.text.primary, 0.035) },
             borderRadius: 0,
             minWidth: 0,
             transition: 'background-color 120ms ease, box-shadow 120ms ease',
@@ -227,9 +229,10 @@ function StoreRowItem({ row, idx }: { row: AudienceStoreGrowthRow; idx: number }
               sx={(t) => ({
                 width: 32,
                 height: 32,
-                borderRadius: 2,
-                bgcolor: alpha(t.palette.primary.main, 0.12),
-                fontWeight: 950,
+                borderRadius: 1.5,
+                bgcolor: tint(t, 'primary'),
+                color: toneText(t, 'primary'),
+                fontWeight: 700,
                 fontSize: 14,
                 flexShrink: 0,
               })}
@@ -240,7 +243,7 @@ function StoreRowItem({ row, idx }: { row: AudienceStoreGrowthRow; idx: number }
             <Typography
               variant="body2"
               sx={{
-                fontWeight: 950,
+                fontWeight: 600,
                 lineHeight: 1.15,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -248,7 +251,13 @@ function StoreRowItem({ row, idx }: { row: AudienceStoreGrowthRow; idx: number }
               }}
               title={name}
             >
-              {idx + 1}. {name}
+              <Box
+                component="span"
+                sx={{ color: 'text.disabled', ...numeric, mr: 0.75 }}
+              >
+                {idx + 1}
+              </Box>
+              {name}
             </Typography>
           </Stack>
 
@@ -258,31 +267,35 @@ function StoreRowItem({ row, idx }: { row: AudienceStoreGrowthRow; idx: number }
             alignItems="center"
             sx={{ flexShrink: 0, flexWrap: 'wrap' }}
           >
-            <Chip
-              size="small"
-              label={`Aud ${fmt(aud)}`}
-              sx={(t) => ({
-                fontWeight: 900,
-                bgcolor: alpha(t.palette.info.main, 0.12),
-                color: t.palette.info.dark,
-              })}
-            />
+            {/* Audiencia en texto plano; sólo el neto y el % llevan color, que es
+                lo único que cambia de signo y hay que poder escanear. */}
+            <Typography
+              variant="body2"
+              sx={{ ...numeric, color: 'text.secondary', minWidth: 62, textAlign: 'right' }}
+              title={`${fmt(aud)} contactos`}
+            >
+              {fmt(aud)}
+            </Typography>
             <Chip
               size="small"
               label={`${net >= 0 ? '+' : ''}${fmt(net)}`}
               sx={(t) => ({
-                fontWeight: 900,
-                bgcolor: alpha(t.palette.success.main, 0.12),
-                color: t.palette.success.dark,
+                fontWeight: 600,
+                minWidth: 68,
+                ...numeric,
+                bgcolor: tint(t, net >= 0 ? 'success' : 'error'),
+                color: toneText(t, net >= 0 ? 'success' : 'error'),
               })}
             />
             <Chip
               size="small"
-              label={`${fmtPct(pct)}`}
+              label={fmtPct(pct)}
               sx={(t) => ({
-                fontWeight: 950,
-                bgcolor: alpha(t.palette.primary.main, 0.12),
-                color: t.palette.primary.dark,
+                fontWeight: 600,
+                minWidth: 68,
+                ...numeric,
+                bgcolor: tint(t, pct >= 0 ? 'success' : 'error', 0.06),
+                color: pct >= 0 ? toneText(t, 'success') : toneText(t, 'error'),
               })}
             />
           </Stack>
@@ -418,25 +431,28 @@ export function AudienceSummaryExecutive({
     const ns = fmtPct(nonSenders?.growthPct);
     const s = fmtPct(senders?.growthPct);
     if (senderScope === 'nonSenders')
-      return `Non-senders ${ns} vs senders ${s}. Target the laggards first.`;
-    if (senderScope === 'senders') return `Senders growth ${s}. Keep cadence + replicate.`;
-    return `Non-senders ${ns} vs senders ${s}. Compare, then act.`;
+      return `Los que no mandan campañas crecieron ${ns}; los que sí, ${s}. Empezá por los de abajo de la lista.`;
+    if (senderScope === 'senders')
+      return `Los que mandan campañas crecieron ${s}. Mantener la cadencia y replicarla.`;
+    return `Sin campañas ${ns} vs con campañas ${s} en el período.`;
   }, [nonSenders?.growthPct, senders?.growthPct, senderScope]);
 
   const listTitle = useMemo(() => {
     const scopeLabel =
       senderScope === 'senders'
-        ? 'senders'
+        ? 'con campañas'
         : senderScope === 'nonSenders'
-          ? 'non-senders'
-          : 'all stores';
+          ? 'sin campañas'
+          : 'todos';
     const sortLabel = SORTS.find((x) => x.value === sort)?.label ?? sort;
-    return `Stores (${scopeLabel}) · ${sortLabel}`;
+    return `Negocios ${scopeLabel} · ${sortLabel}`;
   }, [senderScope, sort]);
 
   return (
-    <GlassCard
-      title="Executive Summary"
+    <PanelCard
+      title="Detalle por negocio"
+      subtitle="Quién creció, quién se quedó y quién perdió contactos"
+      icon={<TrendingUpRoundedIcon fontSize="small" />}
       right={
         <Stack
           direction={{ xs: 'column', sm: 'row' }}
@@ -448,12 +464,8 @@ export function AudienceSummaryExecutive({
             icon={<DateRangeRoundedIcon />}
             label={rangeLabel}
             onClick={(e) => setDateAnchor(e.currentTarget)}
-            sx={(t) => ({
-              fontWeight: 900,
-              bgcolor: alpha(t.palette.primary.main, 0.08),
-              cursor: 'pointer',
-              '&:hover': { bgcolor: alpha(t.palette.primary.main, 0.12) },
-            })}
+            variant="outlined"
+            sx={{ fontWeight: 600, cursor: 'pointer' }}
           />
 
           <Button
@@ -461,9 +473,9 @@ export function AudienceSummaryExecutive({
             variant="outlined"
             endIcon={!smDown ? <LaunchRoundedIcon /> : undefined}
             onClick={onExploreClick}
-            sx={{ borderRadius: 999, textTransform: 'none', fontWeight: 900 }}
+            sx={{ textTransform: 'none', fontWeight: 600 }}
           >
-            Explore
+            Explorar
           </Button>
         </Stack>
       }
@@ -509,9 +521,9 @@ export function AudienceSummaryExecutive({
           <Button
             size="small"
             onClick={() => setDateAnchor(null)}
-            sx={{ textTransform: 'none', fontWeight: 900 }}
+            sx={{ textTransform: 'none', fontWeight: 600 }}
           >
-            Done
+            Listo
           </Button>
         </Stack>
       </Popover>
@@ -522,7 +534,7 @@ export function AudienceSummaryExecutive({
           variant="caption"
           sx={{ color: 'text.secondary', display: 'block', mb: 1 }}
         >
-          Updating list…
+          Actualizando la lista…
         </Typography>
       ) : null}
 
@@ -532,107 +544,60 @@ export function AudienceSummaryExecutive({
           variant="body2"
           sx={{ mb: 1 }}
         >
-          Failed to load summary.
+          No se pudo cargar el resumen.
         </Typography>
       ) : null}
 
-      {/* ===================== TOP: ✅ compact (ONLY growth) ===================== */}
-      <Stack
-        spacing={1}
-        sx={(t) => ({
-          p: 1.1,
-          borderRadius: 3,
-          border: `1px solid ${alpha(t.palette.divider, 0.7)}`,
-          bgcolor: alpha(t.palette.background.paper, 0.35),
-        })}
-      >
+      {/* ===================== Resumen del período ===================== */}
+      <Stack gap={1.25}>
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-            gap: 1,
+            gap: 1.25,
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
           }}
         >
           <SummaryTile
-            label="Senders growth"
-            value={`${fmt(senders?.growthAbs)} · ${fmtPct(senders?.growthPct)}%`}
+            label="Crecimiento con campañas"
+            value={`${fmt(senders?.growthAbs)} · ${fmtPct(senders?.growthPct)}`}
+            hint={`${fmt(senders?.newInPeriod)} altas · ${fmt(senders?.churnInPeriod)} bajas`}
             tone="success"
           />
           <SummaryTile
-            label="Non-senders growth"
-            value={`${fmt(nonSenders?.growthAbs)} · ${fmtPct(nonSenders?.growthPct)}%`}
+            label="Crecimiento sin campañas"
+            value={`${fmt(nonSenders?.growthAbs)} · ${fmtPct(nonSenders?.growthPct)}`}
+            hint={`${fmt(nonSenders?.newInPeriod)} altas · ${fmt(nonSenders?.churnInPeriod)} bajas`}
             tone="warning"
+          />
+          <SummaryTile
+            label="Bajas del período"
+            value={fmt(totalChurn)}
+            hint="Contactos que dejaron de estar en alguna base"
+            tone="info"
           />
         </Box>
 
         <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          gap={1}
-          alignItems={{ xs: 'stretch', md: 'center' }}
-          justifyContent="space-between"
+          gap={0.35}
           sx={(t) => ({
-            borderRadius: 3,
-            px: 1.1,
-            py: 0.9,
-            border: `1px solid ${alpha(t.palette.divider, 0.55)}`,
-            background: `linear-gradient(180deg, ${alpha(
-              t.palette.primary.main,
-              0.06
-            )}, transparent)`,
+            borderRadius: 1.5,
+            px: 1.75,
+            py: 1.25,
+            border: `1px solid ${alpha(t.palette.divider, 0.8)}`,
           })}
         >
-          <Stack
-            spacing={0.35}
-            sx={{ minWidth: 0 }}
+          <Typography
+            variant="subtitle2"
+            sx={{ fontWeight: 700, lineHeight: 1.2 }}
           >
-            <Typography
-              variant="subtitle1"
-              sx={{ fontWeight: 980, letterSpacing: -0.2, lineHeight: 1.1 }}
-            >
-              Takeaway
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{ color: 'text.secondary', lineHeight: 1.25 }}
-            >
-              {takeaway}
-            </Typography>
-          </Stack>
-
-          <Stack
-            direction="row"
-            gap={1}
-            flexWrap="wrap"
-            justifyContent={{ xs: 'flex-start', md: 'flex-end' }}
+            Lectura
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{ color: 'text.secondary', lineHeight: 1.4 }}
           >
-            <Chip
-              size="small"
-              label={`Senders +${fmt(senders?.netGrowth)}`}
-              sx={(t) => ({
-                fontWeight: 900,
-                bgcolor: alpha(t.palette.success.main, 0.12),
-                color: t.palette.success.dark,
-              })}
-            />
-            <Chip
-              size="small"
-              label={`Non-senders +${fmt(nonSenders?.netGrowth)}`}
-              sx={(t) => ({
-                fontWeight: 900,
-                bgcolor: alpha(t.palette.info.main, 0.12),
-                color: t.palette.info.dark,
-              })}
-            />
-            <Chip
-              size="small"
-              label={`Churn ${fmt(totalChurn)}`}
-              sx={(t) => ({
-                fontWeight: 900,
-                bgcolor: alpha(t.palette.warning.main, 0.14),
-                color: t.palette.warning.dark,
-              })}
-            />
-          </Stack>
+            {takeaway}
+          </Typography>
         </Stack>
       </Stack>
 
@@ -656,16 +621,16 @@ export function AudienceSummaryExecutive({
               size="small"
               sx={{ minWidth: { xs: '100%', sm: 220 } }}
             >
-              <InputLabel id="sender-scope-label">Scope</InputLabel>
+              <InputLabel id="sender-scope-label">Alcance</InputLabel>
               <Select
                 labelId="sender-scope-label"
-                label="Scope"
+                label="Alcance"
                 value={senderScope}
                 onChange={(e) => setSenderScope(e.target.value as AudienceStoresGrowthSenderScope)}
               >
-                <MenuItem value="all">All stores</MenuItem>
-                <MenuItem value="senders">Senders</MenuItem>
-                <MenuItem value="nonSenders">Non-senders</MenuItem>
+                <MenuItem value="all">Todos los negocios</MenuItem>
+                <MenuItem value="senders">Con campañas</MenuItem>
+                <MenuItem value="nonSenders">Sin campañas</MenuItem>
               </Select>
             </FormControl>
 
@@ -673,10 +638,10 @@ export function AudienceSummaryExecutive({
               size="small"
               sx={{ minWidth: { xs: '100%', sm: 260 } }}
             >
-              <InputLabel id="sort-label">Sort</InputLabel>
+              <InputLabel id="sort-label">Orden</InputLabel>
               <Select
                 labelId="sort-label"
-                label="Sort"
+                label="Orden"
                 value={sort}
                 onChange={(e) => setSort(e.target.value as any)}
               >
@@ -695,10 +660,10 @@ export function AudienceSummaryExecutive({
               size="small"
               sx={{ minWidth: { xs: '100%', sm: 160 } }}
             >
-              <InputLabel id="limit-label">Show</InputLabel>
+              <InputLabel id="limit-label">Mostrar</InputLabel>
               <Select
                 labelId="limit-label"
-                label="Show"
+                label="Mostrar"
                 value={limit}
                 onChange={(e) => setLimit(Number(e.target.value) as any)}
               >
@@ -707,7 +672,7 @@ export function AudienceSummaryExecutive({
                     key={n}
                     value={n}
                   >
-                    {n} rows
+                    {n} filas
                   </MenuItem>
                 ))}
               </Select>
@@ -719,33 +684,10 @@ export function AudienceSummaryExecutive({
               startIcon={<DownloadRoundedIcon />}
               onClick={exportToExcel}
               disabled={loadingGrowth || rows.length === 0}
-              sx={{ borderRadius: 999, textTransform: 'none', fontWeight: 900 }}
+              sx={{ textTransform: 'none', fontWeight: 600 }}
             >
-              Export
+              Exportar
             </Button>
-          </Stack>
-
-          <Stack
-            direction="row"
-            gap={1}
-            alignItems="center"
-            justifyContent={{ xs: 'flex-start', md: 'flex-end' }}
-          >
-            <Chip
-              size="small"
-              icon={<TrendingUpRoundedIcon />}
-              label={listTitle}
-              sx={(t) => ({
-                fontWeight: 900,
-                bgcolor: alpha(t.palette.primary.main, 0.08),
-                '& .MuiChip-label': { maxWidth: 380, overflow: 'hidden', textOverflow: 'ellipsis' },
-              })}
-            />
-            <Chip
-              size="small"
-              label={`${rows.length} shown`}
-              sx={{ fontWeight: 900 }}
-            />
           </Stack>
         </Stack>
 
@@ -761,37 +703,57 @@ export function AudienceSummaryExecutive({
             direction="row"
             alignItems="center"
             justifyContent="space-between"
+            gap={1}
             sx={(t) => ({
-              px: 1.25,
-              py: 1.0,
-              bgcolor: alpha(t.palette.background.paper, 0.6),
+              px: 1.5,
+              py: 1,
+              bgcolor: alpha(t.palette.text.primary, t.palette.mode === 'dark' ? 0.05 : 0.025),
             })}
           >
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 600,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+              title={listTitle}
+            >
+              {listTitle}
+            </Typography>
+
+            {/* Leyenda de las tres columnas de la derecha: sin esto los chips
+                son tres números sin nombre. */}
             <Stack
               direction="row"
-              gap={1}
+              gap={0.75}
               alignItems="center"
-              sx={{ minWidth: 0 }}
+              flexShrink={0}
+              sx={{ display: { xs: 'none', sm: 'flex' } }}
             >
-              <TrendingUpRoundedIcon fontSize="small" />
               <Typography
-                sx={{
-                  fontWeight: 950,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-                title={listTitle}
+                variant="caption"
+                color="text.secondary"
+                sx={{ minWidth: 62, textAlign: 'right' }}
               >
-                {listTitle}
+                Audiencia
+              </Typography>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ minWidth: 68, textAlign: 'center' }}
+              >
+                Neto
+              </Typography>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ minWidth: 68, textAlign: 'center' }}
+              >
+                Variación
               </Typography>
             </Stack>
-
-            <Chip
-              size="small"
-              label={loadingGrowth ? 'Loading…' : `${rows.length} shown`}
-              sx={{ fontWeight: 900 }}
-            />
           </Stack>
 
           <Divider />
@@ -803,7 +765,7 @@ export function AudienceSummaryExecutive({
                   variant="body2"
                   sx={{ color: 'text.secondary' }}
                 >
-                  Loading stores…
+                  Cargando negocios…
                 </Typography>
               </Stack>
             ) : null}
@@ -814,7 +776,7 @@ export function AudienceSummaryExecutive({
                   variant="body2"
                   sx={{ color: 'text.secondary' }}
                 >
-                  No stores found for these filters.
+                  Ningún negocio coincide con estos filtros.
                 </Typography>
               </Stack>
             ) : null}
@@ -829,6 +791,6 @@ export function AudienceSummaryExecutive({
           </Box>
         </Stack>
       </Stack>
-    </GlassCard>
+    </PanelCard>
   );
 }

@@ -1,4 +1,5 @@
 // src/services/stores.service.ts
+import type { BusinessType } from './campaing.service';
 import { api } from '@/libs/axios';
 import { Customer } from '@/models/customer';
 import { PaginatedResponse } from '@/models/pagination';
@@ -41,7 +42,10 @@ export interface Store {
   name: string;
   address: string;
   zipCode: string;
+  /** Plan comercial. NO es el rubro: para eso está `businessType`. */
   type: 'elite' | 'basic' | 'free';
+  /** Rubro del negocio: súper, restaurante, gimnasio, farmacia… */
+  businessType?: BusinessType;
   location?: {
     type: 'Point';
     coordinates: [number, number];

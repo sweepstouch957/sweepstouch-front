@@ -3,15 +3,23 @@
 /**
  * Números que hoy no reciben campañas, y qué hay alrededor de ellos.
  *
- * Una tienda sin campañas es audiencia parada. Lo que decide qué hacer con ella
- * es el vecindario, y por eso el vecino se muestra clasificado: si al lado hay un
- * súper nuestro que ya manda, esos números se activan; si sólo hay súperes de
- * afuera, hay que salir a venderlos; si no hay nadie, quedan parados.
+ * Un negocio sin campañas es audiencia parada. Lo que decide qué hacer con ella
+ * es el vecindario, y por eso el vecino se muestra clasificado: si al lado hay
+ * un negocio nuestro que ya manda, esos números se activan; si sólo hay
+ * negocios de afuera, hay que salir a venderlos; si no hay nadie, quedan
+ * parados.
+ *
+ * El vecino puede ser un súper, un restaurante, un gimnasio o cualquier otro
+ * rubro: el cruce es por zona, no por tipo de comercio, así que la copia habla
+ * de "negocios" y no de "súperes".
  */
-
+import { BusinessTypeIcon, businessTypeMeta } from '@/components/audience/business-types';
+import { PanelCard, numeric as tabular } from '@/components/audience/ui';
 import { useNonSendersNearby } from '@/hooks/fetching/campaigns/useAudience';
 import type {
   AudienceQueryParams,
+  BusinessType,
+  BusinessTypeBreakdown,
   NearbyStore,
   NeighborKind,
   NonSenderNearbyRow,
@@ -21,11 +29,9 @@ import HandshakeRoundedIcon from '@mui/icons-material/HandshakeRounded';
 import NearMeRoundedIcon from '@mui/icons-material/NearMeRounded';
 import NightsStayRoundedIcon from '@mui/icons-material/NightsStayRounded';
 import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined';
-import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import {
   Alert,
   Box,
-  Card,
   Chip,
   Divider,
   MenuItem,
@@ -39,8 +45,7 @@ import { alpha, useTheme, type Theme } from '@mui/material/styles';
 import React, { useState } from 'react';
 
 const nf = new Intl.NumberFormat('es-US');
-/** Tabular para que los anchos no bailen al refrescar. */
-const numeric = { fontVariantNumeric: 'tabular-nums' } as const;
+const numeric = tabular;
 
 const RADIUS_OPTIONS = [3, 8, 15, 30];
 
@@ -81,7 +86,7 @@ function verdictOf(row: NonSenderNearbyRow): {
     return { text: 'Se puede activar hoy', kind: 'own_sender' };
   }
   if (row.nearby.some((n) => n.kind === 'lead')) {
-    return { text: 'Hay súper de afuera para vender', kind: 'lead' };
+    return { text: 'Hay negocio de afuera para vender', kind: 'lead' };
   }
   if (row.nearby.length > 0) {
     return { text: 'Sólo vecinos dormidos', kind: 'own_idle' };
@@ -100,9 +105,10 @@ function NeighborChip({ n }: { n: NearbyStore }) {
       ? `a ${n.distanceKm} km`
       : 'zona cercana';
   const audience = n.audience !== null ? ` · ${nf.format(n.audience)} contactos` : '';
+  const rubro = businessTypeMeta(n.businessType).label;
 
   return (
-    <Tooltip title={`${meta.label} — ${where}${audience}`}>
+    <Tooltip title={`${rubro} · ${meta.label} — ${where}${audience}`}>
       <Chip
         size="small"
         icon={<Box sx={{ display: 'flex', color: `${color} !important` }}>{meta.icon}</Box>}
@@ -172,7 +178,8 @@ function StoreRow({ row }: { row: NonSenderNearbyRow }) {
             gap={0.75}
             minWidth={0}
           >
-            <StorefrontRoundedIcon sx={{ fontSize: 15, color: 'text.disabled', flexShrink: 0 }} />
+            {/* El icono dice el rubro; antes todos eran la misma tiendita. */}
+            <BusinessTypeIcon type={row.store.businessType} />
             <Typography
               variant="body2"
               fontWeight={700}
@@ -193,7 +200,8 @@ function StoreRow({ row }: { row: NonSenderNearbyRow }) {
               variant="caption"
               color="text.secondary"
             >
-              {row.store.zipCode || 'Sin código postal'}
+              {businessTypeMeta(row.store.businessType).label} ·{' '}
+              {row.store.zipCode || 'sin código postal'}
             </Typography>
             {/* Sin coordenadas el cruce sale sólo por zip: hay que poder saberlo. */}
             {!row.store.hasLocation && (
@@ -247,7 +255,7 @@ function StoreRow({ row }: { row: NonSenderNearbyRow }) {
           variant="caption"
           color="text.secondary"
         >
-          Ningún súper —nuestro ni de afuera— dentro del radio.
+          Ningún negocio —nuestro ni de afuera— dentro del radio.
         </Typography>
       )}
     </Box>
@@ -267,9 +275,8 @@ function HeadlineStat({
 }) {
   return (
     <Stack
-      flex={1}
-      minWidth={130}
       gap={0.25}
+      minWidth={0}
     >
       <Stack
         direction="row"
@@ -286,9 +293,11 @@ function HeadlineStat({
           {nf.format(value)}
         </Typography>
       </Stack>
+      {/* Sin `noWrap`: la etiqueta explica el número y truncarla lo deja mudo. */}
       <Typography
         variant="caption"
         color="text.secondary"
+        sx={{ lineHeight: 1.35 }}
       >
         {label}
       </Typography>
@@ -296,64 +305,96 @@ function HeadlineStat({
   );
 }
 
+/**
+ * Filtro por rubro.
+ *
+ * Los conteos salen de `byBusinessType`, que el backend calcula ANTES de
+ * aplicar el filtro: si se calcularan después, al tocar "Gimnasio" el resto de
+ * los rubros mostraría 0 y no habría forma de volver.
+ */
+function BusinessTypeFilter({
+  breakdown,
+  selected,
+  onToggle,
+  onClear,
+}: {
+  breakdown: BusinessTypeBreakdown[];
+  selected: BusinessType[];
+  onToggle: (t: BusinessType) => void;
+  onClear: () => void;
+}) {
+  const theme = useTheme();
+  if (breakdown.length < 2) return null;
+
+  return (
+    <Stack
+      direction="row"
+      gap={0.75}
+      flexWrap="wrap"
+      alignItems="center"
+      sx={{ mb: 1.5 }}
+    >
+      <Chip
+        size="small"
+        label="Todos"
+        onClick={onClear}
+        variant={selected.length === 0 ? 'filled' : 'outlined'}
+        color={selected.length === 0 ? 'primary' : 'default'}
+        sx={{ borderRadius: 1.5 }}
+      />
+      {breakdown.map((b) => {
+        const { label, Icon } = businessTypeMeta(b.type);
+        const on = selected.includes(b.type);
+        return (
+          <Chip
+            key={b.type}
+            size="small"
+            onClick={() => onToggle(b.type)}
+            aria-pressed={on}
+            icon={<Icon sx={{ fontSize: 14 }} />}
+            label={`${label} · ${nf.format(b.audience)}`}
+            variant={on ? 'filled' : 'outlined'}
+            sx={{
+              borderRadius: 1.5,
+              ...numeric,
+              ...(on
+                ? {
+                    bgcolor: alpha(theme.palette.primary.main, 0.14),
+                    borderColor: alpha(theme.palette.primary.main, 0.4),
+                    border: '1px solid',
+                  }
+                : null),
+            }}
+          />
+        );
+      })}
+    </Stack>
+  );
+}
+
 export default function NearbyOpportunitiesCard({ params }: { params: AudienceQueryParams }) {
   const theme = useTheme();
   const [radiusKm, setRadiusKm] = useState(8);
+  const [types, setTypes] = useState<BusinessType[]>([]);
 
   const { data, isLoading, isError } = useNonSendersNearby({
     ...params,
     radiusKm,
+    businessType: types,
     limit: 20,
     neighbors: 5,
   });
 
-  return (
-    <Card sx={{ p: 2.5, height: '100%' }}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        alignItems={{ sm: 'center' }}
-        justifyContent="space-between"
-        gap={1.5}
-        sx={{ mb: 2 }}
-      >
-        <Stack
-          direction="row"
-          alignItems="center"
-          gap={1.5}
-          minWidth={0}
-        >
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 38,
-              height: 38,
-              borderRadius: 2,
-              flexShrink: 0,
-              color: 'success.main',
-              bgcolor: alpha(theme.palette.success.main, 0.12),
-            }}
-          >
-            <NearMeRoundedIcon fontSize="small" />
-          </Box>
-          <Box minWidth={0}>
-            <Typography
-              variant="subtitle1"
-              fontWeight={700}
-              lineHeight={1.2}
-            >
-              Audiencia sin campañas
-            </Typography>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-            >
-              Y qué súperes tiene alrededor
-            </Typography>
-          </Box>
-        </Stack>
+  const toggleType = (t: BusinessType) =>
+    setTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
 
+  return (
+    <PanelCard
+      title="Audiencia sin campañas"
+      subtitle="Y qué negocios tiene alrededor"
+      icon={<NearMeRoundedIcon fontSize="small" />}
+      tone="success"
+      right={
         <TextField
           select
           size="small"
@@ -371,8 +412,8 @@ export default function NearbyOpportunitiesCard({ params }: { params: AudienceQu
             </MenuItem>
           ))}
         </TextField>
-      </Stack>
-
+      }
+    >
       {isError && <Alert severity="error">No se pudo cargar el cruce por zona.</Alert>}
 
       {isLoading && !data && (
@@ -393,28 +434,27 @@ export default function NearbyOpportunitiesCard({ params }: { params: AudienceQu
 
       {data && (
         <>
-          <Stack
-            direction="row"
-            gap={2}
-            flexWrap="wrap"
+          <Box
             sx={{
+              display: 'grid',
+              gap: 2,
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
               p: 1.75,
               mb: 2,
-              borderRadius: 2,
-              bgcolor: alpha(theme.palette.text.primary, 0.03),
+              borderRadius: 1.5,
               border: '1px solid',
               borderColor: 'divider',
             }}
           >
             <HeadlineStat
               value={data.reachableAudience}
-              label="Se activan con un súper nuestro de al lado"
+              label="Se activan con un negocio nuestro al lado"
               color={theme.palette.success.main}
               icon={<BoltRoundedIcon sx={{ fontSize: 18 }} />}
             />
             <HeadlineStat
               value={data.prospectAudience}
-              label="Sólo alcanzables si vendemos un súper de afuera"
+              label="Sólo si vendemos un negocio de afuera"
               color={theme.palette.info.main}
               icon={<HandshakeRoundedIcon sx={{ fontSize: 18 }} />}
             />
@@ -424,7 +464,14 @@ export default function NearbyOpportunitiesCard({ params }: { params: AudienceQu
               color={theme.palette.text.disabled}
               icon={<PlaceOutlinedIcon sx={{ fontSize: 18 }} />}
             />
-          </Stack>
+          </Box>
+
+          <BusinessTypeFilter
+            breakdown={data.byBusinessType ?? []}
+            selected={types}
+            onToggle={toggleType}
+            onClear={() => setTypes([])}
+          />
 
           {/* Leyenda: sin esto los colores de los chips no significan nada. */}
           <Stack
@@ -464,7 +511,9 @@ export default function NearbyOpportunitiesCard({ params }: { params: AudienceQu
                 color="text.secondary"
                 textAlign="center"
               >
-                Todas las tiendas con audiencia enviaron campañas en este período.
+                {types.length
+                  ? 'Ningún negocio de ese rubro quedó sin campañas en el período.'
+                  : 'Todos los negocios con audiencia enviaron campañas en este período.'}
               </Typography>
             </Stack>
           ) : (
@@ -486,12 +535,12 @@ export default function NearbyOpportunitiesCard({ params }: { params: AudienceQu
             color="text.disabled"
             sx={{ display: 'block', mt: 1.5 }}
           >
-            Total parado: {nf.format(data.totalNonSenderAudience)} contactos en{' '}
-            {data.rows.length} tiendas. Los súperes de afuera salen de los leads
-            registrados y se cruzan por código postal.
+            Total parado: {nf.format(data.totalNonSenderAudience)} contactos en {data.rows.length}{' '}
+            negocios. Los de afuera salen de los leads registrados y se cruzan por código postal,
+            sin importar el rubro.
           </Typography>
         </>
       )}
-    </Card>
+    </PanelCard>
   );
 }

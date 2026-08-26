@@ -1,28 +1,56 @@
 'use client';
 
+/**
+ * Fila de KPIs de audiencia.
+ *
+ * Antes eran dos tarjetas en inglés con un degradado radial de fondo y pesos
+ * 950. Ahora son cuatro cifras que se leen juntas y responden a la pregunta de
+ * la página: cuánta audiencia hay, cuánta se está usando, cuánta está parada y
+ * si el neto del período fue para arriba o para abajo.
+ */
 import CampaignRoundedIcon from '@mui/icons-material/CampaignRounded';
+import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
+import SwapVertRoundedIcon from '@mui/icons-material/SwapVertRounded';
 import TrendingDownRoundedIcon from '@mui/icons-material/TrendingDownRounded';
+import TrendingFlatRoundedIcon from '@mui/icons-material/TrendingFlatRounded';
 import TrendingUpRoundedIcon from '@mui/icons-material/TrendingUpRounded';
-import { alpha, Box, Card, CardContent, Chip, Stack, Typography } from '@mui/material';
+import { Box, Card, CardContent, Skeleton, Stack, Typography } from '@mui/material';
 import React from 'react';
-import { tint } from 'src/theme/semantic';
+import { tint, toneText, type SemanticRole } from 'src/theme/semantic';
 import { num, pct } from './audience-utils';
+import { IconTile, numeric } from './ui';
 
+/** Chip de variación. Lleva icono además del color: el signo no se lee sólo en verde/rojo. */
 export function GrowthChip({ value }: { value: number }) {
-  const up = value >= 0;
+  const v = Number.isFinite(value) ? value : 0;
+  const tone: SemanticRole = v > 0 ? 'success' : v < 0 ? 'error' : 'secondary';
+  const Icon =
+    v > 0 ? TrendingUpRoundedIcon : v < 0 ? TrendingDownRoundedIcon : TrendingFlatRoundedIcon;
+
   return (
-    <Chip
-      size="small"
-      icon={up ? <TrendingUpRoundedIcon /> : <TrendingDownRoundedIcon />}
-      label={pct(value)}
+    <Stack
+      direction="row"
+      alignItems="center"
+      gap={0.25}
       sx={(t) => ({
-        fontWeight: 900,
-        borderRadius: 999,
-        bgcolor: up ? tint(t, 'success') : tint(t, 'error'),
-        color: up ? t.palette.success.dark : t.palette.error.dark,
+        px: 0.75,
+        py: 0.25,
+        borderRadius: 1,
+        bgcolor: tint(t, tone),
+        color: toneText(t, tone),
       })}
-    />
+    >
+      <Icon sx={{ fontSize: 15 }} />
+      <Typography
+        variant="caption"
+        fontWeight={700}
+        sx={numeric}
+      >
+        {v > 0 ? '+' : ''}
+        {pct(v)}
+      </Typography>
+    </Stack>
   );
 }
 
@@ -31,90 +59,69 @@ export function StatCard(props: {
   value: string;
   subtitle?: string;
   icon?: React.ReactNode;
-  accent?: 'info' | 'success' | 'warning' | 'error' | 'primary';
+  accent?: SemanticRole;
   right?: React.ReactNode;
+  loading?: boolean;
 }) {
-  const { title, value, subtitle, icon, accent = 'primary', right } = props;
+  const { title, value, subtitle, icon, accent = 'primary', right, loading } = props;
 
   return (
     <Card
       variant="outlined"
-      sx={(t) => ({
-        overflow: 'hidden',
-        position: 'relative',
-        borderColor: alpha(t.palette.divider, 0.9),
-        bgcolor: alpha(t.palette.background.paper, 0.92),
-      })}
+      sx={{ height: '100%', boxShadow: 'none' }}
     >
-      <Box
-        sx={(t) => ({
-          position: 'absolute',
-          inset: 0,
-          background: `radial-gradient(1200px circle at 10% 0%, ${alpha(
-            t.palette[accent].main,
-            0.16
-          )}, transparent 55%)`,
-          pointerEvents: 'none',
-        })}
-      />
-      <CardContent sx={{ p: 2.25, position: 'relative' }}>
+      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
         <Stack
           direction="row"
-          alignItems="flex-start"
+          alignItems="center"
           justifyContent="space-between"
-          spacing={1.5}
+          gap={1}
+          sx={{ mb: 1.5 }}
         >
           <Stack
             direction="row"
             alignItems="center"
-            spacing={1.25}
-            sx={{ minWidth: 0 }}
+            gap={1}
+            minWidth={0}
           >
-            <Box
-              sx={(t) => ({
-                width: 42,
-                height: 42,
-                borderRadius: 2.5,
-                display: 'grid',
-                placeItems: 'center',
-                bgcolor: tint(t, accent, 0.14),
-                color: t.palette[accent].dark,
-                flex: '0 0 auto',
-              })}
+            {icon ? <IconTile tone={accent}>{icon}</IconTile> : null}
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              fontWeight={600}
+              sx={{ minWidth: 0 }}
             >
-              {icon}
-            </Box>
-
-            <Box sx={{ minWidth: 0 }}>
-              <Typography
-                variant="caption"
-                sx={{ color: 'text.secondary', fontWeight: 800 }}
-              >
-                {title}
-              </Typography>
-
-              <Typography
-                variant="h5"
-                sx={{ fontWeight: 950, lineHeight: 1.1 }}
-                noWrap
-              >
-                {value}
-              </Typography>
-
-              {subtitle ? (
-                <Typography
-                  variant="caption"
-                  sx={{ color: 'text.secondary' }}
-                  noWrap
-                >
-                  {subtitle}
-                </Typography>
-              ) : null}
-            </Box>
+              {title}
+            </Typography>
           </Stack>
-
           {right}
         </Stack>
+
+        {loading ? (
+          <Skeleton
+            variant="text"
+            width="60%"
+            height={36}
+          />
+        ) : (
+          <Typography
+            variant="h4"
+            sx={{ fontWeight: 700, lineHeight: 1.1, ...numeric }}
+            noWrap
+          >
+            {value}
+          </Typography>
+        )}
+
+        {subtitle ? (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: 'block', mt: 0.5 }}
+          >
+            {subtitle}
+          </Typography>
+        ) : null}
       </CardContent>
     </Card>
   );
@@ -132,42 +139,81 @@ export type AudienceSummaryGroup = {
   netGrowth: number;
 };
 
+const EMPTY: AudienceSummaryGroup = {
+  storesCount: 0,
+  audiencePrev: 0,
+  audienceCurr: 0,
+  growthAbs: 0,
+  growthPct: 0,
+  newInPeriod: 0,
+  churnInPeriod: 0,
+  netGrowth: 0,
+};
+
 export function AudienceKpis(props: {
   senders?: AudienceSummaryGroup;
   nonSenders?: AudienceSummaryGroup;
+  loading?: boolean;
 }) {
-  const { senders, nonSenders } = props;
+  const { loading } = props;
+  const senders = props.senders ?? EMPTY;
+  const nonSenders = props.nonSenders ?? EMPTY;
+
+  const totalCurr = senders.audienceCurr + nonSenders.audienceCurr;
+  const totalPrev = senders.audiencePrev + nonSenders.audiencePrev;
+  const totalPct = totalPrev ? ((totalCurr - totalPrev) / totalPrev) * 100 : 0;
+  const activePct = totalCurr ? (senders.audienceCurr / totalCurr) * 100 : 0;
+
+  const newTotal = senders.newInPeriod + nonSenders.newInPeriod;
+  const churnTotal = senders.churnInPeriod + nonSenders.churnInPeriod;
+  const netTotal = newTotal - churnTotal;
 
   return (
-    <Stack
-      direction={{ xs: 'column', md: 'row' }}
-      spacing={2.25}
+    <Box
+      sx={{
+        display: 'grid',
+        gap: 2,
+        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: 'repeat(4, 1fr)' },
+      }}
     >
-      <Box sx={{ flex: 1 }}>
-        <StatCard
-          title="Stores that SEND campaigns"
-          value={num(senders?.audienceCurr ?? 0)}
-          subtitle={`${num(senders?.storesCount ?? 0)} stores • prev ${num(
-            senders?.audiencePrev ?? 0
-          )} • net +${num(senders?.netGrowth ?? 0)}`}
-          icon={<CampaignRoundedIcon />}
-          accent="primary"
-          right={<GrowthChip value={senders?.growthPct ?? 0} />}
-        />
-      </Box>
+      <StatCard
+        title="Audiencia total"
+        value={num(totalCurr)}
+        subtitle={`Período anterior ${num(totalPrev)}`}
+        icon={<GroupsRoundedIcon fontSize="small" />}
+        accent="primary"
+        right={<GrowthChip value={totalPct} />}
+        loading={loading}
+      />
 
-      <Box sx={{ flex: 1 }}>
-        <StatCard
-          title="Stores that DON’T send campaigns"
-          value={num(nonSenders?.audienceCurr ?? 0)}
-          subtitle={`${num(nonSenders?.storesCount ?? 0)} stores • prev ${num(
-            nonSenders?.audiencePrev ?? 0
-          )} • net +${num(nonSenders?.netGrowth ?? 0)}`}
-          icon={<StorefrontRoundedIcon />}
-          accent="warning"
-          right={<GrowthChip value={nonSenders?.growthPct ?? 0} />}
-        />
-      </Box>
-    </Stack>
+      <StatCard
+        title="Con campañas"
+        value={num(senders.audienceCurr)}
+        subtitle={`${num(senders.storesCount)} negocios · ${pct(activePct)} del total`}
+        icon={<CampaignRoundedIcon fontSize="small" />}
+        accent="success"
+        right={<GrowthChip value={senders.growthPct} />}
+        loading={loading}
+      />
+
+      <StatCard
+        title="Sin campañas"
+        value={num(nonSenders.audienceCurr)}
+        subtitle={`${num(nonSenders.storesCount)} negocios sin enviar en el período`}
+        icon={<StorefrontRoundedIcon fontSize="small" />}
+        accent="warning"
+        right={<GrowthChip value={nonSenders.growthPct} />}
+        loading={loading}
+      />
+
+      <StatCard
+        title="Altas y bajas"
+        value={`${netTotal >= 0 ? '+' : ''}${num(netTotal)}`}
+        subtitle={`${num(newTotal)} altas · ${num(churnTotal)} bajas`}
+        icon={<SwapVertRoundedIcon fontSize="small" />}
+        accent={netTotal >= 0 ? 'info' : 'error'}
+        loading={loading}
+      />
+    </Box>
   );
 }
