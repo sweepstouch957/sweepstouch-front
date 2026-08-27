@@ -14,6 +14,7 @@
  * de "negocios" y no de "súperes".
  */
 import { BusinessTypeIcon, businessTypeMeta } from '@/components/audience/business-types';
+import ShareAudienceDialog from './share-audience-dialog';
 import { PanelCard, numeric as tabular } from '@/components/audience/ui';
 import { useNonSendersNearby } from '@/hooks/fetching/campaigns/useAudience';
 import type {
@@ -25,6 +26,7 @@ import type {
   NonSenderNearbyRow,
 } from '@/services/campaing.service';
 import BoltRoundedIcon from '@mui/icons-material/BoltRounded';
+import ShareRoundedIcon from '@mui/icons-material/ShareRounded';
 import HandshakeRoundedIcon from '@mui/icons-material/HandshakeRounded';
 import NearMeRoundedIcon from '@mui/icons-material/NearMeRounded';
 import NightsStayRoundedIcon from '@mui/icons-material/NightsStayRounded';
@@ -32,6 +34,7 @@ import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined';
 import {
   Alert,
   Box,
+  Button,
   Chip,
   Divider,
   MenuItem,
@@ -94,10 +97,12 @@ function verdictOf(row: NonSenderNearbyRow): {
   return { text: 'Sin nadie alrededor', kind: null };
 }
 
-function NeighborChip({ n }: { n: NearbyStore }) {
+function NeighborChip({ n, onShare }: { n: NearbyStore; onShare?: (n: NearbyStore) => void }) {
   const theme = useTheme();
   const meta = KIND_META[n.kind];
   const color = meta.color(theme);
+  // A un lead de afuera no le podemos dar nada: todavía no es cliente.
+  const canReceive = Boolean(onShare) && n.kind !== 'lead';
 
   const where = n.sameZip
     ? 'mismo código postal'
@@ -108,9 +113,25 @@ function NeighborChip({ n }: { n: NearbyStore }) {
   const rubro = businessTypeMeta(n.businessType).label;
 
   return (
-    <Tooltip title={`${rubro} · ${meta.label} — ${where}${audience}`}>
+    <Tooltip
+      title={
+        canReceive
+          ? `Compartir la base con ${n.name} — ${rubro} · ${meta.label}, ${where}${audience}`
+          : `${rubro} · ${meta.label} — ${where}${audience}`
+      }
+    >
       <Chip
         size="small"
+        onClick={
+          canReceive
+            ? (e) => {
+                // La fila entera también abre el diálogo; sin esto se abriría
+                // dos veces y la segunda pisaría el destino elegido acá.
+                e.stopPropagation();
+                onShare!(n);
+              }
+            : undefined
+        }
         icon={<Box sx={{ display: 'flex', color: `${color} !important` }}>{meta.icon}</Box>}
         label={
           <Stack
@@ -141,19 +162,47 @@ function NeighborChip({ n }: { n: NearbyStore }) {
           bgcolor: alpha(color, 0.1),
           border: '1px solid',
           borderColor: alpha(color, 0.32),
+          ...(canReceive
+            ? {
+                cursor: 'pointer',
+                '&:hover': { bgcolor: alpha(color, 0.2), borderColor: color },
+              }
+            : null),
         }}
       />
     </Tooltip>
   );
 }
 
-function StoreRow({ row }: { row: NonSenderNearbyRow }) {
+function StoreRow({
+  row,
+  onShare,
+}: {
+  row: NonSenderNearbyRow;
+  onShare: (row: NonSenderNearbyRow, neighbor?: NearbyStore) => void;
+}) {
   const theme = useTheme();
   const verdict = verdictOf(row);
   const accent = verdict.kind ? KIND_META[verdict.kind].color(theme) : theme.palette.divider;
+  // Sin un vecino nuestro cerca no hay a quién darle la base.
+  const canShare = row.nearby.some((n) => n.kind !== 'lead');
 
   return (
     <Box
+      role={canShare ? 'button' : undefined}
+      tabIndex={canShare ? 0 : undefined}
+      aria-label={canShare ? `Compartir la base de ${row.store.name}` : undefined}
+      onClick={canShare ? () => onShare(row) : undefined}
+      onKeyDown={
+        canShare
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onShare(row);
+              }
+            }
+          : undefined
+      }
       sx={{
         p: 1.75,
         borderRadius: 2,
@@ -163,6 +212,15 @@ function StoreRow({ row }: { row: NonSenderNearbyRow }) {
         borderLeftColor: accent,
         transition: 'background-color .18s',
         '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.025) },
+        ...(canShare
+          ? {
+              cursor: 'pointer',
+              '&:focus-visible': {
+                outline: `2px solid ${theme.palette.primary.main}`,
+                outlineOffset: 2,
+              },
+            }
+          : null),
       }}
     >
       <Stack
@@ -232,6 +290,19 @@ function StoreRow({ row }: { row: NonSenderNearbyRow }) {
           >
             {verdict.text}
           </Typography>
+          {canShare && (
+            <Button
+              size="small"
+              startIcon={<ShareRoundedIcon sx={{ fontSize: 15 }} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                onShare(row);
+              }}
+              sx={{ mt: 0.5, textTransform: 'none', fontWeight: 600, minWidth: 0, px: 1 }}
+            >
+              Compartir base
+            </Button>
+          )}
         </Stack>
       </Stack>
 
@@ -247,6 +318,7 @@ function StoreRow({ row }: { row: NonSenderNearbyRow }) {
             <NeighborChip
               key={n.id}
               n={n}
+              onShare={(neighbor) => onShare(row, neighbor)}
             />
           ))}
         </Stack>
@@ -376,6 +448,10 @@ export default function NearbyOpportunitiesCard({ params }: { params: AudienceQu
   const theme = useTheme();
   const [radiusKm, setRadiusKm] = useState(8);
   const [types, setTypes] = useState<BusinessType[]>([]);
+  const [share, setShare] = useState<{
+    row: NonSenderNearbyRow;
+    neighborId: string | null;
+  } | null>(null);
 
   const { data, isLoading, isError } = useNonSendersNearby({
     ...params,
@@ -525,6 +601,9 @@ export default function NearbyOpportunitiesCard({ params }: { params: AudienceQu
                 <StoreRow
                   key={row.store.id}
                   row={row}
+                  onShare={(r, neighbor) =>
+                    setShare({ row: r, neighborId: neighbor?.id ?? null })
+                  }
                 />
               ))}
             </Stack>
@@ -541,6 +620,12 @@ export default function NearbyOpportunitiesCard({ params }: { params: AudienceQu
           </Typography>
         </>
       )}
+      <ShareAudienceDialog
+        open={Boolean(share)}
+        onClose={() => setShare(null)}
+        row={share?.row ?? null}
+        initialTargetId={share?.neighborId ?? null}
+      />
     </PanelCard>
   );
 }

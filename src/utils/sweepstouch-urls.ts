@@ -26,7 +26,7 @@ export const MERCHANT_ORIGIN = origin(process.env.NEXT_PUBLIC_MERCHANT_ORIGIN, '
 /** Opt-in público: el destino de los QR impresos. */
 export const OPTIN_ORIGIN = origin(process.env.NEXT_PUBLIC_OPTIN_ORIGIN, 'https://st.sweepstouch.com');
 
-/** Landings de sorteo — la app de sweepstakes. */
+/** Landings de sorteo — la app sweepstakes-referal. */
 export const SWEEPSTAKES_ORIGIN = origin(
   process.env.NEXT_PUBLIC_SWEEPSTAKES_ORIGIN,
   'https://sorteos.sweepstouch.com'
@@ -61,7 +61,7 @@ export function optinUrl(slug?: string | null): string {
  */
 export function sweepstakeLandingUrl(sweepstakeId?: string | null): string {
   return sweepstakeId
-    ? `${SWEEPSTAKES_ORIGIN}/sweepstakes/${encodeURIComponent(sweepstakeId)}/participar`
+    ? `${SWEEPSTAKES_ORIGIN}/sorteo/${encodeURIComponent(sweepstakeId)}`
     : '';
 }
 

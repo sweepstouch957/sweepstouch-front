@@ -1,3 +1,5 @@
+import NextLink from 'next/link';
+import ShareRoundedIcon from '@mui/icons-material/ShareRounded';
 import CustomersGrid from '@/components/application-ui/tables/customers/customers-grid';
 import { Box, Button, Paper, Stack, Tooltip, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
@@ -112,21 +114,44 @@ const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName, provider 
             </Typography>
           )}
         </Box>
-        <Button
-          variant="contained"
-          color="primary"
-          size="large"
-          startIcon={<CloudUploadIcon />}
-          onClick={() => setOpenImport(true)}
-          sx={{
-            borderRadius: 2,
-            textTransform: 'none',
-            fontWeight: 700,
-            px: 3,
-          }}
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          gap={1.5}
         >
-          Importar Excel
-        </Button>
+          {/* La base ya cargada también se puede activar sin importar nada:
+              dándole acceso a otra tienda que sí manda campañas. */}
+          <Button
+            component={NextLink}
+            href={`/admin/applications/audience-share?from=${storeId}`}
+            variant="outlined"
+            color="primary"
+            size="large"
+            startIcon={<ShareRoundedIcon />}
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 700,
+              px: 3,
+            }}
+          >
+            Compartir base
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            size="large"
+            startIcon={<CloudUploadIcon />}
+            onClick={() => setOpenImport(true)}
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 700,
+              px: 3,
+            }}
+          >
+            Importar Excel
+          </Button>
+        </Stack>
       </Stack>
 
       {/* Toolbar de mantenimiento */}

@@ -23,6 +23,7 @@ import {
   ReceiptLongRounded,
   RuleRounded,
   SearchRounded,
+  ShareRounded,
   SlideshowRounded,
   Store,
   TuneRounded,
@@ -112,6 +113,7 @@ const toolsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Buscar número'), route: routes.admin.applications['debug-numbers'], icon: <SearchRounded /> },
     { title: t('Demos'), route: routes.admin.applications.demos, icon: <SlideshowRounded /> },
     { title: t('Utilidades'), route: routes.admin.applications.utilities, icon: <TuneRounded /> },
+    { title: t('Compartir base'), route: routes.admin.applications['audience-share'], icon: <ShareRounded /> },
   ], undefined, STAFF_ROLES);
 
 const designsMenu = (t: (token: string) => string): MenuItem =>
