@@ -54,6 +54,10 @@ const placeholders = [
   { key: '#linktree', label: 'Linktree de la tienda' }, // 👈 nuevo placeholder
   { key: '#lead', label: 'Lead / Completar perfil' },
   { key: '#linkrcs', label: 'Link RCS único por cliente (activa el flujo RCS)' },
+  {
+    key: '#linkprercs',
+    label: 'Link Pre-RCS único por cliente (sólo ofertas + QR de caja)',
+  },
   { key: '#ahorro', label: 'Ahorro semanal de la tienda ($)' },
 ];
 
