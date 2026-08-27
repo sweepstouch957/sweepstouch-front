@@ -179,6 +179,7 @@ export const routes = {
       promos: {
         listing: '/admin/management/ads',
         create: '/admin/management/promos/create',
+        'secret-sales': '/admin/management/secret-sales',
       },
       promotors: {
         listing: '/admin/management/promotors',

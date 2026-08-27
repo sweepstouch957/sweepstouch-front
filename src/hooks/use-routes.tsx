@@ -14,6 +14,7 @@ import {
   HandymanRounded,
   InsightsRounded,
   ListAltRounded,
+  LockOpenRounded,
   LocalOfferRounded,
   LocalPlayRounded,
   MapRounded,
@@ -151,6 +152,9 @@ const campaignsMenu = (t: (token: string) => string): MenuItem =>
     // Ads era un módulo entero para una sola página. Los `roles` replican
     // exactamente quién lo veía cuando estaba arriba: admin, dirección y marketing.
     { title: t('Ads'), route: routes.admin.management.promos.listing, icon: <AdsClickOutlined />, roles: [...ADMIN_ACCESS_ROLES, 'marketing'] },
+    // Secret Sales: el flyer que se desbloquea escaneando el QR de la tienda.
+    // Mismos roles que Ads — es la misma gente que arma las piezas.
+    { title: t('Secret Sales'), route: routes.admin.management.promos['secret-sales'], icon: <LockOpenRounded />, roles: [...ADMIN_ACCESS_ROLES, 'marketing'] },
   ]);
 
 const circularsMenu = (t: (token: string) => string): MenuItem =>
