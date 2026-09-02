@@ -54,14 +54,38 @@ export default function CampaignFormContainer({
           uploadedImage = await uploadCampaignImage(data.image[0]);
         }
 
+        // Miniatura del linktree — sube aparte, a su propia carpeta. Acá el
+        // archivo nuevo GANA sobre el guardado: si alguien la cambia, es porque
+        // quiere cambiarla.
+        const hasThumb = data.thumbnail && data.thumbnail.length > 0;
+        let uploadedThumb = null;
+        if (
+          hasThumb &&
+          typeof data.thumbnail[0] === 'object' &&
+          !(data.thumbnail[0].url || data.thumbnail[0].startsWith?.('http'))
+        ) {
+          uploadedThumb = await uploadCampaignImage(data.thumbnail[0], 'campaign-thumbnails');
+        }
+
         const payload = {
           ...data,
-          image: initialData?.image || uploadedImage?.url || data.imageUrl || null,
-          imagePublicId: uploadedImage?.public_id || data.imagePublicId || null,
+          // El archivo recién subido GANA. Antes `initialData?.image` iba primero:
+          // al editar una campaña y cambiarle la imagen, la vieja pisaba a la
+          // nueva y la campaña salía con el arte anterior. Sin archivo nuevo, se
+          // conserva lo que ya tenía.
+          image: uploadedImage?.url || data.imageUrl || initialData?.image || null,
+          imagePublicId:
+            uploadedImage?.public_id || data.imagePublicId || initialData?.imagePublicId || null,
+          thumbnailImage:
+            uploadedThumb?.url || data.thumbnailImage || initialData?.thumbnailImage || null,
+          thumbnailPublicId:
+            uploadedThumb?.public_id || data.thumbnailPublicId || initialData?.thumbnailPublicId || null,
           customAudience: totalAudience,
           platform: provider || '',
           sourceTn: phoneNumber || DEFAULT_INFOBIP_SENDER,
         };
+
+        delete (payload as any).thumbnail;
 
         const response = isEditing
           ? await campaignClient.updateCampaign(initialData._id, payload)

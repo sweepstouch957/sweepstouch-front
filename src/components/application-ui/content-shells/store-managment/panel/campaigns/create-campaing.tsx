@@ -42,6 +42,10 @@ interface CampaignFormInputs {
   image?: string;
   imageUrl?: string;
   imagePublicId?: string;
+  /** Miniatura para el linktree (Pre-RCS). Opcional: sin ella se usa `image`. */
+  thumbnail?: string;
+  thumbnailImage?: string;
+  thumbnailPublicId?: string;
   customAudience?: number;
   linktree?: boolean; // 👈 nuevo parámetro
 }
@@ -486,6 +490,37 @@ export default function CreateCampaignForm({
                         }
                       }}
                     />
+                  </Grid>
+
+                  {/* Miniatura del linktree — aparte de la imagen del MMS.
+                      La del MMS es vertical y pesada; arriba de las ofertas del
+                      Pre-RCS se ve como un cartel cortado. Opcional: sin esto el
+                      linktree sigue mostrando la imagen de campaña. */}
+                  <Grid
+                    item
+                    xs={12}
+                  >
+                    <AvatarUploadLogo
+                      label="Miniatura para el linktree (opcional)"
+                      initialUrl={initialValues?.thumbnailImage}
+                      onSelect={(file) => {
+                        if (file) {
+                          const dt = new DataTransfer();
+                          dt.items.add(file);
+                          setValue('thumbnail', dt.files as any, { shouldValidate: true });
+                        } else {
+                          setValue('thumbnail', undefined);
+                        }
+                      }}
+                    />
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ display: 'block', mt: 0.5 }}
+                    >
+                      Es la que se ve arriba de las ofertas en el linktree. No se envía por
+                      SMS/MMS y no cambia el tipo de campaña.
+                    </Typography>
                   </Grid>
 
                   <Grid
