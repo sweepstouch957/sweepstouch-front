@@ -52,6 +52,9 @@ const placeholders = [
   { key: '#referralLink', label: 'Link de referido' },
   { key: '#disclaimer', label: 'Texto legal' },
   { key: '#linktree', label: 'Linktree de la tienda' }, // 👈 nuevo placeholder
+  // El mismo destino que #linktree pero por el short permanente de la tienda
+  // (swtrcs.com/s/XXXXXX): ~60 caracteres menos, que en SMS es un segmento menos.
+  { key: '#linktreeShort', label: 'Linktree corto — swtrcs.com/s/… (mismo link, 60 caracteres menos)' },
   { key: '#lead', label: 'Lead / Completar perfil' },
   { key: '#linkrcs', label: 'Link RCS único por cliente (activa el flujo RCS)' },
   {

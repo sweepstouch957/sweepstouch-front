@@ -13,6 +13,7 @@ import {
   GroupsRounded,
   HandymanRounded,
   InsightsRounded,
+  LinkRounded,
   ListAltRounded,
   LockOpenRounded,
   LocalOfferRounded,
@@ -111,6 +112,8 @@ const toolsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Herramientas'), <HandymanRounded />, [
     { title: t('Optin Cajeros'), route: routes.admin.applications['optin-cashiers'], icon: <PointOfSaleRounded /> },
     { title: t('Códigos QR'), route: routes.admin.management.qr, icon: <QrCode2Rounded /> },
+    // El primo del QR: mismo destino (el linktree de la tienda), formato link.
+    { title: t('Links de tiendas'), route: routes.admin.management['short-links'], icon: <LinkRounded /> },
     { title: t('Buscar número'), route: routes.admin.applications['debug-numbers'], icon: <SearchRounded /> },
     { title: t('Demos'), route: routes.admin.applications.demos, icon: <SlideshowRounded /> },
     { title: t('Utilidades'), route: routes.admin.applications.utilities, icon: <TuneRounded /> },

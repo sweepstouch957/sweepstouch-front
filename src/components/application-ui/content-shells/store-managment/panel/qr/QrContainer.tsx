@@ -10,6 +10,7 @@ import {
   type SweepstakeQr,
 } from '@/services/qr.service';
 import { sweepstakesClient } from '@/services/sweepstakes.service';
+import { LinktreeShortCard } from './LinktreeShortCard';
 import {
   AutorenewRounded,
   CheckRounded,
@@ -392,6 +393,10 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
       </Stack>
 
       {/* ── Cards grid ─────────────────────────────────────── */}
+      {/* El link corto de la tienda vive acá arriba: es lo que más se copia de
+          esta pantalla (va por WhatsApp y en el perfil de redes). */}
+      <LinktreeShortCard storeId={storeId} />
+
       <Grid container spacing={3}>
 
         {/* ── Store QR Card ── */}
