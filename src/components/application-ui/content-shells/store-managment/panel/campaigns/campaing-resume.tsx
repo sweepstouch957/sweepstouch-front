@@ -3,7 +3,7 @@ import { Box, Divider, Paper, Typography } from '@mui/material';
 
 interface CampaignResumeProps {
   startDate: Date | string;
-  type: 'MMS' | 'SMS';
+  type: 'MMS' | 'SMS' | 'RCS';
   totalAudience: number;
   useFullAudience: boolean;
   customAudience?: number | string;

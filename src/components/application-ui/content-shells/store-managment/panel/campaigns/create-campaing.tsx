@@ -48,6 +48,9 @@ interface CampaignFormInputs {
   thumbnailPublicId?: string;
   customAudience?: number;
   linktree?: boolean; // 👈 nuevo parámetro
+  /** Canal de salida: "rcs" = canal RCS real de Google (carrusel + botones). */
+  channel?: 'sms' | 'rcs';
+  rcsOptions?: { maxProducts?: number };
 }
 
 const placeholders = [
@@ -176,6 +179,11 @@ export default function CreateCampaignForm({
   });
 
   const [useFullAudience, setUseFullAudience] = useState(!initialValues?.customAudience);
+  // Canal RCS real (Google): un solo sender "sweepstouch" para todas las tiendas.
+  const [rcsChannel, setRcsChannel] = useState(initialValues?.channel === 'rcs');
+  const [rcsMaxProducts, setRcsMaxProducts] = useState<number>(
+    initialValues?.rcsOptions?.maxProducts ?? 5
+  );
   const contentRef = useRef<HTMLTextAreaElement | null>(null);
 
   const [snackState, setSnackState] = useState<{ open: boolean; message: string; severity: 'error' | 'warning' | 'info' | 'success' }>({
@@ -240,7 +248,21 @@ export default function CreateCampaignForm({
                 </Box>
               </Stack>
 
-              <form onSubmit={handleSubmit(onSubmit)}>
+              <form
+                onSubmit={handleSubmit((data) =>
+                  onSubmit({
+                    ...data,
+                    channel: rcsChannel ? 'rcs' : 'sms',
+                    ...(rcsChannel
+                      ? {
+                          rcsOptions: {
+                            maxProducts: Math.min(Math.max(Number(rcsMaxProducts) || 5, 2), 10),
+                          },
+                        }
+                      : {}),
+                  })
+                )}
+              >
                 <Grid
                   container
                   spacing={2}
@@ -291,10 +313,56 @@ export default function CreateCampaignForm({
                   >
                     <TextField
                       label="Campaign Type"
-                      value={initialValues?.type || ((image as any)?.length ? 'MMS' : 'SMS')}
+                      value={rcsChannel ? 'RCS' : (initialValues?.type || ((image as any)?.length ? 'MMS' : 'SMS'))}
                       disabled
                       fullWidth
                     />
+                  </Grid>
+
+                  {/* ── Canal RCS real (Google / Infobip) ─────────────────── */}
+                  <Grid
+                    item
+                    xs={12}
+                  >
+                    <Paper
+                      variant="outlined"
+                      sx={{ p: 2 }}
+                    >
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={rcsChannel}
+                            onChange={(e) => setRcsChannel(e.target.checked)}
+                          />
+                        }
+                        label="📲 Enviar por canal RCS (Google) — sender «sweepstouch»"
+                      />
+                      {rcsChannel && (
+                        <Stack
+                          spacing={1.5}
+                          mt={1}
+                        >
+                          <Alert severity="info">
+                            El cliente recibe un <b>carrusel con los productos del catálogo</b> de la
+                            tienda (los visibles en RCS, en su orden de /productos). Cada card lleva el
+                            botón <b>«🛒 Agregar a mi lista»</b> que abre la página RCS a pantalla
+                            completa (webview) con el producto ya agregado, más los botones
+                            «🛍️ Ver todas las ofertas» y «📝 Mi lista». Si el teléfono no soporta RCS,
+                            se envía el <b>Message Content</b> como SMS de respaldo (usá #linkrcs para
+                            incluir el link del cliente).
+                          </Alert>
+                          <TextField
+                            type="number"
+                            size="small"
+                            label="Productos en el carrusel (2–10)"
+                            value={rcsMaxProducts}
+                            onChange={(e) => setRcsMaxProducts(Number(e.target.value))}
+                            inputProps={{ min: 2, max: 10 }}
+                            sx={{ maxWidth: 260 }}
+                          />
+                        </Stack>
+                      )}
+                    </Paper>
                   </Grid>
 
                   <Grid
@@ -636,7 +704,7 @@ export default function CreateCampaignForm({
               estimatedCost={estimatedCost}
               startDate={startDate}
               totalAudience={totalAudience}
-              type={(image as any)?.length ? 'MMS' : 'SMS'}
+              type={rcsChannel ? 'RCS' : (image as any)?.length ? 'MMS' : 'SMS'}
               useFullAudience={useFullAudience}
               customAudience={customAudience}
               content={content}
