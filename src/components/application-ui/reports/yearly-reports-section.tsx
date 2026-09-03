@@ -29,6 +29,7 @@ import { BarChart } from '@mui/x-charts/BarChart';
 import { campaignClient } from '@services/campaing.service';
 import type { YtdMonthlyResponse } from '@services/campaing.service';
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -132,7 +133,10 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
     staleTime: 1000 * 60 * 10,
   });
 
-  // Año anterior solo si la ventana de 3 meses cruza de año (ene–mar)
+  // Rango del chart principal: N meses atrás + mes actual
+  const [rangeMonths, setRangeMonths] = useState<number>(3);
+
+  // Año anterior solo si la ventana cruza de año
   const messagesPrevYearQ = useQuery<YtdMonthlyResponse>({
     queryKey: [
       'reports',
@@ -141,7 +145,7 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
     ],
     queryFn: () => campaignClient.getYtdMonthlyMessagesSent(storeId, currentYear - 1),
     staleTime: 1000 * 60 * 10,
-    enabled: currentMonthNumber <= 3,
+    enabled: currentMonthNumber <= rangeMonths,
   });
 
   const monthsCurrentYear = messagesCurrentYearQ.data?.months ?? [];
@@ -155,34 +159,38 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
   const isLoadingCurrentMonth = messagesCurrentYearQ.isLoading;
 
   // =====================
-  //  Últimos 3 meses vs mes actual
+  //  Chart principal: últimos N meses vs mes actual
   // =====================
   const monthsPrevYear = messagesPrevYearQ.data?.months ?? [];
 
-  const last4 = [3, 2, 1, 0].map((back) => {
-    let m = currentMonthNumber - back;
-    let months = monthsCurrentYear;
-    let y = currentYear;
-    if (m <= 0) {
-      m += 12;
-      months = monthsPrevYear;
-      y = currentYear - 1;
+  const rangeData = Array.from({ length: rangeMonths + 1 }, (_, i) => rangeMonths - i).map(
+    (back) => {
+      let m = currentMonthNumber - back;
+      let months = monthsCurrentYear;
+      let y = currentYear;
+      if (m <= 0) {
+        m += 12;
+        months = monthsPrevYear;
+        y = currentYear - 1;
+      }
+      const row: any = months.find((x: any) => x.monthNumber === m) ?? null;
+      return {
+        label: `${row?.monthName ?? m}${y !== currentYear ? ` '${String(y).slice(2)}` : ''}`,
+        sms: n(row?.audienceSms),
+        mms: n(row?.audienceMms),
+        total: n(row?.audience),
+        isCurrent: back === 0,
+      };
     }
-    const row: any = months.find((x: any) => x.monthNumber === m) ?? null;
-    return {
-      label: `${row?.monthName ?? m}${y !== currentYear ? ` '${String(y).slice(2)}` : ''}`,
-      sms: n(row?.audienceSms),
-      mms: n(row?.audienceMms),
-      total: n(row?.audience),
-      isCurrent: back === 0,
-    };
-  });
+  );
 
-  const isLoadingLast4 =
-    messagesCurrentYearQ.isLoading || (currentMonthNumber <= 3 && messagesPrevYearQ.isLoading);
-  const prev3Avg = last4.slice(0, 3).reduce((a, b) => a + b.total, 0) / 3;
-  const currentTotal = last4[3].total;
-  const deltaPct = prev3Avg > 0 ? ((currentTotal - prev3Avg) / prev3Avg) * 100 : null;
+  const isLoadingRange =
+    messagesCurrentYearQ.isLoading ||
+    (currentMonthNumber <= rangeMonths && messagesPrevYearQ.isLoading);
+  const prevAvg =
+    rangeData.slice(0, rangeMonths).reduce((a, b) => a + b.total, 0) / rangeMonths;
+  const currentTotal = rangeData[rangeData.length - 1].total;
+  const deltaPct = prevAvg > 0 ? ((currentTotal - prevAvg) / prevAvg) * 100 : null;
 
   // =====================
   //  Audience data (participants)
@@ -504,6 +512,112 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
         </Stack>
       </Paper>
 
+      {/* Chart principal: mensajes por mes con rango filtrable */}
+      <Paper
+        elevation={0}
+        sx={cardSx}
+      >
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          alignItems={{ xs: 'flex-start', sm: 'center' }}
+          justifyContent="space-between"
+          gap={1.5}
+          sx={cardHeaderSx}
+        >
+          <Box>
+            <Typography
+              variant="subtitle2"
+              fontWeight={700}
+            >
+              {t('Mensajes por mes')} · SMS · MMS · Total
+            </Typography>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+            >
+              {t('Comparado contra el mes actual')}
+            </Typography>
+          </Box>
+          <Stack
+            direction="row"
+            spacing={1.5}
+            alignItems="center"
+          >
+            {!isLoadingRange && deltaPct !== null && (
+              <Chip
+                size="small"
+                label={`${deltaPct >= 0 ? '+' : ''}${deltaPct.toFixed(1)}% vs promedio ${rangeMonths} meses`}
+                sx={{
+                  fontWeight: 700,
+                  borderRadius: 2,
+                  color: deltaPct >= 0 ? theme.palette.success.main : theme.palette.error.main,
+                  bgcolor: alpha(
+                    deltaPct >= 0 ? theme.palette.success.main : theme.palette.error.main,
+                    0.1
+                  ),
+                }}
+              />
+            )}
+            <TextField
+              select
+              size="small"
+              label={t('Rango')}
+              value={rangeMonths}
+              onChange={(e) => setRangeMonths(Number(e.target.value))}
+              sx={{ minWidth: 160 }}
+            >
+              <MenuItem value={3}>{t('Últimos 3 meses')}</MenuItem>
+              <MenuItem value={6}>{t('Últimos 6 meses')}</MenuItem>
+              <MenuItem value={12}>{t('Últimos 12 meses')}</MenuItem>
+            </TextField>
+          </Stack>
+        </Stack>
+        <Box sx={{ p: 2.5 }}>
+          {isLoadingRange ? (
+            <Skeleton
+              variant="rectangular"
+              height={360}
+            />
+          ) : (
+            <BarChart
+              height={360}
+              margin={{ left: smUp ? 62 : 10, top: 46, right: smUp ? 24 : 10, bottom: 24 }}
+              xAxis={[
+                {
+                  scaleType: 'band',
+                  data: rangeData.map((m) =>
+                    m.isCurrent ? `${m.label} · ${t('actual')}` : m.label
+                  ),
+                  tickLabelStyle: {
+                    fontSize: 12,
+                    fontWeight: 700,
+                    fill: theme.palette.text.secondary as string,
+                  },
+                },
+              ]}
+              series={[
+                {
+                  label: 'SMS',
+                  data: rangeData.map((m) => m.sms),
+                  color: isDark ? theme.palette.grey[300] : theme.palette.grey[500],
+                },
+                {
+                  label: 'MMS',
+                  data: rangeData.map((m) => m.mms),
+                  color: isDark ? theme.palette.grey[500] : theme.palette.grey[700],
+                },
+                {
+                  label: 'Total',
+                  data: rangeData.map((m) => m.total),
+                  color: SWEEP_PINK,
+                },
+              ]}
+              sx={chartAxisSx}
+            />
+          )}
+        </Box>
+      </Paper>
+
       {/* Global KPI cards */}
       <Stack
         direction={{ xs: 'column', md: 'row' }}
@@ -773,165 +887,6 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
               )}
             </Box>
           </Stack>
-        </Box>
-      </Paper>
-
-      {/* Messages chart */}
-      <Paper
-        elevation={0}
-        sx={cardSx}
-      >
-        <Box sx={cardHeaderSx}>
-          <Typography
-            variant="subtitle2"
-            fontWeight={700}
-          >
-            {t('Mensajes enviados en el año')} · {year}
-          </Typography>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-          >
-            Audience SMS · Audience MMS · Audience total
-          </Typography>
-        </Box>
-        <Box sx={{ p: 2.5 }}>
-          {messagesQ.isLoading ? (
-            <Skeleton
-              variant="rectangular"
-              height={360}
-            />
-          ) : mLabels.length === 0 ? (
-            <Box sx={{ height: 360, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Typography color="text.secondary" variant="body2">No hay datos de mensajes para {year}</Typography>
-            </Box>
-          ) : (
-            <BarChart
-              height={360}
-              margin={{ left: smUp ? 62 : 10, top: 46, right: smUp ? 24 : 10, bottom: 24 }}
-              xAxis={[
-                {
-                  scaleType: 'band',
-                  data: mLabels,
-                  tickLabelStyle: {
-                    fontSize: 12,
-                    fontWeight: 700,
-                    fill: theme.palette.text.secondary as string,
-                  },
-                },
-              ]}
-              series={[
-                { label: 'Audiencia SMS', data: mSmsAudience, color: isDark ? theme.palette.grey[300] : theme.palette.grey[500] },
-                { label: 'Audiencia MMS', data: mMmsAudience, color: isDark ? theme.palette.grey[500] : theme.palette.grey[700] },
-                { label: 'Audiencia total', data: mTotalAudience, color: SWEEP_PINK },
-              ]}
-              sx={chartAxisSx}
-            />
-          )}
-
-          <Divider sx={{ mt: 2 }} />
-
-          <Box
-            sx={{
-              mt: 1.5,
-              p: 1.5,
-              borderRadius: 2,
-              bgcolor: isDark ? alpha(SWEEP_PINK, 0.08) : alpha(SWEEP_PINK, 0.05),
-              border: `1px solid ${alpha(SWEEP_PINK, 0.18)}`,
-            }}
-          >
-            <Typography
-              variant="body2"
-              sx={{ fontWeight: 800, color: SWEEP_PINK }}
-            >
-              {`Total YTD Audience: ${totalYtdAudience.toLocaleString()} · SMS: ${totalYtdAudienceSms.toLocaleString()} · MMS: ${totalYtdAudienceMms.toLocaleString()}`}
-            </Typography>
-          </Box>
-        </Box>
-      </Paper>
-
-      {/* Últimos 3 meses vs mes actual */}
-      <Paper
-        elevation={0}
-        sx={cardSx}
-      >
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-          sx={cardHeaderSx}
-        >
-          <Box>
-            <Typography
-              variant="subtitle2"
-              fontWeight={700}
-            >
-              {t('Últimos 3 meses vs mes actual')}
-            </Typography>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-            >
-              SMS · MMS · Total
-            </Typography>
-          </Box>
-          {!isLoadingLast4 && deltaPct !== null && (
-            <Chip
-              size="small"
-              label={`${deltaPct >= 0 ? '+' : ''}${deltaPct.toFixed(1)}% vs promedio 3 meses`}
-              sx={{
-                fontWeight: 700,
-                borderRadius: 2,
-                color: deltaPct >= 0 ? theme.palette.success.main : theme.palette.error.main,
-                bgcolor: alpha(
-                  deltaPct >= 0 ? theme.palette.success.main : theme.palette.error.main,
-                  0.1
-                ),
-              }}
-            />
-          )}
-        </Stack>
-        <Box sx={{ p: 2.5 }}>
-          {isLoadingLast4 ? (
-            <Skeleton
-              variant="rectangular"
-              height={320}
-            />
-          ) : (
-            <BarChart
-              height={320}
-              margin={{ left: smUp ? 62 : 10, top: 46, right: smUp ? 24 : 10, bottom: 24 }}
-              xAxis={[
-                {
-                  scaleType: 'band',
-                  data: last4.map((m) => (m.isCurrent ? `${m.label} · ${t('actual')}` : m.label)),
-                  tickLabelStyle: {
-                    fontSize: 12,
-                    fontWeight: 700,
-                    fill: theme.palette.text.secondary as string,
-                  },
-                },
-              ]}
-              series={[
-                {
-                  label: 'SMS',
-                  data: last4.map((m) => m.sms),
-                  color: isDark ? theme.palette.grey[300] : theme.palette.grey[500],
-                },
-                {
-                  label: 'MMS',
-                  data: last4.map((m) => m.mms),
-                  color: isDark ? theme.palette.grey[500] : theme.palette.grey[700],
-                },
-                {
-                  label: 'Total',
-                  data: last4.map((m) => m.total),
-                  color: SWEEP_PINK,
-                },
-              ]}
-              sx={chartAxisSx}
-            />
-          )}
         </Box>
       </Paper>
 
