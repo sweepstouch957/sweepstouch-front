@@ -132,6 +132,18 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
     staleTime: 1000 * 60 * 10,
   });
 
+  // Año anterior solo si la ventana de 3 meses cruza de año (ene–mar)
+  const messagesPrevYearQ = useQuery<YtdMonthlyResponse>({
+    queryKey: [
+      'reports',
+      'messages-prev-year',
+      { year: currentYear - 1, storeId: storeId ?? null },
+    ],
+    queryFn: () => campaignClient.getYtdMonthlyMessagesSent(storeId, currentYear - 1),
+    staleTime: 1000 * 60 * 10,
+    enabled: currentMonthNumber <= 3,
+  });
+
   const monthsCurrentYear = messagesCurrentYearQ.data?.months ?? [];
   const currentMonthData =
     monthsCurrentYear.find((m: any) => m.monthNumber === currentMonthNumber) ?? null;
@@ -141,6 +153,36 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
   const currentMonthSentMms = currentMonthData ? n((currentMonthData as any).audienceMms) : 0;
 
   const isLoadingCurrentMonth = messagesCurrentYearQ.isLoading;
+
+  // =====================
+  //  Últimos 3 meses vs mes actual
+  // =====================
+  const monthsPrevYear = messagesPrevYearQ.data?.months ?? [];
+
+  const last4 = [3, 2, 1, 0].map((back) => {
+    let m = currentMonthNumber - back;
+    let months = monthsCurrentYear;
+    let y = currentYear;
+    if (m <= 0) {
+      m += 12;
+      months = monthsPrevYear;
+      y = currentYear - 1;
+    }
+    const row: any = months.find((x: any) => x.monthNumber === m) ?? null;
+    return {
+      label: `${row?.monthName ?? m}${y !== currentYear ? ` '${String(y).slice(2)}` : ''}`,
+      sms: n(row?.audienceSms),
+      mms: n(row?.audienceMms),
+      total: n(row?.audience),
+      isCurrent: back === 0,
+    };
+  });
+
+  const isLoadingLast4 =
+    messagesCurrentYearQ.isLoading || (currentMonthNumber <= 3 && messagesPrevYearQ.isLoading);
+  const prev3Avg = last4.slice(0, 3).reduce((a, b) => a + b.total, 0) / 3;
+  const currentTotal = last4[3].total;
+  const deltaPct = prev3Avg > 0 ? ((currentTotal - prev3Avg) / prev3Avg) * 100 : null;
 
   // =====================
   //  Audience data (participants)
@@ -805,6 +847,91 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
               {`Total YTD Audience: ${totalYtdAudience.toLocaleString()} · SMS: ${totalYtdAudienceSms.toLocaleString()} · MMS: ${totalYtdAudienceMms.toLocaleString()}`}
             </Typography>
           </Box>
+        </Box>
+      </Paper>
+
+      {/* Últimos 3 meses vs mes actual */}
+      <Paper
+        elevation={0}
+        sx={cardSx}
+      >
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          sx={cardHeaderSx}
+        >
+          <Box>
+            <Typography
+              variant="subtitle2"
+              fontWeight={700}
+            >
+              {t('Últimos 3 meses vs mes actual')}
+            </Typography>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+            >
+              SMS · MMS · Total
+            </Typography>
+          </Box>
+          {!isLoadingLast4 && deltaPct !== null && (
+            <Chip
+              size="small"
+              label={`${deltaPct >= 0 ? '+' : ''}${deltaPct.toFixed(1)}% vs promedio 3 meses`}
+              sx={{
+                fontWeight: 700,
+                borderRadius: 2,
+                color: deltaPct >= 0 ? theme.palette.success.main : theme.palette.error.main,
+                bgcolor: alpha(
+                  deltaPct >= 0 ? theme.palette.success.main : theme.palette.error.main,
+                  0.1
+                ),
+              }}
+            />
+          )}
+        </Stack>
+        <Box sx={{ p: 2.5 }}>
+          {isLoadingLast4 ? (
+            <Skeleton
+              variant="rectangular"
+              height={320}
+            />
+          ) : (
+            <BarChart
+              height={320}
+              margin={{ left: smUp ? 62 : 10, top: 46, right: smUp ? 24 : 10, bottom: 24 }}
+              xAxis={[
+                {
+                  scaleType: 'band',
+                  data: last4.map((m) => (m.isCurrent ? `${m.label} · ${t('actual')}` : m.label)),
+                  tickLabelStyle: {
+                    fontSize: 12,
+                    fontWeight: 700,
+                    fill: theme.palette.text.secondary as string,
+                  },
+                },
+              ]}
+              series={[
+                {
+                  label: 'SMS',
+                  data: last4.map((m) => m.sms),
+                  color: isDark ? theme.palette.grey[300] : theme.palette.grey[500],
+                },
+                {
+                  label: 'MMS',
+                  data: last4.map((m) => m.mms),
+                  color: isDark ? theme.palette.grey[500] : theme.palette.grey[700],
+                },
+                {
+                  label: 'Total',
+                  data: last4.map((m) => m.total),
+                  color: SWEEP_PINK,
+                },
+              ]}
+              sx={chartAxisSx}
+            />
+          )}
         </Box>
       </Paper>
 
