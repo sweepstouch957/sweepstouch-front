@@ -118,6 +118,16 @@ export class CircularService {
     return res.data;
   }
 
+  /** Catálogo persistente de la tienda (StoreProduct), sólo los visibles en RCS. */
+  async getStoreCatalog(
+    storeSlug: string
+  ): Promise<{ storeSlug: string; count: number; items: any[] }> {
+    const res = await api.get(`/circulars/store/${storeSlug}/catalog`, {
+      params: { visible: 'true' },
+    });
+    return res.data;
+  }
+
   async getAlerts(hours = 48) {
     const res = await api.get('/circulars/alerts', { params: { hours } });
     return res.data;

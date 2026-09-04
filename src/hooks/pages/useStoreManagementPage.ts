@@ -62,6 +62,17 @@ export function useStoreManagementPage() {
     }
   }, [store?.active, storeId]);
 
+  const handleGoToCreateRcs = useCallback(() => {
+    if (store?.active) {
+      window.open(
+        `/admin/management/stores/edit/${storeId}?tag=campaigns&action=create-rcs`,
+        '_blank'
+      );
+    } else {
+      setOpenInactiveModal(true);
+    }
+  }, [store?.active, storeId]);
+
   const handleMMSNavigate = useCallback(() => {
     router.push(`/admin/management/mms?storeId=${storeId}`);
   }, [router, storeId]);
@@ -86,6 +97,7 @@ export function useStoreManagementPage() {
     handleDrawerToggle,
     handleBack,
     handleGoToCreateCampaign,
+    handleGoToCreateRcs,
     handleMMSNavigate,
     handleQuickOpen,
   };

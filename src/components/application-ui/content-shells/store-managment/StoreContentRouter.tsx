@@ -11,6 +11,7 @@ import { StoreBillingPanel } from './panel/billing/StoreBillingPanel';
 import CajerasPanel from './panel/cajeras/cajeras-panel';
 import CampaignsPanel from './panel/campaigns/campaign-panel';
 import CreateCampaignContainer from './panel/campaigns/createCampaignContainer';
+import RcsCampaignBuilder from './panel/campaigns/rcs/RcsCampaignBuilder';
 import CustomersPanel from './panel/customers/customers-panel';
 import { StoreEquipmentPanel } from './panel/equipment/StoreEquipmentPanel';
 import StoreOptinPanel from './panel/optin/StoreOptinPanel';
@@ -138,6 +139,22 @@ export const StoreContentRouter: FC<Props> = ({
   if (error || !store) return <ContentErrorState />;
 
   if (tag === 'campaigns') {
+    if (action === 'create-rcs') {
+      return (
+        <Box px={{ xs: 1, md: 2 }}
+pt={2}
+pb={4}>
+          <RcsCampaignBuilder
+            storeId={storeId}
+            storeSlug={store.slug || ''}
+            storeName={store.name || ''}
+            phoneNumber={getProviderPhoneNumber(store)}
+            totalAudience={store.customerCount || 0}
+            onCreate={onBack}
+          />
+        </Box>
+      );
+    }
     if (action === 'create') {
       return (
         <Box px={{ xs: 1, md: 2 }}

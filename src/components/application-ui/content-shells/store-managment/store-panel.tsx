@@ -32,6 +32,7 @@ const StoreManagementPage = () => {
     handleDrawerToggle,
     handleBack,
     handleGoToCreateCampaign,
+    handleGoToCreateRcs,
     handleMMSNavigate,
     handleQuickOpen,
   } = useStoreManagementPage();
@@ -98,6 +99,7 @@ const StoreManagementPage = () => {
           storeActive={store?.active}
           onBack={handleBack}
           onCreateCampaign={handleGoToCreateCampaign}
+          onCreateRcs={handleGoToCreateRcs}
           onQuickOpen={handleQuickOpen}
           onMMSNavigate={handleMMSNavigate}
         />

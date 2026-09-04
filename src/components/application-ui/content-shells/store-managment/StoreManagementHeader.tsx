@@ -3,6 +3,7 @@
 import AddCircleOutlineRoundedIcon from '@mui/icons-material/AddCircleOutlineRounded';
 import ArrowBackIosNewRoundedIcon from '@mui/icons-material/ArrowBackIosNewRounded';
 import FlashOnRoundedIcon from '@mui/icons-material/FlashOnRounded';
+import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
 import MailOutlineRoundedIcon from '@mui/icons-material/MailOutlineRounded';
 import {
   alpha,
@@ -23,6 +24,7 @@ interface Props {
   storeActive?: boolean;
   onBack: () => void;
   onCreateCampaign: () => void;
+  onCreateRcs: () => void;
   onQuickOpen: () => void;
   onMMSNavigate: () => void;
 }
@@ -34,6 +36,7 @@ export const StoreManagementHeader: FC<Props> = ({
   storeActive,
   onBack,
   onCreateCampaign,
+  onCreateRcs,
   onQuickOpen,
   onMMSNavigate,
 }) => {
@@ -118,7 +121,7 @@ noWrap>
         <Stack direction="row"
 spacing={1.5}
 flexShrink={0}>
-          {action === 'create' ? (
+          {action === 'create' || action === 'create-rcs' ? (
             <Button
               variant="contained"
               color="secondary"
@@ -142,6 +145,22 @@ flexShrink={0}>
                 }}
               >
                 Quick
+              </Button>
+
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<ForumRoundedIcon fontSize="small" />}
+                onClick={onCreateRcs}
+                disabled={!storeActive}
+                aria-label="Crear campaña RCS"
+                sx={{
+                  px: 2,
+                  background: 'linear-gradient(120deg, #E60073, #a3009c)',
+                  '&:hover': { background: 'linear-gradient(120deg, #c40062, #8b0085)' },
+                }}
+              >
+                RCS
               </Button>
 
               <Button
