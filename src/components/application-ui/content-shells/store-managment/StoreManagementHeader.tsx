@@ -149,16 +149,13 @@ flexShrink={0}>
 
               <Button
                 variant="contained"
+                color="primary"
                 size="small"
                 startIcon={<ForumRoundedIcon fontSize="small" />}
                 onClick={onCreateRcs}
                 disabled={!storeActive}
                 aria-label="Crear campaña RCS"
-                sx={{
-                  px: 2,
-                  background: 'linear-gradient(120deg, #E60073, #a3009c)',
-                  '&:hover': { background: 'linear-gradient(120deg, #c40062, #8b0085)' },
-                }}
+                sx={{ px: 2 }}
               >
                 RCS
               </Button>

@@ -654,6 +654,59 @@ class CampaignClient {
     return res.data as Campaing;
   }
 
+  /** Métricas completas de UNA campaña RCS: entrega, apertura (seen), clicks
+   *  de short links y engagement (listas + compras de quienes clickearon). */
+  async getRcsMetrics(campaignId: string): Promise<{
+    ok: boolean;
+    campaign: any;
+    messages: {
+      total: number;
+      delivered: number;
+      seen: number;
+      errors: number;
+      queued: number;
+      deliveryRate: number;
+      seenRate: number;
+    };
+    clicks: { links: number; clickedLinks: number; totalClicks: number; clickRate: number };
+    engagement: {
+      lists: number;
+      validatedLists: number;
+      itemsInLists: number;
+      listCustomers: number;
+      purchases: number;
+      buyers: number;
+      productsPurchased: number;
+      pointsAwarded: number;
+      topProducts: Array<{ name: string; quantity: number; price?: number; uniqueCustomers: number }>;
+    };
+  }> {
+    const res = await api.get(`/tracking/analytics/campaign/${campaignId}/rcs`);
+    return res.data;
+  }
+
+  /** Envío RCS INMEDIATO (prueba individual o primeros N de la base) — no crea
+   *  campaña ni agenda: el sms-worker lo manda al momento vía Infobip /rcs/2. */
+  async sendRcsNow(payload: {
+    storeId: string;
+    storeSlug: string;
+    phones?: string[];
+    limit?: number;
+    cards: any[];
+    suggestions: any[];
+    failoverText?: string;
+    maxProducts?: number;
+  }): Promise<{
+    success: boolean;
+    recipients: number;
+    delivered: number;
+    notInBase: string[];
+    campaignId: string;
+  }> {
+    const res = await api.post(`/rcs/send`, payload);
+    return res.data;
+  }
+
   // OJO: tu backend tiene /campaigns/old/:id en tu snippet anterior
   async updateCampaign(id: string, data: Campaing): Promise<Campaing> {
     const res = await api.put(`/campaigns/old/${id}`, data);

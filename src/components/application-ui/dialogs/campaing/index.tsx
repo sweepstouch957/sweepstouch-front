@@ -1,6 +1,7 @@
 'use client';
 
 import CampaignLogsModal from '@/components/CampaignLogsModal';
+import RcsMetricsPanel from './RcsMetricsPanel';
 import CampaignResendModal from '@/components/CampaignResendModal';
 import { useCampaignById } from '@/hooks/fetching/campaigns/useCampaignById';
 import { useAuth } from '@/hooks/use-auth';
@@ -572,6 +573,9 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
           <Stack flex={1.4} spacing={2} sx={{ minWidth: 0 }}>
             {/* Delivery Rate Hero */}
             <DeliveryHero rate={deliveryRate} color={deliveryColor} isLoading={isLoading} />
+
+            {/* Campaña RCS: embudo completo — entrega, apertura, clicks, listas y compras */}
+            {campaign?.type === 'RCS' && <RcsMetricsPanel campaignId={campaignId} />}
 
             {/* KPI Cards */}
             <Stack direction="row" flexWrap="wrap" gap={1.5}>

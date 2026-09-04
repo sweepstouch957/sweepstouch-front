@@ -623,16 +623,21 @@ py={4}>
                 </Button>
               )}
 
-              <Button
-                component={Link}
-                href="/admin/management/campaings/create"
-                variant="contained"
-                disableElevation
-                startIcon={<AddCircleOutlineRoundedIcon />}
-                sx={{ ...heroBtn, color: undefined, borderColor: undefined }}
-              >
-                Nueva campaña
-              </Button>
+              {/* En la vista de tienda las campañas se crean con los botones del
+                  header del panel (Crear campaña / RCS / Quick) — este link genérico
+                  no precarga la tienda, así que ahí no va. */}
+              {!storeId && (
+                <Button
+                  component={Link}
+                  href="/admin/management/campaings/create"
+                  variant="contained"
+                  disableElevation
+                  startIcon={<AddCircleOutlineRoundedIcon />}
+                  sx={{ ...heroBtn, color: undefined, borderColor: undefined }}
+                >
+                  Nueva campaña
+                </Button>
+              )}
             </>
           }
         />

@@ -14,20 +14,13 @@
 
 import { campaignClient } from '@/services/campaing.service';
 import { circularService } from '@/services/circular.service';
-import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
-import EditRoundedIcon from '@mui/icons-material/EditRounded';
-import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
-import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
-import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
 import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
   Alert,
-  alpha,
   Avatar,
   Box,
   Button,
@@ -40,8 +33,10 @@ import {
   DialogTitle,
   Divider,
   IconButton,
-  InputAdornment,
   MenuItem,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
   Snackbar,
   Stack,
   TextField,
@@ -53,8 +48,8 @@ import { DateTimePicker } from '@mui/x-date-pickers';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 
-// Color del agente RCS aprobado en Google (perfil "Sweepstouch").
-const RCS_PINK = '#E60073';
+// Rosa Sweepstouch sólido (mismo primary del theme).
+const RCS_PINK = '#FC0C83';
 const BTN_TEXT_MAX = 25; // límite RBM para el texto de un botón
 
 interface CatalogProduct {
@@ -137,6 +132,10 @@ export default function RcsCampaignBuilder({
     { text: '📝 Mi lista', kind: 'list' },
   ]);
   const [search, setSearch] = useState('');
+  // Audiencia: toda la base, primeros N, o números específicos (prueba individual).
+  const [audMode, setAudMode] = useState<'all' | 'limit' | 'numbers'>('all');
+  const [audLimit, setAudLimit] = useState<number>(10);
+  const [audNumbers, setAudNumbers] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [snack, setSnack] = useState<{ open: boolean; msg: string; sev: 'success' | 'error' }>({
     open: false,
@@ -200,11 +199,44 @@ export default function RcsCampaignBuilder({
     imageUrl: string;
   }>;
 
-  const canSubmit = !!title.trim() && cards.length >= 2 && !!failover.trim();
+  const parsedNumbers = useMemo(
+    () =>
+      audNumbers
+        .split(/[\s,;]+/)
+        .map((n) => n.replace(/\D/g, ''))
+        .filter((n) => n.length >= 10),
+    [audNumbers]
+  );
+
+  const audienceCount =
+    audMode === 'numbers'
+      ? parsedNumbers.length
+      : audMode === 'limit'
+        ? Math.min(Math.max(audLimit || 0, 1), totalAudience || audLimit || 1)
+        : totalAudience;
+
+  const isTest = audMode !== 'all'; // prueba = envío inmediato; campaña = agendada
+
+  const canSubmit =
+    cards.length >= 2 &&
+    !!failover.trim() &&
+    (isTest ? audMode !== 'numbers' || parsedNumbers.length > 0 : !!title.trim());
 
   const mutation = useMutation({
-    mutationFn: async () =>
-      campaignClient.createCampaign(
+    mutationFn: async () => {
+      // Prueba (números o primeros N): el sms-worker envía AL MOMENTO con esta
+      // configuración — nada se agenda. Sólo "toda la base" crea campaña programada.
+      if (isTest) {
+        return campaignClient.sendRcsNow({
+          storeId,
+          storeSlug,
+          ...(audMode === 'numbers' ? { phones: parsedNumbers } : { limit: audLimit }),
+          cards,
+          suggestions: buttons.filter((b) => b.text.trim()),
+          failoverText: failover,
+        });
+      }
+      return campaignClient.createCampaign(
         {
           title,
           description: 'Campaña RCS (carrusel)',
@@ -221,15 +253,32 @@ export default function RcsCampaignBuilder({
           },
         } as any,
         storeId
-      ),
-    onSuccess: () => {
+      );
+    },
+    onSuccess: (r: any) => {
       setConfirmOpen(false);
-      setSnack({ open: true, msg: '¡Campaña RCS creada! 🎉', sev: 'success' });
-      setTimeout(onCreate, 700);
+      if (isTest) {
+        const skipped = r?.notInBase?.length
+          ? ` (${r.notInBase.length} no están en la base)`
+          : '';
+        setSnack({
+          open: true,
+          msg: `Enviado ahora a ${r?.delivered ?? 0}/${r?.recipients ?? 0} 📲${skipped}`,
+          sev: r?.success ? 'success' : 'error',
+        });
+        // La prueba no navega: quedás en el builder para iterar y volver a probar.
+      } else {
+        setSnack({ open: true, msg: '¡Campaña RCS creada! 🎉', sev: 'success' });
+        setTimeout(onCreate, 700);
+      }
     },
     onError: () => {
       setConfirmOpen(false);
-      setSnack({ open: true, msg: 'Error creando la campaña RCS', sev: 'error' });
+      setSnack({
+        open: true,
+        msg: isTest ? 'Error enviando la prueba RCS' : 'Error creando la campaña RCS',
+        sev: 'error',
+      });
     },
   });
 
@@ -237,12 +286,8 @@ export default function RcsCampaignBuilder({
     <Box>
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <Card
-        sx={{
-          p: 2.5,
-          mb: 2.5,
-          color: '#fff',
-          background: `linear-gradient(120deg, ${RCS_PINK} 0%, #a3009c 55%, #5b21b6 100%)`,
-        }}
+        variant="outlined"
+        sx={{ p: 2.5, mb: 2.5 }}
       >
         <Stack
           direction="row"
@@ -250,34 +295,26 @@ export default function RcsCampaignBuilder({
           spacing={2}
           flexWrap="wrap"
         >
-          <Avatar sx={{ bgcolor: '#fff', color: RCS_PINK, fontWeight: 900 }}>
-            <ForumRoundedIcon />
-          </Avatar>
           <Box flex={1}
 minWidth={220}>
-            <Stack
-              direction="row"
-              alignItems="center"
-              spacing={0.8}
+            <Typography
+              variant="h6"
+              fontWeight={800}
             >
-              <Typography
-                variant="h6"
-                fontWeight={800}
-              >
-                Campaña RCS
-              </Typography>
-              <VerifiedRoundedIcon sx={{ fontSize: 18 }} />
-            </Stack>
+              Campaña RCS
+            </Typography>
             <Typography
               variant="body2"
-              sx={{ opacity: 0.9 }}
+              color="text.secondary"
             >
               Sender «sweepstouch» (agente Google verificado) · {storeName}
             </Typography>
           </Box>
           <Chip
-            label={`Audiencia: ${totalAudience.toLocaleString()} clientes`}
-            sx={{ bgcolor: 'rgba(255,255,255,0.18)', color: '#fff', fontWeight: 600 }}
+            variant="outlined"
+            color="primary"
+            label={`Base: ${totalAudience.toLocaleString()} clientes`}
+            sx={{ fontWeight: 600 }}
           />
         </Stack>
       </Card>
@@ -307,16 +344,18 @@ minWidth={220}>
               spacing={2}
             >
               <TextField
-                label="Título de la campaña"
+                label={isTest ? 'Título (sólo para campaña)' : 'Título de la campaña'}
                 fullWidth
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                disabled={isTest}
               />
               <DateTimePicker
                 label="Fecha de envío"
                 value={startDate}
                 onChange={(d) => d && setStartDate(d)}
                 sx={{ minWidth: 220 }}
+                disabled={isTest}
               />
             </Stack>
           </Card>
@@ -352,13 +391,6 @@ minWidth={220}>
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               sx={{ mb: 1.5 }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchRoundedIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
             />
 
             {loadingCatalog ? (
@@ -494,9 +526,9 @@ minWidth={220}>
                         <Avatar
                           variant="rounded"
                           src={p.imageUrl}
-                          sx={{ width: 34, height: 34, bgcolor: 'action.hover' }}
+                          sx={{ width: 34, height: 34, bgcolor: 'action.hover', color: 'text.secondary', fontSize: 14 }}
                         >
-                          <EditRoundedIcon fontSize="small" />
+                          {(p.name || '?').charAt(0).toUpperCase()}
                         </Avatar>
                         <Typography
                           variant="body2"
@@ -563,7 +595,6 @@ minWidth={220}>
               </Typography>
               <Button
                 size="small"
-                startIcon={<AddRoundedIcon />}
                 disabled={buttons.length >= 4}
                 onClick={() => setButtons((b) => [...b, { text: '', kind: 'url', url: '' }])}
               >
@@ -673,6 +704,74 @@ minWidth={220}>
             />
           </Card>
 
+          {/* Audiencia */}
+          <Card
+            variant="outlined"
+            sx={{ p: 2.5 }}
+          >
+            <Typography
+              variant="subtitle1"
+              fontWeight={700}
+              mb={0.5}
+            >
+              6 · Audiencia
+            </Typography>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              display="block"
+              mb={1.5}
+            >
+              Las pruebas se envían AL MOMENTO con esta configuración; sólo «toda la
+              base» crea una campaña programada.
+            </Typography>
+            <RadioGroup
+              value={audMode}
+              onChange={(e) => setAudMode(e.target.value as 'all' | 'limit' | 'numbers')}
+            >
+              <FormControlLabel
+                value="all"
+                control={<Radio size="small" />}
+                label={`Toda la base — campaña programada (${totalAudience.toLocaleString()} clientes)`}
+              />
+              <FormControlLabel
+                value="limit"
+                control={<Radio size="small" />}
+                label="Primeros N de la base — se envía ahora (prueba)"
+              />
+              {audMode === 'limit' && (
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Cantidad de clientes"
+                  value={audLimit}
+                  onChange={(e) => setAudLimit(Math.max(1, Number(e.target.value) || 1))}
+                  inputProps={{ min: 1, max: totalAudience || undefined }}
+                  sx={{ maxWidth: 220, ml: 4, mb: 1 }}
+                />
+              )}
+              <FormControlLabel
+                value="numbers"
+                control={<Radio size="small" />}
+                label="Números específicos — se envía ahora (prueba individual)"
+              />
+              {audMode === 'numbers' && (
+                <Box ml={4}>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    multiline
+                    rows={2}
+                    placeholder="2018894875, 3475551234…"
+                    value={audNumbers}
+                    onChange={(e) => setAudNumbers(e.target.value)}
+                    helperText={`${parsedNumbers.length} número${parsedNumbers.length === 1 ? '' : 's'} válido${parsedNumbers.length === 1 ? '' : 's'} — separados por coma o salto de línea. Deben existir en la base de la tienda.`}
+                  />
+                </Box>
+              )}
+            </RadioGroup>
+          </Card>
+
           {/* Submit */}
           <Box
             display="flex"
@@ -683,23 +782,21 @@ minWidth={220}>
               title={
                 canSubmit
                   ? ''
-                  : 'Falta: título, mínimo 2 productos y el SMS de respaldo'
+                  : isTest
+                    ? 'Falta: mínimo 2 productos, SMS de respaldo y al menos un número válido'
+                    : 'Falta: título, mínimo 2 productos y el SMS de respaldo'
               }
             >
               <span>
                 <Button
                   variant="contained"
                   size="large"
-                  startIcon={<SendRoundedIcon />}
                   disabled={!canSubmit || mutation.isPending}
                   onClick={() => setConfirmOpen(true)}
-                  sx={{
-                    px: 3,
-                    background: `linear-gradient(120deg, ${RCS_PINK}, #a3009c)`,
-                    '&:hover': { background: `linear-gradient(120deg, #c40062, #8b0085)` },
-                  }}
+                  color="primary"
+                  sx={{ px: 3 }}
                 >
-                  Crear campaña RCS
+                  {isTest ? 'Enviar prueba ahora' : 'Crear campaña RCS'}
                 </Button>
               </span>
             </Tooltip>
@@ -712,11 +809,13 @@ minWidth={220}>
           top={16}
         >
           <Card
+            variant="outlined"
             sx={{
               borderRadius: 5,
               border: '10px solid #111',
               overflow: 'hidden',
               bgcolor: '#fff',
+              boxShadow: 'none',
             }}
           >
             {/* header estilo Google Messages */}
@@ -787,7 +886,7 @@ minWidth={220}>
                       bgcolor="#fff"
                       borderRadius={2.5}
                       overflow="hidden"
-                      boxShadow="0 1px 4px rgba(0,0,0,0.12)"
+                      border="1px solid #e4e4e7"
                     >
                       <Box
                         height={110}
@@ -877,9 +976,10 @@ minWidth={220}>
           </Card>
 
           <Alert
-            icon={<CheckCircleRoundedIcon fontSize="small" />}
-            severity="success"
-            sx={{ mt: 1.5, bgcolor: alpha(RCS_PINK, 0.06), color: 'text.primary' }}
+            icon={false}
+            severity="info"
+            variant="outlined"
+            sx={{ mt: 1.5 }}
           >
             Cada botón abre la página RCS del cliente en <b>webview a pantalla completa</b> con
             su short link (clicks trackeados por campaña).
@@ -892,14 +992,22 @@ minWidth={220}>
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
       >
-        <DialogTitle>Confirmar campaña RCS</DialogTitle>
+        <DialogTitle>{isTest ? 'Enviar prueba RCS ahora' : 'Confirmar campaña RCS'}</DialogTitle>
         <DialogContent>
           <Typography variant="body2">
-            «{title}» — carrusel de <b>{cards.length} productos</b> con{' '}
-            {buttons.filter((b) => b.text.trim()).length} botones, para{' '}
-            <b>{totalAudience.toLocaleString()} clientes</b> de {storeName}.
+            {isTest ? 'Prueba' : `«${title}»`} — carrusel de <b>{cards.length} productos</b>{' '}
+            con {buttons.filter((b) => b.text.trim()).length} botones, para{' '}
+            <b>
+              {audMode === 'numbers'
+                ? `${parsedNumbers.length} número${parsedNumbers.length === 1 ? '' : 's'} de prueba`
+                : `${audienceCount.toLocaleString()} clientes`}
+            </b>{' '}
+            de {storeName}.
             <br />
-            Envío: {startDate.toLocaleString()}. Sender: sweepstouch.
+            {isTest
+              ? 'Se envía AHORA MISMO por el canal RCS.'
+              : `Programada para: ${startDate.toLocaleString()}.`}{' '}
+            Sender: sweepstouch.
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -914,7 +1022,7 @@ minWidth={220}>
             disabled={mutation.isPending}
             onClick={() => mutation.mutate()}
           >
-            {mutation.isPending ? 'Creando…' : 'Confirmar'}
+            {mutation.isPending ? (isTest ? 'Enviando…' : 'Creando…') : 'Confirmar'}
           </Button>
         </DialogActions>
       </Dialog>
