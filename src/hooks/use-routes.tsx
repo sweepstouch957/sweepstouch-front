@@ -11,6 +11,7 @@ import {
   Diversity3Rounded,
   EventRounded,
   GroupsRounded,
+  BalanceRounded,
   HandymanRounded,
   InsightsRounded,
   LinkRounded,
@@ -201,6 +202,7 @@ const supportMenu = (t: (token: string) => string): MenuItem =>
 const billingMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Facturación'), <AccountBalanceRounded />, [
     { title: t('Cartera'), route: routes.admin.management['billing-receivables'], icon: <ReceiptLongRounded /> },
+    { title: t('Cuadre'), route: routes.admin.management['billing-cuadre'], icon: <BalanceRounded /> },
     { title: t('Prefacturas'), route: routes.admin.management['billing-drafts'], icon: <PendingActionsRounded /> },
     { title: t('Conciliación'), route: routes.admin.management['billing-reconcile'], icon: <RuleRounded /> },
   ]);

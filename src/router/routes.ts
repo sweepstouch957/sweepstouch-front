@@ -159,6 +159,7 @@ export const routes = {
       billing: '/admin/management/billing',
       // Pestañas de la misma página: el tab vive en la query para poder enlazarlo.
       'billing-receivables': '/admin/management/billing?tab=cartera',
+      'billing-cuadre': '/admin/management/billing?tab=cuadre',
       'billing-drafts': '/admin/management/billing?tab=prefacturas',
       'billing-reconcile': '/admin/management/billing?tab=conciliacion',
       stores: {

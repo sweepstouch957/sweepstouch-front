@@ -111,8 +111,20 @@ export interface RangeBillingResponse {
       count: number; // cantidad total opt-in SMS
       unitPrice: number; // precio unitario opt-in SMS
     };
+    /** Todo lo facturado en QuickBooks en el rango y su diferencia contra el total calculado. */
+    qbo?: QboRangeTotals | null;
   };
   total: number; // campaigns.total + membership.subtotal
+}
+
+export interface QboRangeTotals {
+  billedTotal: number;
+  /** Cargos cuyo producto no se reconoce (antes se calculaban y se tiraban). */
+  otros: number;
+  setup: number;
+  invoices: number;
+  /** billedTotal − total calculado. 0 = cuadra. */
+  diff: number;
 }
 
 /* ========================= /billing/stores-report ========================= */
@@ -163,6 +175,8 @@ export interface StoreReportRow {
   campaignsCount?: number;
   lastCampaignAudience: number | null; // tamaño audiencia última campaña enviada
   total: number; // campaigns.total + membership.subtotal
+  /** Descuadre contra QuickBooks; null si la tienda no está vinculada. */
+  qbo?: { billedTotal: number; otros: number; invoices: number; diff: number } | null;
 }
 
 export interface StoresReportResponse {
@@ -185,6 +199,8 @@ export interface StoresReportResponse {
       count: number; // cantidad total opt-in SMS
       unitPrice: number; // precio unitario opt-in SMS
     };
+    /** Facturado en QuickBooks en el rango (incluye clientes sin vincular) vs total calculado. */
+    qbo?: QboRangeTotals | null;
   };
 }
 

@@ -61,6 +61,10 @@ type Row = {
   optinCost: number;
   membershipSubtotal: number;
   grandTotal: number;
+  /** Todo lo facturado en QuickBooks a este cliente en el rango. */
+  qboBilled: number;
+  /** Facturado en QuickBooks − calculado por el sistema. 0 = cuadra. */
+  qboDiff: number;
   detail: {
     campaigns: {
       sms: number;
@@ -81,6 +85,8 @@ type Row = {
       /** false si la tienda no está vinculada a un cliente de QuickBooks. */
       linked?: boolean;
     };
+    /** Descuadre contra QuickBooks; null si la tienda no está vinculada. */
+    qbo: { billedTotal: number; otros: number; invoices: number; diff: number } | null;
   };
 };
 
@@ -96,6 +102,8 @@ const columns = [
   { id: 'optinCost', label: 'OPT-IN' as const, align: 'right' as const, numeric: true },
   { id: 'membershipSubtotal', label: 'MEMBRESÍA' as const, align: 'right' as const, numeric: true },
   { id: 'grandTotal', label: 'GRAN TOTAL' as const, align: 'right' as const, numeric: true },
+  { id: 'qboBilled', label: 'QUICKBOOKS' as const, align: 'right' as const, numeric: true },
+  { id: 'qboDiff', label: 'DESCUADRE' as const, align: 'right' as const, numeric: true },
 ];
 
 type OrderBy = typeof columns[number]['id'];
@@ -182,11 +190,34 @@ const RowItem: React.FC<{ row: Row }> = ({ row }) => {
         <TableCell align="right">${numberFmt(row.optinCost)}</TableCell>
         <TableCell align="right">${numberFmt(row.membershipSubtotal)}</TableCell>
         <TableCell align="right">${numberFmt(row.grandTotal)}</TableCell>
+        <TableCell align="right">
+          {row.detail.qbo ? `$${numberFmt(row.qboBilled)}` : '—'}
+        </TableCell>
+        <TableCell align="right">
+          {row.detail.qbo ? (
+            <Typography
+              component="span"
+              variant="body2"
+              fontWeight={700}
+              color={
+                Math.abs(row.qboDiff) < 0.01
+                  ? 'success.main'
+                  : row.qboDiff < 0
+                    ? 'error.main'
+                    : 'warning.main'
+              }
+            >
+              {row.qboDiff > 0 ? '+' : ''}${numberFmt(row.qboDiff)}
+            </Typography>
+          ) : (
+            <Chip size="small" variant="outlined" label="Sin vincular" />
+          )}
+        </TableCell>
       </TableRow>
 
       <TableRow>
         <TableCell
-          colSpan={8}
+          colSpan={10}
           sx={{ py: 0, border: 0 }}
         >
           <Collapse
@@ -274,6 +305,31 @@ const RowItem: React.FC<{ row: Row }> = ({ row }) => {
                     </Typography>
                   </Stack>
                 </Grid>
+
+                {/* QuickBooks: el descuadre a la vista */}
+                {row.detail.qbo && (
+                  <Grid item xs={1} md={3}>
+                    <Stack spacing={0.75}>
+                      <Typography variant="subtitle2">QuickBooks</Typography>
+                      <Typography variant="body2">
+                        Facturado en el rango: <strong>${numberFmt(row.detail.qbo.billedTotal)}</strong>{' '}
+                        ({row.detail.qbo.invoices} factura{row.detail.qbo.invoices === 1 ? '' : 's'})
+                      </Typography>
+                      {row.detail.qbo.otros > 0 && (
+                        <Typography variant="body2">
+                          Otros cargos (producto no reconocido):{' '}
+                          <strong>${numberFmt(row.detail.qbo.otros)}</strong>
+                        </Typography>
+                      )}
+                      <Typography variant="body2">
+                        Diferencia contra lo calculado:{' '}
+                        <strong>
+                          {row.detail.qbo.diff > 0 ? '+' : ''}${numberFmt(row.detail.qbo.diff)}
+                        </strong>
+                      </Typography>
+                    </Stack>
+                  </Grid>
+                )}
               </Grid>
             </Box>
           </Collapse>
@@ -337,6 +393,15 @@ export default function StoresReportModal({
         (src as any)?.campaignsAudience ?? (src as any)?.lastCampaignAudience ?? 0
       );
       const grand = Number((src as any)?.total ?? total + membSub);
+      const qboRaw = (src as any)?.qbo ?? null;
+      const qbo = qboRaw
+        ? {
+            billedTotal: Number(qboRaw.billedTotal ?? 0),
+            otros: Number(qboRaw.otros ?? 0),
+            invoices: Number(qboRaw.invoices ?? 0),
+            diff: Number(qboRaw.diff ?? 0),
+          }
+        : null;
 
       return {
         storeId:
@@ -352,6 +417,8 @@ export default function StoresReportModal({
         optinCost: optCost,
         membershipSubtotal: membSub,
         grandTotal: grand,
+        qboBilled: qbo?.billedTotal ?? 0,
+        qboDiff: qbo?.diff ?? 0,
         detail: {
           campaigns: {
             sms,
@@ -374,6 +441,7 @@ export default function StoresReportModal({
             setup: Number((src as any)?.membership?.setup ?? 0),
             linked: (src as any)?.membership?.linked !== false,
           },
+          qbo,
         },
       };
     });
@@ -426,9 +494,11 @@ export default function StoresReportModal({
         acc.opt += r.optinCost;
         acc.memb += r.membershipSubtotal;
         acc.grand += r.grandTotal;
+        acc.qbo += r.qboBilled;
+        acc.diff += r.detail.qbo ? r.qboDiff : 0;
         return acc;
       },
-      { sms: 0, mms: 0, total: 0, audience: 0, opt: 0, memb: 0, grand: 0 },
+      { sms: 0, mms: 0, total: 0, audience: 0, opt: 0, memb: 0, grand: 0, qbo: 0, diff: 0 },
     );
   }, [filtered]);
 
@@ -525,7 +595,7 @@ export default function StoresReportModal({
                 {isLoading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={8}
+                      colSpan={10}
                       align="center"
                     >
                       <CircularProgress size={20} />
@@ -542,7 +612,7 @@ export default function StoresReportModal({
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={8}
+                      colSpan={10}
                       align="center"
                     >
                       <Typography
@@ -589,6 +659,16 @@ export default function StoresReportModal({
 
                   <TableCell align="right">
                     <strong>${numberFmt(totals.grand)}</strong>
+                  </TableCell>
+
+                  <TableCell align="right">
+                    <strong>${numberFmt(totals.qbo)}</strong>
+                  </TableCell>
+
+                  <TableCell align="right">
+                    <strong>
+                      {totals.diff > 0 ? '+' : ''}${numberFmt(totals.diff)}
+                    </strong>
                   </TableCell>
                 </TableRow>
               </TableFooter>

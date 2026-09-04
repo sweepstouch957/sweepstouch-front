@@ -269,7 +269,7 @@ sx={{ display: 'block', mt: 0.5 }}>
 }
 
 /**
- * Prefacturas de la semana (jueves→martes).
+ * Prefacturas de la semana (lunes→domingo, se emiten el lunes siguiente).
  *
  * Nada se emite sin confirmación explícita: la lista es una propuesta, y crear
  * facturas en QuickBooks es irreversible desde acá.

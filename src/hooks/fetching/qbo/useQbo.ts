@@ -9,6 +9,7 @@ import {
   type QboStatus,
   type QboCreateDraftsResult,
   type QboCustomerLedger,
+  type QboCuadreResponse,
   type QboDraftsResponse,
   type QboReconcileResponse,
   type QboInvoiceDetail,
@@ -236,6 +237,34 @@ export function useQboReconcile(from: string, to: string, opts?: { enabled?: boo
     staleTime: 1000 * 60 * 10,
     refetchOnWindowFocus: false,
     retry: false,
+  });
+}
+
+/**
+ * Cuadre acumulado por tienda: recorre el libro completo de facturas, así que
+ * no se refresca solo — el botón "Actualizar" pasa force para rehacer el cache.
+ */
+export function useQboCuadre(opts?: { enabled?: boolean }) {
+  return useQuery<QboCuadreResponse>({
+    queryKey: qboQK.cuadre(),
+    queryFn: () => qboService.cuadre(),
+    enabled: opts?.enabled ?? true,
+    staleTime: 1000 * 60 * 10,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+}
+
+/** Refresco explícito del cuadre: rehace el cache de facturas en el backend. */
+export function useQboRefreshCuadre() {
+  const qc = useQueryClient();
+  return useMutation<QboCuadreResponse, Error, void>({
+    mutationFn: () => qboService.cuadre(true),
+    onSuccess: (data) => {
+      qc.setQueryData(qboQK.cuadre(), data);
+      toast.success('Cuadre actualizado desde QuickBooks');
+    },
+    onError: (e) => toast.error(e.message || 'No se pudo actualizar el cuadre'),
   });
 }
 

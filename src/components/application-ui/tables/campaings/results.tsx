@@ -489,7 +489,9 @@ fontWeight={600}>No hay campañas para los filtros seleccionados</Typography>
                   >
                     {t('Store')}
                   </TableCell>
-                  <TableCell sx={{ width: '15%' }}>Campaña</TableCell>
+                  {/* Se oculta en lg igual que su celda del body: si el header
+                      queda y la celda no, toda la fila se corre una columna. */}
+                  <TableCell sx={{ width: '15%', display: { lg: 'none', xl: 'table-cell' } }}>Campaña</TableCell>
                   <TableCell sx={{ width: 88 }}>Provider</TableCell>
                   <TableCell sx={{ width: 78 }}>{t('Audience')}</TableCell>
                   <TableCell sx={{ width: 88 }}>{t('Cost')}</TableCell>

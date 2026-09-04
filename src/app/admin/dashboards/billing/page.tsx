@@ -128,6 +128,7 @@ export default function BillingPage() {
   const optinUnit = range.data?.breakdown.optin?.unitPrice ?? 0;
   const grandTotal = range.data?.total ?? 0;
   const membershipMeta = range.data?.breakdown.membership;
+  const qboTotals = range.data?.breakdown.qbo ?? null;
   const membershipHint =
     membershipMeta?.source === 'no-disponible'
       ? 'QuickBooks no respondió · Ver tiendas'
@@ -193,6 +194,19 @@ export default function BillingPage() {
       variant: 'warning',
       href: routes.admin.management.campaings.optin,
     },
+    // Lo que QuickBooks facturó en el rango contra lo que calcula el sistema.
+    // La membresía histórica se emitía hasta tres semanas tarde, así que un
+    // corte mensual nunca cuadra exacto: el cuadre bueno es el acumulado.
+    {
+      label: 'QuickBooks facturó',
+      value: range.isLoading ? undefined : qboTotals ? fmt(qboTotals.billedTotal) : '—',
+      hint: qboTotals
+        ? `Descuadre ${qboTotals.diff > 0 ? '+' : ''}${fmt(qboTotals.diff)} · Ver cuadre acumulado`
+        : 'QuickBooks no respondió',
+      icon: <AccountBalanceWalletRoundedIcon fontSize="small" />,
+      variant: qboTotals && Math.abs(qboTotals.diff) < 1 ? 'success' : 'error',
+      href: routes.admin.management['billing-cuadre'],
+    },
   ];
 
   // Store summary rows
@@ -220,6 +234,15 @@ export default function BillingPage() {
     {
       label: 'Grand Total',
       value: fmt(storesReport.data?.totals.grandTotal ?? 0),
+      highlight: true,
+    },
+    {
+      label: 'Facturado en QuickBooks',
+      value: fmt(storesReport.data?.totals.qbo?.billedTotal ?? 0),
+    },
+    {
+      label: 'Descuadre vs QuickBooks',
+      value: `${(storesReport.data?.totals.qbo?.diff ?? 0) > 0 ? '+' : ''}${fmt(storesReport.data?.totals.qbo?.diff ?? 0)}`,
       highlight: true,
     },
   ];
@@ -330,7 +353,7 @@ export default function BillingPage() {
         />
       )}
 
-      {/* KPI Grid — 4 columns */}
+      {/* KPI Grid — 5 tarjetas: la quinta es el descuadre contra QuickBooks */}
       <Grid
         container
         spacing={2}
@@ -341,7 +364,7 @@ export default function BillingPage() {
             item
             xs={12}
             sm={6}
-            md={3}
+            md={2.4}
             key={kpi.label}
           >
             <KpiCard

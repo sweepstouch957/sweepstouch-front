@@ -433,9 +433,89 @@ export interface QboDraft {
   warnings: string[];
 }
 
+/* ══════════ Cuadre acumulado ══════════ */
+
+export type QboCuadreStatus = 'al_dia' | 'falta' | 'sobra';
+export type QboCuadreFlag =
+  | 'tarifa_cruzada'
+  | 'cortesia'
+  | 'sin_facturas'
+  | 'de_baja'
+  | 'sin_fecha_contrato';
+
+export interface QboCuadreRow {
+  storeId: string;
+  storeName: string;
+  qboCustomerId: string;
+  customerName: string;
+  membershipType: string | null;
+  active: boolean;
+  /** De dónde salió el inicio: fecha de contrato o primera factura. */
+  basis: 'contrato' | 'primera-factura' | 'sin-fecha';
+  since: string | null;
+  chargeFrom: string | null;
+  end: string;
+  membership: {
+    units: number;
+    unitFee: number;
+    expected: number;
+    billed: number;
+    saldo: number;
+    lastAmount: number | null;
+    lastDate: string | null;
+  };
+  campaigns: { system: number; count: number; billed: number; saldo: number };
+  optinBilled: number;
+  setupBilled: number;
+  otrosBilled: number;
+  credits: number;
+  billedTotal: number;
+  openBalance: number;
+  invoices: number;
+  saldo: number;
+  status: QboCuadreStatus;
+  flags: QboCuadreFlag[];
+}
+
+export interface QboCuadreUnlinked {
+  qboCustomerId: string;
+  customerName: string;
+  billedTotal: number;
+  membership: number;
+  invoices: number;
+  lastIssued: string | null;
+}
+
+export interface QboCuadreResponse {
+  ok: boolean;
+  /** Último domingo cerrado: hasta ahí se cuentan semanas de servicio. */
+  cutoff: string;
+  tolerance: number;
+  rates: { semanal: number; mensual: number };
+  counts: {
+    stores: number;
+    alDia: number;
+    falta: number;
+    sobra: number;
+    crossRate: number;
+    unlinked: number;
+  };
+  totals: {
+    expectedMembership: number;
+    billedMembership: number;
+    systemCampaigns: number;
+    billedCampaigns: number;
+    credits: number;
+    saldo: number;
+    unlinkedBilled: number;
+  };
+  stores: QboCuadreRow[];
+  unlinked: QboCuadreUnlinked[];
+}
+
 export interface QboDraftsResponse {
   ok: boolean;
-  /** Ventana jueves→martes; cierra el miércoles. */
+  /** Ventana lunes→domingo; se emite el lunes siguiente. */
   window: { from: string; to: string; closesOn: string };
   drafts: QboDraft[];
   totals: {
@@ -797,6 +877,14 @@ export const qboService = {
     return data;
   },
 
+  /** Saldo acumulado por tienda desde su inicio de contrato. `force` refresca el libro. */
+  cuadre: async (force = false): Promise<QboCuadreResponse> => {
+    const { data } = await api.get(`${BASE}/cuadre`, {
+      params: force ? { force: '1' } : undefined,
+    });
+    return data;
+  },
+
   drafts: async (weekStart?: string | null): Promise<QboDraftsResponse> => {
     const { data } = await api.get(`${BASE}/drafts`, {
       params: weekStart ? { weekStart } : undefined,
@@ -848,4 +936,5 @@ export const qboQK = {
   syncPreview: (storeId: string) => ['qbo', 'sync-preview', storeId] as const,
   drafts: (weekStart?: string | null) => ['qbo', 'drafts', weekStart ?? 'actual'] as const,
   reconcile: (from: string, to: string) => ['qbo', 'reconcile', from, to] as const,
+  cuadre: () => ['qbo', 'cuadre'] as const,
 };
