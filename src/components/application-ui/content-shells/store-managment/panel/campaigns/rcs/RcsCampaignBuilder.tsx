@@ -1,598 +1,45 @@
 'use client';
 
 /**
- * Editor de mensajes RCS (Infobip /rcs/2/messages, sender "sweepstouch") en 4 pasos:
- *   1 · Mensaje   — tipo (carrusel/card/texto/archivo) + contenido
- *   2 · Botones   — botones globales del mensaje
- *   3 · Audiencia — prueba (ahora) o campaña programada (título + fecha)
- *   4 · Revisar   — SMS de respaldo, opciones avanzadas y envío
+ * Editor de mensajes RCS — orquestador del wizard de 4 pasos.
  *
- * UX: wizard vertical con validación por paso (los pendientes se listan junto al
- * botón Continuar, con causa y solución), preview del teléfono en vivo, un solo
- * CTA primario por paso. Cubre todo lo de la API v2: tipos TEXT/FILE/CARD/CAROUSEL,
- * botones OPEN_URL (browser/webview FULL-HALF-TALL), REPLY, DIAL_PHONE,
- * SHOW_LOCATION, REQUEST_LOCATION, CREATE_CALENDAR_EVENT, failover y validityPeriod.
- *
- * El editor arma el `content` v2 con placeholders {{RCSLINK}}/{{SEP}}; el backend
- * sólo reemplaza el short link por cliente (clicks trackeados).
+ * La lógica vive fuera de acá:
+ *  - rcs-domain.ts       → tipos + armado puro del content v2 (testeable)
+ *  - use-rcs-builder.ts  → estado del editor + validación por paso
+ *  - use-rcs-submit.ts   → envío (prueba inmediata / campaña programada)
+ *  - Step*.tsx           → cada paso del wizard
+ *  - PhonePreview.tsx    → vista previa en vivo estilo Google Messages
  */
 
-import { campaignClient } from '@/services/campaing.service';
-import { circularService } from '@/services/circular.service';
-import { customerClient } from '@/services/customerService';
-import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
-import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
-import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
 import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
   Alert,
-  Autocomplete,
-  Avatar,
   Box,
   Button,
   Card,
   Chip,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
-  FormControlLabel,
-  IconButton,
-  MenuItem,
-  Radio,
-  RadioGroup,
   Snackbar,
   Stack,
   Step,
   StepButton,
   StepContent,
   Stepper,
-  TextField,
-  ToggleButton,
-  ToggleButtonGroup,
   Typography,
 } from '@mui/material';
-import { DateTimePicker } from '@mui/x-date-pickers';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import PendingList from './PendingList';
+import PhonePreview from './PhonePreview';
+import { MSG_TYPE_INFO } from './rcs-domain';
+import StepAudience from './StepAudience';
+import StepButtons from './StepButtons';
+import StepMessage from './StepMessage';
+import StepReview from './StepReview';
+import { useRcsBuilder } from './use-rcs-builder';
+import { useRcsSubmit } from './use-rcs-submit';
 
-// ─── Límites RCS (Google RBM) ────────────────────────────────────────────────
-const BTN_TEXT_MAX = 25;
-const TITLE_MAX = 200;
-const DESC_MAX = 2000;
-const TEXT_MAX = 2048;
-
-const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n) : s);
-
-// ─── Tipos ───────────────────────────────────────────────────────────────────
-
-type MsgType = 'TEXT' | 'FILE' | 'CARD' | 'CAROUSEL';
-
-const MSG_TYPE_INFO: Record<MsgType, { label: string; hint: string }> = {
-  CAROUSEL: { label: 'Carrusel', hint: 'Varias tarjetas deslizables — ideal para las ofertas de la semana.' },
-  CARD: { label: 'Card única', hint: 'Una sola tarjeta grande con imagen, texto y botones.' },
-  TEXT: { label: 'Texto', hint: 'Sólo texto con botones — como un SMS pero interactivo.' },
-  FILE: { label: 'Archivo', hint: 'Una imagen, video o PDF con botones debajo.' },
-};
-
-type BtnKind =
-  | 'offers'
-  | 'list'
-  | 'add'
-  | 'url'
-  | 'reply'
-  | 'call'
-  | 'location'
-  | 'requestLocation'
-  | 'calendar';
-
-interface Btn {
-  text: string;
-  kind: BtnKind;
-  url?: string;
-  application?: 'BROWSER' | 'WEBVIEW';
-  viewMode?: 'FULL' | 'HALF' | 'TALL';
-  phoneNumber?: string;
-  lat?: string;
-  lng?: string;
-  label?: string;
-  postback?: string;
-  calTitle?: string;
-  calDesc?: string;
-  calStart?: string;
-  calEnd?: string;
-}
-
-const BTN_KIND_LABEL: Record<BtnKind, string> = {
-  offers: 'Abrir página del cliente',
-  list: 'Mi lista (pantalla Lista)',
-  add: 'Agregar producto a la lista',
-  url: 'URL personalizada',
-  reply: 'Respuesta rápida (REPLY)',
-  call: 'Llamar',
-  location: 'Mostrar ubicación',
-  requestLocation: 'Pedir ubicación',
-  calendar: 'Evento de calendario',
-};
-
-interface CardData {
-  uid: string;
-  productId?: string;
-  title: string;
-  description: string;
-  mediaUrl: string;
-  mediaHeight: 'SHORT' | 'MEDIUM' | 'TALL';
-  buttons: Btn[];
-}
-
-interface CatalogProduct {
-  _id: string;
-  name: string;
-  price?: string;
-  originalPrice?: string;
-  savings?: string;
-  brand?: string;
-  size?: string;
-  imageUrl?: string;
-}
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-const uidGen = () => Math.random().toString(36).slice(2, 9);
-
-const productDescription = (p: CatalogProduct) =>
-  [
-    p.brand,
-    p.size,
-    /\d/.test(p.savings || '')
-      ? `Ahorra ${p.savings}`
-      : p.originalPrice
-        ? `Antes ${p.originalPrice}`
-        : '',
-  ]
-    .filter(Boolean)
-    .join(' · ') || 'Oferta de esta semana';
-
-const cardFromProduct = (p: CatalogProduct): CardData => ({
-  uid: uidGen(),
-  productId: p._id,
-  title: clip(`${p.name}${p.price ? ` — ${p.price}` : ''}`, TITLE_MAX),
-  description: clip(productDescription(p), DESC_MAX),
-  mediaUrl: p.imageUrl || '',
-  mediaHeight: 'MEDIUM',
-  buttons: [{ text: '🛒 Agregar a mi lista', kind: 'add', viewMode: 'FULL' }],
-});
-
-const blankCard = (): CardData => ({
-  uid: uidGen(),
-  title: '',
-  description: '',
-  mediaUrl: '',
-  mediaHeight: 'MEDIUM',
-  buttons: [{ text: 'Ver ofertas', kind: 'offers', viewMode: 'FULL' }],
-});
-
-/** Btn del editor → suggestion RCS v2 (con placeholders de link por cliente). */
-function toSuggestion(b: Btn, i: number, productId?: string): any {
-  const text = clip(b.text || 'Botón', BTN_TEXT_MAX);
-  const pb = `btn_${i}_${b.kind}`;
-  const webview = { application: 'WEBVIEW', webviewViewMode: b.viewMode || 'FULL' };
-
-  switch (b.kind) {
-    case 'offers':
-      return { type: 'OPEN_URL', text, postbackData: 'open_offers', url: '{{RCSLINK}}', ...webview };
-    case 'list':
-      return { type: 'OPEN_URL', text, postbackData: 'open_list', url: '{{RCSLINK}}{{SEP}}screen=2', ...webview };
-    case 'add':
-      if (!productId) {
-        return { type: 'OPEN_URL', text, postbackData: 'open_offers', url: '{{RCSLINK}}', ...webview };
-      }
-      return {
-        type: 'OPEN_URL',
-        text,
-        postbackData: `add:${productId}`,
-        url: `{{RCSLINK}}{{SEP}}add=${productId}`,
-        ...webview,
-      };
-    case 'url':
-      return {
-        type: 'OPEN_URL',
-        text,
-        postbackData: pb,
-        url: b.url || 'https://www.sweepstouch.com',
-        application: b.application || 'BROWSER',
-        ...(b.application === 'WEBVIEW' ? { webviewViewMode: b.viewMode || 'FULL' } : {}),
-      };
-    case 'reply':
-      return { type: 'REPLY', text, postbackData: clip(b.postback || text, 2048) };
-    case 'call':
-      return { type: 'DIAL_PHONE', text, postbackData: pb, phoneNumber: b.phoneNumber || '' };
-    case 'location':
-      return {
-        type: 'SHOW_LOCATION',
-        text,
-        postbackData: pb,
-        latitude: Number(b.lat) || 0,
-        longitude: Number(b.lng) || 0,
-        label: b.label || text,
-      };
-    case 'requestLocation':
-      return { type: 'REQUEST_LOCATION', text, postbackData: pb };
-    case 'calendar':
-      return {
-        type: 'CREATE_CALENDAR_EVENT',
-        text,
-        postbackData: pb,
-        title: b.calTitle || text,
-        description: b.calDesc || '',
-        startTime: b.calStart ? new Date(b.calStart).toISOString() : new Date().toISOString(),
-        endTime: b.calEnd
-          ? new Date(b.calEnd).toISOString()
-          : new Date(Date.now() + 3600_000).toISOString(),
-      };
-  }
-}
-
-function btnValid(b: Btn): boolean {
-  if (!b.text.trim()) return false;
-  if (b.kind === 'url') return !!b.url?.trim();
-  if (b.kind === 'call') return !!b.phoneNumber?.trim();
-  if (b.kind === 'location') return !!b.lat && !!b.lng;
-  return true;
-}
-
-/** Problemas de una lista de botones, en lenguaje claro (causa + qué hacer). */
-function btnProblems(btns: Btn[], scope: string): string[] {
-  const out: string[] = [];
-  btns.forEach((b, i) => {
-    const name = b.text.trim() ? `«${b.text.trim()}»` : `el botón ${i + 1}`;
-    if (!b.text.trim()) out.push(`${scope}: escribí el texto de ${name}.`);
-    else if (b.kind === 'url' && !b.url?.trim()) out.push(`${scope}: ${name} necesita la URL a abrir.`);
-    else if (b.kind === 'call' && !b.phoneNumber?.trim()) out.push(`${scope}: ${name} necesita el teléfono a marcar.`);
-    else if (b.kind === 'location' && (!b.lat || !b.lng)) out.push(`${scope}: ${name} necesita latitud y longitud.`);
-  });
-  return out;
-}
-
-// ─── Editor de UN botón ─────────────────────────────────────────────────────
-
-function ButtonEditor({
-  btn,
-  onChange,
-  onRemove,
-  allowAdd,
-}: {
-  btn: Btn;
-  onChange: (patch: Partial<Btn>) => void;
-  onRemove: () => void;
-  allowAdd: boolean;
-}) {
-  const kinds = (Object.keys(BTN_KIND_LABEL) as BtnKind[]).filter((k) => allowAdd || k !== 'add');
-  const textMissing = !btn.text.trim();
-
-  return (
-    <Card
-      variant="outlined"
-      sx={{ p: 1.5, borderColor: btnValid(btn) ? 'divider' : 'warning.main' }}
-    >
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={1}
-        alignItems={{ sm: 'flex-start' }}
-      >
-        <TextField
-          size="small"
-          label={`Texto del botón (${btn.text.length}/${BTN_TEXT_MAX})`}
-          value={btn.text}
-          onChange={(e) => onChange({ text: clip(e.target.value, BTN_TEXT_MAX) })}
-          error={textMissing}
-          helperText={textMissing ? 'Obligatorio — es lo que ve el cliente.' : undefined}
-          sx={{ flex: 1, minWidth: 160 }}
-        />
-        <TextField
-          size="small"
-          select
-          label="Qué hace al tocarlo"
-          value={btn.kind}
-          onChange={(e) => onChange({ kind: e.target.value as BtnKind })}
-          sx={{ minWidth: 210 }}
-        >
-          {kinds.map((k) => (
-            <MenuItem
-              key={k}
-              value={k}
-            >
-              {BTN_KIND_LABEL[k]}
-            </MenuItem>
-          ))}
-        </TextField>
-        <IconButton
-          size="small"
-          color="error"
-          onClick={onRemove}
-          aria-label="Quitar botón"
-          sx={{ alignSelf: { xs: 'flex-end', sm: 'center' } }}
-        >
-          <DeleteOutlineRoundedIcon fontSize="small" />
-        </IconButton>
-      </Stack>
-
-      {(btn.kind === 'offers' || btn.kind === 'list' || btn.kind === 'add') && (
-        <TextField
-          size="small"
-          select
-          label="Cómo abre la página"
-          value={btn.viewMode || 'FULL'}
-          onChange={(e) => onChange({ viewMode: e.target.value as Btn['viewMode'] })}
-          sx={{ mt: 1, minWidth: 200 }}
-        >
-          <MenuItem value="FULL">Pantalla completa</MenuItem>
-          <MenuItem value="TALL">Alta (3/4 de pantalla)</MenuItem>
-          <MenuItem value="HALF">Media pantalla</MenuItem>
-        </TextField>
-      )}
-
-      {btn.kind === 'url' && (
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          spacing={1}
-          mt={1}
-        >
-          <TextField
-            size="small"
-            label="URL a abrir"
-            value={btn.url || ''}
-            onChange={(e) => onChange({ url: e.target.value })}
-            error={!btn.url?.trim()}
-            helperText={!btn.url?.trim() ? 'Pegá la URL completa (https://…)' : undefined}
-            sx={{ flex: 1, minWidth: 200 }}
-          />
-          <TextField
-            size="small"
-            select
-            label="Abrir en"
-            value={btn.application || 'BROWSER'}
-            onChange={(e) => onChange({ application: e.target.value as Btn['application'] })}
-            sx={{ minWidth: 140 }}
-          >
-            <MenuItem value="BROWSER">Navegador</MenuItem>
-            <MenuItem value="WEBVIEW">Webview</MenuItem>
-          </TextField>
-          {btn.application === 'WEBVIEW' && (
-            <TextField
-              size="small"
-              select
-              label="Tamaño"
-              value={btn.viewMode || 'FULL'}
-              onChange={(e) => onChange({ viewMode: e.target.value as Btn['viewMode'] })}
-              sx={{ minWidth: 130 }}
-            >
-              <MenuItem value="FULL">Completa</MenuItem>
-              <MenuItem value="TALL">Alta</MenuItem>
-              <MenuItem value="HALF">Media</MenuItem>
-            </TextField>
-          )}
-        </Stack>
-      )}
-
-      {btn.kind === 'reply' && (
-        <TextField
-          size="small"
-          label="Postback (lo que llega al sistema cuando lo tocan)"
-          value={btn.postback ?? btn.text}
-          onChange={(e) => onChange({ postback: e.target.value })}
-          sx={{ mt: 1 }}
-          fullWidth
-        />
-      )}
-
-      {btn.kind === 'call' && (
-        <TextField
-          size="small"
-          label="Teléfono a marcar (+1…)"
-          value={btn.phoneNumber || ''}
-          onChange={(e) => onChange({ phoneNumber: e.target.value })}
-          error={!btn.phoneNumber?.trim()}
-          helperText={!btn.phoneNumber?.trim() ? 'Obligatorio para el botón de llamar.' : undefined}
-          sx={{ mt: 1, minWidth: 220 }}
-        />
-      )}
-
-      {btn.kind === 'location' && (
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          spacing={1}
-          mt={1}
-        >
-          <TextField
-            size="small"
-            label="Latitud"
-            value={btn.lat || ''}
-            onChange={(e) => onChange({ lat: e.target.value })}
-            error={!btn.lat}
-            sx={{ minWidth: 130 }}
-          />
-          <TextField
-            size="small"
-            label="Longitud"
-            value={btn.lng || ''}
-            onChange={(e) => onChange({ lng: e.target.value })}
-            error={!btn.lng}
-            sx={{ minWidth: 130 }}
-          />
-          <TextField
-            size="small"
-            label="Etiqueta del pin"
-            value={btn.label || ''}
-            onChange={(e) => onChange({ label: e.target.value })}
-            sx={{ flex: 1, minWidth: 160 }}
-          />
-        </Stack>
-      )}
-
-      {btn.kind === 'calendar' && (
-        <Stack
-          spacing={1}
-          mt={1}
-        >
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={1}
-          >
-            <TextField
-              size="small"
-              label="Título del evento"
-              value={btn.calTitle || ''}
-              onChange={(e) => onChange({ calTitle: e.target.value })}
-              sx={{ flex: 1 }}
-            />
-            <TextField
-              size="small"
-              label="Descripción"
-              value={btn.calDesc || ''}
-              onChange={(e) => onChange({ calDesc: e.target.value })}
-              sx={{ flex: 1.4 }}
-            />
-          </Stack>
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={1}
-          >
-            <TextField
-              size="small"
-              type="datetime-local"
-              label="Comienza"
-              InputLabelProps={{ shrink: true }}
-              value={btn.calStart || ''}
-              onChange={(e) => onChange({ calStart: e.target.value })}
-              sx={{ minWidth: 220 }}
-            />
-            <TextField
-              size="small"
-              type="datetime-local"
-              label="Termina"
-              InputLabelProps={{ shrink: true }}
-              value={btn.calEnd || ''}
-              onChange={(e) => onChange({ calEnd: e.target.value })}
-              sx={{ minWidth: 220 }}
-            />
-          </Stack>
-        </Stack>
-      )}
-    </Card>
-  );
-}
-
-function ButtonListEditor({
-  buttons,
-  onChange,
-  max,
-  allowAdd,
-  emptyHint,
-}: {
-  buttons: Btn[];
-  onChange: (next: Btn[]) => void;
-  max: number;
-  allowAdd: boolean;
-  emptyHint?: string;
-}) {
-  return (
-    <Stack spacing={1}>
-      {buttons.length === 0 && emptyHint && (
-        <Typography
-          variant="caption"
-          color="text.secondary"
-        >
-          {emptyHint}
-        </Typography>
-      )}
-      {buttons.map((b, i) => (
-        <ButtonEditor
-          key={i}
-          btn={b}
-          allowAdd={allowAdd}
-          onChange={(patch) => onChange(buttons.map((x, idx) => (idx === i ? { ...x, ...patch } : x)))}
-          onRemove={() => onChange(buttons.filter((_, idx) => idx !== i))}
-        />
-      ))}
-      <Button
-        size="small"
-        variant="outlined"
-        disabled={buttons.length >= max}
-        onClick={() => onChange([...buttons, { text: '', kind: 'url', application: 'BROWSER' }])}
-        sx={{ alignSelf: 'flex-start' }}
-      >
-        Agregar botón ({buttons.length}/{max})
-      </Button>
-    </Stack>
-  );
-}
-
-function PreviewButtons({ buttons }: { buttons: Btn[] }) {
-  const visible = buttons.filter((b) => b.text.trim());
-  if (!visible.length) return null;
-  return (
-    <Box
-      display="flex"
-      gap={0.8}
-      mt={1}
-      overflow="auto"
-      pb={0.5}
-    >
-      {visible.map((b, i) => (
-        <Chip
-          key={i}
-          label={b.text}
-          size="small"
-          sx={{
-            flexShrink: 0,
-            bgcolor: '#fff',
-            color: '#1a73e8',
-            fontWeight: 700,
-            border: '1px solid #dadce0',
-          }}
-        />
-      ))}
-    </Box>
-  );
-}
-
-/** Lista de pendientes de un paso — aparece al intentar continuar. */
-function PendingList({ problems }: { problems: string[] }) {
-  if (!problems.length) return null;
-  return (
-    <Alert
-      severity="warning"
-      icon={false}
-      sx={{ mt: 1.5 }}
-      role="alert"
-    >
-      <Typography
-        variant="caption"
-        fontWeight={700}
-        display="block"
-        mb={0.5}
-      >
-        Para continuar:
-      </Typography>
-      {problems.map((p, i) => (
-        <Typography
-          key={i}
-          variant="caption"
-          display="block"
-        >
-          • {p}
-        </Typography>
-      ))}
-    </Alert>
-  );
-}
-
-// ═════════════════════════════════════════════════════════════════════════════
+const STEP_TITLES = ['El mensaje', 'Botones del mensaje', '¿A quién se lo mandamos?', 'Revisar y enviar'];
 
 export default function RcsCampaignBuilder({
   storeId,
@@ -609,314 +56,67 @@ export default function RcsCampaignBuilder({
   totalAudience: number;
   onCreate: () => void;
 }) {
-  // ── Wizard ──
-  const [activeStep, setActiveStep] = useState(0);
-  const [attempted, setAttempted] = useState<Record<number, boolean>>({});
+  const b = useRcsBuilder({ storeId, storeSlug, storeName, totalAudience });
+  const submit = useRcsSubmit({ b, storeId, storeSlug, phoneNumber, onCreate });
 
-  // ── Datos de campaña ──
-  const [title, setTitle] = useState('');
-  const [startDate, setStartDate] = useState<Date>(new Date());
-  const [failover, setFailover] = useState(
-    `Hola! Mira las ofertas de la semana de ${storeName} 👉 #linkrcs Reply STOP to unsubscribe`
-  );
-  const [validityAmount, setValidityAmount] = useState<number>(0);
-  const [validityUnit, setValidityUnit] = useState<'MINUTES' | 'HOURS'>('HOURS');
-
-  // ── Contenido ──
-  const [msgType, setMsgType] = useState<MsgType>('CAROUSEL');
-  const [text, setText] = useState('');
-  const [fileUrl, setFileUrl] = useState('');
-  const [thumbUrl, setThumbUrl] = useState('');
-  const [cardWidth, setCardWidth] = useState<'SMALL' | 'MEDIUM'>('MEDIUM');
-  const [orientation, setOrientation] = useState<'VERTICAL' | 'HORIZONTAL'>('VERTICAL');
-  const [alignment, setAlignment] = useState<'LEFT' | 'RIGHT'>('LEFT');
-  const [cards, setCards] = useState<CardData[]>([]);
-  const [globalButtons, setGlobalButtons] = useState<Btn[]>([
-    { text: '🛍️ Ver todas las ofertas', kind: 'offers', viewMode: 'FULL' },
-    { text: '📝 Mi lista', kind: 'list', viewMode: 'FULL' },
-  ]);
-  const [search, setSearch] = useState('');
-
-  // ── Audiencia ──
-  const [audMode, setAudMode] = useState<'all' | 'limit' | 'numbers'>('numbers');
-  const [audLimit, setAudLimit] = useState<number>(10);
-  const [audSelected, setAudSelected] = useState<Array<any>>([]);
-  const [audInput, setAudInput] = useState('');
-  const [audSearch, setAudSearch] = useState('');
-  useEffect(() => {
-    const t = setTimeout(() => setAudSearch(audInput.trim()), 300);
-    return () => clearTimeout(t);
-  }, [audInput]);
-
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [snack, setSnack] = useState<{ open: boolean; msg: string; sev: 'success' | 'error' }>({
-    open: false,
-    msg: '',
-    sev: 'success',
-  });
-
-  // ── Data ──
-  const { data: catalog, isLoading: loadingCatalog } = useQuery({
-    queryKey: ['store-catalog', storeSlug],
-    queryFn: () => circularService.getStoreCatalog(storeSlug),
-    enabled: !!storeSlug,
-    staleTime: 60_000,
-  });
-
-  const { data: custOptions = [], isFetching: searchingCustomers } = useQuery({
-    queryKey: ['rcs-cust-search', storeId, audSearch],
-    queryFn: () => customerClient.searchCustomersByStore(storeId, { search: audSearch, limit: 10 }),
-    enabled: audMode === 'numbers' && audSearch.length >= 2,
-    staleTime: 30_000,
-  });
-
-  const products: CatalogProduct[] = catalog?.items || [];
-  const filtered = useMemo(
-    () =>
-      search
-        ? products.filter((p) => p.name?.toLowerCase().includes(search.toLowerCase()))
-        : products,
-    [products, search]
-  );
-
-  const singleCard = cards[0];
-
-  const toggleProduct = (p: CatalogProduct) => {
-    setCards((prev) => {
-      const existing = prev.findIndex((c) => c.productId === p._id);
-      if (existing >= 0) return prev.filter((_, i) => i !== existing);
-      const cap = msgType === 'CARD' ? 1 : 10;
-      if (prev.length >= cap) {
-        setSnack({ open: true, msg: `Máximo ${cap} card${cap > 1 ? 's' : ''}`, sev: 'error' });
-        return prev;
-      }
-      return [...prev, cardFromProduct(p)];
-    });
-  };
-
-  const patchCard = (uid: string, patch: Partial<CardData>) =>
-    setCards((prev) => prev.map((c) => (c.uid === uid ? { ...c, ...patch } : c)));
-
-  const moveCard = (uid: string, dir: -1 | 1) =>
-    setCards((prev) => {
-      const i = prev.findIndex((c) => c.uid === uid);
-      const j = i + dir;
-      if (i < 0 || j < 0 || j >= prev.length) return prev;
-      const next = [...prev];
-      [next[i], next[j]] = [next[j], next[i]];
-      return next;
-    });
-
-  // ── Armado del content v2 ──
-  const globalMax = msgType === 'TEXT' ? 11 : 4;
-
-  const buildContentTemplate = (): any => {
-    const globals = globalButtons.filter(btnValid).slice(0, globalMax).map((b, i) => toSuggestion(b, i));
-
-    const buildCard = (c: CardData) => ({
-      title: clip(c.title || 'Oferta', TITLE_MAX),
-      description: clip(c.description || '', DESC_MAX) || undefined,
-      ...(c.mediaUrl
-        ? { media: { file: { url: c.mediaUrl }, height: c.mediaHeight || 'MEDIUM' } }
-        : {}),
-      suggestions: c.buttons.filter(btnValid).slice(0, 4).map((b, i) => toSuggestion(b, i, c.productId)),
-    });
-
-    if (msgType === 'TEXT') {
-      return { type: 'TEXT', text: clip(text, TEXT_MAX), ...(globals.length ? { suggestions: globals } : {}) };
-    }
-    if (msgType === 'FILE') {
-      return {
-        type: 'FILE',
-        file: { url: fileUrl },
-        ...(thumbUrl ? { thumbnail: { url: thumbUrl } } : {}),
-        ...(globals.length ? { suggestions: globals } : {}),
-      };
-    }
-    if (msgType === 'CARD') {
-      return {
-        type: 'CARD',
-        orientation,
-        ...(orientation === 'HORIZONTAL' ? { alignment } : {}),
-        content: buildCard(singleCard),
-        ...(globals.length ? { suggestions: globals } : {}),
-      };
-    }
-    return {
-      type: 'CAROUSEL',
-      cardWidth,
-      contents: cards.slice(0, 10).map(buildCard),
-      ...(globals.length ? { suggestions: globals } : {}),
-    };
-  };
-
-  // ── Validación por paso (mensajes con causa + solución) ──
-  const parsedNumbers = useMemo(() => {
-    const nums = audSelected
-      .map((v) => String(typeof v === 'string' ? v : v?.phoneNumber || '').replace(/\D/g, ''))
-      .map((n) => n.slice(-10))
-      .filter((n) => n.length === 10);
-    return [...new Set(nums)];
-  }, [audSelected]);
-
-  const isTest = audMode !== 'all';
-  const audienceCount =
-    audMode === 'numbers'
-      ? parsedNumbers.length
-      : audMode === 'limit'
-        ? Math.min(Math.max(audLimit || 0, 1), totalAudience || audLimit || 1)
-        : totalAudience;
-
-  const msgProblems = useMemo(() => {
-    const out: string[] = [];
-    if (msgType === 'TEXT' && !text.trim()) out.push('Escribí el texto del mensaje.');
-    if (msgType === 'FILE' && !fileUrl.trim()) out.push('Pegá la URL del archivo a enviar.');
-    if (msgType === 'CARD') {
-      if (!singleCard) out.push('Elegí un producto del catálogo o agregá una card en blanco.');
-      else {
-        if (!singleCard.title.trim() && !singleCard.mediaUrl) out.push('La card necesita al menos un título o una imagen.');
-        out.push(...btnProblems(singleCard.buttons, 'Card'));
-      }
-    }
-    if (msgType === 'CAROUSEL') {
-      if (cards.length < 2) out.push(`El carrusel necesita mínimo 2 cards (tenés ${cards.length}). Elegí productos del catálogo.`);
-      cards.forEach((c, i) => out.push(...btnProblems(c.buttons, `Card ${i + 1}`)));
-    }
-    return out;
-  }, [msgType, text, fileUrl, singleCard, cards]);
-
-  const btnStepProblems = useMemo(() => btnProblems(globalButtons, 'Botones'), [globalButtons]);
-
-  const audProblems = useMemo(() => {
-    const out: string[] = [];
-    if (audMode === 'numbers' && parsedNumbers.length === 0)
-      out.push('Buscá y elegí al menos un cliente de la base (o pegá un número y Enter).');
-    if (audMode === 'all' && !title.trim()) out.push('La campaña necesita un título para identificarla.');
-    return out;
-  }, [audMode, parsedNumbers, title]);
-
-  const reviewProblems = useMemo(() => {
-    const out: string[] = [];
-    if (!failover.trim()) out.push('Escribí el SMS de respaldo — es lo que reciben los teléfonos sin RCS.');
-    return out;
-  }, [failover]);
-
-  const stepProblems = [msgProblems, btnStepProblems, audProblems, reviewProblems];
-  const allProblems = stepProblems.flat();
-  const canSubmit = allProblems.length === 0;
-
-  const tryAdvance = (from: number) => {
-    setAttempted((a) => ({ ...a, [from]: true }));
-    if (stepProblems[from].length === 0) setActiveStep(from + 1);
-  };
-
-  // Resúmenes por paso (se ven en el stepper aunque el paso esté cerrado).
-  const stepSummaries = [
-    `${MSG_TYPE_INFO[msgType].label}${msgType === 'CAROUSEL' ? ` · ${cards.length} cards` : ''}`,
-    `${globalButtons.filter((b) => b.text.trim()).length} botón(es)`,
-    audMode === 'numbers'
-      ? `${parsedNumbers.length} número(s) — prueba inmediata`
-      : audMode === 'limit'
-        ? `Primeros ${audLimit} — prueba inmediata`
-        : `Toda la base (${totalAudience.toLocaleString()}) — programada`,
-    validityAmount > 0 ? `Validez ${validityAmount} ${validityUnit === 'HOURS' ? 'h' : 'min'}` : 'Listo para enviar',
+  const stepBodies = [
+    <StepMessage
+      key={0}
+      b={b}
+      onCapError={(msg) => submit.setSnack({ open: true, msg, sev: 'error' })}
+    />,
+    <StepButtons
+      key={1}
+      b={b}
+    />,
+    <StepAudience
+      key={2}
+      b={b}
+    />,
+    <StepReview
+      key={3}
+      b={b}
+    />,
   ];
 
-  // ── Envío ──
-  const mutation = useMutation({
-    mutationFn: async () => {
-      const contentTemplate = buildContentTemplate();
-      const validityPeriod =
-        validityAmount > 0 ? { amount: validityAmount, timeUnit: validityUnit } : undefined;
+  const navRow = (step: number) => {
+    const isLast = step === 3;
+    return (
+      <Stack
+        direction="row"
+        spacing={1.5}
+        mt={2}
+      >
+        {step > 0 && (
+          <Button
+            color="secondary"
+            onClick={() => b.setActiveStep(step - 1)}
+          >
+            Atrás
+          </Button>
+        )}
+        {isLast ? (
+          <Button
+            variant="contained"
+            color="primary"
+            disabled={submit.mutation.isPending}
+            onClick={submit.requestSend}
+          >
+            {b.isTest ? 'Enviar prueba ahora' : 'Crear campaña RCS'}
+          </Button>
+        ) : (
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => b.tryAdvance(step)}
+          >
+            Continuar
+          </Button>
+        )}
+      </Stack>
+    );
+  };
 
-      if (isTest) {
-        return campaignClient.sendRcsNow({
-          storeId,
-          storeSlug,
-          ...(audMode === 'numbers' ? { phones: parsedNumbers } : { limit: audLimit }),
-          contentTemplate,
-          validityPeriod,
-          failoverText: failover,
-        });
-      }
-      return campaignClient.createCampaign(
-        {
-          title,
-          description: `Campaña RCS (${msgType})`,
-          content: failover,
-          startDate,
-          channel: 'rcs',
-          customAudience: totalAudience,
-          platform: 'infobip',
-          sourceTn: phoneNumber,
-          rcsOptions: { contentTemplate, validityPeriod },
-        } as any,
-        storeId
-      );
-    },
-    onSuccess: (r: any) => {
-      setConfirmOpen(false);
-      if (isTest) {
-        const skipped = r?.notInBase?.length ? ` (${r.notInBase.length} no están en la base)` : '';
-        setSnack({
-          open: true,
-          msg: `Enviado ahora a ${r?.delivered ?? 0}/${r?.recipients ?? 0} 📲${skipped}`,
-          sev: r?.success ? 'success' : 'error',
-        });
-      } else {
-        setSnack({ open: true, msg: '¡Campaña RCS creada! 🎉', sev: 'success' });
-        setTimeout(onCreate, 700);
-      }
-    },
-    onError: (e: any) => {
-      setConfirmOpen(false);
-      setSnack({
-        open: true,
-        msg: e?.response?.data?.error || (isTest ? 'Error enviando la prueba RCS' : 'Error creando la campaña RCS'),
-        sev: 'error',
-      });
-    },
-  });
-
-  const navRow = (step: number, lastLabel?: string) => (
-    <Stack
-      direction="row"
-      spacing={1.5}
-      mt={2}
-    >
-      {step > 0 && (
-        <Button
-          color="secondary"
-          onClick={() => setActiveStep(step - 1)}
-        >
-          Atrás
-        </Button>
-      )}
-      {lastLabel ? (
-        <Button
-          variant="contained"
-          color="primary"
-          disabled={mutation.isPending}
-          onClick={() => {
-            setAttempted({ 0: true, 1: true, 2: true, 3: true });
-            if (canSubmit) setConfirmOpen(true);
-          }}
-        >
-          {lastLabel}
-        </Button>
-      ) : (
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => tryAdvance(step)}
-        >
-          Continuar
-        </Button>
-      )}
-    </Stack>
-  );
-
-  // ─────────────────────────────────────────────────────────────────────────
   return (
     <Box>
       {/* Header */}
@@ -962,1062 +162,106 @@ export default function RcsCampaignBuilder({
         gap={2.5}
         alignItems="start"
       >
-        {/* ══ Wizard ══ */}
+        {/* Wizard */}
         <Card
           variant="outlined"
           sx={{ p: { xs: 2, sm: 2.5 } }}
         >
           <Stepper
-            activeStep={activeStep}
+            activeStep={b.activeStep}
             orientation="vertical"
             nonLinear
           >
-            {/* ── Paso 1 · Mensaje ── */}
-            <Step completed={msgProblems.length === 0 && activeStep > 0}>
-              <StepButton
-                onClick={() => setActiveStep(0)}
-                optional={
-                  <Typography
-                    variant="caption"
-                    color={attempted[0] && msgProblems.length ? 'error' : 'text.secondary'}
-                  >
-                    {stepSummaries[0]}
-                  </Typography>
-                }
-              >
-                <Typography fontWeight={700}>El mensaje</Typography>
-              </StepButton>
-              <StepContent>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  mb={1.5}
+            {STEP_TITLES.map((titleLabel, step) => {
+              const isLast = step === 3;
+              const problems = b.stepProblems[step];
+              return (
+                <Step
+                  key={titleLabel}
+                  completed={!isLast && problems.length === 0 && b.activeStep > step}
                 >
-                  Elegí qué recibe el cliente y armá el contenido.
-                </Typography>
-
-                <ToggleButtonGroup
-                  exclusive
-                  size="small"
-                  value={msgType}
-                  onChange={(_, v) => {
-                    if (!v) return;
-                    setMsgType(v);
-                    if (v === 'CARD' && cards.length > 1) setCards((prev) => prev.slice(0, 1));
-                  }}
-                  sx={{ flexWrap: 'wrap' }}
-                >
-                  {(Object.keys(MSG_TYPE_INFO) as MsgType[]).map((t) => (
-                    <ToggleButton
-                      key={t}
-                      value={t}
-                    >
-                      {MSG_TYPE_INFO[t].label}
-                    </ToggleButton>
-                  ))}
-                </ToggleButtonGroup>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  display="block"
-                  mt={0.5}
-                  mb={1.5}
-                >
-                  {MSG_TYPE_INFO[msgType].hint}
-                </Typography>
-
-                {/* Opciones del tipo */}
-                {msgType === 'CAROUSEL' && (
-                  <TextField
-                    size="small"
-                    select
-                    label="Ancho de las cards"
-                    value={cardWidth}
-                    onChange={(e) => setCardWidth(e.target.value as any)}
-                    sx={{ minWidth: 200, mb: 1.5 }}
-                  >
-                    <MenuItem value="MEDIUM">Mediano (recomendado)</MenuItem>
-                    <MenuItem value="SMALL">Chico</MenuItem>
-                  </TextField>
-                )}
-                {msgType === 'CARD' && (
-                  <Stack
-                    direction={{ xs: 'column', sm: 'row' }}
-                    spacing={1.5}
-                    mb={1.5}
-                  >
-                    <TextField
-                      size="small"
-                      select
-                      label="Orientación"
-                      value={orientation}
-                      onChange={(e) => setOrientation(e.target.value as any)}
-                      sx={{ minWidth: 160 }}
-                    >
-                      <MenuItem value="VERTICAL">Vertical (imagen arriba)</MenuItem>
-                      <MenuItem value="HORIZONTAL">Horizontal (imagen al lado)</MenuItem>
-                    </TextField>
-                    {orientation === 'HORIZONTAL' && (
-                      <TextField
-                        size="small"
-                        select
-                        label="Imagen a la"
-                        value={alignment}
-                        onChange={(e) => setAlignment(e.target.value as any)}
-                        sx={{ minWidth: 150 }}
-                      >
-                        <MenuItem value="LEFT">Izquierda</MenuItem>
-                        <MenuItem value="RIGHT">Derecha</MenuItem>
-                      </TextField>
-                    )}
-                  </Stack>
-                )}
-
-                {msgType === 'TEXT' && (
-                  <TextField
-                    fullWidth
-                    multiline
-                    rows={4}
-                    label="Texto del mensaje"
-                    value={text}
-                    onChange={(e) => setText(clip(e.target.value, TEXT_MAX))}
-                    helperText={`${text.length}/${TEXT_MAX} — se muestra tal cual en el chat.`}
-                  />
-                )}
-
-                {msgType === 'FILE' && (
-                  <Stack spacing={1.5}>
-                    <TextField
-                      size="small"
-                      label="URL del archivo (imagen, video o PDF)"
-                      value={fileUrl}
-                      onChange={(e) => setFileUrl(e.target.value)}
-                      fullWidth
-                      helperText="Tiene que ser una URL pública https."
-                    />
-                    <TextField
-                      size="small"
-                      label="URL de miniatura (opcional)"
-                      value={thumbUrl}
-                      onChange={(e) => setThumbUrl(e.target.value)}
-                      fullWidth
-                    />
-                  </Stack>
-                )}
-
-                {(msgType === 'CAROUSEL' || msgType === 'CARD') && (
-                  <>
-                    <Stack
-                      direction="row"
-                      alignItems="center"
-                      justifyContent="space-between"
-                      flexWrap="wrap"
-                      gap={1}
-                      mt={1}
-                      mb={1}
-                    >
+                  <StepButton
+                    onClick={() => b.setActiveStep(step)}
+                    optional={
                       <Typography
-                        variant="subtitle2"
-                        fontWeight={700}
+                        variant="caption"
+                        color={b.attempted[step] && problems.length ? 'error' : 'text.secondary'}
                       >
-                        {msgType === 'CARD' ? 'Elegí el producto de la card' : 'Elegí los productos (2–10)'}
+                        {b.stepSummaries[step]}
                       </Typography>
-                      <Stack
-                        direction="row"
-                        spacing={1}
-                        alignItems="center"
-                      >
-                        <Chip
-                          size="small"
-                          color={msgProblems.length === 0 ? 'success' : 'default'}
-                          label={msgType === 'CARD' ? `${cards.length}/1` : `${cards.length}/10`}
-                        />
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          disabled={cards.length >= (msgType === 'CARD' ? 1 : 10)}
-                          onClick={() => setCards((prev) => [...prev, blankCard()])}
-                        >
-                          Card en blanco
-                        </Button>
-                      </Stack>
-                    </Stack>
-
-                    <TextField
-                      size="small"
-                      fullWidth
-                      placeholder="Buscar producto del catálogo…"
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      sx={{ mb: 1.5 }}
-                    />
-                    {loadingCatalog ? (
-                      <Box
-                        py={3}
-                        textAlign="center"
-                      >
-                        <CircularProgress size={26} />
-                      </Box>
-                    ) : products.length === 0 ? (
-                      <Alert severity="warning">
-                        Esta tienda no tiene productos en su catálogo. Cargalos en la página de
-                        Productos, o usá una card en blanco.
-                      </Alert>
-                    ) : (
-                      <Box
-                        display="grid"
-                        gridTemplateColumns={{ xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)' }}
-                        gap={1.5}
-                        maxHeight={280}
-                        overflow="auto"
-                        pr={0.5}
-                      >
-                        {filtered.map((p) => {
-                          const idx = cards.findIndex((c) => c.productId === p._id);
-                          const isSel = idx >= 0;
-                          return (
-                            <Card
-                              key={p._id}
-                              variant="outlined"
-                              onClick={() => toggleProduct(p)}
-                              sx={{
-                                cursor: 'pointer',
-                                position: 'relative',
-                                borderColor: isSel ? 'primary.main' : 'divider',
-                                borderWidth: isSel ? 2 : 1,
-                                '&:hover': { borderColor: 'primary.main' },
-                              }}
-                            >
-                              {isSel && (
-                                <Avatar
-                                  sx={{
-                                    position: 'absolute',
-                                    top: 6,
-                                    right: 6,
-                                    width: 22,
-                                    height: 22,
-                                    fontSize: 12,
-                                    fontWeight: 800,
-                                    bgcolor: 'primary.main',
-                                    zIndex: 1,
-                                  }}
-                                >
-                                  {idx + 1}
-                                </Avatar>
-                              )}
-                              <Box
-                                sx={{
-                                  height: 72,
-                                  bgcolor: 'action.hover',
-                                  backgroundImage: p.imageUrl ? `url(${p.imageUrl})` : undefined,
-                                  backgroundSize: 'contain',
-                                  backgroundPosition: 'center',
-                                  backgroundRepeat: 'no-repeat',
-                                }}
-                              />
-                              <Box p={1}>
-                                <Typography
-                                  variant="caption"
-                                  fontWeight={600}
-                                  display="block"
-                                  noWrap
-                                >
-                                  {p.name}
-                                </Typography>
-                                <Typography
-                                  variant="caption"
-                                  color={isSel ? 'primary.main' : 'text.secondary'}
-                                  fontWeight={700}
-                                >
-                                  {p.price || '—'}
-                                </Typography>
-                              </Box>
-                            </Card>
-                          );
-                        })}
-                      </Box>
+                    }
+                  >
+                    <Typography fontWeight={700}>{titleLabel}</Typography>
+                  </StepButton>
+                  <StepContent>
+                    {stepBodies[step]}
+                    {b.attempted[step] && (
+                      <PendingList problems={isLast ? b.allProblems : problems} />
                     )}
-
-                    {cards.length > 0 && (
-                      <>
-                        <Typography
-                          variant="subtitle2"
-                          fontWeight={700}
-                          mt={2}
-                          mb={1}
-                        >
-                          Personalizá cada card
-                        </Typography>
-                        <Stack spacing={1}>
-                          {cards.map((c, i) => (
-                            <Accordion
-                              key={c.uid}
-                              disableGutters
-                              variant="outlined"
-                              sx={{ '&:before': { display: 'none' } }}
-                            >
-                              <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />}>
-                                <Stack
-                                  direction="row"
-                                  alignItems="center"
-                                  spacing={1.5}
-                                  minWidth={0}
-                                  flex={1}
-                                >
-                                  <Avatar
-                                    variant="rounded"
-                                    src={c.mediaUrl || undefined}
-                                    sx={{ width: 34, height: 34, bgcolor: 'action.hover', color: 'text.secondary', fontSize: 14 }}
-                                  >
-                                    {(c.title || '?').charAt(0).toUpperCase()}
-                                  </Avatar>
-                                  <Typography
-                                    variant="body2"
-                                    fontWeight={600}
-                                    noWrap
-                                  >
-                                    {i + 1} · {c.title || 'Card sin título'}
-                                  </Typography>
-                                </Stack>
-                              </AccordionSummary>
-                              <AccordionDetails>
-                                <Stack spacing={1.5}>
-                                  <TextField
-                                    size="small"
-                                    label={`Título (${c.title.length}/${TITLE_MAX})`}
-                                    value={c.title}
-                                    onChange={(e) => patchCard(c.uid, { title: clip(e.target.value, TITLE_MAX) })}
-                                    fullWidth
-                                  />
-                                  <TextField
-                                    size="small"
-                                    label="Descripción"
-                                    value={c.description}
-                                    onChange={(e) => patchCard(c.uid, { description: clip(e.target.value, DESC_MAX) })}
-                                    fullWidth
-                                    multiline
-                                    rows={2}
-                                  />
-                                  <Stack
-                                    direction={{ xs: 'column', sm: 'row' }}
-                                    spacing={1}
-                                  >
-                                    <TextField
-                                      size="small"
-                                      label="URL de la imagen/video"
-                                      value={c.mediaUrl}
-                                      onChange={(e) => patchCard(c.uid, { mediaUrl: e.target.value })}
-                                      sx={{ flex: 1, minWidth: 200 }}
-                                    />
-                                    <TextField
-                                      size="small"
-                                      select
-                                      label="Alto de la imagen"
-                                      value={c.mediaHeight}
-                                      onChange={(e) => patchCard(c.uid, { mediaHeight: e.target.value as any })}
-                                      sx={{ minWidth: 150 }}
-                                    >
-                                      <MenuItem value="SHORT">Bajo</MenuItem>
-                                      <MenuItem value="MEDIUM">Medio</MenuItem>
-                                      <MenuItem value="TALL">Alto</MenuItem>
-                                    </TextField>
-                                  </Stack>
-
-                                  <Typography
-                                    variant="caption"
-                                    fontWeight={700}
-                                    color="text.secondary"
-                                  >
-                                    Botones de esta card (máx. 4)
-                                  </Typography>
-                                  <ButtonListEditor
-                                    buttons={c.buttons}
-                                    onChange={(next) => patchCard(c.uid, { buttons: next.slice(0, 4) })}
-                                    max={4}
-                                    allowAdd={!!c.productId}
-                                    emptyHint="Sin botones — la card es sólo informativa."
-                                  />
-
-                                  <Stack
-                                    direction="row"
-                                    spacing={1}
-                                    justifyContent="flex-end"
-                                  >
-                                    {msgType === 'CAROUSEL' && (
-                                      <>
-                                        <Button
-                                          size="small"
-                                          disabled={i === 0}
-                                          onClick={() => moveCard(c.uid, -1)}
-                                        >
-                                          ← Mover
-                                        </Button>
-                                        <Button
-                                          size="small"
-                                          disabled={i === cards.length - 1}
-                                          onClick={() => moveCard(c.uid, 1)}
-                                        >
-                                          Mover →
-                                        </Button>
-                                      </>
-                                    )}
-                                    <Button
-                                      size="small"
-                                      color="error"
-                                      onClick={() => setCards((prev) => prev.filter((x) => x.uid !== c.uid))}
-                                    >
-                                      Quitar card
-                                    </Button>
-                                  </Stack>
-                                </Stack>
-                              </AccordionDetails>
-                            </Accordion>
-                          ))}
-                        </Stack>
-                      </>
-                    )}
-                  </>
-                )}
-
-                {attempted[0] && <PendingList problems={msgProblems} />}
-                {navRow(0)}
-              </StepContent>
-            </Step>
-
-            {/* ── Paso 2 · Botones ── */}
-            <Step completed={btnStepProblems.length === 0 && activeStep > 1}>
-              <StepButton
-                onClick={() => setActiveStep(1)}
-                optional={
-                  <Typography
-                    variant="caption"
-                    color={attempted[1] && btnStepProblems.length ? 'error' : 'text.secondary'}
-                  >
-                    {stepSummaries[1]}
-                  </Typography>
-                }
-              >
-                <Typography fontWeight={700}>Botones del mensaje</Typography>
-              </StepButton>
-              <StepContent>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  mb={1.5}
-                >
-                  Van debajo del mensaje (máx. {globalMax}). Los de «página del cliente» usan su
-                  link personal con clicks trackeados.
-                </Typography>
-                <ButtonListEditor
-                  buttons={globalButtons}
-                  onChange={(next) => setGlobalButtons(next.slice(0, globalMax))}
-                  max={globalMax}
-                  allowAdd={false}
-                  emptyHint="Sin botones globales — también es válido."
-                />
-                {attempted[1] && <PendingList problems={btnStepProblems} />}
-                {navRow(1)}
-              </StepContent>
-            </Step>
-
-            {/* ── Paso 3 · Audiencia ── */}
-            <Step completed={audProblems.length === 0 && activeStep > 2}>
-              <StepButton
-                onClick={() => setActiveStep(2)}
-                optional={
-                  <Typography
-                    variant="caption"
-                    color={attempted[2] && audProblems.length ? 'error' : 'text.secondary'}
-                  >
-                    {stepSummaries[2]}
-                  </Typography>
-                }
-              >
-                <Typography fontWeight={700}>¿A quién se lo mandamos?</Typography>
-              </StepButton>
-              <StepContent>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  mb={1.5}
-                >
-                  Las pruebas salen al momento. «Toda la base» crea una campaña programada.
-                </Typography>
-                <RadioGroup
-                  value={audMode}
-                  onChange={(e) => setAudMode(e.target.value as any)}
-                >
-                  <FormControlLabel
-                    value="numbers"
-                    control={<Radio size="small" />}
-                    label="Números específicos — prueba, se envía ahora"
-                  />
-                  {audMode === 'numbers' && (
-                    <Box
-                      ml={4}
-                      mb={1}
-                    >
-                      <Autocomplete
-                        multiple
-                        freeSolo
-                        size="small"
-                        options={custOptions}
-                        value={audSelected}
-                        inputValue={audInput}
-                        onInputChange={(_, v) => setAudInput(v)}
-                        onChange={(_, v) => setAudSelected(v)}
-                        loading={searchingCustomers}
-                        filterOptions={(x) => x}
-                        getOptionLabel={(o: any) =>
-                          typeof o === 'string'
-                            ? o
-                            : `${[o.firstName, o.lastName].filter(Boolean).join(' ') || 'Cliente'} · ${o.phoneNumber}`
-                        }
-                        isOptionEqualToValue={(o: any, v: any) =>
-                          String(o?.phoneNumber || o) === String(v?.phoneNumber || v)
-                        }
-                        renderOption={(props, o: any) => (
-                          <li
-                            {...props}
-                            key={o._id || o.phoneNumber}
-                          >
-                            <Stack minWidth={0}>
-                              <Typography
-                                variant="body2"
-                                fontWeight={600}
-                                noWrap
-                              >
-                                {[o.firstName, o.lastName].filter(Boolean).join(' ') || 'Sin nombre'}
-                                {o.active === false ? ' · INACTIVO' : ''}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                              >
-                                {o.phoneNumber}
-                              </Typography>
-                            </Stack>
-                          </li>
-                        )}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Buscar en la base"
-                            placeholder="Nombre o teléfono…"
-                            helperText={`${parsedNumbers.length} seleccionado(s) — también podés pegar un número y Enter.`}
-                          />
-                        )}
-                      />
-                    </Box>
-                  )}
-                  <FormControlLabel
-                    value="limit"
-                    control={<Radio size="small" />}
-                    label="Primeros N de la base — prueba, se envía ahora"
-                  />
-                  {audMode === 'limit' && (
-                    <TextField
-                      size="small"
-                      type="number"
-                      label="Cantidad de clientes"
-                      value={audLimit}
-                      onChange={(e) => setAudLimit(Math.max(1, Number(e.target.value) || 1))}
-                      inputProps={{ min: 1, max: totalAudience || undefined }}
-                      sx={{ maxWidth: 220, ml: 4, mb: 1 }}
-                    />
-                  )}
-                  <FormControlLabel
-                    value="all"
-                    control={<Radio size="small" />}
-                    label={`Toda la base (${totalAudience.toLocaleString()}) — campaña programada`}
-                  />
-                </RadioGroup>
-
-                {audMode === 'all' && (
-                  <Stack
-                    direction={{ xs: 'column', sm: 'row' }}
-                    spacing={1.5}
-                    mt={1.5}
-                    ml={4}
-                  >
-                    <TextField
-                      size="small"
-                      label="Título de la campaña"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      error={attempted[2] && !title.trim()}
-                      helperText={attempted[2] && !title.trim() ? 'Obligatorio para identificarla en el panel.' : undefined}
-                      sx={{ flex: 1, minWidth: 220 }}
-                    />
-                    <DateTimePicker
-                      label="Fecha y hora de envío"
-                      value={startDate}
-                      onChange={(d) => d && setStartDate(d)}
-                      slotProps={{ textField: { size: 'small' } }}
-                      sx={{ minWidth: 220 }}
-                    />
-                  </Stack>
-                )}
-
-                {attempted[2] && <PendingList problems={audProblems} />}
-                {navRow(2)}
-              </StepContent>
-            </Step>
-
-            {/* ── Paso 4 · Revisar y enviar ── */}
-            <Step completed={false}>
-              <StepButton
-                onClick={() => setActiveStep(3)}
-                optional={
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                  >
-                    {stepSummaries[3]}
-                  </Typography>
-                }
-              >
-                <Typography fontWeight={700}>Revisar y enviar</Typography>
-              </StepButton>
-              <StepContent>
-                <Typography
-                  variant="subtitle2"
-                  fontWeight={700}
-                  mb={0.5}
-                >
-                  SMS de respaldo
-                </Typography>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  display="block"
-                  mb={1}
-                >
-                  Lo reciben los teléfonos sin RCS. #linkrcs = link personal del cliente.
-                </Typography>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={3}
-                  value={failover}
-                  onChange={(e) => setFailover(e.target.value.slice(0, 2047))}
-                  error={attempted[3] && !failover.trim()}
-                  helperText={attempted[3] && !failover.trim() ? 'Obligatorio — sin esto los teléfonos sin RCS no reciben nada.' : undefined}
-                  sx={{ '& .MuiInputBase-root': { fontFamily: 'monospace' }, mb: 1.5 }}
-                />
-
-                <Accordion
-                  disableGutters
-                  variant="outlined"
-                  sx={{ '&:before': { display: 'none' }, mb: 2 }}
-                >
-                  <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />}>
-                    <Typography
-                      variant="body2"
-                      fontWeight={600}
-                    >
-                      Opciones avanzadas
-                    </Typography>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      display="block"
-                      mb={1}
-                    >
-                      Validez: si el mensaje no se entrega en este tiempo, se descarta (0 = sin límite).
-                    </Typography>
-                    <Stack
-                      direction="row"
-                      spacing={1}
-                    >
-                      <TextField
-                        size="small"
-                        type="number"
-                        label="Validez"
-                        value={validityAmount}
-                        onChange={(e) => setValidityAmount(Math.max(0, Number(e.target.value) || 0))}
-                        inputProps={{ min: 0 }}
-                        sx={{ maxWidth: 130 }}
-                      />
-                      <TextField
-                        size="small"
-                        select
-                        label="Unidad"
-                        value={validityUnit}
-                        onChange={(e) => setValidityUnit(e.target.value as any)}
-                        sx={{ minWidth: 130 }}
-                        disabled={validityAmount <= 0}
-                      >
-                        <MenuItem value="MINUTES">Minutos</MenuItem>
-                        <MenuItem value="HOURS">Horas</MenuItem>
-                      </TextField>
-                    </Stack>
-                  </AccordionDetails>
-                </Accordion>
-
-                {/* Resumen */}
-                <Card
-                  variant="outlined"
-                  sx={{ p: 1.5, mb: 1.5, bgcolor: 'action.hover' }}
-                >
-                  <Typography
-                    variant="caption"
-                    fontWeight={700}
-                    display="block"
-                    mb={0.5}
-                  >
-                    Resumen
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    display="block"
-                  >
-                    • Mensaje: {MSG_TYPE_INFO[msgType].label}
-                    {msgType === 'CAROUSEL' ? ` (${cards.length} cards)` : ''} ·{' '}
-                    {globalButtons.filter((b) => b.text.trim()).length} botón(es)
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    display="block"
-                  >
-                    • Audiencia: {stepSummaries[2]}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    display="block"
-                  >
-                    • {isTest ? 'Se envía AHORA MISMO' : `Programada: ${startDate.toLocaleString()}`} · Sender: sweepstouch
-                  </Typography>
-                </Card>
-
-                {attempted[3] && <PendingList problems={allProblems} />}
-                {navRow(3, isTest ? 'Enviar prueba ahora' : 'Crear campaña RCS')}
-              </StepContent>
-            </Step>
+                    {navRow(step)}
+                  </StepContent>
+                </Step>
+              );
+            })}
           </Stepper>
         </Card>
 
-        {/* ══ Preview teléfono ══ */}
-        <Box
-          position={{ md: 'sticky' }}
-          top={16}
-        >
-          <Typography
-            variant="caption"
-            fontWeight={700}
-            color="text.secondary"
-            display="block"
-            mb={0.5}
-            textTransform="uppercase"
-            letterSpacing={0.5}
-          >
-            Vista previa en vivo
-          </Typography>
-          <Card
-            variant="outlined"
-            sx={{
-              borderRadius: 5,
-              border: '10px solid #111',
-              overflow: 'hidden',
-              bgcolor: '#fff',
-              boxShadow: 'none',
-            }}
-          >
-            <Box
-              px={2}
-              py={1.2}
-              display="flex"
-              alignItems="center"
-              gap={1.2}
-              borderBottom="1px solid #eee"
-            >
-              <Avatar sx={{ width: 30, height: 30, bgcolor: 'primary.main', fontSize: 14, fontWeight: 800 }}>
-                S
-              </Avatar>
-              <Box lineHeight={1.1}>
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  spacing={0.5}
-                >
-                  <Typography
-                    variant="body2"
-                    fontWeight={700}
-                    color="#111"
-                  >
-                    Sweepstouch
-                  </Typography>
-                  <VerifiedRoundedIcon sx={{ fontSize: 14, color: '#1a73e8' }} />
-                </Stack>
-                <Typography
-                  variant="caption"
-                  color="#888"
-                >
-                  Mensaje RCS · {storeName}
-                </Typography>
-              </Box>
-            </Box>
-
-            <Box
-              p={1.5}
-              sx={{ bgcolor: '#f6f7f9', minHeight: 200 }}
-            >
-              {msgType === 'TEXT' && (
-                <Box
-                  bgcolor="#fff"
-                  borderRadius={2.5}
-                  border="1px solid #e4e4e7"
-                  p={1.5}
-                  maxWidth="90%"
-                >
-                  <Typography
-                    variant="body2"
-                    color="#111"
-                    whiteSpace="pre-wrap"
-                  >
-                    {text || 'Escribí el texto del mensaje…'}
-                  </Typography>
-                </Box>
-              )}
-
-              {msgType === 'FILE' && (
-                <Box
-                  bgcolor="#fff"
-                  borderRadius={2.5}
-                  border="1px solid #e4e4e7"
-                  overflow="hidden"
-                  maxWidth="90%"
-                >
-                  <Box
-                    height={140}
-                    sx={{
-                      bgcolor: '#f1f1f1',
-                      backgroundImage: (thumbUrl || fileUrl) ? `url(${thumbUrl || fileUrl})` : undefined,
-                      backgroundSize: 'contain',
-                      backgroundPosition: 'center',
-                      backgroundRepeat: 'no-repeat',
-                    }}
-                  />
-                  <Typography
-                    variant="caption"
-                    color="#777"
-                    display="block"
-                    p={1}
-                    noWrap
-                  >
-                    {fileUrl || 'URL del archivo…'}
-                  </Typography>
-                </Box>
-              )}
-
-              {msgType === 'CARD' && singleCard && (
-                <Box
-                  bgcolor="#fff"
-                  borderRadius={2.5}
-                  border="1px solid #e4e4e7"
-                  overflow="hidden"
-                  display={orientation === 'HORIZONTAL' ? 'flex' : 'block'}
-                  flexDirection={alignment === 'RIGHT' ? 'row-reverse' : 'row'}
-                >
-                  <Box
-                    sx={{
-                      height: orientation === 'HORIZONTAL' ? 'auto' : 130,
-                      width: orientation === 'HORIZONTAL' ? 110 : '100%',
-                      flexShrink: 0,
-                      bgcolor: '#f1f1f1',
-                      backgroundImage: singleCard.mediaUrl ? `url(${singleCard.mediaUrl})` : undefined,
-                      backgroundSize: 'contain',
-                      backgroundPosition: 'center',
-                      backgroundRepeat: 'no-repeat',
-                    }}
-                  />
-                  <Box p={1.2}>
-                    <Typography
-                      variant="caption"
-                      fontWeight={700}
-                      color="#111"
-                      display="block"
-                    >
-                      {singleCard.title || 'Título de la card'}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      color="#777"
-                    >
-                      {singleCard.description}
-                    </Typography>
-                    <PreviewButtons buttons={singleCard.buttons} />
-                  </Box>
-                </Box>
-              )}
-              {msgType === 'CARD' && !singleCard && (
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                >
-                  Elegí un producto o agregá una card en blanco 👆
-                </Typography>
-              )}
-
-              {msgType === 'CAROUSEL' &&
-                (cards.length === 0 ? (
-                  <Box
-                    py={5}
-                    textAlign="center"
-                  >
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                    >
-                      Elegí productos para ver el carrusel 👀
-                    </Typography>
-                  </Box>
-                ) : (
-                  <Box
-                    display="flex"
-                    gap={1.2}
-                    overflow="auto"
-                    pb={1}
-                  >
-                    {cards.map((c) => (
-                      <Box
-                        key={c.uid}
-                        flexShrink={0}
-                        width={cardWidth === 'SMALL' ? 132 : 168}
-                        bgcolor="#fff"
-                        borderRadius={2.5}
-                        overflow="hidden"
-                        border="1px solid #e4e4e7"
-                      >
-                        <Box
-                          height={c.mediaHeight === 'TALL' ? 140 : c.mediaHeight === 'SHORT' ? 80 : 110}
-                          sx={{
-                            bgcolor: '#f1f1f1',
-                            backgroundImage: c.mediaUrl ? `url(${c.mediaUrl})` : undefined,
-                            backgroundSize: 'contain',
-                            backgroundPosition: 'center',
-                            backgroundRepeat: 'no-repeat',
-                          }}
-                        />
-                        <Box p={1.2}>
-                          <Typography
-                            variant="caption"
-                            fontWeight={700}
-                            color="#111"
-                            display="-webkit-box"
-                            sx={{ WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
-                          >
-                            {c.title || 'Sin título'}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            color="#777"
-                            display="-webkit-box"
-                            sx={{ WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', fontSize: 10.5 }}
-                          >
-                            {c.description}
-                          </Typography>
-                        </Box>
-                        {c.buttons.filter((b) => b.text.trim()).length > 0 && (
-                          <>
-                            <Divider />
-                            <Box
-                              py={0.8}
-                              px={1}
-                              textAlign="center"
-                            >
-                              {c.buttons
-                                .filter((b) => b.text.trim())
-                                .map((b, i) => (
-                                  <Typography
-                                    key={i}
-                                    variant="caption"
-                                    fontWeight={700}
-                                    color="#1a73e8"
-                                    display="block"
-                                    py={0.2}
-                                  >
-                                    {b.text}
-                                  </Typography>
-                                ))}
-                            </Box>
-                          </>
-                        )}
-                      </Box>
-                    ))}
-                  </Box>
-                ))}
-
-              <PreviewButtons buttons={globalButtons} />
-            </Box>
-          </Card>
-
-          <Alert
-            icon={false}
-            severity="info"
-            variant="outlined"
-            sx={{ mt: 1.5 }}
-          >
-            El ícono 🌐 junto a los botones lo pone Google Messages según la acción — no se
-            puede quitar desde la API.
-          </Alert>
-        </Box>
+        {/* Preview */}
+        <PhonePreview b={b} />
       </Box>
 
       {/* Confirmación */}
       <Dialog
-        open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
+        open={submit.confirmOpen}
+        onClose={() => submit.setConfirmOpen(false)}
       >
-        <DialogTitle>{isTest ? 'Enviar prueba RCS ahora' : 'Confirmar campaña RCS'}</DialogTitle>
+        <DialogTitle>{b.isTest ? 'Enviar prueba RCS ahora' : 'Confirmar campaña RCS'}</DialogTitle>
         <DialogContent>
           <Typography variant="body2">
-            {isTest ? 'Prueba' : `«${title}»`} — mensaje <b>{MSG_TYPE_INFO[msgType].label}</b>
-            {msgType === 'CAROUSEL' ? ` de ${cards.length} cards` : ''} para{' '}
+            {b.isTest ? 'Prueba' : `«${b.title}»`} — mensaje <b>{MSG_TYPE_INFO[b.msgType].label}</b>
+            {b.msgType === 'CAROUSEL' ? ` de ${b.cards.length} cards` : ''} para{' '}
             <b>
-              {audMode === 'numbers'
-                ? `${parsedNumbers.length} número${parsedNumbers.length === 1 ? '' : 's'} de prueba`
-                : `${audienceCount.toLocaleString()} clientes`}
+              {b.audMode === 'numbers'
+                ? `${b.parsedNumbers.length} número${b.parsedNumbers.length === 1 ? '' : 's'} de prueba`
+                : `${b.audienceCount.toLocaleString()} clientes`}
             </b>{' '}
             de {storeName}.
             <br />
-            {isTest
+            {b.isTest
               ? 'Se envía AHORA MISMO por el canal RCS.'
-              : `Programada para: ${startDate.toLocaleString()}.`}{' '}
+              : `Programada para: ${b.startDate.toLocaleString()}.`}{' '}
             Sender: sweepstouch.
           </Typography>
         </DialogContent>
         <DialogActions>
           <Button
             color="secondary"
-            onClick={() => setConfirmOpen(false)}
+            onClick={() => submit.setConfirmOpen(false)}
           >
             Cancelar
           </Button>
           <Button
             variant="contained"
-            disabled={mutation.isPending}
-            onClick={() => mutation.mutate()}
+            disabled={submit.mutation.isPending}
+            onClick={() => submit.mutation.mutate()}
           >
-            {mutation.isPending ? (isTest ? 'Enviando…' : 'Creando…') : 'Confirmar'}
+            {submit.mutation.isPending ? (b.isTest ? 'Enviando…' : 'Creando…') : 'Confirmar'}
           </Button>
         </DialogActions>
       </Dialog>
 
       <Snackbar
-        open={snack.open}
+        open={submit.snack.open}
         autoHideDuration={5000}
-        onClose={() => setSnack((s) => ({ ...s, open: false }))}
+        onClose={() => submit.setSnack((s) => ({ ...s, open: false }))}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
         <Alert
-          severity={snack.sev}
+          severity={submit.snack.sev}
           variant="filled"
-          onClose={() => setSnack((s) => ({ ...s, open: false }))}
+          onClose={() => submit.setSnack((s) => ({ ...s, open: false }))}
         >
-          {snack.msg}
+          {submit.snack.msg}
         </Alert>
       </Snackbar>
     </Box>
