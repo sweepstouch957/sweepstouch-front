@@ -73,10 +73,21 @@ class CustomerClient {
   async getCustomersByStore(
     storeId: string,
     page = 1,
-    limit = 100
+    limit = 100,
+    search?: string
   ): Promise<PaginatedResponse<Customer>> {
     const res = await api.get(`/customers/store/${storeId}`, {
-      params: { page, limit },
+      params: { page, limit, ...(search ? { search } : {}) },
+    });
+    return res.data;
+  }
+
+  /** Activa/inactiva un cliente por teléfono (PATCH /customers/by-phone). */
+  async setCustomerActiveByPhone(phoneNumber: string, active: boolean): Promise<any> {
+    const res = await api.patch('/customers/by-phone', {
+      phoneNumber,
+      active,
+      comments: `[PANEL] ${active ? 'Activado' : 'Inactivado'} manualmente desde el directorio (${new Date().toISOString()})`,
     });
     return res.data;
   }

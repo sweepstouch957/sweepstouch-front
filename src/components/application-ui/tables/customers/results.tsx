@@ -6,8 +6,9 @@ import {
   BlockRounded,
 } from '@mui/icons-material';
 import {
-  Avatar, Box, Card, Chip, Divider, InputAdornment, Stack, Table, TableBody, TableCell,
-  TableContainer, TableHead, TablePagination, TableRow, TextField, Typography, Button,
+  Avatar, Box, Card, Chip, CircularProgress, Divider, InputAdornment, Stack, Switch, Table,
+  TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow, TextField,
+  Tooltip, Typography, Button,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import dayjs from 'dayjs';
@@ -38,6 +39,10 @@ interface ResultsProps {
     active: number;
     inactive: number;
   };
+  /** Activa/inactiva un cliente desde la fila (switch en la columna Estado). */
+  onToggleActive?: (customer: CustomerRow, next: boolean) => void;
+  /** phoneNumber del cliente cuyo toggle está en vuelo (deshabilita su switch). */
+  togglingPhone?: string | null;
 }
 
 function StatCard({
@@ -99,6 +104,7 @@ export default function Results(props: ResultsProps) {
     customers, total, page, limit, isLoading,
     search, onSearchChange, onPageChange, onLimitChange,
     onExportPdf, exporting, stats,
+    onToggleActive, togglingPhone,
   } = props;
 
   const theme = useTheme();
@@ -223,13 +229,30 @@ export default function Results(props: ResultsProps) {
                       <Typography variant="body2">{(c as any).zipCode || '—'}</Typography>
                     </TableCell>
                     <TableCell>
-                      <Chip
-                        size="small"
-                        label={isActive ? 'Activo' : 'Inactivo'}
-                        color={isActive ? 'success' : 'default'}
-                        variant={isActive ? 'filled' : 'outlined'}
-                        sx={{ fontWeight: 600 }}
-                      />
+                      <Stack direction="row" alignItems="center" gap={0.5}>
+                        <Chip
+                          size="small"
+                          label={isActive ? 'Activo' : 'Inactivo'}
+                          color={isActive ? 'success' : 'default'}
+                          variant={isActive ? 'filled' : 'outlined'}
+                          sx={{ fontWeight: 600 }}
+                        />
+                        {onToggleActive && (
+                          togglingPhone === c.phoneNumber ? (
+                            <CircularProgress size={18} sx={{ mx: 1 }} />
+                          ) : (
+                            <Tooltip title={isActive ? 'Inactivar (no recibe campañas)' : 'Activar'}>
+                              <Switch
+                                size="small"
+                                checked={isActive}
+                                color="success"
+                                onChange={(e) => onToggleActive(c, e.target.checked)}
+                                inputProps={{ 'aria-label': isActive ? 'Inactivar cliente' : 'Activar cliente' }}
+                              />
+                            </Tooltip>
+                          )
+                        )}
+                      </Stack>
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" whiteSpace="nowrap">

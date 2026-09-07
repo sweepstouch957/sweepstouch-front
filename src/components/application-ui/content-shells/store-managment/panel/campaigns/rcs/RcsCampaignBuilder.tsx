@@ -18,6 +18,7 @@
 
 import { campaignClient } from '@/services/campaing.service';
 import { circularService } from '@/services/circular.service';
+import { customerClient } from '@/services/customerService';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
@@ -26,6 +27,7 @@ import {
   AccordionDetails,
   AccordionSummary,
   Alert,
+  Autocomplete,
   Avatar,
   Box,
   Button,
@@ -52,7 +54,7 @@ import {
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 // ─── Límites RCS (Google RBM) ────────────────────────────────────────────────
 const BTN_TEXT_MAX = 25;
@@ -579,7 +581,14 @@ export default function RcsCampaignBuilder({
   // ── Audiencia ──
   const [audMode, setAudMode] = useState<'all' | 'limit' | 'numbers'>('numbers');
   const [audLimit, setAudLimit] = useState<number>(10);
-  const [audNumbers, setAudNumbers] = useState('');
+  // Números elegidos: clientes de la base (objeto) o números pegados a mano (string).
+  const [audSelected, setAudSelected] = useState<Array<any>>([]);
+  const [audInput, setAudInput] = useState('');
+  const [audSearch, setAudSearch] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setAudSearch(audInput.trim()), 300);
+    return () => clearTimeout(t);
+  }, [audInput]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [snack, setSnack] = useState<{ open: boolean; msg: string; sev: 'success' | 'error' }>({
     open: false,
@@ -592,6 +601,14 @@ export default function RcsCampaignBuilder({
     queryFn: () => circularService.getStoreCatalog(storeSlug),
     enabled: !!storeSlug,
     staleTime: 60_000,
+  });
+
+  // Autocomplete: busca en la base de la tienda por nombre o teléfono.
+  const { data: custOptions = [], isFetching: searchingCustomers } = useQuery({
+    queryKey: ['rcs-cust-search', storeId, audSearch],
+    queryFn: () => customerClient.searchCustomersByStore(storeId, { search: audSearch, limit: 10 }),
+    enabled: audMode === 'numbers' && audSearch.length >= 2,
+    staleTime: 30_000,
   });
 
   const products: CatalogProduct[] = catalog?.items || [];
@@ -676,14 +693,13 @@ export default function RcsCampaignBuilder({
   };
 
   // ── Validación ──
-  const parsedNumbers = useMemo(
-    () =>
-      audNumbers
-        .split(/[\s,;]+/)
-        .map((n) => n.replace(/\D/g, ''))
-        .filter((n) => n.length >= 10),
-    [audNumbers]
-  );
+  const parsedNumbers = useMemo(() => {
+    const nums = audSelected
+      .map((v) => String(typeof v === 'string' ? v : v?.phoneNumber || '').replace(/\D/g, ''))
+      .map((n) => n.slice(-10))
+      .filter((n) => n.length === 10);
+    return [...new Set(nums)];
+  }, [audSelected]);
 
   const contentReady =
     msgType === 'TEXT'
@@ -1345,15 +1361,45 @@ export default function RcsCampaignBuilder({
               />
               {audMode === 'numbers' && (
                 <Box ml={4}>
-                  <TextField
+                  <Autocomplete
+                    multiple
+                    freeSolo
                     size="small"
-                    fullWidth
-                    multiline
-                    rows={2}
-                    placeholder="2018894875, 3475551234…"
-                    value={audNumbers}
-                    onChange={(e) => setAudNumbers(e.target.value)}
-                    helperText={`${parsedNumbers.length} número${parsedNumbers.length === 1 ? '' : 's'} válido${parsedNumbers.length === 1 ? '' : 's'} — deben existir en la base de la tienda.`}
+                    options={custOptions}
+                    value={audSelected}
+                    inputValue={audInput}
+                    onInputChange={(_, v) => setAudInput(v)}
+                    onChange={(_, v) => setAudSelected(v)}
+                    loading={searchingCustomers}
+                    filterOptions={(x) => x} // el filtro lo hace el backend
+                    getOptionLabel={(o: any) =>
+                      typeof o === 'string'
+                        ? o
+                        : `${[o.firstName, o.lastName].filter(Boolean).join(' ') || 'Cliente'} · ${o.phoneNumber}`
+                    }
+                    isOptionEqualToValue={(o: any, v: any) =>
+                      String(o?.phoneNumber || o) === String(v?.phoneNumber || v)
+                    }
+                    renderOption={(props, o: any) => (
+                      <li {...props} key={o._id || o.phoneNumber}>
+                        <Stack minWidth={0}>
+                          <Typography variant="body2" fontWeight={600} noWrap>
+                            {[o.firstName, o.lastName].filter(Boolean).join(' ') || 'Sin nombre'}
+                            {o.active === false ? ' · INACTIVO' : ''}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {o.phoneNumber}
+                          </Typography>
+                        </Stack>
+                      </li>
+                    )}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        placeholder="Buscar por nombre o teléfono en la base…"
+                        helperText={`${parsedNumbers.length} número${parsedNumbers.length === 1 ? '' : 's'} seleccionado${parsedNumbers.length === 1 ? '' : 's'} — también podés pegar un número y Enter.`}
+                      />
+                    )}
                   />
                 </Box>
               )}

@@ -2,8 +2,8 @@
 
 import { Box, CircularProgress, Unstable_Grid2 as Grid, Typography, Button } from '@mui/material';
 import { PictureAsPdf } from '@mui/icons-material';
-import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import Results from './results';
 import { customerClient } from '@/services/customerService';
 import { useAuth } from '@/hooks/use-auth';
@@ -79,14 +79,29 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
   const [search, setSearch] = useState('');
+  // Debounce: el backend busca con $regex — sin esto dispara una query por tecla.
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 350);
+    return () => clearTimeout(t);
+  }, [search]);
   const [exporting, setExporting] = useState(false);
 
   const { user } = useAuth();
   const isJuan = user?.email === 'juancarlos@sweepstouch.com';
 
+  const queryClient = useQueryClient();
+
+  // Activar/inactivar un cliente desde la fila (switch en la tabla).
+  const toggleActive = useMutation({
+    mutationFn: ({ phoneNumber, active }: { phoneNumber: string; active: boolean }) =>
+      customerClient.setCustomerActiveByPhone(phoneNumber, active),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['customers', storeId] }),
+  });
+
   const { data, isPending, error, refetch, isFetching } = useQuery({
-    queryKey: ['customers', storeId, { page, limit, search }],
-    queryFn: () => customerClient.getCustomersByStore(storeId, page, limit),
+    queryKey: ['customers', storeId, { page, limit, search: debouncedSearch }],
+    queryFn: () => customerClient.getCustomersByStore(storeId, page, limit, debouncedSearch || undefined),
     staleTime: 1000 * 60,
     placeholderData: (prev) => prev,
   });
@@ -270,6 +285,10 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
             setPage(1);
           }}
           isLoading={isFetching}
+          onToggleActive={(c, next) => {
+            if (c.phoneNumber) toggleActive.mutate({ phoneNumber: c.phoneNumber, active: next });
+          }}
+          togglingPhone={toggleActive.isPending ? (toggleActive.variables?.phoneNumber ?? null) : null}
         />
       </Grid>
     </Grid>
