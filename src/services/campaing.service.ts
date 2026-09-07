@@ -692,8 +692,11 @@ class CampaignClient {
     storeSlug: string;
     phones?: string[];
     limit?: number;
-    cards: any[];
-    suggestions: any[];
+    /** content RCS v2 completo (TEXT/FILE/CARD/CAROUSEL) con {{RCSLINK}}/{{SEP}} */
+    contentTemplate?: any;
+    validityPeriod?: { amount: number; timeUnit: 'MINUTES' | 'HOURS' };
+    cards?: any[];
+    suggestions?: any[];
     failoverText?: string;
     maxProducts?: number;
   }): Promise<{
