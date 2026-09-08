@@ -45,6 +45,8 @@ export interface AIConfig {
   rules: { text: string; active: boolean }[];
   restrictions: { text: string; active: boolean }[];
   model: string;
+  openaiModel?: string;
+  geminiModel?: string;
   temperature: number;
   maxTokens: number;
   contextSources: {
@@ -198,6 +200,25 @@ export async function uploadFile(file: File): Promise<Attachment> {
 
 export async function getAIConfig(): Promise<AIConfig> {
   const { data } = await api.get('/ai/config');
+  return data;
+}
+
+export interface AvailableModel {
+  id: string;
+  display_name: string;
+  created_at?: string;
+}
+
+export interface AvailableModels {
+  claude: AvailableModel[];
+  openai: AvailableModel[];
+  gemini: AvailableModel[];
+  current: { claude: string; openai: string; gemini: string };
+}
+
+/** Versiones de modelo por proveedor, en vivo desde cada API (Anthropic/OpenAI/Google). */
+export async function getAvailableModels(): Promise<AvailableModels> {
+  const { data } = await api.get('/ai/models/available');
   return data;
 }
 

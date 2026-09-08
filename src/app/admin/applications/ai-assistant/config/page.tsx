@@ -50,9 +50,11 @@ import {
   refreshContext,
   previewContext,
   getAdminConversations,
+  getAvailableModels,
   type AIConfig,
   type Conversation,
 } from '@/services/ai.service';
+import MenuItem from '@mui/material/MenuItem';
 import { formatDistanceToNow } from 'date-fns';
 
 // Pure handler — closes over only module-level imports, allocated once at module scope
@@ -82,8 +84,14 @@ export default function AIConfigPage() {
   } = useQuery({ queryKey: ['ai-config'], queryFn: getAIConfig });
   const [saving, setSaving] = useState(false);
 
+  // Modelos disponibles por proveedor, en vivo de cada API (los nuevos aparecen solos)
+  const { data: availableModels } = useQuery({ queryKey: ['ai-models-available'], queryFn: getAvailableModels });
+
   // Form state
   const [systemPrompt, setSystemPrompt] = useState('');
+  const [model, setModel] = useState('claude-sonnet-4-6');
+  const [openaiModel, setOpenaiModel] = useState('gpt-5.4');
+  const [geminiModel, setGeminiModel] = useState('gemini-2.5-flash');
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(4096);
   const [contextSources, setContextSources] = useState({
@@ -111,6 +119,9 @@ export default function AIConfigPage() {
   useEffect(() => {
     if (!config) return;
     setSystemPrompt(config.systemPrompt || '');
+    setModel(config.model || 'claude-sonnet-4-6');
+    setOpenaiModel(config.openaiModel || 'gpt-5.4');
+    setGeminiModel(config.geminiModel || 'gemini-2.5-flash');
     setTemperature(config.temperature || 0.7);
     setMaxTokens(config.maxTokens || 4096);
     setContextSources(config.contextSources || { team: true, tasks: true, campaigns: true, stores: true, audience: true });
@@ -121,7 +132,7 @@ export default function AIConfigPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await updateAIConfig({ systemPrompt, temperature, maxTokens, contextSources, skills } as any);
+      await updateAIConfig({ systemPrompt, model, openaiModel, geminiModel, temperature, maxTokens, contextSources, skills } as any);
       toast.success('Configuration saved!');
       reloadConfig();
     } catch {
@@ -355,6 +366,36 @@ fontWeight={700}
 mb={2}>Model Parameters</Typography>
 
                 <Stack spacing={3}>
+                  {/* Versión concreta por proveedor — listas en vivo de cada API */}
+                  {([
+                    { label: 'Claude Model (Anthropic)', value: model, set: setModel, options: availableModels?.claude },
+                    { label: 'GPT Model (OpenAI)', value: openaiModel, set: setOpenaiModel, options: availableModels?.openai },
+                    { label: 'Gemini Model (Google)', value: geminiModel, set: setGeminiModel, options: availableModels?.gemini },
+                  ] as const).map(({ label, value, set, options }) => {
+                    const opts = options?.length ? options : [];
+                    const hasCurrent = opts.some((o) => o.id === value);
+                    return (
+                      <TextField
+                        key={label}
+                        select
+                        fullWidth
+                        size="small"
+                        label={label}
+                        value={value}
+                        onChange={(e) => set(e.target.value)}
+                        helperText="La lista viene en vivo de la API del proveedor: los modelos nuevos aparecen solos."
+                      >
+                        {!hasCurrent && value && <MenuItem value={value}>{value}</MenuItem>}
+                        {opts.map((o) => (
+                          <MenuItem key={o.id}
+value={o.id}>
+                            {o.display_name || o.id} — {o.id}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    );
+                  })}
+
                   <Box>
                     <Stack direction="row"
 justifyContent="space-between"
