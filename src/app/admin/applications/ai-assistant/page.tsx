@@ -6,11 +6,14 @@ import {
   generateImage,
   getConversation,
   getConversations,
+  getAvailableModels,
   refreshConversationContext,
   sendChatMessage,
   transcribeAudio,
+  updateAIConfig,
   uploadFile,
   type Attachment,
+  type AvailableModels,
   type Conversation,
   type Message,
 } from '@/services/ai.service';
@@ -152,6 +155,13 @@ const createCombinedResponses = (): CombinedResponses => ({
 const getModelLabel = (model: AIModel) =>
   model === 'combined' ? 'Combinado' : MODEL_META[model].label;
 
+// Campo del AIConfig donde vive la versión elegida de cada proveedor
+const CONFIG_FIELD: Record<BaseAIModel, 'model' | 'openaiModel' | 'geminiModel'> = {
+  claude: 'model',
+  openai: 'openaiModel',
+  gemini: 'geminiModel',
+};
+
 const buildCombinedContent = (responses: CombinedResponses) =>
   BASE_AI_MODELS.map((model) => {
     const response = responses[model];
@@ -292,7 +302,7 @@ const ModelIcon = React.memo(function ModelIcon({
   );
 });
 
-const ModelOption = React.memo(function ModelOption({ model }: { model: AIModel }) {
+const ModelOption = React.memo(function ModelOption({ model, caption }: { model: AIModel; caption?: string }) {
   return (
     <Stack
       direction="row"
@@ -300,7 +310,19 @@ const ModelOption = React.memo(function ModelOption({ model }: { model: AIModel 
       alignItems="center"
     >
       {model === 'combined' ? <SIcon size={16} /> : <ModelIcon model={model} />}
-      <Box component="span">{getModelLabel(model)}</Box>
+      <Box component="span">
+        {getModelLabel(model)}
+        {caption && (
+          <Typography
+            component="span"
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: 'block', lineHeight: 1.1, fontWeight: 400 }}
+          >
+            {caption}
+          </Typography>
+        )}
+      </Box>
     </Stack>
   );
 });
@@ -917,11 +939,33 @@ export default function AIAssistantPage() {
   const [sidebarOpen, setSidebarOpen] = useState(mdUp);
   const [loadingConvs, setLoadingConvs] = useState(true);
   const [selectedModel, setSelectedModel] = useState<AIModel>('openai');
+  // Versiones por proveedor, en vivo de cada API (Anthropic/OpenAI/Google)
+  const [availableModels, setAvailableModels] = useState<AvailableModels | null>(null);
   const [attachAnchor, setAttachAnchor] = useState<null | HTMLElement>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [imageMode, setImageMode] = useState(false);
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
+
+  // Listas de versiones por proveedor (los modelos nuevos aparecen solos)
+  useEffect(() => {
+    getAvailableModels().then(setAvailableModels).catch(() => {});
+  }, []);
+
+  // Elegir una versión concreta: queda seleccionado el proveedor y la versión
+  // se persiste en el AIConfig global (misma config que usa el backend al chatear)
+  const handlePickVersion = useCallback(async (provider: BaseAIModel, id: string) => {
+    setSelectedModel(provider);
+    setAvailableModels((prev) =>
+      prev ? { ...prev, current: { ...prev.current, [provider]: id } } : prev,
+    );
+    try {
+      await updateAIConfig({ [CONFIG_FIELD[provider]]: id } as any);
+      toast.success(`${MODEL_META[provider].label} → ${id}`);
+    } catch {
+      toast.error('No se pudo guardar el modelo');
+    }
+  }, []);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -2423,7 +2467,16 @@ export default function AIAssistantPage() {
             <TextField
               select
               value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value as AIModel)}
+              onChange={(e) => {
+                const v = e.target.value as string;
+                // "proveedor:versión" = eligió una versión concreta del submenú
+                if (v.includes(':')) {
+                  const idx = v.indexOf(':');
+                  handlePickVersion(v.slice(0, idx) as BaseAIModel, v.slice(idx + 1));
+                } else {
+                  setSelectedModel(v as AIModel);
+                }
+              }}
               disabled={streaming || transcribing}
               size="small"
               SelectProps={{
@@ -2439,7 +2492,8 @@ export default function AIAssistantPage() {
                         borderRadius: 2,
                         boxShadow: theme.shadows[6],
                         border: `1px solid ${alpha(theme.palette.divider, 0.9)}`,
-                        overflow: 'hidden',
+                        overflow: 'auto',
+                        maxHeight: 420,
                       },
                     },
                   },
@@ -2465,24 +2519,31 @@ export default function AIAssistantPage() {
                 },
               }}
             >
-              <MenuItem
-                value="openai"
-                sx={{ fontSize: 12, fontWeight: 600 }}
-              >
-                <ModelOption model="openai" />
-              </MenuItem>
-              <MenuItem
-                value="claude"
-                sx={{ fontSize: 12, fontWeight: 600 }}
-              >
-                <ModelOption model="claude" />
-              </MenuItem>
-              <MenuItem
-                value="gemini"
-                sx={{ fontSize: 12, fontWeight: 600 }}
-              >
-                <ModelOption model="gemini" />
-              </MenuItem>
+              {BASE_AI_MODELS.flatMap((prov) => [
+                <MenuItem
+                  key={prov}
+                  value={prov}
+                  sx={{ fontSize: 12, fontWeight: 600 }}
+                >
+                  <ModelOption model={prov}
+caption={availableModels?.current?.[prov]} />
+                </MenuItem>,
+                // Versiones concretas del proveedor, en vivo de su API
+                ...(availableModels?.[prov] || []).slice(0, 6).map((m) => (
+                  <MenuItem
+                    key={`${prov}:${m.id}`}
+                    value={`${prov}:${m.id}`}
+                    sx={{
+                      fontSize: 11,
+                      pl: 5.5,
+                      py: 0.5,
+                      fontWeight: availableModels?.current?.[prov] === m.id ? 700 : 400,
+                    }}
+                  >
+                    {m.display_name || m.id}
+                  </MenuItem>
+                )),
+              ])}
               <MenuItem
                 value="combined"
                 sx={{ fontSize: 12, fontWeight: 600 }}
