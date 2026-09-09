@@ -18,6 +18,28 @@ export interface Circular {
   updatedAt: string;
 }
 
+/** Producto del catálogo persistente de la tienda (StoreProduct en circular-service). */
+export interface StoreProduct {
+  _id: string;
+  storeSlug: string;
+  name: string;
+  brand?: string;
+  size?: string;
+  category?: string;
+  imageUrl?: string;
+  price?: string;
+  originalPrice?: string;
+  savings?: string;
+  offerCondition?: string;
+  stock?: number | null;
+  maxPerCustomer?: number | null;
+  onPromotion?: boolean;
+  hasOffer?: boolean;
+  visibleInRcs?: boolean;
+  position?: number;
+  updatedAt?: string;
+}
+
 export interface UploadCircularPayload {
   file: File | Blob;
   storeSlug?: string;
@@ -125,6 +147,36 @@ export class CircularService {
     const res = await api.get(`/circulars/store/${storeSlug}/catalog`, {
       params: { visible: 'true' },
     });
+    return res.data;
+  }
+
+  /** Catálogo COMPLETO para administración (incluye ocultos y sin oferta). */
+  async getCatalogAdmin(
+    storeSlug: string
+  ): Promise<{ storeSlug: string; count: number; items: StoreProduct[] }> {
+    const res = await api.get(`/circulars/store/${storeSlug}/catalog`);
+    return res.data;
+  }
+
+  /** Edita un producto del catálogo (precio, oferta, visibilidad…). */
+  async updateStoreProduct(
+    id: string,
+    patch: Partial<
+      Pick<
+        StoreProduct,
+        | 'name'
+        | 'price'
+        | 'originalPrice'
+        | 'savings'
+        | 'onPromotion'
+        | 'visibleInRcs'
+        | 'stock'
+        | 'maxPerCustomer'
+        | 'offerCondition'
+      >
+    >
+  ): Promise<{ ok: boolean; item: StoreProduct }> {
+    const res = await api.patch(`/circulars/store-product/${id}`, patch);
     return res.data;
   }
 

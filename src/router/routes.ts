@@ -114,6 +114,7 @@ export const routes = {
       'messages-sent': '/admin/dashboards/messages-sent',
       sweepstakes: '/admin/dashboards/sweepstakes',
       'campaign-analytics': '/admin/dashboards/campaign-analytics',
+      'lists-analytics': '/admin/dashboards/lists-analytics',
       billing: '/admin/dashboards/billing',
       audience: '/admin/dashboards/audience',
 

@@ -21,6 +21,7 @@ import StoreAudienceOverview from './panel/sweepstakes/StoreAudienceOverview';
 import StoreSweepstakeStats from './panel/sweepstakes/StoreSweepstakeStats';
 import WelcomeCouponsPanel from './panel/welcome-coupons/WelcomeCouponsPanel';
 import StoreBrandPanel from './panel/brand/StoreBrandPanel';
+import StoreCircularPanel from './panel/circular/StoreCircularPanel';
 
 interface Props {
   tag: string;
@@ -174,6 +175,15 @@ storeName={store.name || ''} />;
   }
 
   switch (tag) {
+    case 'circular':
+      return (
+        <StoreCircularPanel
+          storeId={storeId}
+          storeSlug={store.slug || ''}
+          storeName={store.name}
+        />
+      );
+
     case 'billing':
       return <StoreBillingPanel storeId={storeId}
 pricing={(store as any)?.pricing} />;

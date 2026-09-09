@@ -25,6 +25,7 @@ import {
   DevicesOtherTwoTone as DevicesIcon,
   SmsTwoTone as SmsIcon,
   PaletteTwoTone as BrandIcon,
+  MenuBookOutlined,
 } from '@mui/icons-material';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalanceTwoTone';
 import PeopleIcon from '@mui/icons-material/People';
@@ -86,6 +87,7 @@ const STORE_GROUPS: {
     title: 'Marketing',
     items: [
       { id: 'campaigns', label: 'Campañas', icon: <CampaignsIcon /> },
+      { id: 'circular', label: 'Circular & Listas', icon: <MenuBookOutlined /> },
       { id: 'sweepstakes', label: 'Sorteos', icon: <RewardIcon /> },
       { id: 'welcome-coupons', label: 'Cupones de bienvenida', icon: <CouponIcon /> },
       { id: 'opt-in', label: 'Captación de opt-in', icon: <SmsIcon /> },

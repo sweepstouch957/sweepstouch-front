@@ -87,6 +87,7 @@ const dashboardsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Sweepstakes'), route: routes.admin.dashboards.sweepstakes },
     { title: t('Mensajes enviados'), route: routes.admin.dashboards['messages-sent'] },
     { title: t('Audiencia'), route: routes.admin.dashboards.audience },
+    { title: t('Listas Pre-RCS'), route: routes.admin.dashboards['lists-analytics'] },
     { title: t('Promotoras'), route: routes.admin.management.promotors.metrics },
     { title: t('Facturación'), route: routes.admin.dashboards.billing },
   ], undefined, STAFF_ROLES);
