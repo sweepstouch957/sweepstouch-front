@@ -157,7 +157,29 @@ export const shoppingListsService = {
     const { data } = await api.get(`${BASE}/list-admin/timeline`, { params: { storeSlug, days } });
     return data;
   },
+
+  surveys: async (storeSlug: string): Promise<SurveyResults> => {
+    const { data } = await api.get(`${BASE}/list-admin/surveys`, { params: { storeSlug } });
+    return data;
+  },
 };
+
+export interface SurveyResults {
+  ok: boolean;
+  totals: { responses: number; customers: number; pointsAwarded: number; last7d: number };
+  questions: Array<{
+    question: string;
+    total: number;
+    answers: Array<{ answer: string; count: number }>;
+  }>;
+  recent: Array<{
+    customerId: string;
+    customerName: string;
+    answers: Array<{ question: string; answer: string }>;
+    pointsAwarded: number;
+    createdAt: string;
+  }>;
+}
 
 export interface ListsTimelineDay {
   date: string;

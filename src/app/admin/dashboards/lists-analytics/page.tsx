@@ -61,6 +61,12 @@ export default function ListsAnalyticsPage() {
     enabled: !!storeSlug,
     refetchInterval: 30_000,
   });
+  const surveys = useQuery({
+    queryKey: ['shopping-lists', 'surveys', storeSlug],
+    queryFn: () => shoppingListsService.surveys(storeSlug),
+    enabled: !!storeSlug,
+    refetchInterval: 60_000,
+  });
 
   const s = summary.data;
   const p = purchases.data;
@@ -305,6 +311,114 @@ color="text.secondary">
               </TableBody>
             </Table>
           </Paper>
+
+          {/* Encuesta post-compra */}
+          {(surveys.data?.totals.responses ?? 0) > 0 && (
+            <Paper variant="outlined"
+sx={{ p: 2, borderRadius: 2, mb: 2.5 }}>
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                flexWrap="wrap"
+                gap={1}
+                sx={{ mb: 1.5 }}
+              >
+                <Typography variant="subtitle2"
+fontWeight={700}>
+                  Encuesta post-compra
+                </Typography>
+                <Stack direction="row"
+gap={1}>
+                  <Chip size="small"
+label={`${surveys.data!.totals.responses} respuestas`} />
+                  <Chip size="small"
+label={`${surveys.data!.totals.last7d} esta semana`} />
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    label={`${Math.round(surveys.data!.totals.pointsAwarded)} pts pagados`}
+                  />
+                </Stack>
+              </Stack>
+              <Stack spacing={2}>
+                {surveys.data!.questions.map((q) => (
+                  <Box key={q.question}>
+                    <Typography variant="body2"
+fontWeight={700}
+sx={{ mb: 0.75 }}>
+                      {q.question}
+                    </Typography>
+                    <Stack spacing={0.5}>
+                      {q.answers.map((a) => {
+                        const pct = q.total ? Math.round((a.count / q.total) * 100) : 0;
+                        return (
+                          <Box key={a.answer}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
+                              <Typography variant="caption"
+noWrap
+sx={{ fontSize: 12.5 }}>
+                                {a.answer}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{ flexShrink: 0, ml: 1, fontSize: 12.5 }}
+                              >
+                                {a.count} · {pct}%
+                              </Typography>
+                            </Box>
+                            <Box sx={{ height: 6, borderRadius: 1, bgcolor: 'action.hover', mt: 0.4 }}>
+                              <Box
+                                sx={{
+                                  height: '100%',
+                                  width: `${pct}%`,
+                                  borderRadius: 1,
+                                  bgcolor: 'primary.main',
+                                  transition: 'width .4s ease',
+                                }}
+                              />
+                            </Box>
+                          </Box>
+                        );
+                      })}
+                    </Stack>
+                  </Box>
+                ))}
+              </Stack>
+              {surveys.data!.recent.length > 0 && (
+                <>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: 'block', mt: 2, mb: 0.5 }}
+                  >
+                    Últimas respuestas
+                  </Typography>
+                  <Stack spacing={0.5}>
+                    {surveys.data!.recent.slice(0, 5).map((r, i) => (
+                      <Box
+                        key={`${r.customerId}-${i}`}
+                        sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}
+                      >
+                        <Typography variant="caption"
+noWrap
+fontWeight={600}>
+                          {r.customerName || r.customerId} — {r.answers[0]?.answer || ''}
+                        </Typography>
+                        <Typography variant="caption"
+color="text.secondary"
+sx={{ flexShrink: 0 }}>
+                          {new Date(r.createdAt).toLocaleDateString('es')}
+                          {r.pointsAwarded > 0 ? ` · +${r.pointsAwarded} pts` : ''}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Stack>
+                </>
+              )}
+            </Paper>
+          )}
 
           {/* Top productos */}
           {(p?.topProducts.length ?? 0) > 0 && (
