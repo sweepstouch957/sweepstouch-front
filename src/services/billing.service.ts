@@ -147,6 +147,13 @@ export interface QboDescuadreWhy {
   optinDiff: number;
   /** Clientes de QuickBooks sin tienda vinculada o fuera del filtro. */
   unlinked: number;
+  /** Qué tienda o cliente pone cada dólar de cada causa. */
+  detail?: {
+    services: Array<{ storeId: string; name: string; amount: number }>;
+    campaigns: Array<{ storeId: string; name: string; qbo: number; system: number; diff: number }>;
+    optin: Array<{ storeId: string; name: string; qbo: number; system: number; diff: number }>;
+    unlinked: Array<{ qboCustomerId: string; name: string; total: number }>;
+  };
 }
 
 export interface QboBilledItem {

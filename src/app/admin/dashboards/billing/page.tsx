@@ -16,9 +16,14 @@ import {
   colors,
   Alert,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   Grid,
   LinearProgress,
+  Link as MuiLink,
   Paper,
   Skeleton,
   Stack,
@@ -210,8 +215,20 @@ export default function BillingPage() {
     },
   ];
 
+  // Qué causa del descuadre está abierta en el dialog de detalle
+  const [whyOpen, setWhyOpen] = useState<null | 'services' | 'campaigns' | 'optin' | 'unlinked'>(
+    null
+  );
+  const whyDetail = storesReport.data?.totals.qbo?.why?.detail;
+
   // Store summary rows
-  const storeRows: { label: string; value: string | number; highlight?: boolean; sub?: boolean }[] = [
+  const storeRows: {
+    label: string;
+    value: string | number;
+    highlight?: boolean;
+    sub?: boolean;
+    whyKey?: 'services' | 'campaigns' | 'optin' | 'unlinked';
+  }[] = [
     {
       label: 'Stores included',
       value: storesReport.data?.stores.length ?? 0,
@@ -258,15 +275,20 @@ export default function BillingPage() {
     ...(() => {
       const why = storesReport.data?.totals.qbo?.why;
       if (!why) return [];
-      const causes: Array<[string, number]> = [
-        ['Servicios que el sistema no suma (Set-Up, Promotional, Flyers…)', why.services],
-        ['Campañas: QuickBooks vs sistema', why.campaignsDiff],
-        ['Opt-in: QuickBooks vs sistema', why.optinDiff],
-        ['Clientes sin tienda vinculada o fuera del filtro', why.unlinked],
+      const causes: Array<['services' | 'campaigns' | 'optin' | 'unlinked', string, number]> = [
+        ['services', 'Servicios que el sistema no suma (Set-Up, Promotional, Flyers…)', why.services],
+        ['campaigns', 'Campañas: QuickBooks vs sistema', why.campaignsDiff],
+        ['optin', 'Opt-in: QuickBooks vs sistema', why.optinDiff],
+        ['unlinked', 'Clientes sin tienda vinculada o fuera del filtro', why.unlinked],
       ];
       return causes
-        .filter(([, v]) => Math.abs(v) >= 0.01)
-        .map(([label, v]) => ({ label, value: `${v > 0 ? '+' : ''}${fmt(v)}`, sub: true }));
+        .filter(([, , v]) => Math.abs(v) >= 0.01)
+        .map(([whyKey, label, v]) => ({
+          label,
+          value: `${v > 0 ? '+' : ''}${fmt(v)}`,
+          sub: true,
+          whyKey,
+        }));
     })(),
   ];
 
@@ -543,12 +565,18 @@ export default function BillingPage() {
                   {storeRows.map((row, i) => (
                     <Box
                       key={`${row.label}-${i}`}
+                      onClick={row.whyKey ? () => setWhyOpen(row.whyKey!) : undefined}
                       sx={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         py: row.sub ? 0.5 : 1.25,
                         pl: row.sub ? 2 : undefined,
+                        // Las causas del descuadre abren su detalle con las tiendas
+                        cursor: row.whyKey ? 'pointer' : undefined,
+                        '&:hover': row.whyKey
+                          ? { bgcolor: alpha(theme.palette.primary.main, 0.06), borderRadius: 1 }
+                          : undefined,
                         borderRadius: row.highlight ? 1.5 : 0,
                         bgcolor: row.highlight
                           ? isDark
@@ -581,6 +609,127 @@ export default function BillingPage() {
           </Paper>
         </Grid>
       </Grid>
+
+      {/* Detalle de una causa del descuadre: QUÉ tiendas o clientes la componen,
+          con link directo para ir a cuadrar cada una. */}
+      <Dialog
+        open={Boolean(whyOpen)}
+        onClose={() => setWhyOpen(null)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {whyOpen === 'services' && 'Servicios que el sistema no suma'}
+          {whyOpen === 'campaigns' && 'Campañas: QuickBooks vs sistema'}
+          {whyOpen === 'optin' && 'Opt-in: QuickBooks vs sistema'}
+          {whyOpen === 'unlinked' && 'Clientes sin tienda vinculada o fuera del filtro'}
+        </DialogTitle>
+        <DialogContent dividers>
+          <Stack divider={<Divider flexItem />}>
+            {whyOpen === 'services' &&
+              (whyDetail?.services ?? []).map((d) => (
+                <Stack
+                  key={d.storeId}
+                  direction="row"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  sx={{ py: 1 }}
+                >
+                  <MuiLink
+                    href={`/admin/management/stores/edit/${d.storeId}?tag=billing`}
+                    underline="hover"
+                    variant="body2"
+                    fontWeight={600}
+                  >
+                    {d.name}
+                  </MuiLink>
+                  <Typography variant="body2"
+fontWeight={600}>
+                    {fmt(d.amount)}
+                  </Typography>
+                </Stack>
+              ))}
+
+            {(whyOpen === 'campaigns' || whyOpen === 'optin') &&
+              ((whyOpen === 'campaigns' ? whyDetail?.campaigns : whyDetail?.optin) ?? []).map(
+                (d) => (
+                  <Stack
+                    key={d.storeId}
+                    direction="row"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    sx={{ py: 1 }}
+                  >
+                    <Box sx={{ minWidth: 0 }}>
+                      <MuiLink
+                        href={`/admin/management/stores/edit/${d.storeId}?tag=billing`}
+                        underline="hover"
+                        variant="body2"
+                        fontWeight={600}
+                      >
+                        {d.name}
+                      </MuiLink>
+                      <Typography variant="caption"
+display="block"
+color="text.secondary">
+                        QuickBooks {fmt(d.qbo)} · Sistema {fmt(d.system)}
+                      </Typography>
+                    </Box>
+                    <Typography
+                      variant="body2"
+                      fontWeight={700}
+                      color={d.diff > 0 ? 'error.main' : 'success.main'}
+                    >
+                      {d.diff > 0 ? '+' : ''}
+                      {fmt(d.diff)}
+                    </Typography>
+                  </Stack>
+                )
+              )}
+
+            {whyOpen === 'unlinked' &&
+              (whyDetail?.unlinked ?? []).map((d) => (
+                <Stack
+                  key={d.qboCustomerId}
+                  direction="row"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  sx={{ py: 1 }}
+                >
+                  <Typography variant="body2"
+fontWeight={600}>
+                    {d.name}
+                  </Typography>
+                  <Typography variant="body2"
+fontWeight={600}>
+                    {fmt(d.total)}
+                  </Typography>
+                </Stack>
+              ))}
+          </Stack>
+          {whyOpen === 'unlinked' && (
+            <Typography variant="caption"
+color="text.secondary"
+sx={{ mt: 1.5, display: 'block' }}>
+              Estos clientes existen en QuickBooks pero ninguna tienda del filtro los reclama:
+              vincúlalos desde la Cartera (botón Vincular) o desde la pestaña QuickBooks de la
+              tienda, y su facturación entrará al reporte.
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {whyOpen === 'unlinked' && (
+            <Button href={routes.admin.management.billing}
+size="small">
+              Abrir cartera para vincular
+            </Button>
+          )}
+          <Button onClick={() => setWhyOpen(null)}
+size="small">
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Todos los servicios del catálogo del contador, tienda por tienda:
           membresía, campañas, Design Fee, Merchant Set-Up, Promotional Items,
