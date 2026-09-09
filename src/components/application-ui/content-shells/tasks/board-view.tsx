@@ -60,6 +60,8 @@ type BoardViewProps = {
   onSearchChange: (v: string) => void;
   priorityFilter: string;
   onPriorityChange: (v: string) => void;
+  statusFilter: string;
+  onStatusChange: (v: string) => void;
   onClearFilters: () => void;
   onDragEnd: (result: DropResult) => void;
   onEditTask: (t: Task) => void;
@@ -93,6 +95,8 @@ export const BoardView = React.memo(function BoardView({
   onSearchChange,
   priorityFilter,
   onPriorityChange,
+  statusFilter,
+  onStatusChange,
   onClearFilters,
   onDragEnd,
   onEditTask,
@@ -259,6 +263,8 @@ export const BoardView = React.memo(function BoardView({
             onUsersChange={onUsersChange}
             priorityFilter={priorityFilter}
             onPriorityChange={onPriorityChange}
+            statusFilter={statusFilter}
+            onStatusChange={onStatusChange}
             onlyMine={onlyMine}
             onToggleOnlyMine={onToggleOnlyMine}
             onlyMentions={onlyMentions}

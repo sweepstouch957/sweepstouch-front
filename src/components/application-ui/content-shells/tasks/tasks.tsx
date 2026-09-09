@@ -42,7 +42,7 @@ import toast from 'react-hot-toast';
 import { useCustomization } from 'src/hooks/use-customization';
 import { AiDialog } from './ai-dialog';
 import { BoardView } from './board-view';
-import { BOARD_STATUSES, EpicsContext, STATUS_LABEL } from './constants';
+import { BOARD_STATUSES, EpicsContext, isOverdueTask, STATUS_LABEL } from './constants';
 import { MyTasksView } from './my-tasks-view';
 import { ProjectDialog } from './project-dialog';
 import { RoutinesView } from './routines-view';
@@ -69,6 +69,8 @@ function Tasks(): React.JSX.Element {
   const [selectedDepts, setSelectedDepts] = useState<Department[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
   const [priorityFilter, setPriorityFilter] = useState('all');
+  /** Estado del Manual (todo/blocked/…) o 'overdue' (vencidas, condición derivada). */
+  const [statusFilter, setStatusFilter] = useState('all');
   const [viewTab, setViewTab] = useState<'board' | 'my_tasks' | 'routines'>('board');
   const [onlyMine, setOnlyMine] = useState(false);
   /** Agrupadores: épica seleccionada y "donde me mencionaron". */
@@ -295,6 +297,9 @@ function Tasks(): React.JSX.Element {
     }
     if (priorityFilter !== 'all') filtered = filtered.filter((t) => t.priority === priorityFilter);
 
+    if (statusFilter === 'overdue') filtered = filtered.filter(isOverdueTask);
+    else if (statusFilter !== 'all') filtered = filtered.filter((t) => t.status === statusFilter);
+
     const byStatus: Record<string, Task[]> = {};
     BOARD_STATUSES.forEach((k) => {
       byStatus[k] = [];
@@ -308,7 +313,7 @@ function Tasks(): React.JSX.Element {
     );
 
     return { byStatus, total: filtered.length, allTotal: Object.values(board.tasks).length };
-  }, [board, deferredSearch, priorityFilter, onlyMine, onlyMentions, epicFilter, myIds]);
+  }, [board, deferredSearch, priorityFilter, statusFilter, onlyMine, onlyMentions, epicFilter, myIds]);
 
   const statusCounts = useMemo(() => {
     if (!board) return {} as Record<string, number>;
@@ -517,6 +522,7 @@ function Tasks(): React.JSX.Element {
     setSelectedUsers([]);
     setSearch('');
     setPriorityFilter('all');
+    setStatusFilter('all');
     setEpicFilter('all');
     setOnlyMentions(false);
   }, []);
@@ -841,6 +847,8 @@ function Tasks(): React.JSX.Element {
           onSearchChange={setSearch}
           priorityFilter={priorityFilter}
           onPriorityChange={setPriorityFilter}
+          statusFilter={statusFilter}
+          onStatusChange={setStatusFilter}
           onClearFilters={handleClearFilters}
           onDragEnd={handleDragEnd}
           onEditTask={handleOpenTask}

@@ -195,6 +195,17 @@ export const STATUS_LABEL: Record<string, string> = {
  */
 export const BOARD_STATUSES = ['backlog', 'todo', 'in_progress', 'blocked', 'in_review', 'done'];
 
+/**
+ * "Vencida" no es un estado del tablero sino una condición: fecha límite pasada
+ * y la tarea sigue viva. Es el mismo criterio del reporte diario, así lo que la
+ * daily llama vencida se puede encontrar filtrando aquí.
+ */
+export function isOverdueTask(t: { status: string; dueDate?: string | null }): boolean {
+  if (!t.dueDate || t.status === 'done' || t.status === 'cancelled') return false;
+  const todayKey = new Date().toLocaleDateString('en-CA');
+  return t.dueDate.slice(0, 10) < todayKey;
+}
+
 const STATUS_ROLE: Record<string, SemanticRole> = {
   backlog: 'secondary',
   todo: 'info',

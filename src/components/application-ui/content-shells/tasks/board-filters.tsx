@@ -32,7 +32,7 @@ import {
   useTheme,
 } from '@mui/material';
 import React from 'react';
-import { cbChecked, cbIcon, priorityEntries } from './constants';
+import { BOARD_STATUSES, cbChecked, cbIcon, priorityEntries, statusMeta } from './constants';
 
 export type BoardFiltersProps = {
   departments: Department[];
@@ -43,6 +43,9 @@ export type BoardFiltersProps = {
   onUsersChange: (v: any[]) => void;
   priorityFilter: string;
   onPriorityChange: (v: string) => void;
+  /** Estado del tablero (todo/blocked/…) o 'overdue' (vencidas). */
+  statusFilter: string;
+  onStatusChange: (v: string) => void;
   onlyMine: boolean;
   onToggleOnlyMine: () => void;
   onlyMentions: boolean;
@@ -79,6 +82,7 @@ export const BoardFilters = React.memo(function BoardFilters(props: BoardFilters
     departments, selectedDepts, onDeptsChange,
     teamMembers, selectedUsers, onUsersChange,
     priorityFilter, onPriorityChange,
+    statusFilter, onStatusChange,
     onlyMine, onToggleOnlyMine,
     onlyMentions, onToggleOnlyMentions,
     epics, epicFilter, onEpicFilterChange,
@@ -116,6 +120,18 @@ export const BoardFilters = React.memo(function BoardFilters(props: BoardFilters
         onRemove: () => onPriorityChange('all'),
       });
     }
+    if (statusFilter !== 'all') {
+      const meta =
+        statusFilter === 'overdue'
+          ? { label: 'Vencidas', color: theme.palette.error.main }
+          : statusMeta(theme, statusFilter);
+      out.push({
+        key: 'status',
+        label: meta.label,
+        color: meta.color,
+        onRemove: () => onStatusChange('all'),
+      });
+    }
     if (onlyMine) out.push({ key: 'mine', label: 'Sólo mías', onRemove: onToggleOnlyMine });
     if (onlyMentions)
       out.push({ key: 'ment', label: 'Me mencionaron', onRemove: onToggleOnlyMentions });
@@ -132,14 +148,15 @@ export const BoardFilters = React.memo(function BoardFilters(props: BoardFilters
       out.push({ key: 'q', label: `“${search}”`, onRemove: () => onSearchChange('') });
     return out;
   }, [
-    selectedDepts, selectedUsers, priorityFilter, onlyMine, onlyMentions,
+    selectedDepts, selectedUsers, priorityFilter, statusFilter, onlyMine, onlyMentions,
     epicFilter, activeEpic, search, theme,
-    onDeptsChange, onUsersChange, onPriorityChange, onToggleOnlyMine,
+    onDeptsChange, onUsersChange, onPriorityChange, onStatusChange, onToggleOnlyMine,
     onToggleOnlyMentions, onEpicFilterChange, onSearchChange,
   ]);
 
   const advancedCount =
-    selectedDepts.length + selectedUsers.length + (priorityFilter !== 'all' ? 1 : 0);
+    selectedDepts.length + selectedUsers.length +
+    (priorityFilter !== 'all' ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0);
 
   /* ── Contenido compartido entre el popover y la hoja móvil ── */
   const advanced = (
@@ -275,6 +292,40 @@ export const BoardFilters = React.memo(function BoardFilters(props: BoardFilters
               onClick={() => onPriorityChange(priorityFilter === k ? 'all' : k)}
             />
           ))}
+        </Stack>
+      </Field>
+
+      <Field label="Estado">
+        <Stack
+          direction="row"
+          spacing={0.5}
+          flexWrap="wrap"
+          useFlexGap
+        >
+          <SegChip
+            label="Todas"
+            active={statusFilter === 'all'}
+            onClick={() => onStatusChange('all')}
+          />
+          {/* "Vencida" no es columna: es fecha límite pasada con la tarea viva */}
+          <SegChip
+            label="Vencidas"
+            color={theme.palette.error.main}
+            active={statusFilter === 'overdue'}
+            onClick={() => onStatusChange(statusFilter === 'overdue' ? 'all' : 'overdue')}
+          />
+          {BOARD_STATUSES.map((k) => {
+            const meta = statusMeta(theme, k);
+            return (
+              <SegChip
+                key={k}
+                label={meta.label}
+                color={meta.color}
+                active={statusFilter === k}
+                onClick={() => onStatusChange(statusFilter === k ? 'all' : k)}
+              />
+            );
+          })}
         </Stack>
       </Field>
 
