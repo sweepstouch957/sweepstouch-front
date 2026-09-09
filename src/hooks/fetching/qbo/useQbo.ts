@@ -12,6 +12,7 @@ import {
   type QboCuadreResponse,
   type QboDraftsResponse,
   type QboReconcileResponse,
+  type QboServicesResponse,
   type QboInvoiceDetail,
   type QboStoreDetail,
   type QboSyncPreview,
@@ -265,6 +266,27 @@ export function useQboRefreshCuadre() {
       toast.success('Cuadre actualizado desde QuickBooks');
     },
     onError: (e) => toast.error(e.message || 'No se pudo actualizar el cuadre'),
+  });
+}
+
+/**
+ * Matriz tienda × servicio. Sale del cache de facturas del backend: la primera
+ * carga en frío cuesta ~1 min, después es incremental.
+ */
+export function useQboServices(
+  range?: { from?: string | null; to?: string | null },
+  opts?: { enabled?: boolean }
+) {
+  const from = range?.from ?? null;
+  const to = range?.to ?? null;
+  return useQuery<QboServicesResponse>({
+    queryKey: qboQK.services(from, to),
+    queryFn: () => qboService.services({ from, to }),
+    staleTime: 1000 * 60 * 10,
+    gcTime: 1000 * 60 * 30,
+    refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
+    retry: false,
   });
 }
 

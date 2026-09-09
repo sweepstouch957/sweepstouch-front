@@ -125,6 +125,13 @@ export interface QboRangeTotals {
   invoices: number;
   /** billedTotal − total calculado. 0 = cuadra. */
   diff: number;
+  /**
+   * Monto ubicado en el rango solo por fecha de EMISIÓN: la línea no trae fecha
+   * de servicio ni como dato ni en la descripción. Puede arrastrar cargos de
+   * otro periodo (p. ej. campaña del 31/7 facturada el 3/8).
+   */
+  inferred?: number;
+  inferredLines?: number;
 }
 
 /* ========================= /billing/stores-report ========================= */
@@ -176,7 +183,7 @@ export interface StoreReportRow {
   lastCampaignAudience: number | null; // tamaño audiencia última campaña enviada
   total: number; // campaigns.total + membership.subtotal
   /** Descuadre contra QuickBooks; null si la tienda no está vinculada. */
-  qbo?: { billedTotal: number; otros: number; invoices: number; diff: number } | null;
+  qbo?: { billedTotal: number; otros: number; invoices: number; diff: number; inferred?: number } | null;
 }
 
 export interface StoresReportResponse {

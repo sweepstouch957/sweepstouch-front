@@ -513,6 +513,48 @@ export interface QboCuadreResponse {
   unlinked: QboCuadreUnlinked[];
 }
 
+/* ══════════ Servicios por tienda ══════════ */
+
+/** Un item del catálogo de QuickBooks con lo facturado en el rango. */
+export interface QboServiceItem {
+  id: string;
+  group: string;
+  label: string;
+  full: string;
+  total: number;
+  /** Cuántas líneas de factura tocaron el item. */
+  invoices: number;
+}
+
+export interface QboServiceStoreRow {
+  qboCustomerId: string;
+  customerName: string;
+  storeId: string | null;
+  storeName: string | null;
+  storeSlug: string | null;
+  storeActive: boolean | null;
+  linked: boolean;
+  total: number;
+  openBalance: number;
+  invoices: number;
+  /** { itemId: facturado }. Las columnas dinámicas de la tabla salen de aquí. */
+  byItem: Record<string, number>;
+}
+
+export interface QboServicesResponse {
+  ok: boolean;
+  range: { from: string | null; to: string | null; basis: 'issue' };
+  items: QboServiceItem[];
+  stores: QboServiceStoreRow[];
+  totals: {
+    billed: number;
+    openBalance: number;
+    customers: number;
+    linked: number;
+    unlinked: number;
+  };
+}
+
 export interface QboDraftsResponse {
   ok: boolean;
   /** Ventana lunes→domingo; se emite el lunes siguiente. */
@@ -885,6 +927,19 @@ export const qboService = {
     return data;
   },
 
+  /** Matriz tienda × servicio: lo facturado de cada item de QuickBooks por tienda. */
+  services: async (
+    params: { from?: string | null; to?: string | null; force?: boolean } = {}
+  ): Promise<QboServicesResponse> => {
+    const qs = new URLSearchParams();
+    if (params.from) qs.set('from', params.from);
+    if (params.to) qs.set('to', params.to);
+    if (params.force) qs.set('force', '1');
+    const suffix = qs.toString();
+    const { data } = await api.get(`${BASE}/services${suffix ? `?${suffix}` : ''}`);
+    return data;
+  },
+
   drafts: async (weekStart?: string | null): Promise<QboDraftsResponse> => {
     const { data } = await api.get(`${BASE}/drafts`, {
       params: weekStart ? { weekStart } : undefined,
@@ -937,4 +992,6 @@ export const qboQK = {
   drafts: (weekStart?: string | null) => ['qbo', 'drafts', weekStart ?? 'actual'] as const,
   reconcile: (from: string, to: string) => ['qbo', 'reconcile', from, to] as const,
   cuadre: () => ['qbo', 'cuadre'] as const,
+  services: (from?: string | null, to?: string | null) =>
+    ['qbo', 'services', from ?? '*', to ?? '*'] as const,
 };

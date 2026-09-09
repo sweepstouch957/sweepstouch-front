@@ -1,6 +1,7 @@
 'use client';
 
 import AccountBalanceRoundedIcon from '@mui/icons-material/AccountBalanceRounded';
+import CategoryRoundedIcon from '@mui/icons-material/CategoryRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import {
   Accordion,
@@ -12,6 +13,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { QboReceivables } from './qbo-receivables';
+import { ServicesByStore } from './services-by-store';
 
 /**
  * Cartera de QuickBooks debajo del listado de tiendas.
@@ -22,8 +24,10 @@ import { QboReceivables } from './qbo-receivables';
 export default function StoresReceivablesSection() {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
+  const [servicesOpen, setServicesOpen] = useState(false);
 
   return (
+    <>
     <Accordion
       expanded={expanded}
       onChange={(_, v) => setExpanded(v)}
@@ -60,5 +64,44 @@ color="text.secondary">
         )}
       </AccordionDetails>
     </Accordion>
+
+    {/* Todos los servicios del catálogo (membresía, Design Fee, Set-Up,
+        Promotional Items, Flyers…) tienda por tienda. Colapsado por el mismo
+        motivo: recorre el libro completo de facturas de QuickBooks. */}
+    <Accordion
+      expanded={servicesOpen}
+      onChange={(_, v) => setServicesOpen(v)}
+      sx={{ mt: 2, borderRadius: 2, '&:before': { display: 'none' } }}
+      variant="outlined"
+    >
+      <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />}>
+        <Stack direction="row"
+alignItems="center"
+spacing={1.5}>
+          <CategoryRoundedIcon color="primary" />
+          <div>
+            <Typography variant="subtitle1"
+fontWeight={700}>
+              Servicios por tienda
+            </Typography>
+            <Typography variant="body2"
+color="text.secondary">
+              Qué se le facturó a cada tienda, item por item de QuickBooks
+            </Typography>
+          </div>
+        </Stack>
+      </AccordionSummary>
+      <AccordionDetails>
+        {servicesOpen && (
+          <ServicesByStore
+            onSelectStore={(row) => {
+              if (!row.storeId) return;
+              router.push(`/admin/management/stores/edit/${row.storeId}?tag=billing`);
+            }}
+          />
+        )}
+      </AccordionDetails>
+    </Accordion>
+    </>
   );
 }

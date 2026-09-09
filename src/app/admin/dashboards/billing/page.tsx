@@ -29,6 +29,7 @@ import { useMemo, useState } from 'react';
 import KpiCard from '@/components/application-ui/card-shells/kpi-card';
 import AccountBalanceRoundedIcon from '@mui/icons-material/AccountBalanceRounded';
 import { routes } from 'src/router/routes';
+import { ServicesByStore } from '@/components/application-ui/content-shells/qbo-receivables/services-by-store';
 import BillingFilters, { PaymentMethod } from './filters';
 import { PieWithLegend } from './utils';
 
@@ -353,6 +354,24 @@ export default function BillingPage() {
         />
       )}
 
+      {/* Arrastre por fecha de emisión: hay líneas facturadas sin fecha de
+          servicio (ni ServiceDate ni fecha en la descripción). Esas se ubican
+          por la fecha de la factura, así que un cargo servido fuera del rango
+          (campaña del 31/7 facturada el 3/8) entra igual y descuadra contra lo
+          que calcula el sistema, que sí filtra por fecha de servicio. */}
+      {!range.isLoading && (qboTotals?.inferred ?? 0) > 0 && (
+        <Alert severity="warning"
+sx={{ mb: 2 }}>
+          {fmt(qboTotals!.inferred!)} de lo facturado en QuickBooks (
+          {qboTotals!.inferredLines ?? 0} línea{(qboTotals!.inferredLines ?? 0) === 1 ? '' : 's'})
+          se ubicó en este periodo solo por la <strong>fecha de emisión</strong> de la factura:
+          esas líneas no traen fecha de servicio ni como dato ni en la descripción. Pueden ser
+          cargos servidos en otro periodo arrastrados a este — por eso el total de QuickBooks
+          puede no cuadrar con lo calculado por el sistema en el mismo rango. El cuadre bueno
+          para membresías es el acumulado (Management → Cuadre).
+        </Alert>
+      )}
+
       {/* KPI Grid — 5 tarjetas: la quinta es el descuadre contra QuickBooks */}
       <Grid
         container
@@ -528,6 +547,13 @@ export default function BillingPage() {
           </Paper>
         </Grid>
       </Grid>
+
+      {/* Todos los servicios del catálogo del contador, tienda por tienda:
+          membresía, campañas, Design Fee, Merchant Set-Up, Promotional Items,
+          Flyers… Sigue el mismo rango de fechas de los filtros de arriba. */}
+      <Box sx={{ mb: 2.5 }}>
+        <ServicesByStore range={{ from: startStr || null, to: endStr || null }} />
+      </Box>
 
       {/* Puente, no duplicado: la cartera completa vive en Facturación. Tenerla
           embebida acá daba dos pantallas con los mismos números y ninguna manda. */}
