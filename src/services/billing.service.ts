@@ -132,6 +132,31 @@ export interface QboRangeTotals {
    */
   inferred?: number;
   inferredLines?: number;
+  /** Desglose por item del catálogo del contador (Set-Up, Promotional Items, Flyers…). */
+  items?: QboBilledItem[];
+  /** El porqué del descuadre, en causas con nombre. Suma ≈ diff. */
+  why?: QboDescuadreWhy | null;
+}
+
+export interface QboDescuadreWhy {
+  /** Set-Up, Promotional Items, Flyers… servicios que el Grand Total del sistema no suma. */
+  services: number;
+  /** Campañas facturadas en QuickBooks − campañas registradas en el sistema. */
+  campaignsDiff: number;
+  /** Opt-in facturado en QuickBooks − opt-in calculado por participaciones. */
+  optinDiff: number;
+  /** Clientes de QuickBooks sin tienda vinculada o fuera del filtro. */
+  unlinked: number;
+}
+
+export interface QboBilledItem {
+  id: string;
+  /** Padre del item en QuickBooks ("Campaign", "Membership", "Otros"…). */
+  group: string;
+  label: string;
+  full: string;
+  amount: number;
+  lines: number;
 }
 
 /* ========================= /billing/stores-report ========================= */

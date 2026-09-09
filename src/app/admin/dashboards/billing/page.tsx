@@ -211,7 +211,7 @@ export default function BillingPage() {
   ];
 
   // Store summary rows
-  const storeRows: { label: string; value: string | number; highlight?: boolean }[] = [
+  const storeRows: { label: string; value: string | number; highlight?: boolean; sub?: boolean }[] = [
     {
       label: 'Stores included',
       value: storesReport.data?.stores.length ?? 0,
@@ -241,11 +241,33 @@ export default function BillingPage() {
       label: 'Facturado en QuickBooks',
       value: fmt(storesReport.data?.totals.qbo?.billedTotal ?? 0),
     },
+    // TODOS los items del catálogo del contador (Set-Up, Promotional Items,
+    // Flyers, Sin categoría…): el descuadre deja de ser una cifra opaca.
+    ...(storesReport.data?.totals.qbo?.items ?? []).map((it) => ({
+      label: it.label,
+      value: fmt(it.amount),
+      sub: true,
+    })),
     {
       label: 'Descuadre vs QuickBooks',
       value: `${(storesReport.data?.totals.qbo?.diff ?? 0) > 0 ? '+' : ''}${fmt(storesReport.data?.totals.qbo?.diff ?? 0)}`,
       highlight: true,
     },
+    // El PORQUÉ del descuadre, causa por causa. La suma de estas filas ≈ la
+    // fila de arriba: nada queda sin explicar.
+    ...(() => {
+      const why = storesReport.data?.totals.qbo?.why;
+      if (!why) return [];
+      const causes: Array<[string, number]> = [
+        ['Servicios que el sistema no suma (Set-Up, Promotional, Flyers…)', why.services],
+        ['Campañas: QuickBooks vs sistema', why.campaignsDiff],
+        ['Opt-in: QuickBooks vs sistema', why.optinDiff],
+        ['Clientes sin tienda vinculada o fuera del filtro', why.unlinked],
+      ];
+      return causes
+        .filter(([, v]) => Math.abs(v) >= 0.01)
+        .map(([label, v]) => ({ label, value: `${v > 0 ? '+' : ''}${fmt(v)}`, sub: true }));
+    })(),
   ];
 
   return (
@@ -360,15 +382,26 @@ export default function BillingPage() {
           (campaña del 31/7 facturada el 3/8) entra igual y descuadra contra lo
           que calcula el sistema, que sí filtra por fecha de servicio. */}
       {!range.isLoading && (qboTotals?.inferred ?? 0) > 0 && (
-        <Alert severity="warning"
-sx={{ mb: 2 }}>
+        <Alert
+          severity="warning"
+          sx={{ mb: 2 }}
+          action={
+            <Button
+              size="small"
+              color="inherit"
+              href={routes.admin.management['billing-cuadre']}
+            >
+              Ver cuadre
+            </Button>
+          }
+        >
           {fmt(qboTotals!.inferred!)} de lo facturado en QuickBooks (
           {qboTotals!.inferredLines ?? 0} línea{(qboTotals!.inferredLines ?? 0) === 1 ? '' : 's'})
           se ubicó en este periodo solo por la <strong>fecha de emisión</strong> de la factura:
           esas líneas no traen fecha de servicio ni como dato ni en la descripción. Pueden ser
           cargos servidos en otro periodo arrastrados a este — por eso el total de QuickBooks
-          puede no cuadrar con lo calculado por el sistema en el mismo rango. El cuadre bueno
-          para membresías es el acumulado (Management → Cuadre).
+          puede no cuadrar con lo calculado por el sistema en el mismo rango. El cuadre que
+          manda para membresías es el acumulado.
         </Alert>
       )}
 
@@ -507,14 +540,15 @@ sx={{ mb: 2 }}>
                     />
                   }
                 >
-                  {storeRows.map((row) => (
+                  {storeRows.map((row, i) => (
                     <Box
-                      key={row.label}
+                      key={`${row.label}-${i}`}
                       sx={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        py: 1.25,
+                        py: row.sub ? 0.5 : 1.25,
+                        pl: row.sub ? 2 : undefined,
                         borderRadius: row.highlight ? 1.5 : 0,
                         bgcolor: row.highlight
                           ? isDark
@@ -526,16 +560,16 @@ sx={{ mb: 2 }}>
                       }}
                     >
                       <Typography
-                        variant="body2"
+                        variant={row.sub ? 'caption' : 'body2'}
                         color={row.highlight ? 'text.primary' : 'text.secondary'}
                         fontWeight={row.highlight ? 700 : 400}
                       >
-                        {row.label}
+                        {row.sub ? `· ${row.label}` : row.label}
                       </Typography>
                       <Typography
-                        variant="body2"
-                        fontWeight={row.highlight ? 800 : 600}
-                        color={row.highlight ? 'primary.main' : 'text.primary'}
+                        variant={row.sub ? 'caption' : 'body2'}
+                        fontWeight={row.highlight ? 800 : row.sub ? 500 : 600}
+                        color={row.highlight ? 'primary.main' : row.sub ? 'text.secondary' : 'text.primary'}
                       >
                         {row.value}
                       </Typography>
