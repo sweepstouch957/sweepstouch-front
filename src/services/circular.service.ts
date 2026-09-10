@@ -26,6 +26,7 @@ export interface StoreProduct {
   brand?: string;
   size?: string;
   category?: string;
+  unit?: string;
   imageUrl?: string;
   price?: string;
   originalPrice?: string;
@@ -174,10 +175,31 @@ export class CircularService {
         | 'stock'
         | 'maxPerCustomer'
         | 'offerCondition'
+        | 'category'
+        | 'unit'
       >
     >
   ): Promise<{ ok: boolean; item: StoreProduct }> {
     const res = await api.patch(`/circulars/store-product/${id}`, patch);
+    return res.data;
+  }
+
+  /** Crea un producto manual en el catálogo (upsert por nombre/sku). */
+  async createStoreProduct(body: {
+    storeSlug: string;
+    name: string;
+    price?: string;
+    originalPrice?: string;
+    savings?: string;
+    category?: string;
+  }): Promise<{ ok: boolean; item: StoreProduct }> {
+    const res = await api.post('/circulars/store-product', body);
+    return res.data;
+  }
+
+  /** Elimina un producto del catálogo. */
+  async deleteStoreProduct(id: string): Promise<{ ok: boolean }> {
+    const res = await api.delete(`/circulars/store-product/${id}`);
     return res.data;
   }
 

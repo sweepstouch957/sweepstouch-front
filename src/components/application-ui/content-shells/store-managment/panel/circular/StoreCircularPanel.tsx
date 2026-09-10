@@ -30,7 +30,9 @@ import {
   DialogTitle,
   Divider,
   Grid,
+  IconButton,
   LinearProgress,
+  MenuItem,
   Link as MuiLink,
   Paper,
   Stack,
@@ -48,6 +50,7 @@ import {
 } from '@mui/material';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import TestMmsShoppingListModal from '@/components/mms/TestMmsShoppingListModal';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
@@ -88,6 +91,10 @@ const STATUS_CHIP: Record<string, { label: string; color: 'success' | 'warning' 
 };
 
 const cell = { py: 0.75, px: 1.25, whiteSpace: 'nowrap' } as const;
+
+const CATEGORIES = [
+  'meat', 'seafood', 'produce', 'dairy', 'bakery', 'frozen', 'pantry', 'beverages', 'deli', 'other',
+] as const;
 
 type Props = {
   storeId: string;
@@ -301,6 +308,35 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
     [catalog.data]
   );
 
+  // Alta manual: para cuando la IA se comió un producto del flyer.
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState({ name: '', price: '', originalPrice: '' });
+  const createProduct = useMutation({
+    mutationFn: () =>
+      circularService.createStoreProduct({
+        storeSlug,
+        name: draft.name.trim(),
+        price: draft.price.trim(),
+        originalPrice: draft.originalPrice.trim() || regularFromPrice(draft.price) || '',
+      }),
+    onSuccess: () => {
+      toast.success('Producto agregado');
+      setDraft({ name: '', price: '', originalPrice: '' });
+      setAdding(false);
+      qc.invalidateQueries({ queryKey: ['store-catalog-admin', storeSlug] });
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo agregar'),
+  });
+
+  const removeProduct = useMutation({
+    mutationFn: (id: string) => circularService.deleteStoreProduct(id),
+    onSuccess: () => {
+      toast.success('Producto eliminado');
+      qc.invalidateQueries({ queryKey: ['store-catalog-admin', storeSlug] });
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo eliminar'),
+  });
+
   // Completa TODOS los regulares faltantes con la regla del backend (+25%).
   const fillAll = useMutation({
     mutationFn: async () => {
@@ -348,7 +384,46 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
               : `Completar ${missingRegular.length} regular${missingRegular.length === 1 ? '' : 'es'} (+25%)`}
           </Button>
         )}
+        <Button size="small" variant="outlined" onClick={() => setAdding((v) => !v)}>
+          {adding ? 'Cancelar' : '+ Agregar producto'}
+        </Button>
       </Stack>
+
+      {adding && (
+        <Stack direction="row" flexWrap="wrap" alignItems="center" gap={1.5}>
+          <TextField
+            size="small"
+            label="Nombre"
+            value={draft.name}
+            onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
+            sx={{ width: 240 }}
+          />
+          <TextField
+            size="small"
+            label="Precio oferta"
+            placeholder="$2.99"
+            value={draft.price}
+            onChange={(e) => setDraft((d) => ({ ...d, price: e.target.value }))}
+            sx={{ width: 130 }}
+          />
+          <TextField
+            size="small"
+            label="Precio regular"
+            placeholder="auto +25%"
+            value={draft.originalPrice}
+            onChange={(e) => setDraft((d) => ({ ...d, originalPrice: e.target.value }))}
+            sx={{ width: 130 }}
+          />
+          <Button
+            size="small"
+            variant="contained"
+            disabled={!draft.name.trim() || createProduct.isPending}
+            onClick={() => createProduct.mutate()}
+          >
+            {createProduct.isPending ? 'Guardando…' : 'Guardar'}
+          </Button>
+        </Stack>
+      )}
       {catalog.isLoading ? (
         <LinearProgress />
       ) : (
@@ -360,15 +435,28 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
                 <TableCell sx={cell}>Precio oferta</TableCell>
                 <TableCell sx={cell}>Precio regular</TableCell>
                 <TableCell sx={cell}>Ahorro</TableCell>
+                <TableCell sx={cell}>Categoría</TableCell>
                 <TableCell sx={cell} align="center">En oferta</TableCell>
                 <TableCell sx={cell} align="center">Visible</TableCell>
+                <TableCell sx={cell} align="center" />{/* eliminar */}
               </TableRow>
             </TableHead>
             <TableBody>
               {items.map((p) => (
                 <TableRow key={p._id} hover>
                   <TableCell sx={{ ...cell, maxWidth: 260 }}>
-                    <Typography variant="body2" fontWeight={600} noWrap>{p.name}</Typography>
+                    {/* Todo editable: la encargada corrige lo que la IA leyó mal */}
+                    <TextField
+                      size="small"
+                      variant="standard"
+                      defaultValue={p.name}
+                      fullWidth
+                      inputProps={{ style: { fontWeight: 600 } }}
+                      onBlur={(e) => {
+                        const v = e.target.value.trim();
+                        if (v && v !== p.name) patch.mutate({ id: p._id, body: { name: v } });
+                      }}
+                    />
                     {(p.brand || p.size) && (
                       <Typography variant="caption" color="text.secondary" noWrap display="block">
                         {[p.brand, p.size].filter(Boolean).join(' · ')}
@@ -419,7 +507,32 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
                       </Tooltip>
                     )}
                   </TableCell>
-                  <TableCell sx={cell}>{p.savings || '—'}</TableCell>
+                  <TableCell sx={cell}>
+                    <TextField
+                      size="small"
+                      variant="standard"
+                      defaultValue={p.savings ?? ''}
+                      sx={{ width: 80 }}
+                      onBlur={(e) => {
+                        const v = e.target.value.trim();
+                        if (v !== String(p.savings ?? '')) patch.mutate({ id: p._id, body: { savings: v } });
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell sx={cell}>
+                    <TextField
+                      select
+                      size="small"
+                      variant="standard"
+                      value={CATEGORIES.includes(p.category as any) ? p.category : 'other'}
+                      sx={{ width: 110 }}
+                      onChange={(e) => patch.mutate({ id: p._id, body: { category: e.target.value } })}
+                    >
+                      {CATEGORIES.map((c) => (
+                        <MenuItem key={c} value={c}>{c}</MenuItem>
+                      ))}
+                    </TextField>
+                  </TableCell>
                   <TableCell sx={cell} align="center">
                     <Switch
                       size="small"
@@ -434,11 +547,24 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
                       onChange={(e) => patch.mutate({ id: p._id, body: { visibleInRcs: e.target.checked } })}
                     />
                   </TableCell>
+                  <TableCell sx={cell} align="center">
+                    <Tooltip title="Eliminar del catálogo">
+                      <IconButton
+                        size="small"
+                        disabled={removeProduct.isPending}
+                        onClick={() => {
+                          if (window.confirm(`¿Eliminar "${p.name}" del catálogo?`)) removeProduct.mutate(p._id);
+                        }}
+                      >
+                        <DeleteOutlineRoundedIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
                 </TableRow>
               ))}
               {!items.length && (
                 <TableRow>
-                  <TableCell colSpan={6} sx={{ py: 3, textAlign: 'center' }}>
+                  <TableCell colSpan={8} sx={{ py: 3, textAlign: 'center' }}>
                     <Typography variant="body2" color="text.secondary">Sin productos en el catálogo.</Typography>
                   </TableCell>
                 </TableRow>

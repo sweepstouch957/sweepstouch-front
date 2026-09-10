@@ -18,44 +18,59 @@ function getAuthHeaders() {
 }
 
 // ─── Customer search hook ────────────────────────────────
+// Búsqueda SERVER-SIDE. Antes cargaba solo los primeros 200 clientes y filtraba
+// en memoria: en una tienda con más, un teléfono real daba "No options" aunque
+// el cliente existiera y estuviera activo. El endpoint /customers/store/:id ya
+// acepta `search` — se usa eso, con debounce.
 export function useCustomerSearch(storeId: string, open: boolean) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<Customer | null>(null);
   const [search, setSearch] = useState('');
-  const loadedForRef = useRef<string | null>(null);
+  // Descarta respuestas viejas: la request de "201" no debe pisar la de "2018894875".
+  const seqRef = useRef(0);
 
   useEffect(() => {
-    if (!open || !storeId || loadedForRef.current === storeId) return;
-    loadedForRef.current = storeId;
+    if (!open || !storeId) return;
+    const seq = ++seqRef.current;
+    // Si lo tipeado es un teléfono (con +, guiones o espacios), van solo los
+    // dígitos: el backend lo usa como $regex y un "+" literal lo rompería.
+    const digits = search.replace(/\D/g, '');
+    const term = digits.length >= 4 ? digits : search.trim();
 
-    let cancelled = false;
-    (async () => {
+    const run = async () => {
       setLoading(true);
       try {
-        const res = await customerClient.getCustomersByStore(storeId, 1, 200);
-        if (!cancelled) setCustomers(res.data || []);
+        const res = await customerClient.getCustomersByStore(storeId, 1, 200, term || undefined);
+        if (seqRef.current === seq) setCustomers(res.data || []);
       } catch (err) {
         console.error('Failed to load customers', err);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (seqRef.current === seq) setLoading(false);
       }
-    })();
-    return () => { cancelled = true; };
-  }, [open, storeId]);
+    };
 
+    const t = setTimeout(run, term ? 300 : 0);
+    return () => clearTimeout(t);
+  }, [open, storeId, search]);
+
+  // Respaldo local por si el backend busca solo por nombre: los dígitos
+  // tipeados igual casan contra el teléfono de lo ya cargado.
   const filtered = useMemo(() => {
-    if (!search) return customers;
+    if (!search.trim()) return customers;
     const q = search.replace(/\D/g, '');
-    return customers.filter((c) =>
-      c.phoneNumber.includes(q) || c.firstName?.toLowerCase().includes(search.toLowerCase())
+    const lower = search.toLowerCase();
+    const local = customers.filter(
+      (c) => (q && c.phoneNumber?.includes(q)) || c.firstName?.toLowerCase().includes(lower)
     );
+    // Si el server ya filtró bien, `customers` ES el resultado; el filtro local
+    // solo recorta cuando devolvió de más.
+    return local.length ? local : customers;
   }, [customers, search]);
 
   const reset = useCallback(() => {
     setSelected(null);
     setSearch('');
-    loadedForRef.current = null;
   }, []);
 
   return { customers: filtered, loading, selected, setSelected, search, setSearch, reset };
