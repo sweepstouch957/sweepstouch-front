@@ -543,7 +543,7 @@ export interface QboServiceStoreRow {
 
 export interface QboServicesResponse {
   ok: boolean;
-  range: { from: string | null; to: string | null; basis: 'issue' };
+  range: { from: string | null; to: string | null; basis: 'issue' | 'service' };
   items: QboServiceItem[];
   stores: QboServiceStoreRow[];
   totals: {
