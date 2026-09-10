@@ -53,6 +53,26 @@ import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const money = (v: number | null | undefined) => usd.format(Number(v ?? 0));
+
+/** Precio por unidad desde el string del flyer: "$2.99", "99¢/lb", "2/$5". */
+function parsePriceNum(price?: string | null): number {
+  if (!price) return 0;
+  const s = String(price);
+  const multi = s.match(/(\d+)\s*\/\s*\$?([\d.]+)/);
+  if (multi) {
+    const n = parseInt(multi[1], 10);
+    const t = parseFloat(multi[2]);
+    return n > 0 ? t / n : t;
+  }
+  if (s.includes('¢')) return (parseFloat(s.replace(/[^0-9.]/g, '')) || 0) / 100;
+  return parseFloat(s.replace(/[^0-9.]/g, '')) || 0;
+}
+
+/** Regular estimado = oferta × 1.25 — misma regla que circular-service. */
+function regularFromPrice(price?: string | null): string | null {
+  const unit = parsePriceNum(price);
+  return unit > 0 ? `$${(unit * 1.25).toFixed(2)}` : null;
+}
 const fmtDate = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
@@ -85,6 +105,21 @@ function CircularSection({ storeSlug }: { storeSlug: string }) {
   const [end, setEnd] = useState('');
   const [file, setFile] = useState<File | null>(null);
 
+  // Extracción IA por circular. Tarda ~1 min; si el cliente corta antes, la
+  // extracción sigue en el servidor y aparece al refrescar.
+  const extract = useMutation({
+    mutationFn: (circularId: string) => circularService.extractProducts(circularId, 0),
+    onSuccess: (d: any) => {
+      toast.success(`IA: ${d?.circular?.products?.length ?? 0} productos extraídos`);
+      qc.invalidateQueries({ queryKey: ['store-circulars', storeSlug] });
+      qc.invalidateQueries({ queryKey: ['store-catalog-admin', storeSlug] });
+    },
+    onError: () => {
+      toast('La extracción sigue corriendo en el servidor — refresca en un minuto.', { icon: '⏳' });
+      qc.invalidateQueries({ queryKey: ['store-circulars', storeSlug] });
+    },
+  });
+
   const create = useMutation({
     mutationFn: async () => {
       if (!start || !end) throw new Error('Fechas de inicio y fin son obligatorias');
@@ -93,10 +128,17 @@ function CircularSection({ storeSlug }: { storeSlug: string }) {
       }
       return circularService.schedule({ storeSlug, startDate: start, endDate: end, title: title || undefined });
     },
-    onSuccess: () => {
-      toast.success(file ? 'Circular subido y agendado' : 'Circular agendado (sin archivo aún)');
+    onSuccess: (d: any) => {
       setTitle(''); setStart(''); setEnd(''); setFile(null);
       qc.invalidateQueries({ queryKey: ['store-circulars', storeSlug] });
+      // Con PDF la extracción arranca sola: antes el circular quedaba agendado
+      // con 0 productos y el Pre-RCS salía vacío.
+      if (file && d?.circular?._id) {
+        toast.success('Circular subido — extrayendo productos con IA…');
+        extract.mutate(d.circular._id);
+      } else {
+        toast.success('Circular agendado (sin archivo aún)');
+      }
     },
     onError: (e: any) =>
       toast.error(e?.response?.data?.error || e.message || 'No se pudo agendar'),
@@ -155,7 +197,20 @@ function CircularSection({ storeSlug }: { storeSlug: string }) {
                   <TableCell sx={cell}>
                     <Chip size="small" {...(STATUS_CHIP[c.status] || { label: c.status, color: 'default' })} />
                   </TableCell>
-                  <TableCell sx={cell} align="right">{(c as any).products?.length ?? '—'}</TableCell>
+                  <TableCell sx={cell} align="right">
+                    {(c as any).products?.length ?? 0}
+                    {/* Con archivo pero sin productos: la extracción no corrió (o falló) */}
+                    {c.fileUrl && !((c as any).products?.length) && (
+                      <Button
+                        size="small"
+                        sx={{ ml: 1, minWidth: 0 }}
+                        disabled={extract.isPending}
+                        onClick={() => extract.mutate(c._id)}
+                      >
+                        {extract.isPending ? 'Extrayendo…' : 'Extraer (IA)'}
+                      </Button>
+                    )}
+                  </TableCell>
                   <TableCell sx={cell}>
                     {c.fileUrl ? (
                       <MuiLink href={c.fileUrl} target="_blank" rel="noopener" variant="body2">Ver</MuiLink>
@@ -204,19 +259,60 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
     return q ? all.filter((p) => `${p.name} ${p.brand ?? ''}`.toLowerCase().includes(q)) : all;
   }, [catalog.data, search]);
 
+  // Productos con oferta pero sin precio regular calculable
+  const missingRegular = useMemo(
+    () => (catalog.data?.items ?? []).filter((p) => !p.originalPrice?.trim() && regularFromPrice(p.price)),
+    [catalog.data]
+  );
+
+  // Completa TODOS los regulares faltantes con la regla del backend (+25%).
+  const fillAll = useMutation({
+    mutationFn: async () => {
+      for (const p of missingRegular) {
+        await circularService.updateStoreProduct(p._id, {
+          originalPrice: regularFromPrice(p.price)!,
+          hasOffer: true,
+        } as any);
+      }
+      return missingRegular.length;
+    },
+    onSuccess: (n) => {
+      toast.success(`${n} precio${n === 1 ? '' : 's'} regular${n === 1 ? '' : 'es'} calculado${n === 1 ? '' : 's'}`);
+      qc.invalidateQueries({ queryKey: ['store-catalog-admin', storeSlug] });
+    },
+    onError: (e: any) => {
+      toast.error(e?.response?.data?.error || 'No se pudieron calcular todos');
+      qc.invalidateQueries({ queryKey: ['store-catalog-admin', storeSlug] });
+    },
+  });
+
   return (
     <Stack spacing={1.5}>
       <Alert severity="info" sx={{ py: 0.5 }}>
         Estos son los productos que ve el cliente en el flujo de listas (Pre-RCS). Solo salen los
         que tienen <strong>oferta</strong> y están <strong>visibles</strong>; los switches aplican al instante.
       </Alert>
-      <TextField
-        size="small"
-        placeholder="Buscar producto…"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        sx={{ maxWidth: 280 }}
-      />
+      <Stack direction="row" flexWrap="wrap" alignItems="center" gap={1.5}>
+        <TextField
+          size="small"
+          placeholder="Buscar producto…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          sx={{ width: 260 }}
+        />
+        {missingRegular.length > 0 && (
+          <Button
+            size="small"
+            variant="outlined"
+            disabled={fillAll.isPending}
+            onClick={() => fillAll.mutate()}
+          >
+            {fillAll.isPending
+              ? 'Calculando…'
+              : `Completar ${missingRegular.length} regular${missingRegular.length === 1 ? '' : 'es'} (+25%)`}
+          </Button>
+        )}
+      </Stack>
       {catalog.isLoading ? (
         <LinearProgress />
       ) : (
@@ -243,20 +339,50 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
                       </Typography>
                     )}
                   </TableCell>
-                  {(['price', 'originalPrice'] as const).map((field) => (
-                    <TableCell key={field} sx={cell}>
-                      <TextField
-                        size="small"
-                        variant="standard"
-                        defaultValue={p[field] ?? ''}
-                        sx={{ width: 90 }}
-                        onBlur={(e) => {
-                          const v = e.target.value.trim();
-                          if (v !== String(p[field] ?? '')) patch.mutate({ id: p._id, body: { [field]: v } });
-                        }}
-                      />
-                    </TableCell>
-                  ))}
+                  <TableCell sx={cell}>
+                    <TextField
+                      size="small"
+                      variant="standard"
+                      defaultValue={p.price ?? ''}
+                      sx={{ width: 90 }}
+                      onBlur={(e) => {
+                        const v = e.target.value.trim();
+                        if (v !== String(p.price ?? '')) patch.mutate({ id: p._id, body: { price: v } });
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell sx={cell}>
+                    <TextField
+                      size="small"
+                      variant="standard"
+                      defaultValue={p.originalPrice ?? ''}
+                      sx={{ width: 90 }}
+                      onBlur={(e) => {
+                        const v = e.target.value.trim();
+                        if (v !== String(p.originalPrice ?? '')) {
+                          patch.mutate({ id: p._id, body: { originalPrice: v, ...(v ? { hasOffer: true } : {}) } });
+                        }
+                      }}
+                    />
+                    {/* Sin regular: se estima con la misma regla del backend (+25%) */}
+                    {!p.originalPrice?.trim() && regularFromPrice(p.price) && (
+                      <Tooltip title={`Calcular: ${regularFromPrice(p.price)} (oferta + 25%)`}>
+                        <Button
+                          size="small"
+                          sx={{ ml: 0.5, minWidth: 0, px: 0.75 }}
+                          disabled={patch.isPending}
+                          onClick={() =>
+                            patch.mutate({
+                              id: p._id,
+                              body: { originalPrice: regularFromPrice(p.price)!, hasOffer: true },
+                            })
+                          }
+                        >
+                          +25%
+                        </Button>
+                      </Tooltip>
+                    )}
+                  </TableCell>
                   <TableCell sx={cell}>{p.savings || '—'}</TableCell>
                   <TableCell sx={cell} align="center">
                     <Switch

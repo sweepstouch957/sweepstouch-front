@@ -169,6 +169,7 @@ export class CircularService {
         | 'originalPrice'
         | 'savings'
         | 'onPromotion'
+        | 'hasOffer'
         | 'visibleInRcs'
         | 'stock'
         | 'maxPerCustomer'
