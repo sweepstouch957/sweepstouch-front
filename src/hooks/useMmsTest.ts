@@ -165,7 +165,9 @@ export function useMmsSend(opts: {
 
   // Lista + link de UN cliente. Compartido entre el preview y el envío múltiple:
   // cada cliente del lote necesita SU lista y SU link, no el del primero.
-  const buildListFor = useCallback(async (customer: Customer, products: TestProduct[]) => {
+  // `flow` decide la página que abre el cliente: "prercs" (lista de ofertas +
+  // QR, el default del test) o "rcs" (experiencia completa).
+  const buildListFor = useCallback(async (customer: Customer, products: TestProduct[], flow: 'prercs' | 'rcs' = 'prercs') => {
     const items = products.slice(0, 10).map((p) => ({
       name: p.name, price: p.price, quantity: 1,
       unit: p.unit || 'each', category: p.category || 'other',
@@ -184,7 +186,9 @@ export function useMmsSend(opts: {
     );
 
     const customerId = String(customer._id || customer.phoneNumber);
-    const rcsLink = `${LINKTREE_URL}/rcs/${customerId}?store=${opts.storeSlug}${opts.circularId ? '&circular=' + opts.circularId : ''}`;
+    const rcsLink = flow === 'rcs'
+      ? `${LINKTREE_URL}/rcs/${customerId}?store=${opts.storeSlug}${opts.circularId ? '&circular=' + opts.circularId : ''}`
+      : `${LINKTREE_URL}/prercs/${customerId}?store=${opts.storeSlug}`;
     const shortRcsLink = await shorten(rcsLink);
 
     return {
@@ -199,12 +203,13 @@ export function useMmsSend(opts: {
   const createShoppingList = useCallback(async (
     customer: Customer,
     products: TestProduct[],
+    flow: 'prercs' | 'rcs' = 'prercs',
   ) => {
     setCreatingList(true);
     setError('');
 
     try {
-      const built = await buildListFor(customer, products);
+      const built = await buildListFor(customer, products, flow);
       setListResult(built);
 
       // Plantilla oficial del test (formato exacto pedido por producto):
@@ -237,7 +242,7 @@ export function useMmsSend(opts: {
         `${name ? `${name}, ` : ''}${savings ? `save ${savings} and ` : ''}earn points this week! \n` +
         `Select your offers before checking out:\n${listLink}` +
         (treeShort ? `\n\nView more deals:\n${treeShort}` : '') +
-        (address ? `\n\nAdress:${opts.storeName} \n${address}.` : '') +
+        (address ? `\n\nAdress:\n${opts.storeName} \n${address}.` : '') +
         `\n\nReply STOP to opt out.`;
       // Sin nombre, la frase arranca con mayúscula: "Save $119.44 and earn..."
       if (!name) text = text.charAt(0).toUpperCase() + text.slice(1);
@@ -304,6 +309,7 @@ export function useMmsSend(opts: {
     products: TestProduct[],
     imageUrl: string | null,
     mmsImageFile: File | null,
+    flow: 'prercs' | 'rcs' = 'prercs',
   ): Promise<{ sent: number; failed: string[] }> => {
     if (!smsText.trim() || !targets.length) return { sent: 0, failed: [] };
     setSending(true);
@@ -338,7 +344,7 @@ export function useMmsSend(opts: {
           // El preview ya tiene lista y link propios; para el resto se crea la
           // suya y se reemplazan links (versión con y sin https) y nombre.
           if (!listResult || listResult.customerId !== cid) {
-            const built = await buildListFor(customer, products);
+            const built = await buildListFor(customer, products, flow);
             const swaps: Array<[string, string]> = [];
             if (listResult?.shortLink) {
               const mine = built.shortLink || built.link;

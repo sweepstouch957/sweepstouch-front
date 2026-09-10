@@ -5,6 +5,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
   Typography, CircularProgress, Stack, Box, Chip, Alert,
   Autocomplete, InputAdornment, Avatar, IconButton,
+  ToggleButton, ToggleButtonGroup,
 } from '@mui/material';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import QrCodeIcon from '@mui/icons-material/QrCode';
@@ -133,6 +134,9 @@ export default function TestMmsShoppingListModal({
   // Varios destinatarios: cada uno recibe SU lista y SU link en el envío.
   const [selected, setSelected] = useState<Customer[]>([]);
   const [sentCount, setSentCount] = useState(0);
+  // Qué experiencia abre el link del SMS: Pre-RCS (lista de ofertas, el flujo
+  // que se está probando) o RCS completo.
+  const [flow, setFlow] = useState<'prercs' | 'rcs'>('prercs');
   const [editingText, setEditingText] = useState(false);
   const [mmsImageFile, setMmsImageFile] = useState<File | null>(null);
   const [uploadedMmsUrl, setUploadedMmsUrl] = useState<string | null>(null);
@@ -141,6 +145,10 @@ export default function TestMmsShoppingListModal({
 
   const circularIsPdf = isPdfUrl(circularFileUrl);
   const effectiveImage = uploadedMmsUrl || (circularIsPdf ? null : circularFileUrl) || null;
+  // El test debe salir como MMS con el circular adjunto: si el archivo es
+  // imagen (o hay preview del PDF) va solo; si es PDF pelado, la imagen es
+  // OBLIGATORIA — sin ella el botón de enviar no se habilita.
+  const needsImage = circularIsPdf && !mmsImageFile && !uploadedMmsUrl;
 
   // ─── Hooks ───
   const customerSearch = useCustomerSearch(storeId, open);
@@ -155,16 +163,16 @@ export default function TestMmsShoppingListModal({
   const handleCreateAndCompose = useCallback(async () => {
     if (!selected.length) return;
     // El preview se arma con el primero; los demás reciben su versión al enviar.
-    const ok = await mmsSend.createShoppingList(selected[0], products);
+    const ok = await mmsSend.createShoppingList(selected[0], products, flow);
     if (ok) setStep('compose');
-  }, [selected, products, mmsSend]);
+  }, [selected, products, flow, mmsSend]);
 
   const handleSend = useCallback(async () => {
     if (!selected.length) return;
-    const res = await mmsSend.sendMessageToMany(selected, products, effectiveImage, mmsImageFile);
+    const res = await mmsSend.sendMessageToMany(selected, products, effectiveImage, mmsImageFile, flow);
     setSentCount(res.sent);
     if (res.sent > 0) setStep('sent');
-  }, [selected, products, effectiveImage, mmsImageFile, mmsSend]);
+  }, [selected, products, effectiveImage, mmsImageFile, flow, mmsSend]);
 
   const handleImageFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -179,6 +187,7 @@ export default function TestMmsShoppingListModal({
     mmsSend.reset();
     setSelected([]);
     setSentCount(0);
+    setFlow('prercs');
     setStep('select');
     setEditingText(false);
     setMmsImageFile(null);
@@ -235,10 +244,38 @@ export default function TestMmsShoppingListModal({
               from <strong>{storeName}</strong>
             </Alert>
 
+            {/* Flujo del link: la lista Pre-RCS (default, lo que se prueba) o el RCS completo */}
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              color="primary"
+              value={flow}
+              onChange={(_, v) => v && setFlow(v)}
+            >
+              <ToggleButton value="prercs" sx={{ px: 2, textTransform: 'none' }}>
+                Pre-RCS · lista de ofertas
+              </ToggleButton>
+              <ToggleButton value="rcs" sx={{ px: 2, textTransform: 'none' }}>
+                RCS completo
+              </ToggleButton>
+            </ToggleButtonGroup>
+
             <Autocomplete
               multiple
               value={selected}
               onChange={(_, v) => setSelected(v)}
+              renderTags={(value, getTagProps) =>
+                // Número COMPLETO en cada chip, con su × para quitarlo — nada
+                // de "1, 2, 3".
+                value.map((option, index) => (
+                  <Chip
+                    {...getTagProps({ index })}
+                    key={option.phoneNumber}
+                    size="small"
+                    label={`${option.phoneNumber}${option.firstName ? ` · ${option.firstName}` : ''}`}
+                  />
+                ))
+              }
               options={customerSearch.customers}
               loading={customerSearch.loading}
               getOptionLabel={(o) => `${o.phoneNumber} — ${o.firstName || 'Unknown'}`}
@@ -376,8 +413,10 @@ export default function TestMmsShoppingListModal({
               <Box>
                 <input type="file" ref={fileInputRef} accept="image/*"
                   style={{ display: 'none' }} onChange={handleImageFile} />
-                <Alert severity="warning" variant="outlined" sx={{ mb: 1 }}>
-                  <strong>PDF Detected:</strong> Upload an image for MMS attachment.
+                <Alert severity={needsImage ? 'warning' : 'success'} variant="outlined" sx={{ mb: 1 }}>
+                  {needsImage
+                    ? <><strong>El circular es PDF:</strong> sube la imagen del circular — el test sale como MMS y sin imagen no se envía.</>
+                    : <>Imagen lista: el MMS sale con el circular adjunto.</>}
                 </Alert>
                 <Stack direction="row" spacing={1} alignItems="center">
                   {mmsImageFile && (
@@ -405,8 +444,8 @@ export default function TestMmsShoppingListModal({
                   El texto es el mismo, pero el link y la lista se generan por cliente.
                 </Typography>
               )}
-              {effectiveImage && <><br />MMS with image attached</>}
-              {circularIsPdf && !mmsImageFile && <><br /><WarningAmberRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />No image uploaded; will send as SMS only</>}
+              {(effectiveImage || mmsImageFile) && <><br />MMS con la imagen del circular adjunta</>}
+              {needsImage && <><br /><WarningAmberRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Falta la imagen del circular — súbela para poder enviar el MMS</>}
             </Alert>
 
             {mmsSend.error && <Alert severity="error">{mmsSend.error}</Alert>}
@@ -501,7 +540,7 @@ export default function TestMmsShoppingListModal({
             <Button
               onClick={handleSend}
               variant="contained"
-              disabled={mmsSend.sending || !mmsSend.smsText.trim()}
+              disabled={mmsSend.sending || !mmsSend.smsText.trim() || needsImage}
               startIcon={mmsSend.sending
                 ? <CircularProgress size={16} sx={{ color: 'white' }} />
                 : <SendRoundedIcon />

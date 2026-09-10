@@ -188,7 +188,9 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
         products={((activeCircular as any)?.products ?? []) as any[]}
         headline={(activeCircular as any)?.headline || ''}
         circularId={activeCircular?._id}
-        circularFileUrl={activeCircular?.fileUrl}
+        // Si el circular es PDF pero ya tiene preview renderizado (página 1 en
+        // imagen), ESE va como adjunto del MMS y no hay que pedir nada.
+        circularFileUrl={(activeCircular as any)?.previewImageUrl || activeCircular?.fileUrl}
         storeProvider={provider}
         storeInfobipSenderId={infobipSenderId}
         storeAddress={address}
