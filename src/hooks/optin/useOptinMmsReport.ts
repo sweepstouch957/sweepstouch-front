@@ -59,27 +59,23 @@ export function useOptinMmsReport({
   const startISO = useMemo(() => startDate.toISOString(), [startDate]);
   const endISO = useMemo(() => endDate.toISOString(), [endDate]);
 
-  // ── Stores ────────────────────────────────────────────────────────────────
+  // ── Stores (Only active stores) ───────────────────────────────────────────
   const { data: storesData, isLoading: storesLoading } = useQuery({
-    queryKey: ['stores-optin-report'],
-    queryFn: () => storesService.getStores({ limit: 500, sortBy: 'name', order: 'asc' }),
+    queryKey: ['stores-optin-report', 'active'],
+    queryFn: () =>
+      storesService.getStores({
+        limit: 1000,
+        sortBy: 'name',
+        order: 'asc',
+        status: 'active',
+      }),
     staleTime: 10 * 60_000,
     retry: false,
   });
-  const stores = useMemo(() => storesData?.data ?? [], [storesData]);
-
-  // ── Global count (single request, no storeId) ─────────────────────────────
-  const {
-    data: globalData,
-    isLoading: globalLoading,
-    isFetching: globalFetching,
-  } = useQuery({
-    queryKey: ['optin-global', startISO, endISO],
-    queryFn: () => campaignClient.getOptinMmsCount({ startDate: startISO, endDate: endISO }),
-    staleTime: 5 * 60_000,
-    placeholderData: (prev) => prev,
-    retry: false,
-  });
+  const stores = useMemo(() => {
+    const list = storesData?.data ?? [];
+    return list.filter((s) => s.active !== false && (!s.status || s.status === 'active'));
+  }, [storesData]);
 
   // ── Per-store grouped query ───────────────────────────────────────────────
   // Single request, fetches all store metrics grouped in the backend.
@@ -96,9 +92,11 @@ export function useOptinMmsReport({
     retry: false,
   });
 
-  const isAllLoaded = !!storeDataMap && !isBatchLoading;
+  const isAllLoaded = !!storeDataMap && !isBatchLoading && !storesLoading;
+  const globalLoading = storesLoading || isBatchLoading;
+  const globalFetching = isBatchFetching;
 
-  // ── Rows ──────────────────────────────────────────────────────────────────
+  // ── Rows (active stores only) ─────────────────────────────────────────────
   const storeRows = useMemo<StoreRow[]>(
     () =>
       stores.map((store) => {
@@ -139,14 +137,26 @@ export function useOptinMmsReport({
     });
   }, [storeRows, search, showOnlyWithData, sortField, sortDir]);
 
-  // ── Global stats ──────────────────────────────────────────────────────────
+  // ── Global stats (calculated across all active stores) ────────────────────
   const globalStats = useMemo<OptinGlobalStats>(() => {
-    const sent = globalData?.sent ?? 0;
-    const skipped = globalData?.skipped ?? 0;
-    const total = globalData?.total ?? 0;
-    const cost = globalData?.estimatedCost ?? 0;
-    return { sent, skipped, total, cost, sentRate: total > 0 ? Math.round((sent / total) * 100) : 0 };
-  }, [globalData]);
+    let sent = 0;
+    let skipped = 0;
+    let total = 0;
+    let cost = 0;
+    for (const r of storeRows) {
+      sent += r.sent;
+      skipped += r.skipped;
+      total += r.total;
+      cost += r.cost;
+    }
+    return {
+      sent,
+      skipped,
+      total,
+      cost,
+      sentRate: total > 0 ? Math.round((sent / total) * 100) : 0,
+    };
+  }, [storeRows]);
 
   // ── Footer ────────────────────────────────────────────────────────────────
   const footer = useMemo<OptinFooter>(() => {
