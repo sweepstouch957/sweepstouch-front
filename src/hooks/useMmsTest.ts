@@ -132,12 +132,26 @@ export interface ListResult {
 
 type TestProduct = { name: string; price: string; unit?: string; category?: string; imageUrl?: string };
 
+/** "https://swtrcs.com/s/X" → "swtrcs.com/s/X" — así va en el SMS (menos chars). */
+const bare = (u?: string | null) => String(u || '').replace(/^https?:\/\//i, '');
+
+const JUNK_NAMES = new Set(['demo', 'customer', 'cliente', 'vip', 'test', 'n/a', 'na', 'unknown']);
+
+/** Primer nombre presentable, o '' si no hay nada usable (no se inventa). */
+function prettyFirstName(firstName?: string): string {
+  const raw = String(firstName || '').trim().split(/\s+/)[0] || '';
+  const usable = raw.length >= 2 && /^[a-záéíóúüñ'-]+$/i.test(raw) && !JUNK_NAMES.has(raw.toLowerCase());
+  return usable ? raw[0].toUpperCase() + raw.slice(1).toLowerCase() : '';
+}
+
 export function useMmsSend(opts: {
   storeSlug: string;
   storeName: string;
   circularId?: string;
   storeProvider?: string;
   storeInfobipSenderId?: string;
+  /** Dirección de la tienda: va al pie del SMS de prueba. */
+  storeAddress?: string;
 }) {
   const [creatingList, setCreatingList] = useState(false);
   const [sending, setSending] = useState(false);
@@ -191,16 +205,44 @@ export function useMmsSend(opts: {
 
     try {
       const built = await buildListFor(customer, products);
-      const { qrCode, totalItems, link: rcsLink, shortLink: shortRcsLink } = built;
-
       setListResult(built);
 
-      // Generate SMS text with RCS link
+      // Plantilla oficial del test (formato exacto pedido por producto):
+      //   Carolina, save $119.44 and earn points this week!
+      //   Select your offers before checking out:
+      //   swtrcs.com/s/XXXXX          ← link de la LISTA del cliente
+      //   View more deals:
+      //   swtrcs.com/s/YYYYY          ← linktree permanente de la tienda
+      //   Adress + Reply STOP abajo.
       setGeneratingText(true);
-      const linkForSms = shortRcsLink || rcsLink;
-      setSmsText(
-        `⭐ Earn points with every purchase! Each product = 1 point you can redeem for exclusive rewards 🎁\n\nTus ofertas personalizadas te esperan 👇\n${linkForSms}\n\nReply STOP to unsubscribe.`
-      );
+
+      // Ahorro semanal y linktree de la tienda, en paralelo y best-effort:
+      // sin alguno, su bloque simplemente no sale.
+      const [savings, treeShort] = await Promise.all([
+        axios
+          .get(`${API_URL}/circulars/store/${opts.storeSlug}/savings`)
+          .then((r) => (Number(r.data?.weeklySavings) > 0 ? `$${Number(r.data.weeklySavings).toFixed(2)}` : ''))
+          .catch(() => ''),
+        axios
+          .get(`${TRACKING_URL}/tracking/short-link/linktree/${opts.storeSlug}`, { headers: getAuthHeaders() })
+          .then((r) => bare(r.data?.data?.shortUrl))
+          .catch(() => ''),
+      ]);
+
+      const name = prettyFirstName(customer.firstName);
+      const listLink = bare(built.shortLink || built.link);
+      const address = String(opts.storeAddress || '').trim().replace(/\.+$/, '');
+
+      let text =
+        `${name ? `${name}, ` : ''}${savings ? `save ${savings} and ` : ''}earn points this week! \n` +
+        `Select your offers before checking out:\n${listLink}` +
+        (treeShort ? `\n\nView more deals:\n${treeShort}` : '') +
+        (address ? `\n\nAdress:${opts.storeName} \n${address}.` : '') +
+        `\n\nReply STOP to opt out.`;
+      // Sin nombre, la frase arranca con mayúscula: "Save $119.44 and earn..."
+      if (!name) text = text.charAt(0).toUpperCase() + text.slice(1);
+
+      setSmsText(text);
       setGeneratingText(false);
 
       return true; // success
@@ -210,7 +252,7 @@ export function useMmsSend(opts: {
     } finally {
       setCreatingList(false);
     }
-  }, [buildListFor]);
+  }, [buildListFor, opts.storeSlug, opts.storeName, opts.storeAddress]);
 
   const sendMessage = useCallback(async (
     customer: Customer,
@@ -282,16 +324,37 @@ export function useMmsSend(opts: {
         storeName: opts.storeName,
       });
 
+      // El cliente del preview: su nombre y su link son los que hay que
+      // sustituir por los de cada destinatario.
+      const previewCustomer = targets.find(
+        (c) => listResult && String(c._id || c.phoneNumber) === listResult.customerId
+      );
+      const previewName = prettyFirstName(previewCustomer?.firstName);
+
       for (const customer of targets) {
         try {
           let text = smsText;
           const cid = String(customer._id || customer.phoneNumber);
           // El preview ya tiene lista y link propios; para el resto se crea la
-          // suya y se reemplazan los links del texto base por los personales.
+          // suya y se reemplazan links (versión con y sin https) y nombre.
           if (!listResult || listResult.customerId !== cid) {
             const built = await buildListFor(customer, products);
-            if (listResult?.shortLink) text = text.split(listResult.shortLink).join(built.shortLink || built.link);
-            if (listResult?.link) text = text.split(listResult.link).join(built.link);
+            const swaps: Array<[string, string]> = [];
+            if (listResult?.shortLink) {
+              const mine = built.shortLink || built.link;
+              swaps.push([listResult.shortLink, mine], [bare(listResult.shortLink), bare(mine)]);
+            }
+            if (listResult?.link) swaps.push([listResult.link, built.link], [bare(listResult.link), bare(built.link)]);
+            for (const [from, to] of swaps) {
+              if (from && to && from !== to) text = text.split(from).join(to);
+            }
+
+            // Nombre al inicio: "Carolina, save…" → "Pedro, save…" (o sin nombre).
+            if (previewName && text.startsWith(`${previewName}, `)) {
+              const myName = prettyFirstName(customer.firstName);
+              text = (myName ? `${myName}, ` : '') + text.slice(previewName.length + 2);
+              if (!myName) text = text.charAt(0).toUpperCase() + text.slice(1);
+            }
           }
 
           await campaignClient.sendTestMessage({

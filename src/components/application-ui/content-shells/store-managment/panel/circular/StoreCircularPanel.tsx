@@ -102,11 +102,12 @@ type Props = {
   storeName?: string;
   provider?: string;
   infobipSenderId?: string;
+  address?: string;
 };
 
 /* ═══════════════ 1 · Circular (agendar + mensaje de prueba) ═══════════════ */
 
-function CircularSection({ storeId, storeSlug, storeName, provider, infobipSenderId }: Props) {
+function CircularSection({ storeId, storeSlug, storeName, provider, infobipSenderId, address }: Props) {
   const qc = useQueryClient();
   const circulars = useQuery({
     queryKey: ['store-circulars', storeSlug],
@@ -190,6 +191,7 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
         circularFileUrl={activeCircular?.fileUrl}
         storeProvider={provider}
         storeInfobipSenderId={infobipSenderId}
+        storeAddress={address}
       />
       <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
         <Typography variant="subtitle2" fontWeight={700} gutterBottom>
@@ -844,7 +846,7 @@ function PurchasesSection({ storeSlug }: { storeSlug: string }) {
 
 /* ═══════════════ Panel ═══════════════ */
 
-export default function StoreCircularPanel({ storeId, storeSlug, storeName, provider, infobipSenderId }: Props) {
+export default function StoreCircularPanel({ storeId, storeSlug, storeName, provider, infobipSenderId, address }: Props) {
   const [tab, setTab] = useState(0);
 
   if (!storeSlug) {
@@ -873,6 +875,7 @@ export default function StoreCircularPanel({ storeId, storeSlug, storeName, prov
           storeName={storeName}
           provider={provider}
           infobipSenderId={infobipSenderId}
+          address={address}
         />
       )}
       {tab === 1 && <CatalogSection storeSlug={storeSlug} />}

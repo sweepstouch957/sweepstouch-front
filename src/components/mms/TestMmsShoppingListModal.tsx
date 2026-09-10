@@ -51,6 +51,8 @@ interface Props {
   circularFileUrl?: string;
   storeProvider?: string;
   storeInfobipSenderId?: string;
+  /** Dirección de la tienda — va al pie del SMS. */
+  storeAddress?: string;
 }
 
 type Step = 'select' | 'compose' | 'sent';
@@ -125,7 +127,7 @@ LinkDisplay.displayName = 'LinkDisplay';
 export default function TestMmsShoppingListModal({
   open, onClose, storeId, storeSlug, storeName, products, headline, circularId,
   circularFileUrl, storeProvider,
-  storeInfobipSenderId,
+  storeInfobipSenderId, storeAddress,
 }: Props) {
   const [step, setStep] = useState<Step>('select');
   // Varios destinatarios: cada uno recibe SU lista y SU link en el envío.
@@ -146,6 +148,7 @@ export default function TestMmsShoppingListModal({
     storeSlug, storeName, circularId,
     storeProvider,
     storeInfobipSenderId,
+    storeAddress,
   });
 
   // ─── Handlers ───

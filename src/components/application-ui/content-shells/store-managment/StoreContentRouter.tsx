@@ -183,6 +183,7 @@ storeName={store.name || ''} />;
           storeName={store.name}
           provider={store.provider}
           infobipSenderId={store.infobipSenderId}
+          address={(store as any).address || ''}
         />
       );
 
