@@ -181,6 +181,8 @@ storeName={store.name || ''} />;
           storeId={storeId}
           storeSlug={store.slug || ''}
           storeName={store.name}
+          provider={store.provider}
+          infobipSenderId={store.infobipSenderId}
         />
       );
 

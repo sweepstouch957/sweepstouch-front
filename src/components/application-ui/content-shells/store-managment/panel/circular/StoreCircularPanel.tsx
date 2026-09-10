@@ -47,6 +47,7 @@ import {
   Typography,
 } from '@mui/material';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
+import TestMmsShoppingListModal from '@/components/mms/TestMmsShoppingListModal';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
@@ -88,11 +89,17 @@ const STATUS_CHIP: Record<string, { label: string; color: 'success' | 'warning' 
 
 const cell = { py: 0.75, px: 1.25, whiteSpace: 'nowrap' } as const;
 
-type Props = { storeId: string; storeSlug: string; storeName?: string };
+type Props = {
+  storeId: string;
+  storeSlug: string;
+  storeName?: string;
+  provider?: string;
+  infobipSenderId?: string;
+};
 
-/* ═══════════════ 1 · Circular (agendar) ═══════════════ */
+/* ═══════════════ 1 · Circular (agendar + mensaje de prueba) ═══════════════ */
 
-function CircularSection({ storeSlug }: { storeSlug: string }) {
+function CircularSection({ storeId, storeSlug, storeName, provider, infobipSenderId }: Props) {
   const qc = useQueryClient();
   const circulars = useQuery({
     queryKey: ['store-circulars', storeSlug],
@@ -104,6 +111,7 @@ function CircularSection({ storeSlug }: { storeSlug: string }) {
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [testOpen, setTestOpen] = useState(false);
 
   // Extracción IA por circular. Tarda ~1 min; si el cliente corta antes, la
   // extracción sigue en el servidor y aparece al refrescar.
@@ -145,9 +153,37 @@ function CircularSection({ storeSlug }: { storeSlug: string }) {
   });
 
   const items: Circular[] = circulars.data?.items ?? [];
+  // El circular vigente (o el próximo): sus productos alimentan el mensaje de prueba
+  const activeCircular =
+    items.find((c) => c.status === 'active' || c.status === 'scheduled') || items[0] || null;
 
   return (
     <Stack spacing={2}>
+      {/* Mensaje de prueba — el mismo flujo que el merchant: crea la lista de
+          compras del cliente elegido y le manda el SMS/MMS con su link. */}
+      <Stack direction="row" justifyContent="flex-end">
+        <Button
+          size="small"
+          variant="contained"
+          disabled={!activeCircular}
+          onClick={() => setTestOpen(true)}
+        >
+          Mensaje de prueba
+        </Button>
+      </Stack>
+      <TestMmsShoppingListModal
+        open={testOpen}
+        onClose={() => setTestOpen(false)}
+        storeId={storeId}
+        storeSlug={storeSlug}
+        storeName={storeName || storeSlug}
+        products={((activeCircular as any)?.products ?? []) as any[]}
+        headline={(activeCircular as any)?.headline || ''}
+        circularId={activeCircular?._id}
+        circularFileUrl={activeCircular?.fileUrl}
+        storeProvider={provider}
+        storeInfobipSenderId={infobipSenderId}
+      />
       <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
         <Typography variant="subtitle2" fontWeight={700} gutterBottom>
           Agendar circular
@@ -682,7 +718,7 @@ function PurchasesSection({ storeSlug }: { storeSlug: string }) {
 
 /* ═══════════════ Panel ═══════════════ */
 
-export default function StoreCircularPanel({ storeSlug, storeName }: Props) {
+export default function StoreCircularPanel({ storeId, storeSlug, storeName, provider, infobipSenderId }: Props) {
   const [tab, setTab] = useState(0);
 
   if (!storeSlug) {
@@ -704,7 +740,15 @@ export default function StoreCircularPanel({ storeSlug, storeName }: Props) {
         <Tab icon={<FactCheckOutlinedIcon fontSize="small" />} iconPosition="start" label="Listas" />
         <Tab icon={<ReceiptLongRoundedIcon fontSize="small" />} iconPosition="start" label="Compras" />
       </Tabs>
-      {tab === 0 && <CircularSection storeSlug={storeSlug} />}
+      {tab === 0 && (
+        <CircularSection
+          storeId={storeId}
+          storeSlug={storeSlug}
+          storeName={storeName}
+          provider={provider}
+          infobipSenderId={infobipSenderId}
+        />
+      )}
       {tab === 1 && <CatalogSection storeSlug={storeSlug} />}
       {tab === 2 && <ListsSection storeSlug={storeSlug} />}
       {tab === 3 && <PurchasesSection storeSlug={storeSlug} />}
