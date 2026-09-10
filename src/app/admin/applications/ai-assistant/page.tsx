@@ -361,7 +361,18 @@ function renderMarkdown(text: string, linkColor: string) {
         return `<tr>${cellsHtml}</tr>`;
       })
       .join('');
-    return `\n<table style="border-collapse:collapse;margin:8px 0;width:100%">${html}</table>\n`;
+    // Colapsable con <details> nativo: las tablas largas se pueden esconder
+    // con un clic sin meter estado de React dentro del innerHTML.
+    const bodyRows = isSep ? dataRows.length - 1 : dataRows.length;
+    return (
+      `\n<details open style="margin:8px 0">` +
+      `<summary style="cursor:pointer;user-select:none;display:inline-flex;align-items:center;gap:6px;` +
+      `font-size:11px;font-weight:700;padding:3px 10px;border-radius:14px;` +
+      `border:1px solid rgba(128,128,128,0.35);background:rgba(128,128,128,0.08);margin-bottom:4px">` +
+      `📊 Tabla · ${bodyRows} fila${bodyRows === 1 ? '' : 's'} — clic para mostrar/ocultar</summary>` +
+      `<div style="overflow-x:auto"><table style="border-collapse:collapse;margin:4px 0;width:100%">${html}</table></div>` +
+      `</details>\n`
+    );
   });
 
   processed = processed.replace(
