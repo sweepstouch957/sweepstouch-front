@@ -21,6 +21,7 @@ import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
 import Inventory2Rounded from '@mui/icons-material/Inventory2Rounded';
 import WarningAmberRounded from '@mui/icons-material/WarningAmberRounded';
 import { useCustomerSearch, useMmsSend } from '@/hooks/useMmsTest';
+import type { Customer } from '@/services/customerService';
 import { tint, tintBorder, type SemanticRole } from 'src/theme/semantic';
 
 // ─── Types ──────────────────────────────────────────────
@@ -127,6 +128,9 @@ export default function TestMmsShoppingListModal({
   storeInfobipSenderId,
 }: Props) {
   const [step, setStep] = useState<Step>('select');
+  // Varios destinatarios: cada uno recibe SU lista y SU link en el envío.
+  const [selected, setSelected] = useState<Customer[]>([]);
+  const [sentCount, setSentCount] = useState(0);
   const [editingText, setEditingText] = useState(false);
   const [mmsImageFile, setMmsImageFile] = useState<File | null>(null);
   const [uploadedMmsUrl, setUploadedMmsUrl] = useState<string | null>(null);
@@ -146,16 +150,18 @@ export default function TestMmsShoppingListModal({
 
   // ─── Handlers ───
   const handleCreateAndCompose = useCallback(async () => {
-    if (!customerSearch.selected) return;
-    const ok = await mmsSend.createShoppingList(customerSearch.selected, products);
+    if (!selected.length) return;
+    // El preview se arma con el primero; los demás reciben su versión al enviar.
+    const ok = await mmsSend.createShoppingList(selected[0], products);
     if (ok) setStep('compose');
-  }, [customerSearch.selected, products, mmsSend]);
+  }, [selected, products, mmsSend]);
 
   const handleSend = useCallback(async () => {
-    if (!customerSearch.selected) return;
-    const ok = await mmsSend.sendMessage(customerSearch.selected, effectiveImage, mmsImageFile);
-    if (ok) setStep('sent');
-  }, [customerSearch.selected, effectiveImage, mmsImageFile, mmsSend]);
+    if (!selected.length) return;
+    const res = await mmsSend.sendMessageToMany(selected, products, effectiveImage, mmsImageFile);
+    setSentCount(res.sent);
+    if (res.sent > 0) setStep('sent');
+  }, [selected, products, effectiveImage, mmsImageFile, mmsSend]);
 
   const handleImageFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -168,6 +174,8 @@ export default function TestMmsShoppingListModal({
   const resetState = useCallback(() => {
     customerSearch.reset();
     mmsSend.reset();
+    setSelected([]);
+    setSentCount(0);
     setStep('select');
     setEditingText(false);
     setMmsImageFile(null);
@@ -225,14 +233,20 @@ export default function TestMmsShoppingListModal({
             </Alert>
 
             <Autocomplete
-              value={customerSearch.selected}
-              onChange={(_, v) => customerSearch.setSelected(v)}
+              multiple
+              value={selected}
+              onChange={(_, v) => setSelected(v)}
               options={customerSearch.customers}
               loading={customerSearch.loading}
               getOptionLabel={(o) => `${o.phoneNumber} — ${o.firstName || 'Unknown'}`}
               isOptionEqualToValue={(a, b) => a.phoneNumber === b.phoneNumber}
+              filterSelectedOptions
               inputValue={customerSearch.search}
-              onInputChange={(_, v) => customerSearch.setSearch(v)}
+              onInputChange={(_, v, reason) => {
+                // Al elegir una opción MUI limpia el input; conservar el término
+                // permite seguir agregando números sin volver a tipear.
+                if (reason !== 'reset') customerSearch.setSearch(v);
+              }}
               renderOption={(props, option) => {
                 const { key, ...rest } = props as any;
                 return (
@@ -271,9 +285,12 @@ export default function TestMmsShoppingListModal({
               )}
             />
 
-            {customerSearch.selected && (
+            {selected.length > 0 && (
               <Alert severity="success" variant="outlined" icon={<PhoneIphoneRoundedIcon />} sx={{ fontSize: 13 }}>
-                <Inventory2Rounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Will create a shopping list with {products.length} products: {productSummary}
+                <Inventory2Rounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />
+                {selected.length === 1
+                  ? <>Will create a shopping list with {products.length} products: {productSummary}</>
+                  : <>Se enviará a <strong>{selected.length} números</strong> — cada uno con SU lista y SU link ({products.length} productos)</>}
               </Alert>
             )}
 
@@ -372,9 +389,19 @@ export default function TestMmsShoppingListModal({
               </Box>
             )}
 
-            {/* Recipient */}
+            {/* Recipients */}
             <Alert severity="success" variant="outlined" icon={<PhoneIphoneRoundedIcon />} sx={{ fontSize: 13 }}>
-              Will send to: <strong>{customerSearch.selected?.phoneNumber}</strong> ({customerSearch.selected?.firstName || 'Unknown'})
+              Will send to <strong>{selected.length}</strong> number{selected.length === 1 ? '' : 's'}:
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.75 }}>
+                {selected.map((c) => (
+                  <Chip key={c.phoneNumber} size="small" label={`${c.phoneNumber}${c.firstName ? ` · ${c.firstName}` : ''}`} />
+                ))}
+              </Box>
+              {selected.length > 1 && (
+                <Typography variant="caption" display="block" sx={{ mt: 0.75 }}>
+                  El texto es el mismo, pero el link y la lista se generan por cliente.
+                </Typography>
+              )}
               {effectiveImage && <><br />MMS with image attached</>}
               {circularIsPdf && !mmsImageFile && <><br /><WarningAmberRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />No image uploaded; will send as SMS only</>}
             </Alert>
@@ -392,20 +419,19 @@ export default function TestMmsShoppingListModal({
             </Typography>
             <Box textAlign="center">
               <Typography variant="body2" color="text.secondary">
-                SMS sent to <strong>{customerSearch.selected?.phoneNumber}</strong>
-                {customerSearch.selected?.firstName ? ` (${customerSearch.selected.firstName})` : ''}
+                SMS sent to <strong>{sentCount}</strong> number{sentCount === 1 ? '' : 's'} — cada uno con su lista y su link
               </Typography>
-              {(customerSearch.selected as any)?._id && (
-                <Chip
-                  label={`Customer ID: ${(customerSearch.selected as any)._id}`}
-                  size="small"
-                  sx={{
-                    mt: 0.5, fontFamily: 'monospace', fontSize: 11,
-                    bgcolor: (t) => tint(t, 'success', 0.1),
-                    color: 'success.main',
-                  }}
-                />
-              )}
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1, justifyContent: 'center' }}>
+                {selected.map((c) => (
+                  <Chip
+                    key={c.phoneNumber}
+                    size="small"
+                    label={`${c.phoneNumber}${c.firstName ? ` · ${c.firstName}` : ''}`}
+                    sx={{ bgcolor: (t) => tint(t, 'success', 0.1), color: 'success.main' }}
+                  />
+                ))}
+              </Box>
+              {mmsSend.error && <Alert severity="warning" sx={{ mt: 1, textAlign: 'left' }}>{mmsSend.error}</Alert>}
             </Box>
 
             <Box sx={{
@@ -450,7 +476,7 @@ export default function TestMmsShoppingListModal({
             <Button
               onClick={handleCreateAndCompose}
               variant="contained"
-              disabled={!customerSearch.selected || mmsSend.creatingList}
+              disabled={!selected.length || mmsSend.creatingList}
               startIcon={mmsSend.creatingList ? <CircularProgress size={16} /> : <AutoAwesomeIcon />}
               sx={{
                 borderRadius: 2, textTransform: 'none', fontWeight: 700,
@@ -487,7 +513,11 @@ export default function TestMmsShoppingListModal({
                 },
               }}
             >
-              {mmsSend.sending ? 'Sending...' : `Send SMS to ${customerSearch.selected?.phoneNumber}`}
+              {mmsSend.sending
+                ? `Sending… (${selected.length})`
+                : selected.length === 1
+                  ? `Send SMS to ${selected[0]?.phoneNumber}`
+                  : `Send SMS to ${selected.length} numbers`}
             </Button>
           </>
         )}

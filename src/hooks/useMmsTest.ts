@@ -126,7 +126,11 @@ export interface ListResult {
   link: string;
   shortLink?: string;
   totalItems: number;
+  /** A quién pertenece esta lista/link (id o teléfono). */
+  customerId?: string;
 }
+
+type TestProduct = { name: string; price: string; unit?: string; category?: string; imageUrl?: string };
 
 export function useMmsSend(opts: {
   storeSlug: string;
@@ -145,39 +149,51 @@ export function useMmsSend(opts: {
   const [error, setError] = useState('');
   const { shorten } = useShortLink();
 
+  // Lista + link de UN cliente. Compartido entre el preview y el envío múltiple:
+  // cada cliente del lote necesita SU lista y SU link, no el del primero.
+  const buildListFor = useCallback(async (customer: Customer, products: TestProduct[]) => {
+    const items = products.slice(0, 10).map((p) => ({
+      name: p.name, price: p.price, quantity: 1,
+      unit: p.unit || 'each', category: p.category || 'other',
+      imageUrl: p.imageUrl || '',
+    }));
+
+    const res = await axios.post(
+      `${TRACKING_URL}/tracking/shopping-list`,
+      {
+        customerId: customer.phoneNumber,
+        storeSlug: opts.storeSlug,
+        circularId: opts.circularId || undefined,
+        items,
+      },
+      { headers: getAuthHeaders() }
+    );
+
+    const customerId = String(customer._id || customer.phoneNumber);
+    const rcsLink = `${LINKTREE_URL}/rcs/${customerId}?store=${opts.storeSlug}${opts.circularId ? '&circular=' + opts.circularId : ''}`;
+    const shortRcsLink = await shorten(rcsLink);
+
+    return {
+      qrCode: res.data.qrCode as string,
+      totalItems: res.data.totalItems as number,
+      link: rcsLink,
+      shortLink: shortRcsLink,
+      customerId,
+    };
+  }, [opts.storeSlug, opts.circularId, shorten]);
+
   const createShoppingList = useCallback(async (
     customer: Customer,
-    products: Array<{ name: string; price: string; unit?: string; category?: string; imageUrl?: string }>,
+    products: TestProduct[],
   ) => {
     setCreatingList(true);
     setError('');
 
     try {
-      const items = products.slice(0, 10).map((p) => ({
-        name: p.name, price: p.price, quantity: 1,
-        unit: p.unit || 'each', category: p.category || 'other',
-        imageUrl: p.imageUrl || '',
-      }));
+      const built = await buildListFor(customer, products);
+      const { qrCode, totalItems, link: rcsLink, shortLink: shortRcsLink } = built;
 
-      const res = await axios.post(
-        `${TRACKING_URL}/tracking/shopping-list`,
-        {
-          customerId: customer.phoneNumber,
-          storeSlug: opts.storeSlug,
-          circularId: opts.circularId || undefined,
-          items,
-        },
-        { headers: getAuthHeaders() }
-      );
-
-      const { qrCode, totalItems } = res.data;
-
-      // RCS personalized link — shown in SMS and in the modal
-      const customerId = customer._id || customer.phoneNumber;
-      const rcsLink = `${LINKTREE_URL}/rcs/${customerId}?store=${opts.storeSlug}${opts.circularId ? '&circular=' + opts.circularId : ''}`;
-      const shortRcsLink = await shorten(rcsLink);
-
-      setListResult({ qrCode, link: rcsLink, shortLink: shortRcsLink, totalItems });
+      setListResult(built);
 
       // Generate SMS text with RCS link
       setGeneratingText(true);
@@ -194,7 +210,7 @@ export function useMmsSend(opts: {
     } finally {
       setCreatingList(false);
     }
-  }, [opts.storeSlug, opts.circularId, shorten]);
+  }, [buildListFor]);
 
   const sendMessage = useCallback(async (
     customer: Customer,
@@ -236,6 +252,74 @@ export function useMmsSend(opts: {
     }
   }, [smsText, opts]);
 
+  /**
+   * Envío múltiple: mismo texto base pero cada cliente recibe SU lista y SU
+   * link (se crea la lista de cada uno y se sustituyen los links del preview).
+   * Devuelve cuántos salieron y a quiénes falló — el modal lo reporta.
+   */
+  const sendMessageToMany = useCallback(async (
+    targets: Customer[],
+    products: TestProduct[],
+    imageUrl: string | null,
+    mmsImageFile: File | null,
+  ): Promise<{ sent: number; failed: string[] }> => {
+    if (!smsText.trim() || !targets.length) return { sent: 0, failed: [] };
+    setSending(true);
+    setError('');
+
+    const failed: string[] = [];
+    let sent = 0;
+    try {
+      let imgToSend = imageUrl;
+      if (mmsImageFile) {
+        setUploadingImage(true);
+        const up = await uploadCampaignImage(mmsImageFile);
+        imgToSend = up.url;
+      }
+
+      const { provider, senderPhone } = resolveProvider({
+        storeInfobipSenderId: opts.storeInfobipSenderId,
+        storeName: opts.storeName,
+      });
+
+      for (const customer of targets) {
+        try {
+          let text = smsText;
+          const cid = String(customer._id || customer.phoneNumber);
+          // El preview ya tiene lista y link propios; para el resto se crea la
+          // suya y se reemplazan los links del texto base por los personales.
+          if (!listResult || listResult.customerId !== cid) {
+            const built = await buildListFor(customer, products);
+            if (listResult?.shortLink) text = text.split(listResult.shortLink).join(built.shortLink || built.link);
+            if (listResult?.link) text = text.split(listResult.link).join(built.link);
+          }
+
+          await campaignClient.sendTestMessage({
+            phone: customer.phoneNumber.replace(/\D/g, ''),
+            message: text,
+            image: imgToSend,
+            provider,
+            phoneNumber: senderPhone,
+          });
+          sent++;
+        } catch (err) {
+          console.error(`[sendMessageToMany] ${customer.phoneNumber}:`, err);
+          failed.push(customer.phoneNumber);
+        }
+      }
+
+      setSentSuccess(sent > 0);
+      if (failed.length) setError(`No se pudo enviar a: ${failed.join(', ')}`);
+      return { sent, failed };
+    } catch (err: any) {
+      setError(err.response?.data?.error || err.message || 'Failed to send messages');
+      return { sent, failed };
+    } finally {
+      setUploadingImage(false);
+      setSending(false);
+    }
+  }, [smsText, listResult, buildListFor, opts.storeInfobipSenderId, opts.storeName]);
+
   const reset = useCallback(() => {
     setListResult(null);
     setSmsText('');
@@ -246,6 +330,6 @@ export function useMmsSend(opts: {
   return {
     creatingList, sending, sentSuccess, generatingText, uploadingImage,
     listResult, smsText, setSmsText, error, setError,
-    createShoppingList, sendMessage, reset,
+    createShoppingList, sendMessage, sendMessageToMany, reset,
   };
 }
