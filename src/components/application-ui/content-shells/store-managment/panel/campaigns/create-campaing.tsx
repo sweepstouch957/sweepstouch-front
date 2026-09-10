@@ -52,6 +52,9 @@ interface CampaignFormInputs {
 
 const placeholders = [
   { key: '#n', label: 'Salto de línea' },
+  // Se reemplaza POR CLIENTE en el envío (scheduler-service): cada quien recibe
+  // su nombre; sin nombre real el placeholder se omite limpio ("Hola," y ya).
+  { key: '#name', label: 'Nombre del cliente — personalizado para cada uno; si no tiene, se omite' },
   { key: '#storeName', label: 'Nombre de la tienda' },
   { key: '#referralLink', label: 'Link de referido' },
   { key: '#disclaimer', label: 'Texto legal' },
@@ -330,7 +333,7 @@ export default function CreateCampaignForm({
                               fullWidth
                               multiline
                               rows={6}
-                              placeholder={`Ej: Hola #n, aprovecha las ofertas en #storeName...`}
+                              placeholder={`Ej: Hola #name, aprovecha las ofertas en #storeName...`}
                               error={!!errors.content}
                               helperText={errors.content?.message}
                               onChange={handleChange}
