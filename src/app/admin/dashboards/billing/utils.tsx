@@ -135,10 +135,12 @@ export function PieWithLegend({
   mmsValue,
   storesValue,
   optinValue = 0,
+  extrasValue = 0,
   colorSMS,
   colorMMS,
   colorStores,
   colorOptin,
+  colorExtras,
   grandTotal,
   onClickSMS,
 }: {
@@ -146,10 +148,13 @@ export function PieWithLegend({
   mmsValue: number;
   storesValue: number;
   optinValue?: number;
+  /** Servicios QuickBooks: Set-Up, Promotional, Flyers, clientes sin tienda */
+  extrasValue?: number;
   colorSMS: string;
   colorMMS: string;
   colorStores: string;
   colorOptin: string;
+  colorExtras: string;
   grandTotal: number;
   onClickSMS?: () => void;
 }) {
@@ -172,6 +177,7 @@ export function PieWithLegend({
               { id: 1, value: mmsValue ?? 0, label: 'MMS', color: colorMMS },
               { id: 2, value: storesValue ?? 0, label: 'Membresías', color: colorStores },
               { id: 3, value: optinValue ?? 0, label: 'Opt-in', color: colorOptin },
+              { id: 4, value: extrasValue ?? 0, label: 'Otros servicios', color: colorExtras },
             ],
             innerRadius: 40,
             paddingAngle: 2,
@@ -243,6 +249,16 @@ export function PieWithLegend({
           </Typography>
           Opt-in
         </LegendRow>
+
+        {extrasValue > 0 && (
+          <LegendRow>
+            <Dot color={colorExtras} />
+            <Typography sx={{ color: colorExtras, px: 0.5 }}>
+              {usdFmt.format(extrasValue)}
+            </Typography>
+            Otros servicios
+          </LegendRow>
+        )}
 
         <Divider flexItem />
       </Stack>

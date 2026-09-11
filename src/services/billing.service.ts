@@ -111,10 +111,25 @@ export interface RangeBillingResponse {
       count: number; // cantidad total opt-in SMS
       unitPrice: number; // precio unitario opt-in SMS
     };
+    extras?: QboExtras;
     /** Todo lo facturado en QuickBooks en el rango y su diferencia contra el total calculado. */
     qbo?: QboRangeTotals | null;
   };
-  total: number; // campaigns.total + membership.subtotal
+  total: number; // campaigns + membership + optin + extras.total
+}
+
+/** Lo que solo existe en QuickBooks y entra al Grand Total leído de ahí. */
+export interface QboExtras {
+  /** Merchant Set-Up de tiendas vinculadas. */
+  setup: number;
+  /** Promotional Items, Flyers, Design Fee, sin categoría no identificada… */
+  otros: number;
+  services: number;
+  /** Facturado a clientes QBO sin tienda vinculada. */
+  unlinked: number;
+  /** false con filtro de tiendas: esos clientes quedan fuera del total. */
+  unlinkedIncluded: boolean;
+  total: number;
 }
 
 export interface QboRangeTotals {
@@ -164,6 +179,15 @@ export interface QboBilledItem {
   full: string;
   amount: number;
   lines: number;
+  bucket?: 'membership' | 'setup' | 'optin' | 'campaigns' | 'otros';
+  /** Solo en "Sin categoría": las líneas, para ver qué son. */
+  detail?: Array<{
+    customerName: string;
+    docNumber: string;
+    date: string;
+    description: string;
+    amount: number;
+  }>;
 }
 
 /* ========================= /billing/stores-report ========================= */
@@ -232,12 +256,13 @@ export interface StoresReportResponse {
     campaigns: CampaignTotals; // agregados globales
     membership: number; // suma de membership.subtotal
     membershipSource?: 'quickbooks' | 'no-disponible';
-    grandTotal: number; // campaigns.total + membership
+    grandTotal: number; // campaigns + membership + optin + extras.total
     optin: {
       cost: number; // costo total opt-in SMS
       count: number; // cantidad total opt-in SMS
       unitPrice: number; // precio unitario opt-in SMS
     };
+    extras?: QboExtras;
     /** Facturado en QuickBooks en el rango (incluye clientes sin vincular) vs total calculado. */
     qbo?: QboRangeTotals | null;
   };

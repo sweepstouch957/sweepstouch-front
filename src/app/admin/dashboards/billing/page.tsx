@@ -132,6 +132,7 @@ export default function BillingPage() {
   const optinCost = range.data?.breakdown.optin?.cost ?? 0;
   const optinCount = range.data?.breakdown.optin?.count ?? 0;
   const optinUnit = range.data?.breakdown.optin?.unitPrice ?? 0;
+  const extrasTotal = range.data?.breakdown.extras?.total ?? 0;
   const grandTotal = range.data?.total ?? 0;
   const membershipMeta = range.data?.breakdown.membership;
   const qboTotals = range.data?.breakdown.qbo ?? null;
@@ -220,6 +221,10 @@ export default function BillingPage() {
     null
   );
   const whyDetail = storesReport.data?.totals.qbo?.why?.detail;
+  const extras = storesReport.data?.totals.extras;
+  // Item "Sin categoría" abierto: sus líneas una por una
+  const [itemOpen, setItemOpen] = useState<string | null>(null);
+  const openItem = storesReport.data?.totals.qbo?.items?.find((it) => it.id === itemOpen);
 
   // Store summary rows
   const storeRows: {
@@ -228,6 +233,7 @@ export default function BillingPage() {
     highlight?: boolean;
     sub?: boolean;
     whyKey?: 'services' | 'campaigns' | 'optin' | 'unlinked';
+    itemId?: string;
   }[] = [
     {
       label: 'Stores included',
@@ -249,6 +255,17 @@ export default function BillingPage() {
       label: 'Opt-in signups',
       value: storesReport.data?.totals.optin?.count ?? 0,
     },
+    // Lo que solo existe en QuickBooks entra al total leído de ahí, igual que
+    // la membresía: así el descuadre queda en lo que de verdad no cuadra.
+    ...(extras && extras.setup
+      ? [{ label: 'Merchant Set-Up', value: fmt(extras.setup) }]
+      : []),
+    ...(extras && extras.otros
+      ? [{ label: 'Otros servicios (Promotional, Flyers, Design…)', value: fmt(extras.otros) }]
+      : []),
+    ...(extras?.unlinkedIncluded && extras.unlinked
+      ? [{ label: 'Clientes QuickBooks sin tienda vinculada', value: fmt(extras.unlinked), whyKey: 'unlinked' as const }]
+      : []),
     {
       label: 'Grand Total',
       value: fmt(storesReport.data?.totals.grandTotal ?? 0),
@@ -261,9 +278,10 @@ export default function BillingPage() {
     // TODOS los items del catálogo del contador (Set-Up, Promotional Items,
     // Flyers, Sin categoría…): el descuadre deja de ser una cifra opaca.
     ...(storesReport.data?.totals.qbo?.items ?? []).map((it) => ({
-      label: it.label,
+      label: it.detail ? `${it.label} (${it.lines} líneas · ver)` : it.label,
       value: fmt(it.amount),
       sub: true,
+      itemId: it.detail ? it.id : undefined,
     })),
     {
       label: 'Descuadre vs QuickBooks',
@@ -505,10 +523,12 @@ export default function BillingPage() {
                     mmsValue={mms}
                     storesValue={storesFee}
                     optinValue={optinCost}
+                    extrasValue={extrasTotal}
                     colorSMS={colorSMS}
                     colorMMS={colorMMS}
                     colorStores={colorStoreFees}
                     colorOptin={theme.palette.warning.light}
+                    colorExtras={theme.palette.error.light}
                     grandTotal={grandTotal}
                     onClickSMS={handleOpenSmsModal}
                   />
@@ -565,7 +585,13 @@ export default function BillingPage() {
                   {storeRows.map((row, i) => (
                     <Box
                       key={`${row.label}-${i}`}
-                      onClick={row.whyKey ? () => setWhyOpen(row.whyKey!) : undefined}
+                      onClick={
+                        row.whyKey
+                          ? () => setWhyOpen(row.whyKey!)
+                          : row.itemId
+                            ? () => setItemOpen(row.itemId!)
+                            : undefined
+                      }
                       sx={{
                         display: 'flex',
                         alignItems: 'center',
@@ -573,8 +599,8 @@ export default function BillingPage() {
                         py: row.sub ? 0.5 : 1.25,
                         pl: row.sub ? 2 : undefined,
                         // Las causas del descuadre abren su detalle con las tiendas
-                        cursor: row.whyKey ? 'pointer' : undefined,
-                        '&:hover': row.whyKey
+                        cursor: row.whyKey || row.itemId ? 'pointer' : undefined,
+                        '&:hover': row.whyKey || row.itemId
                           ? { bgcolor: alpha(theme.palette.primary.main, 0.06), borderRadius: 1 }
                           : undefined,
                         borderRadius: row.highlight ? 1.5 : 0,
@@ -726,6 +752,69 @@ size="small">
           )}
           <Button onClick={() => setWhyOpen(null)}
 size="small">
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Líneas "Sin categoría": la contadora puso monto sin elegir producto.
+          Se ven una por una para corregirlas en QuickBooks. */}
+      <Dialog
+        open={Boolean(openItem)}
+        onClose={() => setItemOpen(null)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>{openItem?.label}</DialogTitle>
+        <DialogContent dividers>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ mb: 1.5, display: 'block' }}
+          >
+            Líneas facturadas sin producto. Se clasifican por lo que dice la descripción; para
+            que cuadren siempre, asígnales el producto correcto en QuickBooks.
+          </Typography>
+          <Stack divider={<Divider flexItem />}>
+            {(openItem?.detail ?? []).map((d, i) => (
+              <Stack
+                key={`${d.docNumber}-${i}`}
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                spacing={2}
+                sx={{ py: 1 }}
+              >
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography
+                    variant="body2"
+                    fontWeight={600}
+                  >
+                    {d.customerName}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    display="block"
+                    color="text.secondary"
+                  >
+                    Factura #{d.docNumber} · {d.date} · {d.description || 'sin descripción'}
+                  </Typography>
+                </Box>
+                <Typography
+                  variant="body2"
+                  fontWeight={600}
+                >
+                  {fmt(d.amount)}
+                </Typography>
+              </Stack>
+            ))}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setItemOpen(null)}
+            size="small"
+          >
             Cerrar
           </Button>
         </DialogActions>
