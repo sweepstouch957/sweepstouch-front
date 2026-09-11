@@ -383,12 +383,14 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
   });
 
   // El botón inteligente: visibles = SOLO los productos del último circular.
+  const [syncOpen, setSyncOpen] = useState(false);
   const syncVisibility = useMutation({
     mutationFn: () => circularService.syncVisibility(storeSlug),
     onSuccess: (d) => {
       toast.success(
         `"${d.circularTitle}": ${d.inCircular} del circular visibles · ${d.hidden} ocultados`
       );
+      setSyncOpen(false);
       qc.invalidateQueries({ queryKey: ['store-catalog-admin', storeSlug] });
     },
     onError: (e: any) =>
@@ -462,16 +464,41 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
             variant="contained"
             startIcon={<AutoAwesomeOutlinedIcon />}
             disabled={syncVisibility.isPending}
-            onClick={() => {
-              if (window.confirm('¿Dejar visibles SOLO los productos del último circular? El resto del catálogo se ocultará del Pre-RCS.')) {
-                syncVisibility.mutate();
-              }
-            }}
+            onClick={() => setSyncOpen(true)}
           >
             {syncVisibility.isPending ? 'Sincronizando…' : 'Visibles = último circular'}
           </Button>
         </Tooltip>
       </Stack>
+
+      {/* Confirmación con modal propio — nada de window.confirm del navegador */}
+      <Dialog open={syncOpen} onClose={() => setSyncOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <AutoAwesomeOutlinedIcon color="primary" fontSize="small" />
+          Sincronizar visibilidad
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            Se dejarán <strong>visibles en el Pre-RCS solo los productos del último circular</strong> de
+            la tienda; el resto del catálogo se ocultará.
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            No toca precios, ofertas ni imágenes — solo el switch de visibilidad. Cualquier
+            producto se puede volver a mostrar a mano después.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button size="small" onClick={() => setSyncOpen(false)}>Cancelar</Button>
+          <Button
+            size="small"
+            variant="contained"
+            disabled={syncVisibility.isPending}
+            onClick={() => syncVisibility.mutate()}
+          >
+            {syncVisibility.isPending ? 'Sincronizando…' : 'Sí, sincronizar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {adding && (
         <Stack direction="row" flexWrap="wrap" alignItems="center" gap={1.5}>
