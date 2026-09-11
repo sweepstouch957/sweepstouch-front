@@ -5,7 +5,7 @@
 // métricas de compras por recibo. Todo contra endpoints ya existentes de
 // circular-service y tracking-service.
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
@@ -51,6 +51,8 @@ import {
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import TestMmsShoppingListModal from '@/components/mms/TestMmsShoppingListModal';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
+import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
@@ -292,6 +294,45 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
     enabled: !!storeSlug,
   });
   const [search, setSearch] = useState('');
+  // Producto cuya imagen se está generando/subiendo (spinner por fila)
+  const [imgBusy, setImgBusy] = useState<string | null>(null);
+  const imgInput = useRef<HTMLInputElement>(null);
+  const imgTarget = useRef<StoreProduct | null>(null);
+
+  const setImage = async (p: StoreProduct, imageUrl: string) => {
+    await circularService.updateStoreProduct(p._id, { imageUrl });
+    qc.invalidateQueries({ queryKey: ['store-catalog-admin', storeSlug] });
+  };
+
+  // Subida manual: para cuando la IA saca una imagen fea.
+  const uploadImage = async (file: File) => {
+    const p = imgTarget.current;
+    if (!p) return;
+    setImgBusy(p._id);
+    try {
+      const { uploadCampaignImage } = await import('@/services/upload.service');
+      const up = await uploadCampaignImage(file);
+      await setImage(p, up.url);
+      toast.success('Imagen actualizada');
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || 'No se pudo subir la imagen');
+    } finally {
+      setImgBusy(null);
+    }
+  };
+
+  const generateImage = async (p: StoreProduct) => {
+    setImgBusy(p._id);
+    try {
+      const { imageUrl } = await circularService.aiProductImage(p.name, p.category);
+      await setImage(p, imageUrl);
+      toast.success('Imagen IA generada (sin fondo)');
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || 'La IA no pudo generar la imagen');
+    } finally {
+      setImgBusy(null);
+    }
+  };
 
   const patch = useMutation({
     mutationFn: ({ id, body }: { id: string; body: Record<string, unknown> }) =>
@@ -364,6 +405,17 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
 
   return (
     <Stack spacing={1.5}>
+      <input
+        ref={imgInput}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void uploadImage(f);
+          e.target.value = '';
+        }}
+      />
       <Alert severity="info" sx={{ py: 0.5 }}>
         Estos son los productos que ve el cliente en el flujo de listas (Pre-RCS). Solo salen los
         que tienen <strong>oferta</strong> y están <strong>visibles</strong>; los switches aplican al instante.
@@ -435,6 +487,7 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
           <Table size="small">
             <TableHead>
               <TableRow>
+                <TableCell sx={cell}>Imagen</TableCell>
                 <TableCell sx={cell}>Producto</TableCell>
                 <TableCell sx={cell}>Precio oferta</TableCell>
                 <TableCell sx={cell}>Precio regular</TableCell>
@@ -448,6 +501,50 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
             <TableBody>
               {items.map((p) => (
                 <TableRow key={p._id} hover>
+                  <TableCell sx={cell}>
+                    {/* Miniatura + acciones: subir manual o regenerar con IA */}
+                    <Stack direction="row" alignItems="center" gap={0.5}>
+                      <Box
+                        sx={{
+                          width: 44, height: 44, borderRadius: 1.5, flexShrink: 0,
+                          border: '1px solid', borderColor: 'divider',
+                          display: 'grid', placeItems: 'center', overflow: 'hidden',
+                          bgcolor: 'background.default', fontSize: 20,
+                        }}
+                      >
+                        {imgBusy === p._id ? (
+                          <Typography variant="caption">…</Typography>
+                        ) : p.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={p.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                        ) : (
+                          <span>🛒</span>
+                        )}
+                      </Box>
+                      <Stack>
+                        <Tooltip title="Subir imagen manual">
+                          <IconButton
+                            size="small"
+                            sx={{ p: 0.25 }}
+                            disabled={imgBusy === p._id}
+                            onClick={() => { imgTarget.current = p; imgInput.current?.click(); }}
+                          >
+                            <CloudUploadOutlinedIcon sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Generar con IA (sin fondo)">
+                          <IconButton
+                            size="small"
+                            sx={{ p: 0.25 }}
+                            disabled={imgBusy === p._id}
+                            onClick={() => generateImage(p)}
+                          >
+                            <AutoAwesomeOutlinedIcon sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
+                    </Stack>
+                  </TableCell>
                   <TableCell sx={{ ...cell, maxWidth: 260 }}>
                     {/* Todo editable: la encargada corrige lo que la IA leyó mal */}
                     <TextField
@@ -568,7 +665,7 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
               ))}
               {!items.length && (
                 <TableRow>
-                  <TableCell colSpan={8} sx={{ py: 3, textAlign: 'center' }}>
+                  <TableCell colSpan={9} sx={{ py: 3, textAlign: 'center' }}>
                     <Typography variant="body2" color="text.secondary">Sin productos en el catálogo.</Typography>
                   </TableCell>
                 </TableRow>

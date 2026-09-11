@@ -177,10 +177,17 @@ export class CircularService {
         | 'offerCondition'
         | 'category'
         | 'unit'
+        | 'imageUrl'
       >
     >
   ): Promise<{ ok: boolean; item: StoreProduct }> {
     const res = await api.patch(`/circulars/store-product/${id}`, patch);
+    return res.data;
+  }
+
+  /** Imagen IA del producto: sin fondo, webp liviano, último gpt-image. ~10 s. */
+  async aiProductImage(name: string, category?: string): Promise<{ imageUrl: string }> {
+    const res = await api.post('/ai/product-image', { name, category });
     return res.data;
   }
 
