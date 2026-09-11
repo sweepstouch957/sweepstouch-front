@@ -382,6 +382,19 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
     onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo eliminar'),
   });
 
+  // El botón inteligente: visibles = SOLO los productos del último circular.
+  const syncVisibility = useMutation({
+    mutationFn: () => circularService.syncVisibility(storeSlug),
+    onSuccess: (d) => {
+      toast.success(
+        `"${d.circularTitle}": ${d.inCircular} del circular visibles · ${d.hidden} ocultados`
+      );
+      qc.invalidateQueries({ queryKey: ['store-catalog-admin', storeSlug] });
+    },
+    onError: (e: any) =>
+      toast.error(e?.response?.data?.error || 'No se pudo sincronizar la visibilidad'),
+  });
+
   // Completa TODOS los regulares faltantes con la regla del backend (+25%).
   const fillAll = useMutation({
     mutationFn: async () => {
@@ -443,6 +456,21 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
         <Button size="small" variant="outlined" onClick={() => setAdding((v) => !v)}>
           {adding ? 'Cancelar' : '+ Agregar producto'}
         </Button>
+        <Tooltip title="Deja visibles en el Pre-RCS SOLO los productos del último circular y oculta el resto del catálogo. Un click en vez de switch por switch.">
+          <Button
+            size="small"
+            variant="contained"
+            startIcon={<AutoAwesomeOutlinedIcon />}
+            disabled={syncVisibility.isPending}
+            onClick={() => {
+              if (window.confirm('¿Dejar visibles SOLO los productos del último circular? El resto del catálogo se ocultará del Pre-RCS.')) {
+                syncVisibility.mutate();
+              }
+            }}
+          >
+            {syncVisibility.isPending ? 'Sincronizando…' : 'Visibles = último circular'}
+          </Button>
+        </Tooltip>
       </Stack>
 
       {adding && (

@@ -185,6 +185,18 @@ export class CircularService {
     return res.data;
   }
 
+  /** Deja visibles en el Pre-RCS SOLO los productos del último circular; oculta el resto. */
+  async syncVisibility(storeSlug: string): Promise<{
+    ok: boolean;
+    circularTitle: string;
+    inCircular: number;
+    shown: number;
+    hidden: number;
+  }> {
+    const res = await api.post(`/circulars/store/${storeSlug}/sync-visibility`);
+    return res.data;
+  }
+
   /** Imagen IA del producto: sin fondo, webp liviano, último gpt-image. ~10 s. */
   async aiProductImage(name: string, category?: string): Promise<{ imageUrl: string }> {
     const res = await api.post('/ai/product-image', { name, category });
