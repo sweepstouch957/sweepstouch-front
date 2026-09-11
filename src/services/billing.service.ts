@@ -125,10 +125,6 @@ export interface QboExtras {
   /** Promotional Items, Flyers, Design Fee, sin categoría no identificada… */
   otros: number;
   services: number;
-  /** Facturado a clientes QBO sin tienda vinculada. */
-  unlinked: number;
-  /** false con filtro de tiendas: esos clientes quedan fuera del total. */
-  unlinkedIncluded: boolean;
   total: number;
 }
 

@@ -263,9 +263,6 @@ export default function BillingPage() {
     ...(extras && extras.otros
       ? [{ label: 'Otros servicios (Promotional, Flyers, Design…)', value: fmt(extras.otros) }]
       : []),
-    ...(extras?.unlinkedIncluded && extras.unlinked
-      ? [{ label: 'Clientes QuickBooks sin tienda vinculada', value: fmt(extras.unlinked), whyKey: 'unlinked' as const }]
-      : []),
     {
       label: 'Grand Total',
       value: fmt(storesReport.data?.totals.grandTotal ?? 0),
