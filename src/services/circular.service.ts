@@ -197,6 +197,12 @@ export class CircularService {
     return res.data;
   }
 
+  /** Limpia con IA los recortes crudos del catálogo (y genera los sin foto). Background. */
+  async cleanCatalogImages(storeSlug: string): Promise<{ ok: boolean; queued: number; pending: number }> {
+    const res = await api.post(`/circulars/store/${storeSlug}/clean-images`);
+    return res.data;
+  }
+
   /** Imagen IA del producto: sin fondo, webp liviano, último gpt-image. ~10 s. */
   async aiProductImage(name: string, category?: string): Promise<{ imageUrl: string }> {
     const res = await api.post('/ai/product-image', { name, category });

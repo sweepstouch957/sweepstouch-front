@@ -382,6 +382,23 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
     onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo eliminar'),
   });
 
+  // Limpieza IA de los recortes feos del catálogo (texto, precios, vecinos).
+  // Corre en el servidor ~10 s por imagen: se refresca la tabla en 1 y 3 min.
+  const cleanImages = useMutation({
+    mutationFn: () => circularService.cleanCatalogImages(storeSlug),
+    onSuccess: (d) => {
+      if (!d.queued) {
+        toast.success('Todas las imágenes ya están limpias');
+        return;
+      }
+      toast.success(`Limpiando ${d.queued} imágenes con IA… se van actualizando solas`);
+      const refresh = () => qc.invalidateQueries({ queryKey: ['store-catalog-admin', storeSlug] });
+      setTimeout(refresh, 60_000);
+      setTimeout(refresh, 180_000);
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo iniciar la limpieza'),
+  });
+
   // El botón inteligente: visibles = SOLO los productos del último circular.
   const [syncOpen, setSyncOpen] = useState(false);
   const syncVisibility = useMutation({
@@ -467,6 +484,17 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
             onClick={() => setSyncOpen(true)}
           >
             {syncVisibility.isPending ? 'Sincronizando…' : 'Visibles = último circular'}
+          </Button>
+        </Tooltip>
+        <Tooltip title="Pasa por IA todos los recortes del flyer: deja solo el producto (con su pedestal si lo tiene), sin letras ni precios, con fondo transparente. Los sin foto se generan.">
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<AutoAwesomeOutlinedIcon />}
+            disabled={cleanImages.isPending}
+            onClick={() => cleanImages.mutate()}
+          >
+            {cleanImages.isPending ? 'Iniciando…' : 'Limpiar imágenes con IA'}
           </Button>
         </Tooltip>
       </Stack>
