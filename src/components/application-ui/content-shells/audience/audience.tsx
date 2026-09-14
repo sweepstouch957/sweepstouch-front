@@ -25,6 +25,7 @@ import { Alert, Box, Container, Stack } from '@mui/material';
 import React, { useMemo, useState } from 'react';
 import PageHeading from 'src/components/base/page-heading';
 import AudienceFilters from './audience-filters';
+import NamedCustomersReport from './named-customers-report';
 import NearbyOpportunitiesCard from './nearby-opportunities-card';
 import SharedCustomersCard from './shared-customers-card';
 
@@ -127,6 +128,10 @@ export default function Audience(): React.JSX.Element {
           <SharedCustomersCard />
           <NearbyOpportunitiesCard params={baseParams} />
         </Box>
+
+        {/* No depende de los filtros de arriba: es una foto del estado actual de
+            la base, no del período elegido. */}
+        <NamedCustomersReport />
 
         <Box>
           <AudienceSummaryExecutive

@@ -107,6 +107,18 @@ class CustomerClient {
     return res.data.data;
   }
 
+  /** Reporte: cuántos clientes con nombre real tiene cada tienda. */
+  async getNamedByStore(): Promise<NamedByStoreResponse> {
+    const res = await api.get('/customers/named-by-store');
+    return res.data;
+  }
+
+  /** Detalle exportable de una tienda: sólo clientes con nombre y teléfono. */
+  async getNamedStoreCustomers(storeId: string): Promise<NamedCustomer[]> {
+    const res = await api.get(`/customers/named-by-store/${storeId}/customers`);
+    return res.data?.data || [];
+  }
+
   async upsertCustomer(data: {
     phoneNumber: string;
     firstName?: string;
@@ -281,6 +293,47 @@ export interface AddToStoresResult {
   addedTo: number;       // tiendas nuevas donde quedó agregado
   alreadyIn: number;     // ya estaba en estas
   totalStores: number;   // total tras la operación
+}
+
+/**
+ * Una fila del reporte de clientes con nombre.
+ *
+ * `total` cuenta pertenencias, no personas: un número que está en tres tiendas
+ * suma en las tres. Es lo correcto acá — el reporte se lee tienda por tienda.
+ */
+export interface NamedByStoreRow {
+  storeId: string;
+  name: string;
+  slug: string;
+  total: number;
+  withPhone: number;
+  /** Con un nombre de persona (no "Cliente", "Demo", ni vacío). */
+  named: number;
+  /** Con nombre Y teléfono: los que se pueden exportar y usar. */
+  namedWithPhone: number;
+  namedPct: number;
+}
+
+export interface NamedByStoreResponse {
+  ok: boolean;
+  generatedAt: string;
+  data: NamedByStoreRow[];
+  totals: {
+    stores: number;
+    total: number;
+    withPhone: number;
+    named: number;
+    namedWithPhone: number;
+  };
+}
+
+export interface NamedCustomer {
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  email?: string;
+  active?: boolean;
+  createdAt?: string;
 }
 
 export const customerClient = new CustomerClient();
