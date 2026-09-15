@@ -305,6 +305,10 @@ export interface NamedByStoreRow {
   storeId: string;
   name: string;
   slug: string;
+  /** Resuelto en el backend a partir de `active` + `status` del Store. */
+  isActive: boolean;
+  /** 'active' | 'inactive' | 'suspended' | 'cancelled' | 'deleted' */
+  status: string;
   total: number;
   withPhone: number;
   /** Con un nombre de persona (no "Cliente", "Demo", ni vacío). */

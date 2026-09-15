@@ -35,6 +35,8 @@ import {
   TableHead,
   TableRow,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Tooltip,
   Typography,
 } from '@mui/material';
@@ -53,8 +55,11 @@ function stamp() {
   return new Date().toISOString().slice(0, 10);
 }
 
+type StoreFilter = 'all' | 'active' | 'inactive';
+
 export default function NamedCustomersReport(): React.JSX.Element {
   const [search, setSearch] = useState('');
+  const [storeFilter, setStoreFilter] = useState<StoreFilter>('active');
   const [busy, setBusy] = useState<string | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [exportError, setExportError] = useState('');
@@ -66,16 +71,46 @@ export default function NamedCustomersReport(): React.JSX.Element {
     refetchOnWindowFocus: false,
   });
 
+  // El filtro por estado va antes que la búsqueda porque también manda en los
+  // totales y en lo que se exporta: si estás viendo sólo activas, el archivo
+  // tiene que traer sólo activas.
   const rows = useMemo(() => {
-    const all = data?.data ?? [];
+    let all = data?.data ?? [];
+    if (storeFilter !== 'all') {
+      all = all.filter((r) => (storeFilter === 'active' ? r.isActive : !r.isActive));
+    }
     const term = search.trim().toLowerCase();
     if (!term) return all;
     return all.filter(
       (r) => r.name.toLowerCase().includes(term) || r.slug.toLowerCase().includes(term)
     );
-  }, [data, search]);
+  }, [data, search, storeFilter]);
 
-  const totals = data?.totals;
+  const counts = useMemo(() => {
+    const all = data?.data ?? [];
+    return {
+      all: all.length,
+      active: all.filter((r) => r.isActive).length,
+      inactive: all.filter((r) => !r.isActive).length,
+    };
+  }, [data]);
+
+  // Totales de lo que está en pantalla, no de toda la base: con el filtro puesto,
+  // un total global sería un número que no corresponde a ninguna fila visible.
+  const totals = useMemo(
+    () =>
+      rows.reduce(
+        (acc, r) => ({
+          stores: acc.stores + 1,
+          total: acc.total + r.total,
+          withPhone: acc.withPhone + r.withPhone,
+          named: acc.named + r.named,
+          namedWithPhone: acc.namedWithPhone + r.namedWithPhone,
+        }),
+        { stores: 0, total: 0, withPhone: 0, named: 0, namedWithPhone: 0 }
+      ),
+    [rows]
+  );
 
   /** Hoja resumen: una fila por tienda, tal como se ve en pantalla. */
   const exportSummary = async () => {
@@ -87,6 +122,7 @@ export default function NamedCustomersReport(): React.JSX.Element {
         rows.map((r) => ({
           Tienda: r.name,
           Slug: r.slug,
+          Estado: r.isActive ? 'Activa' : r.status,
           'Clientes con nombre y teléfono': r.namedWithPhone,
           'Clientes con nombre': r.named,
           'Clientes con teléfono': r.withPhone,
@@ -155,6 +191,7 @@ export default function NamedCustomersReport(): React.JSX.Element {
         utils.json_to_sheet(
           withData.map((r) => ({
             Tienda: r.name,
+            Estado: r.isActive ? 'Activa' : r.status,
             'Clientes con nombre y teléfono': r.namedWithPhone,
             'Total de clientes': r.total,
           }))
@@ -285,6 +322,18 @@ export default function NamedCustomersReport(): React.JSX.Element {
             </Stack>
           )}
 
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={storeFilter}
+            onChange={(_, v) => v && setStoreFilter(v)}
+            aria-label="Estado de la tienda"
+          >
+            <ToggleButton value="active">Activas ({counts.active})</ToggleButton>
+            <ToggleButton value="inactive">Inactivas ({counts.inactive})</ToggleButton>
+            <ToggleButton value="all">Todas ({counts.all})</ToggleButton>
+          </ToggleButtonGroup>
+
           <TextField
             size="small"
             fullWidth
@@ -340,12 +389,27 @@ export default function NamedCustomersReport(): React.JSX.Element {
                     hover
                   >
                     <TableCell>
-                      <Typography
-                        variant="body2"
-                        fontWeight={600}
+                      <Stack
+                        direction="row"
+                        gap={1}
+                        alignItems="center"
                       >
-                        {r.name}
-                      </Typography>
+                        <Typography
+                          variant="body2"
+                          fontWeight={600}
+                        >
+                          {r.name}
+                        </Typography>
+                        {!r.isActive && (
+                          <Chip
+                            size="small"
+                            color="default"
+                            variant="outlined"
+                            label={r.status}
+                            sx={{ height: 18, fontSize: 10, textTransform: 'capitalize' }}
+                          />
+                        )}
+                      </Stack>
                       {r.slug && (
                         <Typography
                           variant="caption"
@@ -415,7 +479,11 @@ export default function NamedCustomersReport(): React.JSX.Element {
                         color="text.secondary"
                         sx={{ py: 3 }}
                       >
-                        {search ? 'Ninguna tienda coincide con la búsqueda.' : 'Sin datos.'}
+                        {search
+                          ? 'Ninguna tienda coincide con la búsqueda.'
+                          : storeFilter === 'inactive'
+                            ? 'No hay tiendas inactivas con clientes.'
+                            : 'Sin datos.'}
                       </Typography>
                     </TableCell>
                   </TableRow>
