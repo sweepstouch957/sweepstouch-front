@@ -113,9 +113,14 @@ class CustomerClient {
     return res.data;
   }
 
-  /** Detalle exportable de una tienda: sólo clientes con nombre y teléfono. */
-  async getNamedStoreCustomers(storeId: string): Promise<NamedCustomer[]> {
-    const res = await api.get(`/customers/named-by-store/${storeId}/customers`);
+  /**
+   * Detalle exportable de una tienda: sólo clientes con nombre y teléfono.
+   * `activeOnly` deja fuera los dados de baja (active !== true).
+   */
+  async getNamedStoreCustomers(storeId: string, activeOnly = false): Promise<NamedCustomer[]> {
+    const res = await api.get(`/customers/named-by-store/${storeId}/customers`, {
+      params: activeOnly ? { activeOnly: 'true' } : undefined,
+    });
     return res.data?.data || [];
   }
 
@@ -315,6 +320,10 @@ export interface NamedByStoreRow {
   named: number;
   /** Con nombre Y teléfono: los que se pueden exportar y usar. */
   namedWithPhone: number;
+  /** Clientes con active === true (misma regla que el export para campañas). */
+  active: number;
+  /** Nombre + teléfono + activo: los que reciben un envío personalizado. */
+  namedWithPhoneActive: number;
   namedPct: number;
 }
 
@@ -328,6 +337,8 @@ export interface NamedByStoreResponse {
     withPhone: number;
     named: number;
     namedWithPhone: number;
+    active: number;
+    namedWithPhoneActive: number;
   };
 }
 

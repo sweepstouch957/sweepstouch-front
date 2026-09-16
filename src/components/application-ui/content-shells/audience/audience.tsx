@@ -107,6 +107,10 @@ export default function Audience(): React.JSX.Element {
           loading={summary.isLoading}
         />
 
+        {/* Va arriba porque es lo que más se consulta. No depende de los filtros
+            de período: es una foto del estado actual de la base. */}
+        <NamedCustomersReport />
+
         <AudienceCharts
           summary={summary.data}
           weekly={weekly.data}
@@ -128,10 +132,6 @@ export default function Audience(): React.JSX.Element {
           <SharedCustomersCard />
           <NearbyOpportunitiesCard params={baseParams} />
         </Box>
-
-        {/* No depende de los filtros de arriba: es una foto del estado actual de
-            la base, no del período elegido. */}
-        <NamedCustomersReport />
 
         <Box>
           <AudienceSummaryExecutive
