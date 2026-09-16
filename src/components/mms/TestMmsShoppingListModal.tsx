@@ -329,7 +329,9 @@ export default function TestMmsShoppingListModal({
               <Alert severity="success" variant="outlined" icon={<PhoneIphoneRoundedIcon />} sx={{ fontSize: 13 }}>
                 <Inventory2Rounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />
                 {selected.length === 1
-                  ? <>Will create a shopping list with {products.length} products: {productSummary}</>
+                  ? (products.length
+                      ? <>Will create a shopping list with {products.length} products: {productSummary}</>
+                      : <>Se enviará el link de la tienda sin lista armada (este circular no tiene ofertas).</>)
                   : <>Se enviará a <strong>{selected.length} números</strong> — cada uno con SU lista y SU link ({products.length} productos)</>}
               </Alert>
             )}
@@ -352,7 +354,7 @@ export default function TestMmsShoppingListModal({
                   <Box>
                     <Typography variant="caption" fontWeight={700} color="text.secondary">SHOPPING LIST</Typography>
                     <Typography fontWeight="bold" fontFamily="monospace" color="primary">
-                      {mmsSend.listResult.qrCode}
+                      {mmsSend.listResult.qrCode || '—'}
                     </Typography>
                   </Box>
                   <Chip label={`${mmsSend.listResult.totalItems} items`} size="small" color="success" />
@@ -485,7 +487,7 @@ export default function TestMmsShoppingListModal({
                 <Box>
                   <Typography variant="caption" fontWeight={700} color="text.secondary">SHOPPING LIST</Typography>
                   <Typography variant="h5" fontWeight="bold" fontFamily="monospace" color="primary">
-                    {mmsSend.listResult.qrCode}
+                    {mmsSend.listResult.qrCode || '—'}
                   </Typography>
                 </Box>
                 <Box>

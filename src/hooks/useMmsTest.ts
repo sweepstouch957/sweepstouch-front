@@ -174,16 +174,21 @@ export function useMmsSend(opts: {
       imageUrl: p.imageUrl || '',
     }));
 
-    const res = await axios.post(
-      `${TRACKING_URL}/tracking/shopping-list`,
-      {
-        customerId: customer.phoneNumber,
-        storeSlug: opts.storeSlug,
-        circularId: opts.circularId || undefined,
-        items,
-      },
-      { headers: getAuthHeaders() }
-    );
+    // Sin ofertas no hay lista que crear: el backend rechaza `items` vacío y eso
+    // trababa el test. El link al Pre-RCS/RCS no depende de la lista, así que se
+    // manda igual y el cliente arma la suya desde la página.
+    const res = items.length
+      ? await axios.post(
+          `${TRACKING_URL}/tracking/shopping-list`,
+          {
+            customerId: customer.phoneNumber,
+            storeSlug: opts.storeSlug,
+            circularId: opts.circularId || undefined,
+            items,
+          },
+          { headers: getAuthHeaders() }
+        )
+      : { data: { qrCode: '', totalItems: 0 } };
 
     const customerId = String(customer._id || customer.phoneNumber);
     const rcsLink = flow === 'rcs'
