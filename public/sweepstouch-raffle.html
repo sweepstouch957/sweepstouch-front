@@ -141,7 +141,7 @@
   .ticket{
     width:120px;height:58px;border-radius:6px;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
-    background:url("/tombola-ticket.png") center/contain no-repeat;
+    background:url("/tickets/winner-ticket-641x272.png") center/contain no-repeat;
     box-shadow:0 3px 8px rgba(0,0,0,.28);
     border:0;
     font-weight:800;letter-spacing:.4px;text-align:center;line-height:1;
@@ -149,15 +149,15 @@
   }
   .ticket .brand{font-size:15px;text-transform:uppercase;}
   .ticket .num{font-size:11px;margin-top:4px;font-weight:600;letter-spacing:2px;opacity:.85;}
-  .t-magenta{background:url("/raffle-tickets/ticket2.svg") center/contain no-repeat;color:transparent;border-color:transparent;filter:none;}
+  .t-magenta{background:url("/tickets/ticket2.svg") center/contain no-repeat;color:transparent;border-color:transparent;filter:none;}
   .t-cream{
-    background:url("/winner-ticket.png") center/contain no-repeat;
+    background:url("/tickets/winner-ticket-641x272.png") center/contain no-repeat;
     color:transparent;border-color:transparent;box-shadow:0 4px 10px rgba(0,0,0,.28);
     filter:none;
   }
-  .t-white{background:url("/winner-ticket.png") center/contain no-repeat;color:transparent;border-color:transparent;filter:none;}
+  .t-white{background:url("/tickets/winner-ticket-641x272.png") center/contain no-repeat;color:transparent;border-color:transparent;filter:none;}
   .t-teal{
-    background:url("/raffle-tickets/ticket2.svg") center/contain no-repeat;
+    background:url("/tickets/ticket2.svg") center/contain no-repeat;
     color:transparent;border-color:transparent;box-shadow:0 4px 10px rgba(0,0,0,.28);
     filter:none;
   }
@@ -514,7 +514,7 @@
       confetti: tiny ? 520 : compact ? 760 : desktopConfetti,
       bulbGapMin: tiny ? 19 : compact ? 22 : 42,
       bulbGapMax: tiny ? 30 : compact ? 34 : 68,
-      ticketScale: tiny ? 0.28 : compact ? 0.36 : 1
+      ticketScale: tiny ? 0.35 : compact ? 0.45 : 0.7
     };
   }
 
@@ -669,7 +669,6 @@
         spinPower = 0;
         spinning = false;
         stopping = false;
-        assignRest();
         document.getElementById("btnToggle").classList.remove("active");
         document.getElementById("btnStop").classList.remove("active");
         if(pendingWinner){
@@ -681,6 +680,9 @@
     for(var i=0;i<items.length;i++){
       var it = items[i];
       if(!it.alive) continue;
+
+      // Preserve the final position, rotation and depth once the spin stops.
+      if(!spinning && spinPower <= 0.01) continue;
 
       var halfW = Math.max(it.w, it.h)/2 * 0.72; // radio aprox del item
 
