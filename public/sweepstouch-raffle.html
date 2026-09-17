@@ -149,7 +149,7 @@
   }
   .ticket .brand{font-size:15px;text-transform:uppercase;}
   .ticket .num{font-size:11px;margin-top:4px;font-weight:600;letter-spacing:2px;opacity:.85;}
-  .t-magenta{background:url("/tickets/ticket2.svg") center/contain no-repeat;color:transparent;border-color:transparent;filter:none;}
+  .t-magenta{background:url("/tickets/ticket2-half.png") center/contain no-repeat;color:transparent;border-color:transparent;filter:none;}
   .t-cream{
     background:url("/tickets/winner-ticket-641x272.png") center/contain no-repeat;
     color:transparent;border-color:transparent;box-shadow:0 4px 10px rgba(0,0,0,.28);
@@ -157,11 +157,12 @@
   }
   .t-white{background:url("/tickets/winner-ticket-641x272.png") center/contain no-repeat;color:transparent;border-color:transparent;filter:none;}
   .t-teal{
-    background:url("/tickets/ticket2.svg") center/contain no-repeat;
+    background:url("/tickets/ticket2-half.png") center/contain no-repeat;
     color:transparent;border-color:transparent;box-shadow:0 4px 10px rgba(0,0,0,.28);
     filter:none;
   }
   .ticket .brand,.ticket .num,.t-cream .brand,.t-cream .num,.t-teal .brand,.t-teal .num{display:none;}
+  .compact-motion .ticket{box-shadow:none;opacity:1 !important;z-index:auto !important;}
   .ball{
     width:56px;height:56px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;
@@ -361,7 +362,7 @@
         0 0 36px 8px rgba(255,150,205,.34),
         0 20px 38px -18px rgba(255,120,190,.48);
     }
-    .ticket{box-shadow:0 2px 5px rgba(0,0,0,.24);}
+    .ticket{box-shadow:none;}
     .btn{box-shadow:0 0 0 1px rgba(212,166,59,.65),0 0 12px 3px rgba(249,224,138,.58),0 6px 12px rgba(0,0,0,.24),inset 0 1px 2px rgba(255,255,255,.82);}
   }
 
@@ -496,6 +497,13 @@
   var W = 0, H = 0;
   var perf = {};
   var lastStepTs = 0;
+  var spinFrame = null;
+
+  function scheduleSpinFrame(){
+    if(spinFrame === null && (spinning || stopping || spinPower > 0.01)){
+      spinFrame = requestAnimationFrame(step);
+    }
+  }
 
   function getPerfProfile(){
     var vw = window.innerWidth || 0;
@@ -520,6 +528,7 @@
 
   function refreshPerfProfile(){
     perf = getPerfProfile();
+    layer.classList.toggle("compact-motion", perf.compact);
     TOTAL_ITEMS = Math.max(perf.visualItems, PARTICIPANTS.length ? Math.min(PARTICIPANTS.length, perf.visualItems) : perf.visualItems);
   }
 
@@ -658,6 +667,7 @@
   /* ================= PHYSICS ================= */
   // Contenedor: rectángulo con extremos redondeados (cápsula horizontal)
   function step(ts){
+    spinFrame = null;
     var now = ts || performance.now();
     var elapsed = lastStepTs ? Math.max(8, Math.min(40, now - lastStepTs)) : 16.67;
     lastStepTs = now;
@@ -676,6 +686,10 @@
           pendingWinner = null;
         }
       }
+    }
+    if(!spinning && !stopping && spinPower <= 0.01){
+      lastStepTs = 0;
+      return;
     }
     for(var i=0;i<items.length;i++){
       var it = items[i];
@@ -700,11 +714,11 @@
           : (it.baseX || it.x || cx);
         var depth = (Math.cos(phase) + 1) / 2;
         var barrelSweep = (depth - 0.5) * W * 0.20;
-        var laneWave = Math.sin(it.orb.th*0.32 + it.num*0.41) * W * 0.13;
-        var tumbleWave = Math.sin(phase*2.6 + it.num*0.73) * W * 0.055;
+        var laneWave = perf.compact ? 0 : Math.sin(it.orb.th*0.32 + it.num*0.41) * W * 0.13;
+        var tumbleWave = perf.compact ? 0 : Math.sin(phase*2.6 + it.num*0.73) * W * 0.055;
         var tx = column + barrelSweep + laneWave + tumbleWave;
         var ty = cy + Math.sin(phase)*ay*1.04;
-        ty += Math.sin(phase*2.15 + it.num*0.7) * H * 0.075;
+        if(!perf.compact) ty += Math.sin(phase*2.15 + it.num*0.7) * H * 0.075;
         tx = Math.max(halfW * 0.08, Math.min(W - halfW * 0.08, tx));
         ty = Math.max(halfW * -0.45, Math.min(H - halfW * -0.45, ty));
         // seguimiento suave hacia la órbita (guarda velocidad para la caída al detener)
@@ -712,13 +726,15 @@
         it.vy = (ty - it.y)*0.12*Math.max(power, 0.08);
         it.x += it.vx;
         it.y += it.vy;
-        it.vr += (Math.random()-0.5)*0.8*Math.max(power, 0.08);
+        if(!perf.compact) it.vr += (Math.random()-0.5)*0.8*Math.max(power, 0.08);
         it.vr = Math.max(-6, Math.min(6, it.vr));
         it.rot += it.vr * Math.max(power, 0.08) * frameBoost;
-        var scale = 0.72 + depth * 0.46;
+        var scale = perf.compact ? 0.95 : 0.72 + depth * 0.46;
         var opacity = 0.82 + depth * 0.18;
-        it.el.style.zIndex = String(Math.round(depth * 100));
-        it.el.style.opacity = String(opacity);
+        if(!perf.compact){
+          it.el.style.zIndex = String(Math.round(depth * 100));
+          it.el.style.opacity = String(opacity);
+        }
         it.el.style.transform = "translate(" + (it.x - it.w/2) + "px," + (it.y - it.h/2) + "px) rotate(" + it.rot + "deg) scale(" + scale + ")";
         continue;
       }
@@ -798,7 +814,7 @@
 
       it.el.style.transform = "translate(" + (it.x - it.w/2) + "px," + (it.y - it.h/2) + "px) rotate(" + it.rot + "deg)";
     }
-    requestAnimationFrame(step);
+    scheduleSpinFrame();
   }
 
   /* ================= SPIN CONTROLS ================= */
@@ -829,6 +845,7 @@
       return;
     }
     spinning = v;
+    scheduleSpinFrame();
     document.getElementById("btnToggle").classList.toggle("active", v);
     document.getElementById("btnStop").classList.remove("active");
   }
@@ -1047,7 +1064,7 @@
   placeBulbs();
   requestAnimationFrame(function(){
     buildItems();
-    requestAnimationFrame(step);
+    scheduleSpinFrame();
   });
 })();
 </script>
