@@ -74,8 +74,8 @@ const errMsg = (e: any, fallback: string) => e?.response?.data?.error || e?.mess
 /** Limpieza IA: deja SOLO el producto (sin precio, texto ni fondo), en HD, sobre su tabla si
  *  es comida fresca. Es la misma que usa la extracción del circular. El recortador local
  *  gratis sólo borraba el fondo: el precio y las letras quedaban pegados al producto. */
-async function aiClean(imageUrl: string, name?: string, box?: PctBox): Promise<string> {
-  const r = await circularService.aiCleanProductImage(imageUrl, name, box);
+async function aiClean(imageUrl: string, name?: string, box?: PctBox, instructions?: string): Promise<string> {
+  const r = await circularService.aiCleanProductImage(imageUrl, name, box, instructions || undefined);
   if (!r?.imageUrl) throw new Error('La IA no devolvió la imagen');
   return r.imageUrl;
 }
@@ -270,6 +270,10 @@ export function ProductEditorDialog({
   // El listener de pegado vive fuera del render: lee el nombre actual por ref.
   const nameRef = useRef('');
   nameRef.current = name.trim();
+  // Indicaciones para la IA: valen para quitar fondo, generar, recortar del circular y pegar.
+  const [aiPrompt, setAiPrompt] = useState('');
+  const promptRef = useRef('');
+  promptRef.current = aiPrompt.trim();
 
   useEffect(() => {
     if (!open) return;
@@ -279,6 +283,7 @@ export function ProductEditorDialog({
     setImageUrl(product?.imageUrl ?? '');
     setCropping(false);
     setBusy(null);
+    setAiPrompt('');
   }, [open, product]);
 
   const run = useCallback(async (label: string, fn: () => Promise<void>, fail: string) => {
@@ -302,7 +307,7 @@ export function ProductEditorDialog({
         setImageUrl(raw);
         if (!clean) return;
         setBusy(CLEANING);
-        setImageUrl(await aiClean(raw, nameRef.current || undefined));
+        setImageUrl(await aiClean(raw, nameRef.current || undefined, undefined, promptRef.current));
       }, clean ? 'La IA no pudo limpiar la captura; quedó tal cual' : 'No se pudo subir la imagen'),
     [run]
   );
@@ -321,17 +326,17 @@ export function ProductEditorDialog({
   }, [open, cropping, takeFile]);
 
   const removeBg = () =>
-    run(CLEANING, async () => setImageUrl(await aiClean(imageUrl, name.trim() || undefined)), 'No se pudo limpiar la imagen');
+    run(CLEANING, async () => setImageUrl(await aiClean(imageUrl, name.trim() || undefined, undefined, aiPrompt.trim())), 'No se pudo limpiar la imagen');
 
   const generate = () =>
     run('Generando con IA…', async () => {
-      const r = await circularService.aiProductImage(name.trim(), product?.category);
+      const r = await circularService.aiProductImage(name.trim(), product?.category, aiPrompt.trim() || undefined);
       setImageUrl(r.imageUrl);
     }, 'La IA no pudo generar la imagen');
 
   const cropFromFlyer = (box: PctBox) =>
     run(CLEANING, async () => {
-      setImageUrl(await aiClean(flyerUrl as string, name.trim() || undefined, box));
+      setImageUrl(await aiClean(flyerUrl as string, name.trim() || undefined, box, aiPrompt.trim()));
       setCropping(false);
     }, 'No se pudo recortar el circular');
 
@@ -436,6 +441,20 @@ export function ProductEditorDialog({
                 value={regular}
                 onChange={(e) => setRegular(e.target.value)}
                 helperText="Sin precio regular el producto no aparece como oferta en las listas."
+              />
+              <TextField
+                label="Indicaciones para la IA"
+                size="small"
+                fullWidth
+                multiline
+                minRows={2}
+                maxRows={4}
+                placeholder="Opcional. Ej.: las dos botellas juntas, sin la tabla de madera, vista de frente"
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                inputProps={{ maxLength: 400 }}
+                disabled={!!busy}
+                helperText="Se aplica al quitar fondo, generar con IA, recortar del circular y pegar. Escribila antes de usar el botón."
               />
               {!flyerUrl && (
                 <Alert severity="info" sx={{ py: 0 }}>

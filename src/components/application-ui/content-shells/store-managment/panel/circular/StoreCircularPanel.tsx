@@ -55,8 +55,8 @@ import {
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import TestMmsShoppingListModal from '@/components/mms/TestMmsShoppingListModal';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
-import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
+import SmsOutlinedIcon from '@mui/icons-material/SmsOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
@@ -182,7 +182,6 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
   const [file, setFile] = useState<File | null>(null);
-  const [testOpen, setTestOpen] = useState(false);
 
   // Extracción IA por circular. Tarda ~1 min; si el cliente corta antes, la
   // extracción sigue en el servidor y aparece al refrescar.
@@ -351,34 +350,6 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
 
   return (
     <Stack spacing={2}>
-      {/* Mensaje de prueba — el mismo flujo que el merchant: crea la lista de
-          compras del cliente elegido y le manda el SMS/MMS con su link. */}
-      <Stack direction="row" justifyContent="flex-end">
-        <Button
-          size="small"
-          variant="contained"
-          disabled={!activeCircular}
-          onClick={() => setTestOpen(true)}
-        >
-          Mensaje de prueba
-        </Button>
-      </Stack>
-      <TestMmsShoppingListModal
-        open={testOpen}
-        onClose={() => setTestOpen(false)}
-        storeId={storeId}
-        storeSlug={storeSlug}
-        storeName={storeName || storeSlug}
-        products={((activeCircular as any)?.products ?? []) as any[]}
-        headline={(activeCircular as any)?.headline || ''}
-        circularId={activeCircular?._id}
-        // Si el circular es PDF pero ya tiene preview renderizado (página 1 en
-        // imagen), ESE va como adjunto del MMS y no hay que pedir nada.
-        circularFileUrl={(activeCircular as any)?.previewImageUrl || activeCircular?.fileUrl}
-        storeProvider={provider}
-        storeInfobipSenderId={infobipSenderId}
-        storeAddress={address}
-      />
       {/* Sin circular vigente (ni activo ni agendado): casi siempre el PDF de la semana
           está en el link de circular de la tienda. Se trae de ahí en un click. */}
       {!circulars.isLoading && !hasCurrent && (
@@ -718,47 +689,8 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
   const isGenerating = (p: StoreProduct) => cleaning && (!p.imageUrl || /\/circular-products\//.test(p.imageUrl));
   const generatingCount = cleaning ? (catalog.data?.items || []).filter(isGenerating).length : 0;
   const [search, setSearch] = useState('');
-  // Producto cuya imagen se está generando/subiendo (spinner por fila)
-  const [imgBusy, setImgBusy] = useState<string | null>(null);
   // Imagen abierta en grande (para revisar recorte, calidad y que no tenga fondo)
   const [imgPreview, setImgPreview] = useState<{ url: string; title: string } | null>(null);
-  const imgInput = useRef<HTMLInputElement>(null);
-  const imgTarget = useRef<StoreProduct | null>(null);
-
-  const setImage = async (p: StoreProduct, imageUrl: string) => {
-    await circularService.updateStoreProduct(p._id, { imageUrl });
-    qc.invalidateQueries({ queryKey: ['store-catalog-admin', storeSlug] });
-  };
-
-  // Subida manual: para cuando la IA saca una imagen fea.
-  const uploadImage = async (file: File) => {
-    const p = imgTarget.current;
-    if (!p) return;
-    setImgBusy(p._id);
-    try {
-      const { uploadCampaignImage } = await import('@/services/upload.service');
-      const up = await uploadCampaignImage(file);
-      await setImage(p, up.url);
-      toast.success('Imagen actualizada');
-    } catch (e: any) {
-      toast.error(e?.response?.data?.error || 'No se pudo subir la imagen');
-    } finally {
-      setImgBusy(null);
-    }
-  };
-
-  const generateImage = async (p: StoreProduct) => {
-    setImgBusy(p._id);
-    try {
-      const { imageUrl } = await circularService.aiProductImage(p.name, p.category);
-      await setImage(p, imageUrl);
-      toast.success('Imagen IA generada (sin fondo)');
-    } catch (e: any) {
-      toast.error(e?.response?.data?.error || 'La IA no pudo generar la imagen');
-    } finally {
-      setImgBusy(null);
-    }
-  };
 
   const patch = useMutation({
     mutationFn: ({ id, body }: { id: string; body: Record<string, unknown> }) =>
@@ -894,17 +826,6 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
 
   return (
     <Stack spacing={1.5}>
-      <input
-        ref={imgInput}
-        type="file"
-        accept="image/*"
-        hidden
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) void uploadImage(f);
-          e.target.value = '';
-        }}
-      />
       <Alert severity="info" sx={{ py: 0.5 }}>
         Estos son los productos que ve el cliente en el flujo de listas (Pre-RCS). Solo salen los
         que tienen <strong>oferta</strong> y están <strong>visibles</strong>; los switches aplican al instante.
@@ -1064,9 +985,7 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
                           '&:hover': p.imageUrl ? { borderColor: 'primary.main' } : undefined,
                         }}
                       >
-                        {imgBusy === p._id ? (
-                          <Typography variant="caption">…</Typography>
-                        ) : isGenerating(p) ? (
+                        {isGenerating(p) ? (
                           <Tooltip title="Generando imagen con IA… el recorte con precio se reemplaza solo">
                             <CircularProgress size={18} thickness={5} aria-label="Generando imagen" />
                           </Tooltip>
@@ -1077,38 +996,16 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
                           <span>🛒</span>
                         )}
                       </Box>
-                      <Stack>
-                        <Tooltip title="Subir imagen manual">
-                          <IconButton
-                            size="small"
-                            sx={{ p: 0.25 }}
-                            disabled={imgBusy === p._id}
-                            onClick={() => { imgTarget.current = p; imgInput.current?.click(); }}
-                          >
-                            <CloudUploadOutlinedIcon sx={{ fontSize: 16 }} />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Generar con IA (sin fondo)">
-                          <IconButton
-                            size="small"
-                            sx={{ p: 0.25 }}
-                            disabled={imgBusy === p._id}
-                            onClick={() => generateImage(p)}
-                          >
-                            <AutoAwesomeOutlinedIcon sx={{ fontSize: 16 }} />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Editar producto e imagen (pegar, recortar del circular, quitar fondo)">
-                          <IconButton
-                            size="small"
-                            sx={{ p: 0.25 }}
-                            aria-label={`Editar ${p.name}`}
-                            onClick={() => setEditor({ open: true, product: p })}
-                          >
-                            <EditOutlinedIcon sx={{ fontSize: 16 }} />
-                          </IconButton>
-                        </Tooltip>
-                      </Stack>
+                      {/* Todo lo de imagen (subir, pegar, recortar, IA) vive en el modal de editar */}
+                      <Tooltip title="Editar producto e imagen (subir, pegar, recortar del circular, quitar fondo, generar con IA)">
+                        <IconButton
+                          size="small"
+                          aria-label={`Editar ${p.name}`}
+                          onClick={() => setEditor({ open: true, product: p })}
+                        >
+                          <EditOutlinedIcon sx={{ fontSize: 18 }} />
+                        </IconButton>
+                      </Tooltip>
                     </Stack>
                   </TableCell>
                   <TableCell sx={{ ...cell, maxWidth: 260 }}>
@@ -1509,6 +1406,61 @@ function PurchasesSection({ storeSlug }: { storeSlug: string }) {
   );
 }
 
+/* ═══════════════ 5 · Mensajes (mensaje de prueba) ═══════════════ */
+
+/** El mismo flujo que el merchant: crea la lista de compras del cliente elegido y le
+ *  manda el SMS/MMS con su link. Usa los productos del circular vigente. */
+function MessagesSection({ storeId, storeSlug, storeName, provider, infobipSenderId, address }: Props) {
+  const [open, setOpen] = useState(false);
+  const circulars = useQuery({
+    queryKey: ['store-circulars', storeSlug],
+    queryFn: () => circularService.getByStore(storeSlug),
+    enabled: !!storeSlug,
+  });
+  const items: Circular[] = circulars.data?.items ?? [];
+  const active = items.find((c) => c.status === 'active') || items.find((c) => c.status === 'scheduled') || items[0] || null;
+  const count: number = (active as any)?.products?.length ?? 0;
+
+  return (
+    <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="subtitle1" fontWeight={700}>Mensaje de prueba</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, maxWidth: 560 }}>
+            Crea la lista de compras de un cliente y le manda el SMS o MMS con su link, igual que lo recibe en una campaña.
+          </Typography>
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.75 }}>
+            {circulars.isLoading
+              ? 'Cargando circular…'
+              : active
+                ? `Circular: ${active.title || 'sin título'} · ${count} productos`
+                : 'La tienda no tiene circular: cargá uno en la pestaña Circular.'}
+          </Typography>
+        </Box>
+        <Button variant="contained" disabled={!active} onClick={() => setOpen(true)}>
+          Enviar mensaje de prueba
+        </Button>
+      </Stack>
+      <TestMmsShoppingListModal
+        open={open}
+        onClose={() => setOpen(false)}
+        storeId={storeId}
+        storeSlug={storeSlug}
+        storeName={storeName || storeSlug}
+        products={((active as any)?.products ?? []) as any[]}
+        headline={(active as any)?.headline || ''}
+        circularId={active?._id}
+        // Si el circular es PDF pero ya tiene preview renderizado (página 1 en
+        // imagen), ESE va como adjunto del MMS y no hay que pedir nada.
+        circularFileUrl={(active as any)?.previewImageUrl || active?.fileUrl}
+        storeProvider={provider}
+        storeInfobipSenderId={infobipSenderId}
+        storeAddress={address}
+      />
+    </Paper>
+  );
+}
+
 /* ═══════════════ Panel ═══════════════ */
 
 export default function StoreCircularPanel({ storeId, storeSlug, storeName, provider, infobipSenderId, address, circularssUrl }: Props) {
@@ -1532,6 +1484,7 @@ export default function StoreCircularPanel({ storeId, storeSlug, storeName, prov
         <Tab icon={<Inventory2OutlinedIcon fontSize="small" />} iconPosition="start" label="Productos" />
         <Tab icon={<FactCheckOutlinedIcon fontSize="small" />} iconPosition="start" label="Listas" />
         <Tab icon={<ReceiptLongRoundedIcon fontSize="small" />} iconPosition="start" label="Compras" />
+        <Tab icon={<SmsOutlinedIcon fontSize="small" />} iconPosition="start" label="Mensajes" />
       </Tabs>
       {tab === 0 && (
         <CircularSection
@@ -1547,6 +1500,16 @@ export default function StoreCircularPanel({ storeId, storeSlug, storeName, prov
       {tab === 1 && <CatalogSection storeSlug={storeSlug} />}
       {tab === 2 && <ListsSection storeSlug={storeSlug} />}
       {tab === 3 && <PurchasesSection storeSlug={storeSlug} />}
+      {tab === 4 && (
+        <MessagesSection
+          storeId={storeId}
+          storeSlug={storeSlug}
+          storeName={storeName}
+          provider={provider}
+          infobipSenderId={infobipSenderId}
+          address={address}
+        />
+      )}
     </Box>
   );
 }

@@ -266,8 +266,8 @@ export class CircularService {
   }
 
   /** Imagen IA del producto: sin fondo, webp liviano, último gpt-image. ~10 s. */
-  async aiProductImage(name: string, category?: string): Promise<{ imageUrl: string }> {
-    const res = await api.post('/ai/product-image', { name, category });
+  async aiProductImage(name: string, category?: string, instructions?: string): Promise<{ imageUrl: string }> {
+    const res = await api.post('/ai/product-image', { name, category, instructions });
     return res.data;
   }
 
@@ -277,9 +277,10 @@ export class CircularService {
   async aiCleanProductImage(
     imageUrl: string,
     name?: string,
-    box?: { x: number; y: number; w: number; h: number }
+    box?: { x: number; y: number; w: number; h: number },
+    instructions?: string
   ): Promise<{ imageUrl: string }> {
-    const res = await api.post('/ai/product-image-edit', { imageUrl, name, box }, { timeout: 180_000 });
+    const res = await api.post('/ai/product-image-edit', { imageUrl, name, box, instructions }, { timeout: 180_000 });
     return res.data;
   }
 
