@@ -271,6 +271,18 @@ export class CircularService {
     return res.data;
   }
 
+  /** Limpia con IA una imagen existente (captura pegada, recorte del flyer): deja SOLO el
+   *  producto, sin precio ni texto, sin fondo, en HD y webp liviano. `box` (% 0–100)
+   *  recorta antes esa zona de la imagen (el circular). ~30–60 s. */
+  async aiCleanProductImage(
+    imageUrl: string,
+    name?: string,
+    box?: { x: number; y: number; w: number; h: number }
+  ): Promise<{ imageUrl: string }> {
+    const res = await api.post('/ai/product-image-edit', { imageUrl, name, box }, { timeout: 180_000 });
+    return res.data;
+  }
+
   /** Crea un producto manual en el catálogo (upsert por nombre/sku). */
   async createStoreProduct(body: {
     storeSlug: string;

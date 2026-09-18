@@ -6,14 +6,14 @@
  *  - ProductEditorDialog: alta/edición de un producto con imagen pegada, subida, recortada
  *    del circular o generada con IA, y quitar fondo.
  *
- * Toda imagen que entra por acá termina como URL alojada. "Quitar fondo" usa el recortador
- * local del ai-service (gratis) en modo web: fondo transparente + WebP liviano. El recorte
- * del circular se hace EN EL SERVIDOR (caja en %): el flyer es de otro origen y un canvas
- * del navegador quedaría bloqueado por CORS.
+ * Toda imagen que entra por acá termina como URL alojada. "Quitar fondo", el recorte del
+ * circular y el pegado pasan por la limpieza IA (ai-service /product-image-edit): solo el
+ * producto, sin precio ni texto, fondo transparente, HD, WebP liviano. El recorte del
+ * circular se hace EN EL SERVIDOR (caja en %): el flyer es de otro origen y un canvas del
+ * navegador quedaría bloqueado por CORS.
  */
 
 import { circularService, type StoreProduct } from '@/services/circular.service';
-import { designsService } from '@/services/designs.service';
 import { uploadCampaignImage } from '@/services/upload.service';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import ContentPasteRoundedIcon from '@mui/icons-material/ContentPasteRounded';
@@ -67,14 +67,23 @@ const checker = {
   backgroundPosition: '0 0,0 8px,8px -8px,-8px 0',
 } as const;
 
+const CLEANING = 'Limpiando con IA: solo el producto, sin precio ni fondo (30 a 60 s)…';
+
 const errMsg = (e: any, fallback: string) => e?.response?.data?.error || e?.message || fallback;
 
-/** Sube el archivo y, si se pide, le quita el fondo. Devuelve la URL final. */
-async function hostImage(file: File, opts: { removeBg: boolean; name?: string }): Promise<string> {
+/** Limpieza IA: deja SOLO el producto (sin precio, texto ni fondo), en HD, sobre su tabla si
+ *  es comida fresca. Es la misma que usa la extracción del circular. El recortador local
+ *  gratis sólo borraba el fondo: el precio y las letras quedaban pegados al producto. */
+async function aiClean(imageUrl: string, name?: string, box?: PctBox): Promise<string> {
+  const r = await circularService.aiCleanProductImage(imageUrl, name, box);
+  if (!r?.imageUrl) throw new Error('La IA no devolvió la imagen');
+  return r.imageUrl;
+}
+
+/** Sube el archivo y, si se pide, lo limpia con IA. Devuelve la URL final. */
+async function hostImage(file: File, opts: { clean: boolean; name?: string }): Promise<string> {
   const up = await uploadCampaignImage(file, 'store-products');
-  if (!opts.removeBg) return up.url;
-  const clean = await designsService.removeBackground({ imageUrl: up.url, name: opts.name, web: true });
-  return clean || up.url;
+  return opts.clean ? aiClean(up.url, opts.name) : up.url;
 }
 
 /* ─────────────── 1 · Pegar sobre una fila ─────────────── */
@@ -105,7 +114,7 @@ export function PasteReplaceDialog({
     if (!file || !product) return;
     setBusy(true);
     try {
-      const url = await hostImage(file, { removeBg, name: product.name });
+      const url = await hostImage(file, { clean: removeBg, name: product.name });
       await circularService.updateStoreProduct(product._id, { imageUrl: url });
       toast.success(`Imagen de "${product.name}" reemplazada`);
       onDone();
@@ -147,14 +156,17 @@ export function PasteReplaceDialog({
         <FormControlLabel
           sx={{ mt: 1 }}
           control={<Checkbox checked={removeBg} onChange={(e) => setRemoveBg(e.target.checked)} disabled={busy} />}
-          label="Quitar el fondo y optimizar para web"
+          label="Limpiar con IA: solo el producto, sin precio ni fondo, en HD"
         />
         {busy && <LinearProgress sx={{ mt: 1, borderRadius: 1 }} />}
+        {busy && removeBg && (
+          <Typography variant="caption" color="text.secondary">La IA tarda entre 30 y 60 segundos. No cierres la ventana.</Typography>
+        )}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} disabled={busy}>Cancelar</Button>
         <Button variant="contained" onClick={confirm} disabled={busy}>
-          {busy ? (removeBg ? 'Quitando fondo…' : 'Subiendo…') : 'Reemplazar imagen'}
+          {busy ? (removeBg ? 'Limpiando con IA…' : 'Subiendo…') : 'Reemplazar imagen'}
         </Button>
       </DialogActions>
     </Dialog>
@@ -195,7 +207,8 @@ function FlyerCropper({ flyerUrl, onCancel, onCrop, busy }: { flyerUrl: string; 
   return (
     <Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-        Arrastrá un rectángulo alrededor del producto. Se recorta en alta y se le quita el fondo.
+        Arrastrá un rectángulo alrededor del producto (no importa si entra el precio). La IA deja
+        solo el producto, sin precio ni fondo, en alta definición.
       </Typography>
       <Box sx={{ maxHeight: '56vh', overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
         <Box
@@ -221,7 +234,7 @@ function FlyerCropper({ flyerUrl, onCancel, onCrop, busy }: { flyerUrl: string; 
       <Stack direction="row" justifyContent="flex-end" gap={1} sx={{ mt: 1.5 }}>
         <Button onClick={onCancel} disabled={busy}>Volver</Button>
         <Button variant="contained" disabled={!valid || busy} onClick={() => box && onCrop(box)}>
-          {busy ? 'Recortando y quitando fondo…' : 'Usar este recorte'}
+          {busy ? 'Limpiando con IA (30 a 60 s)…' : 'Usar este recorte'}
         </Button>
       </Stack>
     </Box>
@@ -254,6 +267,9 @@ export function ProductEditorDialog({
   const [busy, setBusy] = useState<string | null>(null); // texto de lo que se está haciendo
   const [cropping, setCropping] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  // El listener de pegado vive fuera del render: lee el nombre actual por ref.
+  const nameRef = useRef('');
+  nameRef.current = name.trim();
 
   useEffect(() => {
     if (!open) return;
@@ -276,10 +292,18 @@ export function ProductEditorDialog({
     }
   }, []);
 
-  // Imagen nueva (pegada, soltada o subida): se aloja tal cual; quitar el fondo es un paso aparte
-  // para que se vea primero qué entró.
+  // Subida o soltada: se aloja tal cual (suele ser una foto ya buena; "Quitar fondo" la limpia).
+  // Pegada: casi siempre es una captura del flyer con precio → se muestra y se limpia sola con IA.
+  // Si la IA falla queda la captura alojada, no se pierde nada.
   const takeFile = useCallback(
-    (file: File) => run('Subiendo imagen…', async () => setImageUrl(await hostImage(file, { removeBg: false })), 'No se pudo subir la imagen'),
+    (file: File, clean = false) =>
+      run(clean ? 'Subiendo captura…' : 'Subiendo imagen…', async () => {
+        const raw = await hostImage(file, { clean: false });
+        setImageUrl(raw);
+        if (!clean) return;
+        setBusy(CLEANING);
+        setImageUrl(await aiClean(raw, nameRef.current || undefined));
+      }, clean ? 'La IA no pudo limpiar la captura; quedó tal cual' : 'No se pudo subir la imagen'),
     [run]
   );
 
@@ -290,18 +314,14 @@ export function ProductEditorDialog({
       const f = imageFromPaste(e);
       if (!f) return; // texto: que lo maneje el campo
       e.preventDefault();
-      void takeFile(f);
+      void takeFile(f, true);
     };
     window.addEventListener('paste', onPaste);
     return () => window.removeEventListener('paste', onPaste);
   }, [open, cropping, takeFile]);
 
   const removeBg = () =>
-    run('Quitando el fondo…', async () => {
-      const url = await designsService.removeBackground({ imageUrl, name: name || undefined, web: true });
-      if (!url) throw new Error('El servidor no devolvió la imagen');
-      setImageUrl(url);
-    }, 'No se pudo quitar el fondo');
+    run(CLEANING, async () => setImageUrl(await aiClean(imageUrl, name.trim() || undefined)), 'No se pudo limpiar la imagen');
 
   const generate = () =>
     run('Generando con IA…', async () => {
@@ -310,10 +330,8 @@ export function ProductEditorDialog({
     }, 'La IA no pudo generar la imagen');
 
   const cropFromFlyer = (box: PctBox) =>
-    run('Recortando…', async () => {
-      const url = await designsService.removeBackground({ imageUrl: flyerUrl as string, box, name: name || undefined, web: true });
-      if (!url) throw new Error('El servidor no devolvió el recorte');
-      setImageUrl(url);
+    run(CLEANING, async () => {
+      setImageUrl(await aiClean(flyerUrl as string, name.trim() || undefined, box));
       setCropping(false);
     }, 'No se pudo recortar el circular');
 
