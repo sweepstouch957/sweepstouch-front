@@ -251,12 +251,14 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
   // Sin circular → se crea el de esta semana con esa imagen como flyer y se extrae.
   const loadFromCampaign = useMutation({
     mutationFn: async ({ imageUrl, targetId }: { imageUrl: string; targetId?: string }) => {
+      // Del arte de campaña se extraen SIEMPRE todos (0): son pocos productos. El selector
+      // "los primeros X" es para los circulares de varias páginas, no aplica acá.
       if (targetId) {
-        const d = await circularService.addProductsFromImage(targetId, imageUrl, maxProducts);
+        const d = await circularService.addProductsFromImage(targetId, imageUrl, 0);
         return { mode: 'added' as const, added: d.added, found: d.found };
       }
       const created = await circularService.createFromImageUrl(storeSlug, imageUrl, 'Arte de la última campaña');
-      const ex = await circularService.extractProducts(created.circular._id, maxProducts);
+      const ex = await circularService.extractProducts(created.circular._id, 0);
       return { mode: 'created' as const, added: ex?.circular?.products?.length ?? 0, found: ex?.circular?.products?.length ?? 0 };
     },
     onSuccess: (d) => {
@@ -527,7 +529,7 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
                 {currentCircular
                   ? 'Suma al circular vigente los productos de esta imagen que todavía no estén. No toca los que ya tenés.'
                   : 'No hay circular esta semana: se crea uno con esta imagen y se extraen sus productos.'}{' '}
-                Usa la cantidad elegida arriba ({maxProducts ? `los primeros ${maxProducts}` : 'todos'}).
+                Se extraen todos los productos de la imagen. Tarda unos minutos.
               </Typography>
             </Box>
             <Button
