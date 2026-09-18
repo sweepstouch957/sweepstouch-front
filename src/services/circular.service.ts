@@ -130,6 +130,13 @@ export class CircularService {
     return res.data;
   }
 
+  /** Sin circular vigente: baja el PDF de la semana desde `store.circularssUrl`, lo
+   *  guarda y crea el circular de la semana actual. La extracción se dispara aparte. */
+  async importFromStoreUrl(storeSlug: string): Promise<{ ok: boolean; circular: Circular; fileType: string; sizeKb: number }> {
+    const res = await api.post(`/circulars/store/${storeSlug}/import-from-url`);
+    return res.data;
+  }
+
   /** Carga el catálogo de la tienda desde un circular que YA tiene productos (no
    *  re-extrae). Las imágenes se limpian en segundo plano: PNG sin fondo. */
   async loadCatalogFromCircular(circularId: string): Promise<{

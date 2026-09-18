@@ -105,11 +105,13 @@ type Props = {
   provider?: string;
   infobipSenderId?: string;
   address?: string;
+  /** Link del circular de la tienda (api.circularss.com/dl/xxx): de ahí se trae el PDF de la semana. */
+  circularssUrl?: string;
 };
 
 /* ═══════════════ 1 · Circular (agendar + mensaje de prueba) ═══════════════ */
 
-function CircularSection({ storeId, storeSlug, storeName, provider, infobipSenderId, address }: Props) {
+function CircularSection({ storeId, storeSlug, storeName, provider, infobipSenderId, address, circularssUrl }: Props) {
   const qc = useQueryClient();
   const circulars = useQuery({
     queryKey: ['store-circulars', storeSlug],
@@ -153,6 +155,18 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
     onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo cargar el catálogo'),
   });
 
+  // Sin circular vigente en la base: se trae el PDF de la semana desde el link de la
+  // tienda, se crea el circular de esta semana y la extracción arranca sola.
+  const importFromUrl = useMutation({
+    mutationFn: () => circularService.importFromStoreUrl(storeSlug),
+    onSuccess: (d: any) => {
+      qc.invalidateQueries({ queryKey: ['store-circulars', storeSlug] });
+      toast.success('Circular de la semana importado — extrayendo productos con IA…');
+      if (d?.circular?._id) extract.mutate(d.circular._id);
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo traer el circular'),
+  });
+
   const create = useMutation({
     mutationFn: async () => {
       if (!start || !end) throw new Error('Fechas de inicio y fin son obligatorias');
@@ -186,6 +200,8 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
     items[0] ||
     null;
   const activeProducts: number = (activeCircular as any)?.products?.length ?? 0;
+  // ¿Hay uno vigente o por venir? Si no, se ofrece traerlo del link de la tienda.
+  const hasCurrent = items.some((c) => c.status === 'active' || c.status === 'scheduled');
 
   return (
     <Stack spacing={2}>
@@ -217,6 +233,43 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
         storeInfobipSenderId={infobipSenderId}
         storeAddress={address}
       />
+      {/* Sin circular vigente (ni activo ni agendado): casi siempre el PDF de la semana
+          está en el link de circular de la tienda. Se trae de ahí en un click. */}
+      {!circulars.isLoading && !hasCurrent && (
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1.5}>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="subtitle2" fontWeight={700}>
+                Esta tienda no tiene circular vigente
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                {circularssUrl
+                  ? 'Se puede traer el PDF de esta semana desde el link de circular de la tienda. Se crea el circular de la semana actual y la IA carga sus productos al catálogo.'
+                  : 'La tienda no tiene link de circular configurado. Subí el PDF abajo, o cargá el link en los datos de la tienda.'}
+              </Typography>
+              {circularssUrl && (
+                <MuiLink
+                  href={/^https?:\/\//i.test(circularssUrl) ? circularssUrl : `https://${circularssUrl}`}
+                  target="_blank"
+                  rel="noopener"
+                  variant="caption"
+                >
+                  Ver el link de la tienda
+                </MuiLink>
+              )}
+            </Box>
+            <Button
+              variant="contained"
+              disabled={!circularssUrl || importFromUrl.isPending || extract.isPending}
+              onClick={() => importFromUrl.mutate()}
+            >
+              {importFromUrl.isPending ? 'Trayendo circular…' : extract.isPending ? 'Extrayendo…' : 'Traer circular de la semana'}
+            </Button>
+          </Stack>
+          {(importFromUrl.isPending || extract.isPending) && <LinearProgress sx={{ mt: 1.5, borderRadius: 1 }} />}
+        </Paper>
+      )}
+
       {/* Circular vigente → cargar sus productos. Con productos: van al catálogo tal
           cual. Sin productos pero con archivo: se extraen con IA (y eso ya los carga). */}
       {activeCircular && (
@@ -1105,7 +1158,7 @@ function PurchasesSection({ storeSlug }: { storeSlug: string }) {
 
 /* ═══════════════ Panel ═══════════════ */
 
-export default function StoreCircularPanel({ storeId, storeSlug, storeName, provider, infobipSenderId, address }: Props) {
+export default function StoreCircularPanel({ storeId, storeSlug, storeName, provider, infobipSenderId, address, circularssUrl }: Props) {
   const [tab, setTab] = useState(0);
 
   if (!storeSlug) {
@@ -1135,6 +1188,7 @@ export default function StoreCircularPanel({ storeId, storeSlug, storeName, prov
           provider={provider}
           infobipSenderId={infobipSenderId}
           address={address}
+          circularssUrl={circularssUrl}
         />
       )}
       {tab === 1 && <CatalogSection storeSlug={storeSlug} />}
