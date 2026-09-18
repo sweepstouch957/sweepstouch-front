@@ -89,7 +89,7 @@ export default function SmsCampaignsTable({ startDate, endDate }: SmsCampaignsTa
     staleTime: 1000 * 60,
   });
 
-  const campaigns = data?.data?.filter((c: Campaing) => c.type === 'SMS' || c.type === 'MMS') || [];
+  const campaigns = data?.data?.filter((c: Campaing) => c.type === 'SMS' || c.type === 'MMS' || c.type === 'MIXED') || [];
   const total = data?.total || 0;
 
   const handlePageChange = (event: unknown, newPage: number) => {

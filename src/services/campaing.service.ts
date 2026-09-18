@@ -668,6 +668,8 @@ class CampaignClient {
       deliveryRate: number;
       seenRate: number;
     };
+    /** Sólo campañas mixed: el grupo SMS/MMS normal, para comparar contra RCS. */
+    sms?: { total: number; delivered: number; errors: number; queued: number; deliveryRate: number };
     clicks: { links: number; clickedLinks: number; totalClicks: number; clickRate: number };
     engagement: {
       lists: number;

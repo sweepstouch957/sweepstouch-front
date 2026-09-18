@@ -48,6 +48,8 @@ interface CampaignFormInputs {
   thumbnailPublicId?: string;
   customAudience?: number;
   linktree?: boolean; // 👈 nuevo parámetro
+  /** Piloto mixed: SMS/MMS normal + un 10% de los clientes con nombre por RCS personalizado. */
+  channel?: 'sms' | 'mixed';
 }
 
 const placeholders = [
@@ -174,9 +176,11 @@ export default function CreateCampaignForm({
       estimatedCost: initialValues?.estimatedCost || 0.0015,
       startDate: initialValues?.startDate ? new Date(initialValues.startDate) : new Date(),
       linktree: initialValues?.linktree ?? false,
+      channel: initialValues?.channel === 'mixed' ? 'mixed' : 'sms',
     },
     mode: 'onBlur',
   });
+  const channel = watch('channel');
 
   const [useFullAudience, setUseFullAudience] = useState(!initialValues?.customAudience);
   const contentRef = useRef<HTMLTextAreaElement | null>(null);
@@ -294,7 +298,12 @@ export default function CreateCampaignForm({
                   >
                     <TextField
                       label="Campaign Type"
-                      value={initialValues?.type || ((image as any)?.length ? 'MMS' : 'SMS')}
+                      value={
+                        channel === 'mixed'
+                          ? 'MIXED'
+                          : (initialValues?.type && initialValues.type !== 'MIXED' ? initialValues.type : null) ||
+                            ((image as any)?.length ? 'MMS' : 'SMS')
+                      }
                       disabled
                       fullWidth
                     />
@@ -524,6 +533,40 @@ export default function CreateCampaignForm({
                       Es la que se ve arriba de las ofertas en el linktree. No se envía por
                       SMS/MMS y no cambia el tipo de campaña.
                     </Typography>
+                  </Grid>
+
+                  {/* Piloto mixed (sep 2026): la campaña sale igual que siempre, pero
+                      un 10% de los clientes CON nombre recibe un RCS "Hi Nombre! ..."
+                      con botón al linktree (mismo SMS como failover). Métricas RCS vs
+                      SMS en el detalle de campaña. */}
+                  <Grid
+                    item
+                    xs={12}
+                  >
+                    <Paper
+                      variant="outlined"
+                      sx={{ p: 2 }}
+                    >
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={channel === 'mixed'}
+                            onChange={(e) => setValue('channel', e.target.checked ? 'mixed' : 'sms')}
+                          />
+                        }
+                        label="Piloto mixto: 10% de los clientes con nombre por RCS personalizado"
+                      />
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: 'block', mt: 0.5 }}
+                      >
+                        El resto recibe el SMS/MMS normal. Los elegidos ven &quot;Hi Nombre!&quot; + este
+                        mismo texto + un botón al linktree de la tienda; si su teléfono no tiene RCS,
+                        les llega el SMS. Si la base tiene 50 o menos clientes con nombre, van todos
+                        por RCS (no el 10%). El costo se calcula igual que SMS/MMS.
+                      </Typography>
+                    </Paper>
                   </Grid>
 
                   <Grid

@@ -476,6 +476,9 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
               ) : (
                 <>
                   <Chip label={campaign?.type} size="small" color="primary" sx={{ fontWeight: 700 }} />
+                  {campaign?.type === 'MIXED' && (
+                    <Chip label="SMS + 10% RCS con nombre" size="small" color="secondary" variant="outlined" sx={{ fontWeight: 700 }} />
+                  )}
                   <Chip
                     label={campaign?.status}
                     size="small"
@@ -574,8 +577,10 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
             {/* Delivery Rate Hero */}
             <DeliveryHero rate={deliveryRate} color={deliveryColor} isLoading={isLoading} />
 
-            {/* Campaña RCS: embudo completo — entrega, apertura, clicks, listas y compras */}
-            {campaign?.type === 'RCS' && <RcsMetricsPanel campaignId={campaignId} />}
+            {/* Campaña RCS o piloto mixed: embudo RCS — entrega, apertura, clicks, listas y compras */}
+            {(campaign?.type === 'RCS' || campaign?.type === 'MIXED' || campaign?.channel === 'mixed') && (
+              <RcsMetricsPanel campaignId={campaignId} />
+            )}
 
             {/* KPI Cards */}
             <Stack direction="row" flexWrap="wrap" gap={1.5}>

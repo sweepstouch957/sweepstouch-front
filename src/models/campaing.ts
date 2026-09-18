@@ -41,4 +41,7 @@ export interface Campaing {
   quequed?: number;
   /** Mensajes en proceso de envío activo */
   sending?: number;
+  /** "rcs" = carrusel por canal Google; "mixed" = piloto SMS + 10% RCS con nombre */
+  channel?: 'sms' | 'rcs' | 'mixed';
+  rcsOptions?: Record<string, any>;
 }

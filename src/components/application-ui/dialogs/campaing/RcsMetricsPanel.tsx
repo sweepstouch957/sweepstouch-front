@@ -133,8 +133,9 @@ height={24} />
 
   if (!data?.ok) return null;
 
-  const { messages: m, clicks: c, engagement: e } = data;
+  const { messages: m, clicks: c, engagement: e, sms } = data;
   const base = m.total || 1;
+  const isMixed = data.campaign?.channel === 'mixed' || data.campaign?.type === 'MIXED';
 
   return (
     <Card
@@ -153,15 +154,42 @@ height={24} />
           variant="subtitle1"
           fontWeight={800}
         >
-          Métricas RCS
+          {isMixed ? 'Piloto mixto · RCS vs SMS' : 'Métricas RCS'}
         </Typography>
         <Chip
           size="small"
           variant="outlined"
           color="primary"
-          label="Canal Google · sender sweepstouch"
+          label={isMixed ? 'RCS a clientes con nombre · resto SMS/MMS' : 'Canal Google · sender sweepstouch'}
         />
       </Stack>
+
+      {/* Piloto mixed: RCS (con nombre + botón) contra el grupo SMS/MMS normal */}
+      {isMixed && sms && (
+        <Stack
+          direction="row"
+          spacing={1.5}
+          flexWrap="wrap"
+          useFlexGap
+          mb={2}
+        >
+          <Kpi
+            label="RCS · entregados"
+            value={`${m.deliveryRate}%`}
+            sub={`${m.delivered.toLocaleString()} de ${m.total.toLocaleString()} enviados por RCS`}
+          />
+          <Kpi
+            label="SMS/MMS · entregados"
+            value={`${sms.deliveryRate}%`}
+            sub={`${sms.delivered.toLocaleString()} de ${sms.total.toLocaleString()} enviados por SMS`}
+          />
+          <Kpi
+            label="RCS · clicks al botón"
+            value={`${c.clickRate}%`}
+            sub={`${c.clickedLinks.toLocaleString()} clientes · SMS no tiene tracking por cliente`}
+          />
+        </Stack>
+      )}
 
       {/* KPIs */}
       <Stack

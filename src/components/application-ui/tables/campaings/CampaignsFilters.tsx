@@ -168,7 +168,7 @@ sx={{ flex: { xs: '1 1 calc(50% - 6px)', sm: '0 0 88px' }, ...selectSx }}>
             value={filters.type || 'all'}
             onChange={(e) => patch({ type: e.target.value === 'all' ? '' : String(e.target.value) })}
           >
-            {['all', 'SMS', 'MMS'].map((opt) => (
+            {['all', 'SMS', 'MMS', 'MIXED'].map((opt) => (
               <MenuItem key={opt}
 value={opt}
 sx={{ fontSize: 13 }}>

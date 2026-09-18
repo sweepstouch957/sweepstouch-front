@@ -287,7 +287,8 @@ function MessagingPanel({ stats, loading }: { stats: FilterStatsResponse; loadin
   const isDark = theme.palette.mode === 'dark';
   const { messages, byPlatform, byType, total } = stats;
 
-  const sms = byType['SMS'] ?? 0;
+  // MIXED (piloto RCS) es SMS/MMS de base; el backend ya lo reparte en totalSmsSent/totalMmsSent.
+  const sms = (byType['SMS'] ?? 0) + (byType['MIXED'] ?? 0);
   const mms = byType['MMS'] ?? 0;
   const total_typed = sms + mms;
   const sms_pct = total_typed > 0 ? Math.round((sms / total_typed) * 100) : 0;
