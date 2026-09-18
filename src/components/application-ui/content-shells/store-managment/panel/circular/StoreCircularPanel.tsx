@@ -134,8 +134,16 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
       qc.invalidateQueries({ queryKey: ['store-circulars', storeSlug] });
       qc.invalidateQueries({ queryKey: ['store-catalog-admin', storeSlug] });
     },
-    onError: () => {
-      toast('La extracción sigue corriendo en el servidor — refresca en un minuto.', { icon: '⏳' });
+    onError: (e: any) => {
+      // Si el servidor RESPONDIÓ con error, la extracción falló de verdad: se muestra el
+      // motivo. Sólo cuando no hubo respuesta (timeout del navegador, ~1 min) puede seguir
+      // corriendo en el servidor. Antes todo caía en "sigue corriendo" y un fallo real
+      // quedaba tapado para siempre.
+      if (e?.response) {
+        toast.error(`No se pudieron extraer los productos: ${e.response.data?.error || `error ${e.response.status}`}`, { duration: 9000 });
+      } else {
+        toast('La extracción sigue corriendo en el servidor. Refresca en un minuto.');
+      }
       qc.invalidateQueries({ queryKey: ['store-circulars', storeSlug] });
     },
   });
