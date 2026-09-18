@@ -630,8 +630,11 @@ class CampaignClient {
     return res.data as PaginatedResponse<Campaing>;
   }
 
-  async getLastCampaign(storeId: string): Promise<Campaing> {
-    const res = await api.get(`/campaigns/last/${storeId}`);
+  /** `withImage`: la última campaña que tiene arte (MMS/MIXED), no un SMS sin imagen. */
+  async getLastCampaign(storeId: string, opts?: { withImage?: boolean }): Promise<Campaing> {
+    const res = await api.get(`/campaigns/last/${storeId}`, {
+      params: opts?.withImage ? { withImage: 1 } : undefined,
+    });
     return res.data as Campaing;
   }
 

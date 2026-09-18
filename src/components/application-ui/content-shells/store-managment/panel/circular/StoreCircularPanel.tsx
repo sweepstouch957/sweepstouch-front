@@ -13,6 +13,7 @@ import {
   type Circular,
   type StoreProduct,
 } from '@/services/circular.service';
+import { campaignClient } from '@/services/campaing.service';
 import {
   shoppingListsService,
   shoppingListsQK,
@@ -111,7 +112,7 @@ type Props = {
 
 /* ═══════════════ Visor de imagen (producto o circular) ═══════════════ */
 
-/** Imagen en grande sobre fondo cuadriculado: si el PNG de verdad no tiene fondo, se ven
+/** Imagen en grande sobre fondo cuadriculado: si de verdad no tiene fondo, se ven
  *  los cuadros detrás del producto. Muestra formato y tamaño reales para revisar calidad. */
 function ImagePreviewDialog({ url, title, onClose }: { url: string | null; title?: string; onClose: () => void }) {
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
@@ -215,7 +216,7 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
     onSuccess: (d) => {
       toast.success(
         `${d.productCount} productos cargados al catálogo` +
-          (d.pendingImages ? ` · ${d.pendingImages} imágenes se están limpiando (PNG sin fondo)` : '')
+          (d.pendingImages ? ` · ${d.pendingImages} imágenes se están limpiando (sin fondo, livianas para web)` : '')
       );
       qc.invalidateQueries({ queryKey: ['store-circulars', storeSlug] });
       qc.invalidateQueries({ queryKey: ['store-catalog-admin', storeSlug] });
@@ -235,6 +236,45 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
       e?.response
         ? toast.error(`No se pudieron agregar productos: ${e.response.data?.error || `error ${e.response.status}`}`, { duration: 9000 })
         : toast('La extracción sigue corriendo en el servidor. Refresca en unos minutos.'),
+  });
+
+  // Arte de la última campaña con imagen: otra fuente de productos (trae las carnes y
+  // ofertas fuertes de la semana, que suelen venir en su tabla/pedestal).
+  const lastCampaign = useQuery({
+    queryKey: ['store-last-campaign-image', storeId],
+    queryFn: () => campaignClient.getLastCampaign(storeId, { withImage: true }).catch(() => null),
+    enabled: !!storeId,
+    staleTime: 5 * 60_000,
+  });
+
+  // Con circular vigente → se SUMAN a ese circular los productos que falten.
+  // Sin circular → se crea el de esta semana con esa imagen como flyer y se extrae.
+  const loadFromCampaign = useMutation({
+    mutationFn: async ({ imageUrl, targetId }: { imageUrl: string; targetId?: string }) => {
+      if (targetId) {
+        const d = await circularService.addProductsFromImage(targetId, imageUrl, maxProducts);
+        return { mode: 'added' as const, added: d.added, found: d.found };
+      }
+      const created = await circularService.createFromImageUrl(storeSlug, imageUrl, 'Arte de la última campaña');
+      const ex = await circularService.extractProducts(created.circular._id, maxProducts);
+      return { mode: 'created' as const, added: ex?.circular?.products?.length ?? 0, found: ex?.circular?.products?.length ?? 0 };
+    },
+    onSuccess: (d) => {
+      toast.success(
+        d.mode === 'added'
+          ? d.added
+            ? `${d.added} productos nuevos sumados desde la campaña (de ${d.found} encontrados)`
+            : 'Todos los productos de la campaña ya estaban cargados'
+          : `Circular creado desde la campaña: ${d.added} productos. Las imágenes se limpian en segundo plano.`
+      );
+      qc.invalidateQueries({ queryKey: ['store-circulars', storeSlug] });
+      qc.invalidateQueries({ queryKey: ['store-catalog-admin', storeSlug] });
+    },
+    onError: (e: any) => {
+      if (e?.response) toast.error(`No se pudo cargar desde la campaña: ${e.response.data?.error || `error ${e.response.status}`}`, { duration: 9000 });
+      else toast('La extracción sigue corriendo en el servidor. Refresca en unos minutos.');
+      qc.invalidateQueries({ queryKey: ['store-circulars', storeSlug] });
+    },
   });
 
   // Ver el circular: si es PDF el servidor renderiza la primera página (una vez, queda cacheada).
@@ -294,6 +334,9 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
     null;
   const activeProducts: number = (activeCircular as any)?.products?.length ?? 0;
   const busyExtract = extract.isPending || addMissing.isPending;
+  // El vigente (activo o agendado): a ese se le suman los productos de la campaña.
+  const currentCircular = items.find((c) => c.status === 'active') || items.find((c) => c.status === 'scheduled') || null;
+  const campaignImage: string = (lastCampaign.data as any)?.image || '';
   // ¿Hay uno vigente o por venir? Si no, se ofrece traerlo del link de la tienda.
   const hasCurrent = items.some((c) => c.status === 'active' || c.status === 'scheduled');
 
@@ -382,7 +425,7 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
               </Typography>
               <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
                 {activeProducts > 0
-                  ? 'Cargá estos productos al catálogo (lo que ve el cliente en sus listas), o sumá los chicos que faltan. Las imágenes quedan en PNG sin fondo, en alta, con su tabla o pedestal.'
+                  ? 'Cargá estos productos al catálogo (lo que ve el cliente en sus listas), o sumá los chicos que faltan. Las imágenes quedan sin fondo, con su tabla o pedestal, y livianas para web.'
                   : activeCircular.fileUrl
                     ? 'Este circular todavía no tiene productos. Elegí cuántos extraer: primero los de foto grande, y después sumás los chicos con "Agregar los que faltan".'
                     : 'Adjuntá el PDF o la imagen del circular para poder cargar sus productos.'}
@@ -451,6 +494,51 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
             </Stack>
           )}
           {(loadCatalog.isPending || busyExtract) && <LinearProgress sx={{ mt: 1.5, borderRadius: 1 }} />}
+        </Paper>
+      )}
+
+      {/* Otra fuente: el arte de la última campaña (MMS). */}
+      {campaignImage && (
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+          <Stack direction="row" alignItems="center" gap={2} flexWrap="wrap">
+            <Box
+              component="button"
+              type="button"
+              aria-label="Ver el arte de la campaña en grande"
+              onClick={() => setPreview({ url: campaignImage, title: lastCampaign.data?.title || 'Arte de la campaña' })}
+              sx={{
+                width: 64, height: 88, p: 0, flexShrink: 0, borderRadius: 1.5, overflow: 'hidden',
+                border: '1px solid', borderColor: 'divider', bgcolor: 'background.default', cursor: 'zoom-in',
+                '&:hover': { borderColor: 'primary.main' },
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={campaignImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }} />
+            </Box>
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Typography variant="subtitle2" fontWeight={700}>
+                Arte de la última campaña
+              </Typography>
+              <Typography variant="body2" color="text.secondary" noWrap>
+                {lastCampaign.data?.title || 'Sin título'}
+                {lastCampaign.data?.startDate ? ` · ${fmtDate(lastCampaign.data.startDate as any)}` : ''}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                {currentCircular
+                  ? 'Suma al circular vigente los productos de esta imagen que todavía no estén. No toca los que ya tenés.'
+                  : 'No hay circular esta semana: se crea uno con esta imagen y se extraen sus productos.'}{' '}
+                Usa la cantidad elegida arriba ({maxProducts ? `los primeros ${maxProducts}` : 'todos'}).
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              disabled={loadFromCampaign.isPending || busyExtract}
+              onClick={() => loadFromCampaign.mutate({ imageUrl: campaignImage, targetId: currentCircular?._id })}
+            >
+              {loadFromCampaign.isPending ? 'Leyendo la imagen…' : 'Cargar productos de la campaña'}
+            </Button>
+          </Stack>
+          {loadFromCampaign.isPending && <LinearProgress sx={{ mt: 1.5, borderRadius: 1 }} />}
         </Paper>
       )}
 

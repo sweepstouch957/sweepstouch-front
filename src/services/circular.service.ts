@@ -137,6 +137,24 @@ export class CircularService {
     return res.data;
   }
 
+  /** Suma al circular los productos de OTRA imagen (el arte de la última campaña):
+   *  sólo los que todavía no tiene. `maxProducts` 0 = todos, por secciones. */
+  async addProductsFromImage(
+    circularId: string,
+    sourceUrl: string,
+    maxProducts = 0
+  ): Promise<{ ok: boolean; added: number; found: number; productCount: number }> {
+    const res = await api.post(`/circulars/${circularId}/extract-products-add`, { merge: true, sourceUrl, maxProducts });
+    return res.data;
+  }
+
+  /** Tienda sin circular esta semana: crea uno usando una imagen ya alojada (el arte de
+   *  la campaña) como flyer. Semana actual por defecto. La extracción se dispara aparte. */
+  async createFromImageUrl(storeSlug: string, imageUrl: string, title?: string): Promise<{ ok: boolean; circular: Circular }> {
+    const res = await api.post('/circulars/from-url', { storeSlug, imageUrl, title });
+    return res.data;
+  }
+
   /** Imagen de la primera página del circular (los PDF se renderizan una vez y se cachea). */
   async getPreviewImage(circularId: string): Promise<{ ok: boolean; url: string }> {
     const res = await api.get(`/circulars/${circularId}/preview-image`);
