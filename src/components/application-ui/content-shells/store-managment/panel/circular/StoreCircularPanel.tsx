@@ -5,7 +5,9 @@
 // métricas de compras por recibo. Todo contra endpoints ya existentes de
 // circular-service y tracking-service.
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import { imageFromPaste, PasteReplaceDialog, ProductEditorDialog } from './ProductImageTools';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
@@ -25,6 +27,7 @@ import {
   Box,
   Button,
   Chip,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -187,6 +190,10 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
   // Los chiquitos quedan para "Agregar los que faltan". 0 = todos de una.
   const [maxProducts, setMaxProducts] = useState(20);
   const [preview, setPreview] = useState<{ url: string; title: string } | null>(null);
+  // Arte de campaña: se pregunta antes cuántos extraer y si se limpian las imágenes.
+  const [campaignAsk, setCampaignAsk] = useState(false);
+  const [campaignMax, setCampaignMax] = useState(10);
+  const [campaignClean, setCampaignClean] = useState(true);
 
   const extract = useMutation({
     mutationFn: (circularId: string) => circularService.extractProducts(circularId, maxProducts),
@@ -250,15 +257,15 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
   // Con circular vigente → se SUMAN a ese circular los productos que falten.
   // Sin circular → se crea el de esta semana con esa imagen como flyer y se extrae.
   const loadFromCampaign = useMutation({
-    mutationFn: async ({ imageUrl, targetId }: { imageUrl: string; targetId?: string }) => {
-      // Del arte de campaña se extraen SIEMPRE todos (0): son pocos productos. El selector
-      // "los primeros X" es para los circulares de varias páginas, no aplica acá.
+    mutationFn: async ({ imageUrl, targetId, max, aiImages }: { imageUrl: string; targetId?: string; max: number; aiImages: boolean }) => {
+      // La cantidad y si se limpian las imágenes se PREGUNTAN antes (campaignAsk): un arte
+      // puede traer 40 productos y cada imagen limpia por IA cuesta.
       if (targetId) {
-        const d = await circularService.addProductsFromImage(targetId, imageUrl, 0);
+        const d = await circularService.addProductsFromImage(targetId, imageUrl, max, { aiImages });
         return { mode: 'added' as const, added: d.added, found: d.found };
       }
       const created = await circularService.createFromImageUrl(storeSlug, imageUrl, 'Arte de la última campaña');
-      const ex = await circularService.extractProducts(created.circular._id, 0);
+      const ex = await circularService.extractProducts(created.circular._id, max, { aiImages });
       return { mode: 'created' as const, added: ex?.circular?.products?.length ?? 0, found: ex?.circular?.products?.length ?? 0 };
     },
     onSuccess: (d) => {
@@ -529,13 +536,13 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
                 {currentCircular
                   ? 'Suma al circular vigente los productos de esta imagen que todavía no estén. No toca los que ya tenés.'
                   : 'No hay circular esta semana: se crea uno con esta imagen y se extraen sus productos.'}{' '}
-                Se extraen todos los productos de la imagen. Tarda unos minutos.
+                Antes de empezar te pregunta cuántos extraer.
               </Typography>
             </Box>
             <Button
               variant="contained"
               disabled={loadFromCampaign.isPending || busyExtract}
-              onClick={() => loadFromCampaign.mutate({ imageUrl: campaignImage, targetId: currentCircular?._id })}
+              onClick={() => setCampaignAsk(true)}
             >
               {loadFromCampaign.isPending ? 'Leyendo la imagen…' : 'Cargar productos de la campaña'}
             </Button>
@@ -543,6 +550,55 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
           {loadFromCampaign.isPending && <LinearProgress sx={{ mt: 1.5, borderRadius: 1 }} />}
         </Paper>
       )}
+
+      {/* Antes de leer el arte de campaña: cuántos y si se limpian las imágenes. Un arte puede
+          traer 40 productos y lo caro es la imagen limpia por IA (una generación por producto). */}
+      <Dialog open={campaignAsk} onClose={() => setCampaignAsk(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ pb: 0.5 }}>¿Cuántos productos extraer?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Un arte de campaña puede traer hasta 40 productos. Lo que más cuesta es la imagen limpia
+            por IA: es una generación por cada producto.
+          </Typography>
+          <TextField
+            select
+            size="small"
+            fullWidth
+            label="Cantidad"
+            value={campaignMax}
+            onChange={(e) => setCampaignMax(Number(e.target.value))}
+            helperText={campaignMax ? 'Primero los de foto más grande (carnes y ofertas principales).' : 'Todos: por secciones, tarda varios minutos.'}
+          >
+            {[5, 10, 20, 30].map((n) => (
+              <MenuItem key={n} value={n}>Los primeros {n}</MenuItem>
+            ))}
+            <MenuItem value={0}>Todos los productos</MenuItem>
+          </TextField>
+          <Stack direction="row" alignItems="flex-start" gap={1} sx={{ mt: 1.5 }}>
+            <Switch checked={campaignClean} onChange={(e) => setCampaignClean(e.target.checked)} />
+            <Box sx={{ pt: 0.75 }}>
+              <Typography variant="body2" fontWeight={600}>Limpiar las imágenes con IA ahora</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {campaignClean
+                  ? `Hasta ${campaignMax || 'todas las'} imágenes sin fondo, con su tabla o pedestal.`
+                  : 'Quedan los recortes del arte. Después las limpiás desde Productos, de a una o todas.'}
+              </Typography>
+            </Box>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCampaignAsk(false)}>Cancelar</Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              setCampaignAsk(false);
+              loadFromCampaign.mutate({ imageUrl: campaignImage, targetId: currentCircular?._id, max: campaignMax, aiImages: campaignClean });
+            }}
+          >
+            Extraer {campaignMax ? `${campaignMax} productos` : 'todos'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <ImagePreviewDialog key={preview?.url || 'none'} url={preview?.url ?? null} title={preview?.title} onClose={() => setPreview(null)} />
 
@@ -652,7 +708,15 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
     queryKey: ['store-catalog-admin', storeSlug],
     queryFn: () => circularService.getCatalogAdmin(storeSlug),
     enabled: !!storeSlug,
+    // Mientras la IA limpia imágenes el catálogo se refresca solo: cada fila pasa de
+    // "Generando…" a su foto final sin recargar.
+    refetchInterval: (q) => (q.state.data?.cleaning ? 8000 : false),
   });
+  const cleaning = !!catalog.data?.cleaning;
+  // Recorte crudo del flyer (trae precio y texto) o sin foto, con limpieza en curso:
+  // no se muestra, para que nadie lo tome por la imagen final.
+  const isGenerating = (p: StoreProduct) => cleaning && (!p.imageUrl || /\/circular-products\//.test(p.imageUrl));
+  const generatingCount = cleaning ? (catalog.data?.items || []).filter(isGenerating).length : 0;
   const [search, setSearch] = useState('');
   // Producto cuya imagen se está generando/subiendo (spinner por fila)
   const [imgBusy, setImgBusy] = useState<string | null>(null);
@@ -715,25 +779,52 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
     [catalog.data]
   );
 
-  // Alta manual: para cuando la IA se comió un producto del flyer.
-  const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState({ name: '', price: '', originalPrice: '' });
-  const createProduct = useMutation({
-    mutationFn: () =>
-      circularService.createStoreProduct({
-        storeSlug,
-        name: draft.name.trim(),
-        price: draft.price.trim(),
-        originalPrice: draft.originalPrice.trim() || regularFromPrice(draft.price) || '',
-      }),
-    onSuccess: () => {
-      toast.success('Producto agregado');
-      setDraft({ name: '', price: '', originalPrice: '' });
-      setAdding(false);
-      qc.invalidateQueries({ queryKey: ['store-catalog-admin', storeSlug] });
+  // Alta y edición con herramientas de imagen (pegar, subir, recortar del circular,
+  // quitar fondo, generar con IA). `product: null` = producto nuevo.
+  const [editor, setEditor] = useState<{ open: boolean; product: StoreProduct | null }>({ open: false, product: null });
+  const refreshCatalog = () => qc.invalidateQueries({ queryKey: ['store-catalog-admin', storeSlug] });
+
+  // Imagen del circular para "Recortar circular". Sólo se resuelve al abrir el editor:
+  // si el circular es PDF, el servidor renderiza la primera página una vez y la cachea.
+  const flyer = useQuery({
+    queryKey: ['store-flyer-image', storeSlug],
+    enabled: editor.open && !!storeSlug,
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const list: Circular[] = (await circularService.getByStore(storeSlug))?.items ?? [];
+      const c =
+        list.find((x) => x.status === 'active' && x.fileUrl) ||
+        list.find((x) => x.status === 'scheduled' && x.fileUrl) ||
+        list.find((x) => x.fileUrl);
+      if (!c) return '';
+      const direct = (c as any).previewImageUrl || (/\.(png|jpe?g|webp|gif)(\?|$)/i.test(c.fileUrl || '') ? c.fileUrl : '');
+      if (direct) return direct as string;
+      return (await circularService.getPreviewImage(c._id).catch(() => ({ url: '' }))).url || '';
     },
-    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo agregar'),
   });
+
+  // Ctrl+V sobre una fila: la fila "activa" es la última sobre la que pasó el mouse o
+  // recibió foco. Con una imagen en el portapapeles se abre la confirmación de reemplazo.
+  const [activeRow, setActiveRow] = useState<StoreProduct | null>(null);
+  const [pasted, setPasted] = useState<{ file: File; product: StoreProduct } | null>(null);
+  const activeRowRef = useRef<StoreProduct | null>(null);
+  activeRowRef.current = activeRow;
+  useEffect(() => {
+    if (editor.open || pasted) return; // el editor tiene su propio Ctrl+V
+    const onPaste = (e: ClipboardEvent) => {
+      const file = imageFromPaste(e);
+      if (!file) return; // texto: lo maneja el campo enfocado
+      const target = activeRowRef.current;
+      e.preventDefault();
+      if (!target) {
+        toast('Pasá el mouse sobre el producto al que le querés cambiar la imagen y pegá de nuevo.');
+        return;
+      }
+      setPasted({ file, product: target });
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, [editor.open, pasted]);
 
   const removeProduct = useMutation({
     mutationFn: (id: string) => circularService.deleteStoreProduct(id),
@@ -749,11 +840,15 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
   const cleanImages = useMutation({
     mutationFn: () => circularService.cleanCatalogImages(storeSlug),
     onSuccess: (d) => {
-      if (!d.queued) {
+      if (!d.queued && !d.verifying) {
         toast.success('Todas las imágenes ya están limpias');
         return;
       }
-      toast.success(`Limpiando ${d.queued} imágenes con IA… se van actualizando solas`);
+      toast.success(
+        d.queued
+          ? `Limpiando ${d.queued} imágenes con IA… se van actualizando solas`
+          : `Revisando ${d.verifying} fotos: las que no coincidan con su producto se regeneran solas`
+      );
       const refresh = () => qc.invalidateQueries({ queryKey: ['store-catalog-admin', storeSlug] });
       setTimeout(refresh, 60_000);
       setTimeout(refresh, 180_000);
@@ -834,8 +929,8 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
               : `Completar ${missingRegular.length} regular${missingRegular.length === 1 ? '' : 'es'} (+25%)`}
           </Button>
         )}
-        <Button size="small" variant="outlined" onClick={() => setAdding((v) => !v)}>
-          {adding ? 'Cancelar' : '+ Agregar producto'}
+        <Button size="small" variant="outlined" onClick={() => setEditor({ open: true, product: null })}>
+          + Agregar producto
         </Button>
         <Tooltip title="Deja visibles en el Pre-RCS SOLO los productos del último circular y oculta el resto del catálogo. Un click en vez de switch por switch.">
           <Button
@@ -897,41 +992,34 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
         </DialogActions>
       </Dialog>
 
-      {adding && (
-        <Stack direction="row" flexWrap="wrap" alignItems="center" gap={1.5}>
-          <TextField
-            size="small"
-            label="Nombre"
-            value={draft.name}
-            onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
-            sx={{ width: 240 }}
-          />
-          <TextField
-            size="small"
-            label="Precio oferta"
-            placeholder="$2.99"
-            value={draft.price}
-            onChange={(e) => setDraft((d) => ({ ...d, price: e.target.value }))}
-            sx={{ width: 130 }}
-          />
-          <TextField
-            size="small"
-            label="Precio regular"
-            placeholder="auto +25%"
-            value={draft.originalPrice}
-            onChange={(e) => setDraft((d) => ({ ...d, originalPrice: e.target.value }))}
-            sx={{ width: 130 }}
-          />
-          <Button
-            size="small"
-            variant="contained"
-            disabled={!draft.name.trim() || createProduct.isPending}
-            onClick={() => createProduct.mutate()}
-          >
-            {createProduct.isPending ? 'Guardando…' : 'Guardar'}
-          </Button>
-        </Stack>
+      <ProductEditorDialog
+        open={editor.open}
+        product={editor.product}
+        storeSlug={storeSlug}
+        flyerUrl={flyer.data || undefined}
+        onClose={() => setEditor((s) => ({ ...s, open: false }))}
+        onSaved={refreshCatalog}
+      />
+      <PasteReplaceDialog
+        file={pasted?.file ?? null}
+        product={pasted?.product ?? null}
+        onClose={() => setPasted(null)}
+        onDone={refreshCatalog}
+      />
+
+      <Typography variant="caption" color="text.secondary">
+        Para cambiar una imagen rápido: pasá el mouse sobre el producto y pegá (Ctrl+V) una captura o imagen copiada.
+        {activeRow ? ` Fila activa: ${activeRow.name}.` : ''}
+      </Typography>
+
+      {cleaning && (
+        <Alert severity="info" icon={<CircularProgress size={16} />} sx={{ mb: 1 }}>
+          {generatingCount
+            ? `Generando ${generatingCount} imágenes con IA (sin fondo, sin precio). Aparecen solas en cada fila, no hace falta recargar.`
+            : 'Revisando que cada foto coincida con su producto…'}
+        </Alert>
       )}
+
       {catalog.isLoading ? (
         <LinearProgress />
       ) : (
@@ -952,7 +1040,13 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
             </TableHead>
             <TableBody>
               {items.map((p) => (
-                <TableRow key={p._id} hover>
+                <TableRow
+                  key={p._id}
+                  hover
+                  onMouseEnter={() => setActiveRow(p)}
+                  onFocusCapture={() => setActiveRow(p)}
+                  sx={activeRow?._id === p._id ? { boxShadow: (t) => `inset 3px 0 0 ${t.palette.primary.main}` } : undefined}
+                >
                   <TableCell sx={cell}>
                     {/* Miniatura + acciones: subir manual o regenerar con IA */}
                     <Stack direction="row" alignItems="center" gap={0.5}>
@@ -972,6 +1066,10 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
                       >
                         {imgBusy === p._id ? (
                           <Typography variant="caption">…</Typography>
+                        ) : isGenerating(p) ? (
+                          <Tooltip title="Generando imagen con IA… el recorte con precio se reemplaza solo">
+                            <CircularProgress size={18} thickness={5} aria-label="Generando imagen" />
+                          </Tooltip>
                         ) : p.imageUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={p.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
@@ -998,6 +1096,16 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
                             onClick={() => generateImage(p)}
                           >
                             <AutoAwesomeOutlinedIcon sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Editar producto e imagen (pegar, recortar del circular, quitar fondo)">
+                          <IconButton
+                            size="small"
+                            sx={{ p: 0.25 }}
+                            aria-label={`Editar ${p.name}`}
+                            onClick={() => setEditor({ open: true, product: p })}
+                          >
+                            <EditOutlinedIcon sx={{ fontSize: 16 }} />
                           </IconButton>
                         </Tooltip>
                       </Stack>

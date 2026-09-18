@@ -89,6 +89,9 @@ interface CutoutDto {
   box?: PhotoBoxDto | null;
   slug?: string;
   name?: string;
+  /** Imagen para el catálogo web: quita el fondo SIEMPRE y guarda WebP liviano (≤800 px)
+   *  en vez del PNG en alta de la librería de cartones. */
+  web?: boolean;
 }
 
 /* ══════════ Slug ══════════ */

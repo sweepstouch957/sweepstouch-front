@@ -123,9 +123,12 @@ export class CircularService {
     return res.data;
   }
 
-  async extractProducts(circularId: string, maxProducts?: number): Promise<any> {
+  /** `aiImages: false` = no limpiar las imágenes con IA ahora (es lo caro: una generación
+   *  por producto). Quedan los recortes y se limpian después desde Productos. */
+  async extractProducts(circularId: string, maxProducts?: number, opts?: { aiImages?: boolean }): Promise<any> {
     const res = await api.post(`/circulars/${circularId}/extract-products`, {
       maxProducts: maxProducts || 0,
+      ...(opts?.aiImages === false ? { aiImages: false } : {}),
     });
     return res.data;
   }
@@ -142,9 +145,15 @@ export class CircularService {
   async addProductsFromImage(
     circularId: string,
     sourceUrl: string,
-    maxProducts = 0
+    maxProducts = 0,
+    opts?: { aiImages?: boolean }
   ): Promise<{ ok: boolean; added: number; found: number; productCount: number }> {
-    const res = await api.post(`/circulars/${circularId}/extract-products-add`, { merge: true, sourceUrl, maxProducts });
+    const res = await api.post(`/circulars/${circularId}/extract-products-add`, {
+      merge: true,
+      sourceUrl,
+      maxProducts,
+      ...(opts?.aiImages === false ? { aiImages: false } : {}),
+    });
     return res.data;
   }
 
@@ -207,7 +216,7 @@ export class CircularService {
   /** Catálogo COMPLETO para administración (incluye ocultos y sin oferta). */
   async getCatalogAdmin(
     storeSlug: string
-  ): Promise<{ storeSlug: string; count: number; items: StoreProduct[] }> {
+  ): Promise<{ storeSlug: string; count: number; items: StoreProduct[]; cleaning?: boolean }> {
     const res = await api.get(`/circulars/store/${storeSlug}/catalog`);
     return res.data;
   }
@@ -251,7 +260,7 @@ export class CircularService {
   }
 
   /** Limpia con IA los recortes crudos del catálogo (y genera los sin foto). Background. */
-  async cleanCatalogImages(storeSlug: string): Promise<{ ok: boolean; queued: number; pending: number }> {
+  async cleanCatalogImages(storeSlug: string): Promise<{ ok: boolean; queued: number; pending: number; verifying?: number }> {
     const res = await api.post(`/circulars/store/${storeSlug}/clean-images`);
     return res.data;
   }
@@ -270,6 +279,7 @@ export class CircularService {
     originalPrice?: string;
     savings?: string;
     category?: string;
+    imageUrl?: string;
   }): Promise<{ ok: boolean; item: StoreProduct }> {
     const res = await api.post('/circulars/store-product', body);
     return res.data;
