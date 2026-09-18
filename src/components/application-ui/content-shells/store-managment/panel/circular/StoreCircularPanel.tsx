@@ -138,6 +138,21 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
     },
   });
 
+  // Circular que YA tiene productos → pasarlos al catálogo de la tienda (lo que ve
+  // el Pre-RCS). No re-extrae; las imágenes se limpian solas en segundo plano.
+  const loadCatalog = useMutation({
+    mutationFn: (circularId: string) => circularService.loadCatalogFromCircular(circularId),
+    onSuccess: (d) => {
+      toast.success(
+        `${d.productCount} productos cargados al catálogo` +
+          (d.pendingImages ? ` · ${d.pendingImages} imágenes se están limpiando (PNG sin fondo)` : '')
+      );
+      qc.invalidateQueries({ queryKey: ['store-circulars', storeSlug] });
+      qc.invalidateQueries({ queryKey: ['store-catalog-admin', storeSlug] });
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo cargar el catálogo'),
+  });
+
   const create = useMutation({
     mutationFn: async () => {
       if (!start || !end) throw new Error('Fechas de inicio y fin son obligatorias');
@@ -164,8 +179,13 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
 
   const items: Circular[] = circulars.data?.items ?? [];
   // El circular vigente (o el próximo): sus productos alimentan el mensaje de prueba
+  // Prioridad: el ACTIVO; si no hay, el próximo agendado; si no, el más reciente.
   const activeCircular =
-    items.find((c) => c.status === 'active' || c.status === 'scheduled') || items[0] || null;
+    items.find((c) => c.status === 'active') ||
+    items.find((c) => c.status === 'scheduled') ||
+    items[0] ||
+    null;
+  const activeProducts: number = (activeCircular as any)?.products?.length ?? 0;
 
   return (
     <Stack spacing={2}>
@@ -197,6 +217,52 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
         storeInfobipSenderId={infobipSenderId}
         storeAddress={address}
       />
+      {/* Circular vigente → cargar sus productos. Con productos: van al catálogo tal
+          cual. Sin productos pero con archivo: se extraen con IA (y eso ya los carga). */}
+      {activeCircular && (
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1.5}>
+            <Box sx={{ minWidth: 0 }}>
+              <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
+                <Typography variant="subtitle2" fontWeight={700}>
+                  {activeCircular.status === 'active' ? 'Circular activo' : 'Circular más reciente'}
+                </Typography>
+                <Chip size="small" {...(STATUS_CHIP[activeCircular.status] || { label: activeCircular.status, color: 'default' })} />
+              </Stack>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+                {activeCircular.title || 'Sin título'} · {fmtDate(activeCircular.startDate)} → {fmtDate(activeCircular.endDate)} ·{' '}
+                {activeProducts} producto{activeProducts !== 1 ? 's' : ''}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                {activeProducts > 0
+                  ? 'Carga estos productos al catálogo de la tienda (lo que ve el cliente en sus listas). Las imágenes quedan en PNG sin fondo, con su plato o pedestal.'
+                  : activeCircular.fileUrl
+                    ? 'Este circular todavía no tiene productos: la IA los lee del archivo y los carga al catálogo.'
+                    : 'Adjuntá el PDF o la imagen del circular para poder cargar sus productos.'}
+              </Typography>
+            </Box>
+            {activeProducts > 0 ? (
+              <Button
+                variant="contained"
+                disabled={loadCatalog.isPending}
+                onClick={() => loadCatalog.mutate(activeCircular._id)}
+              >
+                {loadCatalog.isPending ? 'Cargando…' : 'Cargar productos al catálogo'}
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                disabled={!activeCircular.fileUrl || extract.isPending}
+                onClick={() => extract.mutate(activeCircular._id)}
+              >
+                {extract.isPending ? 'Extrayendo…' : 'Extraer productos (IA)'}
+              </Button>
+            )}
+          </Stack>
+          {(loadCatalog.isPending || extract.isPending) && <LinearProgress sx={{ mt: 1.5, borderRadius: 1 }} />}
+        </Paper>
+      )}
+
       <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
         <Typography variant="subtitle2" fontWeight={700} gutterBottom>
           Agendar circular
@@ -257,6 +323,17 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
                         onClick={() => extract.mutate(c._id)}
                       >
                         {extract.isPending ? 'Extrayendo…' : 'Extraer (IA)'}
+                      </Button>
+                    )}
+                    {/* Con productos: se pueden pasar al catálogo desde cualquier circular */}
+                    {!!(c as any).products?.length && (
+                      <Button
+                        size="small"
+                        sx={{ ml: 1, minWidth: 0 }}
+                        disabled={loadCatalog.isPending}
+                        onClick={() => loadCatalog.mutate(c._id)}
+                      >
+                        Cargar al catálogo
                       </Button>
                     )}
                   </TableCell>

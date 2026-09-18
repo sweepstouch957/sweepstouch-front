@@ -130,6 +130,21 @@ export class CircularService {
     return res.data;
   }
 
+  /** Carga el catálogo de la tienda desde un circular que YA tiene productos (no
+   *  re-extrae). Las imágenes se limpian en segundo plano: PNG sin fondo. */
+  async loadCatalogFromCircular(circularId: string): Promise<{
+    ok: boolean;
+    productCount: number;
+    upserted: number;
+    modified: number;
+    priceChanges: number;
+    pendingImages: number;
+    catalogTotal: number;
+  }> {
+    const res = await api.post(`/circulars/${circularId}/load-catalog`);
+    return res.data;
+  }
+
   /** 🔍 Overview con filtro por slug o búsqueda por nombre/dirección (q) */
   async getOverview(params?: { slug?: string; q?: string }): Promise<OverviewResponse> {
     const res = await api.get('/circulars/status/overview', { params });
