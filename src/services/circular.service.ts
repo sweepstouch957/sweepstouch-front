@@ -130,6 +130,19 @@ export class CircularService {
     return res.data;
   }
 
+  /** Segunda pasada: re-escanea el circular POR SECCIONES (para los productos chicos) y
+   *  suma sólo los que todavía no tiene. No toca los existentes ni sus imágenes. */
+  async addMissingProducts(circularId: string): Promise<{ ok: boolean; added: number; found: number; productCount: number }> {
+    const res = await api.post(`/circulars/${circularId}/extract-products-add`, { merge: true });
+    return res.data;
+  }
+
+  /** Imagen de la primera página del circular (los PDF se renderizan una vez y se cachea). */
+  async getPreviewImage(circularId: string): Promise<{ ok: boolean; url: string }> {
+    const res = await api.get(`/circulars/${circularId}/preview-image`);
+    return res.data;
+  }
+
   /** Sin circular vigente: baja el PDF de la semana desde `store.circularssUrl`, lo
    *  guarda y crea el circular de la semana actual. La extracción se dispara aparte. */
   async importFromStoreUrl(storeSlug: string): Promise<{ ok: boolean; circular: Circular; fileType: string; sizeKb: number }> {

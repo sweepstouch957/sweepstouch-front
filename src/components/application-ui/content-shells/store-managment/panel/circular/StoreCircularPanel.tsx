@@ -109,6 +109,61 @@ type Props = {
   circularssUrl?: string;
 };
 
+/* ═══════════════ Visor de imagen (producto o circular) ═══════════════ */
+
+/** Imagen en grande sobre fondo cuadriculado: si el PNG de verdad no tiene fondo, se ven
+ *  los cuadros detrás del producto. Muestra formato y tamaño reales para revisar calidad. */
+function ImagePreviewDialog({ url, title, onClose }: { url: string | null; title?: string; onClose: () => void }) {
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+  const ext = (url?.split('?')[0].match(/\.([a-z0-9]{3,4})$/i)?.[1] || '').toUpperCase();
+  return (
+    <Dialog open={!!url} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle sx={{ pb: 1 }}>
+        {title || 'Vista previa'}
+        <Typography variant="caption" color="text.secondary" display="block">
+          {[ext, size ? `${size.w} × ${size.h} px` : null].filter(Boolean).join(' · ') || 'Cargando…'}
+        </Typography>
+      </DialogTitle>
+      <DialogContent dividers sx={{ p: 0 }}>
+        <Box
+          sx={{
+            display: 'grid',
+            placeItems: 'center',
+            minHeight: 320,
+            maxHeight: '70vh',
+            overflow: 'auto',
+            p: 2,
+            // Cuadriculado de transparencia
+            backgroundColor: '#fff',
+            backgroundImage:
+              'linear-gradient(45deg,#e6e6e6 25%,transparent 25%),linear-gradient(-45deg,#e6e6e6 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e6e6e6 75%),linear-gradient(-45deg,transparent 75%,#e6e6e6 75%)',
+            backgroundSize: '20px 20px',
+            backgroundPosition: '0 0,0 10px,10px -10px,-10px 0',
+          }}
+        >
+          {url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={url}
+              alt={title || ''}
+              onLoad={(e) => setSize({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
+              style={{ maxWidth: '100%', height: 'auto', display: 'block' }}
+            />
+          )}
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        {url && (
+          <Button component="a" href={url} target="_blank" rel="noopener">
+            Abrir original
+          </Button>
+        )}
+        <Button variant="contained" onClick={onClose}>Cerrar</Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
 /* ═══════════════ 1 · Circular (agendar + mensaje de prueba) ═══════════════ */
 
 function CircularSection({ storeId, storeSlug, storeName, provider, infobipSenderId, address, circularssUrl }: Props) {
@@ -127,10 +182,15 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
 
   // Extracción IA por circular. Tarda ~1 min; si el cliente corta antes, la
   // extracción sigue en el servidor y aparece al refrescar.
+  // Cuántos extraer: "los primeros X" = los de foto grande (rápido, recortes limpios).
+  // Los chiquitos quedan para "Agregar los que faltan". 0 = todos de una.
+  const [maxProducts, setMaxProducts] = useState(20);
+  const [preview, setPreview] = useState<{ url: string; title: string } | null>(null);
+
   const extract = useMutation({
-    mutationFn: (circularId: string) => circularService.extractProducts(circularId, 0),
+    mutationFn: (circularId: string) => circularService.extractProducts(circularId, maxProducts),
     onSuccess: (d: any) => {
-      toast.success(`IA: ${d?.circular?.products?.length ?? 0} productos extraídos`);
+      toast.success(`IA: ${d?.circular?.products?.length ?? 0} productos extraídos. Las imágenes se limpian en segundo plano.`);
       qc.invalidateQueries({ queryKey: ['store-circulars', storeSlug] });
       qc.invalidateQueries({ queryKey: ['store-catalog-admin', storeSlug] });
     },
@@ -161,6 +221,31 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
       qc.invalidateQueries({ queryKey: ['store-catalog-admin', storeSlug] });
     },
     onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo cargar el catálogo'),
+  });
+
+  // Segunda pasada por secciones: trae los productos chicos que la primera dejó afuera.
+  const addMissing = useMutation({
+    mutationFn: (circularId: string) => circularService.addMissingProducts(circularId),
+    onSuccess: (d) => {
+      toast.success(d.added ? `${d.added} productos nuevos agregados (de ${d.found} encontrados)` : 'No había productos nuevos para agregar');
+      qc.invalidateQueries({ queryKey: ['store-circulars', storeSlug] });
+      qc.invalidateQueries({ queryKey: ['store-catalog-admin', storeSlug] });
+    },
+    onError: (e: any) =>
+      e?.response
+        ? toast.error(`No se pudieron agregar productos: ${e.response.data?.error || `error ${e.response.status}`}`, { duration: 9000 })
+        : toast('La extracción sigue corriendo en el servidor. Refresca en unos minutos.'),
+  });
+
+  // Ver el circular: si es PDF el servidor renderiza la primera página (una vez, queda cacheada).
+  const openCircularPreview = useMutation({
+    mutationFn: async (c: Circular) => {
+      const direct = (c as any).previewImageUrl || (/\.(png|jpe?g|webp)(\?|$)/i.test(c.fileUrl || '') ? c.fileUrl : '');
+      if (direct) return direct as string;
+      return (await circularService.getPreviewImage(c._id)).url;
+    },
+    onSuccess: (url, c) => setPreview({ url, title: c.title || 'Circular' }),
+    onError: () => toast.error('No se pudo generar la vista previa del circular'),
   });
 
   // Sin circular vigente en la base: se trae el PDF de la semana desde el link de la
@@ -208,6 +293,7 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
     items[0] ||
     null;
   const activeProducts: number = (activeCircular as any)?.products?.length ?? 0;
+  const busyExtract = extract.isPending || addMissing.isPending;
   // ¿Hay uno vigente o por venir? Si no, se ofrece traerlo del link de la tienda.
   const hasCurrent = items.some((c) => c.status === 'active' || c.status === 'scheduled');
 
@@ -296,33 +382,79 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
               </Typography>
               <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
                 {activeProducts > 0
-                  ? 'Carga estos productos al catálogo de la tienda (lo que ve el cliente en sus listas). Las imágenes quedan en PNG sin fondo, con su plato o pedestal.'
+                  ? 'Cargá estos productos al catálogo (lo que ve el cliente en sus listas), o sumá los chicos que faltan. Las imágenes quedan en PNG sin fondo, en alta, con su tabla o pedestal.'
                   : activeCircular.fileUrl
-                    ? 'Este circular todavía no tiene productos: la IA los lee del archivo y los carga al catálogo.'
+                    ? 'Este circular todavía no tiene productos. Elegí cuántos extraer: primero los de foto grande, y después sumás los chicos con "Agregar los que faltan".'
                     : 'Adjuntá el PDF o la imagen del circular para poder cargar sus productos.'}
               </Typography>
             </Box>
-            {activeProducts > 0 ? (
+            {activeCircular.fileUrl && (
               <Button
-                variant="contained"
-                disabled={loadCatalog.isPending}
-                onClick={() => loadCatalog.mutate(activeCircular._id)}
+                variant="outlined"
+                disabled={openCircularPreview.isPending}
+                onClick={() => openCircularPreview.mutate(activeCircular)}
               >
-                {loadCatalog.isPending ? 'Cargando…' : 'Cargar productos al catálogo'}
-              </Button>
-            ) : (
-              <Button
-                variant="contained"
-                disabled={!activeCircular.fileUrl || extract.isPending}
-                onClick={() => extract.mutate(activeCircular._id)}
-              >
-                {extract.isPending ? 'Extrayendo…' : 'Extraer productos (IA)'}
+                {openCircularPreview.isPending ? 'Abriendo…' : 'Ver circular'}
               </Button>
             )}
           </Stack>
-          {(loadCatalog.isPending || extract.isPending) && <LinearProgress sx={{ mt: 1.5, borderRadius: 1 }} />}
+
+          {/* Acciones de extracción */}
+          {activeCircular.fileUrl && (
+            <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1.25} sx={{ mt: 1.75 }}>
+              <TextField
+                select
+                size="small"
+                label="Cantidad a extraer"
+                value={maxProducts}
+                onChange={(e) => setMaxProducts(Number(e.target.value))}
+                disabled={busyExtract}
+                sx={{ width: 210 }}
+                helperText={maxProducts ? 'Los de foto más grande primero' : 'Por secciones: tarda varios minutos'}
+              >
+                {[10, 20, 30, 50].map((n) => (
+                  <MenuItem key={n} value={n}>Los primeros {n}</MenuItem>
+                ))}
+                <MenuItem value={0}>Todos los productos</MenuItem>
+              </TextField>
+              <Button
+                variant={activeProducts > 0 ? 'outlined' : 'contained'}
+                disabled={busyExtract}
+                onClick={() => {
+                  if (activeProducts > 0 && !window.confirm('Volver a extraer REEMPLAZA los productos de este circular. ¿Continuar?')) return;
+                  extract.mutate(activeCircular._id);
+                }}
+                sx={{ alignSelf: 'flex-start', mt: 0.25 }}
+              >
+                {extract.isPending ? 'Extrayendo…' : activeProducts > 0 ? 'Volver a extraer' : 'Extraer productos (IA)'}
+              </Button>
+              {activeProducts > 0 && (
+                <>
+                  <Button
+                    variant="outlined"
+                    disabled={busyExtract}
+                    onClick={() => addMissing.mutate(activeCircular._id)}
+                    sx={{ alignSelf: 'flex-start', mt: 0.25 }}
+                  >
+                    {addMissing.isPending ? 'Buscando los que faltan…' : 'Agregar los que faltan (chicos)'}
+                  </Button>
+                  <Button
+                    variant="contained"
+                    disabled={busyExtract || loadCatalog.isPending}
+                    onClick={() => loadCatalog.mutate(activeCircular._id)}
+                    sx={{ alignSelf: 'flex-start', mt: 0.25 }}
+                  >
+                    {loadCatalog.isPending ? 'Cargando…' : 'Cargar productos al catálogo'}
+                  </Button>
+                </>
+              )}
+            </Stack>
+          )}
+          {(loadCatalog.isPending || busyExtract) && <LinearProgress sx={{ mt: 1.5, borderRadius: 1 }} />}
         </Paper>
       )}
+
+      <ImagePreviewDialog key={preview?.url || 'none'} url={preview?.url ?? null} title={preview?.title} onClose={() => setPreview(null)} />
 
       <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
         <Typography variant="subtitle2" fontWeight={700} gutterBottom>
@@ -434,6 +566,8 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
   const [search, setSearch] = useState('');
   // Producto cuya imagen se está generando/subiendo (spinner por fila)
   const [imgBusy, setImgBusy] = useState<string | null>(null);
+  // Imagen abierta en grande (para revisar recorte, calidad y que no tenga fondo)
+  const [imgPreview, setImgPreview] = useState<{ url: string; title: string } | null>(null);
   const imgInput = useRef<HTMLInputElement>(null);
   const imgTarget = useRef<StoreProduct | null>(null);
 
@@ -638,6 +772,13 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
       </Stack>
 
       {/* Confirmación con modal propio — nada de window.confirm del navegador */}
+      <ImagePreviewDialog
+        key={imgPreview?.url || 'none'}
+        url={imgPreview?.url ?? null}
+        title={imgPreview?.title}
+        onClose={() => setImgPreview(null)}
+      />
+
       <Dialog open={syncOpen} onClose={() => setSyncOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <AutoAwesomeOutlinedIcon color="primary" fontSize="small" />
@@ -726,11 +867,17 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
                     {/* Miniatura + acciones: subir manual o regenerar con IA */}
                     <Stack direction="row" alignItems="center" gap={0.5}>
                       <Box
+                        component={p.imageUrl ? 'button' : 'div'}
+                        type={p.imageUrl ? 'button' : undefined}
+                        aria-label={p.imageUrl ? `Ver imagen de ${p.name} en grande` : undefined}
+                        onClick={p.imageUrl ? () => setImgPreview({ url: p.imageUrl as string, title: p.name }) : undefined}
                         sx={{
-                          width: 44, height: 44, borderRadius: 1.5, flexShrink: 0,
+                          width: 44, height: 44, borderRadius: 1.5, flexShrink: 0, p: 0,
                           border: '1px solid', borderColor: 'divider',
                           display: 'grid', placeItems: 'center', overflow: 'hidden',
                           bgcolor: 'background.default', fontSize: 20,
+                          cursor: p.imageUrl ? 'zoom-in' : 'default',
+                          '&:hover': p.imageUrl ? { borderColor: 'primary.main' } : undefined,
                         }}
                       >
                         {imgBusy === p._id ? (
