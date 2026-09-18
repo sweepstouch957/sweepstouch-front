@@ -23,6 +23,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
+import RcsSelectedTable from './RcsSelectedTable';
 
 function Kpi({
   label,
@@ -176,7 +177,7 @@ height={24} />
           <Kpi
             label="RCS · entregados"
             value={`${m.deliveryRate}%`}
-            sub={`${m.delivered.toLocaleString()} de ${m.total.toLocaleString()} enviados por RCS`}
+            sub={`${m.delivered.toLocaleString()} de ${m.total.toLocaleString()} elegidos · ${(m.failover ?? 0).toLocaleString()} por failover MMS/SMS`}
           />
           <Kpi
             label="SMS/MMS · entregados"
@@ -261,6 +262,9 @@ height={24} />
           base={base}
         />
       </Stack>
+
+      {/* Registro por número: a quién se eligió para RCS y qué pasó (para reintentar) */}
+      <RcsSelectedTable campaignId={campaignId} />
 
       {/* Lo que compraron */}
       {e.topProducts.length > 0 && (

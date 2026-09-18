@@ -172,7 +172,7 @@ sx={{ flex: { xs: '1 1 calc(50% - 6px)', sm: '0 0 88px' }, ...selectSx }}>
               <MenuItem key={opt}
 value={opt}
 sx={{ fontSize: 13 }}>
-                {opt === 'all' ? t('All Types') : opt}
+                {opt === 'all' ? t('All Types') : opt === 'MIXED' ? 'MIXED · RCS' : opt}
               </MenuItem>
             ))}
           </Select>

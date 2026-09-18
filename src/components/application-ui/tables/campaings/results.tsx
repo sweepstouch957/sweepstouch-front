@@ -37,6 +37,7 @@ import type { FC } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SkeletonTableRow } from '../../skeleton/table/table';
 import CampaignsFilters from './CampaignsFilters';
+import { isMixed, MixedSummaryBar, MixedTypeCell, useMixedRcsSummary } from './MixedRcsSummary';
 import type { Theme } from '@mui/material/styles';
 import { tint, tintBorder } from '@/theme/semantic';
 
@@ -153,7 +154,8 @@ useFlexGap
 mt={0.4}>
               <Chip size="small"
 label={campaign.type}
-variant="outlined"
+color={isMixed(campaign) ? 'primary' : 'default'}
+variant={isMixed(campaign) ? 'filled' : 'outlined'}
 sx={{ fontWeight: 700, height: 20, fontSize: 10 }} />
               {getStatusChip(campaign.status)}
               {campaign.platform && (
@@ -338,6 +340,8 @@ const Results: FC<ResultsProps> = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
   const showCards = forceCards || isMobile;
+  // Piloto mixed: resumen RCS de las campañas MIXED de esta página (1 sola llamada).
+  const { summary: rcsSummary, mixedCount } = useMixedRcsSummary(campaigns);
 
   const filtersRef = React.useRef<any>(filters);
   React.useEffect(() => { filtersRef.current = filters; }, [filters]);
@@ -435,6 +439,12 @@ justifyContent="flex-end">
         total={total}
       />
 
+      {/* Totales RCS del piloto mixed (sólo si hay campañas MIXED en pantalla) */}
+      <MixedSummaryBar
+        summary={rcsSummary}
+        mixedCount={mixedCount}
+      />
+
       {/* Mobile: card grid */}
       {showCards ? (
         <Box sx={{ p: 2 }}>
@@ -528,11 +538,15 @@ sx={{ width: 80 }}>{t('Actions')}</TableCell>
                         onClick={() => handleStats(campaign._id)}
                       >
                         <TableCell onClick={(e) => e.stopPropagation()}>
-                          <Typography
-                            sx={{ fontSize: 12, fontWeight: 800, color: 'text.secondary' }}
-                          >
-                            {campaign.type}
-                          </Typography>
+                          {isMixed(campaign) ? (
+                            <MixedTypeCell s={rcsSummary[campaign._id]} />
+                          ) : (
+                            <Typography
+                              sx={{ fontSize: 12, fontWeight: 800, color: 'text.secondary' }}
+                            >
+                              {campaign.type}
+                            </Typography>
+                          )}
                         </TableCell>
 
                         <TableCell onClick={(e) => e.stopPropagation()}>

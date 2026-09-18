@@ -50,6 +50,10 @@ export interface CampaignLog {
   status: MessageLogStatus;
   bwMessageStatus?: string;
   messageType?: string;
+  /** "rcs" = el número fue SELECCIONADO para RCS (aunque le llegue por failover) */
+  channel?: string;
+  /** RCS: cuándo abrió el mensaje */
+  seenAt?: string;
   segmentCount?: number;
   messageLength?: number;
   messageSize?: number;
@@ -79,6 +83,21 @@ export interface CampaignLog {
   sid?: string;
 }
 
+/** Resumen RCS por campaña para el listado (piloto mixed). */
+export interface RcsCampaignSummary {
+  /** números seleccionados para RCS */
+  picked: number;
+  /** les llegó el RCS */
+  rcsDelivered: number;
+  /** sin RCS en el teléfono: recibieron MMS/SMS por failover */
+  failover: number;
+  /** no les llegó nada */
+  failed: number;
+  pending: number;
+  /** abrieron el RCS */
+  seen: number;
+}
+
 export interface CampaignLogsResponse {
   campaignId: string;
   filters: {
@@ -104,6 +123,10 @@ export interface CampaignLogsQueryParams {
   search?: string;
   from?: string;
   to?: string;
+  /** 'rcs' → sólo los números seleccionados para RCS */
+  channel?: 'rcs';
+  /** con channel 'rcs': sólo a los que el RCS NO les llegó (error o failover) */
+  rcsFailed?: boolean;
 }
 
 /* ===================== YTD (existing) ===================== */
@@ -654,6 +677,14 @@ class CampaignClient {
     return res.data as Campaing;
   }
 
+  /** Resumen RCS de VARIAS campañas (listado): una sola llamada para toda la página.
+   *  Sólo cuenta los números SELECCIONADOS para RCS (piloto mixed / canal rcs). */
+  async getRcsSummary(ids: string[]): Promise<Record<string, RcsCampaignSummary>> {
+    if (!ids.length) return {};
+    const res = await api.get('/tracking/analytics/campaigns/rcs-summary', { params: { ids: ids.join(',') } });
+    return res.data?.summary ?? {};
+  }
+
   /** Métricas completas de UNA campaña RCS: entrega, apertura (seen), clicks
    *  de short links y engagement (listas + compras de quienes clickearon). */
   async getRcsMetrics(campaignId: string): Promise<{
@@ -665,6 +696,8 @@ class CampaignClient {
       seen: number;
       errors: number;
       queued: number;
+      /** elegidos para RCS que recibieron MMS/SMS por failover */
+      failover?: number;
       deliveryRate: number;
       seenRate: number;
     };
@@ -727,10 +760,10 @@ class CampaignClient {
     campaignId: string,
     params: CampaignLogsQueryParams = {}
   ): Promise<CampaignLogsResponse> {
-    const { status, page = 1, limit = 20, sort = 'desc', search, from, to } = params;
+    const { status, page = 1, limit = 20, sort = 'desc', search, from, to, channel, rcsFailed } = params;
 
     const res = await api.get(`/tracking/campaigns/${campaignId}/logs`, {
-      params: { status, page, limit, sort, search, from, to },
+      params: { status, page, limit, sort, search, from, to, channel, rcsFailed: rcsFailed ? 1 : undefined },
     });
 
     return res.data as CampaignLogsResponse;
