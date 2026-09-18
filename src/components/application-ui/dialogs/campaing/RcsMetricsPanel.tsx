@@ -184,10 +184,12 @@ height={24} />
             value={`${sms.deliveryRate}%`}
             sub={`${sms.delivered.toLocaleString()} de ${sms.total.toLocaleString()} enviados por SMS`}
           />
+          {/* El botón del piloto lleva el link directo de la tienda (sin short por
+              cliente), así que no hay clicks por campaña: se muestra el failover. */}
           <Kpi
-            label="RCS · clicks al botón"
-            value={`${c.clickRate}%`}
-            sub={`${c.clickedLinks.toLocaleString()} clientes · SMS no tiene tracking por cliente`}
+            label="Sin RCS · failover"
+            value={(m.failover ?? 0).toLocaleString()}
+            sub="elegidos sin RCS en el teléfono: recibieron su MMS/SMS"
           />
         </Stack>
       )}
