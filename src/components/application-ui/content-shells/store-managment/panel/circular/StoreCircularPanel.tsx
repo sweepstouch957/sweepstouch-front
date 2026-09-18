@@ -57,6 +57,7 @@ import TestMmsShoppingListModal from '@/components/mms/TestMmsShoppingListModal'
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import SmsOutlinedIcon from '@mui/icons-material/SmsOutlined';
+import StoreBannerSection from './StoreBannerSection';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
@@ -1496,6 +1497,11 @@ export default function StoreCircularPanel({ storeId, storeSlug, storeName, prov
           address={address}
           circularssUrl={circularssUrl}
         />
+      )}
+      {tab === 0 && (
+        <Box sx={{ mt: 2 }}>
+          <StoreBannerSection storeSlug={storeSlug} />
+        </Box>
       )}
       {tab === 1 && <CatalogSection storeSlug={storeSlug} />}
       {tab === 2 && <ListsSection storeSlug={storeSlug} />}

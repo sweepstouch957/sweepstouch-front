@@ -26,6 +26,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Snackbar } from '@mui/material';
 import CampaignResume from './campaing-resume';
+import MixedRcsEditor, { mixedCustomFromTemplate, mixedTemplateFromCustom, type MixedRcsCustom } from './MixedRcsEditor';
 import ProviderImageConstraints from './provider-image-constraints';
 import {
   isValidImageSizeForProvider,
@@ -50,6 +51,8 @@ interface CampaignFormInputs {
   linktree?: boolean; // 👈 nuevo parámetro
   /** Piloto mixed: SMS/MMS normal + un 10% de los clientes con nombre por RCS personalizado. */
   channel?: 'sms' | 'mixed';
+  /** Sólo en mixed: { mixedRatio?, contentTemplate? (RCS personalizado, type "MIXED") }. */
+  rcsOptions?: Record<string, unknown>;
 }
 
 const placeholders = [
@@ -211,6 +214,29 @@ export default function CreateCampaignForm({
 
   const currentLength = content?.length || 0;
 
+  // Piloto mixto: RCS personalizado de los elegidos. Viaja en rcsOptions.contentTemplate.
+  const [mixedRcs, setMixedRcs] = useState<MixedRcsCustom>(() =>
+    mixedCustomFromTemplate((initialValues as any)?.rcsOptions?.contentTemplate)
+  );
+  const mixedPreviewImage = useMemo(() => {
+    const f: any = (image as any)?.[0];
+    if (f instanceof File) return URL.createObjectURL(f);
+    return (typeof f === 'string' && f) || f?.url || watch('imageUrl') || (typeof initialValues?.image === 'string' ? initialValues.image : '') || '';
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [image]);
+
+  // Sólo en mixed se manda rcsOptions (conservando mixedRatio al editar). En "sms" no se
+  // toca: el payload queda idéntico al de siempre.
+  const submit = (data: CampaignFormInputs) => {
+    if (data.channel !== 'mixed') return onSubmit(data);
+    const ratio = (initialValues as any)?.rcsOptions?.mixedRatio;
+    const contentTemplate = mixedTemplateFromCustom(mixedRcs);
+    return onSubmit({
+      ...data,
+      rcsOptions: { ...(ratio ? { mixedRatio: ratio } : {}), ...(contentTemplate ? { contentTemplate } : {}) },
+    } as CampaignFormInputs);
+  };
+
   return (
     <Box>
       <Container maxWidth="lg">
@@ -247,7 +273,7 @@ export default function CreateCampaignForm({
                 </Box>
               </Stack>
 
-              <form onSubmit={handleSubmit(onSubmit)}>
+              <form onSubmit={handleSubmit(submit)}>
                 <Grid
                   container
                   spacing={2}
@@ -566,6 +592,22 @@ export default function CreateCampaignForm({
                         les llega el SMS. Si la base tiene 50 o menos clientes con nombre, van todos
                         por RCS (no el 10%). El costo se calcula igual que SMS/MMS.
                       </Typography>
+                      {channel === 'mixed' && (
+                        <>
+                          <Typography variant="subtitle2" fontWeight={700} sx={{ mt: 2 }}>
+                            Personalizar el RCS de los elegidos
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Opcional. No cambia el SMS/MMS del resto ni el mensaje de respaldo.
+                          </Typography>
+                          <MixedRcsEditor
+                            value={mixedRcs}
+                            onChange={setMixedRcs}
+                            smsText={content || ''}
+                            imageSrc={mixedPreviewImage}
+                          />
+                        </>
+                      )}
                     </Paper>
                   </Grid>
 

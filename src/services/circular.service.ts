@@ -41,6 +41,17 @@ export interface StoreProduct {
   updatedAt?: string;
 }
 
+/** Banner de campaña que el cliente ve arriba de su lista (linktree /prercs). */
+export interface StoreBanner {
+  _id: string;
+  storeSlug: string;
+  imageUrl: string;
+  title?: string;
+  startDate: string;
+  endDate: string;
+  createdAt?: string;
+}
+
 export interface UploadCircularPayload {
   file: File | Blob;
   storeSlug?: string;
@@ -301,6 +312,29 @@ export class CircularService {
   /** Elimina un producto del catálogo. */
   async deleteStoreProduct(id: string): Promise<{ ok: boolean }> {
     const res = await api.delete(`/circulars/store-product/${id}`);
+    return res.data;
+  }
+
+  /** Banners de campaña del Pre-RCS: el vigente (o null) + histórico, más nuevo primero. */
+  async getStoreBanners(storeSlug: string): Promise<{ active: StoreBanner | null; items: StoreBanner[] }> {
+    const res = await api.get(`/circulars/store/${storeSlug}/banners`);
+    return res.data;
+  }
+
+  /** Fechas como "YYYY-MM-DD" (día completo, hora del Este). */
+  async saveStoreBanner(
+    storeSlug: string,
+    body: { imageUrl: string; title?: string; startDate: string; endDate: string },
+    id?: string
+  ): Promise<{ ok: boolean; item: StoreBanner }> {
+    const res = id
+      ? await api.patch(`/circulars/store-banner/${id}`, body)
+      : await api.post(`/circulars/store/${storeSlug}/banners`, body);
+    return res.data;
+  }
+
+  async deleteStoreBanner(id: string): Promise<{ ok: boolean }> {
+    const res = await api.delete(`/circulars/store-banner/${id}`);
     return res.data;
   }
 
