@@ -32,7 +32,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { EmptyBlock, PageHero, PanelCard, StatusPill } from '../../content-shells/store-managment/panel-kit';
-import { EMPTY_RCS, RcsKpis, sumRcs, useMixedRcsSummary } from './MixedRcsSummary';
+import { EMPTY_RCS, fmtMinutes, rate, RcsKpis, sumRcs, useMixedRcsSummary } from './MixedRcsSummary';
 
 type RangeKey = 'today' | '7d' | '30d' | 'all';
 const RANGES: { key: RangeKey; label: string; days: number | null }[] = [
@@ -175,6 +175,9 @@ export default function MixedCampaignsPage() {
                   <TableCell align="right">Elegidos</TableCell>
                   <TableCell align="right">RCS entregado</TableCell>
                   <TableCell align="right">Vistos</TableCell>
+                  <TableCell align="right">Clicks</TableCell>
+                  <TableCell align="right">CTR</TableCell>
+                  <TableCell align="right">Apertura</TableCell>
                   <TableCell align="right">Failover</TableCell>
                   <TableCell align="right">Falló</TableCell>
                   <TableCell align="right">Pend.</TableCell>
@@ -243,6 +246,25 @@ export default function MixedCampaignsPage() {
                         sx={num}
                       >
                         {s.seen.toLocaleString()}
+                        <Typography component="span" variant="caption" color="text.secondary"> · {rate(s.seen, s.rcsDelivered)}</Typography>
+                      </TableCell>
+                      <TableCell
+                        align="right"
+                        sx={{ ...num, fontWeight: 700, color: s.clicked ? 'success.main' : 'text.secondary' }}
+                      >
+                        {(s.clicked || 0).toLocaleString()}
+                      </TableCell>
+                      <TableCell
+                        align="right"
+                        sx={num}
+                      >
+                        {rate(s.clicked || 0, s.rcsDelivered)}
+                      </TableCell>
+                      <TableCell
+                        align="right"
+                        sx={{ ...num, whiteSpace: 'nowrap' }}
+                      >
+                        {fmtMinutes(s.seenMinutes)}
                       </TableCell>
                       <TableCell
                         align="right"
@@ -298,7 +320,9 @@ export default function MixedCampaignsPage() {
         display="block"
         sx={{ mt: 1.5 }}
       >
-        Elegidos = números seleccionados para RCS. Failover = el teléfono no tiene RCS y recibió su MMS/SMS. Falló = no
+        Elegidos = números seleccionados para RCS. Vistos = abrieron el mensaje (seen report de Infobip). Clicks =
+        clientes únicos que tocaron el botón; CTR = clicks sobre RCS entregados; se cuentan desde las campañas
+        enviadas después de activar esta métrica. Apertura = tiempo promedio entre envío y apertura. Failover = el teléfono no tiene RCS y recibió su MMS/SMS. Falló = no
         le llegó nada. Clic en una fila abre el detalle con la lista por número y “Copiar fallidos”.
       </Typography>
     </>

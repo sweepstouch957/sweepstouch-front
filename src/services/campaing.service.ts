@@ -96,6 +96,14 @@ export interface RcsCampaignSummary {
   pending: number;
   /** abrieron el RCS */
   seen: number;
+  /** clientes únicos que tocaron el botón (inbound SUGGESTION de Infobip) */
+  clicked?: number;
+  /** taps totales al botón */
+  clicks?: number;
+  /** minutos promedio entre envío y apertura; null = sin datos */
+  seenMinutes?: number | null;
+  /** costo cobrado por Infobip a los elegidos (USD) */
+  cost?: number;
 }
 
 export interface CampaignLogsResponse {
