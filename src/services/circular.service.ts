@@ -50,6 +50,8 @@ export interface StoreBanner {
   startDate: string;
   endDate: string;
   createdAt?: string;
+  /** Lo sacó la IA del header del flyer al extraer productos. */
+  auto?: boolean;
 }
 
 export interface UploadCircularPayload {
@@ -330,6 +332,13 @@ export class CircularService {
     const res = id
       ? await api.patch(`/circulars/store-banner/${id}`, body)
       : await api.post(`/circulars/store/${storeSlug}/banners`, body);
+    return res.data;
+  }
+
+  /** La IA recorta el header del flyer y lo deja como banner con la vigencia del circular.
+   *  `sourceUrl` = arte de campaña; sin él usa el archivo del circular vigente. ~20 s. */
+  async bannerFromFlyer(storeSlug: string, sourceUrl?: string): Promise<{ ok: boolean; item: StoreBanner }> {
+    const res = await api.post(`/circulars/store/${storeSlug}/banners/from-flyer`, sourceUrl ? { sourceUrl } : {}, { timeout: 120_000 });
     return res.data;
   }
 

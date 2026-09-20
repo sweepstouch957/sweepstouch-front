@@ -7,6 +7,7 @@
  * fechas/título y se borra.
  */
 
+import { campaignClient } from '@/services/campaing.service';
 import { circularService, type StoreBanner } from '@/services/circular.service';
 import { uploadCampaignImage } from '@/services/upload.service';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -50,10 +51,35 @@ const statusOf = (b: StoreBanner, activeId?: string) => {
 
 const blank = () => ({ id: '', imageUrl: '', title: '', startDate: today(), endDate: plusDays(6) });
 
-export default function StoreBannerSection({ storeSlug }: { storeSlug: string }) {
+export default function StoreBannerSection({ storeSlug, storeId }: { storeSlug: string; storeId?: string }) {
   const qc = useQueryClient();
   const key = ['store-banners', storeSlug];
-  const banners = useQuery({ queryKey: key, queryFn: () => circularService.getStoreBanners(storeSlug), enabled: !!storeSlug });
+  const banners = useQuery({
+    queryKey: key,
+    queryFn: () => circularService.getStoreBanners(storeSlug),
+    enabled: !!storeSlug,
+    // ponytail: sondeo liviano para que aparezca solo el banner automático que se crea
+    // mientras corre una extracción arriba; pasar a evento de socket (circular:banner_ready) si molesta.
+    refetchInterval: 20_000,
+  });
+
+  // Arte de la última campaña: otra fuente para sacar el banner (misma query que el bloque de arriba).
+  const lastCampaign = useQuery({
+    queryKey: ['last-campaign-image', storeId],
+    queryFn: () => campaignClient.getLastCampaign(storeId as string, { withImage: true }).catch(() => null),
+    enabled: !!storeId,
+    staleTime: 5 * 60_000,
+  });
+  const campaignImage: string = (lastCampaign.data as any)?.image || '';
+
+  const fromFlyer = useMutation({
+    mutationFn: (sourceUrl?: string) => circularService.bannerFromFlyer(storeSlug, sourceUrl),
+    onSuccess: () => {
+      toast.success('Banner sacado del flyer');
+      qc.invalidateQueries({ queryKey: key });
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo sacar el banner'),
+  });
 
   const [form, setForm] = useState(blank);
   const [uploading, setUploading] = useState(false);
@@ -106,7 +132,26 @@ export default function StoreBannerSection({ storeSlug }: { storeSlug: string })
       <Typography variant="subtitle1" fontWeight={700}>Banner de campaña en las listas</Typography>
       <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
         Es la imagen que el cliente ve arriba de su lista. Sale solo entre las fechas elegidas; sin banner vigente no se muestra nada.
+        Al extraer productos de un circular o de una campaña, la IA recorta el encabezado del flyer y lo deja acá solo
+        (si ya hay uno manual vigente, no lo toca).
       </Typography>
+
+      <Stack direction="row" gap={1} flexWrap="wrap" sx={{ mb: 2 }}>
+        <Button size="small" variant="outlined" disabled={fromFlyer.isPending} onClick={() => fromFlyer.mutate(undefined)}>
+          Sacar banner del circular
+        </Button>
+        {campaignImage && (
+          <Button size="small" variant="outlined" disabled={fromFlyer.isPending} onClick={() => fromFlyer.mutate(campaignImage)}>
+            Sacar banner de la última campaña
+          </Button>
+        )}
+      </Stack>
+      {fromFlyer.isPending && (
+        <Box sx={{ mb: 2 }}>
+          <LinearProgress sx={{ borderRadius: 1 }} />
+          <Typography variant="caption" color="text.secondary">La IA está ubicando el encabezado del flyer (unos 20 segundos)…</Typography>
+        </Box>
+      )}
 
       <Stack direction={{ xs: 'column', md: 'row' }} gap={2.5}>
         {/* Vigente */}
@@ -233,7 +278,10 @@ export default function StoreBannerSection({ storeSlug }: { storeSlug: string })
                     </TableCell>
                     <TableCell>{b.title || '—'}</TableCell>
                     <TableCell sx={{ whiteSpace: 'nowrap' }}>{pretty(b.startDate)} al {pretty(b.endDate)}</TableCell>
-                    <TableCell><Chip size="small" label={st.label} color={st.color} /></TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                      <Chip size="small" label={st.label} color={st.color} />
+                      {b.auto && <Chip size="small" variant="outlined" label="Automático" sx={{ ml: 0.5 }} />}
+                    </TableCell>
                     <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                       <Tooltip title="Editar imagen, título o fechas">
                         <IconButton

@@ -1500,7 +1500,7 @@ export default function StoreCircularPanel({ storeId, storeSlug, storeName, prov
       )}
       {tab === 0 && (
         <Box sx={{ mt: 2 }}>
-          <StoreBannerSection storeSlug={storeSlug} />
+          <StoreBannerSection storeSlug={storeSlug} storeId={storeId} />
         </Box>
       )}
       {tab === 1 && <CatalogSection storeSlug={storeSlug} />}
