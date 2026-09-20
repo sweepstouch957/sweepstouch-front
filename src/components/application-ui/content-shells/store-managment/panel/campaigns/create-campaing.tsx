@@ -678,13 +678,18 @@ export default function CreateCampaignForm({
 
                 <Divider sx={{ my: 4 }} />
 
+                {/* La miniatura del linktree se sacó de acá (sep 2026): el banner que se ve
+                    arriba de las ofertas ahora se maneja en Circular y Listas, con su propia
+                    vigencia e histórico. La campaña sólo define la imagen que viaja en el MMS.
+                    El campo `thumbnailImage` de las campañas viejas no se toca. */}
                 <Section
-                  title="Imágenes"
-                  hint="La de campaña viaja en el MMS. La miniatura sólo se ve en el linktree."
+                  title="Imagen de campaña"
+                  hint="Es la que viaja en el MMS. Sin imagen, la campaña sale como SMS de texto."
                 >
                   <Grid
                     container
                     spacing={3}
+                    alignItems="flex-start"
                   >
                     <Grid
                       item
@@ -712,41 +717,14 @@ export default function CreateCampaignForm({
                           }
                         }}
                       />
-                      <Box sx={{ mt: 1 }}>
-                        <ProviderImageConstraints provider={provider} />
-                      </Box>
                     </Grid>
 
-                    {/* Miniatura del linktree — aparte de la imagen del MMS.
-                      La del MMS es vertical y pesada; arriba de las ofertas del
-                      Pre-RCS se ve como un cartel cortado. Opcional: sin esto el
-                      linktree sigue mostrando la imagen de campaña. */}
                     <Grid
                       item
                       xs={12}
                       sm={6}
                     >
-                      <AvatarUploadLogo
-                        label="Miniatura del linktree (opcional)"
-                        initialUrl={initialValues?.thumbnailImage}
-                        onSelect={(file) => {
-                          if (file) {
-                            const dt = new DataTransfer();
-                            dt.items.add(file);
-                            setValue('thumbnail', dt.files as any, { shouldValidate: true });
-                          } else {
-                            setValue('thumbnail', undefined);
-                          }
-                        }}
-                      />
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ display: 'block', mt: 1 }}
-                      >
-                        Se ve arriba de las ofertas. No se envía por SMS/MMS ni cambia el tipo de
-                        campaña.
-                      </Typography>
+                      <ProviderImageConstraints provider={provider} />
                     </Grid>
                   </Grid>
                 </Section>
