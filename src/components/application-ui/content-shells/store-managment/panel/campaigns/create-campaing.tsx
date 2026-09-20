@@ -1,6 +1,7 @@
 // components/campaigns/CreateCampaignForm.tsx
 'use client';
 
+import PreviewPhone from '@/components/application-ui/dialogs/preview/preview-phone';
 import AvatarUploadLogo from '@/components/application-ui/upload/avatar/avatar-upload-logo';
 import { circularService } from '@/services/circular.service';
 import { getStoreById } from '@/services/store.service';
@@ -20,6 +21,8 @@ import {
   Paper,
   Snackbar,
   Stack,
+  Tab,
+  Tabs,
   TextField,
   Tooltip,
   Typography,
@@ -28,9 +31,9 @@ import { DateTimePicker } from '@mui/x-date-pickers';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import CampaignResume from './campaing-resume';
 import MixedRcsEditor, {
   mixedCustomFromTemplate,
+  MixedRcsPreview,
   mixedTemplateFromCustom,
   type MixedRcsCustom,
 } from './MixedRcsEditor';
@@ -189,6 +192,16 @@ function Section({
   );
 }
 
+/** Pasos del formulario. En pestañas y no en un asistente rígido: al EDITAR una campaña
+ *  normalmente se toca un solo campo y no tiene sentido pasar por todos los pasos. */
+const STEPS = [
+  { key: 'mensaje', label: 'Mensaje' },
+  { key: 'imagenes', label: 'Imágenes' },
+  { key: 'envio', label: 'Envío' },
+  { key: 'rcs', label: 'RCS' },
+] as const;
+type StepKey = (typeof STEPS)[number]['key'];
+
 const insertAtCursor = (inputEl: HTMLTextAreaElement, text: string) => {
   const [start, end] = [inputEl.selectionStart, inputEl.selectionEnd];
   const currentText = inputEl.value;
@@ -238,6 +251,11 @@ export default function CreateCampaignForm({
   const channel = watch('channel');
 
   const [useFullAudience, setUseFullAudience] = useState(!initialValues?.customAudience);
+  const [step, setStep] = useState<StepKey>('mensaje');
+  // Vista previa: una sola, con pestañas. Antes había dos teléfonos a la vez en pantalla
+  // (el del SMS/MMS y el del RCS) y no se entendía cuál era cuál.
+  const [previewTab, setPreviewTab] = useState<'sms' | 'rcs'>('sms');
+  const [previewOpen, setPreviewOpen] = useState(false); // sólo móvil
   const contentRef = useRef<HTMLTextAreaElement | null>(null);
 
   const [snackState, setSnackState] = useState<{
@@ -333,6 +351,10 @@ export default function CreateCampaignForm({
   const audienceCount = useFullAudience ? totalAudience : Number(customAudience) || 0;
   const canSubmit = !isPhoneMissing && !hasShortenerLinks;
 
+  // Los campos siguen TODOS montados (sólo se ocultan): así react-hook-form conserva los
+  // valores y la validación del submit ve el formulario completo, esté en la pestaña que esté.
+  const paneSx = (k: StepKey) => ({ display: step === k ? 'block' : 'none' });
+
   return (
     <Box>
       <form onSubmit={handleSubmit(submit)}>
@@ -377,469 +399,603 @@ export default function CreateCampaignForm({
                 </Box>
               </Stack>
 
-              <Section
-                title="Mensaje"
-                hint="Es el texto que recibe el cliente por SMS o MMS."
+              <Tabs
+                value={step}
+                onChange={(_e, v) => setStep(v)}
+                variant="scrollable"
+                scrollButtons="auto"
+                allowScrollButtonsMobile
+                sx={{ mb: 3, borderBottom: '1px solid', borderColor: 'divider' }}
               >
-                <Grid
-                  container
-                  spacing={2}
-                >
-                  <Grid
-                    item
-                    xs={12}
-                    sm={7}
-                  >
-                    <Controller
-                      name="title"
-                      control={control}
-                      rules={{ required: 'Poné un título para identificar la campaña' }}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          label="Título de la campaña"
-                          fullWidth
-                          error={!!errors.title}
-                          helperText={
-                            errors.title?.message || 'Sólo para identificarla en el panel'
-                          }
-                        />
-                      )}
-                    />
-                  </Grid>
-
-                  <Grid
-                    item
-                    xs={12}
-                    sm={5}
-                  >
-                    <Controller
-                      name="startDate"
-                      control={control}
-                      rules={{ required: 'Start date is required' }}
-                      render={({ field }) => (
-                        <DateTimePicker
-                          {...field}
-                          label="Fecha y hora de envío"
-                          sx={{ width: '100%' }}
-                        />
-                      )}
-                    />
-                  </Grid>
-
-                  <Grid
-                    item
-                    xs={12}
-                  >
-                    <Controller
-                      name="content"
-                      control={control}
-                      rules={{ required: 'Message content is required' }}
-                      render={({ field }) => {
-                        const handleChange = (e: any) => {
-                          const value = e.target.value || '';
-                          if (value.length > 2047) {
-                            setSnackState({
-                              open: true,
-                              message: 'Message content cannot exceed 2047 characters (max 2047).',
-                              severity: 'error',
-                            });
-                            return;
-                          }
-                          field.onChange(e);
-                        };
-
-                        return (
-                          <>
-                            <TextField
-                              {...field}
-                              inputRef={(el) => {
-                                if (el) contentRef.current = el;
-                              }}
-                              label="Texto del mensaje"
-                              fullWidth
-                              multiline
-                              rows={7}
-                              placeholder={`Ej: Hola #name, aprovecha las ofertas en #storeName...`}
-                              error={!!errors.content}
-                              helperText={errors.content?.message}
-                              onChange={handleChange}
-                              sx={{
-                                '& .MuiInputBase-root': {
-                                  fontFamily: 'monospace',
-                                  // 16px en móvil: por debajo de eso iOS hace zoom al enfocar
-                                  // el campo y deja la página descuadrada.
-                                  fontSize: { xs: 16, sm: 14 },
-                                  lineHeight: 1.6,
-                                  whiteSpace: 'pre-wrap',
-                                },
-                              }}
-                            />
-                            <Box
-                              mt={0.5}
-                              display="flex"
-                              justifyContent="space-between"
-                            >
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                              >
-                                Cada 160 caracteres cuentan como un mensaje
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                color={currentLength > 1900 ? 'warning.main' : 'text.secondary'}
-                                sx={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}
-                              >
-                                {currentLength} / 2047
-                              </Typography>
-                            </Box>
-                            {hasShortenerLinks && (
-                              <Alert
-                                severity="warning"
-                                sx={{
-                                  mt: 1,
-                                  color: 'error.main',
-                                  fontSize: '0.95rem',
-                                  fontWeight: 600,
-                                  '& .MuiAlert-icon': {
-                                    color: 'error.main',
-                                  },
-                                  '& .MuiAlert-message': {
-                                    fontSize: 'inherit',
-                                  },
-                                }}
-                              >
-                                El mensaje contiene un short link generado por un sitio marcado por{' '}
-                                <Box
-                                  component="span"
-                                  sx={{ fontStyle: 'italic' }}
-                                >
-                                  desconfianza
-                                </Box>{' '}
-                                o{' '}
-                                <Box
-                                  component="span"
-                                  sx={{ fontStyle: 'italic' }}
-                                >
-                                  spam
-                                </Box>
-                                , debe cambiarlo por otro enlace o quitarlo del mensaje.
-                              </Alert>
-                            )}
-                          </>
-                        );
-                      }}
-                    />
-                  </Grid>
-
-                  <Grid
-                    item
-                    xs={12}
-                  >
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ display: 'block', mb: 0.75 }}
-                    >
-                      Tocá uno para insertarlo donde está el cursor. Se reemplaza por cliente al
-                      enviar.
-                    </Typography>
-                    <Box
-                      display="flex"
-                      flexWrap="wrap"
-                      gap={0.75}
-                    >
-                      {placeholders.map((ph) => (
-                        <Tooltip
-                          title={ph.label}
-                          key={ph.key}
+                {STEPS.map((s) => (
+                  <Tab
+                    key={s.key}
+                    value={s.key}
+                    disableRipple={false}
+                    sx={{ textTransform: 'none', fontWeight: 700, minHeight: 48 }}
+                    label={
+                      s.key === 'rcs' && channel === 'mixed' ? (
+                        <Stack
+                          direction="row"
+                          alignItems="center"
+                          gap={0.75}
                         >
-                          <Chip
-                            label={ph.key}
-                            clickable
-                            color="secondary"
-                            variant="outlined"
-                            // Altura táctil: con size="small" (24 px) es casi imposible
-                            // acertarle en el teléfono.
-                            sx={{ height: { xs: 36, sm: 28 }, fontSize: { xs: 14, sm: 13 } }}
-                            onClick={() => {
-                              if (contentRef.current) {
-                                const updatedText = insertAtCursor(
-                                  contentRef.current,
-                                  ` ${ph.key} `
-                                );
-                                if (updatedText.length > 2047) {
-                                  setSnackState({
-                                    open: true,
-                                    message:
-                                      'Message content cannot exceed 2047 characters (max 2047).',
-                                    severity: 'error',
-                                  });
-                                  // revertimos visualmente al valor anterior del form
-                                  contentRef.current.value = content || '';
-                                  return;
-                                }
-                                setValue('content', updatedText);
-                              }
+                          {s.label}
+                          <Box
+                            sx={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: '50%',
+                              bgcolor: 'primary.main',
                             }}
                           />
-                        </Tooltip>
-                      ))}
-                    </Box>
-                  </Grid>
+                        </Stack>
+                      ) : (
+                        s.label
+                      )
+                    }
+                  />
+                ))}
+              </Tabs>
 
-                  <Grid
-                    item
-                    xs={12}
-                  >
-                    <Controller
-                      name="description"
-                      control={control}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          label="Nota interna (opcional)"
-                          placeholder="No se envía al cliente"
-                          fullWidth
-                          multiline
-                          rows={2}
-                        />
-                      )}
-                    />
-                  </Grid>
-                </Grid>
-              </Section>
-
-              <Divider sx={{ my: 4 }} />
-
-              <Section
-                title="Imágenes"
-                hint="La de campaña viaja en el MMS. La miniatura sólo se ve en el linktree."
-              >
-                <Grid
-                  container
-                  spacing={3}
+              <Box sx={paneSx('mensaje')}>
+                <Section
+                  title="Mensaje"
+                  hint="Es el texto que recibe el cliente por SMS o MMS."
                 >
                   <Grid
-                    item
-                    xs={12}
-                    sm={6}
+                    container
+                    spacing={2}
                   >
-                    <AvatarUploadLogo
-                      label="Imagen de campaña"
-                      initialUrl={initialValues?.image}
-                      onSelect={(file) => {
-                        if (file) {
-                          if (!isValidImageSizeForProvider(file.size, provider)) {
-                            setSnackState({
-                              open: true,
-                              message: getProviderImageErrorMessage(provider),
-                              severity: 'error',
-                            });
-                            return;
-                          }
-                          const dt = new DataTransfer();
-                          dt.items.add(file);
-                          setValue('image', dt.files as any, { shouldValidate: true });
-                        } else {
-                          setValue('image', undefined);
-                        }
-                      }}
-                    />
-                    <Box sx={{ mt: 1 }}>
-                      <ProviderImageConstraints provider={provider} />
-                    </Box>
-                  </Grid>
-
-                  {/* Miniatura del linktree — aparte de la imagen del MMS.
-                      La del MMS es vertical y pesada; arriba de las ofertas del
-                      Pre-RCS se ve como un cartel cortado. Opcional: sin esto el
-                      linktree sigue mostrando la imagen de campaña. */}
-                  <Grid
-                    item
-                    xs={12}
-                    sm={6}
-                  >
-                    <AvatarUploadLogo
-                      label="Miniatura del linktree (opcional)"
-                      initialUrl={initialValues?.thumbnailImage}
-                      onSelect={(file) => {
-                        if (file) {
-                          const dt = new DataTransfer();
-                          dt.items.add(file);
-                          setValue('thumbnail', dt.files as any, { shouldValidate: true });
-                        } else {
-                          setValue('thumbnail', undefined);
-                        }
-                      }}
-                    />
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ display: 'block', mt: 1 }}
+                    <Grid
+                      item
+                      xs={12}
+                      sm={7}
                     >
-                      Se ve arriba de las ofertas. No se envía por SMS/MMS ni cambia el tipo de
-                      campaña.
-                    </Typography>
+                      <Controller
+                        name="title"
+                        control={control}
+                        rules={{ required: 'Poné un título para identificar la campaña' }}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            label="Título de la campaña"
+                            fullWidth
+                            error={!!errors.title}
+                            helperText={
+                              errors.title?.message || 'Sólo para identificarla en el panel'
+                            }
+                          />
+                        )}
+                      />
+                    </Grid>
+
+                    <Grid
+                      item
+                      xs={12}
+                      sm={5}
+                    >
+                      <Controller
+                        name="startDate"
+                        control={control}
+                        rules={{ required: 'Start date is required' }}
+                        render={({ field }) => (
+                          <DateTimePicker
+                            {...field}
+                            label="Fecha y hora de envío"
+                            sx={{ width: '100%' }}
+                          />
+                        )}
+                      />
+                    </Grid>
+
+                    <Grid
+                      item
+                      xs={12}
+                    >
+                      <Controller
+                        name="content"
+                        control={control}
+                        rules={{ required: 'Message content is required' }}
+                        render={({ field }) => {
+                          const handleChange = (e: any) => {
+                            const value = e.target.value || '';
+                            if (value.length > 2047) {
+                              setSnackState({
+                                open: true,
+                                message:
+                                  'Message content cannot exceed 2047 characters (max 2047).',
+                                severity: 'error',
+                              });
+                              return;
+                            }
+                            field.onChange(e);
+                          };
+
+                          return (
+                            <>
+                              <TextField
+                                {...field}
+                                inputRef={(el) => {
+                                  if (el) contentRef.current = el;
+                                }}
+                                label="Texto del mensaje"
+                                fullWidth
+                                multiline
+                                rows={7}
+                                placeholder={`Ej: Hola #name, aprovecha las ofertas en #storeName...`}
+                                error={!!errors.content}
+                                helperText={errors.content?.message}
+                                onChange={handleChange}
+                                sx={{
+                                  '& .MuiInputBase-root': {
+                                    fontFamily: 'monospace',
+                                    // 16px en móvil: por debajo de eso iOS hace zoom al enfocar
+                                    // el campo y deja la página descuadrada.
+                                    fontSize: { xs: 16, sm: 14 },
+                                    lineHeight: 1.6,
+                                    whiteSpace: 'pre-wrap',
+                                  },
+                                }}
+                              />
+                              <Box
+                                mt={0.5}
+                                display="flex"
+                                justifyContent="space-between"
+                              >
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  Cada 160 caracteres cuentan como un mensaje
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  color={currentLength > 1900 ? 'warning.main' : 'text.secondary'}
+                                  sx={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}
+                                >
+                                  {currentLength} / 2047
+                                </Typography>
+                              </Box>
+                              {hasShortenerLinks && (
+                                <Alert
+                                  severity="warning"
+                                  sx={{
+                                    mt: 1,
+                                    color: 'error.main',
+                                    fontSize: '0.95rem',
+                                    fontWeight: 600,
+                                    '& .MuiAlert-icon': {
+                                      color: 'error.main',
+                                    },
+                                    '& .MuiAlert-message': {
+                                      fontSize: 'inherit',
+                                    },
+                                  }}
+                                >
+                                  El mensaje contiene un short link generado por un sitio marcado
+                                  por{' '}
+                                  <Box
+                                    component="span"
+                                    sx={{ fontStyle: 'italic' }}
+                                  >
+                                    desconfianza
+                                  </Box>{' '}
+                                  o{' '}
+                                  <Box
+                                    component="span"
+                                    sx={{ fontStyle: 'italic' }}
+                                  >
+                                    spam
+                                  </Box>
+                                  , debe cambiarlo por otro enlace o quitarlo del mensaje.
+                                </Alert>
+                              )}
+                            </>
+                          );
+                        }}
+                      />
+                    </Grid>
+
+                    <Grid
+                      item
+                      xs={12}
+                    >
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: 'block', mb: 0.75 }}
+                      >
+                        Tocá uno para insertarlo donde está el cursor. Se reemplaza por cliente al
+                        enviar.
+                      </Typography>
+                      <Box
+                        display="flex"
+                        flexWrap="wrap"
+                        gap={0.75}
+                      >
+                        {placeholders.map((ph) => (
+                          <Tooltip
+                            title={ph.label}
+                            key={ph.key}
+                          >
+                            <Chip
+                              label={ph.key}
+                              clickable
+                              color="secondary"
+                              variant="outlined"
+                              // Altura táctil: con size="small" (24 px) es casi imposible
+                              // acertarle en el teléfono.
+                              sx={{ height: { xs: 36, sm: 28 }, fontSize: { xs: 14, sm: 13 } }}
+                              onClick={() => {
+                                if (contentRef.current) {
+                                  const updatedText = insertAtCursor(
+                                    contentRef.current,
+                                    ` ${ph.key} `
+                                  );
+                                  if (updatedText.length > 2047) {
+                                    setSnackState({
+                                      open: true,
+                                      message:
+                                        'Message content cannot exceed 2047 characters (max 2047).',
+                                      severity: 'error',
+                                    });
+                                    // revertimos visualmente al valor anterior del form
+                                    contentRef.current.value = content || '';
+                                    return;
+                                  }
+                                  setValue('content', updatedText);
+                                }
+                              }}
+                            />
+                          </Tooltip>
+                        ))}
+                      </Box>
+                    </Grid>
+
+                    <Grid
+                      item
+                      xs={12}
+                    >
+                      <Controller
+                        name="description"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            label="Nota interna (opcional)"
+                            placeholder="No se envía al cliente"
+                            fullWidth
+                            multiline
+                            rows={2}
+                          />
+                        )}
+                      />
+                    </Grid>
                   </Grid>
-                </Grid>
-              </Section>
+                </Section>
+              </Box>
 
-              <Divider sx={{ my: 4 }} />
-
-              <Section
-                title="Audiencia"
-                hint="A cuántos clientes de la tienda se le envía."
-              >
-                <Stack
-                  direction={{ xs: 'column', sm: 'row' }}
-                  alignItems={{ sm: 'center' }}
-                  spacing={2}
+              <Box sx={paneSx('imagenes')}>
+                <Section
+                  title="Imágenes"
+                  hint="La de campaña viaja en el MMS. La miniatura sólo se ve en el linktree."
                 >
-                  <FormControlLabel
-                    sx={{ mr: 0 }}
-                    control={
-                      <Checkbox
-                        checked={useFullAudience}
-                        onChange={(e) => {
-                          setUseFullAudience(e.target.checked);
-                          if (e.target.checked) {
-                            setValue('customAudience', undefined);
+                  <Grid
+                    container
+                    spacing={3}
+                  >
+                    <Grid
+                      item
+                      xs={12}
+                      sm={6}
+                    >
+                      <AvatarUploadLogo
+                        label="Imagen de campaña"
+                        initialUrl={initialValues?.image}
+                        onSelect={(file) => {
+                          if (file) {
+                            if (!isValidImageSizeForProvider(file.size, provider)) {
+                              setSnackState({
+                                open: true,
+                                message: getProviderImageErrorMessage(provider),
+                                severity: 'error',
+                              });
+                              return;
+                            }
+                            const dt = new DataTransfer();
+                            dt.items.add(file);
+                            setValue('image', dt.files as any, { shouldValidate: true });
+                          } else {
+                            setValue('image', undefined);
                           }
                         }}
                       />
-                    }
-                    label={`Toda la audiencia (${totalAudience.toLocaleString()} clientes)`}
-                  />
+                      <Box sx={{ mt: 1 }}>
+                        <ProviderImageConstraints provider={provider} />
+                      </Box>
+                    </Grid>
 
-                  {!useFullAudience && (
-                    <Controller
-                      name="customAudience"
-                      control={control}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          type="number"
-                          label="Cuántos clientes"
-                          size="small"
-                          sx={{ maxWidth: 220 }}
-                          inputProps={{ min: 1, max: totalAudience }}
-                          helperText={`Máximo ${totalAudience.toLocaleString()}`}
+                    {/* Miniatura del linktree — aparte de la imagen del MMS.
+                      La del MMS es vertical y pesada; arriba de las ofertas del
+                      Pre-RCS se ve como un cartel cortado. Opcional: sin esto el
+                      linktree sigue mostrando la imagen de campaña. */}
+                    <Grid
+                      item
+                      xs={12}
+                      sm={6}
+                    >
+                      <AvatarUploadLogo
+                        label="Miniatura del linktree (opcional)"
+                        initialUrl={initialValues?.thumbnailImage}
+                        onSelect={(file) => {
+                          if (file) {
+                            const dt = new DataTransfer();
+                            dt.items.add(file);
+                            setValue('thumbnail', dt.files as any, { shouldValidate: true });
+                          } else {
+                            setValue('thumbnail', undefined);
+                          }
+                        }}
+                      />
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: 'block', mt: 1 }}
+                      >
+                        Se ve arriba de las ofertas. No se envía por SMS/MMS ni cambia el tipo de
+                        campaña.
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </Section>
+              </Box>
+
+              <Box sx={paneSx('envio')}>
+                <Section
+                  title="Audiencia"
+                  hint="A cuántos clientes de la tienda se le envía."
+                >
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    alignItems={{ sm: 'center' }}
+                    spacing={2}
+                  >
+                    <FormControlLabel
+                      sx={{ mr: 0 }}
+                      control={
+                        <Checkbox
+                          checked={useFullAudience}
+                          onChange={(e) => {
+                            setUseFullAudience(e.target.checked);
+                            if (e.target.checked) {
+                              setValue('customAudience', undefined);
+                            }
+                          }}
                         />
-                      )}
+                      }
+                      label={`Toda la audiencia (${totalAudience.toLocaleString()} clientes)`}
+                    />
+
+                    {!useFullAudience && (
+                      <Controller
+                        name="customAudience"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            type="number"
+                            label="Cuántos clientes"
+                            size="small"
+                            sx={{ maxWidth: 220 }}
+                            inputProps={{ min: 1, max: totalAudience }}
+                            helperText={`Máximo ${totalAudience.toLocaleString()}`}
+                          />
+                        )}
+                      />
+                    )}
+                  </Stack>
+                </Section>
+              </Box>
+
+              {/* Piloto mixed (sep 2026): la campaña sale igual que siempre, pero un 10% de los
+                  clientes CON nombre recibe un RCS "Hi Nombre!" con botón al linktree (mismo
+                  SMS como failover). */}
+              <Box sx={paneSx('rcs')}>
+                <Stack
+                  direction={{ xs: 'column', sm: 'row' }}
+                  alignItems={{ sm: 'flex-start' }}
+                  justifyContent="space-between"
+                  gap={1}
+                >
+                  <Box>
+                    <FormControlLabel
+                      sx={{ mr: 0 }}
+                      control={
+                        <Checkbox
+                          checked={channel === 'mixed'}
+                          onChange={(e) => setValue('channel', e.target.checked ? 'mixed' : 'sms')}
+                        />
+                      }
+                      label={
+                        <Typography
+                          variant="subtitle1"
+                          fontWeight={700}
+                        >
+                          Piloto mixto: RCS para los clientes con nombre
+                        </Typography>
+                      }
+                    />
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ maxWidth: 780, mt: 0.5 }}
+                    >
+                      El resto recibe el SMS o MMS normal. Los elegidos ven un mensaje con su nombre
+                      y un botón; si su teléfono no tiene RCS, les llega el SMS igual. Con 50
+                      clientes con nombre o menos, van todos. El costo no cambia.
+                    </Typography>
+                  </Box>
+                  {channel === 'mixed' && (
+                    <Chip
+                      size="small"
+                      color="primary"
+                      label="Activo"
+                      sx={{ fontWeight: 700, flexShrink: 0 }}
                     />
                   )}
                 </Stack>
-              </Section>
+
+                {channel === 'mixed' && (
+                  <>
+                    <Divider sx={{ my: 3 }} />
+                    <Section
+                      title="Personalizar el RCS"
+                      hint="Opcional. No cambia el SMS/MMS del resto ni el mensaje de respaldo. Mirá cómo queda en la vista previa."
+                    >
+                      <MixedRcsEditor
+                        value={mixedRcs}
+                        onChange={setMixedRcs}
+                        smsText={content || ''}
+                        imageSrc={mixedPreviewImage}
+                        storeName={mixedStore.data?.name}
+                        storeAddress={mixedStore.data?.address}
+                        products={mixedCatalog.data?.items ?? []}
+                        productsLoaded={mixedCatalog.isSuccess}
+                      />
+                    </Section>
+                  </>
+                )}
+              </Box>
             </Card>
           </Grid>
 
-          {/* Resumen pegado en desktop: la columna de la izquierda es larga y, al bajar, este
-              panel quedaba fuera de pantalla dejando medio monitor en blanco.
-              En el teléfono va AL FINAL (order 3): ahí es un repaso antes de enviar, y
-              ponerlo entre el formulario y el piloto obligaba a scrollear de más. */}
+          {/* UNA sola vista previa, con pestañas. Antes eran dos teléfonos a la vez (el del
+              SMS/MMS en el resumen y el del RCS dentro del editor) y no se sabía cuál era cuál.
+              En el teléfono se despliega con un botón para no comerse la pantalla. */}
           <Grid
             item
             xs={12}
             lg={4}
-            order={{ xs: 3, lg: 2 }}
           >
             <Box sx={{ position: { lg: 'sticky' }, top: { lg: 24 } }}>
-              <CampaignResume
-                estimatedCost={estimatedCost}
-                startDate={startDate}
-                totalAudience={totalAudience}
-                type={(image as any)?.length ? 'MMS' : 'SMS'}
-                useFullAudience={useFullAudience}
-                customAudience={customAudience}
-                content={content}
-                image={(image as any)?.[0] || initialValues?.image}
-              />
-            </Box>
-          </Grid>
-
-          {/* Piloto mixed (sep 2026): la campaña sale igual que siempre, pero un 10% de los
-              clientes CON nombre recibe un RCS "Hi Nombre!" con botón al linktree (mismo SMS
-              como failover). Va a ANCHO COMPLETO: su editor ya trae dos columnas con vista
-              previa y, metido en la columna angosta del formulario, quedaba de 270 px. */}
-          <Grid
-            item
-            xs={12}
-            order={{ xs: 2, lg: 3 }}
-          >
-            <Card
-              variant="outlined"
-              sx={{
-                p: { xs: 2, sm: 3 },
-                ...(channel === 'mixed' && { borderColor: 'primary.main' }),
-              }}
-            >
-              <Stack
-                direction={{ xs: 'column', sm: 'row' }}
-                alignItems={{ sm: 'flex-start' }}
-                justifyContent="space-between"
-                gap={1}
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={() => setPreviewOpen((v) => !v)}
+                sx={{ display: { lg: 'none' }, minHeight: 44, mb: previewOpen ? 2 : 0 }}
               >
-                <Box>
-                  <FormControlLabel
-                    sx={{ mr: 0 }}
-                    control={
-                      <Checkbox
-                        checked={channel === 'mixed'}
-                        onChange={(e) => setValue('channel', e.target.checked ? 'mixed' : 'sms')}
-                      />
-                    }
-                    label={
-                      <Typography
-                        variant="subtitle1"
-                        fontWeight={700}
-                      >
-                        Piloto mixto: RCS para los clientes con nombre
-                      </Typography>
-                    }
-                  />
+                {previewOpen ? 'Ocultar vista previa' : 'Ver vista previa'}
+              </Button>
+
+              <Box sx={{ display: { xs: previewOpen ? 'block' : 'none', lg: 'block' } }}>
+                <Paper
+                  variant="outlined"
+                  sx={{ p: 2, mb: 2, borderRadius: 2 }}
+                >
                   <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ maxWidth: 780, mt: 0.5 }}
+                    variant="subtitle2"
+                    fontWeight={700}
+                    gutterBottom
                   >
-                    El resto recibe el SMS o MMS normal. Los elegidos ven un mensaje con su nombre y
-                    un botón; si su teléfono no tiene RCS, les llega el SMS igual. Con 50 clientes
-                    con nombre o menos, van todos. El costo no cambia.
+                    Resumen del envío
                   </Typography>
-                </Box>
+                  <Stack gap={0.5}>
+                    {[
+                      ['Tipo', campaignType],
+                      ['Audiencia', `${audienceCount.toLocaleString()} clientes`],
+                      [
+                        'Inicio',
+                        startDate
+                          ? new Date(startDate).toLocaleString('es', {
+                              dateStyle: 'medium',
+                              timeStyle: 'short',
+                            })
+                          : '—',
+                      ],
+                      ['Costo estimado', `$${(estimatedCost * audienceCount).toFixed(2)}`],
+                    ].map(([k, v]) => (
+                      <Stack
+                        key={k}
+                        direction="row"
+                        justifyContent="space-between"
+                        gap={2}
+                      >
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                        >
+                          {k}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          fontWeight={600}
+                          sx={{ textAlign: 'right' }}
+                        >
+                          {v}
+                        </Typography>
+                      </Stack>
+                    ))}
+                  </Stack>
+                </Paper>
+
                 {channel === 'mixed' && (
-                  <Chip
-                    size="small"
-                    color="primary"
-                    label="Activo"
-                    sx={{ fontWeight: 700, flexShrink: 0 }}
+                  <Tabs
+                    value={previewTab}
+                    onChange={(_e, v) => setPreviewTab(v)}
+                    variant="fullWidth"
+                    sx={{ mb: 1.5, minHeight: 40 }}
+                  >
+                    <Tab
+                      value="sms"
+                      label="SMS/MMS"
+                      sx={{ textTransform: 'none', fontWeight: 700, minHeight: 40 }}
+                    />
+                    <Tab
+                      value="rcs"
+                      label="RCS"
+                      sx={{ textTransform: 'none', fontWeight: 700, minHeight: 40 }}
+                    />
+                  </Tabs>
+                )}
+
+                {channel === 'mixed' && previewTab === 'rcs' ? (
+                  <Box>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      display="block"
+                      sx={{ mb: 0.75 }}
+                    >
+                      Lo que ve un cliente elegido (ejemplo: Maria)
+                    </Typography>
+                    <Box sx={{ p: 1.5, borderRadius: 4, bgcolor: 'action.hover' }}>
+                      <MixedRcsPreview
+                        value={mixedRcs}
+                        smsText={content || ''}
+                        imageSrc={mixedPreviewImage}
+                        storeName={mixedStore.data?.name}
+                        storeAddress={mixedStore.data?.address}
+                        products={mixedCatalog.data?.items ?? []}
+                      />
+                    </Box>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      display="block"
+                      sx={{ mt: 1 }}
+                    >
+                      Si el teléfono no tiene RCS, le llega el SMS/MMS de al lado.
+                    </Typography>
+                  </Box>
+                ) : (
+                  <PreviewPhone
+                    content={content}
+                    image={(image as any)?.[0] || initialValues?.image}
                   />
                 )}
-              </Stack>
-
-              {channel === 'mixed' && (
-                <>
-                  <Divider sx={{ my: 3 }} />
-                  <Section
-                    title="Personalizar el RCS de los elegidos"
-                    hint="Opcional. No cambia el SMS/MMS del resto ni el mensaje de respaldo."
-                  >
-                    <MixedRcsEditor
-                      value={mixedRcs}
-                      onChange={setMixedRcs}
-                      smsText={content || ''}
-                      imageSrc={mixedPreviewImage}
-                      storeName={mixedStore.data?.name}
-                      storeAddress={mixedStore.data?.address}
-                      products={mixedCatalog.data?.items ?? []}
-                      productsLoaded={mixedCatalog.isSuccess}
-                    />
-                  </Section>
-                </>
-              )}
-            </Card>
+              </Box>
+            </Box>
           </Grid>
         </Grid>
 

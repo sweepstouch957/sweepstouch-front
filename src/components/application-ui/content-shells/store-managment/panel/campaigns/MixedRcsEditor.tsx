@@ -115,6 +115,191 @@ const TOKENS = [
 type TextKey = 'greeting' | 'title' | 'body';
 export type MixedPreviewProduct = { name: string; price?: string; imageUrl?: string };
 
+export type MixedPreviewInput = {
+  value: MixedRcsCustom;
+  smsText: string;
+  imageSrc?: string;
+  storeName?: string;
+  storeAddress?: string;
+  products: MixedPreviewProduct[];
+};
+
+/**
+ * Cómo se vería el RCS con un cliente de ejemplo. Aplica las mismas reglas que el scheduler:
+ * la línea de un placeholder sin dato se borra junto con su rótulo.
+ * Lo usan el editor (para los estados de los campos) y la vista previa.
+ */
+export function buildMixedPreview({
+  value,
+  smsText,
+  imageSrc,
+  storeName,
+  storeAddress,
+  products,
+}: MixedPreviewInput) {
+  const hasProducts = products.length > 0;
+  const withPhoto = products.filter((p) => p.imageUrl);
+  const listOn = value.listButton && hasProducts;
+
+  const sample = (tpl: string) => {
+    const vals: Record<string, string> = {
+      '#ahorro': hasProducts ? '$12.50' : '',
+      '#listlink': listOn ? 'swtrcs.com/s/XXXXXX' : '',
+      '#address': (storeAddress || '').trim(),
+    };
+    const kept: string[] = [];
+    for (const line of tpl.split('\n')) {
+      const empty = Object.keys(vals).some((t) => line.toLowerCase().includes(t) && !vals[t]);
+      if (!empty) {
+        kept.push(line);
+        continue;
+      }
+      while (kept.length && !kept[kept.length - 1].trim()) kept.pop();
+      if (kept.length && /:\s*$/.test(kept[kept.length - 1])) kept.pop();
+    }
+    return kept
+      .join('\n')
+      .replace(/#name/gi, 'Maria')
+      .replace(/#store/gi, storeName || 'Tu tienda')
+      .replace(/#ahorro/gi, vals['#ahorro'])
+      .replace(/#listlink/gi, vals['#listlink'])
+      .replace(/#address/gi, vals['#address'])
+      .replace(/#linktree|#link/gi, value.buttonUrl.trim() || 'swtrcs.com/s/YYYYYY')
+      .replace(/#message/gi, smsText || 'Texto de la campaña')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  };
+
+  const greeting = sample(value.greeting.trim());
+  const body = sample(value.body.trim()) || smsText || 'Texto de la campaña';
+  return {
+    hasProducts,
+    withPhoto,
+    listOn,
+    greeting,
+    body,
+    title: sample(value.title.trim()) || greeting,
+    cards: imageSrc && value.productCards > 0 ? withPhoto.slice(0, value.productCards) : [],
+    listLabel: value.listButtonText.trim() || MIXED_RCS_DEFAULTS.listButtonText,
+    buttonLabel: value.buttonText.trim() || MIXED_RCS_DEFAULTS.buttonText,
+  };
+}
+
+/** Sólo la tarjeta del RCS. Vive aparte para poder mostrarla junto a la del SMS/MMS en el
+ *  mismo panel de vista previa, en vez de dos teléfonos sueltos en la pantalla. */
+export function MixedRcsPreview(input: MixedPreviewInput) {
+  const { imageSrc } = input;
+  const { greeting, body, title, cards, listOn, listLabel, buttonLabel } = buildMixedPreview(input);
+
+  const btn = (label: string) => (
+    <Box sx={{ borderTop: '1px solid', borderColor: 'divider', py: 0.9, textAlign: 'center' }}>
+      <Typography
+        variant="body2"
+        color="primary"
+        fontWeight={700}
+      >
+        {label}
+      </Typography>
+    </Box>
+  );
+
+  return (
+    <Stack
+      direction="row"
+      gap={1}
+      sx={{ overflowX: 'auto', pb: 0.5, alignItems: 'flex-start' }}
+    >
+      <Box
+        sx={{
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 3,
+          overflow: 'hidden',
+          bgcolor: 'background.paper',
+          width: cards.length ? 230 : '100%',
+          flexShrink: 0,
+        }}
+      >
+        {imageSrc && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={imageSrc}
+            alt=""
+            style={{
+              display: 'block',
+              width: '100%',
+              maxHeight: cards.length ? 150 : 260,
+              objectFit: 'cover',
+            }}
+          />
+        )}
+        <Box sx={{ p: 1.5 }}>
+          {imageSrc ? (
+            <>
+              {title && (
+                <Typography
+                  variant="subtitle2"
+                  fontWeight={700}
+                >
+                  {title}
+                </Typography>
+              )}
+              <Typography
+                variant="body2"
+                sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', mt: 0.5 }}
+              >
+                {body}
+              </Typography>
+            </>
+          ) : (
+            <Typography
+              variant="body2"
+              sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+            >
+              {greeting ? `${greeting} ${body}` : body}
+            </Typography>
+          )}
+        </Box>
+        {listOn && btn(listLabel)}
+        {btn(buttonLabel)}
+      </Box>
+      {cards.map((p, i) => (
+        <Box
+          key={i}
+          sx={{
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 3,
+            overflow: 'hidden',
+            bgcolor: 'background.paper',
+            width: 170,
+            flexShrink: 0,
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={p.imageUrl}
+            alt=""
+            loading="lazy"
+            style={{ display: 'block', width: '100%', height: 150, objectFit: 'contain' }}
+          />
+          <Box sx={{ p: 1.25 }}>
+            <Typography
+              variant="body2"
+              fontWeight={700}
+              sx={{ wordBreak: 'break-word' }}
+            >
+              {p.name}
+              {p.price ? ` — ${p.price}` : ''}
+            </Typography>
+          </Box>
+          {btn(listOn ? listLabel : buttonLabel)}
+        </Box>
+      ))}
+    </Stack>
+  );
+}
+
 export default function MixedRcsEditor({
   value,
   onChange,
@@ -166,57 +351,16 @@ export default function MixedRcsEditor({
       set({ [key]: e.target.value } as Partial<MixedRcsCustom>),
   });
 
-  const hasProducts = products.length > 0;
-  const withPhoto = products.filter((p) => p.imageUrl);
-  const listOn = value.listButton && hasProducts;
-
-  // Vista previa con datos de ejemplo — mismas reglas que el scheduler: la línea de un
-  // placeholder sin dato se borra junto con su rótulo.
-  const sample = (tpl: string) => {
-    const vals: Record<string, string> = {
-      '#ahorro': hasProducts ? '$12.50' : '',
-      '#listlink': listOn ? 'swtrcs.com/s/XXXXXX' : '',
-      '#address': (storeAddress || '').trim(),
-    };
-    const kept: string[] = [];
-    for (const line of tpl.split('\n')) {
-      const empty = Object.keys(vals).some((t) => line.toLowerCase().includes(t) && !vals[t]);
-      if (!empty) {
-        kept.push(line);
-        continue;
-      }
-      while (kept.length && !kept[kept.length - 1].trim()) kept.pop();
-      if (kept.length && /:\s*$/.test(kept[kept.length - 1])) kept.pop();
-    }
-    return kept
-      .join('\n')
-      .replace(/#name/gi, 'Maria')
-      .replace(/#store/gi, storeName || 'Tu tienda')
-      .replace(/#ahorro/gi, vals['#ahorro'])
-      .replace(/#listlink/gi, vals['#listlink'])
-      .replace(/#address/gi, vals['#address'])
-      .replace(/#linktree|#link/gi, value.buttonUrl.trim() || 'swtrcs.com/s/YYYYYY')
-      .replace(/#message/gi, smsText || 'Texto de la campaña')
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
-  };
-  const greeting = sample(value.greeting.trim());
-  const body = sample(value.body.trim()) || smsText || 'Texto de la campaña';
-  const title = sample(value.title.trim()) || greeting;
-  const cards = imageSrc && value.productCards > 0 ? withPhoto.slice(0, value.productCards) : [];
-
-  const btn = (label: string) => (
-    <Box sx={{ borderTop: '1px solid', borderColor: 'divider', py: 0.9, textAlign: 'center' }}>
-      <Typography
-        variant="body2"
-        color="primary"
-        fontWeight={700}
-      >
-        {label}
-      </Typography>
-    </Box>
-  );
-  const listLabel = value.listButtonText.trim() || MIXED_RCS_DEFAULTS.listButtonText;
+  // La tarjeta de vista previa ya NO vive acá: se muestra en el panel único de vista previa
+  // del formulario (antes había dos teléfonos en la misma pantalla).
+  const { hasProducts, withPhoto } = buildMixedPreview({
+    value,
+    smsText,
+    imageSrc,
+    storeName,
+    storeAddress,
+    products,
+  });
 
   return (
     <Box
@@ -247,351 +391,214 @@ export default function MixedRcsEditor({
         </Alert>
       )}
 
-      <Stack
-        direction={{ xs: 'column', md: 'row' }}
-        gap={4}
-        alignItems="flex-start"
-      >
-        <Stack
-          gap={2}
-          sx={{ flex: 1, minWidth: 0 }}
-        >
-          <Box>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              display="block"
-              sx={{ mb: 0.75 }}
-            >
-              Placeholders: tocá un campo y después el botón. Se reemplazan por cliente al enviar.
-            </Typography>
-            <Stack
-              direction="row"
-              flexWrap="wrap"
-              gap={0.75}
-            >
-              {TOKENS.map((t) => (
-                <Chip
-                  key={t.key}
-                  variant="outlined"
-                  color="primary"
-                  clickable
-                  // En el teléfono sólo el placeholder (el rótulo no entra) y con altura
-                  // táctil; en pantalla grande, placeholder + para qué sirve.
-                  label={
-                    <Box component="span">
-                      {t.key}
-                      <Box
-                        component="span"
-                        sx={{ display: { xs: 'none', sm: 'inline' } }}
-                      >
-                        {` · ${t.label}`}
-                      </Box>
-                    </Box>
-                  }
-                  sx={{ height: { xs: 36, sm: 28 }, fontSize: { xs: 14, sm: 13 } }}
-                  onClick={() => insert(t.key)}
-                />
-              ))}
-            </Stack>
-          </Box>
-          <TextField
-            size="small"
-            fullWidth
-            label="Saludo"
-            helperText='Vacío = sin saludo. Por defecto "Hi #name!"'
-            inputProps={{ maxLength: 120 }}
-            {...field('greeting')}
-          />
-          <TextField
-            size="small"
-            fullWidth
-            label="Título de la tarjeta"
-            placeholder="Por defecto: el saludo"
-            inputProps={{ maxLength: 200 }}
-            {...field('title')}
-          />
-          <TextField
-            size="small"
-            fullWidth
-            multiline
-            minRows={6}
-            maxRows={14}
-            label="Texto del RCS"
-            placeholder="Vacío = el mismo texto del SMS/MMS de la campaña"
-            helperText={`${value.body.length}/1800. Si falta el dato de #ahorro, #listlink o #address, esa línea y su rótulo se quitan solos.`}
-            inputProps={{ maxLength: 1800 }}
-            {...field('body')}
-          />
-          <Stack
-            direction="row"
-            gap={1}
-            flexWrap="wrap"
-          >
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={() => set({ body: MIXED_RCS_BODY })}
-            >
-              Usar estructura recomendada
-            </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={() => set({ body: '' })}
-            >
-              Usar el texto de la campaña
-            </Button>
-          </Stack>
-
-          <Typography
-            variant="subtitle2"
-            fontWeight={700}
-            sx={{ mt: 1 }}
-          >
-            Botones
-          </Typography>
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            gap={1.5}
-            alignItems={{ sm: 'flex-start' }}
-          >
-            <FormControlLabel
-              sx={{ flexShrink: 0, mr: 0 }}
-              control={
-                <Switch
-                  checked={value.listButton}
-                  onChange={(e) => set({ listButton: e.target.checked })}
-                />
-              }
-              label="Botón de lista"
-            />
-            <TextField
-              size="small"
-              fullWidth
-              label="Texto del botón de lista"
-              disabled={!value.listButton}
-              value={value.listButtonText}
-              onChange={(e) => set({ listButtonText: e.target.value })}
-              inputProps={{ maxLength: 25 }}
-              helperText="Abre la lista única del cliente para elegir ofertas"
-            />
-          </Stack>
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            gap={1.5}
-          >
-            <TextField
-              size="small"
-              fullWidth
-              label="Texto del botón de ofertas"
-              value={value.buttonText}
-              onChange={(e) => set({ buttonText: e.target.value })}
-              inputProps={{ maxLength: 25 }}
-              helperText={`${value.buttonText.length}/25`}
-            />
-            <TextField
-              size="small"
-              fullWidth
-              label="Link del botón de ofertas"
-              placeholder="Por defecto: el link del mensaje"
-              value={value.buttonUrl}
-              onChange={(e) => set({ buttonUrl: e.target.value })}
-              helperText="Vacío = el link de ofertas del texto, o el linktree"
-            />
-          </Stack>
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            gap={1.5}
-          >
-            <TextField
-              select
-              size="small"
-              fullWidth
-              label="Los botones abren en"
-              value={value.openIn}
-              onChange={(e) => set({ openIn: e.target.value as MixedRcsCustom['openIn'] })}
-            >
-              <MenuItem value="webview">Webview (dentro de Mensajes, pantalla completa)</MenuItem>
-              <MenuItem value="browser">Navegador del teléfono</MenuItem>
-            </TextField>
-            <TextField
-              select
-              size="small"
-              fullWidth
-              label="Cards de productos"
-              value={value.productCards}
-              onChange={(e) => set({ productCards: Number(e.target.value) })}
-              disabled={!withPhoto.length || !imageSrc}
-              helperText={
-                !imageSrc
-                  ? 'Necesita imagen de campaña'
-                  : withPhoto.length
-                    ? `Carrusel: la campaña + productos con foto (${withPhoto.length} disponibles)`
-                    : 'La tienda no tiene productos con foto'
-              }
-            >
-              <MenuItem value={0}>Ninguna (una sola tarjeta)</MenuItem>
-              {[2, 3, 4, 5, 7, 9].map((n) => (
-                <MenuItem
-                  key={n}
-                  value={n}
-                >
-                  {n} productos
-                </MenuItem>
-              ))}
-            </TextField>
-          </Stack>
-          {value.productCards > 0 && (
-            <Alert
-              severity="info"
-              sx={{ py: 0 }}
-            >
-              En carrusel el teléfono recorta los textos largos de cada tarjeta. Mandate una campaña
-              de prueba antes del envío masivo.
-            </Alert>
-          )}
-          <Stack
-            direction="row"
-            justifyContent="flex-end"
-          >
-            <Button
-              size="small"
-              color="inherit"
-              onClick={() => onChange(MIXED_RCS_DEFAULTS)}
-            >
-              Restaurar por defecto
-            </Button>
-          </Stack>
-        </Stack>
-
-        {/* Vista previa: marco tipo teléfono para que se lea como lo que es, un mensaje. */}
-        <Box
-          sx={{
-            width: { xs: '100%', md: 340 },
-            flexShrink: 0,
-            position: { md: 'sticky' },
-            top: { md: 16 },
-            // En el teléfono la vista previa va ARRIBA: primero ves el mensaje y después
-            // editás. Abajo quedaría tras una pantalla entera de campos.
-            order: { xs: -1, md: 0 },
-          }}
-        >
+      <Stack gap={2}>
+        <Box>
           <Typography
             variant="caption"
             color="text.secondary"
-            fontWeight={700}
             display="block"
             sx={{ mb: 0.75 }}
           >
-            Vista previa (cliente de ejemplo: Maria)
+            Placeholders: tocá un campo y después el botón. Se reemplazan por cliente al enviar.
           </Typography>
-          <Box sx={{ p: 1.5, borderRadius: 4, bgcolor: 'action.hover' }}>
-            <Stack
-              direction="row"
-              gap={1}
-              sx={{ overflowX: 'auto', pb: 0.5, alignItems: 'flex-start' }}
-            >
-              <Box
-                sx={{
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 3,
-                  overflow: 'hidden',
-                  bgcolor: 'background.paper',
-                  width: cards.length ? 230 : '100%',
-                  flexShrink: 0,
-                }}
-              >
-                {imageSrc && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={imageSrc}
-                    alt=""
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      maxHeight: cards.length ? 150 : 260,
-                      objectFit: 'cover',
-                    }}
-                  />
-                )}
-                <Box sx={{ p: 1.5 }}>
-                  {imageSrc ? (
-                    <>
-                      {title && (
-                        <Typography
-                          variant="subtitle2"
-                          fontWeight={700}
-                        >
-                          {title}
-                        </Typography>
-                      )}
-                      <Typography
-                        variant="body2"
-                        sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', mt: 0.5 }}
-                      >
-                        {body}
-                      </Typography>
-                    </>
-                  ) : (
-                    <Typography
-                      variant="body2"
-                      sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
-                    >
-                      {greeting ? `${greeting} ${body}` : body}
-                    </Typography>
-                  )}
-                </Box>
-                {listOn && btn(listLabel)}
-                {btn(value.buttonText.trim() || MIXED_RCS_DEFAULTS.buttonText)}
-              </Box>
-              {cards.map((p, i) => (
-                <Box
-                  key={i}
-                  sx={{
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    borderRadius: 3,
-                    overflow: 'hidden',
-                    bgcolor: 'background.paper',
-                    width: 170,
-                    flexShrink: 0,
-                  }}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={p.imageUrl}
-                    alt=""
-                    loading="lazy"
-                    style={{ display: 'block', width: '100%', height: 150, objectFit: 'contain' }}
-                  />
-                  <Box sx={{ p: 1.25 }}>
-                    <Typography
-                      variant="body2"
-                      fontWeight={700}
-                      sx={{ wordBreak: 'break-word' }}
-                    >
-                      {p.name}
-                      {p.price ? ` — ${p.price}` : ''}
-                    </Typography>
-                  </Box>
-                  {btn(
-                    listOn ? listLabel : value.buttonText.trim() || MIXED_RCS_DEFAULTS.buttonText
-                  )}
-                </Box>
-              ))}
-            </Stack>
-          </Box>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            display="block"
-            sx={{ mt: 1 }}
+          <Stack
+            direction="row"
+            flexWrap="wrap"
+            gap={0.75}
           >
-            Si el teléfono no tiene RCS, le llega el SMS/MMS normal de la campaña.
-          </Typography>
+            {TOKENS.map((t) => (
+              <Chip
+                key={t.key}
+                variant="outlined"
+                color="primary"
+                clickable
+                // En el teléfono sólo el placeholder (el rótulo no entra) y con altura
+                // táctil; en pantalla grande, placeholder + para qué sirve.
+                label={
+                  <Box component="span">
+                    {t.key}
+                    <Box
+                      component="span"
+                      sx={{ display: { xs: 'none', sm: 'inline' } }}
+                    >
+                      {` · ${t.label}`}
+                    </Box>
+                  </Box>
+                }
+                sx={{ height: { xs: 36, sm: 28 }, fontSize: { xs: 14, sm: 13 } }}
+                onClick={() => insert(t.key)}
+              />
+            ))}
+          </Stack>
         </Box>
+        <TextField
+          size="small"
+          fullWidth
+          label="Saludo"
+          helperText='Vacío = sin saludo. Por defecto "Hi #name!"'
+          inputProps={{ maxLength: 120 }}
+          {...field('greeting')}
+        />
+        <TextField
+          size="small"
+          fullWidth
+          label="Título de la tarjeta"
+          placeholder="Por defecto: el saludo"
+          inputProps={{ maxLength: 200 }}
+          {...field('title')}
+        />
+        <TextField
+          size="small"
+          fullWidth
+          multiline
+          minRows={6}
+          maxRows={14}
+          label="Texto del RCS"
+          placeholder="Vacío = el mismo texto del SMS/MMS de la campaña"
+          helperText={`${value.body.length}/1800. Si falta el dato de #ahorro, #listlink o #address, esa línea y su rótulo se quitan solos.`}
+          inputProps={{ maxLength: 1800 }}
+          {...field('body')}
+        />
+        <Stack
+          direction="row"
+          gap={1}
+          flexWrap="wrap"
+        >
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => set({ body: MIXED_RCS_BODY })}
+          >
+            Usar estructura recomendada
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => set({ body: '' })}
+          >
+            Usar el texto de la campaña
+          </Button>
+        </Stack>
+
+        <Typography
+          variant="subtitle2"
+          fontWeight={700}
+          sx={{ mt: 1 }}
+        >
+          Botones
+        </Typography>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          gap={1.5}
+          alignItems={{ sm: 'flex-start' }}
+        >
+          <FormControlLabel
+            sx={{ flexShrink: 0, mr: 0 }}
+            control={
+              <Switch
+                checked={value.listButton}
+                onChange={(e) => set({ listButton: e.target.checked })}
+              />
+            }
+            label="Botón de lista"
+          />
+          <TextField
+            size="small"
+            fullWidth
+            label="Texto del botón de lista"
+            disabled={!value.listButton}
+            value={value.listButtonText}
+            onChange={(e) => set({ listButtonText: e.target.value })}
+            inputProps={{ maxLength: 25 }}
+            helperText="Abre la lista única del cliente para elegir ofertas"
+          />
+        </Stack>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          gap={1.5}
+        >
+          <TextField
+            size="small"
+            fullWidth
+            label="Texto del botón de ofertas"
+            value={value.buttonText}
+            onChange={(e) => set({ buttonText: e.target.value })}
+            inputProps={{ maxLength: 25 }}
+            helperText={`${value.buttonText.length}/25`}
+          />
+          <TextField
+            size="small"
+            fullWidth
+            label="Link del botón de ofertas"
+            placeholder="Por defecto: el link del mensaje"
+            value={value.buttonUrl}
+            onChange={(e) => set({ buttonUrl: e.target.value })}
+            helperText="Vacío = el link de ofertas del texto, o el linktree"
+          />
+        </Stack>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          gap={1.5}
+        >
+          <TextField
+            select
+            size="small"
+            fullWidth
+            label="Los botones abren en"
+            value={value.openIn}
+            onChange={(e) => set({ openIn: e.target.value as MixedRcsCustom['openIn'] })}
+          >
+            <MenuItem value="webview">Webview (dentro de Mensajes, pantalla completa)</MenuItem>
+            <MenuItem value="browser">Navegador del teléfono</MenuItem>
+          </TextField>
+          <TextField
+            select
+            size="small"
+            fullWidth
+            label="Cards de productos"
+            value={value.productCards}
+            onChange={(e) => set({ productCards: Number(e.target.value) })}
+            disabled={!withPhoto.length || !imageSrc}
+            helperText={
+              !imageSrc
+                ? 'Necesita imagen de campaña'
+                : withPhoto.length
+                  ? `Carrusel: la campaña + productos con foto (${withPhoto.length} disponibles)`
+                  : 'La tienda no tiene productos con foto'
+            }
+          >
+            <MenuItem value={0}>Ninguna (una sola tarjeta)</MenuItem>
+            {[2, 3, 4, 5, 7, 9].map((n) => (
+              <MenuItem
+                key={n}
+                value={n}
+              >
+                {n} productos
+              </MenuItem>
+            ))}
+          </TextField>
+        </Stack>
+        {value.productCards > 0 && (
+          <Alert
+            severity="info"
+            sx={{ py: 0 }}
+          >
+            En carrusel el teléfono recorta los textos largos de cada tarjeta. Mandate una campaña
+            de prueba antes del envío masivo.
+          </Alert>
+        )}
+        <Stack
+          direction="row"
+          justifyContent="flex-end"
+        >
+          <Button
+            size="small"
+            color="inherit"
+            onClick={() => onChange(MIXED_RCS_DEFAULTS)}
+          >
+            Restaurar por defecto
+          </Button>
+        </Stack>
       </Stack>
     </Box>
   );
