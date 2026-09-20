@@ -79,11 +79,11 @@ export default function EditCampaignPage() {
   }
 
   return (
+    // xl y no lg: el editor del piloto mixto necesita ancho real para sus dos columnas.
     <Container
-      maxWidth="lg"
-      sx={{ py: 6 }}
+      maxWidth="xl"
+      sx={{ py: { xs: 3, md: 4 } }}
     >
-      {/* Flecha al lado del texto */}
       <Box
         display="flex"
         alignItems="center"
@@ -99,16 +99,28 @@ export default function EditCampaignPage() {
             }
           }}
           size="small"
+          aria-label="Volver al listado de campañas"
         >
           <ArrowBackIosNewIcon fontSize="small" />
         </IconButton>
 
-        <Typography
-          variant="h5"
-          component="h1"
-        >
-          Editar Campaña - <strong>{store.name}</strong>
-        </Typography>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            variant="h5"
+            component="h1"
+            fontWeight={700}
+            noWrap
+          >
+            Editar campaña
+          </Typography>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            noWrap
+          >
+            {store.name}
+          </Typography>
+        </Box>
       </Box>
 
       <CampaignFormContainer

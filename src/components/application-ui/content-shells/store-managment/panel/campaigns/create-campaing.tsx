@@ -2,6 +2,8 @@
 'use client';
 
 import AvatarUploadLogo from '@/components/application-ui/upload/avatar/avatar-upload-logo';
+import { circularService } from '@/services/circular.service';
+import { getStoreById } from '@/services/store.service';
 import { Sms } from '@mui/icons-material';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import {
@@ -12,29 +14,28 @@ import {
   Card,
   Checkbox,
   Chip,
-  Container,
+  Divider,
   FormControlLabel,
   Grid,
   Paper,
+  Snackbar,
   Stack,
   TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers';
+import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Snackbar } from '@mui/material';
-import { circularService } from '@/services/circular.service';
-import { getStoreById } from '@/services/store.service';
-import { useQuery } from '@tanstack/react-query';
 import CampaignResume from './campaing-resume';
-import MixedRcsEditor, { mixedCustomFromTemplate, mixedTemplateFromCustom, type MixedRcsCustom } from './MixedRcsEditor';
+import MixedRcsEditor, {
+  mixedCustomFromTemplate,
+  mixedTemplateFromCustom,
+  type MixedRcsCustom,
+} from './MixedRcsEditor';
 import ProviderImageConstraints from './provider-image-constraints';
-import {
-  isValidImageSizeForProvider,
-  getProviderImageErrorMessage,
-} from './provider-image-utils';
+import { getProviderImageErrorMessage, isValidImageSizeForProvider } from './provider-image-utils';
 
 interface CampaignFormInputs {
   title: string;
@@ -62,14 +63,20 @@ const placeholders = [
   { key: '#n', label: 'Salto de línea' },
   // Se reemplaza POR CLIENTE en el envío (scheduler-service): cada quien recibe
   // su nombre; sin nombre real el placeholder se omite limpio ("Hola," y ya).
-  { key: '#name', label: 'Nombre del cliente — personalizado para cada uno; si no tiene, se omite' },
+  {
+    key: '#name',
+    label: 'Nombre del cliente — personalizado para cada uno; si no tiene, se omite',
+  },
   { key: '#storeName', label: 'Nombre de la tienda' },
   { key: '#referralLink', label: 'Link de referido' },
   { key: '#disclaimer', label: 'Texto legal' },
   { key: '#linktree', label: 'Linktree de la tienda' }, // 👈 nuevo placeholder
   // El mismo destino que #linktree pero por el short permanente de la tienda
   // (swtrcs.com/s/XXXXXX): ~60 caracteres menos, que en SMS es un segmento menos.
-  { key: '#linktreeShort', label: 'Linktree corto — swtrcs.com/s/… (mismo link, 60 caracteres menos)' },
+  {
+    key: '#linktreeShort',
+    label: 'Linktree corto — swtrcs.com/s/… (mismo link, 60 caracteres menos)',
+  },
   { key: '#lead', label: 'Lead / Completar perfil' },
   { key: '#linkrcs', label: 'Link RCS único por cliente (activa el flujo RCS)' },
   {
@@ -143,6 +150,45 @@ const findShortenerDomains = (message: string) => {
   return Array.from(matchedDomains);
 };
 
+/**
+ * Bloque titulado del formulario. Los campos estaban todos apilados en una sola columna sin
+ * jerarquía: agruparlos (mensaje / imágenes / audiencia / piloto) deja claro de un vistazo
+ * qué es cada cosa y cuánto falta para terminar.
+ */
+function Section({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Box
+      component="section"
+      sx={{ '& + &': { mt: 4 } }}
+    >
+      <Typography
+        variant="subtitle1"
+        fontWeight={700}
+      >
+        {title}
+      </Typography>
+      {hint && (
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: 'block', mb: 1.5 }}
+        >
+          {hint}
+        </Typography>
+      )}
+      <Box sx={{ mt: hint ? 0 : 1.5 }}>{children}</Box>
+    </Box>
+  );
+}
+
 const insertAtCursor = (inputEl: HTMLTextAreaElement, text: string) => {
   const [start, end] = [inputEl.selectionStart, inputEl.selectionEnd];
   const currentText = inputEl.value;
@@ -194,10 +240,14 @@ export default function CreateCampaignForm({
   const [useFullAudience, setUseFullAudience] = useState(!initialValues?.customAudience);
   const contentRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const [snackState, setSnackState] = useState<{ open: boolean; message: string; severity: 'error' | 'warning' | 'info' | 'success' }>({
+  const [snackState, setSnackState] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'error' | 'warning' | 'info' | 'success';
+  }>({
     open: false,
     message: '',
-    severity: 'error'
+    severity: 'error',
   });
 
   const isPhoneMissing = !phoneNumber || phoneNumber.trim() === '';
@@ -252,7 +302,10 @@ export default function CreateCampaignForm({
       return () => URL.revokeObjectURL(url);
     }
     setMixedPreviewImage(
-      (typeof f === 'string' && f) || f?.url || (typeof initialValues?.image === 'string' ? initialValues.image : '') || ''
+      (typeof f === 'string' && f) ||
+        f?.url ||
+        (typeof initialValues?.image === 'string' ? initialValues.image : '') ||
+        ''
     );
     return undefined;
   }, [image, channel, initialValues?.image]);
@@ -265,47 +318,69 @@ export default function CreateCampaignForm({
     const contentTemplate = mixedTemplateFromCustom(mixedRcs);
     return onSubmit({
       ...data,
-      rcsOptions: { ...(ratio ? { mixedRatio: ratio } : {}), ...(contentTemplate ? { contentTemplate } : {}) },
+      rcsOptions: {
+        ...(ratio ? { mixedRatio: ratio } : {}),
+        ...(contentTemplate ? { contentTemplate } : {}),
+      },
     } as CampaignFormInputs);
   };
 
+  const campaignType =
+    channel === 'mixed'
+      ? 'MIXED'
+      : (initialValues?.type && initialValues.type !== 'MIXED' ? initialValues.type : null) ||
+        ((image as any)?.length ? 'MMS' : 'SMS');
+  const audienceCount = useFullAudience ? totalAudience : Number(customAudience) || 0;
+  const canSubmit = !isPhoneMissing && !hasShortenerLinks;
+
   return (
     <Box>
-      <Container maxWidth="lg">
+      <form onSubmit={handleSubmit(submit)}>
         <Grid
           container
           spacing={3}
+          alignItems="flex-start"
         >
           <Grid
             item
             xs={12}
-            md={7}
+            lg={8}
+            order={{ xs: 1, lg: 1 }}
           >
             <Card
               variant="outlined"
-              sx={{ p: 3 }}
+              sx={{ p: { xs: 2, sm: 3 } }}
             >
               <Stack
                 direction="row"
                 alignItems="center"
                 spacing={2}
-                mb={3}
+                sx={{ pb: 2, mb: 3, borderBottom: '1px solid', borderColor: 'divider' }}
               >
                 <Avatar>
                   <Sms />
                 </Avatar>
-                <Box>
-                  <Typography variant="h6">Provider: {provider}</Typography>
+                <Box sx={{ minWidth: 0 }}>
                   <Typography
-                    variant="body2"
+                    variant="subtitle1"
+                    fontWeight={700}
+                    noWrap
+                  >
+                    Se envía desde {phoneNumber}
+                  </Typography>
+                  <Typography
+                    variant="caption"
                     color="text.secondary"
                   >
-                    Sending from: {phoneNumber}
+                    Proveedor: {provider} · Tipo: {campaignType}
                   </Typography>
                 </Box>
               </Stack>
 
-              <form onSubmit={handleSubmit(submit)}>
+              <Section
+                title="Mensaje"
+                hint="Es el texto que recibe el cliente por SMS o MMS."
+              >
                 <Grid
                   container
                   spacing={2}
@@ -313,18 +388,21 @@ export default function CreateCampaignForm({
                   <Grid
                     item
                     xs={12}
+                    sm={7}
                   >
                     <Controller
                       name="title"
                       control={control}
-                      rules={{ required: 'Title is required' }}
+                      rules={{ required: 'Poné un título para identificar la campaña' }}
                       render={({ field }) => (
                         <TextField
                           {...field}
-                          label="Campaign Title"
+                          label="Título de la campaña"
                           fullWidth
                           error={!!errors.title}
-                          helperText={errors.title?.message}
+                          helperText={
+                            errors.title?.message || 'Sólo para identificarla en el panel'
+                          }
                         />
                       )}
                     />
@@ -333,7 +411,7 @@ export default function CreateCampaignForm({
                   <Grid
                     item
                     xs={12}
-                    sm={6}
+                    sm={5}
                   >
                     <Controller
                       name="startDate"
@@ -342,28 +420,10 @@ export default function CreateCampaignForm({
                       render={({ field }) => (
                         <DateTimePicker
                           {...field}
-                          label="Start Date"
+                          label="Fecha y hora de envío"
                           sx={{ width: '100%' }}
                         />
                       )}
-                    />
-                  </Grid>
-
-                  <Grid
-                    item
-                    xs={12}
-                    sm={6}
-                  >
-                    <TextField
-                      label="Campaign Type"
-                      value={
-                        channel === 'mixed'
-                          ? 'MIXED'
-                          : (initialValues?.type && initialValues.type !== 'MIXED' ? initialValues.type : null) ||
-                            ((image as any)?.length ? 'MMS' : 'SMS')
-                      }
-                      disabled
-                      fullWidth
                     />
                   </Grid>
 
@@ -382,7 +442,7 @@ export default function CreateCampaignForm({
                             setSnackState({
                               open: true,
                               message: 'Message content cannot exceed 2047 characters (max 2047).',
-                              severity: 'error'
+                              severity: 'error',
                             });
                             return;
                           }
@@ -396,10 +456,10 @@ export default function CreateCampaignForm({
                               inputRef={(el) => {
                                 if (el) contentRef.current = el;
                               }}
-                              label="Message Content"
+                              label="Texto del mensaje"
                               fullWidth
                               multiline
-                              rows={6}
+                              rows={7}
                               placeholder={`Ej: Hola #name, aprovecha las ofertas en #storeName...`}
                               error={!!errors.content}
                               helperText={errors.content?.message}
@@ -407,6 +467,10 @@ export default function CreateCampaignForm({
                               sx={{
                                 '& .MuiInputBase-root': {
                                   fontFamily: 'monospace',
+                                  // 16px en móvil: por debajo de eso iOS hace zoom al enfocar
+                                  // el campo y deja la página descuadrada.
+                                  fontSize: { xs: 16, sm: 14 },
+                                  lineHeight: 1.6,
                                   whiteSpace: 'pre-wrap',
                                 },
                               }}
@@ -420,11 +484,12 @@ export default function CreateCampaignForm({
                                 variant="caption"
                                 color="text.secondary"
                               >
-                                100 to 2047 characters max
+                                Cada 160 caracteres cuentan como un mensaje
                               </Typography>
                               <Typography
                                 variant="caption"
-                                color="text.secondary"
+                                color={currentLength > 1900 ? 'warning.main' : 'text.secondary'}
+                                sx={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}
                               >
                                 {currentLength} / 2047
                               </Typography>
@@ -472,10 +537,18 @@ export default function CreateCampaignForm({
                     item
                     xs={12}
                   >
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ display: 'block', mb: 0.75 }}
+                    >
+                      Tocá uno para insertarlo donde está el cursor. Se reemplaza por cliente al
+                      enviar.
+                    </Typography>
                     <Box
                       display="flex"
                       flexWrap="wrap"
-                      gap={1}
+                      gap={0.75}
                     >
                       {placeholders.map((ph) => (
                         <Tooltip
@@ -484,10 +557,12 @@ export default function CreateCampaignForm({
                         >
                           <Chip
                             label={ph.key}
-                            size="small"
                             clickable
                             color="secondary"
                             variant="outlined"
+                            // Altura táctil: con size="small" (24 px) es casi imposible
+                            // acertarle en el teléfono.
+                            sx={{ height: { xs: 36, sm: 28 }, fontSize: { xs: 14, sm: 13 } }}
                             onClick={() => {
                               if (contentRef.current) {
                                 const updatedText = insertAtCursor(
@@ -497,8 +572,9 @@ export default function CreateCampaignForm({
                                 if (updatedText.length > 2047) {
                                   setSnackState({
                                     open: true,
-                                    message: 'Message content cannot exceed 2047 characters (max 2047).',
-                                    severity: 'error'
+                                    message:
+                                      'Message content cannot exceed 2047 characters (max 2047).',
+                                    severity: 'error',
                                   });
                                   // revertimos visualmente al valor anterior del form
                                   contentRef.current.value = content || '';
@@ -513,8 +589,6 @@ export default function CreateCampaignForm({
                     </Box>
                   </Grid>
 
-                
-
                   <Grid
                     item
                     xs={12}
@@ -525,7 +599,8 @@ export default function CreateCampaignForm({
                       render={({ field }) => (
                         <TextField
                           {...field}
-                          label="Comment"
+                          label="Nota interna (opcional)"
+                          placeholder="No se envía al cliente"
                           fullWidth
                           multiline
                           rows={2}
@@ -533,12 +608,24 @@ export default function CreateCampaignForm({
                       )}
                     />
                   </Grid>
+                </Grid>
+              </Section>
 
+              <Divider sx={{ my: 4 }} />
+
+              <Section
+                title="Imágenes"
+                hint="La de campaña viaja en el MMS. La miniatura sólo se ve en el linktree."
+              >
+                <Grid
+                  container
+                  spacing={3}
+                >
                   <Grid
                     item
                     xs={12}
+                    sm={6}
                   >
-                    <ProviderImageConstraints provider={provider} />
                     <AvatarUploadLogo
                       label="Imagen de campaña"
                       initialUrl={initialValues?.image}
@@ -548,7 +635,7 @@ export default function CreateCampaignForm({
                             setSnackState({
                               open: true,
                               message: getProviderImageErrorMessage(provider),
-                              severity: 'error'
+                              severity: 'error',
                             });
                             return;
                           }
@@ -560,6 +647,9 @@ export default function CreateCampaignForm({
                         }
                       }}
                     />
+                    <Box sx={{ mt: 1 }}>
+                      <ProviderImageConstraints provider={provider} />
+                    </Box>
                   </Grid>
 
                   {/* Miniatura del linktree — aparte de la imagen del MMS.
@@ -569,9 +659,10 @@ export default function CreateCampaignForm({
                   <Grid
                     item
                     xs={12}
+                    sm={6}
                   >
                     <AvatarUploadLogo
-                      label="Miniatura para el linktree (opcional)"
+                      label="Miniatura del linktree (opcional)"
                       initialUrl={initialValues?.thumbnailImage}
                       onSelect={(file) => {
                         if (file) {
@@ -586,189 +677,261 @@ export default function CreateCampaignForm({
                     <Typography
                       variant="caption"
                       color="text.secondary"
-                      sx={{ display: 'block', mt: 0.5 }}
+                      sx={{ display: 'block', mt: 1 }}
                     >
-                      Es la que se ve arriba de las ofertas en el linktree. No se envía por
-                      SMS/MMS y no cambia el tipo de campaña.
+                      Se ve arriba de las ofertas. No se envía por SMS/MMS ni cambia el tipo de
+                      campaña.
                     </Typography>
                   </Grid>
-
-                  {/* Piloto mixed (sep 2026): la campaña sale igual que siempre, pero
-                      un 10% de los clientes CON nombre recibe un RCS "Hi Nombre! ..."
-                      con botón al linktree (mismo SMS como failover). Métricas RCS vs
-                      SMS en el detalle de campaña. */}
-                  <Grid
-                    item
-                    xs={12}
-                  >
-                    <Paper
-                      variant="outlined"
-                      sx={{ p: 2 }}
-                    >
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={channel === 'mixed'}
-                            onChange={(e) => setValue('channel', e.target.checked ? 'mixed' : 'sms')}
-                          />
-                        }
-                        label="Piloto mixto: 10% de los clientes con nombre por RCS personalizado"
-                      />
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ display: 'block', mt: 0.5 }}
-                      >
-                        El resto recibe el SMS/MMS normal. Los elegidos ven &quot;Hi Nombre!&quot; + este
-                        mismo texto + un botón al linktree de la tienda; si su teléfono no tiene RCS,
-                        les llega el SMS. Si la base tiene 50 o menos clientes con nombre, van todos
-                        por RCS (no el 10%). El costo se calcula igual que SMS/MMS.
-                      </Typography>
-                      {channel === 'mixed' && (
-                        <>
-                          <Typography variant="subtitle2" fontWeight={700} sx={{ mt: 2 }}>
-                            Personalizar el RCS de los elegidos
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Opcional. No cambia el SMS/MMS del resto ni el mensaje de respaldo.
-                          </Typography>
-                          <MixedRcsEditor
-                            value={mixedRcs}
-                            onChange={setMixedRcs}
-                            smsText={content || ''}
-                            imageSrc={mixedPreviewImage}
-                            storeName={mixedStore.data?.name}
-                            storeAddress={mixedStore.data?.address}
-                            products={mixedCatalog.data?.items ?? []}
-                            productsLoaded={mixedCatalog.isSuccess}
-                          />
-                        </>
-                      )}
-                    </Paper>
-                  </Grid>
-
-                  <Grid
-                    item
-                    xs={12}
-                  >
-                    <Paper
-                      variant="outlined"
-                      sx={{ p: 2 }}
-                    >
-                      <Stack
-                        direction="row"
-                        alignItems="center"
-                        spacing={2}
-                      >
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              checked={useFullAudience}
-                              onChange={(e) => {
-                                setUseFullAudience(e.target.checked);
-                                if (e.target.checked) {
-                                  setValue('customAudience', undefined);
-                                }
-                              }}
-                            />
-                          }
-                          label={`Enviar a toda la audiencia (${totalAudience} clientes)`}
-                        />
-
-                        {!useFullAudience && (
-                          <Controller
-                            name="customAudience"
-                            control={control}
-                            render={({ field }) => (
-                              <TextField
-                                {...field}
-                                type="number"
-                                label="Tamaño de audiencia personalizada"
-                                size="small"
-                                inputProps={{ min: 1, max: totalAudience }}
-                              />
-                            )}
-                          />
-                        )}
-                      </Stack>
-                    </Paper>
-                  </Grid>
                 </Grid>
+              </Section>
 
-                <Box
-                  mt={4}
-                  display="flex"
-                  flexDirection="column"
-                  alignItems="flex-end"
-                  gap={1.5}
+              <Divider sx={{ my: 4 }} />
+
+              <Section
+                title="Audiencia"
+                hint="A cuántos clientes de la tienda se le envía."
+              >
+                <Stack
+                  direction={{ xs: 'column', sm: 'row' }}
+                  alignItems={{ sm: 'center' }}
+                  spacing={2}
                 >
-                  {isPhoneMissing && (
-                    <Tooltip title="No se puede crear una campaña para esta tienda ya que no tiene un numero asignado">
-                      <Alert
-                        severity="error"
-                        icon={<ErrorOutlineIcon />}
-                        sx={{
-                          cursor: 'help',
-                          p: 0.5,
-                          minWidth: 'auto',
-                          width: 'auto',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
+                  <FormControlLabel
+                    sx={{ mr: 0 }}
+                    control={
+                      <Checkbox
+                        checked={useFullAudience}
+                        onChange={(e) => {
+                          setUseFullAudience(e.target.checked);
+                          if (e.target.checked) {
+                            setValue('customAudience', undefined);
+                          }
                         }}
-                      >
-                        No hay numero asignado
-                      </Alert>
-                    </Tooltip>
-                  )}
+                      />
+                    }
+                    label={`Toda la audiencia (${totalAudience.toLocaleString()} clientes)`}
+                  />
 
-                  <Box
-                    display="flex"
-                    justifyContent="flex-end"
-                    gap={2}
-                  >
-                    <Button variant="outlined">Borrador</Button>
-                    <Tooltip
-                      title={
-                        isPhoneMissing
-                          ? 'No se puede crear una campaña para esta tienda ya que no tiene un numero asignado'
-                          : ''
-                      }
-                    >
-                      <span>
-                        <Button
-                          variant="contained"
-                          type="submit"
-                          disabled={isPhoneMissing || hasShortenerLinks}
-                        >
-                          {isEditing ? 'Actualizar campaña' : 'Crear campaña'}
-                        </Button>
-                      </span>
-                    </Tooltip>
-                  </Box>
-                </Box>
-              </form>
+                  {!useFullAudience && (
+                    <Controller
+                      name="customAudience"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          type="number"
+                          label="Cuántos clientes"
+                          size="small"
+                          sx={{ maxWidth: 220 }}
+                          inputProps={{ min: 1, max: totalAudience }}
+                          helperText={`Máximo ${totalAudience.toLocaleString()}`}
+                        />
+                      )}
+                    />
+                  )}
+                </Stack>
+              </Section>
             </Card>
           </Grid>
 
+          {/* Resumen pegado en desktop: la columna de la izquierda es larga y, al bajar, este
+              panel quedaba fuera de pantalla dejando medio monitor en blanco.
+              En el teléfono va AL FINAL (order 3): ahí es un repaso antes de enviar, y
+              ponerlo entre el formulario y el piloto obligaba a scrollear de más. */}
           <Grid
             item
             xs={12}
-            md={5}
+            lg={4}
+            order={{ xs: 3, lg: 2 }}
           >
-            <CampaignResume
-              estimatedCost={estimatedCost}
-              startDate={startDate}
-              totalAudience={totalAudience}
-              type={(image as any)?.length ? 'MMS' : 'SMS'}
-              useFullAudience={useFullAudience}
-              customAudience={customAudience}
-              content={content}
-              image={(image as any)?.[0] || initialValues?.image}
-            />
+            <Box sx={{ position: { lg: 'sticky' }, top: { lg: 24 } }}>
+              <CampaignResume
+                estimatedCost={estimatedCost}
+                startDate={startDate}
+                totalAudience={totalAudience}
+                type={(image as any)?.length ? 'MMS' : 'SMS'}
+                useFullAudience={useFullAudience}
+                customAudience={customAudience}
+                content={content}
+                image={(image as any)?.[0] || initialValues?.image}
+              />
+            </Box>
+          </Grid>
+
+          {/* Piloto mixed (sep 2026): la campaña sale igual que siempre, pero un 10% de los
+              clientes CON nombre recibe un RCS "Hi Nombre!" con botón al linktree (mismo SMS
+              como failover). Va a ANCHO COMPLETO: su editor ya trae dos columnas con vista
+              previa y, metido en la columna angosta del formulario, quedaba de 270 px. */}
+          <Grid
+            item
+            xs={12}
+            order={{ xs: 2, lg: 3 }}
+          >
+            <Card
+              variant="outlined"
+              sx={{
+                p: { xs: 2, sm: 3 },
+                ...(channel === 'mixed' && { borderColor: 'primary.main' }),
+              }}
+            >
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                alignItems={{ sm: 'flex-start' }}
+                justifyContent="space-between"
+                gap={1}
+              >
+                <Box>
+                  <FormControlLabel
+                    sx={{ mr: 0 }}
+                    control={
+                      <Checkbox
+                        checked={channel === 'mixed'}
+                        onChange={(e) => setValue('channel', e.target.checked ? 'mixed' : 'sms')}
+                      />
+                    }
+                    label={
+                      <Typography
+                        variant="subtitle1"
+                        fontWeight={700}
+                      >
+                        Piloto mixto: RCS para los clientes con nombre
+                      </Typography>
+                    }
+                  />
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ maxWidth: 780, mt: 0.5 }}
+                  >
+                    El resto recibe el SMS o MMS normal. Los elegidos ven un mensaje con su nombre y
+                    un botón; si su teléfono no tiene RCS, les llega el SMS igual. Con 50 clientes
+                    con nombre o menos, van todos. El costo no cambia.
+                  </Typography>
+                </Box>
+                {channel === 'mixed' && (
+                  <Chip
+                    size="small"
+                    color="primary"
+                    label="Activo"
+                    sx={{ fontWeight: 700, flexShrink: 0 }}
+                  />
+                )}
+              </Stack>
+
+              {channel === 'mixed' && (
+                <>
+                  <Divider sx={{ my: 3 }} />
+                  <Section
+                    title="Personalizar el RCS de los elegidos"
+                    hint="Opcional. No cambia el SMS/MMS del resto ni el mensaje de respaldo."
+                  >
+                    <MixedRcsEditor
+                      value={mixedRcs}
+                      onChange={setMixedRcs}
+                      smsText={content || ''}
+                      imageSrc={mixedPreviewImage}
+                      storeName={mixedStore.data?.name}
+                      storeAddress={mixedStore.data?.address}
+                      products={mixedCatalog.data?.items ?? []}
+                      productsLoaded={mixedCatalog.isSuccess}
+                    />
+                  </Section>
+                </>
+              )}
+            </Card>
           </Grid>
         </Grid>
-      </Container>
+
+        {/* Barra de acciones pegada abajo: el formulario es largo y había que bajar hasta el
+            final para encontrar el botón. */}
+        <Paper
+          variant="outlined"
+          sx={{
+            position: 'sticky',
+            // En el teléfono se pega al borde inferior de la pantalla, por encima de la barra
+            // de gestos (safe-area). En desktop queda dentro del contenido.
+            bottom: { xs: 0, sm: 0 },
+            zIndex: (t) => t.zIndex.appBar - 1,
+            mt: 3,
+            mx: { xs: -2, sm: 0 },
+            px: { xs: 2, sm: 3 },
+            pt: 2,
+            pb: { xs: 'calc(16px + env(safe-area-inset-bottom))', sm: 2 },
+            borderRadius: { xs: 0, sm: 1 },
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 1.5,
+            bgcolor: 'background.paper',
+            boxShadow: { xs: '0 -4px 16px rgba(0,0,0,.08)', sm: 'none' },
+          }}
+        >
+          <Box sx={{ minWidth: 0, flex: { xs: '1 1 100%', sm: '1 1 auto' } }}>
+            {isPhoneMissing ? (
+              <Stack
+                direction="row"
+                alignItems="center"
+                gap={0.75}
+                sx={{ color: 'error.main' }}
+              >
+                <ErrorOutlineIcon fontSize="small" />
+                <Typography
+                  variant="body2"
+                  fontWeight={600}
+                >
+                  La tienda no tiene número asignado: no se puede enviar.
+                </Typography>
+              </Stack>
+            ) : hasShortenerLinks ? (
+              <Stack
+                direction="row"
+                alignItems="center"
+                gap={0.75}
+                sx={{ color: 'error.main' }}
+              >
+                <ErrorOutlineIcon fontSize="small" />
+                <Typography
+                  variant="body2"
+                  fontWeight={600}
+                >
+                  Quitá el link de {shortenerDomains.join(', ')} para poder enviar.
+                </Typography>
+              </Stack>
+            ) : (
+              <Typography
+                variant="body2"
+                color="text.secondary"
+              >
+                {campaignType} · {audienceCount.toLocaleString()} clientes
+                {channel === 'mixed' ? ' · con piloto mixto' : ''}
+              </Typography>
+            )}
+          </Box>
+
+          <Box
+            display="flex"
+            gap={1.5}
+            sx={{ flex: { xs: '1 1 100%', sm: '0 0 auto' } }}
+          >
+            <Button
+              variant="outlined"
+              sx={{ minHeight: 44, flex: { xs: 1, sm: 'none' } }}
+            >
+              Borrador
+            </Button>
+            <Button
+              variant="contained"
+              type="submit"
+              disabled={!canSubmit}
+              sx={{ minHeight: 44, flex: { xs: 2, sm: 'none' } }}
+            >
+              {isEditing ? 'Actualizar campaña' : 'Crear campaña'}
+            </Button>
+          </Box>
+        </Paper>
+      </form>
       <Snackbar
         open={snackState.open}
         autoHideDuration={4000}

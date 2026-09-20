@@ -10,8 +10,18 @@
  * Estructura por defecto: imagen de la campaña (siempre) + texto con el link ÚNICO de la
  * lista del cliente y el de ofertas + 2 botones (armar lista / más ofertas) en webview.
  */
-
-import { Alert, Box, Button, Chip, FormControlLabel, MenuItem, Stack, Switch, TextField, Typography } from '@mui/material';
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  FormControlLabel,
+  MenuItem,
+  Stack,
+  Switch,
+  TextField,
+  Typography,
+} from '@mui/material';
 import { useRef } from 'react';
 
 export type MixedRcsCustom = {
@@ -78,10 +88,14 @@ export function mixedTemplateFromCustom(c: MixedRcsCustom): Record<string, unkno
     ...(c.title.trim() ? { title: c.title.trim() } : {}),
     // Texto vacío = el mismo texto del SMS/MMS de la campaña.
     ...(c.body.trim() ? { body: c.body.trim() } : {}),
-    ...(c.buttonText.trim() && c.buttonText.trim() !== d.buttonText ? { buttonText: c.buttonText.trim() } : {}),
+    ...(c.buttonText.trim() && c.buttonText.trim() !== d.buttonText
+      ? { buttonText: c.buttonText.trim() }
+      : {}),
     ...(c.buttonUrl.trim() ? { buttonUrl: c.buttonUrl.trim() } : {}),
     ...(c.listButton ? {} : { listButton: false }),
-    ...(c.listButtonText.trim() && c.listButtonText.trim() !== d.listButtonText ? { listButtonText: c.listButtonText.trim() } : {}),
+    ...(c.listButtonText.trim() && c.listButtonText.trim() !== d.listButtonText
+      ? { listButtonText: c.listButtonText.trim() }
+      : {}),
     ...(c.openIn === 'browser' ? { openIn: 'browser' } : {}),
     ...(c.productCards > 0 ? { productCards: c.productCards } : {}),
   };
@@ -141,10 +155,15 @@ export default function MixedRcsEditor({
   };
 
   const field = (key: TextKey) => ({
-    inputRef: (el: HTMLInputElement | HTMLTextAreaElement | null) => { refs.current[key] = el; },
-    onFocus: () => { lastField.current = key; },
+    inputRef: (el: HTMLInputElement | HTMLTextAreaElement | null) => {
+      refs.current[key] = el;
+    },
+    onFocus: () => {
+      lastField.current = key;
+    },
     value: value[key],
-    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => set({ [key]: e.target.value } as Partial<MixedRcsCustom>),
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      set({ [key]: e.target.value } as Partial<MixedRcsCustom>),
   });
 
   const hasProducts = products.length > 0;
@@ -162,7 +181,10 @@ export default function MixedRcsEditor({
     const kept: string[] = [];
     for (const line of tpl.split('\n')) {
       const empty = Object.keys(vals).some((t) => line.toLowerCase().includes(t) && !vals[t]);
-      if (!empty) { kept.push(line); continue; }
+      if (!empty) {
+        kept.push(line);
+        continue;
+      }
       while (kept.length && !kept[kept.length - 1].trim()) kept.pop();
       if (kept.length && /:\s*$/.test(kept[kept.length - 1])) kept.pop();
     }
@@ -185,39 +207,110 @@ export default function MixedRcsEditor({
 
   const btn = (label: string) => (
     <Box sx={{ borderTop: '1px solid', borderColor: 'divider', py: 0.9, textAlign: 'center' }}>
-      <Typography variant="body2" color="primary" fontWeight={700}>{label}</Typography>
+      <Typography
+        variant="body2"
+        color="primary"
+        fontWeight={700}
+      >
+        {label}
+      </Typography>
     </Box>
   );
   const listLabel = value.listButtonText.trim() || MIXED_RCS_DEFAULTS.listButtonText;
 
   return (
-    <Box sx={{ mt: 2 }}>
+    <Box
+      sx={{
+        mt: 2,
+        // Todos los campos son size="small" (14 px): en móvil iOS hace zoom al enfocarlos.
+        // Se sube a 16 px en un solo lugar en vez de campo por campo.
+        '& .MuiInputBase-input': { fontSize: { xs: 16, sm: 14 } },
+      }}
+    >
       {productsLoaded && !hasProducts && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          Esta tienda no tiene productos visibles en su catálogo: el cliente no tendría con qué armar una lista. El RCS sale
-          sin el botón de lista, sin el link único y sin la línea del ahorro. Cargá productos en Circular y Listas para activarlos.
+        <Alert
+          severity="warning"
+          sx={{ mb: 2 }}
+        >
+          Esta tienda no tiene productos visibles en su catálogo: el cliente no tendría con qué
+          armar una lista. El RCS sale sin el botón de lista, sin el link único y sin la línea del
+          ahorro. Cargá productos en Circular y Listas para activarlos.
         </Alert>
       )}
       {!imageSrc && (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          La campaña no tiene imagen: el RCS sale como texto con botones. Con imagen sale como tarjeta (la imagen siempre va).
+        <Alert
+          severity="info"
+          sx={{ mb: 2 }}
+        >
+          La campaña no tiene imagen: el RCS sale como texto con botones. Con imagen sale como
+          tarjeta (la imagen siempre va).
         </Alert>
       )}
 
-      <Stack direction={{ xs: 'column', md: 'row' }} gap={2.5}>
-        <Stack gap={1.5} sx={{ flex: 1, minWidth: 0 }}>
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        gap={4}
+        alignItems="flex-start"
+      >
+        <Stack
+          gap={2}
+          sx={{ flex: 1, minWidth: 0 }}
+        >
           <Box>
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              display="block"
+              sx={{ mb: 0.75 }}
+            >
               Placeholders: tocá un campo y después el botón. Se reemplazan por cliente al enviar.
             </Typography>
-            <Stack direction="row" flexWrap="wrap" gap={0.75}>
+            <Stack
+              direction="row"
+              flexWrap="wrap"
+              gap={0.75}
+            >
               {TOKENS.map((t) => (
-                <Chip key={t.key} size="small" variant="outlined" color="primary" label={`${t.key} · ${t.label}`} onClick={() => insert(t.key)} />
+                <Chip
+                  key={t.key}
+                  variant="outlined"
+                  color="primary"
+                  clickable
+                  // En el teléfono sólo el placeholder (el rótulo no entra) y con altura
+                  // táctil; en pantalla grande, placeholder + para qué sirve.
+                  label={
+                    <Box component="span">
+                      {t.key}
+                      <Box
+                        component="span"
+                        sx={{ display: { xs: 'none', sm: 'inline' } }}
+                      >
+                        {` · ${t.label}`}
+                      </Box>
+                    </Box>
+                  }
+                  sx={{ height: { xs: 36, sm: 28 }, fontSize: { xs: 14, sm: 13 } }}
+                  onClick={() => insert(t.key)}
+                />
               ))}
             </Stack>
           </Box>
-          <TextField size="small" fullWidth label="Saludo" helperText='Vacío = sin saludo. Por defecto "Hi #name!"' inputProps={{ maxLength: 120 }} {...field('greeting')} />
-          <TextField size="small" fullWidth label="Título de la tarjeta" placeholder="Por defecto: el saludo" inputProps={{ maxLength: 200 }} {...field('title')} />
+          <TextField
+            size="small"
+            fullWidth
+            label="Saludo"
+            helperText='Vacío = sin saludo. Por defecto "Hi #name!"'
+            inputProps={{ maxLength: 120 }}
+            {...field('greeting')}
+          />
+          <TextField
+            size="small"
+            fullWidth
+            label="Título de la tarjeta"
+            placeholder="Por defecto: el saludo"
+            inputProps={{ maxLength: 200 }}
+            {...field('title')}
+          />
           <TextField
             size="small"
             fullWidth
@@ -230,16 +323,47 @@ export default function MixedRcsEditor({
             inputProps={{ maxLength: 1800 }}
             {...field('body')}
           />
-          <Stack direction="row" gap={1} flexWrap="wrap">
-            <Button size="small" variant="outlined" onClick={() => set({ body: MIXED_RCS_BODY })}>Usar estructura recomendada</Button>
-            <Button size="small" variant="outlined" onClick={() => set({ body: '' })}>Usar el texto de la campaña</Button>
+          <Stack
+            direction="row"
+            gap={1}
+            flexWrap="wrap"
+          >
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => set({ body: MIXED_RCS_BODY })}
+            >
+              Usar estructura recomendada
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => set({ body: '' })}
+            >
+              Usar el texto de la campaña
+            </Button>
           </Stack>
 
-          <Typography variant="subtitle2" fontWeight={700} sx={{ mt: 1 }}>Botones</Typography>
-          <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5} alignItems={{ sm: 'flex-start' }}>
+          <Typography
+            variant="subtitle2"
+            fontWeight={700}
+            sx={{ mt: 1 }}
+          >
+            Botones
+          </Typography>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            gap={1.5}
+            alignItems={{ sm: 'flex-start' }}
+          >
             <FormControlLabel
               sx={{ flexShrink: 0, mr: 0 }}
-              control={<Switch checked={value.listButton} onChange={(e) => set({ listButton: e.target.checked })} />}
+              control={
+                <Switch
+                  checked={value.listButton}
+                  onChange={(e) => set({ listButton: e.target.checked })}
+                />
+              }
               label="Botón de lista"
             />
             <TextField
@@ -253,12 +377,41 @@ export default function MixedRcsEditor({
               helperText="Abre la lista única del cliente para elegir ofertas"
             />
           </Stack>
-          <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5}>
-            <TextField size="small" fullWidth label="Texto del botón de ofertas" value={value.buttonText} onChange={(e) => set({ buttonText: e.target.value })} inputProps={{ maxLength: 25 }} helperText={`${value.buttonText.length}/25`} />
-            <TextField size="small" fullWidth label="Link del botón de ofertas" placeholder="Por defecto: el link del mensaje" value={value.buttonUrl} onChange={(e) => set({ buttonUrl: e.target.value })} helperText="Vacío = el link de ofertas del texto, o el linktree" />
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            gap={1.5}
+          >
+            <TextField
+              size="small"
+              fullWidth
+              label="Texto del botón de ofertas"
+              value={value.buttonText}
+              onChange={(e) => set({ buttonText: e.target.value })}
+              inputProps={{ maxLength: 25 }}
+              helperText={`${value.buttonText.length}/25`}
+            />
+            <TextField
+              size="small"
+              fullWidth
+              label="Link del botón de ofertas"
+              placeholder="Por defecto: el link del mensaje"
+              value={value.buttonUrl}
+              onChange={(e) => set({ buttonUrl: e.target.value })}
+              helperText="Vacío = el link de ofertas del texto, o el linktree"
+            />
           </Stack>
-          <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5}>
-            <TextField select size="small" fullWidth label="Los botones abren en" value={value.openIn} onChange={(e) => set({ openIn: e.target.value as MixedRcsCustom['openIn'] })}>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            gap={1.5}
+          >
+            <TextField
+              select
+              size="small"
+              fullWidth
+              label="Los botones abren en"
+              value={value.openIn}
+              onChange={(e) => set({ openIn: e.target.value as MixedRcsCustom['openIn'] })}
+            >
               <MenuItem value="webview">Webview (dentro de Mensajes, pantalla completa)</MenuItem>
               <MenuItem value="browser">Navegador del teléfono</MenuItem>
             </TextField>
@@ -280,58 +433,162 @@ export default function MixedRcsEditor({
             >
               <MenuItem value={0}>Ninguna (una sola tarjeta)</MenuItem>
               {[2, 3, 4, 5, 7, 9].map((n) => (
-                <MenuItem key={n} value={n}>{n} productos</MenuItem>
+                <MenuItem
+                  key={n}
+                  value={n}
+                >
+                  {n} productos
+                </MenuItem>
               ))}
             </TextField>
           </Stack>
           {value.productCards > 0 && (
-            <Alert severity="info" sx={{ py: 0 }}>
-              En carrusel el teléfono recorta los textos largos de cada tarjeta. Mandate una campaña de prueba antes del envío masivo.
+            <Alert
+              severity="info"
+              sx={{ py: 0 }}
+            >
+              En carrusel el teléfono recorta los textos largos de cada tarjeta. Mandate una campaña
+              de prueba antes del envío masivo.
             </Alert>
           )}
-          <Stack direction="row" justifyContent="flex-end">
-            <Button size="small" color="inherit" onClick={() => onChange(MIXED_RCS_DEFAULTS)}>Restaurar por defecto</Button>
+          <Stack
+            direction="row"
+            justifyContent="flex-end"
+          >
+            <Button
+              size="small"
+              color="inherit"
+              onClick={() => onChange(MIXED_RCS_DEFAULTS)}
+            >
+              Restaurar por defecto
+            </Button>
           </Stack>
         </Stack>
 
-        {/* Vista previa */}
-        <Box sx={{ width: { xs: '100%', md: 280 }, flexShrink: 0 }}>
-          <Typography variant="caption" color="text.secondary" fontWeight={700} display="block" sx={{ mb: 0.5 }}>
+        {/* Vista previa: marco tipo teléfono para que se lea como lo que es, un mensaje. */}
+        <Box
+          sx={{
+            width: { xs: '100%', md: 340 },
+            flexShrink: 0,
+            position: { md: 'sticky' },
+            top: { md: 16 },
+            // En el teléfono la vista previa va ARRIBA: primero ves el mensaje y después
+            // editás. Abajo quedaría tras una pantalla entera de campos.
+            order: { xs: -1, md: 0 },
+          }}
+        >
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            fontWeight={700}
+            display="block"
+            sx={{ mb: 0.75 }}
+          >
             Vista previa (cliente de ejemplo: Maria)
           </Typography>
-          <Stack direction="row" gap={1} sx={{ overflowX: 'auto', pb: 0.5, alignItems: 'flex-start' }}>
-            <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden', bgcolor: 'background.paper', width: cards.length ? 230 : '100%', flexShrink: 0 }}>
-              {imageSrc && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={imageSrc} alt="" style={{ display: 'block', width: '100%', maxHeight: cards.length ? 150 : 260, objectFit: 'cover' }} />
-              )}
-              <Box sx={{ p: 1.5 }}>
-                {imageSrc ? (
-                  <>
-                    {title && <Typography variant="subtitle2" fontWeight={700}>{title}</Typography>}
-                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', mt: 0.5 }}>{body}</Typography>
-                  </>
-                ) : (
-                  <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                    {greeting ? `${greeting} ${body}` : body}
-                  </Typography>
+          <Box sx={{ p: 1.5, borderRadius: 4, bgcolor: 'action.hover' }}>
+            <Stack
+              direction="row"
+              gap={1}
+              sx={{ overflowX: 'auto', pb: 0.5, alignItems: 'flex-start' }}
+            >
+              <Box
+                sx={{
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 3,
+                  overflow: 'hidden',
+                  bgcolor: 'background.paper',
+                  width: cards.length ? 230 : '100%',
+                  flexShrink: 0,
+                }}
+              >
+                {imageSrc && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={imageSrc}
+                    alt=""
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      maxHeight: cards.length ? 150 : 260,
+                      objectFit: 'cover',
+                    }}
+                  />
                 )}
-              </Box>
-              {listOn && btn(listLabel)}
-              {btn(value.buttonText.trim() || MIXED_RCS_DEFAULTS.buttonText)}
-            </Box>
-            {cards.map((p, i) => (
-              <Box key={i} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden', bgcolor: 'background.paper', width: 170, flexShrink: 0 }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.imageUrl} alt="" loading="lazy" style={{ display: 'block', width: '100%', height: 150, objectFit: 'contain' }} />
-                <Box sx={{ p: 1.25 }}>
-                  <Typography variant="body2" fontWeight={700} sx={{ wordBreak: 'break-word' }}>{p.name}{p.price ? ` — ${p.price}` : ''}</Typography>
+                <Box sx={{ p: 1.5 }}>
+                  {imageSrc ? (
+                    <>
+                      {title && (
+                        <Typography
+                          variant="subtitle2"
+                          fontWeight={700}
+                        >
+                          {title}
+                        </Typography>
+                      )}
+                      <Typography
+                        variant="body2"
+                        sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', mt: 0.5 }}
+                      >
+                        {body}
+                      </Typography>
+                    </>
+                  ) : (
+                    <Typography
+                      variant="body2"
+                      sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+                    >
+                      {greeting ? `${greeting} ${body}` : body}
+                    </Typography>
+                  )}
                 </Box>
-                {btn(listOn ? listLabel : value.buttonText.trim() || MIXED_RCS_DEFAULTS.buttonText)}
+                {listOn && btn(listLabel)}
+                {btn(value.buttonText.trim() || MIXED_RCS_DEFAULTS.buttonText)}
               </Box>
-            ))}
-          </Stack>
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.75 }}>
+              {cards.map((p, i) => (
+                <Box
+                  key={i}
+                  sx={{
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 3,
+                    overflow: 'hidden',
+                    bgcolor: 'background.paper',
+                    width: 170,
+                    flexShrink: 0,
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={p.imageUrl}
+                    alt=""
+                    loading="lazy"
+                    style={{ display: 'block', width: '100%', height: 150, objectFit: 'contain' }}
+                  />
+                  <Box sx={{ p: 1.25 }}>
+                    <Typography
+                      variant="body2"
+                      fontWeight={700}
+                      sx={{ wordBreak: 'break-word' }}
+                    >
+                      {p.name}
+                      {p.price ? ` — ${p.price}` : ''}
+                    </Typography>
+                  </Box>
+                  {btn(
+                    listOn ? listLabel : value.buttonText.trim() || MIXED_RCS_DEFAULTS.buttonText
+                  )}
+                </Box>
+              ))}
+            </Stack>
+          </Box>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            display="block"
+            sx={{ mt: 1 }}
+          >
             Si el teléfono no tiene RCS, le llega el SMS/MMS normal de la campaña.
           </Typography>
         </Box>
