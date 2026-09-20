@@ -7,11 +7,12 @@
  */
 
 import { useCampaignLogs } from '@/hooks/fetching/campaigns/useCampaignLogs';
-import type { CampaignLog } from '@/services/campaing.service';
+import { campaignClient, type CampaignLog } from '@/services/campaing.service';
 import {
   Box,
   Button,
   Chip,
+  CircularProgress,
   Skeleton,
   Stack,
   Table,
@@ -24,6 +25,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 
 type Outcome = { label: string; color: 'success' | 'warning' | 'error' | 'default' };
 
@@ -43,30 +45,80 @@ function outcomeOf(row: CampaignLog): Outcome {
 
 const last10 = (p?: string) => String(p || '').replace(/\D/g, '').slice(-10);
 
+const isFailedRow = (r: CampaignLog) => {
+  const c = outcomeOf(r).color;
+  return c !== 'success' && c !== 'default';
+};
+
+const PAGE_SIZE = 200; // tope del endpoint
+const COPY_CAP = 5000;
+
 export default function RcsSelectedTable({ campaignId }: { campaignId: string }) {
   const [onlyFailed, setOnlyFailed] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copying, setCopying] = useState(false);
 
-  // ponytail: una sola página de 200 (tope del endpoint). El piloto elige ≤50 o el 10%
-  // de los que tienen nombre; si una campaña supera 200 elegidos, paginar acá.
+  // La tabla muestra una sola página de 200 (tope del endpoint). "Copiar fallidos"
+  // no depende de ella: recorre TODAS las páginas de fallidos (ver copyFailed).
   const { data, isLoading } = useCampaignLogs(
     campaignId,
-    { channel: 'rcs', rcsFailed: onlyFailed, limit: 200, sort: 'asc' },
+    { channel: 'rcs', rcsFailed: onlyFailed, limit: PAGE_SIZE, sort: 'asc' },
+    { staleTime: 30_000 }
+  );
+  // Total real de fallidos para el botón. Con el filtro "RCS no llegó" activo es la
+  // misma query que la de arriba (misma key): no hay una llamada extra.
+  const { data: failedData } = useCampaignLogs(
+    campaignId,
+    { channel: 'rcs', rcsFailed: true, limit: PAGE_SIZE, sort: 'asc' },
     { staleTime: 30_000 }
   );
 
   const rows = data?.data ?? [];
-  const failedPhones = [
-    ...new Set(rows.filter((r) => outcomeOf(r).color !== 'success' && outcomeOf(r).color !== 'default').map((r) => last10(r.phone))),
-  ].filter(Boolean);
+  const failedTotal = failedData?.total ?? 0;
 
   const copyFailed = async () => {
+    if (copying) return;
+    setCopying(true);
     try {
-      await navigator.clipboard.writeText(failedPhones.join('\n'));
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      const phones = new Set<string>();
+      let capped = false;
+      for (let page = 1; ; page++) {
+        const res = await campaignClient.getCampaignLogs(campaignId, {
+          channel: 'rcs',
+          rcsFailed: true,
+          limit: PAGE_SIZE,
+          sort: 'asc',
+          page,
+        });
+        const batch = res?.data ?? [];
+        for (const r of batch) {
+          if (!isFailedRow(r)) continue;
+          const p = last10(r.phone || r.destinationTn);
+          if (p) phones.add(p);
+          if (phones.size >= COPY_CAP) break;
+        }
+        if (phones.size >= COPY_CAP) {
+          capped = page < (res?.totalPages ?? page) || batch.length === PAGE_SIZE;
+          break;
+        }
+        // Fin: página vacía/incompleta, última página, o tope de páginas por seguridad.
+        if (batch.length < PAGE_SIZE || page >= (res?.totalPages ?? page) || page * PAGE_SIZE >= COPY_CAP * 2) break;
+      }
+
+      if (!phones.size) {
+        toast('No hay números fallidos para copiar.');
+        return;
+      }
+      await navigator.clipboard.writeText([...phones].join('\n'));
+      const n = phones.size.toLocaleString();
+      toast.success(
+        capped
+          ? `Se copiaron ${n} números (tope de ${COPY_CAP.toLocaleString()}; hay más fallidos).`
+          : `Se copiaron ${n} número${phones.size !== 1 ? 's' : ''} fallido${phones.size !== 1 ? 's' : ''}.`
+      );
     } catch {
-      /* clipboard bloqueado: la lista igual queda visible en la tabla */
+      toast.error('No se pudieron copiar los fallidos. Probá de nuevo.');
+    } finally {
+      setCopying(false);
     }
   };
 
@@ -103,10 +155,18 @@ export default function RcsSelectedTable({ campaignId }: { campaignId: string })
           <Button
             size="small"
             variant="outlined"
-            disabled={!failedPhones.length}
+            disabled={!failedTotal || copying}
             onClick={copyFailed}
+            startIcon={
+              copying ? (
+                <CircularProgress
+                  size={14}
+                  color="inherit"
+                />
+              ) : undefined
+            }
           >
-            {copied ? 'Copiado' : `Copiar fallidos (${failedPhones.length})`}
+            {copying ? 'Copiando…' : `Copiar fallidos (${failedTotal.toLocaleString()})`}
           </Button>
         </Stack>
       </Stack>

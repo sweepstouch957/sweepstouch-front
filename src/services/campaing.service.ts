@@ -106,6 +106,50 @@ export interface RcsCampaignSummary {
   cost?: number;
 }
 
+export interface ResendBreakdownRow {
+  code: string;
+  count: number;
+  resendable: boolean;
+}
+
+/** GET /tracking/campaigns/:id/resend-preview (dry-run, no envía nada). */
+export interface ResendPreview {
+  success: boolean;
+  campaignId?: string;
+  campaign: {
+    title?: string;
+    type?: string;
+    platform?: string;
+    audience?: number;
+    sent?: number;
+    errors?: number;
+  } | null;
+  totalErrors: number;
+  resendableCount: number;
+  uniqueResendPhones: number;
+  resendBreakdown: ResendBreakdownRow[];
+  /** permanentes (STOP, números muertos…): nunca se reenvían */
+  permanentCount: number;
+  permanentBreakdown: ResendBreakdownRow[];
+  /** aviso cuando el texto tenía placeholders por cliente que el reenvío reemplaza por valores genéricos */
+  personalizedNotice?: string;
+  alreadyResentCount?: number;
+}
+
+/** POST /tracking/campaigns/:id/resend-errors. 409 = ya hay un reenvío en curso; 422 = no se puede reenviar.
+ *  Cuando no hay nada que reenviar el backend responde sólo { success, message, resent: 0 }. */
+export interface ResendResult {
+  success: boolean;
+  campaignId?: string;
+  resent: number;
+  uniquePhones?: number;
+  permanentSkipped?: number;
+  totalErrors?: number;
+  /** tandas que el sms-worker rechazó (esos números quedaron sin reenviar) */
+  failedChunks?: number;
+  message?: string;
+}
+
 export interface CampaignLogsResponse {
   campaignId: string;
   filters: {
@@ -711,6 +755,14 @@ class CampaignClient {
       failover?: number;
       deliveryRate: number;
       seenRate: number;
+      /** botones RCS: clientes únicos que tocaron un botón */
+      clicked?: number;
+      /** botones RCS: taps totales */
+      clicks?: number;
+      /** 0–100, clicked sobre RCS entregados */
+      ctr?: number;
+      /** 0–100, clicked sobre vistos */
+      clickToSeen?: number;
     };
     /** Sólo campañas mixed: el grupo SMS/MMS normal, para comparar contra RCS. */
     sms?: { total: number; delivered: number; errors: number; queued: number; deliveryRate: number };
@@ -859,15 +911,15 @@ class CampaignClient {
   /* ===================== ✅ RESEND ===================== */
 
   /** Preview de cuántos mensajes fallidos se reenviarán (dry-run, sin enviar nada). */
-  async getResendPreview(campaignId: string) {
+  async getResendPreview(campaignId: string): Promise<ResendPreview> {
     const res = await api.get(`/tracking/campaigns/${campaignId}/resend-preview`);
-    return res.data;
+    return res.data as ResendPreview;
   }
 
   /** Reenvía los mensajes en error de una campaña. Anti-duplicados en backend. */
-  async resendCampaignErrors(campaignId: string) {
+  async resendCampaignErrors(campaignId: string): Promise<ResendResult> {
     const res = await api.post(`/tracking/campaigns/${campaignId}/resend-errors`);
-    return res.data;
+    return res.data as ResendResult;
   }
   /* ===================== ✅ SEND TEST MESSAGE ===================== */
 

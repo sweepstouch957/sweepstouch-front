@@ -26,13 +26,24 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, subDays } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { EmptyBlock, PageHero, PanelCard, StatusPill } from '../../content-shells/store-managment/panel-kit';
-import { EMPTY_RCS, fmtMinutes, rate, RcsKpis, sumRcs, useMixedRcsSummary } from './MixedRcsSummary';
+import type { RcsCampaignSummary } from '@/services/campaing.service';
+import {
+  EMPTY_RCS,
+  fmtMinutes,
+  isRcsSettled,
+  mixedIds,
+  rate,
+  RcsKpis,
+  rcsSummaryKey,
+  sumRcs,
+  useMixedRcsSummary,
+} from './MixedRcsSummary';
 
 type RangeKey = 'today' | '7d' | '30d' | 'all';
 const RANGES: { key: RangeKey; label: string; days: number | null }[] = [
@@ -56,6 +67,7 @@ const num = { fontVariantNumeric: 'tabular-nums' as const };
 export default function MixedCampaignsPage() {
   const theme = useTheme();
   const [range, setRange] = useState<RangeKey>('today');
+  const queryClient = useQueryClient();
 
   const params = useMemo(() => {
     const r = RANGES.find((x) => x.key === range)!;
@@ -76,7 +88,14 @@ export default function MixedCampaignsPage() {
     queryKey: ['mixed-campaigns', params],
     queryFn: () => campaignClient.getFilteredCampaigns(params),
     staleTime: 60_000,
-    refetchInterval: 60_000,
+    // Deja de refrescar cuando todas las campañas del rango terminaron y no queda RCS
+    // pendiente (el resumen se lee del caché de useMixedRcsSummary). Al llegar el resumen
+    // la página re-renderiza y React Query vuelve a evaluar esta función.
+    refetchInterval: (query) => {
+      const list: Campaing[] = (query.state.data as any)?.data ?? [];
+      const rcs = queryClient.getQueryData<Record<string, RcsCampaignSummary>>(rcsSummaryKey(mixedIds(list)));
+      return isRcsSettled(list, rcs) ? false : 60_000;
+    },
   });
 
   const campaigns: Campaing[] = (data as any)?.data ?? [];

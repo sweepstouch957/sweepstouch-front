@@ -2,7 +2,8 @@
 
 /**
  * Métricas de una campaña RCS: embudo completo — entregados, vistos (apertura),
- * clicks del short link, listas creadas y compras de quienes clickearon.
+ * clicks en los botones del RCS, clicks del short link, listas creadas y compras
+ * de quienes clickearon.
  * Se muestra dentro del detalle de campaña sólo cuando la campaña es RCS.
  */
 
@@ -67,6 +68,23 @@ function Kpi({
   );
 }
 
+/** Porcentaje seguro: nunca NaN ni fuera de 0–100. Sin dato = "—". */
+const clampPct = (v: unknown): number | null => {
+  const n = Number(v);
+  return v == null || !Number.isFinite(n) ? null : Math.min(100, Math.max(0, Math.round(n)));
+};
+const pctLabel = (v: unknown) => {
+  const n = clampPct(v);
+  return n == null ? '—' : `${n}%`;
+};
+const ratio = (n: number, base: number) => (base > 0 ? (n / base) * 100 : null);
+const count = (v: unknown) => {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+};
+
+const FINAL_STATUS = new Set(['completed', 'cancelled']);
+
 function FunnelRow({ label, value, base }: { label: string; value: number; base: number }) {
   const pct = base > 0 ? Math.min(100, Math.round((value / base) * 100)) : 0;
   return (
@@ -103,7 +121,12 @@ export default function RcsMetricsPanel({ campaignId }: { campaignId: string }) 
     queryKey: ['rcs-metrics', campaignId],
     queryFn: () => campaignClient.getRcsMetrics(campaignId),
     enabled: !!campaignId,
-    refetchInterval: 60_000,
+    // Deja de refrescar cuando la campaña terminó y no queda nada en cola.
+    refetchInterval: (query) => {
+      const d = query.state.data;
+      const settled = !!d?.ok && FINAL_STATUS.has(String(d.campaign?.status)) && count(d.messages?.queued) === 0;
+      return settled ? false : 60_000;
+    },
   });
 
   if (isLoading) {
@@ -137,6 +160,16 @@ height={24} />
   const { messages: m, clicks: c, engagement: e, sms } = data;
   const base = m.total || 1;
   const isMixed = data.campaign?.channel === 'mixed' || data.campaign?.type === 'MIXED';
+
+  // Clicks en los botones del RCS (distinto de los clicks de short links). El backend
+  // manda ctr / clickToSeen; si faltan se calculan acá con la división protegida.
+  const hasButtonClicks = [m.clicked, m.clicks, m.ctr, m.clickToSeen].some((v) => v != null);
+  const btnClicked = count(m.clicked);
+  const btnClicks = count(m.clicks);
+  // En mixed `delivered` ya viene sin failover; en RCS puro hay que restarlo.
+  const rcsDelivered = isMixed ? count(m.delivered) : Math.max(0, count(m.delivered) - count(m.failover));
+  const btnCtr = m.ctr ?? ratio(btnClicked, rcsDelivered);
+  const btnClickToSeen = m.clickToSeen ?? ratio(btnClicked, count(m.seen));
 
   return (
     <Card
@@ -176,16 +209,16 @@ height={24} />
         >
           <Kpi
             label="RCS · entregados"
-            value={`${m.deliveryRate}%`}
+            value={pctLabel(m.deliveryRate)}
             sub={`${m.delivered.toLocaleString()} de ${m.total.toLocaleString()} elegidos · ${(m.failover ?? 0).toLocaleString()} por failover MMS/SMS`}
           />
           <Kpi
             label="SMS/MMS · entregados"
-            value={`${sms.deliveryRate}%`}
+            value={pctLabel(sms.deliveryRate)}
             sub={`${sms.delivered.toLocaleString()} de ${sms.total.toLocaleString()} enviados por SMS`}
           />
           {/* El botón del piloto lleva el link directo de la tienda (sin short por
-              cliente), así que no hay clicks por campaña: se muestra el failover. */}
+              cliente): sus taps salen en "Clicks en botones RCS", no en "Clicks en links". */}
           <Kpi
             label="Sin RCS · failover"
             value={(m.failover ?? 0).toLocaleString()}
@@ -203,18 +236,37 @@ height={24} />
       >
         <Kpi
           label="Entregados"
-          value={`${m.deliveryRate}%`}
+          value={pctLabel(m.deliveryRate)}
           sub={`${m.delivered.toLocaleString()} de ${m.total.toLocaleString()}`}
         />
         <Kpi
           label="Apertura (vistos)"
-          value={`${m.seenRate}%`}
+          value={pctLabel(m.seenRate)}
           sub={`${m.seen.toLocaleString()} vieron el mensaje`}
         />
+        {hasButtonClicks && (
+          <>
+            <Kpi
+              label="Clicks en botones RCS"
+              value={btnClicked.toLocaleString()}
+              sub={`clientes únicos · ${btnClicks.toLocaleString()} taps en total`}
+            />
+            <Kpi
+              label="CTR botones RCS"
+              value={pctLabel(btnCtr)}
+              sub={`${btnClicked.toLocaleString()} de ${rcsDelivered.toLocaleString()} RCS entregados`}
+            />
+            <Kpi
+              label="Click / vistos · botones RCS"
+              value={pctLabel(btnClickToSeen)}
+              sub="de los que abrieron, tocaron un botón"
+            />
+          </>
+        )}
         <Kpi
-          label="Clicks"
-          value={`${c.clickRate}%`}
-          sub={`${c.clickedLinks.toLocaleString()} clientes · ${c.totalClicks.toLocaleString()} taps`}
+          label="Clicks en links"
+          value={pctLabel(c.clickRate)}
+          sub={`${count(c.clickedLinks).toLocaleString()} clientes · ${count(c.totalClicks).toLocaleString()} taps en short links`}
         />
         <Kpi
           label="Listas creadas"
@@ -248,9 +300,16 @@ height={24} />
           value={m.seen}
           base={base}
         />
+        {hasButtonClicks && (
+          <FunnelRow
+            label="Tocaron un botón RCS"
+            value={btnClicked}
+            base={base}
+          />
+        )}
         <FunnelRow
-          label="Clickearon"
-          value={c.clickedLinks}
+          label="Clickearon un link"
+          value={count(c.clickedLinks)}
           base={base}
         />
         <FunnelRow
@@ -312,9 +371,10 @@ height={24} />
         display="block"
         mt={2}
       >
-        Apertura = seen reports del canal RCS (sólo teléfonos con RCS). Clicks = short links
-        de la campaña. Listas y compras = actividad de los clientes que clickearon, desde el
-        inicio de la campaña.
+        Apertura = seen reports del canal RCS (sólo teléfonos con RCS). Clicks en botones RCS =
+        clientes que tocaron un botón del mensaje (CTR sobre RCS entregados). Clicks en links =
+        short links de la campaña. Listas y compras = actividad de los clientes que clickearon
+        un link, desde el inicio de la campaña.
       </Typography>
     </Card>
   );

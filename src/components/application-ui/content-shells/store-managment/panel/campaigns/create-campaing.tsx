@@ -25,6 +25,9 @@ import { DateTimePicker } from '@mui/x-date-pickers';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Snackbar } from '@mui/material';
+import { circularService } from '@/services/circular.service';
+import { getStoreById } from '@/services/store.service';
+import { useQuery } from '@tanstack/react-query';
 import CampaignResume from './campaing-resume';
 import MixedRcsEditor, { mixedCustomFromTemplate, mixedTemplateFromCustom, type MixedRcsCustom } from './MixedRcsEditor';
 import ProviderImageConstraints from './provider-image-constraints';
@@ -157,7 +160,10 @@ export default function CreateCampaignForm({
   totalAudience,
   initialValues,
   isEditing = false,
-}: {  
+  storeId,
+}: {
+  /** Para la vista previa del RCS del piloto (nombre, dirección y catálogo de la tienda). */
+  storeId?: string;
   onSubmit: (data: CampaignFormInputs) => void;
   provider: string;
   phoneNumber: string;
@@ -218,12 +224,38 @@ export default function CreateCampaignForm({
   const [mixedRcs, setMixedRcs] = useState<MixedRcsCustom>(() =>
     mixedCustomFromTemplate((initialValues as any)?.rcsOptions?.contentTemplate)
   );
-  const mixedPreviewImage = useMemo(() => {
+  // Tienda + catálogo visible: sólo con el piloto marcado (vista previa, aviso de "sin
+  // productos para armar lista" y cards de productos).
+  const mixedStore = useQuery({
+    queryKey: ['campaign-form-store', storeId],
+    queryFn: () => getStoreById(storeId as string),
+    enabled: !!storeId && channel === 'mixed',
+    staleTime: 5 * 60_000,
+  });
+  const mixedSlug = (mixedStore.data as any)?.slug as string | undefined;
+  const mixedCatalog = useQuery({
+    queryKey: ['campaign-form-catalog', mixedSlug],
+    queryFn: () => circularService.getStoreCatalog(mixedSlug as string),
+    enabled: !!mixedSlug && channel === 'mixed',
+    staleTime: 60_000,
+  });
+
+  // Imagen de la vista previa. El object URL de un archivo recién elegido se crea en un
+  // efecto y se REVOCA al cambiar de imagen o desmontar (en un useMemo quedaba vivo hasta
+  // recargar la página). Sólo con el piloto marcado: sin él no hay vista previa.
+  const [mixedPreviewImage, setMixedPreviewImage] = useState('');
+  useEffect(() => {
     const f: any = (image as any)?.[0];
-    if (f instanceof File) return URL.createObjectURL(f);
-    return (typeof f === 'string' && f) || f?.url || watch('imageUrl') || (typeof initialValues?.image === 'string' ? initialValues.image : '') || '';
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [image]);
+    if (channel === 'mixed' && f instanceof File) {
+      const url = URL.createObjectURL(f);
+      setMixedPreviewImage(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    setMixedPreviewImage(
+      (typeof f === 'string' && f) || f?.url || (typeof initialValues?.image === 'string' ? initialValues.image : '') || ''
+    );
+    return undefined;
+  }, [image, channel, initialValues?.image]);
 
   // Sólo en mixed se manda rcsOptions (conservando mixedRatio al editar). En "sms" no se
   // toca: el payload queda idéntico al de siempre.
@@ -605,6 +637,10 @@ export default function CreateCampaignForm({
                             onChange={setMixedRcs}
                             smsText={content || ''}
                             imageSrc={mixedPreviewImage}
+                            storeName={mixedStore.data?.name}
+                            storeAddress={mixedStore.data?.address}
+                            products={mixedCatalog.data?.items ?? []}
+                            productsLoaded={mixedCatalog.isSuccess}
                           />
                         </>
                       )}

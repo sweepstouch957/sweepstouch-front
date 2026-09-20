@@ -135,6 +135,7 @@ export default function CampaignFormContainer({
         totalAudience={totalAudience}
         initialValues={initialData}
         isEditing={isEditing}
+        storeId={storeId}
       />
 
       <Dialog

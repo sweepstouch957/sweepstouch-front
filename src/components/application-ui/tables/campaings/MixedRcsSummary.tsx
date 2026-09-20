@@ -18,14 +18,33 @@ import { KpiCard, KpiRow } from '../../content-shells/store-managment/panel-kit'
 
 export const isMixed = (c?: Partial<Campaing> | null) => c?.type === 'MIXED' || c?.channel === 'mixed';
 
+export const rcsSummaryKey = (ids: string[]) => ['rcs-summary', ids] as const;
+
+/** Ids (ordenados) de las campañas MIXED: es la clave del resumen RCS. */
+export const mixedIds = (campaigns: Campaing[]) => campaigns.filter(isMixed).map((c) => c._id).sort();
+
+const FINAL_STATUS = new Set(['completed', 'cancelled']);
+
+/**
+ * true cuando ya no puede cambiar nada: todas las campañas terminaron (completed /
+ * cancelled) y ninguna tiene RCS pendiente. Sin resumen cargado todavía = false.
+ * Una campaña sin entrada en el resumen no tiene logs RCS: cuenta como sin pendientes.
+ */
+export function isRcsSettled(campaigns: Campaing[], summary?: Record<string, RcsCampaignSummary> | null) {
+  if (!summary || !campaigns.length) return false;
+  return campaigns.every((c) => FINAL_STATUS.has(String(c.status)) && (summary[c._id]?.pending ?? 0) === 0);
+}
+
 export function useMixedRcsSummary(campaigns: Campaing[]) {
-  const ids = campaigns.filter(isMixed).map((c) => c._id).sort();
+  const mixed = campaigns.filter(isMixed);
+  const ids = mixedIds(campaigns);
   const { data } = useQuery({
-    queryKey: ['rcs-summary', ids],
+    queryKey: rcsSummaryKey(ids),
     queryFn: () => campaignClient.getRcsSummary(ids),
     enabled: ids.length > 0,
     staleTime: 60_000,
-    refetchInterval: 60_000,
+    // Deja de refrescar cuando todas terminaron y no queda RCS pendiente.
+    refetchInterval: (query) => (isRcsSettled(mixed, query.state.data) ? false : 60_000),
   });
   return { summary: data ?? {}, mixedCount: ids.length };
 }
