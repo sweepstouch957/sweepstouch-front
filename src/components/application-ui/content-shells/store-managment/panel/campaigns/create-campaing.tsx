@@ -192,13 +192,14 @@ function Section({
   );
 }
 
-/** Pasos del formulario. En pestañas y no en un asistente rígido: al EDITAR una campaña
- *  normalmente se toca un solo campo y no tiene sentido pasar por todos los pasos. */
+/**
+ * Sólo DOS pestañas. Todo lo que define la campaña (texto, imágenes y a quién se le manda)
+ * es una sola lectura de arriba abajo; el RCS del piloto va aparte porque es opcional y
+ * largo. Con cuatro pestañas había que adivinar dónde estaba cada cosa.
+ */
 const STEPS = [
   { key: 'mensaje', label: 'Mensaje' },
-  { key: 'imagenes', label: 'Imágenes' },
-  { key: 'envio', label: 'Envío' },
-  { key: 'rcs', label: 'RCS' },
+  { key: 'rcs', label: 'RCS (piloto)' },
 ] as const;
 type StepKey = (typeof STEPS)[number]['key'];
 
@@ -674,9 +675,9 @@ export default function CreateCampaignForm({
                     </Grid>
                   </Grid>
                 </Section>
-              </Box>
 
-              <Box sx={paneSx('imagenes')}>
+                <Divider sx={{ my: 4 }} />
+
                 <Section
                   title="Imágenes"
                   hint="La de campaña viaja en el MMS. La miniatura sólo se ve en el linktree."
@@ -749,9 +750,9 @@ export default function CreateCampaignForm({
                     </Grid>
                   </Grid>
                 </Section>
-              </Box>
 
-              <Box sx={paneSx('envio')}>
+                <Divider sx={{ my: 4 }} />
+
                 <Section
                   title="Audiencia"
                   hint="A cuántos clientes de la tienda se le envía."
@@ -846,6 +847,16 @@ export default function CreateCampaignForm({
                   )}
                 </Stack>
 
+                {channel !== 'mixed' && (
+                  <Alert
+                    severity="info"
+                    sx={{ mt: 2 }}
+                  >
+                    Con el piloto apagado, la campaña sale sólo por SMS o MMS. Activalo para que los
+                    clientes con nombre reciban además un RCS con botones.
+                  </Alert>
+                )}
+
                 {channel === 'mixed' && (
                   <>
                     <Divider sx={{ my: 3 }} />
@@ -877,6 +888,9 @@ export default function CreateCampaignForm({
             item
             xs={12}
             lg={4}
+            // order explícito: sin esto el panel quedaba A LA IZQUIERDA del formulario,
+            // porque el Grid del formulario declara order 1 y este caía en el 0 por defecto.
+            order={{ xs: 2, lg: 2 }}
           >
             <Box sx={{ position: { lg: 'sticky' }, top: { lg: 24 } }}>
               <Button
