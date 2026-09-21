@@ -253,11 +253,48 @@ export class CircularService {
         | 'category'
         | 'unit'
         | 'imageUrl'
+        | 'position'
       >
     >
   ): Promise<{ ok: boolean; item: StoreProduct }> {
     const res = await api.patch(`/circulars/store-product/${id}`, patch);
     return res.data;
+  }
+
+  /** Persists positions through the existing product endpoint and verifies both catalog views. */
+  async saveCatalogOrder(storeSlug: string, productIds: string[]) {
+    const current = await this.getCatalogAdmin(storeSlug);
+    const products = new Map(current.items.map((item) => [item._id, item]));
+    if (new Set(productIds).size !== productIds.length ||
+        productIds.length !== products.size || productIds.some((id) => !products.has(id))) {
+      throw new Error('El catálogo cambió. Recargá los productos y volvé a ordenarlos.');
+    }
+
+    // Sequential writes stop on failure. The caller reloads the server state if a partial save occurs.
+    for (const [position, id] of productIds.entries()) {
+      if (products.get(id)?.position === position) continue;
+      const result = await this.updateStoreProduct(id, { position });
+      if (!result.ok || result.item?.position !== position) {
+        throw new Error('El backend no confirmó la posición del producto. No se pudo completar el orden.');
+      }
+    }
+
+    const saved = await this.getCatalogAdmin(storeSlug);
+    const savedPositions = new Map(saved.items.map((item) => [item._id, item.position]));
+    if (productIds.some((id, position) => savedPositions.get(id) !== position)) {
+      throw new Error('No se pudo verificar el orden guardado. Volvé a intentarlo.');
+    }
+
+    // The shopping-list app consumes this endpoint directly, so its response must preserve the order.
+    const visible = await this.getStoreCatalog(storeSlug);
+    const requestedPositions = new Map(productIds.map((id, position) => [id, position]));
+    const returnedPositions = visible.items
+      .filter((item) => requestedPositions.has(item._id))
+      .map((item) => requestedPositions.get(item._id)!);
+    if (returnedPositions.some((position, index) => index > 0 && position < returnedPositions[index - 1])) {
+      throw new Error('Las posiciones se guardaron, pero la API de listas todavía no devuelve los productos en ese orden.');
+    }
+    return saved;
   }
 
   /** Deja visibles en el Pre-RCS SOLO los productos del último circular; oculta el resto. */
