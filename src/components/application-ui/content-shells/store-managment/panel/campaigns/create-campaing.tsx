@@ -86,6 +86,12 @@ const placeholders = [
     key: '#linkprercs',
     label: 'Link Pre-RCS único por cliente (sólo ofertas + QR de caja)',
   },
+  // Linktree CON la sesión del cliente adentro: entra a la lista, las ofertas, el circular
+  // y los premios sin que le pidan el código. El link vence a los 30 días.
+  {
+    key: '#linklogin',
+    label: 'Linktree con sesión — entra sin código (link corto, vence en 30 días)',
+  },
   { key: '#ahorro', label: 'Ahorro semanal de la tienda ($)' },
 ];
 
