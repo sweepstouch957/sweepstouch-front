@@ -153,7 +153,7 @@ export default function TestMmsShoppingListModal({
   // ─── Hooks ───
   const customerSearch = useCustomerSearch(storeId, open);
   const mmsSend = useMmsSend({
-    storeSlug, storeName, circularId,
+    storeSlug, storeName, storeId, circularId,
     storeProvider,
     storeInfobipSenderId,
     storeAddress,

@@ -105,7 +105,7 @@ export function mixedTemplateFromCustom(c: MixedRcsCustom): Record<string, unkno
 const TOKENS = [
   { key: '#name', label: 'Nombre del cliente' },
   { key: '#listlink', label: 'Link único de su lista' },
-  { key: '#linktree', label: 'Link de ofertas' },
+  { key: '#linktree', label: 'Link de ofertas — con la sesión del cliente' },
   { key: '#ahorro', label: 'Ahorro de la semana' },
   { key: '#address', label: 'Dirección de la tienda' },
   { key: '#store', label: 'Nombre de la tienda' },
@@ -530,10 +530,10 @@ export default function MixedRcsEditor({
             size="small"
             fullWidth
             label="Link del botón de ofertas"
-            placeholder="Por defecto: el link del mensaje"
+            placeholder="Por defecto: el linktree con su sesión"
             value={value.buttonUrl}
             onChange={(e) => set({ buttonUrl: e.target.value })}
-            helperText="Vacío = el link de ofertas del texto, o el linktree"
+            helperText="Vacío = el linktree de la tienda con la sesión del cliente (entra sin pedirle código)"
           />
         </Stack>
         <Stack

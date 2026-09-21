@@ -128,7 +128,12 @@ export interface ListResult {
   totalItems: number;
   /** A quién pertenece esta lista/link (id o teléfono). */
   customerId?: string;
+  /** "View more deals": el linktree de la tienda CON la sesión de este cliente. */
+  treeLink?: string;
 }
+
+/** Días que vive la sesión del link de prueba. Igual que la de las campañas (#linklogin). */
+const SESSION_TTL_DAYS = 30;
 
 type TestProduct = { name: string; price: string; unit?: string; category?: string; imageUrl?: string };
 
@@ -147,6 +152,8 @@ function prettyFirstName(firstName?: string): string {
 export function useMmsSend(opts: {
   storeSlug: string;
   storeName: string;
+  /** Necesario para el link de sesión: el token se firma con {customerId, storeId}. */
+  storeId?: string;
   circularId?: string;
   storeProvider?: string;
   storeInfobipSenderId?: string;
@@ -162,6 +169,31 @@ export function useMmsSend(opts: {
   const [smsText, setSmsText] = useState('');
   const [error, setError] = useState('');
   const { shorten } = useShortLink();
+
+  /**
+   * "View more deals" de ESTE cliente: la portada de la tienda con su sesión adentro,
+   * igual que el `#linklogin` de las campañas. Así el mensaje de prueba se comporta como
+   * el real: quien lo abre entra a su lista, al circular y a sus puntos sin pedirle código.
+   * Si el minteo falla (sin permisos, sin storeId), devuelve '' y el texto cae al linktree
+   * permanente de la tienda: el test sigue saliendo.
+   */
+  const buildTreeLinkFor = useCallback(async (customer: Customer): Promise<string> => {
+    const customerId = String(customer._id || '');
+    if (!customerId || !opts.storeId) return '';
+    try {
+      const { data } = await axios.post(
+        `${API_URL}/customers/capability-token`,
+        { customerId, storeId: opts.storeId, ttlDays: SESSION_TTL_DAYS },
+        { headers: getAuthHeaders() }
+      );
+      if (!data?.token) return '';
+      const url = `${LINKTREE_URL}/?slug=${encodeURIComponent(opts.storeSlug)}&token=${encodeURIComponent(data.token)}`;
+      return bare((await shorten(url)) || url);
+    } catch (err) {
+      console.error('[useMmsTest] link de sesión no disponible:', err);
+      return '';
+    }
+  }, [opts.storeId, opts.storeSlug, shorten]);
 
   // Lista + link de UN cliente. Compartido entre el preview y el envío múltiple:
   // cada cliente del lote necesita SU lista y SU link, no el del primero.
@@ -202,8 +234,9 @@ export function useMmsSend(opts: {
       link: rcsLink,
       shortLink: shortRcsLink,
       customerId,
+      treeLink: await buildTreeLinkFor(customer),
     };
-  }, [opts.storeSlug, opts.circularId, shorten]);
+  }, [opts.storeSlug, opts.circularId, shorten, buildTreeLinkFor]);
 
   const createShoppingList = useCallback(async (
     customer: Customer,
@@ -228,7 +261,7 @@ export function useMmsSend(opts: {
 
       // Ahorro semanal y linktree de la tienda, en paralelo y best-effort:
       // sin alguno, su bloque simplemente no sale.
-      const [savings, treeShort] = await Promise.all([
+      const [savings, storeTree] = await Promise.all([
         axios
           .get(`${API_URL}/circulars/store/${opts.storeSlug}/savings`)
           .then((r) => (Number(r.data?.weeklySavings) > 0 ? `$${Number(r.data.weeklySavings).toFixed(2)}` : ''))
@@ -241,6 +274,8 @@ export function useMmsSend(opts: {
 
       const name = prettyFirstName(customer.firstName);
       const listLink = bare(built.shortLink || built.link);
+      // Con sesión (lo normal); sin ella, el linktree permanente de la tienda.
+      const treeShort = built.treeLink || storeTree;
       const address = String(opts.storeAddress || '').trim().replace(/\.+$/, '');
 
       let text =
@@ -356,6 +391,8 @@ export function useMmsSend(opts: {
               swaps.push([listResult.shortLink, mine], [bare(listResult.shortLink), bare(mine)]);
             }
             if (listResult?.link) swaps.push([listResult.link, built.link], [bare(listResult.link), bare(built.link)]);
+            // El "View more deals" también es personal: lleva la sesión del cliente.
+            if (listResult?.treeLink && built.treeLink) swaps.push([listResult.treeLink, built.treeLink]);
             for (const [from, to] of swaps) {
               if (from && to && from !== to) text = text.split(from).join(to);
             }
