@@ -6,6 +6,9 @@
 // circular-service y tracking-service.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { DragDropContext, Draggable, Droppable, type DropResult } from '@hello-pangea/dnd';
+import DragIndicatorRoundedIcon from '@mui/icons-material/DragIndicatorRounded';
+import { applyCatalogOrder, moveCatalogItem } from './catalog-order';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { imageFromPaste, PasteReplaceDialog, ProductEditorDialog } from './ProductImageTools';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -685,11 +688,42 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
     refetchInterval: (q) => (q.state.data?.cleaning ? 8000 : false),
   });
   const cleaning = !!catalog.data?.cleaning;
+  const catalogContainerRef = useRef<HTMLDivElement>(null);
+  const [catalogWidth, setCatalogWidth] = useState(0);
+  useEffect(() => {
+    const container = catalogContainerRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver(([entry]) => setCatalogWidth(entry.contentRect.width));
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [catalog.isLoading]);
   // Recorte crudo del flyer (trae precio y texto) o sin foto, con limpieza en curso:
   // no se muestra, para que nadie lo tome por la imagen final.
   const isGenerating = (p: StoreProduct) => cleaning && (!p.imageUrl || /\/circular-products\//.test(p.imageUrl));
   const generatingCount = cleaning ? (catalog.data?.items || []).filter(isGenerating).length : 0;
   const [search, setSearch] = useState('');
+  const [pendingOrder, setPendingOrder] = useState<{ store: string; ids: string[] } | null>(null);
+  const saveOrder = useMutation({
+    mutationFn: ({ store, ids }: { store: string; ids: string[] }) =>
+      circularService.saveCatalogOrder(store, ids),
+    onMutate: async (order) => {
+      setPendingOrder(order);
+      await qc.cancelQueries({ queryKey: ['store-catalog-admin', order.store] });
+    },
+    onSuccess: (data, order) => {
+      qc.setQueryData(['store-catalog-admin', order.store], data);
+      toast.success('Orden guardado para las listas.');
+    },
+    onError: (error: Error) => toast.error(error.message || 'No se pudo guardar el orden.'),
+    onSettled: async (_data, _error, order) => {
+      try {
+        // Reload even on partial failure: the screen must reflect what the backend actually saved.
+        await qc.invalidateQueries({ queryKey: ['store-catalog-admin', order.store] });
+      } finally {
+        setPendingOrder(null);
+      }
+    },
+  });
   // Imagen abierta en grande (para revisar recorte, calidad y que no tenga fondo)
   const [imgPreview, setImgPreview] = useState<{ url: string; title: string } | null>(null);
 
@@ -700,11 +734,22 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
     onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo guardar'),
   });
 
+  const orderedItems = useMemo(
+    () => applyCatalogOrder(catalog.data?.items ?? [], pendingOrder?.store === storeSlug ? pendingOrder.ids : []),
+    [catalog.data, pendingOrder, storeSlug]
+  );
   const items: StoreProduct[] = useMemo(() => {
-    const all = catalog.data?.items ?? [];
     const q = search.trim().toLowerCase();
-    return q ? all.filter((p) => `${p.name} ${p.brand ?? ''}`.toLowerCase().includes(q)) : all;
-  }, [catalog.data, search]);
+    return q ? orderedItems.filter((p) => `${p.name} ${p.brand ?? ''}`.toLowerCase().includes(q)) : orderedItems;
+  }, [orderedItems, search]);
+
+  const handleCatalogDragEnd = ({ source, destination }: DropResult) => {
+    if (!destination || destination.index === source.index || saveOrder.isPending) return;
+    const ids = moveCatalogItem(
+      orderedItems.map((p) => p._id), items.map((p) => p._id), source.index, destination.index
+    );
+    saveOrder.mutate({ store: storeSlug, ids });
+  };
 
   // Productos con oferta pero sin precio regular calculable
   const missingRegular = useMemo(
@@ -929,7 +974,13 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
         onDone={refreshCatalog}
       />
 
-      <Typography variant="caption" color="text.secondary">
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        noWrap
+        title={`Para cambiar una imagen rápido: pasá el mouse sobre el producto y pegá (Ctrl+V) una captura o imagen copiada.${activeRow ? ` Fila activa: ${activeRow.name}.` : ''}`}
+        sx={{ minWidth: 0, maxWidth: '100%' }}
+      >
         Para cambiar una imagen rápido: pasá el mouse sobre el producto y pegá (Ctrl+V) una captura o imagen copiada.
         {activeRow ? ` Fila activa: ${activeRow.name}.` : ''}
       </Typography>
@@ -942,11 +993,66 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
         </Alert>
       )}
 
+      {saveOrder.isPending && <LinearProgress aria-label="Guardando orden de productos" />}
       {catalog.isLoading ? (
         <LinearProgress />
       ) : (
-        <Box sx={{ overflowX: 'auto' }}>
-          <Table size="small">
+        <Box
+          ref={catalogContainerRef}
+          sx={{ minWidth: 0, width: '100%' }}
+        >
+          <DragDropContext
+            onDragEnd={handleCatalogDragEnd}
+            dragHandleUsageInstructions="Presioná espacio para levantar el producto, usá las flechas para moverlo y espacio para soltarlo. Escape cancela."
+          >
+          <Table
+            size="small"
+            sx={{
+              width: '100%',
+              tableLayout: 'fixed',
+              '& .MuiTableCell-root': {
+                whiteSpace: 'normal',
+                overflowWrap: 'anywhere',
+                verticalAlign: 'middle',
+                px: 1,
+              },
+              '& .MuiInputBase-root': { minWidth: 0, lineHeight: 1.5 },
+              '& textarea': { overflowWrap: 'anywhere' },
+              '& .MuiSelect-select': {
+                whiteSpace: 'normal',
+                overflowWrap: 'anywhere',
+                textOverflow: 'clip',
+              },
+              '& tr > :nth-child(1)': { width: 116 },
+              '& tr > :nth-child(2)': { width: '23%' },
+              '& tr > :nth-child(3), & tr > :nth-child(4)': { width: '12%' },
+              '& tr > :nth-child(5)': { width: '14%' },
+              '& tr > :nth-child(7), & tr > :nth-child(8)': { width: 66 },
+              '& tr > :nth-child(9)': { width: 40 },
+              ...(catalogWidth <= 900 ? {
+                '& thead': { display: 'none' },
+                '&, & tbody': { display: 'block' },
+                '& tbody tr:not([data-rfd-placeholder-context-id])': {
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${catalogWidth <= 420 ? 2 : 3}, minmax(0, 1fr))`,
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  py: 1,
+                },
+                '& tbody tr > td': { display: 'block', width: 'auto', minWidth: 0, borderBottom: 0 },
+                '& tbody td:nth-of-type(2)': { gridColumn: catalogWidth <= 420 ? 'auto' : 'span 2' },
+                '& tbody td[data-label]::before': {
+                  content: 'attr(data-label)',
+                  display: 'block',
+                  mb: 0.5,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: 'text.secondary',
+                },
+                '& tbody td[colspan]': { gridColumn: '1 / -1' },
+              } : {}),
+            }}
+          >
             <TableHead>
               <TableRow>
                 <TableCell sx={cell}>Imagen</TableCell>
@@ -960,18 +1066,45 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
                 <TableCell sx={cell} align="center" />{/* eliminar */}
               </TableRow>
             </TableHead>
-            <TableBody>
-              {items.map((p) => (
-                <TableRow
+            <Droppable droppableId={`catalog-${storeSlug}`}>
+              {(dropProvided) => (
+            <TableBody
+              ref={dropProvided.innerRef}
+              {...dropProvided.droppableProps}
+            >
+              {items.map((p, index) => (
+                <Draggable
                   key={p._id}
+                  draggableId={p._id}
+                  index={index}
+                  isDragDisabled={saveOrder.isPending}
+                  disableInteractiveElementBlocking
+                >
+                  {(dragProvided, snapshot) => (
+                <TableRow
+                  ref={dragProvided.innerRef}
+                  {...dragProvided.draggableProps}
                   hover
                   onMouseEnter={() => setActiveRow(p)}
                   onFocusCapture={() => setActiveRow(p)}
-                  sx={activeRow?._id === p._id ? { boxShadow: (t) => `inset 3px 0 0 ${t.palette.primary.main}` } : undefined}
+                  sx={{
+                    ...(activeRow?._id === p._id ? { boxShadow: (t) => `inset 3px 0 0 ${t.palette.primary.main}` } : {}),
+                    ...(snapshot.isDragging ? { display: 'table', tableLayout: 'fixed', bgcolor: 'background.paper', boxShadow: 6 } : {}),
+                  }}
                 >
                   <TableCell sx={cell}>
                     {/* Miniatura + acciones: subir manual o regenerar con IA */}
-                    <Stack direction="row" alignItems="center" gap={0.5}>
+                    <Stack direction="row" alignItems="center" flexWrap="wrap" gap={0.5}>
+                      <Tooltip title={saveOrder.isPending ? 'Guardando orden…' : 'Arrastrar para cambiar el orden de las listas'}>
+                        <IconButton
+                          {...dragProvided.dragHandleProps}
+                          size="small"
+                          aria-label={`Mover ${p.name}`}
+                          sx={{ cursor: snapshot.isDragging ? 'grabbing' : 'grab', p: 0.25 }}
+                        >
+                          <DragIndicatorRoundedIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                       <Box
                         component={p.imageUrl ? 'button' : 'div'}
                         type={p.imageUrl ? 'button' : undefined}
@@ -1009,13 +1142,17 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
                       </Tooltip>
                     </Stack>
                   </TableCell>
-                  <TableCell sx={{ ...cell, maxWidth: 260 }}>
+                  <TableCell
+                    sx={cell}
+                    data-label="Producto"
+                  >
                     {/* Todo editable: la encargada corrige lo que la IA leyó mal */}
                     <TextField
                       size="small"
                       variant="standard"
                       defaultValue={p.name}
                       fullWidth
+                      multiline
                       inputProps={{ style: { fontWeight: 600 } }}
                       onBlur={(e) => {
                         const v = e.target.value.trim();
@@ -1023,29 +1160,37 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
                       }}
                     />
                     {(p.brand || p.size) && (
-                      <Typography variant="caption" color="text.secondary" noWrap display="block">
+                      <Typography variant="caption" color="text.secondary" display="block">
                         {[p.brand, p.size].filter(Boolean).join(' · ')}
                       </Typography>
                     )}
                   </TableCell>
-                  <TableCell sx={cell}>
+                  <TableCell
+                    sx={cell}
+                    data-label="Precio oferta"
+                  >
                     <TextField
                       size="small"
                       variant="standard"
                       defaultValue={p.price ?? ''}
-                      sx={{ width: 90 }}
+                      fullWidth
+                      multiline
                       onBlur={(e) => {
                         const v = e.target.value.trim();
                         if (v !== String(p.price ?? '')) patch.mutate({ id: p._id, body: { price: v } });
                       }}
                     />
                   </TableCell>
-                  <TableCell sx={cell}>
+                  <TableCell
+                    sx={cell}
+                    data-label="Precio regular"
+                  >
                     <TextField
                       size="small"
                       variant="standard"
                       defaultValue={p.originalPrice ?? ''}
-                      sx={{ width: 90 }}
+                      fullWidth
+                      multiline
                       onBlur={(e) => {
                         const v = e.target.value.trim();
                         if (v !== String(p.originalPrice ?? '')) {
@@ -1072,25 +1217,32 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
                       </Tooltip>
                     )}
                   </TableCell>
-                  <TableCell sx={cell}>
+                  <TableCell
+                    sx={cell}
+                    data-label="Ahorro"
+                  >
                     <TextField
                       size="small"
                       variant="standard"
                       defaultValue={p.savings ?? ''}
-                      sx={{ width: 80 }}
+                      fullWidth
+                      multiline
                       onBlur={(e) => {
                         const v = e.target.value.trim();
                         if (v !== String(p.savings ?? '')) patch.mutate({ id: p._id, body: { savings: v } });
                       }}
                     />
                   </TableCell>
-                  <TableCell sx={cell}>
+                  <TableCell
+                    sx={cell}
+                    data-label="Categoría"
+                  >
                     <TextField
                       select
                       size="small"
                       variant="standard"
                       value={CATEGORIES.includes(p.category as any) ? p.category : 'other'}
-                      sx={{ width: 110 }}
+                      fullWidth
                       onChange={(e) => patch.mutate({ id: p._id, body: { category: e.target.value } })}
                     >
                       {CATEGORIES.map((c) => (
@@ -1098,14 +1250,22 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
                       ))}
                     </TextField>
                   </TableCell>
-                  <TableCell sx={cell} align="center">
+                  <TableCell
+                    sx={cell}
+                    align="center"
+                    data-label="En oferta"
+                  >
                     <Switch
                       size="small"
                       checked={!!p.onPromotion}
                       onChange={(e) => patch.mutate({ id: p._id, body: { onPromotion: e.target.checked } })}
                     />
                   </TableCell>
-                  <TableCell sx={cell} align="center">
+                  <TableCell
+                    sx={cell}
+                    align="center"
+                    data-label="Visible"
+                  >
                     <Switch
                       size="small"
                       checked={p.visibleInRcs !== false}
@@ -1126,7 +1286,10 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
                     </Tooltip>
                   </TableCell>
                 </TableRow>
+                  )}
+                </Draggable>
               ))}
+              {dropProvided.placeholder}
               {!items.length && (
                 <TableRow>
                   <TableCell colSpan={9} sx={{ py: 3, textAlign: 'center' }}>
@@ -1135,7 +1298,10 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
                 </TableRow>
               )}
             </TableBody>
+              )}
+            </Droppable>
           </Table>
+          </DragDropContext>
         </Box>
       )}
     </Stack>
