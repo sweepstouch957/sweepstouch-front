@@ -48,6 +48,8 @@ function toFormValues(sweepstake: Sweepstakes): Partial<BriefFormValues> {
     prizeIds,
     bannerDesktop: sweepstake.bannerDesktop || '',
     bannerMobile: sweepstake.bannerMobile || '',
+    kioskBannerLandscape: sweepstake.kioskBannerLandscape || '',
+    kioskBannerPortrait: sweepstake.kioskBannerPortrait || '',
     mainColor: sweepstake.mainColor || undefined,
     secondaryColor: sweepstake.secondaryColor || undefined,
   };

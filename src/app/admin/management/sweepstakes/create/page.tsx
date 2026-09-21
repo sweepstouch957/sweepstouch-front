@@ -28,6 +28,8 @@ const initialValues = {
   prizeIds: [] as string[],
   bannerDesktop: '',
   bannerMobile: '',
+  kioskBannerLandscape: '',
+  kioskBannerPortrait: '',
   mainColor: '#D4AF37',
   secondaryColor: '#C1121F',
 };

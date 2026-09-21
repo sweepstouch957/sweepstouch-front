@@ -107,6 +107,8 @@ export interface Sweepstakes {
   // Branding fields (optional)
   bannerDesktop?: string;
   bannerMobile?: string;
+  kioskBannerLandscape?: string;
+  kioskBannerPortrait?: string;
   mainColor?: string;
   secondaryColor?: string;
 }

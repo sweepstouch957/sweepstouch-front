@@ -100,6 +100,9 @@ export type BriefFormValues = {
   // Branding (optional)
   bannerDesktop?: string;
   bannerMobile?: string;
+  // Arte del kiosco, por orientación de la tablet
+  kioskBannerLandscape?: string;
+  kioskBannerPortrait?: string;
   mainColor?: string;
   secondaryColor?: string;
 };
@@ -401,6 +404,8 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
       prizeIds: [],
       bannerDesktop: '',
       bannerMobile: '',
+      kioskBannerLandscape: '',
+      kioskBannerPortrait: '',
       mainColor: DEFAULT_MAIN_COLOR,
       secondaryColor: DEFAULT_SECONDARY_COLOR,
       ...initialValues,
@@ -426,6 +431,8 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
         prizeIds: [],
         bannerDesktop: '',
         bannerMobile: '',
+        kioskBannerLandscape: '',
+        kioskBannerPortrait: '',
         mainColor: DEFAULT_MAIN_COLOR,
         secondaryColor: DEFAULT_SECONDARY_COLOR,
         ...initialValues,
@@ -1585,6 +1592,44 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
                     )}
                   />
                 </Grid>
+
+                {/* Kiosco: la tablet en tienda. Son dos piezas distintas, no la
+                    misma recortada — el hueco cambia de forma al girar la
+                    tablet. Si quedan vacías, el kiosco usa el arte por defecto. */}
+                <Grid
+                  item
+                  xs={12}
+                  md={6}
+                >
+                  <Controller
+                    name="kioskBannerLandscape"
+                    control={control}
+                    render={({ field }) => (
+                      <BannerUpload
+                        label="Kiosco — tablet horizontal (Medida ideal: 686 x 1000 píxeles, panel alto y angosto)"
+                        value={field.value}
+                        onChange={(url) => field.onChange(url)}
+                      />
+                    )}
+                  />
+                </Grid>
+                <Grid
+                  item
+                  xs={12}
+                  md={6}
+                >
+                  <Controller
+                    name="kioskBannerPortrait"
+                    control={control}
+                    render={({ field }) => (
+                      <BannerUpload
+                        label="Kiosco — tablet vertical (Medida ideal: 1536 x 464 píxeles, franja ancha)"
+                        value={field.value}
+                        onChange={(url) => field.onChange(url)}
+                      />
+                    )}
+                  />
+                </Grid>
               </Grid>
             </Paper>
 
@@ -1615,6 +1660,8 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
                     prizeIds: [],
                     bannerDesktop: '',
                     bannerMobile: '',
+                    kioskBannerLandscape: '',
+                    kioskBannerPortrait: '',
                     mainColor: DEFAULT_MAIN_COLOR,
                     secondaryColor: DEFAULT_SECONDARY_COLOR,
                   })
