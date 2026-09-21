@@ -58,6 +58,9 @@ interface Props {
 
 type Step = 'select' | 'compose' | 'sent';
 
+/** Los links del SMS van sin "https://" (menos caracteres); para abrirlos hace falta. */
+const withScheme = (u: string) => (/^https?:\/\//i.test(u) ? u : `https://${u}`);
+
 // ─── Clipboard helper ───────────────────────────────────
 function useCopy() {
   const [copied, setCopied] = useState(false);
@@ -366,6 +369,17 @@ export default function TestMmsShoppingListModal({
                   copied={copied}
                   label="RCS Link (sent in SMS)"
                 />
+                {/* El otro link del mensaje: el linktree con la sesión de este cliente.
+                    Se copia aparte porque es el que se prueba a mano ("entra sin código"). */}
+                {mmsSend.listResult.treeLink && (
+                  <LinkDisplay
+                    link={withScheme(mmsSend.listResult.treeLink)}
+                    shortLink={mmsSend.listResult.treeLink}
+                    copy={copy}
+                    copied={copied}
+                    label="Login link (entra con su sesión)"
+                  />
+                )}
               </Stack>
             </Box>
 
@@ -499,6 +513,17 @@ export default function TestMmsShoppingListModal({
                     label="RCS Link (sent in SMS)"
                   />
                 </Box>
+                {mmsSend.listResult.treeLink && (
+                  <Box>
+                    <LinkDisplay
+                      link={withScheme(mmsSend.listResult.treeLink)}
+                      shortLink={mmsSend.listResult.treeLink}
+                      copy={copy}
+                      copied={copied}
+                      label="Login link (entra con su sesión)"
+                    />
+                  </Box>
+                )}
               </Stack>
             </Box>
 

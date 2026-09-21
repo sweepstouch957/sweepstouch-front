@@ -135,6 +135,17 @@ export interface ListResult {
 /** Días que vive la sesión del link de prueba. Igual que la de las campañas (#linklogin). */
 const SESSION_TTL_DAYS = 30;
 
+/** Códigos del backend traducidos: "active_list_exists" en pantalla no le dice nada a nadie. */
+const ERROR_TEXTS: Record<string, string> = {
+  active_list_exists: 'Ese cliente ya tiene una lista activa; la prueba usa esa misma.',
+  'items array is required and must not be empty': 'La circular no tiene ofertas para armar la lista.',
+};
+
+function humanError(err: any, fallback: string): string {
+  const code = err?.response?.data?.error || err?.message || '';
+  return ERROR_TEXTS[code] || code || fallback;
+}
+
 type TestProduct = { name: string; price: string; unit?: string; category?: string; imageUrl?: string };
 
 /** "https://swtrcs.com/s/X" → "swtrcs.com/s/X" — así va en el SMS (menos chars). */
@@ -206,23 +217,38 @@ export function useMmsSend(opts: {
       imageUrl: p.imageUrl || '',
     }));
 
+    // La lista se guarda con el MISMO id con el que el cliente abre su página (`_id`).
+    // Antes iba el teléfono: la lista de la prueba quedaba en otra gaveta y el cliente
+    // nunca la veía al abrir el link, mientras el aviso de "ya tenés una activa" miraba
+    // sólo las de pruebas anteriores.
+    const customerId = String(customer._id || customer.phoneNumber);
+
     // Sin ofertas no hay lista que crear: el backend rechaza `items` vacío y eso
     // trababa el test. El link al Pre-RCS/RCS no depende de la lista, así que se
     // manda igual y el cliente arma la suya desde la página.
+    //
+    // 409 `active_list_exists`: el cliente YA tiene una lista viva (regla de una por
+    // tienda). Para una prueba eso no es un error — se reusa la suya. Reemplazarla sería
+    // borrarle al cliente una lista real que quizá va a mostrar en la caja.
     const res = items.length
-      ? await axios.post(
-          `${TRACKING_URL}/tracking/shopping-list`,
-          {
-            customerId: customer.phoneNumber,
-            storeSlug: opts.storeSlug,
-            circularId: opts.circularId || undefined,
-            items,
-          },
-          { headers: getAuthHeaders() }
-        )
+      ? await axios
+          .post(
+            `${TRACKING_URL}/tracking/shopping-list`,
+            {
+              customerId,
+              storeSlug: opts.storeSlug,
+              circularId: opts.circularId || undefined,
+              items,
+            },
+            { headers: getAuthHeaders() }
+          )
+          .catch((err) => {
+            const ex = err?.response?.status === 409 ? err.response.data?.existing : null;
+            if (!ex) throw err;
+            return { data: { qrCode: ex.qrCode || '', totalItems: ex.totalItems || 0 } };
+          })
       : { data: { qrCode: '', totalItems: 0 } };
 
-    const customerId = String(customer._id || customer.phoneNumber);
     const rcsLink = flow === 'rcs'
       ? `${LINKTREE_URL}/rcs/${customerId}?store=${opts.storeSlug}${opts.circularId ? '&circular=' + opts.circularId : ''}`
       : `${LINKTREE_URL}/prercs/${customerId}?store=${opts.storeSlug}`;
@@ -292,7 +318,7 @@ export function useMmsSend(opts: {
 
       return true; // success
     } catch (err: any) {
-      setError(err.response?.data?.error || err.message || 'Failed to create shopping list');
+      setError(humanError(err, 'No se pudo crear la lista'));
       return false;
     } finally {
       setCreatingList(false);
@@ -331,7 +357,7 @@ export function useMmsSend(opts: {
       setSentSuccess(true);
       return true;
     } catch (err: any) {
-      setError(err.response?.data?.error || err.message || 'Failed to send message');
+      setError(humanError(err, 'No se pudo enviar el mensaje'));
       return false;
     } finally {
       setUploadingImage(false);
@@ -423,7 +449,7 @@ export function useMmsSend(opts: {
       if (failed.length) setError(`No se pudo enviar a: ${failed.join(', ')}`);
       return { sent, failed };
     } catch (err: any) {
-      setError(err.response?.data?.error || err.message || 'Failed to send messages');
+      setError(humanError(err, 'No se pudieron enviar los mensajes'));
       return { sent, failed };
     } finally {
       setUploadingImage(false);
