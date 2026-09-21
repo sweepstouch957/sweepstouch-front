@@ -96,10 +96,16 @@ export interface RcsCampaignSummary {
   pending: number;
   /** abrieron el RCS */
   seen: number;
-  /** clientes únicos que tocaron el botón (inbound SUGGESTION de Infobip) */
+  /** clientes únicos que tocaron el botón */
   clicked?: number;
   /** taps totales al botón */
   clicks?: number;
+  /**
+   * De dónde salió el número de clicks: "postback" = inbound SUGGESTION de Infobip
+   * (requiere la URL de inbound cargada en el portal del sender); "link" = hits del
+   * short link del botón de la lista, que se cuentan solos en el redirect.
+   */
+  clickSource?: 'postback' | 'link' | null;
   /** minutos promedio entre envío y apertura; null = sin datos */
   seenMinutes?: number | null;
   /** costo cobrado por Infobip a los elegidos (USD) */

@@ -86,7 +86,7 @@ export function MixedTypeCell({ s }: { s?: RcsCampaignSummary }) {
 export const MIXED_DETAIL_HREF = '/admin/management/campaings/mixed';
 
 export const EMPTY_RCS: RcsCampaignSummary = {
-  picked: 0, rcsDelivered: 0, failover: 0, failed: 0, pending: 0, seen: 0, clicked: 0, clicks: 0, seenMinutes: null, cost: 0,
+  picked: 0, rcsDelivered: 0, failover: 0, failed: 0, pending: 0, seen: 0, clicked: 0, clicks: 0, clickSource: null, seenMinutes: null, cost: 0,
 };
 
 /** "12%" o "—" si no hay base. */
@@ -112,6 +112,12 @@ export function sumRcs(list: RcsCampaignSummary[]): RcsCampaignSummary {
     { ...EMPTY_RCS }
   );
   // Tiempo a la apertura: promedio ponderado por los que abrieron en cada campaña.
+  // Origen del click: si alguna campaña lo cuenta por short link, el total también.
+  t.clickSource = list.some((s) => s.clickSource === 'link')
+    ? 'link'
+    : list.some((s) => s.clickSource === 'postback')
+      ? 'postback'
+      : null;
   const withTime = list.filter((s) => s.seenMinutes != null && s.seen > 0);
   const w = withTime.reduce((a, s) => a + s.seen, 0);
   t.seenMinutes = w ? Math.round(withTime.reduce((a, s) => a + (s.seenMinutes as number) * s.seen, 0) / w) : null;
@@ -144,7 +150,8 @@ export function RcsKpis({ t }: { t: RcsCampaignSummary }) {
         value={(t.clicked || 0).toLocaleString()}
         delta={
           t.rcsDelivered > 0
-            ? `CTR ${rate(t.clicked || 0, t.rcsDelivered)} · ${(t.clicks || 0).toLocaleString()} taps`
+            ? `CTR ${rate(t.clicked || 0, t.rcsDelivered)} · ${(t.clicks || 0).toLocaleString()} taps` +
+              (t.clickSource === 'link' ? ' · medido por el link de la lista' : '')
             : undefined
         }
         tone="success"

@@ -21,6 +21,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TextField,
   ToggleButton,
   ToggleButtonGroup,
   Typography,
@@ -67,22 +68,28 @@ const num = { fontVariantNumeric: 'tabular-nums' as const };
 export default function MixedCampaignsPage() {
   const theme = useTheme();
   const [range, setRange] = useState<RangeKey>('today');
+  // Día puntual (yyyy-MM-dd). Cuando tiene valor manda sobre el rango: el backend
+  // ya cierra el día completo (startDate 00:00 → endDate 23:59).
+  const [day, setDay] = useState('');
   const queryClient = useQueryClient();
 
   const params = useMemo(() => {
     const r = RANGES.find((x) => x.key === range)!;
     const today = new Date();
+    const window = day
+      ? { startDate: day, endDate: day }
+      : r.days === null
+        ? {}
+        : { startDate: format(subDays(today, r.days), 'yyyy-MM-dd'), endDate: format(today, 'yyyy-MM-dd') };
     return {
       type: 'MIXED',
       page: 1,
       // ponytail: tope de 100 campañas por rango (= tope del resumen RCS). Si el
       // piloto pasa de 100 campañas en 30 días, paginar acá.
       limit: 100,
-      ...(r.days === null
-        ? {}
-        : { startDate: format(subDays(today, r.days), 'yyyy-MM-dd'), endDate: format(today, 'yyyy-MM-dd') }),
+      ...window,
     };
-  }, [range]);
+  }, [range, day]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['mixed-campaigns', params],
@@ -136,8 +143,12 @@ export default function MixedCampaignsPage() {
         <ToggleButtonGroup
           size="small"
           exclusive
-          value={range}
-          onChange={(_e, v) => v && setRange(v)}
+          value={day ? null : range}
+          onChange={(_e, v) => {
+            if (!v) return;
+            setRange(v);
+            setDay('');
+          }}
         >
           {RANGES.map((r) => (
             <ToggleButton
@@ -149,6 +160,27 @@ export default function MixedCampaignsPage() {
             </ToggleButton>
           ))}
         </ToggleButtonGroup>
+
+        {/* Día puntual: input nativo de fecha, sin traer un date picker para esto. */}
+        <TextField
+          size="small"
+          type="date"
+          label="Un día"
+          value={day}
+          onChange={(e) => setDay(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          sx={{ width: 170 }}
+        />
+        {day && (
+          <Button
+            size="small"
+            onClick={() => setDay('')}
+            sx={{ textTransform: 'none', fontWeight: 700 }}
+          >
+            Quitar día
+          </Button>
+        )}
+
         {total > campaigns.length && (
           <Typography
             variant="caption"
@@ -174,8 +206,8 @@ export default function MixedCampaignsPage() {
         ) : campaigns.length === 0 ? (
           <Box sx={{ p: 3 }}>
             <EmptyBlock
-              title="Sin campañas mixed en este rango"
-              hint="Cambiá el rango, o marcá “Piloto mixto” al crear una campaña desde la tienda."
+              title={day ? `Sin campañas mixed el ${day}` : 'Sin campañas mixed en este rango'}
+              hint="Cambiá el rango o el día, o marcá “Piloto mixto” al crear una campaña desde la tienda."
             />
           </Box>
         ) : (
