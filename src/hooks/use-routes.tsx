@@ -290,7 +290,27 @@ export const useMenuItemsCollapsedShells = (
 
   const allowed = new Set(roleModules[role] || []);
 
+  /**
+   * Orden de la barra: primero lo que se abre todos los días.
+   *
+   * Estaba al revés de cómo se usa. Arriba iban AI Assistant, Métricas, Designs y
+   * Herramientas, y Tiendas y Campañas —el trabajo real del día— quedaban a media
+   * pantalla de scroll, debajo de Tareas y Proyectos. Ahora la producción
+   * (Tiendas · Campañas · Circulares) abre la barra, después va Captación, luego
+   * el trabajo interno y al final las herramientas y la administración, que se
+   * tocan de a ratos.
+   */
+  const managementSections = MANAGEMENT_SECTIONS.map((section) => ({
+    title: t(section.title),
+    subMenu: section.modules.filter((m) => allowed.has(m)).map((m) => m(t)),
+  }));
+  const isAdminSection = (s: { title: string }) => s.title === t('Administración');
+
   const sections: MenuItem[] = [
+    // Lo que se produce y se le manda al súper: primero de todo.
+    ...managementSections.filter((s) => !isAdminSection(s)),
+    // El trabajo interno del equipo.
+    { title: t('Trabajo'), subMenu: workItems(t) },
     {
       title: t('Panel'),
       subMenu: [
@@ -304,13 +324,8 @@ export const useMenuItemsCollapsedShells = (
         toolsMenu(t),
       ],
     },
-    // Arriba de los módulos de negocio: Tareas se abre todos los días y estaba
-    // al final de la barra, abajo del fold.
-    { title: t('Trabajo'), subMenu: workItems(t) },
-    ...MANAGEMENT_SECTIONS.map((section) => ({
-      title: t(section.title),
-      subMenu: section.modules.filter((m) => allowed.has(m)).map((m) => m(t)),
-    })),
+    // Facturación, usuarios y soporte: una vez por semana, al pie.
+    ...managementSections.filter(isAdminSection),
   ];
 
   // Una sección sin items es un encabezado huérfano: el rol no llega a nada de

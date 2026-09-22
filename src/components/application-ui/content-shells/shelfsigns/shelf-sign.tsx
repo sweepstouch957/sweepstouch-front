@@ -81,7 +81,7 @@ export function ShelfSign({ product: p, config: cfg, isBottom = false }: Props):
 
       <div style={{ display: 'flex', flex: 1, gap: '0.15in', minHeight: 0 }}>
         {/* ── Columna izquierda ── */}
-        <div style={{ flex: 1.15, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <div style={{ marginTop: 30 }}>
             <PriceBlock
               product={p}
@@ -153,6 +153,8 @@ export function ShelfSign({ product: p, config: cfg, isBottom = false }: Props):
             textAlign: 'right',
             paddingBottom: 10,
             minWidth: 0,
+            // Más ancho para el producto: el precio ya se lee de lejos solo.
+            flexGrow: 1.15,
           }}
         >
           {/* La foto se come TODO el alto libre que queda sobre los nombres, en
@@ -171,10 +173,19 @@ export function ShelfSign({ product: p, config: cfg, isBottom = false }: Props):
                 paddingBottom: 8,
               }}
             >
+              {/* `max*: 100%` sólo ENCOGE: un PNG de 300 px se dibujaba a 300 px y
+                  dejaba media cartulina en blanco. Con width/height al 100% el
+                  producto CRECE hasta llenar su espacio, y `contain` le respeta la
+                  proporción — en góndola se mira a tres metros. */}
               <img
                 src={p.photo}
                 alt=""
-                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  objectPosition: 'right center',
+                }}
               />
             </div>
           )}
