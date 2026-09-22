@@ -43,7 +43,8 @@ export const MIXED_RCS_BODY = [
   '#listlink',
   '',
   'View more deals:',
-  '#linktree',
+  // Portada de la tienda CON la sesion del cliente: entra sin que le pidan el codigo.
+  '#linklogin',
   '',
   'Address:',
   '#address',
@@ -105,7 +106,7 @@ export function mixedTemplateFromCustom(c: MixedRcsCustom): Record<string, unkno
 const TOKENS = [
   { key: '#name', label: 'Nombre del cliente' },
   { key: '#listlink', label: 'Link único de su lista' },
-  { key: '#linktree', label: 'Link de ofertas — con la sesión del cliente' },
+  { key: '#linklogin', label: 'Link de ofertas — con la sesión del cliente' },
   { key: '#ahorro', label: 'Ahorro de la semana' },
   { key: '#address', label: 'Dirección de la tienda' },
   { key: '#store', label: 'Nombre de la tienda' },
@@ -164,7 +165,7 @@ export function buildMixedPreview({
       .replace(/#ahorro/gi, vals['#ahorro'])
       .replace(/#listlink/gi, vals['#listlink'])
       .replace(/#address/gi, vals['#address'])
-      .replace(/#linktree|#link/gi, value.buttonUrl.trim() || 'swtrcs.com/s/YYYYYY')
+      .replace(/#(?:linklogin|linktree|link)(?![a-z])/gi, value.buttonUrl.trim() || 'swtrcs.com/s/YYYYYY')
       .replace(/#message/gi, smsText || 'Texto de la campaña')
       .replace(/\n{3,}/g, '\n\n')
       .trim();

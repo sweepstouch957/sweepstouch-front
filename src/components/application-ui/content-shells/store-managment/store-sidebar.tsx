@@ -200,11 +200,13 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
     <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
       {/* Identidad: mini-ficha, no un retrato. El nombre ya está en la cabecera. */}
       <Stack
-        direction="row"
+        // Colapsada la barra mide 64px: en fila, logo + toggle no entran y el boton de
+        // expandir quedaba recortado fuera del drawer (se cerraba y no se podia abrir).
+        direction={collapsed ? 'column' : 'row'}
         alignItems="center"
         gap={1.25}
         sx={{
-          px: 1,
+          px: collapsed ? 0 : 1,
           pb: 1.5,
           borderBottom: `1px solid ${alpha(theme.palette.text.primary, 0.06)}`,
         }}
