@@ -25,6 +25,11 @@ export interface StoreProduct {
   name: string;
   brand?: string;
   size?: string;
+  /** Entero / en piezas / bandeja 2 lb… lo que la IA suele leer mal. */
+  presentation?: string;
+  /** Unidad de venta: lb, kg, unidad, paquete. */
+  saleUnit?: string;
+  barcode?: string;
   category?: string;
   unit?: string;
   imageUrl?: string;
@@ -249,6 +254,12 @@ export class CircularService {
     return res.data;
   }
 
+  /** Categorías de ESA tienda (las que ya usa + la lista base) para el selector del panel. */
+  async getStoreCategories(storeSlug: string): Promise<string[]> {
+    const res = await api.get(`/circulars/store/${storeSlug}/categories`);
+    return res.data?.categories || [];
+  }
+
   /** Edita un producto del catálogo (precio, oferta, visibilidad…). */
   async updateStoreProduct(
     id: string,
@@ -269,6 +280,11 @@ export class CircularService {
         | 'unit'
         | 'imageUrl'
         | 'position'
+        | 'brand'
+        | 'size'
+        | 'presentation'
+        | 'saleUnit'
+        | 'barcode'
       >
     >
   ): Promise<{ ok: boolean; item: StoreProduct }> {

@@ -27,6 +27,7 @@ import {
 } from '@/services/shopping-lists.service';
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Chip,
@@ -61,6 +62,7 @@ import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import SmsOutlinedIcon from '@mui/icons-material/SmsOutlined';
 import StoreBannerSection from './StoreBannerSection';
+import PreRcsPreviewButton from './PreRcsPreviewButton';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
@@ -195,7 +197,9 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
   const [preview, setPreview] = useState<{ url: string; title: string } | null>(null);
   // Arte de campaña: se pregunta antes cuántos extraer y si se limpian las imágenes.
   const [campaignAsk, setCampaignAsk] = useState(false);
-  const [campaignMax, setCampaignMax] = useState(10);
+  // Arte de campaña: por defecto TODOS. Trae 20–40 productos y quedarse con 10 dejaba el
+  // catálogo a medias; el que quiera acotar lo baja en el diálogo.
+  const [campaignMax, setCampaignMax] = useState(0);
   const [campaignClean, setCampaignClean] = useState(true);
   // Crear el circular con el arte de campaña: apagado a propósito. Antes se creaba solo y
   // quedaba activo, o sea que el arte de una campaña se volvía el circular de la semana
@@ -719,6 +723,18 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
     refetchInterval: (q) => (q.state.data?.cleaning ? 8000 : false),
   });
   const cleaning = !!catalog.data?.cleaning;
+  // Las categorías las arma cada tienda: se ofrecen las suyas + la base, y se puede
+  // escribir una nueva ahí mismo.
+  const categoriesQuery = useQuery({
+    queryKey: ['store-categories', storeSlug],
+    queryFn: () => circularService.getStoreCategories(storeSlug),
+    enabled: !!storeSlug,
+    staleTime: 60_000,
+  });
+  const categoryOptions = useMemo(
+    () => [...new Set([...(categoriesQuery.data || []), ...CATEGORIES])].sort(),
+    [categoriesQuery.data]
+  );
   const catalogContainerRef = useRef<HTMLDivElement>(null);
   const [catalogWidth, setCatalogWidth] = useState(0);
   useEffect(() => {
@@ -1190,11 +1206,32 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
                         if (v && v !== p.name) patch.mutate({ id: p._id, body: { name: v } });
                       }}
                     />
-                    {(p.brand || p.size) && (
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        {[p.brand, p.size].filter(Boolean).join(' · ')}
-                      </Typography>
-                    )}
+                    {/* Marca y tamaño: la IA los lee mal seguido y antes no había forma de
+                        corregirlos desde el panel. */}
+                    <Stack direction="row" gap={1} sx={{ mt: 0.25 }}>
+                      <TextField
+                        size="small"
+                        variant="standard"
+                        defaultValue={p.brand ?? ''}
+                        placeholder="marca"
+                        inputProps={{ style: { fontSize: 12 } }}
+                        onBlur={(e) => {
+                          const v = e.target.value.trim();
+                          if (v !== (p.brand ?? '')) patch.mutate({ id: p._id, body: { brand: v } });
+                        }}
+                      />
+                      <TextField
+                        size="small"
+                        variant="standard"
+                        defaultValue={p.size ?? ''}
+                        placeholder="tamaño"
+                        inputProps={{ style: { fontSize: 12 } }}
+                        onBlur={(e) => {
+                          const v = e.target.value.trim();
+                          if (v !== (p.size ?? '')) patch.mutate({ id: p._id, body: { size: v } });
+                        }}
+                      />
+                    </Stack>
                   </TableCell>
                   <TableCell
                     sx={cell}
@@ -1268,18 +1305,34 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
                     sx={cell}
                     data-label="Categoría"
                   >
-                    <TextField
-                      select
+                    <Autocomplete
+                      freeSolo
                       size="small"
-                      variant="standard"
-                      value={CATEGORIES.includes(p.category as any) ? p.category : 'other'}
-                      fullWidth
-                      onChange={(e) => patch.mutate({ id: p._id, body: { category: e.target.value } })}
-                    >
-                      {CATEGORIES.map((c) => (
-                        <MenuItem key={c} value={c}>{c}</MenuItem>
-                      ))}
-                    </TextField>
+                      options={categoryOptions}
+                      value={p.category || 'other'}
+                      onChange={(_, v) => {
+                        const next = String(v || '').trim().toLowerCase();
+                        if (next && next !== p.category) {
+                          patch.mutate({ id: p._id, body: { category: next } });
+                          qc.invalidateQueries({ queryKey: ['store-categories', storeSlug] });
+                        }
+                      }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          variant="standard"
+                          placeholder="categoría"
+                          // Escribir una nueva y salir del campo también la guarda.
+                          onBlur={(e) => {
+                            const next = e.target.value.trim().toLowerCase();
+                            if (next && next !== p.category) {
+                              patch.mutate({ id: p._id, body: { category: next } });
+                              qc.invalidateQueries({ queryKey: ['store-categories', storeSlug] });
+                            }
+                          }}
+                        />
+                      )}
+                    />
                   </TableCell>
                   <TableCell
                     sx={cell}
@@ -1674,9 +1727,19 @@ export default function StoreCircularPanel({ storeId, storeSlug, storeName, prov
 
   return (
     <Box px={{ xs: 1, md: 2 }} pt={2} pb={4}>
-      <Typography variant="h5" fontWeight={800} gutterBottom>
-        Circular & Listas {storeName ? `· ${storeName}` : ''}
-      </Typography>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        alignItems={{ xs: 'flex-start', sm: 'center' }}
+        justifyContent="space-between"
+        gap={1.5}
+        sx={{ mb: 1 }}
+      >
+        <Typography variant="h5" fontWeight={800}>
+          Circular & Listas {storeName ? `· ${storeName}` : ''}
+        </Typography>
+        {/* Al lado del título: ver la página tal cual la recibe el cliente. */}
+        <PreRcsPreviewButton storeId={storeId} storeSlug={storeSlug} />
+      </Stack>
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }} variant="scrollable" allowScrollButtonsMobile>
         <Tab icon={<CalendarMonthRoundedIcon fontSize="small" />} iconPosition="start" label="Circular" />
         <Tab icon={<Inventory2OutlinedIcon fontSize="small" />} iconPosition="start" label="Productos" />
