@@ -306,11 +306,20 @@ export const useMenuItemsCollapsedShells = (
   }));
   const isAdminSection = (s: { title: string }) => s.title === t('Administración');
 
+  /**
+   * Trabajo interno en UNA fila desplegable, no cuatro sueltas. Tareas, Proyectos,
+   * Reuniones y Calendario son del equipo, no del negocio: ocupaban cuatro renglones
+   * y empujaban Tiendas y Campañas fuera de la vista.
+   */
+  const workMenu: MenuItem = buildMenu(
+    t('Trabajo'),
+    <TaskAltRounded />,
+    workItems(t).map(({ icon, ...item }) => item),
+    undefined,
+    STAFF_ROLES
+  );
+
   const sections: MenuItem[] = [
-    // Lo que se produce y se le manda al súper: primero de todo.
-    ...managementSections.filter((s) => !isAdminSection(s)),
-    // El trabajo interno del equipo.
-    { title: t('Trabajo'), subMenu: workItems(t) },
     {
       title: t('Panel'),
       subMenu: [
@@ -322,8 +331,12 @@ export const useMenuItemsCollapsedShells = (
         dashboardsMenu(t),
         designsMenu(t),
         toolsMenu(t),
+        // El trabajo del equipo, compacto, al pie del panel.
+        workMenu,
       ],
     },
+    // Lo que se produce y se le manda al súper.
+    ...managementSections.filter((s) => !isAdminSection(s)),
     // Facturación, usuarios y soporte: una vez por semana, al pie.
     ...managementSections.filter(isAdminSection),
   ];
