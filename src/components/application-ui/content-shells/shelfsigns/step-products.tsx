@@ -15,10 +15,12 @@ import {
   CardContent,
   CircularProgress,
   Collapse,
+  LinearProgress,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import React from 'react';
 import { demoProducts } from './constants';
 import { parseManualLine } from './parse';
@@ -90,6 +92,14 @@ export function StepProducts({
 
   const enhance = useEnhanceProductImage();
   const saveToLibrary = useSaveProductImages();
+  /**
+   * Limpieza en lote. El recorte del flyer trae fondo, precio y a veces medio
+   * producto vecino; el diseñador los iba limpiando de a uno y en un flyer de 40
+   * eso son 40 clics. Acá se hace de corrido, de a dos a la vez (el modelo de
+   * imagen es lo caro y lo lento), y se puede cortar a mitad de camino.
+   */
+  const [bulk, setBulk] = React.useState<{ done: number; total: number } | null>(null);
+  const bulkStop = React.useRef(false);
 
   const onPickFlyer = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -129,6 +139,47 @@ export function StepProducts({
     },
     [enhance, flyerUrl, onPatchProduct]
   );
+
+  /** Los que todavía se ven como salieron del flyer: sin foto, o con el recorte crudo. */
+  const dirty = React.useMemo(
+    () => products.filter((p) => p.photo?.startsWith('http') || (flyerUrl && p.photoBox)),
+    [products, flyerUrl]
+  );
+
+  const runBulkClean = React.useCallback(async () => {
+    if (!dirty.length) return;
+    bulkStop.current = false;
+    setBulk({ done: 0, total: dirty.length });
+    setPhotoNote('');
+    let failed = 0;
+    const queue = [...dirty];
+    const worker = async () => {
+      while (queue.length && !bulkStop.current) {
+        const p = queue.shift();
+        if (!p) return;
+        const fromCutout = p.photo?.startsWith('http');
+        const imageUrl = fromCutout ? p.photo! : flyerUrl;
+        if (!imageUrl) continue;
+        try {
+          const url = await enhance.mutateAsync({
+            imageUrl,
+            box: fromCutout ? null : p.photoBox,
+            slug: productSlug(p.name),
+            name: p.name,
+          });
+          if (url) onPatchProduct(p.id, { photo: url });
+          else failed += 1;
+        } catch {
+          // Una foto que falla no corta la tanda: se cuenta y se sigue.
+          failed += 1;
+        }
+        setBulk((b) => (b ? { ...b, done: b.done + 1 } : b));
+      }
+    };
+    await Promise.all([worker(), worker()]);
+    setBulk(null);
+    if (failed) setPhotoNote(`${failed} de ${dirty.length} no se pudieron limpiar. Probá de a una.`);
+  }, [dirty, enhance, flyerUrl, onPatchProduct]);
 
   /**
    * Foto subida a mano por el diseñador. Se muestra al instante desde el
@@ -319,6 +370,67 @@ color="inherit" /> : <UploadFileRoundedIcon />
         </Card>
       ) : (
         <>
+          {/* Limpiar todas de una: el mismo modelo que deja los productos del catálogo
+              sin fondo ni precio, pero sobre los cartones y en tanda. */}
+          <Card variant="outlined">
+            <CardContent
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                flexWrap: 'wrap',
+                py: 2,
+                '&:last-child': { pb: 2 },
+              }}
+            >
+              <Box sx={{ flex: 1, minWidth: 220 }}>
+                <Typography
+                  variant="subtitle2"
+                  fontWeight={700}
+                >
+                  Limpiar las fotos con IA
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                >
+                  {bulk
+                    ? `Limpiando ${bulk.done} de ${bulk.total}… podés seguir editando precios.`
+                    : `Deja cada producto sin fondo ni precio encima, como en el catálogo. ${dirty.length} cartón${dirty.length === 1 ? '' : 'es'} para limpiar · una generación por producto.`}
+                </Typography>
+                {bulk && (
+                  <LinearProgress
+                    variant="determinate"
+                    value={Math.round((bulk.done / Math.max(1, bulk.total)) * 100)}
+                    sx={{ mt: 1, borderRadius: 1 }}
+                  />
+                )}
+              </Box>
+              {bulk ? (
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  onClick={() => {
+                    bulkStop.current = true;
+                  }}
+                  sx={{ textTransform: 'none', fontWeight: 700 }}
+                >
+                  Detener
+                </Button>
+              ) : (
+                <Button
+                  variant="contained"
+                  disabled={!dirty.length}
+                  onClick={runBulkClean}
+                  startIcon={<AutoAwesomeIcon />}
+                  sx={{ textTransform: 'none', fontWeight: 700 }}
+                >
+                  Limpiar {dirty.length || ''} con IA
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+
           <Alert severity="warning">
             Revisá cada precio antes de generar el PDF. Un precio mal leído impreso en góndola es
             un problema con el cliente. Si una foto salió mal encuadrada o con gráficos encima,
