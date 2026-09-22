@@ -400,10 +400,30 @@ export default function CreateCampaignForm({
                   <Typography
                     variant="caption"
                     color="text.secondary"
+                    sx={{ letterSpacing: '.06em', textTransform: 'uppercase', fontWeight: 600 }}
                   >
                     Proveedor: {provider} · Tipo: {campaignType}
                   </Typography>
                 </Box>
+                {/* El número desde el que sale está verificado con el proveedor: decirlo acá
+                    evita la pregunta de siempre antes de mandar a 50.000 personas. */}
+                <Chip
+                  size="small"
+                  icon={
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#22C55E', ml: '10px !important' }} />
+                  }
+                  label="Número verificado"
+                  sx={{
+                    ml: 'auto',
+                    flexShrink: 0,
+                    fontWeight: 600,
+                    fontSize: 12,
+                    color: '#15803D',
+                    bgcolor: '#EAF8EF',
+                    borderRadius: 999,
+                    display: { xs: 'none', sm: 'inline-flex' },
+                  }}
+                />
               </Stack>
 
               <Tabs

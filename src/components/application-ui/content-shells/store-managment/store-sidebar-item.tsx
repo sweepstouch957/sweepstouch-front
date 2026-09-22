@@ -1,4 +1,4 @@
-import { alpha, Box, ListItemButton, Typography } from '@mui/material';
+import { alpha, Box, ListItemButton, Tooltip, Typography } from '@mui/material';
 import type { FC } from 'react';
 import { RouterLink } from 'src/components/base/router-link';
 
@@ -12,13 +12,16 @@ interface StoreSidebarItemProps {
   };
   active?: boolean;
   onClick?: () => void;
+  /** Rail angosto: sólo el icono, centrado, y el nombre en el tooltip. */
+  collapsed?: boolean;
 }
 
 /**
  * Fila del rail de secciones (Store Panel 2.0). Compacta, con el icono a color
  * sólo cuando está activa: doce filas todas encendidas se leen como ruido.
  */
-export const StoreSidebarItem: FC<StoreSidebarItemProps> = ({ section, active, onClick }) => (
+export const StoreSidebarItem: FC<StoreSidebarItemProps> = ({ section, active, onClick, collapsed }) => (
+  <Tooltip title={collapsed ? section.label : ''} placement="right">
   <ListItemButton
     selected={active}
     component={RouterLink}
@@ -27,9 +30,10 @@ export const StoreSidebarItem: FC<StoreSidebarItemProps> = ({ section, active, o
     sx={(theme) => ({
       borderRadius: '10px',
       minHeight: 36,
-      px: 1.25,
+      px: collapsed ? 0 : 1.25,
       py: 0.75,
-      gap: 1.25,
+      gap: collapsed ? 0 : 1.25,
+      justifyContent: collapsed ? 'center' : 'flex-start',
       mb: '2px',
       color: active ? theme.palette.text.primary : theme.palette.text.secondary,
       bgcolor: active ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
@@ -44,6 +48,7 @@ export const StoreSidebarItem: FC<StoreSidebarItemProps> = ({ section, active, o
     })}
   >
     {section.icon}
+    {!collapsed && (
     <Typography
       sx={{
         fontSize: 12.5,
@@ -57,7 +62,8 @@ export const StoreSidebarItem: FC<StoreSidebarItemProps> = ({ section, active, o
     >
       {section.label}
     </Typography>
-    {section.meta && (
+    )}
+    {!collapsed && section.meta && (
       <Box
         component="span"
         sx={{
@@ -71,4 +77,5 @@ export const StoreSidebarItem: FC<StoreSidebarItemProps> = ({ section, active, o
       </Box>
     )}
   </ListItemButton>
+  </Tooltip>
 );

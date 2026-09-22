@@ -28,6 +28,7 @@ import {
   MenuBookOutlined,
 } from '@mui/icons-material';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalanceTwoTone';
+import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
 import PeopleIcon from '@mui/icons-material/People';
 import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import {
@@ -38,15 +39,20 @@ import {
   List,
   Stack,
   SwipeableDrawer,
+  IconButton,
   Theme,
+  Tooltip,
   Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
 import type { FC } from 'react';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Scrollbar } from 'src/components/base/scrollbar';
 import { StoreSidebarItem } from './store-sidebar-item';
+
+/** Preferencia del usuario, no del dispositivo: se guarda y se respeta al volver. */
+const COLLAPSE_KEY = 'storePanel.sidebar.collapsed';
 
 interface StoreSidebarProps {
   parentContainer?: HTMLDivElement | null;
@@ -166,6 +172,30 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
     })).filter((g) => g.items.length > 0);
   }, [userRole]);
 
+  /**
+   * Colapsar en desktop, como en el teléfono se cierra el cajón: hay pantallas (el catálogo
+   * de productos, el formulario de campaña con su preview) donde esos 232px son la diferencia
+   * entre leer una tabla y pelearse con ella. Se recuerda entre visitas.
+   */
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => {
+    try {
+      setCollapsed(localStorage.getItem(COLLAPSE_KEY) === '1');
+    } catch {
+      /* sin storage: arranca abierto */
+    }
+  }, []);
+  const toggleCollapsed = useCallback(() => {
+    setCollapsed((v) => {
+      try {
+        localStorage.setItem(COLLAPSE_KEY, v ? '0' : '1');
+      } catch {
+        /* nada que guardar: igual colapsa en esta visita */
+      }
+      return !v;
+    });
+  }, []);
+
   const sidebarContent = (
     <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
       {/* Identidad: mini-ficha, no un retrato. El nombre ya está en la cabecera. */}
@@ -203,20 +233,50 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
             <StorefrontRoundedIcon sx={{ fontSize: 18, color: 'primary.main' }} />
           )}
         </Box>
-        <Box sx={{ minWidth: 0, lineHeight: 1.3 }}>
-          <Typography
-            sx={{ fontSize: 11.5, fontWeight: 750 }}
-            noWrap
-            title={storeName}
-          >
-            {storeName || 'Tienda'}
-          </Typography>
-          <Typography sx={{ fontSize: 10, color: 'text.secondary' }}>Secciones</Typography>
-        </Box>
+        {!collapsed && (
+          <Box sx={{ minWidth: 0, lineHeight: 1.3, flex: 1 }}>
+            <Typography
+              sx={{ fontSize: 11.5, fontWeight: 750 }}
+              noWrap
+              title={storeName}
+            >
+              {storeName || 'Tienda'}
+            </Typography>
+            <Typography sx={{ fontSize: 10, color: 'text.secondary' }}>Secciones</Typography>
+          </Box>
+        )}
+        {lgUp && (
+          <Tooltip title={collapsed ? 'Expandir' : 'Colapsar'}>
+            <IconButton
+              size="small"
+              onClick={toggleCollapsed}
+              sx={{
+                width: 28,
+                height: 28,
+                flexShrink: 0,
+                bgcolor: 'background.paper',
+                boxShadow: '0 1px 2px rgba(0,0,0,.06)',
+                '&:hover': { color: 'primary.main' },
+              }}
+            >
+              <ChevronLeftRoundedIcon
+                sx={{
+                  fontSize: 18,
+                  transition: 'transform .25s',
+                  transform: collapsed ? 'rotate(180deg)' : 'none',
+                }}
+              />
+            </IconButton>
+          </Tooltip>
+        )}
       </Stack>
 
       {visibleGroups.map((group) => (
         <Box key={group.title}>
+          {collapsed ? (
+            // Sin rótulo no hay grupos a la vista: una línea los separa igual.
+            <Box sx={{ height: '1px', bgcolor: alpha(theme.palette.text.primary, 0.08), mx: 1, my: 1 }} />
+          ) : (
           <Typography
             sx={{
               fontSize: 9,
@@ -230,12 +290,14 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
           >
             {group.title.toUpperCase()}
           </Typography>
+          )}
           <List disablePadding>
             {group.items.map((section) => (
               <StoreSidebarItem
                 key={section.id}
                 section={{ ...section, meta: shortCount(counts?.[section.id]) }}
                 active={activeSection === section.id}
+                collapsed={collapsed}
                 onClick={() => handleSectionClick(section.id)}
               />
             ))}
@@ -244,6 +306,7 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
       ))}
 
       {/* Salidas al exterior: abajo y discretas, no compiten con las secciones */}
+      {!collapsed && (
       <Stack
         gap={0.75}
         sx={{ pt: 1.5, borderTop: `1px solid ${alpha(theme.palette.text.primary, 0.06)}` }}
@@ -270,6 +333,7 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
           Abrir Kiosko
         </Button>
       </Stack>
+      )}
     </Box>
   );
 
@@ -284,7 +348,9 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
           sx: {
             backgroundColor: 'background.paper',
             borderRight: `1px solid ${alpha(theme.palette.text.primary, 0.07)}`,
-            width: 232,
+            width: collapsed ? 64 : 232,
+            transition: 'width .25s cubic-bezier(.2,.8,.2,1)',
+            overflowX: 'hidden',
             position: 'relative',
           },
         }}
