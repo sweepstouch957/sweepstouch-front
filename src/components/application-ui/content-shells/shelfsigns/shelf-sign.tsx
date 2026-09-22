@@ -180,6 +180,15 @@ export function ShelfSign({ product: p, config: cfg, isBottom = false }: Props):
               <img
                 src={p.photo}
                 alt=""
+                // Crece para llenar el cartón, pero NO más de 1.6x su tamaño real:
+                // estirar un PNG chico más allá de eso lo deja borroso, y en una
+                // impresión a 300 dpi se nota mucho más que en pantalla.
+                onLoad={(e) => {
+                  const img = e.currentTarget;
+                  if (!img.naturalWidth) return;
+                  img.style.maxWidth = `${Math.round(img.naturalWidth * 1.6)}px`;
+                  img.style.maxHeight = `${Math.round(img.naturalHeight * 1.6)}px`;
+                }}
                 style={{
                   width: '100%',
                   height: '100%',
