@@ -172,8 +172,23 @@ export class CircularService {
 
   /** Tienda sin circular esta semana: crea uno usando una imagen ya alojada (el arte de
    *  la campaña) como flyer. Semana actual por defecto. La extracción se dispara aparte. */
-  async createFromImageUrl(storeSlug: string, imageUrl: string, title?: string): Promise<{ ok: boolean; circular: Circular }> {
-    const res = await api.post('/circulars/from-url', { storeSlug, imageUrl, title });
+  /**
+   * Circular a partir de una imagen ya hospedada (el arte de la última campaña).
+   * `draft`: se crea como borrador — sirve de percha para extraerle los productos sin
+   * publicarlo como el circular de la semana en el linktree y el Pre-RCS.
+   */
+  async createFromImageUrl(
+    storeSlug: string,
+    imageUrl: string,
+    title?: string,
+    opts?: { draft?: boolean }
+  ): Promise<{ ok: boolean; circular: Circular }> {
+    const res = await api.post('/circulars/from-url', {
+      storeSlug,
+      imageUrl,
+      title,
+      ...(opts?.draft ? { status: 'draft' } : {}),
+    });
     return res.data;
   }
 

@@ -274,10 +274,18 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
         const d = await circularService.addProductsFromImage(targetId, imageUrl, max, { aiImages });
         return { mode: 'added' as const, added: d.added, found: d.found };
       }
-      if (!createCircular) throw new Error('NO_TARGET');
-      const created = await circularService.createFromImageUrl(storeSlug, imageUrl, 'Arte de la última campaña');
+      // Sin circular vigente el arte necesita una percha: se crea BORRADOR salvo que se
+      // pida publicarlo. Un borrador no sale en el linktree ni en el Pre-RCS, así que los
+      // productos se cargan igual sin cambiarle la semana a la tienda.
+      const created = await circularService.createFromImageUrl(
+        storeSlug,
+        imageUrl,
+        'Arte de la última campaña',
+        { draft: !createCircular }
+      );
       const ex = await circularService.extractProducts(created.circular._id, max, { aiImages });
-      return { mode: 'created' as const, added: ex?.circular?.products?.length ?? 0, found: ex?.circular?.products?.length ?? 0 };
+      const n = ex?.circular?.products?.length ?? 0;
+      return { mode: createCircular ? ('created' as const) : ('draft' as const), added: n, found: n };
     },
     onSuccess: (d) => {
       toast.success(
@@ -285,19 +293,14 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
           ? d.added
             ? `${d.added} productos nuevos sumados desde la campaña (de ${d.found} encontrados)`
             : 'Todos los productos de la campaña ya estaban cargados'
-          : `Circular creado desde la campaña: ${d.added} productos. Las imágenes se limpian en segundo plano.`
+          : d.mode === 'draft'
+            ? `${d.added} productos cargados desde la campaña. Quedaron en un borrador: la tienda sigue sin circular de la semana.`
+            : `Circular creado desde la campaña: ${d.added} productos. Las imágenes se limpian en segundo plano.`
       );
       qc.invalidateQueries({ queryKey: ['store-circulars', storeSlug] });
       qc.invalidateQueries({ queryKey: ['store-catalog-admin', storeSlug] });
     },
     onError: (e: any) => {
-      if (e?.message === 'NO_TARGET') {
-        toast.error(
-          'No hay circular vigente al que sumarle productos. Traé el circular de la semana o agendá uno, o marcá "Crear un circular con esta imagen".',
-          { duration: 9000 }
-        );
-        return;
-      }
       if (e?.response) toast.error(`No se pudo cargar desde la campaña: ${e.response.data?.error || `error ${e.response.status}`}`, { duration: 9000 });
       else toast('La extracción sigue corriendo en el servidor. Refresca en unos minutos.');
       qc.invalidateQueries({ queryKey: ['store-circulars', storeSlug] });
@@ -525,7 +528,7 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
               <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
                 {currentCircular
                   ? 'Suma al circular vigente los productos de esta imagen que todavía no estén. No toca los que ya tenés.'
-                  : 'No hay circular esta semana: los productos necesitan uno. Podés traer el de la semana, agendarlo, o crear uno con esta imagen desde el diálogo.'}{' '}
+                  : 'No hay circular esta semana: los productos quedan en un borrador, sin publicarse, salvo que lo pidas en el diálogo.'}{' '}
                 Antes de empezar te pregunta cuántos extraer.
               </Typography>
             </Box>
@@ -579,11 +582,11 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
             <Stack direction="row" alignItems="flex-start" gap={1} sx={{ mt: 1.5 }}>
               <Switch checked={createCircular} onChange={(e) => setCreateCircular(e.target.checked)} />
               <Box sx={{ pt: 0.75 }}>
-                <Typography variant="body2" fontWeight={600}>Crear un circular con esta imagen</Typography>
+                <Typography variant="body2" fontWeight={600}>Publicarlo como el circular de la semana</Typography>
                 <Typography variant="caption" color="text.secondary">
                   {createCircular
-                    ? 'Queda como el circular de la semana: es el que verán el linktree y el Pre-RCS.'
-                    : 'Apagado: sólo se leen los productos. Sin circular vigente no hay a dónde sumarlos, así que primero traé o agendá uno.'}
+                    ? 'Queda activo: es el que verán el linktree y el Pre-RCS.'
+                    : 'Apagado: los productos se cargan igual, en un borrador. La tienda sigue sin circular de la semana.'}
                 </Typography>
               </Box>
             </Stack>
@@ -593,7 +596,6 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
           <Button onClick={() => setCampaignAsk(false)}>Cancelar</Button>
           <Button
             variant="contained"
-            disabled={!currentCircular && !createCircular}
             onClick={() => {
               setCampaignAsk(false);
               loadFromCampaign.mutate({ imageUrl: campaignImage, targetId: currentCircular?._id, max: campaignMax, aiImages: campaignClean });
