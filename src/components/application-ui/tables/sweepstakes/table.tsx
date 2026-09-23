@@ -47,7 +47,8 @@ import React from 'react';
 
 const statusOptions = [
   { value: '', label: 'Todos los estados' },
-  { value: 'in progress', label: 'Activo / En progreso' },
+  { value: 'in progress', label: 'Activo' },
+  { value: 'n progress', label: 'En progreso' },
   { value: 'completed', label: 'Completado' },
   { value: 'draft', label: 'Borrador' },
 ];
@@ -72,12 +73,15 @@ const getChecklist = (sw: any) => {
 };
 
 const getStatusChip = (status?: string) => {
-  const s = (status || '').toLowerCase();
+  const s = (status || '').trim().toLowerCase();
   if (s === 'in progress' || s === 'active') {
-    return { color: 'warning' as const, label: 'Activo' };
+    return { color: 'success' as const, label: 'Activo' };
+  }
+  if (s === 'n progress') {
+    return { color: 'warning' as const, label: 'En progreso' };
   }
   if (s === 'completed') {
-    return { color: 'success' as const, label: 'Completado' };
+    return { color: 'info' as const, label: 'Completado' };
   }
   if (s === 'draft') {
     return { color: 'default' as const, label: 'Borrador' };
@@ -89,6 +93,7 @@ type SortField = 'participants' | 'createdAt' | 'status' | 'stores' | 'endDate' 
 
 // Orden combinado (campo + dirección) para un solo selector claro.
 const SORT_OPTIONS: { key: string; label: string; sortBy: SortField; sortOrder: 'asc' | 'desc' }[] = [
+  { key: 'activeFirst', label: 'Activos primero', sortBy: 'status', sortOrder: 'desc' },
   { key: 'recent', label: 'Más recientes', sortBy: 'createdAt', sortOrder: 'desc' },
   { key: 'oldest', label: 'Más antiguos', sortBy: 'createdAt', sortOrder: 'asc' },
   { key: 'participants', label: 'Más participantes', sortBy: 'participants', sortOrder: 'desc' },
@@ -142,7 +147,7 @@ export default function SweepstakesTable() {
     filters: { status: '', q: '', endFrom: '', endTo: '' },
     page: 0,
     limit: 10,
-    sortBy: 'createdAt' as SortField,
+    sortBy: 'status' as SortField,
     sortOrder: 'desc',
   } satisfies TableState);
 
@@ -165,6 +170,7 @@ export default function SweepstakesTable() {
     ...filters,
     page: page + 1, // backend is 1-based
     limit,
+    prioritizeStatus: sortBy === 'status',
     ...(sortBy ? { sortBy, sortOrder } : {})
   });
 
@@ -468,9 +474,9 @@ export default function SweepstakesTable() {
                             <Chip
                               icon={<CircleIcon sx={{ fontSize: '9px !important', ml: '8px !important' }} />}
                               label={statusChip.label}
-                              color={statusChip.color as any}
+                              color={statusChip.color}
                               size="small"
-                              variant={statusChip.color === 'default' ? 'outlined' : 'filled'}
+                              variant="filled"
                               sx={{ fontWeight: 700, px: 0.5, letterSpacing: '0.01em' }}
                             />
                           </TableCell>
