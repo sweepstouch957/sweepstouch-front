@@ -39,9 +39,9 @@ export type MixedRcsCustom = {
 /** Las líneas con #ahorro, #listlink o #address se borran solas (con su rótulo) si no hay dato. */
 export const MIXED_RCS_BODY = [
   'Save #ahorro and earn points this week!',
-  'Select your offers before checking out:',
-  '#listlink',
   '',
+  // Un solo link y un solo boton: la portada con la sesion del cliente. Desde ahi arma
+  // su lista igual, sin que el mensaje lleve dos links compitiendo.
   'View more deals:',
   // Portada de la tienda CON la sesion del cliente: entra sin que le pidan el codigo.
   '#linklogin',
@@ -58,7 +58,7 @@ export const MIXED_RCS_DEFAULTS: MixedRcsCustom = {
   body: MIXED_RCS_BODY,
   buttonText: 'More deals here!',
   buttonUrl: '',
-  listButton: true,
+  listButton: false,
   listButtonText: 'Make my list',
   openIn: 'webview',
   productCards: 0,
