@@ -187,9 +187,15 @@ export async function refreshConversationContext(id: string) {
 
 /* ─── File Upload ─── */
 
-export async function uploadFile(file: File): Promise<Attachment> {
+export async function uploadFile(
+  file: File,
+  opts: { optimize?: boolean } = {}
+): Promise<Attachment> {
   const formData = new FormData();
   formData.append('file', file);
+  // optimize=false sube el archivo sin el q_auto/f_auto de Cloudinary. Lo usa el
+  // flyer de Shelfsigns: de ahí salen los recortes que se imprimen.
+  if (opts.optimize === false) formData.append('optimize', 'false');
   const { data } = await api.post('/ai/upload', formData, {
     headers: { 'Content-Type': undefined },
   });

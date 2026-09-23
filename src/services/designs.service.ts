@@ -187,7 +187,9 @@ export const designsService = {
    * límite de 20 MB) — el backend necesita una URL, no el archivo.
    */
   uploadFlyer: async (file: File): Promise<Attachment> => {
-    const attachment = await uploadFile(file);
+    // Sin optimizar: los recortes de producto salen de ESTA imagen y terminan en
+    // un cartón impreso; el re-encode de Cloudinary se come el detalle fino.
+    const attachment = await uploadFile(file, { optimize: false });
     return { ...attachment, type: 'image' };
   },
 

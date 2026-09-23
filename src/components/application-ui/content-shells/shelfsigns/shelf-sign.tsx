@@ -27,6 +27,11 @@ interface Props {
   isBottom?: boolean;
 }
 
+/** Cuánto puede agrandarse la foto del producto sobre su tamaño real.
+ *  Más que esto y el PNG se ve borroso impreso; menos, y un recorte chico deja
+ *  media cartulina vacía. */
+const PHOTO_MAX_ZOOM = 2.4;
+
 /** Marca de posición del QR mientras no haya tienda elegida. */
 function QrPlaceholder(): React.JSX.Element {
   return (
@@ -180,14 +185,15 @@ export function ShelfSign({ product: p, config: cfg, isBottom = false }: Props):
               <img
                 src={p.photo}
                 alt=""
-                // Crece para llenar el cartón, pero NO más de 1.6x su tamaño real:
-                // estirar un PNG chico más allá de eso lo deja borroso, y en una
-                // impresión a 300 dpi se nota mucho más que en pantalla.
+                // Crece para llenar el cartón, pero con tope sobre su tamaño real:
+                // estirar un PNG chico sin límite lo deja borroso en la impresión.
+                // 2.4x (antes 1.6) porque el cartón se mira de lejos en góndola y
+                // un recorte chico quedaba perdido en media cartulina en blanco.
                 onLoad={(e) => {
                   const img = e.currentTarget;
                   if (!img.naturalWidth) return;
-                  img.style.maxWidth = `${Math.round(img.naturalWidth * 1.6)}px`;
-                  img.style.maxHeight = `${Math.round(img.naturalHeight * 1.6)}px`;
+                  img.style.maxWidth = `${Math.round(img.naturalWidth * PHOTO_MAX_ZOOM)}px`;
+                  img.style.maxHeight = `${Math.round(img.naturalHeight * PHOTO_MAX_ZOOM)}px`;
                 }}
                 style={{
                   width: '100%',
