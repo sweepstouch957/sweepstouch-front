@@ -175,10 +175,12 @@ export function PasteReplaceDialog({
 
 /* ─────────────── 2 · Recortar del circular ─────────────── */
 
-type PctBox = { x: number; y: number; w: number; h: number };
+export type PctBox = { x: number; y: number; w: number; h: number };
 
-/** Arrastrar un rectángulo sobre el circular. Devuelve la caja en % (0–100) de la imagen. */
-function FlyerCropper({ flyerUrl, onCancel, onCrop, busy }: { flyerUrl: string; onCancel: () => void; onCrop: (b: PctBox) => void; busy: boolean }) {
+/** Arrastrar un rectángulo sobre el circular. Devuelve la caja en % (0–100) de la imagen.
+ *  Lo usa también Shelfsigns (/admin/designs/shelfsigns): es el mismo gesto sobre el
+ *  mismo arte, y tener dos recortadores distintos era garantía de que uno se pudra. */
+export function FlyerCropper({ flyerUrl, onCancel, onCrop, busy, hint, cta }: { flyerUrl: string; onCancel: () => void; onCrop: (b: PctBox) => void; busy: boolean; hint?: string; cta?: string }) {
   const wrap = useRef<HTMLDivElement>(null);
   const start = useRef<{ x: number; y: number } | null>(null);
   const [box, setBox] = useState<PctBox | null>(null);
@@ -207,8 +209,8 @@ function FlyerCropper({ flyerUrl, onCancel, onCrop, busy }: { flyerUrl: string; 
   return (
     <Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-        Arrastrá un rectángulo alrededor del producto (no importa si entra el precio). La IA deja
-        solo el producto, sin precio ni fondo, en alta definición.
+        {hint ||
+          'Arrastrá un rectángulo alrededor del producto (no importa si entra el precio). La IA deja solo el producto, sin precio ni fondo, en alta definición.'}
       </Typography>
       <Box sx={{ maxHeight: '56vh', overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
         <Box
@@ -234,7 +236,7 @@ function FlyerCropper({ flyerUrl, onCancel, onCrop, busy }: { flyerUrl: string; 
       <Stack direction="row" justifyContent="flex-end" gap={1} sx={{ mt: 1.5 }}>
         <Button onClick={onCancel} disabled={busy}>Volver</Button>
         <Button variant="contained" disabled={!valid || busy} onClick={() => box && onCrop(box)}>
-          {busy ? 'Limpiando con IA (30 a 60 s)…' : 'Usar este recorte'}
+          {busy ? 'Limpiando con IA (30 a 60 s)…' : cta || 'Usar este recorte'}
         </Button>
       </Stack>
     </Box>

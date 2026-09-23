@@ -38,6 +38,8 @@ interface Props {
   enhancing?: boolean;
   /** Foto subida a mano: el padre la sube a Cloudinary y la guarda en la librería. */
   onPhotoFile?: (product: ShelfSignProduct, file: File) => void;
+  /** Recortar a mano sobre el flyer. Ausente = todavía no hay flyer subido. */
+  onCropFromFlyer?: (product: ShelfSignProduct) => void;
   /** La foto de este cartón se está recortando o subiendo. */
   photoLoading?: boolean;
 }
@@ -60,6 +62,7 @@ function ProductEditorCardBase({
   onEnhance,
   enhancing = false,
   onPhotoFile,
+  onCropFromFlyer,
   photoLoading = false,
 }: Props): React.JSX.Element {
   const fileRef = React.useRef<HTMLInputElement>(null);
@@ -322,6 +325,15 @@ function ProductEditorCardBase({
                     >
                       Reemplazar
                     </Button>
+                    {onCropFromFlyer && (
+                      <Button
+                        size="small"
+                        disabled={photoLoading}
+                        onClick={() => onCropFromFlyer(p)}
+                      >
+                        Recortar del flyer
+                      </Button>
+                    )}
                   </Stack>
                   {/* Paso caro y con riesgo de que el modelo redibuje logos: por eso
                       es manual, por cartón, y el resultado vuelve a revisión. */}
@@ -360,12 +372,25 @@ function ProductEditorCardBase({
                   >
                     Sin foto.
                   </Typography>
-                  <Button
-                    size="small"
-                    onClick={() => fileRef.current?.click()}
-                  >
-                    Subir manual
-                  </Button>
+                  <Stack direction="row"
+spacing={1}>
+                    <Button
+                      size="small"
+                      onClick={() => fileRef.current?.click()}
+                    >
+                      Subir manual
+                    </Button>
+                    {onCropFromFlyer && (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        disabled={photoLoading}
+                        onClick={() => onCropFromFlyer(p)}
+                      >
+                        Recortar del flyer
+                      </Button>
+                    )}
+                  </Stack>
                 </Stack>
               )}
             </Box>

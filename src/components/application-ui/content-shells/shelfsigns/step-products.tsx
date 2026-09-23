@@ -2,8 +2,13 @@
 
 import {
   useEnhanceProductImage,
+  useRemoveProductBackground,
   useSaveProductImages,
 } from '@/hooks/fetching/designs/use-shelfsign-images';
+import {
+  FlyerCropper,
+  type PctBox,
+} from '@/components/application-ui/content-shells/store-managment/panel/circular/ProductImageTools';
 import designsService, { productSlug, type StoreHintDto } from '@/services/designs.service';
 import PlaylistAddRoundedIcon from '@mui/icons-material/PlaylistAddRounded';
 import UploadFileRoundedIcon from '@mui/icons-material/UploadFileRounded';
@@ -15,6 +20,9 @@ import {
   CardContent,
   CircularProgress,
   Collapse,
+  Dialog,
+  DialogContent,
+  DialogTitle,
   LinearProgress,
   Stack,
   TextField,
@@ -55,6 +63,7 @@ export function StepProducts({
 }: Props): React.JSX.Element {
   const fileRef = React.useRef<HTMLInputElement>(null);
   const [manualOpen, setManualOpen] = React.useState(false);
+  const [flyerOpen, setFlyerOpen] = React.useState(true);
   const [manualText, setManualText] = React.useState('');
   const [manualNote, setManualNote] = React.useState('');
   const [enhancingId, setEnhancingId] = React.useState<string | null>(null);
@@ -91,7 +100,47 @@ export function StepProducts({
   const [uploadingIds, setUploadingIds] = React.useState<string[]>([]);
 
   const enhance = useEnhanceProductImage();
+  const removeBackground = useRemoveProductBackground();
   const saveToLibrary = useSaveProductImages();
+
+  /**
+   * Recorte a mano sobre el flyer, el mismo gesto que el panel del circular.
+   * La IA acierta la mayoría, pero en el cabezal —tres carnes en una sola foto—
+   * el diseñador ve en un segundo lo que al modelo le cuesta, y antes su única
+   * salida era abrir Photoshop y subir el PNG.
+   */
+  const [cropFor, setCropFor] = React.useState<ShelfSignProduct | null>(null);
+  const [cropping, setCropping] = React.useState(false);
+
+  const handleCropFromFlyer = React.useCallback(
+    async (box: PctBox) => {
+      const p = cropFor;
+      if (!p || !flyerUrl) return;
+      setCropping(true);
+      setPhotoNote('');
+      try {
+        const url = await removeBackground.mutateAsync({
+          imageUrl: flyerUrl,
+          box,
+          slug: productSlug(p.name),
+          name: p.name,
+        });
+        if (url) {
+          onPatchProduct(p.id, { photo: url, photoBox: box });
+          setCropFor(null);
+        } else {
+          setPhotoNote(`No se pudo recortar "${p.name}". Probá con un rectángulo más amplio.`);
+        }
+      } catch (e: any) {
+        setPhotoNote(
+          `No se pudo recortar "${p.name}": ${e?.response?.data?.error || e?.message || e}`
+        );
+      } finally {
+        setCropping(false);
+      }
+    },
+    [cropFor, flyerUrl, onPatchProduct, removeBackground]
+  );
   /**
    * Limpieza en lote. El recorte del flyer trae fondo, precio y a veces medio
    * producto vecino; el diseñador los iba limpiando de a uno y en un flyer de 40
@@ -316,21 +365,6 @@ color="inherit" /> : <UploadFileRoundedIcon />
             </Alert>
           )}
 
-          {flyerPreview && (
-            <Box
-              component="img"
-              src={flyerPreview}
-              alt="Flyer"
-              sx={{
-                mt: 2,
-                maxHeight: 180,
-                borderRadius: 1,
-                border: '1px solid',
-                borderColor: 'divider',
-                display: 'block',
-              }}
-            />
-          )}
 
           <Collapse in={manualOpen}>
             <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
@@ -356,6 +390,57 @@ color="inherit" /> : <UploadFileRoundedIcon />
           </Collapse>
         </CardContent>
       </Card>
+
+      {/* El flyer queda a la vista todo el tiempo: la revisión es comparar cada
+          cartón contra el papel, y tener que subir hasta arriba para mirarlo era
+          el paso que se saltaban. Se puede plegar si molesta. */}
+      {flyerPreview && (
+        <Card
+          variant="outlined"
+          sx={{ position: 'sticky', top: 8, zIndex: 3 }}
+        >
+          <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+              sx={{ mb: flyerOpen ? 1 : 0 }}
+            >
+              <Typography
+                variant="subtitle2"
+                fontWeight={700}
+              >
+                Flyer subido
+              </Typography>
+              <Button
+                size="small"
+                onClick={() => setFlyerOpen((v) => !v)}
+                sx={{ textTransform: 'none' }}
+              >
+                {flyerOpen ? 'Ocultar' : 'Ver'}
+              </Button>
+            </Stack>
+            <Collapse in={flyerOpen}>
+              <Box
+                sx={{
+                  maxHeight: '42vh',
+                  overflow: 'auto',
+                  borderRadius: 1,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={flyerPreview}
+                  alt="Flyer"
+                  style={{ width: '100%', display: 'block' }}
+                />
+              </Box>
+            </Collapse>
+          </CardContent>
+        </Card>
+      )}
 
       {products.length === 0 ? (
         <Card variant="outlined">
@@ -447,11 +532,35 @@ color="inherit" /> : <UploadFileRoundedIcon />
               onEnhance={p.photo?.startsWith('http') || (flyerUrl && p.photoBox) ? handleEnhance : undefined}
               enhancing={enhancingId === p.id}
               onPhotoFile={handlePhotoFile}
+              onCropFromFlyer={flyerUrl ? setCropFor : undefined}
               photoLoading={pendingPhotoIds.includes(p.id) || uploadingIds.includes(p.id)}
             />
           ))}
         </>
       )}
+
+      <Dialog
+        open={!!cropFor}
+        onClose={cropping ? undefined : () => setCropFor(null)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          Recortar del flyer — {cropFor?.name}
+        </DialogTitle>
+        <DialogContent>
+          {cropFor && (flyerPreview || flyerUrl) && (
+            <FlyerCropper
+              flyerUrl={flyerPreview || flyerUrl || ''}
+              busy={cropping}
+              hint={`Arrastrá un rectángulo alrededor de "${cropFor.name}". No importa si entra el precio o el fondo: se le quita todo y queda el producto solo.`}
+              cta="Recortar y limpiar"
+              onCancel={() => setCropFor(null)}
+              onCrop={handleCropFromFlyer}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Stack>
   );
 }
