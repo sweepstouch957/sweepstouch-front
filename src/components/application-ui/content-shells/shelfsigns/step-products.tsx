@@ -23,12 +23,16 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  IconButton,
   LinearProgress,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesomeOutlined';
+import ZoomInRoundedIcon from '@mui/icons-material/ZoomInRounded';
+import ZoomOutRoundedIcon from '@mui/icons-material/ZoomOutRounded';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import React from 'react';
 import { demoProducts } from './constants';
 import { parseManualLine } from './parse';
@@ -63,7 +67,8 @@ export function StepProducts({
 }: Props): React.JSX.Element {
   const fileRef = React.useRef<HTMLInputElement>(null);
   const [manualOpen, setManualOpen] = React.useState(false);
-  const [flyerOpen, setFlyerOpen] = React.useState(true);
+  const [viewerOpen, setViewerOpen] = React.useState(false);
+  const [zoom, setZoom] = React.useState(1);
   const [manualText, setManualText] = React.useState('');
   const [manualNote, setManualNote] = React.useState('');
   const [enhancingId, setEnhancingId] = React.useState<string | null>(null);
@@ -391,53 +396,55 @@ color="inherit" /> : <UploadFileRoundedIcon />
         </CardContent>
       </Card>
 
-      {/* El flyer queda a la vista todo el tiempo: la revisión es comparar cada
-          cartón contra el papel, y tener que subir hasta arriba para mirarlo era
-          el paso que se saltaban. Se puede plegar si molesta. */}
+      {/* El flyer a un clic desde cualquier punto de la lista: la revisión es
+          comparar cada cartón contra el papel, y el visor va en un modal con zoom
+          porque al ancho de la tarjeta los precios chicos no se leen. */}
       {flyerPreview && (
         <Card
           variant="outlined"
           sx={{ position: 'sticky', top: 8, zIndex: 3 }}
         >
-          <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
-            <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent="space-between"
-              sx={{ mb: flyerOpen ? 1 : 0 }}
+          <CardContent
+            sx={{
+              py: 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              '&:last-child': { pb: 1 },
+            }}
+          >
+            <Box
+              component="img"
+              src={flyerPreview}
+              alt=""
+              onClick={() => setViewerOpen(true)}
+              sx={{
+                height: 44,
+                width: 44,
+                objectFit: 'cover',
+                objectPosition: 'top',
+                borderRadius: 1,
+                border: '1px solid',
+                borderColor: 'divider',
+                cursor: 'zoom-in',
+              }}
+            />
+            <Typography
+              variant="subtitle2"
+              fontWeight={700}
+              sx={{ flex: 1 }}
             >
-              <Typography
-                variant="subtitle2"
-                fontWeight={700}
-              >
-                Flyer subido
-              </Typography>
-              <Button
-                size="small"
-                onClick={() => setFlyerOpen((v) => !v)}
-                sx={{ textTransform: 'none' }}
-              >
-                {flyerOpen ? 'Ocultar' : 'Ver'}
-              </Button>
-            </Stack>
-            <Collapse in={flyerOpen}>
-              <Box
-                sx={{
-                  maxHeight: '42vh',
-                  overflow: 'auto',
-                  borderRadius: 1,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={flyerPreview}
-                  alt="Flyer"
-                  style={{ width: '100%', display: 'block' }}
-                />
-              </Box>
-            </Collapse>
+              Flyer subido
+            </Typography>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<ZoomInRoundedIcon />}
+              onClick={() => setViewerOpen(true)}
+              sx={{ textTransform: 'none', fontWeight: 700 }}
+            >
+              Ver flyer
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -538,6 +545,64 @@ color="inherit" /> : <UploadFileRoundedIcon />
           ))}
         </>
       )}
+
+      {/* Visor del flyer. El zoom arranca en "entra entero" y sube hasta 4x: a
+          tamaño real un flyer de 1050x2300 no entra en ninguna pantalla, y lo que
+          se viene a mirar son los precios chicos de la grilla de grocery. */}
+      <Dialog
+        open={viewerOpen}
+        onClose={() => setViewerOpen(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle
+          sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700 }}
+        >
+          <Box sx={{ flex: 1 }}>Flyer subido</Box>
+          <IconButton
+            size="small"
+            disabled={zoom <= 1}
+            onClick={() => setZoom((z) => Math.max(1, z - 0.5))}
+          >
+            <ZoomOutRoundedIcon />
+          </IconButton>
+          <Typography
+            variant="body2"
+            sx={{ width: 52, textAlign: 'center' }}
+          >
+            {zoom.toFixed(1)}x
+          </Typography>
+          <IconButton
+            size="small"
+            disabled={zoom >= 4}
+            onClick={() => setZoom((z) => Math.min(4, z + 0.5))}
+          >
+            <ZoomInRoundedIcon />
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={() => setViewerOpen(false)}
+          >
+            <CloseRoundedIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ bgcolor: 'background.default' }}>
+          <Box sx={{ maxHeight: '78vh', overflow: 'auto' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={flyerPreview || flyerUrl || ''}
+              alt="Flyer"
+              onClick={() => setZoom((z) => (z >= 4 ? 1 : z + 1))}
+              style={{
+                width: `${zoom * 100}%`,
+                display: 'block',
+                margin: '0 auto',
+                cursor: zoom >= 4 ? 'zoom-out' : 'zoom-in',
+              }}
+            />
+          </Box>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={!!cropFor}
