@@ -44,6 +44,12 @@ export interface StoreProduct {
   visibleInRcs?: boolean;
   position?: number;
   updatedAt?: string;
+  /** Viene de un flyer que todavía no empezó: rige desde esta fecha, no hoy. */
+  effectiveFrom?: string;
+  effectiveKind?: 'new' | 'price';
+  /** Precio que va a regir desde `effectiveFrom` (el de hoy sigue en `price`). */
+  effectivePrice?: string;
+  effectiveCircularTitle?: string;
 }
 
 /** Banner de campaña que el cliente ve arriba de su lista (linktree /prercs). */

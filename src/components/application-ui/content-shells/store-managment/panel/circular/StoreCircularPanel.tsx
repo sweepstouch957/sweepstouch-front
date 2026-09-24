@@ -790,6 +790,23 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
     return q ? orderedItems.filter((p) => `${p.name} ${p.brand ?? ''}`.toLowerCase().includes(q)) : orderedItems;
   }, [orderedItems, search]);
 
+  // Lo que todavía no arrancó, agrupado por fecha de entrada: el encargado sube el flyer
+  // de la semana que viene y necesita ver qué sale (o cambia de precio) y cuándo.
+  const upcomingSummary = useMemo(() => {
+    const byDate = new Map<string, { date: string; title: string; total: number; nuevos: number; precios: number }>();
+    for (const p of orderedItems) {
+      if (!p.effectiveFrom) continue;
+      const row = byDate.get(p.effectiveFrom) ?? {
+        date: p.effectiveFrom, title: p.effectiveCircularTitle || '', total: 0, nuevos: 0, precios: 0,
+      };
+      row.total += 1;
+      if (p.effectiveKind === 'price') row.precios += 1;
+      else row.nuevos += 1;
+      byDate.set(p.effectiveFrom, row);
+    }
+    return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+  }, [orderedItems]);
+
   const handleCatalogDragEnd = ({ source, destination }: DropResult) => {
     if (!destination || destination.index === source.index || saveOrder.isPending) return;
     const ids = moveCatalogItem(
@@ -1032,6 +1049,17 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
         {activeRow ? ` Fila activa: ${activeRow.name}.` : ''}
       </Typography>
 
+      {upcomingSummary.map((u) => (
+        <Alert key={u.date} severity="info" sx={{ mb: 1 }}>
+          <strong>{u.total}</strong> {u.total === 1 ? 'producto entra' : 'productos entran'} el{' '}
+          <strong>{fmtDate(u.date)}</strong>
+          {u.nuevos ? ` · ${u.nuevos} ${u.nuevos === 1 ? 'nuevo' : 'nuevos'}` : ''}
+          {u.precios ? ` · ${u.precios} ${u.precios === 1 ? 'cambia' : 'cambian'} de precio` : ''}
+          {u.title ? ` (${u.title})` : ''}. Hasta esa fecha el cliente sigue viendo el precio de hoy; los
+          productos nuevos entran ocultos y se prenden solos ese día.
+        </Alert>
+      ))}
+
       {cleaning && (
         <Alert severity="info" icon={<CircularProgress size={16} />} sx={{ mb: 1 }}>
           {generatingCount
@@ -1206,6 +1234,22 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
                         if (v && v !== p.name) patch.mutate({ id: p._id, body: { name: v } });
                       }}
                     />
+                    {/* Producto de un flyer que todavía no arrancó: el catálogo ya lo tiene,
+                        pero recién rige desde esa fecha. Sin este aviso parecía vigente hoy. */}
+                    {p.effectiveFrom && (
+                      <Chip
+                        size="small"
+                        color="info"
+                        variant="outlined"
+                        label={
+                          p.effectiveKind === 'price'
+                            ? `${p.effectivePrice || 'Nuevo precio'} desde el ${fmtDate(p.effectiveFrom)}`
+                            : `Sale el ${fmtDate(p.effectiveFrom)}`
+                        }
+                        title={p.effectiveCircularTitle || undefined}
+                        sx={{ height: 18, fontSize: 11, mt: 0.5 }}
+                      />
+                    )}
                     {/* Marca y tamaño: la IA los lee mal seguido y antes no había forma de
                         corregirlos desde el panel. */}
                     <Stack direction="row" gap={1} sx={{ mt: 0.25 }}>
