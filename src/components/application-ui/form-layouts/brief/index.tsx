@@ -8,6 +8,7 @@ import CardGiftcardRounded from '@mui/icons-material/CardGiftcardRounded';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CloseIcon from '@mui/icons-material/Close';
 import ColorLensOutlinedIcon from '@mui/icons-material/ColorLensOutlined';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
@@ -168,41 +169,105 @@ function SectionHeader({
   );
 }
 
-/* ===================== Banner Image Upload ===================== */
+/* ===================== Banner Image Upload =====================
+   Sube / reemplaza / borra un arte y lo deja ver en grande. Acepta arrastrar
+   el archivo encima o click. El recuadro respeta la proporcion real de la
+   medida pedida: asi se ve de una si la pieza va parada o acostada, que es
+   justo lo que se confundia con los dos banners del kiosco. */
 
 function BannerUpload({
   label,
+  hint,
+  ratio = 16 / 9,
   value,
   onChange,
 }: {
   label: string;
+  hint?: string;
+  /** ancho / alto de la medida ideal - solo para dibujar el recuadro. */
+  ratio?: number;
   value?: string;
   onChange: (url: string) => void;
 }) {
   const [uploading, setUploading] = useState(false);
-  const [preview, setPreview] = useState<string | null>(value || null);
+  const [dragging, setDragging] = useState(false);
+  const [zoom, setZoom] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Sin estado local de preview: manda el valor del formulario. Con una copia
+  // local, el boton "Limpiar" dejaba la miniatura vieja colgada en pantalla.
+  const preview = value || '';
+
   const handleFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) return;
     setUploading(true);
     try {
       const { url } = await uploadCampaignImage(file, 'sweepstakes');
-      setPreview(url);
       onChange(url);
     } finally {
       setUploading(false);
     }
   };
 
+  const clear = () => {
+    onChange('');
+    if (inputRef.current) inputRef.current.value = '';
+  };
+
   return (
     <Box>
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        gutterBottom
+      <Stack
+        direction="row"
+        alignItems="flex-start"
+        justifyContent="space-between"
+        gap={1}
+        sx={{ mb: 0.75 }}
       >
-        {label}
-      </Typography>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            variant="body2"
+            fontWeight={600}
+          >
+            {label}
+          </Typography>
+          {hint && (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              display="block"
+            >
+              {hint}
+            </Typography>
+          )}
+        </Box>
+
+        {preview && !uploading && (
+          <Stack
+            direction="row"
+            gap={0.5}
+            sx={{ flexShrink: 0 }}
+          >
+            <Tooltip title="Ver en grande">
+              <IconButton
+                size="small"
+                onClick={() => setZoom(true)}
+              >
+                <VisibilityOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Eliminar imagen">
+              <IconButton
+                size="small"
+                color="error"
+                onClick={clear}
+              >
+                <DeleteOutlineIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        )}
+      </Stack>
+
       <input
         ref={inputRef}
         type="file"
@@ -213,19 +278,39 @@ function BannerUpload({
           if (f) handleFile(f);
         }}
       />
+
       <Paper
         variant="outlined"
         onClick={() => inputRef.current?.click()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          const f = e.dataTransfer.files?.[0];
+          if (f) handleFile(f);
+        }}
         sx={{
           cursor: 'pointer',
           position: 'relative',
           overflow: 'hidden',
-          minHeight: 110,
+          aspectRatio: String(ratio),
+          // El ancho sale de la altura tope: si no, un arte parado (686x1000)
+          // se estira a todo el ancho de la columna y queda una caja gigante.
+          width: '100%',
+          maxWidth: Math.round(280 * ratio),
+          mx: 'auto',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           borderRadius: 2,
           borderStyle: 'dashed',
+          borderWidth: 2,
+          borderColor: dragging ? 'primary.main' : undefined,
+          bgcolor: dragging ? 'action.hover' : 'background.paper',
           transition: 'border-color 0.2s, background 0.2s',
           '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
         }}
@@ -234,17 +319,19 @@ function BannerUpload({
           <CircularProgress size={28} />
         ) : preview ? (
           <>
+            {/* `contain`: recortar el arte aqui engana sobre como se va a ver
+                en la tablet. Mejor que se note la franja vacia. */}
             <Box
               component="img"
               src={preview}
               alt={label}
-              sx={{ width: '100%', height: 110, objectFit: 'cover' }}
+              sx={{ width: '100%', height: '100%', objectFit: 'contain' }}
             />
             <Box
               sx={{
                 position: 'absolute',
                 inset: 0,
-                bgcolor: 'rgba(0,0,0,0.35)',
+                bgcolor: 'rgba(0,0,0,0.45)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -258,7 +345,7 @@ function BannerUpload({
                 variant="caption"
                 fontWeight={700}
               >
-                Cambiar imagen
+                Click o arrastra para reemplazar
               </Typography>
             </Box>
           </>
@@ -266,19 +353,64 @@ function BannerUpload({
           <Stack
             alignItems="center"
             gap={0.5}
+            sx={{ px: 2, textAlign: 'center' }}
           >
-            <ImageOutlinedIcon
-              sx={{ fontSize: 32, color: 'text.disabled' }}
-            />
+            <ImageOutlinedIcon sx={{ fontSize: 32, color: 'text.disabled' }} />
             <Typography
               variant="caption"
               color="text.disabled"
             >
-              Click para subir imagen
+              {dragging ? 'Suelta la imagen aqui' : 'Arrastra la imagen o haz click'}
             </Typography>
           </Stack>
         )}
       </Paper>
+
+      <Dialog
+        open={zoom}
+        onClose={() => setZoom(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle sx={{ pr: 6 }}>
+          {label}
+          <IconButton
+            onClick={() => setZoom(false)}
+            sx={{ position: 'absolute', right: 8, top: 8 }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Box
+            component="img"
+            src={preview}
+            alt={label}
+            sx={{ width: '100%', maxHeight: '70vh', objectFit: 'contain', display: 'block' }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            color="error"
+            startIcon={<DeleteOutlineIcon />}
+            onClick={() => {
+              clear();
+              setZoom(false);
+            }}
+          >
+            Eliminar
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              setZoom(false);
+              inputRef.current?.click();
+            }}
+          >
+            Reemplazar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
@@ -1514,7 +1646,7 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
               <SectionHeader
                 icon={<ColorLensOutlinedIcon fontSize="small" />}
                 title="Branding"
-                subtitle="Banners y colores de la campaña — todos opcionales"
+                subtitle="Banners y colores de la campaña — todos opcionales. Arrastra la imagen o haz click; con la imagen cargada puedes verla en grande o eliminarla."
               />
 
               <Grid
@@ -1568,7 +1700,9 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
                     control={control}
                     render={({ field }) => (
                       <BannerUpload
-                        label="Banner Desktop (Medida Ideal: 1920 x 860 píxeles, Alta resolución)"
+                        label="Banner web — escritorio"
+                        hint="Acostado (horizontal) · 1920 × 860 px"
+                        ratio={1920 / 860}
                         value={field.value}
                         onChange={(url) => field.onChange(url)}
                       />
@@ -1585,7 +1719,9 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
                     control={control}
                     render={({ field }) => (
                       <BannerUpload
-                        label="Banner Mobile (Medida Ideal: 1080 x 1200 píxeles, Ligeramente más vertical que horizontal)"
+                        label="Banner web — celular"
+                        hint="Parado (vertical) · 1080 × 1200 px"
+                        ratio={1080 / 1200}
                         value={field.value}
                         onChange={(url) => field.onChange(url)}
                       />
@@ -1595,7 +1731,46 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
 
                 {/* Kiosco: la tablet en tienda. Son dos piezas distintas, no la
                     misma recortada — el hueco cambia de forma al girar la
-                    tablet. Si quedan vacías, el kiosco usa el arte por defecto. */}
+                    tablet, y al revés de lo que uno espera: tablet acostada →
+                    arte parado, tablet parada → arte acostado. Ese cruce es lo
+                    que se confundía, así que va escrito en pantalla.
+                    Si quedan vacías, el kiosco usa el arte por defecto. */}
+                <Grid
+                  item
+                  xs={12}
+                >
+                  <Alert
+                    severity="info"
+                    icon={<InfoOutlinedIcon fontSize="inherit" />}
+                    sx={{ mt: 1 }}
+                  >
+                    <Typography
+                      variant="body2"
+                      fontWeight={700}
+                      gutterBottom
+                    >
+                      Kiosco (la tablet de la tienda) — la imagen va al revés de
+                      la tablet
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      component="div"
+                    >
+                      El arte no ocupa toda la pantalla: entra en un hueco al
+                      lado del teclado, y ese hueco cambia de forma al girar la
+                      tablet.
+                      <br />• <b>Tablet acostada</b> → el hueco es una columna
+                      alta y angosta → sube una imagen <b>parada (vertical)</b>,
+                      686 × 1000 px.
+                      <br />• <b>Tablet parada</b> → el hueco es una franja
+                      ancha y baja → sube una imagen <b>acostada (horizontal)</b>,
+                      1536 × 464 px.
+                      <br />
+                      Son dos artes distintos, no el mismo recortado. Si dejas
+                      alguno vacío, la tablet usa el arte por defecto.
+                    </Typography>
+                  </Alert>
+                </Grid>
                 <Grid
                   item
                   xs={12}
@@ -1606,7 +1781,9 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
                     control={control}
                     render={({ field }) => (
                       <BannerUpload
-                        label="Kiosco — tablet horizontal (Medida ideal: 686 x 1000 píxeles, panel alto y angosto)"
+                        label="Kiosco con la tablet ACOSTADA"
+                        hint="La imagen va PARADA (vertical) · 686 × 1000 px — columna alta y angosta"
+                        ratio={686 / 1000}
                         value={field.value}
                         onChange={(url) => field.onChange(url)}
                       />
@@ -1623,7 +1800,9 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
                     control={control}
                     render={({ field }) => (
                       <BannerUpload
-                        label="Kiosco — tablet vertical (Medida ideal: 1536 x 464 píxeles, franja ancha)"
+                        label="Kiosco con la tablet PARADA"
+                        hint="La imagen va ACOSTADA (horizontal) · 1536 × 464 px — franja ancha y baja"
+                        ratio={1536 / 464}
                         value={field.value}
                         onChange={(url) => field.onChange(url)}
                       />
