@@ -25,12 +25,14 @@ import {
 } from '@mui/material';
 import React from 'react';
 import toast from 'react-hot-toast';
-import { OPEN_STATUSES, paymentMeta, prettyPhone, splitStoreTitle, statusMeta, timeShort } from './constants';
+import { OPEN_STATUSES, dateTimeShort, paymentMeta, prettyPhone, splitStoreTitle, statusMeta, timeShort } from './constants';
 
 interface Props {
   storeName: string;
   rows: MatrixRow[];
   defaultExpanded?: boolean;
+  /** Rango de varios días: la hora sola no alcanza, se muestra también la fecha. */
+  showDate?: boolean;
 }
 
 /** Columnas de una fila en escritorio: persona · orden · plata · contacto. */
@@ -103,8 +105,8 @@ function ContactButtons({ row }: { row: MatrixRow }): React.JSX.Element {
             aria-label={a.label}
             {...(a.props as any)}
             sx={{
-              width: 40,
-              height: 40,
+              width: 34,
+              height: 34,
               color: a.color,
               border: '1px solid',
               borderColor: 'divider',
@@ -122,7 +124,7 @@ function ContactButtons({ row }: { row: MatrixRow }): React.JSX.Element {
 }
 
 /** Una persona a la que hay que contactar, con el estado de su orden. */
-function ContactRow({ row }: { row: MatrixRow }): React.JSX.Element {
+function ContactRow({ row, showDate }: { row: MatrixRow; showDate?: boolean }): React.JSX.Element {
   const meta = statusMeta(row.fulfillmentStatus);
   const pay = paymentMeta(row.paymentStatus);
   const initial = (row.customerName || '#').trim().charAt(0).toUpperCase();
@@ -137,7 +139,7 @@ function ContactRow({ row }: { row: MatrixRow }): React.JSX.Element {
         columnGap: 2.5,
         rowGap: 1.5,
         px: { xs: 2, md: 2.5 },
-        py: 2,
+        py: 1.25,
         borderTop: '1px solid',
         borderColor: 'divider',
         transition: 'background-color .15s ease',
@@ -146,7 +148,7 @@ function ContactRow({ row }: { row: MatrixRow }): React.JSX.Element {
     >
       {/* Quién */}
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0 }}>
-        <Avatar sx={{ width: 40, height: 40, bgcolor: 'primary.main', fontSize: 16, fontWeight: 700 }}>
+        <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: 14, fontWeight: 700 }}>
           {initial}
         </Avatar>
         <Box sx={{ minWidth: 0 }}>
@@ -174,7 +176,7 @@ function ContactRow({ row }: { row: MatrixRow }): React.JSX.Element {
           </Typography>
           <ScheduleRounded sx={{ fontSize: 13 }} />
           <Typography variant="caption" sx={{ fontVariantNumeric: 'tabular-nums' }}>
-            {timeShort(row.createdAt)}
+            {showDate ? dateTimeShort(row.createdAt) : timeShort(row.createdAt)}
           </Typography>
         </Stack>
         <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
@@ -209,7 +211,7 @@ function ContactRow({ row }: { row: MatrixRow }): React.JSX.Element {
 const MemoRow = React.memo(ContactRow);
 
 /** Rama del árbol: una tienda con toda su gente del día. */
-export function StoreBranch({ storeName, rows, defaultExpanded }: Props): React.JSX.Element {
+export function StoreBranch({ storeName, rows, defaultExpanded, showDate }: Props): React.JSX.Element {
   const theme = useTheme();
   const { title, address } = splitStoreTitle(storeName);
   const open = rows.filter((r) => OPEN_STATUSES.includes(r.fulfillmentStatus)).length;
@@ -233,14 +235,14 @@ export function StoreBranch({ storeName, rows, defaultExpanded }: Props): React.
         expandIcon={<ExpandMoreRounded />}
         sx={{
           px: { xs: 2, md: 2.5 },
-          py: 1,
-          minHeight: 72,
-          '& .MuiAccordionSummary-content': { alignItems: 'center', gap: 2, my: 1 },
+          py: 0.25,
+          minHeight: 56,
+          '& .MuiAccordionSummary-content': { alignItems: 'center', gap: 1.5, my: 0.75 },
         }}
       >
         <Avatar
           variant="rounded"
-          sx={{ width: 40, height: 40, bgcolor: alpha(theme.palette.primary.main, 0.12), color: 'primary.main' }}
+          sx={{ width: 34, height: 34, bgcolor: alpha(theme.palette.primary.main, 0.12), color: 'primary.main' }}
         >
           <StorefrontRounded fontSize="small" />
         </Avatar>
@@ -273,7 +275,7 @@ export function StoreBranch({ storeName, rows, defaultExpanded }: Props): React.
 
       <AccordionDetails sx={{ p: 0 }}>
         {rows.map((r) => (
-          <MemoRow key={r._id} row={r} />
+          <MemoRow key={r._id} row={r} showDate={showDate} />
         ))}
       </AccordionDetails>
     </Accordion>

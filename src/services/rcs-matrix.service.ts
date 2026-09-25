@@ -63,6 +63,8 @@ export interface MatrixResponse {
   ok: boolean;
   /** Día consultado, YYYY-MM-DD en hora de Nueva York. */
   date: string;
+  /** Último día del rango (YYYY-MM-DD, NY). */
+  to?: string;
   range: { from: string; to: string };
   kpis: {
     orders: number;
@@ -70,6 +72,12 @@ export interface MatrixResponse {
     stores: number;
     grossCents: number;
     pending: number;
+    unpaid?: number;
+    unpaidCents?: number;
+    collectedCents?: number;
+    completed?: number;
+    cancelled?: number;
+    avgTicketCents?: number;
   };
   byStatus: Record<string, number>;
   stores: MatrixStore[];
@@ -77,8 +85,9 @@ export interface MatrixResponse {
 }
 
 export interface MatrixParams {
-  /** YYYY-MM-DD. Sin él, el backend responde el día de hoy en NY. */
-  date?: string;
+  /** YYYY-MM-DD (NY), inclusivos. Sin ellos, el backend responde hoy. */
+  from?: string;
+  to?: string;
   store?: string;
   status?: string;
 }

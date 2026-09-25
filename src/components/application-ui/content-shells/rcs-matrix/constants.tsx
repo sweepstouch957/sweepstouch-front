@@ -75,3 +75,17 @@ export function searchBlob(r: MatrixRow): string {
     .join(' ')
     .toLowerCase();
 }
+
+/** Suma días a un YYYY-MM-DD sin pasar por la zona horaria del navegador. */
+export function shiftYmd(ymd: string, days: number): string {
+  const d = new Date(`${ymd}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/** "Sep 24 · 9:00 AM" — para cuando el rango abarca más de un día. */
+export function dateTimeShort(iso?: string | null): string {
+  if (!iso) return '—';
+  const day = new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' });
+  return `${day} · ${timeShort(iso)}`;
+}

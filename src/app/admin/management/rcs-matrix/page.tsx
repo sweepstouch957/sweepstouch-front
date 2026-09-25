@@ -10,13 +10,13 @@ function Page(): React.JSX.Element {
 
   return (
     <>
-      <Box sx={{ px: { xs: 2, sm: 3 }, pt: { xs: 2, sm: 3 }, pb: 2, bgcolor: 'background.default' }}>
+      <Box sx={{ px: { xs: 2, sm: 3 }, pt: { xs: 2, sm: 2.5 }, pb: 1.5, bgcolor: 'background.default' }}>
         <Typography variant="h4" fontWeight={800}>
           {t('Matriz RCS')}
         </Typography>
         <Typography variant="body2" color="text.secondary">
           {t(
-            'Árbol de llamadas del día: todas las órdenes de todas las tiendas con sus datos de contacto y WhatsApp directo'
+            'Árbol de llamadas por período: todas las órdenes de todas las tiendas con sus datos de contacto y WhatsApp directo'
           )}
         </Typography>
       </Box>
