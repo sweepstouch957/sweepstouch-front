@@ -17,6 +17,7 @@ import {
   Typography,
 } from '@mui/material';
 import React from 'react';
+import type { ProductImageVersion } from '@/services/designs.service';
 import { readAsDataURL } from './image';
 import { clampCents, clampDollars, clampQty, computeSave, priceLabel } from './price';
 import type { ShelfSignProduct } from './types';
@@ -42,7 +43,18 @@ interface Props {
   onCropFromFlyer?: (product: ShelfSignProduct) => void;
   /** La foto de este cartón se está recortando o subiendo. */
   photoLoading?: boolean;
+  /** Fotos que la librería ya tiene de este producto (semanas anteriores). */
+  versions?: ProductImageVersion[];
+  /** Elegir una de esas fotos: se usa en el cartón y pasa a ser la default. */
+  onPickVersion?: (product: ShelfSignProduct, url: string) => void;
 }
+
+/** De dónde salió cada versión, para que el diseñador sepa qué está eligiendo. */
+const VERSION_LABEL: Record<string, string> = {
+  designer: 'Subida por diseño',
+  enhance: 'Mejorada con IA',
+  imgly: 'Recorte automático',
+};
 
 const labelSx = {
   fontWeight: 700,
@@ -64,6 +76,8 @@ function ProductEditorCardBase({
   onPhotoFile,
   onCropFromFlyer,
   photoLoading = false,
+  versions,
+  onPickVersion,
 }: Props): React.JSX.Element {
   const fileRef = React.useRef<HTMLInputElement>(null);
 
@@ -392,6 +406,54 @@ spacing={1}>
                     )}
                   </Stack>
                 </Stack>
+              )}
+
+              {/* Versiones guardadas del mismo producto. La foto de las carnes
+                  de Navidad no se pierde cuando en enero se recorta otra: acá
+                  se vuelve a ella con un click, sin gastar créditos. */}
+              {versions && versions.length > 1 && onPickVersion && (
+                <Box sx={{ mt: 1 }}>
+                  <Typography
+                    variant="caption"
+                    sx={labelSx}
+                  >
+                    Versiones guardadas ({versions.length})
+                  </Typography>
+                  <Stack
+                    direction="row"
+                    spacing={0.75}
+                    sx={{ overflowX: 'auto', pb: 0.5 }}
+                  >
+                    {versions.map((v) => {
+                      const active = v.url === p.photo;
+                      return (
+                        <Tooltip
+                          key={v.url}
+                          title={VERSION_LABEL[v.source] || v.source}
+                        >
+                          <Box
+                            component="img"
+                            src={v.url}
+                            alt=""
+                            onClick={() => !active && onPickVersion(p, v.url)}
+                            sx={{
+                              width: 52,
+                              height: 52,
+                              flex: '0 0 auto',
+                              objectFit: 'contain',
+                              cursor: active ? 'default' : 'pointer',
+                              borderRadius: 1,
+                              border: '2px solid',
+                              borderColor: active ? color : 'divider',
+                              bgcolor: 'background.paper',
+                              p: 0.25,
+                            }}
+                          />
+                        </Tooltip>
+                      );
+                    })}
+                  </Stack>
+                </Box>
               )}
             </Box>
           </Stack>

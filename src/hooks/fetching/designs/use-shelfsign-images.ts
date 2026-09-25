@@ -97,6 +97,19 @@ export function useEnhanceProductImage() {
   });
 }
 
+/**
+ * Elegir con qué version se imprime un producto. No genera nada: sólo marca
+ * cuál de las fotos ya guardadas es la buena (la de Navidad, la del empaque
+ * nuevo…) para esta temporada.
+ */
+export function useSetActiveProductImage() {
+  const invalidate = useLibraryInvalidator();
+  return useMutation<ProductImage | null, unknown, { slug: string; url: string }>({
+    mutationFn: ({ slug, url }) => designsService.setActiveProductImage(slug, url),
+    onSuccess: invalidate,
+  });
+}
+
 export function useSaveProductImages() {
   const invalidate = useLibraryInvalidator();
   return useMutation<ProductImage[], unknown, SaveProductImageDto[]>({

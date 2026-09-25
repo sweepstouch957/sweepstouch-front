@@ -67,12 +67,21 @@ export interface DetectedBox extends PhotoBoxDto {
 
 export type ProductImageSource = 'imgly' | 'enhance' | 'designer';
 
+/** Una foto guardada del mismo producto. La activa es `ProductImage.url`. */
+export interface ProductImageVersion {
+  url: string;
+  source: ProductImageSource;
+  createdAt?: string;
+}
+
 export interface ProductImage {
   _id?: string;
   slug: string;
   name: string;
   url: string;
   source: ProductImageSource;
+  /** Historial: cada recorte o generación del producto queda acá para reusarlo. */
+  versions?: ProductImageVersion[];
   updatedAt?: string;
 }
 
@@ -241,6 +250,14 @@ export const designsService = {
   saveProductImages: async (items: SaveProductImageDto[]): Promise<ProductImage[]> => {
     const { data } = await api.post(`${BASE}/product-images`, { items });
     return data?.images || [];
+  },
+
+  /** Deja una version guardada como la foto por defecto del producto. */
+  setActiveProductImage: async (slug: string, url: string): Promise<ProductImage | null> => {
+    const { data } = await api.patch(`${BASE}/product-images/${encodeURIComponent(slug)}/active`, {
+      url,
+    });
+    return data?.image || null;
   },
 
   deleteProductImage: async (slug: string): Promise<void> => {

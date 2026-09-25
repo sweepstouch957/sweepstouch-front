@@ -27,10 +27,20 @@ interface Props {
   isBottom?: boolean;
 }
 
-/** Cuánto puede agrandarse la foto del producto sobre su tamaño real.
- *  Más que esto y el PNG se ve borroso impreso; menos, y un recorte chico deja
- *  media cartulina vacía. */
-const PHOTO_MAX_ZOOM = 2.4;
+/**
+ * Marco fijo de la foto, el mismo en TODOS los cartones.
+ *
+ * Antes la foto vivía en un `flex: 1` y además tenía tope de zoom sobre su
+ * tamaño real: el alto dependía de cuántas líneas de detalle traía el producto,
+ * y un PNG chico se dibujaba chico. Resultado: en la misma hoja un producto
+ * enorme al lado de uno diminuto. Con una caja de medida fija y `contain`, cada
+ * producto ocupa el mismo espacio y sólo su proporción decide si llena a lo
+ * ancho o a lo alto.
+ *
+ * 2.25in sobre las ~3.8in útiles del cartón: queda sitio para nombre, detalles
+ * y condiciones sin que el texto empuje la foto.
+ */
+const PHOTO_BOX_HEIGHT = '2.25in';
 
 /** Marca de posición del QR mientras no haya tienda elegida. */
 function QrPlaceholder(): React.JSX.Element {
@@ -154,7 +164,10 @@ export function ShelfSign({ product: p, config: cfg, isBottom = false }: Props):
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'flex-end',
-            justifyContent: 'flex-end',
+            // La foto arranca arriba y siempre en el mismo sitio; el texto se
+            // ancla abajo con su `marginTop: auto`. Antes todo iba pegado al
+            // fondo y la foto subía o bajaba según cuánto texto tuviera.
+            justifyContent: 'flex-start',
             textAlign: 'right',
             paddingBottom: 10,
             minWidth: 0,
@@ -162,39 +175,28 @@ export function ShelfSign({ product: p, config: cfg, isBottom = false }: Props):
             flexGrow: 1.15,
           }}
         >
-          {/* La foto se come TODO el alto libre que queda sobre los nombres, en
-              vez de un tope fijo de 2.4in. El backend ya le recortó el margen
-              muerto, así que lo que se escala es el producto y no su marco: un
-              carton visto a 3 metros en gondola necesita la foto grande. */}
+          {/* Caja fija: el alto NO depende del texto del cartón. El backend ya
+              entrega el recorte sin margen muerto y reescalado a un mínimo, así
+              que lo que llena la caja es el producto y no su marco. */}
           {p.photo && (
             <div
               style={{
-                flex: 1,
-                minHeight: 0,
+                flex: '0 0 auto',
+                height: PHOTO_BOX_HEIGHT,
                 width: '100%',
+                boxSizing: 'border-box',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'flex-end',
                 paddingBottom: 8,
               }}
             >
-              {/* `max*: 100%` sólo ENCOGE: un PNG de 300 px se dibujaba a 300 px y
-                  dejaba media cartulina en blanco. Con width/height al 100% el
-                  producto CRECE hasta llenar su espacio, y `contain` le respeta la
-                  proporción — en góndola se mira a tres metros. */}
+              {/* Sin tope por tamaño real: el PNG chico también llena la caja, y
+                  `contain` le respeta la proporción. Un cartón se mira a tres
+                  metros en góndola. */}
               <img
                 src={p.photo}
                 alt=""
-                // Crece para llenar el cartón, pero con tope sobre su tamaño real:
-                // estirar un PNG chico sin límite lo deja borroso en la impresión.
-                // 2.4x (antes 1.6) porque el cartón se mira de lejos en góndola y
-                // un recorte chico quedaba perdido en media cartulina en blanco.
-                onLoad={(e) => {
-                  const img = e.currentTarget;
-                  if (!img.naturalWidth) return;
-                  img.style.maxWidth = `${Math.round(img.naturalWidth * PHOTO_MAX_ZOOM)}px`;
-                  img.style.maxHeight = `${Math.round(img.naturalHeight * PHOTO_MAX_ZOOM)}px`;
-                }}
                 style={{
                   width: '100%',
                   height: '100%',
@@ -204,7 +206,7 @@ export function ShelfSign({ product: p, config: cfg, isBottom = false }: Props):
               />
             </div>
           )}
-          <div>
+          <div style={{ marginTop: 'auto' }}>
             <div style={{ fontWeight: 800, fontSize: 22, color: '#111', lineHeight: 1.05 }}>
               {p.name}
             </div>

@@ -4,12 +4,18 @@ import {
   useEnhanceProductImage,
   useRemoveProductBackground,
   useSaveProductImages,
+  useSetActiveProductImage,
+  useShelfsignProductImages,
 } from '@/hooks/fetching/designs/use-shelfsign-images';
 import {
   FlyerCropper,
   type PctBox,
 } from '@/components/application-ui/content-shells/store-managment/panel/circular/ProductImageTools';
-import designsService, { productSlug, type StoreHintDto } from '@/services/designs.service';
+import designsService, {
+  productSlug,
+  type ProductImageVersion,
+  type StoreHintDto,
+} from '@/services/designs.service';
 import PlaylistAddRoundedIcon from '@mui/icons-material/PlaylistAddRounded';
 import UploadFileRoundedIcon from '@mui/icons-material/UploadFileRounded';
 import {
@@ -107,6 +113,39 @@ export function StepProducts({
   const enhance = useEnhanceProductImage();
   const removeBackground = useRemoveProductBackground();
   const saveToLibrary = useSaveProductImages();
+  const setActiveVersion = useSetActiveProductImage();
+
+  /* ── Versiones guardadas de cada producto ──
+     Una sola consulta para todos los cartones: la librería guarda el historial
+     por slug, así que volver a la foto de otra semana no cuesta nada. */
+  const slugs = React.useMemo(
+    () => Array.from(new Set(products.map((p) => productSlug(p.name)).filter(Boolean))),
+    [products]
+  );
+  const { data: libraryImages } = useShelfsignProductImages(slugs);
+
+  const versionsBySlug = React.useMemo(() => {
+    const map = new Map<string, ProductImageVersion[]>();
+    for (const img of libraryImages || []) {
+      // La activa primero: es la que el cartón está usando ahora.
+      const list = [...(img.versions || [])];
+      if (img.url && !list.some((v) => v.url === img.url)) {
+        list.unshift({ url: img.url, source: img.source });
+      }
+      map.set(img.slug, list);
+    }
+    return map;
+  }, [libraryImages]);
+
+  /** Vuelve a una foto ya guardada: se usa en el cartón y queda como default. */
+  const handlePickVersion = React.useCallback(
+    (p: ShelfSignProduct, url: string) => {
+      onPatchProduct(p.id, { photo: url, photoBox: null });
+      const slug = productSlug(p.name);
+      if (slug) setActiveVersion.mutate({ slug, url });
+    },
+    [onPatchProduct, setActiveVersion]
+  );
 
   /**
    * Recorte a mano sobre el flyer, el mismo gesto que el panel del circular.
@@ -541,6 +580,8 @@ color="inherit" /> : <UploadFileRoundedIcon />
               onPhotoFile={handlePhotoFile}
               onCropFromFlyer={flyerUrl ? setCropFor : undefined}
               photoLoading={pendingPhotoIds.includes(p.id) || uploadingIds.includes(p.id)}
+              versions={versionsBySlug.get(productSlug(p.name))}
+              onPickVersion={handlePickVersion}
             />
           ))}
         </>

@@ -13,6 +13,33 @@ export const STATUS_META: Record<
   cancelled: { label: 'Cancelada', color: 'error' },
 };
 
+/**
+ * Estado del cobro en español. El backend manda el enum de Stripe
+ * ("requires_confirmation"), que en pantalla se leía como un error de sistema.
+ */
+export const PAYMENT_META: Record<string, { label: string; tone: 'ok' | 'warn' | 'bad' | 'muted' }> = {
+  requires_confirmation: { label: 'Sin cobrar', tone: 'warn' },
+  processing: { label: 'Procesando', tone: 'muted' },
+  succeeded: { label: 'Pagado', tone: 'ok' },
+  failed: { label: 'Pago rechazado', tone: 'bad' },
+  refunded: { label: 'Reembolsada', tone: 'muted' },
+  partially_refunded: { label: 'Reembolso parcial', tone: 'muted' },
+};
+
+export function paymentMeta(status: string) {
+  return PAYMENT_META[status] || { label: status || '—', tone: 'muted' as const };
+}
+
+/**
+ * El nombre de la tienda trae la dirección pegada ("Super Supermarket 31 Memorial
+ * Dr, Paterson, NJ 07505"). Se parte en el número de la calle para poder darle
+ * jerarquía: nombre grande, dirección chica. Sin número, se deja tal cual.
+ */
+export function splitStoreTitle(name: string): { title: string; address: string } {
+  const m = String(name || '').match(/^(.*?)[,\s]+(\d+\s.*)$/);
+  return m && m[1].trim() ? { title: m[1].trim(), address: m[2].trim() } : { title: name || '—', address: '' };
+}
+
 export const STATUS_OPTIONS = [
   { value: 'all', label: 'Todos los estados' },
   ...Object.entries(STATUS_META).map(([value, m]) => ({ value, label: m.label })),
