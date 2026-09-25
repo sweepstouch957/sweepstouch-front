@@ -72,11 +72,30 @@ export function ShelfSign({ product: p, config: cfg, isBottom = false }: Props):
 
   // El "OR" del mix & match no viaja en el dato: se agrega acá, y sólo si el
   // nombre no lo trae ya (la IA a veces lo cuela pese al prompt).
-  const orName2 = p.name2
-    ? p.name2.trim().toUpperCase().startsWith('OR ')
-      ? p.name2
-      : `OR ${p.name2}`
-    : '';
+  const withOr = (name: string) =>
+    name.trim().toUpperCase().startsWith('OR ') ? name : `OR ${name}`;
+
+  const orName2 = p.name2 ? withOr(p.name2) : '';
+
+  /** Productos 3-5: mismo tratamiento que el 2, con su "OR" y sus detalles. */
+  const extras = (p.extras || []).filter((e) => e.name.trim());
+
+  /**
+   * La caja gris sólo se imprime si tiene algo adentro.
+   *
+   * Un flyer que no publica precio regular (las ofertas de carnicería casi
+   * nunca lo traen) dejaba el cartón con el recuadro "regular price / save"
+   * vacío en góndola. El switch de la plantilla sigue mandando: esto sólo
+   * agrega "y además hay dato".
+   */
+  const showSaveBox = cfg.showSaveBox && Boolean(p.regularPrice?.trim() || p.save?.trim());
+
+  /* Con 4 o 5 referencias en el mismo cartón los nombres a 22px se salen de la
+     media hoja. Bajan de tamaño según cuántos haya, no por un alto fijo: un
+     mix & match de dos sigue viéndose como el diseño aprobado. */
+  const productCount = 1 + (orName2 ? 1 : 0) + extras.length;
+  const nameSize = productCount >= 4 ? 16 : productCount === 3 ? 19 : 22;
+  const subNameSize = Math.max(13, nameSize - 2);
 
   const detailLine = (line: string, i: number) => (
     <div
@@ -106,7 +125,7 @@ export function ShelfSign({ product: p, config: cfg, isBottom = false }: Props):
 
           {/* Anclado al fondo, justo arriba de la franja VIP */}
           <div style={{ marginTop: 'auto', paddingBottom: 10 }}>
-            {cfg.showSaveBox && (
+            {showSaveBox && (
               <div
                 style={{
                   background: '#efefef',
@@ -207,7 +226,7 @@ export function ShelfSign({ product: p, config: cfg, isBottom = false }: Props):
             </div>
           )}
           <div style={{ marginTop: 'auto' }}>
-            <div style={{ fontWeight: 800, fontSize: 22, color: '#111', lineHeight: 1.05 }}>
+            <div style={{ fontWeight: 800, fontSize: nameSize, color: '#111', lineHeight: 1.05 }}>
               {p.name}
             </div>
             {p.details && p.details.split('\n').map(detailLine)}
@@ -216,7 +235,7 @@ export function ShelfSign({ product: p, config: cfg, isBottom = false }: Props):
               <div
                 style={{
                   fontWeight: 800,
-                  fontSize: 20,
+                  fontSize: subNameSize,
                   color: '#111',
                   lineHeight: 1.1,
                   marginTop: 3,
@@ -226,6 +245,24 @@ export function ShelfSign({ product: p, config: cfg, isBottom = false }: Props):
               </div>
             )}
             {orName2 && p.details2 && p.details2.split('\n').map(detailLine)}
+
+            {/* Productos 3-5 del mix & match */}
+            {extras.map((e, i) => (
+              <React.Fragment key={i}>
+                <div
+                  style={{
+                    fontWeight: 800,
+                    fontSize: subNameSize,
+                    color: '#111',
+                    lineHeight: 1.1,
+                    marginTop: 3,
+                  }}
+                >
+                  {withOr(e.name)}
+                </div>
+                {e.details && e.details.split('\n').map(detailLine)}
+              </React.Fragment>
+            ))}
 
             {p.conditions &&
               p.conditions.split('\n').map((line, i) => (

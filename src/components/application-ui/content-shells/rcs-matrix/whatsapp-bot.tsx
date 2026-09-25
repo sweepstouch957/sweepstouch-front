@@ -9,6 +9,7 @@ import {
 } from '@/services/shopper-whatsapp.service';
 import {
   Alert,
+  alpha,
   Avatar,
   Box,
   Button,
@@ -25,7 +26,6 @@ import {
   TextField,
   Tooltip,
   Typography,
-  alpha,
   useTheme,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -46,7 +46,12 @@ type Tone = 'default' | 'success' | 'warning' | 'info' | 'secondary';
 const WA_META: Record<WaState, { label: string; short: string; badge: string; color: Tone }> = {
   unsent: { label: 'Sin enviar', short: 'Sin enviar', badge: '', color: 'default' },
   sent: { label: 'Enviado · sin respuesta', short: 'Sin respuesta', badge: '…', color: 'default' },
-  '1': { label: '1 · Quiere completar la compra', short: 'Completar compra', badge: '1', color: 'success' },
+  '1': {
+    label: '1 · Quiere completar la compra',
+    short: 'Completar compra',
+    badge: '1',
+    color: 'success',
+  },
   '2': { label: '2 · Solo estaba probando', short: 'Solo probando', badge: '2', color: 'warning' },
   '3': { label: '3 · Le gustó la experiencia', short: 'Le gustó', badge: '3', color: 'info' },
   text: { label: 'Respondió con texto', short: 'Texto libre', badge: '✎', color: 'secondary' },
@@ -85,7 +90,8 @@ export function WaChip({
   const st = waState(status);
   if (st === 'unsent') return null;
   const meta = WA_META[st];
-  const tone = meta.color === 'default' ? theme.palette.text.secondary : theme.palette[meta.color].main;
+  const tone =
+    meta.color === 'default' ? theme.palette.text.secondary : theme.palette[meta.color].main;
 
   return (
     <Tooltip title={status?.text ? `“${status.text}” · ver conversación` : 'Ver conversación'}>
@@ -93,13 +99,25 @@ export function WaChip({
         size="small"
         onClick={onClick}
         avatar={
-          <Avatar sx={{ bgcolor: `${tone} !important`, color: '#fff !important', fontWeight: 800, fontSize: 12 }}>
+          <Avatar
+            sx={{
+              bgcolor: `${tone} !important`,
+              color: '#fff !important',
+              fontWeight: 800,
+              fontSize: 12,
+            }}
+          >
             {meta.badge}
           </Avatar>
         }
         label={meta.short}
         variant="outlined"
-        sx={{ fontWeight: 700, borderColor: alpha(tone, 0.5), color: tone, bgcolor: alpha(tone, 0.08) }}
+        sx={{
+          fontWeight: 700,
+          borderColor: alpha(tone, 0.5),
+          color: tone,
+          bgcolor: alpha(tone, 0.08),
+        }}
       />
     </Tooltip>
   );
@@ -107,7 +125,17 @@ export function WaChip({
 
 /* ─── Conversación ──────────────────────────────────────────────────────── */
 
-function Bubble({ out, text, at, children }: { out?: boolean; text: string; at: string; children?: React.ReactNode }) {
+function Bubble({
+  out,
+  text,
+  at,
+  children,
+}: {
+  out?: boolean;
+  text: string;
+  at: string;
+  children?: React.ReactNode;
+}) {
   return (
     <Box sx={{ display: 'flex', justifyContent: out ? 'flex-end' : 'flex-start' }}>
       <Box
@@ -123,11 +151,19 @@ function Bubble({ out, text, at, children }: { out?: boolean; text: string; at: 
           borderColor: out ? alpha('#25D366', 0.35) : 'divider',
         }}
       >
-        <Typography variant="body2" sx={{ whiteSpace: 'pre-line', wordBreak: 'break-word' }}>
+        <Typography
+          variant="body2"
+          sx={{ whiteSpace: 'pre-line', wordBreak: 'break-word' }}
+        >
           {text || '—'}
         </Typography>
         {children}
-        <Typography variant="caption" color="text.secondary" display="block" sx={{ textAlign: 'right', mt: 0.25 }}>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          display="block"
+          sx={{ textAlign: 'right', mt: 0.25 }}
+        >
           {out ? 'Bot · ' : ''}
           {nyDateTime(at)}
         </Typography>
@@ -160,43 +196,90 @@ export function ConversationDialog({
   const msgs = [...(data?.data ?? [])].reverse(); // viene más nuevo primero
 
   return (
-    <Dialog open={!!row} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog
+      open={!!row}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+    >
       <DialogTitle sx={{ pb: 1 }}>
-        <Typography variant="h6" fontWeight={800} component="span" display="block">
+        <Typography
+          variant="h6"
+          fontWeight={800}
+          component="span"
+          display="block"
+        >
           {row?.customerName || 'Sin nombre'}
         </Typography>
-        <Typography variant="body2" color="text.secondary" component="span">
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          component="span"
+        >
           {prettyPhone(phone)} · {splitStoreTitle(row?.storeName || '').title} · #{row?.orderNumber}
         </Typography>
       </DialogTitle>
-      <DialogContent dividers sx={{ bgcolor: 'action.hover', minHeight: 240 }}>
+      <DialogContent
+        dividers
+        sx={{ bgcolor: 'action.hover', minHeight: 240 }}
+      >
         {/* Leyenda: qué significa cada número que puede marcar */}
-        <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
+        <Stack
+          direction="row"
+          spacing={0.75}
+          flexWrap="wrap"
+          useFlexGap
+          sx={{ mb: 2 }}
+        >
           {(['1', '2', '3'] as WaState[]).map((k) => (
-            <Chip key={k} size="small" label={WA_META[k].label} color={WA_META[k].color} variant="outlined" />
+            <Chip
+              key={k}
+              size="small"
+              label={WA_META[k].label}
+              color={WA_META[k].color}
+              variant="outlined"
+            />
           ))}
         </Stack>
 
-        {isPending && row ? (
+        {isPending && row && phoneKey(phone).length === 10 ? (
           <Box sx={{ display: 'grid', placeItems: 'center', py: 6 }}>
             <CircularProgress size={24} />
           </Box>
         ) : isError ? (
           <Alert severity="error">No se pudo cargar la conversación.</Alert>
         ) : !msgs.length ? (
-          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 6 }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ textAlign: 'center', py: 6 }}
+          >
             Todavía no hay conversación por WhatsApp con este cliente.
           </Typography>
         ) : (
           <Stack spacing={1.25}>
             {msgs.map((m) =>
               m.intent === 'broadcast_sent' ? (
-                <Bubble key={m._id} out text={m.reply} at={m.createdAt} />
+                <Bubble
+                  key={m._id}
+                  out
+                  text={m.reply}
+                  at={m.createdAt}
+                />
               ) : (
                 <React.Fragment key={m._id}>
-                  <Bubble text={m.text} at={m.createdAt}>
+                  <Bubble
+                    text={m.text}
+                    at={m.createdAt}
+                  >
                     {m.option || m.sentiment !== 'neutral' || m.summary ? (
-                      <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mt: 0.75 }}>
+                      <Stack
+                        direction="row"
+                        spacing={0.5}
+                        flexWrap="wrap"
+                        useFlexGap
+                        sx={{ mt: 0.75 }}
+                      >
                         {m.option ? (
                           <Chip
                             size="small"
@@ -213,14 +296,24 @@ export function ConversationDialog({
                           />
                         ) : null}
                         {m.summary ? (
-                          <Typography variant="caption" color="text.secondary" sx={{ width: '100%' }}>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ width: '100%' }}
+                          >
                             IA: {m.summary}
                           </Typography>
                         ) : null}
                       </Stack>
                     ) : null}
                   </Bubble>
-                  {m.reply ? <Bubble out text={m.reply} at={m.createdAt} /> : null}
+                  {m.reply ? (
+                    <Bubble
+                      out
+                      text={m.reply}
+                      at={m.createdAt}
+                    />
+                  ) : null}
                 </React.Fragment>
               )
             )}
@@ -240,7 +333,10 @@ export function ConversationDialog({
             Abrir en WhatsApp
           </Button>
         ) : null}
-        <Button onClick={onClose} color="inherit">
+        <Button
+          onClick={onClose}
+          color="inherit"
+        >
           Cerrar
         </Button>
         {onSend && row ? (
@@ -279,7 +375,9 @@ export function rowToTarget(r: MatrixRow): ShopperSendTarget {
 function preview(name: string, store: string) {
   const first = (name || '').trim().split(/\s+/)[0];
   return (
-    `¡Hola${first ? `, ${first}` : ''}! 👋 Gracias por hacer tu pedido en ${store || 'tu supermercado'}. ` +
+    `¡Hola${first ? `, ${first}` : ''}! 👋 Gracias por hacer tu pedido en ${
+      store || 'tu supermercado'
+    }. ` +
     `Queremos atenderte mejor. ¿Nos cuentas cómo te fue?\n\n` +
     `1️⃣ Quiero completar mi compra 🛒\n2️⃣ Solo estaba probando 👀\n3️⃣ Me gustó la experiencia 😊\n\n` +
     `Responde con el número de tu opción.`
@@ -349,7 +447,9 @@ export function SendWaDialog({
       }
       toast.success(
         r.total
-          ? `Enviando a ${r.total} persona${r.total === 1 ? '' : 's'}${r.skipped ? ` · ${r.skipped} ya lo tenían` : ''}`
+          ? `Enviando a ${r.total} persona${r.total === 1 ? '' : 's'}${
+              r.skipped ? ` · ${r.skipped} ya lo tenían` : ''
+            }`
           : 'Todos ya habían recibido el mensaje'
       );
       // El envío va a 1 msg cada 1.5s: se refresca ahora y el intervalo hace el resto.
@@ -365,14 +465,25 @@ export function SendWaDialog({
   const first = targets[0];
 
   return (
-    <Dialog open={!!state} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog
+      open={!!state}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+    >
       <DialogTitle sx={{ fontWeight: 800 }}>
         {single ? 'Enviar WhatsApp a un número' : 'Lanzar WhatsApp del bot'}
       </DialogTitle>
       <DialogContent>
-        <Stack spacing={2} sx={{ pt: 0.5 }}>
+        <Stack
+          spacing={2}
+          sx={{ pt: 0.5 }}
+        >
           {single ? (
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={1.5}
+            >
               <TextField
                 size="small"
                 label="Teléfono"
@@ -383,7 +494,13 @@ export function SendWaDialog({
                 autoFocus={!state?.target}
                 fullWidth
               />
-              <TextField size="small" label="Nombre" value={name} onChange={(e) => setName(e.target.value)} fullWidth />
+              <TextField
+                size="small"
+                label="Nombre"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                fullWidth
+              />
               <TextField
                 select
                 size="small"
@@ -393,7 +510,10 @@ export function SendWaDialog({
                 fullWidth
               >
                 {stores.map((s) => (
-                  <MenuItem key={s.key} value={s.slug}>
+                  <MenuItem
+                    key={s.key}
+                    value={s.slug}
+                  >
                     {splitStoreTitle(s.name).title}
                   </MenuItem>
                 ))}
@@ -401,15 +521,25 @@ export function SendWaDialog({
             </Stack>
           ) : (
             <>
-              <Alert severity={toSend ? 'info' : 'warning'} sx={{ borderRadius: 2 }}>
+              <Alert
+                severity={toSend ? 'info' : 'warning'}
+                sx={{ borderRadius: 2 }}
+              >
                 {toSend
-                  ? `Se enviará a ${toSend} persona${toSend === 1 ? '' : 's'} de las que estás viendo, 1 mensaje cada ~1.5s.`
+                  ? `Se enviará a ${toSend} persona${
+                      toSend === 1 ? '' : 's'
+                    } de las que estás viendo, 1 mensaje cada ~1.5s.`
                   : 'Todas las personas que estás viendo ya recibieron el mensaje.'}
                 {alreadySent && !resend ? ` ${alreadySent} ya lo recibieron y se saltan.` : ''}
               </Alert>
               {alreadySent ? (
                 <FormControlLabel
-                  control={<Checkbox checked={resend} onChange={(e) => setResend(e.target.checked)} />}
+                  control={
+                    <Checkbox
+                      checked={resend}
+                      onChange={(e) => setResend(e.target.checked)}
+                    />
+                  }
                   label={`Reenviar también a los ${alreadySent} que ya lo recibieron`}
                 />
               ) : null}
@@ -427,14 +557,22 @@ export function SendWaDialog({
             }}
           >
             {preview(first?.name || '', first?.storeName || '')}
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              display="block"
+              sx={{ mt: 1 }}
+            >
               Se agrega el teléfono de la tienda al final. Nombre y tienda cambian por persona.
             </Typography>
           </Box>
         </Stack>
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
-        <Button onClick={onClose} color="inherit">
+        <Button
+          onClick={onClose}
+          color="inherit"
+        >
           Cancelar
         </Button>
         <Button
@@ -442,7 +580,14 @@ export function SendWaDialog({
           color="success"
           onClick={() => send.mutate()}
           disabled={send.isPending || (single ? !validPhone || !storeSlug : !toSend)}
-          startIcon={send.isPending ? <CircularProgress size={16} color="inherit" /> : null}
+          startIcon={
+            send.isPending ? (
+              <CircularProgress
+                size={16}
+                color="inherit"
+              />
+            ) : null
+          }
         >
           {single ? 'Enviar' : `Enviar a ${toSend}`}
         </Button>

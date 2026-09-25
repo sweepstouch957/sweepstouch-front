@@ -8,7 +8,14 @@ export type FulfillmentStatus =
   | 'preparing'
   | 'ready'
   | 'completed'
-  | 'cancelled';
+  | 'cancelled'
+  // Pestaña Listas: estado efectivo de la lista (vigente / validada en caja / vencida).
+  | 'list_pending'
+  | 'list_validated'
+  | 'list_expired';
+
+/** Qué se está mirando: órdenes con checkout o listas que se llevan a la caja. */
+export type MatrixKind = 'orders' | 'lists';
 
 /** Links ya armados por el backend: el panel no vuelve a formatear el teléfono. */
 export interface MatrixContact {
@@ -18,6 +25,11 @@ export interface MatrixContact {
 }
 
 export interface MatrixRow {
+  /** Sólo viene en las listas. */
+  kind?: 'list';
+  expiresAt?: string | null;
+  pointsAwarded?: number;
+  savingsCents?: number;
   _id: string;
   orderNumber: string;
   channel: string;
@@ -72,6 +84,13 @@ export interface MatrixResponse {
     stores: number;
     grossCents: number;
     pending: number;
+    /* Listas */
+    validated?: number;
+    expired?: number;
+    points?: number;
+    savingsCents?: number;
+    itemsTotal?: number;
+    /* Órdenes */
     unpaid?: number;
     unpaidCents?: number;
     collectedCents?: number;
@@ -85,6 +104,7 @@ export interface MatrixResponse {
 }
 
 export interface MatrixParams {
+  kind?: MatrixKind;
   /** YYYY-MM-DD (NY), inclusivos. Sin ellos, el backend responde hoy. */
   from?: string;
   to?: string;
@@ -98,8 +118,10 @@ export interface MatrixParams {
  * sin filtrar por tienda.
  */
 export const rcsMatrixService = {
-  async list(params: MatrixParams = {}): Promise<MatrixResponse> {
-    const { data } = await api.get<MatrixResponse>('/orders/matrix', { params });
+  async list({ kind = 'orders', ...params }: MatrixParams = {}): Promise<MatrixResponse> {
+    // Las listas viven en tracking-service, con el mismo formato de fila.
+    const url = kind === 'lists' ? '/tracking/list-admin/matrix' : '/orders/matrix';
+    const { data } = await api.get<MatrixResponse>(url, { params });
     return data;
   },
 };

@@ -1,5 +1,6 @@
 'use client';
 
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import {
@@ -19,6 +20,7 @@ import {
 import React from 'react';
 import type { ProductImageVersion } from '@/services/designs.service';
 import { readAsDataURL } from './image';
+import { MAX_PRODUCTS_PER_SIGN } from './parse';
 import { clampCents, clampDollars, clampQty, computeSave, priceLabel } from './price';
 import type { ShelfSignProduct } from './types';
 
@@ -85,6 +87,53 @@ function ProductEditorCardBase({
 
   const suggestedSave = computeSave(p);
 
+  /* ── Productos del cartón ──
+     El modelo guarda producto 1 en name/details, el 2 en name2/details2 y del 3
+     al 5 en `extras`. Acá se ven como una sola lista: agregar, editar y quitar
+     sin que el diseñador tenga que saber en qué campo cae cada uno. */
+  const extras = p.extras ?? [];
+  // El segundo slot se muestra en cuanto existe dato o el diseñador lo pide.
+  const [showSecond, setShowSecond] = React.useState(Boolean(p.name2 || p.details2));
+  const hasSecond = showSecond || !!p.name2 || !!p.details2 || extras.length > 0;
+
+  const slots = [
+    { name: p.name, details: p.details },
+    ...(hasSecond ? [{ name: p.name2, details: p.details2 }] : []),
+    ...extras,
+  ];
+
+  const setSlot = (i: number, patch: { name?: string; details?: string }) => {
+    if (i === 0) {
+      set({ ...(patch.name !== undefined ? { name: patch.name } : {}), ...(patch.details !== undefined ? { details: patch.details } : {}) });
+      return;
+    }
+    if (i === 1) {
+      set({ ...(patch.name !== undefined ? { name2: patch.name } : {}), ...(patch.details !== undefined ? { details2: patch.details } : {}) });
+      return;
+    }
+    set({ extras: extras.map((e, k) => (k === i - 2 ? { ...e, ...patch } : e)) });
+  };
+
+  /** Quitar el 2 corre los demás un lugar: no puede quedar un hueco en el medio. */
+  const removeSlot = (i: number) => {
+    if (i === 1) {
+      const [next, ...rest] = extras;
+      set({ name2: next?.name || '', details2: next?.details || '', extras: rest });
+      if (!next) setShowSecond(false);
+      return;
+    }
+    set({ extras: extras.filter((_, k) => k !== i - 2) });
+  };
+
+  const addSlot = () => {
+    if (slots.length >= MAX_PRODUCTS_PER_SIGN) return;
+    if (!hasSecond) {
+      setShowSecond(true);
+      return;
+    }
+    set({ extras: [...extras, { name: '', details: '' }] });
+  };
+
   const pickPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -129,42 +178,79 @@ function ProductEditorCardBase({
             gap: 2,
           }}
         >
-          {/* ── Nombres y detalles ── */}
-          <Stack spacing={1.5}>
-            <TextField
-              label="Producto 1"
+          {/* ── Productos del cartón (1 principal + hasta 4 alternativas) ── */}
+          <Stack spacing={1.25}>
+            {slots.map((slot, i) => (
+              <Box
+                key={i}
+                sx={{
+                  p: i === 0 ? 0 : 1.25,
+                  borderRadius: 1.5,
+                  ...(i === 0
+                    ? {}
+                    : { border: '1px dashed', borderColor: 'divider', bgcolor: 'action.hover' }),
+                }}
+              >
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  sx={{ mb: 0.75 }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{ ...labelSx, mb: 0 }}
+                  >
+                    {i === 0 ? 'Producto 1' : `Producto ${i + 1} — se imprime con "OR"`}
+                  </Typography>
+                  {i > 0 && (
+                    <Tooltip title="Quitar este producto del cartón">
+                      <IconButton
+                        size="small"
+                        onClick={() => removeSlot(i)}
+                      >
+                        <DeleteOutlineRoundedIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                </Stack>
+
+                <Stack spacing={1}>
+                  <TextField
+                    label="Nombre"
+                    size="small"
+                    fullWidth
+                    value={slot.name}
+                    onChange={(e) => setSlot(i, { name: e.target.value })}
+                  />
+                  <TextField
+                    label="Detalles"
+                    size="small"
+                    fullWidth
+                    multiline
+                    minRows={2}
+                    value={slot.details}
+                    onChange={(e) => setSlot(i, { details: e.target.value })}
+                    helperText={i === 0 ? 'Una línea por detalle' : undefined}
+                  />
+                </Stack>
+              </Box>
+            ))}
+
+            {/* Mix & match de verdad: el flyer a veces junta 4-5 referencias al
+                mismo precio. Antes sólo entraban dos y el resto iba a mano en
+                "detalles", que imprime con otra tipografía. */}
+            <Button
               size="small"
-              fullWidth
-              value={p.name}
-              onChange={(e) => set({ name: e.target.value })}
-            />
-            <TextField
-              label="Detalles producto 1"
-              size="small"
-              fullWidth
-              multiline
-              minRows={2}
-              value={p.details}
-              onChange={(e) => set({ details: e.target.value })}
-              helperText="Una línea por detalle"
-            />
-            <TextField
-              label="Producto 2 (el OR se agrega solo)"
-              size="small"
-              fullWidth
-              value={p.name2}
-              onChange={(e) => set({ name2: e.target.value })}
-            />
-            <TextField
-              label="Detalles producto 2"
-              size="small"
-              fullWidth
-              multiline
-              minRows={2}
-              value={p.details2}
-              onChange={(e) => set({ details2: e.target.value })}
-              disabled={!p.name2}
-            />
+              startIcon={<AddRoundedIcon fontSize="small" />}
+              onClick={addSlot}
+              disabled={slots.length >= MAX_PRODUCTS_PER_SIGN}
+              sx={{ alignSelf: 'flex-start' }}
+            >
+              {slots.length >= MAX_PRODUCTS_PER_SIGN
+                ? `Máximo ${MAX_PRODUCTS_PER_SIGN} productos`
+                : 'Agregar producto'}
+            </Button>
           </Stack>
 
           {/* ── Precio ── */}
@@ -223,12 +309,24 @@ function ProductEditorCardBase({
               Se imprimirá: {priceLabel(p)}
             </Typography>
 
+            {/* Al tipear el regular price el ahorro sale solo (si está vacío):
+                es la cuenta que el diseñador hacía a mano y el motivo por el que
+                muchos cartones salían con la caja gris a medio llenar. */}
             <TextField
               label="Regular price"
               size="small"
               fullWidth
               value={p.regularPrice}
-              onChange={(e) => set({ regularPrice: e.target.value })}
+              onChange={(e) => {
+                const regularPrice = e.target.value;
+                const auto = p.save.trim() ? '' : computeSave({ ...p, regularPrice });
+                set({ regularPrice, ...(auto ? { save: auto } : {}) });
+              }}
+              helperText={
+                !p.regularPrice.trim() && !p.save.trim()
+                  ? 'Sin dato la caja gris no se imprime'
+                  : undefined
+              }
             />
             <TextField
               label="Save"

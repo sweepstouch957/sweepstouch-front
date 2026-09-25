@@ -3,8 +3,13 @@
 import RangePickerField from '@/components/base/range-picker-field';
 import { useRcsMatrix } from '@/hooks/fetching/rcs-matrix/useRcsMatrix';
 import { useShopperStatus } from '@/hooks/fetching/rcs-matrix/useShopperStatus';
+import {
+  centsToUsd,
+  todayInNY,
+  type MatrixKind,
+  type MatrixRow,
+} from '@/services/rcs-matrix.service';
 import { phoneKey } from '@/services/shopper-whatsapp.service';
-import { centsToUsd, todayInNY, type MatrixRow } from '@/services/rcs-matrix.service';
 import DownloadRounded from '@mui/icons-material/DownloadRounded';
 import PhoneInTalkRounded from '@mui/icons-material/PhoneInTalkRounded';
 import RefreshRounded from '@mui/icons-material/RefreshRounded';
@@ -12,6 +17,7 @@ import SearchRounded from '@mui/icons-material/SearchRounded';
 import WhatsApp from '@mui/icons-material/WhatsApp';
 import {
   Alert,
+  alpha,
   Box,
   Button,
   Card,
@@ -25,27 +31,35 @@ import {
   Skeleton,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Tooltip,
   Typography,
-  alpha,
   useTheme,
 } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  OPEN_STATUSES,
-  STATUS_META,
-  STATUS_OPTIONS,
   dateTimeShort,
+  LIST_STATUS_OPTIONS,
+  OPEN_STATUSES,
   prettyPhone,
   searchBlob,
   shiftYmd,
+  STATUS_META,
+  STATUS_OPTIONS,
   statusMeta,
   timeShort,
 } from './constants';
 import { StoreBranch } from './store-branch';
-import { SendWaDialog, WA_FILTERS, rowToTarget, waState, type SendDialogState } from './whatsapp-bot';
+import {
+  rowToTarget,
+  SendWaDialog,
+  WA_FILTERS,
+  waState,
+  type SendDialogState,
+} from './whatsapp-bot';
 
 type Range = { from: string; to: string };
 
@@ -57,8 +71,16 @@ const PRESETS: { key: string; label: string; range: () => Range }[] = [
     label: 'Ayer',
     range: () => ({ from: shiftYmd(todayInNY(), -1), to: shiftYmd(todayInNY(), -1) }),
   },
-  { key: '7d', label: '7 días', range: () => ({ from: shiftYmd(todayInNY(), -6), to: todayInNY() }) },
-  { key: '30d', label: '30 días', range: () => ({ from: shiftYmd(todayInNY(), -29), to: todayInNY() }) },
+  {
+    key: '7d',
+    label: '7 días',
+    range: () => ({ from: shiftYmd(todayInNY(), -6), to: todayInNY() }),
+  },
+  {
+    key: '30d',
+    label: '30 días',
+    range: () => ({ from: shiftYmd(todayInNY(), -29), to: todayInNY() }),
+  },
 ];
 
 const pct = (n: number, d: number) => (d ? `${Math.round((n / d) * 100)}%` : '0%');
@@ -87,7 +109,9 @@ function Kpi({
 
   return (
     <Box
-      {...(onClick ? { component: 'button', type: 'button', onClick, 'aria-pressed': !!active } : {})}
+      {...(onClick
+        ? { component: 'button', type: 'button', onClick, 'aria-pressed': !!active }
+        : {})}
       sx={{
         px: 2,
         py: 1.5,
@@ -118,13 +142,22 @@ function Kpi({
       <Typography
         variant="h5"
         fontWeight={800}
-        sx={{ lineHeight: 1.25, fontVariantNumeric: 'tabular-nums', color: accent ? tone : 'text.primary' }}
+        sx={{
+          lineHeight: 1.25,
+          fontVariantNumeric: 'tabular-nums',
+          color: accent ? tone : 'text.primary',
+        }}
         noWrap
       >
         {value}
       </Typography>
       {sub ? (
-        <Typography variant="caption" color="text.secondary" noWrap display="block">
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          noWrap
+          display="block"
+        >
           {sub}
         </Typography>
       ) : null}
@@ -136,7 +169,9 @@ function Kpi({
 function StatusBar({ byStatus, total }: { byStatus: Record<string, number>; total: number }) {
   const theme = useTheme();
   const colorOf = (c: string) =>
-    c === 'default' ? theme.palette.grey[400] : ((theme.palette as any)[c]?.main ?? theme.palette.grey[400]);
+    c === 'default'
+      ? theme.palette.grey[400]
+      : (theme.palette as any)[c]?.main ?? theme.palette.grey[400];
   const parts = Object.keys(STATUS_META)
     .filter((key) => byStatus[key])
     .map((key) => ({
@@ -149,18 +184,44 @@ function StatusBar({ byStatus, total }: { byStatus: Record<string, number>; tota
 
   return (
     <Box sx={{ px: 2, pb: 1.5 }}>
-      <Box sx={{ display: 'flex', height: 6, borderRadius: 3, overflow: 'hidden', bgcolor: 'action.hover' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          height: 6,
+          borderRadius: 3,
+          overflow: 'hidden',
+          bgcolor: 'action.hover',
+        }}
+      >
         {parts.map((p) => (
-          <Tooltip key={p.key} title={`${p.label}: ${p.n}`}>
+          <Tooltip
+            key={p.key}
+            title={`${p.label}: ${p.n}`}
+          >
             <Box sx={{ width: `${(p.n / total) * 100}%`, bgcolor: p.color }} />
           </Tooltip>
         ))}
       </Box>
-      <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap sx={{ mt: 0.75 }}>
+      <Stack
+        direction="row"
+        spacing={1.5}
+        flexWrap="wrap"
+        useFlexGap
+        sx={{ mt: 0.75 }}
+      >
         {parts.map((p) => (
-          <Stack key={p.key} direction="row" spacing={0.5} alignItems="center">
+          <Stack
+            key={p.key}
+            direction="row"
+            spacing={0.5}
+            alignItems="center"
+          >
             <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: p.color }} />
-            <Typography variant="caption" color="text.secondary" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontVariantNumeric: 'tabular-nums' }}
+            >
               {p.label} {p.n}
             </Typography>
           </Stack>
@@ -207,12 +268,14 @@ function downloadCsv(rows: MatrixRow[], range: Range) {
       .map(esc)
       .join(',')
   );
-  const blob = new Blob(['﻿' +[head.map(esc).join(','), ...body].join('\n')], {
+  const blob = new Blob(['﻿' + [head.map(esc).join(','), ...body].join('\n')], {
     type: 'text/csv;charset=utf-8;',
   });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `matriz-rcs-${range.from === range.to ? range.from : `${range.from}_${range.to}`}.csv`;
+  a.download = `matriz-rcs-${
+    range.from === range.to ? range.from : `${range.from}_${range.to}`
+  }.csv`;
   a.click();
   URL.revokeObjectURL(a.href);
 }
@@ -226,6 +289,7 @@ function downloadCsv(rows: MatrixRow[], range: Range) {
  * hoy en hora de Nueva York; el período se puede ampliar a un rango.
  */
 export default function RcsMatrix(): React.JSX.Element {
+  const [kind, setKind] = useState<MatrixKind>('orders');
   const [range, setRange] = useState<Range>(() => PRESETS[0].range());
   const [store, setStore] = useState('all');
   const [status, setStatus] = useState('all');
@@ -236,7 +300,12 @@ export default function RcsMatrix(): React.JSX.Element {
 
   // Tienda, estado y período van al backend; el texto se filtra acá, que es
   // instantáneo y no dispara una consulta por tecla.
-  const { data, isPending, isError, isFetching, refetch } = useRcsMatrix({ ...range, store, status });
+  const { data, isPending, isError, isFetching, refetch } = useRcsMatrix({
+    kind,
+    ...range,
+    store,
+    status,
+  });
 
   // Qué pasó por WhatsApp con cada persona (bot de 3 opciones), por los últimos 10 dígitos.
   const phones = useMemo(
@@ -261,12 +330,17 @@ export default function RcsMatrix(): React.JSX.Element {
     let out = needle ? list.filter((r) => searchBlob(r).includes(needle)) : list;
     if (onlyOpen) out = out.filter((r) => OPEN_STATUSES.includes(r.fulfillmentStatus));
     if (waFilter !== 'all') {
-      out = out.filter((r) => r.customerPhone && waState(wa?.[phoneKey(r.customerPhone)]) === waFilter);
+      out = out.filter(
+        (r) => r.customerPhone && waState(wa?.[phoneKey(r.customerPhone)]) === waFilter
+      );
     }
     return out;
   }, [data, q, onlyOpen, waFilter, wa]);
 
-  const openSingle = useCallback((r: MatrixRow) => setSendDialog({ mode: 'single', target: rowToTarget(r) }), []);
+  const openSingle = useCallback(
+    (r: MatrixRow) => setSendDialog({ mode: 'single', target: rowToTarget(r) }),
+    []
+  );
 
   /** Lanza el saludo a las personas que se están viendo (una vez por teléfono). */
   const openBulk = () => {
@@ -303,8 +377,20 @@ export default function RcsMatrix(): React.JSX.Element {
   })?.key;
   const k = data?.kpis;
   const orders = k?.orders ?? 0;
+  const isLists = kind === 'lists';
+  const statusOptions = isLists ? LIST_STATUS_OPTIONS : STATUS_OPTIONS;
 
-  const filtered = q.trim() !== '' || store !== 'all' || status !== 'all' || onlyOpen || waFilter !== 'all';
+  // Tienda y estado no significan lo mismo en las dos pestañas: se limpian.
+  const changeKind = (next: MatrixKind | null) => {
+    if (!next || next === kind) return;
+    setKind(next);
+    setStore('all');
+    setStatus('all');
+    setOnlyOpen(false);
+  };
+
+  const filtered =
+    q.trim() !== '' || store !== 'all' || status !== 'all' || onlyOpen || waFilter !== 'all';
   const clearFilters = () => {
     setQ('');
     setWaFilter('all');
@@ -314,12 +400,45 @@ export default function RcsMatrix(): React.JSX.Element {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ py: { xs: 2, md: 2.5 } }}>
+    <Container
+      maxWidth="xl"
+      sx={{ py: { xs: 2, md: 2.5 } }}
+    >
       <Stack spacing={2}>
         {/* ── Barra única: período · tienda · estado · búsqueda · acciones ── */}
-        <Card sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
-          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ p: 1.5 }}>
-            <Stack direction="row" spacing={0.5} alignItems="center">
+        <Card
+          sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}
+        >
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            flexWrap="wrap"
+            useFlexGap
+            sx={{ p: 1.5 }}
+          >
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={kind}
+              onChange={(_, v) => changeKind(v)}
+              sx={{
+                '& .MuiToggleButton-root': {
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  px: 1.75,
+                  py: 0.5,
+                },
+              }}
+            >
+              <ToggleButton value="orders">Órdenes</ToggleButton>
+              <ToggleButton value="lists">Listas</ToggleButton>
+            </ToggleButtonGroup>
+            <Stack
+              direction="row"
+              spacing={0.5}
+              alignItems="center"
+            >
               {PRESETS.map((p) => (
                 <Chip
                   key={p.key}
@@ -351,7 +470,10 @@ export default function RcsMatrix(): React.JSX.Element {
             >
               <MenuItem value="all">Todas las tiendas</MenuItem>
               {(data?.stores ?? []).map((s) => (
-                <MenuItem key={s.key} value={s.storeId || s.slug}>
+                <MenuItem
+                  key={s.key}
+                  value={s.storeId || s.slug}
+                >
                   {s.name} ({s.orders})
                 </MenuItem>
               ))}
@@ -364,8 +486,11 @@ export default function RcsMatrix(): React.JSX.Element {
               onChange={(e) => setStatus(e.target.value)}
               sx={{ width: 170 }}
             >
-              {STATUS_OPTIONS.map((o) => (
-                <MenuItem key={o.value} value={o.value}>
+              {statusOptions.map((o) => (
+                <MenuItem
+                  key={o.value}
+                  value={o.value}
+                >
                   {o.label}
                 </MenuItem>
               ))}
@@ -396,7 +521,12 @@ export default function RcsMatrix(): React.JSX.Element {
                   startIcon={<WhatsApp />}
                   onClick={openBulk}
                   disabled={!rows.some((r) => r.customerPhone)}
-                  sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2, boxShadow: 'none' }}
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    borderRadius: 2,
+                    boxShadow: 'none',
+                  }}
                 >
                   Lanzar WhatsApp
                 </Button>
@@ -413,8 +543,17 @@ export default function RcsMatrix(): React.JSX.Element {
             </Button>
             <Tooltip title="Actualizar">
               <span>
-                <IconButton size="small" onClick={() => refetch()} disabled={isFetching} aria-label="Actualizar la matriz">
-                  {isFetching ? <CircularProgress size={18} /> : <RefreshRounded fontSize="small" />}
+                <IconButton
+                  size="small"
+                  onClick={() => refetch()}
+                  disabled={isFetching}
+                  aria-label="Actualizar la matriz"
+                >
+                  {isFetching ? (
+                    <CircularProgress size={18} />
+                  ) : (
+                    <RefreshRounded fontSize="small" />
+                  )}
                 </IconButton>
               </span>
             </Tooltip>
@@ -435,24 +574,43 @@ export default function RcsMatrix(): React.JSX.Element {
           {filtered ? (
             <>
               <Divider />
-              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ px: 1.5, py: 1 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
+              <Stack
+                direction="row"
+                spacing={1}
+                alignItems="center"
+                flexWrap="wrap"
+                useFlexGap
+                sx={{ px: 1.5, py: 1 }}
+              >
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ mr: 0.5 }}
+                >
                   {rows.length} de {data?.items.length ?? 0} órdenes
                 </Typography>
                 {onlyOpen ? (
-                  <Chip size="small" label="Por atender" color="warning" onDelete={() => setOnlyOpen(false)} />
+                  <Chip
+                    size="small"
+                    label="Por atender"
+                    color="warning"
+                    onDelete={() => setOnlyOpen(false)}
+                  />
                 ) : null}
                 {status !== 'all' ? (
                   <Chip
                     size="small"
-                    label={STATUS_OPTIONS.find((o) => o.value === status)?.label}
+                    label={statusOptions.find((o) => o.value === status)?.label}
                     onDelete={() => setStatus('all')}
                   />
                 ) : null}
                 {store !== 'all' ? (
                   <Chip
                     size="small"
-                    label={(data?.stores ?? []).find((s) => (s.storeId || s.slug) === store)?.name || 'Tienda'}
+                    label={
+                      (data?.stores ?? []).find((s) => (s.storeId || s.slug) === store)?.name ||
+                      'Tienda'
+                    }
                     onDelete={() => setStore('all')}
                   />
                 ) : null}
@@ -464,8 +622,18 @@ export default function RcsMatrix(): React.JSX.Element {
                     onDelete={() => setWaFilter('all')}
                   />
                 ) : null}
-                {q.trim() ? <Chip size="small" label={`“${q.trim()}”`} onDelete={() => setQ('')} /> : null}
-                <Button size="small" onClick={clearFilters} sx={{ textTransform: 'none' }}>
+                {q.trim() ? (
+                  <Chip
+                    size="small"
+                    label={`“${q.trim()}”`}
+                    onDelete={() => setQ('')}
+                  />
+                ) : null}
+                <Button
+                  size="small"
+                  onClick={clearFilters}
+                  sx={{ textTransform: 'none' }}
+                >
                   Limpiar
                 </Button>
               </Stack>
@@ -475,50 +643,135 @@ export default function RcsMatrix(): React.JSX.Element {
 
         {/* ── KPIs en una sola franja. "Por atender" y "Sin cobrar" filtran la lista ── */}
         {isPending ? (
-          <Skeleton variant="rounded" height={104} sx={{ borderRadius: 3 }} />
+          <Skeleton
+            variant="rounded"
+            height={104}
+            sx={{ borderRadius: 3 }}
+          />
         ) : (
-          <Card sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', p: 0.5 }}>
+          <Card
+            sx={{
+              borderRadius: 3,
+              border: '1px solid',
+              borderColor: 'divider',
+              boxShadow: 'none',
+              p: 0.5,
+            }}
+          >
             <Box
               sx={{
                 display: 'grid',
-                gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', lg: 'repeat(6, 1fr)' },
+                gridTemplateColumns: {
+                  xs: 'repeat(2, 1fr)',
+                  sm: 'repeat(3, 1fr)',
+                  lg: 'repeat(6, 1fr)',
+                },
                 gap: 0.5,
               }}
             >
-              <Kpi label="Órdenes" value={orders} sub={`${k?.customers ?? 0} personas · ${k?.stores ?? 0} tiendas`} />
-              <Kpi
-                label="Por atender"
-                value={k?.pending ?? 0}
-                sub={`${pct(k?.pending ?? 0, orders)} del total`}
-                accent="warning"
-                active={onlyOpen}
-                onClick={() => setOnlyOpen((v) => !v)}
-              />
-              <Kpi
-                label="Sin cobrar"
-                value={k?.unpaid ?? 0}
-                sub={centsToUsd(k?.unpaidCents)}
-                accent="error"
-                active={status === 'awaiting_payment'}
-                onClick={() => setStatus((s) => (s === 'awaiting_payment' ? 'all' : 'awaiting_payment'))}
-              />
-              <Kpi
-                label="Venta"
-                value={centsToUsd(k?.grossCents)}
-                sub={`Cobrado ${centsToUsd(k?.collectedCents)}`}
-                accent="success"
-              />
-              <Kpi label="Ticket promedio" value={centsToUsd(k?.avgTicketCents)} sub="sin canceladas" />
-              <Kpi
-                label="Entregadas"
-                value={k?.completed ?? 0}
-                sub={`${pct(k?.completed ?? 0, orders)} · ${k?.cancelled ?? 0} canceladas`}
-              />
+              {isLists ? (
+                <>
+                  <Kpi
+                    label="Listas"
+                    value={orders}
+                    sub={`${k?.customers ?? 0} personas · ${k?.stores ?? 0} tiendas`}
+                  />
+                  <Kpi
+                    label="Vigentes"
+                    value={k?.pending ?? 0}
+                    sub={`${pct(k?.pending ?? 0, orders)} · aún no pasan por caja`}
+                    accent="warning"
+                    active={onlyOpen}
+                    onClick={() => setOnlyOpen((v) => !v)}
+                  />
+                  <Kpi
+                    label="Validadas"
+                    value={k?.validated ?? 0}
+                    sub={`${pct(k?.validated ?? 0, orders)} conversión en caja`}
+                    accent="success"
+                    active={status === 'list_validated'}
+                    onClick={() =>
+                      setStatus((s) => (s === 'list_validated' ? 'all' : 'list_validated'))
+                    }
+                  />
+                  <Kpi
+                    label="Vencidas"
+                    value={k?.expired ?? 0}
+                    sub={`${pct(k?.expired ?? 0, orders)} del total`}
+                    active={status === 'list_expired'}
+                    onClick={() =>
+                      setStatus((s) => (s === 'list_expired' ? 'all' : 'list_expired'))
+                    }
+                  />
+                  <Kpi
+                    label="Artículos"
+                    value={k?.itemsTotal ?? 0}
+                    sub={`${orders ? ((k?.itemsTotal ?? 0) / orders).toFixed(1) : '0'} por lista`}
+                  />
+                  <Kpi
+                    label="Ahorro estimado"
+                    value={centsToUsd(k?.savingsCents)}
+                    sub={`${(k?.points ?? 0).toLocaleString('en-US')} puntos dados`}
+                  />
+                </>
+              ) : (
+                <>
+                  <Kpi
+                    label="Órdenes"
+                    value={orders}
+                    sub={`${k?.customers ?? 0} personas · ${k?.stores ?? 0} tiendas`}
+                  />
+                  <Kpi
+                    label="Por atender"
+                    value={k?.pending ?? 0}
+                    sub={`${pct(k?.pending ?? 0, orders)} del total`}
+                    accent="warning"
+                    active={onlyOpen}
+                    onClick={() => setOnlyOpen((v) => !v)}
+                  />
+                  <Kpi
+                    label="Sin cobrar"
+                    value={k?.unpaid ?? 0}
+                    sub={centsToUsd(k?.unpaidCents)}
+                    accent="error"
+                    active={status === 'awaiting_payment'}
+                    onClick={() =>
+                      setStatus((s) => (s === 'awaiting_payment' ? 'all' : 'awaiting_payment'))
+                    }
+                  />
+                  <Kpi
+                    label="Venta"
+                    value={centsToUsd(k?.grossCents)}
+                    sub={`Cobrado ${centsToUsd(k?.collectedCents)}`}
+                    accent="success"
+                  />
+                  <Kpi
+                    label="Ticket promedio"
+                    value={centsToUsd(k?.avgTicketCents)}
+                    sub="sin canceladas"
+                  />
+                  <Kpi
+                    label="Entregadas"
+                    value={k?.completed ?? 0}
+                    sub={`${pct(k?.completed ?? 0, orders)} · ${k?.cancelled ?? 0} canceladas`}
+                  />
+                </>
+              )}
             </Box>
-            <StatusBar byStatus={data?.byStatus ?? {}} total={orders} />
+            <StatusBar
+              byStatus={data?.byStatus ?? {}}
+              total={orders}
+            />
             {/* Respuestas al bot de WhatsApp: cuentan órdenes por estado y filtran la lista */}
             <Divider />
-            <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap sx={{ px: 2, py: 1.25 }}>
+            <Stack
+              direction="row"
+              spacing={0.75}
+              alignItems="center"
+              flexWrap="wrap"
+              useFlexGap
+              sx={{ px: 2, py: 1.25 }}
+            >
               <WhatsApp sx={{ fontSize: 18, color: '#25D366', mr: 0.25 }} />
               {WA_FILTERS.map((o) => {
                 const n = o.value === 'all' ? null : waCounts[o.value] || 0;
@@ -541,13 +794,21 @@ export default function RcsMatrix(): React.JSX.Element {
 
         {/* ── Árbol ── */}
         {isError ? (
-          <Alert severity="error" sx={{ borderRadius: 2 }}>
+          <Alert
+            severity="error"
+            sx={{ borderRadius: 2 }}
+          >
             No se pudo cargar la matriz. Reintenta en unos segundos.
           </Alert>
         ) : isPending ? (
           <Stack spacing={1}>
             {[0, 1, 2].map((i) => (
-              <Skeleton key={i} variant="rounded" height={56} sx={{ borderRadius: 3 }} />
+              <Skeleton
+                key={i}
+                variant="rounded"
+                height={56}
+                sx={{ borderRadius: 3 }}
+              />
             ))}
           </Stack>
         ) : branches.length === 0 ? (
@@ -562,14 +823,32 @@ export default function RcsMatrix(): React.JSX.Element {
             }}
           >
             <PhoneInTalkRounded sx={{ fontSize: 40, color: 'text.disabled' }} />
-            <Typography variant="subtitle1" fontWeight={700} sx={{ mt: 1 }}>
-              {filtered ? 'Sin resultados con estos filtros' : 'Sin órdenes en este período'}
+            <Typography
+              variant="subtitle1"
+              fontWeight={700}
+              sx={{ mt: 1 }}
+            >
+              {filtered
+                ? 'Sin resultados con estos filtros'
+                : isLists
+                  ? 'Sin listas en este período'
+                  : 'Sin órdenes en este período'}
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: filtered ? 2 : 0 }}>
-              {filtered ? 'Probá quitando algún filtro o cambiando el período.' : 'No hay a quién llamar todavía.'}
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mb: filtered ? 2 : 0 }}
+            >
+              {filtered
+                ? 'Probá quitando algún filtro o cambiando el período.'
+                : 'No hay a quién llamar todavía.'}
             </Typography>
             {filtered ? (
-              <Button variant="outlined" onClick={clearFilters} sx={{ textTransform: 'none', borderRadius: 2 }}>
+              <Button
+                variant="outlined"
+                onClick={clearFilters}
+                sx={{ textTransform: 'none', borderRadius: 2 }}
+              >
                 Limpiar filtros
               </Button>
             ) : null}
@@ -591,7 +870,11 @@ export default function RcsMatrix(): React.JSX.Element {
         )}
       </Stack>
 
-      <SendWaDialog state={sendDialog} stores={data?.stores ?? []} onClose={() => setSendDialog(null)} />
+      <SendWaDialog
+        state={sendDialog}
+        stores={data?.stores ?? []}
+        onClose={() => setSendDialog(null)}
+      />
     </Container>
   );
 }

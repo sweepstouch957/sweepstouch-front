@@ -1,11 +1,14 @@
 'use client';
 
 import { centsToUsd, type MatrixRow } from '@/services/rcs-matrix.service';
+import { phoneKey, type ShopperPhoneStatus } from '@/services/shopper-whatsapp.service';
 import ContentCopyRounded from '@mui/icons-material/ContentCopyRounded';
 import ExpandMoreRounded from '@mui/icons-material/ExpandMoreRounded';
+import ForumRounded from '@mui/icons-material/ForumRounded';
 import LocalShippingRounded from '@mui/icons-material/LocalShippingRounded';
 import PhoneRounded from '@mui/icons-material/PhoneRounded';
 import ScheduleRounded from '@mui/icons-material/ScheduleRounded';
+import SendRounded from '@mui/icons-material/SendRounded';
 import SmsRounded from '@mui/icons-material/SmsRounded';
 import StorefrontRounded from '@mui/icons-material/StorefrontRounded';
 import WhatsApp from '@mui/icons-material/WhatsApp';
@@ -13,6 +16,7 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
+  alpha,
   Avatar,
   Box,
   Chip,
@@ -20,16 +24,20 @@ import {
   Stack,
   Tooltip,
   Typography,
-  alpha,
   useTheme,
 } from '@mui/material';
 import React from 'react';
 import toast from 'react-hot-toast';
-import { phoneKey, type ShopperPhoneStatus } from '@/services/shopper-whatsapp.service';
-import SendRounded from '@mui/icons-material/SendRounded';
-import ForumRounded from '@mui/icons-material/ForumRounded';
+import {
+  dateTimeShort,
+  OPEN_STATUSES,
+  paymentMeta,
+  prettyPhone,
+  splitStoreTitle,
+  statusMeta,
+  timeShort,
+} from './constants';
 import { ConversationDialog, WaChip } from './whatsapp-bot';
-import { OPEN_STATUSES, dateTimeShort, paymentMeta, prettyPhone, splitStoreTitle, statusMeta, timeShort } from './constants';
 
 interface Props {
   storeName: string;
@@ -64,7 +72,11 @@ function ContactButtons({
   const theme = useTheme();
   if (!row.contact) {
     return (
-      <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ whiteSpace: 'nowrap' }}
+      >
         Sin teléfono
       </Typography>
     );
@@ -78,7 +90,12 @@ function ContactButtons({
       label: `Escribir por WhatsApp a ${who}`,
       icon: <WhatsApp fontSize="small" />,
       color: '#25D366',
-      props: { component: 'a' as const, href: row.contact.whatsapp, target: '_blank', rel: 'noopener' },
+      props: {
+        component: 'a' as const,
+        href: row.contact.whatsapp,
+        target: '_blank',
+        rel: 'noopener',
+      },
     },
     ...(onConvo
       ? [
@@ -136,9 +153,15 @@ function ContactButtons({
   ];
 
   return (
-    <Stack direction="row" spacing={0.75}>
+    <Stack
+      direction="row"
+      spacing={0.75}
+    >
       {actions.map((a) => (
-        <Tooltip key={a.key} title={a.title}>
+        <Tooltip
+          key={a.key}
+          title={a.title}
+        >
           <IconButton
             size="small"
             aria-label={a.label}
@@ -177,7 +200,12 @@ function ContactRow({
   const meta = statusMeta(row.fulfillmentStatus);
   const pay = paymentMeta(row.paymentStatus);
   const initial = (row.customerName || '#').trim().charAt(0).toUpperCase();
-  const payColor = { ok: 'success.main', warn: 'warning.main', bad: 'error.main', muted: 'text.secondary' }[pay.tone];
+  const payColor = {
+    ok: 'success.main',
+    warn: 'warning.main',
+    bad: 'error.main',
+    muted: 'text.secondary',
+  }[pay.tone];
   const [convo, setConvo] = React.useState(false);
 
   return (
@@ -197,20 +225,40 @@ function ContactRow({
       }}
     >
       {/* Quién */}
-      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0 }}>
-        <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: 14, fontWeight: 700 }}>
+      <Stack
+        direction="row"
+        spacing={1.5}
+        alignItems="center"
+        sx={{ minWidth: 0 }}
+      >
+        <Avatar
+          sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: 14, fontWeight: 700 }}
+        >
           {initial}
         </Avatar>
         <Box sx={{ minWidth: 0 }}>
-          <Typography variant="subtitle2" fontWeight={700} noWrap>
+          <Typography
+            variant="subtitle2"
+            fontWeight={700}
+            noWrap
+          >
             {row.customerName || 'Sin nombre'}
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ fontVariantNumeric: 'tabular-nums' }}
+          >
             {prettyPhone(row.customerPhone)}
           </Typography>
           {row.address ? (
             <Tooltip title={row.address}>
-              <Typography variant="caption" color="text.disabled" display="block" noWrap>
+              <Typography
+                variant="caption"
+                color="text.disabled"
+                display="block"
+                noWrap
+              >
                 {row.address}
               </Typography>
             </Tooltip>
@@ -219,43 +267,139 @@ function ContactRow({
       </Stack>
 
       {/* Su orden */}
-      <Stack spacing={0.75} sx={{ minWidth: 0 }}>
-        <Stack direction="row" spacing={0.75} alignItems="center" sx={{ color: 'text.secondary' }}>
-          <Typography variant="caption" fontWeight={700} sx={{ fontVariantNumeric: 'tabular-nums' }} noWrap>
+      <Stack
+        spacing={0.75}
+        sx={{ minWidth: 0 }}
+      >
+        <Stack
+          direction="row"
+          spacing={0.75}
+          alignItems="center"
+          sx={{ color: 'text.secondary' }}
+        >
+          <Typography
+            variant="caption"
+            fontWeight={700}
+            sx={{ fontVariantNumeric: 'tabular-nums' }}
+            noWrap
+          >
             #{row.orderNumber}
           </Typography>
           <ScheduleRounded sx={{ fontSize: 13 }} />
-          <Typography variant="caption" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+          <Typography
+            variant="caption"
+            sx={{ fontVariantNumeric: 'tabular-nums' }}
+          >
             {showDate ? dateTimeShort(row.createdAt) : timeShort(row.createdAt)}
           </Typography>
         </Stack>
-        <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-          <Chip size="small" label={meta.label} color={meta.color} sx={{ fontWeight: 700 }} />
+        <Stack
+          direction="row"
+          spacing={0.75}
+          flexWrap="wrap"
+          useFlexGap
+        >
+          <Chip
+            size="small"
+            label={meta.label}
+            color={meta.color}
+            sx={{ fontWeight: 700 }}
+          />
           {row.deliveryMethod === 'delivery' ? (
-            <Chip size="small" icon={<LocalShippingRounded />} label="Envío" variant="outlined" />
+            <Chip
+              size="small"
+              icon={<LocalShippingRounded />}
+              label="Envío"
+              variant="outlined"
+            />
           ) : null}
           {row.pickupAt ? (
-            <Chip size="small" label={`Pickup ${timeShort(row.pickupAt)}`} variant="outlined" />
+            <Chip
+              size="small"
+              label={`Pickup ${timeShort(row.pickupAt)}`}
+              variant="outlined"
+            />
           ) : null}
-          <WaChip status={wa} onClick={() => setConvo(true)} />
+          <WaChip
+            status={wa}
+            onClick={() => setConvo(true)}
+          />
         </Stack>
       </Stack>
 
-      {/* Cuánto */}
-      <Stack spacing={0.25} sx={{ minWidth: 0 }}>
-        <Typography variant="subtitle1" fontWeight={800} sx={{ fontVariantNumeric: 'tabular-nums', lineHeight: 1.2 }}>
-          {centsToUsd(row.subtotalCents - row.refundTotalCents)}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          {row.itemCount} artículo{row.itemCount === 1 ? '' : 's'}
-        </Typography>
-        <Typography variant="caption" fontWeight={700} sx={{ color: payColor }}>
-          {pay.label}
-        </Typography>
-      </Stack>
+      {/* Cuánto — en una lista no hay plata: artículos, ahorro y puntos */}
+      {row.kind === 'list' ? (
+        <Stack
+          spacing={0.25}
+          sx={{ minWidth: 0 }}
+        >
+          <Typography
+            variant="subtitle1"
+            fontWeight={800}
+            sx={{ fontVariantNumeric: 'tabular-nums', lineHeight: 1.2 }}
+          >
+            {row.itemCount} artículo{row.itemCount === 1 ? '' : 's'}
+          </Typography>
+          {row.savingsCents ? (
+            <Typography
+              variant="caption"
+              color="success.main"
+              fontWeight={700}
+            >
+              Ahorra {centsToUsd(row.savingsCents)}
+            </Typography>
+          ) : null}
+          <Typography
+            variant="caption"
+            color="text.secondary"
+          >
+            {row.pointsAwarded
+              ? `${row.pointsAwarded} pts`
+              : row.expiresAt
+                ? `Vence ${dateTimeShort(row.expiresAt)}`
+                : ''}
+          </Typography>
+        </Stack>
+      ) : (
+        <Stack
+          spacing={0.25}
+          sx={{ minWidth: 0 }}
+        >
+          <Typography
+            variant="subtitle1"
+            fontWeight={800}
+            sx={{ fontVariantNumeric: 'tabular-nums', lineHeight: 1.2 }}
+          >
+            {centsToUsd(row.subtotalCents - row.refundTotalCents)}
+          </Typography>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+          >
+            {row.itemCount} artículo{row.itemCount === 1 ? '' : 's'}
+          </Typography>
+          <Typography
+            variant="caption"
+            fontWeight={700}
+            sx={{ color: payColor }}
+          >
+            {pay.label}
+          </Typography>
+        </Stack>
+      )}
 
-      <ContactButtons row={row} onSendWa={onSendWa} onConvo={() => setConvo(true)} />
-      {convo ? <ConversationDialog row={row} onClose={() => setConvo(false)} onSend={onSendWa} /> : null}
+      <ContactButtons
+        row={row}
+        onSendWa={onSendWa}
+        onConvo={() => setConvo(true)}
+      />
+      {convo ? (
+        <ConversationDialog
+          row={row}
+          onClose={() => setConvo(false)}
+          onSend={onSendWa}
+        />
+      ) : null}
     </Box>
   );
 }
@@ -263,11 +407,19 @@ function ContactRow({
 const MemoRow = React.memo(ContactRow);
 
 /** Rama del árbol: una tienda con toda su gente del día. */
-export function StoreBranch({ storeName, rows, defaultExpanded, showDate, wa, onSendWa }: Props): React.JSX.Element {
+export function StoreBranch({
+  storeName,
+  rows,
+  defaultExpanded,
+  showDate,
+  wa,
+  onSendWa,
+}: Props): React.JSX.Element {
   const theme = useTheme();
   const { title, address } = splitStoreTitle(storeName);
   const open = rows.filter((r) => OPEN_STATUSES.includes(r.fulfillmentStatus)).length;
   const total = rows.reduce((n, r) => n + r.subtotalCents - r.refundTotalCents, 0);
+  const isList = rows[0]?.kind === 'list';
 
   return (
     <Accordion
@@ -294,33 +446,66 @@ export function StoreBranch({ storeName, rows, defaultExpanded, showDate, wa, on
       >
         <Avatar
           variant="rounded"
-          sx={{ width: 34, height: 34, bgcolor: alpha(theme.palette.primary.main, 0.12), color: 'primary.main' }}
+          sx={{
+            width: 34,
+            height: 34,
+            bgcolor: alpha(theme.palette.primary.main, 0.12),
+            color: 'primary.main',
+          }}
         >
           <StorefrontRounded fontSize="small" />
         </Avatar>
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="subtitle1" fontWeight={800} noWrap>
+          <Typography
+            variant="subtitle1"
+            fontWeight={800}
+            noWrap
+          >
             {title}
           </Typography>
           {address ? (
-            <Typography variant="caption" color="text.secondary" noWrap display="block">
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              noWrap
+              display="block"
+            >
               {address}
             </Typography>
           ) : null}
         </Box>
 
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ pr: 1, flexShrink: 0 }}>
+        <Stack
+          direction="row"
+          spacing={1}
+          alignItems="center"
+          sx={{ pr: 1, flexShrink: 0 }}
+        >
           {open > 0 ? (
-            <Chip size="small" color="warning" label={`${open} por atender`} sx={{ fontWeight: 700 }} />
+            <Chip
+              size="small"
+              color="warning"
+              label={`${open} ${isList ? 'vigentes' : 'por atender'}`}
+              sx={{ fontWeight: 700 }}
+            />
           ) : null}
-          <Chip size="small" variant="outlined" label={`${rows.length} órdenes`} />
+          <Chip
+            size="small"
+            variant="outlined"
+            label={`${rows.length} ${isList ? 'listas' : 'órdenes'}`}
+          />
           <Typography
             variant="subtitle1"
             fontWeight={800}
-            sx={{ fontVariantNumeric: 'tabular-nums', display: { xs: 'none', sm: 'block' }, minWidth: 92, textAlign: 'right' }}
+            sx={{
+              fontVariantNumeric: 'tabular-nums',
+              display: { xs: 'none', sm: 'block' },
+              minWidth: 92,
+              textAlign: 'right',
+            }}
           >
-            {centsToUsd(total)}
+            {isList ? `${rows.reduce((n, r) => n + r.itemCount, 0)} art.` : centsToUsd(total)}
           </Typography>
         </Stack>
       </AccordionSummary>

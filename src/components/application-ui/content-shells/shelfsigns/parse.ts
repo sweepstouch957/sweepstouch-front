@@ -37,6 +37,7 @@ export function toProducts(raw: unknown[] | undefined): ShelfSignProduct[] {
       details: asText(item?.details),
       name2: asText(item?.name2),
       details2: asText(item?.details2),
+      extras: toExtras(item),
       qty: clampQty(item?.qty),
       dollars: clampDollars(item?.dollars),
       cents: clampCents(item?.cents),
@@ -49,6 +50,35 @@ export function toProducts(raw: unknown[] | undefined): ShelfSignProduct[] {
     }))
     .map(withComputedSave)
     .map(dedupeShared);
+}
+
+/** Tope de referencias por cartón: 1 principal + 4 alternativas. */
+export const MAX_PRODUCTS_PER_SIGN = 5;
+
+/**
+ * Productos 3-5 del JSON crudo.
+ *
+ * Hoy el prompt sólo pide name/name2, así que casi siempre esto viene vacío y
+ * los extras los agrega el diseñador a mano. Se leen igual las dos formas en
+ * que un modelo los devolvería (`extras: []` o `name3`/`details3`…) para que el
+ * día que el prompt los pida no haya que tocar el parseo.
+ */
+function toExtras(item: any): { name: string; details: string }[] {
+  const out: { name: string; details: string }[] = [];
+
+  if (Array.isArray(item?.extras)) {
+    for (const e of item.extras) {
+      const name = asText(e?.name);
+      if (name) out.push({ name, details: asText(e?.details) });
+    }
+  }
+
+  for (let n = 3; n <= MAX_PRODUCTS_PER_SIGN; n++) {
+    const name = asText(item?.[`name${n}`]);
+    if (name) out.push({ name, details: asText(item?.[`details${n}`]) });
+  }
+
+  return out.slice(0, MAX_PRODUCTS_PER_SIGN - 2);
 }
 
 /**

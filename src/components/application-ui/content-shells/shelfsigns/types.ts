@@ -29,6 +29,15 @@ export interface ShelfSignProduct {
   name2: string;
   details2: string;
 
+  /**
+   * Productos 3 a 5 del mismo cartón (mix & match de varias referencias).
+   *
+   * Van aparte de name2 para no romper lo ya guardado ni la extracción: el
+   * campo es opcional y un cartón viejo sigue siendo válido sin él. El render
+   * les pone "OR" igual que al producto 2.
+   */
+  extras?: { name: string; details: string }[];
+
   /** Precio: cantidad ≥ 1, dólares ≥ 0, centavos 0-99. */
   qty: number;
   dollars: number;

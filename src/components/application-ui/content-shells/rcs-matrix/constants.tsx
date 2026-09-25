@@ -11,13 +11,19 @@ export const STATUS_META: Record<
   ready: { label: 'Lista', color: 'success' },
   completed: { label: 'Entregada', color: 'default' },
   cancelled: { label: 'Cancelada', color: 'error' },
+  list_pending: { label: 'Vigente', color: 'warning' },
+  list_validated: { label: 'Validada', color: 'success' },
+  list_expired: { label: 'Vencida', color: 'default' },
 };
 
 /**
  * Estado del cobro en español. El backend manda el enum de Stripe
  * ("requires_confirmation"), que en pantalla se leía como un error de sistema.
  */
-export const PAYMENT_META: Record<string, { label: string; tone: 'ok' | 'warn' | 'bad' | 'muted' }> = {
+export const PAYMENT_META: Record<
+  string,
+  { label: string; tone: 'ok' | 'warn' | 'bad' | 'muted' }
+> = {
   requires_confirmation: { label: 'Sin cobrar', tone: 'warn' },
   processing: { label: 'Procesando', tone: 'muted' },
   succeeded: { label: 'Pagado', tone: 'ok' },
@@ -37,16 +43,27 @@ export function paymentMeta(status: string) {
  */
 export function splitStoreTitle(name: string): { title: string; address: string } {
   const m = String(name || '').match(/^(.*?)[,\s]+(\d+\s.*)$/);
-  return m && m[1].trim() ? { title: m[1].trim(), address: m[2].trim() } : { title: name || '—', address: '' };
+  return m && m[1].trim()
+    ? { title: m[1].trim(), address: m[2].trim() }
+    : { title: name || '—', address: '' };
 }
 
-export const STATUS_OPTIONS = [
+const statusOptions = (keys: string[]) => [
   { value: 'all', label: 'Todos los estados' },
-  ...Object.entries(STATUS_META).map(([value, m]) => ({ value, label: m.label })),
+  ...keys.map((value) => ({ value, label: STATUS_META[value].label })),
 ];
 
+export const STATUS_OPTIONS = statusOptions(
+  Object.keys(STATUS_META).filter((k) => !k.startsWith('list_'))
+);
+export const LIST_STATUS_OPTIONS = statusOptions([
+  'list_pending',
+  'list_validated',
+  'list_expired',
+]);
+
 /** Lo que todavía necesita una llamada. Lo demás ya está cerrado. */
-export const OPEN_STATUSES = ['awaiting_payment', 'paid', 'preparing', 'ready'];
+export const OPEN_STATUSES = ['awaiting_payment', 'paid', 'preparing', 'ready', 'list_pending'];
 
 export function statusMeta(status: string) {
   return STATUS_META[status] || { label: status, color: 'default' as const };
@@ -86,6 +103,10 @@ export function shiftYmd(ymd: string, days: number): string {
 /** "Sep 24 · 9:00 AM" — para cuando el rango abarca más de un día. */
 export function dateTimeShort(iso?: string | null): string {
   if (!iso) return '—';
-  const day = new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' });
+  const day = new Date(iso).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'America/New_York',
+  });
   return `${day} · ${timeShort(iso)}`;
 }
