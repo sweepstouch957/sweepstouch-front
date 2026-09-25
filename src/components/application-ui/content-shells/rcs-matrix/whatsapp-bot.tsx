@@ -373,7 +373,13 @@ export function rowToTarget(r: MatrixRow): ShopperSendTarget {
 
 /** Mismo texto que manda el bot, sólo para que se vea antes de lanzar. */
 function preview(name: string, store: string) {
-  const first = (name || '').trim().split(/\s+/)[0];
+  // Misma regla que firstName() del bot: "PALTON" sale como "Palton"; basura ("Demo", "Customer") sin nombre.
+  const w = (name || '').trim().split(/\s+/)[0] || '';
+  const junk = ['demo', 'customer', 'cliente', 'vip', 'test', 'na', 'n/a', 'unknown'];
+  const first =
+    w.length < 2 || !/^[a-záéíóúüñ'-]+$/i.test(w) || junk.includes(w.toLowerCase())
+      ? ''
+      : w[0].toUpperCase() + w.slice(1).toLowerCase();
   return (
     `¡Hola${first ? `, ${first}` : ''}! 👋 Gracias por hacer tu pedido en ${
       store || 'tu supermercado'
@@ -563,7 +569,7 @@ export function SendWaDialog({
               display="block"
               sx={{ mt: 1 }}
             >
-              Se agrega el teléfono de la tienda al final. Nombre y tienda cambian por persona.
+              Ejemplo con la primera persona de la lista. Cada quien recibe su propio nombre y su tienda, más el teléfono de la tienda al final.
             </Typography>
           </Box>
         </Stack>
