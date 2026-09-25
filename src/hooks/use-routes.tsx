@@ -16,6 +16,7 @@ import {
   HandymanRounded,
   InsightsRounded,
   LinkRounded,
+  WhatsApp,
   ListAltRounded,
   LockOpenRounded,
   LocalOfferRounded,
@@ -117,6 +118,8 @@ const toolsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Códigos QR'), route: routes.admin.management.qr, icon: <QrCode2Rounded /> },
     // El primo del QR: mismo destino (el linktree de la tienda), formato link.
     { title: t('Links de tiendas'), route: routes.admin.management['short-links'], icon: <LinkRounded /> },
+    // Saludo de 3 opciones a los clientes de la tienda + lo que contestan.
+    { title: t('WhatsApp de clientes'), route: routes.admin.management['shopper-whatsapp'], icon: <WhatsApp /> },
     { title: t('Buscar número'), route: routes.admin.applications['debug-numbers'], icon: <SearchRounded /> },
     { title: t('Demos'), route: routes.admin.applications.demos, icon: <SlideshowRounded /> },
     { title: t('Utilidades'), route: routes.admin.applications.utilities, icon: <TuneRounded /> },
