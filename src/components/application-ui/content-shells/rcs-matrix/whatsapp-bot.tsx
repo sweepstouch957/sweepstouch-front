@@ -9,6 +9,7 @@ import {
 } from '@/services/shopper-whatsapp.service';
 import {
   Alert,
+  Avatar,
   Box,
   Button,
   Checkbox,
@@ -24,24 +25,31 @@ import {
   TextField,
   Tooltip,
   Typography,
+  alpha,
+  useTheme,
 } from '@mui/material';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
-import { splitStoreTitle } from './constants';
+import { prettyPhone, splitStoreTitle } from './constants';
 
 /* ─── Estado de WhatsApp de una persona ─────────────────────────────────── */
 
 export type WaState = 'unsent' | 'sent' | '1' | '2' | '3' | 'text';
 
-/** Opciones del saludo del bot (whatsapp-bot-service/shopperTemplates.js). */
-const WA_META: Record<WaState, { label: string; color: 'default' | 'success' | 'warning' | 'info' | 'secondary' }> = {
-  unsent: { label: 'Sin enviar', color: 'default' },
-  sent: { label: 'Enviado · sin respuesta', color: 'default' },
-  '1': { label: 'Quiere completar la compra', color: 'success' },
-  '2': { label: 'Solo estaba probando', color: 'warning' },
-  '3': { label: 'Le gustó la experiencia', color: 'info' },
-  text: { label: 'Respondió con texto', color: 'secondary' },
+type Tone = 'default' | 'success' | 'warning' | 'info' | 'secondary';
+
+/**
+ * Opciones del saludo del bot (whatsapp-bot-service/shopperTemplates.js).
+ * `badge` es lo que se ve en la fila: el número que marcó el cliente.
+ */
+const WA_META: Record<WaState, { label: string; short: string; badge: string; color: Tone }> = {
+  unsent: { label: 'Sin enviar', short: 'Sin enviar', badge: '', color: 'default' },
+  sent: { label: 'Enviado · sin respuesta', short: 'Sin respuesta', badge: '…', color: 'default' },
+  '1': { label: '1 · Quiere completar la compra', short: 'Completar compra', badge: '1', color: 'success' },
+  '2': { label: '2 · Solo estaba probando', short: 'Solo probando', badge: '2', color: 'warning' },
+  '3': { label: '3 · Le gustó la experiencia', short: 'Le gustó', badge: '3', color: 'info' },
+  text: { label: 'Respondió con texto', short: 'Texto libre', badge: '✎', color: 'secondary' },
 };
 
 export const WA_FILTERS = [
@@ -56,30 +64,200 @@ export function waState(s?: ShopperPhoneStatus): WaState {
   return s.sentAt ? 'sent' : 'unsent';
 }
 
-/** Chip de la fila: qué contestó. El tooltip trae el texto libre / resumen de la IA. */
-export function WaChip({ status }: { status?: ShopperPhoneStatus }): React.JSX.Element | null {
+const nyDateTime = (iso: string) =>
+  new Date(iso).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'America/New_York',
+  });
+
+/** Número marcado (1/2/3) + etiqueta corta. Abre la conversación. */
+export function WaChip({
+  status,
+  onClick,
+}: {
+  status?: ShopperPhoneStatus;
+  onClick?: () => void;
+}): React.JSX.Element | null {
+  const theme = useTheme();
   const st = waState(status);
   if (st === 'unsent') return null;
   const meta = WA_META[st];
-  const when = status?.repliedAt || status?.sentAt;
-  const tip = [
-    status?.text ? `“${status.text}”` : '',
-    status?.summary || '',
-    when ? new Date(when).toLocaleString('en-US', { timeZone: 'America/New_York' }) : '',
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  const tone = meta.color === 'default' ? theme.palette.text.secondary : theme.palette[meta.color].main;
 
   return (
-    <Tooltip title={tip || meta.label}>
+    <Tooltip title={status?.text ? `“${status.text}” · ver conversación` : 'Ver conversación'}>
       <Chip
         size="small"
-        label={`WA · ${meta.label}`}
-        color={meta.color}
-        variant={st === 'sent' ? 'outlined' : 'filled'}
-        sx={{ fontWeight: 700, maxWidth: 240 }}
+        onClick={onClick}
+        avatar={
+          <Avatar sx={{ bgcolor: `${tone} !important`, color: '#fff !important', fontWeight: 800, fontSize: 12 }}>
+            {meta.badge}
+          </Avatar>
+        }
+        label={meta.short}
+        variant="outlined"
+        sx={{ fontWeight: 700, borderColor: alpha(tone, 0.5), color: tone, bgcolor: alpha(tone, 0.08) }}
       />
     </Tooltip>
+  );
+}
+
+/* ─── Conversación ──────────────────────────────────────────────────────── */
+
+function Bubble({ out, text, at, children }: { out?: boolean; text: string; at: string; children?: React.ReactNode }) {
+  return (
+    <Box sx={{ display: 'flex', justifyContent: out ? 'flex-end' : 'flex-start' }}>
+      <Box
+        sx={{
+          maxWidth: '82%',
+          px: 1.5,
+          py: 1,
+          borderRadius: 2,
+          borderTopRightRadius: out ? 4 : 16,
+          borderTopLeftRadius: out ? 16 : 4,
+          bgcolor: out ? alpha('#25D366', 0.16) : 'background.paper',
+          border: '1px solid',
+          borderColor: out ? alpha('#25D366', 0.35) : 'divider',
+        }}
+      >
+        <Typography variant="body2" sx={{ whiteSpace: 'pre-line', wordBreak: 'break-word' }}>
+          {text || '—'}
+        </Typography>
+        {children}
+        <Typography variant="caption" color="text.secondary" display="block" sx={{ textAlign: 'right', mt: 0.25 }}>
+          {out ? 'Bot · ' : ''}
+          {nyDateTime(at)}
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
+
+/**
+ * Todo lo que pasó con un teléfono en el bot: saludo enviado, lo que contestó
+ * (opción 1/2/3 o texto libre con sentimiento y resumen de la IA) y la respuesta
+ * del bot. Sale de ShopperReply vía GET /shopper/replies?phone=.
+ */
+export function ConversationDialog({
+  row,
+  onClose,
+  onSend,
+}: {
+  row: MatrixRow | null;
+  onClose: () => void;
+  onSend?: (row: MatrixRow) => void;
+}): React.JSX.Element {
+  const phone = row?.customerPhone || '';
+  const { data, isPending, isError } = useQuery({
+    queryKey: ['shopper-conversation', phoneKey(phone)],
+    queryFn: () => shopperWhatsappService.replies({ phone, limit: 200 }),
+    enabled: !!row && phoneKey(phone).length === 10,
+    refetchInterval: 1000 * 20,
+  });
+  const msgs = [...(data?.data ?? [])].reverse(); // viene más nuevo primero
+
+  return (
+    <Dialog open={!!row} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ pb: 1 }}>
+        <Typography variant="h6" fontWeight={800} component="span" display="block">
+          {row?.customerName || 'Sin nombre'}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" component="span">
+          {prettyPhone(phone)} · {splitStoreTitle(row?.storeName || '').title} · #{row?.orderNumber}
+        </Typography>
+      </DialogTitle>
+      <DialogContent dividers sx={{ bgcolor: 'action.hover', minHeight: 240 }}>
+        {/* Leyenda: qué significa cada número que puede marcar */}
+        <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
+          {(['1', '2', '3'] as WaState[]).map((k) => (
+            <Chip key={k} size="small" label={WA_META[k].label} color={WA_META[k].color} variant="outlined" />
+          ))}
+        </Stack>
+
+        {isPending && row ? (
+          <Box sx={{ display: 'grid', placeItems: 'center', py: 6 }}>
+            <CircularProgress size={24} />
+          </Box>
+        ) : isError ? (
+          <Alert severity="error">No se pudo cargar la conversación.</Alert>
+        ) : !msgs.length ? (
+          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 6 }}>
+            Todavía no hay conversación por WhatsApp con este cliente.
+          </Typography>
+        ) : (
+          <Stack spacing={1.25}>
+            {msgs.map((m) =>
+              m.intent === 'broadcast_sent' ? (
+                <Bubble key={m._id} out text={m.reply} at={m.createdAt} />
+              ) : (
+                <React.Fragment key={m._id}>
+                  <Bubble text={m.text} at={m.createdAt}>
+                    {m.option || m.sentiment !== 'neutral' || m.summary ? (
+                      <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mt: 0.75 }}>
+                        {m.option ? (
+                          <Chip
+                            size="small"
+                            label={WA_META[String(m.option) as WaState].label}
+                            color={WA_META[String(m.option) as WaState].color}
+                          />
+                        ) : null}
+                        {m.sentiment !== 'neutral' ? (
+                          <Chip
+                            size="small"
+                            variant="outlined"
+                            label={m.sentiment === 'positive' ? 'Positivo' : 'Negativo'}
+                            color={m.sentiment === 'positive' ? 'success' : 'error'}
+                          />
+                        ) : null}
+                        {m.summary ? (
+                          <Typography variant="caption" color="text.secondary" sx={{ width: '100%' }}>
+                            IA: {m.summary}
+                          </Typography>
+                        ) : null}
+                      </Stack>
+                    ) : null}
+                  </Bubble>
+                  {m.reply ? <Bubble out text={m.reply} at={m.createdAt} /> : null}
+                </React.Fragment>
+              )
+            )}
+          </Stack>
+        )}
+      </DialogContent>
+      <DialogActions sx={{ p: 2 }}>
+        {row?.contact ? (
+          <Button
+            component="a"
+            href={row.contact.whatsapp}
+            target="_blank"
+            rel="noopener"
+            color="success"
+            sx={{ textTransform: 'none', mr: 'auto' }}
+          >
+            Abrir en WhatsApp
+          </Button>
+        ) : null}
+        <Button onClick={onClose} color="inherit">
+          Cerrar
+        </Button>
+        {onSend && row ? (
+          <Button
+            variant="contained"
+            color="success"
+            onClick={() => {
+              onSend(row);
+              onClose();
+            }}
+            sx={{ boxShadow: 'none' }}
+          >
+            Mandar saludo
+          </Button>
+        ) : null}
+      </DialogActions>
+    </Dialog>
   );
 }
 

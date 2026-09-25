@@ -27,7 +27,8 @@ import React from 'react';
 import toast from 'react-hot-toast';
 import { phoneKey, type ShopperPhoneStatus } from '@/services/shopper-whatsapp.service';
 import SendRounded from '@mui/icons-material/SendRounded';
-import { WaChip } from './whatsapp-bot';
+import ForumRounded from '@mui/icons-material/ForumRounded';
+import { ConversationDialog, WaChip } from './whatsapp-bot';
 import { OPEN_STATUSES, dateTimeShort, paymentMeta, prettyPhone, splitStoreTitle, statusMeta, timeShort } from './constants';
 
 interface Props {
@@ -51,7 +52,15 @@ const ROW_GRID = {
  * Botonera de contacto — es la acción de la página, así que los botones son de
  * 40px reales con etiqueta accesible. Sin teléfono no hay por dónde llamar.
  */
-function ContactButtons({ row, onSendWa }: { row: MatrixRow; onSendWa?: (row: MatrixRow) => void }): React.JSX.Element {
+function ContactButtons({
+  row,
+  onSendWa,
+  onConvo,
+}: {
+  row: MatrixRow;
+  onSendWa?: (row: MatrixRow) => void;
+  onConvo?: () => void;
+}): React.JSX.Element {
   const theme = useTheme();
   if (!row.contact) {
     return (
@@ -71,6 +80,18 @@ function ContactButtons({ row, onSendWa }: { row: MatrixRow; onSendWa?: (row: Ma
       color: '#25D366',
       props: { component: 'a' as const, href: row.contact.whatsapp, target: '_blank', rel: 'noopener' },
     },
+    ...(onConvo
+      ? [
+          {
+            key: 'convo',
+            title: 'Ver conversación del bot',
+            label: `Ver la conversación de WhatsApp con ${who}`,
+            icon: <ForumRounded fontSize="small" />,
+            color: '#075E54',
+            props: { onClick: onConvo },
+          },
+        ]
+      : []),
     ...(onSendWa
       ? [
           {
@@ -157,6 +178,7 @@ function ContactRow({
   const pay = paymentMeta(row.paymentStatus);
   const initial = (row.customerName || '#').trim().charAt(0).toUpperCase();
   const payColor = { ok: 'success.main', warn: 'warning.main', bad: 'error.main', muted: 'text.secondary' }[pay.tone];
+  const [convo, setConvo] = React.useState(false);
 
   return (
     <Box
@@ -215,7 +237,7 @@ function ContactRow({
           {row.pickupAt ? (
             <Chip size="small" label={`Pickup ${timeShort(row.pickupAt)}`} variant="outlined" />
           ) : null}
-          <WaChip status={wa} />
+          <WaChip status={wa} onClick={() => setConvo(true)} />
         </Stack>
       </Stack>
 
@@ -232,7 +254,8 @@ function ContactRow({
         </Typography>
       </Stack>
 
-      <ContactButtons row={row} onSendWa={onSendWa} />
+      <ContactButtons row={row} onSendWa={onSendWa} onConvo={() => setConvo(true)} />
+      {convo ? <ConversationDialog row={row} onClose={() => setConvo(false)} onSend={onSendWa} /> : null}
     </Box>
   );
 }

@@ -116,6 +116,7 @@ export const shopperWhatsappService = {
     store?: string;
     sentiment?: string;
     option?: string;
+    phone?: string;
     from?: string;
     to?: string;
     limit?: number;
