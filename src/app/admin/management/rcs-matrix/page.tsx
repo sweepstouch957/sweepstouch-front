@@ -16,7 +16,7 @@ function Page(): React.JSX.Element {
         </Typography>
         <Typography variant="body2" color="text.secondary">
           {t(
-            'Árbol de llamadas por período: todas las órdenes de todas las tiendas con sus datos de contacto y WhatsApp directo'
+            'Árbol de llamadas por período: órdenes y listas de todas las tiendas con sus datos de contacto y WhatsApp directo'
           )}
         </Typography>
       </Box>

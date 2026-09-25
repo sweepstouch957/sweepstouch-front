@@ -6,7 +6,7 @@ import { useShopperStatus } from '@/hooks/fetching/rcs-matrix/useShopperStatus';
 import {
   centsToUsd,
   todayInNY,
-  type MatrixKind,
+  type MatrixStore,
   type MatrixRow,
 } from '@/services/rcs-matrix.service';
 import { phoneKey } from '@/services/shopper-whatsapp.service';
@@ -31,8 +31,6 @@ import {
   Skeleton,
   Stack,
   TextField,
-  ToggleButton,
-  ToggleButtonGroup,
   Tooltip,
   Typography,
   useTheme,
@@ -62,6 +60,12 @@ import {
 } from './whatsapp-bot';
 
 type Range = { from: string; to: string };
+
+/** Estados de orden y de lista en un solo selector. */
+const ALL_STATUS_OPTIONS = [
+  ...STATUS_OPTIONS,
+  ...LIST_STATUS_OPTIONS.slice(1).map((o) => ({ ...o, label: `Lista ${o.label.toLowerCase()}` })),
+];
 
 /** Atajos de período. Se recalculan al click: "Hoy" siempre es hoy en NY. */
 const PRESETS: { key: string; label: string; range: () => Range }[] = [
@@ -283,13 +287,12 @@ function downloadCsv(rows: MatrixRow[], range: Range) {
 /**
  * Matriz RCS — el árbol de llamadas.
  *
- * Junta las órdenes de TODAS las tiendas (el vendor site solo muestra la suya)
+ * Junta las órdenes y las listas de TODAS las tiendas (el vendor site solo muestra la suya)
  * y las cuelga de su tienda con los datos de contacto de cada persona: WhatsApp
  * directo, llamada, SMS y el estado en que quedó su orden. Abre en el día de
  * hoy en hora de Nueva York; el período se puede ampliar a un rango.
  */
 export default function RcsMatrix(): React.JSX.Element {
-  const [kind, setKind] = useState<MatrixKind>('orders');
   const [range, setRange] = useState<Range>(() => PRESETS[0].range());
   const [store, setStore] = useState('all');
   const [status, setStatus] = useState('all');
@@ -298,14 +301,77 @@ export default function RcsMatrix(): React.JSX.Element {
   const [waFilter, setWaFilter] = useState('all');
   const [sendDialog, setSendDialog] = useState<SendDialogState | null>(null);
 
-  // Tienda, estado y período van al backend; el texto se filtra acá, que es
-  // instantáneo y no dispara una consulta por tecla.
-  const { data, isPending, isError, isFetching, refetch } = useRcsMatrix({
-    kind,
-    ...range,
-    store,
-    status,
-  });
+  // Órdenes (order-service) y listas (tracking-service) salen juntas en el mismo
+  // árbol. Período y tienda van al backend; estado y texto se filtran acá, que
+  // es instantáneo y vale igual para las dos.
+  const ordersQ = useRcsMatrix({ kind: 'orders', ...range, store });
+  const listsQ = useRcsMatrix({ kind: 'lists', ...range, store });
+  const isPending = ordersQ.isPending;
+  const isError = ordersQ.isError;
+  const isFetching = ordersQ.isFetching || listsQ.isFetching;
+  const refetch = () => {
+    ordersQ.refetch();
+    listsQ.refetch();
+  };
+
+  const all = useMemo(
+    () =>
+      [...(ordersQ.data?.items ?? []), ...(listsQ.data?.items ?? [])].sort((a, b) =>
+        b.createdAt.localeCompare(a.createdAt)
+      ),
+    [ordersQ.data, listsQ.data]
+  );
+
+  // Tiendas de las dos fuentes, por slug (el mismo filtro sirve para ambas).
+  const stores = useMemo(() => {
+    const map = new Map<string, MatrixStore>();
+    for (const s of [...(ordersQ.data?.stores ?? []), ...(listsQ.data?.stores ?? [])]) {
+      if (!s.slug) continue;
+      const prev = map.get(s.slug);
+      if (prev) prev.orders += s.orders;
+      else map.set(s.slug, { ...s, key: s.slug });
+    }
+    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [ordersQ.data, listsQ.data]);
+
+  // Lo que cuentan los KPIs: período + tienda + estado.
+  const base = useMemo(
+    () => (status === 'all' ? all : all.filter((r) => r.fulfillmentStatus === status)),
+    [all, status]
+  );
+  const data = useMemo(() => ({ items: base }), [base]);
+
+  const k = useMemo(() => {
+    const net = (r: MatrixRow) => r.subtotalCents - r.refundTotalCents;
+    const orders = base.filter((r) => r.kind !== 'list');
+    const lists = base.filter((r) => r.kind === 'list');
+    const live = orders.filter((r) => r.fulfillmentStatus !== 'cancelled');
+    const unpaid = orders.filter((r) => r.fulfillmentStatus === 'awaiting_payment');
+    const byStatus: Record<string, number> = {};
+    for (const r of base) byStatus[r.fulfillmentStatus] = (byStatus[r.fulfillmentStatus] || 0) + 1;
+    return {
+      total: base.length,
+      orders: orders.length,
+      lists: lists.length,
+      customers: new Set(base.map((r) => r.customerPhone || r.customerId).filter(Boolean)).size,
+      stores: new Set(base.map((r) => r.storeSlug).filter(Boolean)).size,
+      pending: base.filter((r) => OPEN_STATUSES.includes(r.fulfillmentStatus)).length,
+      unpaid: unpaid.length,
+      unpaidCents: unpaid.reduce((n, r) => n + net(r), 0),
+      grossCents: orders.reduce((n, r) => n + net(r), 0),
+      collectedCents: orders
+        .filter((r) => ['succeeded', 'partially_refunded'].includes(r.paymentStatus))
+        .reduce((n, r) => n + net(r), 0),
+      avgTicketCents: live.length
+        ? Math.round(live.reduce((n, r) => n + net(r), 0) / live.length)
+        : 0,
+      completed: byStatus.completed || 0,
+      cancelled: byStatus.cancelled || 0,
+      listsValidated: byStatus.list_validated || 0,
+      points: lists.reduce((n, r) => n + (r.pointsAwarded || 0), 0),
+      byStatus,
+    };
+  }, [base]);
 
   // Qué pasó por WhatsApp con cada persona (bot de 3 opciones), por los últimos 10 dígitos.
   const phones = useMemo(
@@ -358,11 +424,11 @@ export default function RcsMatrix(): React.JSX.Element {
     });
   };
 
-  // Agrupadas por tienda: es el árbol. Más órdenes arriba — ahí está el trabajo.
+  // Agrupadas por tienda (slug): es el árbol. Más gente arriba — ahí está el trabajo.
   const branches = useMemo(() => {
     const map = new Map<string, MatrixRow[]>();
     for (const r of rows) {
-      const key = r.storeName || r.storeSlug || '—';
+      const key = r.storeSlug || r.storeName || '—';
       const prev = map.get(key);
       if (prev) prev.push(r);
       else map.set(key, [r]);
@@ -375,20 +441,6 @@ export default function RcsMatrix(): React.JSX.Element {
     const r = p.range();
     return r.from === range.from && r.to === range.to;
   })?.key;
-  const k = data?.kpis;
-  const orders = k?.orders ?? 0;
-  const isLists = kind === 'lists';
-  const statusOptions = isLists ? LIST_STATUS_OPTIONS : STATUS_OPTIONS;
-
-  // Tienda y estado no significan lo mismo en las dos pestañas: se limpian.
-  const changeKind = (next: MatrixKind | null) => {
-    if (!next || next === kind) return;
-    setKind(next);
-    setStore('all');
-    setStatus('all');
-    setOnlyOpen(false);
-  };
-
   const filtered =
     q.trim() !== '' || store !== 'all' || status !== 'all' || onlyOpen || waFilter !== 'all';
   const clearFilters = () => {
@@ -417,23 +469,6 @@ export default function RcsMatrix(): React.JSX.Element {
             useFlexGap
             sx={{ p: 1.5 }}
           >
-            <ToggleButtonGroup
-              size="small"
-              exclusive
-              value={kind}
-              onChange={(_, v) => changeKind(v)}
-              sx={{
-                '& .MuiToggleButton-root': {
-                  textTransform: 'none',
-                  fontWeight: 700,
-                  px: 1.75,
-                  py: 0.5,
-                },
-              }}
-            >
-              <ToggleButton value="orders">Órdenes</ToggleButton>
-              <ToggleButton value="lists">Listas</ToggleButton>
-            </ToggleButtonGroup>
             <Stack
               direction="row"
               spacing={0.5}
@@ -469,10 +504,10 @@ export default function RcsMatrix(): React.JSX.Element {
               sx={{ width: 210 }}
             >
               <MenuItem value="all">Todas las tiendas</MenuItem>
-              {(data?.stores ?? []).map((s) => (
+              {stores.map((s) => (
                 <MenuItem
                   key={s.key}
-                  value={s.storeId || s.slug}
+                  value={s.slug}
                 >
                   {s.name} ({s.orders})
                 </MenuItem>
@@ -486,7 +521,7 @@ export default function RcsMatrix(): React.JSX.Element {
               onChange={(e) => setStatus(e.target.value)}
               sx={{ width: 170 }}
             >
-              {statusOptions.map((o) => (
+              {ALL_STATUS_OPTIONS.map((o) => (
                 <MenuItem
                   key={o.value}
                   value={o.value}
@@ -587,7 +622,7 @@ export default function RcsMatrix(): React.JSX.Element {
                   color="text.secondary"
                   sx={{ mr: 0.5 }}
                 >
-                  {rows.length} de {data?.items.length ?? 0} órdenes
+                  {rows.length} de {data.items.length}
                 </Typography>
                 {onlyOpen ? (
                   <Chip
@@ -600,17 +635,14 @@ export default function RcsMatrix(): React.JSX.Element {
                 {status !== 'all' ? (
                   <Chip
                     size="small"
-                    label={statusOptions.find((o) => o.value === status)?.label}
+                    label={ALL_STATUS_OPTIONS.find((o) => o.value === status)?.label}
                     onDelete={() => setStatus('all')}
                   />
                 ) : null}
                 {store !== 'all' ? (
                   <Chip
                     size="small"
-                    label={
-                      (data?.stores ?? []).find((s) => (s.storeId || s.slug) === store)?.name ||
-                      'Tienda'
-                    }
+                    label={stores.find((s) => s.slug === store)?.name || 'Tienda'}
                     onDelete={() => setStore('all')}
                   />
                 ) : null}
@@ -669,98 +701,56 @@ export default function RcsMatrix(): React.JSX.Element {
                 gap: 0.5,
               }}
             >
-              {isLists ? (
-                <>
-                  <Kpi
-                    label="Listas"
-                    value={orders}
-                    sub={`${k?.customers ?? 0} personas · ${k?.stores ?? 0} tiendas`}
-                  />
-                  <Kpi
-                    label="Vigentes"
-                    value={k?.pending ?? 0}
-                    sub={`${pct(k?.pending ?? 0, orders)} · aún no pasan por caja`}
-                    accent="warning"
-                    active={onlyOpen}
-                    onClick={() => setOnlyOpen((v) => !v)}
-                  />
-                  <Kpi
-                    label="Validadas"
-                    value={k?.validated ?? 0}
-                    sub={`${pct(k?.validated ?? 0, orders)} conversión en caja`}
-                    accent="success"
-                    active={status === 'list_validated'}
-                    onClick={() =>
-                      setStatus((s) => (s === 'list_validated' ? 'all' : 'list_validated'))
-                    }
-                  />
-                  <Kpi
-                    label="Vencidas"
-                    value={k?.expired ?? 0}
-                    sub={`${pct(k?.expired ?? 0, orders)} del total`}
-                    active={status === 'list_expired'}
-                    onClick={() =>
-                      setStatus((s) => (s === 'list_expired' ? 'all' : 'list_expired'))
-                    }
-                  />
-                  <Kpi
-                    label="Artículos"
-                    value={k?.itemsTotal ?? 0}
-                    sub={`${orders ? ((k?.itemsTotal ?? 0) / orders).toFixed(1) : '0'} por lista`}
-                  />
-                  <Kpi
-                    label="Ahorro estimado"
-                    value={centsToUsd(k?.savingsCents)}
-                    sub={`${(k?.points ?? 0).toLocaleString('en-US')} puntos dados`}
-                  />
-                </>
-              ) : (
-                <>
-                  <Kpi
-                    label="Órdenes"
-                    value={orders}
-                    sub={`${k?.customers ?? 0} personas · ${k?.stores ?? 0} tiendas`}
-                  />
-                  <Kpi
-                    label="Por atender"
-                    value={k?.pending ?? 0}
-                    sub={`${pct(k?.pending ?? 0, orders)} del total`}
-                    accent="warning"
-                    active={onlyOpen}
-                    onClick={() => setOnlyOpen((v) => !v)}
-                  />
-                  <Kpi
-                    label="Sin cobrar"
-                    value={k?.unpaid ?? 0}
-                    sub={centsToUsd(k?.unpaidCents)}
-                    accent="error"
-                    active={status === 'awaiting_payment'}
-                    onClick={() =>
-                      setStatus((s) => (s === 'awaiting_payment' ? 'all' : 'awaiting_payment'))
-                    }
-                  />
-                  <Kpi
-                    label="Venta"
-                    value={centsToUsd(k?.grossCents)}
-                    sub={`Cobrado ${centsToUsd(k?.collectedCents)}`}
-                    accent="success"
-                  />
-                  <Kpi
-                    label="Ticket promedio"
-                    value={centsToUsd(k?.avgTicketCents)}
-                    sub="sin canceladas"
-                  />
-                  <Kpi
-                    label="Entregadas"
-                    value={k?.completed ?? 0}
-                    sub={`${pct(k?.completed ?? 0, orders)} · ${k?.cancelled ?? 0} canceladas`}
-                  />
-                </>
-              )}
+              <Kpi
+                label="Total"
+                value={k.total}
+                sub={`${k.orders} órdenes · ${k.lists} listas · ${k.stores} tiendas`}
+              />
+              <Kpi
+                label="Por atender"
+                value={k.pending}
+                sub={`${pct(k.pending, k.total)} · ${k.customers} personas`}
+                accent="warning"
+                active={onlyOpen}
+                onClick={() => setOnlyOpen((v) => !v)}
+              />
+              <Kpi
+                label="Sin cobrar"
+                value={k.unpaid}
+                sub={centsToUsd(k.unpaidCents)}
+                accent="error"
+                active={status === 'awaiting_payment'}
+                onClick={() =>
+                  setStatus((s) => (s === 'awaiting_payment' ? 'all' : 'awaiting_payment'))
+                }
+              />
+              <Kpi
+                label="Venta"
+                value={centsToUsd(k.grossCents)}
+                sub={`Cobrado ${centsToUsd(k.collectedCents)}`}
+                accent="success"
+              />
+              <Kpi
+                label="Ticket promedio"
+                value={centsToUsd(k.avgTicketCents)}
+                sub={`${k.completed} entregadas · ${k.cancelled} canceladas`}
+              />
+              <Kpi
+                label="Listas en caja"
+                value={k.listsValidated}
+                sub={`${pct(k.listsValidated, k.lists)} de ${k.lists} · ${k.points.toLocaleString(
+                  'en-US'
+                )} pts`}
+                accent="success"
+                active={status === 'list_validated'}
+                onClick={() =>
+                  setStatus((s) => (s === 'list_validated' ? 'all' : 'list_validated'))
+                }
+              />
             </Box>
             <StatusBar
-              byStatus={data?.byStatus ?? {}}
-              total={orders}
+              byStatus={k.byStatus}
+              total={k.total}
             />
             {/* Respuestas al bot de WhatsApp: cuentan órdenes por estado y filtran la lista */}
             <Divider />
@@ -791,6 +781,15 @@ export default function RcsMatrix(): React.JSX.Element {
             </Stack>
           </Card>
         )}
+
+        {listsQ.isError ? (
+          <Alert
+            severity="warning"
+            sx={{ borderRadius: 2 }}
+          >
+            No se pudieron cargar las listas; se muestran sólo las órdenes.
+          </Alert>
+        ) : null}
 
         {/* ── Árbol ── */}
         {isError ? (
@@ -830,9 +829,7 @@ export default function RcsMatrix(): React.JSX.Element {
             >
               {filtered
                 ? 'Sin resultados con estos filtros'
-                : isLists
-                  ? 'Sin listas en este período'
-                  : 'Sin órdenes en este período'}
+                : 'Sin órdenes ni listas en este período'}
             </Typography>
             <Typography
               variant="body2"
@@ -855,10 +852,11 @@ export default function RcsMatrix(): React.JSX.Element {
           </Card>
         ) : (
           <Stack spacing={1}>
-            {branches.map(([name, list], i) => (
+            {branches.map(([key, list], i) => (
               <StoreBranch
-                key={name}
-                storeName={name}
+                key={key}
+                // El nombre de la orden trae la dirección; el de la lista se arma igual.
+                storeName={(list.find((r) => r.kind !== 'list') || list[0]).storeName}
                 rows={list}
                 defaultExpanded={i === 0 || waFilter !== 'all'}
                 showDate={multiDay}
@@ -872,7 +870,7 @@ export default function RcsMatrix(): React.JSX.Element {
 
       <SendWaDialog
         state={sendDialog}
-        stores={data?.stores ?? []}
+        stores={stores}
         onClose={() => setSendDialog(null)}
       />
     </Container>

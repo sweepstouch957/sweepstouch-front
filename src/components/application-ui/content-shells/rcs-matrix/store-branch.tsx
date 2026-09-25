@@ -283,6 +283,21 @@ function ContactRow({
             sx={{ fontVariantNumeric: 'tabular-nums' }}
             noWrap
           >
+            <Box
+              component="span"
+              sx={{
+                mr: 0.75,
+                px: 0.5,
+                borderRadius: 0.75,
+                fontSize: 10,
+                letterSpacing: 0.5,
+                border: '1px solid',
+                borderColor: row.kind === 'list' ? 'info.light' : 'divider',
+                color: row.kind === 'list' ? 'info.main' : 'text.disabled',
+              }}
+            >
+              {row.kind === 'list' ? 'LISTA' : 'ORDEN'}
+            </Box>
             #{row.orderNumber}
           </Typography>
           <ScheduleRounded sx={{ fontSize: 13 }} />
@@ -419,7 +434,8 @@ export function StoreBranch({
   const { title, address } = splitStoreTitle(storeName);
   const open = rows.filter((r) => OPEN_STATUSES.includes(r.fulfillmentStatus)).length;
   const total = rows.reduce((n, r) => n + r.subtotalCents - r.refundTotalCents, 0);
-  const isList = rows[0]?.kind === 'list';
+  const nLists = rows.filter((r) => r.kind === 'list').length;
+  const nOrders = rows.length - nLists;
 
   return (
     <Accordion
@@ -486,14 +502,16 @@ export function StoreBranch({
             <Chip
               size="small"
               color="warning"
-              label={`${open} ${isList ? 'vigentes' : 'por atender'}`}
+              label={`${open} por atender`}
               sx={{ fontWeight: 700 }}
             />
           ) : null}
           <Chip
             size="small"
             variant="outlined"
-            label={`${rows.length} ${isList ? 'listas' : 'órdenes'}`}
+            label={[nOrders ? `${nOrders} órdenes` : '', nLists ? `${nLists} listas` : '']
+              .filter(Boolean)
+              .join(' · ')}
           />
           <Typography
             variant="subtitle1"
@@ -505,7 +523,7 @@ export function StoreBranch({
               textAlign: 'right',
             }}
           >
-            {isList ? `${rows.reduce((n, r) => n + r.itemCount, 0)} art.` : centsToUsd(total)}
+            {nOrders ? centsToUsd(total) : `${rows.reduce((n, r) => n + r.itemCount, 0)} art.`}
           </Typography>
         </Stack>
       </AccordionSummary>
