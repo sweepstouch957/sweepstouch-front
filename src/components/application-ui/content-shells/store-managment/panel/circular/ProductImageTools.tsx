@@ -32,6 +32,7 @@ import {
   FormControlLabel,
   LinearProgress,
   Stack,
+  Switch,
   TextField,
   Typography,
 } from '@mui/material';
@@ -266,6 +267,13 @@ export function ProductEditorDialog({
   const [price, setPrice] = useState('');
   const [regular, setRegular] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  // Letra chica del flyer. La IA la lee, pero acá se corrige: es lo que evita el reclamo
+  // en la caja ("15 LB BOX ONLY", "AT THE COUNTER", "LIMIT 1 PER FAMILY").
+  const [condition, setCondition] = useState('');
+  const [packQty, setPackQty] = useState('');
+  const [packUnit, setPackUnit] = useState('');
+  const [counterOnly, setCounterOnly] = useState(false);
+  const [maxPerCustomer, setMaxPerCustomer] = useState('');
   const [busy, setBusy] = useState<string | null>(null); // texto de lo que se está haciendo
   const [cropping, setCropping] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -283,6 +291,11 @@ export function ProductEditorDialog({
     setPrice(product?.price ?? '');
     setRegular(product?.originalPrice ?? '');
     setImageUrl(product?.imageUrl ?? '');
+    setCondition(product?.offerCondition ?? '');
+    setPackQty(product?.packQty ? String(product.packQty) : '');
+    setPackUnit(product?.packUnit ?? '');
+    setCounterOnly(!!product?.counterOnly);
+    setMaxPerCustomer(product?.maxPerCustomer ? String(product.maxPerCustomer) : '');
     setCropping(false);
     setBusy(null);
     setAiPrompt('');
@@ -344,7 +357,17 @@ export function ProductEditorDialog({
 
   const save = () =>
     run('Guardando…', async () => {
-      const body = { name: name.trim(), price: price.trim(), originalPrice: regular.trim(), imageUrl };
+      const body = {
+        name: name.trim(),
+        price: price.trim(),
+        originalPrice: regular.trim(),
+        imageUrl,
+        offerCondition: condition.trim(),
+        packQty: Number(packQty) > 1 ? Math.floor(Number(packQty)) : 0,
+        packUnit: Number(packQty) > 1 ? packUnit.trim() : '',
+        counterOnly,
+        maxPerCustomer: Number(maxPerCustomer) > 0 ? Math.floor(Number(maxPerCustomer)) : null,
+      };
       if (product) {
         await circularService.updateStoreProduct(product._id, { ...body, hasOffer: !!body.originalPrice || product.hasOffer } as any);
       } else {
@@ -443,6 +466,50 @@ export function ProductEditorDialog({
                 value={regular}
                 onChange={(e) => setRegular(e.target.value)}
                 helperText="Sin precio regular el producto no aparece como oferta en las listas."
+              />
+              {/* Letra chica: el precio grande sin la caja de 15 lb es el que terminó en
+                  reclamos en la caja. Editable porque la IA a veces no la lee. */}
+              <Stack direction="row" gap={1}>
+                <TextField
+                  label="Caja / paquete fijo"
+                  size="small"
+                  type="number"
+                  placeholder="15"
+                  value={packQty}
+                  onChange={(e) => setPackQty(e.target.value)}
+                  sx={{ width: 150 }}
+                  helperText="Vacío = suelto"
+                />
+                <TextField
+                  label="Unidad"
+                  size="small"
+                  placeholder="lb"
+                  value={packUnit}
+                  onChange={(e) => setPackUnit(e.target.value)}
+                  sx={{ width: 110 }}
+                />
+                <TextField
+                  label="Máx. por familia"
+                  size="small"
+                  type="number"
+                  placeholder="1"
+                  value={maxPerCustomer}
+                  onChange={(e) => setMaxPerCustomer(e.target.value)}
+                  sx={{ width: 150 }}
+                />
+              </Stack>
+              <TextField
+                label="Condición impresa en el flyer"
+                size="small"
+                fullWidth
+                placeholder="15 lb box only · At the counter"
+                value={condition}
+                onChange={(e) => setCondition(e.target.value)}
+                helperText="Se muestra tal cual en la card del cliente."
+              />
+              <FormControlLabel
+                control={<Switch checked={counterOnly} onChange={(e) => setCounterOnly(e.target.checked)} />}
+                label="Solo en el mostrador (no se puede pagar online)"
               />
               <TextField
                 label="Indicaciones para la IA"

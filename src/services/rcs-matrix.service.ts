@@ -9,58 +9,46 @@ export type FulfillmentStatus =
   | 'ready'
   | 'completed'
   | 'cancelled'
-  // Pestaña Listas: estado efectivo de la lista (vigente / validada en caja / vencida).
+  // Listas: estado efectivo (vigente / validada en caja / vencida).
   | 'list_pending'
   | 'list_validated'
   | 'list_expired';
 
-/** Qué se está mirando: órdenes con checkout o listas que se llevan a la caja. */
+/** De dónde sale la fila: órdenes con checkout o listas que se llevan a la caja. */
 export type MatrixKind = 'orders' | 'lists';
 
-/** Links ya armados por el backend: el panel no vuelve a formatear el teléfono. */
-export interface MatrixContact {
-  whatsapp: string;
-  call: string;
-  sms: string;
-}
-
+/**
+ * Fila de la matriz. Órdenes (order-service/lib/matrix.js) y listas
+ * (tracking-service/utils/listMatrix.js) comparten esta forma para colgar del
+ * mismo árbol. Trae sólo lo que se pinta.
+ */
 export interface MatrixRow {
   /** Sólo viene en las listas. */
   kind?: 'list';
-  expiresAt?: string | null;
-  pointsAwarded?: number;
-  savingsCents?: number;
   _id: string;
+  /** #ORD-… o SL-… */
   orderNumber: string;
-  channel: string;
   createdAt: string;
-  paidAt: string | null;
   pickupAt: string | null;
-  pickupConfirmed: boolean;
-  qrValidatedAt: string | null;
-  reviewed: boolean;
   storeId: string;
   storeSlug: string;
   storeName: string;
   storePhone: string;
-  circularId: string;
-  groupCode: string;
   customerId: string;
   customerName: string;
-  /** E.164 (+1XXXXXXXXXX); vacío si la orden no trae teléfono. */
+  /** E.164 (+1XXXXXXXXXX); vacío si no hay teléfono. */
   customerPhone: string;
-  contact: MatrixContact | null;
   fulfillmentStatus: FulfillmentStatus;
   paymentStatus: string;
-  paymentMethod: string;
   deliveryMethod: 'pickup' | 'delivery';
   address: string;
   itemCount: number;
   subtotalCents: number;
   refundTotalCents: number;
-  payNowCents: number;
-  ebtCents: number;
-  shippingCostCents: number;
+  /* Listas */
+  expiresAt?: string | null;
+  pointsAwarded?: number;
+  savingsCents?: number;
 }
 
 export interface MatrixStore {
@@ -73,32 +61,11 @@ export interface MatrixStore {
 
 export interface MatrixResponse {
   ok: boolean;
-  /** Día consultado, YYYY-MM-DD en hora de Nueva York. */
-  date: string;
-  /** Último día del rango (YYYY-MM-DD, NY). */
-  to?: string;
-  range: { from: string; to: string };
-  kpis: {
-    orders: number;
-    customers: number;
-    stores: number;
-    grossCents: number;
-    pending: number;
-    /* Listas */
-    validated?: number;
-    expired?: number;
-    points?: number;
-    savingsCents?: number;
-    itemsTotal?: number;
-    /* Órdenes */
-    unpaid?: number;
-    unpaidCents?: number;
-    collectedCents?: number;
-    completed?: number;
-    cancelled?: number;
-    avgTicketCents?: number;
-  };
-  byStatus: Record<string, number>;
+  /** Rango consultado, YYYY-MM-DD en hora de Nueva York (inclusivo). */
+  from: string;
+  to: string;
+  /** true si se llegó al tope de filas del backend (5000). */
+  capped?: boolean;
   stores: MatrixStore[];
   items: MatrixRow[];
 }
@@ -108,18 +75,16 @@ export interface MatrixParams {
   /** YYYY-MM-DD (NY), inclusivos. Sin ellos, el backend responde hoy. */
   from?: string;
   to?: string;
+  /** Slug de la tienda o 'all'. */
   store?: string;
-  status?: string;
 }
 
 /**
- * Matriz RCS — órdenes de TODAS las tiendas de un día, con los datos de
- * contacto de cada cliente. Es la misma colección que ve el vendor site, pero
- * sin filtrar por tienda.
+ * Matriz RCS — órdenes y listas de TODAS las tiendas en un rango. Período y
+ * tienda se filtran en el backend; estado, búsqueda y KPIs en el panel.
  */
 export const rcsMatrixService = {
   async list({ kind = 'orders', ...params }: MatrixParams = {}): Promise<MatrixResponse> {
-    // Las listas viven en tracking-service, con el mismo formato de fila.
     const url = kind === 'lists' ? '/tracking/list-admin/matrix' : '/orders/matrix';
     const { data } = await api.get<MatrixResponse>(url, { params });
     return data;
@@ -131,8 +96,17 @@ export function todayInNY(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date());
 }
 
+const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 export function centsToUsd(cents?: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
-    (cents ?? 0) / 100
-  );
+  return usd.format((cents ?? 0) / 100);
+}
+
+/** Links de contacto a partir del E.164. Se arman acá, no viajan en cada fila. */
+export function contactLinks(e164: string) {
+  if (!e164) return null;
+  return {
+    whatsapp: `https://wa.me/${e164.replace('+', '')}`,
+    call: `tel:${e164}`,
+    sms: `sms:${e164}`,
+  };
 }

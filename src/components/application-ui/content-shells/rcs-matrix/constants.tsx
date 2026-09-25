@@ -1,4 +1,4 @@
-import type { MatrixRow } from '@/services/rcs-matrix.service';
+export { OPEN_STATUSES } from './matrix-model';
 
 /** Meta de cada estado de la orden: etiqueta en español y color del chip. */
 export const STATUS_META: Record<
@@ -62,9 +62,6 @@ export const LIST_STATUS_OPTIONS = statusOptions([
   'list_expired',
 ]);
 
-/** Lo que todavía necesita una llamada. Lo demás ya está cerrado. */
-export const OPEN_STATUSES = ['awaiting_payment', 'paid', 'preparing', 'ready', 'list_pending'];
-
 export function statusMeta(status: string) {
   return STATUS_META[status] || { label: status, color: 'default' as const };
 }
@@ -84,13 +81,6 @@ export function timeShort(iso?: string | null): string {
     minute: '2-digit',
     timeZone: 'America/New_York',
   });
-}
-
-/** Texto que se busca al tipear en el filtro: nombre, teléfono, orden, tienda. */
-export function searchBlob(r: MatrixRow): string {
-  return [r.customerName, r.customerPhone, r.orderNumber, r.storeName, r.address]
-    .join(' ')
-    .toLowerCase();
 }
 
 /** Suma días a un YYYY-MM-DD sin pasar por la zona horaria del navegador. */

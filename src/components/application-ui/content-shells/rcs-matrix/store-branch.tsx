@@ -1,6 +1,6 @@
 'use client';
 
-import { centsToUsd, type MatrixRow } from '@/services/rcs-matrix.service';
+import { centsToUsd, contactLinks, type MatrixRow } from '@/services/rcs-matrix.service';
 import { phoneKey, type ShopperPhoneStatus } from '@/services/shopper-whatsapp.service';
 import ContentCopyRounded from '@mui/icons-material/ContentCopyRounded';
 import ExpandMoreRounded from '@mui/icons-material/ExpandMoreRounded';
@@ -22,11 +22,10 @@ import {
   Chip,
   IconButton,
   Stack,
-  Tooltip,
   Typography,
   useTheme,
 } from '@mui/material';
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   dateTimeShort,
@@ -37,7 +36,8 @@ import {
   statusMeta,
   timeShort,
 } from './constants';
-import { ConversationDialog, WaChip } from './whatsapp-bot';
+import { ConversationDialog } from './conversation-dialog';
+import { WaChip } from './whatsapp-bot';
 
 interface Props {
   storeName: string;
@@ -57,8 +57,11 @@ const ROW_GRID = {
 };
 
 /**
- * Botonera de contacto — es la acción de la página, así que los botones son de
- * 40px reales con etiqueta accesible. Sin teléfono no hay por dónde llamar.
+ * Botonera de contacto — es la acción de la página: botones de 34px con
+ * etiqueta accesible. Sin teléfono no hay por dónde llamar.
+ *
+ * `title` nativo y no <Tooltip>: son 6 por fila y cientos de filas; cada
+ * Tooltip de MUI monta su propio Popper y listeners.
  */
 function ContactButtons({
   row,
@@ -70,7 +73,8 @@ function ContactButtons({
   onConvo?: () => void;
 }): React.JSX.Element {
   const theme = useTheme();
-  if (!row.contact) {
+  const contact = contactLinks(row.customerPhone);
+  if (!contact) {
     return (
       <Typography
         variant="caption"
@@ -92,7 +96,7 @@ function ContactButtons({
       color: '#25D366',
       props: {
         component: 'a' as const,
-        href: row.contact.whatsapp,
+        href: contact.whatsapp,
         target: '_blank',
         rel: 'noopener',
       },
@@ -127,7 +131,7 @@ function ContactButtons({
       label: `Llamar a ${who}`,
       icon: <PhoneRounded fontSize="small" />,
       color: theme.palette.primary.main,
-      props: { component: 'a' as const, href: row.contact.call },
+      props: { component: 'a' as const, href: contact.call },
     },
     {
       key: 'sms',
@@ -135,7 +139,7 @@ function ContactButtons({
       label: `Mandar SMS a ${who}`,
       icon: <SmsRounded fontSize="small" />,
       color: theme.palette.info.main,
-      props: { component: 'a' as const, href: row.contact.sms },
+      props: { component: 'a' as const, href: contact.sms },
     },
     {
       key: 'copy',
@@ -158,28 +162,25 @@ function ContactButtons({
       spacing={0.75}
     >
       {actions.map((a) => (
-        <Tooltip
+        <IconButton
           key={a.key}
+          size="small"
           title={a.title}
+          aria-label={a.label}
+          {...(a.props as any)}
+          sx={{
+            width: 34,
+            height: 34,
+            color: a.color,
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 2,
+            transition: 'background-color .15s ease, border-color .15s ease',
+            '&:hover': { bgcolor: alpha(a.color, 0.1), borderColor: alpha(a.color, 0.5) },
+          }}
         >
-          <IconButton
-            size="small"
-            aria-label={a.label}
-            {...(a.props as any)}
-            sx={{
-              width: 34,
-              height: 34,
-              color: a.color,
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 2,
-              transition: 'background-color .15s ease, border-color .15s ease',
-              '&:hover': { bgcolor: alpha(a.color, 0.1), borderColor: alpha(a.color, 0.5) },
-            }}
-          >
-            {a.icon}
-          </IconButton>
-        </Tooltip>
+          {a.icon}
+        </IconButton>
       ))}
     </Stack>
   );
@@ -206,7 +207,7 @@ function ContactRow({
     bad: 'error.main',
     muted: 'text.secondary',
   }[pay.tone];
-  const [convo, setConvo] = React.useState(false);
+  const [convo, setConvo] = useState(false);
 
   return (
     <Box
@@ -252,16 +253,15 @@ function ContactRow({
             {prettyPhone(row.customerPhone)}
           </Typography>
           {row.address ? (
-            <Tooltip title={row.address}>
-              <Typography
-                variant="caption"
-                color="text.disabled"
-                display="block"
-                noWrap
-              >
-                {row.address}
-              </Typography>
-            </Tooltip>
+            <Typography
+              variant="caption"
+              color="text.disabled"
+              display="block"
+              noWrap
+              title={row.address}
+            >
+              {row.address}
+            </Typography>
           ) : null}
         </Box>
       </Stack>
@@ -421,8 +421,12 @@ function ContactRow({
 
 const MemoRow = React.memo(ContactRow);
 
-/** Rama del árbol: una tienda con toda su gente del día. */
-export function StoreBranch({
+/**
+ * Rama del árbol: una tienda con toda su gente del período.
+ * Las filas se montan sólo con la rama abierta (unmountOnExit): con todas las
+ * tiendas cerradas la página pinta encabezados, no miles de filas.
+ */
+function StoreBranchImpl({
   storeName,
   rows,
   defaultExpanded,
@@ -432,14 +436,24 @@ export function StoreBranch({
 }: Props): React.JSX.Element {
   const theme = useTheme();
   const { title, address } = splitStoreTitle(storeName);
-  const open = rows.filter((r) => OPEN_STATUSES.includes(r.fulfillmentStatus)).length;
-  const total = rows.reduce((n, r) => n + r.subtotalCents - r.refundTotalCents, 0);
-  const nLists = rows.filter((r) => r.kind === 'list').length;
-  const nOrders = rows.length - nLists;
+  const { open, total, nLists, nOrders, items } = useMemo(() => {
+    const c = { open: 0, total: 0, nLists: 0, nOrders: 0, items: 0 };
+    for (const r of rows) {
+      if (OPEN_STATUSES.includes(r.fulfillmentStatus)) c.open++;
+      c.items += r.itemCount;
+      if (r.kind === 'list') c.nLists++;
+      else {
+        c.nOrders++;
+        c.total += r.subtotalCents - r.refundTotalCents;
+      }
+    }
+    return c;
+  }, [rows]);
 
   return (
     <Accordion
       defaultExpanded={defaultExpanded}
+      TransitionProps={{ unmountOnExit: true }}
       disableGutters
       elevation={0}
       sx={{
@@ -523,7 +537,7 @@ export function StoreBranch({
               textAlign: 'right',
             }}
           >
-            {nOrders ? centsToUsd(total) : `${rows.reduce((n, r) => n + r.itemCount, 0)} art.`}
+            {nOrders ? centsToUsd(total) : `${items} art.`}
           </Typography>
         </Stack>
       </AccordionSummary>
@@ -542,3 +556,5 @@ export function StoreBranch({
     </Accordion>
   );
 }
+
+export const StoreBranch = React.memo(StoreBranchImpl);

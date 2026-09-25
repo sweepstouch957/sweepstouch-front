@@ -1234,6 +1234,21 @@ function CatalogSection({ storeSlug }: { storeSlug: string }) {
                         if (v && v !== p.name) patch.mutate({ id: p._id, body: { name: v } });
                       }}
                     />
+                    {/* Letra chica del flyer: lo que el cliente reclama en la caja si no sale
+                        en su lista ("15 lb box only", "at the counter", "limit 1"). */}
+                    {(p.packQty || p.counterOnly || p.maxPerCustomer) && (
+                      <Stack direction="row" gap={0.5} flexWrap="wrap" sx={{ mt: 0.5 }}>
+                        {!!p.packQty && p.packQty > 1 && (
+                          <Chip size="small" color="warning" variant="outlined" label={`Caja ${p.packQty} ${p.packUnit || ''}`.trim()} sx={{ height: 18, fontSize: 11 }} />
+                        )}
+                        {p.counterOnly && (
+                          <Chip size="small" color="warning" variant="outlined" label="Mostrador" sx={{ height: 18, fontSize: 11 }} />
+                        )}
+                        {!!p.maxPerCustomer && (
+                          <Chip size="small" variant="outlined" label={`Máx ${p.maxPerCustomer}`} sx={{ height: 18, fontSize: 11 }} />
+                        )}
+                      </Stack>
+                    )}
                     {/* Producto de un flyer que todavía no arrancó: el catálogo ya lo tiene,
                         pero recién rige desde esa fecha. Sin este aviso parecía vigente hoy. */}
                     {p.effectiveFrom && (

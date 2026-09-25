@@ -37,6 +37,13 @@ export interface StoreProduct {
   originalPrice?: string;
   savings?: string;
   offerCondition?: string;
+  /** Compra forzada: "15 LB BOX ONLY" con precio por libra. 0 = se vende suelto. */
+  packQty?: number;
+  packUnit?: string;
+  /** Se despacha en el mostrador: no se puede pedir ni pagar online. */
+  counterOnly?: boolean;
+  /** Oferta compartida con otros productos ("A OR B 10/$10"). */
+  offerGroup?: string;
   stock?: number | null;
   maxPerCustomer?: number | null;
   onPromotion?: boolean;
