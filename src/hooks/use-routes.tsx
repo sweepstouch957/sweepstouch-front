@@ -1,6 +1,7 @@
 import type { UserRole } from '@/contexts/auth/user';
 import {
   AccountBalanceRounded,
+  AccountTreeRounded,
   AdsClickOutlined,
   BookOutlined,
   BrushRounded,
@@ -154,6 +155,15 @@ const campaignsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Opt-in MMS'), route: routes.admin.management.campaings.optin, roles: ['admin', 'general_manager', 'campaign_manager'] },
     { title: t('Generador MMS'), route: routes.admin.management.campaings.mms, roles: ADMIN_ACCESS_ROLES },
     { title: t('Monitoreo RCS'), route: routes.admin.dashboards['campaign-analytics'], roles: ADMIN_ACCESS_ROLES },
+    // Matriz RCS: el árbol de llamadas. Quién compró hoy, en qué tienda, en qué
+    // estado quedó su orden y por dónde se le contacta. Mismos roles que el
+    // resto de campañas más soporte, que es quien termina llamando.
+    {
+      title: t('Matriz RCS'),
+      route: routes.admin.management.campaings['rcs-matrix'],
+      icon: <AccountTreeRounded />,
+      roles: [...ADMIN_ACCESS_ROLES, 'campaign_manager', 'support', 'operations'],
+    },
     // Ads era un módulo entero para una sola página. Los `roles` replican
     // exactamente quién lo veía cuando estaba arriba: admin, dirección y marketing.
     { title: t('Ads'), route: routes.admin.management.promos.listing, icon: <AdsClickOutlined />, roles: [...ADMIN_ACCESS_ROLES, 'marketing'] },

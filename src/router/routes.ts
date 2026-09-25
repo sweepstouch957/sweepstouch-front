@@ -178,6 +178,9 @@ export const routes = {
         mms: '/admin/management/mms',
         rcs: '/admin/management/rcs',
         optin: '/admin/management/campaings/optin',
+        // Matriz RCS: el árbol de llamadas del día — órdenes de todas las
+        // tiendas con los datos de contacto de cada cliente.
+        'rcs-matrix': '/admin/management/rcs-matrix',
       },
       promos: {
         listing: '/admin/management/ads',
