@@ -2,11 +2,14 @@
 
 import RangePickerField from '@/components/base/range-picker-field';
 import { useRcsMatrix } from '@/hooks/fetching/rcs-matrix/useRcsMatrix';
+import { useShopperStatus } from '@/hooks/fetching/rcs-matrix/useShopperStatus';
+import { phoneKey } from '@/services/shopper-whatsapp.service';
 import { centsToUsd, todayInNY, type MatrixRow } from '@/services/rcs-matrix.service';
 import DownloadRounded from '@mui/icons-material/DownloadRounded';
 import PhoneInTalkRounded from '@mui/icons-material/PhoneInTalkRounded';
 import RefreshRounded from '@mui/icons-material/RefreshRounded';
 import SearchRounded from '@mui/icons-material/SearchRounded';
+import WhatsApp from '@mui/icons-material/WhatsApp';
 import {
   Alert,
   Box,
@@ -29,7 +32,7 @@ import {
 } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   OPEN_STATUSES,
   STATUS_META,
@@ -42,6 +45,7 @@ import {
   timeShort,
 } from './constants';
 import { StoreBranch } from './store-branch';
+import { SendWaDialog, WA_FILTERS, rowToTarget, waState, type SendDialogState } from './whatsapp-bot';
 
 type Range = { from: string; to: string };
 
@@ -227,17 +231,58 @@ export default function RcsMatrix(): React.JSX.Element {
   const [status, setStatus] = useState('all');
   const [onlyOpen, setOnlyOpen] = useState(false);
   const [q, setQ] = useState('');
+  const [waFilter, setWaFilter] = useState('all');
+  const [sendDialog, setSendDialog] = useState<SendDialogState | null>(null);
 
   // Tienda, estado y período van al backend; el texto se filtra acá, que es
   // instantáneo y no dispara una consulta por tecla.
   const { data, isPending, isError, isFetching, refetch } = useRcsMatrix({ ...range, store, status });
 
+  // Qué pasó por WhatsApp con cada persona (bot de 3 opciones), por los últimos 10 dígitos.
+  const phones = useMemo(
+    () => [...new Set((data?.items ?? []).map((r) => r.customerPhone).filter(Boolean))],
+    [data]
+  );
+  const { data: wa } = useShopperStatus(phones);
+
+  const waCounts = useMemo(() => {
+    const c: Record<string, number> = {};
+    for (const r of data?.items ?? []) {
+      if (!r.customerPhone) continue;
+      const st = waState(wa?.[phoneKey(r.customerPhone)]);
+      c[st] = (c[st] || 0) + 1;
+    }
+    return c;
+  }, [data, wa]);
+
   const rows = useMemo(() => {
     const list = data?.items ?? [];
     const needle = q.trim().toLowerCase();
-    const bySearch = needle ? list.filter((r) => searchBlob(r).includes(needle)) : list;
-    return onlyOpen ? bySearch.filter((r) => OPEN_STATUSES.includes(r.fulfillmentStatus)) : bySearch;
-  }, [data, q, onlyOpen]);
+    let out = needle ? list.filter((r) => searchBlob(r).includes(needle)) : list;
+    if (onlyOpen) out = out.filter((r) => OPEN_STATUSES.includes(r.fulfillmentStatus));
+    if (waFilter !== 'all') {
+      out = out.filter((r) => r.customerPhone && waState(wa?.[phoneKey(r.customerPhone)]) === waFilter);
+    }
+    return out;
+  }, [data, q, onlyOpen, waFilter, wa]);
+
+  const openSingle = useCallback((r: MatrixRow) => setSendDialog({ mode: 'single', target: rowToTarget(r) }), []);
+
+  /** Lanza el saludo a las personas que se están viendo (una vez por teléfono). */
+  const openBulk = () => {
+    const seen = new Set<string>();
+    const list = rows.filter((r) => {
+      const key = phoneKey(r.customerPhone);
+      if (key.length < 10 || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    setSendDialog({
+      mode: 'bulk',
+      targets: list.map(rowToTarget),
+      alreadySent: list.filter((r) => wa?.[phoneKey(r.customerPhone)]?.sentAt).length,
+    });
+  };
 
   // Agrupadas por tienda: es el árbol. Más órdenes arriba — ahí está el trabajo.
   const branches = useMemo(() => {
@@ -259,9 +304,10 @@ export default function RcsMatrix(): React.JSX.Element {
   const k = data?.kpis;
   const orders = k?.orders ?? 0;
 
-  const filtered = q.trim() !== '' || store !== 'all' || status !== 'all' || onlyOpen;
+  const filtered = q.trim() !== '' || store !== 'all' || status !== 'all' || onlyOpen || waFilter !== 'all';
   const clearFilters = () => {
     setQ('');
+    setWaFilter('all');
     setStore('all');
     setStatus('all');
     setOnlyOpen(false);
@@ -341,6 +387,30 @@ export default function RcsMatrix(): React.JSX.Element {
                 ),
               }}
             />
+            <Tooltip title="Mandar el saludo del bot (3 opciones) a las personas que se están viendo">
+              <span>
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="success"
+                  startIcon={<WhatsApp />}
+                  onClick={openBulk}
+                  disabled={!rows.some((r) => r.customerPhone)}
+                  sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2, boxShadow: 'none' }}
+                >
+                  Lanzar WhatsApp
+                </Button>
+              </span>
+            </Tooltip>
+            <Button
+              size="small"
+              variant="outlined"
+              color="success"
+              onClick={() => setSendDialog({ mode: 'single' })}
+              sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2 }}
+            >
+              A un número
+            </Button>
             <Tooltip title="Actualizar">
               <span>
                 <IconButton size="small" onClick={() => refetch()} disabled={isFetching} aria-label="Actualizar la matriz">
@@ -384,6 +454,14 @@ export default function RcsMatrix(): React.JSX.Element {
                     size="small"
                     label={(data?.stores ?? []).find((s) => (s.storeId || s.slug) === store)?.name || 'Tienda'}
                     onDelete={() => setStore('all')}
+                  />
+                ) : null}
+                {waFilter !== 'all' ? (
+                  <Chip
+                    size="small"
+                    color="success"
+                    label={`WA: ${WA_FILTERS.find((o) => o.value === waFilter)?.label}`}
+                    onDelete={() => setWaFilter('all')}
                   />
                 ) : null}
                 {q.trim() ? <Chip size="small" label={`“${q.trim()}”`} onDelete={() => setQ('')} /> : null}
@@ -438,6 +516,26 @@ export default function RcsMatrix(): React.JSX.Element {
               />
             </Box>
             <StatusBar byStatus={data?.byStatus ?? {}} total={orders} />
+            {/* Respuestas al bot de WhatsApp: cuentan órdenes por estado y filtran la lista */}
+            <Divider />
+            <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap sx={{ px: 2, py: 1.25 }}>
+              <WhatsApp sx={{ fontSize: 18, color: '#25D366', mr: 0.25 }} />
+              {WA_FILTERS.map((o) => {
+                const n = o.value === 'all' ? null : waCounts[o.value] || 0;
+                const active = waFilter === o.value;
+                return (
+                  <Chip
+                    key={o.value}
+                    size="small"
+                    label={n == null ? o.label : `${o.label} · ${n}`}
+                    onClick={() => setWaFilter(active && o.value !== 'all' ? 'all' : o.value)}
+                    color={active ? 'success' : 'default'}
+                    variant={active ? 'filled' : 'outlined'}
+                    sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}
+                  />
+                );
+              })}
+            </Stack>
           </Card>
         )}
 
@@ -479,11 +577,21 @@ export default function RcsMatrix(): React.JSX.Element {
         ) : (
           <Stack spacing={1}>
             {branches.map(([name, list], i) => (
-              <StoreBranch key={name} storeName={name} rows={list} defaultExpanded={i === 0} showDate={multiDay} />
+              <StoreBranch
+                key={name}
+                storeName={name}
+                rows={list}
+                defaultExpanded={i === 0 || waFilter !== 'all'}
+                showDate={multiDay}
+                wa={wa}
+                onSendWa={openSingle}
+              />
             ))}
           </Stack>
         )}
       </Stack>
+
+      <SendWaDialog state={sendDialog} stores={data?.stores ?? []} onClose={() => setSendDialog(null)} />
     </Container>
   );
 }

@@ -25,6 +25,9 @@ import {
 } from '@mui/material';
 import React from 'react';
 import toast from 'react-hot-toast';
+import { phoneKey, type ShopperPhoneStatus } from '@/services/shopper-whatsapp.service';
+import SendRounded from '@mui/icons-material/SendRounded';
+import { WaChip } from './whatsapp-bot';
 import { OPEN_STATUSES, dateTimeShort, paymentMeta, prettyPhone, splitStoreTitle, statusMeta, timeShort } from './constants';
 
 interface Props {
@@ -33,6 +36,9 @@ interface Props {
   defaultExpanded?: boolean;
   /** Rango de varios días: la hora sola no alcanza, se muestra también la fecha. */
   showDate?: boolean;
+  /** Estado de WhatsApp por teléfono (últimos 10 dígitos). */
+  wa?: Record<string, ShopperPhoneStatus>;
+  onSendWa?: (row: MatrixRow) => void;
 }
 
 /** Columnas de una fila en escritorio: persona · orden · plata · contacto. */
@@ -45,7 +51,7 @@ const ROW_GRID = {
  * Botonera de contacto — es la acción de la página, así que los botones son de
  * 40px reales con etiqueta accesible. Sin teléfono no hay por dónde llamar.
  */
-function ContactButtons({ row }: { row: MatrixRow }): React.JSX.Element {
+function ContactButtons({ row, onSendWa }: { row: MatrixRow; onSendWa?: (row: MatrixRow) => void }): React.JSX.Element {
   const theme = useTheme();
   if (!row.contact) {
     return (
@@ -65,6 +71,18 @@ function ContactButtons({ row }: { row: MatrixRow }): React.JSX.Element {
       color: '#25D366',
       props: { component: 'a' as const, href: row.contact.whatsapp, target: '_blank', rel: 'noopener' },
     },
+    ...(onSendWa
+      ? [
+          {
+            key: 'bot',
+            title: 'Mandar saludo del bot (3 opciones)',
+            label: `Mandar el saludo del bot a ${who}`,
+            icon: <SendRounded fontSize="small" />,
+            color: '#128C7E',
+            props: { onClick: () => onSendWa(row) },
+          },
+        ]
+      : []),
     {
       key: 'call',
       title: 'Llamar',
@@ -124,7 +142,17 @@ function ContactButtons({ row }: { row: MatrixRow }): React.JSX.Element {
 }
 
 /** Una persona a la que hay que contactar, con el estado de su orden. */
-function ContactRow({ row, showDate }: { row: MatrixRow; showDate?: boolean }): React.JSX.Element {
+function ContactRow({
+  row,
+  showDate,
+  wa,
+  onSendWa,
+}: {
+  row: MatrixRow;
+  showDate?: boolean;
+  wa?: ShopperPhoneStatus;
+  onSendWa?: (row: MatrixRow) => void;
+}): React.JSX.Element {
   const meta = statusMeta(row.fulfillmentStatus);
   const pay = paymentMeta(row.paymentStatus);
   const initial = (row.customerName || '#').trim().charAt(0).toUpperCase();
@@ -187,6 +215,7 @@ function ContactRow({ row, showDate }: { row: MatrixRow; showDate?: boolean }): 
           {row.pickupAt ? (
             <Chip size="small" label={`Pickup ${timeShort(row.pickupAt)}`} variant="outlined" />
           ) : null}
+          <WaChip status={wa} />
         </Stack>
       </Stack>
 
@@ -203,7 +232,7 @@ function ContactRow({ row, showDate }: { row: MatrixRow; showDate?: boolean }): 
         </Typography>
       </Stack>
 
-      <ContactButtons row={row} />
+      <ContactButtons row={row} onSendWa={onSendWa} />
     </Box>
   );
 }
@@ -211,7 +240,7 @@ function ContactRow({ row, showDate }: { row: MatrixRow; showDate?: boolean }): 
 const MemoRow = React.memo(ContactRow);
 
 /** Rama del árbol: una tienda con toda su gente del día. */
-export function StoreBranch({ storeName, rows, defaultExpanded, showDate }: Props): React.JSX.Element {
+export function StoreBranch({ storeName, rows, defaultExpanded, showDate, wa, onSendWa }: Props): React.JSX.Element {
   const theme = useTheme();
   const { title, address } = splitStoreTitle(storeName);
   const open = rows.filter((r) => OPEN_STATUSES.includes(r.fulfillmentStatus)).length;
@@ -275,7 +304,13 @@ export function StoreBranch({ storeName, rows, defaultExpanded, showDate }: Prop
 
       <AccordionDetails sx={{ p: 0 }}>
         {rows.map((r) => (
-          <MemoRow key={r._id} row={r} showDate={showDate} />
+          <MemoRow
+            key={r._id}
+            row={r}
+            showDate={showDate}
+            wa={wa?.[phoneKey(r.customerPhone)]}
+            onSendWa={onSendWa}
+          />
         ))}
       </AccordionDetails>
     </Accordion>

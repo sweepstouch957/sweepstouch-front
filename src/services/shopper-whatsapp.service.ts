@@ -73,6 +73,40 @@ export interface BroadcastJob {
   stores: { slug: string; name: string; count: number }[];
 }
 
+/** Estado de WhatsApp de un teléfono: cuándo se le mandó el saludo y qué contestó. */
+export interface ShopperPhoneStatus {
+  sentAt: string | null;
+  sends: number;
+  option: 1 | 2 | 3 | null;
+  text: string;
+  sentiment: string;
+  summary: string;
+  repliedAt: string | null;
+}
+
+/** Destinatario del saludo. La tienda se resuelve por slug; el resto es respaldo. */
+export interface ShopperSendTarget {
+  phone: string;
+  name?: string;
+  customerId?: string;
+  storeSlug?: string;
+  storeName?: string;
+  storePhone?: string;
+  storeId?: string;
+}
+
+export interface ShopperSendResult {
+  ok: boolean;
+  total: number;
+  skipped: number;
+  jobId?: string;
+  status?: string;
+  message?: string;
+}
+
+/** Últimos 10 dígitos: la clave con la que el bot guarda cada teléfono. */
+export const phoneKey = (p: string) => String(p || '').replace(/\D/g, '').slice(-10);
+
 /* ══════════ API ══════════ */
 
 const BASE = '/whatsapp-bot/shopper';
@@ -99,6 +133,19 @@ export const shopperWhatsappService = {
   /** `dryRun: true` sólo cuenta a cuántos le tocaría, sin mandar nada. */
   broadcast: async (input: BroadcastInput): Promise<BroadcastResult> => {
     const { data } = await api.post(`${BASE}/broadcast`, input);
+    return data;
+  },
+
+  /** Estado por teléfono, indexado por los últimos 10 dígitos. */
+  byPhones: async (phones: string[]): Promise<Record<string, ShopperPhoneStatus>> => {
+    if (!phones.length) return {};
+    const { data } = await api.post(`${BASE}/by-phones`, { phones });
+    return data?.status ?? {};
+  },
+
+  /** Saludo a una lista o a un número. Sin `resend` se saltan los que ya lo recibieron. */
+  send: async (targets: ShopperSendTarget[], resend = false): Promise<ShopperSendResult> => {
+    const { data } = await api.post(`${BASE}/send`, { targets, resend });
     return data;
   },
 
