@@ -7,6 +7,7 @@ import { getStoreById } from '@/services/store.service';
 import type { CampaignArtUpload } from '@/services/upload.service';
 import { Sms } from '@mui/icons-material';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import PostAddRoundedIcon from '@mui/icons-material/PostAddRounded';
 import {
   Alert,
   Avatar,
@@ -15,9 +16,16 @@ import {
   Card,
   Checkbox,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   FormControlLabel,
   Grid,
+  ListItemText,
+  Menu,
+  MenuItem,
   Paper,
   Snackbar,
   Stack,
@@ -76,7 +84,9 @@ const placeholders = [
     label: 'Nombre del cliente — personalizado para cada uno; si no tiene, se omite',
   },
   { key: '#storeName', label: 'Nombre de la tienda' },
-  { key: '#referralLink', label: 'Link de referido' },
+  // Ocultos por ahora (sep 2026): no se usan en las campañas nuevas. El backend los sigue
+  // reemplazando si una campaña vieja los tiene; para volver a ofrecerlos, descomentar.
+  // { key: '#referralLink', label: 'Link de referido' },
   { key: '#disclaimer', label: 'Texto legal' },
   { key: '#linktree', label: 'Linktree de la tienda' }, // 👈 nuevo placeholder
   // El mismo destino que #linktree pero por el short permanente de la tienda
@@ -85,8 +95,8 @@ const placeholders = [
     key: '#linktreeShort',
     label: 'Linktree corto — swtrcs.com/s/… (mismo link, 60 caracteres menos)',
   },
-  { key: '#lead', label: 'Lead / Completar perfil' },
-  { key: '#linkrcs', label: 'Link RCS único por cliente (activa el flujo RCS)' },
+  // { key: '#lead', label: 'Lead / Completar perfil' },
+  // { key: '#linkrcs', label: 'Link RCS único por cliente (activa el flujo RCS)' },
   {
     key: '#linkprercs',
     label: 'Link Pre-RCS único por cliente (sólo ofertas + QR de caja)',
@@ -99,6 +109,21 @@ const placeholders = [
   },
   { key: '#ahorro', label: 'Ahorro semanal de la tienda ($)' },
 ];
+
+/**
+ * Plantillas de mensaje: el texto de las campañas que ya funcionan, con placeholders para que
+ * sirva a cualquier tienda. Se aplican SÓLO con el botón "Usar plantilla" (nunca por defecto).
+ * OJO: los placeholders distinguen mayúsculas — es #storeName, no #storename (ese saldría
+ * literal en el SMS).
+ */
+const MESSAGE_TEMPLATES = [
+  {
+    key: 'points-linklogin',
+    label: 'Ahorra y gana puntos (link con sesión)',
+    content:
+      'Hello #name 👋#n#n🎊 Start saving and earning points here: 👉 #linklogin #n#n🛒 #storeName 📍 #n#nReply STOP to cancel',
+  },
+] as const;
 
 const SHORTENER_DOMAINS = [
   'bit.ly',
@@ -346,6 +371,21 @@ export default function CreateCampaignForm({
 
   // Sólo en mixed se manda rcsOptions (conservando mixedRatio al editar). En "sms" no se
   // toca: el payload queda idéntico al de siempre.
+  // Plantillas de mensaje: sólo con el botón. Si ya hay texto se confirma antes de reemplazarlo.
+  const [tplAnchor, setTplAnchor] = useState<HTMLElement | null>(null);
+  const [pendingTpl, setPendingTpl] = useState<(typeof MESSAGE_TEMPLATES)[number] | null>(null);
+  const applyTemplate = (t: (typeof MESSAGE_TEMPLATES)[number]) => {
+    setValue('content', t.content, { shouldDirty: true, shouldValidate: true });
+    setPendingTpl(null);
+    setSnackState({ open: true, message: `Plantilla aplicada: ${t.label}`, severity: 'success' });
+    contentRef.current?.focus();
+  };
+  const pickTemplate = (t: (typeof MESSAGE_TEMPLATES)[number]) => {
+    setTplAnchor(null);
+    if ((content || '').trim()) setPendingTpl(t);
+    else applyTemplate(t);
+  };
+
   // El arte se sube y comprime al elegirlo: el resumen de la conversión se ve antes de crear.
   const art = useCampaignArtUpload();
 
@@ -542,6 +582,80 @@ export default function CreateCampaignForm({
                       item
                       xs={12}
                     >
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        justifyContent="space-between"
+                        gap={1}
+                        sx={{ mb: 1.25 }}
+                      >
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                        >
+                          Escríbelo o parte de una plantilla de campañas anteriores.
+                        </Typography>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<PostAddRoundedIcon />}
+                          onClick={(e) => setTplAnchor(e.currentTarget)}
+                          sx={{ flexShrink: 0 }}
+                        >
+                          Usar plantilla
+                        </Button>
+                      </Stack>
+                      <Menu
+                        anchorEl={tplAnchor}
+                        open={!!tplAnchor}
+                        onClose={() => setTplAnchor(null)}
+                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                        slotProps={{ paper: { sx: { maxWidth: 420 } } }}
+                      >
+                        {MESSAGE_TEMPLATES.map((t) => (
+                          <MenuItem
+                            key={t.key}
+                            onClick={() => pickTemplate(t)}
+                            sx={{ alignItems: 'flex-start', whiteSpace: 'normal', py: 1.25 }}
+                          >
+                            <ListItemText
+                              primary={t.label}
+                              secondary={t.content.replace(/#n/g, ' ↵ ')}
+                              primaryTypographyProps={{ fontWeight: 700 }}
+                              secondaryTypographyProps={{
+                                sx: { fontFamily: 'monospace', fontSize: 12, mt: 0.5 },
+                              }}
+                            />
+                          </MenuItem>
+                        ))}
+                      </Menu>
+                      <Dialog
+                        open={!!pendingTpl}
+                        onClose={() => setPendingTpl(null)}
+                        maxWidth="xs"
+                        fullWidth
+                      >
+                        <DialogTitle>¿Reemplazar el mensaje?</DialogTitle>
+                        <DialogContent>
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                          >
+                            El texto que escribiste se cambia por la plantilla &quot;
+                            {pendingTpl?.label}&quot;. Después la puedes editar.
+                          </Typography>
+                        </DialogContent>
+                        <DialogActions>
+                          <Button onClick={() => setPendingTpl(null)}>Cancelar</Button>
+                          <Button
+                            variant="contained"
+                            onClick={() => pendingTpl && applyTemplate(pendingTpl)}
+                          >
+                            Reemplazar
+                          </Button>
+                        </DialogActions>
+                      </Dialog>
                       <Controller
                         name="content"
                         control={control}
