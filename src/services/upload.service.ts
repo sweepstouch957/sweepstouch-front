@@ -16,13 +16,17 @@ export interface S3UploadResponse {
 // (the api instance defaults to application/json which would break FormData uploads)
 export const uploadCampaignImage = async (
   image: File,
-  folder: string = 'campaigns'
+  folder: string = 'campaigns',
+  onProgress?: (pct: number) => void
 ): Promise<UploadResponse> => {
   const formData = new FormData();
   formData.append('image', image);
   formData.append('folder', folder);
   const response = await api.post('/upload', formData, {
     headers: { 'Content-Type': undefined },
+    onUploadProgress: onProgress
+      ? (e) => e.total && onProgress(Math.round((e.loaded / e.total) * 100))
+      : undefined,
   });
   return response.data;
 };
@@ -48,8 +52,18 @@ export interface CampaignArtUpload extends UploadResponse {
   /** Arte original (vacío si el archivo ya era liviano y no hizo falta comprimir). */
   originalUrl: string;
   originalPublicId: string;
+  /** Peso de la copia que viaja en el MMS. */
   bytes: number;
+  /** Medidas y formato de la copia MMS (sin compresión: undefined, son las del archivo). */
+  width?: number;
+  height?: number;
+  format?: string;
+  /** false = el archivo ya pesaba menos de 500 KB y viaja tal cual. */
+  compressed: boolean;
 }
+
+/** Fases de la subida, para mostrar el progreso real en el formulario. */
+export type ArtUploadPhase = 'uploading' | 'compressing';
 
 interface CloudinarySignature {
   cloudName: string;
@@ -114,21 +128,22 @@ async function makeMaster(file: File): Promise<Blob> {
  */
 export const uploadCampaignArt = async (
   file: File,
-  onProgress?: (pct: number) => void
+  opts: { onProgress?: (pct: number) => void; onPhase?: (phase: ArtUploadPhase) => void } = {}
 ): Promise<CampaignArtUpload> => {
+  const { onProgress, onPhase } = opts;
   if (file.size > CAMPAIGN_ART_MAX_BYTES) throw new Error('La imagen supera los 100 MB.');
+  onPhase?.('uploading');
   if (file.size <= MMS_MAX_BYTES) {
-    const up = await uploadCampaignImage(file);
-    return { ...up, originalUrl: '', originalPublicId: '', bytes: file.size };
+    const up = await uploadCampaignImage(file, 'campaigns', onProgress);
+    return { ...up, originalUrl: '', originalPublicId: '', bytes: file.size, compressed: false };
   }
 
   let original: { secure_url: string; public_id: string };
   if (file.size <= VIA_BACKEND_MAX_BYTES) {
     // Lo común (un arte de 1–20 MB): por el backend, como cualquier upload. No depende de
     // CORS/CSP del navegador hacia Cloudinary ("Failed to fetch").
-    const up = await uploadCampaignImage(file, ORIGINAL_FOLDER);
+    const up = await uploadCampaignImage(file, ORIGINAL_FOLDER, onProgress);
     original = { secure_url: up.url, public_id: up.public_id };
-    onProgress?.(100);
   } else {
     const { data: sig } = await api.post<CloudinarySignature>('/upload/sign', {});
     try {
@@ -143,13 +158,23 @@ export const uploadCampaignArt = async (
     }
   }
 
-  const { data: mms } = await api.post<{ url: string; public_id: string; bytes: number }>('/upload/compress', {
-    publicId: original.public_id,
-  });
+  onPhase?.('compressing');
+  const { data: mms } = await api.post<{
+    url: string;
+    public_id: string;
+    bytes: number;
+    width?: number;
+    height?: number;
+    format?: string;
+  }>('/upload/compress', { publicId: original.public_id });
   return {
     url: mms.url,
     public_id: mms.public_id,
     bytes: mms.bytes,
+    width: mms.width,
+    height: mms.height,
+    format: mms.format,
+    compressed: true,
     originalUrl: original.secure_url,
     originalPublicId: original.public_id,
   };

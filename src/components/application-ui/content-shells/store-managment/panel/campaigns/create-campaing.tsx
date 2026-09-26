@@ -4,6 +4,7 @@
 import PreviewPhone from '@/components/application-ui/dialogs/preview/preview-phone';
 import { circularService } from '@/services/circular.service';
 import { getStoreById } from '@/services/store.service';
+import type { CampaignArtUpload } from '@/services/upload.service';
 import { Sms } from '@mui/icons-material';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import {
@@ -30,14 +31,15 @@ import { DateTimePicker } from '@mui/x-date-pickers';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import CampaignArtDropzone from './CampaignArtDropzone';
 import MixedRcsEditor, {
   mixedCustomFromTemplate,
   MixedRcsPreview,
   mixedTemplateFromCustom,
   type MixedRcsCustom,
 } from './MixedRcsEditor';
-import CampaignArtDropzone from './CampaignArtDropzone';
 import { smartInsert } from './placeholderInsert';
+import { useCampaignArtUpload } from './useCampaignArtUpload';
 
 interface CampaignFormInputs {
   title: string;
@@ -55,6 +57,8 @@ interface CampaignFormInputs {
   thumbnailPublicId?: string;
   /** Al editar: se quitó el arte guardado (sin esto el contenedor volvía a poner el viejo). */
   imageRemoved?: boolean;
+  /** Arte ya subido y comprimido al elegirlo (el contenedor no lo vuelve a subir). */
+  uploadedArt?: CampaignArtUpload;
   customAudience?: number;
   linktree?: boolean; // 👈 nuevo parámetro
   /** Piloto mixed: SMS/MMS normal + un 10% de los clientes con nombre por RCS personalizado. */
@@ -212,7 +216,12 @@ type StepKey = (typeof STEPS)[number]['key'];
 
 /** Inserta en el cursor sólo con los espacios que hacen falta (ver placeholderInsert). */
 const insertAtCursor = (inputEl: HTMLTextAreaElement, token: string) => {
-  const { text, caret } = smartInsert(inputEl.value, inputEl.selectionStart, inputEl.selectionEnd, token);
+  const { text, caret } = smartInsert(
+    inputEl.value,
+    inputEl.selectionStart,
+    inputEl.selectionEnd,
+    token
+  );
   inputEl.value = text;
   inputEl.setSelectionRange(caret, caret);
   inputEl.focus();
@@ -337,7 +346,11 @@ export default function CreateCampaignForm({
 
   // Sólo en mixed se manda rcsOptions (conservando mixedRatio al editar). En "sms" no se
   // toca: el payload queda idéntico al de siempre.
-  const submit = (data: CampaignFormInputs) => {
+  // El arte se sube y comprime al elegirlo: el resumen de la conversión se ve antes de crear.
+  const art = useCampaignArtUpload();
+
+  const submit = (raw: CampaignFormInputs) => {
+    const data = art.result ? { ...raw, uploadedArt: art.result } : raw;
     if (data.channel !== 'mixed') return onSubmit(data);
     const ratio = (initialValues as any)?.rcsOptions?.mixedRatio;
     const contentTemplate = mixedTemplateFromCustom(mixedRcs);
@@ -356,7 +369,8 @@ export default function CreateCampaignForm({
       : (initialValues?.type && initialValues.type !== 'MIXED' ? initialValues.type : null) ||
         ((image as any)?.length ? 'MMS' : 'SMS');
   const audienceCount = useFullAudience ? totalAudience : Number(customAudience) || 0;
-  const canSubmit = !isPhoneMissing && !hasShortenerLinks;
+  // Mientras se optimiza la imagen no se crea: saldría con la subida a medias.
+  const canSubmit = !isPhoneMissing && !hasShortenerLinks && !art.busy;
 
   // Los campos siguen TODOS montados (sólo se ocultan): así react-hook-form conserva los
   // valores y la validación del submit ve el formulario completo, esté en la pestaña que esté.
@@ -410,7 +424,15 @@ export default function CreateCampaignForm({
                 <Chip
                   size="small"
                   icon={
-                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#22C55E', ml: '10px !important' }} />
+                    <Box
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        bgcolor: '#22C55E',
+                        ml: '10px !important',
+                      }}
+                    />
                   }
                   label="Número verificado"
                   sx={{
@@ -634,7 +656,8 @@ export default function CreateCampaignForm({
                         color="text.secondary"
                         sx={{ display: 'block', mb: 1, fontSize: 12.5 }}
                       >
-                        Toca uno para insertarlo donde está el cursor. Se reemplaza por cliente al enviar.
+                        Toca uno para insertarlo donde está el cursor. Se reemplaza por cliente al
+                        enviar.
                       </Typography>
                       <Box
                         display="flex"
@@ -660,7 +683,10 @@ export default function CreateCampaignForm({
                                 bgcolor: 'action.hover',
                                 border: '1px solid',
                                 borderColor: 'divider',
-                                '&:hover': { bgcolor: 'action.selected', borderColor: 'primary.main' },
+                                '&:hover': {
+                                  bgcolor: 'action.selected',
+                                  borderColor: 'primary.main',
+                                },
                               }}
                               onClick={() => {
                                 if (contentRef.current) {
@@ -719,9 +745,14 @@ export default function CreateCampaignForm({
                 >
                   <CampaignArtDropzone
                     file={(image as any)?.[0] instanceof File ? (image as any)[0] : null}
-                    initialUrl={typeof initialValues?.image === 'string' ? initialValues.image : undefined}
+                    initialUrl={
+                      typeof initialValues?.image === 'string' ? initialValues.image : undefined
+                    }
                     onError={(message) => setSnackState({ open: true, message, severity: 'error' })}
+                    upload={art.state}
+                    onRetry={art.retry}
                     onChange={(file) => {
+                      void art.start(file);
                       if (file) {
                         const dt = new DataTransfer();
                         dt.items.add(file);
@@ -1081,7 +1112,11 @@ export default function CreateCampaignForm({
               disabled={!canSubmit}
               sx={{ minHeight: 44, flex: { xs: 2, sm: 'none' } }}
             >
-              {isEditing ? 'Actualizar campaña' : 'Crear campaña'}
+              {art.busy
+                ? 'Optimizando imagen…'
+                : isEditing
+                  ? 'Actualizar campaña'
+                  : 'Crear campaña'}
             </Button>
           </Box>
         </Paper>

@@ -2,7 +2,11 @@
 
 import { campaignClient } from '@/services/campaing.service';
 import { DEFAULT_INFOBIP_SENDER } from '@/services/store.service';
-import { uploadCampaignArt, uploadCampaignImage, type CampaignArtUpload } from '@/services/upload.service';
+import {
+  uploadCampaignArt,
+  uploadCampaignImage,
+  type CampaignArtUpload,
+} from '@/services/upload.service';
 import {
   Alert,
   Button,
@@ -54,9 +58,10 @@ export default function CampaignFormContainer({
           typeof data.image[0] === 'object' &&
           !(data.image[0].url || data.image[0].startsWith?.('http'))
         ) {
-          // Cualquier peso (hasta 100 MB): el MMS lleva la copia < 500 KB y el original
-          // queda para leer los productos al agendar.
-          uploadedImage = await uploadCampaignArt(data.image[0]);
+          // Ya subido y comprimido al elegirlo (resumen en el formulario): se reutiliza.
+          // Si esa subida falló, se intenta acá de nuevo. Hasta 100 MB: el MMS lleva la
+          // copia < 500 KB y el original queda para leer los productos al agendar.
+          uploadedImage = data.uploadedArt ?? (await uploadCampaignArt(data.image[0]));
         }
 
         // Miniatura del linktree — sube aparte, a su propia carpeta. Acá el
@@ -79,12 +84,18 @@ export default function CampaignFormContainer({
           // nueva y la campaña salía con el arte anterior. Sin archivo nuevo, se
           // conserva lo que ya tenía.
           // imageRemoved: se tocó "Quitar" → la campaña queda sin arte (SMS), no vuelve el viejo.
-          image: uploadedImage?.url || (data.imageRemoved ? null : data.imageUrl || initialData?.image || null),
+          image:
+            uploadedImage?.url ||
+            (data.imageRemoved ? null : data.imageUrl || initialData?.image || null),
           imagePublicId:
             uploadedImage?.public_id ||
             (data.imageRemoved ? null : data.imagePublicId || initialData?.imagePublicId || null),
           // Arte nuevo liviano → sin original aparte (vacío, para no leer productos del arte viejo).
-          sourceImage: uploadedImage ? uploadedImage.originalUrl : data.imageRemoved ? '' : initialData?.sourceImage || '',
+          sourceImage: uploadedImage
+            ? uploadedImage.originalUrl
+            : data.imageRemoved
+              ? ''
+              : initialData?.sourceImage || '',
           sourceImagePublicId: uploadedImage
             ? uploadedImage.originalPublicId
             : data.imageRemoved
@@ -93,7 +104,10 @@ export default function CampaignFormContainer({
           thumbnailImage:
             uploadedThumb?.url || data.thumbnailImage || initialData?.thumbnailImage || null,
           thumbnailPublicId:
-            uploadedThumb?.public_id || data.thumbnailPublicId || initialData?.thumbnailPublicId || null,
+            uploadedThumb?.public_id ||
+            data.thumbnailPublicId ||
+            initialData?.thumbnailPublicId ||
+            null,
           customAudience: totalAudience,
           platform: provider || '',
           sourceTn: phoneNumber || DEFAULT_INFOBIP_SENDER,
@@ -101,6 +115,7 @@ export default function CampaignFormContainer({
 
         delete (payload as any).thumbnail;
         delete (payload as any).imageRemoved;
+        delete (payload as any).uploadedArt;
 
         const response = isEditing
           ? await campaignClient.updateCampaign(initialData._id, payload)
@@ -113,7 +128,9 @@ export default function CampaignFormContainer({
       }
     },
     onSuccess: (_res, vars) => {
-      setWithArt(!vars?.imageRemoved && Boolean(vars?.image?.length || vars?.imageUrl || initialData?.image));
+      setWithArt(
+        !vars?.imageRemoved && Boolean(vars?.image?.length || vars?.imageUrl || initialData?.image)
+      );
       setSuccessOpen(true);
       setConfirmOpen(false);
       setFormData(null);
@@ -194,7 +211,8 @@ export default function CampaignFormContainer({
           sx={{ width: '100%' }}
         >
           ¡Campaña {isEditing ? 'actualizada' : 'creada'} con éxito!
-          {withArt && ' Los productos del arte se cargan solos a la lista de la tienda; te avisamos en la campana.'}
+          {withArt &&
+            ' Los productos del arte se cargan solos a la lista de la tienda; te avisamos en la campana.'}
         </Alert>
       </Snackbar>
 
