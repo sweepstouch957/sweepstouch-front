@@ -1,7 +1,6 @@
 // components/campaigns/CreateCampaignForm.tsx
 'use client';
 
-import PreviewPhone from '@/components/application-ui/dialogs/preview/preview-phone';
 import { circularService } from '@/services/circular.service';
 import { getStoreById } from '@/services/store.service';
 import type { CampaignArtUpload } from '@/services/upload.service';
@@ -24,7 +23,6 @@ import {
   Tab,
   Tabs,
   TextField,
-  Tooltip,
   Typography,
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers';
@@ -32,6 +30,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import CampaignArtDropzone from './CampaignArtDropzone';
+import MessagePreviewPanel from './messaging/MessagePreviewPanel';
+import PlaceholderChips from './messaging/PlaceholderChips';
 import MixedRcsEditor, {
   mixedCustomFromTemplate,
   MixedRcsPreview,
@@ -67,41 +67,6 @@ interface CampaignFormInputs {
   /** Sólo en mixed: { mixedRatio?, contentTemplate? (RCS personalizado, type "MIXED") }. */
   rcsOptions?: Record<string, unknown>;
 }
-
-const placeholders = [
-  { key: '#n', label: 'Salto de línea' },
-  // Se reemplaza POR CLIENTE en el envío (scheduler-service): cada quien recibe
-  // su nombre; sin nombre real el placeholder se omite limpio ("Hola," y ya).
-  {
-    key: '#name',
-    label: 'Nombre del cliente — personalizado para cada uno; si no tiene, se omite',
-  },
-  { key: '#storeName', label: 'Nombre de la tienda' },
-  // Ocultos por ahora (sep 2026): no se usan en las campañas nuevas. El backend los sigue
-  // reemplazando si una campaña vieja los tiene; para volver a ofrecerlos, descomentar.
-  // { key: '#referralLink', label: 'Link de referido' },
-  { key: '#disclaimer', label: 'Texto legal' },
-  { key: '#linktree', label: 'Linktree de la tienda' }, // 👈 nuevo placeholder
-  // El mismo destino que #linktree pero por el short permanente de la tienda
-  // (swtrcs.com/s/XXXXXX): ~60 caracteres menos, que en SMS es un segmento menos.
-  {
-    key: '#linktreeShort',
-    label: 'Linktree corto — swtrcs.com/s/… (mismo link, 60 caracteres menos)',
-  },
-  // { key: '#lead', label: 'Lead / Completar perfil' },
-  // { key: '#linkrcs', label: 'Link RCS único por cliente (activa el flujo RCS)' },
-  {
-    key: '#linkprercs',
-    label: 'Link Pre-RCS único por cliente (sólo ofertas + QR de caja)',
-  },
-  // Linktree CON la sesión del cliente adentro: entra a la lista, las ofertas, el circular
-  // y los premios sin que le pidan el código. El link vence a los 30 días.
-  {
-    key: '#linklogin',
-    label: 'Linktree con sesión — entra sin código (link corto, vence en 30 días)',
-  },
-  { key: '#ahorro', label: 'Ahorro semanal de la tienda ($)' },
-];
 
 const SHORTENER_DOMAINS = [
   'bit.ly',
@@ -699,56 +664,25 @@ export default function CreateCampaignForm({
                         Toca uno para insertarlo donde está el cursor. Se reemplaza por cliente al
                         enviar.
                       </Typography>
-                      <Box
-                        display="flex"
-                        flexWrap="wrap"
-                        gap={0.75}
-                      >
-                        {placeholders.map((ph) => (
-                          <Tooltip
-                            title={ph.label}
-                            key={ph.key}
-                          >
-                            <Chip
-                              label={ph.key}
-                              clickable
-                              // Altura táctil: con size="small" (24 px) es casi imposible
-                              // acertarle en el teléfono.
-                              sx={{
-                                height: { xs: 36, sm: 30 },
-                                fontSize: { xs: 14, sm: 13 },
-                                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                                fontWeight: 600,
-                                borderRadius: 1.5,
-                                bgcolor: 'action.hover',
-                                border: '1px solid',
-                                borderColor: 'divider',
-                                '&:hover': {
-                                  bgcolor: 'action.selected',
-                                  borderColor: 'primary.main',
-                                },
-                              }}
-                              onClick={() => {
-                                if (contentRef.current) {
-                                  const updatedText = insertAtCursor(contentRef.current, ph.key);
-                                  if (updatedText.length > 2047) {
-                                    setSnackState({
-                                      open: true,
-                                      message:
-                                        'Message content cannot exceed 2047 characters (max 2047).',
-                                      severity: 'error',
-                                    });
-                                    // revertimos visualmente al valor anterior del form
-                                    contentRef.current.value = content || '';
-                                    return;
-                                  }
-                                  setValue('content', updatedText);
-                                }
-                              }}
-                            />
-                          </Tooltip>
-                        ))}
-                      </Box>
+                      <PlaceholderChips
+                        onInsert={(key) => {
+                          if (contentRef.current) {
+                            const updatedText = insertAtCursor(contentRef.current, key);
+                            if (updatedText.length > 2047) {
+                              setSnackState({
+                                open: true,
+                                message:
+                                  'Message content cannot exceed 2047 characters (max 2047).',
+                                severity: 'error',
+                              });
+                              // revertimos visualmente al valor anterior del form
+                              contentRef.current.value = content || '';
+                              return;
+                            }
+                            setValue('content', updatedText);
+                          }
+                        }}
+                      />
                     </Grid>
 
                     <Grid
@@ -1058,8 +992,9 @@ export default function CreateCampaignForm({
                     </Typography>
                   </Box>
                 ) : (
-                  <PreviewPhone
-                    content={content}
+                  <MessagePreviewPanel
+                    storeId={storeId}
+                    content={content || ''}
                     image={(image as any)?.[0] || initialValues?.image}
                   />
                 )}

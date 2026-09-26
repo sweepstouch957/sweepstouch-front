@@ -235,6 +235,7 @@ export default function CampaignTemplatePicker({
       {storeId && (
         <>
           <TemplateFormDialog
+            storeId={storeId}
             open={saveOpen}
             mode="create"
             initial={current ?? {}}

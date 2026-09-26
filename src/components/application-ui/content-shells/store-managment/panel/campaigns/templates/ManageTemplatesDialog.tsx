@@ -203,6 +203,7 @@ export default function ManageTemplatesDialog({ storeId, open, onClose, onUse }:
       </Dialog>
 
       <TemplateFormDialog
+        storeId={storeId}
         open={!!editing}
         mode={editing === 'new' ? 'create' : 'edit'}
         initial={editing && editing !== 'new' ? editing : {}}
