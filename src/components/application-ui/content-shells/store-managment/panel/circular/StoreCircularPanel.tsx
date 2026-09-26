@@ -60,6 +60,14 @@ import {
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import TestMmsShoppingListModal from '@/components/mms/TestMmsShoppingListModal';
 import CampaignAutomationFlow, { buildSteps } from './CampaignAutomationFlow';
+import { Meta, SectionHeader, Surface } from './panelUi';
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined';
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
+import LinkRoundedIcon from '@mui/icons-material/LinkRounded';
+import EventAvailableOutlinedIcon from '@mui/icons-material/EventAvailableOutlined';
+import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import UpcomingProductsSection from './UpcomingProductsSection';
 import EventRoundedIcon from '@mui/icons-material/EventRounded';
 import NextLink from 'next/link';
@@ -108,6 +116,19 @@ const STATUS_CHIP: Record<string, { label: string; color: 'success' | 'warning' 
 };
 
 const cell = { py: 0.75, px: 1.25, whiteSpace: 'nowrap' } as const;
+
+/** Los títulos autogenerados ("Circular super-supermarket-30-…-usa (2026-09-14 → …)") no se
+ *  leen: se muestran como "Circular semanal" y las fechas van aparte. */
+function circularLabel(c: { title?: string }, storeSlug: string, storeName?: string) {
+  const t = String(c.title || '').trim();
+  if (!t) return 'Circular';
+  const low = t.toLowerCase();
+  const generic =
+    /\(\d{4}-\d{2}-\d{2}\s*→/.test(t) ||
+    (!!storeSlug && low.includes(storeSlug.toLowerCase())) ||
+    (!!storeName && low === storeName.toLowerCase());
+  return generic ? 'Circular semanal' : t.replace(/^Campaña:\s*/, '');
+}
 
 const CATEGORIES = [
   'meat', 'seafood', 'produce', 'dairy', 'bakery', 'frozen', 'pantry', 'beverages', 'deli', 'other',
@@ -212,6 +233,11 @@ function CircularSection({
   // quedaba activo, o sea que el arte de una campaña se volvía el circular de la semana
   // para el linktree y el Pre-RCS sin que nadie lo decidiera.
   const [createCircular, setCreateCircular] = useState(false);
+  // Rediseño: "Volver a extraer" pregunta la cantidad en un diálogo (antes el selector vivía
+  // suelto en la tarjeta) y el historial muestra 4 y se despliega.
+  const [reextractOpen, setReextractOpen] = useState(false);
+  const [showAllHistory, setShowAllHistory] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
   const extract = useMutation({
     mutationFn: (circularId: string) => circularService.extractProducts(circularId, maxProducts),
@@ -432,12 +458,21 @@ function CircularSection({
           p: { xs: 2, md: 2.5 },
           borderRadius: 3,
           borderColor: (t) => alpha(t.palette.primary.main, 0.35),
-          background: (t) => `linear-gradient(180deg, ${alpha(t.palette.primary.main, 0.05)}, transparent 70%)`,
+          bgcolor: (t) => alpha(t.palette.primary.main, 0.03),
         }}
       >
         <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1.5} flexWrap="wrap" sx={{ mb: 2.5 }}>
           <Box sx={{ minWidth: 0 }}>
             <Stack direction="row" alignItems="center" gap={1}>
+              <Box
+                aria-hidden
+                sx={{
+                  width: 22, height: 22, borderRadius: 1.25, display: 'grid', placeItems: 'center',
+                  fontSize: 12, fontWeight: 800, color: 'primary.contrastText', bgcolor: 'primary.main',
+                }}
+              >
+                1
+              </Box>
               <Typography variant="overline" color="primary" fontWeight={800} lineHeight={1.4}>
                 Automático
               </Typography>
@@ -525,251 +560,340 @@ function CircularSection({
         )}
       </Paper>
 
-      {/* ── 2 · El circular que recibe los productos (de la campaña o del PDF).
-          Circular vigente → cargar sus productos. Con productos: van al catálogo tal
-          cual. Sin productos pero con archivo: se extraen con IA (y eso ya los carga). */}
+      {/* ── 2 · El circular que recibe los productos (de la campaña o del PDF). */}
       {activeCircular && (
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1.5}>
-            <Box sx={{ minWidth: 0 }}>
+        <Surface>
+          <Stack spacing={2}>
+            <SectionHeader
+              step={2}
+              title={activeCircular.status === 'active' ? 'Circular de la semana' : 'Circular más reciente'}
+              description="Es la base de productos de la tienda: de acá salen el catálogo y las listas de los clientes."
+              action={
+                activeCircular.fileUrl && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<VisibilityOutlinedIcon />}
+                    disabled={openCircularPreview.isPending}
+                    onClick={() => openCircularPreview.mutate(activeCircular)}
+                  >
+                    {openCircularPreview.isPending ? 'Abriendo…' : 'Ver circular'}
+                  </Button>
+                )
+              }
+            />
+
+            <Box
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                border: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'background.default',
+              }}
+            >
               <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
-                <Typography variant="subtitle2" fontWeight={700}>
-                  {activeCircular.status === 'active' ? 'Circular de la semana' : 'Circular más reciente'}
+                <Typography variant="subtitle1" fontWeight={700} sx={{ mr: 0.5 }}>
+                  {circularLabel(activeCircular, storeSlug, storeName)}
                 </Typography>
                 <Chip size="small" {...(STATUS_CHIP[activeCircular.status] || { label: activeCircular.status, color: 'default' })} />
                 {/* Conexión con la automatización: acá cayeron los productos de la campaña */}
                 {campaignImport.data?.result?.circularId === activeCircular._id && (
-                  <Chip size="small" color="primary" variant="outlined" label={`Recibió ${campaignImport.data?.result?.added ?? 0} de la campaña`} />
+                  <Chip
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                    icon={<CampaignOutlinedIcon />}
+                    label={`Recibió ${campaignImport.data?.result?.added ?? 0} de la campaña`}
+                  />
                 )}
                 {(activeCircular as any).fileKey === 'campaign' && (
                   <Chip size="small" variant="outlined" label="Creado por la campaña" />
                 )}
               </Stack>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-                {activeCircular.title || 'Sin título'} · {fmtDate(activeCircular.startDate)} → {fmtDate(activeCircular.endDate)} ·{' '}
-                {activeProducts} producto{activeProducts !== 1 ? 's' : ''}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-                {activeProducts > 0
-                  ? 'Cargá estos productos al catálogo (lo que ve el cliente en sus listas), o sumá los chicos que faltan. Las imágenes quedan sin fondo, con su tabla o pedestal, y livianas para web.'
-                  : activeCircular.fileUrl
-                    ? 'Este circular todavía no tiene productos. Elegí cuántos extraer: primero los de foto grande, y después sumás los chicos con "Agregar los que faltan".'
-                    : 'Adjuntá el PDF o la imagen del circular para poder cargar sus productos.'}
-              </Typography>
-            </Box>
-            {activeCircular.fileUrl && (
-              <Button
-                variant="outlined"
-                disabled={openCircularPreview.isPending}
-                onClick={() => openCircularPreview.mutate(activeCircular)}
-              >
-                {openCircularPreview.isPending ? 'Abriendo…' : 'Ver circular'}
-              </Button>
-            )}
-          </Stack>
-
-          {/* Acciones de extracción */}
-          {activeCircular.fileUrl && (
-            <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1.25} sx={{ mt: 1.75 }}>
-              <TextField
-                select
-                size="small"
-                label="Cantidad a extraer"
-                value={maxProducts}
-                onChange={(e) => setMaxProducts(Number(e.target.value))}
-                disabled={busyExtract}
-                sx={{ width: 210 }}
-                helperText={maxProducts ? 'Los de foto más grande primero' : 'Por secciones: tarda varios minutos'}
-              >
-                {[10, 20, 30, 50].map((n) => (
-                  <MenuItem key={n} value={n}>Los primeros {n}</MenuItem>
-                ))}
-                <MenuItem value={0}>Todos los productos</MenuItem>
-              </TextField>
-              <Button
-                variant={activeProducts > 0 ? 'outlined' : 'contained'}
-                disabled={busyExtract}
-                onClick={() => {
-                  if (activeProducts > 0 && !window.confirm('Volver a extraer REEMPLAZA los productos de este circular. ¿Continuar?')) return;
-                  extract.mutate(activeCircular._id);
-                }}
-                sx={{ alignSelf: 'flex-start', mt: 0.25 }}
-              >
-                {extract.isPending ? 'Extrayendo…' : activeProducts > 0 ? 'Volver a extraer' : 'Extraer productos (IA)'}
-              </Button>
-              {activeProducts > 0 && (
-                <>
-                  <Button
-                    variant="outlined"
-                    disabled={busyExtract}
-                    onClick={() => addMissing.mutate(activeCircular._id)}
-                    sx={{ alignSelf: 'flex-start', mt: 0.25 }}
-                  >
-                    {addMissing.isPending ? 'Buscando los que faltan…' : 'Agregar los que faltan (chicos)'}
-                  </Button>
-                  <Button
-                    variant="contained"
-                    disabled={busyExtract || loadCatalog.isPending}
-                    onClick={() => loadCatalog.mutate(activeCircular._id)}
-                    sx={{ alignSelf: 'flex-start', mt: 0.25 }}
-                  >
-                    {loadCatalog.isPending ? 'Cargando…' : 'Cargar productos al catálogo'}
-                  </Button>
-                </>
+              <Stack direction="row" gap={2.5} flexWrap="wrap" sx={{ mt: 1 }}>
+                <Meta icon={<CalendarMonthRoundedIcon />}>
+                  {fmtDate(activeCircular.startDate)} → {fmtDate(activeCircular.endDate)}
+                </Meta>
+                <Meta icon={<Inventory2OutlinedIcon />}>
+                  {activeProducts} producto{activeProducts !== 1 ? 's' : ''}
+                </Meta>
+                <Meta icon={<DescriptionOutlinedIcon />}>
+                  {activeCircular.fileUrl ? 'Con archivo' : 'Sin archivo'}
+                </Meta>
+              </Stack>
+              {activeCircular.status === 'draft' && (
+                <Alert severity="warning" variant="outlined" sx={{ mt: 1.5, py: 0 }}>
+                  Borrador: no sale en el linktree. Sus productos se ven en las listas sólo si los cargas al catálogo.
+                </Alert>
               )}
-            </Stack>
-          )}
-          {(loadCatalog.isPending || busyExtract) && <LinearProgress sx={{ mt: 1.5, borderRadius: 1 }} />}
-        </Paper>
+            </Box>
+
+            {activeCircular.fileUrl ? (
+              activeProducts > 0 ? (
+                <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" gap={1.5}>
+                  <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 520 }}>
+                    Pasa estos productos al catálogo para que los vea el cliente. Las imágenes quedan sin fondo y livianas.
+                  </Typography>
+                  <Stack direction="row" gap={1} flexWrap="wrap" sx={{ flexShrink: 0 }}>
+                    <Button variant="text" disabled={busyExtract} onClick={() => setReextractOpen(true)}>
+                      Volver a extraer
+                    </Button>
+                    <Button variant="outlined" disabled={busyExtract} onClick={() => addMissing.mutate(activeCircular._id)}>
+                      {addMissing.isPending ? 'Buscando…' : 'Agregar los que faltan'}
+                    </Button>
+                    <Button
+                      variant="contained"
+                      disabled={busyExtract || loadCatalog.isPending}
+                      onClick={() => loadCatalog.mutate(activeCircular._id)}
+                    >
+                      {loadCatalog.isPending ? 'Cargando…' : 'Cargar al catálogo'}
+                    </Button>
+                  </Stack>
+                </Stack>
+              ) : (
+                <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} gap={1.5}>
+                  <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
+                    Todavía no tiene productos. Empieza por los de foto grande y después suma los chicos.
+                  </Typography>
+                  <TextField
+                    select
+                    size="small"
+                    value={maxProducts}
+                    onChange={(e) => setMaxProducts(Number(e.target.value))}
+                    disabled={busyExtract}
+                    sx={{ width: 190 }}
+                  >
+                    {[10, 20, 30, 50].map((n) => (
+                      <MenuItem key={n} value={n}>Los primeros {n}</MenuItem>
+                    ))}
+                    <MenuItem value={0}>Todos (tarda más)</MenuItem>
+                  </TextField>
+                  <Button variant="contained" disabled={busyExtract} onClick={() => extract.mutate(activeCircular._id)}>
+                    {extract.isPending ? 'Extrayendo…' : 'Extraer productos'}
+                  </Button>
+                </Stack>
+              )
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                Adjunta el PDF o la imagen del circular (sección 3) para poder cargar sus productos.
+              </Typography>
+            )}
+            {(loadCatalog.isPending || busyExtract) && <LinearProgress sx={{ borderRadius: 1 }} />}
+          </Stack>
+        </Surface>
       )}
+
+      {/* Volver a extraer: reemplaza los productos, así que pregunta cuántos y avisa. */}
+      <Dialog open={reextractOpen} onClose={() => setReextractOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ pb: 0.5 }}>¿Volver a extraer?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Reemplaza los {activeProducts} productos de este circular por una lectura nueva. Lo que corregiste a mano en el circular se pierde; el catálogo no se toca hasta que lo cargues.
+          </Typography>
+          <TextField select size="small" fullWidth label="Cantidad" value={maxProducts} onChange={(e) => setMaxProducts(Number(e.target.value))}>
+            {[10, 20, 30, 50].map((n) => (
+              <MenuItem key={n} value={n}>Los primeros {n} (foto grande)</MenuItem>
+            ))}
+            <MenuItem value={0}>Todos, por secciones (varios minutos)</MenuItem>
+          </TextField>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setReextractOpen(false)}>Cancelar</Button>
+          <Button
+            variant="contained"
+            color="warning"
+            onClick={() => {
+              setReextractOpen(false);
+              if (activeCircular) extract.mutate(activeCircular._id);
+            }}
+          >
+            Sí, volver a extraer
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* ── 3 · Respaldo manual: el PDF de la tienda. Abajo porque ya no es el camino principal. */}
-      <Box sx={{ pt: 2 }}>
-        <Divider sx={{ mb: 2 }} />
-        <Typography variant="overline" color="text.secondary" fontWeight={800}>
-          Circular en PDF · carga manual
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Para cuando la tienda manda su circular en PDF o hay que agendar uno sin campaña.
-        </Typography>
-      </Box>
+      <Surface>
+        <Stack spacing={2.5}>
+          <SectionHeader
+            step={3}
+            title="Circular en PDF"
+            description="Para cuando la tienda manda su circular en PDF o hay que agendar uno sin campaña."
+          />
 
-      {/* Sin circular vigente (ni activo ni agendado): casi siempre el PDF de la semana
-          está en el link de circular de la tienda. Se trae de ahí en un click. */}
-      {!circulars.isLoading && !hasCurrent && (
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1.5}>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography variant="subtitle2" fontWeight={700}>
-                Esta tienda no tiene circular vigente
+          <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: '1fr 1.4fr' } }}>
+            {/* Traer del link de la tienda */}
+            <Box sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Stack direction="row" alignItems="center" gap={1}>
+                <LinkRoundedIcon color="primary" />
+                <Typography variant="subtitle2" fontWeight={700}>Traer del link de la tienda</Typography>
+              </Stack>
+              <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
+                {!circularssUrl
+                  ? 'La tienda no tiene link de circular. Cárgalo en los datos de la tienda o sube el PDF al lado.'
+                  : hasCurrent
+                    ? 'Ya hay un circular vigente o agendado para esta semana.'
+                    : 'Baja el PDF de esta semana, crea el circular y la IA carga sus productos.'}
               </Typography>
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-                {circularssUrl
-                  ? 'Se puede traer el PDF de esta semana desde el link de circular de la tienda. Se crea el circular de la semana actual y la IA carga sus productos al catálogo.'
-                  : 'La tienda no tiene link de circular configurado. Subí el PDF abajo, o cargá el link en los datos de la tienda.'}
-              </Typography>
-              {circularssUrl && (
-                <MuiLink
-                  href={/^https?:\/\//i.test(circularssUrl) ? circularssUrl : `https://${circularssUrl}`}
-                  target="_blank"
-                  rel="noopener"
-                  variant="caption"
+              <Stack direction="row" alignItems="center" gap={1.5} flexWrap="wrap">
+                <Button
+                  variant={hasCurrent ? 'outlined' : 'contained'}
+                  disabled={!circularssUrl || hasCurrent || importFromUrl.isPending || extract.isPending}
+                  onClick={() => importFromUrl.mutate()}
                 >
-                  Ver el link de la tienda
-                </MuiLink>
-              )}
+                  {importFromUrl.isPending ? 'Trayendo…' : 'Traer circular de la semana'}
+                </Button>
+                {circularssUrl && (
+                  <MuiLink
+                    href={/^https?:\/\//i.test(circularssUrl) ? circularssUrl : `https://${circularssUrl}`}
+                    target="_blank"
+                    rel="noopener"
+                    variant="body2"
+                    underline="hover"
+                  >
+                    Abrir link
+                  </MuiLink>
+                )}
+              </Stack>
+              {importFromUrl.isPending && <LinearProgress sx={{ borderRadius: 1 }} />}
             </Box>
-            <Button
-              variant="contained"
-              disabled={!circularssUrl || importFromUrl.isPending || extract.isPending}
-              onClick={() => importFromUrl.mutate()}
-            >
-              {importFromUrl.isPending ? 'Trayendo circular…' : extract.isPending ? 'Extrayendo…' : 'Traer circular de la semana'}
-            </Button>
-          </Stack>
-          {(importFromUrl.isPending || extract.isPending) && <LinearProgress sx={{ mt: 1.5, borderRadius: 1 }} />}
-        </Paper>
-      )}
 
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-        <Typography variant="subtitle2" fontWeight={700} gutterBottom>
-          Agendar circular
-        </Typography>
-        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
-          Misma lógica que el portal del merchant: con PDF extrae productos; sin PDF queda
-          agendado y el archivo se adjunta después. El cron lo activa solo al llegar la fecha.
-        </Typography>
-        <Stack direction="row" flexWrap="wrap" gap={1.5} alignItems="center">
-          <TextField size="small" label="Título" value={title} onChange={(e) => setTitle(e.target.value)} sx={{ width: 200 }} />
-          <TextField size="small" label="Inicio" type="date" value={start} onChange={(e) => setStart(e.target.value)} InputLabelProps={{ shrink: true }} />
-          <TextField size="small" label="Fin" type="date" value={end} onChange={(e) => setEnd(e.target.value)} InputLabelProps={{ shrink: true }} />
-          <Button component="label" size="small" variant="outlined">
-            {file ? file.name : 'PDF / imagen'}
-            <input hidden type="file" accept="application/pdf,image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-          </Button>
-          <Button
-            size="small"
-            variant="contained"
-            disabled={create.isPending || !start || !end}
-            onClick={() => create.mutate()}
-          >
-            {create.isPending ? 'Agendando…' : 'Agendar'}
-          </Button>
+            {/* Agendar con archivo */}
+            <Box sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Stack direction="row" alignItems="center" gap={1}>
+                <EventAvailableOutlinedIcon color="primary" />
+                <Typography variant="subtitle2" fontWeight={700}>Agendar circular</Typography>
+              </Stack>
+              <Box
+                component="label"
+                onDragOver={(e: React.DragEvent) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={(e: React.DragEvent) => {
+                  e.preventDefault();
+                  setDragOver(false);
+                  const f = e.dataTransfer.files?.[0];
+                  if (f) setFile(f);
+                }}
+                sx={{
+                  display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.5, borderRadius: 2, cursor: 'pointer',
+                  border: '1.5px dashed', borderColor: dragOver ? 'primary.main' : 'divider',
+                  bgcolor: (t) => (dragOver ? alpha(t.palette.primary.main, 0.04) : 'transparent'),
+                  transition: 'border-color .15s, background-color .15s',
+                  '&:hover': { borderColor: 'primary.main' },
+                }}
+              >
+                <CloudUploadOutlinedIcon color={file ? 'primary' : 'disabled'} />
+                <Box sx={{ minWidth: 0, flex: 1 }}>
+                  <Typography variant="body2" fontWeight={600} noWrap>
+                    {file ? file.name : 'Arrastra el PDF o la imagen, o haz clic'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: 12.5 }}>
+                    {file ? `${(file.size / 1048576).toFixed(1)} MB · la IA extrae los productos al agendar` : 'Opcional: sin archivo queda agendado y se adjunta después'}
+                  </Typography>
+                </Box>
+                {file && (
+                  <IconButton size="small" aria-label="Quitar archivo" onClick={(e) => { e.preventDefault(); setFile(null); }}>
+                    <CloseRoundedIcon fontSize="small" />
+                  </IconButton>
+                )}
+                <input hidden type="file" accept="application/pdf,image/*" onChange={(e) => { setFile(e.target.files?.[0] ?? null); e.target.value = ''; }} />
+              </Box>
+              <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: { xs: '1fr', sm: '1.3fr 1fr 1fr' } }}>
+                <TextField size="small" label="Título (opcional)" value={title} onChange={(e) => setTitle(e.target.value)} />
+                <TextField size="small" label="Inicio" type="date" value={start} onChange={(e) => setStart(e.target.value)} InputLabelProps={{ shrink: true }} />
+                <TextField size="small" label="Fin" type="date" value={end} onChange={(e) => setEnd(e.target.value)} InputLabelProps={{ shrink: true }} error={!!start && !!end && end < start} />
+              </Box>
+              <Button
+                variant="contained"
+                disabled={create.isPending || !start || !end || end < start}
+                onClick={() => create.mutate()}
+                sx={{ alignSelf: 'flex-end' }}
+              >
+                {create.isPending ? 'Agendando…' : file ? 'Agendar y extraer' : 'Agendar'}
+              </Button>
+            </Box>
+          </Box>
+
+          {/* Historial: lista legible en vez de tabla con scroll lateral */}
+          <Box>
+            <Stack direction="row" alignItems="baseline" justifyContent="space-between" sx={{ mb: 1 }}>
+              <Typography variant="subtitle2" fontWeight={700}>Historial de circulares</Typography>
+              <Typography variant="body2" color="text.secondary">{items.length} en total</Typography>
+            </Stack>
+            {circulars.isLoading ? (
+              <LinearProgress />
+            ) : !items.length ? (
+              <Box sx={{ p: 3, textAlign: 'center', borderRadius: 2, border: '1px dashed', borderColor: 'divider' }}>
+                <Typography variant="body2" color="text.secondary">Esta tienda todavía no tiene circulares.</Typography>
+              </Box>
+            ) : (
+              <Box sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
+                {(showAllHistory ? items : items.slice(0, 4)).map((c, i) => {
+                  const n: number = (c as any).products?.length ?? 0;
+                  const isCurrent = c._id === activeCircular?._id;
+                  return (
+                    <Stack
+                      key={c._id}
+                      direction={{ xs: 'column', sm: 'row' }}
+                      alignItems={{ sm: 'center' }}
+                      gap={{ xs: 1, sm: 2 }}
+                      sx={{
+                        px: 2, py: 1.5,
+                        borderTop: i ? '1px solid' : 'none', borderColor: 'divider',
+                        bgcolor: (t) => (isCurrent ? alpha(t.palette.primary.main, 0.03) : 'transparent'),
+                        '&:hover': { bgcolor: 'action.hover' },
+                      }}
+                    >
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
+                          <Typography variant="body2" fontWeight={700} noWrap sx={{ maxWidth: '100%' }}>
+                            {circularLabel(c, storeSlug, storeName)}
+                          </Typography>
+                          {(c as any).fileKey === 'campaign' && (
+                            <Chip size="small" variant="outlined" color="primary" icon={<CampaignOutlinedIcon />} label="Campaña" sx={{ height: 22 }} />
+                          )}
+                          {isCurrent && <Chip size="small" variant="outlined" label="Arriba" sx={{ height: 22 }} />}
+                        </Stack>
+                        <Stack direction="row" gap={2} flexWrap="wrap" sx={{ mt: 0.25 }}>
+                          <Meta icon={<CalendarMonthRoundedIcon />}>{fmtDate(c.startDate)} → {fmtDate(c.endDate)}</Meta>
+                          <Meta icon={<Inventory2OutlinedIcon />}>{n} producto{n !== 1 ? 's' : ''}</Meta>
+                        </Stack>
+                      </Box>
+                      <Stack direction="row" alignItems="center" gap={0.5} sx={{ flexShrink: 0 }}>
+                        <Chip size="small" {...(STATUS_CHIP[c.status] || { label: c.status, color: 'default' })} sx={{ minWidth: 84 }} />
+                        {c.fileUrl && !n && (
+                          <Button size="small" disabled={extract.isPending} onClick={() => extract.mutate(c._id)}>
+                            Extraer
+                          </Button>
+                        )}
+                        {!!n && (
+                          <Button size="small" disabled={loadCatalog.isPending} onClick={() => loadCatalog.mutate(c._id)}>
+                            Al catálogo
+                          </Button>
+                        )}
+                        <Tooltip title={c.fileUrl ? 'Ver circular' : 'Sin archivo'}>
+                          <span>
+                            <IconButton size="small" disabled={!c.fileUrl || openCircularPreview.isPending} onClick={() => openCircularPreview.mutate(c)} aria-label="Ver circular">
+                              <VisibilityOutlinedIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      </Stack>
+                    </Stack>
+                  );
+                })}
+                {items.length > 4 && (
+                  <Button fullWidth onClick={() => setShowAllHistory((v) => !v)} sx={{ borderTop: '1px solid', borderColor: 'divider', borderRadius: 0, py: 1 }}>
+                    {showAllHistory ? 'Ver menos' : `Ver los ${items.length} circulares`}
+                  </Button>
+                )}
+              </Box>
+            )}
+          </Box>
         </Stack>
-      </Paper>
+      </Surface>
 
-      {circulars.isLoading ? (
-        <LinearProgress />
-      ) : (
-        <Box sx={{ overflowX: 'auto' }}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={cell}>Circular</TableCell>
-                <TableCell sx={cell}>Vigencia</TableCell>
-                <TableCell sx={cell}>Estado</TableCell>
-                <TableCell sx={cell} align="right">Productos</TableCell>
-                <TableCell sx={cell}>Archivo</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {items.map((c) => (
-                <TableRow key={c._id} hover>
-                  <TableCell sx={cell}>
-                    {c.title || '—'}
-                    {(c as any).fileKey === 'campaign' && (
-                      <Chip size="small" variant="outlined" color="primary" label="Campaña" sx={{ ml: 1, height: 20 }} />
-                    )}
-                  </TableCell>
-                  <TableCell sx={cell}>{fmtDate(c.startDate)} → {fmtDate(c.endDate)}</TableCell>
-                  <TableCell sx={cell}>
-                    <Chip size="small" {...(STATUS_CHIP[c.status] || { label: c.status, color: 'default' })} />
-                  </TableCell>
-                  <TableCell sx={cell} align="right">
-                    {(c as any).products?.length ?? 0}
-                    {/* Con archivo pero sin productos: la extracción no corrió (o falló) */}
-                    {c.fileUrl && !((c as any).products?.length) && (
-                      <Button
-                        size="small"
-                        sx={{ ml: 1, minWidth: 0 }}
-                        disabled={extract.isPending}
-                        onClick={() => extract.mutate(c._id)}
-                      >
-                        {extract.isPending ? 'Extrayendo…' : 'Extraer (IA)'}
-                      </Button>
-                    )}
-                    {/* Con productos: se pueden pasar al catálogo desde cualquier circular */}
-                    {!!(c as any).products?.length && (
-                      <Button
-                        size="small"
-                        sx={{ ml: 1, minWidth: 0 }}
-                        disabled={loadCatalog.isPending}
-                        onClick={() => loadCatalog.mutate(c._id)}
-                      >
-                        Cargar al catálogo
-                      </Button>
-                    )}
-                  </TableCell>
-                  <TableCell sx={cell}>
-                    {c.fileUrl ? (
-                      <MuiLink href={c.fileUrl} target="_blank" rel="noopener" variant="body2">Ver</MuiLink>
-                    ) : (
-                      <Typography variant="caption" color="text.disabled">sin archivo</Typography>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {!items.length && (
-                <TableRow>
-                  <TableCell colSpan={5} sx={{ py: 3, textAlign: 'center' }}>
-                    <Typography variant="body2" color="text.secondary">Esta tienda no tiene circulares.</Typography>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </Box>
-      )}
       {/* Antes de leer el arte de campaña: cuántos y si se limpian las imágenes. Un arte puede
           traer 40 productos y lo caro es la imagen limpia por IA (una generación por producto). */}
       <Dialog open={campaignAsk} onClose={() => setCampaignAsk(false)} maxWidth="xs" fullWidth>
@@ -1910,7 +2034,7 @@ export default function StoreCircularPanel({ storeId, storeSlug, storeName, prov
     enabled: !!storeSlug,
     refetchInterval: 60_000,
   });
-  const upcomingCount = upcoming.data?.total ?? 0;
+  const upcomingCount = (upcoming.data?.total ?? 0) + (upcoming.data?.banners?.length ?? 0);
 
   if (!storeSlug) {
     return (

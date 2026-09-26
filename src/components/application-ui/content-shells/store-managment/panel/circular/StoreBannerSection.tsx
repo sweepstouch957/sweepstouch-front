@@ -10,22 +10,24 @@
 import { campaignClient } from '@/services/campaing.service';
 import { circularService, type StoreBanner } from '@/services/circular.service';
 import { uploadCampaignImage } from '@/services/upload.service';
+import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
+import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
+import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
+import TitleRoundedIcon from '@mui/icons-material/TitleRounded';
 import {
   Box,
   Button,
   Chip,
   Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
   LinearProgress,
-  Paper,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   TextField,
   Tooltip,
   Typography,
@@ -33,6 +35,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import { Meta, SectionHeader, Surface } from './panelUi';
 
 const TZ = 'America/New_York';
 /** ISO → "YYYY-MM-DD" en hora del Este (el fin de día guardado cae en el día siguiente en UTC). */
@@ -50,6 +53,21 @@ const statusOf = (b: StoreBanner, activeId?: string) => {
 };
 
 const blank = () => ({ id: '', imageUrl: '', title: '', startDate: today(), endDate: plusDays(6) });
+
+// Marco 3:1 común a vigente, formulario e historial: todos los banners se ven con la misma forma.
+const bannerFrame = {
+  p: 0,
+  border: '1px solid',
+  borderColor: 'divider',
+  borderRadius: 2,
+  overflow: 'hidden',
+  display: 'block',
+  width: '100%',
+  cursor: 'zoom-in',
+  bgcolor: 'background.default',
+  aspectRatio: '3 / 1',
+  '& img': { display: 'block', width: '100%', height: '100%', objectFit: 'cover' },
+} as const;
 
 export default function StoreBannerSection({ storeSlug, storeId }: { storeSlug: string; storeId?: string }) {
   const qc = useQueryClient();
@@ -84,6 +102,8 @@ export default function StoreBannerSection({ storeSlug, storeId }: { storeSlug: 
   const [form, setForm] = useState(blank);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState('');
+  const [toDelete, setToDelete] = useState<StoreBanner | null>(null);
+  const [showAll, setShowAll] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const upload = async (file: File) => {
@@ -128,161 +148,226 @@ export default function StoreBannerSection({ storeSlug, storeId }: { storeSlug: 
   const canSave = !!form.imageUrl && validDates && !uploading && !save.isPending;
 
   return (
-    <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
-      <Typography variant="subtitle1" fontWeight={700}>Banner de campaña en las listas</Typography>
-      <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-        Es la imagen que el cliente ve arriba de su lista. Sale solo entre las fechas elegidas; sin banner vigente no se muestra nada.
-        Al extraer productos de un circular o de una campaña, la IA recorta el encabezado del flyer y lo deja acá solo
-        (si ya hay uno manual vigente, no lo toca).
-      </Typography>
-
-      <Stack direction="row" gap={1} flexWrap="wrap" sx={{ mb: 2 }}>
-        <Button size="small" variant="outlined" disabled={fromFlyer.isPending} onClick={() => fromFlyer.mutate(undefined)}>
-          Sacar banner del circular
-        </Button>
-        {campaignImage && (
-          <Button size="small" variant="outlined" disabled={fromFlyer.isPending} onClick={() => fromFlyer.mutate(campaignImage)}>
-            Sacar banner de la última campaña
-          </Button>
+    <Surface>
+      <Stack spacing={2.5}>
+        <SectionHeader
+          step={4}
+          title="Banner de las listas"
+          description="La imagen que el cliente ve arriba de su lista, sólo entre sus fechas. La IA la saca sola del encabezado del flyer o de la campaña."
+          action={
+            <>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<AutoAwesomeOutlinedIcon />}
+                disabled={fromFlyer.isPending}
+                onClick={() => fromFlyer.mutate(undefined)}
+              >
+                Del circular
+              </Button>
+              {campaignImage && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<AutoAwesomeOutlinedIcon />}
+                  disabled={fromFlyer.isPending}
+                  onClick={() => fromFlyer.mutate(campaignImage)}
+                >
+                  De la campaña
+                </Button>
+              )}
+            </>
+          }
+        />
+        {fromFlyer.isPending && (
+          <Box>
+            <LinearProgress sx={{ borderRadius: 1 }} />
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              La IA está ubicando el encabezado del flyer (unos 20 segundos)…
+            </Typography>
+          </Box>
         )}
-      </Stack>
-      {fromFlyer.isPending && (
-        <Box sx={{ mb: 2 }}>
-          <LinearProgress sx={{ borderRadius: 1 }} />
-          <Typography variant="caption" color="text.secondary">La IA está ubicando el encabezado del flyer (unos 20 segundos)…</Typography>
-        </Box>
-      )}
 
-      <Stack direction={{ xs: 'column', md: 'row' }} gap={2.5}>
-        {/* Vigente */}
-        <Box sx={{ width: { xs: '100%', md: 320 }, flexShrink: 0 }}>
-          <Typography variant="caption" color="text.secondary" fontWeight={700} display="block" sx={{ mb: 0.5 }}>
-            Lo que ve el cliente hoy
-          </Typography>
-          {active ? (
+        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' } }}>
+          {/* Vigente */}
+          <Box sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.25 }}>
+              <Typography variant="subtitle2" fontWeight={700}>Lo que ve el cliente hoy</Typography>
+              {active && <Chip size="small" color="success" label="Vigente" />}
+            </Stack>
+            {active ? (
+              <>
+                <Box component="button" type="button" onClick={() => setPreview(active.imageUrl)} aria-label="Ver banner vigente en grande" sx={bannerFrame}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={active.imageUrl} alt={active.title || 'Banner vigente'} />
+                </Box>
+                <Stack direction="row" gap={2} flexWrap="wrap" sx={{ mt: 1 }}>
+                  {active.title && <Meta icon={<TitleRoundedIcon />}>{active.title}</Meta>}
+                  <Meta icon={<CalendarMonthRoundedIcon />}>{pretty(active.startDate)} al {pretty(active.endDate)}</Meta>
+                  {active.auto && <Meta icon={<AutoAwesomeOutlinedIcon />}>Automático</Meta>}
+                </Stack>
+              </>
+            ) : (
+              <Box sx={{ ...bannerFrame, cursor: 'default', borderStyle: 'dashed', display: 'grid', placeItems: 'center', bgcolor: 'transparent' }}>
+                <Stack alignItems="center" gap={0.5} sx={{ color: 'text.secondary', px: 2, textAlign: 'center' }}>
+                  <ImageOutlinedIcon />
+                  <Typography variant="body2">Sin banner vigente: el cliente no ve ninguna imagen.</Typography>
+                </Stack>
+              </Box>
+            )}
+          </Box>
+
+          {/* Alta / edición */}
+          <Box
+            sx={{
+              p: 2,
+              borderRadius: 2,
+              border: '1px solid',
+              borderColor: form.id ? 'primary.main' : 'divider',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1.5,
+            }}
+          >
+            <Stack direction="row" alignItems="center" justifyContent="space-between">
+              <Typography variant="subtitle2" fontWeight={700}>{form.id ? 'Editando banner' : 'Nuevo banner'}</Typography>
+              {form.id && (
+                <Button size="small" color="inherit" onClick={() => setForm(blank())}>
+                  Cancelar
+                </Button>
+              )}
+            </Stack>
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = '';
+                if (f) void upload(f);
+              }}
+            />
             <Box
               component="button"
               type="button"
-              onClick={() => setPreview(active.imageUrl)}
-              aria-label="Ver banner vigente en grande"
-              sx={{ p: 0, border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden', display: 'block', width: '100%', cursor: 'zoom-in', bgcolor: 'background.default' }}
+              disabled={uploading}
+              onClick={() => fileInput.current?.click()}
+              onDragOver={(e: React.DragEvent) => e.preventDefault()}
+              onDrop={(e: React.DragEvent) => {
+                e.preventDefault();
+                const f = Array.from(e.dataTransfer.files).find((x) => x.type.startsWith('image/'));
+                if (f) void upload(f);
+              }}
+              sx={{
+                ...bannerFrame,
+                cursor: 'pointer',
+                borderStyle: form.imageUrl ? 'solid' : 'dashed',
+                display: 'grid',
+                placeItems: 'center',
+                bgcolor: 'transparent',
+                '&:hover': { borderColor: 'primary.main' },
+              }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={active.imageUrl} alt={active.title || 'Banner vigente'} style={{ display: 'block', width: '100%', height: 'auto' }} />
+              {form.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={form.imageUrl} alt="" />
+              ) : (
+                <Stack alignItems="center" gap={0.5} sx={{ color: 'text.secondary', px: 2 }}>
+                  <CloudUploadOutlinedIcon />
+                  <Typography variant="body2" fontWeight={600}>{uploading ? 'Subiendo…' : 'Sube o arrastra la imagen'}</Typography>
+                  <Typography variant="body2" sx={{ fontSize: 12.5 }}>Apaisada 3:1 (ej. 2172×724)</Typography>
+                </Stack>
+              )}
             </Box>
-          ) : (
-            <Box sx={{ border: '1px dashed', borderColor: 'divider', borderRadius: 2, p: 3, textAlign: 'center' }}>
-              <Typography variant="body2" color="text.secondary">Sin banner vigente: el cliente no ve ninguna imagen.</Typography>
-            </Box>
-          )}
-          {active && (
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-              {active.title ? `${active.title} · ` : ''}{pretty(active.startDate)} al {pretty(active.endDate)}
-            </Typography>
-          )}
-        </Box>
-
-        {/* Alta / edición */}
-        <Stack gap={1.5} sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="caption" color="text.secondary" fontWeight={700}>
-            {form.id ? 'Editando banner' : 'Nuevo banner'}
-          </Typography>
-          <input
-            ref={fileInput}
-            type="file"
-            accept="image/*"
-            hidden
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              e.target.value = '';
-              if (f) void upload(f);
-            }}
-          />
-          <Stack direction="row" alignItems="center" gap={1.5} flexWrap="wrap">
-            {form.imageUrl && (
-              <Box
-                component="button"
-                type="button"
-                onClick={() => setPreview(form.imageUrl)}
-                aria-label="Ver imagen elegida en grande"
-                sx={{ p: 0, border: '1px solid', borderColor: 'divider', borderRadius: 1.5, overflow: 'hidden', width: 150, cursor: 'zoom-in', bgcolor: 'background.default' }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={form.imageUrl} alt="" style={{ display: 'block', width: '100%', height: 'auto' }} />
-              </Box>
-            )}
-            <Button variant="outlined" size="small" disabled={uploading} onClick={() => fileInput.current?.click()}>
-              {uploading ? 'Subiendo…' : form.imageUrl ? 'Cambiar imagen' : 'Subir imagen'}
-            </Button>
-            <Typography variant="caption" color="text.secondary">Apaisada, 3:1 aprox. (ej. 2172×724)</Typography>
-          </Stack>
-          {uploading && <LinearProgress sx={{ borderRadius: 1 }} />}
-          <TextField size="small" fullWidth label="Título (texto alternativo)" placeholder="Ej.: Labor Day Sale" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} inputProps={{ maxLength: 120 }} />
-          <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5}>
-            <TextField size="small" fullWidth type="date" label="Desde" InputLabelProps={{ shrink: true }} value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
+            {uploading && <LinearProgress sx={{ borderRadius: 1 }} />}
             <TextField
               size="small"
               fullWidth
-              type="date"
-              label="Hasta (inclusive)"
-              InputLabelProps={{ shrink: true }}
-              value={form.endDate}
-              onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-              error={!validDates}
-              helperText={!validDates ? 'La fecha de fin no puede ser anterior al inicio' : ' '}
+              label="Título (texto alternativo)"
+              placeholder="Ej.: Labor Day Sale"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              inputProps={{ maxLength: 120 }}
             />
-          </Stack>
-          <Stack direction="row" justifyContent="flex-end" gap={1}>
-            {form.id && <Button color="inherit" onClick={() => setForm(blank())}>Cancelar edición</Button>}
-            <Button variant="contained" disabled={!canSave} onClick={() => save.mutate()}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5}>
+              <TextField
+                size="small"
+                fullWidth
+                type="date"
+                label="Desde"
+                InputLabelProps={{ shrink: true }}
+                value={form.startDate}
+                onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+              />
+              <TextField
+                size="small"
+                fullWidth
+                type="date"
+                label="Hasta (inclusive)"
+                InputLabelProps={{ shrink: true }}
+                value={form.endDate}
+                onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+                error={!validDates}
+                helperText={!validDates ? 'El fin no puede ser antes del inicio' : undefined}
+              />
+            </Stack>
+            <Button variant="contained" disabled={!canSave} onClick={() => save.mutate()} sx={{ alignSelf: 'flex-end' }}>
               {save.isPending ? 'Guardando…' : form.id ? 'Guardar cambios' : 'Guardar banner'}
             </Button>
-          </Stack>
-        </Stack>
-      </Stack>
+          </Box>
+        </Box>
 
-      {/* Histórico */}
-      <Typography variant="subtitle2" fontWeight={700} sx={{ mt: 2.5, mb: 0.5 }}>Histórico</Typography>
-      {banners.isLoading ? (
-        <LinearProgress />
-      ) : !items.length ? (
-        <Typography variant="body2" color="text.secondary">Todavía no hay banners en esta tienda.</Typography>
-      ) : (
-        <Box sx={{ overflowX: 'auto' }}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Imagen</TableCell>
-                <TableCell>Título</TableCell>
-                <TableCell>Vigencia</TableCell>
-                <TableCell>Estado</TableCell>
-                <TableCell align="right">Acciones</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {items.map((b) => {
+        {/* Historial en lista (antes: tabla con scroll lateral) */}
+        <Box>
+          <Stack direction="row" alignItems="baseline" justifyContent="space-between" sx={{ mb: 1 }}>
+            <Typography variant="subtitle2" fontWeight={700}>Historial de banners</Typography>
+            <Typography variant="body2" color="text.secondary">{items.length} en total</Typography>
+          </Stack>
+          {banners.isLoading ? (
+            <LinearProgress />
+          ) : !items.length ? (
+            <Box sx={{ p: 3, textAlign: 'center', borderRadius: 2, border: '1px dashed', borderColor: 'divider' }}>
+              <Typography variant="body2" color="text.secondary">Todavía no hay banners en esta tienda.</Typography>
+            </Box>
+          ) : (
+            <Box sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
+              {(showAll ? items : items.slice(0, 4)).map((b, i) => {
                 const st = statusOf(b, active?._id);
                 return (
-                  <TableRow key={b._id} hover selected={form.id === b._id}>
-                    <TableCell>
-                      <Box
-                        component="button"
-                        type="button"
-                        onClick={() => setPreview(b.imageUrl)}
-                        aria-label={`Ver banner ${b.title || ''} en grande`}
-                        sx={{ p: 0, border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden', width: 96, display: 'block', cursor: 'zoom-in', bgcolor: 'background.default' }}
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={b.imageUrl} alt="" loading="lazy" style={{ display: 'block', width: '100%', height: 'auto' }} />
-                      </Box>
-                    </TableCell>
-                    <TableCell>{b.title || '—'}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{pretty(b.startDate)} al {pretty(b.endDate)}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                      <Chip size="small" label={st.label} color={st.color} />
-                      {b.auto && <Chip size="small" variant="outlined" label="Automático" sx={{ ml: 0.5 }} />}
-                    </TableCell>
-                    <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                  <Stack
+                    key={b._id}
+                    direction="row"
+                    alignItems="center"
+                    gap={2}
+                    sx={{
+                      px: 2,
+                      py: 1.25,
+                      borderTop: i ? '1px solid' : 'none',
+                      borderColor: 'divider',
+                      bgcolor: form.id === b._id ? 'action.selected' : 'transparent',
+                      '&:hover': { bgcolor: 'action.hover' },
+                    }}
+                  >
+                    <Box
+                      component="button"
+                      type="button"
+                      onClick={() => setPreview(b.imageUrl)}
+                      aria-label={`Ver banner ${b.title || ''} en grande`}
+                      sx={{ ...bannerFrame, width: 108, flexShrink: 0, borderRadius: 1.5 }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={b.imageUrl} alt="" loading="lazy" />
+                    </Box>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography variant="body2" fontWeight={700} noWrap>{b.title || 'Sin título'}</Typography>
+                      <Stack direction="row" gap={1.5} flexWrap="wrap" alignItems="center">
+                        <Meta icon={<CalendarMonthRoundedIcon />}>{pretty(b.startDate)} al {pretty(b.endDate)}</Meta>
+                        {b.auto && <Meta icon={<AutoAwesomeOutlinedIcon />}>Automático</Meta>}
+                      </Stack>
+                    </Box>
+                    <Chip size="small" label={st.label} color={st.color} sx={{ display: { xs: 'none', sm: 'inline-flex' } }} />
+                    <Stack direction="row" sx={{ flexShrink: 0 }}>
                       <Tooltip title="Editar imagen, título o fechas">
                         <IconButton
                           size="small"
@@ -293,28 +378,57 @@ export default function StoreBannerSection({ storeSlug, storeId }: { storeSlug: 
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Eliminar">
-                        <IconButton
-                          size="small"
-                          aria-label="Eliminar banner"
-                          disabled={remove.isPending}
-                          onClick={() => { if (window.confirm('¿Eliminar este banner? No se puede deshacer.')) remove.mutate(b._id); }}
-                        >
+                        <IconButton size="small" aria-label="Eliminar banner" disabled={remove.isPending} onClick={() => setToDelete(b)}>
                           <DeleteOutlineIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                    </TableCell>
-                  </TableRow>
+                    </Stack>
+                  </Stack>
                 );
               })}
-            </TableBody>
-          </Table>
+              {items.length > 4 && (
+                <Button
+                  fullWidth
+                  onClick={() => setShowAll((v) => !v)}
+                  sx={{ borderTop: '1px solid', borderColor: 'divider', borderRadius: 0, py: 1 }}
+                >
+                  {showAll ? 'Ver menos' : `Ver los ${items.length} banners`}
+                </Button>
+              )}
+            </Box>
+          )}
         </Box>
-      )}
+      </Stack>
 
       <Dialog open={!!preview} onClose={() => setPreview('')} maxWidth="md" fullWidth>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         {preview && <img src={preview} alt="Vista previa del banner" style={{ display: 'block', width: '100%', height: 'auto' }} />}
       </Dialog>
-    </Paper>
+
+      {/* Confirmación propia: nada de window.confirm del navegador */}
+      <Dialog open={!!toDelete} onClose={() => setToDelete(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>¿Eliminar este banner?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            {toDelete?.title ? `"${toDelete.title}" ` : 'El banner '}se borra y no se puede deshacer.
+            {toDelete && toDelete._id === active?._id ? ' Es el vigente: el cliente deja de ver banner.' : ''}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setToDelete(null)}>Cancelar</Button>
+          <Button
+            variant="contained"
+            color="error"
+            disabled={remove.isPending}
+            onClick={() => {
+              if (toDelete) remove.mutate(toDelete._id);
+              setToDelete(null);
+            }}
+          >
+            Eliminar
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Surface>
   );
 }

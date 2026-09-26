@@ -14,6 +14,7 @@ import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 import RocketLaunchOutlinedIcon from '@mui/icons-material/RocketLaunchOutlined';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
+import ViewCarouselOutlinedIcon from '@mui/icons-material/ViewCarouselOutlined';
 import {
   alpha,
   Box,
@@ -77,6 +78,7 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['store-upcoming', storeSlug] });
     qc.invalidateQueries({ queryKey: ['store-catalog-admin', storeSlug] });
+    qc.invalidateQueries({ queryKey: ['store-banners', storeSlug] });
   };
 
   // Imagen para recortar: la del arte/circular del que salió ESTE producto (no el vigente).
@@ -127,6 +129,10 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
   });
 
   const groups = upcoming.data?.groups ?? [];
+  const banners = upcoming.data?.banners ?? [];
+  const bannerOfDay = (day: string) => banners.find((b) => b.day === day);
+  const fmtShort = (iso: string) =>
+    new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', timeZone: TZ });
   const needle = q.trim().toLowerCase();
   const filtered = useMemo(
     () =>
@@ -147,10 +153,10 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
       <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" gap={1.5}>
         <Box>
           <Typography variant="h6" fontWeight={800}>
-            Productos que salen pronto
+            Lo que sale pronto
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Ya están cargados pero el cliente todavía no los ve. Revísalos antes de su fecha.
+            Productos y banners ya cargados que el cliente todavía no ve. Revísalos antes de su fecha.
           </Typography>
         </Box>
         <TextField
@@ -174,7 +180,47 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
 
       {upcoming.isLoading && <LinearProgress />}
 
-      {!upcoming.isLoading && !groups.length && (
+      {/* Banners programados: salen solos en su fecha (el vigente es el de inicio más reciente). */}
+      {!!banners.length && (
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+          <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1.5 }}>
+            <ViewCarouselOutlinedIcon color="primary" fontSize="small" />
+            <Typography variant="subtitle2" fontWeight={700}>Banners programados</Typography>
+            <Typography variant="body2" color="text.secondary">· reemplazan al actual en su fecha</Typography>
+          </Stack>
+          <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' } }}>
+            {banners.map((b) => (
+              <Box key={b._id}>
+                <Box
+                  component="button"
+                  type="button"
+                  onClick={() => setPreview(b.imageUrl)}
+                  aria-label={`Ver banner ${b.title || ''}`}
+                  sx={{
+                    p: 0, width: '100%', aspectRatio: '3 / 1', borderRadius: 2, overflow: 'hidden', cursor: 'zoom-in',
+                    border: '1px solid', borderColor: 'divider', bgcolor: 'background.default', display: 'block',
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={b.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                </Box>
+                <Stack direction="row" alignItems="center" gap={0.75} sx={{ mt: 0.75 }} flexWrap="wrap">
+                  <Typography variant="body2" fontWeight={600}>
+                    {fmtShort(b.startDate)} → {fmtShort(new Date(+new Date(b.endDate) - 1).toISOString())}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">· {relDay(b.day)}</Typography>
+                  {b.auto && <Chip size="small" variant="outlined" label="Automático" sx={{ height: 20 }} />}
+                </Stack>
+              </Box>
+            ))}
+          </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
+            Se editan en la pestaña Circular, sección Banner de las listas.
+          </Typography>
+        </Paper>
+      )}
+
+      {!upcoming.isLoading && !groups.length && !banners.length && (
         <Paper variant="outlined" sx={{ p: 4, borderRadius: 3, textAlign: 'center' }}>
           <EventRoundedIcon color="disabled" sx={{ fontSize: 40 }} />
           <Typography variant="subtitle1" fontWeight={700} sx={{ mt: 1 }}>
@@ -226,13 +272,31 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
                   ) : (
                     <Chip size="small" variant="outlined" label="Sin origen" />
                   )}
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary">
                     {g.items.length} producto{g.items.length !== 1 ? 's' : ''}
+                    {bannerOfDay(g.day) ? ' + banner' : ''}
                   </Typography>
                 </Stack>
               </Box>
             </Stack>
-            <Stack direction="row" gap={1} flexWrap="wrap">
+            <Stack direction="row" gap={1} flexWrap="wrap" alignItems="center">
+              {bannerOfDay(g.day) && (
+                <Tooltip title="Banner de ese día">
+                  <Box
+                    component="button"
+                    type="button"
+                    onClick={() => setPreview(bannerOfDay(g.day)!.imageUrl)}
+                    aria-label="Ver banner de ese día"
+                    sx={{
+                      p: 0, width: 120, aspectRatio: '3 / 1', borderRadius: 1.5, overflow: 'hidden', cursor: 'zoom-in',
+                      border: '1px solid', borderColor: 'divider', bgcolor: 'background.default', display: 'block',
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={bannerOfDay(g.day)!.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  </Box>
+                </Tooltip>
+              )}
               {g.circular?.hasFile && (
                 <Button size="small" variant="outlined" startIcon={<ImageOutlinedIcon />} disabled={openArt.isPending} onClick={() => openArt.mutate(g)}>
                   Ver arte
@@ -290,7 +354,7 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
         <DialogContent>
           <Typography variant="body2" color="text.secondary">
             {confirm?.kind === 'group' &&
-              `Los ${confirm.group.items.length} productos del ${fmtDay(confirm.group.day)} se ven desde ya en las listas, con su precio nuevo. Hoy todavía no es su fecha.`}
+              `Los ${confirm.group.items.length} productos del ${fmtDay(confirm.group.day)} se ven desde ya en las listas, con su precio nuevo${bannerOfDay(confirm.group.day)?.auto ? ', y su banner pasa a ser el vigente' : ''}. Hoy todavía no es su fecha.`}
             {confirm?.kind === 'publish' && `"${confirm.product.name}" se ve desde ya a ${confirm.product.pending?.price || '—'}.`}
             {confirm?.kind === 'cancel' &&
               (confirm.product.pending?.isNew

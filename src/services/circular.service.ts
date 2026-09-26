@@ -118,6 +118,8 @@ export interface CampaignImportJob {
     found: number;
     added: number;
     effectiveFrom?: string | null;
+    /** Banner sacado del arte, con la vigencia de la campaña (null = no se creó). */
+    banner?: { id: string; imageUrl: string; startDate: string; endDate: string; fromArt: boolean } | null;
   };
   finishedAt?: string | null;
 }
@@ -222,9 +224,11 @@ export class CircularService {
   }
 
   /** Productos que todavía no salen (precio en `pending`), agrupados por día y origen. */
-  async getUpcoming(storeSlug: string): Promise<{ total: number; groups: UpcomingGroup[] }> {
+  async getUpcoming(
+    storeSlug: string
+  ): Promise<{ total: number; groups: UpcomingGroup[]; banners: (StoreBanner & { day: string })[] }> {
     const res = await api.get(`/circulars/store/${storeSlug}/upcoming`);
-    return { total: res.data?.total ?? 0, groups: res.data?.groups ?? [] };
+    return { total: res.data?.total ?? 0, groups: res.data?.groups ?? [], banners: res.data?.banners ?? [] };
   }
 
   /** Corrige el precio que VA a salir (no el de hoy) o mueve su fecha. */
@@ -242,8 +246,12 @@ export class CircularService {
     return res.data;
   }
 
-  /** Publica ya un grupo entero (un día y/o un circular). */
-  async publishUpcomingNow(storeSlug: string, scope: { day?: string; circularId?: string }): Promise<{ applied: number }> {
+  /** Publica ya un grupo entero (un día y/o un circular). Con `day`, adelanta también el
+   *  banner automático de ese día. */
+  async publishUpcomingNow(
+    storeSlug: string,
+    scope: { day?: string; circularId?: string }
+  ): Promise<{ applied: number; bannersMoved?: number }> {
     const res = await api.post(`/circulars/store/${storeSlug}/upcoming/apply`, scope);
     return res.data;
   }

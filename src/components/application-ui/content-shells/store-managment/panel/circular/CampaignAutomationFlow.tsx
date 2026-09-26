@@ -6,6 +6,7 @@ import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import ListAltRoundedIcon from '@mui/icons-material/ListAltRounded';
+import ViewCarouselOutlinedIcon from '@mui/icons-material/ViewCarouselOutlined';
 import { alpha, Box, CircularProgress, Stack, Typography, useTheme } from '@mui/material';
 import type { ReactNode } from 'react';
 import type { CampaignImportJob } from '@/services/circular.service';
@@ -23,8 +24,8 @@ const fmt = (d?: string | Date | null) =>
   d ? new Date(d).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', timeZone: 'America/New_York' }) : '';
 
 /**
- * Los 4 pasos que corren solos al agendar una campaña con arte, conectados:
- * campaña → arte optimizado → IA lee productos → lista del cliente.
+ * Los 5 pasos que corren solos al agendar una campaña con arte, conectados:
+ * campaña → arte optimizado → IA lee productos → banner → lista del cliente.
  * Deriva todo de la campaña y del job de circular-service; no pide nada propio.
  */
 export function buildSteps(campaign: any, job: CampaignImportJob | null): Step[] {
@@ -61,6 +62,21 @@ export function buildSteps(campaign: any, job: CampaignImportJob | null): Step[]
         }
       : { icon: <ListAltRoundedIcon />, title: 'Lista del cliente', detail: 'Productos y precios desde el día de la campaña', state: 'idle' };
 
+  // Banner: el encabezado del arte, visible sólo los días de la campaña.
+  const b = r?.banner;
+  const bannerEnd = b ? new Date(+new Date(b.endDate) - 1) : null;
+  const banner: Step =
+    job?.status !== 'done'
+      ? { icon: <ViewCarouselOutlinedIcon />, title: 'Banner de la lista', detail: 'Encabezado del arte, sólo los días de la campaña', state: 'idle' }
+      : b
+        ? {
+            icon: <ViewCarouselOutlinedIcon />,
+            title: 'Banner de la lista',
+            detail: `${fmt(b.startDate)} → ${fmt(bannerEnd)}${b.fromArt ? ' (fechas del arte)' : ''}`,
+            state: new Date(b.startDate) > new Date() ? 'active' : 'done',
+          }
+        : { icon: <ViewCarouselOutlinedIcon />, title: 'Banner de la lista', detail: 'No se creó: había uno manual esos días o el arte no tiene encabezado', state: 'idle' };
+
   return [
     {
       icon: <CampaignRoundedIcon />,
@@ -79,6 +95,7 @@ export function buildSteps(campaign: any, job: CampaignImportJob | null): Step[]
       state: hasArt ? 'done' : 'idle',
     },
     ai,
+    banner,
     list,
   ];
 }
