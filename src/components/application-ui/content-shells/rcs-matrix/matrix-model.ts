@@ -183,3 +183,71 @@ export function uniqueByPhone(rows: MatrixRow[], phoneKey: (p: string) => string
 }
 
 export const pct = (n: number, d: number) => (d ? `${Math.round((n / d) * 100)}%` : '0%');
+
+/* ══════════ Cola de atención (CRM de solicitudes) ══════════ */
+
+/**
+ * Qué falta hacer con una solicitud. El orden es el de la vida real: primero lo
+ * que ya tiene plata del cliente y nadie miró, al final lo que sólo se mira.
+ *
+ *  approve  — pagada y sin aprobar: la tienda todavía no dijo que puede armarla
+ *  prepare  — aprobada: hay que armarla
+ *  deliver  — lista en el mostrador: falta entregarla
+ *  unpaid   — se quedó en el checkout sin pagar: se la persigue
+ *  list     — lista de compra vigente, sin pedido: se la empuja a comprar
+ *  done     — cerrada (entregada, cancelada, lista validada o vencida)
+ */
+export type QueueKey = 'approve' | 'prepare' | 'deliver' | 'unpaid' | 'list' | 'done';
+
+export const QUEUE_ORDER: readonly QueueKey[] = ['approve', 'prepare', 'deliver', 'unpaid', 'list', 'done'];
+
+/** En qué cola cae la fila. Una sola regla, usada por los contadores y por la lista. */
+export function queueOf(r: MatrixRow): QueueKey {
+  if (isList(r)) return r.fulfillmentStatus === 'list_pending' ? 'list' : 'done';
+  switch (r.fulfillmentStatus) {
+    case 'awaiting_payment':
+      return 'unpaid';
+    case 'paid':
+      return r.reviewed ? 'prepare' : 'approve';
+    case 'preparing':
+      return 'prepare';
+    case 'ready':
+      return 'deliver';
+    default:
+      return 'done';
+  }
+}
+
+/** Minutos esperando desde que entró. Es el SLA que se ve en la cola. */
+export function waitingMinutes(r: MatrixRow, now: number = Date.now()): number {
+  const t = Date.parse(r.createdAt);
+  return Number.isFinite(t) ? Math.max(0, Math.round((now - t) / 60000)) : 0;
+}
+
+export interface QueueBucket {
+  key: QueueKey;
+  rows: MatrixRow[];
+  cents: number;
+  /** La más vieja sin atender, en minutos. Es lo que duele. */
+  oldestMinutes: number;
+}
+
+/**
+ * Filas agrupadas por lo que hay que hacer, cada grupo con lo más viejo primero:
+ * en una cola de trabajo, lo urgente es lo que lleva más tiempo esperando.
+ */
+export function buildQueues(rows: MatrixRow[], now: number = Date.now()): QueueBucket[] {
+  const map = new Map<QueueKey, QueueBucket>(
+    QUEUE_ORDER.map((key) => [key, { key, rows: [], cents: 0, oldestMinutes: 0 }])
+  );
+  for (const r of rows) {
+    const b = map.get(queueOf(r))!;
+    b.rows.push(r);
+    if (!isList(r)) b.cents += net(r);
+  }
+  for (const b of map.values()) {
+    b.rows.sort((a, z) => (a.createdAt < z.createdAt ? -1 : a.createdAt > z.createdAt ? 1 : 0));
+    b.oldestMinutes = b.rows.length ? waitingMinutes(b.rows[0], now) : 0;
+  }
+  return QUEUE_ORDER.map((k) => map.get(k)!);
+}

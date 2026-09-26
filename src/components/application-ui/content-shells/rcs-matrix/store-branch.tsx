@@ -48,6 +48,8 @@ interface Props {
   /** Estado de WhatsApp por teléfono (últimos 10 dígitos). */
   wa?: Record<string, ShopperPhoneStatus>;
   onSendWa?: (row: MatrixRow) => void;
+  /** Abrir la ficha de gestión (CRM) de esa solicitud. */
+  onOpenRow?: (row: MatrixRow) => void;
 }
 
 /** Columnas de una fila en escritorio: persona · orden · plata · contacto. */
@@ -160,6 +162,8 @@ function ContactButtons({
     <Stack
       direction="row"
       spacing={0.75}
+      // La fila entera abre la ficha; llamar o escribir no debe abrirla además.
+      onClick={(e) => e.stopPropagation()}
     >
       {actions.map((a) => (
         <IconButton
@@ -192,11 +196,13 @@ function ContactRow({
   showDate,
   wa,
   onSendWa,
+  onOpenRow,
 }: {
   row: MatrixRow;
   showDate?: boolean;
   wa?: ShopperPhoneStatus;
   onSendWa?: (row: MatrixRow) => void;
+  onOpenRow?: (row: MatrixRow) => void;
 }): React.JSX.Element {
   const meta = statusMeta(row.fulfillmentStatus);
   const pay = paymentMeta(row.paymentStatus);
@@ -211,7 +217,9 @@ function ContactRow({
 
   return (
     <Box
+      onClick={onOpenRow ? () => onOpenRow(row) : undefined}
       sx={{
+        cursor: onOpenRow ? 'pointer' : 'default',
         display: 'grid',
         gridTemplateColumns: ROW_GRID,
         alignItems: 'center',
@@ -433,6 +441,7 @@ function StoreBranchImpl({
   showDate,
   wa,
   onSendWa,
+  onOpenRow,
 }: Props): React.JSX.Element {
   const theme = useTheme();
   const { title, address } = splitStoreTitle(storeName);
@@ -550,6 +559,7 @@ function StoreBranchImpl({
             showDate={showDate}
             wa={wa?.[phoneKey(r.customerPhone)]}
             onSendWa={onSendWa}
+            onOpenRow={onOpenRow}
           />
         ))}
       </AccordionDetails>

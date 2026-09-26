@@ -1,12 +1,15 @@
 // node --experimental-strip-types src/components/application-ui/content-shells/rcs-matrix/matrix-model.check.mts
 import assert from 'node:assert';
 import {
+  buildQueues,
   computeKpis,
   filterRows,
   groupByStore,
   mergeRows,
   mergeStores,
+  queueOf,
   uniqueByPhone,
+  waitingMinutes,
 } from './matrix-model.ts';
 
 const base = {
@@ -91,5 +94,30 @@ assert.deepEqual(stores.map((s) => [s.slug, s.orders]), [['super-31', 4]]);
 
 const key = (p: string) => p.replace(/\D/g, '').slice(-10);
 assert.equal(uniqueByPhone(rows, key).length, 3, 'Carolina tiene 2 listas: un solo saludo');
+
+// ── Cola de atención: qué falta hacer con cada solicitud ──
+const paidRow = (id: string, at: string, reviewed: boolean) =>
+  order(id, at, 'paid', 5000, { reviewed }) as any;
+assert.equal(queueOf(paidRow('p1', '2026-09-25T12:00:00Z', false)), 'approve', 'pagada sin aprobar');
+assert.equal(queueOf(paidRow('p2', '2026-09-25T12:00:00Z', true)), 'prepare', 'aprobada: armarla');
+assert.equal(queueOf(order('r', '2026-09-25T12:00:00Z', 'ready', 100) as any), 'deliver');
+assert.equal(queueOf(order('u', '2026-09-25T12:00:00Z', 'awaiting_payment', 100) as any), 'unpaid');
+assert.equal(queueOf(order('c', '2026-09-25T12:00:00Z', 'completed', 100) as any), 'done');
+assert.equal(queueOf({ ...(order('l', '2026-09-25T12:00:00Z', 'list_pending', 0) as any), kind: 'list' }), 'list');
+assert.equal(queueOf({ ...(order('l2', '2026-09-25T12:00:00Z', 'list_validated', 0) as any), kind: 'list' }), 'done');
+
+const now = Date.parse('2026-09-25T13:00:00Z');
+assert.equal(waitingMinutes(paidRow('w', '2026-09-25T12:30:00Z', false), now), 30);
+
+const queues = buildQueues(
+  [paidRow('nueva', '2026-09-25T12:50:00Z', false), paidRow('vieja', '2026-09-25T12:00:00Z', false)],
+  now
+);
+const approve = queues.find((q) => q.key === 'approve')!;
+assert.equal(approve.rows.length, 2);
+assert.equal(approve.rows[0]._id, 'vieja', 'primero lo que lleva mas tiempo esperando');
+assert.equal(approve.oldestMinutes, 60);
+assert.equal(approve.cents, 10000, 'la cola suma la plata que esta esperando');
+assert.deepEqual(queues.map((q) => q.key), ['approve', 'prepare', 'deliver', 'unpaid', 'list', 'done']);
 
 console.log('matrix-model.check ok');

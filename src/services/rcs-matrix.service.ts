@@ -45,10 +45,58 @@ export interface MatrixRow {
   itemCount: number;
   subtotalCents: number;
   refundTotalCents: number;
+  /* Gestión (sólo órdenes) — qué falta hacer con ella */
+  reviewed?: boolean;
+  paymentMethod?: string;
+  notifiedStoreAt?: string | null;
+  pickupConfirmed?: boolean;
+  estimatedReadyAt?: string | null;
   /* Listas */
   expiresAt?: string | null;
   pointsAwarded?: number;
   savingsCents?: number;
+}
+
+/** Ítem de una orden, como lo devuelve /orders/track/:id. */
+export interface OrderItemDetail {
+  name: string;
+  unit?: string;
+  quantity: number;
+  lineCents: number;
+  unitPriceCents?: number;
+  priceLabel?: string;
+  imageUrl?: string;
+  available?: boolean;
+  refundedCents?: number;
+}
+
+/** Orden completa para el panel de gestión. */
+export interface OrderDetail {
+  _id: string;
+  orderNumber: string;
+  createdAt: string;
+  storeSlug?: string;
+  storeName?: string;
+  storePhone?: string;
+  customerId?: string;
+  customerName?: string;
+  customerPhone?: string;
+  fulfillmentStatus: FulfillmentStatus;
+  paymentStatus: string;
+  paymentMethod?: string;
+  reviewed?: boolean;
+  pickupAt?: string | null;
+  pickupConfirmed?: boolean;
+  prepTimeMinutes?: number;
+  estimatedReadyAt?: string | null;
+  deliveryMethod?: 'pickup' | 'delivery';
+  subtotalCents: number;
+  refundTotalCents: number;
+  shippingCostCents?: number;
+  payNowCents?: number;
+  payAtRegisterCents?: number;
+  tenderMode?: 'card' | 'ebt';
+  items: OrderItemDetail[];
 }
 
 export interface MatrixStore {
@@ -88,6 +136,39 @@ export const rcsMatrixService = {
     const url = kind === 'lists' ? '/tracking/list-admin/matrix' : '/orders/matrix';
     const { data } = await api.get<MatrixResponse>(url, { params });
     return data;
+  },
+};
+
+/**
+ * Gestión de una orden desde el panel. Son los MISMOS endpoints que usa el
+ * vendor site: acá no hay un backend aparte, sólo otra pantalla encima.
+ */
+export const orderAdminService = {
+  async detail(orderId: string): Promise<OrderDetail> {
+    const { data } = await api.get(`/orders/track/${orderId}`);
+    return data.order as OrderDetail;
+  },
+  /** Aprobar: la tienda confirma que puede armar el pedido. */
+  async review(orderId: string): Promise<void> {
+    await api.patch(`/orders/${orderId}/review`);
+  },
+  /**
+   * Etapa del pedido. Volver atrás (Completado → Listo) lo pide el backend con
+   * clave maestra; por eso `password` viaja sólo cuando se retrocede.
+   */
+  async setFulfillment(orderId: string, status: string, password?: string): Promise<void> {
+    await api.patch(`/orders/${orderId}/fulfillment`, { status, ...(password ? { password } : {}) });
+  },
+  /** Producto que no había: se reembolsa esa línea. */
+  async markUnavailable(orderId: string, index: number): Promise<void> {
+    await api.patch(`/orders/${orderId}/items/${index}/unavailable`);
+  },
+  async confirmPickup(orderId: string): Promise<void> {
+    await api.patch(`/orders/${orderId}/pickup-confirm`);
+  },
+  /** Cobrado en la caja (efectivo/EBT): cierra el pago sin pasarela. */
+  async payInStore(orderId: string): Promise<void> {
+    await api.post(`/orders/${orderId}/pay-in-store`);
   },
 };
 

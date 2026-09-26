@@ -18,6 +18,8 @@ import {
   uniqueByPhone,
 } from './matrix-model';
 import { MatrixToolbar, PRESETS, type ToolbarFilters } from './matrix-toolbar';
+import { OrderDrawer } from './order-drawer';
+import { OrderQueue } from './order-queue';
 import { SendWaDialog, type SendDialogState } from './send-wa-dialog';
 import { StoreBranch } from './store-branch';
 import { rowToTarget, waState } from './whatsapp-bot';
@@ -47,6 +49,8 @@ const INITIAL: ToolbarFilters = {
 export default function RcsMatrix(): React.JSX.Element {
   const [filters, setFilters] = useState<ToolbarFilters>(INITIAL);
   const [sendDialog, setSendDialog] = useState<SendDialogState | null>(null);
+  // Ficha abierta: la gestión pasa acá sin sacar a nadie de la matriz.
+  const [openRow, setOpenRow] = useState<MatrixRow | null>(null);
   const patch = useCallback(
     (p: Partial<ToolbarFilters>) => setFilters((f) => ({ ...f, ...p })),
     []
@@ -126,6 +130,16 @@ export default function RcsMatrix(): React.JSX.Element {
   const toggleOpen = useCallback(() => setFilters((f) => ({ ...f, onlyOpen: !f.onlyOpen })), []);
   const setWa = useCallback((v: string) => patch({ waFilter: v }), [patch]);
 
+  // Todo lo de ESA persona (menos la fila abierta), de lo que ya está en memoria.
+  const openHistory = useMemo(() => {
+    if (!openRow) return [];
+    const key = openRow.customerPhone || openRow.customerId;
+    if (!key) return [];
+    return all.filter(
+      (r) => r._id !== openRow._id && (r.customerPhone || r.customerId) === key
+    );
+  }, [all, openRow]);
+
   const filtered =
     q.trim() !== '' || store !== 'all' || status !== 'all' || onlyOpen || waFilter !== 'all';
   const multiDay = range.from !== range.to;
@@ -168,6 +182,15 @@ export default function RcsMatrix(): React.JSX.Element {
             onToggleOpen={toggleOpen}
             onToggleStatus={toggleStatus}
             onWaFilter={setWa}
+          />
+        )}
+
+        {/* Bandeja del CRM: lo que falta hacer, antes del histórico por tienda. */}
+        {!ordersQ.isPending && rows.length > 0 && (
+          <OrderQueue
+            rows={rows}
+            onOpen={setOpenRow}
+            onChanged={refetch}
           />
         )}
 
@@ -258,11 +281,19 @@ export default function RcsMatrix(): React.JSX.Element {
                 showDate={multiDay}
                 wa={wa}
                 onSendWa={openSingle}
+                onOpenRow={setOpenRow}
               />
             ))}
           </Stack>
         )}
       </Stack>
+
+      <OrderDrawer
+        row={openRow}
+        history={openHistory}
+        onClose={() => setOpenRow(null)}
+        onChanged={refetch}
+      />
 
       <SendWaDialog
         state={sendDialog}
