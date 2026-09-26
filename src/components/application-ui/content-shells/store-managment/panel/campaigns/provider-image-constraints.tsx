@@ -1,85 +1,21 @@
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Alert,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Alert } from '@mui/material';
 
 interface ProviderImageConstraintsProps {
-  provider: string; // 'infobip'
+  provider: string;
 }
 
 /**
- * Requisitos de la imagen. Plegado por defecto: son tres reglas que se leen una vez y, como
- * bloque fijo, se comía media pantalla del formulario justo al lado del selector de archivo.
+ * Requisitos de la imagen. Ya no hay que achicarla a mano: se sube tal cual (hasta 100 MB),
+ * el MMS lleva una copia de menos de 500 KB y el original queda para leer los productos.
  */
-export default function ProviderImageConstraints({ provider }: ProviderImageConstraintsProps) {
-  const isInfobip = provider.toLowerCase() === 'infobip';
-
-  if (!isInfobip) {
-    return (
-      <Alert
-        severity="warning"
-        sx={{ borderRadius: 2 }}
-      >
-        El tamaño máximo de la imagen es <strong>500 KB</strong> para asegurar la entrega del MMS.
-      </Alert>
-    );
-  }
-
+export default function ProviderImageConstraints(_props: ProviderImageConstraintsProps) {
   return (
-    <Accordion
-      disableGutters
-      elevation={0}
-      sx={{
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 2,
-        '&:before': { display: 'none' },
-        bgcolor: 'transparent',
-      }}
+    <Alert
+      severity="info"
+      sx={{ borderRadius: 2 }}
     >
-      <AccordionSummary
-        expandIcon={<ExpandMoreIcon />}
-        sx={{ minHeight: 44, px: 1.5 }}
-      >
-        <Stack
-          direction="row"
-          alignItems="center"
-          gap={1}
-        >
-          <InfoOutlinedIcon
-            fontSize="small"
-            color="info"
-          />
-          <Typography
-            variant="body2"
-            fontWeight={600}
-          >
-            JPG, PNG o GIF · hasta 2 MB
-          </Typography>
-        </Stack>
-      </AccordionSummary>
-      <AccordionDetails sx={{ px: 1.5, pt: 0 }}>
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          component="ul"
-          sx={{ m: 0, pl: 2 }}
-        >
-          <li>
-            Formatos permitidos: <strong>JPG, PNG, GIF</strong>.
-          </li>
-          <li>
-            Hasta <strong>2 MB</strong> (algunas operadoras aceptan 5 MB, pero recomendamos 2).
-          </li>
-          <li>Los archivos WebP pueden no verse en teléfonos viejos.</li>
-        </Typography>
-      </AccordionDetails>
-    </Accordion>
+      JPG o PNG hasta <strong>100 MB</strong>. Se comprime sola a menos de 500 KB para el MMS y el
+      original se guarda para cargar los productos del arte a la lista de la tienda.
+    </Alert>
   );
 }

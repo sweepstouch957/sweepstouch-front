@@ -57,6 +57,38 @@ export interface StoreProduct {
   /** Precio que va a regir desde `effectiveFrom` (el de hoy sigue en `price`). */
   effectivePrice?: string;
   effectiveCircularTitle?: string;
+  /** Precio (y si es alta, el producto entero) esperando su fecha. Lo vuelca el cron. */
+  pending?: StorePendingPrice | null;
+}
+
+export interface StorePendingPrice {
+  from: string;
+  circularId?: string | null;
+  /** Alta: el producto está oculto hasta `from`. */
+  isNew?: boolean;
+  price?: string;
+  originalPrice?: string;
+  savings?: string;
+  packQty?: number;
+  packUnit?: string;
+}
+
+/** Productos que salen en una fecha, agrupados por día + circular/campaña de origen. */
+export interface UpcomingGroup {
+  key: string;
+  /** YYYY-MM-DD en hora de las tiendas (Este de EE. UU.). */
+  day: string;
+  from: string;
+  circular: {
+    _id: string;
+    title: string;
+    fromCampaign: boolean;
+    status: string;
+    /** Imagen para recortar; vacío si es PDF (se pide la portada con getPreviewImage). */
+    flyerUrl: string;
+    hasFile: boolean;
+  } | null;
+  items: StoreProduct[];
 }
 
 /** Banner de campaña que el cliente ve arriba de su lista (linktree /prercs). */
@@ -70,6 +102,24 @@ export interface StoreBanner {
   createdAt?: string;
   /** Lo sacó la IA del header del flyer al extraer productos. */
   auto?: boolean;
+}
+
+/** circular-service CampaignImportJob: productos del arte de una campaña → lista de la tienda. */
+export interface CampaignImportJob {
+  _id: string;
+  campaign: string;
+  status: 'queued' | 'running' | 'done' | 'failed';
+  attempts: number;
+  error?: string;
+  startDate: string;
+  result?: {
+    circularId?: string | null;
+    createdCircular?: boolean;
+    found: number;
+    added: number;
+    effectiveFrom?: string | null;
+  };
+  finishedAt?: string | null;
 }
 
 export interface UploadCircularPayload {
@@ -169,6 +219,57 @@ export class CircularService {
   async addMissingProducts(circularId: string): Promise<{ ok: boolean; added: number; found: number; productCount: number }> {
     const res = await api.post(`/circulars/${circularId}/extract-products-add`, { merge: true });
     return res.data;
+  }
+
+  /** Productos que todavía no salen (precio en `pending`), agrupados por día y origen. */
+  async getUpcoming(storeSlug: string): Promise<{ total: number; groups: UpcomingGroup[] }> {
+    const res = await api.get(`/circulars/store/${storeSlug}/upcoming`);
+    return { total: res.data?.total ?? 0, groups: res.data?.groups ?? [] };
+  }
+
+  /** Corrige el precio que VA a salir (no el de hoy) o mueve su fecha. */
+  async updatePending(
+    id: string,
+    patch: Partial<Pick<StorePendingPrice, 'price' | 'originalPrice' | 'savings' | 'packQty' | 'packUnit' | 'from'>>
+  ): Promise<StoreProduct> {
+    const res = await api.patch(`/circulars/store-product/${id}/pending`, patch);
+    return res.data.item;
+  }
+
+  /** Publica ya un producto que esperaba su fecha. */
+  async publishPendingNow(id: string): Promise<{ applied: number }> {
+    const res = await api.post(`/circulars/store-product/${id}/pending/apply`);
+    return res.data;
+  }
+
+  /** Publica ya un grupo entero (un día y/o un circular). */
+  async publishUpcomingNow(storeSlug: string, scope: { day?: string; circularId?: string }): Promise<{ applied: number }> {
+    const res = await api.post(`/circulars/store/${storeSlug}/upcoming/apply`, scope);
+    return res.data;
+  }
+
+  /** Que no salga: un alta se borra, un cambio de precio se descarta (queda el de hoy). */
+  async cancelPending(id: string): Promise<{ removed: boolean }> {
+    const res = await api.delete(`/circulars/store-product/${id}/pending`);
+    return res.data;
+  }
+
+  /** Estado del import automático de productos de una campaña (se encola al agendarla). */
+  async getCampaignImport(campaignId: string): Promise<CampaignImportJob | null> {
+    const res = await api.get(`/circulars/campaign-import/campaign/${campaignId}`);
+    return res.data?.job ?? null;
+  }
+
+  /** Reintenta el import automático (p. ej. tras un fallo). Idempotente en el servidor. */
+  async retryCampaignImport(input: {
+    campaignId: string;
+    storeId: string;
+    imageUrl: string;
+    startDate: string | Date;
+    title?: string;
+  }): Promise<CampaignImportJob> {
+    const res = await api.post('/circulars/campaign-import', { ...input, force: true });
+    return res.data.job;
   }
 
   /** Suma al circular los productos de OTRA imagen (el arte de la última campaña):

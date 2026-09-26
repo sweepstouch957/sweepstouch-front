@@ -1,15 +1,11 @@
-export function isValidImageSizeForProvider(fileSize: number, provider: string): boolean {
-  // Configuración de límites por proveedor
-  if (provider.toLowerCase() === 'infobip') {
-    return fileSize <= 2 * 1024 * 1024; // 2MB
-  }
-  // Otros proveedores (conservador)
-  return fileSize <= 500 * 1024; // 500 KB
+import { CAMPAIGN_ART_MAX_BYTES } from '@/services/upload.service';
+
+// El peso del MMS ya no lo controla quien sube: cualquier arte hasta 100 MB se comprime
+// solo a < 500 KB al guardar (uploadCampaignArt). `provider` queda por compatibilidad.
+export function isValidImageSizeForProvider(fileSize: number, _provider?: string): boolean {
+  return fileSize <= CAMPAIGN_ART_MAX_BYTES;
 }
 
-export function getProviderImageErrorMessage(provider: string): string {
-  if (provider.toLowerCase() === 'infobip') {
-    return 'La imagen no puede superar los 2 MB para envíos con Infobip. Por favor usa una más ligera.';
-  }
-  return 'La imagen no puede superar los 500 KB. Por favor usa una más ligera.';
+export function getProviderImageErrorMessage(_provider?: string): string {
+  return 'La imagen no puede superar los 100 MB.';
 }

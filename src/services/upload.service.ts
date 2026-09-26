@@ -27,6 +27,118 @@ export const uploadCampaignImage = async (
   return response.data;
 };
 
+// ─── Arte de campaña pesado (hasta 100 MB) ───────────────────────────────────
+// El MMS exige < 500 KB, pero de un arte liviano la IA lee mal los productos. Entonces:
+//   1. el ORIGINAL sube directo del navegador a Cloudinary (firma del backend; el proxy
+//      corta a 25 MB, así que no puede pasar por /upload), en trozos si es grande;
+//   2. el backend saca de ahí la copia < 500 KB que viaja en el MMS.
+// La campaña guarda las dos: `image` (MMS) y `sourceImage` (de donde se leen los productos).
+export const MMS_MAX_BYTES = 500 * 1024;
+export const CAMPAIGN_ART_MAX_BYTES = 100 * 1024 * 1024;
+const CHUNK_BYTES = 10 * 1024 * 1024; // Cloudinary pide trozos ≥ 5 MB (salvo el último)
+// Si el plan de Cloudinary rechaza el original por peso, se sube un "maestro" en alta
+// hecho en el navegador. Bajo 10 MB entra en cualquier plan.
+const MASTER_MAX_BYTES = 9.5 * 1024 * 1024;
+
+export interface CampaignArtUpload extends UploadResponse {
+  /** Arte original (vacío si el archivo ya era liviano y no hizo falta comprimir). */
+  originalUrl: string;
+  originalPublicId: string;
+  bytes: number;
+}
+
+interface CloudinarySignature {
+  cloudName: string;
+  apiKey: string;
+  folder: string;
+  timestamp: number;
+  signature: string;
+}
+
+async function uploadSignedToCloudinary(file: Blob, sig: CloudinarySignature, onProgress?: (pct: number) => void) {
+  const endpoint = `https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`;
+  const uploadId = `art-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const total = file.size;
+  let result: any = null;
+  for (let start = 0; start < total; start += CHUNK_BYTES) {
+    const end = Math.min(start + CHUNK_BYTES, total);
+    const form = new FormData();
+    form.append('file', file.slice(start, end));
+    form.append('api_key', sig.apiKey);
+    form.append('timestamp', String(sig.timestamp));
+    form.append('signature', sig.signature);
+    form.append('folder', sig.folder);
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      body: form,
+      headers:
+        total > CHUNK_BYTES
+          ? { 'X-Unique-Upload-Id': uploadId, 'Content-Range': `bytes ${start}-${end - 1}/${total}` }
+          : undefined,
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json?.error?.message || `Cloudinary respondió ${res.status}`);
+    result = json;
+    onProgress?.(Math.round((end / total) * 100));
+  }
+  return result as { secure_url: string; public_id: string };
+}
+
+/** Copia en alta hecha en el navegador, para cuando el plan no acepta el archivo tal cual. */
+async function makeMaster(file: File): Promise<Blob> {
+  const bmp = await createImageBitmap(file);
+  for (const side of [6000, 4500, 3500]) {
+    const scale = Math.min(1, side / Math.max(bmp.width, bmp.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bmp.width * scale);
+    canvas.height = Math.round(bmp.height * scale);
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#fff'; // PNG con transparencia → fondo blanco, no negro
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    for (const q of [0.92, 0.85]) {
+      const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', q));
+      if (blob && blob.size <= MASTER_MAX_BYTES) return blob;
+    }
+  }
+  throw new Error('No se pudo preparar la imagen: es demasiado grande.');
+}
+
+/**
+ * Arte de campaña de cualquier peso (hasta 100 MB). Liviano → sube como siempre.
+ * Pesado → original a Cloudinary + copia < 500 KB para el MMS.
+ */
+export const uploadCampaignArt = async (
+  file: File,
+  onProgress?: (pct: number) => void
+): Promise<CampaignArtUpload> => {
+  if (file.size > CAMPAIGN_ART_MAX_BYTES) throw new Error('La imagen supera los 100 MB.');
+  if (file.size <= MMS_MAX_BYTES) {
+    const up = await uploadCampaignImage(file);
+    return { ...up, originalUrl: '', originalPublicId: '', bytes: file.size };
+  }
+
+  const { data: sig } = await api.post<CloudinarySignature>('/upload/sign', {});
+  let original: { secure_url: string; public_id: string };
+  try {
+    original = await uploadSignedToCloudinary(file, sig, onProgress);
+  } catch (e: any) {
+    if (!/too large|file size/i.test(String(e?.message))) throw e;
+    original = await uploadSignedToCloudinary(await makeMaster(file), sig, onProgress);
+  }
+
+  const { data: mms } = await api.post<{ url: string; public_id: string; bytes: number }>('/upload/compress', {
+    publicId: original.public_id,
+  });
+  return {
+    url: mms.url,
+    public_id: mms.public_id,
+    bytes: mms.bytes,
+    originalUrl: original.secure_url,
+    originalPublicId: original.public_id,
+  };
+};
+
 // Support evidence — images/PDFs to Cloudinary (folder: support-evidence)
 export const uploadSupportEvidence = async (file: File): Promise<string> => {
   const formData = new FormData();

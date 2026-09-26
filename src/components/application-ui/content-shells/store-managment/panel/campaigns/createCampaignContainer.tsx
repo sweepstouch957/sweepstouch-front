@@ -2,7 +2,7 @@
 
 import { campaignClient } from '@/services/campaing.service';
 import { DEFAULT_INFOBIP_SENDER } from '@/services/store.service';
-import { uploadCampaignImage } from '@/services/upload.service';
+import { uploadCampaignArt, uploadCampaignImage, type CampaignArtUpload } from '@/services/upload.service';
 import {
   Alert,
   Button,
@@ -36,6 +36,9 @@ export default function CampaignFormContainer({
 }: CampaignFormContainerProps) {
   const [successOpen, setSuccessOpen] = useState(false);
   const [errorOpen, setErrorOpen] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  // Con arte, al agendar se leen sus productos solos: se avisa para que nadie los cargue a mano.
+  const [withArt, setWithArt] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [formData, setFormData] = useState<any>(null);
 
@@ -45,13 +48,15 @@ export default function CampaignFormContainer({
     mutationFn: async (data: any) => {
       try {
         const hasImage = data.image && data.image.length > 0;
-        let uploadedImage = null;
+        let uploadedImage: CampaignArtUpload | null = null;
         if (
           hasImage &&
           typeof data.image[0] === 'object' &&
           !(data.image[0].url || data.image[0].startsWith?.('http'))
         ) {
-          uploadedImage = await uploadCampaignImage(data.image[0]);
+          // Cualquier peso (hasta 100 MB): el MMS lleva la copia < 500 KB y el original
+          // queda para leer los productos al agendar.
+          uploadedImage = await uploadCampaignArt(data.image[0]);
         }
 
         // Miniatura del linktree — sube aparte, a su propia carpeta. Acá el
@@ -76,6 +81,11 @@ export default function CampaignFormContainer({
           image: uploadedImage?.url || data.imageUrl || initialData?.image || null,
           imagePublicId:
             uploadedImage?.public_id || data.imagePublicId || initialData?.imagePublicId || null,
+          // Arte nuevo liviano → sin original aparte (vacío, para no leer productos del arte viejo).
+          sourceImage: uploadedImage ? uploadedImage.originalUrl : initialData?.sourceImage || '',
+          sourceImagePublicId: uploadedImage
+            ? uploadedImage.originalPublicId
+            : initialData?.sourceImagePublicId || '',
           thumbnailImage:
             uploadedThumb?.url || data.thumbnailImage || initialData?.thumbnailImage || null,
           thumbnailPublicId:
@@ -97,7 +107,8 @@ export default function CampaignFormContainer({
         throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (_res, vars) => {
+      setWithArt(Boolean(vars?.image?.length || vars?.imageUrl || initialData?.image));
       setSuccessOpen(true);
       setConfirmOpen(false);
       setFormData(null);
@@ -106,7 +117,8 @@ export default function CampaignFormContainer({
         onCreate();
       }, 500);
     },
-    onError: () => {
+    onError: (e: any) => {
+      setErrorMsg(e?.response?.data?.error || e?.message || '');
       setErrorOpen(true);
       setConfirmOpen(false);
     },
@@ -161,7 +173,7 @@ export default function CampaignFormContainer({
             variant="contained"
             disabled={mutation.isPending}
           >
-            {mutation.isPending ? (isEditing ? 'Guardando...' : 'Creando...') : 'Confirmar'}
+            {mutation.isPending ? 'Subiendo y guardando…' : 'Confirmar'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -177,6 +189,7 @@ export default function CampaignFormContainer({
           sx={{ width: '100%' }}
         >
           ¡Campaña {isEditing ? 'actualizada' : 'creada'} con éxito!
+          {withArt && ' Los productos del arte se cargan solos a la lista de la tienda; te avisamos en la campana.'}
         </Alert>
       </Snackbar>
 
@@ -190,7 +203,8 @@ export default function CampaignFormContainer({
           severity="error"
           sx={{ width: '100%' }}
         >
-          Hubo un error al {isEditing ? 'editar' : 'crear'} la campaña. Inténtalo de nuevo.
+          Hubo un error al {isEditing ? 'editar' : 'crear'} la campaña.{' '}
+          {errorMsg || 'Inténtalo de nuevo.'}
         </Alert>
       </Snackbar>
     </>

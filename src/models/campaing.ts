@@ -20,6 +20,9 @@ export interface Campaing {
   description: string;
   content: string;
   image: string;
+  /** Arte original pesado (el `image` es su copia < 500 KB para el MMS). */
+  sourceImage?: string;
+  sourceImagePublicId?: string;
   startDate: Date;
   endDate: Date;
   status: CampaingStatus;

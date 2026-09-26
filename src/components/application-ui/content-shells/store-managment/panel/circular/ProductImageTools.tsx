@@ -246,6 +246,9 @@ export function FlyerCropper({ flyerUrl, onCancel, onCrop, busy, hint, cta }: { 
 
 /* ─────────────── 3 · Alta / edición de producto ─────────────── */
 
+/** ISO → "YYYY-MM-DD" del día en la hora de las tiendas (lo que muestra un <input type=date>). */
+const toDayInput = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+
 export function ProductEditorDialog({
   open,
   product,
@@ -276,6 +279,10 @@ export function ProductEditorDialog({
   const [maxPerCustomer, setMaxPerCustomer] = useState('');
   const [busy, setBusy] = useState<string | null>(null); // texto de lo que se está haciendo
   const [cropping, setCropping] = useState(false);
+  // Producto que todavía no sale: el precio que se edita es el que VA a salir (pending),
+  // no el de hoy. Si se guardara en `price`, el día de la fecha el pendiente lo pisaría.
+  const pending = product?.pending?.from ? product.pending : null;
+  const [pendingDay, setPendingDay] = useState('');
   const fileInput = useRef<HTMLInputElement>(null);
   // El listener de pegado vive fuera del render: lee el nombre actual por ref.
   const nameRef = useRef('');
@@ -288,8 +295,10 @@ export function ProductEditorDialog({
   useEffect(() => {
     if (!open) return;
     setName(product?.name ?? '');
-    setPrice(product?.price ?? '');
-    setRegular(product?.originalPrice ?? '');
+    const pend = product?.pending?.from ? product.pending : null;
+    setPrice((pend ? pend.price : product?.price) ?? '');
+    setRegular((pend ? pend.originalPrice : product?.originalPrice) ?? '');
+    setPendingDay(pend ? toDayInput(pend.from) : '');
     setImageUrl(product?.imageUrl ?? '');
     setCondition(product?.offerCondition ?? '');
     setPackQty(product?.packQty ? String(product.packQty) : '');
@@ -368,7 +377,19 @@ export function ProductEditorDialog({
         counterOnly,
         maxPerCustomer: Number(maxPerCustomer) > 0 ? Math.floor(Number(maxPerCustomer)) : null,
       };
-      if (product) {
+      if (product && pending) {
+        const { price: pPrice, originalPrice: pRegular, packQty: pQty, packUnit: pUnit, ...rest } = body;
+        await circularService.updateStoreProduct(product._id, rest as any);
+        const movedDay = pendingDay && pendingDay !== toDayInput(pending.from);
+        await circularService.updatePending(product._id, {
+          price: pPrice,
+          originalPrice: pRegular,
+          packQty: pQty,
+          packUnit: pUnit,
+          // 00:00 hora del Este del día elegido (04:00 UTC), igual que el import de campañas.
+          ...(movedDay ? { from: `${pendingDay}T04:00:00.000Z` } : {}),
+        });
+      } else if (product) {
         await circularService.updateStoreProduct(product._id, { ...body, hasOffer: !!body.originalPrice || product.hasOffer } as any);
       } else {
         await circularService.createStoreProduct({ storeSlug, ...body });
@@ -457,7 +478,33 @@ export function ProductEditorDialog({
             {/* Datos */}
             <Stack gap={1.75} sx={{ flex: 1, minWidth: 0 }}>
               <TextField label="Nombre del producto" size="small" fullWidth value={name} onChange={(e) => setName(e.target.value)} autoFocus={!product} />
-              <TextField label="Precio o promoción" size="small" fullWidth placeholder="$7.99 / lb o 2 / $5" value={price} onChange={(e) => setPrice(e.target.value)} />
+              {pending && (
+                <Alert severity="info" sx={{ py: 0.25 }}>
+                  {pending.isNew ? 'Producto nuevo: aparece en las listas' : 'El precio cambia'} el día que elijas abajo.
+                  {!pending.isNew && product?.price ? ` Hasta entonces sigue a ${product.price}.` : ''}
+                </Alert>
+              )}
+              <TextField
+                label={pending ? 'Precio que va a salir' : 'Precio o promoción'}
+                size="small"
+                fullWidth
+                placeholder="$7.99 / lb o 2 / $5"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+              />
+              {pending && (
+                <TextField
+                  label="Sale el"
+                  type="date"
+                  size="small"
+                  fullWidth
+                  value={pendingDay}
+                  onChange={(e) => setPendingDay(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  inputProps={{ min: toDayInput(new Date().toISOString()) }}
+                  helperText="Desde las 00:00 (hora del Este) de ese día."
+                />
+              )}
               <TextField
                 label="Precio regular"
                 size="small"

@@ -111,6 +111,11 @@ export function getNotifMeta(type: string): { icon: React.ReactNode; role: Seman
       return { icon: <CheckCircleTwoToneIcon sx={{ fontSize: 15 }} />, role: 'success' };
     case 'shift-request-rejected':
       return { icon: <CancelTwoToneIcon sx={{ fontSize: 15 }} />, role: 'error' };
+    // Import automático de productos al agendar una campaña (circular-service)
+    case 'campaign_products_loaded':
+      return { icon: <CheckCircleTwoToneIcon sx={{ fontSize: 15 }} />, role: 'success' };
+    case 'campaign_products_failed':
+      return { icon: <CancelTwoToneIcon sx={{ fontSize: 15 }} />, role: 'error' };
     default:
       return { icon: <SettingsSuggestTwoToneIcon sx={{ fontSize: 15 }} />, role: 'secondary' };
   }

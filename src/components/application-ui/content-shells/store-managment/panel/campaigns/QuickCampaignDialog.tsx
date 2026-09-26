@@ -4,7 +4,7 @@ import PreviewPhone from '@/components/application-ui/dialogs/preview/preview-ph
 import AvatarUploadLogo from '@/components/application-ui/upload/avatar/avatar-upload-logo';
 import { campaignClient } from '@/services/campaing.service';
 import { DEFAULT_INFOBIP_SENDER } from '@/services/store.service';
-import { uploadCampaignImage } from '@/services/upload.service';
+import { uploadCampaignArt, MMS_MAX_BYTES } from '@/services/upload.service';
 import CalendarTodayRoundedIcon from '@mui/icons-material/CalendarTodayRounded';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import FlashOnRoundedIcon from '@mui/icons-material/FlashOnRounded';
@@ -114,7 +114,13 @@ export default function QuickCampaignDialog({
     mutationFn: async () => {
       let imgUrl = (last as any)?.image ?? null;
       let imgPid = (last as any)?.imagePublicId ?? null;
-      if (newImage) { const up = await uploadCampaignImage(newImage); imgUrl = up.url; imgPid = up.public_id; }
+      // Sin arte nuevo se reusa el de la última campaña, con su original (de ahí se leen los productos).
+      let srcUrl = (last as any)?.sourceImage ?? '';
+      let srcPid = (last as any)?.sourceImagePublicId ?? '';
+      if (newImage) {
+        const up = await uploadCampaignArt(newImage);
+        imgUrl = up.url; imgPid = up.public_id; srcUrl = up.originalUrl; srcPid = up.originalPublicId;
+      }
       return campaignClient.createCampaign({
         title: (last as any)?.title ? `${(last as any).title} (Quick)` : `Campaña ${fmtMD(startDate)}–${fmtMD(endDate)}`,
         description: (last as any)?.description ?? '',
@@ -122,18 +128,19 @@ export default function QuickCampaignDialog({
         type: imgUrl ? 'MMS' : 'SMS',
         startDate: startDate?.toISOString() as any,
         image: imgUrl, imagePublicId: imgPid,
+        sourceImage: srcUrl, sourceImagePublicId: srcPid,
         customAudience: totalAudience,
         platform: provider,
         sourceTn: phoneNumber || DEFAULT_INFOBIP_SENDER,
       } as any, storeId);
     },
     onSuccess: () => {
-      setSnack({ open: true, msg: '¡Campaña creada! 🚀', sev: 'success' });
+      setSnack({ open: true, msg: previewImage ? '¡Campaña creada! 🚀 Los productos del arte se cargan solos; te avisamos en la campana.' : '¡Campaña creada! 🚀', sev: 'success' });
       setConfirm(false);
       setTimeout(() => { handleClose(); onCreated?.(); }, 1000);
     },
-    onError: () => {
-      setSnack({ open: true, msg: 'Error al crear. Intenta de nuevo.', sev: 'error' });
+    onError: (e: any) => {
+      setSnack({ open: true, msg: e?.response?.data?.error || e?.message || 'Error al crear. Intenta de nuevo.', sev: 'error' });
       setConfirm(false);
     },
   });
@@ -360,14 +367,14 @@ export default function QuickCampaignDialog({
                     {(last as any)?.image && !newImage && (
                       <Alert severity="info" sx={{ borderRadius: 2, py: 0.5 }}>Se usará la imagen de la última campaña.</Alert>
                     )}
-                    <Alert severity="warning" sx={{ borderRadius: 2, py: 0.5 }}>Máximo 500 KB para asegurar entrega MMS.</Alert>
+                    <Alert severity="info" sx={{ borderRadius: 2, py: 0.5 }}>Hasta 100 MB: se comprime sola a menos de 500 KB para el MMS.</Alert>
                     <AvatarUploadLogo
                       label="Subir imagen"
                       initialUrl={(last as any)?.image}
                       onSelect={(file) => {
                         if (!file) { setNewImage(null); return; }
-                        if (file.size > 500 * 1024) {
-                          setSnack({ open: true, msg: 'Imagen supera 500 KB.', sev: 'error' });
+                        if (file.size > 100 * 1024 * 1024) {
+                          setSnack({ open: true, msg: 'La imagen supera los 100 MB.', sev: 'error' });
                           return;
                         }
                         setNewImage(file);
@@ -376,7 +383,7 @@ export default function QuickCampaignDialog({
                     {newImage && (
                       <Chip
                         icon={<CheckRoundedIcon />}
-                        label={`${newImage.name} · ${(newImage.size / 1024).toFixed(0)} KB`}
+                        label={`${newImage.name} · ${newImage.size > MMS_MAX_BYTES ? `${(newImage.size / 1048576).toFixed(1)} MB → se comprime` : `${(newImage.size / 1024).toFixed(0)} KB`}`}
                         color="success" variant="outlined" size="small"
                       />
                     )}

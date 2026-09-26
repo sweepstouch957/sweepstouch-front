@@ -26,6 +26,7 @@ import {
   type ShoppingListStatus,
 } from '@/services/shopping-lists.service';
 import {
+  alpha,
   Alert,
   Autocomplete,
   Box,
@@ -58,6 +59,10 @@ import {
 } from '@mui/material';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import TestMmsShoppingListModal from '@/components/mms/TestMmsShoppingListModal';
+import CampaignAutomationFlow, { buildSteps } from './CampaignAutomationFlow';
+import UpcomingProductsSection from './UpcomingProductsSection';
+import EventRoundedIcon from '@mui/icons-material/EventRounded';
+import NextLink from 'next/link';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import SmsOutlinedIcon from '@mui/icons-material/SmsOutlined';
@@ -176,7 +181,9 @@ function ImagePreviewDialog({ url, title, onClose }: { url: string | null; title
 
 /* ═══════════════ 1 · Circular (agendar + mensaje de prueba) ═══════════════ */
 
-function CircularSection({ storeId, storeSlug, storeName, provider, infobipSenderId, address, circularssUrl }: Props) {
+function CircularSection({
+  storeId, storeSlug, storeName, provider, infobipSenderId, address, circularssUrl, upcomingCount = 0, onOpenUpcoming,
+}: Props & { upcomingCount?: number; onOpenUpcoming?: () => void }) {
   const qc = useQueryClient();
   const circulars = useQuery({
     queryKey: ['store-circulars', storeSlug],
@@ -263,6 +270,45 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
     queryFn: () => campaignClient.getLastCampaign(storeId, { withImage: true }).catch(() => null),
     enabled: !!storeId,
     staleTime: 5 * 60_000,
+  });
+
+  // Al agendar una campaña con arte, circular-service lee sus productos solo (cola
+  // /campaign-import). Mientras corre se consulta seguido; al terminar llega aviso a la campana.
+  const lastCampaignId = (lastCampaign.data as any)?._id as string | undefined;
+  const campaignImport = useQuery({
+    queryKey: ['campaign-import', lastCampaignId],
+    queryFn: () => circularService.getCampaignImport(lastCampaignId!).catch(() => null),
+    enabled: !!lastCampaignId,
+    refetchInterval: (q) => {
+      const st = (q.state.data as any)?.status;
+      return st === 'queued' || st === 'running' ? 10_000 : false;
+    },
+  });
+  // Al pasar a "done" se refresca lo que el import cambió (circulares y catálogo).
+  const importStatus = campaignImport.data?.status;
+  useEffect(() => {
+    if (importStatus === 'done') {
+      qc.invalidateQueries({ queryKey: ['store-circulars', storeSlug] });
+      qc.invalidateQueries({ queryKey: ['store-catalog-admin', storeSlug] });
+    }
+  }, [importStatus, qc, storeSlug]);
+
+  const retryImport = useMutation({
+    mutationFn: () => {
+      const c: any = lastCampaign.data;
+      return circularService.retryCampaignImport({
+        campaignId: c._id,
+        storeId,
+        imageUrl: c.sourceImage || c.image,
+        startDate: c.startDate,
+        title: c.title,
+      });
+    },
+    onSuccess: () => {
+      toast.success('Reintentando: te avisamos en la campana cuando termine.');
+      qc.invalidateQueries({ queryKey: ['campaign-import', lastCampaignId] });
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo reintentar'),
   });
 
   // Con circular vigente → se SUMAN a ese circular los productos que falten.
@@ -371,49 +417,116 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
   // El vigente (activo o agendado): a ese se le suman los productos de la campaña.
   const currentCircular = items.find((c) => c.status === 'active') || items.find((c) => c.status === 'scheduled') || null;
   const campaignImage: string = (lastCampaign.data as any)?.image || '';
+  // Para LEER productos, el original pesado (nítido); la miniatura sigue siendo la copia del MMS.
+  const campaignSource: string = (lastCampaign.data as any)?.sourceImage || campaignImage;
   // ¿Hay uno vigente o por venir? Si no, se ofrece traerlo del link de la tienda.
   const hasCurrent = items.some((c) => c.status === 'active' || c.status === 'scheduled');
 
   return (
     <Stack spacing={2}>
-      {/* Sin circular vigente (ni activo ni agendado): casi siempre el PDF de la semana
-          está en el link de circular de la tienda. Se trae de ahí en un click. */}
-      {!circulars.isLoading && !hasCurrent && (
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1.5}>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography variant="subtitle2" fontWeight={700}>
-                Esta tienda no tiene circular vigente
+      {/* ── 1 · Automatización: al agendar una campaña con arte, sus productos llegan solos a
+             la lista del cliente. Va primero porque es el camino normal; el PDF es el respaldo. */}
+      <Paper
+        variant="outlined"
+        sx={{
+          p: { xs: 2, md: 2.5 },
+          borderRadius: 3,
+          borderColor: (t) => alpha(t.palette.primary.main, 0.35),
+          background: (t) => `linear-gradient(180deg, ${alpha(t.palette.primary.main, 0.05)}, transparent 70%)`,
+        }}
+      >
+        <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1.5} flexWrap="wrap" sx={{ mb: 2.5 }}>
+          <Box sx={{ minWidth: 0 }}>
+            <Stack direction="row" alignItems="center" gap={1}>
+              <Typography variant="overline" color="primary" fontWeight={800} lineHeight={1.4}>
+                Automático
               </Typography>
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-                {circularssUrl
-                  ? 'Se puede traer el PDF de esta semana desde el link de circular de la tienda. Se crea el circular de la semana actual y la IA carga sus productos al catálogo.'
-                  : 'La tienda no tiene link de circular configurado. Subí el PDF abajo, o cargá el link en los datos de la tienda.'}
-              </Typography>
-              {circularssUrl && (
-                <MuiLink
-                  href={/^https?:\/\//i.test(circularssUrl) ? circularssUrl : `https://${circularssUrl}`}
-                  target="_blank"
-                  rel="noopener"
-                  variant="caption"
-                >
-                  Ver el link de la tienda
-                </MuiLink>
-              )}
-            </Box>
+              {campaignImport.data?.status === 'running' && <Chip size="small" color="info" label="Trabajando ahora" />}
+            </Stack>
+            <Typography variant="h6" fontWeight={800} lineHeight={1.25}>
+              Campaña → lista del cliente
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Al agendar una campaña con arte, la IA lee sus productos y los suma a la lista con los precios del día de la campaña.
+            </Typography>
+          </Box>
+          <Stack direction="row" gap={1} flexWrap="wrap">
+            {/* Paso 4 → dónde se revisa: lo que sale en una fecha se edita en Próximos. */}
+            {upcomingCount > 0 && onOpenUpcoming && (
+              <Button variant="outlined" startIcon={<EventRoundedIcon />} onClick={onOpenUpcoming}>
+                Revisar {upcomingCount} próximo{upcomingCount !== 1 ? 's' : ''}
+              </Button>
+            )}
             <Button
+              component={NextLink}
+              href={`/admin/management/stores/edit/${storeId}?tag=campaigns&action=create`}
               variant="contained"
-              disabled={!circularssUrl || importFromUrl.isPending || extract.isPending}
-              onClick={() => importFromUrl.mutate()}
             >
-              {importFromUrl.isPending ? 'Trayendo circular…' : extract.isPending ? 'Extrayendo…' : 'Traer circular de la semana'}
+              Agendar campaña
             </Button>
           </Stack>
-          {(importFromUrl.isPending || extract.isPending) && <LinearProgress sx={{ mt: 1.5, borderRadius: 1 }} />}
-        </Paper>
-      )}
+        </Stack>
 
-      {/* Circular vigente → cargar sus productos. Con productos: van al catálogo tal
+        <CampaignAutomationFlow steps={buildSteps(campaignImage ? lastCampaign.data : null, campaignImport.data ?? null)} />
+
+        {campaignImage && (
+          <>
+            <Divider sx={{ my: 2 }} />
+            <Stack direction="row" alignItems="center" gap={2} flexWrap="wrap">
+              <Box
+                component="button"
+                type="button"
+                aria-label="Ver el arte de la campaña en grande"
+                onClick={() => setPreview({ url: campaignImage, title: lastCampaign.data?.title || 'Arte de la campaña' })}
+                sx={{
+                  width: 72, height: 100, p: 0, flexShrink: 0, borderRadius: 1.5, overflow: 'hidden',
+                  border: '1px solid', borderColor: 'divider', bgcolor: 'background.default', cursor: 'zoom-in',
+                  '&:hover': { borderColor: 'primary.main' },
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={campaignImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }} />
+              </Box>
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Typography variant="subtitle2" fontWeight={700}>
+                  Arte de la última campaña
+                </Typography>
+                <Typography variant="body2" color="text.secondary" noWrap>
+                  {lastCampaign.data?.title || 'Sin título'}
+                  {lastCampaign.data?.startDate ? ` · ${fmtDate(lastCampaign.data.startDate as any)}` : ''}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                  {campaignImport.data
+                    ? 'Si faltó algún producto, se puede volver a leer a mano: sólo suma los que no están.'
+                    : 'Esta campaña se agendó antes de la automatización: carga sus productos a mano.'}
+                </Typography>
+              </Box>
+              <Stack direction="row" gap={1} flexWrap="wrap">
+                {campaignImport.data?.status === 'failed' && (
+                  <Button variant="contained" color="error" disabled={retryImport.isPending} onClick={() => retryImport.mutate()}>
+                    {retryImport.isPending ? 'Reintentando…' : 'Reintentar automático'}
+                  </Button>
+                )}
+                <Button
+                  variant={campaignImport.data ? 'outlined' : 'contained'}
+                  disabled={loadFromCampaign.isPending || busyExtract}
+                  onClick={() => setCampaignAsk(true)}
+                >
+                  {loadFromCampaign.isPending
+                    ? 'Leyendo la imagen…'
+                    : campaignImport.data
+                      ? 'Leer de nuevo a mano'
+                      : 'Cargar productos de la campaña'}
+                </Button>
+              </Stack>
+            </Stack>
+            {loadFromCampaign.isPending && <LinearProgress sx={{ mt: 1.5, borderRadius: 1 }} />}
+          </>
+        )}
+      </Paper>
+
+      {/* ── 2 · El circular que recibe los productos (de la campaña o del PDF).
+          Circular vigente → cargar sus productos. Con productos: van al catálogo tal
           cual. Sin productos pero con archivo: se extraen con IA (y eso ya los carga). */}
       {activeCircular && (
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
@@ -421,9 +534,16 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
             <Box sx={{ minWidth: 0 }}>
               <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
                 <Typography variant="subtitle2" fontWeight={700}>
-                  {activeCircular.status === 'active' ? 'Circular activo' : 'Circular más reciente'}
+                  {activeCircular.status === 'active' ? 'Circular de la semana' : 'Circular más reciente'}
                 </Typography>
                 <Chip size="small" {...(STATUS_CHIP[activeCircular.status] || { label: activeCircular.status, color: 'default' })} />
+                {/* Conexión con la automatización: acá cayeron los productos de la campaña */}
+                {campaignImport.data?.result?.circularId === activeCircular._id && (
+                  <Chip size="small" color="primary" variant="outlined" label={`Recibió ${campaignImport.data?.result?.added ?? 0} de la campaña`} />
+                )}
+                {(activeCircular as any).fileKey === 'campaign' && (
+                  <Chip size="small" variant="outlined" label="Creado por la campaña" />
+                )}
               </Stack>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
                 {activeCircular.title || 'Sin título'} · {fmtDate(activeCircular.startDate)} → {fmtDate(activeCircular.endDate)} ·{' '}
@@ -503,51 +623,153 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
         </Paper>
       )}
 
-      {/* Otra fuente: el arte de la última campaña (MMS). */}
-      {campaignImage && (
+      {/* ── 3 · Respaldo manual: el PDF de la tienda. Abajo porque ya no es el camino principal. */}
+      <Box sx={{ pt: 2 }}>
+        <Divider sx={{ mb: 2 }} />
+        <Typography variant="overline" color="text.secondary" fontWeight={800}>
+          Circular en PDF · carga manual
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Para cuando la tienda manda su circular en PDF o hay que agendar uno sin campaña.
+        </Typography>
+      </Box>
+
+      {/* Sin circular vigente (ni activo ni agendado): casi siempre el PDF de la semana
+          está en el link de circular de la tienda. Se trae de ahí en un click. */}
+      {!circulars.isLoading && !hasCurrent && (
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-          <Stack direction="row" alignItems="center" gap={2} flexWrap="wrap">
-            <Box
-              component="button"
-              type="button"
-              aria-label="Ver el arte de la campaña en grande"
-              onClick={() => setPreview({ url: campaignImage, title: lastCampaign.data?.title || 'Arte de la campaña' })}
-              sx={{
-                width: 64, height: 88, p: 0, flexShrink: 0, borderRadius: 1.5, overflow: 'hidden',
-                border: '1px solid', borderColor: 'divider', bgcolor: 'background.default', cursor: 'zoom-in',
-                '&:hover': { borderColor: 'primary.main' },
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={campaignImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }} />
-            </Box>
-            <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1.5}>
+            <Box sx={{ minWidth: 0 }}>
               <Typography variant="subtitle2" fontWeight={700}>
-                Arte de la última campaña
-              </Typography>
-              <Typography variant="body2" color="text.secondary" noWrap>
-                {lastCampaign.data?.title || 'Sin título'}
-                {lastCampaign.data?.startDate ? ` · ${fmtDate(lastCampaign.data.startDate as any)}` : ''}
+                Esta tienda no tiene circular vigente
               </Typography>
               <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-                {currentCircular
-                  ? 'Suma al circular vigente los productos de esta imagen que todavía no estén. No toca los que ya tenés.'
-                  : 'No hay circular esta semana: los productos quedan en un borrador, sin publicarse, salvo que lo pidas en el diálogo.'}{' '}
-                Antes de empezar te pregunta cuántos extraer.
+                {circularssUrl
+                  ? 'Se puede traer el PDF de esta semana desde el link de circular de la tienda. Se crea el circular de la semana actual y la IA carga sus productos al catálogo.'
+                  : 'La tienda no tiene link de circular configurado. Subí el PDF abajo, o cargá el link en los datos de la tienda.'}
               </Typography>
+              {circularssUrl && (
+                <MuiLink
+                  href={/^https?:\/\//i.test(circularssUrl) ? circularssUrl : `https://${circularssUrl}`}
+                  target="_blank"
+                  rel="noopener"
+                  variant="caption"
+                >
+                  Ver el link de la tienda
+                </MuiLink>
+              )}
             </Box>
             <Button
               variant="contained"
-              disabled={loadFromCampaign.isPending || busyExtract}
-              onClick={() => setCampaignAsk(true)}
+              disabled={!circularssUrl || importFromUrl.isPending || extract.isPending}
+              onClick={() => importFromUrl.mutate()}
             >
-              {loadFromCampaign.isPending ? 'Leyendo la imagen…' : 'Cargar productos de la campaña'}
+              {importFromUrl.isPending ? 'Trayendo circular…' : extract.isPending ? 'Extrayendo…' : 'Traer circular de la semana'}
             </Button>
           </Stack>
-          {loadFromCampaign.isPending && <LinearProgress sx={{ mt: 1.5, borderRadius: 1 }} />}
+          {(importFromUrl.isPending || extract.isPending) && <LinearProgress sx={{ mt: 1.5, borderRadius: 1 }} />}
         </Paper>
       )}
 
+      <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+        <Typography variant="subtitle2" fontWeight={700} gutterBottom>
+          Agendar circular
+        </Typography>
+        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+          Misma lógica que el portal del merchant: con PDF extrae productos; sin PDF queda
+          agendado y el archivo se adjunta después. El cron lo activa solo al llegar la fecha.
+        </Typography>
+        <Stack direction="row" flexWrap="wrap" gap={1.5} alignItems="center">
+          <TextField size="small" label="Título" value={title} onChange={(e) => setTitle(e.target.value)} sx={{ width: 200 }} />
+          <TextField size="small" label="Inicio" type="date" value={start} onChange={(e) => setStart(e.target.value)} InputLabelProps={{ shrink: true }} />
+          <TextField size="small" label="Fin" type="date" value={end} onChange={(e) => setEnd(e.target.value)} InputLabelProps={{ shrink: true }} />
+          <Button component="label" size="small" variant="outlined">
+            {file ? file.name : 'PDF / imagen'}
+            <input hidden type="file" accept="application/pdf,image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            disabled={create.isPending || !start || !end}
+            onClick={() => create.mutate()}
+          >
+            {create.isPending ? 'Agendando…' : 'Agendar'}
+          </Button>
+        </Stack>
+      </Paper>
+
+      {circulars.isLoading ? (
+        <LinearProgress />
+      ) : (
+        <Box sx={{ overflowX: 'auto' }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={cell}>Circular</TableCell>
+                <TableCell sx={cell}>Vigencia</TableCell>
+                <TableCell sx={cell}>Estado</TableCell>
+                <TableCell sx={cell} align="right">Productos</TableCell>
+                <TableCell sx={cell}>Archivo</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {items.map((c) => (
+                <TableRow key={c._id} hover>
+                  <TableCell sx={cell}>
+                    {c.title || '—'}
+                    {(c as any).fileKey === 'campaign' && (
+                      <Chip size="small" variant="outlined" color="primary" label="Campaña" sx={{ ml: 1, height: 20 }} />
+                    )}
+                  </TableCell>
+                  <TableCell sx={cell}>{fmtDate(c.startDate)} → {fmtDate(c.endDate)}</TableCell>
+                  <TableCell sx={cell}>
+                    <Chip size="small" {...(STATUS_CHIP[c.status] || { label: c.status, color: 'default' })} />
+                  </TableCell>
+                  <TableCell sx={cell} align="right">
+                    {(c as any).products?.length ?? 0}
+                    {/* Con archivo pero sin productos: la extracción no corrió (o falló) */}
+                    {c.fileUrl && !((c as any).products?.length) && (
+                      <Button
+                        size="small"
+                        sx={{ ml: 1, minWidth: 0 }}
+                        disabled={extract.isPending}
+                        onClick={() => extract.mutate(c._id)}
+                      >
+                        {extract.isPending ? 'Extrayendo…' : 'Extraer (IA)'}
+                      </Button>
+                    )}
+                    {/* Con productos: se pueden pasar al catálogo desde cualquier circular */}
+                    {!!(c as any).products?.length && (
+                      <Button
+                        size="small"
+                        sx={{ ml: 1, minWidth: 0 }}
+                        disabled={loadCatalog.isPending}
+                        onClick={() => loadCatalog.mutate(c._id)}
+                      >
+                        Cargar al catálogo
+                      </Button>
+                    )}
+                  </TableCell>
+                  <TableCell sx={cell}>
+                    {c.fileUrl ? (
+                      <MuiLink href={c.fileUrl} target="_blank" rel="noopener" variant="body2">Ver</MuiLink>
+                    ) : (
+                      <Typography variant="caption" color="text.disabled">sin archivo</Typography>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {!items.length && (
+                <TableRow>
+                  <TableCell colSpan={5} sx={{ py: 3, textAlign: 'center' }}>
+                    <Typography variant="body2" color="text.secondary">Esta tienda no tiene circulares.</Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </Box>
+      )}
       {/* Antes de leer el arte de campaña: cuántos y si se limpian las imágenes. Un arte puede
           traer 40 productos y lo caro es la imagen limpia por IA (una generación por producto). */}
       <Dialog open={campaignAsk} onClose={() => setCampaignAsk(false)} maxWidth="xs" fullWidth>
@@ -602,7 +824,7 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
             variant="contained"
             onClick={() => {
               setCampaignAsk(false);
-              loadFromCampaign.mutate({ imageUrl: campaignImage, targetId: currentCircular?._id, max: campaignMax, aiImages: campaignClean });
+              loadFromCampaign.mutate({ imageUrl: campaignSource, targetId: currentCircular?._id, max: campaignMax, aiImages: campaignClean });
             }}
           >
             Extraer {campaignMax ? `${campaignMax} productos` : 'todos'}
@@ -612,100 +834,6 @@ function CircularSection({ storeId, storeSlug, storeName, provider, infobipSende
 
       <ImagePreviewDialog key={preview?.url || 'none'} url={preview?.url ?? null} title={preview?.title} onClose={() => setPreview(null)} />
 
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-        <Typography variant="subtitle2" fontWeight={700} gutterBottom>
-          Agendar circular
-        </Typography>
-        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
-          Misma lógica que el portal del merchant: con PDF extrae productos; sin PDF queda
-          agendado y el archivo se adjunta después. El cron lo activa solo al llegar la fecha.
-        </Typography>
-        <Stack direction="row" flexWrap="wrap" gap={1.5} alignItems="center">
-          <TextField size="small" label="Título" value={title} onChange={(e) => setTitle(e.target.value)} sx={{ width: 200 }} />
-          <TextField size="small" label="Inicio" type="date" value={start} onChange={(e) => setStart(e.target.value)} InputLabelProps={{ shrink: true }} />
-          <TextField size="small" label="Fin" type="date" value={end} onChange={(e) => setEnd(e.target.value)} InputLabelProps={{ shrink: true }} />
-          <Button component="label" size="small" variant="outlined">
-            {file ? file.name : 'PDF / imagen'}
-            <input hidden type="file" accept="application/pdf,image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-          </Button>
-          <Button
-            size="small"
-            variant="contained"
-            disabled={create.isPending || !start || !end}
-            onClick={() => create.mutate()}
-          >
-            {create.isPending ? 'Agendando…' : 'Agendar'}
-          </Button>
-        </Stack>
-      </Paper>
-
-      {circulars.isLoading ? (
-        <LinearProgress />
-      ) : (
-        <Box sx={{ overflowX: 'auto' }}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={cell}>Circular</TableCell>
-                <TableCell sx={cell}>Vigencia</TableCell>
-                <TableCell sx={cell}>Estado</TableCell>
-                <TableCell sx={cell} align="right">Productos</TableCell>
-                <TableCell sx={cell}>Archivo</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {items.map((c) => (
-                <TableRow key={c._id} hover>
-                  <TableCell sx={cell}>{c.title || '—'}</TableCell>
-                  <TableCell sx={cell}>{fmtDate(c.startDate)} → {fmtDate(c.endDate)}</TableCell>
-                  <TableCell sx={cell}>
-                    <Chip size="small" {...(STATUS_CHIP[c.status] || { label: c.status, color: 'default' })} />
-                  </TableCell>
-                  <TableCell sx={cell} align="right">
-                    {(c as any).products?.length ?? 0}
-                    {/* Con archivo pero sin productos: la extracción no corrió (o falló) */}
-                    {c.fileUrl && !((c as any).products?.length) && (
-                      <Button
-                        size="small"
-                        sx={{ ml: 1, minWidth: 0 }}
-                        disabled={extract.isPending}
-                        onClick={() => extract.mutate(c._id)}
-                      >
-                        {extract.isPending ? 'Extrayendo…' : 'Extraer (IA)'}
-                      </Button>
-                    )}
-                    {/* Con productos: se pueden pasar al catálogo desde cualquier circular */}
-                    {!!(c as any).products?.length && (
-                      <Button
-                        size="small"
-                        sx={{ ml: 1, minWidth: 0 }}
-                        disabled={loadCatalog.isPending}
-                        onClick={() => loadCatalog.mutate(c._id)}
-                      >
-                        Cargar al catálogo
-                      </Button>
-                    )}
-                  </TableCell>
-                  <TableCell sx={cell}>
-                    {c.fileUrl ? (
-                      <MuiLink href={c.fileUrl} target="_blank" rel="noopener" variant="body2">Ver</MuiLink>
-                    ) : (
-                      <Typography variant="caption" color="text.disabled">sin archivo</Typography>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {!items.length && (
-                <TableRow>
-                  <TableCell colSpan={5} sx={{ py: 3, textAlign: 'center' }}>
-                    <Typography variant="body2" color="text.secondary">Esta tienda no tiene circulares.</Typography>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </Box>
-      )}
     </Stack>
   );
 }
@@ -1775,6 +1903,14 @@ function MessagesSection({ storeId, storeSlug, storeName, provider, infobipSende
 
 export default function StoreCircularPanel({ storeId, storeSlug, storeName, provider, infobipSenderId, address, circularssUrl }: Props) {
   const [tab, setTab] = useState(0);
+  // Contador de la pestaña Próximos (misma query que la sección: comparten caché).
+  const upcoming = useQuery({
+    queryKey: ['store-upcoming', storeSlug],
+    queryFn: () => circularService.getUpcoming(storeSlug),
+    enabled: !!storeSlug,
+    refetchInterval: 60_000,
+  });
+  const upcomingCount = upcoming.data?.total ?? 0;
 
   if (!storeSlug) {
     return (
@@ -1801,6 +1937,16 @@ export default function StoreCircularPanel({ storeId, storeSlug, storeName, prov
       </Stack>
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }} variant="scrollable" allowScrollButtonsMobile>
         <Tab icon={<CalendarMonthRoundedIcon fontSize="small" />} iconPosition="start" label="Circular" />
+        <Tab
+          icon={<EventRoundedIcon fontSize="small" />}
+          iconPosition="start"
+          label={
+            <Stack direction="row" alignItems="center" gap={0.75}>
+              Próximos
+              {upcomingCount > 0 && <Chip size="small" color="primary" label={upcomingCount} sx={{ height: 18, fontSize: 11 }} />}
+            </Stack>
+          }
+        />
         <Tab icon={<Inventory2OutlinedIcon fontSize="small" />} iconPosition="start" label="Productos" />
         <Tab icon={<FactCheckOutlinedIcon fontSize="small" />} iconPosition="start" label="Listas" />
         <Tab icon={<ReceiptLongRoundedIcon fontSize="small" />} iconPosition="start" label="Compras" />
@@ -1815,6 +1961,8 @@ export default function StoreCircularPanel({ storeId, storeSlug, storeName, prov
           infobipSenderId={infobipSenderId}
           address={address}
           circularssUrl={circularssUrl}
+          upcomingCount={upcomingCount}
+          onOpenUpcoming={() => setTab(1)}
         />
       )}
       {tab === 0 && (
@@ -1822,10 +1970,11 @@ export default function StoreCircularPanel({ storeId, storeSlug, storeName, prov
           <StoreBannerSection storeSlug={storeSlug} storeId={storeId} />
         </Box>
       )}
-      {tab === 1 && <CatalogSection storeSlug={storeSlug} />}
-      {tab === 2 && <ListsSection storeSlug={storeSlug} />}
-      {tab === 3 && <PurchasesSection storeSlug={storeSlug} />}
-      {tab === 4 && (
+      {tab === 1 && <UpcomingProductsSection storeSlug={storeSlug} />}
+      {tab === 2 && <CatalogSection storeSlug={storeSlug} />}
+      {tab === 3 && <ListsSection storeSlug={storeSlug} />}
+      {tab === 4 && <PurchasesSection storeSlug={storeSlug} />}
+      {tab === 5 && (
         <MessagesSection
           storeId={storeId}
           storeSlug={storeSlug}
