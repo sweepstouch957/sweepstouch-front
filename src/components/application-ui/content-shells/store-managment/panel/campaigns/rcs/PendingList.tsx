@@ -1,7 +1,6 @@
 'use client';
 
 /** Pendientes de un paso del wizard — aparece al intentar continuar. */
-
 import { Alert, Typography } from '@mui/material';
 
 export default function PendingList({ problems }: { problems: string[] }) {

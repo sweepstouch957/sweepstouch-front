@@ -1,16 +1,7 @@
 'use client';
 
 /** Grid de productos del catálogo con búsqueda y selección numerada. */
-
-import {
-  Alert,
-  Avatar,
-  Box,
-  Card,
-  CircularProgress,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { Alert, Avatar, Box, Card, CircularProgress, TextField, Typography } from '@mui/material';
 import { CardData, CatalogProduct } from './rcs-domain';
 
 export default function ProductPicker({
@@ -49,8 +40,8 @@ export default function ProductPicker({
         </Box>
       ) : products.length === 0 ? (
         <Alert severity="warning">
-          Esta tienda no tiene productos en su catálogo. Cargalos en la página de Productos,
-          o usá una card en blanco.
+          Esta tienda no tiene productos en su catálogo. Cargalos en la página de Productos, o usá
+          una card en blanco.
         </Alert>
       ) : (
         <Box

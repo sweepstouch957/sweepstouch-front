@@ -1,7 +1,6 @@
 'use client';
 
 /** Paso 2 · Botones globales del mensaje. */
-
 import { Typography } from '@mui/material';
 import ButtonListEditor from './ButtonListEditor';
 import type { RcsBuilderApi } from './use-rcs-builder';

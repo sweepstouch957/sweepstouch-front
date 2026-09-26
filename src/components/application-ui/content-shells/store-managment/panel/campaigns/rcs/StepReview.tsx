@@ -1,7 +1,6 @@
 'use client';
 
 /** Paso 4 · Revisar y enviar — SMS de respaldo, opciones avanzadas y resumen. */
-
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import {
   Accordion,

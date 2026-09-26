@@ -1,7 +1,6 @@
 'use client';
 
 /** Lista de botones RCS con alta/edición/baja y tope según el contexto. */
-
 import { Button, Stack, Typography } from '@mui/material';
 import ButtonEditor from './ButtonEditor';
 import { Btn } from './rcs-domain';
@@ -34,7 +33,9 @@ export default function ButtonListEditor({
           key={i}
           btn={b}
           allowAdd={allowAdd}
-          onChange={(patch) => onChange(buttons.map((x, idx) => (idx === i ? { ...x, ...patch } : x)))}
+          onChange={(patch) =>
+            onChange(buttons.map((x, idx) => (idx === i ? { ...x, ...patch } : x)))
+          }
           onRemove={() => onChange(buttons.filter((_, idx) => idx !== i))}
         />
       ))}

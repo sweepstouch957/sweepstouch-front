@@ -2,7 +2,6 @@
 
 /** Editor de UN botón RCS — todos los campos del spec editables, con error
  *  inline (causa + solución) en los campos obligatorios según la acción. */
-
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import { Card, IconButton, MenuItem, Stack, TextField } from '@mui/material';
 import { Btn, BTN_KIND_LABEL, BTN_TEXT_MAX, BtnKind, btnValid, clip } from './rcs-domain';

@@ -1,7 +1,6 @@
 'use client';
 
 /** Preview en vivo del mensaje RCS, estilo Google Messages. Sólo lectura. */
-
 import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
 import { Alert, Avatar, Box, Card, Chip, Divider, Stack, Typography } from '@mui/material';
 import { Btn } from './rcs-domain';
@@ -73,7 +72,9 @@ export default function PhonePreview({ b }: { b: RcsBuilderApi }) {
           gap={1.2}
           borderBottom="1px solid #eee"
         >
-          <Avatar sx={{ width: 30, height: 30, bgcolor: 'primary.main', fontSize: 14, fontWeight: 800 }}>
+          <Avatar
+            sx={{ width: 30, height: 30, bgcolor: 'primary.main', fontSize: 14, fontWeight: 800 }}
+          >
             S
           </Avatar>
           <Box lineHeight={1.1}>
@@ -134,7 +135,8 @@ export default function PhonePreview({ b }: { b: RcsBuilderApi }) {
                 height={140}
                 sx={{
                   bgcolor: '#f1f1f1',
-                  backgroundImage: (b.thumbUrl || b.fileUrl) ? `url(${b.thumbUrl || b.fileUrl})` : undefined,
+                  backgroundImage:
+                    b.thumbUrl || b.fileUrl ? `url(${b.thumbUrl || b.fileUrl})` : undefined,
                   backgroundSize: 'contain',
                   backgroundPosition: 'center',
                   backgroundRepeat: 'no-repeat',
@@ -255,7 +257,12 @@ export default function PhonePreview({ b }: { b: RcsBuilderApi }) {
                         variant="caption"
                         color="#777"
                         display="-webkit-box"
-                        sx={{ WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', fontSize: 10.5 }}
+                        sx={{
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          fontSize: 10.5,
+                        }}
                       >
                         {c.description}
                       </Typography>
@@ -300,8 +307,8 @@ export default function PhonePreview({ b }: { b: RcsBuilderApi }) {
         variant="outlined"
         sx={{ mt: 1.5 }}
       >
-        El ícono 🌐 junto a los botones lo pone Google Messages según la acción — no se puede
-        quitar desde la API.
+        El ícono 🌐 junto a los botones lo pone Google Messages según la acción — no se puede quitar
+        desde la API.
       </Alert>
     </Box>
   );

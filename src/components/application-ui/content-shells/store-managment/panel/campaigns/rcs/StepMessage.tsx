@@ -1,7 +1,6 @@
 'use client';
 
 /** Paso 1 · El mensaje — tipo (carrusel/card/texto/archivo) y su contenido. */
-
 import {
   Box,
   Button,

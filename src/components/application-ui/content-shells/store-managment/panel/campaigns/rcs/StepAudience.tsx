@@ -2,7 +2,6 @@
 
 /** Paso 3 · Audiencia — prueba (autocomplete de la base / primeros N) o campaña
  *  programada (título + fecha, sólo en ese modo). */
-
 import {
   Autocomplete,
   Box,
@@ -54,7 +53,9 @@ export default function StepAudience({ b }: { b: RcsBuilderApi }) {
               getOptionLabel={(o: any) =>
                 typeof o === 'string'
                   ? o
-                  : `${[o.firstName, o.lastName].filter(Boolean).join(' ') || 'Cliente'} · ${o.phoneNumber}`
+                  : `${[o.firstName, o.lastName].filter(Boolean).join(' ') || 'Cliente'} · ${
+                      o.phoneNumber
+                    }`
               }
               isOptionEqualToValue={(o: any, v: any) =>
                 String(o?.phoneNumber || o) === String(v?.phoneNumber || v)
@@ -130,7 +131,9 @@ export default function StepAudience({ b }: { b: RcsBuilderApi }) {
             onChange={(e) => b.setTitle(e.target.value)}
             error={b.attempted[2] && !b.title.trim()}
             helperText={
-              b.attempted[2] && !b.title.trim() ? 'Obligatorio para identificarla en el panel.' : undefined
+              b.attempted[2] && !b.title.trim()
+                ? 'Obligatorio para identificarla en el panel.'
+                : undefined
             }
             sx={{ flex: 1, minWidth: 220 }}
           />

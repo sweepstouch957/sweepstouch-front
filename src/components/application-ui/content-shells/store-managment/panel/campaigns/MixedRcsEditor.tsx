@@ -165,7 +165,10 @@ export function buildMixedPreview({
       .replace(/#ahorro/gi, vals['#ahorro'])
       .replace(/#listlink/gi, vals['#listlink'])
       .replace(/#address/gi, vals['#address'])
-      .replace(/#(?:linklogin|linktree|link)(?![a-z])/gi, value.buttonUrl.trim() || 'swtrcs.com/s/YYYYYY')
+      .replace(
+        /#(?:linklogin|linktree|link)(?![a-z])/gi,
+        value.buttonUrl.trim() || 'swtrcs.com/s/YYYYYY'
+      )
       .replace(/#message/gi, smsText || 'Texto de la campaña')
       .replace(/\n{3,}/g, '\n\n')
       .trim();

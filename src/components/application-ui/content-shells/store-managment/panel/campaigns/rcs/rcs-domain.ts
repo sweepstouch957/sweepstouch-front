@@ -19,7 +19,10 @@ export const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n) : s)
 export type MsgType = 'TEXT' | 'FILE' | 'CARD' | 'CAROUSEL';
 
 export const MSG_TYPE_INFO: Record<MsgType, { label: string; hint: string }> = {
-  CAROUSEL: { label: 'Carrusel', hint: 'Varias tarjetas deslizables — ideal para las ofertas de la semana.' },
+  CAROUSEL: {
+    label: 'Carrusel',
+    hint: 'Varias tarjetas deslizables — ideal para las ofertas de la semana.',
+  },
   CARD: { label: 'Card única', hint: 'Una sola tarjeta grande con imagen, texto y botones.' },
   TEXT: { label: 'Texto', hint: 'Sólo texto con botones — como un SMS pero interactivo.' },
   FILE: { label: 'Archivo', hint: 'Una imagen, video o PDF con botones debajo.' },
@@ -132,12 +135,30 @@ export function toSuggestion(b: Btn, i: number, productId?: string): any {
 
   switch (b.kind) {
     case 'offers':
-      return { type: 'OPEN_URL', text, postbackData: 'open_offers', url: '{{RCSLINK}}', ...webview };
+      return {
+        type: 'OPEN_URL',
+        text,
+        postbackData: 'open_offers',
+        url: '{{RCSLINK}}',
+        ...webview,
+      };
     case 'list':
-      return { type: 'OPEN_URL', text, postbackData: 'open_list', url: '{{RCSLINK}}{{SEP}}screen=2', ...webview };
+      return {
+        type: 'OPEN_URL',
+        text,
+        postbackData: 'open_list',
+        url: '{{RCSLINK}}{{SEP}}screen=2',
+        ...webview,
+      };
     case 'add':
       if (!productId) {
-        return { type: 'OPEN_URL', text, postbackData: 'open_offers', url: '{{RCSLINK}}', ...webview };
+        return {
+          type: 'OPEN_URL',
+          text,
+          postbackData: 'open_offers',
+          url: '{{RCSLINK}}',
+          ...webview,
+        };
       }
       return {
         type: 'OPEN_URL',
@@ -199,9 +220,12 @@ export function btnProblems(btns: Btn[], scope: string): string[] {
   btns.forEach((b, i) => {
     const name = b.text.trim() ? `«${b.text.trim()}»` : `el botón ${i + 1}`;
     if (!b.text.trim()) out.push(`${scope}: escribí el texto de ${name}.`);
-    else if (b.kind === 'url' && !b.url?.trim()) out.push(`${scope}: ${name} necesita la URL a abrir.`);
-    else if (b.kind === 'call' && !b.phoneNumber?.trim()) out.push(`${scope}: ${name} necesita el teléfono a marcar.`);
-    else if (b.kind === 'location' && (!b.lat || !b.lng)) out.push(`${scope}: ${name} necesita latitud y longitud.`);
+    else if (b.kind === 'url' && !b.url?.trim())
+      out.push(`${scope}: ${name} necesita la URL a abrir.`);
+    else if (b.kind === 'call' && !b.phoneNumber?.trim())
+      out.push(`${scope}: ${name} necesita el teléfono a marcar.`);
+    else if (b.kind === 'location' && (!b.lat || !b.lng))
+      out.push(`${scope}: ${name} necesita latitud y longitud.`);
   });
   return out;
 }
@@ -225,7 +249,10 @@ export interface RcsContentState {
 /** Content RCS v2 completo (TEXT/FILE/CARD/CAROUSEL) listo para el backend. */
 export function buildRcsContentTemplate(s: RcsContentState): any {
   const globalMax = globalMaxFor(s.msgType);
-  const globals = s.globalButtons.filter(btnValid).slice(0, globalMax).map((b, i) => toSuggestion(b, i));
+  const globals = s.globalButtons
+    .filter(btnValid)
+    .slice(0, globalMax)
+    .map((b, i) => toSuggestion(b, i));
 
   const buildCard = (c: CardData) => ({
     title: clip(c.title || 'Oferta', TITLE_MAX),
@@ -233,11 +260,18 @@ export function buildRcsContentTemplate(s: RcsContentState): any {
     ...(c.mediaUrl
       ? { media: { file: { url: c.mediaUrl }, height: c.mediaHeight || 'MEDIUM' } }
       : {}),
-    suggestions: c.buttons.filter(btnValid).slice(0, 4).map((b, i) => toSuggestion(b, i, c.productId)),
+    suggestions: c.buttons
+      .filter(btnValid)
+      .slice(0, 4)
+      .map((b, i) => toSuggestion(b, i, c.productId)),
   });
 
   if (s.msgType === 'TEXT') {
-    return { type: 'TEXT', text: clip(s.text, TEXT_MAX), ...(globals.length ? { suggestions: globals } : {}) };
+    return {
+      type: 'TEXT',
+      text: clip(s.text, TEXT_MAX),
+      ...(globals.length ? { suggestions: globals } : {}),
+    };
   }
   if (s.msgType === 'FILE') {
     return {

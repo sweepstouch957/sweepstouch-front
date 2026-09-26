@@ -5,18 +5,17 @@
  * paso y resúmenes. Los componentes de paso reciben este objeto y no manejan
  * estado propio — una sola fuente de verdad.
  */
-
 import { circularService } from '@/services/circular.service';
 import { customerClient } from '@/services/customerService';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import {
   blankCard,
-  btnProblems,
   Btn,
+  btnProblems,
   buildRcsContentTemplate,
-  cardFromProduct,
   CardData,
+  cardFromProduct,
   CatalogProduct,
   globalMaxFor,
   MSG_TYPE_INFO,
@@ -166,12 +165,16 @@ export function useRcsBuilder({
     if (msgType === 'CARD') {
       if (!singleCard) out.push('Elegí un producto del catálogo o agregá una card en blanco.');
       else {
-        if (!singleCard.title.trim() && !singleCard.mediaUrl) out.push('La card necesita al menos un título o una imagen.');
+        if (!singleCard.title.trim() && !singleCard.mediaUrl)
+          out.push('La card necesita al menos un título o una imagen.');
         out.push(...btnProblems(singleCard.buttons, 'Card'));
       }
     }
     if (msgType === 'CAROUSEL') {
-      if (cards.length < 2) out.push(`El carrusel necesita mínimo 2 cards (tenés ${cards.length}). Elegí productos del catálogo.`);
+      if (cards.length < 2)
+        out.push(
+          `El carrusel necesita mínimo 2 cards (tenés ${cards.length}). Elegí productos del catálogo.`
+        );
       cards.forEach((c, i) => out.push(...btnProblems(c.buttons, `Card ${i + 1}`)));
     }
     return out;
@@ -183,13 +186,15 @@ export function useRcsBuilder({
     const out: string[] = [];
     if (audMode === 'numbers' && parsedNumbers.length === 0)
       out.push('Buscá y elegí al menos un cliente de la base (o pegá un número y Enter).');
-    if (audMode === 'all' && !title.trim()) out.push('La campaña necesita un título para identificarla.');
+    if (audMode === 'all' && !title.trim())
+      out.push('La campaña necesita un título para identificarla.');
     return out;
   }, [audMode, parsedNumbers, title]);
 
   const reviewProblems = useMemo(() => {
     const out: string[] = [];
-    if (!failover.trim()) out.push('Escribí el SMS de respaldo — es lo que reciben los teléfonos sin RCS.');
+    if (!failover.trim())
+      out.push('Escribí el SMS de respaldo — es lo que reciben los teléfonos sin RCS.');
     return out;
   }, [failover]);
 
@@ -212,30 +217,92 @@ export function useRcsBuilder({
       : audMode === 'limit'
         ? `Primeros ${audLimit} — prueba inmediata`
         : `Toda la base (${totalAudience.toLocaleString()}) — programada`,
-    validityAmount > 0 ? `Validez ${validityAmount} ${validityUnit === 'HOURS' ? 'h' : 'min'}` : 'Listo para enviar',
+    validityAmount > 0
+      ? `Validez ${validityAmount} ${validityUnit === 'HOURS' ? 'h' : 'min'}`
+      : 'Listo para enviar',
   ];
 
   const contentTemplate = () =>
-    buildRcsContentTemplate({ msgType, text, fileUrl, thumbUrl, cardWidth, orientation, alignment, cards, globalButtons });
+    buildRcsContentTemplate({
+      msgType,
+      text,
+      fileUrl,
+      thumbUrl,
+      cardWidth,
+      orientation,
+      alignment,
+      cards,
+      globalButtons,
+    });
 
   return {
     // wizard
-    activeStep, setActiveStep, attempted, tryAdvance, markAllAttempted,
-    stepProblems, allProblems, canSubmit, stepSummaries,
+    activeStep,
+    setActiveStep,
+    attempted,
+    tryAdvance,
+    markAllAttempted,
+    stepProblems,
+    allProblems,
+    canSubmit,
+    stepSummaries,
     // campaña
-    title, setTitle, startDate, setStartDate, failover, setFailover,
-    validityAmount, setValidityAmount, validityUnit, setValidityUnit,
+    title,
+    setTitle,
+    startDate,
+    setStartDate,
+    failover,
+    setFailover,
+    validityAmount,
+    setValidityAmount,
+    validityUnit,
+    setValidityUnit,
     // contenido
-    msgType, setMsgType, text, setText, fileUrl, setFileUrl, thumbUrl, setThumbUrl,
-    cardWidth, setCardWidth, orientation, setOrientation, alignment, setAlignment,
-    cards, singleCard, toggleProduct, addBlankCard, patchCard, removeCard, moveCard,
-    globalButtons, setGlobalButtons, globalMax,
-    search, setSearch, products, filtered, loadingCatalog,
+    msgType,
+    setMsgType,
+    text,
+    setText,
+    fileUrl,
+    setFileUrl,
+    thumbUrl,
+    setThumbUrl,
+    cardWidth,
+    setCardWidth,
+    orientation,
+    setOrientation,
+    alignment,
+    setAlignment,
+    cards,
+    singleCard,
+    toggleProduct,
+    addBlankCard,
+    patchCard,
+    removeCard,
+    moveCard,
+    globalButtons,
+    setGlobalButtons,
+    globalMax,
+    search,
+    setSearch,
+    products,
+    filtered,
+    loadingCatalog,
     // audiencia
-    audMode, setAudMode, audLimit, setAudLimit,
-    audSelected, setAudSelected, audInput, setAudInput,
-    custOptions, searchingCustomers, parsedNumbers, isTest, audienceCount,
-    totalAudience, storeName,
+    audMode,
+    setAudMode,
+    audLimit,
+    setAudLimit,
+    audSelected,
+    setAudSelected,
+    audInput,
+    setAudInput,
+    custOptions,
+    searchingCustomers,
+    parsedNumbers,
+    isTest,
+    audienceCount,
+    totalAudience,
+    storeName,
     // salida
     contentTemplate,
   };

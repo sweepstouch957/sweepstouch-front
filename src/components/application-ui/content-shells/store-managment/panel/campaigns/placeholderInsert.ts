@@ -16,5 +16,8 @@ export function smartInsert(text: string, start: number, end: number, token: str
   const padBefore = prev !== '' && !/\s/.test(prev) && !/[¡¿("'“]/.test(prev) ? ' ' : '';
   const padAfter = /[\p{L}\p{N}#]/u.test(next) ? ' ' : '';
   const inserted = padBefore + token + padAfter;
-  return { text: before + inserted + after, caret: before.length + padBefore.length + token.length };
+  return {
+    text: before + inserted + after,
+    caret: before.length + padBefore.length + token.length,
+  };
 }

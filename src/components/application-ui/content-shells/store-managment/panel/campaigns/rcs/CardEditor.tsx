@@ -1,7 +1,6 @@
 'use client';
 
 /** Acordeón de UNA card del carrusel — título, descripción, media y botones. */
-
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import {
   Accordion,
@@ -51,7 +50,13 @@ export default function CardEditor({
           <Avatar
             variant="rounded"
             src={card.mediaUrl || undefined}
-            sx={{ width: 34, height: 34, bgcolor: 'action.hover', color: 'text.secondary', fontSize: 14 }}
+            sx={{
+              width: 34,
+              height: 34,
+              bgcolor: 'action.hover',
+              color: 'text.secondary',
+              fontSize: 14,
+            }}
           >
             {(card.title || '?').charAt(0).toUpperCase()}
           </Avatar>

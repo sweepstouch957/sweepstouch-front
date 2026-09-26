@@ -10,7 +10,6 @@
  *  - Step*.tsx           → cada paso del wizard
  *  - PhonePreview.tsx    → vista previa en vivo estilo Google Messages
  */
-
 import {
   Alert,
   Box,
@@ -39,7 +38,12 @@ import StepReview from './StepReview';
 import { useRcsBuilder } from './use-rcs-builder';
 import { useRcsSubmit } from './use-rcs-submit';
 
-const STEP_TITLES = ['El mensaje', 'Botones del mensaje', '¿A quién se lo mandamos?', 'Revisar y enviar'];
+const STEP_TITLES = [
+  'El mensaje',
+  'Botones del mensaje',
+  '¿A quién se lo mandamos?',
+  'Revisar y enviar',
+];
 
 export default function RcsCampaignBuilder({
   storeId,
@@ -222,7 +226,9 @@ export default function RcsCampaignBuilder({
             {b.msgType === 'CAROUSEL' ? ` de ${b.cards.length} cards` : ''} para{' '}
             <b>
               {b.audMode === 'numbers'
-                ? `${b.parsedNumbers.length} número${b.parsedNumbers.length === 1 ? '' : 's'} de prueba`
+                ? `${b.parsedNumbers.length} número${
+                    b.parsedNumbers.length === 1 ? '' : 's'
+                  } de prueba`
                 : `${b.audienceCount.toLocaleString()} clientes`}
             </b>{' '}
             de {storeName}.

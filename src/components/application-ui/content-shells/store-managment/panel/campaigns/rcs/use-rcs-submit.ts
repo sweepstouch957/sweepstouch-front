@@ -4,7 +4,6 @@
  * Envío del editor RCS: prueba inmediata (sms-worker /api/rcs/send) o campaña
  * programada (campaign-service, channel "rcs"). Maneja confirmación y snackbar.
  */
-
 import { campaignClient } from '@/services/campaing.service';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
