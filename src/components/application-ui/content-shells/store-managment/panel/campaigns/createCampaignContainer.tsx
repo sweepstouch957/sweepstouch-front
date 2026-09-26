@@ -78,14 +78,18 @@ export default function CampaignFormContainer({
           // al editar una campaña y cambiarle la imagen, la vieja pisaba a la
           // nueva y la campaña salía con el arte anterior. Sin archivo nuevo, se
           // conserva lo que ya tenía.
-          image: uploadedImage?.url || data.imageUrl || initialData?.image || null,
+          // imageRemoved: se tocó "Quitar" → la campaña queda sin arte (SMS), no vuelve el viejo.
+          image: uploadedImage?.url || (data.imageRemoved ? null : data.imageUrl || initialData?.image || null),
           imagePublicId:
-            uploadedImage?.public_id || data.imagePublicId || initialData?.imagePublicId || null,
+            uploadedImage?.public_id ||
+            (data.imageRemoved ? null : data.imagePublicId || initialData?.imagePublicId || null),
           // Arte nuevo liviano → sin original aparte (vacío, para no leer productos del arte viejo).
-          sourceImage: uploadedImage ? uploadedImage.originalUrl : initialData?.sourceImage || '',
+          sourceImage: uploadedImage ? uploadedImage.originalUrl : data.imageRemoved ? '' : initialData?.sourceImage || '',
           sourceImagePublicId: uploadedImage
             ? uploadedImage.originalPublicId
-            : initialData?.sourceImagePublicId || '',
+            : data.imageRemoved
+              ? ''
+              : initialData?.sourceImagePublicId || '',
           thumbnailImage:
             uploadedThumb?.url || data.thumbnailImage || initialData?.thumbnailImage || null,
           thumbnailPublicId:
@@ -96,6 +100,7 @@ export default function CampaignFormContainer({
         };
 
         delete (payload as any).thumbnail;
+        delete (payload as any).imageRemoved;
 
         const response = isEditing
           ? await campaignClient.updateCampaign(initialData._id, payload)
@@ -108,7 +113,7 @@ export default function CampaignFormContainer({
       }
     },
     onSuccess: (_res, vars) => {
-      setWithArt(Boolean(vars?.image?.length || vars?.imageUrl || initialData?.image));
+      setWithArt(!vars?.imageRemoved && Boolean(vars?.image?.length || vars?.imageUrl || initialData?.image));
       setSuccessOpen(true);
       setConfirmOpen(false);
       setFormData(null);

@@ -1,10 +1,10 @@
 'use client';
 
 import PreviewPhone from '@/components/application-ui/dialogs/preview/preview-phone';
-import AvatarUploadLogo from '@/components/application-ui/upload/avatar/avatar-upload-logo';
+import CampaignArtDropzone from './CampaignArtDropzone';
 import { campaignClient } from '@/services/campaing.service';
 import { DEFAULT_INFOBIP_SENDER } from '@/services/store.service';
-import { uploadCampaignArt, MMS_MAX_BYTES } from '@/services/upload.service';
+import { uploadCampaignArt } from '@/services/upload.service';
 import CalendarTodayRoundedIcon from '@mui/icons-material/CalendarTodayRounded';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import FlashOnRoundedIcon from '@mui/icons-material/FlashOnRounded';
@@ -362,31 +362,18 @@ export default function QuickCampaignDialog({
                   <>
                     <Box>
                       <Typography variant="subtitle2" fontWeight={700} mb={0.5}>Imagen de campaña</Typography>
-                      <Typography variant="caption" color="text.disabled">Sube una imagen o reutiliza la anterior.</Typography>
+                      <Typography variant="body2" color="text.secondary">Arrastra una nueva o deja la de la última campaña.</Typography>
                     </Box>
                     {(last as any)?.image && !newImage && (
                       <Alert severity="info" sx={{ borderRadius: 2, py: 0.5 }}>Se usará la imagen de la última campaña.</Alert>
                     )}
-                    <Alert severity="info" sx={{ borderRadius: 2, py: 0.5 }}>Hasta 100 MB: se comprime sola a menos de 500 KB para el MMS.</Alert>
-                    <AvatarUploadLogo
-                      label="Subir imagen"
+                    <CampaignArtDropzone
+                      file={newImage}
                       initialUrl={(last as any)?.image}
-                      onSelect={(file) => {
-                        if (!file) { setNewImage(null); return; }
-                        if (file.size > 100 * 1024 * 1024) {
-                          setSnack({ open: true, msg: 'La imagen supera los 100 MB.', sev: 'error' });
-                          return;
-                        }
-                        setNewImage(file);
-                      }}
+                      allowRemoveInitial={false}
+                      onChange={setNewImage}
+                      onError={(msg) => setSnack({ open: true, msg, sev: 'error' })}
                     />
-                    {newImage && (
-                      <Chip
-                        icon={<CheckRoundedIcon />}
-                        label={`${newImage.name} · ${newImage.size > MMS_MAX_BYTES ? `${(newImage.size / 1048576).toFixed(1)} MB → se comprime` : `${(newImage.size / 1024).toFixed(0)} KB`}`}
-                        color="success" variant="outlined" size="small"
-                      />
-                    )}
                   </>
                 )}
 

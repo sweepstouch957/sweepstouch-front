@@ -2,7 +2,6 @@
 'use client';
 
 import PreviewPhone from '@/components/application-ui/dialogs/preview/preview-phone';
-import AvatarUploadLogo from '@/components/application-ui/upload/avatar/avatar-upload-logo';
 import { circularService } from '@/services/circular.service';
 import { getStoreById } from '@/services/store.service';
 import { Sms } from '@mui/icons-material';
@@ -37,8 +36,8 @@ import MixedRcsEditor, {
   mixedTemplateFromCustom,
   type MixedRcsCustom,
 } from './MixedRcsEditor';
-import ProviderImageConstraints from './provider-image-constraints';
-import { getProviderImageErrorMessage, isValidImageSizeForProvider } from './provider-image-utils';
+import CampaignArtDropzone from './CampaignArtDropzone';
+import { smartInsert } from './placeholderInsert';
 
 interface CampaignFormInputs {
   title: string;
@@ -54,6 +53,8 @@ interface CampaignFormInputs {
   thumbnail?: string;
   thumbnailImage?: string;
   thumbnailPublicId?: string;
+  /** Al editar: se quitó el arte guardado (sin esto el contenedor volvía a poner el viejo). */
+  imageRemoved?: boolean;
   customAudience?: number;
   linktree?: boolean; // 👈 nuevo parámetro
   /** Piloto mixed: SMS/MMS normal + un 10% de los clientes con nombre por RCS personalizado. */
@@ -186,7 +187,7 @@ function Section({
       </Typography>
       {hint && (
         <Typography
-          variant="caption"
+          variant="body2"
           color="text.secondary"
           sx={{ display: 'block', mb: 1.5 }}
         >
@@ -209,14 +210,13 @@ const STEPS = [
 ] as const;
 type StepKey = (typeof STEPS)[number]['key'];
 
-const insertAtCursor = (inputEl: HTMLTextAreaElement, text: string) => {
-  const [start, end] = [inputEl.selectionStart, inputEl.selectionEnd];
-  const currentText = inputEl.value;
-  const newText = currentText.substring(0, start) + text + currentText.substring(end);
-  inputEl.value = newText;
-  inputEl.setSelectionRange(start + text.length, start + text.length);
+/** Inserta en el cursor sólo con los espacios que hacen falta (ver placeholderInsert). */
+const insertAtCursor = (inputEl: HTMLTextAreaElement, token: string) => {
+  const { text, caret } = smartInsert(inputEl.value, inputEl.selectionStart, inputEl.selectionEnd, token);
+  inputEl.value = text;
+  inputEl.setSelectionRange(caret, caret);
   inputEl.focus();
-  return newText;
+  return text;
 };
 
 export default function CreateCampaignForm({
@@ -571,13 +571,14 @@ export default function CreateCampaignForm({
                                 justifyContent="space-between"
                               >
                                 <Typography
-                                  variant="caption"
+                                  variant="body2"
                                   color="text.secondary"
+                                  sx={{ fontSize: 12.5 }}
                                 >
                                   Cada 160 caracteres cuentan como un mensaje
                                 </Typography>
                                 <Typography
-                                  variant="caption"
+                                  variant="body2"
                                   color={currentLength > 1900 ? 'warning.main' : 'text.secondary'}
                                   sx={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}
                                 >
@@ -629,12 +630,11 @@ export default function CreateCampaignForm({
                       xs={12}
                     >
                       <Typography
-                        variant="caption"
+                        variant="body2"
                         color="text.secondary"
-                        sx={{ display: 'block', mb: 0.75 }}
+                        sx={{ display: 'block', mb: 1, fontSize: 12.5 }}
                       >
-                        Tocá uno para insertarlo donde está el cursor. Se reemplaza por cliente al
-                        enviar.
+                        Toca uno para insertarlo donde está el cursor. Se reemplaza por cliente al enviar.
                       </Typography>
                       <Box
                         display="flex"
@@ -649,17 +649,22 @@ export default function CreateCampaignForm({
                             <Chip
                               label={ph.key}
                               clickable
-                              color="secondary"
-                              variant="outlined"
                               // Altura táctil: con size="small" (24 px) es casi imposible
                               // acertarle en el teléfono.
-                              sx={{ height: { xs: 36, sm: 28 }, fontSize: { xs: 14, sm: 13 } }}
+                              sx={{
+                                height: { xs: 36, sm: 30 },
+                                fontSize: { xs: 14, sm: 13 },
+                                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                                fontWeight: 600,
+                                borderRadius: 1.5,
+                                bgcolor: 'action.hover',
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                '&:hover': { bgcolor: 'action.selected', borderColor: 'primary.main' },
+                              }}
                               onClick={() => {
                                 if (contentRef.current) {
-                                  const updatedText = insertAtCursor(
-                                    contentRef.current,
-                                    ` ${ph.key} `
-                                  );
+                                  const updatedText = insertAtCursor(contentRef.current, ph.key);
                                   if (updatedText.length > 2047) {
                                     setSnackState({
                                       open: true,
@@ -710,49 +715,24 @@ export default function CreateCampaignForm({
                     El campo `thumbnailImage` de las campañas viejas no se toca. */}
                 <Section
                   title="Imagen de campaña"
-                  hint="Es la que viaja en el MMS. Sin imagen, la campaña sale como SMS de texto."
+                  hint="Viaja en el MMS y de ella salen los productos y el banner de la lista. Sin imagen, la campaña sale como SMS de texto."
                 >
-                  <Grid
-                    container
-                    spacing={3}
-                    alignItems="flex-start"
-                  >
-                    <Grid
-                      item
-                      xs={12}
-                      sm={6}
-                    >
-                      <AvatarUploadLogo
-                        label="Imagen de campaña"
-                        initialUrl={initialValues?.image}
-                        onSelect={(file) => {
-                          if (file) {
-                            if (!isValidImageSizeForProvider(file.size, provider)) {
-                              setSnackState({
-                                open: true,
-                                message: getProviderImageErrorMessage(provider),
-                                severity: 'error',
-                              });
-                              return;
-                            }
-                            const dt = new DataTransfer();
-                            dt.items.add(file);
-                            setValue('image', dt.files as any, { shouldValidate: true });
-                          } else {
-                            setValue('image', undefined);
-                          }
-                        }}
-                      />
-                    </Grid>
-
-                    <Grid
-                      item
-                      xs={12}
-                      sm={6}
-                    >
-                      <ProviderImageConstraints provider={provider} />
-                    </Grid>
-                  </Grid>
+                  <CampaignArtDropzone
+                    file={(image as any)?.[0] instanceof File ? (image as any)[0] : null}
+                    initialUrl={typeof initialValues?.image === 'string' ? initialValues.image : undefined}
+                    onError={(message) => setSnackState({ open: true, message, severity: 'error' })}
+                    onChange={(file) => {
+                      if (file) {
+                        const dt = new DataTransfer();
+                        dt.items.add(file);
+                        setValue('image', dt.files as any, { shouldValidate: true });
+                        setValue('imageRemoved', false);
+                      } else {
+                        setValue('image', undefined);
+                        setValue('imageRemoved', true);
+                      }
+                    }}
+                  />
                 </Section>
 
                 <Divider sx={{ my: 4 }} />

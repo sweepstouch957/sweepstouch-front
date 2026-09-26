@@ -39,6 +39,10 @@ const CHUNK_BYTES = 10 * 1024 * 1024; // Cloudinary pide trozos ≥ 5 MB (salvo 
 // Si el plan de Cloudinary rechaza el original por peso, se sube un "maestro" en alta
 // hecho en el navegador. Bajo 10 MB entra en cualquier plan.
 const MASTER_MAX_BYTES = 9.5 * 1024 * 1024;
+// El proxy del backend corta a 25 MB: hasta acá el original entra por /upload.
+const VIA_BACKEND_MAX_BYTES = 24 * 1024 * 1024;
+// Carpeta de originales: /upload/compress sólo acepta public_ids de acá.
+const ORIGINAL_FOLDER = 'campaigns-original';
 
 export interface CampaignArtUpload extends UploadResponse {
   /** Arte original (vacío si el archivo ya era liviano y no hizo falta comprimir). */
@@ -118,13 +122,25 @@ export const uploadCampaignArt = async (
     return { ...up, originalUrl: '', originalPublicId: '', bytes: file.size };
   }
 
-  const { data: sig } = await api.post<CloudinarySignature>('/upload/sign', {});
   let original: { secure_url: string; public_id: string };
-  try {
-    original = await uploadSignedToCloudinary(file, sig, onProgress);
-  } catch (e: any) {
-    if (!/too large|file size/i.test(String(e?.message))) throw e;
-    original = await uploadSignedToCloudinary(await makeMaster(file), sig, onProgress);
+  if (file.size <= VIA_BACKEND_MAX_BYTES) {
+    // Lo común (un arte de 1–20 MB): por el backend, como cualquier upload. No depende de
+    // CORS/CSP del navegador hacia Cloudinary ("Failed to fetch").
+    const up = await uploadCampaignImage(file, ORIGINAL_FOLDER);
+    original = { secure_url: up.url, public_id: up.public_id };
+    onProgress?.(100);
+  } else {
+    const { data: sig } = await api.post<CloudinarySignature>('/upload/sign', {});
+    try {
+      original = await uploadSignedToCloudinary(file, sig, onProgress);
+    } catch (e: any) {
+      // Plan de Cloudinary con tope de peso, o red/CSP que corta el pedido directo: se sube
+      // un maestro en alta hecho en el navegador, y ese sí entra por el backend.
+      if (!/too large|file size|failed to fetch|networkerror|load failed/i.test(String(e?.message))) throw e;
+      const master = new File([await makeMaster(file)], 'arte.jpg', { type: 'image/jpeg' });
+      const up = await uploadCampaignImage(master, ORIGINAL_FOLDER);
+      original = { secure_url: up.url, public_id: up.public_id };
+    }
   }
 
   const { data: mms } = await api.post<{ url: string; public_id: string; bytes: number }>('/upload/compress', {

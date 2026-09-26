@@ -33,7 +33,8 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline' https://api.mapbox.com",
       "img-src 'self' data: blob: https://res.cloudinary.com https://*.cloudinary.com https://*.mapbox.com https://jsfpovyoaqucwigttyil.supabase.co",
       "font-src 'self' data: https://api.mapbox.com",
-      "connect-src 'self' http://localhost:* ws://localhost:* https://*.sweepstouch.com wss://*.sweepstouch.com https://api.mapbox.com https://events.mapbox.com",
+      // api.cloudinary.com: el arte pesado de campaña (>24 MB) sube directo del navegador.
+      "connect-src 'self' http://localhost:* ws://localhost:* https://*.sweepstouch.com wss://*.sweepstouch.com https://api.mapbox.com https://events.mapbox.com https://api.cloudinary.com",
       "worker-src 'self' blob:",
       "child-src 'self' blob: https://kiosko.sweepstouch.com https://links.sweepstouch.com https://merchant.sweepstouch.com https://swtrcs.com https://www.swtrcs.com",
       "frame-src 'self' blob: https://kiosko.sweepstouch.com https://links.sweepstouch.com https://merchant.sweepstouch.com https://swtrcs.com https://www.swtrcs.com",
