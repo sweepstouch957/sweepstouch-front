@@ -10,13 +10,12 @@
  * un día. Lo que se toque ahí queda en la cuenta de ese cliente: por eso el botón dice a
  * nombre de quién abrió, y por eso el token dura poco.
  */
-
-import { useState } from 'react';
-import { Button, Tooltip } from '@mui/material';
-import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
-import toast from 'react-hot-toast';
-import axios from 'axios';
 import { customerClient, type Customer } from '@/services/customerService';
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import { Button, Tooltip } from '@mui/material';
+import axios from 'axios';
+import { useState } from 'react';
+import toast from 'react-hot-toast';
 import { getAuthToken } from 'src/utils/auth/custom/storage';
 import { LINKTREE_ORIGIN } from 'src/utils/sweepstouch-urls';
 
@@ -47,7 +46,9 @@ export default function PreRcsPreviewButton({
       const res = await customerClient.getCustomersByStore(storeId, 1, 50);
       const customer = pickPreviewCustomer(res.data || []);
       if (!customer?._id) {
-        toast.error('Esta tienda todavía no tiene clientes: no hay a nombre de quién abrir la vista previa.');
+        toast.error(
+          'Esta tienda todavía no tiene clientes: no hay a nombre de quién abrir la vista previa.'
+        );
         return;
       }
 
@@ -62,7 +63,9 @@ export default function PreRcsPreviewButton({
         `${LINKTREE_ORIGIN}/prercs/${customer._id}?store=${encodeURIComponent(storeSlug)}` +
         (data?.token ? `&token=${encodeURIComponent(data.token)}` : '');
       window.open(url, '_blank', 'noopener,noreferrer');
-      toast.success(`Vista previa abierta como ${customer.firstName || customer.phoneNumber || 'cliente'}`);
+      toast.success(
+        `Vista previa abierta como ${customer.firstName || customer.phoneNumber || 'cliente'}`
+      );
     } catch (err: any) {
       toast.error(err?.response?.data?.error || 'No se pudo abrir la vista previa del Pre-RCS');
     } finally {

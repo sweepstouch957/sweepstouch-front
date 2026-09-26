@@ -27,7 +27,12 @@ export function SectionHeader({
       justifyContent="space-between"
       gap={1.5}
     >
-      <Stack direction="row" alignItems="flex-start" gap={1.5} sx={{ minWidth: 0 }}>
+      <Stack
+        direction="row"
+        alignItems="flex-start"
+        gap={1.5}
+        sx={{ minWidth: 0 }}
+      >
         <Box
           aria-hidden
           sx={{
@@ -47,18 +52,30 @@ export function SectionHeader({
           {step}
         </Box>
         <Box sx={{ minWidth: 0 }}>
-          <Typography variant="h6" fontWeight={800} lineHeight={1.3}>
+          <Typography
+            variant="h6"
+            fontWeight={800}
+            lineHeight={1.3}
+          >
             {title}
           </Typography>
           {description && (
-            <Typography variant="body2" color="text.secondary">
+            <Typography
+              variant="body2"
+              color="text.secondary"
+            >
               {description}
             </Typography>
           )}
         </Box>
       </Stack>
       {action && (
-        <Stack direction="row" gap={1} flexWrap="wrap" sx={{ flexShrink: 0 }}>
+        <Stack
+          direction="row"
+          gap={1}
+          flexWrap="wrap"
+          sx={{ flexShrink: 0 }}
+        >
           {action}
         </Stack>
       )}
@@ -69,7 +86,11 @@ export function SectionHeader({
 /** Tarjeta base: borde fino, radio grande, fondo plano. */
 export function Surface({ sx, children, ...rest }: PaperProps) {
   return (
-    <Paper variant="outlined" sx={{ p: { xs: 2, md: 2.5 }, borderRadius: 3, ...sx }} {...rest}>
+    <Paper
+      variant="outlined"
+      sx={{ p: { xs: 2, md: 2.5 }, borderRadius: 3, ...sx }}
+      {...rest}
+    >
       {children}
     </Paper>
   );
@@ -82,7 +103,12 @@ export function Meta({ icon, children }: { icon: ReactNode; children: ReactNode 
       direction="row"
       alignItems="center"
       gap={0.5}
-      sx={{ color: 'text.secondary', '& svg': { fontSize: 16 }, fontSize: 13.5, whiteSpace: 'nowrap' }}
+      sx={{
+        color: 'text.secondary',
+        '& svg': { fontSize: 16 },
+        fontSize: 13.5,
+        whiteSpace: 'nowrap',
+      }}
     >
       {icon}
       <span>{children}</span>
@@ -93,7 +119,12 @@ export function Meta({ icon, children }: { icon: ReactNode; children: ReactNode 
 /** Rótulo chico de subsección (sin mayúsculas forzadas). */
 export function Label({ children }: { children: ReactNode }) {
   return (
-    <Typography variant="body2" fontWeight={700} color="text.secondary" sx={{ mb: 1 }}>
+    <Typography
+      variant="body2"
+      fontWeight={700}
+      color="text.secondary"
+      sx={{ mb: 1 }}
+    >
       {children}
     </Typography>
   );

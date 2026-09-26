@@ -1,15 +1,15 @@
 'use client';
 
+import type { CampaignImportJob } from '@/services/circular.service';
+import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import CampaignRoundedIcon from '@mui/icons-material/CampaignRounded';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
-import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import ListAltRoundedIcon from '@mui/icons-material/ListAltRounded';
 import ViewCarouselOutlinedIcon from '@mui/icons-material/ViewCarouselOutlined';
 import { alpha, Box, CircularProgress, Stack, Typography, useTheme } from '@mui/material';
 import type { ReactNode } from 'react';
-import type { CampaignImportJob } from '@/services/circular.service';
 
 type StepState = 'done' | 'active' | 'error' | 'idle';
 
@@ -21,7 +21,13 @@ interface Step {
 }
 
 const fmt = (d?: string | Date | null) =>
-  d ? new Date(d).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', timeZone: 'America/New_York' }) : '';
+  d
+    ? new Date(d).toLocaleDateString('es-ES', {
+        day: 'numeric',
+        month: 'short',
+        timeZone: 'America/New_York',
+      })
+    : '';
 
 /**
  * Los 5 pasos que corren solos al agendar una campaña con arte, conectados:
@@ -30,21 +36,42 @@ const fmt = (d?: string | Date | null) =>
  */
 export function buildSteps(campaign: any, job: CampaignImportJob | null): Step[] {
   const hasArt = !!campaign?.image;
-  const scheduled = campaign?.status === 'scheduled' || campaign?.status === 'active' || campaign?.status === 'completed';
+  const scheduled =
+    campaign?.status === 'scheduled' ||
+    campaign?.status === 'active' ||
+    campaign?.status === 'completed';
   const r = job?.result;
   const from = r?.effectiveFrom ? new Date(r.effectiveFrom) : null;
   const waitsDate = !!from && from > new Date();
 
   const ai: Step = !job
-    ? { icon: <AutoAwesomeRoundedIcon />, title: 'IA lee productos', detail: 'Sin lectura automática (campaña anterior o sin agendar)', state: 'idle' }
+    ? {
+        icon: <AutoAwesomeRoundedIcon />,
+        title: 'IA lee productos',
+        detail: 'Sin lectura automática (campaña anterior o sin agendar)',
+        state: 'idle',
+      }
     : job.status === 'failed'
-      ? { icon: <AutoAwesomeRoundedIcon />, title: 'IA lee productos', detail: job.error || 'Falló', state: 'error' }
+      ? {
+          icon: <AutoAwesomeRoundedIcon />,
+          title: 'IA lee productos',
+          detail: job.error || 'Falló',
+          state: 'error',
+        }
       : job.status === 'done'
-        ? { icon: <AutoAwesomeRoundedIcon />, title: 'IA lee productos', detail: `${r?.found ?? 0} encontrados en el arte`, state: 'done' }
+        ? {
+            icon: <AutoAwesomeRoundedIcon />,
+            title: 'IA lee productos',
+            detail: `${r?.found ?? 0} encontrados en el arte`,
+            state: 'done',
+          }
         : {
             icon: <AutoAwesomeRoundedIcon />,
             title: 'IA lee productos',
-            detail: job.status === 'running' ? `Leyendo…${job.attempts > 1 ? ` (intento ${job.attempts}/3)` : ''}` : 'En cola',
+            detail:
+              job.status === 'running'
+                ? `Leyendo…${job.attempts > 1 ? ` (intento ${job.attempts}/3)` : ''}`
+                : 'En cola',
             state: 'active',
           };
 
@@ -54,34 +81,55 @@ export function buildSteps(campaign: any, job: CampaignImportJob | null): Step[]
           icon: <ListAltRoundedIcon />,
           title: 'Lista del cliente',
           detail: r?.added
-            ? `+${r.added} productos · ${waitsDate ? `se muestran el ${fmt(from)}` : `visibles desde el ${fmt(from)}`}`
+            ? `+${r.added} productos · ${
+                waitsDate ? `se muestran el ${fmt(from)}` : `visibles desde el ${fmt(from)}`
+              }`
             : r?.found
               ? 'Ya estaban todos en la lista'
               : 'No había productos para sumar',
           state: r?.added && waitsDate ? 'active' : 'done',
         }
-      : { icon: <ListAltRoundedIcon />, title: 'Lista del cliente', detail: 'Productos y precios desde el día de la campaña', state: 'idle' };
+      : {
+          icon: <ListAltRoundedIcon />,
+          title: 'Lista del cliente',
+          detail: 'Productos y precios desde el día de la campaña',
+          state: 'idle',
+        };
 
   // Banner: el encabezado del arte, visible sólo los días de la campaña.
   const b = r?.banner;
   const bannerEnd = b ? new Date(+new Date(b.endDate) - 1) : null;
   const banner: Step =
     job?.status !== 'done'
-      ? { icon: <ViewCarouselOutlinedIcon />, title: 'Banner de la lista', detail: 'Encabezado del arte, sólo los días de la campaña', state: 'idle' }
+      ? {
+          icon: <ViewCarouselOutlinedIcon />,
+          title: 'Banner de la lista',
+          detail: 'Encabezado del arte, sólo los días de la campaña',
+          state: 'idle',
+        }
       : b
         ? {
             icon: <ViewCarouselOutlinedIcon />,
             title: 'Banner de la lista',
-            detail: `${fmt(b.startDate)} → ${fmt(bannerEnd)}${b.fromArt ? ' (fechas del arte)' : ''}`,
+            detail: `${fmt(b.startDate)} → ${fmt(bannerEnd)}${
+              b.fromArt ? ' (fechas del arte)' : ''
+            }`,
             state: new Date(b.startDate) > new Date() ? 'active' : 'done',
           }
-        : { icon: <ViewCarouselOutlinedIcon />, title: 'Banner de la lista', detail: 'No se creó: había uno manual esos días o el arte no tiene encabezado', state: 'idle' };
+        : {
+            icon: <ViewCarouselOutlinedIcon />,
+            title: 'Banner de la lista',
+            detail: 'No se creó: había uno manual esos días o el arte no tiene encabezado',
+            state: 'idle',
+          };
 
   return [
     {
       icon: <CampaignRoundedIcon />,
       title: 'Campaña agendada',
-      detail: campaign ? `${campaign.title || 'Sin título'} · ${fmt(campaign.startDate)}` : 'Todavía no hay campaña con arte',
+      detail: campaign
+        ? `${campaign.title || 'Sin título'} · ${fmt(campaign.startDate)}`
+        : 'Todavía no hay campaña con arte',
       state: campaign ? (scheduled ? 'done' : 'idle') : 'idle',
     },
     {
@@ -123,8 +171,17 @@ export default function CampaignAutomationFlow({ steps }: { steps: Step[] }) {
         const c = color(s.state);
         const next = steps[i + 1];
         return (
-          <Stack key={s.title} component="li" direction={{ xs: 'row', md: 'column' }} sx={{ flex: 1, minWidth: 0 }}>
-            <Stack direction={{ xs: 'column', md: 'row' }} alignItems="center" sx={{ flexShrink: 0 }}>
+          <Stack
+            key={s.title}
+            component="li"
+            direction={{ xs: 'row', md: 'column' }}
+            sx={{ flex: 1, minWidth: 0 }}
+          >
+            <Stack
+              direction={{ xs: 'column', md: 'row' }}
+              alignItems="center"
+              sx={{ flexShrink: 0 }}
+            >
               <Box
                 sx={{
                   position: 'relative',
@@ -139,9 +196,19 @@ export default function CampaignAutomationFlow({ steps }: { steps: Step[] }) {
                   '& svg': { fontSize: 20 },
                 }}
               >
-                {s.state === 'done' ? <CheckRoundedIcon /> : s.state === 'error' ? <CloseRoundedIcon /> : s.icon}
+                {s.state === 'done' ? (
+                  <CheckRoundedIcon />
+                ) : s.state === 'error' ? (
+                  <CloseRoundedIcon />
+                ) : (
+                  s.icon
+                )}
                 {s.state === 'active' && (
-                  <CircularProgress size={48} thickness={2} sx={{ position: 'absolute', color: c }} />
+                  <CircularProgress
+                    size={48}
+                    thickness={2}
+                    sx={{ position: 'absolute', color: c }}
+                  />
                 )}
               </Box>
               {/* Conector: lleno si este paso ya pasó el testigo al siguiente */}
@@ -161,18 +228,41 @@ export default function CampaignAutomationFlow({ steps }: { steps: Step[] }) {
                       s.state === 'done'
                         ? 'none'
                         : {
-                            xs: `repeating-linear-gradient(180deg, ${alpha(theme.palette.text.disabled, 0.4)} 0 6px, transparent 6px 12px)`,
-                            md: `repeating-linear-gradient(90deg, ${alpha(theme.palette.text.disabled, 0.4)} 0 6px, transparent 6px 12px)`,
+                            xs: `repeating-linear-gradient(180deg, ${alpha(
+                              theme.palette.text.disabled,
+                              0.4
+                            )} 0 6px, transparent 6px 12px)`,
+                            md: `repeating-linear-gradient(90deg, ${alpha(
+                              theme.palette.text.disabled,
+                              0.4
+                            )} 0 6px, transparent 6px 12px)`,
                           },
                   }}
                 />
               )}
             </Stack>
-            <Box sx={{ pl: { xs: 1.5, md: 0 }, pr: { md: 2 }, pt: { md: 1 }, pb: { xs: next ? 2 : 0, md: 0 }, minWidth: 0 }}>
-              <Typography variant="body2" fontWeight={700}>
+            <Box
+              sx={{
+                pl: { xs: 1.5, md: 0 },
+                pr: { md: 2 },
+                pt: { md: 1 },
+                pb: { xs: next ? 2 : 0, md: 0 },
+                minWidth: 0,
+              }}
+            >
+              <Typography
+                variant="body2"
+                fontWeight={700}
+              >
                 {s.title}
               </Typography>
-              <Typography variant="caption" sx={{ color: s.state === 'error' ? 'error.main' : 'text.secondary', display: 'block' }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: s.state === 'error' ? 'error.main' : 'text.secondary',
+                  display: 'block',
+                }}
+              >
                 {s.detail}
               </Typography>
             </Box>

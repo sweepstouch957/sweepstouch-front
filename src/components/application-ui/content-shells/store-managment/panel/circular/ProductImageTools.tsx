@@ -12,13 +12,12 @@
  * circular se hace EN EL SERVIDOR (caja en %): el flyer es de otro origen y un canvas del
  * navegador quedaría bloqueado por CORS.
  */
-
 import { circularService, type StoreProduct } from '@/services/circular.service';
 import { uploadCampaignImage } from '@/services/upload.service';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
+import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
 import ContentPasteRoundedIcon from '@mui/icons-material/ContentPasteRounded';
 import CropRoundedIcon from '@mui/icons-material/CropRounded';
-import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
 import LayersClearOutlinedIcon from '@mui/icons-material/LayersClearOutlined';
 import {
   Alert,
@@ -48,7 +47,12 @@ export function imageFromPaste(e: ClipboardEvent | React.ClipboardEvent): File |
   for (const it of Array.from(items)) {
     if (it.kind === 'file' && it.type.startsWith('image/')) {
       const f = it.getAsFile();
-      if (f) return new File([f], f.name && f.name !== 'image.png' ? f.name : `pegada-${Date.now()}.png`, { type: f.type });
+      if (f)
+        return new File(
+          [f],
+          f.name && f.name !== 'image.png' ? f.name : `pegada-${Date.now()}.png`,
+          { type: f.type }
+        );
     }
   }
   return null;
@@ -75,8 +79,18 @@ const errMsg = (e: any, fallback: string) => e?.response?.data?.error || e?.mess
 /** Limpieza IA: deja SOLO el producto (sin precio, texto ni fondo), en HD, sobre su tabla si
  *  es comida fresca. Es la misma que usa la extracción del circular. El recortador local
  *  gratis sólo borraba el fondo: el precio y las letras quedaban pegados al producto. */
-async function aiClean(imageUrl: string, name?: string, box?: PctBox, instructions?: string): Promise<string> {
-  const r = await circularService.aiCleanProductImage(imageUrl, name, box, instructions || undefined);
+async function aiClean(
+  imageUrl: string,
+  name?: string,
+  box?: PctBox,
+  instructions?: string
+): Promise<string> {
+  const r = await circularService.aiCleanProductImage(
+    imageUrl,
+    name,
+    box,
+    instructions || undefined
+  );
   if (!r?.imageUrl) throw new Error('La IA no devolvió la imagen');
   return r.imageUrl;
 }
@@ -129,44 +143,104 @@ export function PasteReplaceDialog({
 
   const pane = (label: string, src?: string) => (
     <Box sx={{ flex: 1, minWidth: 0 }}>
-      <Typography variant="caption" color="text.secondary" fontWeight={700} display="block" sx={{ mb: 0.5 }}>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        fontWeight={700}
+        display="block"
+        sx={{ mb: 0.5 }}
+      >
         {label}
       </Typography>
-      <Box sx={{ ...checker, height: 190, borderRadius: 2, border: '1px solid', borderColor: 'divider', display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
+      <Box
+        sx={{
+          ...checker,
+          height: 190,
+          borderRadius: 2,
+          border: '1px solid',
+          borderColor: 'divider',
+          display: 'grid',
+          placeItems: 'center',
+          overflow: 'hidden',
+        }}
+      >
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+          <img
+            src={src}
+            alt=""
+            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+          />
         ) : (
-          <Typography variant="caption" color="text.secondary">Sin imagen</Typography>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+          >
+            Sin imagen
+          </Typography>
         )}
       </Box>
     </Box>
   );
 
   return (
-    <Dialog open={!!file && !!product} onClose={busy ? undefined : onClose} maxWidth="sm" fullWidth>
+    <Dialog
+      open={!!file && !!product}
+      onClose={busy ? undefined : onClose}
+      maxWidth="sm"
+      fullWidth
+    >
       <DialogTitle sx={{ pb: 0.5 }}>
         Reemplazar imagen
-        <Typography variant="body2" color="text.secondary">{product?.name}</Typography>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+        >
+          {product?.name}
+        </Typography>
       </DialogTitle>
       <DialogContent>
-        <Stack direction="row" gap={2} sx={{ mt: 1 }}>
+        <Stack
+          direction="row"
+          gap={2}
+          sx={{ mt: 1 }}
+        >
           {pane('Actual', product?.imageUrl)}
           {pane('Nueva (pegada)', localUrl)}
         </Stack>
         <FormControlLabel
           sx={{ mt: 1 }}
-          control={<Checkbox checked={removeBg} onChange={(e) => setRemoveBg(e.target.checked)} disabled={busy} />}
+          control={
+            <Checkbox
+              checked={removeBg}
+              onChange={(e) => setRemoveBg(e.target.checked)}
+              disabled={busy}
+            />
+          }
           label="Limpiar con IA: solo el producto, sin precio ni fondo, en HD"
         />
         {busy && <LinearProgress sx={{ mt: 1, borderRadius: 1 }} />}
         {busy && removeBg && (
-          <Typography variant="caption" color="text.secondary">La IA tarda entre 30 y 60 segundos. No cierres la ventana.</Typography>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+          >
+            La IA tarda entre 30 y 60 segundos. No cierres la ventana.
+          </Typography>
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} disabled={busy}>Cancelar</Button>
-        <Button variant="contained" onClick={confirm} disabled={busy}>
+        <Button
+          onClick={onClose}
+          disabled={busy}
+        >
+          Cancelar
+        </Button>
+        <Button
+          variant="contained"
+          onClick={confirm}
+          disabled={busy}
+        >
           {busy ? (removeBg ? 'Limpiando con IA…' : 'Subiendo…') : 'Reemplazar imagen'}
         </Button>
       </DialogActions>
@@ -181,7 +255,21 @@ export type PctBox = { x: number; y: number; w: number; h: number };
 /** Arrastrar un rectángulo sobre el circular. Devuelve la caja en % (0–100) de la imagen.
  *  Lo usa también Shelfsigns (/admin/designs/shelfsigns): es el mismo gesto sobre el
  *  mismo arte, y tener dos recortadores distintos era garantía de que uno se pudra. */
-export function FlyerCropper({ flyerUrl, onCancel, onCrop, busy, hint, cta }: { flyerUrl: string; onCancel: () => void; onCrop: (b: PctBox) => void; busy: boolean; hint?: string; cta?: string }) {
+export function FlyerCropper({
+  flyerUrl,
+  onCancel,
+  onCrop,
+  busy,
+  hint,
+  cta,
+}: {
+  flyerUrl: string;
+  onCancel: () => void;
+  onCrop: (b: PctBox) => void;
+  busy: boolean;
+  hint?: string;
+  cta?: string;
+}) {
   const wrap = useRef<HTMLDivElement>(null);
   const start = useRef<{ x: number; y: number } | null>(null);
   const [box, setBox] = useState<PctBox | null>(null);
@@ -202,41 +290,93 @@ export function FlyerCropper({ flyerUrl, onCancel, onCrop, busy, hint, cta }: { 
   const move = (e: React.PointerEvent) => {
     if (!start.current) return;
     const p = pos(e);
-    setBox({ x: Math.min(start.current.x, p.x), y: Math.min(start.current.y, p.y), w: Math.abs(p.x - start.current.x), h: Math.abs(p.y - start.current.y) });
+    setBox({
+      x: Math.min(start.current.x, p.x),
+      y: Math.min(start.current.y, p.y),
+      w: Math.abs(p.x - start.current.x),
+      h: Math.abs(p.y - start.current.y),
+    });
   };
-  const up = () => { start.current = null; };
+  const up = () => {
+    start.current = null;
+  };
   const valid = !!box && box.w > 1.5 && box.h > 1.5;
 
   return (
     <Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ mb: 1 }}
+      >
         {hint ||
           'Arrastrá un rectángulo alrededor del producto (no importa si entra el precio). La IA deja solo el producto, sin precio ni fondo, en alta definición.'}
       </Typography>
-      <Box sx={{ maxHeight: '56vh', overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Box
+        sx={{
+          maxHeight: '56vh',
+          overflow: 'auto',
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 2,
+        }}
+      >
         <Box
           ref={wrap}
           onPointerDown={down}
           onPointerMove={move}
           onPointerUp={up}
-          sx={{ position: 'relative', cursor: busy ? 'progress' : 'crosshair', touchAction: 'none', userSelect: 'none', lineHeight: 0 }}
+          sx={{
+            position: 'relative',
+            cursor: busy ? 'progress' : 'crosshair',
+            touchAction: 'none',
+            userSelect: 'none',
+            lineHeight: 0,
+          }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={flyerUrl} alt="Circular" draggable={false} style={{ width: '100%', height: 'auto', display: 'block' }} />
+          <img
+            src={flyerUrl}
+            alt="Circular"
+            draggable={false}
+            style={{ width: '100%', height: 'auto', display: 'block' }}
+          />
           {box && (
             <Box
               sx={{
-                position: 'absolute', left: `${box.x}%`, top: `${box.y}%`, width: `${box.w}%`, height: `${box.h}%`,
-                border: '2px solid', borderColor: 'primary.main', bgcolor: 'rgba(252,12,131,.14)', boxShadow: '0 0 0 9999px rgba(0,0,0,.35)', pointerEvents: 'none',
+                position: 'absolute',
+                left: `${box.x}%`,
+                top: `${box.y}%`,
+                width: `${box.w}%`,
+                height: `${box.h}%`,
+                border: '2px solid',
+                borderColor: 'primary.main',
+                bgcolor: 'rgba(252,12,131,.14)',
+                boxShadow: '0 0 0 9999px rgba(0,0,0,.35)',
+                pointerEvents: 'none',
               }}
             />
           )}
         </Box>
       </Box>
       {busy && <LinearProgress sx={{ mt: 1, borderRadius: 1 }} />}
-      <Stack direction="row" justifyContent="flex-end" gap={1} sx={{ mt: 1.5 }}>
-        <Button onClick={onCancel} disabled={busy}>Volver</Button>
-        <Button variant="contained" disabled={!valid || busy} onClick={() => box && onCrop(box)}>
+      <Stack
+        direction="row"
+        justifyContent="flex-end"
+        gap={1}
+        sx={{ mt: 1.5 }}
+      >
+        <Button
+          onClick={onCancel}
+          disabled={busy}
+        >
+          Volver
+        </Button>
+        <Button
+          variant="contained"
+          disabled={!valid || busy}
+          onClick={() => box && onCrop(box)}
+        >
           {busy ? 'Limpiando con IA (30 a 60 s)…' : cta || 'Usar este recorte'}
         </Button>
       </Stack>
@@ -247,7 +387,8 @@ export function FlyerCropper({ flyerUrl, onCancel, onCrop, busy, hint, cta }: { 
 /* ─────────────── 3 · Alta / edición de producto ─────────────── */
 
 /** ISO → "YYYY-MM-DD" del día en la hora de las tiendas (lo que muestra un <input type=date>). */
-const toDayInput = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+const toDayInput = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 
 export function ProductEditorDialog({
   open,
@@ -326,13 +467,19 @@ export function ProductEditorDialog({
   // Si la IA falla queda la captura alojada, no se pierde nada.
   const takeFile = useCallback(
     (file: File, clean = false) =>
-      run(clean ? 'Subiendo captura…' : 'Subiendo imagen…', async () => {
-        const raw = await hostImage(file, { clean: false });
-        setImageUrl(raw);
-        if (!clean) return;
-        setBusy(CLEANING);
-        setImageUrl(await aiClean(raw, nameRef.current || undefined, undefined, promptRef.current));
-      }, clean ? 'La IA no pudo limpiar la captura; quedó tal cual' : 'No se pudo subir la imagen'),
+      run(
+        clean ? 'Subiendo captura…' : 'Subiendo imagen…',
+        async () => {
+          const raw = await hostImage(file, { clean: false });
+          setImageUrl(raw);
+          if (!clean) return;
+          setBusy(CLEANING);
+          setImageUrl(
+            await aiClean(raw, nameRef.current || undefined, undefined, promptRef.current)
+          );
+        },
+        clean ? 'La IA no pudo limpiar la captura; quedó tal cual' : 'No se pudo subir la imagen'
+      ),
     [run]
   );
 
@@ -350,63 +497,103 @@ export function ProductEditorDialog({
   }, [open, cropping, takeFile]);
 
   const removeBg = () =>
-    run(CLEANING, async () => setImageUrl(await aiClean(imageUrl, name.trim() || undefined, undefined, aiPrompt.trim())), 'No se pudo limpiar la imagen');
+    run(
+      CLEANING,
+      async () =>
+        setImageUrl(await aiClean(imageUrl, name.trim() || undefined, undefined, aiPrompt.trim())),
+      'No se pudo limpiar la imagen'
+    );
 
   const generate = () =>
-    run('Generando con IA…', async () => {
-      const r = await circularService.aiProductImage(name.trim(), product?.category, aiPrompt.trim() || undefined);
-      setImageUrl(r.imageUrl);
-    }, 'La IA no pudo generar la imagen');
+    run(
+      'Generando con IA…',
+      async () => {
+        const r = await circularService.aiProductImage(
+          name.trim(),
+          product?.category,
+          aiPrompt.trim() || undefined
+        );
+        setImageUrl(r.imageUrl);
+      },
+      'La IA no pudo generar la imagen'
+    );
 
   const cropFromFlyer = (box: PctBox) =>
-    run(CLEANING, async () => {
-      setImageUrl(await aiClean(flyerUrl as string, name.trim() || undefined, box, aiPrompt.trim()));
-      setCropping(false);
-    }, 'No se pudo recortar el circular');
+    run(
+      CLEANING,
+      async () => {
+        setImageUrl(
+          await aiClean(flyerUrl as string, name.trim() || undefined, box, aiPrompt.trim())
+        );
+        setCropping(false);
+      },
+      'No se pudo recortar el circular'
+    );
 
   const save = () =>
-    run('Guardando…', async () => {
-      const body = {
-        name: name.trim(),
-        price: price.trim(),
-        originalPrice: regular.trim(),
-        imageUrl,
-        offerCondition: condition.trim(),
-        packQty: Number(packQty) > 1 ? Math.floor(Number(packQty)) : 0,
-        packUnit: Number(packQty) > 1 ? packUnit.trim() : '',
-        counterOnly,
-        maxPerCustomer: Number(maxPerCustomer) > 0 ? Math.floor(Number(maxPerCustomer)) : null,
-      };
-      if (product && pending) {
-        const { price: pPrice, originalPrice: pRegular, packQty: pQty, packUnit: pUnit, ...rest } = body;
-        await circularService.updateStoreProduct(product._id, rest as any);
-        const movedDay = pendingDay && pendingDay !== toDayInput(pending.from);
-        await circularService.updatePending(product._id, {
-          price: pPrice,
-          originalPrice: pRegular,
-          packQty: pQty,
-          packUnit: pUnit,
-          // 00:00 hora del Este del día elegido (04:00 UTC), igual que el import de campañas.
-          ...(movedDay ? { from: `${pendingDay}T04:00:00.000Z` } : {}),
-        });
-      } else if (product) {
-        await circularService.updateStoreProduct(product._id, { ...body, hasOffer: !!body.originalPrice || product.hasOffer } as any);
-      } else {
-        await circularService.createStoreProduct({ storeSlug, ...body });
-      }
-      toast.success(product ? 'Producto actualizado' : 'Producto agregado');
-      onSaved();
-      onClose();
-    }, 'No se pudo guardar el producto');
+    run(
+      'Guardando…',
+      async () => {
+        const body = {
+          name: name.trim(),
+          price: price.trim(),
+          originalPrice: regular.trim(),
+          imageUrl,
+          offerCondition: condition.trim(),
+          packQty: Number(packQty) > 1 ? Math.floor(Number(packQty)) : 0,
+          packUnit: Number(packQty) > 1 ? packUnit.trim() : '',
+          counterOnly,
+          maxPerCustomer: Number(maxPerCustomer) > 0 ? Math.floor(Number(maxPerCustomer)) : null,
+        };
+        if (product && pending) {
+          const {
+            price: pPrice,
+            originalPrice: pRegular,
+            packQty: pQty,
+            packUnit: pUnit,
+            ...rest
+          } = body;
+          await circularService.updateStoreProduct(product._id, rest as any);
+          const movedDay = pendingDay && pendingDay !== toDayInput(pending.from);
+          await circularService.updatePending(product._id, {
+            price: pPrice,
+            originalPrice: pRegular,
+            packQty: pQty,
+            packUnit: pUnit,
+            // 00:00 hora del Este del día elegido (04:00 UTC), igual que el import de campañas.
+            ...(movedDay ? { from: `${pendingDay}T04:00:00.000Z` } : {}),
+          });
+        } else if (product) {
+          await circularService.updateStoreProduct(product._id, {
+            ...body,
+            hasOffer: !!body.originalPrice || product.hasOffer,
+          } as any);
+        } else {
+          await circularService.createStoreProduct({ storeSlug, ...body });
+        }
+        toast.success(product ? 'Producto actualizado' : 'Producto agregado');
+        onSaved();
+        onClose();
+      },
+      'No se pudo guardar el producto'
+    );
 
   const canSave = !!name.trim() && !!price.trim() && !busy;
 
   return (
-    <Dialog open={open} onClose={busy ? undefined : onClose} maxWidth={cropping ? 'md' : 'sm'} fullWidth>
+    <Dialog
+      open={open}
+      onClose={busy ? undefined : onClose}
+      maxWidth={cropping ? 'md' : 'sm'}
+      fullWidth
+    >
       <DialogTitle sx={{ pb: 0.5 }}>
         {cropping ? 'Recortar del circular' : product ? 'Editar producto' : 'Agregar producto'}
         {!cropping && (
-          <Typography variant="body2" color="text.secondary">
+          <Typography
+            variant="body2"
+            color="text.secondary"
+          >
             Verificá los datos y la imagen. Podés pegar una captura con Ctrl+V.
           </Typography>
         )}
@@ -414,32 +601,68 @@ export function ProductEditorDialog({
 
       <DialogContent>
         {cropping && flyerUrl ? (
-          <FlyerCropper flyerUrl={flyerUrl} busy={!!busy} onCancel={() => setCropping(false)} onCrop={cropFromFlyer} />
+          <FlyerCropper
+            flyerUrl={flyerUrl}
+            busy={!!busy}
+            onCancel={() => setCropping(false)}
+            onCrop={cropFromFlyer}
+          />
         ) : (
-          <Stack direction={{ xs: 'column', sm: 'row' }} gap={2.5} sx={{ mt: 1 }}>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            gap={2.5}
+            sx={{ mt: 1 }}
+          >
             {/* Imagen + herramientas */}
             <Box sx={{ width: { xs: '100%', sm: 250 }, flexShrink: 0 }}>
               <Box
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
                   e.preventDefault();
-                  const f = Array.from(e.dataTransfer.files).find((x) => x.type.startsWith('image/'));
+                  const f = Array.from(e.dataTransfer.files).find((x) =>
+                    x.type.startsWith('image/')
+                  );
                   if (f) void takeFile(f);
                 }}
-                sx={{ ...checker, height: 230, borderRadius: 2, border: '1px dashed', borderColor: 'divider', display: 'grid', placeItems: 'center', overflow: 'hidden', p: 1 }}
+                sx={{
+                  ...checker,
+                  height: 230,
+                  borderRadius: 2,
+                  border: '1px dashed',
+                  borderColor: 'divider',
+                  display: 'grid',
+                  placeItems: 'center',
+                  overflow: 'hidden',
+                  p: 1,
+                }}
               >
                 {imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={imageUrl} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                  <img
+                    src={imageUrl}
+                    alt=""
+                    style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                  />
                 ) : (
-                  <Stack alignItems="center" gap={0.5} sx={{ color: 'text.secondary', textAlign: 'center', px: 2 }}>
+                  <Stack
+                    alignItems="center"
+                    gap={0.5}
+                    sx={{ color: 'text.secondary', textAlign: 'center', px: 2 }}
+                  >
                     <ContentPasteRoundedIcon />
-                    <Typography variant="caption">Pegá (Ctrl+V), soltá o subí una imagen</Typography>
+                    <Typography variant="caption">
+                      Pegá (Ctrl+V), soltá o subí una imagen
+                    </Typography>
                   </Stack>
                 )}
               </Box>
               {busy && <LinearProgress sx={{ mt: 1, borderRadius: 1 }} />}
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5, minHeight: 18 }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                display="block"
+                sx={{ mt: 0.5, minHeight: 18 }}
+              >
                 {busy || (imageUrl ? 'El cuadriculado indica transparencia.' : '')}
               </Typography>
 
@@ -455,33 +678,79 @@ export function ProductEditorDialog({
                 }}
               />
               <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mt: 0.5 }}>
-                <Button size="small" variant="outlined" startIcon={<CloudUploadOutlinedIcon />} disabled={!!busy} onClick={() => fileInput.current?.click()}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<CloudUploadOutlinedIcon />}
+                  disabled={!!busy}
+                  onClick={() => fileInput.current?.click()}
+                >
                   Subir
                 </Button>
-                <Button size="small" variant="outlined" startIcon={<CropRoundedIcon />} disabled={!!busy || !flyerUrl} onClick={() => setCropping(true)}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<CropRoundedIcon />}
+                  disabled={!!busy || !flyerUrl}
+                  onClick={() => setCropping(true)}
+                >
                   Recortar circular
                 </Button>
-                <Button size="small" variant="outlined" startIcon={<LayersClearOutlinedIcon />} disabled={!!busy || !imageUrl} onClick={removeBg}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<LayersClearOutlinedIcon />}
+                  disabled={!!busy || !imageUrl}
+                  onClick={removeBg}
+                >
                   Quitar fondo
                 </Button>
-                <Button size="small" variant="outlined" startIcon={<AutoAwesomeOutlinedIcon />} disabled={!!busy || !name.trim()} onClick={generate}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<AutoAwesomeOutlinedIcon />}
+                  disabled={!!busy || !name.trim()}
+                  onClick={generate}
+                >
                   Generar IA
                 </Button>
               </Box>
               {imageUrl && (
-                <Button size="small" color="inherit" disabled={!!busy} onClick={() => setImageUrl('')} sx={{ mt: 0.5 }}>
+                <Button
+                  size="small"
+                  color="inherit"
+                  disabled={!!busy}
+                  onClick={() => setImageUrl('')}
+                  sx={{ mt: 0.5 }}
+                >
                   Quitar imagen
                 </Button>
               )}
             </Box>
 
             {/* Datos */}
-            <Stack gap={1.75} sx={{ flex: 1, minWidth: 0 }}>
-              <TextField label="Nombre del producto" size="small" fullWidth value={name} onChange={(e) => setName(e.target.value)} autoFocus={!product} />
+            <Stack
+              gap={1.75}
+              sx={{ flex: 1, minWidth: 0 }}
+            >
+              <TextField
+                label="Nombre del producto"
+                size="small"
+                fullWidth
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoFocus={!product}
+              />
               {pending && (
-                <Alert severity="info" sx={{ py: 0.25 }}>
-                  {pending.isNew ? 'Producto nuevo: aparece en las listas' : 'El precio cambia'} el día que elijas abajo.
-                  {!pending.isNew && product?.price ? ` Hasta entonces sigue a ${product.price}.` : ''}
+                <Alert
+                  severity="info"
+                  sx={{ py: 0.25 }}
+                >
+                  {pending.isNew ? 'Producto nuevo: aparece en las listas' : 'El precio cambia'} el
+                  día que elijas abajo.
+                  {!pending.isNew && product?.price
+                    ? ` Hasta entonces sigue a ${product.price}.`
+                    : ''}
                 </Alert>
               )}
               <TextField
@@ -516,7 +785,10 @@ export function ProductEditorDialog({
               />
               {/* Letra chica: el precio grande sin la caja de 15 lb es el que terminó en
                   reclamos en la caja. Editable porque la IA a veces no la lee. */}
-              <Stack direction="row" gap={1}>
+              <Stack
+                direction="row"
+                gap={1}
+              >
                 <TextField
                   label="Caja / paquete fijo"
                   size="small"
@@ -555,7 +827,12 @@ export function ProductEditorDialog({
                 helperText="Se muestra tal cual en la card del cliente."
               />
               <FormControlLabel
-                control={<Switch checked={counterOnly} onChange={(e) => setCounterOnly(e.target.checked)} />}
+                control={
+                  <Switch
+                    checked={counterOnly}
+                    onChange={(e) => setCounterOnly(e.target.checked)}
+                  />
+                }
                 label="Solo en el mostrador (no se puede pagar online)"
               />
               <TextField
@@ -573,7 +850,10 @@ export function ProductEditorDialog({
                 helperText="Se aplica al quitar fondo, generar con IA, recortar del circular y pegar. Escribila antes de usar el botón."
               />
               {!flyerUrl && (
-                <Alert severity="info" sx={{ py: 0 }}>
+                <Alert
+                  severity="info"
+                  sx={{ py: 0 }}
+                >
                   Para recortar del circular, la tienda necesita un circular con archivo.
                 </Alert>
               )}
@@ -584,8 +864,17 @@ export function ProductEditorDialog({
 
       {!cropping && (
         <DialogActions>
-          <Button onClick={onClose} disabled={!!busy}>Cancelar</Button>
-          <Button variant="contained" onClick={save} disabled={!canSave}>
+          <Button
+            onClick={onClose}
+            disabled={!!busy}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            onClick={save}
+            disabled={!canSave}
+          >
             {product ? 'Guardar cambios' : 'Guardar producto'}
           </Button>
         </DialogActions>

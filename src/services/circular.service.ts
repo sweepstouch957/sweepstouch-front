@@ -8,6 +8,7 @@ export interface Circular {
   store: string; // ObjectId
   storeSlug: string;
   title: string;
+  /** "campaign" = lo creó el import automático de una campaña. */
   fileKey: string;
   fileUrl: string;
   startDate: string; // ISO
@@ -16,6 +17,12 @@ export interface Circular {
   expiringSoon?: boolean;
   createdAt: string;
   updatedAt: string;
+  previewImageUrl?: string;
+  headline?: string;
+  /** Sólo en la lista resumida (getByStoreSummary): cantidad sin traer los productos. */
+  productCount?: number;
+  /** Sólo en el detalle (getCircular) o la lista completa. */
+  products?: any[];
 }
 
 /** Producto del catálogo persistente de la tienda (StoreProduct en circular-service). */
@@ -351,6 +358,18 @@ export class CircularService {
   async getOverview(params?: { slug?: string; q?: string }): Promise<OverviewResponse> {
     const res = await api.get('/circulars/status/overview', { params });
     return res.data;
+  }
+
+  /** Lista liviana para el panel: sin productos ni recetas, con `productCount`. */
+  async getByStoreSummary(storeSlug: string): Promise<{ storeSlug: string; items: Circular[] }> {
+    const res = await api.get(`/circulars/store/${storeSlug}`, { params: { summary: 1 } });
+    return res.data;
+  }
+
+  /** Un circular completo (con productos): lo que necesita el mensaje de prueba. */
+  async getCircular(id: string): Promise<Circular> {
+    const res = await api.get(`/circulars/by-id/${id}`);
+    return res.data.circular;
   }
 
   async getByStore(storeSlug: string): Promise<{ storeSlug: string; items: Circular[] }> {
