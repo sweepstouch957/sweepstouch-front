@@ -2,6 +2,7 @@
 
 import RangePickerField from '@/components/base/range-picker-field';
 import { todayInNY, type MatrixStore } from '@/services/rcs-matrix.service';
+import ArrowDropDownRounded from '@mui/icons-material/ArrowDropDownRounded';
 import DownloadRounded from '@mui/icons-material/DownloadRounded';
 import RefreshRounded from '@mui/icons-material/RefreshRounded';
 import SearchRounded from '@mui/icons-material/SearchRounded';
@@ -9,15 +10,21 @@ import WhatsApp from '@mui/icons-material/WhatsApp';
 import {
   Box,
   Button,
+  ButtonGroup,
   Card,
   Chip,
   CircularProgress,
   Divider,
   IconButton,
   InputAdornment,
+  ListItemText,
+  Menu,
   MenuItem,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers';
@@ -26,6 +33,9 @@ import React from 'react';
 import { LIST_STATUS_OPTIONS, shiftYmd, STATUS_OPTIONS } from './constants';
 import type { Range } from './matrix-model';
 import { WA_FILTERS } from './whatsapp-bot';
+
+/** Alto único de los controles de la barra (inputs, segmentado, botones). */
+const CONTROL_H = 38;
 
 /** Estados de orden y de lista en un solo selector. */
 export const ALL_STATUS_OPTIONS = [
@@ -103,40 +113,59 @@ function MatrixToolbarImpl({
     f.onlyOpen ||
     f.waFilter !== 'all';
 
+  const [waAnchor, setWaAnchor] = React.useState<HTMLElement | null>(null);
+
   return (
     <Card sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
-      <Stack
-        direction="row"
-        spacing={1}
-        alignItems="center"
-        flexWrap="wrap"
-        useFlexGap
-        sx={{ p: 1.5 }}
+      <Box
+        sx={{
+          p: 1.25,
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: 1,
+          // Todos los controles a la misma altura: se leen como una sola barra.
+          '& .MuiInputBase-root': { height: CONTROL_H },
+          '& .MuiInputLabel-root:not(.MuiInputLabel-shrink)': { top: -2 },
+        }}
       >
-        <Stack
-          direction="row"
-          spacing={0.5}
-          alignItems="center"
+        {/* Período: atajos como selector segmentado + rango libre */}
+        <ToggleButtonGroup
+          exclusive
+          size="small"
+          value={presetKey ?? null}
+          onChange={(_, key) => {
+            const p = PRESETS.find((x) => x.key === key);
+            if (p) onChange({ range: p.range() });
+          }}
+          aria-label="Período rápido"
+          sx={{
+            height: CONTROL_H,
+            '& .MuiToggleButton-root': {
+              px: 1.25,
+              textTransform: 'none',
+              fontWeight: 700,
+              fontSize: 13,
+              whiteSpace: 'nowrap',
+            },
+          }}
         >
           {PRESETS.map((p) => (
-            <Chip
+            <ToggleButton
               key={p.key}
-              label={p.label}
-              size="small"
-              onClick={() => onChange({ range: p.range() })}
-              color={presetKey === p.key ? 'primary' : 'default'}
-              variant={presetKey === p.key ? 'filled' : 'outlined'}
-              sx={{ fontWeight: 700 }}
-            />
+              value={p.key}
+            >
+              {p.label}
+            </ToggleButton>
           ))}
-        </Stack>
+        </ToggleButtonGroup>
         <LocalizationProvider dateAdapter={AdapterDateFns}>
           <RangePickerField
             label="Período"
             value={{ startYmd: f.range.from, endYmd: f.range.to }}
             onChange={(v) => onChange({ range: { from: v.startYmd, to: v.endYmd } })}
             fullWidth={false}
-            sx={{ width: 230 }}
+            sx={{ width: 215, flexShrink: 0 }}
           />
         </LocalizationProvider>
         <TextField
@@ -145,7 +174,8 @@ function MatrixToolbarImpl({
           label="Tienda"
           value={f.store}
           onChange={(e) => onChange({ store: e.target.value })}
-          sx={{ width: 210 }}
+          sx={{ flex: '1 1 170px', minWidth: 150, maxWidth: 240 }}
+          SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 360 } } } }}
         >
           <MenuItem value="all">Todas las tiendas</MenuItem>
           {stores.map((s) => (
@@ -163,7 +193,7 @@ function MatrixToolbarImpl({
           label="Estado"
           value={f.status}
           onChange={(e) => onChange({ status: e.target.value })}
-          sx={{ width: 170 }}
+          sx={{ flex: '1 1 150px', minWidth: 140, maxWidth: 200 }}
         >
           {ALL_STATUS_OPTIONS.map((o) => (
             <MenuItem
@@ -174,15 +204,12 @@ function MatrixToolbarImpl({
             </MenuItem>
           ))}
         </TextField>
-
-        <Box sx={{ flexGrow: 1 }} />
-
         <TextField
           size="small"
           placeholder="Nombre, teléfono, orden…"
           value={f.q}
           onChange={(e) => onChange({ q: e.target.value })}
-          sx={{ width: { xs: '100%', sm: 240 } }}
+          sx={{ flex: '2 1 200px', minWidth: 180 }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -191,46 +218,121 @@ function MatrixToolbarImpl({
             ),
           }}
         />
-        <Button
-          size="small"
-          variant="contained"
-          color="success"
-          startIcon={<WhatsApp />}
-          onClick={onBulkSend}
-          disabled={!canSend}
-          title="Mandar el saludo del bot (3 opciones) a las personas que se están viendo"
-          sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2, boxShadow: 'none' }}
+
+        {/* Acciones, siempre juntas a la derecha */}
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1}
+          sx={{ ml: 'auto', flexShrink: 0 }}
         >
-          Lanzar WhatsApp
-        </Button>
-        <Button
-          size="small"
-          variant="outlined"
-          color="success"
-          onClick={onSingleSend}
-          sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2 }}
-        >
-          A un número
-        </Button>
-        <IconButton
-          size="small"
-          onClick={onRefresh}
-          disabled={fetching}
-          title="Actualizar"
-          aria-label="Actualizar la matriz"
-        >
-          {fetching ? <CircularProgress size={18} /> : <RefreshRounded fontSize="small" />}
-        </IconButton>
-        <IconButton
-          size="small"
-          onClick={onDownload}
-          disabled={!shown}
-          title="Descargar lo que se está viendo"
-          aria-label="Descargar CSV"
-        >
-          <DownloadRounded fontSize="small" />
-        </IconButton>
-      </Stack>
+          <Stack
+            direction="row"
+            divider={
+              <Divider
+                orientation="vertical"
+                flexItem
+              />
+            }
+            sx={{
+              height: CONTROL_H,
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 2,
+              overflow: 'hidden',
+              '& .MuiIconButton-root': { borderRadius: 0, width: CONTROL_H },
+            }}
+          >
+            <Tooltip title="Actualizar">
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={onRefresh}
+                  disabled={fetching}
+                  aria-label="Actualizar la matriz"
+                  sx={{ height: '100%' }}
+                >
+                  {fetching ? <CircularProgress size={16} /> : <RefreshRounded fontSize="small" />}
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title="Descargar lo que se está viendo (CSV)">
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={onDownload}
+                  disabled={!shown}
+                  aria-label="Descargar CSV"
+                  sx={{ height: '100%' }}
+                >
+                  <DownloadRounded fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Stack>
+
+          {/* WhatsApp: la acción principal + "a un número" en el desplegable */}
+          <ButtonGroup
+            variant="contained"
+            color="success"
+            disableElevation
+            sx={{
+              height: CONTROL_H,
+              '& .MuiButton-root': { textTransform: 'none', fontWeight: 700 },
+            }}
+          >
+            <Button
+              startIcon={<WhatsApp />}
+              onClick={onBulkSend}
+              disabled={!canSend}
+              title="Mandar el saludo del bot (3 opciones) a las personas que se están viendo"
+            >
+              Lanzar WhatsApp{shown ? ` (${shown})` : ''}
+            </Button>
+            <Button
+              size="small"
+              aria-label="Más opciones de WhatsApp"
+              onClick={(e) => setWaAnchor(e.currentTarget)}
+              sx={{ px: 0.5, minWidth: 34 }}
+            >
+              <ArrowDropDownRounded />
+            </Button>
+          </ButtonGroup>
+          <Menu
+            anchorEl={waAnchor}
+            open={!!waAnchor}
+            onClose={() => setWaAnchor(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          >
+            <MenuItem
+              disabled={!canSend}
+              onClick={() => {
+                setWaAnchor(null);
+                onBulkSend();
+              }}
+            >
+              <ListItemText
+                primary="A los que se están viendo"
+                secondary={`${shown} ${
+                  shown === 1 ? 'persona' : 'personas'
+                } con los filtros actuales`}
+              />
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                setWaAnchor(null);
+                onSingleSend();
+              }}
+            >
+              <ListItemText
+                primary="A un número"
+                secondary="Escribir un teléfono puntual"
+              />
+            </MenuItem>
+          </Menu>
+        </Stack>
+      </Box>
 
       {filtered ? (
         <>
@@ -244,11 +346,11 @@ function MatrixToolbarImpl({
             sx={{ px: 1.5, py: 1 }}
           >
             <Typography
-              variant="caption"
+              variant="body2"
               color="text.secondary"
-              sx={{ mr: 0.5 }}
+              sx={{ mr: 0.5, fontSize: 12.5, fontVariantNumeric: 'tabular-nums' }}
             >
-              {shown} de {total}
+              Mostrando {shown} de {total}
             </Typography>
             {f.onlyOpen ? (
               <Chip

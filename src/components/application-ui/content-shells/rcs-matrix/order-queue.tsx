@@ -8,8 +8,12 @@
  * Cada fila tiene su acción de un toque (aprobar / armar / entregar) y abre la
  * ficha completa al tocarla.
  */
-
-import { centsToUsd, contactLinks, orderAdminService, type MatrixRow } from '@/services/rcs-matrix.service';
+import {
+  centsToUsd,
+  contactLinks,
+  orderAdminService,
+  type MatrixRow,
+} from '@/services/rcs-matrix.service';
 import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded';
 import DoneAllRounded from '@mui/icons-material/DoneAllRounded';
 import InventoryRounded from '@mui/icons-material/InventoryRounded';
@@ -35,12 +39,35 @@ import { buildQueues, waitingMinutes, type QueueBucket, type QueueKey } from './
 import { nextStage, waitingLabel } from './order-drawer';
 
 /** Título, explicación y color de cada cola. El texto es lo que se hace, no el estado. */
-export const QUEUE_META: Record<QueueKey, { label: string; hint: string; color: 'warning' | 'info' | 'success' | 'error' | 'default' }> = {
-  approve: { label: 'Por aprobar', hint: 'Pagadas y sin revisar: el cliente ya puso la plata', color: 'error' },
-  prepare: { label: 'Por armar', hint: 'Aprobadas: hay que juntar los productos', color: 'warning' },
-  deliver: { label: 'Por entregar', hint: 'Listas en el mostrador, esperando al cliente', color: 'info' },
-  unpaid: { label: 'Sin pagar', hint: 'Se quedaron en el checkout: hay que perseguirlas', color: 'default' },
-  list: { label: 'Listas vigentes', hint: 'Armaron su lista pero todavía no compraron', color: 'default' },
+export const QUEUE_META: Record<
+  QueueKey,
+  { label: string; hint: string; color: 'warning' | 'info' | 'success' | 'error' | 'default' }
+> = {
+  approve: {
+    label: 'Por aprobar',
+    hint: 'Pagadas y sin revisar: el cliente ya puso la plata',
+    color: 'error',
+  },
+  prepare: {
+    label: 'Por armar',
+    hint: 'Aprobadas: hay que juntar los productos',
+    color: 'warning',
+  },
+  deliver: {
+    label: 'Por entregar',
+    hint: 'Listas en el mostrador, esperando al cliente',
+    color: 'info',
+  },
+  unpaid: {
+    label: 'Sin pagar',
+    hint: 'Se quedaron en el checkout: hay que perseguirlas',
+    color: 'default',
+  },
+  list: {
+    label: 'Listas vigentes',
+    hint: 'Armaron su lista pero todavía no compraron',
+    color: 'default',
+  },
   done: { label: 'Cerradas', hint: 'Entregadas, canceladas o vencidas', color: 'success' },
 };
 
@@ -55,7 +82,8 @@ function QueueCard({
 }) {
   const theme = useTheme();
   const meta = QUEUE_META[bucket.key];
-  const color = meta.color === 'default' ? theme.palette.text.primary : theme.palette[meta.color].main;
+  const color =
+    meta.color === 'default' ? theme.palette.text.primary : theme.palette[meta.color].main;
   return (
     <Card
       onClick={onClick}
@@ -92,7 +120,9 @@ function QueueCard({
         display="block"
       >
         {bucket.cents > 0 ? centsToUsd(bucket.cents) : '—'}
-        {bucket.oldestMinutes > 0 && bucket.key !== 'done' ? ` · ${waitingLabel(bucket.oldestMinutes)}` : ''}
+        {bucket.oldestMinutes > 0 && bucket.key !== 'done'
+          ? ` · ${waitingLabel(bucket.oldestMinutes)}`
+          : ''}
       </Typography>
     </Card>
   );
@@ -147,10 +177,19 @@ function QuickAction({
         size="small"
         variant="outlined"
         disabled={busy}
-        startIcon={stage.to === 'completed' ? <DoneAllRounded fontSize="small" /> : <InventoryRounded fontSize="small" />}
+        startIcon={
+          stage.to === 'completed' ? (
+            <DoneAllRounded fontSize="small" />
+          ) : (
+            <InventoryRounded fontSize="small" />
+          )
+        }
         onClick={(e) => {
           e.stopPropagation();
-          void act(() => orderAdminService.setFulfillment(row._id, stage.to), `${row.orderNumber}: ${stage.label.toLowerCase()}`);
+          void act(
+            () => orderAdminService.setFulfillment(row._id, stage.to),
+            `${row.orderNumber}: ${stage.label.toLowerCase()}`
+          );
         }}
       >
         {stage.label}
@@ -215,9 +254,9 @@ export function OrderQueue({
           Solicitudes por atender
         </Typography>
         <Typography
-          variant="caption"
+          variant="body2"
           color="text.secondary"
-          sx={{ ml: 'auto' }}
+          sx={{ ml: 'auto', fontSize: 12.5, textAlign: 'right' }}
         >
           {QUEUE_META[active.key].hint}
         </Typography>
@@ -266,7 +305,9 @@ export function OrderQueue({
                   p: 1,
                   borderRadius: 1.5,
                   cursor: 'pointer',
-                  border: `1px solid ${old ? alpha(theme.palette.error.main, 0.4) : theme.palette.divider}`,
+                  border: `1px solid ${
+                    old ? alpha(theme.palette.error.main, 0.4) : theme.palette.divider
+                  }`,
                   bgcolor: old ? alpha(theme.palette.error.main, 0.04) : 'transparent',
                   '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.05) },
                 }}

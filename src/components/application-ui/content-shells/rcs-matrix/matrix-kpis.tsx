@@ -75,12 +75,20 @@ function Kpi({
         {value}
       </Typography>
       {sub ? (
+        // body2 y hasta 2 líneas: el caption del tema es MAYÚSCULAS y con noWrap se cortaba
+        // ("1 ÓRDENES · 1 LISTAS…").
         <Typography
-          variant="caption"
+          variant="body2"
           color="text.secondary"
-          noWrap
-          display="block"
           title={sub}
+          sx={{
+            fontSize: 12.5,
+            lineHeight: 1.4,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
         >
           {sub}
         </Typography>
@@ -193,7 +201,13 @@ function MatrixKpisImpl({
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', lg: 'repeat(6, 1fr)' },
+          // minmax(0, 1fr): con `1fr` a secas una columna no encoge por debajo de su texto y
+          // la grilla se salía del contenedor (las tarjetas se veían cortadas a la derecha).
+          gridTemplateColumns: {
+            xs: 'repeat(2, minmax(0, 1fr))',
+            sm: 'repeat(3, minmax(0, 1fr))',
+            lg: 'repeat(6, minmax(0, 1fr))',
+          },
           gap: 0.5,
         }}
       >
