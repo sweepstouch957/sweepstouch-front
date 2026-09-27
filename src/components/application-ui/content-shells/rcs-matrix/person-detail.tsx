@@ -146,9 +146,7 @@ function RequestCard({
           px: 1.75,
           py: 1.5,
           cursor: 'pointer',
-          bgcolor: isList
-            ? alpha(theme.palette.info.main, 0.06)
-            : alpha(theme.palette.primary.main, 0.05),
+          bgcolor: alpha(theme.palette.text.primary, 0.03),
         }}
       >
         <Box
@@ -159,8 +157,8 @@ function RequestCard({
             fontSize: 10,
             fontWeight: 800,
             letterSpacing: '.08em',
-            color: '#fff',
-            bgcolor: isList ? 'info.main' : 'primary.main',
+            color: isList ? 'text.secondary' : 'primary.main',
+            border: `1px solid ${isList ? theme.palette.divider : alpha(theme.palette.primary.main, 0.4)}`,
           }}
         >
           {isList ? 'LISTA' : 'ORDEN'}
@@ -196,7 +194,7 @@ function RequestCard({
         <Typography
           variant="caption"
           fontWeight={700}
-          sx={{ color: isList ? 'info.main' : st.color === 'default' ? 'text.secondary' : `${st.color}.main` }}
+          sx={{ color: 'text.secondary' }}
         >
           {st.label}
           {!isList && pay?.label ? ` · ${pay.label}` : ''}
@@ -425,8 +423,8 @@ export function PersonDetail({
               height: 46,
               flexShrink: 0,
               borderRadius: '50%',
-              bgcolor: 'primary.main',
-              color: 'primary.contrastText',
+              bgcolor: alpha(theme.palette.primary.main, 0.1),
+              color: 'primary.main',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -474,8 +472,8 @@ export function PersonDetail({
               borderRadius: 999,
               fontSize: 12,
               fontWeight: 800,
-              bgcolor: alpha(theme.palette.warning.main, 0.12),
-              color: 'warning.dark',
+              bgcolor: alpha(theme.palette.primary.main, 0.08),
+              color: 'primary.main',
             }}
           >
             {person.queue === 'done' ? 'Sin pendientes' : `Esperando ${waitingLabel(person.waitMinutes)}`}
@@ -501,8 +499,8 @@ export function PersonDetail({
                 borderRadius: 999,
                 fontSize: 12,
                 fontWeight: 800,
-                bgcolor: alpha(theme.palette.success.main, 0.12),
-                color: 'success.main',
+                bgcolor: alpha(theme.palette.text.primary, 0.05),
+                color: 'text.secondary',
               }}
             >
               Atendida

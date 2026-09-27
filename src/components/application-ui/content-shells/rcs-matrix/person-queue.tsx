@@ -33,22 +33,17 @@ import { peopleByQueue, QUEUE_ORDER, type PersonRow, type QueueKey } from './mat
 import { waitingLabel } from './order-drawer';
 import { QUEUE_META } from './order-queue';
 
-/** Color de la espera: pasadas 2 h la fila deja de ser gris. */
-function waitTone(minutes: number, queue: QueueKey): 'error' | 'warning' | 'default' {
-  if (queue === 'done') return 'default';
-  if (minutes >= 240) return 'error';
-  if (minutes >= 120) return 'warning';
-  return 'default';
+/**
+ * Dos estados y nada más: normal o urgente (más de 2 h esperando). El color de
+ * marca se reserva para lo urgente y para lo seleccionado; el resto es neutro.
+ */
+function isUrgent(minutes: number, queue: QueueKey): boolean {
+  return queue !== 'done' && minutes >= 120;
 }
 
-function Initial({ name, tone }: { name: string; tone: 'error' | 'warning' | 'default' }) {
+function Initial({ name, urgent }: { name: string; urgent: boolean }) {
   const theme = useTheme();
-  const color =
-    tone === 'error'
-      ? theme.palette.error.main
-      : tone === 'warning'
-        ? theme.palette.warning.main
-        : theme.palette.primary.main;
+  const color = urgent ? theme.palette.primary.main : theme.palette.text.secondary;
   return (
     <Box
       sx={{
@@ -61,7 +56,7 @@ function Initial({ name, tone }: { name: string; tone: 'error' | 'warning' | 'de
         justifyContent: 'center',
         fontWeight: 800,
         fontSize: 14,
-        bgcolor: alpha(color, 0.12),
+        bgcolor: alpha(theme.palette.text.primary, 0.06),
         color,
       }}
     >
@@ -240,11 +235,7 @@ export function PersonQueue({
         >
           {tabs.map((t) => {
             const on = t.key === tab;
-            const meta = t.key === 'all' ? null : QUEUE_META[t.key];
-            const color =
-              !meta || meta.color === 'default'
-                ? theme.palette.text.primary
-                : theme.palette[meta.color].main;
+            const color = theme.palette.primary.main;
             return (
               <Box
                 key={t.key}
@@ -262,7 +253,7 @@ export function PersonQueue({
                   alignItems: 'center',
                   gap: 0.75,
                   border: `1px solid ${on ? color : theme.palette.divider}`,
-                  bgcolor: on ? alpha(color, 0.1) : 'background.paper',
+                  bgcolor: on ? alpha(color, 0.08) : 'background.paper',
                   color: on ? color : 'text.secondary',
                 }}
               >
@@ -304,8 +295,7 @@ export function PersonQueue({
           <Stack gap={2.75}>
             {buckets.map((b) => {
               const meta = QUEUE_META[b.key];
-              const color =
-                meta.color === 'default' ? theme.palette.text.secondary : theme.palette[meta.color].main;
+              const color = theme.palette.text.secondary;
               return (
                 <Stack
                   key={b.key}
@@ -350,7 +340,7 @@ export function PersonQueue({
                   </Stack>
 
                   {b.people.map((p) => {
-                    const tone = waitTone(p.waitMinutes, p.queue);
+                    const urgent = isUrgent(p.waitMinutes, p.queue);
                     const on = p.key === selectedKey;
                     const isChecked = checked.has(p.key);
                     const links = p.phone ? contactLinks(p.phone) : null;
@@ -367,15 +357,8 @@ export function PersonQueue({
                           borderRadius: 3.5,
                           cursor: 'pointer',
                           flexWrap: 'wrap',
-                          bgcolor: on ? alpha(theme.palette.primary.main, 0.06) : 'background.paper',
-                          border: `1.5px solid ${
-                            on
-                              ? theme.palette.primary.main
-                              : tone === 'error'
-                                ? alpha(theme.palette.error.main, 0.35)
-                                : theme.palette.divider
-                          }`,
-                          boxShadow: on ? `0 6px 20px ${alpha(theme.palette.primary.main, 0.12)}` : 'none',
+                          bgcolor: 'background.paper',
+                          border: `1px solid ${on ? theme.palette.primary.main : theme.palette.divider}`,
                           '&:hover': { borderColor: theme.palette.primary.light },
                         }}
                       >
@@ -406,7 +389,7 @@ export function PersonQueue({
 
                         <Initial
                           name={p.name}
-                          tone={tone}
+                          urgent={urgent}
                         />
 
                         <Box sx={{ flex: '1 1 160px', minWidth: 0 }}>
@@ -442,11 +425,8 @@ export function PersonQueue({
                                 fontSize: 12,
                                 fontWeight: 700,
                                 whiteSpace: 'nowrap',
-                                bgcolor:
-                                  c.tone === 'info'
-                                    ? alpha(theme.palette.info.main, 0.1)
-                                    : alpha(theme.palette.text.primary, 0.05),
-                                color: c.tone === 'info' ? 'info.main' : 'text.secondary',
+                                bgcolor: alpha(theme.palette.text.primary, 0.05),
+                                color: 'text.secondary',
                               }}
                             >
                               {c.label}
@@ -462,11 +442,10 @@ export function PersonQueue({
                             fontSize: 12,
                             fontWeight: 800,
                             whiteSpace: 'nowrap',
-                            bgcolor:
-                              tone === 'default'
-                                ? alpha(theme.palette.text.primary, 0.05)
-                                : alpha(theme.palette[tone].main, 0.12),
-                            color: tone === 'default' ? 'text.secondary' : `${tone}.main`,
+                            bgcolor: urgent
+                              ? alpha(theme.palette.primary.main, 0.08)
+                              : alpha(theme.palette.text.primary, 0.05),
+                            color: urgent ? 'primary.main' : 'text.secondary',
                           }}
                         >
                           {p.queue === 'done' ? 'Cerrada' : waitingLabel(p.waitMinutes)}
@@ -485,9 +464,9 @@ export function PersonQueue({
                                 target="_blank"
                                 rel="noopener"
                                 sx={{
-                                  bgcolor: alpha(theme.palette.success.main, 0.12),
+                                  border: `1px solid ${theme.palette.divider}`,
                                   color: 'success.main',
-                                  '&:hover': { bgcolor: 'success.main', color: '#fff' },
+                                  '&:hover': { bgcolor: 'action.hover' },
                                 }}
                               >
                                 <WhatsApp fontSize="small" />

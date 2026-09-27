@@ -71,12 +71,15 @@ export function StoreRail({
           width: '100%',
           textAlign: 'left',
           cursor: 'pointer',
-          borderRadius: 3,
+          borderRadius: 2,
           p: 1.25,
           font: 'inherit',
+          // `color: inherit` es el arreglo del texto blanco: un <button> nativo trae
+          // el color del sistema y el nombre de la tienda quedaba ilegible.
+          color: 'text.primary',
           border: `1px solid ${active ? theme.palette.primary.main : 'transparent'}`,
-          bgcolor: active ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
-          '&:hover': { bgcolor: active ? alpha(theme.palette.primary.main, 0.1) : 'background.paper' },
+          bgcolor: active ? alpha(theme.palette.primary.main, 0.06) : 'transparent',
+          '&:hover': { bgcolor: active ? alpha(theme.palette.primary.main, 0.08) : 'action.hover' },
         }}
       >
         <Box
@@ -90,10 +93,8 @@ export function StoreRail({
             justifyContent: 'center',
             fontSize: 11,
             fontWeight: 800,
-            bgcolor: urgent
-              ? alpha(theme.palette.error.main, 0.12)
-              : alpha(theme.palette.text.primary, 0.06),
-            color: urgent ? 'error.main' : 'text.secondary',
+            bgcolor: alpha(theme.palette.text.primary, 0.06),
+            color: active ? 'primary.main' : 'text.secondary',
           }}
         >
           {slug === 'all' ? '★' : storeAbbr(name)}
@@ -108,7 +109,7 @@ export function StoreRail({
           </Typography>
           <Typography
             variant="caption"
-            color={urgent ? 'error.main' : 'text.secondary'}
+            color={urgent ? 'primary.main' : 'text.secondary'}
             noWrap
             display="block"
           >
@@ -126,8 +127,8 @@ export function StoreRail({
             justifyContent: 'center',
             fontSize: 12,
             fontWeight: 800,
-            bgcolor: active ? 'primary.main' : alpha(theme.palette.text.primary, 0.06),
-            color: active ? 'primary.contrastText' : 'text.secondary',
+            bgcolor: alpha(theme.palette.text.primary, 0.06),
+            color: 'text.secondary',
           }}
         >
           {peopleCount}
@@ -164,8 +165,8 @@ export function StoreRail({
           </Typography>
           <Typography
             variant="caption"
-            color={totalUrgent ? 'error.main' : 'text.secondary'}
-            fontWeight={totalUrgent ? 800 : 500}
+            color="text.secondary"
+            fontWeight={totalUrgent ? 700 : 500}
           >
             {totalUrgent ? `${totalUrgent} por aprobar` : `${load.length} con pendientes`}
           </Typography>

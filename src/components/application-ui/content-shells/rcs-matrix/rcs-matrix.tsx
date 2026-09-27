@@ -19,10 +19,9 @@ import {
   Stack,
   Tooltip,
   Typography,
-  useMediaQuery,
   useTheme,
 } from '@mui/material';
-import React, { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useDeferredValue, useMemo, useState } from 'react';
 import { useAttended } from './attended';
 import { downloadMatrixCsv } from './matrix-csv';
 import {
@@ -61,7 +60,6 @@ const INITIAL: ToolbarFilters = {
  */
 export default function RcsMatrix(): React.JSX.Element {
   const theme = useTheme();
-  const wide = useMediaQuery(theme.breakpoints.up('lg'));
   const [filters, setFilters] = useState<ToolbarFilters>(INITIAL);
   const [sendDialog, setSendDialog] = useState<SendDialogState | null>(null);
   const [selectedKey, setSelectedKey] = useState('');
@@ -121,11 +119,6 @@ export default function RcsMatrix(): React.JSX.Element {
     [people, everyone, selectedKey]
   );
 
-  // Con la lista cargada se abre sola la primera persona: la pantalla arranca trabajando.
-  useEffect(() => {
-    if (!selectedKey && people.length && wide) setSelectedKey(people[0].key);
-  }, [people, selectedKey, wide]);
-
   const { refetch: refetchOrders } = ordersQ;
   const { refetch: refetchLists } = listsQ;
   const refetch = useCallback(() => {
@@ -133,13 +126,10 @@ export default function RcsMatrix(): React.JSX.Element {
     refetchLists();
   }, [refetchOrders, refetchLists]);
 
-  const selectPerson = useCallback(
-    (p: PersonRow) => {
-      setSelectedKey(p.key);
-      if (!wide) setDrawerOpen(true);
-    },
-    [wide]
-  );
+  const selectPerson = useCallback((p: PersonRow) => {
+    setSelectedKey(p.key);
+    setDrawerOpen(true);
+  }, []);
 
   const toggleCheck = useCallback((key: string) => {
     setChecked((prev) => {
@@ -195,13 +185,14 @@ export default function RcsMatrix(): React.JSX.Element {
   const loading = ordersQ.isPending;
   const capped = ordersQ.data?.capped || listsQ.data?.capped;
 
-  /** Las cinco cifras de arriba. Clic = filtro rápido de la cola. */
+  /** Las cinco cifras de arriba. Neutras: el color se reserva para lo que hay que mirar. */
+  const approve = everyone.filter((p) => p.queue === 'approve').length;
   const cards = [
-    { label: 'PERSONAS', value: String(everyone.length), sub: `${kpis.orders} órdenes · ${kpis.lists} listas`, tone: 'default' as const },
-    { label: 'POR APROBAR', value: String(everyone.filter((p) => p.queue === 'approve').length), sub: 'pagadas sin revisar', tone: 'error' as const },
-    { label: 'EN CURSO', value: String(everyone.filter((p) => p.queue === 'prepare' || p.queue === 'deliver').length), sub: 'armando o listas', tone: 'warning' as const },
-    { label: 'SIN PAGAR', value: String(everyone.filter((p) => p.queue === 'unpaid').length), sub: centsToUsd(kpis.unpaidCents), tone: 'default' as const },
-    { label: 'COBRADO', value: centsToUsd(kpis.collectedCents), sub: `ticket ${centsToUsd(kpis.avgTicketCents)}`, tone: 'success' as const },
+    { label: 'PERSONAS', value: String(everyone.length), sub: `${kpis.orders} órdenes · ${kpis.lists} listas`, strong: false },
+    { label: 'POR APROBAR', value: String(approve), sub: 'pagadas sin revisar', strong: approve > 0 },
+    { label: 'EN CURSO', value: String(everyone.filter((p) => p.queue === 'prepare' || p.queue === 'deliver').length), sub: 'armando o listas', strong: false },
+    { label: 'SIN PAGAR', value: String(everyone.filter((p) => p.queue === 'unpaid').length), sub: centsToUsd(kpis.unpaidCents), strong: false },
+    { label: 'COBRADO', value: centsToUsd(kpis.collectedCents), sub: `ticket ${centsToUsd(kpis.avgTicketCents)}`, strong: false },
   ];
 
   return (
@@ -308,16 +299,15 @@ export default function RcsMatrix(): React.JSX.Element {
           }}
         >
           {cards.map((c) => {
-            const color =
-              c.tone === 'default' ? theme.palette.text.primary : theme.palette[c.tone].main;
+            const color = c.strong ? theme.palette.primary.main : theme.palette.text.primary;
             return (
               <Box
                 key={c.label}
                 sx={{
                   p: 1.5,
-                  borderRadius: 3.5,
-                  border: `1.5px solid ${alpha(color, c.tone === 'default' ? 0.12 : 0.3)}`,
-                  bgcolor: c.tone === 'default' ? 'background.paper' : alpha(color, 0.05),
+                  borderRadius: 3,
+                  border: `1px solid ${c.strong ? alpha(theme.palette.primary.main, 0.4) : theme.palette.divider}`,
+                  bgcolor: 'background.paper',
                   minWidth: 0,
                 }}
               >
@@ -387,11 +377,7 @@ export default function RcsMatrix(): React.JSX.Element {
               flex: 1,
               minHeight: 0,
               display: 'grid',
-              gridTemplateColumns: {
-                xs: 'minmax(0, 1fr)',
-                md: '248px minmax(0, 1fr)',
-                lg: '272px minmax(0, 1fr) 400px',
-              },
+              gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: '264px minmax(0, 1fr)' },
             }}
           >
             <Box sx={{ display: { xs: 'none', md: 'block' }, minHeight: 0 }}>
@@ -434,30 +420,16 @@ export default function RcsMatrix(): React.JSX.Element {
               )}
             </Box>
 
-            <Box
-              sx={{
-                display: { xs: 'none', lg: 'block' },
-                minHeight: 0,
-                borderLeft: `1px solid ${theme.palette.divider}`,
-              }}
-            >
-              <PersonDetail
-                person={selected}
-                attended={!!selected && isAttended(selected.key)}
-                onAttend={() => selected && attend([selected.key])}
-                onChanged={refetch}
-              />
-            </Box>
           </Box>
         </>
       )}
 
-      {/* Pantallas chicas: la misma ficha, como drawer */}
+      {/* La ficha se abre al costado, sobre la lista: la cola nunca se pierde de vista. */}
       <Drawer
         anchor="right"
-        open={!wide && drawerOpen && !!selected}
+        open={drawerOpen && !!selected}
         onClose={() => setDrawerOpen(false)}
-        PaperProps={{ sx: { width: { xs: '100%', sm: 420 }, maxWidth: '100%' } }}
+        PaperProps={{ sx: { width: { xs: '100%', sm: 440 }, maxWidth: '100%' } }}
       >
         <PersonDetail
           person={selected}
