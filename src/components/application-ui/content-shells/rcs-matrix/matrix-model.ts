@@ -251,3 +251,124 @@ export function buildQueues(rows: MatrixRow[], now: number = Date.now()): QueueB
   }
   return QUEUE_ORDER.map((k) => map.get(k)!);
 }
+
+/* ══════════ Agrupado por persona ══════════ */
+
+/**
+ * La cola se trabaja por PERSONA, no por orden: a alguien con dos pedidos y una
+ * lista se le llama una vez, no tres. Cada persona cae en la cola de lo más
+ * urgente que tenga abierto (una orden pagada sin aprobar pesa más que su lista).
+ */
+export interface PersonRow {
+  /** Teléfono (últimos 10) o customerId. Es la identidad en la pantalla. */
+  key: string;
+  name: string;
+  phone: string;
+  storeSlug: string;
+  storeName: string;
+  /** Todo lo suyo, lo más nuevo primero. */
+  rows: MatrixRow[];
+  /** Lo más urgente que tiene abierto; decide en qué cola aparece. */
+  queue: QueueKey;
+  /** La fila que manda: la más vieja de esa cola. */
+  lead: MatrixRow;
+  orders: number;
+  lists: number;
+  /** Neto de sus órdenes (sin reembolsos). */
+  cents: number;
+  /** Minutos esperando de su fila más urgente. */
+  waitMinutes: number;
+}
+
+/** Peso de cada cola: cuanto más bajo, más urgente. `done` no compite. */
+const QUEUE_RANK: Record<QueueKey, number> = {
+  approve: 0,
+  prepare: 1,
+  deliver: 2,
+  unpaid: 3,
+  list: 4,
+  done: 5,
+};
+
+/** Identidad de la persona: el teléfono manda (el mismo cliente puede tener varios ids). */
+export function personKey(r: MatrixRow): string {
+  const digits = (r.customerPhone || '').replace(/\D/g, '');
+  return digits ? digits.slice(-10) : r.customerId || r._id;
+}
+
+/**
+ * Filas → personas. Cada una con su cola, su espera y el resumen de lo suyo.
+ * Ordenadas por urgencia y, dentro de la misma cola, por quién espera hace más.
+ */
+export function groupByPerson(rows: MatrixRow[], now: number = Date.now()): PersonRow[] {
+  const map = new Map<string, PersonRow>();
+  for (const r of rows) {
+    const key = personKey(r);
+    const q = queueOf(r);
+    let p = map.get(key);
+    if (!p) {
+      p = {
+        key,
+        name: r.customerName || 'Sin nombre',
+        phone: r.customerPhone || '',
+        storeSlug: r.storeSlug,
+        storeName: r.storeName,
+        rows: [],
+        queue: q,
+        lead: r,
+        orders: 0,
+        lists: 0,
+        cents: 0,
+        waitMinutes: 0,
+      };
+      map.set(key, p);
+    }
+    p.rows.push(r);
+    if (!p.name || p.name === 'Sin nombre') p.name = r.customerName || p.name;
+    if (!p.phone) p.phone = r.customerPhone || '';
+    if (isList(r)) p.lists++;
+    else {
+      p.orders++;
+      p.cents += net(r);
+    }
+    // Gana la cola más urgente; con la misma cola, la fila que lleva más tiempo.
+    const better =
+      QUEUE_RANK[q] < QUEUE_RANK[p.queue] ||
+      (QUEUE_RANK[q] === QUEUE_RANK[p.queue] && r.createdAt < p.lead.createdAt);
+    if (better) {
+      p.queue = q;
+      p.lead = r;
+      // La tienda que se muestra es la del pendiente, no la de una compra vieja.
+      p.storeSlug = r.storeSlug;
+      p.storeName = r.storeName;
+    }
+  }
+  const people = [...map.values()];
+  for (const p of people) {
+    p.rows.sort((a, z) => (a.createdAt < z.createdAt ? 1 : a.createdAt > z.createdAt ? -1 : 0));
+    p.waitMinutes = waitingMinutes(p.lead, now);
+  }
+  return people.sort(
+    (a, b) => QUEUE_RANK[a.queue] - QUEUE_RANK[b.queue] || b.waitMinutes - a.waitMinutes
+  );
+}
+
+/** Personas por cola, en el orden de trabajo. Sólo devuelve las colas con gente. */
+export function peopleByQueue(people: PersonRow[]): { key: QueueKey; people: PersonRow[] }[] {
+  return QUEUE_ORDER.map((key) => ({ key, people: people.filter((p) => p.queue === key) })).filter(
+    (b) => b.people.length > 0
+  );
+}
+
+/** Tiendas con pendientes, para la columna izquierda: cuánta gente espera en cada una. */
+export function storeLoad(people: PersonRow[]): { slug: string; name: string; people: number; urgent: number }[] {
+  const map = new Map<string, { slug: string; name: string; people: number; urgent: number }>();
+  for (const p of people) {
+    if (!p.storeSlug) continue;
+    const s = map.get(p.storeSlug) ?? { slug: p.storeSlug, name: p.storeName, people: 0, urgent: 0 };
+    s.people++;
+    if (p.queue === 'approve') s.urgent++;
+    map.set(p.storeSlug, s);
+  }
+  return [...map.values()].sort((a, b) => b.urgent - a.urgent || b.people - a.people);
+}

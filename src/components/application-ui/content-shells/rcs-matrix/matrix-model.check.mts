@@ -3,6 +3,9 @@ import assert from 'node:assert';
 import {
   buildQueues,
   computeKpis,
+  groupByPerson,
+  peopleByQueue,
+  storeLoad,
   filterRows,
   groupByStore,
   mergeRows,
@@ -119,5 +122,36 @@ assert.equal(approve.rows[0]._id, 'vieja', 'primero lo que lleva mas tiempo espe
 assert.equal(approve.oldestMinutes, 60);
 assert.equal(approve.cents, 10000, 'la cola suma la plata que esta esperando');
 assert.deepEqual(queues.map((q) => q.key), ['approve', 'prepare', 'deliver', 'unpaid', 'list', 'done']);
+
+// ── Por persona: una sola entrada aunque tenga varias solicitudes ──
+const withPhone = (id: string, at: string, status: string, cents: number, phone: string, extra = {}) =>
+  ({ ...(order(id, at, status, cents, extra) as any), customerPhone: phone, customerName: 'Ana' });
+
+const people = groupByPerson(
+  [
+    withPhone('a1', '2026-09-27T12:00:00Z', 'paid', 5000, '+15551234567', { reviewed: false }),
+    withPhone('a2', '2026-09-27T09:00:00Z', 'completed', 2000, '+15551234567'),
+    { ...withPhone('a3', '2026-09-27T08:00:00Z', 'list_pending', 0, '+15551234567'), kind: 'list' } as any,
+    withPhone('b1', '2026-09-27T11:00:00Z', 'ready', 3000, '+15559999999', { reviewed: true }),
+  ],
+  Date.parse('2026-09-27T13:00:00Z')
+);
+assert.equal(people.length, 2, 'dos telefonos, dos personas');
+const ana = people[0];
+assert.equal(ana.rows.length, 3, 'sus tres solicitudes juntas');
+assert.equal(ana.queue, 'approve', 'manda lo mas urgente que tiene abierto');
+assert.equal(ana.lead._id, 'a1');
+assert.equal(ana.orders, 2);
+assert.equal(ana.lists, 1);
+assert.equal(ana.cents, 7000, 'solo la plata de sus ordenes');
+assert.equal(ana.waitMinutes, 60);
+assert.equal(ana.rows[0]._id, 'a1', 'lo suyo, lo mas nuevo primero');
+assert.equal(people[1].queue, 'deliver', 'las personas van por urgencia');
+
+const buckets = peopleByQueue(people);
+assert.deepEqual(buckets.map((b) => b.key), ['approve', 'deliver'], 'solo las colas con gente');
+
+const load = storeLoad(people);
+assert.equal(load[0].urgent, 1, 'la tienda con lo urgente va primero');
 
 console.log('matrix-model.check ok');
