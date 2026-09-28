@@ -146,7 +146,7 @@ function RequestCard({
           px: 1.75,
           py: 1.5,
           cursor: 'pointer',
-          bgcolor: alpha(theme.palette.text.primary, 0.03),
+          bgcolor: 'action.hover',
         }}
       >
         <Box
@@ -155,7 +155,7 @@ function RequestCard({
             py: 0.25,
             borderRadius: 1.5,
             fontSize: 10,
-            fontWeight: 800,
+            fontWeight: 700,
             letterSpacing: '.08em',
             color: isList ? 'text.secondary' : 'primary.main',
             border: `1px solid ${isList ? theme.palette.divider : alpha(theme.palette.primary.main, 0.4)}`,
@@ -201,7 +201,7 @@ function RequestCard({
         </Typography>
         <Typography
           variant="h6"
-          fontWeight={800}
+          fontWeight={700}
         >
           {centsToUsd(row.subtotalCents - row.refundTotalCents)}
         </Typography>
@@ -428,7 +428,7 @@ export function PersonDetail({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontWeight: 800,
+              fontWeight: 700,
               fontSize: 17,
             }}
           >
@@ -437,7 +437,7 @@ export function PersonDetail({
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography
               variant="h6"
-              fontWeight={800}
+              fontWeight={700}
               noWrap
             >
               {person.name}
@@ -471,7 +471,7 @@ export function PersonDetail({
               py: 0.5,
               borderRadius: 999,
               fontSize: 12,
-              fontWeight: 800,
+              fontWeight: 700,
               bgcolor: alpha(theme.palette.primary.main, 0.08),
               color: 'primary.main',
             }}
@@ -485,7 +485,7 @@ export function PersonDetail({
               borderRadius: 999,
               fontSize: 12,
               fontWeight: 700,
-              bgcolor: alpha(theme.palette.text.primary, 0.05),
+              bgcolor: 'action.hover',
               color: 'text.secondary',
             }}
           >
@@ -498,8 +498,8 @@ export function PersonDetail({
                 py: 0.5,
                 borderRadius: 999,
                 fontSize: 12,
-                fontWeight: 800,
-                bgcolor: alpha(theme.palette.text.primary, 0.05),
+                fontWeight: 700,
+                bgcolor: 'action.hover',
                 color: 'text.secondary',
               }}
             >
@@ -512,7 +512,7 @@ export function PersonDetail({
           direction="row"
           alignItems="center"
           gap={1.25}
-          sx={{ p: 1.25, borderRadius: 3, bgcolor: alpha(theme.palette.text.primary, 0.04) }}
+          sx={{ p: 1.25, borderRadius: 3, bgcolor: 'action.hover' }}
         >
           <StorefrontRounded
             fontSize="small"

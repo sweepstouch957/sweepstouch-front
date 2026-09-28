@@ -1,7 +1,9 @@
 'use client';
 
 import { useRcsMatrix } from '@/hooks/fetching/rcs-matrix/useRcsMatrix';
+import { useQuery } from '@tanstack/react-query';
 import { useShopperStatus } from '@/hooks/fetching/rcs-matrix/useShopperStatus';
+import { getAllStores } from '@/services/store.service';
 import { centsToUsd, type MatrixRow } from '@/services/rcs-matrix.service';
 import { phoneKey } from '@/services/shopper-whatsapp.service';
 import DownloadRounded from '@mui/icons-material/DownloadRounded';
@@ -35,7 +37,7 @@ import { PRESETS, type ToolbarFilters } from './matrix-toolbar';
 import { PersonDetail } from './person-detail';
 import { PersonQueue } from './person-queue';
 import { SendWaDialog, type SendDialogState } from './send-wa-dialog';
-import { StoreRail } from './store-rail';
+import { StoreRail, type StoreInfo } from './store-rail';
 import { rowToTarget } from './whatsapp-bot';
 
 const INITIAL: ToolbarFilters = {
@@ -65,7 +67,7 @@ export default function RcsMatrix(): React.JSX.Element {
   const [selectedKey, setSelectedKey] = useState('');
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { mark, isAttended } = useAttended();
+  const { mark, isAttended, count: attendedCount } = useAttended();
 
   const { range, store } = filters;
   const q = useDeferredValue(filters.q);
@@ -90,6 +92,21 @@ export default function RcsMatrix(): React.JSX.Element {
   );
   const { data: wa } = useShopperStatus(phones);
 
+  // Logo y audiencia de cada tienda para la columna izquierda. Es el catálogo
+  // completo (cambia poco): se pide una vez y se cachea.
+  const { data: storeCatalog } = useQuery({
+    queryKey: ['stores-basic'],
+    queryFn: getAllStores,
+    staleTime: 10 * 60_000,
+  });
+  const storeInfo = useMemo(() => {
+    const map: Record<string, StoreInfo> = {};
+    for (const s of storeCatalog ?? []) {
+      if (s.slug) map[s.slug] = { image: s.image, customerCount: s.customerCount };
+    }
+    return map;
+  }, [storeCatalog]);
+
   /** Búsqueda: nombre, teléfono, número de orden o tienda. */
   const matches = useCallback(
     (r: MatrixRow) => {
@@ -105,18 +122,20 @@ export default function RcsMatrix(): React.JSX.Element {
   // Personas de TODAS las tiendas (la columna izquierda necesita el total),
   // y después las de la tienda elegida.
   const everyone = useMemo(() => groupByPerson(all.filter(matches)), [all, matches]);
+  const ofStore = useMemo(
+    () => (store === 'all' ? everyone : everyone.filter((p) => p.storeSlug === store)),
+    [everyone, store]
+  );
+  // Lo atendido sale de la cola. Va en su propio memo (y no depende de la
+  // selección) para que abrir una ficha no recalcule el agrupado entero.
   const people = useMemo(
-    () =>
-      (store === 'all' ? everyone : everyone.filter((p) => p.storeSlug === store)).filter(
-        // Lo atendido se esconde de la cola, pero sigue visible si es quien está abierto.
-        (p) => !isAttended(p.key) || p.key === selectedKey
-      ),
-    [everyone, store, isAttended, selectedKey]
+    () => (attendedCount ? ofStore.filter((p) => !isAttended(p.key)) : ofStore),
+    [ofStore, isAttended, attendedCount]
   );
 
   const selected = useMemo(
-    () => people.find((p) => p.key === selectedKey) ?? everyone.find((p) => p.key === selectedKey) ?? null,
-    [people, everyone, selectedKey]
+    () => everyone.find((p) => p.key === selectedKey) ?? null,
+    [everyone, selectedKey]
   );
 
   const { refetch: refetchOrders } = ordersQ;
@@ -185,15 +204,30 @@ export default function RcsMatrix(): React.JSX.Element {
   const loading = ordersQ.isPending;
   const capped = ordersQ.data?.capped || listsQ.data?.capped;
 
-  /** Las cinco cifras de arriba. Neutras: el color se reserva para lo que hay que mirar. */
-  const approve = everyone.filter((p) => p.queue === 'approve').length;
-  const cards = [
-    { label: 'PERSONAS', value: String(everyone.length), sub: `${kpis.orders} órdenes · ${kpis.lists} listas`, strong: false },
-    { label: 'POR APROBAR', value: String(approve), sub: 'pagadas sin revisar', strong: approve > 0 },
-    { label: 'EN CURSO', value: String(everyone.filter((p) => p.queue === 'prepare' || p.queue === 'deliver').length), sub: 'armando o listas', strong: false },
-    { label: 'SIN PAGAR', value: String(everyone.filter((p) => p.queue === 'unpaid').length), sub: centsToUsd(kpis.unpaidCents), strong: false },
-    { label: 'COBRADO', value: centsToUsd(kpis.collectedCents), sub: `ticket ${centsToUsd(kpis.avgTicketCents)}`, strong: false },
-  ];
+  /**
+   * Las cifras de arriba. Neutras: el color se reserva para lo que hay que mirar.
+   * Se cuentan en UNA pasada — con 30 días son cientos de personas y cinco
+   * `filter` sueltos se notaban en cada render.
+   */
+  const cards = useMemo(() => {
+    let approve = 0;
+    let inProgress = 0;
+    let unpaid = 0;
+    for (const p of everyone) {
+      if (p.queue === 'approve') approve++;
+      else if (p.queue === 'prepare' || p.queue === 'deliver') inProgress++;
+      else if (p.queue === 'unpaid') unpaid++;
+    }
+    return [
+      { label: 'PERSONAS', value: String(everyone.length), sub: 'a quienes llamar', strong: false },
+      { label: 'ÓRDENES', value: String(kpis.orders), sub: centsToUsd(kpis.grossCents), strong: false },
+      { label: 'LISTAS', value: String(kpis.lists), sub: `${kpis.listsValidated} validadas`, strong: false },
+      { label: 'POR APROBAR', value: String(approve), sub: 'pagadas sin revisar', strong: approve > 0 },
+      { label: 'EN CURSO', value: String(inProgress), sub: 'armando o listas', strong: false },
+      { label: 'SIN PAGAR', value: String(unpaid), sub: centsToUsd(kpis.unpaidCents), strong: false },
+      { label: 'COBRADO', value: centsToUsd(kpis.collectedCents), sub: `ticket ${centsToUsd(kpis.avgTicketCents)}`, strong: false },
+    ];
+  }, [everyone, kpis]);
 
   return (
     <Stack sx={{ height: { lg: 'calc(100vh - 64px)' }, minHeight: 0 }}>
@@ -217,7 +251,7 @@ export default function RcsMatrix(): React.JSX.Element {
           <Box sx={{ flex: '1 1 320px', minWidth: 0 }}>
             <Typography
               variant="h5"
-              fontWeight={800}
+              fontWeight={700}
               letterSpacing="-.02em"
             >
               Matriz RCS
@@ -233,7 +267,7 @@ export default function RcsMatrix(): React.JSX.Element {
           <Stack
             direction="row"
             gap={0.5}
-            sx={{ p: 0.5, borderRadius: 999, bgcolor: alpha(theme.palette.text.primary, 0.05) }}
+            sx={{ p: 0.5, borderRadius: 999, bgcolor: 'action.hover' }}
           >
             {PRESETS.map((p) => {
               const r = p.range();
@@ -295,7 +329,11 @@ export default function RcsMatrix(): React.JSX.Element {
           sx={{
             display: 'grid',
             gap: 1.25,
-            gridTemplateColumns: { xs: 'repeat(2, minmax(0,1fr))', md: 'repeat(5, minmax(0,1fr))' },
+            gridTemplateColumns: {
+              xs: 'repeat(2, minmax(0,1fr))',
+              md: 'repeat(4, minmax(0,1fr))',
+              xl: 'repeat(7, minmax(0,1fr))',
+            },
           }}
         >
           {cards.map((c) => {
@@ -313,7 +351,7 @@ export default function RcsMatrix(): React.JSX.Element {
               >
                 <Typography
                   variant="caption"
-                  fontWeight={800}
+                  fontWeight={700}
                   letterSpacing=".08em"
                   color="text.secondary"
                   noWrap
@@ -323,7 +361,7 @@ export default function RcsMatrix(): React.JSX.Element {
                 </Typography>
                 <Typography
                   variant="h5"
-                  fontWeight={800}
+                  fontWeight={700}
                   sx={{ color, lineHeight: 1.2 }}
                   noWrap
                 >
@@ -377,18 +415,19 @@ export default function RcsMatrix(): React.JSX.Element {
               flex: 1,
               minHeight: 0,
               display: 'grid',
-              gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: '264px minmax(0, 1fr)' },
+              gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: '300px minmax(0, 1fr)', xl: '340px minmax(0, 1fr)' },
             }}
           >
             <Box sx={{ display: { xs: 'none', md: 'block' }, minHeight: 0 }}>
               <StoreRail
                 people={everyone}
                 value={store}
+                info={storeInfo}
                 onChange={(slug) => setFilters((f) => ({ ...f, store: slug }))}
               />
             </Box>
 
-            <Box sx={{ minWidth: 0, minHeight: 0, bgcolor: alpha(theme.palette.text.primary, 0.02) }}>
+            <Box sx={{ minWidth: 0, minHeight: 0, bgcolor: 'background.default' }}>
               {loading ? (
                 <Stack
                   gap={1}

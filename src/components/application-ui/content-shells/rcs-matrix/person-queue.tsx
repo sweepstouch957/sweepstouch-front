@@ -33,6 +33,9 @@ import { peopleByQueue, QUEUE_ORDER, type PersonRow, type QueueKey } from './mat
 import { waitingLabel } from './order-drawer';
 import { QUEUE_META } from './order-queue';
 
+/** Filas por grupo en el primer pintado. */
+const PAGE = 40;
+
 /**
  * Dos estados y nada más: normal o urgente (más de 2 h esperando). El color de
  * marca se reserva para lo urgente y para lo seleccionado; el resto es neutro.
@@ -54,9 +57,9 @@ function Initial({ name, urgent }: { name: string; urgent: boolean }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontWeight: 800,
+        fontWeight: 700,
         fontSize: 14,
-        bgcolor: alpha(theme.palette.text.primary, 0.06),
+        bgcolor: 'action.selected',
         color,
       }}
     >
@@ -104,7 +107,20 @@ export function PersonQueue({
     () => (tab === 'all' ? people : people.filter((p) => p.queue === tab)),
     [people, tab]
   );
-  const buckets = useMemo(() => peopleByQueue(shown), [shown]);
+  const allBuckets = useMemo(() => peopleByQueue(shown), [shown]);
+  // Cuántas filas se muestran por grupo. Montar 800 tarjetas de una trababa la
+  // pantalla entera; con el tope, el primer pintado es instantáneo y el resto
+  // se pide a demanda (lo urgente está arriba, que es lo que se trabaja).
+  const [limits, setLimits] = useState<Record<string, number>>({});
+  const buckets = useMemo(
+    () =>
+      allBuckets.map((b) => ({
+        ...b,
+        total: b.people.length,
+        people: b.people.slice(0, limits[b.key] ?? PAGE),
+      })),
+    [allBuckets, limits]
+  );
   const flat = useMemo(() => buckets.flatMap((b) => b.people), [buckets]);
 
   // Teclado: la cola se trabaja sin mouse.
@@ -122,11 +138,17 @@ export function PersonQueue({
     [cursor, flat, onSelect]
   );
 
+  // Las teclas leen el estado por ref: así el listener se registra UNA vez y no
+  // se re-suscribe con cada movimiento del cursor.
+  const stateRef = useRef({ flat, cursor, move, onAttend });
+  stateRef.current = { flat, cursor, move, onAttend };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
       // No robar teclas mientras se escribe en un campo.
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+      const { flat, cursor, move, onAttend } = stateRef.current;
       const current = flat[cursor];
       if (e.key === 'j' || e.key === 'J') {
         e.preventDefault();
@@ -144,7 +166,7 @@ export function PersonQueue({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [cursor, flat, move, onAttend]);
+  }, []);
 
   const chipsOf = (p: PersonRow): { label: string; tone: 'error' | 'warning' | 'info' | 'default' }[] => {
     const out: { label: string; tone: 'error' | 'warning' | 'info' | 'default' }[] = [];
@@ -185,7 +207,7 @@ export function PersonQueue({
           <Box sx={{ flex: '1 1 220px', minWidth: 0 }}>
             <Typography
               variant="subtitle1"
-              fontWeight={800}
+              fontWeight={700}
               noWrap
             >
               {tab === 'all' ? 'Todo lo pendiente' : QUEUE_META[tab].label}
@@ -260,7 +282,7 @@ export function PersonQueue({
                 {t.label}
                 <Box
                   component="span"
-                  sx={{ fontWeight: 800, opacity: 0.7 }}
+                  sx={{ fontWeight: 700, opacity: 0.7 }}
                 >
                   {t.count}
                 </Box>
@@ -284,7 +306,7 @@ export function PersonQueue({
             <TaskAltRounded sx={{ fontSize: 44, color: 'success.main' }} />
             <Typography
               variant="subtitle1"
-              fontWeight={800}
+              fontWeight={700}
               color="text.primary"
             >
               Nada pendiente acá
@@ -310,7 +332,7 @@ export function PersonQueue({
                     <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: color }} />
                     <Typography
                       variant="caption"
-                      fontWeight={800}
+                      fontWeight={700}
                       sx={{ color }}
                     >
                       {meta.label}
@@ -425,7 +447,7 @@ export function PersonQueue({
                                 fontSize: 12,
                                 fontWeight: 700,
                                 whiteSpace: 'nowrap',
-                                bgcolor: alpha(theme.palette.text.primary, 0.05),
+                                bgcolor: 'action.hover',
                                 color: 'text.secondary',
                               }}
                             >
@@ -440,11 +462,11 @@ export function PersonQueue({
                             py: 0.5,
                             borderRadius: 999,
                             fontSize: 12,
-                            fontWeight: 800,
+                            fontWeight: 700,
                             whiteSpace: 'nowrap',
                             bgcolor: urgent
                               ? alpha(theme.palette.primary.main, 0.08)
-                              : alpha(theme.palette.text.primary, 0.05),
+                              : 'action.hover',
                             color: urgent ? 'primary.main' : 'text.secondary',
                           }}
                         >
@@ -489,6 +511,17 @@ export function PersonQueue({
                       </Stack>
                     );
                   })}
+                  {b.total > b.people.length && (
+                    <Button
+                      size="small"
+                      onClick={() =>
+                        setLimits((l) => ({ ...l, [b.key]: (l[b.key] ?? PAGE) + PAGE }))
+                      }
+                      sx={{ alignSelf: 'center', textTransform: 'none', fontWeight: 700 }}
+                    >
+                      Ver {Math.min(PAGE, b.total - b.people.length)} más de {b.total}
+                    </Button>
+                  )}
                 </Stack>
               );
             })}
