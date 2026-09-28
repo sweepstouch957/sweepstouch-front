@@ -1138,6 +1138,39 @@ export type RecalcParams = {
  * Con `dryRun` no escribe nada y devuelve el detalle de lo que cambiaría: es
  * como se revisa antes de tocar cientos de campañas ya facturadas.
  */
+export type DeliveryRecountDetail = {
+  id: string;
+  title: string;
+  type?: string;
+  startDate: string;
+  audience: number;
+  logs: number;
+  recovered: number;
+  rateBefore: number;
+  rateAfter: number;
+};
+
+export type DeliveryRecountResult = {
+  success: boolean;
+  dryRun: boolean;
+  matched: number;
+  affected: number;
+  logs: number;
+  recovered: number;
+  updated?: number;
+  details: DeliveryRecountDetail[];
+};
+
+/** POST /tracking/campaigns/delivery-recount — UNDELIVERABLE_NOT_DELIVERED pasa a entregado en el rango. */
+export async function deliveryRecount(params: {
+  from: string;
+  to: string;
+  dryRun: boolean;
+}): Promise<DeliveryRecountResult> {
+  const res = await api.post('/tracking/campaigns/delivery-recount', params);
+  return res.data;
+}
+
 export async function recalcCampaignCosts(params: RecalcParams): Promise<RecalcResult> {
   const res = await api.post('/campaigns/recalc-costs', params);
   return res.data;

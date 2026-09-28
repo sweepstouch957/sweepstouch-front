@@ -5,6 +5,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import AddNumberToStores from 'src/components/application-ui/content-shells/utilities/add-number-to-stores';
 import RecalcCampaignCosts from 'src/components/application-ui/content-shells/utilities/recalc-campaign-costs';
+import RecountCampaignDelivery from 'src/components/application-ui/content-shells/utilities/recount-campaign-delivery';
 
 function Page(): React.JSX.Element {
   const { t } = useTranslation();
@@ -33,6 +34,7 @@ function Page(): React.JSX.Element {
         </Typography>
       </Box>
       <Divider />
+      <RecountCampaignDelivery />
       <RecalcCampaignCosts />
       <AddNumberToStores />
     </>
