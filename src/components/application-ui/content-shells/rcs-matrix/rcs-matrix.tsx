@@ -24,7 +24,7 @@ import {
   useTheme,
 } from '@mui/material';
 import React, { useCallback, useDeferredValue, useMemo, useState } from 'react';
-import { useAttended } from './attended';
+import { useAttended, useNotes } from './attended';
 import { downloadMatrixCsv } from './matrix-csv';
 import {
   computeKpis,
@@ -68,6 +68,7 @@ export default function RcsMatrix(): React.JSX.Element {
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { mark, isAttended, count: attendedCount } = useAttended();
+  const { notes, setNote } = useNotes();
 
   const { range, store } = filters;
   const q = useDeferredValue(filters.q);
@@ -220,8 +221,14 @@ export default function RcsMatrix(): React.JSX.Element {
     }
     return [
       { label: 'PERSONAS', value: String(everyone.length), sub: 'a quienes llamar', strong: false },
-      { label: 'ÓRDENES', value: String(kpis.orders), sub: centsToUsd(kpis.grossCents), strong: false },
-      { label: 'LISTAS', value: String(kpis.lists), sub: `${kpis.listsValidated} validadas`, strong: false },
+      // Órdenes y listas en una sola cifra: es todo lo que la gente puso en su
+      // carrito en el período, con la plata que representa (cobrada o no).
+      {
+        label: 'LISTAS',
+        value: String(kpis.orders + kpis.lists),
+        sub: `${centsToUsd(kpis.potentialCents)} en carritos`,
+        strong: false,
+      },
       { label: 'POR APROBAR', value: String(approve), sub: 'pagadas sin revisar', strong: approve > 0 },
       { label: 'EN CURSO', value: String(inProgress), sub: 'armando o listas', strong: false },
       { label: 'SIN PAGAR', value: String(unpaid), sub: centsToUsd(kpis.unpaidCents), strong: false },
@@ -331,8 +338,8 @@ export default function RcsMatrix(): React.JSX.Element {
             gap: 1.25,
             gridTemplateColumns: {
               xs: 'repeat(2, minmax(0,1fr))',
-              md: 'repeat(4, minmax(0,1fr))',
-              xl: 'repeat(7, minmax(0,1fr))',
+              md: 'repeat(3, minmax(0,1fr))',
+              xl: 'repeat(6, minmax(0,1fr))',
             },
           }}
         >
@@ -473,6 +480,8 @@ export default function RcsMatrix(): React.JSX.Element {
         <PersonDetail
           person={selected}
           attended={!!selected && isAttended(selected.key)}
+          note={selected ? notes[selected.key] : ''}
+          onNote={(text) => selected && setNote(selected.key, text)}
           onAttend={() => selected && attend([selected.key])}
           onChanged={refetch}
           onClose={() => setDrawerOpen(false)}

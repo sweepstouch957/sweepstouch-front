@@ -59,3 +59,41 @@ export function useAttended() {
 
   return { marks, mark, isAttended, count: Object.keys(marks).length };
 }
+
+/* ── Notas por persona ────────────────────────────────────────────────────
+   "No contesta, llamar mañana", "pidió cancelar": lo que hoy se escribe en un
+   papel. Mismo alcance que la marca de atendida —este navegador— y por eso no
+   caduca: una nota vieja sigue sirviendo. */
+
+const NOTES_KEY = 'rcsMatrix.notes';
+
+function readNotes(): Record<string, string> {
+  if (typeof window === 'undefined') return {};
+  try {
+    return JSON.parse(localStorage.getItem(NOTES_KEY) || '{}') || {};
+  } catch {
+    return {};
+  }
+}
+
+export function useNotes() {
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  useEffect(() => setNotes(readNotes()), []);
+
+  const setNote = useCallback((key: string, text: string) => {
+    setNotes((prev) => {
+      const next = { ...prev };
+      const clean = text.trim().slice(0, 500);
+      if (clean) next[key] = clean;
+      else delete next[key];
+      try {
+        localStorage.setItem(NOTES_KEY, JSON.stringify(next));
+      } catch {
+        /* sin storage: la nota dura lo que dure la página */
+      }
+      return next;
+    });
+  }, []);
+
+  return { notes, setNote };
+}

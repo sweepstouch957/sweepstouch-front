@@ -53,6 +53,10 @@ export interface MatrixKpis {
   unpaid: number;
   unpaidCents: number;
   grossCents: number;
+  /** Valor de las listas armadas (todavía no es plata cobrada). */
+  listsCents: number;
+  /** Órdenes + listas: todo lo que esa gente puso en su carrito. */
+  potentialCents: number;
   collectedCents: number;
   avgTicketCents: number;
   completed: number;
@@ -74,6 +78,8 @@ export function computeKpis(rows: MatrixRow[]): MatrixKpis {
     unpaid: 0,
     unpaidCents: 0,
     grossCents: 0,
+    listsCents: 0,
+    potentialCents: 0,
     collectedCents: 0,
     avgTicketCents: 0,
     completed: 0,
@@ -97,6 +103,7 @@ export function computeKpis(rows: MatrixRow[]): MatrixKpis {
 
     if (isList(r)) {
       k.lists++;
+      k.listsCents += r.subtotalCents || 0;
       k.points += r.pointsAwarded || 0;
       continue;
     }
@@ -114,6 +121,7 @@ export function computeKpis(rows: MatrixRow[]): MatrixKpis {
     }
   }
 
+  k.potentialCents = k.grossCents + k.listsCents;
   k.customers = people.size;
   k.stores = stores.size;
   k.avgTicketCents = live ? Math.round(liveCents / live) : 0;

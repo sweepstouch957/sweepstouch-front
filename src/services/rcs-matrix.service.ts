@@ -170,6 +170,13 @@ export const orderAdminService = {
   async payInStore(orderId: string): Promise<void> {
     await api.post(`/orders/${orderId}/pay-in-store`);
   },
+  /**
+   * Agotado en la TIENDA (no sólo en este pedido): pone stock 0 en el catálogo,
+   * así deja de ofrecerse a todos los clientes al instante.
+   */
+  async markOutOfStock(storeSlug: string, name: string, available = false): Promise<void> {
+    await api.post(`/circulars/store/${storeSlug}/out-of-stock`, { name, available });
+  },
 };
 
 /** YYYY-MM-DD de hoy en hora de Nueva York — el día que abre la pantalla. */

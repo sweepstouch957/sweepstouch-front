@@ -21,6 +21,7 @@ import CloseRounded from '@mui/icons-material/CloseRounded';
 import ContentCopyRounded from '@mui/icons-material/ContentCopyRounded';
 import DoneAllRounded from '@mui/icons-material/DoneAllRounded';
 import ExpandMoreRounded from '@mui/icons-material/ExpandMoreRounded';
+import RemoveShoppingCartRounded from '@mui/icons-material/RemoveShoppingCartRounded';
 import PhoneRounded from '@mui/icons-material/PhoneRounded';
 import SmsRounded from '@mui/icons-material/SmsRounded';
 import StorefrontRounded from '@mui/icons-material/StorefrontRounded';
@@ -35,6 +36,8 @@ import {
   LinearProgress,
   Skeleton,
   Stack,
+  TextField,
+  Tooltip,
   Typography,
   useTheme,
 } from '@mui/material';
@@ -108,6 +111,8 @@ function RequestCard({
   const qc = useQueryClient();
   const isList = row.kind === 'list';
   const [busy, setBusy] = useState(false);
+  // Lo que ya se marcó agotado en esta sesión: el botón queda apagado y se ve.
+  const [outOfStock, setOutOfStock] = useState<Set<string>>(new Set());
 
   const detail = useQuery({
     queryKey: ['order-detail', row._id],
@@ -230,7 +235,10 @@ function RequestCard({
             <Stack gap={1.25}>
               <Stack gap={0.25}>
                 {o.items.map((it, i) => {
-                  const gone = it.available === false || (it.refundedCents ?? 0) >= it.lineCents;
+                  const gone =
+                    it.available === false ||
+                    (it.refundedCents ?? 0) >= it.lineCents ||
+                    outOfStock.has(it.name);
                   return (
                     <Stack
                       key={`${it.name}-${i}`}
@@ -254,6 +262,28 @@ function RequestCard({
                       >
                         {it.quantity} {it.unit || 'u'} · {centsToUsd(it.lineCents)}
                       </Typography>
+                      {/* Agotar sirve igual con el pedido sin pagar: el producto no está
+                          y hay que sacarlo del catálogo antes de que otro lo pida. */}
+                      <Tooltip title="Agotado en la tienda: lo saca de las listas de todos">
+                        <IconButton
+                          size="small"
+                          disabled={busy || outOfStock.has(it.name)}
+                          onClick={() => {
+                            if (
+                              !window.confirm(
+                                `¿"${it.name}" se agotó en la tienda? Deja de ofrecerse a TODOS los clientes.`
+                              )
+                            )
+                              return;
+                            void run(async () => {
+                              await orderAdminService.markOutOfStock(row.storeSlug, it.name);
+                              setOutOfStock((prev) => new Set(prev).add(it.name));
+                            }, `"${it.name}" quedó agotado en la tienda`);
+                          }}
+                        >
+                          <RemoveShoppingCartRounded sx={{ fontSize: 18 }} />
+                        </IconButton>
+                      </Tooltip>
                       {!gone && o.fulfillmentStatus !== 'awaiting_payment' && (
                         <Button
                           size="small"
@@ -372,12 +402,17 @@ function RequestCard({
 export function PersonDetail({
   person,
   attended,
+  note,
+  onNote,
   onAttend,
   onChanged,
   onClose,
 }: {
   person: PersonRow | null;
   attended: boolean;
+  /** Nota interna de esta persona (queda en este navegador). */
+  note?: string;
+  onNote?: (text: string) => void;
   onAttend: () => void;
   onChanged: () => void;
   /** Sólo en pantallas chicas, donde esta columna es un drawer. */
@@ -385,9 +420,15 @@ export function PersonDetail({
 }): React.JSX.Element {
   const theme = useTheme();
   const [open, setOpen] = useState<string>('');
+  const [draft, setDraft] = useState('');
 
   // Al cambiar de persona se abre su solicitud más urgente, que es la que se va a mirar.
-  useEffect(() => setOpen(person?.lead._id ?? ''), [person]);
+  useEffect(() => {
+    setOpen(person?.lead._id ?? '');
+    setDraft(note ?? '');
+    // La nota se carga con la persona; se guarda al salir del campo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [person]);
 
   if (!person) {
     return (
@@ -569,6 +610,21 @@ export function PersonDetail({
               }}
             />
           </Box>
+        )}
+
+        {onNote && (
+          <TextField
+            size="small"
+            fullWidth
+            multiline
+            minRows={1}
+            maxRows={4}
+            placeholder="Nota: no contesta, llamar mañana…"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={() => onNote(draft)}
+            inputProps={{ maxLength: 500 }}
+          />
         )}
 
         <Button

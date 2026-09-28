@@ -154,4 +154,13 @@ assert.deepEqual(buckets.map((b) => b.key), ['approve', 'deliver'], 'solo las co
 const load = storeLoad(people);
 assert.equal(load[0].urgent, 1, 'la tienda con lo urgente va primero');
 
+// Una lista vale plata aunque todavía no se cobró: entra en el total, no en lo facturado.
+const kp = computeKpis([
+  order('o1', '2026-09-27T12:00:00Z', 'paid', 5000) as any,
+  { ...(order('l1', '2026-09-27T12:00:00Z', 'list_pending', 2500) as any), kind: 'list' },
+]);
+assert.equal(kp.grossCents, 5000, 'lo de las ordenes');
+assert.equal(kp.listsCents, 2500, 'lo de las listas');
+assert.equal(kp.potentialCents, 7500, 'el total que se muestra arriba');
+
 console.log('matrix-model.check ok');
