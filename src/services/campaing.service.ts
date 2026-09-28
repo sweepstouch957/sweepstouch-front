@@ -789,6 +789,33 @@ class CampaignClient {
     return res.data;
   }
 
+  /**
+   * Lo que la campaña COSTÓ de verdad, canal por canal, con el precio que
+   * Infobip devolvió en cada log. Distinto de `campaign.cost`, que es lo que se
+   * le factura a la tienda (audiencia × su tarifa).
+   */
+  async getCampaignCost(campaignId: string): Promise<{
+    ok: boolean;
+    totalCost: number;
+    messages: number;
+    /** Cuántos precios salieron de la tarifa y no de Infobip. */
+    estimatedPrices: number;
+    /** Lo que sale UN mensaje RCS en esta campaña. null = no hubo RCS. */
+    rcsPricePerMessage: number | null;
+    rates: { sms: number; mms: number; rcs: number };
+    channels: Array<{
+      channel: string;
+      messages: number;
+      cost: number;
+      rcsAttempts: number;
+      estimated: number;
+      avgPerMessage: number;
+    }>;
+  }> {
+    const res = await api.get(`/tracking/analytics/campaign/${campaignId}/cost`);
+    return res.data;
+  }
+
   /** Envío RCS INMEDIATO (prueba individual o primeros N de la base) — no crea
    *  campaña ni agenda: el sms-worker lo manda al momento vía Infobip /rcs/2. */
   async sendRcsNow(payload: {

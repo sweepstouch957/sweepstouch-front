@@ -7,7 +7,7 @@ import { useCampaignById } from '@/hooks/fetching/campaigns/useCampaignById';
 import { useAuth } from '@/hooks/use-auth';
 import { sendChatMessage } from '@/services/ai.service';
 import { campaignClient } from '@/services/campaing.service';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   AutoFixHighRounded,
   EmojiEventsRounded,
@@ -405,6 +405,17 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
   const queued   = campaign?.quequed  ?? 0;  // typo in model preserved
   const sending  = campaign?.sending  ?? 0;
   const cost = campaign?.cost ? Number(campaign.cost).toFixed(2) : '0.00';
+  /**
+   * Lo que se le FACTURA a la tienda (arriba) y lo que la campaña COSTÓ de
+   * verdad son dos números distintos: el segundo sale del precio que Infobip
+   * devuelve en cada log, canal por canal. Sin esto no se sabía cuánto vale un RCS.
+   */
+  const { data: realCost } = useQuery({
+    queryKey: ['campaign-cost', campaignId],
+    queryFn: () => campaignClient.getCampaignCost(campaignId as string),
+    enabled: !!campaignId,
+    staleTime: 60_000,
+  });
 
   const deliveryRate = audience > 0 ? Math.round((sent / audience) * 100) : 0;
   const errorRate = audience > 0 ? Math.round((errors / audience) * 100) : 0;
@@ -635,7 +646,53 @@ const CampaignOverview: FC<CampaignOverviewProps> = ({ campaignId }) => {
                 color={theme.palette.text.secondary as string}
                 sub={audience > 0 ? `$${(Number(cost) / audience).toFixed(4)}/msg` : undefined}
               />
+              {realCost && realCost.totalCost > 0 && (
+                <KpiCard
+                  label="Costo real (Infobip)"
+                  value={`$${realCost.totalCost.toFixed(2)}`}
+                  icon={<AttachMoneyIcon fontSize="small" />}
+                  color={theme.palette.text.secondary as string}
+                  tooltip={realCost.channels
+                    .map((c) => `${c.channel}: ${c.messages} × $${c.avgPerMessage} = $${c.cost.toFixed(2)}`)
+                    .join(' · ')}
+                  sub={
+                    realCost.rcsPricePerMessage
+                      ? `RCS $${realCost.rcsPricePerMessage}/msg`
+                      : `${realCost.messages} mensajes`
+                  }
+                />
+              )}
             </Stack>
+
+            {/* Desglose por canal: es donde se ve qué cuesta el RCS y cuánto
+                sumó el failover, que sale por MMS/SMS aunque el canal sea RCS. */}
+            {realCost && realCost.channels.length > 0 && (
+              <Stack
+                direction="row"
+                gap={1}
+                flexWrap="wrap"
+                sx={{ mb: 2 }}
+              >
+                {realCost.channels.map((c) => (
+                  <Chip
+                    key={c.channel}
+                    size="small"
+                    variant="outlined"
+                    label={`${c.channel.replace('_failover', ' (failover)')}: ${c.messages} · $${c.cost.toFixed(2)} · $${c.avgPerMessage}/msg`}
+                    sx={{ fontWeight: 600 }}
+                  />
+                ))}
+                {realCost.estimatedPrices > 0 && (
+                  <Chip
+                    size="small"
+                    color="warning"
+                    variant="outlined"
+                    label={`${realCost.estimatedPrices} sin precio de Infobip — estimados a tarifa (SMS $${realCost.rates.sms} · MMS $${realCost.rates.mms} · RCS $${realCost.rates.rcs})`}
+                    sx={{ fontWeight: 600 }}
+                  />
+                )}
+              </Stack>
+            )}
 
             {/* Error alert */}
             {!isLoading && errors > 0 && (
