@@ -22,14 +22,10 @@ export const WA_META: Record<
 > = {
   unsent: { label: 'Sin enviar', short: 'Sin enviar', badge: '', color: 'default' },
   sent: { label: 'Enviado · sin respuesta', short: 'Sin respuesta', badge: '…', color: 'default' },
-  '1': {
-    label: '1 · Quiere completar la compra',
-    short: 'Completar compra',
-    badge: '1',
-    color: 'success',
-  },
-  '2': { label: '2 · Solo estaba probando', short: 'Solo probando', badge: '2', color: 'warning' },
-  '3': { label: '3 · Le gustó la experiencia', short: 'Le gustó', badge: '3', color: 'info' },
+  // Desde el 29 sep: 1 va esta semana · 2 no sabe todavía · 3 sólo mirando.
+  '1': { label: '1 · Va esta semana', short: 'Va esta semana', badge: '1', color: 'success' },
+  '2': { label: '2 · No sabe todavía', short: 'No sabe', badge: '2', color: 'warning' },
+  '3': { label: '3 · Solo explorando', short: 'Solo explorando', badge: '3', color: 'info' },
   text: { label: 'Respondió con texto', short: 'Texto libre', badge: '✎', color: 'secondary' },
 };
 
@@ -113,21 +109,35 @@ export function rowToTarget(r: MatrixRow): ShopperSendTarget {
   };
 }
 
-/** Mismo texto que manda el bot, sólo para que se vea antes de lanzar. */
+/**
+ * Mismo texto que manda el bot (shopperTemplates.greetingTemplate), sólo para que se vea
+ * antes de lanzar. Los datos de la lista los pone el bot por cliente al enviar.
+ */
 export function previewGreeting(name: string, store: string) {
   // Misma regla que firstName() del bot: "PALTON" sale como "Palton"; basura ("Demo", "Customer") sin nombre.
-  const w = (name || '').trim().split(/\s+/)[0] || '';
+  const w = (name || '').trim().split(/s+/)[0] || '';
   const junk = ['demo', 'customer', 'cliente', 'vip', 'test', 'na', 'n/a', 'unknown'];
   const first =
     w.length < 2 || !/^[a-záéíóúüñ'-]+$/i.test(w) || junk.includes(w.toLowerCase())
       ? ''
       : w[0].toUpperCase() + w.slice(1).toLowerCase();
   return (
-    `¡Hola${first ? `, ${first}` : ''}! 👋 Gracias por hacer tu pedido en ${
-      store || 'tu supermercado'
-    }. ` +
-    `Queremos atenderte mejor. ¿Nos cuentas cómo te fue?\n\n` +
-    `1️⃣ Quiero completar mi compra 🛒\n2️⃣ Solo estaba probando 👀\n3️⃣ Me gustó la experiencia 😊\n\n` +
-    `Responde con el número de tu opción.`
+    `Hi${first ? ` ${first}` : ''} 👋
+
+` +
+    `Your list at ${store || 'your supermarket'} is saved with [N] items and an estimated savings of $[X].
+
+` +
+    `💰 Your savings: $[X]
+⭐ Points when validated: +[N] pts
+⏱ Valid until: [date]
+
+` +
+    `Are you visiting the store this week? Reply:
+
+` +
+    `1️⃣ Yes, I'm going this week
+2️⃣ Not sure yet
+3️⃣ Just browsing`
   );
 }

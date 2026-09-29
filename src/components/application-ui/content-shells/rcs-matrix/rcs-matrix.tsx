@@ -14,6 +14,7 @@ import {
   Alert,
   Box,
   Button,
+  Chip,
   Drawer,
   IconButton,
   LinearProgress,
@@ -38,7 +39,7 @@ import { PersonDetail } from './person-detail';
 import { PersonQueue } from './person-queue';
 import { SendWaDialog, type SendDialogState } from './send-wa-dialog';
 import { StoreRail, type StoreInfo } from './store-rail';
-import { rowToTarget } from './whatsapp-bot';
+import { rowToTarget, WA_FILTERS, waState, type WaState } from './whatsapp-bot';
 
 const INITIAL: ToolbarFilters = {
   range: PRESETS[0].range(),
@@ -127,12 +128,25 @@ export default function RcsMatrix(): React.JSX.Element {
     () => (store === 'all' ? everyone : everyone.filter((p) => p.storeSlug === store)),
     [everyone, store]
   );
-  // Lo atendido sale de la cola. Va en su propio memo (y no depende de la
-  // selección) para que abrir una ficha no recalcule el agrupado entero.
-  const people = useMemo(
-    () => (attendedCount ? ofStore.filter((p) => !isAttended(p.key)) : ofStore),
-    [ofStore, isAttended, attendedCount]
-  );
+  // Estado del chat con el bot de cada persona (sin enviar, sin respuesta, 1/2/3, texto).
+  const waOf = useCallback((p: PersonRow): WaState => waState(wa?.[phoneKey(p.phone)]), [wa]);
+  const waCounts = useMemo(() => {
+    const c: Record<string, number> = {};
+    for (const p of ofStore) {
+      const s = waOf(p);
+      c[s] = (c[s] || 0) + 1;
+    }
+    return c;
+  }, [ofStore, waOf]);
+
+  // Lo atendido sale de la cola, y el filtro de chats deja sólo ese estado. Va en su
+  // propio memo (no depende de la selección): abrir una ficha no recalcula el agrupado.
+  const { waFilter } = filters;
+  const people = useMemo(() => {
+    let list = attendedCount ? ofStore.filter((p) => !isAttended(p.key)) : ofStore;
+    if (waFilter !== 'all') list = list.filter((p) => waOf(p) === waFilter);
+    return list;
+  }, [ofStore, isAttended, attendedCount, waFilter, waOf]);
 
   const selected = useMemo(
     () => everyone.find((p) => p.key === selectedKey) ?? null,
@@ -386,6 +400,33 @@ export default function RcsMatrix(): React.JSX.Element {
             );
           })}
         </Box>
+
+        {/* Chats con el bot: cuántas personas hay en cada estado y filtro de la cola */}
+        <Stack
+          direction="row"
+          gap={0.75}
+          alignItems="center"
+          flexWrap="wrap"
+          useFlexGap
+        >
+          <WhatsApp sx={{ fontSize: 18, color: 'success.main', mr: 0.25 }} />
+          {WA_FILTERS.map((o) => {
+            const n = o.value === 'all' ? ofStore.length : waCounts[o.value] || 0;
+            const on = waFilter === o.value;
+            return (
+              <Chip
+                key={o.value}
+                size="small"
+                label={`${o.label} · ${n}`}
+                onClick={() => setFilters((f) => ({ ...f, waFilter: on && o.value !== 'all' ? 'all' : o.value }))}
+                color={on ? 'success' : 'default'}
+                variant={on ? 'filled' : 'outlined'}
+                disabled={!n && !on && o.value !== 'all'}
+                sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}
+              />
+            );
+          })}
+        </Stack>
       </Stack>
 
       {(ordersQ.isFetching || listsQ.isFetching) && <LinearProgress />}
