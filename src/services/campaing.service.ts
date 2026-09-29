@@ -185,6 +185,8 @@ export interface CampaignLogsQueryParams {
   channel?: 'rcs';
   /** con channel 'rcs': sólo a los que el RCS NO les llegó (error o failover) */
   rcsFailed?: boolean;
+  /** con channel 'rcs': una pestaña del panel de destinatarios */
+  rcsOutcome?: 'delivered' | 'seen' | 'failover' | 'failed';
 }
 
 /* ===================== YTD (existing) ===================== */
@@ -856,10 +858,10 @@ class CampaignClient {
     campaignId: string,
     params: CampaignLogsQueryParams = {}
   ): Promise<CampaignLogsResponse> {
-    const { status, page = 1, limit = 20, sort = 'desc', search, from, to, channel, rcsFailed } = params;
+    const { status, page = 1, limit = 20, sort = 'desc', search, from, to, channel, rcsFailed, rcsOutcome } = params;
 
     const res = await api.get(`/tracking/campaigns/${campaignId}/logs`, {
-      params: { status, page, limit, sort, search, from, to, channel, rcsFailed: rcsFailed ? 1 : undefined },
+      params: { status, page, limit, sort, search, from, to, channel, rcsFailed: rcsFailed ? 1 : undefined, rcsOutcome },
     });
 
     return res.data as CampaignLogsResponse;
