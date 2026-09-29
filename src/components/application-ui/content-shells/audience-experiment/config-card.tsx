@@ -49,7 +49,8 @@ export function ConfigCard({
     },
   });
   const [term, setTerm] = useState('');
-  const { options, loading, needsMoreChars } = useStoreSearch(term, { status: 'active' });
+  // Las fuentes son tiendas dadas de baja (active:false → estado "cancelled" en /store/filter).
+  const { options, loading, needsMoreChars } = useStoreSearch(term, { status: 'cancelled' });
 
   const submit = (v: FormValues) =>
     onSubmit({
@@ -107,10 +108,10 @@ export function ConfigCard({
               renderInput={(p) => (
                 <TextField
                   {...p}
-                  label="Tiendas de donde salen los números"
-                  placeholder="Buscar tienda (ej. Cirilo Morointa)"
+                  label="Tiendas inactivas de donde salen los números"
+                  placeholder="Buscar tienda inactiva (ej. Cirilo Moronta)"
                   error={!!fieldState.error}
-                  helperText={fieldState.error?.message || 'Los números se toman parejo de todas estas tiendas.'}
+                  helperText={fieldState.error?.message || 'Sólo tiendas dadas de baja. Los números se toman parejo de todas.'}
                   InputProps={{
                     ...p.InputProps,
                     endAdornment: (

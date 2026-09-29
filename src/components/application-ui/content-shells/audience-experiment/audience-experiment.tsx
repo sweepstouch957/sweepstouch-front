@@ -48,15 +48,6 @@ export default function AudienceExperiment() {
           }
         />
 
-        <Alert
-          severity="info"
-          variant="outlined"
-          sx={{ borderRadius: 3 }}
-        >
-          Es una simulación: no se agregan clientes a ninguna tienda, no cambia la audiencia de las campañas y no se envía ni
-          se cobra nada. Los números y el dinero de esta página son lo que habría pasado.
-        </Alert>
-
         {isLoading ? (
           <>
             <Skeleton

@@ -15,7 +15,7 @@ import { useQuery } from '@tanstack/react-query';
  */
 export function useStoreSearch(
   term: string,
-  opts?: { limit?: number; minChars?: number; status?: 'all' | 'active'; enabled?: boolean }
+  opts?: { limit?: number; minChars?: number; status?: 'all' | 'active' | 'cancelled'; enabled?: boolean }
 ) {
   const limit = opts?.limit ?? 20;
   const minChars = opts?.minChars ?? 2;
