@@ -156,6 +156,8 @@ const campaignsMenu = (t: (token: string) => string): MenuItem =>
     // Vive en el botón "Enviar prueba" de la portada del listado.
     { title: t('Solicitudes'), route: routes.admin.management['campaign-requests'].listing, roles: ['admin', 'campaign_manager', 'design', 'general_manager'] },
     { title: t('Opt-in MMS'), route: routes.admin.management.campaings.optin, roles: ['admin', 'general_manager', 'campaign_manager'] },
+    // Simulación: no agrega clientes ni toca campañas; sólo la ven quienes deciden precios.
+    { title: t('Experimento audiencia'), route: routes.admin.management.campaings['audience-experiment'], roles: ['admin', 'general_manager'] },
     { title: t('Generador MMS'), route: routes.admin.management.campaings.mms, roles: ADMIN_ACCESS_ROLES },
     { title: t('Monitoreo RCS'), route: routes.admin.dashboards['campaign-analytics'], roles: ADMIN_ACCESS_ROLES },
     // Matriz RCS: el árbol de llamadas. Quién compró hoy, en qué tienda, en qué
