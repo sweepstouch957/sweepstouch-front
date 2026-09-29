@@ -124,6 +124,8 @@ type Props = {
   image?: string;
   address: string;
   kioskUrl: string;
+  /** Portal del comerciante ya con `?ac=` de la tienda; sin código abre el login. */
+  merchantUrl?: string;
   qrImageUrl?: string;
   showQrBadge?: boolean;
   edit: boolean;
@@ -160,6 +162,7 @@ export default function StoreHeader({
   image,
   address,
   kioskUrl,
+  merchantUrl,
   qrImageUrl,
   showQrBadge,
   edit,
@@ -414,7 +417,7 @@ export default function StoreHeader({
                 variant="contained"
                 disableElevation
                 startIcon={<OpenInNewRounded sx={{ fontSize: 17 }} />}
-                onClick={() => window.open(MERCHANT_ORIGIN, '_blank', 'noopener')}
+                onClick={() => window.open(merchantUrl || MERCHANT_ORIGIN, '_blank', 'noopener')}
                 sx={{
                   height: 36,
                   px: 1.75,

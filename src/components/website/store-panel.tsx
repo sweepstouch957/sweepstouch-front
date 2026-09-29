@@ -1,7 +1,7 @@
 // app/components/stores/StoreInfo.tsx
 'use client';
 
-import { MERCHANT_ORIGIN, linktreeUrl } from 'src/utils/sweepstouch-urls';
+import { MERCHANT_ORIGIN, linktreeUrl, merchantSwitchUrl } from 'src/utils/sweepstouch-urls';
 
 import ConfirmDialog from '@/components/base/confirm-dialog';
 import { BUSINESS_TYPE_META } from '@/components/audience/business-types';
@@ -992,6 +992,7 @@ export default function StoreInfo({ store }: { store: Store }) {
           image={form.image}
           address={form.address}
           kioskUrl={kioskUrl}
+          merchantUrl={merchantAccessCode ? merchantSwitchUrl(merchantAccessCode) : undefined}
           showQrBadge
           edit={enEdicion('identidad')}
           name={form.name}
