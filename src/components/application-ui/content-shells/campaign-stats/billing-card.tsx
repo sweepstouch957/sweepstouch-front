@@ -4,6 +4,7 @@ import { panelDivider } from '@/components/application-ui/content-shells/store-m
 import { tint, toneText } from '@/theme/semantic';
 import InfoRoundedIcon from '@mui/icons-material/InfoRounded';
 import { Box, Stack, Typography, useTheme } from '@mui/material';
+import type React from 'react';
 import { channelName, money, num } from './constants';
 import { Bar, soft, StatsCard } from './ui';
 
@@ -18,7 +19,43 @@ export type CampaignCost = {
 
 const COLS = 'minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) minmax(0,.9fr)';
 
-export function BillingCard({ charged, cost }: { charged: number; cost: CampaignCost }) {
+export function BillingCard({
+  charged,
+  cost,
+  collection,
+}: {
+  charged: number;
+  /** Costo real de Infobip. Sin datos de precio no se muestra esa parte. */
+  cost?: CampaignCost;
+  /** Bloque "Cobro a la tienda" (factura, pagado, saldo). */
+  collection: React.ReactNode;
+}) {
+  const theme = useTheme();
+  return (
+    <StatsCard
+      title="Facturación"
+      subtitle="Qué se le cobra a la tienda, si ya pagó y cuánto costó enviarla"
+    >
+      {collection}
+      {cost && cost.channels.length > 0 && (
+        <Stack gap={2}>
+          <Typography sx={{ fontSize: 14, fontWeight: 700, pt: 0.5 }}>Costo de envío (Infobip)</Typography>
+          <InfobipCost
+            charged={charged}
+            cost={cost}
+          />
+        </Stack>
+      )}
+      {!cost?.channels.length && (
+        <Typography sx={{ fontSize: 12, color: 'text.secondary', bgcolor: soft(theme), borderRadius: 2.5, px: 1.75, py: 1.5 }}>
+          Infobip todavía no reportó el costo de los mensajes de esta campaña.
+        </Typography>
+      )}
+    </StatsCard>
+  );
+}
+
+function InfobipCost({ charged, cost }: { charged: number; cost: CampaignCost }) {
   const theme = useTheme();
   const diff = charged - cost.totalCost;
   const maxMsgs = Math.max(1, ...cost.channels.map((c) => c.messages));
@@ -45,10 +82,22 @@ export function BillingCard({ charged, cost }: { charged: number; cost: Campaign
   );
 
   return (
-    <StatsCard
-      title="Facturación"
-      subtitle="Lo que se cobró a la tienda frente a lo que cobró Infobip"
-    >
+    <>
+      <Typography sx={{ fontSize: 13, color: 'text.secondary', lineHeight: 1.5, mt: -1 }}>
+        {diff < 0 ? (
+          <>
+            Esta campaña <Box component="strong"
+sx={{ color: 'error.main' }}>deja una pérdida de {money(Math.abs(diff))}</Box>: a la
+            tienda se le cobran {money(charged)} y Infobip cobró {money(cost.totalCost)} por enviarla.
+          </>
+        ) : (
+          <>
+            Esta campaña <Box component="strong"
+sx={{ color: 'success.main' }}>deja {money(diff)} de margen</Box>: a la tienda se le
+            cobran {money(charged)} y Infobip cobró {money(cost.totalCost)} por enviarla.
+          </>
+        )}
+      </Typography>
       <Box
         sx={{
           display: 'grid',
@@ -144,6 +193,6 @@ export function BillingCard({ charged, cost }: { charged: number; cost: Campaign
           </Typography>
         </Stack>
       )}
-    </StatsCard>
+    </>
   );
 }

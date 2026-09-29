@@ -175,6 +175,37 @@ export type QboStoreDetail =
       storeName?: string;
     };
 
+/** GET /qbo/campaigns/:id/billing — lo que se cobró de una campaña en QuickBooks. */
+export interface QboCampaignBilling {
+  ok: boolean;
+  error?: string;
+  message?: string;
+  campaignId: string;
+  /** Lo que el sistema dice que se le debe cobrar (campaign.cost). */
+  charged: number;
+  audience: number | null;
+  /** false = la tienda no está vinculada a un cliente de QuickBooks. */
+  linked: boolean;
+  billed?: boolean;
+  /** Sin factura: días desde el envío. */
+  ageDays?: number | null;
+  billedAmount?: number;
+  /** billedAmount − charged */
+  diff?: number;
+  matchedBy?: 'servicio' | 'emision';
+  invoice?: {
+    qboId: string;
+    docNumber: string;
+    issuedAt: string | null;
+    dueDate: string | null;
+    total: number;
+    balance: number;
+    paid: number;
+    status: 'open' | 'partial' | 'paid';
+    daysOverdue: number;
+  };
+}
+
 export interface QboInvoiceLine {
   description: string | null;
   item: string | null;
@@ -874,6 +905,12 @@ export const qboService = {
 
   storeDetail: async (storeId: string): Promise<QboStoreDetail> => {
     const { data } = await api.get(`${BASE}/stores/${storeId}`);
+    return data;
+  },
+
+  /** Cobro de UNA campaña: con qué factura se cobró, pagado y pendiente. */
+  campaignBilling: async (campaignId: string): Promise<QboCampaignBilling> => {
+    const { data } = await api.get(`${BASE}/campaigns/${campaignId}/billing`);
     return data;
   },
 

@@ -2,6 +2,7 @@
 
 import { panelBorder } from '@/components/application-ui/content-shells/store-managment/panel-kit';
 import type { campaignClient, RcsCampaignSummary } from '@/services/campaing.service';
+import { tint } from '@/theme/semantic';
 import { alpha, Box, Stack, Typography, useTheme } from '@mui/material';
 import { Fragment } from 'react';
 import { num, pct } from './constants';
@@ -98,9 +99,9 @@ export function RcsPilotCard({
   const diff = rcsRate - smsRate;
 
   const funnel = [
-    { label: 'Enviados', n: m.total, step: '' },
-    { label: 'Entregados', n: m.delivered, step: 'llegó' },
-    { label: 'Vieron el mensaje', n: m.seen, step: 'lo abrió' },
+    { label: 'Elegidos', n: m.total, step: '' },
+    { label: 'Recibieron RCS', n: m.delivered, step: 'recibió el RCS' },
+    { label: 'Lo abrieron', n: m.seen, step: 'lo abrió' },
     ...(hasButtons ? [{ label: 'Tocaron un botón', n: m.clicked ?? 0, step: 'tocó un botón' }] : []),
   ];
   const shades = [primary, primary, alpha(primary, 0.75), alpha(primary, 0.5)];
@@ -114,6 +115,22 @@ export function RcsPilotCard({
           : `${num(m.total)} números elegidos para RCS`
       }
     >
+      <Box sx={{ bgcolor: tint(theme, 'primary', 0.06), borderRadius: 3, px: 2, py: 1.75 }}>
+        <Typography sx={{ fontSize: 14, lineHeight: 1.65 }}>
+          De <strong>{num(m.total)}</strong> clientes elegidos para RCS,{' '}
+          <strong>{num(m.delivered)} lo recibieron como RCS</strong> ({pct(m.delivered, m.total, 0)})
+          {m.seen > 0 && <>, <strong>{num(m.seen)} lo abrieron</strong></>}
+          {hasButtons && (m.clicked ?? 0) > 0 && <> y <strong>{num(m.clicked)} tocaron un botón</strong></>}.
+          {failover > 0 && <> A {num(failover)} que no tienen RCS en el teléfono les llegó el SMS/MMS normal.</>}
+          {m.errors > 0 && <> {num(m.errors)} no recibieron nada.</>}
+          {m.queued > 0 && <> {num(m.queued)} siguen pendientes.</>}
+        </Typography>
+        <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.75, lineHeight: 1.5 }}>
+          RCS es el mensaje enriquecido de Android: lleva foto, botones y avisa cuando lo leen. Si el teléfono no lo
+          soporta, Infobip manda el SMS/MMS en su lugar, así que el cliente no se queda sin mensaje.
+        </Typography>
+      </Box>
+
       <AutoGrid
         min={380}
         gap={3.5}
@@ -147,8 +164,8 @@ export function RcsPilotCard({
                 {costPerMsg.rcs != null && costPerMsg.sms != null && (
                   <>
                     {' '}
-                    y costó <strong>${costPerMsg.rcs.toFixed(3)}</strong> por mensaje frente a{' '}
-                    <strong>${costPerMsg.sms.toFixed(3)}</strong>
+                    y cada RCS costó <strong>${costPerMsg.rcs.toFixed(3)}</strong> frente a{' '}
+                    <strong>${costPerMsg.sms.toFixed(3)}</strong> por SMS/MMS
                   </>
                 )}
                 .

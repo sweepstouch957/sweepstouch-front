@@ -8,6 +8,7 @@
 
 import { useCampaignById } from '@/hooks/fetching/campaigns/useCampaignById';
 import { campaignClient } from '@/services/campaing.service';
+import { qboService } from '@/services/qbo.service';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import { Box, Button, Link, Skeleton, Stack, Typography } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -19,6 +20,7 @@ import toast from 'react-hot-toast';
 import { ActivityCard } from './activity-card';
 import { AiSuggestions } from './ai-suggestions';
 import { BillingCard } from './billing-card';
+import { CollectionBlock } from './collection-block';
 import { channelsPhrase, isMixedCampaign, isRcsCampaign, money, num, pct } from './constants';
 import { DeliveryCard } from './delivery-card';
 import { FlyerCard, FlyerDialog, MessageCard } from './message-flyer-cards';
@@ -71,6 +73,23 @@ export default function CampaignStats({ campaignId }: { campaignId: string }) {
     select: (s) => s[campaignId],
   });
 
+  // Cobro: factura de QuickBooks que la cobró + saldo total de la tienda.
+  const storeId = campaign ? String(typeof campaign.store === 'object' ? campaign.store?._id : campaign.store) : '';
+  const { data: billing, isLoading: billingLoading } = useQuery({
+    queryKey: ['qbo', 'campaign-billing', campaignId],
+    queryFn: () => qboService.campaignBilling(campaignId),
+    enabled: !!campaignId,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  const { data: storeQbo } = useQuery({
+    queryKey: ['qbo', 'store', storeId],
+    queryFn: () => qboService.storeDetail(storeId),
+    enabled: !!storeId && !!billing?.linked,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+
   const sync = useMutation({
     mutationFn: () => campaignClient.syncCampaignMetrics({ campaignId, includeZeroSent: true }),
     onSuccess: (res: any) => {
@@ -114,7 +133,6 @@ sx={{ borderRadius: 4.5 }} />
   const pending = Math.max(0, audience - sent - errors);
   const charged = Number(campaign.cost || 0);
   const channels = channelsPhrase(campaign);
-  const hasBilling = !!realCost?.channels?.length;
   const realTotal = realCost?.totalCost ?? 0;
 
   // Costo por mensaje real: RCS vs el canal principal (SMS o MMS) para la comparación.
@@ -228,12 +246,19 @@ sx={{ borderRadius: 4.5 }} />
           onOpenErrors={() => setModal('logs-failed')}
           onResend={openResend}
         />
-        {hasBilling && realCost && (
-          <BillingCard
+        <BillingCard
             charged={charged}
             cost={realCost}
+            collection={
+              <CollectionBlock
+                charged={charged}
+                audience={audience}
+                billing={billing}
+                loading={billingLoading}
+                store={storeQbo}
+              />
+            }
           />
-        )}
       </AutoGrid>
 
       {rcs && metrics?.ok && metrics.messages.total > 0 && (
