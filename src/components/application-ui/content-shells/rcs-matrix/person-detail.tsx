@@ -20,6 +20,9 @@ import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded';
 import CloseRounded from '@mui/icons-material/CloseRounded';
 import ContentCopyRounded from '@mui/icons-material/ContentCopyRounded';
 import DoneAllRounded from '@mui/icons-material/DoneAllRounded';
+import EditRounded from '@mui/icons-material/EditRounded';
+import PersonAddAlt1Rounded from '@mui/icons-material/PersonAddAlt1Rounded';
+import ReceiptLongRounded from '@mui/icons-material/ReceiptLongRounded';
 import ExpandMoreRounded from '@mui/icons-material/ExpandMoreRounded';
 import RemoveShoppingCartRounded from '@mui/icons-material/RemoveShoppingCartRounded';
 import PhoneRounded from '@mui/icons-material/PhoneRounded';
@@ -45,7 +48,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { dateTimeShort, paymentMeta, prettyPhone, splitStoreTitle, statusMeta } from './constants';
-import type { PersonRow } from './matrix-model';
+import { ContactEditForm } from './contact-edit-form';
+import { unifyRequests, type PersonRow } from './matrix-model';
 import { nextStage, waitingLabel } from './order-drawer';
 
 /** Botón cuadrado de contacto: la acción más usada de la pantalla. */
@@ -98,11 +102,14 @@ function ContactTile({
 /** Una orden o una lista, con lo que se puede hacer con ella. */
 function RequestCard({
   row,
+  fromList,
   expanded,
   onToggle,
   onChanged,
 }: {
   row: MatrixRow;
+  /** Lista de la que salió esta orden (misma tienda, mismo momento). */
+  fromList?: MatrixRow;
   expanded: boolean;
   onToggle: () => void;
   onChanged: () => void;
@@ -211,6 +218,25 @@ function RequestCard({
           {centsToUsd(row.subtotalCents - row.refundTotalCents)}
         </Typography>
       </Stack>
+
+      {fromList && (
+        <Stack
+          direction="row"
+          alignItems="center"
+          gap={0.75}
+          sx={{ mx: 1.75, mb: 1.25, px: 1.25, py: 0.75, borderRadius: 2, bgcolor: 'action.hover' }}
+        >
+          <ReceiptLongRounded sx={{ fontSize: 16, color: 'text.secondary' }} />
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            noWrap
+            sx={{ minWidth: 0 }}
+          >
+            Salió de la lista <b>{fromList.orderNumber}</b> · {fromList.itemCount} productos · {dateTimeShort(fromList.createdAt)}
+          </Typography>
+        </Stack>
+      )}
 
       <Collapse
         in={expanded}
@@ -421,11 +447,16 @@ export function PersonDetail({
   const theme = useTheme();
   const [open, setOpen] = useState<string>('');
   const [draft, setDraft] = useState('');
+  const [editing, setEditing] = useState(false);
+  // Nombre guardado en esta sesión: las órdenes traen una copia del nombre de cuando se hicieron.
+  const [savedName, setSavedName] = useState<string | null>(null);
 
   // Al cambiar de persona se abre su solicitud más urgente, que es la que se va a mirar.
   useEffect(() => {
     setOpen(person?.lead._id ?? '');
     setDraft(note ?? '');
+    setEditing(false);
+    setSavedName(null);
     // La nota se carga con la persona; se guarda al salir del campo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [person]);
@@ -445,6 +476,12 @@ export function PersonDetail({
   }
 
   const links = person.phone ? contactLinks(person.phone) : null;
+  const displayName = savedName ?? (person.name === 'Sin nombre' ? '' : person.name);
+  const customerId = person.rows.find((r) => /^[a-f0-9]{24}$/i.test(r.customerId || ''))?.customerId;
+  const requests = unifyRequests(person.rows);
+  const paired = requests.filter((r) => r.fromList).length;
+  const looseLists = requests.filter((r) => r.main.kind === 'list').length;
+  const ordersCount = requests.length - looseLists;
   const { title, address } = splitStoreTitle(person.storeName);
 
   return (
@@ -473,16 +510,35 @@ export function PersonDetail({
               fontSize: 17,
             }}
           >
-            {(person.name || '#').trim().charAt(0).toUpperCase()}
+            {(displayName || '#').trim().charAt(0).toUpperCase()}
           </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography
-              variant="h6"
-              fontWeight={700}
-              noWrap
+            <Stack
+              direction="row"
+              alignItems="center"
+              gap={0.5}
+              sx={{ minWidth: 0 }}
             >
-              {person.name}
-            </Typography>
+              <Typography
+                variant="h6"
+                fontWeight={700}
+                noWrap
+                sx={{ color: displayName ? 'text.primary' : 'text.disabled' }}
+              >
+                {displayName || 'Sin nombre'}
+              </Typography>
+              {customerId && displayName && !editing && (
+                <Tooltip title="Editar datos">
+                  <IconButton
+                    size="small"
+                    onClick={() => setEditing(true)}
+                    aria-label="Editar datos"
+                  >
+                    <EditRounded sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Stack>
             <Typography
               variant="body2"
               color="text.secondary"
@@ -500,6 +556,31 @@ export function PersonDetail({
             </IconButton>
           )}
         </Stack>
+
+        {customerId && !displayName && !editing && (
+          <Button
+            variant="outlined"
+            startIcon={<PersonAddAlt1Rounded />}
+            onClick={() => setEditing(true)}
+            sx={{ borderRadius: 999, textTransform: 'none', fontWeight: 700, borderStyle: 'dashed' }}
+          >
+            Agregar nombre
+          </Button>
+        )}
+        {editing && customerId && (
+          <Box sx={{ p: 1.5, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+            <ContactEditForm
+              customerId={customerId}
+              name={displayName}
+              onCancel={() => setEditing(false)}
+              onSaved={(n) => {
+                setSavedName(n);
+                setEditing(false);
+                onChanged();
+              }}
+            />
+          </Box>
+        )}
 
         <Stack
           direction="row"
@@ -530,7 +611,8 @@ export function PersonDetail({
               color: 'text.secondary',
             }}
           >
-            {person.orders} órdenes · {person.lists} listas
+            {ordersCount} {ordersCount === 1 ? 'orden' : 'órdenes'}
+            {looseLists ? ` · ${looseLists} ${looseLists === 1 ? 'lista' : 'listas'}` : ''}
           </Box>
           {attended && (
             <Box
@@ -648,12 +730,13 @@ export function PersonDetail({
         gap={1.5}
         sx={{ p: 2.5 }}
       >
-        {person.rows.map((r) => (
+        {requests.map((q) => (
           <RequestCard
-            key={r._id}
-            row={r}
-            expanded={open === r._id}
-            onToggle={() => setOpen((cur) => (cur === r._id ? '' : r._id))}
+            key={q.key}
+            row={q.main}
+            fromList={q.fromList}
+            expanded={open === q.main._id || (!!q.fromList && open === q.fromList._id)}
+            onToggle={() => setOpen((cur) => (cur === q.main._id ? '' : q.main._id))}
             onChanged={onChanged}
           />
         ))}
@@ -662,9 +745,9 @@ export function PersonDetail({
           variant="caption"
           color="text.secondary"
         >
-          {person.rows.length === 1
+          {requests.length === 1
             ? 'Primera vez que aparece en este período.'
-            : `${person.rows.length} solicitudes en el período elegido.`}
+            : `${requests.length} solicitudes en el período elegido${paired ? ` · ${paired} ${paired === 1 ? 'orden salió' : 'órdenes salieron'} de su lista` : ''}.`}
         </Typography>
       </Stack>
     </Stack>

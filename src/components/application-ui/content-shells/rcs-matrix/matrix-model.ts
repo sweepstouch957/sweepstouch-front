@@ -380,3 +380,45 @@ export function storeLoad(people: PersonRow[]): { slug: string; name: string; pe
   }
   return [...map.values()].sort((a, b) => b.urgent - a.urgent || b.people - a.people);
 }
+
+/* ─── Solicitudes unificadas ─────────────────────────────────────────────── */
+
+/**
+ * Una solicitud de la persona: una orden (con la lista de la que salió, si la hay) o una
+ * lista suelta. En la base no están ligadas: el checkout crea la orden a partir de la
+ * lista pero la orden no guarda cuál. Se parean por tienda y cercanía en el tiempo,
+ * que es como se ven en la práctica (misma tienda, mismo minuto).
+ */
+export interface PersonRequest {
+  key: string;
+  /** La que manda la tarjeta: la orden, o la lista si está sola. */
+  main: MatrixRow;
+  /** Lista de la que salió la orden. */
+  fromList?: MatrixRow;
+}
+
+/** Ventana para decir "esta orden salió de esta lista". */
+export const LIST_ORDER_WINDOW_MIN = 15;
+
+export function unifyRequests(rows: MatrixRow[]): PersonRequest[] {
+  const t = (r: MatrixRow) => new Date(r.createdAt).getTime();
+  const lists = rows.filter((r) => r.kind === 'list');
+  const used = new Set<string>();
+  const out: PersonRequest[] = [];
+
+  for (const o of rows.filter((r) => r.kind !== 'list')) {
+    // La lista más cercana de la misma tienda, dentro de la ventana y todavía sin pareja.
+    let best: MatrixRow | undefined;
+    for (const l of lists) {
+      if (used.has(l._id) || l.storeSlug !== o.storeSlug) continue;
+      const gap = Math.abs(t(o) - t(l)) / 60_000;
+      if (gap > LIST_ORDER_WINDOW_MIN) continue;
+      if (!best || Math.abs(t(o) - t(l)) < Math.abs(t(o) - t(best))) best = l;
+    }
+    if (best) used.add(best._id);
+    out.push({ key: o._id, main: o, fromList: best });
+  }
+  for (const l of lists) if (!used.has(l._id)) out.push({ key: l._id, main: l });
+
+  return out.sort((a, b) => t(b.main) - t(a.main));
+}

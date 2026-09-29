@@ -13,6 +13,7 @@ import {
   queueOf,
   uniqueByPhone,
   waitingMinutes,
+  unifyRequests,
 } from './matrix-model.ts';
 
 const base = {
@@ -162,5 +163,24 @@ const kp = computeKpis([
 assert.equal(kp.grossCents, 5000, 'lo de las ordenes');
 assert.equal(kp.listsCents, 2500, 'lo de las listas');
 assert.equal(kp.potentialCents, 7500, 'el total que se muestra arriba');
+
+// Orden y lista del mismo pedido (misma tienda, mismo minuto) salen en UNA tarjeta.
+{
+  const mk = (id: string, at: string, list = false, slug = "s1") =>
+    ({ ...base, _id: id, orderNumber: id, createdAt: at, storeSlug: slug, storeName: "S", customerPhone: "+12015550000",
+      fulfillmentStatus: list ? "list_pending" : "awaiting_payment", ...(list ? { kind: "list" } : {}) }) as any;
+  const u = unifyRequests([
+    mk("ORD-1", "2026-09-29T11:58:00Z"),
+    mk("SL-A", "2026-09-29T11:58:30Z", true),
+    mk("SL-B", "2026-09-29T12:01:00Z", true),       // otra lista, 3 min después: sin orden
+    mk("SL-C", "2026-09-29T11:58:10Z", true, "s2"), // otra tienda: no se parea
+  ]);
+  assert.equal(u.length, 3, "4 filas → 3 solicitudes");
+  const ord = u.find((x) => x.main._id === "ORD-1")!;
+  assert.equal(ord.fromList?._id, "SL-A", "la más cercana de la misma tienda");
+  assert.ok(u.some((x) => x.main._id === "SL-B" && !x.fromList));
+  assert.ok(u.some((x) => x.main._id === "SL-C"));
+  assert.equal(u[0].main._id, "SL-B", "lo más nuevo primero");
+}
 
 console.log('matrix-model.check ok');

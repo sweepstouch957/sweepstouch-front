@@ -82,6 +82,12 @@ class CustomerClient {
     return res.data;
   }
 
+  /** Completa datos del cliente (PATCH /customers/:id). fullName se parte en nombre y apellido en el backend. */
+  async updateCustomerInfo(id: string, data: { fullName?: string; email?: string }): Promise<any> {
+    const res = await api.patch(`/customers/${id}`, data);
+    return res.data;
+  }
+
   /** Activa/inactiva un cliente por teléfono (PATCH /customers/by-phone). */
   async setCustomerActiveByPhone(phoneNumber: string, active: boolean): Promise<any> {
     const res = await api.patch('/customers/by-phone', {
