@@ -52,13 +52,18 @@ const INITIAL: ToolbarFilters = {
 
 /** Los que dijeron algo: 1/2/3 o texto libre. Van primero y con color. */
 const ANSWERED: WaState[] = ['1', '2', '3', 'text'];
-const ANSWERED_FILTERS = ANSWERED.map((k) => ({ value: k, label: WA_META[k].label }));
-/** El resto: universo y los que todavía no dijeron nada. */
-const REST_FILTERS: { value: WaState | 'all'; label: string; hint: string }[] = [
-  { value: 'all', label: 'Todas las personas', hint: 'Quita el filtro del bot: muestra a todos los que hicieron lista u orden.' },
-  { value: 'unsent', label: WA_META.unsent.label, hint: 'Todavía no se les mandó el mensaje del bot. Se les manda con "Enviar bot".' },
-  { value: 'sent', label: WA_META.sent.label, hint: 'Les llegó el mensaje del bot y no contestaron nada.' },
-];
+const ANSWERED_FILTERS = ANSWERED.map((k) => ({ value: k }));
+/** Los que todavía no dijeron nada. */
+const REST_FILTERS: { value: WaState }[] = [{ value: 'unsent' }, { value: 'sent' }];
+/** Qué significa cada filtro (tooltip). */
+const WA_HINT: Record<string, string> = {
+  '1': 'Contestaron 1: dijeron que van a la tienda esta semana.',
+  '2': 'Contestaron 2: todavía no saben si van.',
+  '3': 'Contestaron 3: sólo estaban mirando.',
+  text: 'Escribieron algo distinto de 1, 2 o 3. Abre la conversación para leerlo.',
+  unsent: 'Todavía no se les mandó el mensaje del bot.',
+  sent: 'Les llegó el mensaje del bot y no contestaron nada.',
+};
 
 /**
  * Matriz RCS — la mesa de trabajo.
@@ -440,9 +445,9 @@ export default function RcsMatrix(): React.JSX.Element {
           })}
         </Box>
 
-        {/* Chats con el bot. Primero QUIÉNES CONTESTARON: es lo que cambia la
-            llamada. Lo demás (sin enviar, enviado sin respuesta) va atrás y en
-            gris, que es ruido comparado con una respuesta. */}
+        {/* Filtros del bot en dos grupos: quiénes contestaron (con color: es lo que se llama)
+            y quiénes no (neutro). Sin chip de "todas": el total ya está en la cola, y
+            "Quitar filtro" aparece sólo cuando hay uno puesto. */}
         <Stack
           direction="row"
           gap={0.75}
@@ -450,90 +455,78 @@ export default function RcsMatrix(): React.JSX.Element {
           flexWrap="wrap"
           useFlexGap
         >
-          <WhatsApp sx={{ fontSize: 18, color: 'success.main', mr: 0.25 }} />
-          <Typography
-            variant="caption"
-            fontWeight={700}
-            color="text.secondary"
-            sx={{ mr: 0.5 }}
-          >
-            BOT DE WHATSAPP:
-          </Typography>
-
-          {ANSWERED_FILTERS.map((o) => {
-            const n = waCounts[o.value] || 0;
-            const on = waFilter === o.value;
-            const tone =
-              WA_META[o.value].color === 'default' ? 'primary' : WA_META[o.value].color;
-            const color = theme.palette[tone as 'success' | 'warning' | 'info' | 'secondary'].main;
-            return (
-              <Box
-                key={o.value}
-                component="button"
-                disabled={!n && !on}
-                onClick={() => setFilters((f) => ({ ...f, waFilter: on ? 'all' : o.value }))}
-                sx={{
-                  font: 'inherit',
-                  cursor: n || on ? 'pointer' : 'default',
-                  opacity: n || on ? 1 : 0.45,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.75,
-                  borderRadius: 999,
-                  px: 1.5,
-                  py: 0.75,
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                  border: `1px solid ${on ? color : alpha(color, 0.45)}`,
-                  bgcolor: on ? alpha(color, 0.16) : alpha(color, 0.05),
-                  color,
-                }}
+          <WhatsApp sx={{ fontSize: 18, color: 'success.main' }} />
+          {[
+            { title: 'CONTESTARON', items: ANSWERED_FILTERS, colored: true },
+            { title: 'SIN CONTESTAR', items: REST_FILTERS, colored: false },
+          ].map((group, gi) => (
+            <React.Fragment key={group.title}>
+              {gi > 0 && <Box sx={{ width: '1px', height: 20, bgcolor: 'divider', mx: 0.75 }} />}
+              <Typography
+                variant="caption"
+                fontWeight={700}
+                letterSpacing=".06em"
+                color="text.secondary"
+                sx={{ mr: 0.25 }}
               >
-                {o.label}
-                <Box
-                  component="span"
-                  sx={{ fontVariantNumeric: 'tabular-nums', opacity: 0.85 }}
-                >
-                  {n}
-                </Box>
-              </Box>
-            );
-          })}
-
-          <Box sx={{ width: '1px', height: 20, bgcolor: 'divider', mx: 0.5 }} />
-
-          {REST_FILTERS.map((o) => {
-            const n = o.value === 'all' ? ofStore.length : waCounts[o.value] || 0;
-            const on = waFilter === o.value;
-            return (
-              <Tooltip
-                key={o.value}
-                title={o.hint}
-              >
-                <span>
-              <Chip
-                size="small"
-                label={`${o.label} · ${n}`}
-                onClick={() =>
-                  setFilters((f) => ({ ...f, waFilter: on && o.value !== 'all' ? 'all' : o.value }))
-                }
-                variant={on ? 'filled' : 'outlined'}
-                disabled={!n && !on && o.value !== 'all'}
-                sx={{
-                  fontWeight: 700,
-                  fontVariantNumeric: 'tabular-nums',
-                  // Neutro a propósito: el verde se reserva para las respuestas.
-                  ...(on && {
-                    bgcolor: 'action.selected',
-                    color: 'text.primary',
-                    borderColor: 'text.primary',
-                  }),
-                }}
-              />
-                </span>
-              </Tooltip>
-            );
-          })}
+                {group.title}
+              </Typography>
+              {group.items.map((o) => {
+                const n = waCounts[o.value] || 0;
+                const on = waFilter === o.value;
+                const meta = WA_META[o.value];
+                const color =
+                  group.colored && meta.color !== 'default'
+                    ? theme.palette[meta.color].main
+                    : theme.palette.text.secondary;
+                return (
+                  <Tooltip
+                    key={o.value}
+                    title={WA_HINT[o.value]}
+                  >
+                    <Box
+                      component="button"
+                      disabled={!n && !on}
+                      onClick={() => setFilters((f) => ({ ...f, waFilter: on ? 'all' : o.value }))}
+                      sx={{
+                        font: 'inherit',
+                        cursor: n || on ? 'pointer' : 'default',
+                        opacity: n || on ? 1 : 0.45,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.75,
+                        borderRadius: 999,
+                        px: 1.25,
+                        py: 0.5,
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        border: `1px solid ${on ? color : alpha(color, 0.35)}`,
+                        bgcolor: on ? alpha(color, 0.14) : 'transparent',
+                        color: on || group.colored ? color : 'text.primary',
+                      }}
+                    >
+                      {group.colored ? meta.label : meta.short}
+                      <Box
+                        component="span"
+                        sx={{ fontVariantNumeric: 'tabular-nums', opacity: 0.8 }}
+                      >
+                        {n}
+                      </Box>
+                    </Box>
+                  </Tooltip>
+                );
+              })}
+            </React.Fragment>
+          ))}
+          {waFilter !== 'all' && (
+            <Button
+              size="small"
+              onClick={() => setFilters((f) => ({ ...f, waFilter: 'all' }))}
+              sx={{ textTransform: 'none', fontWeight: 700, ml: 0.5 }}
+            >
+              Quitar filtro
+            </Button>
+          )}
         </Stack>
       </Stack>
 
