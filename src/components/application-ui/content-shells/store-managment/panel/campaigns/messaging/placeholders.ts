@@ -16,6 +16,7 @@ export const PLACEHOLDERS: readonly PlaceholderDef[] = [
     label: 'Nombre del cliente — personalizado para cada uno; si no tiene, se omite',
   },
   { key: '#storeName', label: 'Nombre de la tienda' },
+  { key: '#address', label: 'Dirección de la tienda' },
   // Ocultos por ahora (sep 2026): no se usan en las campañas nuevas. El backend los sigue
   // reemplazando si una campaña vieja los tiene; para volver a ofrecerlos, descomentar.
   // { key: '#referralLink', label: 'Link de referido' },
