@@ -54,10 +54,10 @@ const INITIAL: ToolbarFilters = {
 const ANSWERED: WaState[] = ['1', '2', '3', 'text'];
 const ANSWERED_FILTERS = ANSWERED.map((k) => ({ value: k, label: WA_META[k].label }));
 /** El resto: universo y los que todavía no dijeron nada. */
-const REST_FILTERS: { value: WaState | 'all'; label: string }[] = [
-  { value: 'all', label: 'Todo WhatsApp' },
-  { value: 'unsent', label: WA_META.unsent.label },
-  { value: 'sent', label: WA_META.sent.label },
+const REST_FILTERS: { value: WaState | 'all'; label: string; hint: string }[] = [
+  { value: 'all', label: 'Todas las personas', hint: 'Quita el filtro del bot: muestra a todos los que hicieron lista u orden.' },
+  { value: 'unsent', label: WA_META.unsent.label, hint: 'Todavía no se les mandó el mensaje del bot. Se les manda con "Enviar bot".' },
+  { value: 'sent', label: WA_META.sent.label, hint: 'Les llegó el mensaje del bot y no contestaron nada.' },
 ];
 
 /**
@@ -251,8 +251,15 @@ export default function RcsMatrix(): React.JSX.Element {
     }
     const sentTotal = (waCounts.sent || 0) + answeredCount;
     const answerRate = sentTotal ? Math.round((answeredCount / sentTotal) * 100) : 0;
-    // Cuatro cifras, una idea cada una, sin repetir lo que ya dicen los filtros de abajo.
+    // Una idea por cifra, sin repetir lo que ya dicen los filtros de abajo.
     return [
+      // Siempre a la vista: cuánta gente armó algo y cuántas listas son en total.
+      {
+        label: 'HICIERON LISTA',
+        value: `${ofStore.length} personas · ${kpis.orders + kpis.lists} listas`,
+        sub: `${kpis.lists} listas · ${kpis.orders} órdenes`,
+        strong: false,
+      },
       {
         label: 'A LLAMAR',
         value: String(toCall),
@@ -262,14 +269,14 @@ export default function RcsMatrix(): React.JSX.Element {
       {
         label: 'RESPUESTA DEL BOT',
         value: sentTotal ? `${answerRate}%` : '—',
-        sub: sentTotal ? `${answeredCount} de ${sentTotal} enviados · ${waCounts.unsent || 0} sin enviar` : `${waCounts.unsent || 0} sin enviar`,
+        sub: sentTotal ? `${answeredCount} de ${sentTotal} contestaron · ${waCounts.unsent || 0} sin bot aún` : `a nadie se le mandó el bot todavía`,
         strong: false,
       },
       // Órdenes y listas en una sola cifra: todo lo que la gente puso en su carrito.
       {
         label: 'EN CARRITOS',
         value: centsToUsd(kpis.potentialCents),
-        sub: `${kpis.orders + kpis.lists} listas · ${unpaid} sin pagar`,
+        sub: `${unpaid} personas sin pagar`,
         strong: false,
       },
       {
@@ -383,7 +390,8 @@ export default function RcsMatrix(): React.JSX.Element {
             gap: 1.25,
             gridTemplateColumns: {
               xs: 'repeat(2, minmax(0,1fr))',
-              lg: 'repeat(4, minmax(0,1fr))',
+              md: 'repeat(3, minmax(0,1fr))',
+              xl: 'repeat(5, minmax(0,1fr))',
             },
           }}
         >
@@ -449,7 +457,7 @@ export default function RcsMatrix(): React.JSX.Element {
             color="text.secondary"
             sx={{ mr: 0.5 }}
           >
-            FILTRAR:
+            BOT DE WHATSAPP:
           </Typography>
 
           {ANSWERED_FILTERS.map((o) => {
@@ -498,8 +506,12 @@ export default function RcsMatrix(): React.JSX.Element {
             const n = o.value === 'all' ? ofStore.length : waCounts[o.value] || 0;
             const on = waFilter === o.value;
             return (
-              <Chip
+              <Tooltip
                 key={o.value}
+                title={o.hint}
+              >
+                <span>
+              <Chip
                 size="small"
                 label={`${o.label} · ${n}`}
                 onClick={() =>
@@ -518,6 +530,8 @@ export default function RcsMatrix(): React.JSX.Element {
                   }),
                 }}
               />
+                </span>
+              </Tooltip>
             );
           })}
         </Stack>
