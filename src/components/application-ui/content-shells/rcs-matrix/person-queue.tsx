@@ -10,6 +10,7 @@
  */
 
 import { centsToUsd, contactLinks, type MatrixRow } from '@/services/rcs-matrix.service';
+import type { ShopperPhoneStatus } from '@/services/shopper-whatsapp.service';
 import CheckRounded from '@mui/icons-material/CheckRounded';
 import CloseRounded from '@mui/icons-material/CloseRounded';
 import DoneAllRounded from '@mui/icons-material/DoneAllRounded';
@@ -32,6 +33,7 @@ import { dateTimeShort, splitStoreTitle } from './constants';
 import { peopleByQueue, QUEUE_ORDER, type PersonRow, type QueueKey } from './matrix-model';
 import { waitingLabel } from './order-drawer';
 import { QUEUE_META } from './order-queue';
+import { WA_META, waState } from './whatsapp-bot';
 
 /** Filas por grupo en el primer pintado. */
 const PAGE = 40;
@@ -80,6 +82,7 @@ export function PersonQueue({
   onBulkSend,
   q,
   onQ,
+  waOf,
 }: {
   people: PersonRow[];
   selectedKey: string;
@@ -93,6 +96,8 @@ export function PersonQueue({
   onBulkSend: (people: PersonRow[]) => void;
   q: string;
   onQ: (v: string) => void;
+  /** Qué pasó con el bot en cada persona: sin eso la fila no dice si contestó. */
+  waOf?: (p: PersonRow) => ShopperPhoneStatus | undefined;
 }): React.JSX.Element {
   const theme = useTheme();
   const [tab, setTab] = useState<QueueKey | 'all'>('all');
@@ -430,6 +435,52 @@ export function PersonQueue({
                           >
                             {splitStoreTitle(p.storeName).title} · {dateTimeShort(p.lead.createdAt)}
                           </Typography>
+                          {/* Lo que contestó, en la propia fila: el texto es la
+                              razón por la que se llama a esta persona y no a otra. */}
+                          {(() => {
+                            const st = waOf?.(p);
+                            const s = waState(st);
+                            if (s === 'unsent') return null;
+                            const meta = WA_META[s];
+                            const tone =
+                              meta.color === 'default'
+                                ? theme.palette.text.secondary
+                                : theme.palette[meta.color].main;
+                            return (
+                              <Stack
+                                direction="row"
+                                alignItems="center"
+                                gap={0.75}
+                                sx={{ mt: 0.5, minWidth: 0 }}
+                              >
+                                <Box
+                                  sx={{
+                                    px: 0.75,
+                                    borderRadius: 999,
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    whiteSpace: 'nowrap',
+                                    color: tone,
+                                    border: `1px solid ${alpha(tone, 0.5)}`,
+                                    bgcolor: alpha(tone, 0.08),
+                                  }}
+                                >
+                                  {meta.badge ? `${meta.badge} ` : ''}
+                                  {meta.short}
+                                </Box>
+                                {st?.text ? (
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                    noWrap
+                                    sx={{ minWidth: 0, fontStyle: 'italic' }}
+                                  >
+                                    “{st.text}”
+                                  </Typography>
+                                ) : null}
+                              </Stack>
+                            );
+                          })()}
                         </Box>
 
                         <Stack

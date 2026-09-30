@@ -39,7 +39,7 @@ import { PersonDetail } from './person-detail';
 import { PersonQueue } from './person-queue';
 import { SendWaDialog, type SendDialogState } from './send-wa-dialog';
 import { StoreRail, type StoreInfo } from './store-rail';
-import { rowToTarget, WA_FILTERS, waState, type WaState } from './whatsapp-bot';
+import { rowToTarget, WA_META, waState, type WaState } from './whatsapp-bot';
 
 const INITIAL: ToolbarFilters = {
   range: PRESETS[0].range(),
@@ -49,6 +49,16 @@ const INITIAL: ToolbarFilters = {
   onlyOpen: false,
   waFilter: 'all',
 };
+
+/** Los que dijeron algo: 1/2/3 o texto libre. Van primero y con color. */
+const ANSWERED: WaState[] = ['1', '2', '3', 'text'];
+const ANSWERED_FILTERS = ANSWERED.map((k) => ({ value: k, label: WA_META[k].label }));
+/** El resto: universo y los que todavía no dijeron nada. */
+const REST_FILTERS: { value: WaState | 'all'; label: string }[] = [
+  { value: 'all', label: 'Todo WhatsApp' },
+  { value: 'unsent', label: WA_META.unsent.label },
+  { value: 'sent', label: WA_META.sent.label },
+];
 
 /**
  * Matriz RCS — la mesa de trabajo.
@@ -138,6 +148,12 @@ export default function RcsMatrix(): React.JSX.Element {
     }
     return c;
   }, [ofStore, waOf]);
+  const answeredCount = useMemo(
+    () => ANSWERED.reduce((n, k) => n + (waCounts[k] || 0), 0),
+    [waCounts]
+  );
+  /** Estado crudo del bot de una persona: la fila muestra qué contestó. */
+  const waStatusOf = useCallback((p: PersonRow) => wa?.[phoneKey(p.phone)], [wa]);
 
   // Lo atendido sale de la cola, y el filtro de chats deja sólo ese estado. Va en su
   // propio memo (no depende de la selección): abrir una ficha no recalcula el agrupado.
@@ -401,7 +417,9 @@ export default function RcsMatrix(): React.JSX.Element {
           })}
         </Box>
 
-        {/* Chats con el bot: cuántas personas hay en cada estado y filtro de la cola */}
+        {/* Chats con el bot. Primero QUIÉNES CONTESTARON: es lo que cambia la
+            llamada. Lo demás (sin enviar, enviado sin respuesta) va atrás y en
+            gris, que es ruido comparado con una respuesta. */}
         <Stack
           direction="row"
           gap={0.75}
@@ -410,7 +428,58 @@ export default function RcsMatrix(): React.JSX.Element {
           useFlexGap
         >
           <WhatsApp sx={{ fontSize: 18, color: 'success.main', mr: 0.25 }} />
-          {WA_FILTERS.map((o) => {
+          <Typography
+            variant="caption"
+            fontWeight={700}
+            color="text.secondary"
+            sx={{ mr: 0.5 }}
+          >
+            CONTESTARON · {answeredCount}
+          </Typography>
+
+          {ANSWERED_FILTERS.map((o) => {
+            const n = waCounts[o.value] || 0;
+            const on = waFilter === o.value;
+            const tone =
+              WA_META[o.value].color === 'default' ? 'primary' : WA_META[o.value].color;
+            const color = theme.palette[tone as 'success' | 'warning' | 'info' | 'secondary'].main;
+            return (
+              <Box
+                key={o.value}
+                component="button"
+                disabled={!n && !on}
+                onClick={() => setFilters((f) => ({ ...f, waFilter: on ? 'all' : o.value }))}
+                sx={{
+                  font: 'inherit',
+                  cursor: n || on ? 'pointer' : 'default',
+                  opacity: n || on ? 1 : 0.45,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.75,
+                  borderRadius: 999,
+                  px: 1.5,
+                  py: 0.75,
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  border: `1px solid ${on ? color : alpha(color, 0.45)}`,
+                  bgcolor: on ? alpha(color, 0.16) : alpha(color, 0.05),
+                  color,
+                }}
+              >
+                {o.label}
+                <Box
+                  component="span"
+                  sx={{ fontVariantNumeric: 'tabular-nums', opacity: 0.85 }}
+                >
+                  {n}
+                </Box>
+              </Box>
+            );
+          })}
+
+          <Box sx={{ width: 1, height: 20, bgcolor: 'divider', mx: 0.5 }} />
+
+          {REST_FILTERS.map((o) => {
             const n = o.value === 'all' ? ofStore.length : waCounts[o.value] || 0;
             const on = waFilter === o.value;
             return (
@@ -418,11 +487,21 @@ export default function RcsMatrix(): React.JSX.Element {
                 key={o.value}
                 size="small"
                 label={`${o.label} · ${n}`}
-                onClick={() => setFilters((f) => ({ ...f, waFilter: on && o.value !== 'all' ? 'all' : o.value }))}
-                color={on ? 'success' : 'default'}
+                onClick={() =>
+                  setFilters((f) => ({ ...f, waFilter: on && o.value !== 'all' ? 'all' : o.value }))
+                }
                 variant={on ? 'filled' : 'outlined'}
                 disabled={!n && !on && o.value !== 'all'}
-                sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}
+                sx={{
+                  fontWeight: 700,
+                  fontVariantNumeric: 'tabular-nums',
+                  // Neutro a propósito: el verde se reserva para las respuestas.
+                  ...(on && {
+                    bgcolor: 'action.selected',
+                    color: 'text.primary',
+                    borderColor: 'text.primary',
+                  }),
+                }}
               />
             );
           })}
@@ -503,6 +582,7 @@ export default function RcsMatrix(): React.JSX.Element {
                   onBulkSend={bulkSend}
                   q={filters.q}
                   onQ={(v) => setFilters((f) => ({ ...f, q: v }))}
+                  waOf={waStatusOf}
                 />
               )}
             </Box>
@@ -526,6 +606,8 @@ export default function RcsMatrix(): React.JSX.Element {
           onAttend={() => selected && attend([selected.key])}
           onChanged={refetch}
           onClose={() => setDrawerOpen(false)}
+          waState={selected ? waOf(selected) : undefined}
+          onSendBot={selected?.phone ? () => bulkSend([selected]) : undefined}
         />
       </Drawer>
 

@@ -49,8 +49,10 @@ import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { dateTimeShort, paymentMeta, prettyPhone, splitStoreTitle, statusMeta } from './constants';
 import { ContactEditForm } from './contact-edit-form';
+import { ConversationThread } from './conversation-thread';
 import { unifyRequests, type PersonRow } from './matrix-model';
 import { nextStage, waitingLabel } from './order-drawer';
+import { WA_META, type WaState } from './whatsapp-bot';
 
 /** Botón cuadrado de contacto: la acción más usada de la pantalla. */
 function ContactTile({
@@ -433,6 +435,8 @@ export function PersonDetail({
   onAttend,
   onChanged,
   onClose,
+  waState,
+  onSendBot,
 }: {
   person: PersonRow | null;
   attended: boolean;
@@ -443,6 +447,10 @@ export function PersonDetail({
   onChanged: () => void;
   /** Sólo en pantallas chicas, donde esta columna es un drawer. */
   onClose?: () => void;
+  /** Qué pasó con el bot: sin enviar, enviado sin respuesta, 1/2/3 o texto. */
+  waState?: WaState;
+  /** Manda el saludo del bot a esta persona. */
+  onSendBot?: () => void;
 }): React.JSX.Element {
   const theme = useTheme();
   const [open, setOpen] = useState<string>('');
@@ -725,6 +733,73 @@ export function PersonDetail({
           {attended ? 'Atendida — desmarcar' : 'Marcar como atendida'}
         </Button>
       </Stack>
+
+      {/* Conversación con el bot: lo que se le mandó y lo que contestó. Va antes
+          de las órdenes porque decide cómo se encara la llamada. */}
+      {person.phone && (
+        <Stack
+          gap={1.25}
+          sx={{ p: 2.5, borderBottom: `1px solid ${theme.palette.divider}` }}
+        >
+          <Stack
+            direction="row"
+            alignItems="center"
+            gap={1}
+            flexWrap="wrap"
+          >
+            <WhatsApp
+              fontSize="small"
+              sx={{ color: 'success.main' }}
+            />
+            <Typography
+              variant="subtitle2"
+              fontWeight={700}
+              sx={{ flex: 1, minWidth: 0 }}
+            >
+              Conversación por WhatsApp
+            </Typography>
+            {waState && waState !== 'unsent' && (
+              <Box
+                sx={{
+                  px: 1.25,
+                  py: 0.25,
+                  borderRadius: 999,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  border: '1px solid',
+                  borderColor:
+                    WA_META[waState].color === 'default'
+                      ? 'divider'
+                      : `${WA_META[waState].color}.main`,
+                  color:
+                    WA_META[waState].color === 'default'
+                      ? 'text.secondary'
+                      : `${WA_META[waState].color}.main`,
+                }}
+              >
+                {WA_META[waState].label}
+              </Box>
+            )}
+          </Stack>
+
+          <ConversationThread
+            phone={person.phone}
+            emptyHint="Al bot todavía no le escribió nadie de este número. Mandá el saludo y la respuesta aparece acá."
+          />
+
+          {onSendBot && (
+            <Button
+              variant="outlined"
+              color="success"
+              startIcon={<WhatsApp />}
+              onClick={onSendBot}
+              sx={{ borderRadius: 999, textTransform: 'none', fontWeight: 700 }}
+            >
+              {waState && waState !== 'unsent' ? 'Volver a mandar el saludo' : 'Mandar saludo del bot'}
+            </Button>
+          )}
+        </Stack>
+      )}
 
       <Stack
         gap={1.5}
