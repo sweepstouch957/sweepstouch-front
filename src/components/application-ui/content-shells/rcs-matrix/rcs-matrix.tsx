@@ -241,30 +241,45 @@ export default function RcsMatrix(): React.JSX.Element {
    * `filter` sueltos se notaban en cada render.
    */
   const cards = useMemo(() => {
-    let approve = 0;
-    let inProgress = 0;
+    // Sólo se llama a quien interactuó con el bot (1/2/3 o texto) y todavía no se atendió.
+    // Contar a todos los que tienen lista confundía: eran cientos que nunca contestaron.
+    let toCall = 0;
     let unpaid = 0;
-    for (const p of everyone) {
-      if (p.queue === 'approve') approve++;
-      else if (p.queue === 'prepare' || p.queue === 'deliver') inProgress++;
-      else if (p.queue === 'unpaid') unpaid++;
+    for (const p of ofStore) {
+      if (ANSWERED.includes(waOf(p)) && !isAttended(p.key)) toCall++;
+      if (p.queue === 'unpaid') unpaid++;
     }
+    const sentTotal = (waCounts.sent || 0) + answeredCount;
+    const answerRate = sentTotal ? Math.round((answeredCount / sentTotal) * 100) : 0;
+    // Cuatro cifras, una idea cada una, sin repetir lo que ya dicen los filtros de abajo.
     return [
-      { label: 'PERSONAS', value: String(everyone.length), sub: 'a quienes llamar', strong: false },
-      // Órdenes y listas en una sola cifra: es todo lo que la gente puso en su
-      // carrito en el período, con la plata que representa (cobrada o no).
       {
-        label: 'LISTAS',
-        value: String(kpis.orders + kpis.lists),
-        sub: `${centsToUsd(kpis.potentialCents)} en carritos`,
+        label: 'A LLAMAR',
+        value: String(toCall),
+        sub: `contestaron al bot · ${waCounts['1'] || 0} van esta semana`,
+        strong: toCall > 0,
+      },
+      {
+        label: 'RESPUESTA DEL BOT',
+        value: sentTotal ? `${answerRate}%` : '—',
+        sub: sentTotal ? `${answeredCount} de ${sentTotal} enviados · ${waCounts.unsent || 0} sin enviar` : `${waCounts.unsent || 0} sin enviar`,
         strong: false,
       },
-      { label: 'POR APROBAR', value: String(approve), sub: 'pagadas sin revisar', strong: approve > 0 },
-      { label: 'EN CURSO', value: String(inProgress), sub: 'armando o listas', strong: false },
-      { label: 'SIN PAGAR', value: String(unpaid), sub: centsToUsd(kpis.unpaidCents), strong: false },
-      { label: 'COBRADO', value: centsToUsd(kpis.collectedCents), sub: `ticket ${centsToUsd(kpis.avgTicketCents)}`, strong: false },
+      // Órdenes y listas en una sola cifra: todo lo que la gente puso en su carrito.
+      {
+        label: 'EN CARRITOS',
+        value: centsToUsd(kpis.potentialCents),
+        sub: `${kpis.orders + kpis.lists} listas · ${unpaid} sin pagar`,
+        strong: false,
+      },
+      {
+        label: 'COBRADO',
+        value: centsToUsd(kpis.collectedCents),
+        sub: `ticket ${centsToUsd(kpis.avgTicketCents)} · ${centsToUsd(kpis.unpaidCents)} por cobrar`,
+        strong: false,
+      },
     ];
-  }, [everyone, kpis]);
+  }, [ofStore, waOf, isAttended, waCounts, answeredCount, kpis]);
 
   return (
     <Stack sx={{ height: { lg: 'calc(100vh - 64px)' }, minHeight: 0 }}>
@@ -368,8 +383,7 @@ export default function RcsMatrix(): React.JSX.Element {
             gap: 1.25,
             gridTemplateColumns: {
               xs: 'repeat(2, minmax(0,1fr))',
-              md: 'repeat(3, minmax(0,1fr))',
-              xl: 'repeat(6, minmax(0,1fr))',
+              lg: 'repeat(4, minmax(0,1fr))',
             },
           }}
         >
@@ -379,7 +393,8 @@ export default function RcsMatrix(): React.JSX.Element {
               <Box
                 key={c.label}
                 sx={{
-                  p: 1.5,
+                  px: 1.75,
+                  py: 1.25,
                   borderRadius: 3,
                   border: `1px solid ${c.strong ? alpha(theme.palette.primary.main, 0.4) : theme.palette.divider}`,
                   bgcolor: 'background.paper',
@@ -434,7 +449,7 @@ export default function RcsMatrix(): React.JSX.Element {
             color="text.secondary"
             sx={{ mr: 0.5 }}
           >
-            CONTESTARON · {answeredCount}
+            FILTRAR:
           </Typography>
 
           {ANSWERED_FILTERS.map((o) => {
@@ -477,7 +492,7 @@ export default function RcsMatrix(): React.JSX.Element {
             );
           })}
 
-          <Box sx={{ width: 1, height: 20, bgcolor: 'divider', mx: 0.5 }} />
+          <Box sx={{ width: '1px', height: 20, bgcolor: 'divider', mx: 0.5 }} />
 
           {REST_FILTERS.map((o) => {
             const n = o.value === 'all' ? ofStore.length : waCounts[o.value] || 0;
