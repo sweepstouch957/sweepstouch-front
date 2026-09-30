@@ -53,16 +53,12 @@ const INITIAL: ToolbarFilters = {
 /** Los que dijeron algo: 1/2/3 o texto libre. Van primero y con color. */
 const ANSWERED: WaState[] = ['1', '2', '3', 'text'];
 const ANSWERED_FILTERS = ANSWERED.map((k) => ({ value: k }));
-/** Los que todavía no dijeron nada. */
-const REST_FILTERS: { value: WaState }[] = [{ value: 'unsent' }, { value: 'sent' }];
 /** Qué significa cada filtro (tooltip). */
 const WA_HINT: Record<string, string> = {
   '1': 'Contestaron 1: dijeron que van a la tienda esta semana.',
   '2': 'Contestaron 2: todavía no saben si van.',
   '3': 'Contestaron 3: sólo estaban mirando.',
   text: 'Escribieron algo distinto de 1, 2 o 3. Abre la conversación para leerlo.',
-  unsent: 'Todavía no se les mandó el mensaje del bot.',
-  sent: 'Les llegó el mensaje del bot y no contestaron nada.',
 };
 
 /**
@@ -165,7 +161,7 @@ export default function RcsMatrix(): React.JSX.Element {
   const { waFilter } = filters;
   const people = useMemo(() => {
     let list = attendedCount ? ofStore.filter((p) => !isAttended(p.key)) : ofStore;
-    if (waFilter !== 'all') list = list.filter((p) => waOf(p) === waFilter);
+    if (ANSWERED.includes(waFilter as WaState)) list = list.filter((p) => waOf(p) === waFilter);
     return list;
   }, [ofStore, isAttended, attendedCount, waFilter, waOf]);
 
@@ -254,8 +250,6 @@ export default function RcsMatrix(): React.JSX.Element {
       if (ANSWERED.includes(waOf(p)) && !isAttended(p.key)) toCall++;
       if (p.queue === 'unpaid') unpaid++;
     }
-    const sentTotal = (waCounts.sent || 0) + answeredCount;
-    const answerRate = sentTotal ? Math.round((answeredCount / sentTotal) * 100) : 0;
     // Una idea por cifra, sin repetir lo que ya dicen los filtros de abajo.
     return [
       // Siempre a la vista: cuánta gente armó algo y cuántas listas son en total.
@@ -270,12 +264,6 @@ export default function RcsMatrix(): React.JSX.Element {
         value: String(toCall),
         sub: `contestaron al bot · ${waCounts['1'] || 0} van esta semana`,
         strong: toCall > 0,
-      },
-      {
-        label: 'RESPUESTA DEL BOT',
-        value: sentTotal ? `${answerRate}%` : '—',
-        sub: sentTotal ? `${answeredCount} de ${sentTotal} contestaron · ${waCounts.unsent || 0} sin bot aún` : `a nadie se le mandó el bot todavía`,
-        strong: false,
       },
       // Órdenes y listas en una sola cifra: todo lo que la gente puso en su carrito.
       {
@@ -396,7 +384,7 @@ export default function RcsMatrix(): React.JSX.Element {
             gridTemplateColumns: {
               xs: 'repeat(2, minmax(0,1fr))',
               md: 'repeat(3, minmax(0,1fr))',
-              xl: 'repeat(5, minmax(0,1fr))',
+              xl: 'repeat(4, minmax(0,1fr))',
             },
           }}
         >
@@ -458,7 +446,6 @@ export default function RcsMatrix(): React.JSX.Element {
           <WhatsApp sx={{ fontSize: 18, color: 'success.main' }} />
           {[
             { title: 'CONTESTARON', items: ANSWERED_FILTERS, colored: true },
-            { title: 'SIN CONTESTAR', items: REST_FILTERS, colored: false },
           ].map((group, gi) => (
             <React.Fragment key={group.title}>
               {gi > 0 && <Box sx={{ width: '1px', height: 20, bgcolor: 'divider', mx: 0.75 }} />}
