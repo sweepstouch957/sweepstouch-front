@@ -104,7 +104,22 @@ export default function RcsMatrix(): React.JSX.Element {
     () => [...new Set(all.map((r) => r.customerPhone).filter(Boolean))],
     [all]
   );
-  const { data: wa } = useShopperStatus(phones);
+  const customerIds = useMemo(
+    () => [...new Set(all.map((r) => r.customerId).filter((id) => /^[a-f0-9]{24}$/i.test(id || '')))],
+    [all]
+  );
+  const { data: wa } = useShopperStatus(phones, customerIds);
+  /** Estado del bot de una persona: por su teléfono o, si contestó desde otro, por su cliente. */
+  const waFor = useCallback(
+    (p: PersonRow) => {
+      const byPhone = wa?.[phoneKey(p.phone)];
+      const byCustomer = p.rows.map((r) => wa?.[r.customerId]).find(Boolean);
+      // Gana el que tenga la respuesta más reciente (el teléfono puede tener sólo el envío).
+      if (byCustomer?.repliedAt && (!byPhone?.repliedAt || byCustomer.repliedAt > byPhone.repliedAt)) return byCustomer;
+      return byPhone ?? byCustomer;
+    },
+    [wa]
+  );
 
   // Logo y audiencia de cada tienda para la columna izquierda. Es el catálogo
   // completo (cambia poco): se pide una vez y se cachea.
@@ -141,7 +156,7 @@ export default function RcsMatrix(): React.JSX.Element {
     [everyone, store]
   );
   // Estado del chat con el bot de cada persona (sin enviar, sin respuesta, 1/2/3, texto).
-  const waOf = useCallback((p: PersonRow): WaState => waState(wa?.[phoneKey(p.phone)]), [wa]);
+  const waOf = useCallback((p: PersonRow): WaState => waState(waFor(p)), [waFor]);
   const waCounts = useMemo(() => {
     const c: Record<string, number> = {};
     for (const p of ofStore) {
@@ -155,7 +170,7 @@ export default function RcsMatrix(): React.JSX.Element {
     [waCounts]
   );
   /** Estado crudo del bot de una persona: la fila muestra qué contestó. */
-  const waStatusOf = useCallback((p: PersonRow) => wa?.[phoneKey(p.phone)], [wa]);
+  const waStatusOf = waFor;
 
   // Lo atendido sale de la cola, y el filtro de chats deja sólo ese estado. Va en su
   // propio memo (no depende de la selección): abrir una ficha no recalcula el agrupado.

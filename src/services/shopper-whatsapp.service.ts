@@ -82,6 +82,8 @@ export interface ShopperPhoneStatus {
   sentiment: string;
   summary: string;
   repliedAt: string | null;
+  /** Día que dijo que va (opción 1 → "Friday"). */
+  visitDay?: string;
 }
 
 /** Destinatario del saludo. La tienda se resuelve por slug; el resto es respaldo. */
@@ -137,11 +139,15 @@ export const shopperWhatsappService = {
     return data;
   },
 
-  /** Estado por teléfono, indexado por los últimos 10 dígitos. */
-  byPhones: async (phones: string[]): Promise<Record<string, ShopperPhoneStatus>> => {
-    if (!phones.length) return {};
-    const { data } = await api.post(`${BASE}/by-phones`, { phones });
-    return data?.status ?? {};
+  /**
+   * Estado del bot indexado por teléfono (últimos 10 dígitos) Y por customerId: quien
+   * contesta puede escribir desde otro número que el de su lista. Las dos claves no
+   * chocan (10 dígitos vs. 24 hex).
+   */
+  byPhones: async (phones: string[], customerIds: string[] = []): Promise<Record<string, ShopperPhoneStatus>> => {
+    if (!phones.length && !customerIds.length) return {};
+    const { data } = await api.post(`${BASE}/by-phones`, { phones, customerIds });
+    return { ...(data?.byCustomer ?? {}), ...(data?.status ?? {}) };
   },
 
   /** Saludo a una lista o a un número. Sin `resend` se saltan los que ya lo recibieron. */

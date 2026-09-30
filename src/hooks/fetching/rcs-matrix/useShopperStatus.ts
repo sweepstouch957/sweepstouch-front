@@ -12,12 +12,14 @@ import { useMemo } from 'react';
  * La key es la lista ordenada unida en un string: estable aunque las filas
  * lleguen en otro orden, y barata de comparar.
  */
-export function useShopperStatus(phones: string[]) {
+export function useShopperStatus(phones: string[], customerIds: string[] = []) {
   const key = useMemo(() => [...phones].sort().join(','), [phones]);
+  const idsKey = useMemo(() => [...customerIds].sort().join(','), [customerIds]);
   return useQuery<Record<string, ShopperPhoneStatus>>({
-    queryKey: ['shopper-status', key],
-    queryFn: () => shopperWhatsappService.byPhones(key ? key.split(',') : []),
-    enabled: key.length > 0,
+    queryKey: ['shopper-status', key, idsKey],
+    queryFn: () =>
+      shopperWhatsappService.byPhones(key ? key.split(',') : [], idsKey ? idsKey.split(',') : []),
+    enabled: key.length > 0 || idsKey.length > 0,
     staleTime: 1000 * 15,
     refetchInterval: 1000 * 30,
     placeholderData: keepPreviousData,

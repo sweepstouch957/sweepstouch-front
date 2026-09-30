@@ -84,7 +84,8 @@ export function WaChip({
             {meta.badge}
           </Avatar>
         }
-        label={meta.short}
+        // Opción 1 con día: "Va esta semana · Friday".
+        label={status?.visitDay ? `${meta.short} · ${status.visitDay}` : meta.short}
         variant="outlined"
         sx={{
           fontWeight: 700,
