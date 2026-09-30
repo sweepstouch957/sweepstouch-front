@@ -185,6 +185,8 @@ storeName={store.name || ''} />;
           infobipSenderId={store.infobipSenderId}
           address={(store as any).address || ''}
           circularssUrl={(store as any).circularssUrl || ''}
+          listsPhone={(store as any).listsPhone || ''}
+          listsPhoneEnabled={Boolean((store as any).listsPhoneEnabled)}
         />
       );
 

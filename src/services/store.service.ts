@@ -120,6 +120,9 @@ export interface Store {
 }
 
 export interface UpdateStoreBody {
+  /** Número que el bot de WhatsApp muestra al final de sus mensajes (si está prendido). */
+  listsPhone?: string;
+  listsPhoneEnabled?: boolean;
   name?: string;
   /** Imagen de ESTA tienda. El logo de la marca vive en mmsTheme.logoUrl. */
   image?: string;

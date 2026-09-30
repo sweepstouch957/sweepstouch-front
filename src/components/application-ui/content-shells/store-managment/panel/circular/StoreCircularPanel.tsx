@@ -21,6 +21,7 @@ import MessagesSection from './MessagesSection';
 import PreRcsPreviewButton from './PreRcsPreviewButton';
 import PurchasesSection from './PurchasesSection';
 import { ImagePreviewDialog, type PanelProps } from './shared';
+import { ListsPhoneCard } from './ListsPhoneCard';
 import StoreBannerSection from './StoreBannerSection';
 import UpcomingProductsSection from './UpcomingProductsSection';
 import WeeklyCircularCard from './WeeklyCircularCard';
@@ -84,6 +85,8 @@ export default function StoreCircularPanel({
   infobipSenderId,
   address,
   circularssUrl,
+  listsPhone,
+  listsPhoneEnabled,
 }: PanelProps) {
   const [tab, setTab] = useState(0);
   const openUpcoming = useCallback(() => setTab(1), []);
@@ -124,6 +127,11 @@ export default function StoreCircularPanel({
           storeSlug={storeSlug}
         />
       </Stack>
+      <ListsPhoneCard
+        storeId={storeId}
+        listsPhone={listsPhone}
+        listsPhoneEnabled={listsPhoneEnabled}
+      />
       <Tabs
         value={tab}
         onChange={(_, v) => setTab(v)}

@@ -21,6 +21,9 @@ export type PanelProps = {
   address?: string;
   /** Link del circular de la tienda (api.circularss.com/dl/xxx): de ahí se trae el PDF de la semana. */
   circularssUrl?: string;
+  /** Número para listas que el bot de WhatsApp muestra al final (Store.listsPhone). */
+  listsPhone?: string;
+  listsPhoneEnabled?: boolean;
 };
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
