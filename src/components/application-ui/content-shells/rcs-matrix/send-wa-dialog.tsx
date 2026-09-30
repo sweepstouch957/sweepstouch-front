@@ -207,8 +207,8 @@ export function SendWaDialog({
               display="block"
               sx={{ mt: 1 }}
             >
-              Ejemplo con la primera persona de la lista. Cada quien recibe su propio nombre y su
-              tienda, más el teléfono de la tienda al final.
+              Ejemplo con la primera persona de la lista. Cada quien recibe su nombre, su tienda y los
+              datos reales de su lista (productos, ahorro, puntos y vencimiento).
             </Typography>
           </Box>
         </Stack>
