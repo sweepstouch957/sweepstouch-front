@@ -23,7 +23,7 @@ export const WA_META: Record<
   // Todavía no se le mandó el mensaje del bot a esta persona.
   unsent: { label: 'Bot no enviado', short: 'Bot no enviado', badge: '', color: 'default' },
   // Le llegó el bot y no contestó nada.
-  sent: { label: 'Enviado · no contestó', short: 'Bot enviado', badge: '…', color: 'default' },
+  sent: { label: 'Enviado · no contestó', short: 'Se le envió, no ha respondido', badge: '…', color: 'default' },
   // Desde el 29 sep: 1 va esta semana · 2 no sabe todavía · 3 sólo mirando.
   '1': { label: '1 · Va esta semana', short: 'Va esta semana', badge: '1', color: 'success' },
   '2': { label: '2 · No sabe todavía', short: 'No sabe', badge: '2', color: 'warning' },

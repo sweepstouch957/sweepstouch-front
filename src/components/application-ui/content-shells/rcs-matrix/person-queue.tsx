@@ -23,6 +23,8 @@ import {
   Button,
   IconButton,
   InputBase,
+  MenuItem,
+  Select,
   Stack,
   Tooltip,
   Typography,
@@ -37,6 +39,19 @@ import { WA_META, waState } from './whatsapp-bot';
 
 /** Filas por grupo en el primer pintado. */
 const PAGE = 40;
+
+/**
+ * Orden de la cola. Por defecto lo MÁS NUEVO arriba: con "lo más urgente" (lo que
+ * más espera) lo que acababa de entrar quedaba al fondo y nadie lo veía.
+ */
+type SortKey = 'newest' | 'oldest' | 'urgent';
+const SORT_LABEL: Record<SortKey, string> = {
+  newest: 'Más nuevo primero',
+  oldest: 'Más viejo primero',
+  urgent: 'Más urgente primero',
+};
+/** Lo último que hizo la persona (sus filas vienen de la más nueva a la más vieja). */
+const lastAt = (p: PersonRow) => p.rows[0]?.createdAt ?? '';
 
 /**
  * Dos estados y nada más: normal o urgente (más de 2 h esperando). El color de
@@ -101,6 +116,7 @@ export function PersonQueue({
 }): React.JSX.Element {
   const theme = useTheme();
   const [tab, setTab] = useState<QueueKey | 'all'>('all');
+  const [sort, setSort] = useState<SortKey>('newest');
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -108,10 +124,13 @@ export function PersonQueue({
     return c;
   }, [people]);
 
-  const shown = useMemo(
-    () => (tab === 'all' ? people : people.filter((p) => p.queue === tab)),
-    [people, tab]
-  );
+  const shown = useMemo(() => {
+    const list = tab === 'all' ? people : people.filter((p) => p.queue === tab);
+    // "urgent" es el orden que ya trae groupByPerson; los otros van por la última actividad.
+    if (sort === 'urgent') return list;
+    const dir = sort === 'newest' ? -1 : 1;
+    return [...list].sort((a, b) => (lastAt(a) < lastAt(b) ? -dir : lastAt(a) > lastAt(b) ? dir : 0));
+  }, [people, tab, sort]);
   const allBuckets = useMemo(() => peopleByQueue(shown), [shown]);
   // Cuántas filas se muestran por grupo. Montar 800 tarjetas de una trababa la
   // pantalla entera; con el tope, el primer pintado es instantáneo y el resto
@@ -224,10 +243,27 @@ export function PersonQueue({
               display="block"
             >
               {tab === 'all'
-                ? `${people.length} personas · lo más urgente arriba`
+                ? `${people.length} personas · ${SORT_LABEL[sort].toLowerCase()}`
                 : QUEUE_META[tab].hint}
             </Typography>
           </Box>
+          <Select
+            size="small"
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortKey)}
+            inputProps={{ 'aria-label': 'Orden de la cola' }}
+            sx={{ height: 38, borderRadius: 2.5, bgcolor: 'background.paper', fontSize: 13, fontWeight: 600 }}
+          >
+            {(Object.keys(SORT_LABEL) as SortKey[]).map((k) => (
+              <MenuItem
+                key={k}
+                value={k}
+                sx={{ fontSize: 13 }}
+              >
+                {SORT_LABEL[k]}
+              </MenuItem>
+            ))}
+          </Select>
           <Stack
             direction="row"
             alignItems="center"

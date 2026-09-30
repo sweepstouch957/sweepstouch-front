@@ -59,6 +59,7 @@ const WA_HINT: Record<string, string> = {
   '2': 'Contestaron 2: todavía no saben si van.',
   '3': 'Contestaron 3: sólo estaban mirando.',
   text: 'Escribieron algo distinto de 1, 2 o 3. Abre la conversación para leerlo.',
+  sent: 'Se les mandó el mensaje del bot y todavía no contestaron nada.',
 };
 
 /**
@@ -161,7 +162,7 @@ export default function RcsMatrix(): React.JSX.Element {
   const { waFilter } = filters;
   const people = useMemo(() => {
     let list = attendedCount ? ofStore.filter((p) => !isAttended(p.key)) : ofStore;
-    if (ANSWERED.includes(waFilter as WaState)) list = list.filter((p) => waOf(p) === waFilter);
+    if ([...ANSWERED, 'sent'].includes(waFilter as WaState)) list = list.filter((p) => waOf(p) === waFilter);
     return list;
   }, [ofStore, isAttended, attendedCount, waFilter, waOf]);
 
@@ -312,7 +313,7 @@ export default function RcsMatrix(): React.JSX.Element {
               variant="body2"
               color="text.secondary"
             >
-              Órdenes y listas por atender, agrupadas por persona. Lo más urgente arriba.
+              Órdenes y listas por atender, agrupadas por persona.
             </Typography>
           </Box>
 
@@ -446,6 +447,7 @@ export default function RcsMatrix(): React.JSX.Element {
           <WhatsApp sx={{ fontSize: 18, color: 'success.main' }} />
           {[
             { title: 'CONTESTARON', items: ANSWERED_FILTERS, colored: true },
+            { title: 'SIN RESPUESTA', items: [{ value: 'sent' as WaState }], colored: false },
           ].map((group, gi) => (
             <React.Fragment key={group.title}>
               {gi > 0 && <Box sx={{ width: '1px', height: 20, bgcolor: 'divider', mx: 0.75 }} />}
