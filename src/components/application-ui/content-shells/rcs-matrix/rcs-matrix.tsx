@@ -439,24 +439,24 @@ export default function RcsMatrix(): React.JSX.Element {
             "Quitar filtro" aparece sólo cuando hay uno puesto. */}
         <Stack
           direction="row"
-          gap={0.75}
+          gap={0.5}
           alignItems="center"
-          flexWrap="wrap"
           useFlexGap
+          // Una sola línea: en pantallas angostas se desliza de lado en vez de partirse.
+          sx={{ flexWrap: 'nowrap', overflowX: 'auto', pb: 0.25, '& > *': { flexShrink: 0 } }}
         >
-          <WhatsApp sx={{ fontSize: 18, color: 'success.main' }} />
+          <WhatsApp sx={{ fontSize: 16, color: 'success.main' }} />
           {[
             { title: 'CONTESTARON', items: ANSWERED_FILTERS, colored: true },
             { title: 'SIN RESPUESTA', items: [{ value: 'sent' as WaState }], colored: false },
           ].map((group, gi) => (
             <React.Fragment key={group.title}>
-              {gi > 0 && <Box sx={{ width: '1px', height: 20, bgcolor: 'divider', mx: 0.75 }} />}
+              {gi > 0 && <Box sx={{ width: '1px', height: 16, bgcolor: 'divider', mx: 0.5 }} />}
               <Typography
-                variant="caption"
                 fontWeight={700}
                 letterSpacing=".06em"
                 color="text.secondary"
-                sx={{ mr: 0.25 }}
+                sx={{ mr: 0.25, fontSize: 10.5 }}
               >
                 {group.title}
               </Typography>
@@ -483,18 +483,19 @@ export default function RcsMatrix(): React.JSX.Element {
                         opacity: n || on ? 1 : 0.45,
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 0.75,
+                        gap: 0.5,
                         borderRadius: 999,
-                        px: 1.25,
-                        py: 0.5,
-                        fontSize: 12.5,
+                        px: 1,
+                        py: 0.25,
+                        fontSize: 12,
+                        whiteSpace: 'nowrap',
                         fontWeight: 700,
                         border: `1px solid ${on ? color : alpha(color, 0.35)}`,
                         bgcolor: on ? alpha(color, 0.14) : 'transparent',
                         color: on || group.colored ? color : 'text.primary',
                       }}
                     >
-                      {group.colored ? meta.label : meta.short}
+                      {group.colored ? meta.label : 'No ha respondido'}
                       <Box
                         component="span"
                         sx={{ fontVariantNumeric: 'tabular-nums', opacity: 0.8 }}
@@ -511,7 +512,7 @@ export default function RcsMatrix(): React.JSX.Element {
             <Button
               size="small"
               onClick={() => setFilters((f) => ({ ...f, waFilter: 'all' }))}
-              sx={{ textTransform: 'none', fontWeight: 700, ml: 0.5 }}
+              sx={{ textTransform: 'none', fontWeight: 700, fontSize: 12, minWidth: 0, px: 1, py: 0, whiteSpace: 'nowrap' }}
             >
               Quitar filtro
             </Button>
