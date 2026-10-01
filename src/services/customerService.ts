@@ -283,6 +283,72 @@ class CustomerClient {
     return res.data;
   }
 
+  /**
+   * Depuración SIN campaña: Infobip Number Lookup (HLR) sobre los números activos de la
+   * tienda. dryRun = conteo y costo estimado; sin dryRun arranca un job en background
+   * (202) que se sigue con `phoneAuditStatus`. Los muertos se inactivan.
+   */
+  async auditPhones(body: {
+    storeId: string;
+    dryRun: boolean;
+    scope?: PhoneAuditScope;
+    limit?: number;
+  }): Promise<PhoneAuditEstimate | { dryRun: false; job: PhoneAuditJob }> {
+    const res = await api.post('/tracking/phones/audit', body);
+    return res.data;
+  }
+
+  async phoneAuditStatus(storeId: string): Promise<PhoneAuditStatus> {
+    const res = await api.get(`/tracking/phones/audit/${storeId}`);
+    return res.data;
+  }
+
+  async cancelPhoneAudit(storeId: string): Promise<{ ok: boolean }> {
+    const res = await api.post(`/tracking/phones/audit/${storeId}/cancel`);
+    return res.data;
+  }
+
+}
+
+export type PhoneAuditScope = 'unverified' | 'all';
+
+export interface PhoneAuditJob {
+  storeId: string;
+  scope: PhoneAuditScope;
+  status: 'running' | 'done' | 'failed' | 'cancelled';
+  total: number;
+  done: number;
+  valid: number;
+  invalid: number;
+  unknown: number;
+  structureInvalid: number;
+  networks: Record<string, number>;
+  reasons: Record<string, number>;
+  estCostUsd: number;
+  startedAt: string;
+  updatedAt: string;
+  finishedAt: string | null;
+  error: string;
+}
+
+export interface PhoneAuditEstimate {
+  dryRun: true;
+  scope: PhoneAuditScope;
+  total: number;
+  structureInvalid: number;
+  toLookup: number;
+  estCostUsd: number;
+  costPerLookupUsd: number;
+  validated: number;
+  invalidated: number;
+  running: PhoneAuditJob | null;
+}
+
+export interface PhoneAuditStatus {
+  job: PhoneAuditJob | null;
+  validated: number;
+  invalidated: number;
+  unverified: number;
 }
 
 export interface CustomerSearchResult {

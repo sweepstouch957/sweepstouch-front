@@ -12,6 +12,7 @@ import ReactivarPhonesModal from './reactivar-phones-modal';
 import NormalizeFormatModal from './normalize-format-modal';
 import BulkInactivateModal from './bulk-inactivate-modal';
 import AnalisisNumerosModal from './analisis-numeros-modal';
+import AuditoriaNumerosModal from './auditoria-numeros-modal';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   SettingsBackupRestoreRounded,
@@ -19,6 +20,7 @@ import {
   DeleteSweepRounded,
   TroubleshootRounded,
   TuneRounded,
+  VerifiedUserRounded,
 } from '@mui/icons-material';
 
 interface CustomersPanelProps {
@@ -34,6 +36,7 @@ const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName, provider 
   const [openNormalize, setOpenNormalize] = useState(false);
   const [openBulkInactivate, setOpenBulkInactivate] = useState(false);
   const [openAnalisis, setOpenAnalisis] = useState(false);
+  const [openAuditoria, setOpenAuditoria] = useState(false);
   const queryClient = useQueryClient();
 
   const handleImportSuccess = () => {
@@ -91,6 +94,13 @@ const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName, provider 
       color: 'error' as const,
       icon: <TroubleshootRounded />,
       onClick: () => setOpenAnalisis(true),
+    },
+    {
+      label: 'Depuración sin campaña',
+      help: 'Pregunta al carrier (Infobip) qué números existen antes de la primera campaña. Base importada que nunca recibió SMS.',
+      color: 'primary' as const,
+      icon: <VerifiedUserRounded />,
+      onClick: () => setOpenAuditoria(true),
     },
   ];
 
@@ -224,6 +234,17 @@ const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName, provider 
           open
           storeId={storeId}
           onClose={() => setOpenAnalisis(false)}
+          onDone={handleDepurarSuccess}
+        />
+      )}
+
+      {/* Depuración sin campaña: lookup HLR */}
+      {openAuditoria && (
+        <AuditoriaNumerosModal
+          open
+          storeId={storeId}
+          storeName={storeName}
+          onClose={() => setOpenAuditoria(false)}
           onDone={handleDepurarSuccess}
         />
       )}
