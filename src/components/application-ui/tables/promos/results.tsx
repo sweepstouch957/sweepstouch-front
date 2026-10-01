@@ -1,3 +1,4 @@
+import { isVideoUrl } from '@/services/upload.service';
 import { CalendarToday, CampaignOutlined, Close, DeleteRounded, Edit } from '@mui/icons-material';
 import {
   Avatar,
@@ -255,7 +256,7 @@ color="text.disabled">
                       gap={1.5}
                     >
                       <Avatar
-                        src={promo.imageMobile}
+                        src={isVideoUrl(promo.imageMobile) ? undefined : promo.imageMobile}
                         variant="rounded"
                         sx={{
                           width: 52,
@@ -280,7 +281,17 @@ color="text.disabled">
                           loading: 'lazy',
                           alt: promo.title || t('Ad image'),
                         }}
-                      />
+                      >
+                        {isVideoUrl(promo.imageMobile) && (
+                          <video
+                            src={promo.imageMobile}
+                            muted
+                            playsInline
+                            preload="metadata"
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        )}
+                      </Avatar>
                       <Box minWidth={0}>
                         <Typography
                           variant="body2"
@@ -527,10 +538,13 @@ color="text.disabled">
         </DialogTitle>
         <DialogContent sx={{ pt: 0 }}>
           <Box
-            component="img"
+            component={isVideoUrl(currentImage) ? 'video' : 'img'}
             src={currentImage || ''}
             alt={currentTitle}
             loading="lazy"
+            controls={isVideoUrl(currentImage) || undefined}
+            muted
+            playsInline
             sx={{
               width: '100%',
               // Reserva el alto antes de cargar: evita el salto del modal

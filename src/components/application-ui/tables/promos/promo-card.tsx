@@ -1,5 +1,7 @@
 'use client';
 
+import { isVideoUrl } from '@/services/upload.service';
+
 import { CalendarToday, DeleteRounded, Edit, StorefrontOutlined } from '@mui/icons-material';
 import { Box, Card, Chip, IconButton, Stack, Typography, useTheme } from '@mui/material';
 import { format } from 'date-fns';
@@ -49,12 +51,15 @@ export const PromoCard = ({ promo, showStore, onEdit, onDelete, onPreview }: Pro
         direction="row"
         spacing={1.75}
       >
-        {/* La imagen es lo que se está revisando: va grande y se puede ampliar */}
+        {/* La imagen (o video) es lo que se está revisando: va grande y se puede ampliar */}
         <Box
-          component="img"
+          component={isVideoUrl(promo.imageMobile) ? 'video' : 'img'}
           src={promo.imageMobile}
           alt={promo.title || t('Ad image')}
           loading="lazy"
+          muted
+          playsInline
+          preload="metadata"
           onClick={() => onPreview(promo.imageMobile, promo.title)}
           sx={{
             width: 72,

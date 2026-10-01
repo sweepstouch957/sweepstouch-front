@@ -73,8 +73,13 @@ interface CloudinarySignature {
   signature: string;
 }
 
-async function uploadSignedToCloudinary(file: Blob, sig: CloudinarySignature, onProgress?: (pct: number) => void) {
-  const endpoint = `https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`;
+async function uploadSignedToCloudinary(
+  file: Blob,
+  sig: CloudinarySignature,
+  onProgress?: (pct: number) => void,
+  resourceType: 'image' | 'video' = 'image'
+) {
+  const endpoint = `https://api.cloudinary.com/v1_1/${sig.cloudName}/${resourceType}/upload`;
   const uploadId = `art-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const total = file.size;
   let result: any = null;
@@ -178,6 +183,32 @@ export const uploadCampaignArt = async (
     originalUrl: original.secure_url,
     originalPublicId: original.public_id,
   };
+};
+
+// ─── Media de promos / Ads (imagen o VIDEO) ──────────────────────────────────
+// Un video de tablet pesa 20–200 MB: no entra por el proxy (25 MB), sube directo del
+// navegador a Cloudinary con firma (`/upload/sign {kind:"video"}`), en trozos de 10 MB.
+export const PROMO_VIDEO_MAX_BYTES = 200 * 1024 * 1024;
+export const PROMO_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
+
+/** ¿La URL guardada en `imageMobile` es un video? Cloudinary lo entrega bajo /video/upload/. */
+export const isVideoUrl = (url?: string | null) =>
+  !!url && (/\/video\/upload\//.test(url) || /\.(mp4|webm|mov|m4v)(\?|$)/i.test(url));
+
+export const uploadPromoMedia = async (
+  file: File,
+  onProgress?: (pct: number) => void
+): Promise<{ url: string; kind: 'image' | 'video' }> => {
+  const isVideo = PROMO_VIDEO_TYPES.includes(file.type) || /\.(mp4|webm|mov|m4v)$/i.test(file.name);
+  if (!isVideo) {
+    const { url } = await uploadCampaignImage(file, 'promos', onProgress);
+    return { url, kind: 'image' };
+  }
+  if (file.size > PROMO_VIDEO_MAX_BYTES) throw new Error('El video supera los 200 MB.');
+  const { data: sig } = await api.post<CloudinarySignature>('/upload/sign', { kind: 'video' });
+  const up = await uploadSignedToCloudinary(file, sig, onProgress, 'video');
+  // f_auto no aplica a video; se guarda la URL tal cual (mp4/mov/webm) y el kiosco la reproduce.
+  return { url: up.secure_url, kind: 'video' };
 };
 
 // Support evidence — images/PDFs to Cloudinary (folder: support-evidence)

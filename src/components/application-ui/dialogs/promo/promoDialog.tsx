@@ -2,7 +2,6 @@
 
 import { promoService } from '@/services/promo.service';
 import { Sweepstakes } from '@/services/sweepstakes.service';
-import { uploadCampaignImage } from '@/services/upload.service';
 import {
   Alert,
   Button,
@@ -27,7 +26,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useMutation } from '@tanstack/react-query';
 import { formatISO, parseISO } from 'date-fns';
 import React, { useEffect, useState } from 'react';
-import AvatarUploadLogo from '../../upload/avatar/avatar-upload-logo';
+import PromoMediaUpload from '../../upload/promo-media-upload';
 
 interface CreateOrEditPromoModalProps {
   open: boolean;
@@ -171,7 +170,7 @@ export const CreateOrEditPromoModal: React.FC<CreateOrEditPromoModalProps> = ({
     if (!formData.imageMobile) {
       return setSnack({
         open: true,
-        message: 'Debes subir una imagen',
+        message: 'Debes subir una imagen o un video',
         severity: 'error',
       });
     }
@@ -311,21 +310,12 @@ export const CreateOrEditPromoModal: React.FC<CreateOrEditPromoModalProps> = ({
               </Select>
             </FormControl>
 
-            <AvatarUploadLogo
-              label="Imagen"
-              initialUrl={formData.imageMobile}
-              onSelect={async (file) => {
-                if (!file) return;
-                try {
-                  setUploadingImage(true);
-                  const { url } = await uploadCampaignImage(file, 'promos');
-                  handleChange('imageMobile', url);
-                } catch {
-                  setSnack({ open: true, message: 'Error al subir imagen', severity: 'error' });
-                } finally {
-                  setUploadingImage(false);
-                }
-              }}
+            {/* Imagen o video (hasta 200 MB): el video sube directo a Cloudinary. */}
+            <PromoMediaUpload
+              value={formData.imageMobile}
+              onChange={(url) => handleChange('imageMobile', url)}
+              onBusy={setUploadingImage}
+              onError={(message) => setSnack({ open: true, message, severity: 'error' })}
             />
 
             <DatePicker

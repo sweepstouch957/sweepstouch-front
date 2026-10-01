@@ -33,6 +33,8 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline' https://api.mapbox.com",
       "img-src 'self' data: blob: https://res.cloudinary.com https://*.cloudinary.com https://*.mapbox.com https://jsfpovyoaqucwigttyil.supabase.co",
       "font-src 'self' data: https://api.mapbox.com",
+      // Videos de Ads (promos) subidos a Cloudinary: previsualización en el panel.
+      "media-src 'self' blob: https://res.cloudinary.com https://*.cloudinary.com",
       // api.cloudinary.com: el arte pesado de campaña (>24 MB) sube directo del navegador.
       "connect-src 'self' http://localhost:* ws://localhost:* https://*.sweepstouch.com wss://*.sweepstouch.com https://api.mapbox.com https://events.mapbox.com https://api.cloudinary.com",
       "worker-src 'self' blob:",
