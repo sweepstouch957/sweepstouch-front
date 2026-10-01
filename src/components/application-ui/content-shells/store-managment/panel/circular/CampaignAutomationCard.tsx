@@ -6,6 +6,7 @@
  * reintenta si falló y se puede releer el arte a mano.
  */
 import { circularService } from '@/services/circular.service';
+import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
 import EventRoundedIcon from '@mui/icons-material/EventRounded';
 import {
   alpha,
@@ -77,6 +78,23 @@ export default function CampaignAutomationCard({
     () => buildSteps(image ? campaign : null, job.data ?? null),
     [image, campaign, job.data]
   );
+
+  // La lista mostraba productos de un flyer que ya pasó (o le faltaban los del vigente):
+  // misma regla que corre sola cuando cambia el flyer, a mano. Sin diálogo: es reversible
+  // (volver a correrlo o prender el switch en Productos).
+  const fixList = useMutation({
+    mutationFn: () => circularService.syncVisibility(storeSlug),
+    onSuccess: (d) => {
+      toast.success(
+        d.circularId
+          ? `Lista arreglada: ${d.inCircular} productos de "${d.circularTitle}" visibles · ${d.hidden} de flyers viejos ocultados`
+          : `No hay flyer vigente hoy: se ocultaron ${d.hidden} productos de flyers vencidos`,
+        { duration: 7000 }
+      );
+      refresh();
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo arreglar la lista'),
+  });
 
   const retry = useMutation({
     mutationFn: () =>
@@ -215,8 +233,9 @@ export default function CampaignAutomationCard({
             variant="body2"
             color="text.secondary"
           >
-            Al agendar una campaña con arte, la IA lee sus productos y su banner y los suma a la
-            lista con los precios del día de la campaña.
+            Al agendar una campaña, la IA lee los productos y el banner de su arte (o del circular
+            de la tienda si no tiene arte) y los suma a la lista con los precios del día de la
+            campaña. Ese día la lista muestra SOLO ese flyer; el anterior deja de verse.
           </Typography>
         </Box>
         <Stack
@@ -224,6 +243,16 @@ export default function CampaignAutomationCard({
           gap={1}
           flexWrap="wrap"
         >
+          <Button
+            variant="outlined"
+            color="warning"
+            startIcon={<AutoFixHighRoundedIcon />}
+            disabled={fixList.isPending || busy}
+            onClick={() => fixList.mutate()}
+            title="Si la lista muestra productos de un flyer viejo o le faltan los del vigente: deja visibles sólo los del flyer de hoy"
+          >
+            {fixList.isPending ? 'Arreglando…' : 'Arreglar productos de la lista'}
+          </Button>
           {upcomingCount > 0 && (
             <Button
               variant="outlined"

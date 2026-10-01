@@ -469,13 +469,17 @@ export class CircularService {
     return saved;
   }
 
-  /** Deja visibles en el Pre-RCS SOLO los productos del último circular; oculta el resto. */
+  /** "Arreglar productos de la lista": vuelca los precios que ya llegaron a su fecha y deja
+   *  visibles en el Pre-RCS SOLO los productos del flyer VIGENTE (el que cubre hoy); oculta el
+   *  resto. Sin flyer vigente (`circularId` null) oculta lo que vino de un flyer vencido. */
   async syncVisibility(storeSlug: string): Promise<{
     ok: boolean;
+    circularId: string | null;
     circularTitle: string;
     inCircular: number;
     shown: number;
     hidden: number;
+    applied: number;
   }> {
     const res = await api.post(`/circulars/store/${storeSlug}/sync-visibility`);
     return res.data;

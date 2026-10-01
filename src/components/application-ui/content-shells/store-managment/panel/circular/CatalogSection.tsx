@@ -287,7 +287,9 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
     mutationFn: () => circularService.syncVisibility(storeSlug),
     onSuccess: (d) => {
       toast.success(
-        `"${d.circularTitle}": ${d.inCircular} del circular visibles · ${d.hidden} ocultados`
+        d.circularId
+          ? `"${d.circularTitle}": ${d.inCircular} del flyer visibles · ${d.hidden} ocultados`
+          : `Sin flyer vigente hoy: ${d.hidden} productos de flyers vencidos ocultados`
       );
       setSyncOpen(false);
       qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) });
