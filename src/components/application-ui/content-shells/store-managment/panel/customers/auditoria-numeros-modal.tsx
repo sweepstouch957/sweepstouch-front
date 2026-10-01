@@ -239,9 +239,35 @@ export default function AuditoriaNumerosModal({ open, storeId, storeName, onClos
             )}
             {estimate && (
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                Referencia {usd(estimate.costPerLookupUsd)} por consulta. Los de estructura
-                inválida se inactivan gratis, sin consultar.
+                Referencia {usd(estimate.costPerLookupUsd)} por consulta. "Estructura inválida" =
+                no parece un teléfono de EE. UU. (555, toll-free, dígitos repetidos); se
+                inactivan gratis. Que la estructura esté bien NO dice si el número existe: eso
+                lo responde el carrier.
               </Typography>
+            )}
+            {estimate && (estimate.sampleInvalid?.length > 0 || estimate.sampleLookup?.length > 0) && (
+              <Stack direction={{ xs: 'column', sm: 'row' }} gap={2} mt={1.5}>
+                {estimate.sampleInvalid?.length > 0 && (
+                  <Box flex={1}>
+                    <Typography variant="body2" fontWeight={600}>
+                      Ejemplos con estructura inválida
+                    </Typography>
+                    <Typography variant="body2" color="error.main" sx={{ fontFamily: 'monospace' }}>
+                      {estimate.sampleInvalid.join(' · ')}
+                    </Typography>
+                  </Box>
+                )}
+                {estimate.sampleLookup?.length > 0 && (
+                  <Box flex={1}>
+                    <Typography variant="body2" fontWeight={600}>
+                      Ejemplos que van a consulta
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+                      {estimate.sampleLookup.join(' · ')}
+                    </Typography>
+                  </Box>
+                )}
+              </Stack>
             )}
           </>
         )}

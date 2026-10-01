@@ -341,6 +341,9 @@ export interface PhoneAuditEstimate {
   costPerLookupUsd: number;
   validated: number;
   invalidated: number;
+  /** Hasta 10 ejemplos de cada lado, para mirar a ojo. */
+  sampleInvalid: string[];
+  sampleLookup: string[];
   running: PhoneAuditJob | null;
 }
 
