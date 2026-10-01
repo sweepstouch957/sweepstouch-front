@@ -15,8 +15,10 @@ export const PLACEHOLDERS: readonly PlaceholderDef[] = [
     key: '#name',
     label: 'Nombre del cliente — personalizado para cada uno; si no tiene, se omite',
   },
-  { key: '#storeName', label: 'Nombre de la tienda' },
-  { key: '#address', label: 'Dirección de la tienda' },
+  { key: '#storeName', label: 'Nombre de la tienda con dirección' },
+  // Marca sola y calle sola: "Super Supermarket" / "31 Memorial Dr, Paterson, NJ 07505".
+  { key: '#brand', label: 'Nombre de la tienda sin dirección (ej. Super Supermarket)' },
+  { key: '#address', label: 'Sólo la dirección (ej. 31 Memorial Dr, Paterson, NJ 07505)' },
   // Ocultos por ahora (sep 2026): no se usan en las campañas nuevas. El backend los sigue
   // reemplazando si una campaña vieja los tiene; para volver a ofrecerlos, descomentar.
   // { key: '#referralLink', label: 'Link de referido' },
@@ -37,3 +39,19 @@ export const PLACEHOLDERS: readonly PlaceholderDef[] = [
   },
   { key: '#ahorro', label: 'Ahorro semanal de la tienda ($)' },
 ];
+
+/**
+ * Marca y calle de una tienda (misma regla que campaign-service utils/storeIdentity.js):
+ * "Super Supermarket 31 Memorial Dr, Paterson, NJ 07505, USA" → "Super Supermarket" /
+ * "31 Memorial Dr, Paterson, NJ 07505". Para las vistas previas del panel.
+ */
+export function storeBrandOf(name?: string): string {
+  const n = String(name || '').trim();
+  const m = n.match(/^(.*?\D)\s+(\d[\s\S]*)$/);
+  return (m ? m[1] : n).trim();
+}
+export function storeStreetOf(address?: string): string {
+  const src = String(address || '').trim();
+  const m = src.match(/(^|\s)(\d[\s\S]*)$/);
+  return (m ? m[2] : src).replace(/,?\s*USA\s*$/i, '').trim();
+}

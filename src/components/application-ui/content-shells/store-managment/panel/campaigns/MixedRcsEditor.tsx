@@ -23,6 +23,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useRef } from 'react';
+import { storeBrandOf, storeStreetOf } from './messaging/placeholders';
 
 export type MixedRcsCustom = {
   greeting: string;
@@ -108,7 +109,8 @@ const TOKENS = [
   { key: '#listlink', label: 'Link único de su lista' },
   { key: '#linklogin', label: 'Link de ofertas — con la sesión del cliente' },
   { key: '#ahorro', label: 'Ahorro de la semana' },
-  { key: '#address', label: 'Dirección de la tienda' },
+  { key: '#address', label: 'Sólo la dirección' },
+  { key: '#brand', label: 'Nombre sin dirección' },
   { key: '#store', label: 'Nombre de la tienda' },
   { key: '#message', label: 'Texto del SMS/MMS' },
 ];
@@ -146,7 +148,7 @@ export function buildMixedPreview({
     const vals: Record<string, string> = {
       '#ahorro': hasProducts ? '$12.50' : '',
       '#listlink': listOn ? 'swtrcs.com/s/XXXXXX' : '',
-      '#address': (storeAddress || '').trim(),
+      '#address': storeStreetOf(storeAddress),
     };
     const kept: string[] = [];
     for (const line of tpl.split('\n')) {
@@ -162,6 +164,7 @@ export function buildMixedPreview({
       .join('\n')
       .replace(/#name/gi, 'Maria')
       .replace(/#store/gi, storeName || 'Tu tienda')
+      .replace(/#brand(?![a-z])/gi, storeBrandOf(storeName) || 'Tu tienda')
       .replace(/#ahorro/gi, vals['#ahorro'])
       .replace(/#listlink/gi, vals['#listlink'])
       .replace(/#address/gi, vals['#address'])
