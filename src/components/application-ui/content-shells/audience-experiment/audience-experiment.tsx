@@ -1,9 +1,9 @@
 'use client';
 
 /**
- * Experimento de audiencia. Es una SIMULACIÓN: calcula cuánto crecerían las tiendas chicas
- * sumándoles N números por semana de unas tiendas fuente, y cuánto más se facturaría.
- * No agrega clientes, no toca audiencias ni campañas, no envía ni cobra nada.
+ * Relleno de audiencia. Lo que una tienda pierde por depuración en el mes se repone
+ * (+extra %) con clientes de tiendas fuente dadas de baja, repartido día a día. Los
+ * agregados quedan marcados como clientes INDIRECTOS de la tienda y se pueden deshacer.
  */
 
 import { EmptyBlock, PageHero, PanelCard } from '@/components/application-ui/content-shells/store-managment/panel-kit';
@@ -23,14 +23,34 @@ export default function AudienceExperiment() {
     queryFn: audienceExperimentService.get,
     staleTime: 60_000,
   });
+  const invalidate = () => qc.invalidateQueries({ queryKey: KEY });
 
   const save = useMutation({
     mutationFn: (dto: SaveAudienceExperimentDto) => audienceExperimentService.save(dto),
     onSuccess: () => {
       toast.success('Configuración guardada');
-      qc.invalidateQueries({ queryKey: KEY });
+      invalidate();
     },
     onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo guardar'),
+  });
+
+  const run = useMutation({
+    mutationFn: audienceExperimentService.run,
+    onSuccess: (r) => {
+      const n = r.stores.reduce((a, s) => a + s.addedToday, 0);
+      toast.success(n ? `Se agregaron ${n.toLocaleString('es')} referidos` : 'Hoy no había nada que reponer');
+      invalidate();
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo correr'),
+  });
+
+  const undo = useMutation({
+    mutationFn: ({ storeId, period }: { storeId: string; period?: string }) => audienceExperimentService.undo(storeId, period),
+    onSuccess: (n) => {
+      toast.success(`Se quitaron ${n.toLocaleString('es')} referidos`);
+      invalidate();
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo deshacer'),
   });
 
   const cfg = data?.config;
@@ -39,12 +59,12 @@ export default function AudienceExperiment() {
     <Box sx={{ maxWidth: 1280, mx: 'auto', px: { xs: 1.5, sm: 3 }, py: { xs: 1.5, sm: 3 } }}>
       <Stack gap={2}>
         <PageHero
-          eyebrow="Campañas · Experimento"
-          title="Crecimiento de audiencia"
+          eyebrow="Campañas · Audiencia"
+          title="Relleno de audiencia"
           subtitle={
             cfg
-              ? `Tiendas con menos de ${cfg.threshold.toLocaleString('es')} números reciben +${cfg.weeklyPerStore.toLocaleString('es')} por semana, tomados parejo de las tiendas fuente.`
-              : 'Cuánto crecerían las tiendas chicas y cuánto más se facturaría.'
+              ? `Lo que una tienda (con menos de ${cfg.threshold.toLocaleString('es')} números) pierde por depuración en el mes se repone +${cfg.extraPct}% con referidos tomados de las tiendas fuente, repartido día a día.`
+              : 'Repone lo depurado con referidos de tiendas dadas de baja.'
           }
         />
 
@@ -62,7 +82,7 @@ export default function AudienceExperiment() {
             />
           </>
         ) : isError || !cfg ? (
-          <Alert severity="error">No se pudo cargar el experimento.</Alert>
+          <Alert severity="error">No se pudo cargar el relleno de audiencia.</Alert>
         ) : (
           <>
             <ConfigCard
@@ -75,17 +95,18 @@ export default function AudienceExperiment() {
               {data?.result ? (
                 <ResultsView
                   result={data.result}
-                  weekly={cfg.weeklyPerStore}
+                  active={cfg.active}
+                  ranToday={cfg.lastRunDay === data.result.day}
+                  running={run.isPending}
+                  onRun={() => run.mutate()}
+                  undoing={undo.isPending}
+                  onUndo={(storeId, period) => undo.mutate({ storeId, period })}
                 />
               ) : (
                 <PanelCard>
                   <EmptyBlock
-                    title={cfg.active ? 'Faltan datos' : 'Experimento apagado'}
-                    hint={
-                      cfg.active
-                        ? 'Elige al menos una tienda fuente y la fecha de inicio, y guarda.'
-                        : 'Elige las tiendas fuente, enciéndelo y guarda para ver la simulación.'
-                    }
+                    title="Faltan datos"
+                    hint="Elige al menos una tienda fuente y guarda."
                   />
                 </PanelCard>
               )}

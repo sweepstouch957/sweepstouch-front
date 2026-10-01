@@ -26,7 +26,7 @@ type FormValues = {
   active: boolean;
   sources: StoreOpt[];
   threshold: number;
-  weeklyPerStore: number;
+  extraPct: number;
   startDate: string;
 };
 
@@ -44,7 +44,7 @@ export function ConfigCard({
       active: config.active,
       sources: (config.sources ?? []).map((s) => ({ _id: s.storeId, name: s.name })),
       threshold: config.threshold,
-      weeklyPerStore: config.weeklyPerStore,
+      extraPct: config.extraPct ?? 2,
       startDate: config.startDate ? config.startDate.slice(0, 10) : new Date().toISOString().slice(0, 10),
     },
   });
@@ -57,12 +57,12 @@ export function ConfigCard({
       active: v.active,
       sourceStoreIds: v.sources.map((s) => s._id),
       threshold: Number(v.threshold),
-      weeklyPerStore: Number(v.weeklyPerStore),
+      extraPct: Number(v.extraPct),
       startDate: v.startDate ? new Date(`${v.startDate}T00:00:00`).toISOString() : null,
     });
 
   const { ref: thrRef, ...thr } = register('threshold', { required: true, min: 100, valueAsNumber: true });
-  const { ref: wkRef, ...wk } = register('weeklyPerStore', { required: true, min: 1, max: 5000, valueAsNumber: true });
+  const { ref: wkRef, ...wk } = register('extraPct', { required: true, min: 0, max: 100, valueAsNumber: true });
   const { ref: dtRef, ...dt } = register('startDate', { required: true });
 
   return (
@@ -142,9 +142,9 @@ export function ConfigCard({
             inputRef={wkRef}
             type="number"
             size="small"
-            label="Números por semana"
-            helperText="a cada tienda"
-            error={!!formState.errors.weeklyPerStore}
+            label="Extra sobre lo depurado"
+            helperText="% — 500 depurados + 2% = 510"
+            error={!!formState.errors.extraPct}
           />
           <TextField
             {...dt}
@@ -153,7 +153,7 @@ export function ConfigCard({
             size="small"
             label="Empieza"
             InputLabelProps={{ shrink: true }}
-            helperText="la semana 1 suma ese día"
+            helperText="las depuraciones anteriores no cuentan"
             error={!!formState.errors.startDate}
           />
         </Box>
@@ -178,7 +178,7 @@ export function ConfigCard({
                 }
                 label={
                   <Typography sx={{ fontSize: 14, fontWeight: 600 }}>
-                    {field.value ? 'Experimento encendido' : 'Experimento apagado'}
+                    {field.value ? 'Relleno encendido (corre solo cada día)' : 'Relleno apagado'}
                   </Typography>
                 }
               />

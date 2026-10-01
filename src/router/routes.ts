@@ -179,7 +179,7 @@ export const routes = {
         mms: '/admin/management/mms',
         rcs: '/admin/management/rcs',
         optin: '/admin/management/campaings/optin',
-        // Experimento de audiencia: simulación de crecimiento de tiendas chicas.
+        // Relleno de audiencia: repone lo depurado del mes con clientes indirectos de tiendas fuente.
         'audience-experiment': '/admin/management/campaings/audience-experiment',
         // Matriz RCS: el árbol de llamadas del día — órdenes de todas las
         // tiendas con los datos de contacto de cada cliente.
