@@ -10,6 +10,8 @@ import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import SmsOutlinedIcon from '@mui/icons-material/SmsOutlined';
+import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
+import ReviewSection from './ReviewSection';
 import { Alert, Box, Chip, Stack, Tab, Tabs, Typography } from '@mui/material';
 import { useCallback, useState } from 'react';
 import CampaignAutomationCard from './CampaignAutomationCard';
@@ -127,11 +129,6 @@ export default function StoreCircularPanel({
           storeSlug={storeSlug}
         />
       </Stack>
-      <ListsPhoneCard
-        storeId={storeId}
-        listsPhone={listsPhone}
-        listsPhoneEnabled={listsPhoneEnabled}
-      />
       <Tabs
         value={tab}
         onChange={(_, v) => setTab(v)}
@@ -185,6 +182,11 @@ export default function StoreCircularPanel({
           iconPosition="start"
           label="Mensajes"
         />
+        <Tab
+          icon={<AutoAwesomeOutlinedIcon fontSize="small" />}
+          iconPosition="start"
+          label="Revisión IA"
+        />
       </Tabs>
 
       {/* Sólo se monta la pestaña abierta: las demás no piden datos ni renderizan. */}
@@ -212,6 +214,15 @@ export default function StoreCircularPanel({
           address={address}
         />
       )}
+      {tab === 6 && <ReviewSection storeSlug={storeSlug} />}
+      {/* El teléfono de las listas va al final (pedido del 2 oct 2026). */}
+      <Box sx={{ mt: 3 }}>
+        <ListsPhoneCard
+          storeId={storeId}
+          listsPhone={listsPhone}
+          listsPhoneEnabled={listsPhoneEnabled}
+        />
+      </Box>
     </Box>
   );
 }

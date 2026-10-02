@@ -1,6 +1,45 @@
 // services/circulars.service.ts
 import { api } from '@/libs/axios';
 
+export interface ProductReviewItem {
+  _id: string;
+  key: string;
+  name: string;
+  page: number;
+  kind: 'price' | 'name' | 'fineprint' | 'duplicate';
+  confidence: number;
+  current: Record<string, any>;
+  proposed: Record<string, any>;
+  evidence: string;
+  status: 'open' | 'auto' | 'applied' | 'ignored';
+  appliedAt?: string | null;
+  createdAt: string;
+}
+
+export interface ProductReviewRun {
+  _id: string;
+  trigger: 'cron' | 'manual';
+  startedAt: string;
+  finishedAt: string | null;
+  error: string;
+  circulars: Array<{ id: string; title: string; pages: number; products: number; fromCampaign: boolean }>;
+  pagesChecked: number;
+  productsChecked: number;
+  autoApplied: number;
+  open: number;
+  visibility: { applied: number; shown: number; hidden: number; flyers: string } | null;
+  duplicates: number;
+  missingPhotos: number;
+}
+
+export interface ProductReviewState {
+  ok: boolean;
+  run: ProductReviewRun | null;
+  open: ProductReviewItem[];
+  recent: ProductReviewItem[];
+  autoConfidence: number;
+}
+
 export type CircularStatus = 'draft' | 'scheduled' | 'active' | 'expired' | 'archived';
 
 export interface Circular {
@@ -56,6 +95,8 @@ export interface StoreProduct {
   onPromotion?: boolean;
   hasOffer?: boolean;
   visibleInRcs?: boolean;
+  /** De dónde entró: arte de campaña, circular o cargado a mano. */
+  source?: 'flyer' | 'circular' | 'manual' | '';
   position?: number;
   updatedAt?: string;
   /** Viene de un flyer que todavía no empezó: rige desde esta fecha, no hoy. */
@@ -215,10 +256,19 @@ export class CircularService {
 
   /** `aiImages: false` = no limpiar las imágenes con IA ahora (es lo caro: una generación
    *  por producto). Quedan los recortes y se limpian después desde Productos. */
-  async extractProducts(circularId: string, maxProducts?: number, opts?: { aiImages?: boolean }): Promise<any> {
+  /** `guidance` = indicaciones para la IA ("sólo productos Cherry Valley"); `referenceImages` =
+   *  fotos de apoyo (una lista escrita a mano, por ejemplo). El guardado es incremental en el
+   *  servidor: aunque la espera se corte, lo leído queda. */
+  async extractProducts(
+    circularId: string,
+    maxProducts?: number,
+    opts?: { aiImages?: boolean; guidance?: string; referenceImages?: string[] }
+  ): Promise<any> {
     const res = await api.post(`/circulars/${circularId}/extract-products`, {
       maxProducts: maxProducts || 0,
       ...(opts?.aiImages === false ? { aiImages: false } : {}),
+      ...(opts?.guidance?.trim() ? { guidance: opts.guidance.trim() } : {}),
+      ...(opts?.referenceImages?.length ? { referenceImages: opts.referenceImages } : {}),
     });
     return res.data;
   }
@@ -467,6 +517,28 @@ export class CircularService {
       throw new Error('Las posiciones se guardaron, pero la API de listas todavía no devuelve los productos en ese orden.');
     }
     return saved;
+  }
+
+  /* ── Revisión IA de productos (circular-service /review) ── */
+  async getProductReview(storeSlug: string): Promise<ProductReviewState> {
+    const res = await api.get(`/circulars/review/store/${storeSlug}`);
+    return res.data;
+  }
+  async runProductReview(storeSlug: string): Promise<{ ok: boolean }> {
+    const res = await api.post(`/circulars/review/store/${storeSlug}/run`, {});
+    return res.data;
+  }
+  async applySafeReviews(storeSlug: string): Promise<{ ok: boolean; applied: number }> {
+    const res = await api.post(`/circulars/review/store/${storeSlug}/apply-safe`, {});
+    return res.data;
+  }
+  async applyReview(id: string): Promise<{ ok: boolean }> {
+    const res = await api.post(`/circulars/review/${id}/apply`, {});
+    return res.data;
+  }
+  async ignoreReview(id: string): Promise<{ ok: boolean }> {
+    const res = await api.post(`/circulars/review/${id}/ignore`, {});
+    return res.data;
   }
 
   /** "Arreglar productos de la lista": vuelca los precios que ya llegaron a su fecha y deja

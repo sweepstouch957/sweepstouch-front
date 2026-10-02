@@ -869,6 +869,16 @@ const CatalogRow = memo(function CatalogRow({
                 )}
               </Stack>
             )}
+            {/* Tag de origen: flyer de campaña / circular / manual. */}
+            {p.source && (
+              <Chip
+                size="small"
+                variant="outlined"
+                color={p.source === 'flyer' ? 'secondary' : p.source === 'circular' ? 'primary' : 'default'}
+                label={p.source === 'flyer' ? 'Flyer' : p.source === 'circular' ? 'Circular' : 'Manual'}
+                sx={{ height: 18, fontSize: 11, mr: 0.5 }}
+              />
+            )}
             {/* Producto de un flyer que todavía no arrancó: el catálogo ya lo tiene,
                           pero recién rige desde esa fecha. Sin este aviso parecía vigente hoy. */}
             {p.effectiveFrom && (

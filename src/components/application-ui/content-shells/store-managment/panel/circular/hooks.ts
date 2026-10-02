@@ -132,8 +132,8 @@ export function useExtractProducts(storeSlug: string) {
   const refresh = useRefreshStoreData(storeSlug);
   return useMutation({
     mutationKey: mk.extract(storeSlug),
-    mutationFn: ({ id, max }: { id: string; max: number }) =>
-      circularService.extractProducts(id, max),
+    mutationFn: ({ id, max, guidance, referenceImages }: { id: string; max: number; guidance?: string; referenceImages?: string[] }) =>
+      circularService.extractProducts(id, max, { guidance, referenceImages }),
     onSuccess: (d: any) => {
       toast.success(
         `IA: ${

@@ -22,6 +22,8 @@ import {
   Typography,
 } from '@mui/material';
 import { useState } from 'react';
+import { uploadCampaignImage } from '@/services/upload.service';
+import toast from 'react-hot-toast';
 import {
   productCount,
   useAddMissing,
@@ -56,6 +58,56 @@ export default function WeeklyCircularCard({ storeId, storeSlug, storeName, onPr
   const addMissing = useAddMissing(storeSlug);
   const loadCatalog = useLoadCatalog(storeSlug);
   const preview = useCircularPreview(onPreview);
+
+  // Indicaciones para la IA antes del escaneo ("sólo productos Cherry Valley") y una foto de
+  // apoyo opcional (una lista escrita a mano). Van en cada extracción de este circular.
+  const [guidance, setGuidance] = useState('');
+  const [refUrl, setRefUrl] = useState('');
+  const [uploadingRef, setUploadingRef] = useState(false);
+  const extractArgs = { guidance, referenceImages: refUrl ? [refUrl] : [] };
+  const attachRef = async (file?: File | null) => {
+    if (!file) return;
+    setUploadingRef(true);
+    try {
+      const { url } = await uploadCampaignImage(file, 'circular-refs');
+      setRefUrl(url);
+    } catch {
+      toast.error('No se pudo subir la foto de referencia');
+    } finally {
+      setUploadingRef(false);
+    }
+  };
+  const guidanceFields = (
+    <Stack gap={1} sx={{ mt: 1.5 }}>
+      <TextField
+        size="small"
+        fullWidth
+        multiline
+        minRows={2}
+        label="Indicaciones para la IA (opcional)"
+        placeholder="Ej.: sólo los productos de Cherry Valley; ignora las bebidas"
+        value={guidance}
+        onChange={(e) => setGuidance(e.target.value.slice(0, 500))}
+        helperText="Se le dice al modelo qué buscar antes de leer el circular. Lo leído se va guardando página por página."
+      />
+      <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
+        <Button component="label" size="small" variant="outlined" disabled={uploadingRef}>
+          {uploadingRef ? 'Subiendo…' : refUrl ? 'Cambiar foto de referencia' : 'Adjuntar foto de referencia'}
+          <input hidden type="file" accept="image/*" onChange={(e) => void attachRef(e.target.files?.[0])} />
+        </Button>
+        {refUrl && (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={refUrl} alt="" style={{ height: 40, borderRadius: 6, border: '1px solid #e5e5e5' }} />
+            <Button size="small" color="inherit" onClick={() => setRefUrl('')}>Quitar</Button>
+          </>
+        )}
+        <Typography variant="body2" color="text.secondary">
+          Una lista escrita a mano o una foto de los productos que te interesan.
+        </Typography>
+      </Stack>
+    </Stack>
+  );
 
   // "Los primeros X" = los de foto grande (rápido, recortes limpios). 0 = todos de una.
   const [max, setMax] = useState(20);
@@ -238,12 +290,13 @@ export default function WeeklyCircularCard({ storeId, storeSlug, storeName, onPr
             <Button
               variant="contained"
               disabled={busy}
-              onClick={() => extract.mutate({ id: circular._id, max })}
+              onClick={() => extract.mutate({ id: circular._id, max, ...extractArgs })}
             >
               {extracting ? 'Extrayendo…' : 'Extraer productos'}
             </Button>
           </Stack>
         )}
+        {!busy && guidanceFields}
         {(loading || busy) && <LinearProgress sx={{ borderRadius: 1 }} />}
       </Stack>
 
@@ -270,6 +323,7 @@ export default function WeeklyCircularCard({ storeId, storeSlug, storeName, onPr
             fullWidth
             label="Cantidad"
           />
+          {guidanceFields}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setReextractOpen(false)}>Cancelar</Button>
@@ -278,7 +332,7 @@ export default function WeeklyCircularCard({ storeId, storeSlug, storeName, onPr
             color="warning"
             onClick={() => {
               setReextractOpen(false);
-              extract.mutate({ id: circular._id, max });
+              extract.mutate({ id: circular._id, max, ...extractArgs });
             }}
           >
             Sí, volver a extraer
