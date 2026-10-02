@@ -48,13 +48,18 @@ export function useStoreCirculars(storeSlug: string) {
     staleTime: FRESH,
   });
   const derived = useMemo(() => {
-    const items: Circular[] = query.data?.items ?? [];
+    const all: Circular[] = query.data?.items ?? [];
+    // El arte de una campaña NO es un circular: es un flyer (va aparte, en Automático).
+    // El circular de la semana es siempre el PDF.
+    const isFlyer = (c: Circular) => c.fileKey === 'campaign' || !!c.campaign;
+    const items = all.filter((c) => !isFlyer(c));
+    const flyers = all.filter(isFlyer);
     // Vigente = el activo; si no hay, el próximo agendado. "Arriba" también cae al último.
     const current =
       items.find((c) => c.status === 'active') ||
       items.find((c) => c.status === 'scheduled') ||
       null;
-    return { items, current, top: current || items[0] || null, hasCurrent: !!current };
+    return { items, flyers, current, top: current || items[0] || null, hasCurrent: !!current };
   }, [query.data]);
   return { ...derived, isLoading: query.isLoading };
 }

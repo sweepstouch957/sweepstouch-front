@@ -314,7 +314,7 @@ function ScheduleForm({ storeSlug }: { storeSlug: string }) {
               ? `${files.length} archivos (páginas), en este orden:`
               : file
                 ? file.name
-                : 'Arrastra el PDF o la imagen (o varias páginas sueltas), o haz clic'}
+                : 'Arrastra el PDF del circular (o sus páginas sueltas), o haz clic'}
           </Typography>
           <Typography
             variant="body2"
@@ -325,7 +325,7 @@ function ScheduleForm({ storeSlug }: { storeSlug: string }) {
               ? `${(files.reduce((n, f) => n + f.size, 0) / 1048576).toFixed(1)} MB en total · se leen en este orden como un solo circular`
               : file
                 ? `${(file.size / 1048576).toFixed(1)} MB · la IA extrae los productos al agendar`
-                : 'Opcional: sin archivo queda agendado y se adjunta después. Si te mandan el circular por páginas, soltalas todas juntas.'}
+                : 'El circular siempre es PDF. Si te lo mandan por páginas, soltalas todas juntas. Las fotos del cliente van abajo, como referencia.'}
           </Typography>
         </Box>
         {file && (
@@ -343,7 +343,7 @@ function ScheduleForm({ storeSlug }: { storeSlug: string }) {
         <input
           hidden
           type="file"
-          accept="application/pdf,image/*"
+          accept="application/pdf"
           multiple
           onChange={(e) => {
             addFiles(e.target.files);

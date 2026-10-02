@@ -47,8 +47,11 @@ export interface Circular {
   store: string; // ObjectId
   storeSlug: string;
   title: string;
-  /** "campaign" = lo creó el import automático de una campaña. */
+  /** "campaign" = lo creó el import automático de una campaña (es un FLYER, no un circular). */
   fileKey: string;
+  campaign?: string | null;
+  /** Circular subido por páginas sueltas (PDF por página), en orden. */
+  files?: Array<{ key: string; url: string; name?: string }>;
   fileUrl: string;
   startDate: string; // ISO
   endDate: string; // ISO
