@@ -24,8 +24,7 @@ export const BASE_TEMPLATES: readonly BaseTemplate[] = [
     key: 'rcs-pilot-session',
     name: 'RCS piloto · especiales de la semana (link con sesión)',
     channel: 'mixed',
-    // Con nombre y correo, #linklogin abre su panel Mi cuenta con la sesión; sólo con
-    // nombre, la portada con sesión. El titular se arma con el título de la campaña.
+    // #linklogin = linktree con la sesión del cliente. El titular se arma con el título de la campaña.
     content:
       '#brand 🛒#n#n🍁 #title 🍂#n#nHi #name 👋#nStart saving 💰 and earning points ⭐#n👉 #linklogin#n#n📍 Address: #address#n#n#disclaimer',
   },

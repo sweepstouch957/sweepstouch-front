@@ -107,7 +107,7 @@ export function mixedTemplateFromCustom(c: MixedRcsCustom): Record<string, unkno
 const TOKENS = [
   { key: '#name', label: 'Nombre del cliente' },
   { key: '#listlink', label: 'Link único de su lista' },
-  { key: '#linklogin', label: 'Link con sesión: su panel Mi cuenta (nombre + correo) o la portada' },
+  { key: '#linklogin', label: 'Linktree con la sesión del cliente (sin código)' },
   { key: '#ahorro', label: 'Ahorro de la semana' },
   { key: '#address', label: 'Sólo la dirección' },
   { key: '#brand', label: 'Nombre sin dirección' },

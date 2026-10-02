@@ -1,10 +1,9 @@
 'use client';
 
 /**
- * "A dónde llevó el link": cuántos clientes recibieron el link directo a su panel Mi cuenta
- * (tienen nombre y correo), cuántos la portada de la tienda con la sesión iniciada (sólo
- * nombre) y cuántos un link normal. Es la regla del scheduler (loginUrlFor) aplicada a la
- * audiencia de hoy: una foto, no el registro exacto del envío.
+ * "A dónde llevó el link": cuántos clientes con nombre recibieron el RCS con la portada de
+ * la tienda y su sesión iniciada, y cuántos el mensaje normal. Es la regla del scheduler
+ * (loginUrlFor) aplicada a la audiencia de hoy: una foto, no el registro exacto del envío.
  */
 import type { SessionLinkSplit } from '@/services/campaing.service';
 import { Stack, Typography, useTheme } from '@mui/material';
@@ -35,23 +34,16 @@ export function SessionLinksCard({ data }: { data: SessionLinkSplit }) {
     >
       <AutoGrid min={220} gap={2.5}>
         <Row
-          color={theme.palette.success.main}
-          title="A su panel Mi cuenta"
-          help="Tienen nombre y correo: el link abre su dashboard con la sesión ya iniciada."
-          value={data.dashboard}
-          total={data.total}
-        />
-        <Row
           color={theme.palette.primary.main}
-          title="A la tienda, con sesión"
-          help="Sólo tienen nombre: abren la portada ya identificados y ahí se les pide el correo."
+          title="RCS con su sesión"
+          help="Tienen nombre: reciben el RCS y el link abre la tienda ya identificados (sin código)."
           value={data.linktree}
           total={data.total}
         />
         <Row
           color={theme.palette.text.disabled}
-          title="Link normal"
-          help="Sin nombre usable: reciben el SMS de siempre, sin sesión personal."
+          title="Mensaje normal"
+          help="Sin nombre usable: reciben el SMS o MMS de siempre."
           value={data.plain}
           total={data.total}
         />

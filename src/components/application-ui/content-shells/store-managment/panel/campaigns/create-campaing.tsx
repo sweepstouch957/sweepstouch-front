@@ -789,8 +789,8 @@ export default function CreateCampaignForm({
               </Box>
 
               {/* Piloto mixed (oct 2026): la campaña sale igual que siempre, pero TODOS los
-                  clientes CON nombre reciben un RCS "Hi Nombre!" con botón a su sesión (/me si
-                  tienen correo, portada si no); mismo SMS como failover. */}
+                  clientes CON nombre reciben un RCS "Hi Nombre!" con botón al linktree con su
+                  sesión; mismo SMS como failover. */}
               <Box sx={paneSx('rcs')}>
                 <Stack
                   direction={{ xs: 'column', sm: 'row' }}
@@ -821,10 +821,9 @@ export default function CreateCampaignForm({
                       color="text.secondary"
                       sx={{ maxWidth: 780, mt: 0.5 }}
                     >
-                      Todos los clientes con nombre reciben un RCS con su nombre y un botón; el resto,
-                      el SMS o MMS normal. Si el teléfono no tiene RCS, les llega el SMS igual. El link
-                      con sesión (#linklogin) abre su panel Mi cuenta si tienen nombre y correo; si sólo
-                      tienen nombre, la portada de la tienda con la sesión iniciada. El costo no cambia.
+                      Todos los clientes con nombre reciben un RCS con su nombre y un botón al linktree
+                      con su sesión iniciada (#linklogin); el resto, el SMS o MMS normal. Si el teléfono
+                      no tiene RCS, les llega el SMS igual. El costo no cambia.
                     </Typography>
                   </Box>
                   {channel === 'mixed' && (
