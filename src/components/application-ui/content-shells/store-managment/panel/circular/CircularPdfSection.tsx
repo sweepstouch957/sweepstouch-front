@@ -178,12 +178,21 @@ function ImportFromLink({
   );
 }
 
+/** Hoy y hoy + 7 días en YYYY-MM-DD (hora local del navegador). */
+function defaultRange() {
+  const iso = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  const today = new Date();
+  const week = new Date(today.getTime() + 7 * 86400000);
+  return { start: iso(today), end: iso(week) };
+}
+
 function ScheduleForm({ storeSlug }: { storeSlug: string }) {
   const qc = useQueryClient();
   const extract = useExtractProducts(storeSlug);
   const [title, setTitle] = useState('');
-  const [start, setStart] = useState('');
-  const [end, setEnd] = useState('');
+  // Por defecto: hoy → hoy + 7 días (lo normal es agendar el circular de esta semana).
+  const [start, setStart] = useState(defaultRange().start);
+  const [end, setEnd] = useState(defaultRange().end);
   // Varios archivos = páginas (página 1, página 2…): se ordenan por nombre (natural) y se
   // suben como un solo circular. Un archivo solo sigue por la subida de siempre.
   const [files, setFiles] = useState<File[]>([]);
@@ -233,8 +242,8 @@ function ScheduleForm({ storeSlug }: { storeSlug: string }) {
     onSuccess: (d: any) => {
       const hadFile = !!file;
       setTitle('');
-      setStart('');
-      setEnd('');
+      setStart(defaultRange().start);
+      setEnd(defaultRange().end);
       setFile(null);
       qc.invalidateQueries({ queryKey: qk.circulars(storeSlug) });
       // Con archivo la extracción arranca sola: antes quedaba agendado con 0 productos.
