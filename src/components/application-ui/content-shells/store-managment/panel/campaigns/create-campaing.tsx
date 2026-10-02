@@ -34,6 +34,7 @@ import MessagePreviewPanel from './messaging/MessagePreviewPanel';
 import PlaceholderChips from './messaging/PlaceholderChips';
 import MixedRcsEditor, {
   mixedCustomFromTemplate,
+  smsTemplateToRcsBody,
   MixedRcsPreview,
   mixedTemplateFromCustom,
   type MixedRcsCustom,
@@ -320,6 +321,10 @@ export default function CreateCampaignForm({
     if (t.title) setValue('title', t.title, { shouldDirty: true, shouldValidate: true });
     if (t.description) setValue('description', t.description, { shouldDirty: true });
     if (t.channel) setValue('channel', t.channel, { shouldDirty: true });
+    // Piloto RCS: el cuerpo del RCS es el MISMO texto que el SMS (el saludo ya va adentro).
+    if (t.channel === 'mixed') {
+      setMixedRcs((prev) => ({ ...prev, body: smsTemplateToRcsBody(t.content), greeting: '', title: prev.title || '#brand' }));
+    }
     setSnackState({ open: true, message: `Plantilla aplicada: ${t.name}`, severity: 'success' });
     contentRef.current?.focus();
   };

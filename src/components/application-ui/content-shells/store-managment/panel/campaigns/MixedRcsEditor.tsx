@@ -38,24 +38,30 @@ export type MixedRcsCustom = {
 };
 
 /** Las líneas con #ahorro, #listlink o #address se borran solas (con su rótulo) si no hay dato. */
+// Mismo texto que la plantilla base del SMS del piloto (baseTemplates.ts): marca, titular,
+// saludo con nombre, link con sesión, dirección y STOP. El titular lo cambia la tienda.
 export const MIXED_RCS_BODY = [
-  'Save #ahorro and earn points this week!',
+  '#brand 🛒',
   '',
-  // Un solo link y un solo boton: la portada con la sesion del cliente. Desde ahi arma
-  // su lista igual, sin que el mensaje lleve dos links compitiendo.
-  'View more deals:',
+  '☀️ Specials of the week 🌴',
+  '',
+  'Hi #name 👋',
+  'Start saving 💰 and earning points ⭐',
   // Portada de la tienda CON la sesion del cliente: entra sin que le pidan el codigo.
-  '#linklogin',
+  '👉 #linklogin',
   '',
-  'Address:',
-  '#address',
+  '📍 Address: #address',
   '',
-  'Reply STOP to opt out.',
+  '#disclaimer',
 ].join('\n');
 
+/** Pasa el texto de una plantilla de SMS (#n = salto) al cuerpo del RCS. */
+export const smsTemplateToRcsBody = (content: string) => content.replace(/#n(?!ame(?![a-zA-Z]))/g, '\n').trim();
+
 export const MIXED_RCS_DEFAULTS: MixedRcsCustom = {
-  greeting: 'Hi #name!',
-  title: '',
+  // El saludo ya va dentro del cuerpo ("Hi #name 👋"): sin saludo aparte no se duplica.
+  greeting: '',
+  title: '#brand',
   body: MIXED_RCS_BODY,
   buttonText: 'More deals here!',
   buttonUrl: '',
@@ -165,6 +171,7 @@ export function buildMixedPreview({
       .replace(/#name/gi, 'Maria')
       .replace(/#store/gi, storeName || 'Tu tienda')
       .replace(/#brand(?![a-z])/gi, storeBrandOf(storeName) || 'Tu tienda')
+      .replace(/#disclaimer/gi, 'Reply STOP to unsubscribe')
       .replace(/#ahorro/gi, vals['#ahorro'])
       .replace(/#listlink/gi, vals['#listlink'])
       .replace(/#address/gi, vals['#address'])
