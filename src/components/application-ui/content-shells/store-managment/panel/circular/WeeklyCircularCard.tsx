@@ -22,6 +22,8 @@ import {
   Typography,
 } from '@mui/material';
 import { useState } from 'react';
+import toast from 'react-hot-toast';
+import { circularService } from '@/services/circular.service';
 import { useAiGuidance } from './AiGuidanceFields';
 import {
   productCount,
@@ -32,6 +34,7 @@ import {
   useExtractProducts,
   useLastCampaignArt,
   useLoadCatalog,
+  useRefreshStoreData,
   useStoreCirculars,
 } from './hooks';
 import { Meta, SectionHeader, Surface } from './panelUi';
@@ -57,6 +60,24 @@ export default function WeeklyCircularCard({ storeId, storeSlug, storeName, onPr
   const addMissing = useAddMissing(storeSlug);
   const loadCatalog = useLoadCatalog(storeSlug);
   const preview = useCircularPreview(onPreview);
+  const refreshAll = useRefreshStoreData(storeSlug);
+  const [addingPages, setAddingPages] = useState(false);
+  const appendPages = async (list: FileList | null) => {
+    const files = Array.from(list || []);
+    if (!files.length || !circular) return;
+    const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+    files.sort((a, b) => collator.compare(a.name, b.name));
+    setAddingPages(true);
+    try {
+      for (const f of files) await circularService.attachPages(circular._id, [f], { append: true });
+      toast.success(`${files.length} página${files.length === 1 ? '' : 's'} agregada${files.length === 1 ? '' : 's'}. Volvé a extraer para leerlas.`);
+      refreshAll();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || 'No se pudo agregar la página');
+    } finally {
+      setAddingPages(false);
+    }
+  };
 
   // Indicaciones para la IA ("sólo productos Cherry Valley") + fotos de apoyo: van en cada
   // extracción de este circular.
@@ -157,8 +178,26 @@ export default function WeeklyCircularCard({ storeId, storeSlug, storeName, onPr
               {n} producto{n !== 1 ? 's' : ''}
             </Meta>
             <Meta icon={<DescriptionOutlinedIcon />}>
-              {circular.fileUrl ? 'Con archivo' : 'Sin archivo'}
+              {!circular.fileUrl
+                ? 'Sin archivo'
+                : (circular.files?.length ?? 0) > 1
+                  ? `${circular.files!.length} archivos (páginas)`
+                  : 'Con archivo'}
             </Meta>
+            {/* Llegaron páginas después (o alguna falló al subir): se agregan al final, una por
+                request, ordenadas por nombre (1, 2, 3…). */}
+            {circular.fileUrl && (
+              <Button component="label" size="small" variant="text" disabled={busy || addingPages}>
+                {addingPages ? 'Agregando páginas…' : '+ Agregar páginas'}
+                <input
+                  hidden
+                  type="file"
+                  accept="application/pdf"
+                  multiple
+                  onChange={(e) => { void appendPages(e.target.files); e.target.value = ''; }}
+                />
+              </Button>
+            )}
           </Stack>
           {circular.status === 'draft' && (
             <Alert

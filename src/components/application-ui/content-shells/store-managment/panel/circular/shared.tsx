@@ -30,7 +30,9 @@ const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' 
 export const money = (v: number | null | undefined) => usd.format(Number(v ?? 0));
 
 // Un solo formateador (crear uno por llamada en listas largas se nota).
-const dateFmt = new Intl.DateTimeFormat('es', { day: '2-digit', month: 'short', year: 'numeric' });
+// Las fechas de circulares/campañas son días de la tienda (Este): se muestran en esa zona,
+// no en la del navegador (en Honduras, UTC-6, el 2 oct a las 00:00 ET se veía como 1 oct).
+const dateFmt = new Intl.DateTimeFormat('es', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'America/New_York' });
 export const fmtDate = (iso?: string | null) => (iso ? dateFmt.format(new Date(iso)) : '—');
 
 /** Precio por unidad desde el string del flyer: "$2.99", "99¢/lb", "2/$5". */
