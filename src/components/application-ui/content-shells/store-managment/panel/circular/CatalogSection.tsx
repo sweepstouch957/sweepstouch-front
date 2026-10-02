@@ -37,7 +37,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { applyCatalogOrder, moveCatalogItem } from './catalog-order';
-import { qk } from './hooks';
+import { qk, useStoreCirculars } from './hooks';
 import { imageFromPaste, PasteReplaceDialog, ProductEditorDialog } from './ProductImageTools';
 import { CATEGORIES, cell, fmtDate, ImagePreviewDialog, regularFromPrice } from './shared';
 import { CatalogRowsSkeleton } from './skeletons';
@@ -205,6 +205,11 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
   const onEdit = useCallback((p: StoreProduct) => setEditor({ open: true, product: p }), []);
   const refreshCatalog = () => qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) });
 
+  // Arte del flyer de la campaña vigente (es imagen, va directo) para "Recortar flyer".
+  const { flyers } = useStoreCirculars(storeSlug);
+  const campaignFlyerUrl =
+    (flyers.find((x) => x.status === 'active') || flyers.find((x) => x.status === 'scheduled') || flyers[0])?.fileUrl || undefined;
+
   // Imagen del circular para "Recortar circular". Sólo se resuelve al abrir el editor:
   // si el circular es PDF, el servidor renderiza la primera página una vez y la cachea.
   const flyer = useQuery({
@@ -212,7 +217,9 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
     enabled: editor.open && !!storeSlug,
     staleTime: 10 * 60_000,
     queryFn: async () => {
-      const list: Circular[] = (await circularService.getByStoreSummary(storeSlug))?.items ?? [];
+      const all: Circular[] = (await circularService.getByStoreSummary(storeSlug))?.items ?? [];
+      // Sólo circulares de verdad (PDF): el flyer de campaña va por "Recortar flyer".
+      const list = all.filter((x) => x.fileKey !== 'campaign' && !x.campaign);
       const c =
         list.find((x) => x.status === 'active' && x.fileUrl) ||
         list.find((x) => x.status === 'scheduled' && x.fileUrl) ||
@@ -528,6 +535,7 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
         product={editor.product}
         storeSlug={storeSlug}
         flyerUrl={flyer.data || undefined}
+        campaignUrl={campaignFlyerUrl}
         onClose={() => setEditor((s) => ({ ...s, open: false }))}
         onSaved={refreshCatalog}
       />

@@ -395,6 +395,7 @@ export function ProductEditorDialog({
   product,
   storeSlug,
   flyerUrl,
+  campaignUrl,
   onClose,
   onSaved,
 }: {
@@ -402,8 +403,10 @@ export function ProductEditorDialog({
   /** null = producto nuevo */
   product: StoreProduct | null;
   storeSlug: string;
-  /** Imagen del circular vigente (o su primera página renderizada) para "Recortar del circular". */
+  /** Imagen del circular vigente (o su primera página renderizada) para "Recortar circular". */
   flyerUrl?: string;
+  /** Arte del flyer de la campaña vigente para "Recortar flyer". */
+  campaignUrl?: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -419,7 +422,9 @@ export function ProductEditorDialog({
   const [counterOnly, setCounterOnly] = useState(false);
   const [maxPerCustomer, setMaxPerCustomer] = useState('');
   const [busy, setBusy] = useState<string | null>(null); // texto de lo que se está haciendo
-  const [cropping, setCropping] = useState(false);
+  // false | 'circular' | 'campaign': de qué imagen se recorta.
+  const [cropping, setCropping] = useState<false | 'circular' | 'campaign'>(false);
+  const cropUrl = cropping === 'campaign' ? campaignUrl : flyerUrl;
   // Producto que todavía no sale: el precio que se edita es el que VA a salir (pending),
   // no el de hoy. Si se guardara en `price`, el día de la fecha el pendiente lo pisaría.
   const pending = product?.pending?.from ? product.pending : null;
@@ -523,11 +528,11 @@ export function ProductEditorDialog({
       CLEANING,
       async () => {
         setImageUrl(
-          await aiClean(flyerUrl as string, name.trim() || undefined, box, aiPrompt.trim())
+          await aiClean(cropUrl as string, name.trim() || undefined, box, aiPrompt.trim())
         );
         setCropping(false);
       },
-      'No se pudo recortar el circular'
+      cropping === 'campaign' ? 'No se pudo recortar el flyer' : 'No se pudo recortar el circular'
     );
 
   const save = () =>
@@ -588,7 +593,7 @@ export function ProductEditorDialog({
       fullWidth
     >
       <DialogTitle sx={{ pb: 0.5 }}>
-        {cropping ? 'Recortar del circular' : product ? 'Editar producto' : 'Agregar producto'}
+        {cropping === 'campaign' ? 'Recortar del flyer de la campaña' : cropping ? 'Recortar del circular' : product ? 'Editar producto' : 'Agregar producto'}
         {!cropping && (
           <Typography
             variant="body2"
@@ -600,9 +605,9 @@ export function ProductEditorDialog({
       </DialogTitle>
 
       <DialogContent>
-        {cropping && flyerUrl ? (
+        {cropping && cropUrl ? (
           <FlyerCropper
-            flyerUrl={flyerUrl}
+            flyerUrl={cropUrl}
             busy={!!busy}
             onCancel={() => setCropping(false)}
             onCrop={cropFromFlyer}
@@ -692,9 +697,18 @@ export function ProductEditorDialog({
                   variant="outlined"
                   startIcon={<CropRoundedIcon />}
                   disabled={!!busy || !flyerUrl}
-                  onClick={() => setCropping(true)}
+                  onClick={() => setCropping('circular')}
                 >
                   Recortar circular
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<CropRoundedIcon />}
+                  disabled={!!busy || !campaignUrl}
+                  onClick={() => setCropping('campaign')}
+                >
+                  Recortar flyer
                 </Button>
                 <Button
                   size="small"
@@ -849,12 +863,12 @@ export function ProductEditorDialog({
                 disabled={!!busy}
                 helperText="Se aplica al quitar fondo, generar con IA, recortar del circular y pegar. Escribila antes de usar el botón."
               />
-              {!flyerUrl && (
+              {!flyerUrl && !campaignUrl && (
                 <Alert
                   severity="info"
                   sx={{ py: 0 }}
                 >
-                  Para recortar del circular, la tienda necesita un circular con archivo.
+                  Para recortar, la tienda necesita un circular con archivo o una campaña con arte.
                 </Alert>
               )}
             </Stack>
