@@ -180,6 +180,8 @@ export interface UploadCircularPayload {
   endDate?: string;
   title?: string;
   overridePassword?: string;
+  /** Hay un circular en esas fechas y el usuario confirmó sobrescribirlo (se borra el anterior). */
+  override?: boolean;
 }
 
 export interface ScheduleCircularPayload {
@@ -227,6 +229,7 @@ export class CircularService {
     if (payload.endDate) form.append('endDate', payload.endDate);
     if (payload.title) form.append('title', payload.title);
     if (payload.overridePassword) form.append('overridePassword', payload.overridePassword);
+    if (payload.override) form.append('override', '1');
 
     const res = await api.post('/circulars/upload', form);
     return res.data;
@@ -248,6 +251,7 @@ export class CircularService {
     if (payload.endDate) form.append('endDate', payload.endDate);
     if (payload.title) form.append('title', payload.title);
     if (payload.overridePassword) form.append('overridePassword', payload.overridePassword);
+    if (payload.override) form.append('override', '1');
     const created = (await api.post('/circulars/upload-pages', form)).data as { ok: boolean; circular: Circular; files: number };
     onProgress?.(1, payload.files.length);
     let last = created;

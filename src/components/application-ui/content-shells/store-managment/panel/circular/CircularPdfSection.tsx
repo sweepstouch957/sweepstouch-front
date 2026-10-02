@@ -19,6 +19,10 @@ import {
   Box,
   Button,
   Chip,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Dialog,
   IconButton,
   LinearProgress,
   Link as MuiLink,
@@ -197,8 +201,11 @@ function ScheduleForm({ storeSlug }: { storeSlug: string }) {
   const ai = useAiGuidance();
   const removeFile = (name: string) => setFiles((prev) => prev.filter((f) => f.name !== name));
 
+  // Solape: el backend contesta 409 con el circular que estorba; se pregunta y se
+  // reintenta con `override` (antes pedía una clave maestra).
+  const [overlap, setOverlap] = useState<{ title: string; startDate: string; endDate: string } | null>(null);
   const create = useMutation({
-    mutationFn: () =>
+    mutationFn: (override?: boolean) =>
       files.length > 1
         ? circularService.uploadPages({
             files,
@@ -206,6 +213,7 @@ function ScheduleForm({ storeSlug }: { storeSlug: string }) {
             startDate: start,
             endDate: end,
             title: title || undefined,
+            override,
           })
         : file
         ? circularService.upload({
@@ -214,6 +222,7 @@ function ScheduleForm({ storeSlug }: { storeSlug: string }) {
             startDate: start,
             endDate: end,
             title: title || undefined,
+            override,
           })
         : circularService.schedule({
             storeSlug,
@@ -237,7 +246,10 @@ function ScheduleForm({ storeSlug }: { storeSlug: string }) {
         toast.success('Circular agendado (sin archivo aún)');
       }
     },
-    onError: (e: any) => toast.error(e?.response?.data?.error || e.message || 'No se pudo agendar'),
+    onError: (e: any) => {
+      if (e?.response?.data?.code === 'OVERLAP') return setOverlap(e.response.data.overlap);
+      toast.error(e?.response?.data?.error || e.message || 'No se pudo agendar');
+    },
   });
 
   return (
@@ -375,11 +387,26 @@ function ScheduleForm({ storeSlug }: { storeSlug: string }) {
       <Button
         variant="contained"
         disabled={create.isPending || !start || !end || badRange}
-        onClick={() => create.mutate()}
+        onClick={() => create.mutate(undefined)}
         sx={{ alignSelf: 'flex-end' }}
       >
         {create.isPending ? 'Agendando…' : file ? 'Agendar y extraer' : 'Agendar'}
       </Button>
+      <Dialog open={!!overlap} onClose={() => setOverlap(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ pb: 0.5 }}>Ya hay un circular en esas fechas</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            «{overlap?.title}» del {overlap ? fmtDate(overlap.startDate) : ''} al {overlap ? fmtDate(overlap.endDate) : ''}.
+            Si lo sobrescribes, ese circular se borra y queda el nuevo.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOverlap(null)}>Cancelar</Button>
+          <Button variant="contained" color="warning" onClick={() => { setOverlap(null); create.mutate(true); }}>
+            Sobrescribir
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
