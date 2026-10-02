@@ -40,6 +40,7 @@ import {
   useStoreCirculars,
 } from './hooks';
 import { Meta, SectionHeader, Surface } from './panelUi';
+import { useAiGuidance } from './AiGuidanceFields';
 import { circularLabel, fmtDate, statusChip } from './shared';
 import { ListRowsSkeleton } from './skeletons';
 
@@ -64,17 +65,16 @@ export default function CircularPdfSection({
     <Surface>
       <Stack spacing={2.5}>
         <SectionHeader
-          step={3}
-          title="Circular en PDF"
-          description="Para cuando la tienda manda su circular en PDF o hay que agendar uno sin campaña."
+          step={2}
+          title="Subir el circular"
+          description="El PDF o las fotos que manda la tienda (también por páginas sueltas), con indicaciones para la IA si hace falta."
         />
-        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: '1fr 1.4fr' } }}>
-          <ImportFromLink
-            storeSlug={storeSlug}
-            circularssUrl={circularssUrl}
-          />
-          <ScheduleForm storeSlug={storeSlug} />
-        </Box>
+        {/* Apilado: la tarjeta del link se aplastaba al lado del formulario. */}
+        <ScheduleForm storeSlug={storeSlug} />
+        <ImportFromLink
+          storeSlug={storeSlug}
+          circularssUrl={circularssUrl}
+        />
         <History
           storeSlug={storeSlug}
           storeName={storeName}
@@ -116,16 +116,18 @@ function ImportFromLink({
   });
 
   return (
-    <Box sx={cardSx}>
+    <Box sx={{ ...cardSx, flexDirection: { xs: 'column', md: 'row' }, alignItems: { md: 'center' }, gap: 2 }}>
       <Stack
         direction="row"
         alignItems="center"
         gap={1}
+        sx={{ flexShrink: 0 }}
       >
         <LinkRoundedIcon color="primary" />
         <Typography
           variant="subtitle2"
           fontWeight={700}
+          noWrap
         >
           Traer del link de la tienda
         </Typography>
@@ -133,7 +135,7 @@ function ImportFromLink({
       <Typography
         variant="body2"
         color="text.secondary"
-        sx={{ flex: 1 }}
+        sx={{ flex: 1, minWidth: 0 }}
       >
         {!circularssUrl
           ? 'La tienda no tiene link de circular. Cárgalo en los datos de la tienda o sube el PDF al lado.'
@@ -146,6 +148,7 @@ function ImportFromLink({
         alignItems="center"
         gap={1.5}
         flexWrap="wrap"
+        sx={{ flexShrink: 0 }}
       >
         <Button
           variant={hasCurrent ? 'outlined' : 'contained'}
@@ -190,6 +193,9 @@ function ScheduleForm({ storeSlug }: { storeSlug: string }) {
   };
   const [dragOver, setDragOver] = useState(false);
   const badRange = !!start && !!end && end < start;
+  // Indicaciones y fotos de referencia: van con la extracción que arranca al agendar.
+  const ai = useAiGuidance();
+  const removeFile = (name: string) => setFiles((prev) => prev.filter((f) => f.name !== name));
 
   const create = useMutation({
     mutationFn: () =>
@@ -225,7 +231,8 @@ function ScheduleForm({ storeSlug }: { storeSlug: string }) {
       // Con archivo la extracción arranca sola: antes quedaba agendado con 0 productos.
       if (hadFile && d?.circular?._id) {
         toast.success('Circular subido — extrayendo productos con IA…');
-        extract.mutate({ id: d.circular._id, max: AUTO_EXTRACT });
+        extract.mutate({ id: d.circular._id, max: AUTO_EXTRACT, guidance: ai.guidance, referenceImages: ai.referenceImages });
+        ai.reset();
       } else {
         toast.success('Circular agendado (sin archivo aún)');
       }
@@ -283,7 +290,7 @@ function ScheduleForm({ storeSlug }: { storeSlug: string }) {
             noWrap
           >
             {files.length > 1
-              ? `${files.length} archivos (páginas): ${files.map((f) => f.name).join(', ')}`
+              ? `${files.length} archivos (páginas), en este orden:`
               : file
                 ? file.name
                 : 'Arrastra el PDF o la imagen (o varias páginas sueltas), o haz clic'}
@@ -323,6 +330,21 @@ function ScheduleForm({ storeSlug }: { storeSlug: string }) {
           }}
         />
       </Box>
+      {files.length > 1 && (
+        <Stack direction="row" gap={0.75} flexWrap="wrap">
+          {files.map((f, i) => (
+            <Chip
+              key={f.name + i}
+              size="small"
+              variant="outlined"
+              label={`${i + 1} · ${f.name} (${(f.size / 1048576).toFixed(1)} MB)`}
+              onDelete={() => removeFile(f.name)}
+              sx={{ maxWidth: 360 }}
+            />
+          ))}
+        </Stack>
+      )}
+      {ai.fields}
       <Box
         sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: { xs: '1fr', sm: '1.3fr 1fr 1fr' } }}
       >

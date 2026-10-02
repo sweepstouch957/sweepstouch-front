@@ -53,16 +53,16 @@ function CircularTab({
         onOpenUpcoming={onOpenUpcoming}
         onPreview={openPreview}
       />
-      <WeeklyCircularCard
-        storeId={storeId}
-        storeSlug={storeSlug}
-        storeName={storeName}
-        onPreview={openPreview}
-      />
       <CircularPdfSection
         storeSlug={storeSlug}
         storeName={storeName}
         circularssUrl={circularssUrl}
+        onPreview={openPreview}
+      />
+      <WeeklyCircularCard
+        storeId={storeId}
+        storeSlug={storeSlug}
+        storeName={storeName}
         onPreview={openPreview}
       />
       <StoreBannerSection
