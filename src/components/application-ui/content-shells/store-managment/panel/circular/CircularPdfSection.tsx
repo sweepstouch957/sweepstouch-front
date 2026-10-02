@@ -177,13 +177,31 @@ function ScheduleForm({ storeSlug }: { storeSlug: string }) {
   const [title, setTitle] = useState('');
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
-  const [file, setFile] = useState<File | null>(null);
+  // Varios archivos = páginas (página 1, página 2…): se ordenan por nombre (natural) y se
+  // suben como un solo circular. Un archivo solo sigue por la subida de siempre.
+  const [files, setFiles] = useState<File[]>([]);
+  const file = files[0] ?? null;
+  const setFile = (f: File | null) => setFiles(f ? [f] : []);
+  const addFiles = (list: FileList | File[] | null | undefined) => {
+    const arr = Array.from(list || []);
+    if (!arr.length) return;
+    const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+    setFiles((prev) => [...prev, ...arr].sort((a, b) => collator.compare(a.name, b.name)));
+  };
   const [dragOver, setDragOver] = useState(false);
   const badRange = !!start && !!end && end < start;
 
   const create = useMutation({
     mutationFn: () =>
-      file
+      files.length > 1
+        ? circularService.uploadPages({
+            files,
+            storeSlug,
+            startDate: start,
+            endDate: end,
+            title: title || undefined,
+          })
+        : file
         ? circularService.upload({
             file,
             storeSlug,
@@ -240,8 +258,7 @@ function ScheduleForm({ storeSlug }: { storeSlug: string }) {
         onDrop={(e: React.DragEvent) => {
           e.preventDefault();
           setDragOver(false);
-          const f = e.dataTransfer.files?.[0];
-          if (f) setFile(f);
+          addFiles(e.dataTransfer.files);
         }}
         sx={{
           display: 'flex',
@@ -265,16 +282,22 @@ function ScheduleForm({ storeSlug }: { storeSlug: string }) {
             fontWeight={600}
             noWrap
           >
-            {file ? file.name : 'Arrastra el PDF o la imagen, o haz clic'}
+            {files.length > 1
+              ? `${files.length} archivos (páginas): ${files.map((f) => f.name).join(', ')}`
+              : file
+                ? file.name
+                : 'Arrastra el PDF o la imagen (o varias páginas sueltas), o haz clic'}
           </Typography>
           <Typography
             variant="body2"
             color="text.secondary"
             sx={{ fontSize: 12.5 }}
           >
-            {file
-              ? `${(file.size / 1048576).toFixed(1)} MB · la IA extrae los productos al agendar`
-              : 'Opcional: sin archivo queda agendado y se adjunta después'}
+            {files.length > 1
+              ? `${(files.reduce((n, f) => n + f.size, 0) / 1048576).toFixed(1)} MB en total · se leen en este orden como un solo circular`
+              : file
+                ? `${(file.size / 1048576).toFixed(1)} MB · la IA extrae los productos al agendar`
+                : 'Opcional: sin archivo queda agendado y se adjunta después. Si te mandan el circular por páginas, soltalas todas juntas.'}
           </Typography>
         </Box>
         {file && (
@@ -293,8 +316,9 @@ function ScheduleForm({ storeSlug }: { storeSlug: string }) {
           hidden
           type="file"
           accept="application/pdf,image/*"
+          multiple
           onChange={(e) => {
-            setFile(e.target.files?.[0] ?? null);
+            addFiles(e.target.files);
             e.target.value = '';
           }}
         />

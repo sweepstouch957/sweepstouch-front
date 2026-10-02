@@ -232,6 +232,40 @@ export class CircularService {
     return res.data;
   }
 
+  /** Circular en varios archivos (página 1, página 2… en alta): quedan como un solo circular
+   *  en ese orden. Va UN archivo por request (el proxy corta a 25 MB y cada página pesa 8–10 MB):
+   *  el primero crea el circular, los demás se agregan. `onProgress(i, total)` por archivo. */
+  async uploadPages(
+    payload: Omit<UploadCircularPayload, 'file'> & { files: File[] },
+    onProgress?: (done: number, total: number) => void
+  ): Promise<{ ok: boolean; circular: Circular; files: number }> {
+    const [first, ...rest] = payload.files;
+    const form = new FormData();
+    form.append('files', first);
+    if (payload.storeSlug) form.append('storeSlug', payload.storeSlug);
+    if (payload.schedule) form.append('schedule', payload.schedule);
+    if (payload.startDate) form.append('startDate', payload.startDate);
+    if (payload.endDate) form.append('endDate', payload.endDate);
+    if (payload.title) form.append('title', payload.title);
+    if (payload.overridePassword) form.append('overridePassword', payload.overridePassword);
+    const created = (await api.post('/circulars/upload-pages', form)).data as { ok: boolean; circular: Circular; files: number };
+    onProgress?.(1, payload.files.length);
+    let last = created;
+    for (let i = 0; i < rest.length; i++) {
+      last = await this.attachPages(created.circular._id, [rest[i]], { append: true });
+      onProgress?.(i + 2, payload.files.length);
+    }
+    return { ...last, files: payload.files.length };
+  }
+
+  /** Archivos (páginas) de un circular existente: reemplaza, o agrega al final con `append`. */
+  async attachPages(circularId: string, files: File[], opts?: { append?: boolean }): Promise<{ ok: boolean; circular: Circular; files: number }> {
+    const form = new FormData();
+    for (const f of files) form.append('files', f);
+    const res = await api.patch(`/circulars/${circularId}/pages${opts?.append ? '?append=1' : ''}`, form);
+    return res.data;
+  }
+
   async schedule(payload: ScheduleCircularPayload): Promise<{ ok: boolean; circular: Circular }> {
     const res = await api.post('/circulars/schedule', payload);
     return res.data;
