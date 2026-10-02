@@ -26,6 +26,7 @@ import { DeliveryCard } from './delivery-card';
 import { FlyerCard, FlyerDialog, MessageCard } from './message-flyer-cards';
 import { RcsPilotCard } from './rcs-pilot-card';
 import { RcsRecipientsCard } from './rcs-recipients-card';
+import { SessionLinksCard } from './session-links-card';
 import { SummaryCard } from './summary-card';
 import { AutoGrid, StatTile } from './ui';
 
@@ -65,6 +66,14 @@ export default function CampaignStats({ campaignId }: { campaignId: string }) {
   const rcs = isRcsCampaign(campaign);
   const mixed = isMixedCampaign(campaign);
   // Tiempo a la apertura y fuente de los clicks: sólo vienen del resumen RCS.
+  // Link con sesión: sólo si la campaña lo usa (#linklogin o piloto RCS).
+  const { data: sessionLinks } = useQuery({
+    queryKey: ['campaign-session-links', campaignId],
+    queryFn: () => campaignClient.getSessionLinkSplit(campaignId),
+    enabled: !!campaignId && (mixed || /#linklogin/i.test(campaign?.content || '')),
+    staleTime: 5 * 60_000,
+  });
+
   const { data: rcsSummary } = useQuery({
     queryKey: ['rcs-summary', [campaignId]],
     queryFn: () => campaignClient.getRcsSummary([campaignId]),
@@ -260,6 +269,8 @@ sx={{ borderRadius: 4.5 }} />
             }
           />
       </AutoGrid>
+
+      {sessionLinks?.applies && sessionLinks.total > 0 && <SessionLinksCard data={sessionLinks} />}
 
       {rcs && metrics?.ok && metrics.messages.total > 0 && (
         <RcsPilotCard

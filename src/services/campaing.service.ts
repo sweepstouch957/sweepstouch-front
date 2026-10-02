@@ -5,6 +5,18 @@ import type { PaginatedResponse } from '@/models/pagination';
 
 /* ========================= CAMPAIGNS (RESTORE) ========================= */
 
+export interface SessionLinkSplit {
+  /** false = la campaña no usa link con sesión (#linklogin) ni es piloto RCS. */
+  applies: boolean;
+  total: number;
+  /** Nombre + correo → link directo a su panel Mi cuenta (/me). */
+  dashboard: number;
+  /** Sólo nombre → portada de la tienda con la sesión iniciada. */
+  linktree: number;
+  /** Sin nombre usable → link normal, sin sesión personal. */
+  plain: number;
+}
+
 export interface FilterCampaignParams {
   page?: number;
   limit?: number;
@@ -727,6 +739,12 @@ class CampaignClient {
     });
 
     return res.data;
+  }
+
+  /** A dónde llevó el link de sesión: panel Mi cuenta (nombre + correo) vs. portada con sesión (sólo nombre). */
+  async getSessionLinkSplit(id: string): Promise<SessionLinkSplit> {
+    const res = await api.get(`/campaigns/${id}/session-links`);
+    return res.data as SessionLinkSplit;
   }
 
   async getCampaignById(id: string): Promise<Campaing> {
