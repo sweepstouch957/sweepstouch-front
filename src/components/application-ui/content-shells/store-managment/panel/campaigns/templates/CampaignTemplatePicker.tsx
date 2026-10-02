@@ -27,7 +27,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useState } from 'react';
-import { BASE_TEMPLATES, previewText } from './baseTemplates';
+import { BASE_TEMPLATES, DEFAULT_HEADLINE, TITLE_TOKEN, previewText } from './baseTemplates';
 import ManageTemplatesDialog from './ManageTemplatesDialog';
 import TemplateFormDialog from './TemplateFormDialog';
 import { useCampaignTemplates } from './useCampaignTemplates';
@@ -157,7 +157,14 @@ export default function CampaignTemplatePicker({
         {BASE_TEMPLATES.map((t) => (
           <MenuItem
             key={t.key}
-            onClick={() => pick({ name: t.name, content: t.content })}
+            onClick={() =>
+              pick({
+                name: t.name,
+                // #title → el título que ya escribió la tienda (o uno genérico).
+                content: t.content.split(TITLE_TOKEN).join(getCurrent().title.trim() || DEFAULT_HEADLINE),
+                channel: t.channel,
+              })
+            }
             sx={itemSx}
           >
             <ListItemText

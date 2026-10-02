@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Personalización del RCS del piloto mixto (el que recibe el 10% con nombre, o los ≤50).
+ * Personalización del RCS del piloto mixto (lo reciben TODOS los clientes con nombre, oct 2026).
  * SÓLO cambia ese RCS: el SMS/MMS del resto y el failover salen con el texto de la campaña.
  * Se guarda en `rcsOptions.contentTemplate` con type "MIXED"; el scheduler
  * (utils/mixed.js → normalizeMixedCustom / buildMixedRcsContent) valida cada campo y, ante
@@ -107,7 +107,7 @@ export function mixedTemplateFromCustom(c: MixedRcsCustom): Record<string, unkno
 const TOKENS = [
   { key: '#name', label: 'Nombre del cliente' },
   { key: '#listlink', label: 'Link único de su lista' },
-  { key: '#linklogin', label: 'Link de ofertas — con la sesión del cliente' },
+  { key: '#linklogin', label: 'Link con sesión: su panel Mi cuenta (nombre + correo) o la portada' },
   { key: '#ahorro', label: 'Ahorro de la semana' },
   { key: '#address', label: 'Sólo la dirección' },
   { key: '#brand', label: 'Nombre sin dirección' },

@@ -62,7 +62,7 @@ interface CampaignFormInputs {
   uploadedArt?: CampaignArtUpload;
   customAudience?: number;
   linktree?: boolean; // 👈 nuevo parámetro
-  /** Piloto mixed: SMS/MMS normal + un 10% de los clientes con nombre por RCS personalizado. */
+  /** Piloto mixed: SMS/MMS normal + TODOS los clientes con nombre por RCS personalizado (oct 2026). */
   channel?: 'sms' | 'mixed';
   /** Sólo en mixed: { mixedRatio?, contentTemplate? (RCS personalizado, type "MIXED") }. */
   rcsOptions?: Record<string, unknown>;
@@ -788,9 +788,9 @@ export default function CreateCampaignForm({
                 </Section>
               </Box>
 
-              {/* Piloto mixed (sep 2026): la campaña sale igual que siempre, pero un 10% de los
-                  clientes CON nombre recibe un RCS "Hi Nombre!" con botón al linktree (mismo
-                  SMS como failover). */}
+              {/* Piloto mixed (oct 2026): la campaña sale igual que siempre, pero TODOS los
+                  clientes CON nombre reciben un RCS "Hi Nombre!" con botón a su sesión (/me si
+                  tienen correo, portada si no); mismo SMS como failover. */}
               <Box sx={paneSx('rcs')}>
                 <Stack
                   direction={{ xs: 'column', sm: 'row' }}
@@ -821,9 +821,10 @@ export default function CreateCampaignForm({
                       color="text.secondary"
                       sx={{ maxWidth: 780, mt: 0.5 }}
                     >
-                      El resto recibe el SMS o MMS normal. Los elegidos ven un mensaje con su nombre
-                      y un botón; si su teléfono no tiene RCS, les llega el SMS igual. Con 50
-                      clientes con nombre o menos, van todos. El costo no cambia.
+                      Todos los clientes con nombre reciben un RCS con su nombre y un botón; el resto,
+                      el SMS o MMS normal. Si el teléfono no tiene RCS, les llega el SMS igual. El link
+                      con sesión (#linklogin) abre su panel Mi cuenta si tienen nombre y correo; si sólo
+                      tienen nombre, la portada de la tienda con la sesión iniciada. El costo no cambia.
                     </Typography>
                   </Box>
                   {channel === 'mixed' && (

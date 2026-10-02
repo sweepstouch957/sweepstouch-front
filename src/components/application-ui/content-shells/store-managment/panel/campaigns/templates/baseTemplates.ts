@@ -8,9 +8,27 @@ export interface BaseTemplate {
   key: string;
   name: string;
   content: string;
+  /** Canal que activa al aplicarla (el piloto RCS marca "mixed"). */
+  channel?: 'sms' | 'mixed';
 }
 
+/**
+ * `#title` NO es un placeholder del envío: el picker lo cambia por el título de la campaña
+ * al aplicar la plantilla (o por "Weekly Specials" si todavía no hay título).
+ */
+export const TITLE_TOKEN = '#title';
+export const DEFAULT_HEADLINE = 'Weekly Specials';
+
 export const BASE_TEMPLATES: readonly BaseTemplate[] = [
+  {
+    key: 'rcs-pilot-session',
+    name: 'RCS piloto · especiales de la semana (link con sesión)',
+    channel: 'mixed',
+    // Con nombre y correo, #linklogin abre su panel Mi cuenta con la sesión; sólo con
+    // nombre, la portada con sesión. El titular se arma con el título de la campaña.
+    content:
+      '#brand 🛒#n#n🍁 #title 🍂#n#nHi #name 👋#nStart saving 💰 and earning points ⭐#n👉 #linklogin#n#n📍 Address: #address#n#n#disclaimer',
+  },
   {
     key: 'points-linklogin',
     name: 'Ahorra y gana puntos (link con sesión)',
