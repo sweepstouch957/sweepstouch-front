@@ -8,6 +8,8 @@ import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import DragIndicatorRoundedIcon from '@mui/icons-material/DragIndicatorRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import {
+  FormControlLabel,
+  Checkbox,
   Alert,
   Autocomplete,
   Box,
@@ -281,6 +283,20 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
     onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo iniciar la limpieza'),
   });
 
+  // Borrar todo: para empezar de cero cuando la lectura o las imágenes salieron mal.
+  const [clearOpen, setClearOpen] = useState(false);
+  const [clearCirculars, setClearCirculars] = useState(true);
+  const clearAll = useMutation({
+    mutationFn: () => circularService.clearCatalog(storeSlug, { circulars: clearCirculars }),
+    onSuccess: (d) => {
+      toast.success(`${d.deleted} productos borrados${d.circulars ? ` · ${d.circulars} circular(es) vaciado(s)` : ''}`);
+      setClearOpen(false);
+      qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) });
+      qc.invalidateQueries({ queryKey: qk.circulars(storeSlug) });
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo borrar'),
+  });
+
   // El botón inteligente: visibles = SOLO los productos del último circular.
   const [syncOpen, setSyncOpen] = useState(false);
   const syncVisibility = useMutation({
@@ -367,6 +383,35 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
         >
           + Agregar producto
         </Button>
+        <Tooltip title="Borra TODOS los productos de la tienda para volver a extraer desde cero (p. ej. si la lectura o las imágenes salieron mal).">
+          <Button
+            size="small"
+            color="error"
+            variant="outlined"
+            disabled={clearAll.isPending}
+            onClick={() => setClearOpen(true)}
+          >
+            Borrar todos
+          </Button>
+        </Tooltip>
+        <Dialog open={clearOpen} onClose={() => !clearAll.isPending && setClearOpen(false)} maxWidth="xs" fullWidth>
+          <DialogTitle sx={{ pb: 0.5 }}>¿Borrar todos los productos?</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+              Se borra el catálogo completo de esta tienda ({orderedItems.length} productos) y desaparecen de la lista del cliente. No se puede deshacer.
+            </Typography>
+            <FormControlLabel
+              control={<Checkbox checked={clearCirculars} onChange={(e) => setClearCirculars(e.target.checked)} />}
+              label={<Typography variant="body2">Vaciar también los productos de los circulares vivos (para re-extraer limpio)</Typography>}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setClearOpen(false)} disabled={clearAll.isPending}>Cancelar</Button>
+            <Button variant="contained" color="error" disabled={clearAll.isPending} onClick={() => clearAll.mutate()}>
+              {clearAll.isPending ? 'Borrando…' : 'Sí, borrar todo'}
+            </Button>
+          </DialogActions>
+        </Dialog>
         <Tooltip title="Deja visibles en el Pre-RCS SOLO los productos del último circular y oculta el resto del catálogo. Un click en vez de switch por switch.">
           <Button
             size="small"

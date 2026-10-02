@@ -638,6 +638,12 @@ export class CircularService {
   }
 
   /** Elimina un producto del catálogo. */
+  /** Borra TODOS los productos del catálogo de la tienda (y, opcionalmente, vacía los circulares vivos para re-extraer). */
+  async clearCatalog(storeSlug: string, opts?: { circulars?: boolean }): Promise<{ ok: boolean; deleted: number; circulars: number }> {
+    const res = await api.delete(`/circulars/store/${storeSlug}/catalog${opts?.circulars ? '?circulars=1' : ''}`);
+    return res.data;
+  }
+
   async deleteStoreProduct(id: string): Promise<{ ok: boolean }> {
     const res = await api.delete(`/circulars/store-product/${id}`);
     return res.data;
