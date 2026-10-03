@@ -59,14 +59,16 @@ import AvatarUploadLogo from '../../upload/avatar/avatar-upload-logo';
  * '' = flujo normal · 'generic' = opt-in de promociones ·
  * 'event' = pregunta Owner/Employee antes de registrar ·
  * 'nsa' = pregunta Owner/Manager vs Seller/Brand después de registrar.
+ * 'ceo' = evento de CEOs: sólo guarda el número en la tienda del evento, sin MMS ni ticket.
  */
-export type SweepstakeOptinType = '' | 'generic' | 'event' | 'nsa';
+export type SweepstakeOptinType = '' | 'generic' | 'event' | 'nsa' | 'ceo';
 
 export const OPTIN_TYPE_OPTIONS: { value: SweepstakeOptinType; label: string; hint: string }[] = [
   { value: '', label: 'Normal', hint: 'Registro directo, sin preguntas extra' },
   { value: 'generic', label: 'Genérico (promociones)', hint: 'Opt-in de promociones de la tienda' },
   { value: 'event', label: 'Evento — Owner / Employee', hint: 'Pregunta el rol ANTES de registrar' },
   { value: 'nsa', label: 'NSA — Owner/Manager · Seller/Brand', hint: 'Pregunta el rol DESPUÉS de registrar' },
+  { value: 'ceo', label: 'Evento de CEOs', hint: 'Sólo guarda el número en la tienda del evento: sin MMS ni ticket' },
 ];
 
 /**
@@ -82,7 +84,7 @@ export type EventStoreDraft = {
 };
 
 /** Tipos de opt-in que corren en un evento, no en una tienda existente. */
-export const EVENT_OPTIN_TYPES: SweepstakeOptinType[] = ['event', 'nsa'];
+export const EVENT_OPTIN_TYPES: SweepstakeOptinType[] = ['event', 'nsa', 'ceo'];
 
 export type BriefFormValues = {
   name: string;
@@ -579,6 +581,8 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
   // caen en la tienda provisional del evento). Los campos siguen a la vista, sólo
   // dejan de ser obligatorios.
   const isEventOptin = EVENT_OPTIN_TYPES.includes((optinTypeValue || '') as SweepstakeOptinType);
+  // Evento de CEOs: sin premios ni ticket; de la tienda sólo se pide el nombre.
+  const isCeoOptin = optinTypeValue === 'ceo';
   const createEventStore = watch('eventStore.create');
 
   // Snackbar
@@ -755,7 +759,7 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
     if (!values.name?.trim()) return;
     if (!values.startDate || !values.endDate) return;
     if (new Date(values.endDate) < new Date(values.startDate)) return;
-    if (!values.prizeIds?.length) return;
+    if (!isCeoOptin && !values.prizeIds?.length) return;
     if (!isEventOptin && (!hasStore || !hasCode)) return;
 
     const maybeFileList = (values as any).image as unknown as FileList | string | undefined;
@@ -1105,6 +1109,8 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
                               )}
                             />
                           </Grid>
+                          {!isCeoOptin && (
+                          <>
                           <Grid
                             item
                             xs={12}
@@ -1143,6 +1149,8 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
                               )}
                             />
                           </Grid>
+                          </>
+                          )}
                         </Grid>
                       )}
                     </Paper>
@@ -1165,7 +1173,7 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
               <Controller
                 name="prizeIds"
                 control={control}
-                rules={{ validate: (v) => (v?.length ? true : 'Selecciona al menos un premio') }}
+                rules={{ validate: (v) => (isCeoOptin || v?.length ? true : 'Selecciona al menos un premio') }}
                 render={({ field }) => (
                   <Autocomplete
                     multiple
