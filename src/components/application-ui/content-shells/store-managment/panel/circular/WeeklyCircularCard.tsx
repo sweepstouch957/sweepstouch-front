@@ -23,8 +23,10 @@ import {
 } from '@mui/material';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { circularService } from '@/services/circular.service';
 import { useAiGuidance } from './AiGuidanceFields';
+import AgentFeed from './AgentFeed';
 import {
   productCount,
   useAddMissing,
@@ -62,6 +64,19 @@ export default function WeeklyCircularCard({ storeId, storeSlug, storeName, onPr
   const preview = useCircularPreview(onPreview);
   const refreshAll = useRefreshStoreData(storeSlug);
   const [addingPages, setAddingPages] = useState(false);
+
+  // Agentes de revisión por página: % de efectividad de la extracción y correcciones hechas.
+  const audit = useQuery({
+    queryKey: ['circular-audit', circular?._id],
+    queryFn: () => circularService.getAudit(circular!._id),
+    enabled: !!circular?._id && !!circular?.fileUrl,
+    refetchInterval: (q) => (q.state.data?.running ? 4000 : false),
+  });
+  const rerunAudit = useMutation({
+    mutationFn: () => circularService.runAudit(circular!._id),
+    onSuccess: () => { toast.success('Revisando página por página… el % aparece acá al terminar'); setTimeout(() => audit.refetch(), 1500); },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo auditar'),
+  });
   const appendPages = async (list: FileList | null) => {
     const files = Array.from(list || []);
     if (!files.length || !circular) return;
@@ -81,7 +96,7 @@ export default function WeeklyCircularCard({ storeId, storeSlug, storeName, onPr
 
   // Indicaciones para la IA ("sólo productos Cherry Valley") + fotos de apoyo: van en cada
   // extracción de este circular.
-  const ai = useAiGuidance();
+  const ai = useAiGuidance(storeSlug);
   const extractArgs = { guidance: ai.guidance, referenceImages: ai.referenceImages };
   const guidanceFields = <Box sx={{ mt: 1.5 }}>{ai.fields}</Box>;
 
@@ -199,6 +214,26 @@ export default function WeeklyCircularCard({ storeId, storeSlug, storeName, onPr
               </Button>
             )}
           </Stack>
+          {circular.fileUrl && (audit.data?.pages?.length || audit.data?.running) ? (
+            <Stack direction="row" alignItems="center" gap={1.5} flexWrap="wrap" sx={{ mt: 1.5 }}>
+              <Typography variant="body2" color="text.secondary" component="div">
+                <strong>Revisión por página:</strong>{' '}
+                {audit.data?.running && !audit.data?.pages?.length ? 'revisando…' : null}
+                {(audit.data?.pages || []).map((p) => (
+                  <span key={p.page} title={`${p.matched}/${p.checked} datos correctos · ${p.fixed} corregidos · ${p.imageMismatches} fotos que no eran`} style={{ marginRight: 10 }}>
+                    p{p.page} <strong style={{ color: p.accuracy >= 95 ? '#2e7d32' : p.accuracy >= 85 ? '#ed6c02' : '#d32f2f' }}>{p.accuracy}%</strong>
+                    {p.fixed || p.imageMismatches ? ` (${p.fixed} fix${p.imageMismatches ? `, ${p.imageMismatches} foto${p.imageMismatches === 1 ? '' : 's'}` : ''})` : ''}
+                  </span>
+                ))}
+                {audit.data?.accuracy != null && (audit.data?.pages?.length || 0) > 1 ? <>· total <strong>{audit.data.accuracy}%</strong></> : null}
+                {audit.data?.running && audit.data?.pages?.length ? ' · revisando…' : ''}
+              </Typography>
+              <Button size="small" variant="text" disabled={busy || !!audit.data?.running || rerunAudit.isPending} onClick={() => rerunAudit.mutate()}>
+                Revisar de nuevo
+              </Button>
+            </Stack>
+          ) : null}
+          <AgentFeed circularId={circular._id} />
           {circular.status === 'draft' && (
             <Alert
               severity="warning"

@@ -1027,6 +1027,10 @@ const CatalogRow = memo(function CatalogRow({
                 )}
               </Stack>
             )}
+            {/* Departamento del circular con las palabras de la tienda. */}
+            {p.department && (
+              <Chip size="small" variant="outlined" label={p.department} sx={{ height: 18, fontSize: 11, mr: 0.5 }} />
+            )}
             {/* Tag de origen: flyer de campaña / circular / manual. */}
             {p.source && (
               <Chip

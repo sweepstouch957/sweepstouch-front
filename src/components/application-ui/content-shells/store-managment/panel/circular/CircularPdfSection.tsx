@@ -207,7 +207,7 @@ function ScheduleForm({ storeSlug }: { storeSlug: string }) {
   const [dragOver, setDragOver] = useState(false);
   const badRange = !!start && !!end && end < start;
   // Indicaciones y fotos de referencia: van con la extracción que arranca al agendar.
-  const ai = useAiGuidance();
+  const ai = useAiGuidance(storeSlug);
   const removeFile = (name: string) => setFiles((prev) => prev.filter((f) => f.name !== name));
 
   // Solape: el backend contesta 409 con el circular que estorba; se pregunta y se

@@ -31,6 +31,7 @@ import NextLink from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import CampaignAutomationFlow, { buildSteps } from './CampaignAutomationFlow';
+import AgentFeed from './AgentFeed';
 import {
   qk,
   useCampaignImportJob,
@@ -303,6 +304,9 @@ export default function CampaignAutomationCard({
           </Stack>
         </>
       )}
+
+      {/* Bitácora de los robots sobre el circular que creó/alimentó esta campaña. */}
+      <AgentFeed circularId={job.data?.result?.circularId || liveFlyer?._id || null} compact />
 
       {image && (
         <>

@@ -575,6 +575,10 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
   }, [JSON.stringify(initialValues)]);
 
   const optinTypeValue = watch('optinType');
+  // Sorteo de evento: el mensaje y la imagen del opt-in no se usan (los números
+  // caen en la tienda provisional del evento). Los campos siguen a la vista, sólo
+  // dejan de ser obligatorios.
+  const isEventOptin = EVENT_OPTIN_TYPES.includes((optinTypeValue || '') as SweepstakeOptinType);
   const createEventStore = watch('eventStore.create');
 
   // Snackbar
@@ -752,7 +756,7 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
     if (!values.startDate || !values.endDate) return;
     if (new Date(values.endDate) < new Date(values.startDate)) return;
     if (!values.prizeIds?.length) return;
-    if (!hasStore || !hasCode) return;
+    if (!isEventOptin && (!hasStore || !hasCode)) return;
 
     const maybeFileList = (values as any).image as unknown as FileList | string | undefined;
     let finalImageUrl = typeof maybeFileList === 'string' ? maybeFileList : '';
@@ -1559,6 +1563,7 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
                     control={control}
                     rules={{
                       validate: (v) =>
+                        isEventOptin ||
                         (v?.includes('#StoreName') && v?.includes('#Codigo')) ||
                         'Debe incluir #StoreName y #Codigo',
                     }}

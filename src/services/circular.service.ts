@@ -65,6 +65,30 @@ export interface Circular {
   productCount?: number;
   /** Sólo en el detalle (getCircular) o la lista completa. */
   products?: any[];
+  /** Auditoría por página (agentes de revisión): % de datos correctos y correcciones. */
+  pageAudits?: PageAudit[];
+}
+
+export type StoreProfile = { storeSlug: string; rules: string; departments: string[]; learnedAt?: string };
+export type AgentStep = { agent: string; status: 'running' | 'done' | 'error'; message: string; at: string };
+export type Pipeline = {
+  ok: boolean;
+  agents: Record<string, { name: string; emoji: string; role: string }>;
+  steps: AgentStep[];
+  running: boolean;
+  accuracy: number | null;
+};
+
+export interface PageAudit {
+  page: number;
+  products: number;
+  checked: number;
+  matched: number;
+  fixed: number;
+  imageMismatches: number;
+  lowConfidence: number;
+  accuracy: number;
+  at: string;
 }
 
 /** Producto del catálogo persistente de la tienda (StoreProduct en circular-service). */
@@ -80,6 +104,8 @@ export interface StoreProduct {
   saleUnit?: string;
   barcode?: string;
   category?: string;
+  /** Departamento del circular con las palabras de la tienda (MEAT, PRODUCE…). */
+  department?: string;
   unit?: string;
   imageUrl?: string;
   price?: string;
@@ -533,6 +559,32 @@ export class CircularService {
     if (new Set(productIds).size !== productIds.length) throw new Error('Ids repetidos en el orden.');
     const res = await api.patch('/circulars/store-product/reorder', { ids: productIds, offset });
     if (!res.data?.ok) throw new Error('El backend no confirmó el orden.');
+    return res.data;
+  }
+
+  /* ── Perfil de la tienda: reglas fijas para la IA + departamentos aprendidos ── */
+  async getStoreProfile(storeSlug: string): Promise<{ ok: boolean; profile: StoreProfile }> {
+    const res = await api.get(`/circulars/store/${storeSlug}/profile`);
+    return res.data;
+  }
+  async saveStoreRules(storeSlug: string, rules: string): Promise<{ ok: boolean; profile: StoreProfile }> {
+    const res = await api.put(`/circulars/store/${storeSlug}/profile`, { rules });
+    return res.data;
+  }
+
+  /* ── Bitácora de los agentes del circular ── */
+  async getPipeline(circularId: string): Promise<Pipeline> {
+    const res = await api.get(`/circulars/${circularId}/pipeline`);
+    return res.data;
+  }
+
+  /* ── Auditoría por página (agentes de revisión) ── */
+  async getAudit(circularId: string): Promise<{ ok: boolean; running: boolean; accuracy: number | null; pages: PageAudit[] }> {
+    const res = await api.get(`/circulars/${circularId}/audit`);
+    return res.data;
+  }
+  async runAudit(circularId: string): Promise<{ ok: boolean }> {
+    const res = await api.post(`/circulars/${circularId}/audit`, {});
     return res.data;
   }
 
