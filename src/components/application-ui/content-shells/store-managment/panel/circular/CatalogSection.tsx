@@ -9,6 +9,7 @@ import DragIndicatorRoundedIcon from '@mui/icons-material/DragIndicatorRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import {
   FormControlLabel,
+  Pagination,
   Checkbox,
   Alert,
   Autocomplete,
@@ -38,17 +39,27 @@ import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useSta
 import toast from 'react-hot-toast';
 import { applyCatalogOrder, moveCatalogItem } from './catalog-order';
 import { qk, useStoreCirculars } from './hooks';
+
+// Filas por página del catálogo (un circular grande trae 2000 productos).
+const PAGE_SIZE = 50;
 import { imageFromPaste, PasteReplaceDialog, ProductEditorDialog } from './ProductImageTools';
 import { CATEGORIES, cell, fmtDate, ImagePreviewDialog, regularFromPrice } from './shared';
 import { CatalogRowsSkeleton } from './skeletons';
 
 export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
   const qc = useQueryClient();
+  // Paginado y buscado en el servidor: 50 por página. La clave incluye página y búsqueda;
+  // invalidar qk.catalog(storeSlug) sigue refrescando todas (prefijo).
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const deferredSearch = useDeferredValue(search);
+  useEffect(() => { setPage(1); }, [deferredSearch]);
   const catalog = useQuery({
-    queryKey: qk.catalog(storeSlug),
-    queryFn: () => circularService.getCatalogAdmin(storeSlug),
+    queryKey: [...qk.catalog(storeSlug), page, deferredSearch.trim()],
+    queryFn: () => circularService.getCatalogAdmin(storeSlug, { page, limit: PAGE_SIZE, q: deferredSearch }),
     enabled: !!storeSlug,
     staleTime: 30_000,
+    placeholderData: (prev) => prev,
     // Mientras la IA limpia imágenes el catálogo se refresca solo: cada fila pasa de
     // "Generando…" a su foto final sin recargar.
     refetchInterval: (q) => (q.state.data?.cleaning ? 8000 : false),
@@ -85,11 +96,10 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
   const isGenerating = (p: StoreProduct) =>
     cleaning && (!p.imageUrl || /\/circular-products\//.test(p.imageUrl));
   const generatingCount = cleaning ? (catalog.data?.items || []).filter(isGenerating).length : 0;
-  const [search, setSearch] = useState('');
   const [pendingOrder, setPendingOrder] = useState<{ store: string; ids: string[] } | null>(null);
   const saveOrder = useMutation({
-    mutationFn: ({ store, ids }: { store: string; ids: string[] }) =>
-      circularService.saveCatalogOrder(store, ids),
+    mutationFn: ({ store, ids, offset }: { store: string; ids: string[]; offset?: number }) =>
+      circularService.saveCatalogOrder(store, ids, offset || 0),
     onMutate: async (order) => {
       setPendingOrder(order);
       await qc.cancelQueries({ queryKey: qk.catalog(order.store) });
@@ -144,13 +154,10 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
       ),
     [catalog.data, pendingOrder, storeSlug]
   );
-  const deferredSearch = useDeferredValue(search);
-  const items: StoreProduct[] = useMemo(() => {
-    const q = deferredSearch.trim().toLowerCase();
-    return q
-      ? orderedItems.filter((p) => `${p.name} ${p.brand ?? ''}`.toLowerCase().includes(q))
-      : orderedItems;
-  }, [orderedItems, deferredSearch]);
+  // La búsqueda ya viene filtrada del servidor.
+  const items: StoreProduct[] = orderedItems;
+  const total = catalog.data?.total ?? orderedItems.length;
+  const pages = catalog.data?.pages ?? 1;
 
   // Lo que todavía no arrancó, agrupado por fecha de entrada: el encargado sube el flyer
   // de la semana que viene y necesita ver qué sale (o cambia de precio) y cuándo.
@@ -184,7 +191,7 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
       source.index,
       destination.index
     );
-    saveOrder.mutate({ store: storeSlug, ids });
+    saveOrder.mutate({ store: storeSlug, ids, offset: (page - 1) * PAGE_SIZE });
   };
 
   // Productos con oferta pero sin precio regular calculable
@@ -715,8 +722,27 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
                             variant="body2"
                             color="text.secondary"
                           >
-                            Sin productos en el catálogo.
+                            {deferredSearch.trim() ? 'Nada coincide con la búsqueda.' : 'Sin productos en el catálogo.'}
                           </Typography>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {pages > 1 && (
+                      <TableRow>
+                        <TableCell colSpan={9} sx={{ py: 1.5 }}>
+                          <Stack direction="row" alignItems="center" justifyContent="space-between" gap={2} flexWrap="wrap">
+                            <Typography variant="body2" color="text.secondary">
+                              {total} productos · página {page} de {pages}
+                              {catalog.isFetching ? ' · cargando…' : ''}
+                            </Typography>
+                            <Pagination
+                              count={pages}
+                              page={page}
+                              onChange={(_e, p) => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                              size="small"
+                              siblingCount={1}
+                            />
+                          </Stack>
                         </TableCell>
                       </TableRow>
                     )}

@@ -479,10 +479,14 @@ export class CircularService {
   }
 
   /** Catálogo COMPLETO para administración (incluye ocultos y sin oferta). */
+  /** Catálogo del panel, paginado y buscable en el servidor (`limit` + `page` + `q`). */
   async getCatalogAdmin(
-    storeSlug: string
-  ): Promise<{ storeSlug: string; count: number; items: StoreProduct[]; cleaning?: boolean }> {
-    const res = await api.get(`/circulars/store/${storeSlug}/catalog`);
+    storeSlug: string,
+    opts?: { page?: number; limit?: number; q?: string }
+  ): Promise<{ storeSlug: string; count: number; items: StoreProduct[]; cleaning?: boolean; total?: number; page?: number; pages?: number; limit?: number }> {
+    const res = await api.get(`/circulars/store/${storeSlug}/catalog`, {
+      params: { ...(opts?.limit ? { limit: opts.limit, page: opts.page || 1 } : {}), ...(opts?.q?.trim() ? { q: opts.q.trim() } : {}) },
+    });
     return res.data;
   }
 
@@ -524,40 +528,12 @@ export class CircularService {
     return res.data;
   }
 
-  /** Persists positions through the existing product endpoint and verifies both catalog views. */
-  async saveCatalogOrder(storeSlug: string, productIds: string[]) {
-    const current = await this.getCatalogAdmin(storeSlug);
-    const products = new Map(current.items.map((item) => [item._id, item]));
-    if (new Set(productIds).size !== productIds.length ||
-        productIds.length !== products.size || productIds.some((id) => !products.has(id))) {
-      throw new Error('El catálogo cambió. Recargá los productos y volvé a ordenarlos.');
-    }
-
-    // Sequential writes stop on failure. The caller reloads the server state if a partial save occurs.
-    for (const [position, id] of productIds.entries()) {
-      if (products.get(id)?.position === position) continue;
-      const result = await this.updateStoreProduct(id, { position });
-      if (!result.ok || result.item?.position !== position) {
-        throw new Error('El backend no confirmó la posición del producto. No se pudo completar el orden.');
-      }
-    }
-
-    const saved = await this.getCatalogAdmin(storeSlug);
-    const savedPositions = new Map(saved.items.map((item) => [item._id, item.position]));
-    if (productIds.some((id, position) => savedPositions.get(id) !== position)) {
-      throw new Error('No se pudo verificar el orden guardado. Volvé a intentarlo.');
-    }
-
-    // The shopping-list app consumes this endpoint directly, so its response must preserve the order.
-    const visible = await this.getStoreCatalog(storeSlug);
-    const requestedPositions = new Map(productIds.map((id, position) => [id, position]));
-    const returnedPositions = visible.items
-      .filter((item) => requestedPositions.has(item._id))
-      .map((item) => requestedPositions.get(item._id)!);
-    if (returnedPositions.some((position, index) => index > 0 && position < returnedPositions[index - 1])) {
-      throw new Error('Las posiciones se guardaron, pero la API de listas todavía no devuelve los productos en ese orden.');
-    }
-    return saved;
+  /** Orden del catálogo: una sola llamada; `offset` = inicio de la página (catálogo paginado). */
+  async saveCatalogOrder(storeSlug: string, productIds: string[], offset = 0) {
+    if (new Set(productIds).size !== productIds.length) throw new Error('Ids repetidos en el orden.');
+    const res = await api.patch('/circulars/store-product/reorder', { ids: productIds, offset });
+    if (!res.data?.ok) throw new Error('El backend no confirmó el orden.');
+    return res.data;
   }
 
   /* ── Revisión IA de productos (circular-service /review) ── */
@@ -593,6 +569,8 @@ export class CircularService {
     shown: number;
     hidden: number;
     applied: number;
+      duplicates?: number;
+    duplicateExamples?: string[];
   }> {
     const res = await api.post(`/circulars/store/${storeSlug}/sync-visibility`);
     return res.data;

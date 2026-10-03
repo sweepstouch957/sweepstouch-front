@@ -90,8 +90,8 @@ export default function CampaignAutomationCard({
     onSuccess: (d) => {
       toast.success(
         d.circularId
-          ? `Lista arreglada: ${d.inCircular} productos de "${d.circularTitle}" visibles · ${d.hidden} de flyers viejos ocultados`
-          : `No hay flyer vigente hoy: se ocultaron ${d.hidden} productos de flyers vencidos`,
+          ? `Lista arreglada: ${d.inCircular} productos de "${d.circularTitle}" visibles · ${d.hidden} de flyers viejos ocultados${d.duplicates ? ` · ${d.duplicates} duplicados quitados` : ''}`
+          : `No hay flyer vigente hoy: se ocultaron ${d.hidden} productos de flyers vencidos${d.duplicates ? ` · ${d.duplicates} duplicados quitados` : ''}`,
         { duration: 7000 }
       );
       refresh();
