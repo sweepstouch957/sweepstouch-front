@@ -101,7 +101,8 @@ export default function WeeklyCircularCard({ storeId, storeSlug, storeName, onPr
   const guidanceFields = <Box sx={{ mt: 1.5 }}>{ai.fields}</Box>;
 
   // "Los primeros X" = los de foto grande (rápido, recortes limpios). 0 = todos de una.
-  const [max, setMax] = useState(20);
+  // Por defecto TODOS: la lista debe traer el circular completo. Los primeros X quedan como atajo.
+  const [max, setMax] = useState(0);
   const [reextractOpen, setReextractOpen] = useState(false);
 
   if (isLoading) {
@@ -388,15 +389,15 @@ function AmountSelect({
       onChange={(e) => onChange(Number(e.target.value))}
       {...rest}
     >
+      <MenuItem value={0}>Todos los productos del circular (recomendado)</MenuItem>
       {AMOUNTS.map((a) => (
         <MenuItem
           key={a}
           value={a}
         >
-          Los primeros {a} (foto grande)
+          Sólo los primeros {a} (foto grande, rápido)
         </MenuItem>
       ))}
-      <MenuItem value={0}>Todos, por secciones (tarda más)</MenuItem>
     </TextField>
   );
 }

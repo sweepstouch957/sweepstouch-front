@@ -1079,7 +1079,7 @@ const CatalogRow = memo(function CatalogRow({
                 size="small"
                 variant="standard"
                 defaultValue={p.size ?? ''}
-                placeholder="tamaño"
+                placeholder={p.unit ? `por ${p.unit}` : 'tamaño'}
                 inputProps={{ style: { fontSize: 12 } }}
                 onBlur={(e) => {
                   const v = e.target.value.trim();

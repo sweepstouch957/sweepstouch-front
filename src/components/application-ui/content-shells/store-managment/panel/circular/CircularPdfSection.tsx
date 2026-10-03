@@ -48,8 +48,9 @@ import { useAiGuidance } from './AiGuidanceFields';
 import { circularLabel, fmtDate, statusChip } from './shared';
 import { ListRowsSkeleton } from './skeletons';
 
-// Lo que se extrae solo al traer/agendar con archivo: los de foto grande (rápido).
-const AUTO_EXTRACT = 20;
+// Lo que se extrae solo al traer/agendar con archivo: TODOS los productos, por secciones.
+// Antes eran los 20 de foto grande y la lista quedaba a medias; lo importante es que esté todo.
+const AUTO_EXTRACT = 0;
 const HISTORY_PREVIEW = 4;
 
 type Props = {
