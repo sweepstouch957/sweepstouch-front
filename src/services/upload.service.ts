@@ -34,7 +34,7 @@ export const uploadCampaignImage = async (
 // ─── Arte de campaña pesado (hasta 100 MB) ───────────────────────────────────
 // El MMS exige < 500 KB, pero de un arte liviano la IA lee mal los productos. Entonces:
 //   1. el ORIGINAL sube directo del navegador a Cloudinary (firma del backend; el proxy
-//      corta a 25 MB, así que no puede pasar por /upload), en trozos si es grande;
+//      corta a 52 MB, así que no puede pasar por /upload), en trozos si es grande;
 //   2. el backend saca de ahí la copia < 500 KB que viaja en el MMS.
 // La campaña guarda las dos: `image` (MMS) y `sourceImage` (de donde se leen los productos).
 export const MMS_MAX_BYTES = 500 * 1024;
@@ -43,8 +43,8 @@ const CHUNK_BYTES = 10 * 1024 * 1024; // Cloudinary pide trozos ≥ 5 MB (salvo 
 // Si el plan de Cloudinary rechaza el original por peso, se sube un "maestro" en alta
 // hecho en el navegador. Bajo 10 MB entra en cualquier plan.
 const MASTER_MAX_BYTES = 9.5 * 1024 * 1024;
-// El proxy del backend corta a 25 MB: hasta acá el original entra por /upload.
-const VIA_BACKEND_MAX_BYTES = 24 * 1024 * 1024;
+// El proxy del backend corta a 52 MB: hasta acá el original entra por /upload.
+const VIA_BACKEND_MAX_BYTES = 50 * 1024 * 1024;
 // Carpeta de originales: /upload/compress sólo acepta public_ids de acá.
 const ORIGINAL_FOLDER = 'campaigns-original';
 
@@ -186,7 +186,7 @@ export const uploadCampaignArt = async (
 };
 
 // ─── Media de promos / Ads (imagen o VIDEO) ──────────────────────────────────
-// Un video de tablet pesa 20–200 MB: no entra por el proxy (25 MB), sube directo del
+// Un video de tablet pesa 20–200 MB: no entra por el proxy (52 MB), sube directo del
 // navegador a Cloudinary con firma (`/upload/sign {kind:"video"}`), en trozos de 10 MB.
 export const PROMO_VIDEO_MAX_BYTES = 200 * 1024 * 1024;
 export const PROMO_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];

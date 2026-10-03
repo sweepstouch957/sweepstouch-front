@@ -239,7 +239,7 @@ export class CircularService {
   }
 
   /** Circular en varios archivos (página 1, página 2… en alta): quedan como un solo circular
-   *  en ese orden. Va UN archivo por request (el proxy corta a 25 MB y cada página pesa 8–10 MB):
+   *  en ese orden. Va UN archivo por request (el proxy corta a 52 MB y cada página pesa 8–10 MB):
    *  el primero crea el circular, los demás se agregan. `onProgress(i, total)` por archivo. */
   async uploadPages(
     payload: Omit<UploadCircularPayload, 'file'> & { files: File[] },

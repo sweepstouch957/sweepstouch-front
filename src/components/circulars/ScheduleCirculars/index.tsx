@@ -17,7 +17,7 @@ import { CircularsSnackbar } from './Snackbar';
 import { Row, SnackState } from '../types/ScheduleCirculars';
 import { getStoreBySlug } from '@/services/store.service';
 
-const MAX_MB = 10;
+const MAX_MB = 50;
 
 // Contenido estático de instrucciones — sin dependencias del componente
 const instructionsContent = [
