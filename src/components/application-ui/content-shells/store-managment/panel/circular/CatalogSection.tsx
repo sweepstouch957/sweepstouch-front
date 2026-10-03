@@ -311,6 +311,35 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
     onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo borrar'),
   });
 
+  // "Completar marca / tamaño": relee el flyer o el circular sólo para los productos a los que
+  // les falta marca o tamaño. Corre en el backend; acá se pregunta cada 3 s hasta que termina.
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsWatch, setDetailsWatch] = useState(false);
+  const detailsStatus = useQuery({
+    queryKey: ['catalog-details', storeSlug],
+    queryFn: () => circularService.fillDetailsStatus(storeSlug),
+    enabled: detailsWatch,
+    refetchInterval: (q) => (q.state.data?.job && !q.state.data.job.finishedAt ? 3000 : false),
+  });
+  const detailsRunning = detailsWatch && !detailsStatus.data?.job?.finishedAt;
+  useEffect(() => {
+    const j = detailsStatus.data?.job;
+    if (!detailsWatch || !j?.finishedAt) return;
+    setDetailsWatch(false);
+    if (j.error) toast.error(j.error);
+    else toast.success(`Marca y tamaño: ${j.updated} de ${j.total} productos completados leyendo "${j.circularTitle}"`, { duration: 7000 });
+    qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) });
+  }, [detailsStatus.data, detailsWatch, qc, storeSlug]);
+  const fillDetails = useMutation({
+    mutationFn: (source: 'flyer' | 'circular') => circularService.fillDetails(storeSlug, source),
+    onSuccess: () => {
+      setDetailsOpen(false);
+      setDetailsWatch(true);
+      toast.success('Leyendo el archivo… te aviso cuando termine');
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo completar marca y tamaño'),
+  });
+
   // El botón inteligente: visibles = SOLO los productos del último circular.
   const [syncOpen, setSyncOpen] = useState(false);
   const syncVisibility = useMutation({
@@ -437,6 +466,19 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
             {syncVisibility.isPending ? 'Sincronizando…' : 'Visibles = último flyer / circular'}
           </Button>
         </Tooltip>
+        <Tooltip title="Relee el flyer o el circular SOLO para los productos sin marca o sin tamaño y rellena marca, tamaño, unidad y presentación. No pisa lo que ya está escrito.">
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<AutoAwesomeOutlinedIcon />}
+            disabled={detailsRunning}
+            onClick={() => setDetailsOpen(true)}
+          >
+            {detailsRunning
+              ? `Completando… ${detailsStatus.data?.job?.done ?? 0}/${detailsStatus.data?.job?.total ?? 0}`
+              : 'Completar marca / tamaño'}
+          </Button>
+        </Tooltip>
         <Tooltip title="Pasa por IA todos los recortes del flyer: deja solo el producto (con su pedestal si lo tiene), sin letras ni precios, con fondo transparente. Los sin foto se generan.">
           <Button
             size="small"
@@ -509,6 +551,36 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
             onClick={() => syncVisibility.mutate('flyer')}
           >
             {syncVisibility.isPending ? 'Sincronizando…' : 'Sólo último flyer'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <AutoAwesomeOutlinedIcon color="primary" fontSize="small" />
+          Completar marca y tamaño
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            ¿De dónde leo? Se revisan sólo los productos a los que les falta marca o tamaño; se
+            rellenan marca, tamaño, unidad y presentación sin tocar lo que ya está escrito.
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Tarda un rato en circulares grandes. Puedes seguir trabajando; te aviso al terminar.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button size="small" onClick={() => setDetailsOpen(false)}>Cancelar</Button>
+          <Button size="small" variant="outlined" disabled={fillDetails.isPending} onClick={() => fillDetails.mutate('circular')}>
+            Del último circular
+          </Button>
+          <Button size="small" variant="contained" disabled={fillDetails.isPending} onClick={() => fillDetails.mutate('flyer')}>
+            Del último flyer
           </Button>
         </DialogActions>
       </Dialog>

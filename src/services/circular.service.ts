@@ -536,6 +536,16 @@ export class CircularService {
     return res.data;
   }
 
+  /* ── Completar marca / tamaño releyendo el flyer o el circular ── */
+  async fillDetails(storeSlug: string, source: 'flyer' | 'circular'): Promise<{ ok: boolean; job: DetailsJob }> {
+    const res = await api.post(`/circulars/catalog/store/${storeSlug}/fill-details`, { source });
+    return res.data;
+  }
+  async fillDetailsStatus(storeSlug: string): Promise<{ ok: boolean; job: DetailsJob | null }> {
+    const res = await api.get(`/circulars/catalog/store/${storeSlug}/fill-details`);
+    return res.data;
+  }
+
   /* ── Revisión IA de productos (circular-service /review) ── */
   async getProductReview(storeSlug: string): Promise<ProductReviewState> {
     const res = await api.get(`/circulars/review/store/${storeSlug}`);
@@ -699,5 +709,16 @@ export function inferTitleFromFilename(fileName: string): string {
   const cleaned = base.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
   return cleaned.replace(/\b\w/g, (m) => m.toUpperCase());
 }
+
+export type DetailsJob = {
+  source: 'flyer' | 'circular';
+  startedAt: string;
+  finishedAt: string | null;
+  total: number;
+  done: number;
+  updated: number;
+  circularTitle: string;
+  error: string;
+};
 
 export const circularService = new CircularService();
