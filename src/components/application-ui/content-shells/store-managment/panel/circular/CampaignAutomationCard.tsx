@@ -306,7 +306,7 @@ export default function CampaignAutomationCard({
       )}
 
       {/* Bitácora de los robots sobre el circular que creó/alimentó esta campaña. */}
-      <AgentFeed circularId={job.data?.result?.circularId || liveFlyer?._id || null} compact />
+      <AgentFeed circularId={job.data?.result?.circularId || liveFlyer?._id || null} storeSlug={storeSlug} compact />
 
       {image && (
         <>

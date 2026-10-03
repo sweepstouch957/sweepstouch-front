@@ -234,7 +234,7 @@ export default function WeeklyCircularCard({ storeId, storeSlug, storeName, onPr
               </Button>
             </Stack>
           ) : null}
-          <AgentFeed circularId={circular._id} />
+          <AgentFeed circularId={circular._id} storeSlug={storeSlug} />
           {circular.status === 'draft' && (
             <Alert
               severity="warning"

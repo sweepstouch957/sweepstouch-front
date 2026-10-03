@@ -5,6 +5,9 @@
 import { circularService } from '@/services/circular.service';
 import { Box, Chip, CircularProgress, Stack, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
+import toast from 'react-hot-toast';
+import { useRefreshStoreData } from './hooks';
 
 const STATUS: Record<string, { label: string; color: 'default' | 'info' | 'success' | 'error' }> = {
   waiting: { label: 'Esperando', color: 'default' },
@@ -16,7 +19,7 @@ const STATUS: Record<string, { label: string; color: 'default' | 'info' | 'succe
 const fmtTime = (iso?: string) =>
   iso ? new Date(iso).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', timeZone: 'America/New_York' }) : '';
 
-export default function AgentFeed({ circularId, compact = false }: { circularId?: string | null; compact?: boolean }) {
+export default function AgentFeed({ circularId, storeSlug = '', compact = false }: { circularId?: string | null; storeSlug?: string; compact?: boolean }) {
   const q = useQuery({
     queryKey: ['circular-pipeline', circularId],
     queryFn: () => circularService.getPipeline(circularId!),
@@ -24,6 +27,25 @@ export default function AgentFeed({ circularId, compact = false }: { circularId?
     refetchInterval: (query) => (query.state.data?.running ? 3000 : false),
   });
   const data = q.data;
+
+  // Mientras los robots trabajan, cada novedad (otra página leída, catálogo guardado…)
+  // refresca circular y catálogo; al terminar, aviso y refresco final.
+  const refresh = useRefreshStoreData(storeSlug);
+  const lastSig = useRef('');
+  const wasRunning = useRef(false);
+  useEffect(() => {
+    if (!data) return;
+    const sig = JSON.stringify(data.steps.map((s) => [s.agent, s.status, s.message]));
+    if (data.running && sig !== lastSig.current && lastSig.current) refresh();
+    lastSig.current = sig;
+    if (wasRunning.current && !data.running) {
+      refresh();
+      const failed = data.steps.find((s) => s.status === 'error');
+      if (failed) toast.error(`${data.agents[failed.agent]?.name || failed.agent}: ${failed.message}`, { duration: 9000 });
+      else toast.success(data.accuracy != null ? `Circular listo. Efectividad de la lectura: ${data.accuracy}%` : 'Circular listo.', { duration: 7000 });
+    }
+    wasRunning.current = !!data.running;
+  }, [data, refresh]);
   if (!circularId || !data || !data.steps.length) return null;
   const byAgent = new Map(data.steps.map((s) => [s.agent, s]));
   const order = Object.keys(data.agents);
