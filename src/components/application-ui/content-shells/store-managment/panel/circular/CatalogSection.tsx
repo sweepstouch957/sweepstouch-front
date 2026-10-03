@@ -314,12 +314,12 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
   // El botón inteligente: visibles = SOLO los productos del último circular.
   const [syncOpen, setSyncOpen] = useState(false);
   const syncVisibility = useMutation({
-    mutationFn: () => circularService.syncVisibility(storeSlug),
-    onSuccess: (d) => {
+    mutationFn: (only: 'flyer' | 'circular') => circularService.syncVisibility(storeSlug, only),
+    onSuccess: (d, only) => {
       toast.success(
         d.circularId
-          ? `"${d.circularTitle}": ${d.inCircular} del flyer visibles · ${d.hidden} ocultados`
-          : `Sin flyer vigente hoy: ${d.hidden} productos de flyers vencidos ocultados`
+          ? `"${d.circularTitle}": ${d.inCircular} visibles · ${d.hidden} ocultados${d.duplicates ? ` · ${d.duplicates} duplicados quitados` : ''}`
+          : `Sin ${only === 'flyer' ? 'flyer de campaña' : 'circular'} vigente hoy: ${d.hidden} productos ocultados`
       );
       setSyncOpen(false);
       qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) });
@@ -426,7 +426,7 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
             </Button>
           </DialogActions>
         </Dialog>
-        <Tooltip title="Deja visibles en el Pre-RCS SOLO los productos del último circular y oculta el resto del catálogo. Un click en vez de switch por switch.">
+        <Tooltip title="Deja visibles en el Pre-RCS SOLO los productos del último flyer de campaña o SOLO los del último circular, y oculta el resto. Un click en vez de switch por switch.">
           <Button
             size="small"
             variant="contained"
@@ -434,7 +434,7 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
             disabled={syncVisibility.isPending}
             onClick={() => setSyncOpen(true)}
           >
-            {syncVisibility.isPending ? 'Sincronizando…' : 'Visibles = último circular'}
+            {syncVisibility.isPending ? 'Sincronizando…' : 'Visibles = último flyer / circular'}
           </Button>
         </Tooltip>
         <Tooltip title="Pasa por IA todos los recortes del flyer: deja solo el producto (con su pedestal si lo tiene), sin letras ni precios, con fondo transparente. Los sin foto se generan.">
@@ -476,9 +476,8 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
             variant="body2"
             sx={{ mb: 1 }}
           >
-            Se dejarán{' '}
-            <strong>visibles en el Pre-RCS solo los productos del último circular</strong> de la
-            tienda; el resto del catálogo se ocultará.
+            Elige con qué se queda la lista del Pre-RCS: <strong>sólo el último flyer de campaña</strong>{' '}
+            o <strong>sólo el último circular semanal</strong>. El resto del catálogo se oculta.
           </Typography>
           <Typography
             variant="caption"
@@ -497,11 +496,19 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
           </Button>
           <Button
             size="small"
+            variant="outlined"
+            disabled={syncVisibility.isPending}
+            onClick={() => syncVisibility.mutate('circular')}
+          >
+            Sólo último circular
+          </Button>
+          <Button
+            size="small"
             variant="contained"
             disabled={syncVisibility.isPending}
-            onClick={() => syncVisibility.mutate()}
+            onClick={() => syncVisibility.mutate('flyer')}
           >
-            {syncVisibility.isPending ? 'Sincronizando…' : 'Sí, sincronizar'}
+            {syncVisibility.isPending ? 'Sincronizando…' : 'Sólo último flyer'}
           </Button>
         </DialogActions>
       </Dialog>

@@ -561,7 +561,7 @@ export class CircularService {
   /** "Arreglar productos de la lista": vuelca los precios que ya llegaron a su fecha y deja
    *  visibles en el Pre-RCS SOLO los productos del flyer VIGENTE (el que cubre hoy); oculta el
    *  resto. Sin flyer vigente (`circularId` null) oculta lo que vino de un flyer vencido. */
-  async syncVisibility(storeSlug: string): Promise<{
+  async syncVisibility(storeSlug: string, only?: 'flyer' | 'circular'): Promise<{
     ok: boolean;
     circularId: string | null;
     circularTitle: string;
@@ -572,7 +572,7 @@ export class CircularService {
       duplicates?: number;
     duplicateExamples?: string[];
   }> {
-    const res = await api.post(`/circulars/store/${storeSlug}/sync-visibility`);
+    const res = await api.post(`/circulars/store/${storeSlug}/sync-visibility`, null, { params: only ? { only } : {} });
     return res.data;
   }
 
