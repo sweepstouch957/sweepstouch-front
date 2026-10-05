@@ -3,7 +3,7 @@
 import type { CalendarEvent } from '@/services/calendar.service';
 import { alpha, Box, ButtonBase, Stack, Typography, useTheme } from '@mui/material';
 import React, { useMemo } from 'react';
-import { DOW, EVENT_TYPES, MONTHS, pad, seasonOf, SEASONS, spansDay } from './constants';
+import { DOW, eventColor, MONTHS, pad, seasonOf, SEASONS, spansDay } from './constants';
 
 interface Props {
   year: number;
@@ -122,7 +122,7 @@ export const YearView = React.memo(function YearView({
                     fontSize: 10,
                     fontWeight: 500,
                     bgcolor: d.first
-                      ? (EVENT_TYPES[d.first.type] || EVENT_TYPES.otro).bg
+                      ? eventColor(d.first).bg
                       : d.num === ''
                         ? 'transparent'
                         : d.isToday
@@ -131,7 +131,7 @@ export const YearView = React.memo(function YearView({
                             ? alpha(SEASONS[seasonOf(d.key)].color, isDark ? 0.22 : 0.3)
                             : alpha(theme.palette.text.primary, isDark ? 0.06 : 0.04),
                     color: d.first
-                      ? (EVENT_TYPES[d.first.type] || EVENT_TYPES.otro).fg
+                      ? eventColor(d.first).fg
                       : 'text.primary',
                     outline: d.isToday ? `2px solid ${theme.palette.text.primary}` : 'none',
                     outlineOffset: -1,

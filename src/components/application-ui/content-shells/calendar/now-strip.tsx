@@ -3,7 +3,7 @@
 import type { CalendarEvent } from '@/services/calendar.service';
 import { alpha, Box, ButtonBase, Stack, Typography, useTheme } from '@mui/material';
 import React, { useMemo } from 'react';
-import { endKey, EVENT_TYPES, headline, isOngoing, shortDay, timeRange } from './constants';
+import { endKey, eventColor, headline, isOngoing, shortDay, timeRange } from './constants';
 
 interface Props {
   events: CalendarEvent[];
@@ -63,7 +63,7 @@ export const NowStrip = React.memo(function NowStrip({ events, today, onOpen }: 
         }}
       >
         {list.map((e) => {
-          const ty = EVENT_TYPES[e.type] || EVENT_TYPES.otro;
+          const ty = eventColor(e);
           const ongoing = isOngoing(e, today);
           const multi = endKey(e) > e.date;
           const sd = shortDay(e.date);

@@ -14,6 +14,7 @@ import { isInternalStaff, STAFF_ROLE_QUERY } from '@/utils/staff';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import {
+  Autocomplete,
   Box,
   Button,
   Card,
@@ -260,6 +261,38 @@ function Calendar(): React.JSX.Element {
     () => new Set(events.flatMap((e) => e.stores.map((s) => s.storeId || s.storeName))).size,
     [events]
   );
+  // Autocompletado del buscador: tiendas (con cuántos eventos tienen), personas y eventos
+  // que de verdad están en el calendario. Elegir una tienda filtra sus eventos.
+  type SearchOption = { group: 'Tiendas' | 'Personas' | 'Eventos'; label: string; sub?: string; search: string };
+  const searchOptions = useMemo<SearchOption[]>(() => {
+    const stores = new Map<string, { label: string; sub: string; n: number }>();
+    const people = new Set<string>();
+    const titles = new Map<string, string>();
+    for (const e of events) {
+      for (const s of e.stores) {
+        const k = s.storeId || s.storeName;
+        const cur = stores.get(k);
+        if (cur) cur.n += 1;
+        else stores.set(k, { label: s.storeName, sub: s.storeAddress || '', n: 1 });
+      }
+      if (e.ownerName) people.add(e.ownerName);
+      for (const p of e.participants) if (p.name) people.add(p.name);
+      if (!titles.has(e.title)) titles.set(e.title, EVENT_TYPES[e.type]?.label || e.type);
+    }
+    const opt = (group: SearchOption['group'], label: string, sub?: string): SearchOption => ({
+      group,
+      label,
+      sub,
+      search: `${label} ${sub || ''}`.toLowerCase(),
+    });
+    return [
+      ...[...stores.values()]
+        .sort((a, b) => b.n - a.n || a.label.localeCompare(b.label))
+        .map((s) => opt('Tiendas', s.label, `${s.sub ? `${s.sub} · ` : ''}${s.n} evento${s.n === 1 ? '' : 's'}`)),
+      ...[...people].sort().map((p) => opt('Personas', p)),
+      ...[...titles.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([t, ty]) => opt('Eventos', t, ty)),
+    ];
+  }, [events]);
   // "Próxima fecha" es la que viene, no la que ya está en curso (Hispanic Heritage Month dura un mes)
   const nextEv = useMemo(
     () => events.find((e) => e.date > today && e.status !== 'cancelado') || null,
@@ -518,12 +551,39 @@ function Calendar(): React.JSX.Element {
               ))}
             </Stack>
           )}
-          <TextField
+          <Autocomplete
+            freeSolo
             size="small"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar tienda, dirección, persona o evento…"
-            sx={{ flex: '1 1 220px', minWidth: 200 }}
+            options={searchOptions}
+            groupBy={(o) => o.group}
+            getOptionLabel={(o) => (typeof o === 'string' ? o : o.label)}
+            filterOptions={(opts, { inputValue }) => {
+              const v = inputValue.trim().toLowerCase();
+              return (v ? opts.filter((o) => o.search.includes(v)) : opts).slice(0, 40);
+            }}
+            inputValue={search}
+            onInputChange={(_, v) => setSearch(v)}
+            onChange={(_, v) => setSearch(typeof v === 'string' ? v : v?.label || '')}
+            renderOption={(props, o) => (
+              <li
+                {...props}
+                key={`${o.group}-${o.label}`}
+              >
+                <Box>
+                  <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{o.label}</Typography>
+                  {o.sub && (
+                    <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>{o.sub}</Typography>
+                  )}
+                </Box>
+              </li>
+            )}
+            renderInput={(p) => (
+              <TextField
+                {...p}
+                placeholder="Buscar tienda, dirección, persona o evento…"
+              />
+            )}
+            sx={{ flex: '1 1 260px', minWidth: 220 }}
           />
         </Stack>
       </Card>

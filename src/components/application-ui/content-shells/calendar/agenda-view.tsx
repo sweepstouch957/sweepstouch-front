@@ -5,7 +5,6 @@ import { alpha, Box, Button, ButtonBase, Stack, Typography, useTheme } from '@mu
 import React, { useMemo } from 'react';
 import {
   endKey,
-  EVENT_TYPES,
   headline,
   isOngoing,
   MONTHS,
@@ -15,6 +14,7 @@ import {
   statusColor,
   storesLine,
   timeRange,
+  eventColor,
 } from './constants';
 
 interface Props {
@@ -88,7 +88,7 @@ export const AgendaView = React.memo(function AgendaView({
             </Typography>
           </Stack>
           {g.items.map((e) => {
-            const ty = EVENT_TYPES[e.type] || EVENT_TYPES.otro;
+            const ty = eventColor(e);
             const past = endKey(e) < today;
             const cancelled = e.status === 'cancelado';
             const sd = shortDay(e.date);

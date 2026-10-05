@@ -16,6 +16,7 @@ import {
   SEASONS,
   spansDay,
   TYPE_KEYS,
+  eventColor,
 } from './constants';
 
 interface Props {
@@ -251,7 +252,7 @@ export const MonthView = React.memo(function MonthView({
               )}
             </Stack>
             {c.list.slice(0, 3).map((e) => {
-              const ty = EVENT_TYPES[e.type] || EVENT_TYPES.otro;
+              const ty = eventColor(e);
               const cancelled = e.status === 'cancelado';
               const multi = endKey(e) > e.date;
               return (

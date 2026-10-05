@@ -28,6 +28,7 @@ import {
   STATUS_LABEL,
   statusColor,
   timeRange,
+  eventColor,
 } from './constants';
 
 interface Props {
@@ -104,7 +105,7 @@ export function EventDetailDialog({
   notifying,
 }: Props) {
   const theme = useTheme();
-  const ty = EVENT_TYPES[e.type] || EVENT_TYPES.otro;
+  const ty = eventColor(e);
   const own = e.source === 'event';
   const isFinal = e.status === 'finalizado' && e.report?.numbers != null;
   const stores = e.stores.map(

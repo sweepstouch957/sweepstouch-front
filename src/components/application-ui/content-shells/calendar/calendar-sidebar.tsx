@@ -13,6 +13,7 @@ import {
   statusColor,
   storesLine,
   timeRange,
+  eventColor,
 } from './constants';
 
 interface Props {
@@ -63,7 +64,7 @@ function Row({
   onOpen: (e: CalendarEvent) => void;
 }) {
   const theme = useTheme();
-  const ty = EVENT_TYPES[e.type] || EVENT_TYPES.otro;
+  const ty = eventColor(e);
   const sd = shortDay(e.date);
   const { primary, secondary } = headline(e);
   const multi = endKey(e) > e.date;

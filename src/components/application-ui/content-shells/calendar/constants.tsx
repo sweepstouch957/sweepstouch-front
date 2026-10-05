@@ -23,6 +23,16 @@ export const EVENT_TYPES: Record<
 
 export const TYPE_KEYS = Object.keys(EVENT_TYPES) as EventType[];
 
+/**
+ * Gris para lo que no es de ninguna tienda (feriados, fechas culturales, Navidad…): el color
+ * del tipo queda para las actividades que sí tienen tienda, que es lo que hay que ver.
+ */
+export const NO_STORE_COLOR = { bg: '#9AA0A6', fg: '#fff' };
+export const eventColor = (e: Pick<CalendarEvent, 'type' | 'stores'>) => {
+  const ty = EVENT_TYPES[e.type] || EVENT_TYPES.otro;
+  return (e.stores || []).length ? ty : { ...ty, ...NO_STORE_COLOR };
+};
+
 export const STATUS_LABEL: Record<EventStatus, string> = {
   confirmado: 'Confirmado',
   por_confirmar: 'Por confirmar',
