@@ -18,27 +18,33 @@ import {
   Button,
   Chip,
   Paper,
+  Skeleton,
   Stack,
   Tab,
   Tabs,
   Typography,
 } from '@mui/material';
+import dynamic from 'next/dynamic';
 import NextLink from 'next/link';
 import { useCallback, useState } from 'react';
-import AgentsSection from './AgentsSection';
 import CampaignAutomationCard from './CampaignAutomationCard';
-import CatalogSection from './CatalogSection';
 import CircularPdfSection from './CircularPdfSection';
-import { useUpcoming } from './hooks';
+import { useUpcomingCount } from './hooks';
 import { ListsPhoneCard } from './ListsPhoneCard';
-import ListsSection from './ListsSection';
-import MessagesSection from './MessagesSection';
 import PreRcsPreviewButton from './PreRcsPreviewButton';
-import PurchasesSection from './PurchasesSection';
 import { ImagePreviewDialog, type PanelProps } from './shared';
 import StoreBannerSection from './StoreBannerSection';
-import UpcomingProductsSection from './UpcomingProductsSection';
 import WeeklyCircularCard from './WeeklyCircularCard';
+
+// Las pestañas que no son la primera se bajan al abrirlas: Productos solo son 1300 líneas +
+// herramientas de imagen, y antes se parseaban todas al entrar a Circular.
+const tabSkeleton = () => <Skeleton variant="rounded" height={320} sx={{ borderRadius: 3 }} />;
+const UpcomingProductsSection = dynamic(() => import('./UpcomingProductsSection'), { ssr: false, loading: tabSkeleton });
+const CatalogSection = dynamic(() => import('./CatalogSection'), { ssr: false, loading: tabSkeleton });
+const ListsSection = dynamic(() => import('./ListsSection'), { ssr: false, loading: tabSkeleton });
+const PurchasesSection = dynamic(() => import('./PurchasesSection'), { ssr: false, loading: tabSkeleton });
+const MessagesSection = dynamic(() => import('./MessagesSection'), { ssr: false, loading: tabSkeleton });
+const AgentsSection = dynamic(() => import('./AgentsSection'), { ssr: false, loading: tabSkeleton });
 
 /** Qué puede hacer la persona acá, en una línea por paso, con el botón que lo hace. */
 function HowItWorks({
@@ -254,9 +260,9 @@ export default function StoreCircularPanel({
   const openUpcoming = useCallback(() => setTab(1), []);
   const openProducts = useCallback(() => setTab(2), []);
   const openAgents = useCallback(() => setTab(6), []);
-  // Contador de Próximos (misma query que la sección: comparten caché).
-  const upcoming = useUpcoming(storeSlug);
-  const upcomingCount = (upcoming.data?.total ?? 0) + (upcoming.data?.banners?.length ?? 0);
+  // Contador de Próximos: misma query que la sección (comparten caché) pero acá sólo se
+  // suscribe al número, y el sondeo por minuto corre sólo en Circular/Próximos.
+  const upcomingCount = useUpcomingCount(storeSlug, tab <= 1);
 
   if (!storeSlug) {
     return (

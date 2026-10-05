@@ -2,6 +2,7 @@
 
 /** Productos: el catálogo de la tienda (lo que ve el cliente en sus listas). */
 import { circularService, type Circular, type StoreProduct } from '@/services/circular.service';
+import { cloudinaryThumb } from '@/utils/cloudinary';
 import { DragDropContext, Draggable, Droppable, type DropResult } from '@hello-pangea/dnd';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
@@ -53,12 +54,14 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const deferredSearch = useDeferredValue(search);
-  useEffect(() => { setPage(1); }, [deferredSearch]);
   const catalog = useQuery({
     queryKey: [...qk.catalog(storeSlug), page, deferredSearch.trim()],
     queryFn: () => circularService.getCatalogAdmin(storeSlug, { page, limit: PAGE_SIZE, q: deferredSearch }),
     enabled: !!storeSlug,
     staleTime: 30_000,
+    // Cada combinación página+búsqueda es una entrada de caché con 50 productos: se suelta
+    // al minuto en vez de a los 10 (default global).
+    gcTime: 60_000,
     placeholderData: (prev) => prev,
     // Mientras la IA limpia imágenes el catálogo se refresca solo: cada fila pasa de
     // "Generando…" a su foto final sin recargar.
@@ -78,6 +81,9 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
     [categoriesQuery.data]
   );
   const catalogContainerRef = useRef<HTMLDivElement>(null);
+  // Refrescos diferidos de la limpieza de imágenes: se cancelan al desmontar.
+  const lateTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => lateTimers.current.forEach(clearTimeout), []);
   // Sólo importa en qué rango cae el ancho: guardar el número exacto re-renderizaba la
   // tabla en cada píxel al redimensionar. 1000 = tabla normal.
   const [catalogWidth, setCatalogWidth] = useState(1000);
@@ -104,10 +110,7 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
       setPendingOrder(order);
       await qc.cancelQueries({ queryKey: qk.catalog(order.store) });
     },
-    onSuccess: (data, order) => {
-      qc.setQueryData(qk.catalog(order.store), data);
-      toast.success('Orden guardado para las listas.');
-    },
+    onSuccess: () => toast.success('Orden guardado para las listas.'),
     onError: (error: Error) => toast.error(error.message || 'No se pudo guardar el orden.'),
     onSettled: async (_data, _error, order) => {
       try {
@@ -290,9 +293,11 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
           ? `Limpiando ${d.queued} imágenes con IA… se van actualizando solas`
           : `Revisando ${d.verifying} fotos: las que no coincidan con su producto se regeneran solas`
       );
+      // El refetchInterval del catálogo (mientras `cleaning`) ya lo va refrescando: estos
+      // dos son el respaldo si el flag se apaga antes de que caigan las últimas fotos.
       const refresh = () => qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) });
-      setTimeout(refresh, 60_000);
-      setTimeout(refresh, 180_000);
+      lateTimers.current.forEach(clearTimeout);
+      lateTimers.current = [setTimeout(refresh, 60_000), setTimeout(refresh, 180_000)];
     },
     onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo iniciar la limpieza'),
   });
@@ -322,10 +327,17 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
     refetchInterval: (q) => (q.state.data?.job && !q.state.data.job.finishedAt ? 3000 : false),
   });
   const rescanRunning = rescanWatch && !rescanStatus.data?.job?.finishedAt;
+  const rescanSeen = useRef(-1);
   useEffect(() => {
     const j = rescanStatus.data?.job;
     if (!rescanWatch) return;
-    qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) }); // las fotos van cayendo una a una
+    // Las fotos van cayendo una a una: se refresca el catálogo sólo cuando avanzó el
+    // contador, no en cada poll de 3 s.
+    const done = j?.done ?? 0;
+    if (done !== rescanSeen.current) {
+      rescanSeen.current = done;
+      qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) });
+    }
     if (!j?.finishedAt) return;
     setRescanWatch(false);
     if (j.error) toast.error(j.error);
@@ -433,7 +445,7 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
           size="small"
           placeholder="Buscar producto…"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           sx={{ width: 260 }}
         />
         {missingRegular.length > 0 && (
@@ -1029,8 +1041,12 @@ const CatalogRow = memo(function CatalogRow({
                 ) : p.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={p.imageUrl}
+                    src={cloudinaryThumb(p.imageUrl, 88, 88, 'fit')}
                     alt=""
+                    loading="lazy"
+                    decoding="async"
+                    width={44}
+                    height={44}
                     style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                   />
                 ) : (
@@ -1173,7 +1189,6 @@ const CatalogRow = memo(function CatalogRow({
               variant="standard"
               defaultValue={p.price ?? ''}
               fullWidth
-              multiline
               onBlur={(e) => {
                 const v = e.target.value.trim();
                 if (v !== String(p.price ?? '')) onPatch(p._id, { price: v });
@@ -1189,7 +1204,6 @@ const CatalogRow = memo(function CatalogRow({
               variant="standard"
               defaultValue={p.originalPrice ?? ''}
               fullWidth
-              multiline
               onBlur={(e) => {
                 const v = e.target.value.trim();
                 if (v !== String(p.originalPrice ?? '')) {
@@ -1221,7 +1235,6 @@ const CatalogRow = memo(function CatalogRow({
               variant="standard"
               defaultValue={p.savings ?? ''}
               fullWidth
-              multiline
               onBlur={(e) => {
                 const v = e.target.value.trim();
                 if (v !== String(p.savings ?? '')) onPatch(p._id, { savings: v });

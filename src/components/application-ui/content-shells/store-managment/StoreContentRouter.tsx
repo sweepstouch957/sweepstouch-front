@@ -1,27 +1,46 @@
 'use client';
 
-import StoreInfo from '@/components/website/store-panel';
 import { DEFAULT_INFOBIP_SENDER, Store } from '@/services/store.service';
 import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
 import { Box, Button, Skeleton, Stack, Typography } from '@mui/material';
+import dynamic from 'next/dynamic';
 import type { FC } from 'react';
-import { ActiveSweepstakeCard } from '../../active-sweeptake';
-import { PromoDashboard } from '../../tables/promos/panel';
-import { StoreBillingPanel } from './panel/billing/StoreBillingPanel';
-import CajerasPanel from './panel/cajeras/cajeras-panel';
-import CampaignsPanel from './panel/campaigns/campaign-panel';
-import CreateCampaignContainer from './panel/campaigns/createCampaignContainer';
-import RcsCampaignBuilder from './panel/campaigns/rcs/RcsCampaignBuilder';
-import CustomersPanel from './panel/customers/customers-panel';
-import { StoreEquipmentPanel } from './panel/equipment/StoreEquipmentPanel';
-import StoreOptinPanel from './panel/optin/StoreOptinPanel';
-import StoreQuickbooksPanel from './panel/quickbooks/StoreQuickbooksPanel';
-import QrDuetMUI from './panel/qr/QrContainer';
-import StoreAudienceOverview from './panel/sweepstakes/StoreAudienceOverview';
-import StoreSweepstakeStats from './panel/sweepstakes/StoreSweepstakeStats';
-import WelcomeCouponsPanel from './panel/welcome-coupons/WelcomeCouponsPanel';
-import StoreBrandPanel from './panel/brand/StoreBrandPanel';
-import StoreCircularPanel from './panel/circular/StoreCircularPanel';
+
+const PanelSkeleton: FC = () => (
+  <Box p={3}>
+    <Skeleton variant="rounded" height={48} sx={{ borderRadius: 2, mb: 2, maxWidth: 420 }} />
+    <Skeleton variant="rounded" height={220} sx={{ borderRadius: 2 }} />
+  </Box>
+);
+
+// Cada panel se baja y se parsea sólo cuando se abre su pestaña. Antes se importaban los 18
+// a la vez: abrir "Circular" cargaba también el builder de RCS, QR, QuickBooks, etc.
+const lazy =<P extends object>(load: () => Promise<{ default: FC<P> } | FC<P>>) =>
+  dynamic<P>(
+    async () => {
+      const m: any = await load();
+      return m.default ?? m;
+    },
+    { ssr: false, loading: () => <PanelSkeleton /> }
+  );
+const StoreInfo = lazy<any>(() => import('@/components/website/store-panel'));
+const ActiveSweepstakeCard = lazy<any>(() => import('../../active-sweeptake').then((m) => m.ActiveSweepstakeCard));
+const PromoDashboard = lazy<any>(() => import('../../tables/promos/panel').then((m) => m.PromoDashboard));
+const StoreBillingPanel = lazy<any>(() => import('./panel/billing/StoreBillingPanel').then((m) => m.StoreBillingPanel));
+const CajerasPanel = lazy<any>(() => import('./panel/cajeras/cajeras-panel'));
+const CampaignsPanel = lazy<any>(() => import('./panel/campaigns/campaign-panel'));
+const CreateCampaignContainer = lazy<any>(() => import('./panel/campaigns/createCampaignContainer'));
+const RcsCampaignBuilder = lazy<any>(() => import('./panel/campaigns/rcs/RcsCampaignBuilder'));
+const CustomersPanel = lazy<any>(() => import('./panel/customers/customers-panel'));
+const StoreEquipmentPanel = lazy<any>(() => import('./panel/equipment/StoreEquipmentPanel').then((m) => m.StoreEquipmentPanel));
+const StoreOptinPanel = lazy<any>(() => import('./panel/optin/StoreOptinPanel'));
+const StoreQuickbooksPanel = lazy<any>(() => import('./panel/quickbooks/StoreQuickbooksPanel'));
+const QrDuetMUI = lazy<any>(() => import('./panel/qr/QrContainer'));
+const StoreAudienceOverview = lazy<any>(() => import('./panel/sweepstakes/StoreAudienceOverview'));
+const StoreSweepstakeStats = lazy<any>(() => import('./panel/sweepstakes/StoreSweepstakeStats'));
+const WelcomeCouponsPanel = lazy<any>(() => import('./panel/welcome-coupons/WelcomeCouponsPanel'));
+const StoreBrandPanel = lazy<any>(() => import('./panel/brand/StoreBrandPanel'));
+const StoreCircularPanel = lazy<any>(() => import('./panel/circular/StoreCircularPanel'));
 
 interface Props {
   tag: string;

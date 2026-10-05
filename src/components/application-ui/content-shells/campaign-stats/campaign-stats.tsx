@@ -270,7 +270,13 @@ sx={{ borderRadius: 4.5 }} />
           />
       </AutoGrid>
 
-      {sessionLinks?.applies && sessionLinks.total > 0 && <SessionLinksCard data={sessionLinks} />}
+      {sessionLinks?.applies && sessionLinks.total > 0 && (
+        <SessionLinksCard
+          data={sessionLinks}
+          campaign={campaign}
+          sentByChannel={realCost?.channels}
+        />
+      )}
 
       {rcs && metrics?.ok && metrics.messages.total > 0 && (
         <RcsPilotCard

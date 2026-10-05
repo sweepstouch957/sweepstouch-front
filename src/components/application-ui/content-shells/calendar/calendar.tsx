@@ -122,7 +122,7 @@ function Calendar(): React.JSX.Element {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
-  const [view, setView] = useState<View>('mes');
+  const [view, setView] = useState<View>('agenda');
   const [typeFilter, setTypeFilter] = useState<'all' | EventType>('all');
   /** Pedido de Pedro: celebraciones del año vs actividades propias de cada tienda. */
   const [category, setCategory] = useState<Category>('all');
@@ -375,9 +375,8 @@ function Calendar(): React.JSX.Element {
             </Typography>
             <Typography sx={{ fontSize: 15, fontWeight: 600, lineHeight: 1.3, pt: 0.375 }}>
               {nextEv
-                ? `${shortDay(nextEv.date).day} ${shortDay(nextEv.date).mon.toLowerCase()} · ${
-                    nextEv.title
-                  }`
+                ? `${shortDay(nextEv.date).day} ${shortDay(nextEv.date).mon.toLowerCase()} · ${nextEv.title
+                }`
                 : '—'}
             </Typography>
           </Box>
@@ -470,8 +469,8 @@ function Calendar(): React.JSX.Element {
               label={
                 seasons
                   ? `Estaciones: ${Object.values(SEASONS)
-                      .map((s) => s.emoji)
-                      .join(' ')}`
+                    .map((s) => s.emoji)
+                    .join(' ')}`
                   : 'Estaciones'
               }
               onClick={() => setSeasons((v) => !v)}

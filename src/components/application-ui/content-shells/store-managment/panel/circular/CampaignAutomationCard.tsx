@@ -6,6 +6,7 @@
  * reintenta si falló y se puede releer el arte a mano.
  */
 import { circularService } from '@/services/circular.service';
+import { cloudinaryThumb } from '@/utils/cloudinary';
 import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
 import EventRoundedIcon from '@mui/icons-material/EventRounded';
 import {
@@ -28,7 +29,7 @@ import {
 } from '@mui/material';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import NextLink from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import CampaignAutomationFlow, { buildSteps } from './CampaignAutomationFlow';
 import {
@@ -74,12 +75,16 @@ export default function CampaignAutomationCard({
   const campaignId: string | undefined = campaign?._id;
   const job = useCampaignImportJob(campaignId);
   const status = job.data?.status;
-  // Al pasar a "done" se refresca lo que el import cambió (circulares, catálogo, banners).
+  // Al pasar de corriendo a "done" se refresca lo que el import cambió (circulares, catálogo,
+  // banners). Sólo en la transición: antes, un job ya terminado disparaba una segunda ronda
+  // de 5 pedidos en cada montaje de la pestaña.
+  const prevStatus = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (status !== 'done') return;
-    refresh();
+    const was = prevStatus.current;
+    prevStatus.current = status;
+    if (status === 'done' && (was === 'queued' || was === 'running')) refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, storeSlug]);
+  }, [status]);
 
   const steps = useMemo(
     () => buildSteps(image ? campaign : null, job.data ?? null),
@@ -317,9 +322,10 @@ export default function CampaignAutomationCard({
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={liveFlyer.fileUrl}
+                src={cloudinaryThumb(liveFlyer.previewImageUrl || liveFlyer.fileUrl, 144, 200, 'fill')}
                 alt=""
                 loading="lazy"
+                decoding="async"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }}
               />
             </Box>

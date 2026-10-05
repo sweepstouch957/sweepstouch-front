@@ -98,15 +98,32 @@ export function useCampaignImportJob(campaignId?: string) {
   });
 }
 
-/** Productos y banners que salen en una fecha (pestaña Próximos + contador). */
+/** Productos y banners que salen en una fecha (pestaña Próximos). */
 export function useUpcoming(storeSlug: string) {
   return useQuery({
     queryKey: qk.upcoming(storeSlug),
     queryFn: () => circularService.getUpcoming(storeSlug),
     enabled: !!storeSlug,
     staleTime: FRESH,
+    // El payload trae todos los productos próximos: se suelta pronto al salir de la pestaña.
+    gcTime: 60_000,
     refetchInterval: 60_000,
   });
+}
+
+/** Sólo el número para el badge: misma caché que useUpcoming, pero el componente no se
+ *  re-renderiza cuando cambian los productos, y el sondeo se apaga fuera de sus pestañas. */
+export function useUpcomingCount(storeSlug: string, poll: boolean) {
+  const q = useQuery({
+    queryKey: qk.upcoming(storeSlug),
+    queryFn: () => circularService.getUpcoming(storeSlug),
+    enabled: !!storeSlug,
+    staleTime: FRESH,
+    gcTime: 60_000,
+    refetchInterval: poll ? 60_000 : false,
+    select: (d) => (d?.total ?? 0) + (d?.banners?.length ?? 0),
+  });
+  return q.data ?? 0;
 }
 
 /** Refresca lo que cambia cuando entran productos: circulares, su detalle, catálogo,
