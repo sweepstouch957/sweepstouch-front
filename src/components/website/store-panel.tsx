@@ -252,6 +252,8 @@ function DataField({
 
 /** Input sin caja: dentro de la rejilla, el borde de la celda ya encuadra. */
 function Inp({
+  ariaLabel,
+  showCalendarIcon,
   value,
   onChange,
   placeholder,
@@ -260,6 +262,8 @@ function Inp({
   mono,
   children,
 }: {
+  ariaLabel?: string;
+  showCalendarIcon?: boolean;
   value: any;
   onChange: (e: any) => void;
   placeholder?: string;
@@ -268,19 +272,40 @@ function Inp({
   mono?: boolean;
   children?: React.ReactNode;
 }) {
+  const inputRef = React.useRef<HTMLInputElement>(null);
   return (
     <TextField
       variant="standard"
       fullWidth
       select={select}
       type={type}
+      inputRef={inputRef}
       value={value ?? ''}
       onChange={onChange}
       placeholder={placeholder}
+      inputProps={{ 'aria-label': ariaLabel }}
       InputProps={{
+        endAdornment: showCalendarIcon ? (
+          <InputAdornment position="end">
+            <IconButton
+              size="small"
+              aria-label={`Abrir calendario${ariaLabel ? `: ${ariaLabel}` : ''}`}
+              onClick={() => {
+                const input = inputRef.current;
+                if (input?.showPicker) input.showPicker();
+                else input?.focus();
+              }}
+            >
+              <CalendarMonthOutlined fontSize="small" />
+            </IconButton>
+          </InputAdornment>
+        ) : undefined,
         sx: {
           fontSize: 14,
           fontWeight: 650,
+          ...(showCalendarIcon ? {
+            '& input::-webkit-calendar-picker-indicator': { display: 'none' },
+          } : {}),
           ...(mono ? { fontFamily: 'ui-monospace, Menlo, monospace' } : {}),
         },
       }}
@@ -1176,6 +1201,27 @@ export default function StoreInfo({ store }: { store: Store }) {
                       </Box>
                     )}
                   </Field>
+                  <DataField
+                    editing={enEdicion('identidad')}
+                    label="Aniversario de la tienda"
+                    value={form.aniversaryStore
+                      ? safeDateLabel(`${toInputDate(form.aniversaryStore)}T12:00:00`)
+                      : ''}
+                    empty="Sin definir"
+                    input={
+                      <Inp
+                        type="date"
+                        value={toInputDate(form.aniversaryStore)}
+                        ariaLabel="Aniversario de la tienda"
+                        showCalendarIcon
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          const date = value ? new Date(`${value}T00:00:00.000Z`) : null;
+                          setForm((s) => ({ ...s, aniversaryStore: date }));
+                        }}
+                      />
+                    }
+                  />
                   {/* El motivo vive pegado al estado que lo explica: separarlos
                       obligaba a recordar en qué tarjeta estaba el porqué. */}
                   {claveMotivo &&

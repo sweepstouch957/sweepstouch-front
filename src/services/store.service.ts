@@ -66,6 +66,7 @@ export interface Store {
   membershipType?: 'mensual' | 'semanal' | 'especial';
   paymentMethod?: 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
   startContractDate?: string | null; // ISO o null
+  aniversaryStore?: Date | null;
   circularss?: boolean;
   cancelContractDate?: string | null;
   cancelContractReason?: string;
@@ -138,6 +139,7 @@ export interface UpdateStoreBody {
   membershipType?: 'mensual' | 'semanal' | 'especial';
   paymentMethod?: 'central_billing' | 'card' | 'quickbooks' | 'ach' | 'wire' | 'cash';
   startContractDate?: string | null; // ISO o null
+  aniversaryStore?: Date | null;
   circularss?: boolean;
   cancelContractDate?: string | null;
   cancelContractReason?: string;
@@ -400,7 +402,20 @@ export const updateStore = async (id: string, store: Store): Promise<Store> => {
 };
 
 export async function updateStorePatch(id: string, body: UpdateStoreBody) {
-  const res = await api.patch(`/store/${id}`, body);
+  const hasAnniversary = Object.prototype.hasOwnProperty.call(body, 'aniversaryStore');
+  const anniversary = body.aniversaryStore == null
+    ? null
+    : new Date(body.aniversaryStore).toISOString();
+  const payload = hasAnniversary ? { ...body, aniversaryStore: anniversary } : body;
+  const res = await api.patch(`/store/${id}`, payload);
+  if (hasAnniversary) {
+    const savedAnniversary = res.data?.aniversaryStore;
+    const savedTime = savedAnniversary == null ? null : new Date(savedAnniversary).getTime();
+    const expectedTime = anniversary == null ? null : new Date(anniversary).getTime();
+    if (savedTime !== expectedTime) {
+      throw new Error('El backend no guardó aniversaryStore. Revisa que el store-service en ejecución use el modelo actualizado.');
+    }
+  }
   return res.data;
 }
 

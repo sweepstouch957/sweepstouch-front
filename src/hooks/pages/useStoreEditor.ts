@@ -55,6 +55,7 @@ const buildPatch = (orig, curr) => {
     'membershipType',
     'paymentMethod',
     'startContractDate',
+    'aniversaryStore',
     'circularss',
     'cancelContractDate',
     'cancelContractReason',
@@ -176,6 +177,7 @@ export function useStoreEditor(store) {
     membershipType: store.membershipType ?? 'semanal',
     paymentMethod: store.paymentMethod ?? 'card',
     startContractDate: store.startContractDate ?? null,
+    aniversaryStore: store.aniversaryStore ?? null,
     circularss: store.circularss ?? false,
     cancelContractDate: store.cancelContractDate ?? null,
     cancelContractReason: store.cancelContractReason || '',
@@ -266,10 +268,12 @@ export function useStoreEditor(store) {
       queryClient.invalidateQueries({ queryKey: ['store', store._id] });
       queryClient.invalidateQueries({ queryKey: ['stores'] });
     },
-    onError: () => {
+    onError: (error: Error) => {
       setSnack({
         open: true,
-        msg: 'No se pudieron guardar los cambios.',
+        msg: error.message.startsWith('El backend no guardó aniversaryStore')
+          ? error.message
+          : 'No se pudieron guardar los cambios.',
         type: 'error',
       });
     },
@@ -318,6 +322,7 @@ export function useStoreEditor(store) {
       membershipType: store.membershipType ?? 'semanal',
       paymentMethod: store.paymentMethod ?? 'card',
       startContractDate: store.startContractDate ?? null,
+      aniversaryStore: store.aniversaryStore ?? null,
       circularss: store.circularss ?? false,
       cancelContractDate: store.cancelContractDate ?? null,
       cancelContractReason: store.cancelContractReason || '',
