@@ -794,10 +794,22 @@ class CampaignClient {
     sms?: { total: number; delivered: number; errors: number; queued: number; deliveryRate: number };
     clicks: { links: number; clickedLinks: number; totalClicks: number; clickRate: number };
     engagement: {
+      /** Ventana de atribución: desde el envío hasta la siguiente campaña de la tienda (o hoy). */
+      window?: { since: string; until: string; storeSlug: string | null };
+      /** Cómo se atribuyó cada lista: por campaignId guardado, por click, o por tienda en la ventana. */
+      attribution?: { byCampaign: number; byClick: number; byStore: number; clickedCustomers: number };
       lists: number;
       validatedLists: number;
       itemsInLists: number;
       listCustomers: number;
+      /** Ahorro estimado sumado de todas las listas ($). */
+      estimatedSavings?: number;
+      /** Lo que más agregaron a la lista (carrito). */
+      topListProducts?: Array<{ name: string; quantity: number; price?: string; uniqueCustomers: number }>;
+      listsByDay?: Array<{ date: string; lists: number; validated: number }>;
+      surveys?: { total: number; quick: number; full: number; coupons: number; points: number; customers: number };
+      /** Leads: clientes nuevos de la tienda (registro propio) en la ventana. */
+      newCustomers?: number;
       purchases: number;
       buyers: number;
       productsPurchased: number;
