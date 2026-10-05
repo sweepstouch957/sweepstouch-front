@@ -5,7 +5,18 @@ import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import { alpha, Box, ButtonBase, IconButton, Stack, Typography, useTheme } from '@mui/material';
 import React, { useMemo } from 'react';
-import { DOW, endKey, EVENT_TYPES, isoKey, MONTHS, pad, spansDay, TYPE_KEYS } from './constants';
+import {
+  DOW,
+  endKey,
+  EVENT_TYPES,
+  isoKey,
+  MONTHS,
+  pad,
+  seasonOf,
+  SEASONS,
+  spansDay,
+  TYPE_KEYS,
+} from './constants';
 
 interface Props {
   year: number;
@@ -17,6 +28,8 @@ interface Props {
   onNext: () => void;
   onAddAt: (key: string) => void;
   onOpen: (e: CalendarEvent) => void;
+  /** Tinte pastel por estación en cada día. */
+  seasons?: boolean;
 }
 
 export const MonthView = React.memo(function MonthView({
@@ -29,9 +42,11 @@ export const MonthView = React.memo(function MonthView({
   onNext,
   onAddAt,
   onOpen,
+  seasons = false,
 }: Props) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
+  const seasonBg = (key: string) => alpha(SEASONS[seasonOf(key)].color, isDark ? 0.16 : 0.22);
 
   const counts = useMemo(
     () =>
@@ -203,7 +218,9 @@ export const MonthView = React.memo(function MonthView({
               bgcolor: c.inMonth
                 ? c.isToday
                   ? alpha(theme.palette.primary.main, isDark ? 0.14 : 0.06)
-                  : 'background.paper'
+                  : seasons
+                    ? seasonBg(c.key)
+                    : 'background.paper'
                 : alpha(theme.palette.text.primary, isDark ? 0.04 : 0.025),
               border: c.isToday
                 ? `2px solid ${theme.palette.primary.main}`
@@ -318,6 +335,30 @@ export const MonthView = React.memo(function MonthView({
           />
           <Typography variant="caption">Tarea de Cowork / visita de soporte</Typography>
         </Stack>
+        {seasons &&
+          (Object.keys(SEASONS) as (keyof typeof SEASONS)[]).map((k) => (
+            <Stack
+              key={k}
+              direction="row"
+              alignItems="center"
+              spacing={0.75}
+              sx={{ pt: 1 }}
+            >
+              <Box
+                sx={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 0.75,
+                  bgcolor: seasonBg(
+                    `2026-${{ invierno: '01', primavera: '04', verano: '07', otono: '10' }[k]}-01`
+                  ),
+                }}
+              />
+              <Typography variant="caption">
+                {SEASONS[k].emoji} {SEASONS[k].label}
+              </Typography>
+            </Stack>
+          ))}
       </Stack>
     </Stack>
   );

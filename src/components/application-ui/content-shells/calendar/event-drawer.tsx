@@ -12,6 +12,10 @@ import { getStores } from '@/services/store.service';
 import { uploadTaskEvidence } from '@/services/upload.service';
 import AddPhotoAlternateRoundedIcon from '@mui/icons-material/AddPhotoAlternateRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
+import NotesRoundedIcon from '@mui/icons-material/NotesRounded';
+import ScheduleRoundedIcon from '@mui/icons-material/ScheduleRounded';
+import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import {
   alpha,
   Autocomplete,
@@ -19,10 +23,7 @@ import {
   Button,
   Checkbox,
   Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
+  Drawer,
   FormControlLabel,
   IconButton,
   MenuItem,
@@ -67,6 +68,8 @@ type FormValues = {
   endTime: string;
   status: EventStatus;
   description: string;
+  /** one = una tienda · many = varias · none = celebración general */
+  scope: 'one' | 'many' | 'none';
   stores: EventStore[];
   extraUserIds: string[];
   cancelReason: string;
@@ -80,7 +83,43 @@ type FormValues = {
 const esDireccion = (name: string) =>
   /^(juan carlos|carolina reyes)\b/i.test(name.normalize('NFD').replace(/[̀-ͯ]/g, '').trim());
 
+const Section = ({
+  icon,
+  title,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+}) => (
+  <Box sx={{ display: 'grid', gridTemplateColumns: '28px minmax(0,1fr)', gap: 1.5 }}>
+    <Box sx={{ color: 'text.secondary', pt: 1, display: 'flex', justifyContent: 'center' }}>
+      {icon}
+    </Box>
+    <Stack spacing={1.5}>
+      <Typography
+        sx={{
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: '.08em',
+          textTransform: 'uppercase',
+          color: 'text.secondary',
+        }}
+      >
+        {title}
+      </Typography>
+      {children}
+    </Stack>
+  </Box>
+);
+
 /* ── Subcomponentes que observan un campo (así el form grande no repinta por tecla) ── */
+
+function TypeBar({ control }: { control: Control<FormValues> }) {
+  const type = useWatch({ control, name: 'type' });
+  const ty = EVENT_TYPES[type] || EVENT_TYPES.otro;
+  return <Box sx={{ height: 6, bgcolor: ty.bg, transition: 'background .2s' }} />;
+}
 
 function DateFields({ control }: { control: Control<FormValues> }) {
   const multi = useWatch({ control, name: 'multi' });
@@ -91,40 +130,26 @@ function DateFields({ control }: { control: Control<FormValues> }) {
       ? Math.round((new Date(endDate).getTime() - new Date(date).getTime()) / 864e5) + 1
       : 0;
   return (
-    <Stack
-      spacing={0.75}
-      sx={{ gridColumn: '1 / -1' }}
-    >
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        flexWrap="wrap"
-        gap={1}
-      >
-        <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'text.secondary' }}>
-          Fecha *
-        </Typography>
-        <Controller
-          control={control}
-          name="multi"
-          render={({ field }) => (
-            <ToggleButtonGroup
-              size="small"
-              exclusive
-              value={field.value ? 'multi' : 'one'}
-              onChange={(_, v) => v && field.onChange(v === 'multi')}
-            >
-              <ToggleButton value="one">Un día</ToggleButton>
-              <ToggleButton value="multi">Varios días</ToggleButton>
-            </ToggleButtonGroup>
-          )}
-        />
-      </Stack>
+    <>
+      <Controller
+        control={control}
+        name="multi"
+        render={({ field }) => (
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            fullWidth
+            value={field.value ? 'multi' : 'one'}
+            onChange={(_, v) => v && field.onChange(v === 'multi')}
+          >
+            <ToggleButton value="one">Un día</ToggleButton>
+            <ToggleButton value="multi">Varios días</ToggleButton>
+          </ToggleButtonGroup>
+        )}
+      />
       <Stack
         direction="row"
         gap={1.25}
-        flexWrap="wrap"
       >
         <Controller
           control={control}
@@ -137,7 +162,7 @@ function DateFields({ control }: { control: Control<FormValues> }) {
               size="small"
               label={multi ? 'Desde' : 'Día'}
               InputLabelProps={{ shrink: true }}
-              sx={{ flex: '1 1 160px' }}
+              fullWidth
             />
           )}
         />
@@ -153,11 +178,44 @@ function DateFields({ control }: { control: Control<FormValues> }) {
                 label="Hasta"
                 InputLabelProps={{ shrink: true }}
                 inputProps={{ min: date }}
-                sx={{ flex: '1 1 160px' }}
+                fullWidth
               />
             )}
           />
         )}
+      </Stack>
+      <Stack
+        direction="row"
+        gap={1.25}
+      >
+        <Controller
+          control={control}
+          name="startTime"
+          render={({ field }) => (
+            <TextField
+              {...field}
+              type="time"
+              size="small"
+              label="Hora de inicio"
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="endTime"
+          render={({ field }) => (
+            <TextField
+              {...field}
+              type="time"
+              size="small"
+              label="Hora de fin"
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+            />
+          )}
+        />
       </Stack>
       {days > 0 && (
         <Typography
@@ -167,7 +225,7 @@ function DateFields({ control }: { control: Control<FormValues> }) {
           Duración: {days} días
         </Typography>
       )}
-    </Stack>
+    </>
   );
 }
 
@@ -215,7 +273,6 @@ function StatusSections({
             color="error"
             error={!!fieldState.error}
             helperText={fieldState.error ? 'Indica por qué se canceló' : ''}
-            sx={{ gridColumn: '1 / -1' }}
           />
         )}
       />
@@ -225,7 +282,6 @@ function StatusSections({
     return (
       <Box
         sx={{
-          gridColumn: '1 / -1',
           p: 1.75,
           borderRadius: 2.5,
           bgcolor: alpha(theme.palette.success.main, 0.07),
@@ -355,13 +411,15 @@ function StatusSections({
 }
 
 function StoresField({ control }: { control: Control<FormValues> }) {
+  const theme = useTheme();
+  const scope = useWatch({ control, name: 'scope' });
   const [input, setInput] = useState('');
   const q = useDebouncedValue(input, 300);
   const { data, isFetching } = useQuery({
     queryKey: ['stores', 'calendar-search', q],
     queryFn: () => getStores({ search: q, limit: 20, status: 'active' }),
     staleTime: 60_000,
-    enabled: q.length >= 2,
+    enabled: q.length >= 2 && scope !== 'none',
   });
   const options: EventStore[] = useMemo(
     () =>
@@ -369,124 +427,216 @@ function StoresField({ control }: { control: Control<FormValues> }) {
         storeId: s._id,
         storeName: s.name,
         storeAddress: s.address || '',
-        contact: s.phoneNumber || '',
+        contact: [s.phoneNumber, s.email].filter(Boolean).join(' · '),
         confirmed: false,
       })),
     [data]
   );
+
   return (
     <Controller
       control={control}
       name="stores"
-      render={({ field }) => (
-        <Stack
-          spacing={1}
-          sx={{ gridColumn: '1 / -1' }}
-        >
-          <Autocomplete
-            multiple
-            size="small"
-            options={options}
-            value={field.value}
-            loading={isFetching}
-            filterOptions={(x) => x}
-            isOptionEqualToValue={(a, b) =>
-              (a.storeId || a.storeName) === (b.storeId || b.storeName)
-            }
-            getOptionLabel={(o) => o.storeName}
-            inputValue={input}
-            onInputChange={(_, v, reason) => reason !== 'reset' && setInput(v)}
-            onChange={(_, v) => field.onChange(v)}
-            renderTags={() => null}
-            renderOption={(props, o) => (
-              <li
-                {...props}
-                key={o.storeId || o.storeName}
-              >
-                <Box>
-                  <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{o.storeName}</Typography>
-                  <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>
-                    {o.storeAddress}
-                  </Typography>
-                </Box>
-              </li>
-            )}
-            renderInput={(p) => (
-              <TextField
-                {...p}
-                label="Tiendas participantes"
-                placeholder="Buscar tienda por nombre o ciudad…"
-                helperText={
-                  q.length < 2 && !field.value.length ? 'Escribe al menos 2 letras para buscar' : ''
-                }
-              />
-            )}
-          />
-          {field.value.length > 0 && (
-            <Box
-              sx={{
-                border: 1,
-                borderColor: 'divider',
-                borderRadius: 2,
-                maxHeight: 220,
-                overflow: 'auto',
-              }}
-            >
-              {field.value.map((s, i) => (
-                <Stack
-                  key={s.storeId || s.storeName}
-                  direction="row"
-                  alignItems="center"
-                  gap={1}
-                  sx={{
-                    px: 1.25,
-                    py: 0.75,
-                    borderBottom: i < field.value.length - 1 ? 1 : 0,
-                    borderColor: 'divider',
+      render={({ field }) => {
+        const one = scope === 'one' ? field.value[0] : null;
+        return (
+          <>
+            <Controller
+              control={control}
+              name="scope"
+              render={({ field: sc }) => (
+                <ToggleButtonGroup
+                  size="small"
+                  exclusive
+                  fullWidth
+                  value={sc.value}
+                  onChange={(_, v) => {
+                    if (!v) return;
+                    sc.onChange(v);
+                    if (v === 'one') field.onChange(field.value.slice(0, 1));
+                    if (v === 'none') field.onChange([]);
                   }}
                 >
-                  <Checkbox
-                    size="small"
-                    color="success"
-                    checked={s.confirmed}
-                    onChange={(_, c) =>
-                      field.onChange(
-                        field.value.map((x, j) => (j === i ? { ...x, confirmed: c } : x))
-                      )
-                    }
+                  <ToggleButton value="one">Una tienda</ToggleButton>
+                  <ToggleButton value="many">Varias tiendas</ToggleButton>
+                  <ToggleButton value="none">Sin tienda</ToggleButton>
+                </ToggleButtonGroup>
+              )}
+            />
+            {scope === 'none' && (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                Celebración general: aplica a toda la red.
+              </Typography>
+            )}
+            {scope === 'one' && (
+              <Autocomplete
+                size="small"
+                options={options}
+                value={one || null}
+                loading={isFetching}
+                filterOptions={(x) => x}
+                isOptionEqualToValue={isSame}
+                getOptionLabel={(o) => o.storeName}
+                inputValue={input}
+                onInputChange={(_, v, reason) => reason !== 'reset' && setInput(v)}
+                onChange={(_, v) => field.onChange(v ? [v] : [])}
+                renderOption={renderStore}
+                renderInput={(p) => (
+                  <TextField
+                    {...p}
+                    label="Tienda *"
+                    placeholder="Buscar por nombre, ciudad o dirección…"
                   />
-                  <Box sx={{ minWidth: 0, flex: 1 }}>
-                    <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{s.storeName}</Typography>
-                    <Typography
-                      noWrap
-                      sx={{ fontSize: 11, color: 'text.secondary' }}
-                    >
-                      {[s.storeAddress, s.contact].filter(Boolean).join(' · ') ||
-                        'Sin contacto registrado'}
-                    </Typography>
-                  </Box>
-                  <Typography
-                    sx={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: s.confirmed ? 'success.main' : 'warning.main',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {s.confirmed ? 'Confirmada' : 'Pendiente'}
+                )}
+              />
+            )}
+            {scope === 'many' && (
+              <Autocomplete
+                multiple
+                size="small"
+                options={options}
+                value={field.value}
+                loading={isFetching}
+                filterOptions={(x) => x}
+                isOptionEqualToValue={isSame}
+                getOptionLabel={(o) => o.storeName}
+                inputValue={input}
+                onInputChange={(_, v, reason) => reason !== 'reset' && setInput(v)}
+                onChange={(_, v) => field.onChange(v)}
+                renderTags={() => null}
+                renderOption={renderStore}
+                renderInput={(p) => (
+                  <TextField
+                    {...p}
+                    label="Tiendas participantes *"
+                    placeholder="Buscar por nombre, ciudad o dirección…"
+                  />
+                )}
+              />
+            )}
+            {/* Una tienda: contacto a la vista, como en el mock */}
+            {scope === 'one' && (
+              <Box
+                sx={{
+                  px: 1.5,
+                  py: 1.25,
+                  border: 1,
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                  bgcolor: alpha(theme.palette.text.primary, 0.02),
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: 'text.secondary',
+                    letterSpacing: '.06em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Contacto
+                </Typography>
+                <Typography sx={{ fontSize: 14, color: one ? 'text.primary' : 'text.secondary' }}>
+                  {one
+                    ? [one.storeName, one.storeAddress, one.contact || 'Sin contacto registrado']
+                        .filter(Boolean)
+                        .join(' · ')
+                    : 'Selecciona una tienda para ver su contacto.'}
+                </Typography>
+                {one && (
+                  <FormControlLabel
+                    sx={{ mt: 0.5 }}
+                    control={
+                      <Checkbox
+                        size="small"
+                        color="success"
+                        checked={one.confirmed}
+                        onChange={(_, c) => field.onChange([{ ...one, confirmed: c }])}
+                      />
+                    }
+                    label={<Typography variant="body2">La tienda ya confirmó</Typography>}
+                  />
+                )}
+              </Box>
+            )}
+            {/* Varias: lista con check de confirmación por tienda */}
+            {scope === 'many' && field.value.length > 0 && (
+              <Box
+                sx={{
+                  border: 1,
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                  maxHeight: 220,
+                  overflow: 'auto',
+                }}
+              >
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  sx={{ px: 1.25, py: 0.75, bgcolor: alpha(theme.palette.text.primary, 0.03) }}
+                >
+                  <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'text.secondary' }}>
+                    Contactos · marca las que confirmaron
                   </Typography>
-                  <IconButton
-                    size="small"
-                    onClick={() => field.onChange(field.value.filter((_, j) => j !== i))}
-                  >
-                    <CloseRoundedIcon fontSize="small" />
-                  </IconButton>
+                  <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'success.main' }}>
+                    {field.value.filter((s) => s.confirmed).length} de {field.value.length}
+                  </Typography>
                 </Stack>
-              ))}
-            </Box>
-          )}
-        </Stack>
-      )}
+                {field.value.map((s, i) => (
+                  <Stack
+                    key={s.storeId || s.storeName}
+                    direction="row"
+                    alignItems="center"
+                    gap={1}
+                    sx={{ px: 1, py: 0.5, borderTop: 1, borderColor: 'divider' }}
+                  >
+                    <Checkbox
+                      size="small"
+                      color="success"
+                      checked={s.confirmed}
+                      onChange={(_, c) =>
+                        field.onChange(
+                          field.value.map((x, j) => (j === i ? { ...x, confirmed: c } : x))
+                        )
+                      }
+                    />
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{s.storeName}</Typography>
+                      <Typography
+                        noWrap
+                        sx={{ fontSize: 11, color: 'text.secondary' }}
+                      >
+                        {[s.storeAddress, s.contact].filter(Boolean).join(' · ') ||
+                          'Sin contacto registrado'}
+                      </Typography>
+                    </Box>
+                    <Typography
+                      sx={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: s.confirmed ? 'success.main' : 'warning.main',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {s.confirmed ? 'Confirmada' : 'Pendiente'}
+                    </Typography>
+                    <IconButton
+                      size="small"
+                      onClick={() => field.onChange(field.value.filter((_, j) => j !== i))}
+                    >
+                      <CloseRoundedIcon fontSize="small" />
+                    </IconButton>
+                  </Stack>
+                ))}
+              </Box>
+            )}
+          </>
+        );
+      }}
     />
   );
 }
@@ -527,10 +677,7 @@ function PeopleField({
   }, [me, staff, extra, departmentName]);
 
   return (
-    <Stack
-      spacing={1}
-      sx={{ gridColumn: '1 / -1' }}
-    >
+    <>
       <Controller
         control={control}
         name="extraUserIds"
@@ -580,13 +727,13 @@ function PeopleField({
           )}
         </Stack>
       </Box>
-    </Stack>
+    </>
   );
 }
 
-/* ── Diálogo ── */
+/* ── Drawer (estilo Google Calendar: panel lateral, cabecera con el color del tipo) ── */
 
-export function EventDialog({
+export function EventDrawer({
   editing,
   initialDate,
   me,
@@ -608,6 +755,8 @@ export function EventDialog({
           endTime: editing.endTime || '',
           status: editing.status,
           description: editing.description || '',
+          scope:
+            editing.stores.length === 0 ? 'none' : editing.stores.length === 1 ? 'one' : 'many',
           stores: editing.stores || [],
           extraUserIds: editing.extraUserIds || [],
           cancelReason: editing.cancelReason || '',
@@ -626,6 +775,7 @@ export function EventDialog({
           endTime: '',
           status: 'por_confirmar',
           description: '',
+          scope: 'one',
           stores: [],
           extraUserIds: [],
           cancelReason: '',
@@ -642,6 +792,10 @@ export function EventDialog({
       return toast.error('La fecha final debe ser después de la inicial.');
     if (v.startTime && v.endTime && v.endTime <= v.startTime && !v.multi)
       return toast.error('La hora de fin debe ser después del inicio.');
+    if (v.scope !== 'none' && !v.stores.length)
+      return toast.error(
+        v.scope === 'one' ? 'Selecciona la tienda.' : 'Selecciona al menos una tienda.'
+      );
     onSubmit({
       title: v.title.trim(),
       type: v.type,
@@ -651,7 +805,7 @@ export function EventDialog({
       endTime: v.endTime,
       status: v.status,
       description: v.description.trim(),
-      stores: v.stores,
+      stores: v.scope === 'none' ? [] : v.stores,
       extraUserIds: v.extraUserIds,
       cancelReason: v.status === 'cancelado' ? v.cancelReason.trim() : '',
       report:
@@ -670,127 +824,127 @@ export function EventDialog({
 
   const { ref: titleRef, ...titleField } = register('title', { required: true });
   const { ref: descRef, ...descField } = register('description');
+  const owner = editing
+    ? { id: editing.ownerId || '', name: editing.ownerName, departmentId: editing.departmentId }
+    : me;
 
   return (
-    <Dialog
+    <Drawer
+      anchor="right"
       open
       onClose={onClose}
-      maxWidth="sm"
-      fullWidth
       PaperProps={{
         component: 'form',
         onSubmit: handleSubmit(submit),
-        sx: { borderRadius: 3, borderTop: 5, borderColor: 'primary.main' },
+        sx: { width: { xs: '100%', sm: 520 }, maxWidth: '100%' },
       }}
     >
-      <DialogTitle sx={{ pb: 0.5 }}>
-        <Typography sx={{ fontSize: 20, fontWeight: 700 }}>
-          {editing ? 'Editar evento' : 'Nuevo evento'}
-        </Typography>
-        <Typography
-          variant="body2"
-          color="text.secondary"
+      <TypeBar control={control} />
+      <Stack
+        direction="row"
+        alignItems="flex-start"
+        justifyContent="space-between"
+        sx={{ px: 3, pt: 2, pb: 1 }}
+      >
+        <Box>
+          <Typography sx={{ fontSize: 20, fontWeight: 700 }}>
+            {editing ? 'Editar evento' : 'Nuevo evento'}
+          </Typography>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+          >
+            Quien lo lleva, su área y Dirección reciben el aviso; luego recordatorios a 7 días, 1
+            día y el mismo día.
+          </Typography>
+        </Box>
+        <IconButton
+          onClick={onClose}
+          size="small"
         >
-          Quien lo lleva, toda su área y Dirección reciben el aviso por WhatsApp y correo; después
-          recordatorios a 7 días, 1 día y el mismo día.
-        </Typography>
-      </DialogTitle>
-      <DialogContent>
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, minmax(0,1fr))',
-            gap: '14px 14px',
-            pt: 1.5,
-          }}
-        >
-          <DateFields control={control} />
-          <Controller
-            control={control}
-            name="startTime"
-            render={({ field }) => (
-              <TextField
-                {...field}
-                type="time"
-                size="small"
-                label="Hora de inicio"
-                InputLabelProps={{ shrink: true }}
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="endTime"
-            render={({ field }) => (
-              <TextField
-                {...field}
-                type="time"
-                size="small"
-                label="Hora de fin"
-                InputLabelProps={{ shrink: true }}
-              />
-            )}
+          <CloseRoundedIcon />
+        </IconButton>
+      </Stack>
+
+      <Stack
+        spacing={3}
+        sx={{ px: 3, py: 2, flex: 1, overflowY: 'auto' }}
+      >
+        <Stack spacing={1.5}>
+          <TextField
+            inputRef={titleRef}
+            {...titleField}
+            variant="standard"
+            placeholder="Nombre del evento *"
+            required
+            autoFocus={!editing}
+            InputProps={{ sx: { fontSize: 22, fontWeight: 700 } }}
           />
           <Controller
             control={control}
             name="type"
             render={({ field }) => (
-              <TextField
-                {...field}
-                select
-                size="small"
-                label="Tipo"
-                sx={{ gridColumn: '1 / -1' }}
+              <Stack
+                direction="row"
+                flexWrap="wrap"
+                gap={0.75}
               >
-                {TYPE_KEYS.map((k) => (
-                  <MenuItem
-                    key={k}
-                    value={k}
-                  >
-                    <Stack
-                      direction="row"
-                      alignItems="center"
-                      spacing={1}
-                    >
-                      <Box
-                        sx={{
-                          width: 10,
-                          height: 10,
-                          borderRadius: 0.75,
-                          bgcolor: EVENT_TYPES[k].bg,
-                        }}
-                      />
-                      <span>{EVENT_TYPES[k].label}</span>
-                    </Stack>
-                  </MenuItem>
-                ))}
-              </TextField>
+                {TYPE_KEYS.map((k) => {
+                  const on = field.value === k;
+                  return (
+                    <Chip
+                      key={k}
+                      size="small"
+                      label={EVENT_TYPES[k].label}
+                      onClick={() => field.onChange(k)}
+                      sx={{
+                        fontWeight: 600,
+                        bgcolor: on ? EVENT_TYPES[k].bg : 'transparent',
+                        color: on ? EVENT_TYPES[k].fg : 'text.primary',
+                        border: 1,
+                        borderColor: on ? EVENT_TYPES[k].bg : 'divider',
+                        '&:hover': {
+                          bgcolor: on ? EVENT_TYPES[k].bg : alpha(EVENT_TYPES[k].bg, 0.15),
+                        },
+                      }}
+                    />
+                  );
+                })}
+              </Stack>
             )}
           />
-          <TextField
-            inputRef={titleRef}
-            {...titleField}
-            size="small"
-            label="Nombre del evento *"
-            placeholder="Ej. Sorteo de aniversario"
-            required
-            sx={{ gridColumn: '1 / -1' }}
-          />
+        </Stack>
+
+        <Section
+          icon={<ScheduleRoundedIcon fontSize="small" />}
+          title="Cuándo"
+        >
+          <DateFields control={control} />
+        </Section>
+
+        <Section
+          icon={<StorefrontRoundedIcon fontSize="small" />}
+          title="Tiendas participantes"
+        >
           <StoresField control={control} />
+        </Section>
+
+        <Section
+          icon={<GroupsRoundedIcon fontSize="small" />}
+          title="Involucrados"
+        >
           <PeopleField
             control={control}
-            me={
-              editing
-                ? {
-                    id: editing.ownerId || '',
-                    name: editing.ownerName,
-                    departmentId: editing.departmentId,
-                  }
-                : me
-            }
+            me={owner}
             staff={staff}
             departmentName={departmentName}
           />
+        </Section>
+
+        <Section
+          icon={<NotesRoundedIcon fontSize="small" />}
+          title="Estado y detalle"
+        >
           <Controller
             control={control}
             name="status"
@@ -800,7 +954,6 @@ export function EventDialog({
                 select
                 size="small"
                 label="Estado general"
-                sx={{ gridColumn: '1 / -1' }}
               >
                 {(Object.keys(STATUS_LABEL) as EventStatus[]).map((k) => (
                   <MenuItem
@@ -826,14 +979,12 @@ export function EventDialog({
             multiline
             minRows={4}
             placeholder="Detalles, premios, horarios, materiales, responsables…"
-            sx={{ gridColumn: '1 / -1' }}
           />
           <Controller
             control={control}
             name="notify"
             render={({ field }) => (
               <FormControlLabel
-                sx={{ gridColumn: '1 / -1' }}
                 control={
                   <Checkbox
                     size="small"
@@ -851,9 +1002,15 @@ export function EventDialog({
               />
             )}
           />
-        </Box>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2.5 }}>
+        </Section>
+      </Stack>
+
+      <Stack
+        direction="row"
+        justifyContent="flex-end"
+        spacing={1}
+        sx={{ px: 3, py: 2, borderTop: 1, borderColor: 'divider', bgcolor: 'background.paper' }}
+      >
         <Button
           onClick={onClose}
           color="inherit"
@@ -868,7 +1025,7 @@ export function EventDialog({
         >
           {saving ? 'Guardando…' : 'Guardar evento'}
         </Button>
-      </DialogActions>
-    </Dialog>
+      </Stack>
+    </Drawer>
   );
 }

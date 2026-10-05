@@ -130,3 +130,49 @@ export const searchText = (e: CalendarEvent) =>
     .join(' ')}`.toLowerCase();
 
 export const fmtNum = (n: number) => n.toLocaleString('en-US');
+
+/* ── Categorías (pedido de Pedro): celebraciones del año vs actividades de tienda ── */
+export type Category = 'all' | 'celebraciones' | 'tienda';
+export const CATEGORY_LABEL: Record<Category, string> = {
+  all: 'Todo',
+  celebraciones: 'Celebraciones del año',
+  tienda: 'Actividades de tienda',
+};
+const CELEBRATION_TYPES: EventType[] = ['feriado', 'festividad', 'cultural', 'comercial'];
+/** Celebración general (feriado, festividad, cultural, comercial) sin tienda concreta. */
+export const isCelebration = (e: CalendarEvent) =>
+  CELEBRATION_TYPES.includes(e.type) && e.stores.length === 0;
+export const inCategory = (e: CalendarEvent, c: Category) =>
+  c === 'all' ? true : c === 'celebraciones' ? isCelebration(e) : !isCelebration(e);
+
+/* ── Estaciones: tinte pastel suave por fecha (hemisferio norte / EE. UU.) ── */
+export type Season = 'invierno' | 'primavera' | 'verano' | 'otono';
+/** Pasteles fijos: son un dato visual del calendario, iguales en claro y oscuro (alpha distinta). */
+export const SEASONS: Record<Season, { label: string; color: string; emoji: string }> = {
+  invierno: { label: 'Invierno', color: '#7FB3E6', emoji: '❄️' },
+  primavera: { label: 'Primavera', color: '#8FD19E', emoji: '🌸' },
+  verano: { label: 'Verano', color: '#F5C542', emoji: '☀️' },
+  otono: { label: 'Otoño', color: '#E8955F', emoji: '🍂' },
+};
+export const seasonOf = (key: string): Season => {
+  const m = Number(key.slice(5, 7));
+  if (m === 12 || m <= 2) return 'invierno';
+  if (m <= 5) return 'primavera';
+  if (m <= 8) return 'verano';
+  return 'otono';
+};
+
+/** Abarca hoy: empezó y todavía no terminó (ej. Hispanic Heritage Month, 15 sep → 15 oct). */
+export const isOngoing = (e: Pick<CalendarEvent, 'date' | 'endDate'>, today: string) =>
+  e.date <= today && endKey(e) >= today;
+
+/** Línea principal / secundaria: la tienda primero, la actividad después (pedido de Pedro). */
+export const headline = (e: CalendarEvent) => {
+  const store = e.stores[0]?.storeName || '';
+  if (!store) return { primary: e.title, secondary: '' };
+  const same = e.title.toLowerCase().startsWith(store.toLowerCase());
+  return {
+    primary: store,
+    secondary: same ? e.title.slice(store.length).replace(/^[\s—·-]+/, '') : e.title,
+  };
+};

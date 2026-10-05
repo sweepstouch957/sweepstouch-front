@@ -6,6 +6,8 @@ import React, { useMemo } from 'react';
 import {
   endKey,
   EVENT_TYPES,
+  headline,
+  isOngoing,
   MONTHS,
   pad,
   shortDay,
@@ -91,22 +93,28 @@ export const AgendaView = React.memo(function AgendaView({
             const cancelled = e.status === 'cancelado';
             const sd = shortDay(e.date);
             const multi = endKey(e) > e.date;
+            // Tienda primero, actividad después (pedido de Pedro)
+            const { primary, secondary } = headline(e);
             const sub = [
+              secondary,
               timeRange(e),
               multi
                 ? `hasta ${shortDay(e.endDate).day} ${shortDay(e.endDate).mon.toLowerCase()}`
                 : '',
               ty.label,
-              storesLine(e),
+              e.stores.length > 1 ? storesLine(e) : '',
               e.ownerName ? `lleva ${e.ownerName.split(' ')[0]}` : '',
             ]
               .filter(Boolean)
               .join(' · ');
+            const ongoing = isOngoing(e, today);
             const tag =
               e.status !== 'confirmado'
                 ? STATUS_LABEL[e.status]
-                : e.date === today
-                  ? 'Hoy'
+                : ongoing
+                  ? multi
+                    ? 'En curso'
+                    : 'Hoy'
                   : e.source !== 'event'
                     ? e.source === 'task'
                       ? 'Cowork'
@@ -152,7 +160,7 @@ export const AgendaView = React.memo(function AgendaView({
                       textDecoration: cancelled ? 'line-through' : 'none',
                     }}
                   >
-                    {e.title}
+                    {primary}
                   </Typography>
                   <Typography
                     noWrap

@@ -6,6 +6,8 @@ import React, { useMemo } from 'react';
 import {
   endKey,
   EVENT_TYPES,
+  headline,
+  isOngoing,
   shortDay,
   STATUS_LABEL,
   statusColor,
@@ -22,13 +24,15 @@ interface Props {
 const Block = ({
   title,
   count,
+  accent,
   children,
 }: {
   title: string;
   count?: string;
+  accent?: boolean;
   children: React.ReactNode;
 }) => (
-  <Card sx={{ p: 2 }}>
+  <Card sx={{ p: 2, ...(accent ? { borderColor: 'primary.main' } : {}) }}>
     <Stack
       direction="row"
       justifyContent="space-between"
@@ -48,6 +52,66 @@ const Block = ({
   </Card>
 );
 
+/** Fila con la fecha en un cuadrito del color del tipo. */
+function Row({
+  e,
+  today,
+  onOpen,
+}: {
+  e: CalendarEvent;
+  today: string;
+  onOpen: (e: CalendarEvent) => void;
+}) {
+  const theme = useTheme();
+  const ty = EVENT_TYPES[e.type] || EVENT_TYPES.otro;
+  const sd = shortDay(e.date);
+  const { primary, secondary } = headline(e);
+  const multi = endKey(e) > e.date;
+  const when = isOngoing(e, today)
+    ? multi
+      ? `En curso · hasta ${shortDay(endKey(e)).day} ${shortDay(endKey(e)).mon.toLowerCase()}`
+      : 'Hoy'
+    : sd.dow;
+  return (
+    <ButtonBase
+      onClick={() => onOpen(e)}
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: '44px minmax(0,1fr)',
+        gap: 1.25,
+        alignItems: 'center',
+        textAlign: 'left',
+        p: '7px 4px',
+        borderRadius: 1.5,
+        '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08) },
+      }}
+    >
+      <Box sx={{ borderRadius: 1.5, py: 0.5, textAlign: 'center', bgcolor: ty.bg, color: ty.fg }}>
+        <Typography sx={{ fontSize: 16, fontWeight: 700, lineHeight: 1 }}>{sd.day}</Typography>
+        <Typography sx={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' }}>
+          {sd.mon}
+        </Typography>
+      </Box>
+      <Box sx={{ minWidth: 0 }}>
+        <Typography
+          noWrap
+          sx={{ fontSize: 13, fontWeight: 600 }}
+        >
+          {primary}
+        </Typography>
+        <Typography
+          noWrap
+          sx={{ fontSize: 12, color: 'text.secondary' }}
+        >
+          {[secondary, when, timeRange(e), ty.label, e.ownerName ? e.ownerName.split(' ')[0] : '']
+            .filter(Boolean)
+            .join(' · ')}
+        </Typography>
+      </Box>
+    </ButtonBase>
+  );
+}
+
 export const CalendarSidebar = React.memo(function CalendarSidebar({
   events,
   today,
@@ -55,10 +119,9 @@ export const CalendarSidebar = React.memo(function CalendarSidebar({
 }: Props) {
   const theme = useTheme();
 
-  const upcoming = useMemo(
-    () => events.filter((e) => endKey(e) >= today && e.status !== 'cancelado'),
-    [events, today]
-  );
+  const live = events.filter((e) => e.status !== 'cancelado');
+  const ongoing = useMemo(() => live.filter((e) => isOngoing(e, today)), [live, today]);
+  const upcoming = useMemo(() => live.filter((e) => e.date > today), [live, today]);
   const activations = useMemo(() => events.filter((e) => e.type === 'activacion'), [events]);
   const pending = useMemo(
     () => events.filter((e) => e.status === 'por_confirmar' && endKey(e) >= today),
@@ -67,6 +130,23 @@ export const CalendarSidebar = React.memo(function CalendarSidebar({
 
   return (
     <Stack spacing={1.75}>
+      {ongoing.length > 0 && (
+        <Block
+          title="Hoy y en curso"
+          count={`${ongoing.length}`}
+          accent
+        >
+          {ongoing.map((e) => (
+            <Row
+              key={e._id}
+              e={e}
+              today={today}
+              onOpen={onOpen}
+            />
+          ))}
+        </Block>
+      )}
+
       <Block
         title="Próximos eventos"
         count={`${upcoming.length} restantes`}
@@ -79,64 +159,14 @@ export const CalendarSidebar = React.memo(function CalendarSidebar({
             Nada agendado. Agrega el primero con “+ Nuevo evento”.
           </Typography>
         )}
-        {upcoming.slice(0, 6).map((e) => {
-          const ty = EVENT_TYPES[e.type] || EVENT_TYPES.otro;
-          const sd = shortDay(e.date);
-          return (
-            <ButtonBase
-              key={e._id}
-              onClick={() => onOpen(e)}
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: '44px minmax(0,1fr)',
-                gap: 1.25,
-                alignItems: 'center',
-                textAlign: 'left',
-                p: '7px 4px',
-                borderRadius: 1.5,
-                '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08) },
-              }}
-            >
-              <Box
-                sx={{
-                  borderRadius: 1.5,
-                  py: 0.5,
-                  textAlign: 'center',
-                  bgcolor: ty.bg,
-                  color: ty.fg,
-                }}
-              >
-                <Typography sx={{ fontSize: 16, fontWeight: 700, lineHeight: 1 }}>
-                  {sd.day}
-                </Typography>
-                <Typography sx={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' }}>
-                  {sd.mon}
-                </Typography>
-              </Box>
-              <Box sx={{ minWidth: 0 }}>
-                <Typography
-                  noWrap
-                  sx={{ fontSize: 13, fontWeight: 600 }}
-                >
-                  {e.title}
-                </Typography>
-                <Typography
-                  noWrap
-                  sx={{ fontSize: 12, color: 'text.secondary' }}
-                >
-                  {[
-                    e.date === today ? 'Hoy' : sd.dow,
-                    timeRange(e),
-                    ty.label,
-                    e.ownerName ? e.ownerName.split(' ')[0] : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </Typography>
-              </Box>
-            </ButtonBase>
-          );
-        })}
+        {upcoming.slice(0, 6).map((e) => (
+          <Row
+            key={e._id}
+            e={e}
+            today={today}
+            onOpen={onOpen}
+          />
+        ))}
       </Block>
 
       <Block title="Activaciones con apoyo Sweepstouch">
@@ -155,7 +185,9 @@ export const CalendarSidebar = React.memo(function CalendarSidebar({
               ? 'Cancelado'
               : e.status === 'finalizado' || past
                 ? 'Finalizado'
-                : STATUS_LABEL[e.status];
+                : isOngoing(e, today)
+                  ? 'En curso'
+                  : STATUS_LABEL[e.status];
           const col =
             e.status === 'cancelado'
               ? theme.palette.error.main

@@ -35,22 +35,28 @@ import { useCustomization } from 'src/hooks/use-customization';
 import { AgendaView } from './agenda-view';
 import { CalendarSidebar } from './calendar-sidebar';
 import {
+  CATEGORY_LABEL,
   endKey,
   EVENT_TYPES,
   fmtNum,
+  inCategory,
+  isOngoing,
   MONTHS,
   searchText,
+  SEASONS,
   shortDay,
   STATUS_LABEL,
   todayKey,
   TYPE_KEYS,
+  type Category,
 } from './constants';
-import type { StaffOption } from './event-dialog';
+import type { StaffOption } from './event-drawer';
 import { MonthView } from './month-view';
+import { NowStrip } from './now-strip';
 import { RankingView } from './ranking-view';
 import { YearView } from './year-view';
 
-const EventDialog = dynamic(() => import('./event-dialog').then((m) => m.EventDialog), {
+const EventDrawer = dynamic(() => import('./event-drawer').then((m) => m.EventDrawer), {
   loading: () => null,
 });
 const EventDetailDialog = dynamic(
@@ -118,6 +124,10 @@ function Calendar(): React.JSX.Element {
   const [month, setMonth] = useState(now.getMonth());
   const [view, setView] = useState<View>('mes');
   const [typeFilter, setTypeFilter] = useState<'all' | EventType>('all');
+  /** Pedido de Pedro: celebraciones del año vs actividades propias de cada tienda. */
+  const [category, setCategory] = useState<Category>('all');
+  /** Pedido de Pedro: teñir los días con el pastel de su estación. */
+  const [seasons, setSeasons] = useState(false);
   const [search, setSearch] = useState('');
   const deferredSearch = useDeferredValue(search);
   const [showPast, setShowPast] = useState(false);
@@ -154,13 +164,11 @@ function Calendar(): React.JSX.Element {
   });
   const staff: StaffOption[] = useMemo(
     () =>
-      allUsers
-        .filter(isInternalStaff)
-        .map((u: any) => ({
-          id: u._id || u.id,
-          name: `${u.firstName || ''} ${u.lastName || ''}`.trim(),
-          departmentId: u.departmentId || null,
-        })),
+      allUsers.filter(isInternalStaff).map((u: any) => ({
+        id: u._id || u.id,
+        name: `${u.firstName || ''} ${u.lastName || ''}`.trim(),
+        departmentId: u.departmentId || null,
+      })),
     [allUsers]
   );
   const me: StaffOption | null = useMemo(() => {
@@ -237,9 +245,12 @@ function Calendar(): React.JSX.Element {
   const filtered = useMemo(
     () =>
       events.filter(
-        (e) => (typeFilter === 'all' || e.type === typeFilter) && (!q || searchText(e).includes(q))
+        (e) =>
+          (typeFilter === 'all' || e.type === typeFilter) &&
+          inCategory(e, category) &&
+          (!q || searchText(e).includes(q))
       ),
-    [events, typeFilter, q]
+    [events, typeFilter, category, q]
   );
   const selected = useMemo(
     () => events.find((e) => e._id === selectedId) || null,
@@ -249,8 +260,13 @@ function Calendar(): React.JSX.Element {
     () => new Set(events.flatMap((e) => e.stores.map((s) => s.storeId || s.storeName))).size,
     [events]
   );
+  // "Próxima fecha" es la que viene, no la que ya está en curso (Hispanic Heritage Month dura un mes)
   const nextEv = useMemo(
-    () => events.find((e) => endKey(e) >= today && e.status !== 'cancelado') || null,
+    () => events.find((e) => e.date > today && e.status !== 'cancelado') || null,
+    [events, today]
+  );
+  const ongoingCount = useMemo(
+    () => events.filter((e) => isOngoing(e, today) && e.status !== 'cancelado').length,
     [events, today]
   );
 
@@ -341,6 +357,10 @@ function Calendar(): React.JSX.Element {
             label="Tiendas"
             value={isLoading ? <Skeleton width={40} /> : fmtNum(storeCount)}
           />
+          <Kpi
+            label="En curso"
+            value={isLoading ? <Skeleton width={40} /> : fmtNum(ongoingCount)}
+          />
           <Box sx={{ maxWidth: 240 }}>
             <Typography
               sx={{
@@ -428,6 +448,38 @@ function Calendar(): React.JSX.Element {
             ))}
           </ToggleButtonGroup>
           {view !== 'ranking' && (
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={category}
+              onChange={(_, v) => v && setCategory(v)}
+            >
+              {(Object.keys(CATEGORY_LABEL) as Category[]).map((c) => (
+                <ToggleButton
+                  key={c}
+                  value={c}
+                >
+                  {CATEGORY_LABEL[c]}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+          )}
+          {(view === 'mes' || view === 'ano') && (
+            <Chip
+              size="small"
+              label={
+                seasons
+                  ? `Estaciones: ${Object.values(SEASONS)
+                      .map((s) => s.emoji)
+                      .join(' ')}`
+                  : 'Estaciones'
+              }
+              onClick={() => setSeasons((v) => !v)}
+              variant={seasons ? 'filled' : 'outlined'}
+              color={seasons ? 'primary' : 'default'}
+            />
+          )}
+          {view !== 'ranking' && (
             <Stack
               direction="row"
               flexWrap="wrap"
@@ -477,6 +529,15 @@ function Calendar(): React.JSX.Element {
         </Stack>
       </Card>
 
+      {/* Lo primero al entrar: qué está en curso y qué viene */}
+      {!isLoading && view !== 'ranking' && (
+        <NowStrip
+          events={filtered}
+          today={today}
+          onOpen={openEvent}
+        />
+      )}
+
       {/* Contenido */}
       <Stack
         direction={{ xs: 'column', lg: 'row' }}
@@ -500,6 +561,7 @@ function Calendar(): React.JSX.Element {
               onNext={() => setMonth((m) => (m + 1) % 12)}
               onAddAt={(d) => setDialog({ editing: null, date: d })}
               onOpen={openEvent}
+              seasons={seasons}
             />
           ) : view === 'ano' ? (
             <YearView
@@ -507,6 +569,7 @@ function Calendar(): React.JSX.Element {
               events={filtered}
               today={today}
               onGoMonth={goMonth}
+              seasons={seasons}
             />
           ) : view === 'agenda' ? (
             <AgendaView
@@ -563,7 +626,7 @@ function Calendar(): React.JSX.Element {
         />
       )}
       {dialog && (
-        <EventDialog
+        <EventDrawer
           editing={dialog.editing}
           initialDate={dialog.date}
           me={me}
