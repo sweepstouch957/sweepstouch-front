@@ -252,6 +252,7 @@ function DataField({
 
 /** Input sin caja: dentro de la rejilla, el borde de la celda ya encuadra. */
 function Inp({
+  ariaLabel,
   value,
   onChange,
   placeholder,
@@ -260,6 +261,7 @@ function Inp({
   mono,
   children,
 }: {
+  ariaLabel?: string;
   value: any;
   onChange: (e: any) => void;
   placeholder?: string;
@@ -277,6 +279,7 @@ function Inp({
       value={value ?? ''}
       onChange={onChange}
       placeholder={placeholder}
+      inputProps={{ 'aria-label': ariaLabel }}
       InputProps={{
         sx: {
           fontSize: 14,
@@ -1176,6 +1179,26 @@ export default function StoreInfo({ store }: { store: Store }) {
                       </Box>
                     )}
                   </Field>
+                  <DataField
+                    editing={enEdicion('identidad')}
+                    label="Aniversario de la tienda"
+                    value={form.aniversaryStore
+                      ? safeDateLabel(`${toInputDate(form.aniversaryStore)}T12:00:00`)
+                      : ''}
+                    empty="Sin definir"
+                    input={
+                      <Inp
+                        type="date"
+                        value={toInputDate(form.aniversaryStore)}
+                        ariaLabel="Aniversario de la tienda"
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          const date = value ? new Date(`${value}T00:00:00.000Z`) : null;
+                          setForm((s) => ({ ...s, aniversaryStore: date }));
+                        }}
+                      />
+                    }
+                  />
                   {/* El motivo vive pegado al estado que lo explica: separarlos
                       obligaba a recordar en qué tarjeta estaba el porqué. */}
                   {claveMotivo &&
