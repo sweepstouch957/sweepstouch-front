@@ -22,7 +22,13 @@ export interface ProductReviewRun {
   startedAt: string;
   finishedAt: string | null;
   error: string;
-  circulars: Array<{ id: string; title: string; pages: number; products: number; fromCampaign: boolean }>;
+  circulars: Array<{
+    id: string;
+    title: string;
+    pages: number;
+    products: number;
+    fromCampaign: boolean;
+  }>;
   pagesChecked: number;
   productsChecked: number;
   autoApplied: number;
@@ -81,8 +87,19 @@ export type RescanJob = {
   error: string;
 };
 export type StoreLesson = { text: string; agent: string; source: 'manual' | 'auto'; at: string };
-export type StoreProfile = { storeSlug: string; rules: string; departments: string[]; lessons?: StoreLesson[]; learnedAt?: string };
-export type AgentStep = { agent: string; status: 'running' | 'done' | 'error'; message: string; at: string };
+export type StoreProfile = {
+  storeSlug: string;
+  rules: string;
+  departments: string[];
+  lessons?: StoreLesson[];
+  learnedAt?: string;
+};
+export type AgentStep = {
+  agent: string;
+  status: 'running' | 'done' | 'error';
+  message: string;
+  at: string;
+};
 export type Pipeline = {
   ok: boolean;
   agents: Record<string, { name: string; emoji: string; role: string }>;
@@ -208,7 +225,13 @@ export interface CampaignImportJob {
     added: number;
     effectiveFrom?: string | null;
     /** Banner sacado del arte, con la vigencia de la campaña (null = no se creó). */
-    banner?: { id: string; imageUrl: string; startDate: string; endDate: string; fromArt: boolean } | null;
+    banner?: {
+      id: string;
+      imageUrl: string;
+      startDate: string;
+      endDate: string;
+      fromArt: boolean;
+    } | null;
   };
   finishedAt?: string | null;
 }
@@ -293,7 +316,11 @@ export class CircularService {
     if (payload.title) form.append('title', payload.title);
     if (payload.overridePassword) form.append('overridePassword', payload.overridePassword);
     if (payload.override) form.append('override', '1');
-    const created = (await api.post('/circulars/upload-pages', form)).data as { ok: boolean; circular: Circular; files: number };
+    const created = (await api.post('/circulars/upload-pages', form)).data as {
+      ok: boolean;
+      circular: Circular;
+      files: number;
+    };
     onProgress?.(1, payload.files.length);
     let last = created;
     for (let i = 0; i < rest.length; i++) {
@@ -304,10 +331,17 @@ export class CircularService {
   }
 
   /** Archivos (páginas) de un circular existente: reemplaza, o agrega al final con `append`. */
-  async attachPages(circularId: string, files: File[], opts?: { append?: boolean }): Promise<{ ok: boolean; circular: Circular; files: number }> {
+  async attachPages(
+    circularId: string,
+    files: File[],
+    opts?: { append?: boolean }
+  ): Promise<{ ok: boolean; circular: Circular; files: number }> {
     const form = new FormData();
     for (const f of files) form.append('files', f);
-    const res = await api.patch(`/circulars/${circularId}/pages${opts?.append ? '?append=1' : ''}`, form);
+    const res = await api.patch(
+      `/circulars/${circularId}/pages${opts?.append ? '?append=1' : ''}`,
+      form
+    );
     return res.data;
   }
 
@@ -354,7 +388,9 @@ export class CircularService {
 
   /** Segunda pasada: re-escanea el circular POR SECCIONES (para los productos chicos) y
    *  suma sólo los que todavía no tiene. No toca los existentes ni sus imágenes. */
-  async addMissingProducts(circularId: string): Promise<{ ok: boolean; added: number; found: number; productCount: number }> {
+  async addMissingProducts(
+    circularId: string
+  ): Promise<{ ok: boolean; added: number; found: number; productCount: number }> {
     const res = await api.post(`/circulars/${circularId}/extract-products-add`, { merge: true });
     return res.data;
   }
@@ -362,15 +398,28 @@ export class CircularService {
   /** Productos que todavía no salen (precio en `pending`), agrupados por día y origen. */
   async getUpcoming(
     storeSlug: string
-  ): Promise<{ total: number; groups: UpcomingGroup[]; banners: (StoreBanner & { day: string })[] }> {
+  ): Promise<{
+    total: number;
+    groups: UpcomingGroup[];
+    banners: (StoreBanner & { day: string })[];
+  }> {
     const res = await api.get(`/circulars/store/${storeSlug}/upcoming`);
-    return { total: res.data?.total ?? 0, groups: res.data?.groups ?? [], banners: res.data?.banners ?? [] };
+    return {
+      total: res.data?.total ?? 0,
+      groups: res.data?.groups ?? [],
+      banners: res.data?.banners ?? [],
+    };
   }
 
   /** Corrige el precio que VA a salir (no el de hoy) o mueve su fecha. */
   async updatePending(
     id: string,
-    patch: Partial<Pick<StorePendingPrice, 'price' | 'originalPrice' | 'savings' | 'packQty' | 'packUnit' | 'from'>>
+    patch: Partial<
+      Pick<
+        StorePendingPrice,
+        'price' | 'originalPrice' | 'savings' | 'packQty' | 'packUnit' | 'from'
+      >
+    >
   ): Promise<StoreProduct> {
     const res = await api.patch(`/circulars/store-product/${id}/pending`, patch);
     return res.data.item;
@@ -463,7 +512,9 @@ export class CircularService {
 
   /** Sin circular vigente: baja el PDF de la semana desde `store.circularssUrl`, lo
    *  guarda y crea el circular de la semana actual. La extracción se dispara aparte. */
-  async importFromStoreUrl(storeSlug: string): Promise<{ ok: boolean; circular: Circular; fileType: string; sizeKb: number }> {
+  async importFromStoreUrl(
+    storeSlug: string
+  ): Promise<{ ok: boolean; circular: Circular; fileType: string; sizeKb: number }> {
     const res = await api.post(`/circulars/store/${storeSlug}/import-from-url`);
     return res.data;
   }
@@ -521,9 +572,21 @@ export class CircularService {
   async getCatalogAdmin(
     storeSlug: string,
     opts?: { page?: number; limit?: number; q?: string }
-  ): Promise<{ storeSlug: string; count: number; items: StoreProduct[]; cleaning?: boolean; total?: number; page?: number; pages?: number; limit?: number }> {
+  ): Promise<{
+    storeSlug: string;
+    count: number;
+    items: StoreProduct[];
+    cleaning?: boolean;
+    total?: number;
+    page?: number;
+    pages?: number;
+    limit?: number;
+  }> {
     const res = await api.get(`/circulars/store/${storeSlug}/catalog`, {
-      params: { ...(opts?.limit ? { limit: opts.limit, page: opts.page || 1 } : {}), ...(opts?.q?.trim() ? { q: opts.q.trim() } : {}) },
+      params: {
+        ...(opts?.limit ? { limit: opts.limit, page: opts.page || 1 } : {}),
+        ...(opts?.q?.trim() ? { q: opts.q.trim() } : {}),
+      },
     });
     return res.data;
   }
@@ -568,14 +631,18 @@ export class CircularService {
 
   /** Orden del catálogo: una sola llamada; `offset` = inicio de la página (catálogo paginado). */
   async saveCatalogOrder(storeSlug: string, productIds: string[], offset = 0) {
-    if (new Set(productIds).size !== productIds.length) throw new Error('Ids repetidos en el orden.');
+    if (new Set(productIds).size !== productIds.length)
+      throw new Error('Ids repetidos en el orden.');
     const res = await api.patch('/circulars/store-product/reorder', { ids: productIds, offset });
     if (!res.data?.ok) throw new Error('El backend no confirmó el orden.');
     return res.data;
   }
 
   /* ── Rescanear fotos (re-ubicar en el circular, recortar, limpiar; si no está, generar) ── */
-  async rescanPhotos(storeSlug: string, mode: 'missing' | 'all'): Promise<{ ok: boolean; job: RescanJob }> {
+  async rescanPhotos(
+    storeSlug: string,
+    mode: 'missing' | 'all'
+  ): Promise<{ ok: boolean; job: RescanJob }> {
     const res = await api.post(`/circulars/catalog/store/${storeSlug}/rescan-photos`, { mode });
     return res.data;
   }
@@ -583,8 +650,14 @@ export class CircularService {
     const res = await api.get(`/circulars/catalog/store/${storeSlug}/rescan-photos`);
     return res.data;
   }
-  async rescanProductPhoto(id: string): Promise<{ ok: boolean; item: StoreProduct; relocated: boolean }> {
-    const res = await api.post(`/circulars/store-product/${id}/rescan-photo`, {}, { timeout: 240_000 });
+  async rescanProductPhoto(
+    id: string
+  ): Promise<{ ok: boolean; item: StoreProduct; relocated: boolean }> {
+    const res = await api.post(
+      `/circulars/store-product/${id}/rescan-photo`,
+      {},
+      { timeout: 240_000 }
+    );
     return res.data;
   }
 
@@ -593,15 +666,28 @@ export class CircularService {
     const res = await api.get(`/circulars/store/${storeSlug}/profile`);
     return res.data;
   }
-  async saveStoreRules(storeSlug: string, rules: string): Promise<{ ok: boolean; profile: StoreProfile }> {
+  async saveStoreRules(
+    storeSlug: string,
+    rules: string
+  ): Promise<{ ok: boolean; profile: StoreProfile }> {
     const res = await api.put(`/circulars/store/${storeSlug}/profile`, { rules });
     return res.data;
   }
-  async addStoreLesson(storeSlug: string, text: string): Promise<{ ok: boolean; profile: StoreProfile }> {
-    const res = await api.post(`/circulars/store/${storeSlug}/profile/lessons`, { text });
+  async addStoreLesson(
+    storeSlug: string,
+    text: string,
+    agent?: string
+  ): Promise<{ ok: boolean; profile: StoreProfile }> {
+    const res = await api.post(`/circulars/store/${storeSlug}/profile/lessons`, {
+      text,
+      ...(agent ? { agent } : {}),
+    });
     return res.data;
   }
-  async removeStoreLesson(storeSlug: string, index: number): Promise<{ ok: boolean; profile: StoreProfile }> {
+  async removeStoreLesson(
+    storeSlug: string,
+    index: number
+  ): Promise<{ ok: boolean; profile: StoreProfile }> {
     const res = await api.delete(`/circulars/store/${storeSlug}/profile/lessons/${index}`);
     return res.data;
   }
@@ -613,7 +699,9 @@ export class CircularService {
   }
 
   /* ── Auditoría por página (agentes de revisión) ── */
-  async getAudit(circularId: string): Promise<{ ok: boolean; running: boolean; accuracy: number | null; pages: PageAudit[] }> {
+  async getAudit(
+    circularId: string
+  ): Promise<{ ok: boolean; running: boolean; accuracy: number | null; pages: PageAudit[] }> {
     const res = await api.get(`/circulars/${circularId}/audit`);
     return res.data;
   }
@@ -623,7 +711,10 @@ export class CircularService {
   }
 
   /* ── Completar marca / tamaño releyendo el flyer o el circular ── */
-  async fillDetails(storeSlug: string, source: 'flyer' | 'circular'): Promise<{ ok: boolean; job: DetailsJob }> {
+  async fillDetails(
+    storeSlug: string,
+    source: 'flyer' | 'circular'
+  ): Promise<{ ok: boolean; job: DetailsJob }> {
     const res = await api.post(`/circulars/catalog/store/${storeSlug}/fill-details`, { source });
     return res.data;
   }
@@ -657,7 +748,10 @@ export class CircularService {
   /** "Arreglar productos de la lista": vuelca los precios que ya llegaron a su fecha y deja
    *  visibles en el Pre-RCS SOLO los productos del flyer VIGENTE (el que cubre hoy); oculta el
    *  resto. Sin flyer vigente (`circularId` null) oculta lo que vino de un flyer vencido. */
-  async syncVisibility(storeSlug: string, only?: 'flyer' | 'circular'): Promise<{
+  async syncVisibility(
+    storeSlug: string,
+    only?: 'flyer' | 'circular'
+  ): Promise<{
     ok: boolean;
     circularId: string | null;
     circularTitle: string;
@@ -665,21 +759,29 @@ export class CircularService {
     shown: number;
     hidden: number;
     applied: number;
-      duplicates?: number;
+    duplicates?: number;
     duplicateExamples?: string[];
   }> {
-    const res = await api.post(`/circulars/store/${storeSlug}/sync-visibility`, null, { params: only ? { only } : {} });
+    const res = await api.post(`/circulars/store/${storeSlug}/sync-visibility`, null, {
+      params: only ? { only } : {},
+    });
     return res.data;
   }
 
   /** Limpia con IA los recortes crudos del catálogo (y genera los sin foto). Background. */
-  async cleanCatalogImages(storeSlug: string): Promise<{ ok: boolean; queued: number; pending: number; verifying?: number }> {
+  async cleanCatalogImages(
+    storeSlug: string
+  ): Promise<{ ok: boolean; queued: number; pending: number; verifying?: number }> {
     const res = await api.post(`/circulars/store/${storeSlug}/clean-images`);
     return res.data;
   }
 
   /** Imagen IA del producto: sin fondo, webp liviano, último gpt-image. ~10 s. */
-  async aiProductImage(name: string, category?: string, instructions?: string): Promise<{ imageUrl: string }> {
+  async aiProductImage(
+    name: string,
+    category?: string,
+    instructions?: string
+  ): Promise<{ imageUrl: string }> {
     const res = await api.post('/ai/product-image', { name, category, instructions });
     return res.data;
   }
@@ -693,7 +795,11 @@ export class CircularService {
     box?: { x: number; y: number; w: number; h: number },
     instructions?: string
   ): Promise<{ imageUrl: string }> {
-    const res = await api.post('/ai/product-image-edit', { imageUrl, name, box, instructions }, { timeout: 180_000 });
+    const res = await api.post(
+      '/ai/product-image-edit',
+      { imageUrl, name, box, instructions },
+      { timeout: 180_000 }
+    );
     return res.data;
   }
 
@@ -713,8 +819,13 @@ export class CircularService {
 
   /** Elimina un producto del catálogo. */
   /** Borra TODOS los productos del catálogo de la tienda (y, opcionalmente, vacía los circulares vivos para re-extraer). */
-  async clearCatalog(storeSlug: string, opts?: { circulars?: boolean }): Promise<{ ok: boolean; deleted: number; circulars: number }> {
-    const res = await api.delete(`/circulars/store/${storeSlug}/catalog${opts?.circulars ? '?circulars=1' : ''}`);
+  async clearCatalog(
+    storeSlug: string,
+    opts?: { circulars?: boolean }
+  ): Promise<{ ok: boolean; deleted: number; circulars: number }> {
+    const res = await api.delete(
+      `/circulars/store/${storeSlug}/catalog${opts?.circulars ? '?circulars=1' : ''}`
+    );
     return res.data;
   }
 
@@ -724,7 +835,9 @@ export class CircularService {
   }
 
   /** Banners de campaña del Pre-RCS: el vigente (o null) + histórico, más nuevo primero. */
-  async getStoreBanners(storeSlug: string): Promise<{ active: StoreBanner | null; items: StoreBanner[] }> {
+  async getStoreBanners(
+    storeSlug: string
+  ): Promise<{ active: StoreBanner | null; items: StoreBanner[] }> {
     const res = await api.get(`/circulars/store/${storeSlug}/banners`);
     return res.data;
   }
@@ -743,8 +856,15 @@ export class CircularService {
 
   /** La IA recorta el header del flyer y lo deja como banner con la vigencia del circular.
    *  `sourceUrl` = arte de campaña; sin él usa el archivo del circular vigente. ~20 s. */
-  async bannerFromFlyer(storeSlug: string, sourceUrl?: string): Promise<{ ok: boolean; item: StoreBanner }> {
-    const res = await api.post(`/circulars/store/${storeSlug}/banners/from-flyer`, sourceUrl ? { sourceUrl } : {}, { timeout: 120_000 });
+  async bannerFromFlyer(
+    storeSlug: string,
+    sourceUrl?: string
+  ): Promise<{ ok: boolean; item: StoreBanner }> {
+    const res = await api.post(
+      `/circulars/store/${storeSlug}/banners/from-flyer`,
+      sourceUrl ? { sourceUrl } : {},
+      { timeout: 120_000 }
+    );
     return res.data;
   }
 
@@ -764,13 +884,22 @@ export class CircularService {
   }
 
   /** Save edited products, headline, and AI recipes to a circular */
-  async saveProducts(circularId: string, products: any[], headline?: string, recipes?: any[]): Promise<any> {
+  async saveProducts(
+    circularId: string,
+    products: any[],
+    headline?: string,
+    recipes?: any[]
+  ): Promise<any> {
     const res = await api.put(`/circulars/${circularId}/products`, { products, headline, recipes });
     return res.data;
   }
 
   /** Generate MMS barcodes for all customers of a store */
-  async generateMms(circularId: string, storeSlug: string, campaignCode: string): Promise<{ generated: number; skipped: number }> {
+  async generateMms(
+    circularId: string,
+    storeSlug: string,
+    campaignCode: string
+  ): Promise<{ generated: number; skipped: number }> {
     const res = await api.post('/mms-generator/generate', { circularId, storeSlug, campaignCode });
     return res.data;
   }

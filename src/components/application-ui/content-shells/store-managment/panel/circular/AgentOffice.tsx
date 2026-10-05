@@ -44,6 +44,22 @@ const TEAM: Pipeline['agents'] = {
   iris: { name: 'Iris', emoji: '🌈', role: 'Limpia y genera las fotos de producto' },
   temis: { name: 'Temis', emoji: '⚖️', role: 'Decide qué se ve en la lista y quita duplicados' },
 };
+// Qué hace cada uno, contado para quien no sabe de IA (se ve al hacerle click).
+const DETAIL: Record<string, string> = {
+  hermes:
+    'Recibe el PDF o la imagen del circular, lo parte en páginas y las deja listas para leer. Si el archivo viene roto o pesado, acá se nota primero.',
+  argos:
+    'Mira cada página con visión por IA y saca producto por producto: nombre, precio, tamaño, marca y letra chica. Las reglas y lecciones de la tienda las lee antes de empezar.',
+  mnemosine:
+    'Compara cada producto con la base de la tienda: si ya existía reutiliza su ficha y su foto, si es nuevo lo crea. Aprende los departamentos de la tienda.',
+  hefesto:
+    'Guarda todo en el catálogo con la fecha del flyer: los precios entran el día que corresponde y queda registro del precio anterior.',
+  atenea:
+    'Vuelve a leer el flyer página por página y coteja contra lo guardado: precios, cantidades, letra chica y fotos. Lo seguro lo corrige sola; lo dudoso te lo deja para decidir.',
+  iris: 'Recorta y limpia las fotos de producto (sin fondo, livianas). Si una foto no era del producto, la busca de nuevo en su página.',
+  temis:
+    'Decide qué se ve en la lista del cliente: sólo lo del flyer vigente, sin duplicados, en el orden del circular.',
+};
 // Look de cada personaje: colores y accesorio, para reconocerlos sin leer el nombre.
 const LOOK: Record<
   string,
@@ -843,8 +859,12 @@ export default function AgentOffice({ data, loading, storeSlug }: Props) {
     keys.filter((k) => statusOf(k) === 'running' || statusOf(k) === 'error')
   );
   if (talking.size < 2 && keys.length) talking.add(keys[tick % keys.length]);
+  // Click en un personaje: queda elegido, habla siempre y abajo cuenta qué está haciendo.
+  const [selected, setSelected] = useState<string | null>(null);
+  if (selected) talking.add(selected);
+  const selStep = selected ? byAgent.get(selected) : undefined;
 
-  // Instrucciones desde la oficina → lección de la tienda (Temis contesta en pantalla).
+  // Instrucciones desde la oficina → lección de la tienda (le contesta el elegido, o Temis).
   const [msg, setMsg] = useState('');
   const [sending, setSending] = useState(false);
   // Globos rosa = lo que contestan al patrón (por agente). Se borran solos a los 7 s.
@@ -859,12 +879,14 @@ export default function AgentOffice({ data, loading, storeSlug }: Props) {
     if (!text || sending) return;
     setSending(true);
     try {
-      await circularService.addStoreLesson(storeSlug, text);
+      await circularService.addStoreLesson(storeSlug, text, selected || undefined);
       setMsg('');
       say({
-        temis: `Anotado, patrón: "${text.slice(0, 60)}${
+        [selected || 'temis']: `Anotado, patrón: "${text.slice(0, 60)}${
           text.length > 60 ? '…' : ''
-        }". Lo aplicamos en la próxima lectura.`,
+        }". ${
+          selected ? 'Lo tengo en cuenta la próxima vez.' : 'Lo aplicamos en la próxima lectura.'
+        }`,
       });
       void qc.invalidateQueries({ queryKey: ['store-profile', storeSlug] });
     } catch {
@@ -974,8 +996,32 @@ export default function AgentOffice({ data, loading, storeSlug }: Props) {
           style={{
             transform: `translate(${s.x}px, ${s.y}px)`,
             transitionDuration: `${p.ms || 600}ms`,
+            cursor: 'pointer',
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label={`${agents[k].name}: ${line(k, step, pipe, i + tick)}`}
+          onClick={() => setSelected((cur) => (cur === k ? null : k))}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setSelected((cur) => (cur === k ? null : k));
+            }
           }}
         >
+          {selected === k && (
+            <ellipse
+              cx={0}
+              cy={1}
+              rx={18}
+              ry={7}
+              fill="none"
+              stroke={brand}
+              strokeWidth={2}
+              strokeDasharray="4 3"
+              className="blink"
+            />
+          )}
           <Character
             k={k}
             walking={p.walking}
@@ -1289,6 +1335,112 @@ export default function AgentOffice({ data, loading, storeSlug }: Props) {
         {scene.map((it) => it.el)}
       </svg>
 
+      {/* Hablando con el elegido: qué hace, qué está haciendo ahora y desde cuándo. */}
+      {selected && agents[selected] && (
+        <Stack
+          direction="row"
+          gap={1.5}
+          alignItems="flex-start"
+          sx={{
+            mx: 2,
+            mt: 1.5,
+            p: 1.5,
+            borderRadius: 2,
+            border: '1px solid',
+            borderColor: 'primary.main',
+            bgcolor: alpha(brand, 0.05),
+          }}
+        >
+          <svg
+            width={40}
+            height={62}
+            viewBox="-16 -62 32 66"
+            aria-hidden
+          >
+            <Character
+              k={selected}
+              walking={false}
+              typing={statusOf(selected) === 'running'}
+              flip={false}
+              status={statusOf(selected)}
+            />
+          </svg>
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Stack
+              direction="row"
+              alignItems="center"
+              gap={1}
+              flexWrap="wrap"
+            >
+              <Typography
+                variant="subtitle2"
+                fontWeight={800}
+              >
+                {agents[selected].name}
+              </Typography>
+              <Chip
+                size="small"
+                color={
+                  statusOf(selected) === 'error'
+                    ? 'error'
+                    : statusOf(selected) === 'done'
+                      ? 'success'
+                      : statusOf(selected) === 'running'
+                        ? 'primary'
+                        : 'default'
+                }
+                label={
+                  statusOf(selected) === 'running'
+                    ? 'trabajando'
+                    : statusOf(selected) === 'done'
+                      ? 'listo'
+                      : statusOf(selected) === 'error'
+                        ? 'falló'
+                        : 'esperando'
+                }
+              />
+              {selStep?.at && (
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ textTransform: 'none', letterSpacing: 0 }}
+                >
+                  {new Date(selStep.at).toLocaleString('es', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    day: '2-digit',
+                    month: 'short',
+                    timeZone: 'America/New_York',
+                  })}
+                </Typography>
+              )}
+              <Chip
+                size="small"
+                variant="outlined"
+                label="Cerrar"
+                onClick={() => setSelected(null)}
+                sx={{ ml: 'auto' }}
+              />
+            </Stack>
+            <Typography
+              variant="body2"
+              sx={{ mt: 0.5 }}
+            >
+              <b>Ahora:</b>{' '}
+              {selStep?.message ||
+                (data?.running ? 'esperando su turno.' : 'sin trabajo pendiente.')}
+            </Typography>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mt: 0.5 }}
+            >
+              <b>Su trabajo:</b> {DETAIL[selected] || agents[selected].role}
+            </Typography>
+          </Box>
+        </Stack>
+      )}
+
       {/* El patrón contesta: cuando alguno pregunta "¿vuelvo a trabajar?" o están de brazos cruzados. */}
       {asking && (
         <Stack
@@ -1328,7 +1480,11 @@ export default function AgentOffice({ data, loading, storeSlug }: Props) {
         <TextField
           size="small"
           fullWidth
-          placeholder="Dile algo a los robots: 'las bebidas son por unidad', 'ignora la página de cerveza', 'los 2/$5 no son $2.50'…"
+          placeholder={
+            selected && agents[selected]
+              ? `Dile algo a ${agents[selected].name}: lo que hizo mal o cómo hacerlo mejor…`
+              : "Dile algo a los robots: 'las bebidas son por unidad', 'ignora la página de cerveza', 'los 2/$5 no son $2.50'…"
+          }
           value={msg}
           onChange={(e) => setMsg(e.target.value.slice(0, 300))}
           onKeyDown={(e) => {
@@ -1376,10 +1532,15 @@ export default function AgentOffice({ data, loading, storeSlug }: Props) {
               direction="row"
               gap={1}
               alignItems="flex-start"
+              onClick={() => setSelected((cur) => (cur === k ? null : k))}
               sx={{
                 p: 1,
                 borderRadius: 2,
+                cursor: 'pointer',
+                border: '1px solid',
+                borderColor: selected === k ? 'primary.main' : 'transparent',
                 bgcolor: st === 'running' ? alpha(brand, 0.08) : 'transparent',
+                '&:hover': { bgcolor: alpha(brand, 0.05) },
               }}
             >
               <svg
