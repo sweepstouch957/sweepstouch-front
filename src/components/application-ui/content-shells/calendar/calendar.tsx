@@ -1,289 +1,581 @@
-import dayGridPlugin from '@fullcalendar/daygrid';
-import interactionPlugin from '@fullcalendar/interaction';
-import listPlugin from '@fullcalendar/list';
-import FullCalendar from '@fullcalendar/react';
-import timeGridPlugin from '@fullcalendar/timegrid';
+'use client';
+
+import { useAuth } from '@/hooks/use-auth';
+import { usersApi } from '@/mocks/users';
 import {
-  alpha,
+  calendarService,
+  type CalendarEvent,
+  type EventPayload,
+  type EventType,
+} from '@/services/calendar.service';
+import { departmentService } from '@/services/department.service';
+import { getStores } from '@/services/store.service';
+import { isInternalStaff, STAFF_ROLE_QUERY } from '@/utils/staff';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
+import {
   Box,
-  darken,
-  Unstable_Grid2 as Grid,
-  SwipeableDrawer,
-  Theme,
-  useMediaQuery,
-  useTheme,
+  Button,
+  Card,
+  Chip,
+  Container,
+  Skeleton,
+  Stack,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
 } from '@mui/material';
-import { useEffect, useRef, useState } from 'react';
-import { FullCalendarWrapper } from 'src/components/base/styles/calendar';
-import { View } from 'src/models/calendar';
-// ✅ zustand (en vez de redux)
-import useCalendarStore, { getEvents, runCalendarThunk, updateEvent } from 'src/slices/calendar';
-import Actions from './actions';
-import EventDrawer from './event-drawer';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import dynamic from 'next/dynamic';
+import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useCallback, useDeferredValue, useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
+import { useCustomization } from 'src/hooks/use-customization';
+import { AgendaView } from './agenda-view';
+import { CalendarSidebar } from './calendar-sidebar';
+import {
+  endKey,
+  EVENT_TYPES,
+  fmtNum,
+  MONTHS,
+  searchText,
+  shortDay,
+  STATUS_LABEL,
+  todayKey,
+  TYPE_KEYS,
+} from './constants';
+import type { StaffOption } from './event-dialog';
+import { MonthView } from './month-view';
+import { RankingView } from './ranking-view';
+import { YearView } from './year-view';
 
-// Pure handlers — close over only module-level imports, allocated once at module scope
-const handleEventDrop = async ({ event }: any): Promise<void> => {
-  try {
-    if (!event?.start) {
-      console.error('Event start date is missing');
-      return;
-    }
+const EventDialog = dynamic(() => import('./event-dialog').then((m) => m.EventDialog), {
+  loading: () => null,
+});
+const EventDetailDialog = dynamic(
+  () => import('./event-detail-dialog').then((m) => m.EventDetailDialog),
+  { loading: () => null }
+);
 
-    const startISO =
-      event.start instanceof Date
-        ? event.start.toISOString()
-        : new Date(event.start).toISOString();
+type View = 'mes' | 'ano' | 'agenda' | 'ranking';
 
-    // FullCalendar a veces no trae end si es allDay o de 1 slot
-    const endISO = event.end
-      ? event.end instanceof Date
-        ? event.end.toISOString()
-        : new Date(event.end).toISOString()
-      : startISO;
+function exportCsv(events: CalendarEvent[], year: number) {
+  const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const rows = [
+    [
+      'Fecha',
+      'Hasta',
+      'Hora',
+      'Mes',
+      'Tipo',
+      'Evento',
+      'Estado',
+      'Lo lleva',
+      'Tiendas',
+      'Involucrados',
+      'Descripción',
+      'Origen',
+    ],
+  ].concat(
+    events.map((e) => [
+      e.date,
+      e.endDate || '',
+      e.startTime || '',
+      MONTHS[Number(e.date.slice(5, 7)) - 1],
+      EVENT_TYPES[e.type]?.label || e.type,
+      e.title,
+      STATUS_LABEL[e.status],
+      e.ownerName,
+      e.stores
+        .map((s) => `${s.storeName}${s.storeAddress ? ` (${s.storeAddress})` : ''}`)
+        .join(' | '),
+      e.participants.map((p) => p.name).join(' | '),
+      e.description,
+      e.source,
+    ])
+  );
+  const blob = new Blob([`﻿${rows.map((r) => r.map(esc).join(',')).join('\n')}`], {
+    type: 'text/csv;charset=utf-8',
+  });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `eventos-${year}.csv`;
+  a.click();
+}
 
-    await runCalendarThunk(
-      updateEvent(event.id, {
-        allDay: !!event.allDay,
-        start: startISO,
-        end: endISO,
-      })
-    );
-  } catch (err) {
-    console.error(err);
-  }
-};
+function Calendar(): React.JSX.Element {
+  const customization = useCustomization();
+  const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const { push } = useRouter();
+  const { user: authUser } = useAuth();
+  const today = todayKey();
 
-const handleEventResize = async ({ event }: any): Promise<void> => {
-  try {
-    if (!event?.start) return;
+  /* ── UI state ── */
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth());
+  const [view, setView] = useState<View>('mes');
+  const [typeFilter, setTypeFilter] = useState<'all' | EventType>('all');
+  const [search, setSearch] = useState('');
+  const deferredSearch = useDeferredValue(search);
+  const [showPast, setShowPast] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(searchParams.get('eventId'));
+  const [dialog, setDialog] = useState<{ editing: CalendarEvent | null; date?: string } | null>(
+    null
+  );
 
-    const startISO =
-      event.start instanceof Date
-        ? event.start.toISOString()
-        : new Date(event.start).toISOString();
-    const endISO = event.end
-      ? event.end instanceof Date
-        ? event.end.toISOString()
-        : new Date(event.end).toISOString()
-      : startISO;
-
-    await runCalendarThunk(
-      updateEvent(event.id, {
-        allDay: !!event.allDay,
-        start: startISO,
-        end: endISO,
-      })
-    );
-  } catch (err) {
-    console.error(err);
-  }
-};
-
-const Component = () => {
-  const [date, setDate] = useState<Date>(new Date());
-  const theme = useTheme();
-  const mobile = useMediaQuery((theme: Theme) => theme.breakpoints.down('md'));
-  const calendarRef = useRef<FullCalendar | null>(null);
-
-  const [view, setView] = useState<View>(mobile ? 'listWeek' : 'dayGridMonth');
-
-  // ✅ state from zustand
-  const events = useCalendarStore((state) => state.events);
-
-  const [drawer, setDrawer] = useState<{
-    isDrawerOpen: boolean;
-    eId?: string;
-    range?: { start: number; end: number };
-  }>({
-    isDrawerOpen: false,
-    eId: undefined,
-    range: undefined,
+  /* ── Data ── */
+  const from = `${year}-01-01`;
+  const to = `${year}-12-31`;
+  const { data: events = [], isLoading } = useQuery({
+    queryKey: ['calendar', year],
+    queryFn: () => calendarService.feed(from, to),
+    staleTime: 60_000,
   });
 
-  const eventChosen = drawer.eId ? events.find((event) => event.id === drawer.eId) : undefined;
+  const { data: departments = [] } = useQuery({
+    queryKey: ['departments'],
+    queryFn: departmentService.list,
+    staleTime: 120_000,
+  });
 
-  const handleEventSelect = (arg: any): void => {
-    setDrawer({
-      isDrawerOpen: true,
-      eId: arg?.event?.id,
-      range: undefined,
-    });
-  };
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['users', 'task-board'],
+    queryFn: () =>
+      usersApi.getUsers({
+        lean: true,
+        role: STAFF_ROLE_QUERY.join(','),
+        select: 'firstName,lastName,email,role,position,profileImage,departmentId',
+      }),
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+  });
+  const staff: StaffOption[] = useMemo(
+    () =>
+      allUsers
+        .filter(isInternalStaff)
+        .map((u: any) => ({
+          id: u._id || u.id,
+          name: `${u.firstName || ''} ${u.lastName || ''}`.trim(),
+          departmentId: u.departmentId || null,
+        })),
+    [allUsers]
+  );
+  const me: StaffOption | null = useMemo(() => {
+    if (!authUser) return null;
+    const id = (authUser as any)._id || authUser.id;
+    return {
+      id,
+      name: `${authUser.firstName || ''} ${authUser.lastName || ''}`.trim(),
+      departmentId: authUser.departmentId || staff.find((s) => s.id === id)?.departmentId || null,
+    };
+  }, [authUser, staff]);
+  const departmentName = useCallback(
+    (id?: string | null) => departments.find((d) => d._id === id)?.name || '',
+    [departments]
+  );
 
-  const handleRangeSelect = (arg: any): void => {
-    const calItem = calendarRef.current;
-    if (calItem) calItem.getApi().unselect();
-  };
+  const { data: rankingStores, isLoading: loadingRanking } = useQuery({
+    queryKey: ['stores', 'ranking-audience'],
+    queryFn: () =>
+      getStores({ limit: 150, sortBy: 'customerCount', order: 'desc', status: 'active' }),
+    staleTime: 5 * 60_000,
+    enabled: view === 'ranking',
+  });
 
-  const handleDateToday = (): void => {
-    const calItem = calendarRef.current;
-    if (!calItem) return;
+  /* ── Mutations ── */
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['calendar'] });
+  const createMut = useMutation({
+    mutationFn: (p: EventPayload) => calendarService.create(p),
+    onSuccess: (ev) => {
+      invalidate();
+      setDialog(null);
+      setMonth(Number(ev.date.slice(5, 7)) - 1);
+      setYear(Number(ev.date.slice(0, 4)));
+      setSelectedId(ev._id);
+      toast.success(
+        ev.participants?.length
+          ? `Evento guardado · aviso a ${ev.participants.length} personas`
+          : 'Evento guardado'
+      );
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo guardar el evento'),
+  });
+  const updateMut = useMutation({
+    mutationFn: ({ id, p }: { id: string; p: Partial<EventPayload> }) =>
+      calendarService.update(id, p),
+    onSuccess: (ev) => {
+      invalidate();
+      setDialog(null);
+      setSelectedId(ev._id);
+      toast.success('Evento actualizado');
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo actualizar el evento'),
+  });
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => calendarService.remove(id),
+    onSuccess: () => {
+      invalidate();
+      setSelectedId(null);
+      toast.success('Evento eliminado');
+    },
+    onError: () => toast.error('No se pudo eliminar'),
+  });
+  const notifyMut = useMutation({
+    mutationFn: (id: string) => calendarService.notify(id),
+    onSuccess: (r) => {
+      invalidate();
+      toast.success(`Aviso enviado a ${r.sent} personas por WhatsApp y correo`);
+    },
+    onError: () => toast.error('No se pudo enviar el aviso'),
+  });
 
-    const calendar = calItem.getApi();
-    calendar.today();
-    setDate(calendar.getDate());
-  };
+  /* ── Derivados ── */
+  const q = deferredSearch.trim().toLowerCase();
+  const filtered = useMemo(
+    () =>
+      events.filter(
+        (e) => (typeFilter === 'all' || e.type === typeFilter) && (!q || searchText(e).includes(q))
+      ),
+    [events, typeFilter, q]
+  );
+  const selected = useMemo(
+    () => events.find((e) => e._id === selectedId) || null,
+    [events, selectedId]
+  );
+  const storeCount = useMemo(
+    () => new Set(events.flatMap((e) => e.stores.map((s) => s.storeId || s.storeName))).size,
+    [events]
+  );
+  const nextEv = useMemo(
+    () => events.find((e) => endKey(e) >= today && e.status !== 'cancelado') || null,
+    [events, today]
+  );
 
-  const changeView = (changedView: View): void => {
-    const calItem = calendarRef.current;
-    if (!calItem) return;
-
-    const calendar = calItem.getApi();
-    calendar.changeView(changedView);
-    setView(changedView);
-  };
-
-  const handleDatePrev = (): void => {
-    const calItem = calendarRef.current;
-    if (!calItem) return;
-
-    const calendar = calItem.getApi();
-    calendar.prev();
-    setDate(calendar.getDate());
-  };
-
-  const handleDateNext = (): void => {
-    const calItem = calendarRef.current;
-    if (!calItem) return;
-
-    const calendar = calItem.getApi();
-    calendar.next();
-    setDate(calendar.getDate());
-  };
-
-  const closeDrawer = (): void => {
-    setDrawer({ isDrawerOpen: false, eId: undefined, range: undefined });
-  };
-
-  const openDrawer = (): void => {
-    setDrawer((prev) => ({ ...prev, isDrawerOpen: true }));
-  };
-
-  const handleDateClick = (arg: any): void => {
-    const start = arg?.date?.getTime?.() ?? Date.now();
-    setDrawer({
-      isDrawerOpen: true,
-      eId: undefined,
-      range: { start, end: start + 60 * 60 * 1000 },
-    });
-  };
-
-  // ✅ load events (zustand)
-  useEffect(() => {
-    runCalendarThunk(getEvents());
+  const openEvent = useCallback((e: CalendarEvent) => setSelectedId(e._id), []);
+  const goMonth = useCallback((m: number) => {
+    setMonth(m);
+    setView('mes');
   }, []);
 
-  // ✅ responsive view
-  useEffect(() => {
-    const calItem = calendarRef.current;
-    if (!calItem) return;
+  const submit = (p: EventPayload) =>
+    dialog?.editing ? updateMut.mutate({ id: dialog.editing._id, p }) : createMut.mutate(p);
 
-    const calendar = calItem.getApi();
-    const changedView: View = mobile ? 'listWeek' : 'dayGridMonth';
-
-    calendar.changeView(changedView);
-    setView(changedView);
-  }, [mobile]);
+  const Kpi = ({ label, value }: { label: string; value: React.ReactNode }) => (
+    <Box>
+      <Typography
+        sx={{
+          fontSize: 11,
+          color: 'text.secondary',
+          textTransform: 'uppercase',
+          letterSpacing: '.06em',
+          fontWeight: 600,
+        }}
+      >
+        {label}
+      </Typography>
+      <Typography
+        sx={{ fontSize: 22, fontWeight: 700, fontVariantNumeric: 'tabular-nums', lineHeight: 1.2 }}
+      >
+        {value}
+      </Typography>
+    </Box>
+  );
 
   return (
-    <>
-      <Grid
-        container
-        spacing={2}
+    <Container
+      maxWidth={customization.stretch ? false : 'xl'}
+      sx={{ py: { xs: 2, sm: 3 } }}
+    >
+      {/* Cabecera */}
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        justifyContent="space-between"
+        alignItems={{ md: 'flex-end' }}
+        gap={2}
+        sx={{ mb: 2 }}
       >
-        <Grid xs={12}>
-          <Actions
-            date={date}
-            onNext={handleDateNext}
-            onPrevious={handleDatePrev}
-            onToday={handleDateToday}
-            changeView={changeView}
-            view={view}
-          />
-        </Grid>
-
-        <Grid xs={12}>
-          <FullCalendarWrapper>
-            <FullCalendar
-              allDayMaintainDuration
-              initialDate={date}
-              initialView={view}
-              droppable
-              editable
-              eventDisplay="block"
-              eventClick={handleEventSelect}
-              eventDrop={handleEventDrop}
-              dayMaxEventRows={4}
-              eventResizableFromStart
-              dateClick={handleDateClick}
-              eventResize={handleEventResize}
-              events={events}
-              headerToolbar={false}
-              height={660}
-              ref={calendarRef}
-              rerenderDelay={10}
-              select={handleRangeSelect}
-              selectable
-              weekends
-              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
-            />
-          </FullCalendarWrapper>
-        </Grid>
-      </Grid>
-
-      <SwipeableDrawer
-        variant="temporary"
-        anchor="right"
-        onClose={closeDrawer}
-        onOpen={openDrawer}
-        open={drawer.isDrawerOpen}
-        elevation={9}
-        PaperProps={{
-          sx: {
-            width: '100%',
-            maxWidth: { xs: 340, md: 540, lg: 720 },
-            overflow: 'visible',
-            flexDirection: 'row',
-          },
-        }}
-        ModalProps={{
-          BackdropProps: {
-            sx: {
-              backdropFilter: 'blur(3px) !important',
-              background:
-                theme.palette.mode === 'dark'
-                  ? `linear-gradient(90deg, ${alpha(
-                      darken(theme.palette.neutral[900], 0.2),
-                      0.9
-                    )} 10%, ${alpha(theme.palette.neutral[300], 0.16)} 100%) !important`
-                  : `linear-gradient(90deg, ${alpha(theme.palette.neutral[900], 0.7)} 10%, ${alpha(
-                      theme.palette.neutral[700],
-                      0.7
-                    )} 100%) !important`,
-            },
-          },
-        }}
-      >
-        {drawer.isDrawerOpen && (
-          <Box
-            overflow="hidden"
-            display="flex"
-            flexDirection="column"
-            width="100%"
+        <Box>
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1}
+            sx={{
+              color: 'primary.main',
+              fontSize: 12,
+              fontWeight: 600,
+              letterSpacing: '.08em',
+              textTransform: 'uppercase',
+            }}
           >
-            <EventDrawer
-              event={eventChosen}
-              onAddComplete={closeDrawer}
-              onCancel={closeDrawer}
-              onDeleteComplete={closeDrawer}
-              onEditComplete={closeDrawer}
-              range={drawer.range}
+            <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: 'primary.main' }} />
+            <span>Sweepstouch · Planificación {year}</span>
+          </Stack>
+          <Typography
+            variant="h3"
+            sx={{ fontWeight: 700, letterSpacing: '-.01em', mt: 0.5 }}
+          >
+            Calendario de eventos y activaciones
+          </Typography>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+          >
+            Feriados de EE. UU., fechas culturales, aniversarios de tienda, activaciones, visitas y
+            tareas en tienda
+          </Typography>
+        </Box>
+        <Stack
+          direction="row"
+          flexWrap="wrap"
+          gap={3}
+          alignItems="flex-end"
+        >
+          <Kpi
+            label="Eventos"
+            value={isLoading ? <Skeleton width={40} /> : fmtNum(events.length)}
+          />
+          <Kpi
+            label="Tiendas"
+            value={isLoading ? <Skeleton width={40} /> : fmtNum(storeCount)}
+          />
+          <Box sx={{ maxWidth: 240 }}>
+            <Typography
+              sx={{
+                fontSize: 11,
+                color: 'text.secondary',
+                textTransform: 'uppercase',
+                letterSpacing: '.06em',
+                fontWeight: 600,
+              }}
+            >
+              Próxima fecha
+            </Typography>
+            <Typography sx={{ fontSize: 15, fontWeight: 600, lineHeight: 1.3, pt: 0.375 }}>
+              {nextEv
+                ? `${shortDay(nextEv.date).day} ${shortDay(nextEv.date).mon.toLowerCase()} · ${
+                    nextEv.title
+                  }`
+                : '—'}
+            </Typography>
+          </Box>
+          <Stack
+            direction="row"
+            spacing={1}
+          >
+            <Button
+              variant="outlined"
+              color="inherit"
+              startIcon={<FileDownloadOutlinedIcon fontSize="small" />}
+              onClick={() => exportCsv(filtered, year)}
+            >
+              Exportar CSV
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddRoundedIcon />}
+              onClick={() =>
+                setDialog({
+                  editing: null,
+                  date:
+                    year === now.getFullYear() && month === now.getMonth()
+                      ? today
+                      : `${year}-${String(month + 1).padStart(2, '0')}-01`,
+                })
+              }
+            >
+              Nuevo evento
+            </Button>
+          </Stack>
+        </Stack>
+      </Stack>
+
+      {/* Barra de vistas y filtros */}
+      <Card sx={{ p: 1.5, mb: 2.5, position: 'sticky', top: 0, zIndex: 5 }}>
+        <Stack
+          direction="row"
+          flexWrap="wrap"
+          gap={1.5}
+          alignItems="center"
+        >
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={view}
+            onChange={(_, v) => v && setView(v)}
+            color="primary"
+          >
+            <ToggleButton value="mes">Mes</ToggleButton>
+            <ToggleButton value="ano">Año</ToggleButton>
+            <ToggleButton value="agenda">Agenda</ToggleButton>
+            <ToggleButton value="ranking">Ranking</ToggleButton>
+          </ToggleButtonGroup>
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={year}
+            onChange={(_, v) => v && setYear(v)}
+          >
+            {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => (
+              <ToggleButton
+                key={y}
+                value={y}
+              >
+                {y}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+          {view !== 'ranking' && (
+            <Stack
+              direction="row"
+              flexWrap="wrap"
+              gap={0.75}
+            >
+              <Chip
+                size="small"
+                label="Todos"
+                onClick={() => setTypeFilter('all')}
+                variant={typeFilter === 'all' ? 'filled' : 'outlined'}
+                sx={
+                  typeFilter === 'all' ? { bgcolor: 'text.primary', color: 'background.paper' } : {}
+                }
+              />
+              {TYPE_KEYS.map((k) => (
+                <Chip
+                  key={k}
+                  size="small"
+                  icon={
+                    <Box
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 0.5,
+                        bgcolor: `${EVENT_TYPES[k].bg} !important`,
+                        ml: '8px !important',
+                      }}
+                    />
+                  }
+                  label={EVENT_TYPES[k].plural}
+                  onClick={() => setTypeFilter(typeFilter === k ? 'all' : k)}
+                  variant={typeFilter === k ? 'filled' : 'outlined'}
+                  sx={
+                    typeFilter === k ? { bgcolor: 'text.primary', color: 'background.paper' } : {}
+                  }
+                />
+              ))}
+            </Stack>
+          )}
+          <TextField
+            size="small"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar tienda, dirección, persona o evento…"
+            sx={{ flex: '1 1 220px', minWidth: 200 }}
+          />
+        </Stack>
+      </Card>
+
+      {/* Contenido */}
+      <Stack
+        direction={{ xs: 'column', lg: 'row' }}
+        gap={2.5}
+        alignItems="flex-start"
+      >
+        <Card sx={{ flex: '1 1 640px', minWidth: 0, p: { xs: 1.5, md: 2.25 }, width: '100%' }}>
+          {isLoading ? (
+            <Skeleton
+              variant="rounded"
+              height={620}
+            />
+          ) : view === 'mes' ? (
+            <MonthView
+              year={year}
+              month={month}
+              events={filtered}
+              today={today}
+              onPickMonth={setMonth}
+              onPrev={() => setMonth((m) => (m + 11) % 12)}
+              onNext={() => setMonth((m) => (m + 1) % 12)}
+              onAddAt={(d) => setDialog({ editing: null, date: d })}
+              onOpen={openEvent}
+            />
+          ) : view === 'ano' ? (
+            <YearView
+              year={year}
+              events={filtered}
+              today={today}
+              onGoMonth={goMonth}
+            />
+          ) : view === 'agenda' ? (
+            <AgendaView
+              year={year}
+              events={filtered}
+              today={today}
+              showPast={showPast}
+              onTogglePast={() => setShowPast((v) => !v)}
+              onOpen={openEvent}
+            />
+          ) : (
+            <RankingView
+              stores={rankingStores?.data || []}
+              loading={loadingRanking}
+              events={events}
+              search={deferredSearch}
+            />
+          )}
+        </Card>
+        {view !== 'ranking' && (
+          <Box sx={{ flex: '1 1 300px', maxWidth: { lg: 380 }, width: '100%' }}>
+            <CalendarSidebar
+              events={filtered}
+              today={today}
+              onOpen={openEvent}
             />
           </Box>
         )}
-      </SwipeableDrawer>
-    </>
-  );
-};
+      </Stack>
 
-export default Component;
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ display: 'block', mt: 2 }}
+      >
+        Eventos propios + tareas de Cowork con tienda + visitas de soporte técnico. Los avisos salen
+        por WhatsApp (SweepsBot) y correo a quien lo lleva, a su área y a Dirección.
+      </Typography>
+
+      {selected && (
+        <EventDetailDialog
+          event={selected}
+          onClose={() => setSelectedId(null)}
+          onEdit={() => {
+            setDialog({ editing: selected });
+            setSelectedId(null);
+          }}
+          onDelete={() => {
+            if (window.confirm('¿Eliminar este evento?')) deleteMut.mutate(selected._id);
+          }}
+          onNotify={() => notifyMut.mutate(selected._id)}
+          onOpenLink={(link) => push(link)}
+          notifying={notifyMut.isPending}
+        />
+      )}
+      {dialog && (
+        <EventDialog
+          editing={dialog.editing}
+          initialDate={dialog.date}
+          me={me}
+          staff={staff}
+          departmentName={departmentName}
+          saving={createMut.isPending || updateMut.isPending}
+          onClose={() => setDialog(null)}
+          onSubmit={submit}
+        />
+      )}
+    </Container>
+  );
+}
+
+export default Calendar;
