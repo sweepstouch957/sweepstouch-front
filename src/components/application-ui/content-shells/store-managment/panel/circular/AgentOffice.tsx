@@ -781,28 +781,30 @@ export default function AgentOffice({ data, loading, storeSlug }: Props) {
     Object.fromEntries(ORDER.map((k) => [k, { ...SEAT(k), ms: 0, walking: false, flip: false }]))
   );
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  // Última posición conocida fuera del estado: así el timer se arma FUERA del updater (que
+  // React puede ejecutar dos veces) y siempre se puede cancelar.
+  const posRef = useRef(pos);
+  posRef.current = pos;
   const goTo = (k: string, to: { x: number; y: number }, then?: () => void) => {
-    setPos((p) => {
-      const cur = p[k];
-      const dist = Math.hypot(to.x - cur.x, to.y - cur.y);
-      const ms = Math.max(600, dist * 650);
-      clearTimeout(timers.current[k]);
-      timers.current[k] = setTimeout(() => {
-        setPos((q) => ({ ...q, [k]: { ...q[k], walking: false } }));
-        then?.();
-      }, ms);
-      const sx = iso(to.x, to.y).x - iso(cur.x, cur.y).x;
-      return {
-        ...p,
-        [k]: {
-          x: to.x,
-          y: to.y,
-          ms,
-          walking: dist > 0.05,
-          flip: sx < 0 ? true : sx > 0 ? false : cur.flip,
-        },
-      };
-    });
+    const cur = posRef.current[k];
+    const dist = Math.hypot(to.x - cur.x, to.y - cur.y);
+    const ms = Math.max(600, dist * 650);
+    clearTimeout(timers.current[k]);
+    timers.current[k] = setTimeout(() => {
+      setPos((q) => ({ ...q, [k]: { ...q[k], walking: false } }));
+      then?.();
+    }, ms);
+    const sx = iso(to.x, to.y).x - iso(cur.x, cur.y).x;
+    setPos((p) => ({
+      ...p,
+      [k]: {
+        x: to.x,
+        y: to.y,
+        ms,
+        walking: dist > 0.05,
+        flip: sx < 0 ? true : sx > 0 ? false : p[k].flip,
+      },
+    }));
   };
 
   // Reacciones a la bitácora: el que trabaja va a su silla; el que termina camina a avisarle al
@@ -829,7 +831,10 @@ export default function AgentOffice({ data, loading, storeSlug }: Props) {
   // Paseo: cada 5 s algún agente libre (sin trabajo en curso) sale a un punto de interés y vuelve.
   const [tick, setTick] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => setTick((n) => n + 1), 5000);
+    // Con la pestaña del navegador oculta no se mueve nada: ni paseos ni re-render del SVG.
+    const id = setInterval(() => {
+      if (!document.hidden) setTick((n) => n + 1);
+    }, 5000);
     return () => clearInterval(id);
   }, []);
   useEffect(() => {

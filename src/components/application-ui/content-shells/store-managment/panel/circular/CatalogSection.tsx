@@ -9,21 +9,21 @@ import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import DragIndicatorRoundedIcon from '@mui/icons-material/DragIndicatorRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import {
-  FormControlLabel,
-  Pagination,
-  Checkbox,
   Alert,
   Autocomplete,
   Box,
   Button,
+  Checkbox,
   Chip,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControlLabel,
   IconButton,
   LinearProgress,
+  Pagination,
   Stack,
   Switch,
   Table,
@@ -40,12 +40,12 @@ import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useSta
 import toast from 'react-hot-toast';
 import { applyCatalogOrder, moveCatalogItem } from './catalog-order';
 import { qk, useStoreCirculars } from './hooks';
-
-// Filas por página del catálogo (un circular grande trae 2000 productos).
-const PAGE_SIZE = 50;
 import { imageFromPaste, PasteReplaceDialog, ProductEditorDialog } from './ProductImageTools';
 import { CATEGORIES, cell, fmtDate, ImagePreviewDialog, regularFromPrice } from './shared';
 import { CatalogRowsSkeleton } from './skeletons';
+
+// Filas por página del catálogo (un circular grande trae 2000 productos).
+const PAGE_SIZE = 50;
 
 export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
   const qc = useQueryClient();
@@ -56,7 +56,8 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
   const deferredSearch = useDeferredValue(search);
   const catalog = useQuery({
     queryKey: [...qk.catalog(storeSlug), page, deferredSearch.trim()],
-    queryFn: () => circularService.getCatalogAdmin(storeSlug, { page, limit: PAGE_SIZE, q: deferredSearch }),
+    queryFn: () =>
+      circularService.getCatalogAdmin(storeSlug, { page, limit: PAGE_SIZE, q: deferredSearch }),
     enabled: !!storeSlug,
     staleTime: 30_000,
     // Cada combinación página+búsqueda es una entrada de caché con 50 productos: se suelta
@@ -218,7 +219,11 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
   // Arte del flyer de la campaña vigente (es imagen, va directo) para "Recortar flyer".
   const { flyers } = useStoreCirculars(storeSlug);
   const campaignFlyerUrl =
-    (flyers.find((x) => x.status === 'active') || flyers.find((x) => x.status === 'scheduled') || flyers[0])?.fileUrl || undefined;
+    (
+      flyers.find((x) => x.status === 'active') ||
+      flyers.find((x) => x.status === 'scheduled') ||
+      flyers[0]
+    )?.fileUrl || undefined;
 
   // Imagen del circular para "Recortar circular". Sólo se resuelve al abrir el editor:
   // si el circular es PDF, el servidor renderiza la primera página una vez y la cachea.
@@ -308,7 +313,11 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
   const clearAll = useMutation({
     mutationFn: () => circularService.clearCatalog(storeSlug, { circulars: clearCirculars }),
     onSuccess: (d) => {
-      toast.success(`${d.deleted} productos borrados${d.circulars ? ` · ${d.circulars} circular(es) vaciado(s)` : ''}`);
+      toast.success(
+        `${d.deleted} productos borrados${
+          d.circulars ? ` · ${d.circulars} circular(es) vaciado(s)` : ''
+        }`
+      );
       setClearOpen(false);
       qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) });
       qc.invalidateQueries({ queryKey: qk.circulars(storeSlug) });
@@ -341,13 +350,22 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
     if (!j?.finishedAt) return;
     setRescanWatch(false);
     if (j.error) toast.error(j.error);
-    else toast.success(`Fotos: ${j.relocated} re-ubicadas en el circular · ${j.generated} generadas${j.failed ? ` · ${j.failed} no se pudieron` : ''}`, { duration: 8000 });
+    else
+      toast.success(
+        `Fotos: ${j.relocated} re-ubicadas en el circular · ${j.generated} generadas${
+          j.failed ? ` · ${j.failed} no se pudieron` : ''
+        }`,
+        { duration: 8000 }
+      );
   }, [rescanStatus.data, rescanWatch, qc, storeSlug]);
   const rescanPhotos = useMutation({
     mutationFn: (mode: 'missing' | 'all') => circularService.rescanPhotos(storeSlug, mode),
     onSuccess: (d) => {
       setRescanOpen(false);
-      if (!d.job?.total && d.job?.finishedAt) { toast.success('No hay fotos que rescanear'); return; }
+      if (!d.job?.total && d.job?.finishedAt) {
+        toast.success('No hay fotos que rescanear');
+        return;
+      }
       setRescanWatch(true);
       toast.success('Iris está rescaneando las fotos… se van actualizando solas');
     },
@@ -370,7 +388,11 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
     if (!detailsWatch || !j?.finishedAt) return;
     setDetailsWatch(false);
     if (j.error) toast.error(j.error);
-    else toast.success(`Marca y tamaño: ${j.updated} de ${j.total} productos completados leyendo "${j.circularTitle}"`, { duration: 7000 });
+    else
+      toast.success(
+        `Marca y tamaño: ${j.updated} de ${j.total} productos completados leyendo "${j.circularTitle}"`,
+        { duration: 7000 }
+      );
     qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) });
   }, [detailsStatus.data, detailsWatch, qc, storeSlug]);
   const fillDetails = useMutation({
@@ -380,7 +402,8 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
       setDetailsWatch(true);
       toast.success('Leyendo el archivo… te aviso cuando termine');
     },
-    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo completar marca y tamaño'),
+    onError: (e: any) =>
+      toast.error(e?.response?.data?.error || 'No se pudo completar marca y tamaño'),
   });
 
   // El botón inteligente: visibles = SOLO los productos del último circular.
@@ -390,8 +413,12 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
     onSuccess: (d, only) => {
       toast.success(
         d.circularId
-          ? `"${d.circularTitle}": ${d.inCircular} visibles · ${d.hidden} ocultados${d.duplicates ? ` · ${d.duplicates} duplicados quitados` : ''}`
-          : `Sin ${only === 'flyer' ? 'flyer de campaña' : 'circular'} vigente hoy: ${d.hidden} productos ocultados`
+          ? `"${d.circularTitle}": ${d.inCircular} visibles · ${d.hidden} ocultados${
+              d.duplicates ? ` · ${d.duplicates} duplicados quitados` : ''
+            }`
+          : `Sin ${only === 'flyer' ? 'flyer de campaña' : 'circular'} vigente hoy: ${
+              d.hidden
+            } productos ocultados`
       );
       setSyncOpen(false);
       qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) });
@@ -445,7 +472,10 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
           size="small"
           placeholder="Buscar producto…"
           value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
           sx={{ width: 260 }}
         />
         {missingRegular.length > 0 && (
@@ -480,20 +510,49 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
             Borrar todos
           </Button>
         </Tooltip>
-        <Dialog open={clearOpen} onClose={() => !clearAll.isPending && setClearOpen(false)} maxWidth="xs" fullWidth>
+        <Dialog
+          open={clearOpen}
+          onClose={() => !clearAll.isPending && setClearOpen(false)}
+          maxWidth="xs"
+          fullWidth
+        >
           <DialogTitle sx={{ pb: 0.5 }}>¿Borrar todos los productos?</DialogTitle>
           <DialogContent>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-              Se borra el catálogo completo de esta tienda ({orderedItems.length} productos) y desaparecen de la lista del cliente. No se puede deshacer.
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mb: 1.5 }}
+            >
+              Se borra el catálogo completo de esta tienda ({orderedItems.length} productos) y
+              desaparecen de la lista del cliente. No se puede deshacer.
             </Typography>
             <FormControlLabel
-              control={<Checkbox checked={clearCirculars} onChange={(e) => setClearCirculars(e.target.checked)} />}
-              label={<Typography variant="body2">Vaciar también los productos de los circulares vivos (para re-extraer limpio)</Typography>}
+              control={
+                <Checkbox
+                  checked={clearCirculars}
+                  onChange={(e) => setClearCirculars(e.target.checked)}
+                />
+              }
+              label={
+                <Typography variant="body2">
+                  Vaciar también los productos de los circulares vivos (para re-extraer limpio)
+                </Typography>
+              }
             />
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setClearOpen(false)} disabled={clearAll.isPending}>Cancelar</Button>
-            <Button variant="contained" color="error" disabled={clearAll.isPending} onClick={() => clearAll.mutate()}>
+            <Button
+              onClick={() => setClearOpen(false)}
+              disabled={clearAll.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              disabled={clearAll.isPending}
+              onClick={() => clearAll.mutate()}
+            >
               {clearAll.isPending ? 'Borrando…' : 'Sí, borrar todo'}
             </Button>
           </DialogActions>
@@ -518,7 +577,9 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
             onClick={() => setDetailsOpen(true)}
           >
             {detailsRunning
-              ? `Completando… ${detailsStatus.data?.job?.done ?? 0}/${detailsStatus.data?.job?.total ?? 0}`
+              ? `Completando… ${detailsStatus.data?.job?.done ?? 0}/${
+                  detailsStatus.data?.job?.total ?? 0
+                }`
               : 'Completar marca / tamaño'}
           </Button>
         </Tooltip>
@@ -542,7 +603,9 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
             onClick={() => setRescanOpen(true)}
           >
             {rescanRunning
-              ? `Rescaneando… ${rescanStatus.data?.job?.done ?? 0}/${rescanStatus.data?.job?.total ?? 0}`
+              ? `Rescaneando… ${rescanStatus.data?.job?.done ?? 0}/${
+                  rescanStatus.data?.job?.total ?? 0
+                }`
               : 'Rescanear fotos'}
           </Button>
         </Tooltip>
@@ -574,8 +637,9 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
             variant="body2"
             sx={{ mb: 1 }}
           >
-            Elige con qué se queda la lista del Pre-RCS: <strong>sólo el último flyer de campaña</strong>{' '}
-            o <strong>sólo el último circular semanal</strong>. El resto del catálogo se oculta.
+            Elige con qué se queda la lista del Pre-RCS:{' '}
+            <strong>sólo el último flyer de campaña</strong> o{' '}
+            <strong>sólo el último circular semanal</strong>. El resto del catálogo se oculta.
           </Typography>
           <Typography
             variant="caption"
@@ -618,26 +682,50 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
         fullWidth
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <AutoAwesomeOutlinedIcon color="primary" fontSize="small" />
+          <AutoAwesomeOutlinedIcon
+            color="primary"
+            fontSize="small"
+          />
           Rescanear fotos
         </DialogTitle>
         <DialogContent>
-          <Typography variant="body2" sx={{ mb: 1 }}>
+          <Typography
+            variant="body2"
+            sx={{ mb: 1 }}
+          >
             Iris vuelve a buscar cada producto en su página del circular, recorta sólo su foto,
             comprueba que sea él y la limpia. Si no lo encuentra, genera la foto desde el nombre.
           </Typography>
-          <Typography variant="caption" color="text.secondary">
-            "Sólo las malas" = sin foto o con recorte crudo. "Todas" rehace también las que ya
-            están limpias (útil si quedaron con el vecino o con varios productos). Para una sola
-            foto, ábrela con el lápiz y usa "Rescanear foto".
+          <Typography
+            variant="caption"
+            color="text.secondary"
+          >
+            "Sólo las malas" = sin foto o con recorte crudo. "Todas" rehace también las que ya están
+            limpias (útil si quedaron con el vecino o con varios productos). Para una sola foto,
+            ábrela con el lápiz y usa "Rescanear foto".
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button size="small" onClick={() => setRescanOpen(false)}>Cancelar</Button>
-          <Button size="small" variant="outlined" disabled={rescanPhotos.isPending} onClick={() => rescanPhotos.mutate('all')}>
+          <Button
+            size="small"
+            onClick={() => setRescanOpen(false)}
+          >
+            Cancelar
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            disabled={rescanPhotos.isPending}
+            onClick={() => rescanPhotos.mutate('all')}
+          >
             Todas las visibles
           </Button>
-          <Button size="small" variant="contained" disabled={rescanPhotos.isPending} onClick={() => rescanPhotos.mutate('missing')}>
+          <Button
+            size="small"
+            variant="contained"
+            disabled={rescanPhotos.isPending}
+            onClick={() => rescanPhotos.mutate('missing')}
+          >
             Sólo las malas
           </Button>
         </DialogActions>
@@ -650,24 +738,48 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
         fullWidth
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <AutoAwesomeOutlinedIcon color="primary" fontSize="small" />
+          <AutoAwesomeOutlinedIcon
+            color="primary"
+            fontSize="small"
+          />
           Completar marca y tamaño
         </DialogTitle>
         <DialogContent>
-          <Typography variant="body2" sx={{ mb: 1 }}>
+          <Typography
+            variant="body2"
+            sx={{ mb: 1 }}
+          >
             ¿De dónde leo? Se revisan sólo los productos a los que les falta marca o tamaño; se
             rellenan marca, tamaño, unidad y presentación sin tocar lo que ya está escrito.
           </Typography>
-          <Typography variant="caption" color="text.secondary">
+          <Typography
+            variant="caption"
+            color="text.secondary"
+          >
             Tarda un rato en circulares grandes. Puedes seguir trabajando; te aviso al terminar.
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button size="small" onClick={() => setDetailsOpen(false)}>Cancelar</Button>
-          <Button size="small" variant="outlined" disabled={fillDetails.isPending} onClick={() => fillDetails.mutate('circular')}>
+          <Button
+            size="small"
+            onClick={() => setDetailsOpen(false)}
+          >
+            Cancelar
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            disabled={fillDetails.isPending}
+            onClick={() => fillDetails.mutate('circular')}
+          >
             Del último circular
           </Button>
-          <Button size="small" variant="contained" disabled={fillDetails.isPending} onClick={() => fillDetails.mutate('flyer')}>
+          <Button
+            size="small"
+            variant="contained"
+            disabled={fillDetails.isPending}
+            onClick={() => fillDetails.mutate('flyer')}
+          >
             Del último flyer
           </Button>
         </DialogActions>
@@ -889,23 +1001,40 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
                             variant="body2"
                             color="text.secondary"
                           >
-                            {deferredSearch.trim() ? 'Nada coincide con la búsqueda.' : 'Sin productos en el catálogo.'}
+                            {deferredSearch.trim()
+                              ? 'Nada coincide con la búsqueda.'
+                              : 'Sin productos en el catálogo.'}
                           </Typography>
                         </TableCell>
                       </TableRow>
                     )}
                     {pages > 1 && (
                       <TableRow>
-                        <TableCell colSpan={9} sx={{ py: 1.5 }}>
-                          <Stack direction="row" alignItems="center" justifyContent="space-between" gap={2} flexWrap="wrap">
-                            <Typography variant="body2" color="text.secondary">
+                        <TableCell
+                          colSpan={9}
+                          sx={{ py: 1.5 }}
+                        >
+                          <Stack
+                            direction="row"
+                            alignItems="center"
+                            justifyContent="space-between"
+                            gap={2}
+                            flexWrap="wrap"
+                          >
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                            >
                               {total} productos · página {page} de {pages}
                               {catalog.isFetching ? ' · cargando…' : ''}
                             </Typography>
                             <Pagination
                               count={pages}
                               page={page}
-                              onChange={(_e, p) => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                              onChange={(_e, p) => {
+                                setPage(p);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
                               size="small"
                               siblingCount={1}
                             />
@@ -1121,15 +1250,28 @@ const CatalogRow = memo(function CatalogRow({
             )}
             {/* Departamento del circular con las palabras de la tienda. */}
             {p.department && (
-              <Chip size="small" variant="outlined" label={p.department} sx={{ height: 18, fontSize: 11, mr: 0.5 }} />
+              <Chip
+                size="small"
+                variant="outlined"
+                label={p.department}
+                sx={{ height: 18, fontSize: 11, mr: 0.5 }}
+              />
             )}
             {/* Tag de origen: flyer de campaña / circular / manual. */}
             {p.source && (
               <Chip
                 size="small"
                 variant="outlined"
-                color={p.source === 'flyer' ? 'secondary' : p.source === 'circular' ? 'primary' : 'default'}
-                label={p.source === 'flyer' ? 'Flyer' : p.source === 'circular' ? 'Circular' : 'Manual'}
+                color={
+                  p.source === 'flyer'
+                    ? 'secondary'
+                    : p.source === 'circular'
+                      ? 'primary'
+                      : 'default'
+                }
+                label={
+                  p.source === 'flyer' ? 'Flyer' : p.source === 'circular' ? 'Circular' : 'Manual'
+                }
                 sx={{ height: 18, fontSize: 11, mr: 0.5 }}
               />
             )}

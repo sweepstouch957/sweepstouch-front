@@ -8,6 +8,7 @@
  */
 import { circularService, type StoreBanner } from '@/services/circular.service';
 import { uploadCampaignImage } from '@/services/upload.service';
+import { cloudinaryThumb } from '@/utils/cloudinary';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
@@ -253,8 +254,9 @@ export default function StoreBannerSection({
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={active.imageUrl}
+                    src={cloudinaryThumb(active.imageUrl, 900, 300, 'fill')}
                     alt={active.title || 'Banner vigente'}
+                    decoding="async"
                   />
                 </Box>
                 <Stack
@@ -363,8 +365,9 @@ export default function StoreBannerSection({
               {form.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={form.imageUrl}
+                  src={cloudinaryThumb(form.imageUrl, 900, 300, 'fill')}
                   alt=""
+                  decoding="async"
                 />
               ) : (
                 <Stack
@@ -512,9 +515,10 @@ export default function StoreBannerSection({
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={b.imageUrl}
+                        src={cloudinaryThumb(b.imageUrl, 324, 108, 'fill')}
                         alt=""
                         loading="lazy"
+                        decoding="async"
                       />
                     </Box>
                     <Box sx={{ flex: 1, minWidth: 0 }}>

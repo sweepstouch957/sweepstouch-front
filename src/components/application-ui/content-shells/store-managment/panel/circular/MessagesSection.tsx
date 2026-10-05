@@ -30,6 +30,8 @@ export default function MessagesSection({
     // Al abrir la pestaña (no al abrir el modal): así el envío nunca sale con 0 productos.
     enabled: !!active?._id,
     staleTime: 60_000,
+    // Trae el circular con TODOS sus productos: al salir de la pestaña se suelta al minuto.
+    gcTime: 60_000,
   });
 
   return (

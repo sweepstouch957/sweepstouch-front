@@ -8,14 +8,22 @@ import type { FC } from 'react';
 
 const PanelSkeleton: FC = () => (
   <Box p={3}>
-    <Skeleton variant="rounded" height={48} sx={{ borderRadius: 2, mb: 2, maxWidth: 420 }} />
-    <Skeleton variant="rounded" height={220} sx={{ borderRadius: 2 }} />
+    <Skeleton
+      variant="rounded"
+      height={48}
+      sx={{ borderRadius: 2, mb: 2, maxWidth: 420 }}
+    />
+    <Skeleton
+      variant="rounded"
+      height={220}
+      sx={{ borderRadius: 2 }}
+    />
   </Box>
 );
 
 // Cada panel se baja y se parsea sólo cuando se abre su pestaña. Antes se importaban los 18
 // a la vez: abrir "Circular" cargaba también el builder de RCS, QR, QuickBooks, etc.
-const lazy =<P extends object>(load: () => Promise<{ default: FC<P> } | FC<P>>) =>
+const lazy = <P extends object>(load: () => Promise<{ default: FC<P> } | FC<P>>) =>
   dynamic<P>(
     async () => {
       const m: any = await load();
@@ -24,15 +32,25 @@ const lazy =<P extends object>(load: () => Promise<{ default: FC<P> } | FC<P>>) 
     { ssr: false, loading: () => <PanelSkeleton /> }
   );
 const StoreInfo = lazy<any>(() => import('@/components/website/store-panel'));
-const ActiveSweepstakeCard = lazy<any>(() => import('../../active-sweeptake').then((m) => m.ActiveSweepstakeCard));
-const PromoDashboard = lazy<any>(() => import('../../tables/promos/panel').then((m) => m.PromoDashboard));
-const StoreBillingPanel = lazy<any>(() => import('./panel/billing/StoreBillingPanel').then((m) => m.StoreBillingPanel));
+const ActiveSweepstakeCard = lazy<any>(() =>
+  import('../../active-sweeptake').then((m) => m.ActiveSweepstakeCard)
+);
+const PromoDashboard = lazy<any>(() =>
+  import('../../tables/promos/panel').then((m) => m.PromoDashboard)
+);
+const StoreBillingPanel = lazy<any>(() =>
+  import('./panel/billing/StoreBillingPanel').then((m) => m.StoreBillingPanel)
+);
 const CajerasPanel = lazy<any>(() => import('./panel/cajeras/cajeras-panel'));
 const CampaignsPanel = lazy<any>(() => import('./panel/campaigns/campaign-panel'));
-const CreateCampaignContainer = lazy<any>(() => import('./panel/campaigns/createCampaignContainer'));
+const CreateCampaignContainer = lazy<any>(
+  () => import('./panel/campaigns/createCampaignContainer')
+);
 const RcsCampaignBuilder = lazy<any>(() => import('./panel/campaigns/rcs/RcsCampaignBuilder'));
 const CustomersPanel = lazy<any>(() => import('./panel/customers/customers-panel'));
-const StoreEquipmentPanel = lazy<any>(() => import('./panel/equipment/StoreEquipmentPanel').then((m) => m.StoreEquipmentPanel));
+const StoreEquipmentPanel = lazy<any>(() =>
+  import('./panel/equipment/StoreEquipmentPanel').then((m) => m.StoreEquipmentPanel)
+);
 const StoreOptinPanel = lazy<any>(() => import('./panel/optin/StoreOptinPanel'));
 const StoreQuickbooksPanel = lazy<any>(() => import('./panel/quickbooks/StoreQuickbooksPanel'));
 const QrDuetMUI = lazy<any>(() => import('./panel/qr/QrContainer'));
@@ -61,40 +79,54 @@ function getProviderPhoneNumber(store: Store): string {
 const ContentLoadingSkeleton: FC = () => (
   <Box p={3}>
     <Stack spacing={2.5}>
-      <Box display="flex"
-alignItems="center"
-gap={2}>
-        <Skeleton variant="circular"
-width={36}
-height={36} />
+      <Box
+        display="flex"
+        alignItems="center"
+        gap={2}
+      >
+        <Skeleton
+          variant="circular"
+          width={36}
+          height={36}
+        />
         <Box flex={1}>
-          <Skeleton variant="text"
-width="28%"
-height={26}
-sx={{ mb: 0.5 }} />
-          <Skeleton variant="text"
-width="45%"
-height={18} />
+          <Skeleton
+            variant="text"
+            width="28%"
+            height={26}
+            sx={{ mb: 0.5 }}
+          />
+          <Skeleton
+            variant="text"
+            width="45%"
+            height={18}
+          />
         </Box>
       </Box>
-      <Skeleton variant="rounded"
-height={110}
-sx={{ borderRadius: 2 }} />
+      <Skeleton
+        variant="rounded"
+        height={110}
+        sx={{ borderRadius: 2 }}
+      />
       <Box
         display="grid"
         gridTemplateColumns={{ xs: '1fr', sm: 'repeat(3, 1fr)' }}
         gap={2}
       >
         {[0, 1, 2].map((i) => (
-          <Skeleton key={i}
-variant="rounded"
-height={76}
-sx={{ borderRadius: 2 }} />
+          <Skeleton
+            key={i}
+            variant="rounded"
+            height={76}
+            sx={{ borderRadius: 2 }}
+          />
         ))}
       </Box>
-      <Skeleton variant="rounded"
-height={220}
-sx={{ borderRadius: 2 }} />
+      <Skeleton
+        variant="rounded"
+        height={220}
+        sx={{ borderRadius: 2 }}
+      />
     </Stack>
   </Box>
 );
@@ -125,13 +157,17 @@ const ContentErrorState: FC = () => (
       <ErrorOutlineRoundedIcon sx={{ fontSize: 32, color: 'error.main' }} />
     </Box>
     <Box>
-      <Typography variant="h6"
-fontWeight={600}
-gutterBottom>
+      <Typography
+        variant="h6"
+        fontWeight={600}
+        gutterBottom
+      >
         No se pudo cargar la tienda
       </Typography>
-      <Typography variant="body2"
-color="text.secondary">
+      <Typography
+        variant="body2"
+        color="text.secondary"
+      >
         Verifica tu conexión e intenta de nuevo.
       </Typography>
     </Box>
@@ -161,9 +197,11 @@ export const StoreContentRouter: FC<Props> = ({
   if (tag === 'campaigns') {
     if (action === 'create-rcs') {
       return (
-        <Box px={{ xs: 1, md: 2 }}
-pt={2}
-pb={4}>
+        <Box
+          px={{ xs: 1, md: 2 }}
+          pt={2}
+          pb={4}
+        >
           <RcsCampaignBuilder
             storeId={storeId}
             storeSlug={store.slug || ''}
@@ -177,8 +215,10 @@ pb={4}>
     }
     if (action === 'create') {
       return (
-        <Box px={{ xs: 1, md: 2 }}
-pt={2}>
+        <Box
+          px={{ xs: 1, md: 2 }}
+          pt={2}
+        >
           <CreateCampaignContainer
             provider={store.provider}
             phoneNumber={getProviderPhoneNumber(store)}
@@ -189,8 +229,12 @@ pt={2}>
         </Box>
       );
     }
-    return <CampaignsPanel storeId={storeId}
-storeName={store.name || ''} />;
+    return (
+      <CampaignsPanel
+        storeId={storeId}
+        storeName={store.name || ''}
+      />
+    );
   }
 
   switch (tag) {
@@ -210,12 +254,20 @@ storeName={store.name || ''} />;
       );
 
     case 'billing':
-      return <StoreBillingPanel storeId={storeId}
-pricing={(store as any)?.pricing} />;
+      return (
+        <StoreBillingPanel
+          storeId={storeId}
+          pricing={(store as any)?.pricing}
+        />
+      );
 
     case 'quickbooks':
-      return <StoreQuickbooksPanel storeId={storeId}
-storeName={store.name} />;
+      return (
+        <StoreQuickbooksPanel
+          storeId={storeId}
+          storeName={store.name}
+        />
+      );
 
     case 'customers':
       return (
@@ -241,8 +293,10 @@ storeName={store.name} />;
     case 'sms-provider':
       return (
         <Box p={3}>
-          <Typography variant="h5"
-gutterBottom>
+          <Typography
+            variant="h5"
+            gutterBottom
+          >
             Proveedor SMS
           </Typography>
           <Typography color="text.secondary">
@@ -252,12 +306,20 @@ gutterBottom>
       );
 
     case 'equipment':
-      return <StoreEquipmentPanel store={store}
-storeId={storeId} />;
+      return (
+        <StoreEquipmentPanel
+          store={store}
+          storeId={storeId}
+        />
+      );
 
     case 'brand':
-      return <StoreBrandPanel storeId={storeId}
-store={store} />;
+      return (
+        <StoreBrandPanel
+          storeId={storeId}
+          store={store}
+        />
+      );
 
     case 'general-info':
       return (
@@ -269,8 +331,10 @@ store={store} />;
     case 'sweepstakes':
       return (
         <Box p={3}>
-          <Typography variant="h5"
-gutterBottom>
+          <Typography
+            variant="h5"
+            gutterBottom
+          >
             Sorteo
           </Typography>
           <ActiveSweepstakeCard storeId={storeId} />

@@ -154,8 +154,17 @@ export function useExtractProducts(storeSlug: string) {
   const refresh = useRefreshStoreData(storeSlug);
   return useMutation({
     mutationKey: mk.extract(storeSlug),
-    mutationFn: ({ id, max, guidance, referenceImages }: { id: string; max: number; guidance?: string; referenceImages?: string[] }) =>
-      circularService.extractProducts(id, max, { guidance, referenceImages }),
+    mutationFn: ({
+      id,
+      max,
+      guidance,
+      referenceImages,
+    }: {
+      id: string;
+      max: number;
+      guidance?: string;
+      referenceImages?: string[];
+    }) => circularService.extractProducts(id, max, { guidance, referenceImages }),
     onSuccess: (d: any) => {
       if (d?.background) {
         // El backend contesta 202 y sigue solo: un circular grande tarda 20–30 min.
@@ -166,7 +175,11 @@ export function useExtractProducts(storeSlug: string) {
           { duration: 9000 }
         );
       } else {
-        toast.success(`IA: ${d?.circular?.products?.length ?? 0} productos extraídos. Las imágenes se limpian en segundo plano.`);
+        toast.success(
+          `IA: ${
+            d?.circular?.products?.length ?? 0
+          } productos extraídos. Las imágenes se limpian en segundo plano.`
+        );
       }
       refresh();
     },

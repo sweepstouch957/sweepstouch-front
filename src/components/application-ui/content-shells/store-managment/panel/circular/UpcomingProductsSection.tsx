@@ -11,6 +11,7 @@ import {
   type StoreProduct,
   type UpcomingGroup,
 } from '@/services/circular.service';
+import { cloudinaryThumb } from '@/utils/cloudinary';
 import CampaignRoundedIcon from '@mui/icons-material/CampaignRounded';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
@@ -47,6 +48,13 @@ import { UpcomingGroupSkeleton } from './skeletons';
 
 const TZ = 'America/New_York';
 const DAY = 24 * 60 * 60 * 1000;
+// Cards que se pintan por grupo antes de "Ver los restantes".
+const GROUP_PREVIEW = 24;
+// Constantes estables: un `?? []` nuevo por render invalidaba el useMemo de abajo.
+const EMPTY_GROUPS: UpcomingGroup[] = [];
+const EMPTY_BANNERS: NonNullable<
+  Awaited<ReturnType<typeof circularService.getUpcoming>>['banners']
+> = [];
 
 const fmtDay = (day: string) =>
   new Date(`${day}T12:00:00Z`).toLocaleDateString('es-ES', {
@@ -132,8 +140,10 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
     onError: (e) => toast.error(errMsg(e, 'No se pudo completar')),
   });
 
-  const groups = upcoming.data?.groups ?? [];
-  const banners = upcoming.data?.banners ?? [];
+  const groups = upcoming.data?.groups ?? EMPTY_GROUPS;
+  const banners = upcoming.data?.banners ?? EMPTY_BANNERS;
+  // Un flyer trae 100+ productos por día: se pintan los primeros y el resto a pedido.
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const bannerOfDay = (day: string) => banners.find((b) => b.day === day);
   const fmtShort = (iso: string) =>
     new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', timeZone: TZ });
@@ -302,8 +312,10 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={b.imageUrl}
+                    src={cloudinaryThumb(b.imageUrl, 480, 160, 'fill')}
                     alt=""
+                    loading="lazy"
+                    decoding="async"
                     style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                   />
                 </Box>
@@ -509,8 +521,10 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={bannerOfDay(g.day)!.imageUrl}
+                      src={cloudinaryThumb(bannerOfDay(g.day)!.imageUrl, 360, 120, 'fill')}
                       alt=""
+                      loading="lazy"
+                      decoding="async"
                       style={{
                         width: '100%',
                         height: '100%',
@@ -557,7 +571,7 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
               },
             }}
           >
-            {g.items.map((p) => (
+            {(expanded.has(g.key) ? g.items : g.items.slice(0, GROUP_PREVIEW)).map((p) => (
               <UpcomingCard
                 key={p._id}
                 product={p}
@@ -567,6 +581,15 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
                 onCancel={() => setConfirm({ kind: 'cancel', product: p })}
               />
             ))}
+            {g.items.length > GROUP_PREVIEW && !expanded.has(g.key) && (
+              <Button
+                variant="outlined"
+                onClick={() => setExpanded((s) => new Set(s).add(g.key))}
+                sx={{ alignSelf: 'center', justifySelf: 'start' }}
+              >
+                Ver los {g.items.length - GROUP_PREVIEW} restantes
+              </Button>
+            )}
           </Box>
         </Paper>
       ))}
@@ -706,8 +729,10 @@ function UpcomingCard({
         {p.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={p.imageUrl}
+            src={cloudinaryThumb(p.imageUrl, 152, 152, 'fit')}
             alt=""
+            loading="lazy"
+            decoding="async"
             style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
           />
         ) : (

@@ -38,13 +38,34 @@ import WeeklyCircularCard from './WeeklyCircularCard';
 
 // Las pestañas que no son la primera se bajan al abrirlas: Productos solo son 1300 líneas +
 // herramientas de imagen, y antes se parseaban todas al entrar a Circular.
-const tabSkeleton = () => <Skeleton variant="rounded" height={320} sx={{ borderRadius: 3 }} />;
-const UpcomingProductsSection = dynamic(() => import('./UpcomingProductsSection'), { ssr: false, loading: tabSkeleton });
-const CatalogSection = dynamic(() => import('./CatalogSection'), { ssr: false, loading: tabSkeleton });
+const tabSkeleton = () => (
+  <Skeleton
+    variant="rounded"
+    height={320}
+    sx={{ borderRadius: 3 }}
+  />
+);
+const UpcomingProductsSection = dynamic(() => import('./UpcomingProductsSection'), {
+  ssr: false,
+  loading: tabSkeleton,
+});
+const CatalogSection = dynamic(() => import('./CatalogSection'), {
+  ssr: false,
+  loading: tabSkeleton,
+});
 const ListsSection = dynamic(() => import('./ListsSection'), { ssr: false, loading: tabSkeleton });
-const PurchasesSection = dynamic(() => import('./PurchasesSection'), { ssr: false, loading: tabSkeleton });
-const MessagesSection = dynamic(() => import('./MessagesSection'), { ssr: false, loading: tabSkeleton });
-const AgentsSection = dynamic(() => import('./AgentsSection'), { ssr: false, loading: tabSkeleton });
+const PurchasesSection = dynamic(() => import('./PurchasesSection'), {
+  ssr: false,
+  loading: tabSkeleton,
+});
+const MessagesSection = dynamic(() => import('./MessagesSection'), {
+  ssr: false,
+  loading: tabSkeleton,
+});
+const AgentsSection = dynamic(() => import('./AgentsSection'), {
+  ssr: false,
+  loading: tabSkeleton,
+});
 
 /** Qué puede hacer la persona acá, en una línea por paso, con el botón que lo hace. */
 function HowItWorks({

@@ -322,7 +322,12 @@ export default function CampaignAutomationCard({
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={cloudinaryThumb(liveFlyer.previewImageUrl || liveFlyer.fileUrl, 144, 200, 'fill')}
+                src={cloudinaryThumb(
+                  liveFlyer.previewImageUrl || liveFlyer.fileUrl,
+                  144,
+                  200,
+                  'fill'
+                )}
                 alt=""
                 loading="lazy"
                 decoding="async"

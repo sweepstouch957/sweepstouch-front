@@ -88,6 +88,7 @@ export default function AgentsSection({
           <Accordion
             disableGutters
             elevation={0}
+            slotProps={{ transition: { unmountOnExit: true } }}
             sx={{
               border: '1px solid',
               borderColor: 'divider',
