@@ -410,6 +410,21 @@ function StatusSections({
   return null;
 }
 
+const isSame = (a: EventStore, b: EventStore) =>
+  (a.storeId || a.storeName) === (b.storeId || b.storeName);
+
+const renderStore = (props: React.HTMLAttributes<HTMLLIElement>, o: EventStore) => (
+  <li
+    {...props}
+    key={o.storeId || o.storeName}
+  >
+    <Box>
+      <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{o.storeName}</Typography>
+      <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>{o.storeAddress}</Typography>
+    </Box>
+  </li>
+);
+
 function StoresField({ control }: { control: Control<FormValues> }) {
   const theme = useTheme();
   const scope = useWatch({ control, name: 'scope' });
