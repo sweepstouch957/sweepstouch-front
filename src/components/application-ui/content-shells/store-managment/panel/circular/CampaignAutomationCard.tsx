@@ -31,7 +31,6 @@ import NextLink from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import CampaignAutomationFlow, { buildSteps } from './CampaignAutomationFlow';
-import AgentFeed from './AgentFeed';
 import {
   qk,
   useCampaignImportJob,
@@ -64,7 +63,11 @@ export default function CampaignAutomationCard({
   const { current, flyers } = useStoreCirculars(storeSlug);
   // Flyer vigente (el circular de campaña activo/agendado): para verlo aunque la última
   // campaña no tenga arte o sea otra.
-  const liveFlyer = flyers.find((f) => f.status === 'active') || flyers.find((f) => f.status === 'scheduled') || flyers[0] || null;
+  const liveFlyer =
+    flyers.find((f) => f.status === 'active') ||
+    flyers.find((f) => f.status === 'scheduled') ||
+    flyers[0] ||
+    null;
   const { busy } = useCircularBusy(storeSlug);
 
   // Mientras corre el import se consulta seguido; al terminar llega aviso a la campana.
@@ -91,8 +94,14 @@ export default function CampaignAutomationCard({
     onSuccess: (d) => {
       toast.success(
         d.circularId
-          ? `Lista arreglada: ${d.inCircular} productos de "${d.circularTitle}" visibles · ${d.hidden} de flyers viejos ocultados${d.duplicates ? ` · ${d.duplicates} duplicados quitados` : ''}`
-          : `No hay flyer vigente hoy: se ocultaron ${d.hidden} productos de flyers vencidos${d.duplicates ? ` · ${d.duplicates} duplicados quitados` : ''}`,
+          ? `Lista arreglada: ${d.inCircular} productos de "${d.circularTitle}" visibles · ${
+              d.hidden
+            } de flyers viejos ocultados${
+              d.duplicates ? ` · ${d.duplicates} duplicados quitados` : ''
+            }`
+          : `No hay flyer vigente hoy: se ocultaron ${d.hidden} productos de flyers vencidos${
+              d.duplicates ? ` · ${d.duplicates} duplicados quitados` : ''
+            }`,
         { duration: 7000 }
       );
       refresh();
@@ -281,32 +290,63 @@ export default function CampaignAutomationCard({
       {!image && liveFlyer?.fileUrl && (
         <>
           <Divider sx={{ my: 2 }} />
-          <Stack direction="row" alignItems="center" gap={2} flexWrap="wrap">
+          <Stack
+            direction="row"
+            alignItems="center"
+            gap={2}
+            flexWrap="wrap"
+          >
             <Box
               component="button"
               type="button"
               aria-label="Ver el flyer vigente en grande"
               onClick={() => onPreview(liveFlyer.fileUrl, liveFlyer.title || 'Flyer de campaña')}
-              sx={{ width: 72, height: 100, p: 0, flexShrink: 0, borderRadius: 1.5, overflow: 'hidden', border: '1px solid', borderColor: 'divider', bgcolor: 'background.default', cursor: 'zoom-in', '&:hover': { borderColor: 'primary.main' } }}
+              sx={{
+                width: 72,
+                height: 100,
+                p: 0,
+                flexShrink: 0,
+                borderRadius: 1.5,
+                overflow: 'hidden',
+                border: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'background.default',
+                cursor: 'zoom-in',
+                '&:hover': { borderColor: 'primary.main' },
+              }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={liveFlyer.fileUrl} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }} />
+              <img
+                src={liveFlyer.fileUrl}
+                alt=""
+                loading="lazy"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }}
+              />
             </Box>
             <Box sx={{ minWidth: 0, flex: 1 }}>
-              <Typography variant="subtitle2" fontWeight={700}>Flyer vigente</Typography>
-              <Typography variant="body2" color="text.secondary" noWrap>
+              <Typography
+                variant="subtitle2"
+                fontWeight={700}
+              >
+                Flyer vigente
+              </Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                noWrap
+              >
                 {liveFlyer.title} · {fmtDate(liveFlyer.startDate)} → {fmtDate(liveFlyer.endDate)}
               </Typography>
             </Box>
-            <Button variant="outlined" onClick={() => onPreview(liveFlyer.fileUrl, liveFlyer.title || 'Flyer de campaña')}>
+            <Button
+              variant="outlined"
+              onClick={() => onPreview(liveFlyer.fileUrl, liveFlyer.title || 'Flyer de campaña')}
+            >
               Ver flyer
             </Button>
           </Stack>
         </>
       )}
-
-      {/* Bitácora de los robots sobre el circular que creó/alimentó esta campaña. */}
-      <AgentFeed circularId={job.data?.result?.circularId || liveFlyer?._id || null} storeSlug={storeSlug} compact />
 
       {image && (
         <>
