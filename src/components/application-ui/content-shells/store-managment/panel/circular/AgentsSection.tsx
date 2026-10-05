@@ -83,6 +83,7 @@ export default function AgentsSection({
           <AgentOffice
             data={pipeline.data}
             loading={isLoading || pipeline.isLoading}
+            storeSlug={storeSlug}
           />
           <Accordion
             disableGutters
