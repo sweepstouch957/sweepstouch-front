@@ -719,6 +719,27 @@ export function ProductEditorDialog({
                 >
                   Quitar fondo
                 </Button>
+                {product?._id && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<CropRoundedIcon />}
+                    disabled={!!busy}
+                    onClick={() =>
+                      run(
+                        'Buscando el producto en el circular y recortando su foto…',
+                        async () => {
+                          const r = await circularService.rescanProductPhoto(product._id);
+                          setImageUrl(r.item.imageUrl || '');
+                          toast.success(r.relocated ? 'Foto re-ubicada en el circular y limpiada' : 'No estaba en el circular: foto generada desde el nombre');
+                        },
+                        'No se pudo rescanear la foto'
+                      )
+                    }
+                  >
+                    Rescanear foto
+                  </Button>
+                )}
                 <Button
                   size="small"
                   variant="outlined"

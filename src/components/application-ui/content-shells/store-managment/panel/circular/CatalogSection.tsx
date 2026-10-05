@@ -311,6 +311,37 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
     onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo borrar'),
   });
 
+  // "Rescanear fotos": vuelve a buscar cada producto en su página del circular, recorta sólo su
+  // foto y la limpia; si no aparece, la genera. Corre en el backend; se consulta cada 3 s.
+  const [rescanOpen, setRescanOpen] = useState(false);
+  const [rescanWatch, setRescanWatch] = useState(false);
+  const rescanStatus = useQuery({
+    queryKey: ['catalog-rescan', storeSlug],
+    queryFn: () => circularService.rescanPhotosStatus(storeSlug),
+    enabled: rescanWatch,
+    refetchInterval: (q) => (q.state.data?.job && !q.state.data.job.finishedAt ? 3000 : false),
+  });
+  const rescanRunning = rescanWatch && !rescanStatus.data?.job?.finishedAt;
+  useEffect(() => {
+    const j = rescanStatus.data?.job;
+    if (!rescanWatch) return;
+    qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) }); // las fotos van cayendo una a una
+    if (!j?.finishedAt) return;
+    setRescanWatch(false);
+    if (j.error) toast.error(j.error);
+    else toast.success(`Fotos: ${j.relocated} re-ubicadas en el circular · ${j.generated} generadas${j.failed ? ` · ${j.failed} no se pudieron` : ''}`, { duration: 8000 });
+  }, [rescanStatus.data, rescanWatch, qc, storeSlug]);
+  const rescanPhotos = useMutation({
+    mutationFn: (mode: 'missing' | 'all') => circularService.rescanPhotos(storeSlug, mode),
+    onSuccess: (d) => {
+      setRescanOpen(false);
+      if (!d.job?.total && d.job?.finishedAt) { toast.success('No hay fotos que rescanear'); return; }
+      setRescanWatch(true);
+      toast.success('Iris está rescaneando las fotos… se van actualizando solas');
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo rescanear'),
+  });
+
   // "Completar marca / tamaño": relee el flyer o el circular sólo para los productos a los que
   // les falta marca o tamaño. Corre en el backend; acá se pregunta cada 3 s hasta que termina.
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -490,6 +521,19 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
             {cleanImages.isPending ? 'Iniciando…' : 'Limpiar imágenes con IA'}
           </Button>
         </Tooltip>
+        <Tooltip title="Vuelve a buscar cada producto en su página del circular, recorta SÓLO su foto, verifica que sea él y la limpia. Si no aparece en el circular, la genera desde el nombre.">
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<AutoAwesomeOutlinedIcon />}
+            disabled={rescanRunning}
+            onClick={() => setRescanOpen(true)}
+          >
+            {rescanRunning
+              ? `Rescaneando… ${rescanStatus.data?.job?.done ?? 0}/${rescanStatus.data?.job?.total ?? 0}`
+              : 'Rescanear fotos'}
+          </Button>
+        </Tooltip>
       </Stack>
 
       {/* Confirmación con modal propio — nada de window.confirm del navegador */}
@@ -551,6 +595,38 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
             onClick={() => syncVisibility.mutate('flyer')}
           >
             {syncVisibility.isPending ? 'Sincronizando…' : 'Sólo último flyer'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={rescanOpen}
+        onClose={() => setRescanOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <AutoAwesomeOutlinedIcon color="primary" fontSize="small" />
+          Rescanear fotos
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            Iris vuelve a buscar cada producto en su página del circular, recorta sólo su foto,
+            comprueba que sea él y la limpia. Si no lo encuentra, genera la foto desde el nombre.
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            "Sólo las malas" = sin foto o con recorte crudo. "Todas" rehace también las que ya
+            están limpias (útil si quedaron con el vecino o con varios productos). Para una sola
+            foto, ábrela con el lápiz y usa "Rescanear foto".
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button size="small" onClick={() => setRescanOpen(false)}>Cancelar</Button>
+          <Button size="small" variant="outlined" disabled={rescanPhotos.isPending} onClick={() => rescanPhotos.mutate('all')}>
+            Todas las visibles
+          </Button>
+          <Button size="small" variant="contained" disabled={rescanPhotos.isPending} onClick={() => rescanPhotos.mutate('missing')}>
+            Sólo las malas
           </Button>
         </DialogActions>
       </Dialog>

@@ -46,6 +46,33 @@ export function useAiGuidance(storeSlug?: string) {
   };
   const departments = profile.data?.profile?.departments ?? [];
 
+  // Lecciones: qué salió mal. Las anotan los agentes solos (foto rescaneada, precio corregido,
+  // duplicado) y también la encargada. Se inyectan en cada prompt.
+  const lessons = profile.data?.profile?.lessons ?? [];
+  const [lesson, setLesson] = useState('');
+  const [showLessons, setShowLessons] = useState(false);
+  const addLesson = async () => {
+    if (!storeSlug || !lesson.trim()) return;
+    try {
+      await circularService.addStoreLesson(storeSlug, lesson.trim());
+      setLesson('');
+      toast.success('Lección guardada: los agentes la leen en la próxima lectura');
+      void profile.refetch();
+    } catch {
+      toast.error('No se pudo guardar la lección');
+    }
+  };
+  const removeLesson = async (index: number) => {
+    if (!storeSlug) return;
+    try {
+      await circularService.removeStoreLesson(storeSlug, index);
+      void profile.refetch();
+    } catch {
+      toast.error('No se pudo borrar la lección');
+    }
+  };
+  const AGENT_NAME: Record<string, string> = { hermes: 'Hermes', argos: 'Argos', mnemosine: 'Mnemósine', hefesto: 'Hefesto', atenea: 'Atenea', iris: 'Iris', temis: 'Temis', all: 'Todos' };
+
   const addPhotos = async (list: FileList | null | undefined) => {
     const files = Array.from(list || []).slice(0, 5 - refs.length);
     if (!files.length) return;
@@ -80,13 +107,47 @@ export function useAiGuidance(storeSlug?: string) {
             fullWidth
             multiline
             minRows={2}
-            label="Reglas de esta tienda (se guardan y aplican siempre)"
-            placeholder="Ej.: las carnes son por libra aunque no lo diga · la letra chica va en rojo bajo el precio · ignora la página de cerveza · 'c/u' significa cada uno"
+            label="Lógica de esta tienda (instrucciones fijas para los agentes)"
+            placeholder="Cómo funciona ESTA tienda: las carnes son por libra aunque no lo diga · los precios 2/$5 son por unidad, no combinables · la letra chica va en rojo bajo el precio · ignora la página de cerveza · los productos Cherry Valley son marca propia · 'c/u' significa cada uno"
             value={rules}
             onChange={(e) => setRules(e.target.value.slice(0, 2000))}
             onBlur={() => void saveRules()}
-            helperText={rules !== savedRules ? 'Sin guardar: se guarda al salir del campo' : 'Hermes, Argos y Atenea las leen en cada circular y flyer de esta tienda'}
+            helperText={rules !== savedRules ? 'Sin guardar: se guarda al salir del campo' : 'Sólo para esta tienda. Argos la lee al extraer, Atenea al auditar e Iris al rescanear fotos; cada tienda tiene la suya'}
           />
+          <Stack direction="row" gap={1} alignItems="flex-start">
+            <TextField
+              size="small"
+              fullWidth
+              label="Dile a los agentes qué salió mal"
+              placeholder="Ej.: las fotos de bebidas salen con varios productos, recorta sólo una botella · los precios 2/$5 los leen como $2.50"
+              value={lesson}
+              onChange={(e) => setLesson(e.target.value.slice(0, 300))}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void addLesson(); } }}
+            />
+            <Button size="small" variant="outlined" disabled={!lesson.trim()} onClick={() => void addLesson()} sx={{ whiteSpace: 'nowrap', mt: 0.25 }}>
+              Anotar
+            </Button>
+          </Stack>
+          {lessons.length > 0 && (
+            <Box>
+              <Button size="small" variant="text" onClick={() => setShowLessons((v) => !v)} sx={{ px: 0.5 }}>
+                {showLessons ? 'Ocultar' : 'Ver'} lecciones aprendidas ({lessons.length})
+              </Button>
+              {showLessons && (
+                <Stack gap={0.5} sx={{ mt: 0.5, maxHeight: 220, overflowY: 'auto', pr: 0.5 }}>
+                  {lessons.map((l, i) => (
+                    <Stack key={`${i}-${l.at}`} direction="row" alignItems="flex-start" gap={0.75}>
+                      <Chip size="small" variant={l.source === 'manual' ? 'filled' : 'outlined'} color={l.source === 'manual' ? 'primary' : 'default'} label={AGENT_NAME[l.agent] || l.agent} sx={{ height: 18, fontSize: 10, flexShrink: 0, mt: 0.25 }} />
+                      <Typography variant="caption" color="text.secondary" sx={{ flex: 1, overflowWrap: 'anywhere' }}>{l.text}</Typography>
+                      <IconButton size="small" aria-label="Borrar lección" onClick={() => void removeLesson(i)} sx={{ p: 0.25 }}>
+                        <CloseRoundedIcon sx={{ fontSize: 14 }} />
+                      </IconButton>
+                    </Stack>
+                  ))}
+                </Stack>
+              )}
+            </Box>
+          )}
           {departments.length > 0 && (
             <Stack direction="row" alignItems="center" gap={0.5} flexWrap="wrap">
               <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>Departamentos que Mnemósine aprendió:</Typography>

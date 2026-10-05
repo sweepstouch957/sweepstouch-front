@@ -69,7 +69,19 @@ export interface Circular {
   pageAudits?: PageAudit[];
 }
 
-export type StoreProfile = { storeSlug: string; rules: string; departments: string[]; learnedAt?: string };
+export type RescanJob = {
+  mode: 'missing' | 'all' | 'ids';
+  startedAt: string;
+  finishedAt: string | null;
+  total: number;
+  done: number;
+  relocated: number;
+  generated: number;
+  failed: number;
+  error: string;
+};
+export type StoreLesson = { text: string; agent: string; source: 'manual' | 'auto'; at: string };
+export type StoreProfile = { storeSlug: string; rules: string; departments: string[]; lessons?: StoreLesson[]; learnedAt?: string };
 export type AgentStep = { agent: string; status: 'running' | 'done' | 'error'; message: string; at: string };
 export type Pipeline = {
   ok: boolean;
@@ -562,6 +574,20 @@ export class CircularService {
     return res.data;
   }
 
+  /* ── Rescanear fotos (re-ubicar en el circular, recortar, limpiar; si no está, generar) ── */
+  async rescanPhotos(storeSlug: string, mode: 'missing' | 'all'): Promise<{ ok: boolean; job: RescanJob }> {
+    const res = await api.post(`/circulars/catalog/store/${storeSlug}/rescan-photos`, { mode });
+    return res.data;
+  }
+  async rescanPhotosStatus(storeSlug: string): Promise<{ ok: boolean; job: RescanJob | null }> {
+    const res = await api.get(`/circulars/catalog/store/${storeSlug}/rescan-photos`);
+    return res.data;
+  }
+  async rescanProductPhoto(id: string): Promise<{ ok: boolean; item: StoreProduct; relocated: boolean }> {
+    const res = await api.post(`/circulars/store-product/${id}/rescan-photo`, {}, { timeout: 240_000 });
+    return res.data;
+  }
+
   /* ── Perfil de la tienda: reglas fijas para la IA + departamentos aprendidos ── */
   async getStoreProfile(storeSlug: string): Promise<{ ok: boolean; profile: StoreProfile }> {
     const res = await api.get(`/circulars/store/${storeSlug}/profile`);
@@ -569,6 +595,14 @@ export class CircularService {
   }
   async saveStoreRules(storeSlug: string, rules: string): Promise<{ ok: boolean; profile: StoreProfile }> {
     const res = await api.put(`/circulars/store/${storeSlug}/profile`, { rules });
+    return res.data;
+  }
+  async addStoreLesson(storeSlug: string, text: string): Promise<{ ok: boolean; profile: StoreProfile }> {
+    const res = await api.post(`/circulars/store/${storeSlug}/profile/lessons`, { text });
+    return res.data;
+  }
+  async removeStoreLesson(storeSlug: string, index: number): Promise<{ ok: boolean; profile: StoreProfile }> {
+    const res = await api.delete(`/circulars/store/${storeSlug}/profile/lessons/${index}`);
     return res.data;
   }
 
