@@ -53,7 +53,7 @@ const URL_RX = /^(https?:\/\/)?[a-z0-9.-]+\.[a-z]{2,}(\/\S*)?$/i;
 
 export type MixedButton = { text: string; link: ButtonLink; url: string };
 
-/** Botón precargado: SIEMPRE existe uno al dashboard /me (pedido del dueño, 6 oct 2026). */
+/** Botón precargado al dashboard /me (default; se puede quitar para RCS sin botón). */
 export const DEFAULT_BUTTON: MixedButton = { text: 'More deals here!', link: 'home', url: '' };
 const BUTTON_TEXT_BY_LINK: Record<ButtonLink, string> = {
   home: 'More deals here!',
@@ -69,7 +69,7 @@ export type MixedRcsCustom = {
   greeting: string;
   title: string;
   body: string;
-  /** Botones de la tarjeta, en orden. Mínimo 1 (el editor no deja borrar el último). */
+  /** Botones de la tarjeta, en orden. Vacío = RCS sin botón (sólo texto + imagen). */
   buttons: MixedButton[];
   openIn: 'webview' | 'browser';
   productCards: number;
@@ -122,6 +122,8 @@ export const MIXED_RCS_DEFAULTS: MixedRcsCustom = {
 
 /** Botones de un template guardado. Sin `buttons` (templates viejos) se arman del switch de lista + botón de ofertas. */
 const buttonsFromTemplate = (tpl: any): MixedButton[] => {
+  // Sin botones a propósito (sólo texto + imagen).
+  if (tpl.noButtons === true) return [];
   if (Array.isArray(tpl.buttons) && tpl.buttons.length) {
     const list = tpl.buttons
       .map((b: any) => ({
@@ -156,7 +158,7 @@ export const mixedCustomFromTemplate = (tpl: any): MixedRcsCustom =>
       }
     : MIXED_RCS_DEFAULTS;
 
-/** Lo que viaja al backend. Los botones van SIEMPRE (así el precargado llega tal cual). */
+/** Lo que viaja al backend. Lista vacía = `noButtons` (el scheduler manda el RCS sin botón). */
 export function mixedTemplateFromCustom(c: MixedRcsCustom): Record<string, unknown> | undefined {
   const d = MIXED_RCS_DEFAULTS;
   const buttons = c.buttons
@@ -175,7 +177,8 @@ export function mixedTemplateFromCustom(c: MixedRcsCustom): Record<string, unkno
     ...(c.title.trim() ? { title: c.title.trim() } : {}),
     // Texto vacío = el mismo texto del SMS/MMS de la campaña.
     ...(c.body.trim() ? { body: c.body.trim() } : {}),
-    buttons: buttons.length ? buttons : [{ text: DEFAULT_BUTTON.text, link: 'home' }],
+    // Sin botones a propósito → noButtons (sin la bandera el scheduler pondría el de ofertas).
+    ...(c.buttons.length === 0 ? { noButtons: true } : { buttons: buttons.length ? buttons : [{ text: DEFAULT_BUTTON.text, link: 'home' }] }),
     ...(c.openIn === 'webview' ? { openIn: 'webview' } : {}),
     ...(c.productCards > 0 ? { productCards: c.productCards } : {}),
   };
@@ -227,7 +230,8 @@ export function buildMixedPreview({
       (b.link !== 'list' || hasProducts) &&
       (b.link !== 'custom' || URL_RX.test(b.url.trim()))
   );
-  const buttons = shown.length ? shown : [DEFAULT_BUTTON];
+  // Sin botones a propósito → ninguno. Con botones que no salen → el de ofertas (como el scheduler).
+  const buttons = shown.length || value.buttons.length === 0 ? shown : [DEFAULT_BUTTON];
   const listOn = buttons.some((b) => b.link === 'list');
 
   const sample = (tpl: string) => {
@@ -272,8 +276,8 @@ export function buildMixedPreview({
     title: sample(value.title.trim()) || greeting,
     cards: imageSrc && value.productCards > 0 ? withPhoto.slice(0, value.productCards) : [],
     buttons,
-    /** Botón de las cards de productos: el de lista si existe, si no el primero. */
-    cardButton: buttons.find((b) => b.link === 'list') ?? buttons[0],
+    /** Botón de las cards de productos: el de lista si existe, si no el primero (undefined sin botones). */
+    cardButton: buttons.find((b) => b.link === 'list') ?? (buttons[0] as MixedButton | undefined),
   };
 }
 
@@ -387,7 +391,7 @@ export function MixedRcsPreview(input: MixedPreviewInput) {
               {p.price ? ` — ${p.price}` : ''}
             </Typography>
           </Box>
-          {btn(cardButton.text.trim(), 'card')}
+          {cardButton && btn(cardButton.text.trim(), 'card')}
         </Box>
       ))}
     </Stack>
@@ -425,8 +429,8 @@ export default function MixedRcsEditor({
   const lastField = useRef<TextKey>('body');
   const set = (patch: Partial<MixedRcsCustom>) => onChange({ ...value, ...patch });
 
-  // Botones: lista editable. Siempre queda al menos uno (el precargado al dashboard).
-  const buttons = value.buttons.length ? value.buttons : [DEFAULT_BUTTON];
+  // Botones: lista editable. Puede quedar vacía (campañas de sólo texto + imagen, 6 oct 2026).
+  const buttons = value.buttons;
   const setButton = (i: number, patch: Partial<MixedButton>) =>
     set({ buttons: buttons.map((b, j) => (j === i ? { ...b, ...patch } : b)) });
   const changeLink = (i: number, link: ButtonLink) => {
@@ -442,10 +446,7 @@ export default function MixedRcsEditor({
     const next = (BUTTON_LINKS.find((l) => !used.has(l.value) && l.value !== 'custom')?.value ?? 'custom') as ButtonLink;
     set({ buttons: [...buttons, { text: BUTTON_TEXT_BY_LINK[next], link: next, url: '' }] });
   };
-  const removeButton = (i: number) => {
-    if (buttons.length <= 1) return;
-    set({ buttons: buttons.filter((_b, j) => j !== i) });
-  };
+  const removeButton = (i: number) => set({ buttons: buttons.filter((_b, j) => j !== i) });
 
   // Prueba al celular: número editable (por defecto el del usuario logueado).
   const [phone, setPhone] = useState(testPhone);
@@ -628,7 +629,9 @@ export default function MixedRcsEditor({
               variant="caption"
               color="text.secondary"
             >
-              Cada botón elige a dónde lleva. El primero ya viene al dashboard del cliente.
+              {buttons.length
+                ? 'Cada botón elige a dónde lleva. Sin botones, el RCS sale sólo con texto e imagen.'
+                : 'Sin botones: el RCS sale sólo con texto e imagen.'}
             </Typography>
           </Box>
           <Tooltip title={buttons.length >= MAX_BUTTONS ? `Máximo ${MAX_BUTTONS} botones por tarjeta` : 'Agregar botón'}>
@@ -689,12 +692,11 @@ export default function MixedRcsEditor({
                     </MenuItem>
                   ))}
                 </TextField>
-                <Tooltip title={buttons.length <= 1 ? 'Tiene que quedar al menos un botón' : 'Quitar botón'}>
+                <Tooltip title="Quitar botón">
                   <span>
                     <IconButton
                       size="small"
                       color="inherit"
-                      disabled={buttons.length <= 1}
                       onClick={() => removeButton(i)}
                       sx={{ mt: { sm: 0.5 } }}
                       aria-label="Quitar botón"
