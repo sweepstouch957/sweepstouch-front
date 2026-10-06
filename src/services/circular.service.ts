@@ -105,7 +105,13 @@ export type CatalogSummary = {
   noImage: number;
   bySource: { flyer: number; circular: number; manual: number };
   /** Lo que rige hoy en la lista del cliente (flyer de campaña gana al circular semanal). */
-  ruling: { id: string; title: string; kind: 'flyer' | 'circular'; startDate: string; endDate: string } | null;
+  ruling: {
+    id: string;
+    title: string;
+    kind: 'flyer' | 'circular';
+    startDate: string;
+    endDate: string;
+  } | null;
 };
 export type AgentStep = {
   agent: string;
@@ -409,9 +415,7 @@ export class CircularService {
   }
 
   /** Productos que todavía no salen (precio en `pending`), agrupados por día y origen. */
-  async getUpcoming(
-    storeSlug: string
-  ): Promise<{
+  async getUpcoming(storeSlug: string): Promise<{
     total: number;
     groups: UpcomingGroup[];
     banners: (StoreBanner & { day: string })[];
@@ -660,9 +664,13 @@ export class CircularService {
   /* ── Rescanear fotos (re-ubicar en el circular, recortar, limpiar; si no está, generar) ── */
   async rescanPhotos(
     storeSlug: string,
-    mode: 'missing' | 'all'
+    mode: 'missing' | 'all' | 'ids',
+    ids?: string[]
   ): Promise<{ ok: boolean; job: RescanJob }> {
-    const res = await api.post(`/circulars/catalog/store/${storeSlug}/rescan-photos`, { mode });
+    const res = await api.post(`/circulars/catalog/store/${storeSlug}/rescan-photos`, {
+      mode,
+      ...(ids?.length ? { ids } : {}),
+    });
     return res.data;
   }
   async rescanPhotosStatus(storeSlug: string): Promise<{ ok: boolean; job: RescanJob | null }> {
