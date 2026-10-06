@@ -94,6 +94,19 @@ export type StoreProfile = {
   lessons?: StoreLesson[];
   learnedAt?: string;
 };
+export type CatalogSummary = {
+  ok: boolean;
+  total: number;
+  visible: number;
+  hidden: number;
+  /** Esperan su fecha (precio o alta de un flyer futuro). */
+  pending: number;
+  /** Visibles sin foto. */
+  noImage: number;
+  bySource: { flyer: number; circular: number; manual: number };
+  /** Lo que rige hoy en la lista del cliente (flyer de campaña gana al circular semanal). */
+  ruling: { id: string; title: string; kind: 'flyer' | 'circular'; startDate: string; endDate: string } | null;
+};
 export type AgentStep = {
   agent: string;
   status: 'running' | 'done' | 'error';
@@ -588,6 +601,12 @@ export class CircularService {
         ...(opts?.q?.trim() ? { q: opts.q.trim() } : {}),
       },
     });
+    return res.data;
+  }
+
+  /** Cuántos productos ve el cliente hoy (y por qué): para la tarjeta de estado del panel. */
+  async getCatalogSummary(storeSlug: string): Promise<CatalogSummary> {
+    const res = await api.get(`/circulars/store/${storeSlug}/catalog/summary`);
     return res.data;
   }
 

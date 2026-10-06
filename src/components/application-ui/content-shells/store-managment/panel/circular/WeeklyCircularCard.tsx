@@ -37,7 +37,7 @@ import {
   useRefreshStoreData,
   useStoreCirculars,
 } from './hooks';
-import { Meta, SectionHeader, Surface } from './panelUi';
+import { Meta, MoreMenu, SectionHeader, Surface } from './panelUi';
 import { circularLabel, fmtDate, statusChip } from './shared';
 import { CircularCardSkeleton } from './skeletons';
 
@@ -255,26 +255,29 @@ export default function WeeklyCircularCard({ storeId, storeSlug, storeName, onPr
               sx={{ flexShrink: 0 }}
             >
               <Button
-                variant="text"
-                disabled={busy}
-                onClick={() => setReextractOpen(true)}
-              >
-                Volver a extraer
-              </Button>
-              <Button
-                variant="outlined"
-                disabled={busy}
-                onClick={() => addMissing.mutate(circular._id)}
-              >
-                {adding ? 'Buscando…' : 'Agregar los que faltan'}
-              </Button>
-              <Button
                 variant="contained"
                 disabled={busy || loading}
                 onClick={() => loadCatalog.mutate(circular._id)}
               >
                 {loading ? 'Cargando…' : 'Cargar al catálogo'}
               </Button>
+              <MoreMenu
+                items={[
+                  {
+                    label: adding ? 'Buscando los que faltan…' : 'Agregar los que faltan',
+                    hint: 'Segunda pasada por secciones: suma los productos chicos que la lectura se saltó.',
+                    disabled: busy,
+                    onClick: () => addMissing.mutate(circular._id),
+                  },
+                  {
+                    label: 'Volver a extraer',
+                    hint: 'Reemplaza los productos de este circular por una lectura nueva. Pide confirmación.',
+                    disabled: busy,
+                    danger: true,
+                    onClick: () => setReextractOpen(true),
+                  },
+                ]}
+              />
             </Stack>
           </Stack>
         ) : (

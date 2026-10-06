@@ -7,7 +7,6 @@
  */
 import { circularService } from '@/services/circular.service';
 import { cloudinaryThumb } from '@/utils/cloudinary';
-import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
 import EventRoundedIcon from '@mui/icons-material/EventRounded';
 import {
   alpha,
@@ -40,6 +39,7 @@ import {
   useRefreshStoreData,
   useStoreCirculars,
 } from './hooks';
+import { MoreMenu } from './panelUi';
 import { fmtDate } from './shared';
 import { FlowSkeleton } from './skeletons';
 
@@ -261,23 +261,13 @@ export default function CampaignAutomationCard({
           gap={1}
           flexWrap="wrap"
         >
-          <Button
-            variant="outlined"
-            color="warning"
-            startIcon={<AutoFixHighRoundedIcon />}
-            disabled={fixList.isPending || busy}
-            onClick={() => fixList.mutate()}
-            title="Si la lista muestra productos de un flyer viejo o le faltan los del vigente: deja visibles sólo los del flyer de hoy"
-          >
-            {fixList.isPending ? 'Arreglando…' : 'Arreglar productos de la lista'}
-          </Button>
           {upcomingCount > 0 && (
             <Button
-              variant="outlined"
+              variant="text"
               startIcon={<EventRoundedIcon />}
               onClick={onOpenUpcoming}
             >
-              Revisar {upcomingCount} próximo{upcomingCount !== 1 ? 's' : ''}
+              {upcomingCount} próximo{upcomingCount !== 1 ? 's' : ''}
             </Button>
           )}
           <Button
@@ -287,6 +277,18 @@ export default function CampaignAutomationCard({
           >
             Agendar campaña
           </Button>
+          <MoreMenu
+            items={[
+              {
+                label: fixList.isPending
+                  ? 'Arreglando la lista…'
+                  : 'Arreglar productos de la lista',
+                hint: 'Si la lista muestra productos de un flyer viejo o le faltan los del vigente: deja visibles sólo los del flyer de hoy.',
+                disabled: fixList.isPending || busy,
+                onClick: () => fixList.mutate(),
+              },
+            ]}
+          />
         </Stack>
       </Stack>
 

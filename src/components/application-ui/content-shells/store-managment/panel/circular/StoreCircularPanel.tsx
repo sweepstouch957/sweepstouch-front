@@ -28,10 +28,12 @@ import dynamic from 'next/dynamic';
 import NextLink from 'next/link';
 import { useCallback, useState } from 'react';
 import CampaignAutomationCard from './CampaignAutomationCard';
+import CircularCompare from './CircularCompare';
 import CircularPdfSection from './CircularPdfSection';
 import { useUpcomingCount } from './hooks';
-import { ListsPhoneCard } from './ListsPhoneCard';
 import { ListsCard } from './ListsCard';
+import { ListsPhoneCard } from './ListsPhoneCard';
+import ListStatusCard from './ListStatusCard';
 import PreRcsPreviewButton from './PreRcsPreviewButton';
 import { ImagePreviewDialog, type PanelProps } from './shared';
 import StoreBannerSection from './StoreBannerSection';
@@ -234,12 +236,22 @@ function CircularTab({
         onOpenAgents={onOpenAgents}
         onOpenProducts={onOpenProducts}
       />
+      <ListStatusCard
+        storeSlug={storeSlug}
+        onOpenProducts={onOpenProducts}
+        onOpenUpcoming={onOpenUpcoming}
+      />
       <CampaignAutomationCard
         storeId={storeId}
         storeSlug={storeSlug}
         upcomingCount={upcomingCount}
         onOpenUpcoming={onOpenUpcoming}
         onPreview={openPreview}
+      />
+      <CircularCompare
+        storeSlug={storeSlug}
+        storeName={storeName}
+        onOpenUpcoming={onOpenUpcoming}
       />
       <CircularPdfSection
         storeSlug={storeSlug}

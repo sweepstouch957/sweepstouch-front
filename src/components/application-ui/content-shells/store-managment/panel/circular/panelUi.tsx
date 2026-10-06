@@ -6,8 +6,89 @@
  * Colores planos del tema, sin degradados. Los textos de ayuda van en body2: el
  * `caption` del tema es MAYÚSCULAS y en párrafos largos no se lee.
  */
-import { alpha, Box, Paper, Stack, Typography, type PaperProps } from '@mui/material';
-import type { ReactNode } from 'react';
+import MoreHorizRoundedIcon from '@mui/icons-material/MoreHorizRounded';
+import {
+  alpha,
+  Box,
+  Button,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Paper,
+  Stack,
+  Typography,
+  type PaperProps,
+} from '@mui/material';
+import { useState, type ReactNode } from 'react';
+
+export type MoreMenuItem = {
+  label: string;
+  /** Una línea de ayuda debajo del rótulo (lo que antes iba en el tooltip). */
+  hint?: string;
+  onClick: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+};
+
+/**
+ * "Más acciones": las operaciones secundarias de un bloque en un solo menú, para que a la
+ * vista quede UNA acción principal. Antes cada tarjeta tenía 4–7 botones en fila.
+ */
+export function MoreMenu({
+  items,
+  label = 'Más acciones',
+}: {
+  items: MoreMenuItem[];
+  label?: string;
+}) {
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const visible = items.filter(Boolean);
+  if (!visible.length) return null;
+  return (
+    <>
+      <Button
+        size="small"
+        variant="outlined"
+        color="inherit"
+        startIcon={<MoreHorizRoundedIcon />}
+        onClick={(e) => setAnchor(e.currentTarget)}
+        aria-haspopup="menu"
+        aria-expanded={!!anchor}
+        sx={{ color: 'text.secondary', borderColor: 'divider' }}
+      >
+        {label}
+      </Button>
+      <Menu
+        anchorEl={anchor}
+        open={!!anchor}
+        onClose={() => setAnchor(null)}
+        slotProps={{ paper: { sx: { maxWidth: 360 } } }}
+      >
+        {visible.map((it) => (
+          <MenuItem
+            key={it.label}
+            disabled={it.disabled}
+            onClick={() => {
+              setAnchor(null);
+              it.onClick();
+            }}
+            sx={{ alignItems: 'flex-start', whiteSpace: 'normal', py: 1 }}
+          >
+            <ListItemText
+              primary={it.label}
+              secondary={it.hint}
+              primaryTypographyProps={{
+                fontWeight: 600,
+                color: it.danger ? 'error.main' : 'text.primary',
+              }}
+              secondaryTypographyProps={{ sx: { textTransform: 'none', letterSpacing: 0 } }}
+            />
+          </MenuItem>
+        ))}
+      </Menu>
+    </>
+  );
+}
 
 export function SectionHeader({
   step,
@@ -15,7 +96,7 @@ export function SectionHeader({
   description,
   action,
 }: {
-  step: number | string;
+  step: ReactNode;
   title: string;
   description?: ReactNode;
   action?: ReactNode;

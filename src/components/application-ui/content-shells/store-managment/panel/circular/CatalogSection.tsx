@@ -40,6 +40,7 @@ import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useSta
 import toast from 'react-hot-toast';
 import { applyCatalogOrder, moveCatalogItem } from './catalog-order';
 import { qk, useStoreCirculars } from './hooks';
+import { MoreMenu } from './panelUi';
 import { imageFromPaste, PasteReplaceDialog, ProductEditorDialog } from './ProductImageTools';
 import { CATEGORIES, cell, fmtDate, ImagePreviewDialog, regularFromPrice } from './shared';
 import { CatalogRowsSkeleton } from './skeletons';
@@ -499,17 +500,55 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
         >
           + Agregar producto
         </Button>
-        <Tooltip title="Borra TODOS los productos de la tienda para volver a extraer desde cero (p. ej. si la lectura o las imágenes salieron mal).">
+        <Tooltip title="Deja visibles en el Pre-RCS SOLO los productos del último flyer de campaña o SOLO los del último circular, y oculta el resto. Un click en vez de switch por switch.">
           <Button
             size="small"
-            color="error"
-            variant="outlined"
-            disabled={clearAll.isPending}
-            onClick={() => setClearOpen(true)}
+            variant="contained"
+            startIcon={<AutoAwesomeOutlinedIcon />}
+            disabled={syncVisibility.isPending}
+            onClick={() => setSyncOpen(true)}
           >
-            Borrar todos
+            {syncVisibility.isPending ? 'Sincronizando…' : 'Visibles = último flyer / circular'}
           </Button>
         </Tooltip>
+        {/* Lo demás (IA sobre el catálogo, borrar todo) va en un menú: una acción principal a la vista. */}
+        <MoreMenu
+          items={[
+            {
+              label: detailsRunning
+                ? `Completando marca / tamaño… ${detailsStatus.data?.job?.done ?? 0}/${
+                    detailsStatus.data?.job?.total ?? 0
+                  }`
+                : 'Completar marca / tamaño',
+              hint: 'Relee el flyer o el circular SOLO para los productos sin marca o sin tamaño. No pisa lo que ya está escrito.',
+              disabled: detailsRunning,
+              onClick: () => setDetailsOpen(true),
+            },
+            {
+              label: cleanImages.isPending ? 'Iniciando limpieza…' : 'Limpiar imágenes con IA',
+              hint: 'Deja solo el producto, sin letras ni precios, con fondo transparente. Los sin foto se generan.',
+              disabled: cleanImages.isPending,
+              onClick: () => cleanImages.mutate(),
+            },
+            {
+              label: rescanRunning
+                ? `Rescaneando fotos… ${rescanStatus.data?.job?.done ?? 0}/${
+                    rescanStatus.data?.job?.total ?? 0
+                  }`
+                : 'Rescanear fotos',
+              hint: 'Vuelve a buscar cada producto en su página del circular, recorta su foto y verifica que sea él.',
+              disabled: rescanRunning,
+              onClick: () => setRescanOpen(true),
+            },
+            {
+              label: 'Borrar todos los productos',
+              hint: 'Para volver a extraer desde cero (lectura o imágenes mal). Pide confirmación.',
+              disabled: clearAll.isPending,
+              danger: true,
+              onClick: () => setClearOpen(true),
+            },
+          ]}
+        />
         <Dialog
           open={clearOpen}
           onClose={() => !clearAll.isPending && setClearOpen(false)}
@@ -557,58 +596,6 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
             </Button>
           </DialogActions>
         </Dialog>
-        <Tooltip title="Deja visibles en el Pre-RCS SOLO los productos del último flyer de campaña o SOLO los del último circular, y oculta el resto. Un click en vez de switch por switch.">
-          <Button
-            size="small"
-            variant="contained"
-            startIcon={<AutoAwesomeOutlinedIcon />}
-            disabled={syncVisibility.isPending}
-            onClick={() => setSyncOpen(true)}
-          >
-            {syncVisibility.isPending ? 'Sincronizando…' : 'Visibles = último flyer / circular'}
-          </Button>
-        </Tooltip>
-        <Tooltip title="Relee el flyer o el circular SOLO para los productos sin marca o sin tamaño y rellena marca, tamaño, unidad y presentación. No pisa lo que ya está escrito.">
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<AutoAwesomeOutlinedIcon />}
-            disabled={detailsRunning}
-            onClick={() => setDetailsOpen(true)}
-          >
-            {detailsRunning
-              ? `Completando… ${detailsStatus.data?.job?.done ?? 0}/${
-                  detailsStatus.data?.job?.total ?? 0
-                }`
-              : 'Completar marca / tamaño'}
-          </Button>
-        </Tooltip>
-        <Tooltip title="Pasa por IA todos los recortes del flyer: deja solo el producto (con su pedestal si lo tiene), sin letras ni precios, con fondo transparente. Los sin foto se generan.">
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<AutoAwesomeOutlinedIcon />}
-            disabled={cleanImages.isPending}
-            onClick={() => cleanImages.mutate()}
-          >
-            {cleanImages.isPending ? 'Iniciando…' : 'Limpiar imágenes con IA'}
-          </Button>
-        </Tooltip>
-        <Tooltip title="Vuelve a buscar cada producto en su página del circular, recorta SÓLO su foto, verifica que sea él y la limpia. Si no aparece en el circular, la genera desde el nombre.">
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<AutoAwesomeOutlinedIcon />}
-            disabled={rescanRunning}
-            onClick={() => setRescanOpen(true)}
-          >
-            {rescanRunning
-              ? `Rescaneando… ${rescanStatus.data?.job?.done ?? 0}/${
-                  rescanStatus.data?.job?.total ?? 0
-                }`
-              : 'Rescanear fotos'}
-          </Button>
-        </Tooltip>
       </Stack>
 
       {/* Confirmación con modal propio — nada de window.confirm del navegador */}
@@ -1342,9 +1329,16 @@ const CatalogRow = memo(function CatalogRow({
               <Typography
                 variant="caption"
                 color="warning.main"
-                sx={{ display: 'block', textTransform: 'none', letterSpacing: 0, lineHeight: 1.2, mt: 0.25 }}
+                sx={{
+                  display: 'block',
+                  textTransform: 'none',
+                  letterSpacing: 0,
+                  lineHeight: 1.2,
+                  mt: 0.25,
+                }}
               >
-                Hoy. Desde {fmtDate(p.pending.from)}: {p.pending.price || '—'} (se edita en Próximos)
+                Hoy. Desde {fmtDate(p.pending.from)}: {p.pending.price || '—'} (se edita en
+                Próximos)
               </Typography>
             )}
           </TableCell>

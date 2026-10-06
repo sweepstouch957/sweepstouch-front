@@ -23,6 +23,7 @@ export const qk = {
   flyer: (slug: string) => ['store-flyer-image', slug] as const,
   lastCampaign: (storeId: string) => ['store-last-campaign-image', storeId] as const,
   campaignImport: (campaignId?: string) => ['campaign-import', campaignId] as const,
+  catalogSummary: (slug: string) => ['store-catalog-summary', slug] as const,
   circular: (id?: string) => ['circular', id] as const,
 };
 
@@ -126,6 +127,16 @@ export function useUpcomingCount(storeSlug: string, poll: boolean) {
   return q.data ?? 0;
 }
 
+/** Cuántos productos ve el cliente hoy: visibles / ocultos / esperando fecha + qué rige. */
+export function useCatalogSummary(storeSlug: string) {
+  return useQuery({
+    queryKey: qk.catalogSummary(storeSlug),
+    queryFn: () => circularService.getCatalogSummary(storeSlug),
+    enabled: !!storeSlug,
+    staleTime: FRESH,
+  });
+}
+
 /** Refresca lo que cambia cuando entran productos: circulares, su detalle, catálogo,
  *  próximos y banners (la extracción puede sacar el banner del encabezado). */
 export function useRefreshStoreData(storeSlug: string) {
@@ -134,6 +145,7 @@ export function useRefreshStoreData(storeSlug: string) {
     qc.invalidateQueries({ queryKey: qk.circulars(storeSlug) });
     qc.invalidateQueries({ queryKey: ['circular'] });
     qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) });
+    qc.invalidateQueries({ queryKey: qk.catalogSummary(storeSlug) });
     qc.invalidateQueries({ queryKey: qk.upcoming(storeSlug) });
     qc.invalidateQueries({ queryKey: qk.banners(storeSlug) });
   };
