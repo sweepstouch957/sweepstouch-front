@@ -429,6 +429,8 @@ export function ProductEditorDialog({
   // no el de hoy. Si se guardara en `price`, el día de la fecha el pendiente lo pisaría.
   const pending = product?.pending?.from ? product.pending : null;
   const [pendingDay, setPendingDay] = useState('');
+  // Otros nombres con que la IA lee este producto (coma-separados en el campo).
+  const [aliases, setAliases] = useState('');
   const fileInput = useRef<HTMLInputElement>(null);
   // El listener de pegado vive fuera del render: lee el nombre actual por ref.
   const nameRef = useRef('');
@@ -451,6 +453,7 @@ export function ProductEditorDialog({
     setPackUnit(product?.packUnit ?? '');
     setCounterOnly(!!product?.counterOnly);
     setMaxPerCustomer(product?.maxPerCustomer ? String(product.maxPerCustomer) : '');
+    setAliases((product?.aliases || []).join(', '));
     setCropping(false);
     setBusy(null);
     setAiPrompt('');
@@ -549,6 +552,10 @@ export function ProductEditorDialog({
           packUnit: Number(packQty) > 1 ? packUnit.trim() : '',
           counterOnly,
           maxPerCustomer: Number(maxPerCustomer) > 0 ? Math.floor(Number(maxPerCustomer)) : null,
+          aliases: aliases
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean),
         };
         if (product && pending) {
           const {
@@ -593,7 +600,13 @@ export function ProductEditorDialog({
       fullWidth
     >
       <DialogTitle sx={{ pb: 0.5 }}>
-        {cropping === 'campaign' ? 'Recortar del flyer de la campaña' : cropping ? 'Recortar del circular' : product ? 'Editar producto' : 'Agregar producto'}
+        {cropping === 'campaign'
+          ? 'Recortar del flyer de la campaña'
+          : cropping
+            ? 'Recortar del circular'
+            : product
+              ? 'Editar producto'
+              : 'Agregar producto'}
         {!cropping && (
           <Typography
             variant="body2"
@@ -731,7 +744,11 @@ export function ProductEditorDialog({
                         async () => {
                           const r = await circularService.rescanProductPhoto(product._id);
                           setImageUrl(r.item.imageUrl || '');
-                          toast.success(r.relocated ? 'Foto re-ubicada en el circular y limpiada' : 'No estaba en el circular: foto generada desde el nombre');
+                          toast.success(
+                            r.relocated
+                              ? 'Foto re-ubicada en el circular y limpiada'
+                              : 'No estaba en el circular: foto generada desde el nombre'
+                          );
                         },
                         'No se pudo rescanear la foto'
                       )
@@ -776,6 +793,17 @@ export function ProductEditorDialog({
                 onChange={(e) => setName(e.target.value)}
                 autoFocus={!product}
               />
+              {product && (
+                <TextField
+                  label="Otros nombres con que lo leen"
+                  size="small"
+                  fullWidth
+                  placeholder="Mazola Kitchen Oil, Mazola Corn Oil 1 gal"
+                  value={aliases}
+                  onChange={(e) => setAliases(e.target.value)}
+                  helperText="Separados por coma. La próxima lectura con ese nombre cae en ESTA ficha (misma foto, sin duplicar). Al corregir el nombre arriba se guarda solo."
+                />
+              )}
               {pending && (
                 <Alert
                   severity="info"

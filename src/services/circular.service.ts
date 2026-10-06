@@ -111,6 +111,11 @@ export type CatalogSummary = {
     kind: 'flyer' | 'circular';
     startDate: string;
     endDate: string;
+    hasFile: boolean;
+    /** Productos que trae ese circular, cuántos son distintos y cuántos son lecturas repetidas. */
+    products: number;
+    uniqueProducts: number;
+    duplicates: number;
   } | null;
 };
 export type AgentStep = {
@@ -150,6 +155,8 @@ export interface StoreProduct {
   presentation?: string;
   /** Unidad de venta: lb, kg, unidad, paquete. */
   saleUnit?: string;
+  /** Otros nombres con que la IA lee este producto; resuelven a esta ficha. */
+  aliases?: string[];
   barcode?: string;
   category?: string;
   /** Departamento del circular con las palabras de la tienda (MEAT, PRODUCE…). */

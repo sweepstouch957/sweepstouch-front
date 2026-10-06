@@ -240,6 +240,7 @@ function CircularTab({
         storeSlug={storeSlug}
         onOpenProducts={onOpenProducts}
         onOpenUpcoming={onOpenUpcoming}
+        onOpenAgents={onOpenAgents}
       />
       <CampaignAutomationCard
         storeId={storeId}
