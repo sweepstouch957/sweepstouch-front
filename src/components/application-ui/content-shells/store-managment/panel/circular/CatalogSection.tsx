@@ -1336,6 +1336,17 @@ const CatalogRow = memo(function CatalogRow({
                 if (v !== String(p.price ?? '')) onPatch(p._id, { price: v });
               }}
             />
+            {/* Este campo es el precio de HOY. Si hay uno esperando fecha, se dice acá para que
+                nadie "corrija" el de hoy creyendo que es el de la semana que viene. */}
+            {p.pending?.from && (
+              <Typography
+                variant="caption"
+                color="warning.main"
+                sx={{ display: 'block', textTransform: 'none', letterSpacing: 0, lineHeight: 1.2, mt: 0.25 }}
+              >
+                Hoy. Desde {fmtDate(p.pending.from)}: {p.pending.price || '—'} (se edita en Próximos)
+              </Typography>
+            )}
           </TableCell>
           <TableCell
             sx={cell}
