@@ -7,23 +7,61 @@
  * (utils/mixed.js → normalizeMixedCustom / buildMixedRcsContent) valida cada campo y, ante
  * cualquier cosa rara, manda el RCS por defecto.
  *
- * Estructura por defecto: imagen de la campaña (siempre) + texto con el link ÚNICO de la
- * lista del cliente y el de ofertas + 2 botones (armar lista / más ofertas) en webview.
+ * Oct 2026: la plantilla queda SIEMPRE cargada (texto recomendado + botón al dashboard /me).
+ * Los botones son una lista editable (texto + destino + URL propia), hasta 4 (tope RBM por
+ * tarjeta). Lo que se toca seguido (texto, botones, prueba al celular) va arriba y el resto
+ * en "Opciones avanzadas".
  */
+import AddIcon from '@mui/icons-material/Add';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import SendIcon from '@mui/icons-material/Send';
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Alert,
   Box,
   Button,
   Chip,
+  CircularProgress,
   FormControlLabel,
+  IconButton,
   MenuItem,
   Stack,
   Switch,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { storeBrandOf, storeStreetOf } from './messaging/placeholders';
+
+/** Destinos de un botón. Espejo de BUTTON_LINKS en scheduler utils/mixed.js. */
+export const BUTTON_LINKS = [
+  { value: 'home', label: 'Dashboard del cliente (/me)', hint: 'Su inicio con sesión: ofertas, lista, puntos. Entra sin código.' },
+  { value: 'portada', label: 'Linktree con su sesión', hint: 'La portada pública de la tienda, ya logueado (#linklogin).' },
+  { value: 'list', label: 'Hacer su lista', hint: 'Su lista única para elegir ofertas. Sin productos en el catálogo el botón no sale.' },
+  { value: 'circular', label: 'Circular semanal', hint: 'El dashboard con el modal del circular abierto y "Ver mi lista".' },
+  { value: 'custom', label: 'Link personalizado…', hint: 'Una URL propia (promo, web de la tienda, etc.).' },
+] as const;
+export type ButtonLink = (typeof BUTTON_LINKS)[number]['value'];
+const isButtonLink = (v: unknown): v is ButtonLink => BUTTON_LINKS.some((b) => b.value === v);
+/** Tope RBM: una tarjeta admite hasta 4 botones. */
+export const MAX_BUTTONS = 4;
+const URL_RX = /^(https?:\/\/)?[a-z0-9.-]+\.[a-z]{2,}(\/\S*)?$/i;
+
+export type MixedButton = { text: string; link: ButtonLink; url: string };
+
+/** Botón precargado: SIEMPRE existe uno al dashboard /me (pedido del dueño, 6 oct 2026). */
+export const DEFAULT_BUTTON: MixedButton = { text: 'More deals here!', link: 'home', url: '' };
+const BUTTON_TEXT_BY_LINK: Record<ButtonLink, string> = {
+  home: 'More deals here!',
+  portada: 'See all deals',
+  list: 'Make my list',
+  circular: 'Weekly circular',
+  custom: 'Learn more',
+};
 
 export type MixedRcsCustom = {
   /** 'named' = RCS sólo a clientes con nombre (piloto); 'all' = TODA la base por RCS. */
@@ -31,10 +69,8 @@ export type MixedRcsCustom = {
   greeting: string;
   title: string;
   body: string;
-  buttonText: string;
-  buttonUrl: string;
-  listButton: boolean;
-  listButtonText: string;
+  /** Botones de la tarjeta, en orden. Mínimo 1 (el editor no deja borrar el último). */
+  buttons: MixedButton[];
   openIn: 'webview' | 'browser';
   productCards: number;
 };
@@ -78,13 +114,33 @@ export const MIXED_RCS_DEFAULTS: MixedRcsCustom = {
   greeting: '',
   title: '#brand',
   body: MIXED_RCS_BODY,
-  buttonText: 'More deals here!',
-  buttonUrl: '',
-  listButton: false,
-  listButtonText: 'Make my list',
+  buttons: [DEFAULT_BUTTON],
   // Navegador: el webview de Mensajes abría a media pantalla (pedido del dueño, 5 oct 2026).
   openIn: 'browser',
   productCards: 0,
+};
+
+/** Botones de un template guardado. Sin `buttons` (templates viejos) se arman del switch de lista + botón de ofertas. */
+const buttonsFromTemplate = (tpl: any): MixedButton[] => {
+  if (Array.isArray(tpl.buttons) && tpl.buttons.length) {
+    const list = tpl.buttons
+      .map((b: any) => ({
+        text: String(b?.text || '').slice(0, 25),
+        link: isButtonLink(b?.link) ? b.link : 'home',
+        url: String(b?.url || ''),
+      }))
+      .filter((b: MixedButton) => b.text)
+      .slice(0, MAX_BUTTONS);
+    if (list.length) return list;
+  }
+  const legacy: MixedButton[] = [];
+  if (tpl.listButton !== false) legacy.push({ text: tpl.listButtonText || BUTTON_TEXT_BY_LINK.list, link: 'list', url: '' });
+  legacy.push(
+    tpl.buttonUrl
+      ? { text: tpl.buttonText || DEFAULT_BUTTON.text, link: 'custom', url: tpl.buttonUrl }
+      : { ...DEFAULT_BUTTON, text: tpl.buttonText || DEFAULT_BUTTON.text }
+  );
+  return legacy;
 };
 
 export const mixedCustomFromTemplate = (tpl: any): MixedRcsCustom =>
@@ -94,18 +150,23 @@ export const mixedCustomFromTemplate = (tpl: any): MixedRcsCustom =>
         greeting: typeof tpl.greeting === 'string' ? tpl.greeting : MIXED_RCS_DEFAULTS.greeting,
         title: tpl.title || '',
         body: tpl.body || '',
-        buttonText: tpl.buttonText || MIXED_RCS_DEFAULTS.buttonText,
-        buttonUrl: tpl.buttonUrl || '',
-        listButton: tpl.listButton !== false,
-        listButtonText: tpl.listButtonText || MIXED_RCS_DEFAULTS.listButtonText,
+        buttons: buttonsFromTemplate(tpl),
         openIn: tpl.openIn === 'webview' ? 'webview' : 'browser',
         productCards: Math.min(9, Math.max(0, Number(tpl.productCards) || 0)),
       }
     : MIXED_RCS_DEFAULTS;
 
-/** Lo que viaja al backend: sólo lo que difiere del default del scheduler. Nada → undefined. */
+/** Lo que viaja al backend. Los botones van SIEMPRE (así el precargado llega tal cual). */
 export function mixedTemplateFromCustom(c: MixedRcsCustom): Record<string, unknown> | undefined {
   const d = MIXED_RCS_DEFAULTS;
+  const buttons = c.buttons
+    .map((b) => ({
+      text: b.text.trim().slice(0, 25),
+      link: b.link,
+      ...(b.link === 'custom' ? { url: b.url.trim() } : {}),
+    }))
+    .filter((b) => b.text && (b.link !== 'custom' || URL_RX.test(b.url || '')))
+    .slice(0, MAX_BUTTONS);
   const out: Record<string, unknown> = {
     ...(c.audience === 'named' ? { audience: 'named' } : {}),
     // El saludo por defecto NO se manda: así el scheduler sigue omitiéndolo cuando el
@@ -114,18 +175,11 @@ export function mixedTemplateFromCustom(c: MixedRcsCustom): Record<string, unkno
     ...(c.title.trim() ? { title: c.title.trim() } : {}),
     // Texto vacío = el mismo texto del SMS/MMS de la campaña.
     ...(c.body.trim() ? { body: c.body.trim() } : {}),
-    ...(c.buttonText.trim() && c.buttonText.trim() !== d.buttonText
-      ? { buttonText: c.buttonText.trim() }
-      : {}),
-    ...(c.buttonUrl.trim() ? { buttonUrl: c.buttonUrl.trim() } : {}),
-    ...(c.listButton ? {} : { listButton: false }),
-    ...(c.listButtonText.trim() && c.listButtonText.trim() !== d.listButtonText
-      ? { listButtonText: c.listButtonText.trim() }
-      : {}),
+    buttons: buttons.length ? buttons : [{ text: DEFAULT_BUTTON.text, link: 'home' }],
     ...(c.openIn === 'webview' ? { openIn: 'webview' } : {}),
     ...(c.productCards > 0 ? { productCards: c.productCards } : {}),
   };
-  return Object.keys(out).length ? { type: 'MIXED', ...out } : undefined;
+  return { type: 'MIXED', ...out };
 }
 
 const TOKENS = [
@@ -153,7 +207,8 @@ export type MixedPreviewInput = {
 
 /**
  * Cómo se vería el RCS con un cliente de ejemplo. Aplica las mismas reglas que el scheduler:
- * la línea de un placeholder sin dato se borra junto con su rótulo.
+ * la línea de un placeholder sin dato se borra junto con su rótulo; el botón de lista no sale
+ * sin productos; un custom sin URL válida tampoco; si no queda ninguno, el de ofertas.
  * Lo usan el editor (para los estados de los campos) y la vista previa.
  */
 export function buildMixedPreview({
@@ -166,7 +221,14 @@ export function buildMixedPreview({
 }: MixedPreviewInput) {
   const hasProducts = products.length > 0;
   const withPhoto = products.filter((p) => p.imageUrl);
-  const listOn = value.listButton && hasProducts;
+  const shown = value.buttons.filter(
+    (b) =>
+      b.text.trim() &&
+      (b.link !== 'list' || hasProducts) &&
+      (b.link !== 'custom' || URL_RX.test(b.url.trim()))
+  );
+  const buttons = shown.length ? shown : [DEFAULT_BUTTON];
+  const listOn = buttons.some((b) => b.link === 'list');
 
   const sample = (tpl: string) => {
     const vals: Record<string, string> = {
@@ -193,10 +255,7 @@ export function buildMixedPreview({
       .replace(/#ahorro/gi, vals['#ahorro'])
       .replace(/#listlink/gi, vals['#listlink'])
       .replace(/#address/gi, vals['#address'])
-      .replace(
-        /#(?:linklogin|linktree|link)(?![a-z])/gi,
-        value.buttonUrl.trim() || 'swtrcs.com/s/YYYYYY'
-      )
+      .replace(/#(?:linklogin|linktree|link)(?![a-z])/gi, 'swtrcs.com/s/YYYYYY')
       .replace(/#message/gi, smsText || 'Texto de la campaña')
       .replace(/\n{3,}/g, '\n\n')
       .trim();
@@ -212,8 +271,9 @@ export function buildMixedPreview({
     body,
     title: sample(value.title.trim()) || greeting,
     cards: imageSrc && value.productCards > 0 ? withPhoto.slice(0, value.productCards) : [],
-    listLabel: value.listButtonText.trim() || MIXED_RCS_DEFAULTS.listButtonText,
-    buttonLabel: value.buttonText.trim() || MIXED_RCS_DEFAULTS.buttonText,
+    buttons,
+    /** Botón de las cards de productos: el de lista si existe, si no el primero. */
+    cardButton: buttons.find((b) => b.link === 'list') ?? buttons[0],
   };
 }
 
@@ -221,10 +281,13 @@ export function buildMixedPreview({
  *  mismo panel de vista previa, en vez de dos teléfonos sueltos en la pantalla. */
 export function MixedRcsPreview(input: MixedPreviewInput) {
   const { imageSrc } = input;
-  const { greeting, body, title, cards, listOn, listLabel, buttonLabel } = buildMixedPreview(input);
+  const { greeting, body, title, cards, buttons, cardButton } = buildMixedPreview(input);
 
-  const btn = (label: string) => (
-    <Box sx={{ borderTop: '1px solid', borderColor: 'divider', py: 0.9, textAlign: 'center' }}>
+  const btn = (label: string, key: string | number) => (
+    <Box
+      key={key}
+      sx={{ borderTop: '1px solid', borderColor: 'divider', py: 0.9, textAlign: 'center' }}
+    >
       <Typography
         variant="body2"
         color="primary"
@@ -292,8 +355,7 @@ export function MixedRcsPreview(input: MixedPreviewInput) {
             </Typography>
           )}
         </Box>
-        {listOn && btn(listLabel)}
-        {btn(buttonLabel)}
+        {buttons.map((b, i) => btn(b.text.trim(), i))}
       </Box>
       {cards.map((p, i) => (
         <Box
@@ -325,7 +387,7 @@ export function MixedRcsPreview(input: MixedPreviewInput) {
               {p.price ? ` — ${p.price}` : ''}
             </Typography>
           </Box>
-          {btn(listOn ? listLabel : buttonLabel)}
+          {btn(cardButton.text.trim(), 'card')}
         </Box>
       ))}
     </Stack>
@@ -341,6 +403,8 @@ export default function MixedRcsEditor({
   storeAddress,
   products,
   productsLoaded,
+  testPhone = '',
+  onSendTest,
 }: {
   value: MixedRcsCustom;
   onChange: (v: MixedRcsCustom) => void;
@@ -352,10 +416,59 @@ export default function MixedRcsEditor({
   /** Productos visibles del catálogo: definen si hay lista que armar y las cards. */
   products: MixedPreviewProduct[];
   productsLoaded: boolean;
+  /** Teléfono del usuario logueado: destino por defecto de la prueba. */
+  testPhone?: string;
+  /** Manda el RCS real a ese teléfono. Lanza error con mensaje legible si falla. */
+  onSendTest?: (phone: string) => Promise<void>;
 }) {
   const refs = useRef<Partial<Record<TextKey, HTMLInputElement | HTMLTextAreaElement | null>>>({});
   const lastField = useRef<TextKey>('body');
   const set = (patch: Partial<MixedRcsCustom>) => onChange({ ...value, ...patch });
+
+  // Botones: lista editable. Siempre queda al menos uno (el precargado al dashboard).
+  const buttons = value.buttons.length ? value.buttons : [DEFAULT_BUTTON];
+  const setButton = (i: number, patch: Partial<MixedButton>) =>
+    set({ buttons: buttons.map((b, j) => (j === i ? { ...b, ...patch } : b)) });
+  const changeLink = (i: number, link: ButtonLink) => {
+    const b = buttons[i];
+    // Si el texto era el sugerido del destino anterior, se cambia al del nuevo.
+    const keepText = b.text.trim() && b.text.trim() !== BUTTON_TEXT_BY_LINK[b.link];
+    setButton(i, { link, text: keepText ? b.text : BUTTON_TEXT_BY_LINK[link] });
+  };
+  const addButton = () => {
+    if (buttons.length >= MAX_BUTTONS) return;
+    // Sugerencia: el primer destino que todavía no esté usado.
+    const used = new Set(buttons.map((b) => b.link));
+    const next = (BUTTON_LINKS.find((l) => !used.has(l.value) && l.value !== 'custom')?.value ?? 'custom') as ButtonLink;
+    set({ buttons: [...buttons, { text: BUTTON_TEXT_BY_LINK[next], link: next, url: '' }] });
+  };
+  const removeButton = (i: number) => {
+    if (buttons.length <= 1) return;
+    set({ buttons: buttons.filter((_b, j) => j !== i) });
+  };
+
+  // Prueba al celular: número editable (por defecto el del usuario logueado).
+  const [phone, setPhone] = useState(testPhone);
+  const [testState, setTestState] = useState<{ busy: boolean; msg: string; ok: boolean }>({
+    busy: false,
+    msg: '',
+    ok: false,
+  });
+  const phoneDigits = phone.replace(/\D/g, '');
+  const sendTest = async () => {
+    if (!onSendTest || phoneDigits.length < 10) return;
+    setTestState({ busy: true, msg: '', ok: false });
+    try {
+      await onSendTest(phoneDigits);
+      setTestState({ busy: false, ok: true, msg: `Prueba enviada a ${phone}. Llega en unos segundos.` });
+    } catch (e: any) {
+      setTestState({
+        busy: false,
+        ok: false,
+        msg: e?.response?.data?.error || e?.message || 'No se pudo enviar la prueba',
+      });
+    }
+  };
 
   // El botón inserta el placeholder donde está el cursor del último campo tocado.
   const insert = (token: string) => {
@@ -424,35 +537,19 @@ export default function MixedRcsEditor({
       )}
 
       <Stack gap={2}>
-        {/* Toda la base por RCS: la imagen sale como tarjeta grande (rich card) a todos, no
-            sólo a los que tienen nombre. Sin nombre, "#name" se quita solo ("Hi 👋"). */}
-        <Box>
-          <FormControlLabel
-            sx={{ mr: 0 }}
-            control={
-              <Switch
-                checked={value.audience === 'all'}
-                onChange={(e) => set({ audience: e.target.checked ? 'all' : 'named' })}
-              />
-            }
-            label={
-              <Typography fontWeight={600}>
-                {value.audience === 'all'
-                  ? 'Todo RCS: toda la base recibe la tarjeta'
-                  : 'Sólo clientes con nombre reciben RCS'}
-              </Typography>
-            }
-          />
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            display="block"
-          >
-            {value.audience === 'all'
-              ? 'Toda la base va por RCS con la imagen grande y link con sesión (sin nombre → portada; nombre + correo → su dashboard). Sin RCS en el teléfono, Infobip manda el SMS/MMS de respaldo. Apagalo para RCS sólo a clientes con nombre.'
-              : 'Sólo los clientes con nombre reciben RCS; el resto, el SMS/MMS normal. Encendelo para mandar el RCS a toda la base.'}
-          </Typography>
-        </Box>
+        {/* ── Texto ─────────────────────────────────────────────────────────── */}
+        <TextField
+          size="small"
+          fullWidth
+          multiline
+          minRows={6}
+          maxRows={14}
+          label="Texto del RCS"
+          placeholder="Vacío = el mismo texto del SMS/MMS de la campaña"
+          helperText={`${value.body.length}/1800. Si falta el dato de #ahorro, #listlink o #address, esa línea y su rótulo se quitan solos.`}
+          inputProps={{ maxLength: 1800 }}
+          {...field('body')}
+        />
         <Box>
           <Typography
             variant="caption"
@@ -492,34 +589,6 @@ export default function MixedRcsEditor({
             ))}
           </Stack>
         </Box>
-        <TextField
-          size="small"
-          fullWidth
-          label="Saludo"
-          helperText='Vacío = sin saludo. Por defecto "Hi #name!"'
-          inputProps={{ maxLength: 120 }}
-          {...field('greeting')}
-        />
-        <TextField
-          size="small"
-          fullWidth
-          label="Título de la tarjeta"
-          placeholder="Por defecto: el saludo"
-          inputProps={{ maxLength: 200 }}
-          {...field('title')}
-        />
-        <TextField
-          size="small"
-          fullWidth
-          multiline
-          minRows={6}
-          maxRows={14}
-          label="Texto del RCS"
-          placeholder="Vacío = el mismo texto del SMS/MMS de la campaña"
-          helperText={`${value.body.length}/1800. Si falta el dato de #ahorro, #listlink o #address, esa línea y su rótulo se quitan solos.`}
-          inputProps={{ maxLength: 1800 }}
-          {...field('body')}
-        />
         <Stack
           direction="row"
           gap={1}
@@ -530,7 +599,7 @@ export default function MixedRcsEditor({
             variant="outlined"
             onClick={() => set({ body: MIXED_RCS_BODY })}
           >
-            Usar estructura recomendada
+            Usar plantilla recomendada
           </Button>
           <Button
             size="small"
@@ -541,125 +610,311 @@ export default function MixedRcsEditor({
           </Button>
         </Stack>
 
-        <Typography
-          variant="subtitle2"
-          fontWeight={700}
-          sx={{ mt: 1 }}
-        >
-          Botones
-        </Typography>
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          gap={1.5}
-          alignItems={{ sm: 'flex-start' }}
-        >
-          <FormControlLabel
-            sx={{ flexShrink: 0, mr: 0 }}
-            control={
-              <Switch
-                checked={value.listButton}
-                onChange={(e) => set({ listButton: e.target.checked })}
-              />
-            }
-            label="Botón de lista"
-          />
-          <TextField
-            size="small"
-            fullWidth
-            label="Texto del botón de lista"
-            disabled={!value.listButton}
-            value={value.listButtonText}
-            onChange={(e) => set({ listButtonText: e.target.value })}
-            inputProps={{ maxLength: 25 }}
-            helperText="Abre la lista única del cliente para elegir ofertas"
-          />
-        </Stack>
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          gap={1.5}
-        >
-          <TextField
-            size="small"
-            fullWidth
-            label="Texto del botón de ofertas"
-            value={value.buttonText}
-            onChange={(e) => set({ buttonText: e.target.value })}
-            inputProps={{ maxLength: 25 }}
-            helperText={`${value.buttonText.length}/25`}
-          />
-          <TextField
-            size="small"
-            fullWidth
-            label="Link del botón de ofertas"
-            placeholder="Por defecto: el linktree con su sesión"
-            value={value.buttonUrl}
-            onChange={(e) => set({ buttonUrl: e.target.value })}
-            helperText="Vacío = el linktree de la tienda con la sesión del cliente (entra sin pedirle código)"
-          />
-        </Stack>
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          gap={1.5}
-        >
-          <TextField
-            select
-            size="small"
-            fullWidth
-            label="Los botones abren en"
-            value={value.openIn}
-            onChange={(e) => set({ openIn: e.target.value as MixedRcsCustom['openIn'] })}
-          >
-            <MenuItem value="browser">Navegador del teléfono (recomendado)</MenuItem>
-            <MenuItem value="webview">Webview dentro de Mensajes (puede verse a media pantalla)</MenuItem>
-          </TextField>
-          <TextField
-            select
-            size="small"
-            fullWidth
-            label="Cards de productos"
-            value={value.productCards}
-            onChange={(e) => set({ productCards: Number(e.target.value) })}
-            disabled={!withPhoto.length || !imageSrc}
-            helperText={
-              !imageSrc
-                ? 'Necesita imagen de campaña'
-                : withPhoto.length
-                  ? `Carrusel: la campaña + productos con foto (${withPhoto.length} disponibles)`
-                  : 'La tienda no tiene productos con foto'
-            }
-          >
-            <MenuItem value={0}>Ninguna (una sola tarjeta)</MenuItem>
-            {[2, 3, 4, 5, 7, 9].map((n) => (
-              <MenuItem
-                key={n}
-                value={n}
-              >
-                {n} productos
-              </MenuItem>
-            ))}
-          </TextField>
-        </Stack>
-        {value.productCards > 0 && (
-          <Alert
-            severity="info"
-            sx={{ py: 0 }}
-          >
-            En carrusel el teléfono recorta los textos largos de cada tarjeta. Mandate una campaña
-            de prueba antes del envío masivo.
-          </Alert>
-        )}
+        {/* ── Botones ───────────────────────────────────────────────────────── */}
         <Stack
           direction="row"
-          justifyContent="flex-end"
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{ mt: 1 }}
         >
-          <Button
-            size="small"
-            color="inherit"
-            onClick={() => onChange(MIXED_RCS_DEFAULTS)}
-          >
-            Restaurar por defecto
-          </Button>
+          <Box>
+            <Typography
+              variant="subtitle2"
+              fontWeight={700}
+            >
+              Botones ({buttons.length}/{MAX_BUTTONS})
+            </Typography>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+            >
+              Cada botón elige a dónde lleva. El primero ya viene al dashboard del cliente.
+            </Typography>
+          </Box>
+          <Tooltip title={buttons.length >= MAX_BUTTONS ? `Máximo ${MAX_BUTTONS} botones por tarjeta` : 'Agregar botón'}>
+            <span>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<AddIcon />}
+                disabled={buttons.length >= MAX_BUTTONS}
+                onClick={addButton}
+                sx={{ minHeight: 36, flexShrink: 0 }}
+              >
+                Agregar
+              </Button>
+            </span>
+          </Tooltip>
         </Stack>
+        {buttons.map((b, i) => {
+          const opt = BUTTON_LINKS.find((l) => l.value === b.link) ?? BUTTON_LINKS[0];
+          const badUrl = b.link === 'custom' && !!b.url.trim() && !URL_RX.test(b.url.trim());
+          const listOff = b.link === 'list' && productsLoaded && !hasProducts;
+          return (
+            <Box
+              key={i}
+              sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+            >
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                gap={1.5}
+                alignItems={{ sm: 'flex-start' }}
+              >
+                <TextField
+                  size="small"
+                  fullWidth
+                  label={`Texto del botón ${i + 1}`}
+                  value={b.text}
+                  onChange={(e) => setButton(i, { text: e.target.value })}
+                  inputProps={{ maxLength: 25 }}
+                  helperText={`${b.text.length}/25`}
+                  error={!b.text.trim()}
+                />
+                <TextField
+                  select
+                  size="small"
+                  fullWidth
+                  label="A dónde lleva"
+                  value={b.link}
+                  onChange={(e) => changeLink(i, e.target.value as ButtonLink)}
+                  helperText={listOff ? 'La tienda no tiene productos: este botón no saldrá.' : opt.hint}
+                  FormHelperTextProps={{ sx: listOff ? { color: 'warning.main' } : undefined }}
+                >
+                  {BUTTON_LINKS.map((l) => (
+                    <MenuItem
+                      key={l.value}
+                      value={l.value}
+                    >
+                      {l.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <Tooltip title={buttons.length <= 1 ? 'Tiene que quedar al menos un botón' : 'Quitar botón'}>
+                  <span>
+                    <IconButton
+                      size="small"
+                      color="inherit"
+                      disabled={buttons.length <= 1}
+                      onClick={() => removeButton(i)}
+                      sx={{ mt: { sm: 0.5 } }}
+                      aria-label="Quitar botón"
+                    >
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              </Stack>
+              {b.link === 'custom' && (
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Link personalizado"
+                  placeholder="https://…"
+                  value={b.url}
+                  onChange={(e) => setButton(i, { url: e.target.value })}
+                  error={badUrl}
+                  helperText={badUrl ? 'Link inválido: el botón no saldrá' : 'Sin link válido el botón no sale'}
+                  sx={{ mt: 1.5 }}
+                />
+              )}
+            </Box>
+          );
+        })}
+
+        {/* ── Prueba al celular ─────────────────────────────────────────────── */}
+        {onSendTest && (
+          <Box
+            sx={{
+              p: 1.5,
+              borderRadius: 2,
+              border: '1px dashed',
+              borderColor: 'divider',
+              bgcolor: 'action.hover',
+            }}
+          >
+            <Typography
+              variant="subtitle2"
+              fontWeight={700}
+              gutterBottom
+            >
+              Enviarme una prueba
+            </Typography>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              display="block"
+              sx={{ mb: 1 }}
+            >
+              Sale el RCS real a ese número con la imagen, el texto y los botones de arriba. Si el
+              número está en la base de la tienda, llega con su sesión (dashboard y lista).
+            </Typography>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              gap={1}
+              alignItems={{ sm: 'center' }}
+            >
+              <TextField
+                size="small"
+                label="Teléfono"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                inputProps={{ inputMode: 'tel', maxLength: 20 }}
+                sx={{ minWidth: 200 }}
+              />
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={testState.busy ? <CircularProgress size={14} color="inherit" /> : <SendIcon />}
+                disabled={testState.busy || phoneDigits.length < 10 || !smsText.trim()}
+                onClick={sendTest}
+                sx={{ minHeight: 40 }}
+              >
+                {testState.busy ? 'Enviando…' : 'Enviar prueba'}
+              </Button>
+            </Stack>
+            {!smsText.trim() && (
+              <Typography
+                variant="caption"
+                color="warning.main"
+                display="block"
+                sx={{ mt: 0.5 }}
+              >
+                Escribí el texto de la campaña antes de probar.
+              </Typography>
+            )}
+            {testState.msg && (
+              <Alert
+                severity={testState.ok ? 'success' : 'error'}
+                sx={{ mt: 1, py: 0 }}
+              >
+                {testState.msg}
+              </Alert>
+            )}
+          </Box>
+        )}
+
+        {/* ── Avanzado ──────────────────────────────────────────────────────── */}
+        <Accordion
+          disableGutters
+          elevation={0}
+          sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, '&:before': { display: 'none' } }}
+        >
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography fontWeight={700}>Opciones avanzadas</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Stack gap={2}>
+              {/* Toda la base por RCS: la imagen sale como tarjeta grande (rich card) a todos, no
+                  sólo a los que tienen nombre. Sin nombre, "#name" se quita solo ("Hi 👋"). */}
+              <Box>
+                <FormControlLabel
+                  sx={{ mr: 0 }}
+                  control={
+                    <Switch
+                      checked={value.audience === 'all'}
+                      onChange={(e) => set({ audience: e.target.checked ? 'all' : 'named' })}
+                    />
+                  }
+                  label={
+                    <Typography fontWeight={600}>
+                      {value.audience === 'all'
+                        ? 'Todo RCS: toda la base recibe la tarjeta'
+                        : 'Sólo clientes con nombre reciben RCS'}
+                    </Typography>
+                  }
+                />
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  display="block"
+                >
+                  {value.audience === 'all'
+                    ? 'Toda la base va por RCS con la imagen grande y link con sesión (sin nombre → portada; nombre + correo → su dashboard). Sin RCS en el teléfono, Infobip manda el SMS/MMS de respaldo. Apagalo para RCS sólo a clientes con nombre.'
+                    : 'Sólo los clientes con nombre reciben RCS; el resto, el SMS/MMS normal. Encendelo para mandar el RCS a toda la base.'}
+                </Typography>
+              </Box>
+              <TextField
+                size="small"
+                fullWidth
+                label="Saludo"
+                helperText='Vacío = sin saludo. Por defecto "Hi #name!"'
+                inputProps={{ maxLength: 120 }}
+                {...field('greeting')}
+              />
+              <TextField
+                size="small"
+                fullWidth
+                label="Título de la tarjeta"
+                placeholder="Por defecto: el saludo"
+                inputProps={{ maxLength: 200 }}
+                {...field('title')}
+              />
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                gap={1.5}
+              >
+                <TextField
+                  select
+                  size="small"
+                  fullWidth
+                  label="Los botones abren en"
+                  value={value.openIn}
+                  onChange={(e) => set({ openIn: e.target.value as MixedRcsCustom['openIn'] })}
+                >
+                  <MenuItem value="browser">Navegador del teléfono (recomendado)</MenuItem>
+                  <MenuItem value="webview">Webview dentro de Mensajes (puede verse a media pantalla)</MenuItem>
+                </TextField>
+                <TextField
+                  select
+                  size="small"
+                  fullWidth
+                  label="Cards de productos"
+                  value={value.productCards}
+                  onChange={(e) => set({ productCards: Number(e.target.value) })}
+                  disabled={!withPhoto.length || !imageSrc}
+                  helperText={
+                    !imageSrc
+                      ? 'Necesita imagen de campaña'
+                      : withPhoto.length
+                        ? `Carrusel: la campaña + productos con foto (${withPhoto.length} disponibles)`
+                        : 'La tienda no tiene productos con foto'
+                  }
+                >
+                  <MenuItem value={0}>Ninguna (una sola tarjeta)</MenuItem>
+                  {[2, 3, 4, 5, 7, 9].map((n) => (
+                    <MenuItem
+                      key={n}
+                      value={n}
+                    >
+                      {n} productos
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Stack>
+              {value.productCards > 0 && (
+                <Alert
+                  severity="info"
+                  sx={{ py: 0 }}
+                >
+                  En carrusel el teléfono recorta los textos largos de cada tarjeta. Mandate una
+                  campaña de prueba antes del envío masivo.
+                </Alert>
+              )}
+              <Stack
+                direction="row"
+                justifyContent="flex-end"
+              >
+                <Button
+                  size="small"
+                  color="inherit"
+                  onClick={() => onChange(MIXED_RCS_DEFAULTS)}
+                >
+                  Restaurar por defecto
+                </Button>
+              </Stack>
+            </Stack>
+          </AccordionDetails>
+        </Accordion>
       </Stack>
     </Box>
   );

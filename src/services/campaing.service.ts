@@ -1022,6 +1022,26 @@ class CampaignClient {
     return res.data;
   }
 
+  /**
+   * "Enviarme una prueba" del RCS del piloto mixed: el backend arma el RCS igual que en la
+   * campaña real (sesión, catálogo, botones) y lo manda a ese teléfono. Responde 202.
+   */
+  async sendMixedRcsTest(params: {
+    storeId: string;
+    phone: string;
+    text: string;
+    image?: string | null;
+    custom?: Record<string, unknown> | null;
+    firstName?: string;
+  }) {
+    const res = await api.post('/send/api/rcs/mixed-test', {
+      ...params,
+      phone: params.phone.replace(/\D/g, ''),
+      image: params.image || undefined,
+    });
+    return res.data as { success: boolean; queued: boolean; jobId?: string };
+  }
+
   /* ===================== ✅ SYNC INFOBIP METRICS ===================== */
 
   /**

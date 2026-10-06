@@ -4,7 +4,9 @@
 import { circularService } from '@/services/circular.service';
 import { getStoreById } from '@/services/store.service';
 import { customerClient } from '@/services/customerService';
-import type { CampaignArtUpload } from '@/services/upload.service';
+import { campaignClient } from '@/services/campaing.service';
+import { uploadCampaignImage, type CampaignArtUpload } from '@/services/upload.service';
+import { useAuth } from '@/hooks/use-auth';
 import { Sms } from '@mui/icons-material';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import {
@@ -362,6 +364,27 @@ export default function CreateCampaignForm({
 
   // El arte se sube y comprime al elegirlo: el resumen de la conversión se ve antes de crear.
   const art = useCampaignArtUpload();
+
+  // "Enviarme una prueba" del RCS: sale el RCS real (mismo código que la campaña) al celular
+  // del usuario logueado (o al que escriba). La imagen: la ya comprimida si existe; si eligió
+  // una y todavía no subió, se sube acá.
+  const { user } = useAuth();
+  const testPhone = String(user?.phone || user?.phoneNumber || '');
+  const sendMixedTest = async (phone: string) => {
+    if (!storeId) throw new Error('Guardá la tienda antes de probar');
+    let imageUrl: string = art.result?.url || mixedPreviewImage || '';
+    const f: any = (image as any)?.[0];
+    if (f instanceof File && !art.result?.url) imageUrl = (await uploadCampaignImage(f)).url;
+    if (imageUrl.startsWith('blob:')) imageUrl = '';
+    await campaignClient.sendMixedRcsTest({
+      storeId,
+      phone,
+      text: content || '',
+      image: imageUrl || undefined,
+      custom: mixedTemplateFromCustom(mixedRcs) || { type: 'MIXED' },
+      firstName: user?.firstName || '',
+    });
+  };
 
   // Sólo en mixed se manda rcsOptions (conservando mixedRatio al editar). En "sms" no se
   // toca: el payload queda idéntico al de siempre.
@@ -972,6 +995,8 @@ export default function CreateCampaignForm({
                         storeAddress={mixedStore.data?.address}
                         products={mixedCatalog.data?.items ?? []}
                         productsLoaded={mixedCatalog.isSuccess}
+                        testPhone={testPhone}
+                        onSendTest={sendMixedTest}
                       />
                     </Section>
                   </>
