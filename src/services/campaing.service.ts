@@ -15,6 +15,8 @@ export interface SessionLinkSplit {
   linktree: number;
   /** Sin nombre usable → link normal, sin sesión personal. */
   plain: number;
+  /** Cuántos completaron nombre / correo / ambos desde el modal del dashboard en ESTA campaña. */
+  fills?: { name: number; email: number; both: number; any: number };
 }
 
 export interface FilterCampaignParams {

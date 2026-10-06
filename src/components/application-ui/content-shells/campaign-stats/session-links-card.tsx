@@ -73,7 +73,7 @@ export function SessionLinksCard({
   return (
     <StatsCard
       title="A dónde llevó el link"
-      subtitle="El link es el mismo para todos; cambia si abre con la sesión del cliente o no. El canal es otra cosa: va arriba."
+      subtitle="Todos entran a Mi cuenta con su sesión. Lo que cambia es si ya tenían nombre y correo o si el dashboard se los pidió."
     >
       {sent.length > 0 && (
         <Stack
@@ -104,22 +104,36 @@ export function SessionLinksCard({
       >
         <Row
           color={theme.palette.primary.main}
-          title={rcs ? 'RCS con su sesión' : 'Link con su sesión'}
-          help={
-            rcs
-              ? 'Tienen nombre: reciben el RCS y el link abre la tienda ya identificados (sin código).'
-              : `Tienen nombre: el link abre la tienda ya identificados, sin pedir código.${mainChannel ? ` Les llegó por ${mainChannel}.` : ''}`
-          }
-          value={data.linktree}
+          title="Perfil completo"
+          help="Tienen nombre y correo: entran a Mi cuenta sin que se les pida nada."
+          value={data.dashboard}
           total={data.total}
         />
         <Row
-          color={theme.palette.text.disabled}
-          title="Link normal"
-          help={`Sin nombre usable: el link abre la tienda sin sesión.${mainChannel ? ` Les llegó por ${mainChannel} igual.` : ''}`}
-          value={data.plain}
+          color={theme.palette.secondary.main}
+          title="Les faltaba nombre o correo"
+          help={`Al abrir Mi cuenta ven el modal para completarlo.${mainChannel ? ` Les llegó por ${mainChannel}.` : ''}`}
+          value={data.linktree}
           total={data.total}
         />
+        {data.fills && (
+          <Row
+            color={theme.palette.success.main}
+            title="Completaron datos en esta campaña"
+            help={`Nombre: ${num(data.fills.name)} · Correo: ${num(data.fills.email)} · Ambos: ${num(data.fills.both)}. Contado desde el modal del dashboard.`}
+            value={data.fills.any}
+            total={data.total}
+          />
+        )}
+        {data.plain > 0 && (
+          <Row
+            color={theme.palette.text.disabled}
+            title="Link normal"
+            help="Sin sesión."
+            value={data.plain}
+            total={data.total}
+          />
+        )}
       </AutoGrid>
       <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
         Calculado sobre la audiencia actual de la tienda ({num(data.total)} clientes) con la misma regla del envío. No es un conteo de canal.

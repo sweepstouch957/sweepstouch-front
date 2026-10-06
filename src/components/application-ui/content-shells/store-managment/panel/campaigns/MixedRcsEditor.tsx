@@ -37,6 +37,8 @@ export type MixedRcsCustom = {
   listButtonText: string;
   openIn: 'webview' | 'browser';
   productCards: number;
+  /** Botón "Weekly circular": mismo dashboard con el modal del circular abierto. */
+  circularButton: boolean;
 };
 
 /** Las líneas con #ahorro, #listlink o #address se borran solas (con su rótulo) si no hay dato. */
@@ -61,7 +63,8 @@ export const MIXED_RCS_BODY = [
 export const smsTemplateToRcsBody = (content: string) => content.replace(/#n(?!ame(?![a-zA-Z]))/g, '\n').trim();
 
 export const MIXED_RCS_DEFAULTS: MixedRcsCustom = {
-  audience: 'named',
+  // Toda la base por RCS (default desde 5 oct 2026). 'named' = sólo con nombre.
+  audience: 'all',
   // El saludo ya va dentro del cuerpo ("Hi #name 👋"): sin saludo aparte no se duplica.
   greeting: '',
   title: '#brand',
@@ -73,12 +76,13 @@ export const MIXED_RCS_DEFAULTS: MixedRcsCustom = {
   // Navegador: el webview de Mensajes abría a media pantalla (pedido del dueño, 5 oct 2026).
   openIn: 'browser',
   productCards: 0,
+  circularButton: true,
 };
 
 export const mixedCustomFromTemplate = (tpl: any): MixedRcsCustom =>
   tpl && tpl.type === 'MIXED'
     ? {
-        audience: tpl.audience === 'all' ? 'all' : 'named',
+        audience: tpl.audience === 'named' ? 'named' : 'all',
         greeting: typeof tpl.greeting === 'string' ? tpl.greeting : MIXED_RCS_DEFAULTS.greeting,
         title: tpl.title || '',
         body: tpl.body || '',
@@ -88,6 +92,7 @@ export const mixedCustomFromTemplate = (tpl: any): MixedRcsCustom =>
         listButtonText: tpl.listButtonText || MIXED_RCS_DEFAULTS.listButtonText,
         openIn: tpl.openIn === 'webview' ? 'webview' : 'browser',
         productCards: Math.min(9, Math.max(0, Number(tpl.productCards) || 0)),
+        circularButton: tpl.circularButton !== false,
       }
     : MIXED_RCS_DEFAULTS;
 
@@ -95,7 +100,7 @@ export const mixedCustomFromTemplate = (tpl: any): MixedRcsCustom =>
 export function mixedTemplateFromCustom(c: MixedRcsCustom): Record<string, unknown> | undefined {
   const d = MIXED_RCS_DEFAULTS;
   const out: Record<string, unknown> = {
-    ...(c.audience === 'all' ? { audience: 'all' } : {}),
+    ...(c.audience === 'named' ? { audience: 'named' } : {}),
     // El saludo por defecto NO se manda: así el scheduler sigue omitiéndolo cuando el
     // texto de la campaña ya trae #name (no sale "Hi Maria! Hola Maria…").
     ...(c.greeting.trim() !== d.greeting ? { greeting: c.greeting.trim() } : {}),
@@ -112,6 +117,7 @@ export function mixedTemplateFromCustom(c: MixedRcsCustom): Record<string, unkno
       : {}),
     ...(c.openIn === 'webview' ? { openIn: 'webview' } : {}),
     ...(c.productCards > 0 ? { productCards: c.productCards } : {}),
+    ...(c.circularButton ? {} : { circularButton: false }),
   };
   return Object.keys(out).length ? { type: 'MIXED', ...out } : undefined;
 }
@@ -282,6 +288,7 @@ export function MixedRcsPreview(input: MixedPreviewInput) {
         </Box>
         {listOn && btn(listLabel)}
         {btn(buttonLabel)}
+        {input.value.circularButton && !input.value.buttonUrl.trim() && btn('Weekly circular')}
       </Box>
       {cards.map((p, i) => (
         <Box
@@ -437,8 +444,8 @@ export default function MixedRcsEditor({
             display="block"
           >
             {value.audience === 'all'
-              ? 'Nadie recibe el MMS directo: todos van por RCS con la imagen grande; si el teléfono no tiene RCS, Infobip manda el SMS/MMS de respaldo. Apagalo para volver al modo normal.'
-              : 'El resto de la base recibe el SMS/MMS normal. Encendelo para mandar el RCS a todos.'}
+              ? 'Toda la base va por RCS con la imagen grande y link con sesión (sin nombre → portada; nombre + correo → su dashboard). Sin RCS en el teléfono, Infobip manda el SMS/MMS de respaldo. Apagalo para RCS sólo a clientes con nombre.'
+              : 'Sólo los clientes con nombre reciben RCS; el resto, el SMS/MMS normal. Encendelo para mandar el RCS a toda la base.'}
           </Typography>
         </Box>
         <Box>
@@ -550,6 +557,16 @@ export default function MixedRcsEditor({
               />
             }
             label="Botón de lista"
+          />
+          <FormControlLabel
+            sx={{ flexShrink: 0, mr: 0 }}
+            control={
+              <Switch
+                checked={value.circularButton}
+                onChange={(e) => set({ circularButton: e.target.checked })}
+              />
+            }
+            label="Botón Weekly circular"
           />
           <TextField
             size="small"
