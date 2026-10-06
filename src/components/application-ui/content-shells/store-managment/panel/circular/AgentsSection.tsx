@@ -25,6 +25,17 @@ import ReviewSection from './ReviewSection';
 import { circularLabel } from './shared';
 import StoreRulesCard from './StoreRulesCard';
 
+/** Bitácora de un circular. Quieto se sondea cada 15 s: un job puede arrancar desde Productos
+ *  ("Completar marca/tamaño", "Rescanear fotos") o desde el cron, y la oficina debe verlo. */
+function usePipeline(id?: string) {
+  return useQuery({
+    queryKey: ['circular-pipeline', id],
+    queryFn: () => circularService.getPipeline(id!),
+    enabled: !!id,
+    refetchInterval: (q) => (q.state.data?.running ? 3000 : 15_000),
+  });
+}
+
 export default function AgentsSection({
   storeSlug,
   storeName,
@@ -32,16 +43,24 @@ export default function AgentsSection({
   storeSlug: string;
   storeName?: string;
 }) {
-  const { top: circular, isLoading } = useStoreCirculars(storeSlug);
+  const { top, flyers, isLoading } = useStoreCirculars(storeSlug);
   const { busy } = useCircularBusy(storeSlug);
-
-  // Misma query que AgentFeed (React Query la comparte): la oficina dibuja, el feed avisa.
-  const pipeline = useQuery({
-    queryKey: ['circular-pipeline', circular?._id],
-    queryFn: () => circularService.getPipeline(circular!._id),
-    enabled: !!circular?._id,
-    refetchInterval: (q) => (q.state.data?.running ? 3000 : false),
-  });
+  // Los robots pueden estar sobre el circular semanal O sobre el flyer de campaña (p. ej.
+  // "Completar marca/tamaño" relee el flyer). Se miran los dos y se muestra el que trabaja;
+  // quieto, el que tuvo el último movimiento.
+  const liveFlyer =
+    flyers.find((f) => f.status === 'active') ||
+    flyers.find((f) => f.status === 'scheduled') ||
+    null;
+  const pTop = usePipeline(top?._id);
+  const pFlyer = usePipeline(liveFlyer?._id);
+  const lastAt = (d?: { steps: { at: string }[] } | null) =>
+    Math.max(0, ...(d?.steps || []).map((s) => Date.parse(s.at) || 0));
+  const useFlyer =
+    !!liveFlyer &&
+    (pFlyer.data?.running || (!pTop.data?.running && lastAt(pFlyer.data) > lastAt(pTop.data)));
+  const circular = useFlyer ? liveFlyer : top;
+  const pipeline = useFlyer ? pFlyer : pTop;
 
   // Auditoría por página: % de efectividad de la extracción y correcciones hechas.
   const audit = useQuery({

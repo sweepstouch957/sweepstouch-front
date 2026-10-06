@@ -42,25 +42,36 @@ export type MixedRcsCustom = {
 };
 
 /** Las líneas con #ahorro, #listlink o #address se borran solas (con su rótulo) si no hay dato. */
-// Mismo texto que la plantilla base del SMS del piloto (baseTemplates.ts): marca, titular,
-// saludo con nombre, link con sesión, dirección y STOP. El titular lo cambia la tienda.
+// OJO: la marca NO va en el cuerpo: ya es el título de la tarjeta (#brand en negrita; antes
+// salía dos veces). El link tampoco: viaja en el botón, así que el cuerpo dice "tocá el botón".
 export const MIXED_RCS_BODY = [
-  '#brand 🛒',
-  '',
-  '☀️ Specials of the week 🌴',
+  '🍂 Specials of the week 🍁',
   '',
   'Hi #name 👋',
-  'Start saving 💰 and earning points ⭐',
-  // Portada de la tienda CON la sesion del cliente: entra sin que le pidan el codigo.
-  '👉 #linklogin',
+  'Start saving 💰 and earning points',
+  '👇 Tap the button below 👇',
   '',
   '📍 Address: #address',
   '',
   '#disclaimer',
 ].join('\n');
 
-/** Pasa el texto de una plantilla de SMS (#n = salto) al cuerpo del RCS. */
-export const smsTemplateToRcsBody = (content: string) => content.replace(/#n(?!ame(?![a-zA-Z]))/g, '\n').trim();
+const TAP_BELOW = '👇 Tap the button below 👇';
+
+/**
+ * Pasa el texto de una plantilla de SMS (#n = salto) al cuerpo del RCS: la primera línea con
+ * la marca se va (es el título de la tarjeta) y la línea del link se cambia por "tocá el
+ * botón" (en el RCS el link va en el botón, no en el texto).
+ */
+export const smsTemplateToRcsBody = (content: string) =>
+  content
+    .replace(/#n(?!ame(?![a-zA-Z]))/g, '\n')
+    .split('\n')
+    .filter((line, i) => !(i === 0 && /#brand|#store/i.test(line)))
+    .map((line) => (/#(?:linklogin|linktree|link)(?![a-z])/i.test(line) ? TAP_BELOW : line))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 
 export const MIXED_RCS_DEFAULTS: MixedRcsCustom = {
   // Toda la base por RCS (default desde 5 oct 2026). 'named' = sólo con nombre.
