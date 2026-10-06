@@ -24,6 +24,9 @@ export type PanelProps = {
   /** Número para listas que el bot de WhatsApp muestra al final (Store.listsPhone). */
   listsPhone?: string;
   listsPhoneEnabled?: boolean;
+  /** Listas de compra de la tienda (Store.listsEnabled / listsLinkUrl). */
+  listsEnabled?: boolean;
+  listsLinkUrl?: string;
 };
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });

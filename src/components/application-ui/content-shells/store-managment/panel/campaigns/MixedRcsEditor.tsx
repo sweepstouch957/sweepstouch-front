@@ -26,6 +26,8 @@ import { useRef } from 'react';
 import { storeBrandOf, storeStreetOf } from './messaging/placeholders';
 
 export type MixedRcsCustom = {
+  /** 'named' = RCS sólo a clientes con nombre (piloto); 'all' = TODA la base por RCS. */
+  audience: 'named' | 'all';
   greeting: string;
   title: string;
   body: string;
@@ -59,6 +61,7 @@ export const MIXED_RCS_BODY = [
 export const smsTemplateToRcsBody = (content: string) => content.replace(/#n(?!ame(?![a-zA-Z]))/g, '\n').trim();
 
 export const MIXED_RCS_DEFAULTS: MixedRcsCustom = {
+  audience: 'named',
   // El saludo ya va dentro del cuerpo ("Hi #name 👋"): sin saludo aparte no se duplica.
   greeting: '',
   title: '#brand',
@@ -67,13 +70,15 @@ export const MIXED_RCS_DEFAULTS: MixedRcsCustom = {
   buttonUrl: '',
   listButton: false,
   listButtonText: 'Make my list',
-  openIn: 'webview',
+  // Navegador: el webview de Mensajes abría a media pantalla (pedido del dueño, 5 oct 2026).
+  openIn: 'browser',
   productCards: 0,
 };
 
 export const mixedCustomFromTemplate = (tpl: any): MixedRcsCustom =>
   tpl && tpl.type === 'MIXED'
     ? {
+        audience: tpl.audience === 'all' ? 'all' : 'named',
         greeting: typeof tpl.greeting === 'string' ? tpl.greeting : MIXED_RCS_DEFAULTS.greeting,
         title: tpl.title || '',
         body: tpl.body || '',
@@ -81,7 +86,7 @@ export const mixedCustomFromTemplate = (tpl: any): MixedRcsCustom =>
         buttonUrl: tpl.buttonUrl || '',
         listButton: tpl.listButton !== false,
         listButtonText: tpl.listButtonText || MIXED_RCS_DEFAULTS.listButtonText,
-        openIn: tpl.openIn === 'browser' ? 'browser' : 'webview',
+        openIn: tpl.openIn === 'webview' ? 'webview' : 'browser',
         productCards: Math.min(9, Math.max(0, Number(tpl.productCards) || 0)),
       }
     : MIXED_RCS_DEFAULTS;
@@ -90,6 +95,7 @@ export const mixedCustomFromTemplate = (tpl: any): MixedRcsCustom =>
 export function mixedTemplateFromCustom(c: MixedRcsCustom): Record<string, unknown> | undefined {
   const d = MIXED_RCS_DEFAULTS;
   const out: Record<string, unknown> = {
+    ...(c.audience === 'all' ? { audience: 'all' } : {}),
     // El saludo por defecto NO se manda: así el scheduler sigue omitiéndolo cuando el
     // texto de la campaña ya trae #name (no sale "Hi Maria! Hola Maria…").
     ...(c.greeting.trim() !== d.greeting ? { greeting: c.greeting.trim() } : {}),
@@ -104,7 +110,7 @@ export function mixedTemplateFromCustom(c: MixedRcsCustom): Record<string, unkno
     ...(c.listButtonText.trim() && c.listButtonText.trim() !== d.listButtonText
       ? { listButtonText: c.listButtonText.trim() }
       : {}),
-    ...(c.openIn === 'browser' ? { openIn: 'browser' } : {}),
+    ...(c.openIn === 'webview' ? { openIn: 'webview' } : {}),
     ...(c.productCards > 0 ? { productCards: c.productCards } : {}),
   };
   return Object.keys(out).length ? { type: 'MIXED', ...out } : undefined;
@@ -406,6 +412,35 @@ export default function MixedRcsEditor({
       )}
 
       <Stack gap={2}>
+        {/* Toda la base por RCS: la imagen sale como tarjeta grande (rich card) a todos, no
+            sólo a los que tienen nombre. Sin nombre, "#name" se quita solo ("Hi 👋"). */}
+        <Box>
+          <FormControlLabel
+            sx={{ mr: 0 }}
+            control={
+              <Switch
+                checked={value.audience === 'all'}
+                onChange={(e) => set({ audience: e.target.checked ? 'all' : 'named' })}
+              />
+            }
+            label={
+              <Typography fontWeight={600}>
+                {value.audience === 'all'
+                  ? 'Todo RCS: toda la base recibe la tarjeta'
+                  : 'Sólo clientes con nombre reciben RCS'}
+              </Typography>
+            }
+          />
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            display="block"
+          >
+            {value.audience === 'all'
+              ? 'Nadie recibe el MMS directo: todos van por RCS con la imagen grande; si el teléfono no tiene RCS, Infobip manda el SMS/MMS de respaldo. Apagalo para volver al modo normal.'
+              : 'El resto de la base recibe el SMS/MMS normal. Encendelo para mandar el RCS a todos.'}
+          </Typography>
+        </Box>
         <Box>
           <Typography
             variant="caption"
@@ -562,8 +597,8 @@ export default function MixedRcsEditor({
             value={value.openIn}
             onChange={(e) => set({ openIn: e.target.value as MixedRcsCustom['openIn'] })}
           >
-            <MenuItem value="webview">Webview (dentro de Mensajes, pantalla completa)</MenuItem>
-            <MenuItem value="browser">Navegador del teléfono</MenuItem>
+            <MenuItem value="browser">Navegador del teléfono (recomendado)</MenuItem>
+            <MenuItem value="webview">Webview dentro de Mensajes (puede verse a media pantalla)</MenuItem>
           </TextField>
           <TextField
             select

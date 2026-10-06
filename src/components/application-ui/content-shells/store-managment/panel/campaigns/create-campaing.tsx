@@ -3,11 +3,13 @@
 
 import { circularService } from '@/services/circular.service';
 import { getStoreById } from '@/services/store.service';
+import { customerClient } from '@/services/customerService';
 import type { CampaignArtUpload } from '@/services/upload.service';
 import { Sms } from '@mui/icons-material';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import {
   Alert,
+  Autocomplete,
   Avatar,
   Box,
   Button,
@@ -280,6 +282,35 @@ export default function CreateCampaignForm({
   );
   // Tienda + catálogo visible: sólo con el piloto marcado (vista previa, aviso de "sin
   // productos para armar lista" y cards de productos).
+  // Destinatarios puntuales del piloto (uno o varios): viajan en contentTemplate.recipients
+  // y el scheduler filtra la base con ellos. Vacío = toda la audiencia.
+  const [mixedRecipients, setMixedRecipients] = useState<any[]>(() =>
+    ((initialValues as any)?.rcsOptions?.contentTemplate?.recipients || []).map(String)
+  );
+  const [recipInput, setRecipInput] = useState('');
+  const [recipSearch, setRecipSearch] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setRecipSearch(recipInput.trim()), 300);
+    return () => clearTimeout(t);
+  }, [recipInput]);
+  const recipOptions = useQuery({
+    queryKey: ['campaign-form-recip', storeId, recipSearch],
+    queryFn: () =>
+      customerClient.searchCustomersByStore(storeId as string, { search: recipSearch, limit: 10 }),
+    enabled: !!storeId && channel === 'mixed' && recipSearch.length >= 2,
+  });
+  const recipientPhones = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          mixedRecipients
+            .map((r) => String(typeof r === 'string' ? r : r?.phoneNumber || '').replace(/[^\d+]/g, ''))
+            .filter((p) => p.replace(/\D/g, '').length >= 10)
+        )
+      ),
+    [mixedRecipients]
+  );
+
   const mixedStore = useQuery({
     queryKey: ['campaign-form-store', storeId],
     queryFn: () => getStoreById(storeId as string),
@@ -338,7 +369,10 @@ export default function CreateCampaignForm({
     const data = art.result ? { ...raw, uploadedArt: art.result } : raw;
     if (data.channel !== 'mixed') return onSubmit(data);
     const ratio = (initialValues as any)?.rcsOptions?.mixedRatio;
-    const contentTemplate = mixedTemplateFromCustom(mixedRcs);
+    const base = mixedTemplateFromCustom(mixedRcs);
+    const contentTemplate = recipientPhones.length
+      ? { type: 'MIXED', ...(base || {}), recipients: recipientPhones }
+      : base;
     return onSubmit({
       ...data,
       rcsOptions: {
@@ -353,7 +387,12 @@ export default function CreateCampaignForm({
       ? 'MIXED'
       : (initialValues?.type && initialValues.type !== 'MIXED' ? initialValues.type : null) ||
         ((image as any)?.length ? 'MMS' : 'SMS');
-  const audienceCount = useFullAudience ? totalAudience : Number(customAudience) || 0;
+  const audienceCount =
+    channel === 'mixed' && recipientPhones.length
+      ? recipientPhones.length
+      : useFullAudience
+        ? totalAudience
+        : Number(customAudience) || 0;
   // Mientras se optimiza la imagen no se crea: saldría con la subida a medias.
   const canSubmit = !isPhoneMissing && !hasShortenerLinks && !art.busy;
 
@@ -751,10 +790,74 @@ export default function CreateCampaignForm({
                   title="Audiencia"
                   hint="A cuántos clientes de la tienda se le envía."
                 >
+                  {channel === 'mixed' && (
+                    <Box sx={{ mb: 2 }}>
+                      <Autocomplete
+                        multiple
+                        freeSolo
+                        size="small"
+                        options={(recipOptions.data || []) as any[]}
+                        value={mixedRecipients}
+                        inputValue={recipInput}
+                        onInputChange={(_, v) => setRecipInput(v)}
+                        onChange={(_, v) => setMixedRecipients(v as any[])}
+                        loading={recipOptions.isFetching}
+                        filterOptions={(x) => x}
+                        getOptionLabel={(o: any) =>
+                          typeof o === 'string'
+                            ? o
+                            : `${[o.firstName, o.lastName].filter(Boolean).join(' ') || 'Cliente'} · ${o.phoneNumber}`
+                        }
+                        isOptionEqualToValue={(o: any, v: any) =>
+                          String(o?.phoneNumber || o) === String(v?.phoneNumber || v)
+                        }
+                        renderOption={(props, o: any) => (
+                          <li
+                            {...props}
+                            key={o._id || o.phoneNumber}
+                          >
+                            <Stack minWidth={0}>
+                              <Typography
+                                variant="body2"
+                                fontWeight={600}
+                                noWrap
+                              >
+                                {[o.firstName, o.lastName].filter(Boolean).join(' ') || 'Sin nombre'}
+                                {o.email ? ` · ${o.email}` : ''}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                {o.phoneNumber}
+                              </Typography>
+                            </Stack>
+                          </li>
+                        )}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Destinatarios específicos (opcional)"
+                            placeholder="Buscar nombre o teléfono, o pegar un número y Enter…"
+                            helperText={
+                              recipientPhones.length
+                                ? `Sólo a ${recipientPhones.length} destinatario(s), con la misma lógica RCS. Vaciá la lista para toda la base.`
+                                : 'Vacío = toda la audiencia de abajo. Para probar con uno o varios, elegilos acá.'
+                            }
+                          />
+                        )}
+                      />
+                    </Box>
+                  )}
                   <Stack
                     direction={{ xs: 'column', sm: 'row' }}
                     alignItems={{ sm: 'center' }}
                     spacing={2}
+                    sx={
+                      channel === 'mixed' && recipientPhones.length
+                        ? { opacity: 0.5, pointerEvents: 'none' }
+                        : undefined
+                    }
                   >
                     <FormControlLabel
                       sx={{ mr: 0 }}
@@ -817,7 +920,9 @@ export default function CreateCampaignForm({
                           variant="subtitle1"
                           fontWeight={700}
                         >
-                          Piloto mixto: RCS para los clientes con nombre
+                          {mixedRcs.audience === 'all'
+                            ? 'RCS para toda la base'
+                            : 'Piloto mixto: RCS para los clientes con nombre'}
                         </Typography>
                       }
                     />
@@ -826,9 +931,9 @@ export default function CreateCampaignForm({
                       color="text.secondary"
                       sx={{ maxWidth: 780, mt: 0.5 }}
                     >
-                      Todos los clientes con nombre reciben un RCS con su nombre y un botón al linktree
-                      con su sesión iniciada (#linklogin); el resto, el SMS o MMS normal. Si el teléfono
-                      no tiene RCS, les llega el SMS igual. El costo no cambia.
+                      {mixedRcs.audience === 'all'
+                        ? 'Toda la base recibe el RCS con la imagen como tarjeta grande y botones; si el teléfono no tiene RCS, les llega el SMS/MMS igual. En "Personalizar el RCS" podés volver a sólo clientes con nombre.'
+                        : 'Todos los clientes con nombre reciben un RCS con su nombre y un botón al linktree con su sesión iniciada (#linklogin); el resto, el SMS o MMS normal. Si el teléfono no tiene RCS, les llega el SMS igual. El costo no cambia.'}
                     </Typography>
                   </Box>
                   {channel === 'mixed' && (

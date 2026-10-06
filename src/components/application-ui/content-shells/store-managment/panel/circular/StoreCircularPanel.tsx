@@ -31,6 +31,7 @@ import CampaignAutomationCard from './CampaignAutomationCard';
 import CircularPdfSection from './CircularPdfSection';
 import { useUpcomingCount } from './hooks';
 import { ListsPhoneCard } from './ListsPhoneCard';
+import { ListsCard } from './ListsCard';
 import PreRcsPreviewButton from './PreRcsPreviewButton';
 import { ImagePreviewDialog, type PanelProps } from './shared';
 import StoreBannerSection from './StoreBannerSection';
@@ -276,6 +277,8 @@ export default function StoreCircularPanel({
   circularssUrl,
   listsPhone,
   listsPhoneEnabled,
+  listsEnabled,
+  listsLinkUrl,
 }: PanelProps) {
   const [tab, setTab] = useState(0);
   const openUpcoming = useCallback(() => setTab(1), []);
@@ -413,6 +416,11 @@ export default function StoreCircularPanel({
       )}
       {/* El teléfono de las listas va al final (pedido del 2 oct 2026). */}
       <Box sx={{ mt: 3 }}>
+        <ListsCard
+          storeId={storeId}
+          listsEnabled={listsEnabled}
+          listsLinkUrl={listsLinkUrl}
+        />
         <ListsPhoneCard
           storeId={storeId}
           listsPhone={listsPhone}

@@ -124,6 +124,9 @@ export interface UpdateStoreBody {
   /** Número que el bot de WhatsApp muestra al final de sus mensajes (si está prendido). */
   listsPhone?: string;
   listsPhoneEnabled?: boolean;
+  /** Listas de compra de la tienda; apagadas se ocultan en linktree, Mi cuenta y RCS. */
+  listsEnabled?: boolean;
+  listsLinkUrl?: string;
   name?: string;
   /** Imagen de ESTA tienda. El logo de la marca vive en mmsTheme.logoUrl. */
   image?: string;

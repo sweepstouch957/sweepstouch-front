@@ -250,6 +250,8 @@ export const StoreContentRouter: FC<Props> = ({
           circularssUrl={(store as any).circularssUrl || ''}
           listsPhone={(store as any).listsPhone || ''}
           listsPhoneEnabled={Boolean((store as any).listsPhoneEnabled)}
+          listsEnabled={(store as any).listsEnabled !== false}
+          listsLinkUrl={(store as any).listsLinkUrl || ''}
         />
       );
 
