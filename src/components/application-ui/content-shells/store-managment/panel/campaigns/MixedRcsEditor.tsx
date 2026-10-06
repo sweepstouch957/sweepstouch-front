@@ -37,8 +37,6 @@ export type MixedRcsCustom = {
   listButtonText: string;
   openIn: 'webview' | 'browser';
   productCards: number;
-  /** Botón "Weekly circular": mismo dashboard con el modal del circular abierto. */
-  circularButton: boolean;
 };
 
 /** Las líneas con #ahorro, #listlink o #address se borran solas (con su rótulo) si no hay dato. */
@@ -87,7 +85,6 @@ export const MIXED_RCS_DEFAULTS: MixedRcsCustom = {
   // Navegador: el webview de Mensajes abría a media pantalla (pedido del dueño, 5 oct 2026).
   openIn: 'browser',
   productCards: 0,
-  circularButton: true,
 };
 
 export const mixedCustomFromTemplate = (tpl: any): MixedRcsCustom =>
@@ -103,7 +100,6 @@ export const mixedCustomFromTemplate = (tpl: any): MixedRcsCustom =>
         listButtonText: tpl.listButtonText || MIXED_RCS_DEFAULTS.listButtonText,
         openIn: tpl.openIn === 'webview' ? 'webview' : 'browser',
         productCards: Math.min(9, Math.max(0, Number(tpl.productCards) || 0)),
-        circularButton: tpl.circularButton !== false,
       }
     : MIXED_RCS_DEFAULTS;
 
@@ -128,7 +124,6 @@ export function mixedTemplateFromCustom(c: MixedRcsCustom): Record<string, unkno
       : {}),
     ...(c.openIn === 'webview' ? { openIn: 'webview' } : {}),
     ...(c.productCards > 0 ? { productCards: c.productCards } : {}),
-    ...(c.circularButton ? {} : { circularButton: false }),
   };
   return Object.keys(out).length ? { type: 'MIXED', ...out } : undefined;
 }
@@ -299,7 +294,6 @@ export function MixedRcsPreview(input: MixedPreviewInput) {
         </Box>
         {listOn && btn(listLabel)}
         {btn(buttonLabel)}
-        {input.value.circularButton && !input.value.buttonUrl.trim() && btn('Weekly circular')}
       </Box>
       {cards.map((p, i) => (
         <Box
@@ -568,16 +562,6 @@ export default function MixedRcsEditor({
               />
             }
             label="Botón de lista"
-          />
-          <FormControlLabel
-            sx={{ flexShrink: 0, mr: 0 }}
-            control={
-              <Switch
-                checked={value.circularButton}
-                onChange={(e) => set({ circularButton: e.target.checked })}
-              />
-            }
-            label="Botón Weekly circular"
           />
           <TextField
             size="small"
