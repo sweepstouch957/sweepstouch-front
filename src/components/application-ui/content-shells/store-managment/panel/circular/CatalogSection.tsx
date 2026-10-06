@@ -138,6 +138,29 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
     (id: string, body: Record<string, unknown>) => patchMutate({ id, body }),
     [patchMutate]
   );
+  // Producto con precio esperando fecha: la celda edita el que VA a salir (pending), por la
+  // misma ruta que el modal. Antes escribía `price` y pisaba el de hoy (Orden 1).
+  const patchPending = useMutation({
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: string;
+      body: Parameters<typeof circularService.updatePending>[1];
+    }) => circularService.updatePending(id, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) });
+      qc.invalidateQueries({ queryKey: qk.upcoming(storeSlug) });
+    },
+    onError: (e: any) =>
+      toast.error(e?.response?.data?.error || 'No se pudo guardar el precio futuro'),
+  });
+  const { mutate: patchPendingMutate } = patchPending;
+  const onPatchPending = useCallback(
+    (id: string, body: Parameters<typeof circularService.updatePending>[1]) =>
+      patchPendingMutate({ id, body }),
+    [patchPendingMutate]
+  );
   const onCategory = useCallback(
     (id: string, category: string) => {
       patchMutate({ id, body: { category } });
@@ -971,6 +994,7 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
                         categoryOptions={categoryOptions}
                         onActivate={onActivate}
                         onPatch={onPatch}
+                        onPatchPending={onPatchPending}
                         onCategory={onCategory}
                         onEdit={onEdit}
                         onPreviewImage={onPreviewImage}
@@ -1048,6 +1072,11 @@ type RowProps = {
   categoryOptions: string[];
   onActivate: (p: StoreProduct) => void;
   onPatch: (id: string, body: Record<string, unknown>) => void;
+  /** Precio que espera fecha (pending): oferta / regular / ahorro del flyer que viene. */
+  onPatchPending: (
+    id: string,
+    body: { price?: string; originalPrice?: string; savings?: string }
+  ) => void;
   onCategory: (id: string, category: string) => void;
   onEdit: (p: StoreProduct) => void;
   onPreviewImage: (p: StoreProduct) => void;
@@ -1064,11 +1093,32 @@ const CatalogRow = memo(function CatalogRow({
   categoryOptions,
   onActivate,
   onPatch,
+  onPatchPending,
   onCategory,
   onEdit,
   onPreviewImage,
   onDelete,
 }: RowProps) {
+  // Con precio esperando fecha, las celdas de precio editan el FUTURO (pending) y el de hoy se
+  // muestra abajo, sólo lectura. Sin pendiente, editan el de hoy como siempre.
+  const pend = p.pending?.from ? p.pending : null;
+  const pendLabel = pend ? `Sale el ${fmtDate(pend.from)}` : '';
+  const todayNote = (v?: string) =>
+    pend ? (
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{
+          display: 'block',
+          textTransform: 'none',
+          letterSpacing: 0,
+          lineHeight: 1.2,
+          mt: 0.25,
+        }}
+      >
+        Hoy: {v?.trim() || '—'}
+      </Typography>
+    ) : null;
   return (
     <Draggable
       key={p._id}
@@ -1314,52 +1364,49 @@ const CatalogRow = memo(function CatalogRow({
             data-label="Precio oferta"
           >
             <TextField
+              key={pend ? `pend-${pend.from}` : 'today'}
               size="small"
               variant="standard"
-              defaultValue={p.price ?? ''}
+              label={pendLabel || undefined}
+              color={pend ? 'warning' : undefined}
+              focused={pend ? true : undefined}
+              defaultValue={(pend ? pend.price : p.price) ?? ''}
               fullWidth
               onBlur={(e) => {
                 const v = e.target.value.trim();
-                if (v !== String(p.price ?? '')) onPatch(p._id, { price: v });
+                if (pend) {
+                  if (v && v !== String(pend.price ?? '')) onPatchPending(p._id, { price: v });
+                } else if (v !== String(p.price ?? '')) onPatch(p._id, { price: v });
               }}
             />
-            {/* Este campo es el precio de HOY. Si hay uno esperando fecha, se dice acá para que
-                nadie "corrija" el de hoy creyendo que es el de la semana que viene. */}
-            {p.pending?.from && (
-              <Typography
-                variant="caption"
-                color="warning.main"
-                sx={{
-                  display: 'block',
-                  textTransform: 'none',
-                  letterSpacing: 0,
-                  lineHeight: 1.2,
-                  mt: 0.25,
-                }}
-              >
-                Hoy. Desde {fmtDate(p.pending.from)}: {p.pending.price || '—'} (se edita en
-                Próximos)
-              </Typography>
-            )}
+            {todayNote(p.price)}
           </TableCell>
           <TableCell
             sx={cell}
             data-label="Precio regular"
           >
             <TextField
+              key={pend ? `pend-${pend.from}` : 'today'}
               size="small"
               variant="standard"
-              defaultValue={p.originalPrice ?? ''}
+              label={pendLabel || undefined}
+              color={pend ? 'warning' : undefined}
+              focused={pend ? true : undefined}
+              defaultValue={(pend ? pend.originalPrice : p.originalPrice) ?? ''}
               fullWidth
               onBlur={(e) => {
                 const v = e.target.value.trim();
-                if (v !== String(p.originalPrice ?? '')) {
+                if (pend) {
+                  if (v !== String(pend.originalPrice ?? ''))
+                    onPatchPending(p._id, { originalPrice: v });
+                } else if (v !== String(p.originalPrice ?? '')) {
                   onPatch(p._id, { originalPrice: v, ...(v ? { hasOffer: true } : {}) });
                 }
               }}
             />
+            {todayNote(p.originalPrice)}
             {/* Sin regular: se estima con la misma regla del backend (+25%) */}
-            {!p.originalPrice?.trim() && regularFromPrice(p.price) && (
+            {!pend && !p.originalPrice?.trim() && regularFromPrice(p.price) && (
               <Tooltip title={`Calcular: ${regularFromPrice(p.price)} (oferta + 25%)`}>
                 <Button
                   size="small"
@@ -1378,15 +1425,22 @@ const CatalogRow = memo(function CatalogRow({
             data-label="Ahorro"
           >
             <TextField
+              key={pend ? `pend-${pend.from}` : 'today'}
               size="small"
               variant="standard"
-              defaultValue={p.savings ?? ''}
+              label={pendLabel || undefined}
+              color={pend ? 'warning' : undefined}
+              focused={pend ? true : undefined}
+              defaultValue={(pend ? pend.savings : p.savings) ?? ''}
               fullWidth
               onBlur={(e) => {
                 const v = e.target.value.trim();
-                if (v !== String(p.savings ?? '')) onPatch(p._id, { savings: v });
+                if (pend) {
+                  if (v !== String(pend.savings ?? '')) onPatchPending(p._id, { savings: v });
+                } else if (v !== String(p.savings ?? '')) onPatch(p._id, { savings: v });
               }}
             />
+            {todayNote(p.savings)}
           </TableCell>
           <TableCell
             sx={cell}
