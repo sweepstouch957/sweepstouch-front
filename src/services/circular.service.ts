@@ -289,9 +289,13 @@ export interface StoreBanner {
 export interface CampaignImportJob {
   _id: string;
   campaign: string;
+  title?: string;
   status: 'queued' | 'running' | 'done' | 'failed';
   attempts: number;
   error?: string;
+  /** Cuándo vuelve a intentarlo (cuota de la IA agotada: espera lo que pide el proveedor). */
+  runAfter?: string;
+  createdAt?: string;
   startDate: string;
   result?: {
     circularId?: string | null;
@@ -678,6 +682,18 @@ export class CircularService {
     storeSlug?: string
   ): Promise<{ ok: boolean; count: number; products: ParsedListProduct[] }> {
     const res = await api.post(`/circulars/campaign-import/parse-list`, { text, storeSlug });
+    return res.data;
+  }
+
+  /** Importaciones de campañas de la semana (fallidas, en cola, corriendo, listas). */
+  async getImportJobs(storeSlug: string): Promise<{ ok: boolean; jobs: CampaignImportJob[] }> {
+    const res = await api.get(`/circulars/campaign-import/store/${storeSlug}/jobs`);
+    return res.data;
+  }
+
+  /** Reintenta una importación fallida ahora mismo. */
+  async retryImportJob(id: string): Promise<{ ok: boolean; job: CampaignImportJob }> {
+    const res = await api.post(`/circulars/campaign-import/job/${id}/retry`, {});
     return res.data;
   }
 

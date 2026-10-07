@@ -11,6 +11,7 @@ import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import {
+  Alert,
   alpha,
   Box,
   Button,
@@ -177,6 +178,34 @@ export default function ListStatusCard({
     onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo ocultar'),
   });
 
+  // Importaciones de campañas de la semana: una fallida o atrasada se ve ACÁ, con Reintentar.
+  // (5 oct: el flyer de Morris Ave falló por cuota de la IA y nadie lo vio hasta el día.)
+  const jobs = useQuery({
+    queryKey: ['import-jobs', storeSlug],
+    queryFn: () => circularService.getImportJobs(storeSlug),
+    enabled: !!storeSlug,
+    refetchInterval: (query) =>
+      (query.state.data?.jobs || []).some((j) => j.status === 'queued' || j.status === 'running')
+        ? 5000
+        : false,
+  });
+  const attention = (jobs.data?.jobs || []).filter(
+    (j) =>
+      j.status === 'failed' ||
+      j.status === 'running' ||
+      (j.status === 'queued' && new Date(j.runAfter).getTime() > Date.now() + 60_000)
+  );
+  const retry = useMutation({
+    mutationFn: (id: string) => circularService.retryImportJob(id),
+    onSuccess: () => {
+      jobs.refetch();
+      toast.success(
+        'Reintentando: los robots vuelven a leer el arte. Se ve avanzar en la oficina.'
+      );
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo reintentar'),
+  });
+
   if (q.isLoading || !s) {
     return (
       <Skeleton
@@ -208,6 +237,51 @@ export default function ListStatusCard({
         bgcolor: 'background.paper',
       }}
     >
+      {attention.map((j) => (
+        <Alert
+          key={j._id}
+          severity={j.status === 'failed' ? 'error' : 'warning'}
+          sx={{ mb: 1.5, alignItems: 'center' }}
+          action={
+            j.status !== 'running' && (
+              <Button
+                size="small"
+                color="inherit"
+                variant="outlined"
+                disabled={retry.isPending}
+                onClick={() => retry.mutate(j._id)}
+              >
+                {retry.isPending ? 'Reintentando…' : 'Reintentar ahora'}
+              </Button>
+            )
+          }
+        >
+          <Typography
+            variant="body2"
+            fontWeight={700}
+          >
+            {j.status === 'failed'
+              ? `No se pudo leer el arte de "${j.title || 'la campaña'}" (sale ${fmtDate(
+                  j.startDate
+                )})`
+              : j.status === 'running'
+                ? `Leyendo el arte de "${j.title || 'la campaña'}"… intento ${j.attempts}`
+                : `"${
+                    j.title || 'La campaña'
+                  }" espera: la IA se quedó sin cuota, se reintenta sola a las ${new Date(
+                    j.runAfter
+                  ).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`}
+          </Typography>
+          {j.error && (
+            <Typography
+              variant="caption"
+              sx={{ display: 'block', textTransform: 'none', letterSpacing: 0 }}
+            >
+              {j.error.slice(0, 220)}
+            </Typography>
+          )}
+        </Alert>
+      ))}
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
         alignItems={{ sm: 'center' }}
