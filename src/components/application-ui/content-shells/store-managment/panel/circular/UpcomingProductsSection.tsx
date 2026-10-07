@@ -122,10 +122,24 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
   // "Poner a los agentes a trabajar" sobre un flyer que todavía no salió: Atenea audita el
   // circular contra el arte y, si se pide, Iris rehace las fotos de sus productos (mode ids).
   const [agentsFor, setAgentsFor] = useState<UpcomingGroup | null>(null);
-  const [agentsPhotos, setAgentsPhotos] = useState(true);
+  const [agentsPhotos, setAgentsPhotos] = useState(false);
+  // Un flyer de supermercado trae 80–120 productos y la primera lectura suele sacar 30–40:
+  // la segunda pasada (Argos, por secciones) es lo primero que hay que correr.
+  const [agentsMissing, setAgentsMissing] = useState(true);
   const agents = useMutation({
-    mutationFn: async ({ group, photos }: { group: UpcomingGroup; photos: boolean }) => {
-      if (group.circular?._id) await circularService.runAudit(group.circular._id);
+    mutationFn: async ({
+      group,
+      photos,
+      missing,
+    }: {
+      group: UpcomingGroup;
+      photos: boolean;
+      missing: boolean;
+    }) => {
+      const id = group.circular?._id;
+      let added = 0;
+      if (id && missing) added = (await circularService.addMissingProducts(id)).added || 0;
+      if (id) await circularService.runAudit(id);
       if (photos && group.items.length) {
         await circularService.rescanPhotos(
           storeSlug,
@@ -133,14 +147,21 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
           group.items.map((p) => p._id)
         );
       }
+      return { added };
     },
-    onSuccess: (_d, v) => {
+    onSuccess: (d, v) => {
       setAgentsFor(null);
+      refresh();
       toast.success(
-        v.photos
-          ? `Atenea audita el flyer e Iris rehace ${v.group.items.length} fotos. Míralos trabajar en Agentes IA.`
-          : 'Atenea está auditando el flyer. Míralo en Agentes IA.',
-        { duration: 7000 }
+        [
+          v.missing ? `Argos sumó ${d.added} productos que faltaban.` : '',
+          'Atenea audita el flyer contra el arte.',
+          v.photos ? `Iris rehace ${v.group.items.length} fotos.` : '',
+          'Míralos en Agentes IA.',
+        ]
+          .filter(Boolean)
+          .join(' '),
+        { duration: 9000 }
       );
     },
     onError: (e) => toast.error(errMsg(e, 'No se pudo arrancar a los agentes')),
@@ -696,11 +717,34 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
             color="text.secondary"
             sx={{ mb: 1 }}
           >
-            {agentsFor ? `${agentsFor.items.length} productos del ${fmtDay(agentsFor.day)}.` : ''}
+            {agentsFor
+              ? `${agentsFor.items.length} productos leídos del ${fmtDay(
+                  agentsFor.day
+                )}. Un flyer de supermercado suele traer 80–120.`
+              : ''}
           </Typography>
-          <Typography variant="body2">
-            <b>Atenea</b> vuelve a leer el arte página por página y coteja precios, nombres y letra
-            chica. Lo seguro lo corrige; lo dudoso queda en Agentes IA para decidir.
+          <FormControlLabel
+            sx={{ alignItems: 'flex-start', ml: 0 }}
+            control={
+              <Checkbox
+                checked={agentsMissing}
+                onChange={(e) => setAgentsMissing(e.target.checked)}
+                sx={{ mt: -0.5 }}
+              />
+            }
+            label={
+              <Typography variant="body2">
+                <b>Argos</b> vuelve a leer el arte por secciones y suma los productos que la primera
+                lectura se saltó. Lo que ya está no se toca.
+              </Typography>
+            }
+          />
+          <Typography
+            variant="body2"
+            sx={{ mt: 1 }}
+          >
+            <b>Atenea</b> coteja precios, nombres y letra chica contra el arte. Lo seguro lo
+            corrige; lo dudoso queda en Agentes IA para decidir.
           </Typography>
           <FormControlLabel
             sx={{ mt: 1, alignItems: 'flex-start', ml: 0 }}
@@ -730,7 +774,10 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
           <Button
             variant="contained"
             disabled={agents.isPending}
-            onClick={() => agentsFor && agents.mutate({ group: agentsFor, photos: agentsPhotos })}
+            onClick={() =>
+              agentsFor &&
+              agents.mutate({ group: agentsFor, photos: agentsPhotos, missing: agentsMissing })
+            }
           >
             {agents.isPending ? 'Arrancando…' : 'A trabajar'}
           </Button>
