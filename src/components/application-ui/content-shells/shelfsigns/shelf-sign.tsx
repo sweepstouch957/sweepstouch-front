@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { POWERED_BY_LOGO_SRC, VIP_LOGO_SRC } from './constants';
-import { fmtOfferDate } from './dates';
+import { offerValidLines } from './dates';
 import {
   clampPhotoLayout,
   cropByHandle,
@@ -17,6 +17,7 @@ import {
   type PhotoHandle,
   type PhotoLayout,
 } from './photo-layout';
+import { remainingConditions } from './price';
 import { PriceBlock } from './price-block';
 import type { ShelfSignConfig, ShelfSignProduct } from './types';
 
@@ -199,6 +200,8 @@ export function ShelfSign({
    */
   const showSaveBox = cfg.showSaveBox && Boolean(p.regularPrice?.trim() || p.save?.trim());
 
+  const validLines = offerValidLines(cfg.dateFrom, cfg.dateTo);
+
   /* Con 4 o 5 referencias en el mismo cartón los nombres a 22px se salen de la
      media hoja. Bajan de tamaño según cuántos haya, no por un alto fijo: un
      mix & match de dos sigue viéndose como el diseño aprobado. */
@@ -281,19 +284,25 @@ export function ShelfSign({
               </div>
             )}
 
-            <div
-              style={{
-                marginTop: 10,
-                fontSize: 11.5,
-                color: '#111',
-                lineHeight: 1.3,
-                maxWidth: '2.6in',
-              }}
-            >
-              <b>OFFER VALID:</b> FROM {fmtOfferDate(cfg.dateFrom)},
-              <br />
-              TO {fmtOfferDate(cfg.dateTo, true)}.
-            </div>
+            {validLines.length > 0 && (
+              <div
+                style={{
+                  marginTop: 10,
+                  fontSize: 11.5,
+                  color: '#111',
+                  lineHeight: 1.3,
+                  maxWidth: '2.6in',
+                }}
+              >
+                <b>OFFER VALID:</b>{' '}
+                {validLines.map((line, i) => (
+                  <React.Fragment key={line}>
+                    {i > 0 && <br />}
+                    {line}
+                  </React.Fragment>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -390,15 +399,16 @@ export function ShelfSign({
               </React.Fragment>
             ))}
 
-            {p.conditions &&
-              p.conditions.split('\n').map((line, i) => (
-                <div
-                  key={i}
-                  style={{ fontSize: 11.5, fontWeight: 600, color: '#111', lineHeight: 1.35 }}
-                >
-                  {line}
-                </div>
-              ))}
+            {/* La condición de compra de un FREE no sale acá: se imprime grande
+                debajo del FREE, en el bloque de precio. */}
+            {remainingConditions(p).map((line, i) => (
+              <div
+                key={i}
+                style={{ fontSize: 11.5, fontWeight: 600, color: '#111', lineHeight: 1.35 }}
+              >
+                {line}
+              </div>
+            ))}
           </div>
         </div>
       </div>

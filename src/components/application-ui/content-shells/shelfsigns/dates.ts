@@ -41,3 +41,23 @@ export function fmtOfferDate(iso: string, withYear = false): string {
   const year = withYear ? `, ${dt.getFullYear()}` : '';
   return `${DAY_ABBR[dt.getDay()]} ${MONTH_ABBR[dt.getMonth()]} ${dd}${ordinal(dt.getDate())}${year}`;
 }
+
+/**
+ * Las líneas de "OFFER VALID" del cartón.
+ *
+ * Una oferta de un solo día decía "FROM FRI. OCT. 02ND, TO FRI. OCT. 02ND,
+ * 2026": la misma fecha dos veces, que en góndola se lee como un error. En ese
+ * caso va una línea sola con ONLY, que además es como lo escriben los flyers.
+ *
+ * Sin fechas devuelve vacío y el cartón no imprime el bloque: mejor nada que
+ * "FROM , TO .".
+ */
+export function offerValidLines(from: string, to: string): string[] {
+  const start = (from || '').trim();
+  const end = (to || '').trim();
+  if (!start && !end) return [];
+  if (!start || !end || start === end) {
+    return [`${fmtOfferDate(start || end, true)} ONLY.`];
+  }
+  return [`FROM ${fmtOfferDate(start)},`, `TO ${fmtOfferDate(end, true)}.`];
+}

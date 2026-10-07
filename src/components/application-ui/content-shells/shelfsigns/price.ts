@@ -7,9 +7,9 @@
  *   resto                  → simple:    $12.99 EA. · $5 EA.
  *   cents = 0              → sin superíndice ni ".00"
  */
-import type { PriceUnit, ShelfSignProduct } from './types';
+import type { FreeOffer, PriceUnit, ShelfSignProduct } from './types';
 
-export type PriceFormat = 'cents' | 'multi' | 'simple';
+export type PriceFormat = 'free' | 'cents' | 'multi' | 'simple';
 
 /* ── Clamps: los inputs del editor no pueden producir un cartón inválido ── */
 
@@ -23,6 +23,16 @@ export const clampCents = (v: unknown): number =>
 export const clampUnit = (v: unknown): PriceUnit =>
   v === 'LB' || v === 'EA' ? v : '';
 
+/** `null` si no hay oferta sin precio: "gratis cero unidades" no existe. */
+export const clampFreeOffer = (v: unknown): FreeOffer | null => {
+  if (!v || typeof v !== 'object') return null;
+  const raw = v as Partial<FreeOffer>;
+  const free = Math.floor(Number(raw.free));
+  if (!Number.isFinite(free) || free < 1) return null;
+  const buy = Math.floor(Number(raw.buy));
+  return { buy: Number.isFinite(buy) && buy > 0 ? buy : 0, free: Math.min(99, free) };
+};
+
 /** Valores de precio ya saneados de un producto. */
 export interface PriceValues {
   qty: number;
@@ -30,15 +40,29 @@ export interface PriceValues {
   cents: number;
   unit: PriceUnit;
   format: PriceFormat;
+  /** Sólo con `format: 'free'`. */
+  freeOffer: FreeOffer | null;
 }
 
-export function priceValues(p: Pick<ShelfSignProduct, 'qty' | 'dollars' | 'cents' | 'unit'>): PriceValues {
+/** Lo que mira el precio: los números y, si la hay, la oferta sin precio. */
+type PriceInput = Pick<ShelfSignProduct, 'qty' | 'dollars' | 'cents' | 'unit'> &
+  Partial<Pick<ShelfSignProduct, 'freeOffer'>>;
+
+export function priceValues(p: PriceInput): PriceValues {
   const qty = clampQty(p.qty);
   const dollars = clampDollars(p.dollars);
   const cents = clampCents(p.cents);
   const unit = clampUnit(p.unit);
-  const format: PriceFormat = dollars === 0 ? 'cents' : qty > 1 ? 'multi' : 'simple';
-  return { qty, dollars, cents, unit, format };
+  const freeOffer = clampFreeOffer(p.freeOffer);
+  // La oferta sin precio manda: si está, no hay número que imprimir.
+  const format: PriceFormat = freeOffer
+    ? 'free'
+    : dollars === 0
+      ? 'cents'
+      : qty > 1
+        ? 'multi'
+        : 'simple';
+  return { qty, dollars, cents, unit, format, freeOffer };
 }
 
 /**
@@ -46,14 +70,69 @@ export function priceValues(p: Pick<ShelfSignProduct, 'qty' | 'dollars' | 'cents
  * ("Se imprimirá: 2/$12.95") — la revisión humana depende de que esto sea
  * exactamente lo que termina en la góndola.
  */
-export function priceLabel(p: Pick<ShelfSignProduct, 'qty' | 'dollars' | 'cents' | 'unit'>): string {
-  const { qty, dollars, cents, unit, format } = priceValues(p);
+export function priceLabel(p: PriceInput): string {
+  const { qty, dollars, cents, unit, format, freeOffer } = priceValues(p);
   const suffix = unit ? ` ${unit}.` : '';
   const decimals = cents > 0 ? `.${String(cents).padStart(2, '0')}` : '';
 
+  if (format === 'free') return freeOfferLabel(freeOffer!);
   if (format === 'cents') return `${qty > 1 ? `${qty}/` : ''}${cents}¢${suffix}`;
   if (format === 'multi') return `${qty}/$${dollars}${decimals}${unit ? ` ${unit}. FOR` : ''}`;
   return `$${dollars}${decimals}${suffix}`;
+}
+
+/** "BUY 1 GET 2 FREE" o, sin cantidad a llevar, "FREE". */
+export function freeOfferLabel(f: FreeOffer): string {
+  return f.buy > 0 ? `BUY ${f.buy} GET ${f.free} FREE` : 'FREE';
+}
+
+/* ── Condición de compra de un producto gratis ───────────────────────────── */
+
+/**
+ * "WITH ADD'L $130 PURCHASE", "WITH $25 PURCHASE", "CON COMPRA DE $50".
+ *
+ * Sólo la exigencia de comprar otra cosa, no cualquier condición: "LIMIT 4
+ * OFFERS PER FAMILY" o "WITH CLUB CARD" siguen siendo letra chica del producto.
+ */
+const PURCHASE_CONDITION = [
+  /\bwith\b[^\n]*\bpurchase\b/i,
+  /\bpurchase\s+of\b/i,
+  /\bcon\s+(?:la\s+)?compra\b/i,
+  /\bcompra\s+m[ií]nima\b/i,
+];
+
+/**
+ * La condición de compra de un FREE, para imprimirla debajo del FREE.
+ *
+ * Un producto gratis sin su "con compra de $130" al lado es una promesa que la
+ * tienda no puede cumplir, y a 11.5 px entre la letra chica del nombre no se lee
+ * desde el pasillo. Cuando el cartón es un FREE a secas, esa línea sube al
+ * bloque de precio y se imprime grande; las demás condiciones no se mueven.
+ *
+ * Sólo en el FREE sin cantidad a llevar: en un BOGO el "lleve 1" ya está arriba
+ * y la condición no es la que manda.
+ */
+export function freePurchaseCondition(
+  p: Pick<ShelfSignProduct, 'conditions'> & Partial<Pick<ShelfSignProduct, 'freeOffer'>>
+): string | null {
+  const offer = clampFreeOffer(p.freeOffer);
+  if (!offer || offer.buy > 0) return null;
+  const line = (p.conditions || '')
+    .split('\n')
+    .map((l) => l.trim())
+    .find((l) => l && PURCHASE_CONDITION.some((re) => re.test(l)));
+  return line || null;
+}
+
+/** Las condiciones que quedan con el nombre, sin la que subió al precio. */
+export function remainingConditions(
+  p: Pick<ShelfSignProduct, 'conditions'> & Partial<Pick<ShelfSignProduct, 'freeOffer'>>
+): string[] {
+  const moved = freePurchaseCondition(p);
+  return (p.conditions || '')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l && l !== moved);
 }
 
 /* ── Savings ─────────────────────────────────────────────────────────────── */
@@ -110,12 +189,18 @@ export function formatMoney(totalCents: number): string {
  *   3/$10 contra $4.99 EA → 3×499 − 1000 = "$4.97 PER OFFER"
  */
 export function computeSave(
-  p: Pick<ShelfSignProduct, 'qty' | 'dollars' | 'cents' | 'unit' | 'regularPrice'>
+  p: PriceInput & Pick<ShelfSignProduct, 'regularPrice'>
 ): string {
   const regularPerUnit = parseRegularCents(p.regularPrice);
   if (regularPerUnit === null) return '';
 
-  const { qty, dollars, cents, unit } = priceValues(p);
+  const { qty, dollars, cents, unit, format, freeOffer } = priceValues(p);
+
+  // En un BOGO lo que se ahorra son las unidades regaladas, a precio regular.
+  if (format === 'free') {
+    const saving = regularPerUnit * (freeOffer?.free || 0);
+    return saving > 0 ? `${formatMoney(saving)} PER OFFER` : '';
+  }
   const offerTotal = dollars * 100 + cents;
   if (offerTotal <= 0) return '';
 

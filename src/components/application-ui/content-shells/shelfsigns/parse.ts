@@ -4,8 +4,15 @@
  * La revisión humana es obligatoria por diseño, pero cuanto más limpio llegue
  * el dato al editor, menos correcciones hace el diseñador.
  */
-import { clampCents, clampDollars, clampQty, clampUnit, computeSave } from './price';
-import type { PhotoBox, ShelfSignProduct } from './types';
+import {
+  clampCents,
+  clampDollars,
+  clampFreeOffer,
+  clampQty,
+  clampUnit,
+  computeSave,
+} from './price';
+import type { FreeOffer, PhotoBox, ShelfSignProduct } from './types';
 
 export const uid = (): string => Math.random().toString(36).slice(2, 9);
 
@@ -45,9 +52,11 @@ export function toProducts(raw: unknown[] | undefined): ShelfSignProduct[] {
       regularPrice: asText(item?.regularPrice),
       save: asText(item?.save),
       conditions: asText(item?.conditions),
+      freeOffer: clampFreeOffer(item?.freeOffer) || undefined,
       photo: null,
       photoBox: normalizePhotoBox(item?.photoBox),
     }))
+    .map(detectFreeOffer)
     .map(withComputedSave)
     .map(dropVipLabels)
     .map(dedupeShared);
@@ -77,6 +86,52 @@ const VIP_WORDS = new Set([
   'for',
 ]);
 
+/**
+ * Frases del aviso de pie del flyer: "para obtener estos precios debes ser
+ * cliente VIP y mostrar este anuncio al cajero".
+ *
+ * Es de la página entera, no de una oferta, pero la lectura lo encuentra abajo
+ * de todo y se lo reparte a TODOS los cartones. Además sobra: el cartón ya lleva
+ * la franja VIP con el QR para hacerse socio.
+ *
+ * Son frases largas y concretas a propósito. Una condición real de producto
+ * ("LIMIT 2 PER FAMILY", "WITH CLUB CARD") no se parece a ninguna.
+ */
+const PAGE_DISCLAIMER = [
+  /\bshow\s+th(?:is|e)\s+ad\b/i,
+  /\bmostrar\s+este\s+anuncio\b/i,
+  /\bin\s+order\s+to\s+get\s+these\s+prices\b/i,
+  /\bpara\s+obtener\s+estos\s+precios\b/i,
+  /\bmust\s+be\s+(?:an?\s+)?vip\b/i,
+  /\bdebes?\s+ser\s+(?:un\s+)?cliente\s+vip\b/i,
+];
+
+/**
+ * Carteles de servicio del local, no condiciones de una oferta: "FREE TAXI",
+ * "FREE DELIVERY", "WE ACCEPT EBT", "PARTICIPATE FOR FREE" del sorteo.
+ *
+ * Viven en la cenefa de arriba o en la banda de abajo del flyer, lejos de
+ * cualquier producto, pero la lectura los encuentra y se los cuelga a un cartón
+ * cualquiera. Que digan FREE no los hace una oferta: se descartan por lo que
+ * acompaña a esa palabra, nunca por la palabra sola —si no, caerían "LACTOSE
+ * FREE MILK", "GLUTEN FREE" y "SUGAR FREE", que sí son del producto.
+ */
+const SERVICE_BANNER = [
+  /\bfree\s+(?:delivery|taxi|parking|shipping|wi-?fi)\b/i,
+  /\b(?:delivery|taxi|estacionamiento|env[ií]o|entrega)\s+gratis\b/i,
+  /\bparticipate\s+for\s+free\b/i,
+  /\bparticipa\s+gratis\b/i,
+  /\bwe\s+accept\b/i,
+  /\baceptamos\b/i,
+];
+
+function isPageDisclaimer(line: string): boolean {
+  if (PAGE_DISCLAIMER.some((re) => re.test(line))) return true;
+  if (SERVICE_BANNER.some((re) => re.test(line))) return true;
+  // "...VIP CUSTOMER ... TO THE CASHIER": las dos juntas sólo pasan en el aviso.
+  return /\bvip\b/i.test(line) && /\b(?:cashier|cajero)\b/i.test(line);
+}
+
 function isVipLabel(line: string): boolean {
   const words = line
     .toLowerCase()
@@ -87,7 +142,8 @@ function isVipLabel(line: string): boolean {
 }
 
 /**
- * Saca "VIP CUSTOMER ONLY" y sus variantes del texto del cartón.
+ * Saca del texto del cartón lo que es del flyer y no del producto: la etiqueta
+ * "VIP CUSTOMER ONLY" y el aviso de pie de página.
  *
  * El cartón ya lleva la franja VIP abajo, con el logo y el QR para hacerse
  * socio: repetirlo bajo el nombre del producto no agrega nada y le come una
@@ -101,7 +157,7 @@ export function dropVipLabels(p: ShelfSignProduct): ShelfSignProduct {
   const clean = (text: string) =>
     (text || '')
       .split('\n')
-      .filter((l) => !isVipLabel(l))
+      .filter((l) => !isVipLabel(l) && !isPageDisclaimer(l))
       .join('\n');
 
   return {
@@ -111,6 +167,81 @@ export function dropVipLabels(p: ShelfSignProduct): ShelfSignProduct {
     conditions: clean(p.conditions),
     extras: p.extras?.map((e) => ({ ...e, details: clean(e.details) })),
   };
+}
+
+
+/* ── Ofertas sin precio (BOGO / gratis) ───────────────────────────────────── */
+
+/** "BUY 1 GET 2 FREE", "BUY ONE GET ONE FREE", "BUY 1, GET 1 FREE". */
+const BOGO = /\bBUY\s+(\d+|ONE|TWO|THREE)\b[\s,.-]*\bGET\s+(\d+|ONE|TWO|THREE)\s+FREE\b/i;
+
+/** Una línea que no dice más que "FREE". */
+const JUST_FREE = /^FREE[!.]?$/i;
+
+const WORD_NUMBER: Record<string, number> = { one: 1, two: 2, three: 3 };
+
+const toCount = (token: string): number => {
+  const word = WORD_NUMBER[token.toLowerCase()];
+  if (word) return word;
+  const n = Math.floor(Number(token));
+  return Number.isFinite(n) && n > 0 ? n : 0;
+};
+
+/**
+ * Reconoce un BOGO en lo que leyó la IA y lo saca del texto.
+ *
+ * Un flyer de BOGO no imprime precio, así que la extracción devuelve dólares y
+ * centavos en cero y el cartón salía con **0¢** — un precio que no existe, en
+ * góndola, al lado de un producto que en realidad es dos por uno.
+ *
+ * Sólo se mira cuando NO hay precio: "BUY 1 GET 1 FREE" escrito al pie de una
+ * oferta de $3.99 es una condición, no el precio, y ahí se deja donde está.
+ *
+ * La línea reconocida se saca del detalle porque pasa a imprimirse en grande en
+ * el bloque de precio; "WITH CLUB CARD" o "LIMIT 4 OFFERS PER FAMILY" se quedan,
+ * que es lo que el cliente necesita leer al lado del nombre.
+ */
+export function detectFreeOffer(p: ShelfSignProduct): ShelfSignProduct {
+  if (p.freeOffer) return p;
+  if (clampDollars(p.dollars) > 0 || clampCents(p.cents) > 0) return p;
+
+  let found: FreeOffer | null = null;
+
+  const scan = (text: string): string =>
+    (text || '')
+      .split('\n')
+      .filter((line) => {
+        const clean = line.trim();
+        if (!clean) return true;
+
+        const bogo = clean.match(BOGO);
+        if (bogo) {
+          const buy = toCount(bogo[1]);
+          const free = toCount(bogo[2]);
+          if (free > 0) {
+            found = found || { buy, free };
+            // Sólo se saca si la línea es la oferta y nada más.
+            return clean.replace(BOGO, '').replace(/[\s,.!-]/g, '') !== '';
+          }
+        }
+
+        if (JUST_FREE.test(clean)) {
+          found = found || { buy: 0, free: 1 };
+          return false;
+        }
+
+        return true;
+      })
+      .join('\n');
+
+  const next: ShelfSignProduct = {
+    ...p,
+    details: scan(p.details),
+    details2: scan(p.details2),
+    conditions: scan(p.conditions),
+  };
+
+  return found ? { ...next, freeOffer: found } : p;
 }
 
 /** Tope de referencias por cartón: 1 principal + 4 alternativas. */

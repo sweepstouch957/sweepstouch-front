@@ -4,6 +4,7 @@ import {
   useEnhanceProductImage,
   useRemoveProductBackground,
   useSaveProductImages,
+  useDeleteProductImage,
   useSetActiveProductImage,
   useShelfsignProductImages,
 } from '@/hooks/fetching/designs/use-shelfsign-images';
@@ -27,6 +28,7 @@ import {
   CircularProgress,
   Collapse,
   Dialog,
+  DialogActions,
   DialogContent,
   DialogTitle,
   IconButton,
@@ -63,7 +65,13 @@ interface Props {
   /** Flyer subido. Lo guarda el studio: este paso se desmonta al cambiar de pestaña. */
   flyer: FlyerState;
   onFlyerChange: (patch: Partial<FlyerState>) => void;
+  /** Cartón al que saltar al llegar desde la vista previa. */
+  focusProductId?: string | null;
+  onFocusHandled?: () => void;
 }
+
+/** Ancla en el DOM de cada cartón, para traer el scroll desde el paso 3. */
+const cardAnchorId = (id: string) => `shelfsign-card-${id}`;
 
 export function StepProducts({
   products,
@@ -75,6 +83,8 @@ export function StepProducts({
   onStoreHint,
   flyer,
   onFlyerChange,
+  focusProductId,
+  onFocusHandled,
 }: Props): React.JSX.Element {
   const fileRef = React.useRef<HTMLInputElement>(null);
   const [manualOpen, setManualOpen] = React.useState(false);
@@ -117,6 +127,31 @@ export function StepProducts({
   /** Subidas manuales en vuelo. Se suman a las del pipeline para el skeleton. */
   const [uploadingIds, setUploadingIds] = React.useState<string[]>([]);
 
+  /**
+   * Llegada desde "editar" de la vista previa: traer el cartón a la vista y
+   * marcarlo un momento. Sin la marca, en una lista de 40 no se sabe en cuál se
+   * cayó. El scroll va en un rAF porque el paso recién se montó y las tarjetas
+   * todavía no tienen su posición final.
+   */
+  const [highlightId, setHighlightId] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!focusProductId) return;
+    const id = focusProductId;
+    const frame = requestAnimationFrame(() => {
+      document
+        .getElementById(cardAnchorId(id))
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    setHighlightId(id);
+    onFocusHandled?.();
+    const timer = window.setTimeout(() => setHighlightId(null), 2500);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, [focusProductId, onFocusHandled]);
+
   const enhance = useEnhanceProductImage();
   const removeBackground = useRemoveProductBackground();
   const saveToLibrary = useSaveProductImages();
@@ -131,18 +166,69 @@ export function StepProducts({
   );
   const { data: libraryImages } = useShelfsignProductImages(slugs);
 
+  /**
+   * Lo que ya vimos de cada slug en esta sesión.
+   *
+   * Elegir una versión guardada escribe en la librería, eso invalida la consulta
+   * y la lista se rearmaba entera con lo que devolviera el servidor. Si esa
+   * respuesta trae el historial recortado —queda la activa y nada más— el bloque
+   * entero desaparecía justo después de hacer click, que es lo último que se
+   * espera. Uniendo con lo ya visto, las miniaturas no se caen solas; borrar de
+   * la librería sí las saca, porque limpia este registro también.
+   */
+  const seenVersionsRef = React.useRef(new Map<string, ProductImageVersion[]>());
+
   const versionsBySlug = React.useMemo(() => {
     const map = new Map<string, ProductImageVersion[]>();
+
     for (const img of libraryImages || []) {
       // La activa primero: es la que el cartón está usando ahora.
       const list = [...(img.versions || [])];
       if (img.url && !list.some((v) => v.url === img.url)) {
         list.unshift({ url: img.url, source: img.source });
       }
+      for (const old of seenVersionsRef.current.get(img.slug) || []) {
+        if (!list.some((v) => v.url === old.url)) list.push(old);
+      }
+      seenVersionsRef.current.set(img.slug, list);
       map.set(img.slug, list);
     }
+
+    // Slugs que el servidor dejó de devolver pero que ya conocíamos.
+    seenVersionsRef.current.forEach((list, slug) => {
+      if (!map.has(slug)) map.set(slug, list);
+    });
+
     return map;
   }, [libraryImages]);
+
+  /**
+   * Borrar de la librería las fotos guardadas de un producto.
+   *
+   * El backend borra por slug: se van todas o ninguna, no hay endpoint para
+   * quitar una sola versión. Por eso el diálogo dice cuántas se llevan puestas.
+   */
+  const [forgetFor, setForgetFor] = React.useState<ShelfSignProduct | null>(null);
+  const deleteLibraryImage = useDeleteProductImage();
+
+  const confirmForget = React.useCallback(async () => {
+    const p = forgetFor;
+    if (!p) return;
+    const slug = productSlug(p.name);
+    setForgetFor(null);
+    if (!slug) return;
+    try {
+      await deleteLibraryImage.mutateAsync(slug);
+      seenVersionsRef.current.delete(slug);
+      setPhotoNote(`Fotos guardadas de "${p.name}" borradas de la librería.`);
+    } catch (e: any) {
+      setPhotoNote(
+        `No se pudieron borrar las fotos de "${p.name}": ${
+          e?.response?.data?.error || e?.message || e
+        }`
+      );
+    }
+  }, [deleteLibraryImage, forgetFor]);
 
   /** Vuelve a una foto ya guardada: se usa en el cartón y queda como default. */
   const handlePickVersion = React.useCallback(
@@ -589,10 +675,49 @@ color="inherit" /> : <UploadFileRoundedIcon />
               photoLoading={pendingPhotoIds.includes(p.id) || uploadingIds.includes(p.id)}
               versions={versionsBySlug.get(productSlug(p.name))}
               onPickVersion={handlePickVersion}
+              onForgetVersions={setForgetFor}
+              anchorId={cardAnchorId(p.id)}
+              highlighted={highlightId === p.id}
             />
           ))}
         </>
       )}
+
+      {/* Borrar de la librería: es todo el historial del producto, no una foto,
+          así que el diálogo dice cuántas se van y qué pasa después. */}
+      <Dialog
+        open={!!forgetFor}
+        onClose={() => setForgetFor(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>Borrar fotos guardadas</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2">
+            Se borran las{' '}
+            <b>{versionsBySlug.get(productSlug(forgetFor?.name || ''))?.length ?? 0} fotos</b>{' '}
+            guardadas de <b>{forgetFor?.name}</b>. No se puede deshacer.
+          </Typography>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ mt: 1.5 }}
+          >
+            El cartón se queda con la foto que está usando ahora. La próxima vez que se lea un
+            flyer con este producto, se vuelve a recortar desde cero.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setForgetFor(null)}>Cancelar</Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={() => void confirmForget()}
+          >
+            Borrar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Visor del flyer. El zoom arranca en "entra entero" y sube hasta 4x: a
           tamaño real un flyer de 1050x2300 no entra en ninguna pantalla, y lo que

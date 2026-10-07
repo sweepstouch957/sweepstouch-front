@@ -19,6 +19,21 @@ export interface PhotoBox {
   h: number;
 }
 
+/**
+ * Oferta sin precio en dinero: BOGO ("lleve 1 lleve 2 gratis") o producto
+ * gratis sujeto a una compra.
+ *
+ * No se puede expresar con qty/dollars/cents: sin dólares ni centavos el
+ * formato cae en "centavos" y el cartón imprimía **0¢**, que en góndola es un
+ * problema serio. Va aparte, y cuando está presente manda sobre el precio.
+ */
+export interface FreeOffer {
+  /** Cuántas hay que llevar. 0 = gratis a secas; la condición va en `conditions`. */
+  buy: number;
+  /** Cuántas salen gratis. Siempre >= 1. */
+  free: number;
+}
+
 export interface ShelfSignProduct {
   id: string;
 
@@ -39,6 +54,9 @@ export interface ShelfSignProduct {
    * les pone "OR" igual que al producto 2.
    */
   extras?: { name: string; details: string }[];
+
+  /** Oferta sin precio. Si está, el bloque de precio la imprime en vez del número. */
+  freeOffer?: FreeOffer;
 
   /** Precio: cantidad ≥ 1, dólares ≥ 0, centavos 0-99. */
   qty: number;

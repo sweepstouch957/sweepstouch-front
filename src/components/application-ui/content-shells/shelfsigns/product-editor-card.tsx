@@ -3,16 +3,21 @@
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import {
   Box,
   Button,
   Card,
   CardContent,
   CircularProgress,
+  Dialog,
+  DialogContent,
+  FormControlLabel,
   IconButton,
   MenuItem,
   Skeleton,
   Stack,
+  Switch,
   TextField,
   Tooltip,
   Typography,
@@ -49,6 +54,12 @@ interface Props {
   versions?: ProductImageVersion[];
   /** Elegir una de esas fotos: se usa en el cartón y pasa a ser la default. */
   onPickVersion?: (product: ShelfSignProduct, url: string) => void;
+  /** Borrar de la librería TODAS las guardadas del producto. El padre confirma. */
+  onForgetVersions?: (product: ShelfSignProduct) => void;
+  /** Ancla para que la vista previa pueda traer el scroll hasta este cartón. */
+  anchorId?: string;
+  /** Marcado un momento después de llegar desde la vista previa. */
+  highlighted?: boolean;
 }
 
 /** De dónde salió cada versión, para que el diseñador sepa qué está eligiendo. */
@@ -80,6 +91,9 @@ function ProductEditorCardBase({
   photoLoading = false,
   versions,
   onPickVersion,
+  onForgetVersions,
+  anchorId,
+  highlighted,
 }: Props): React.JSX.Element {
   const fileRef = React.useRef<HTMLInputElement>(null);
 
@@ -134,18 +148,81 @@ function ProductEditorCardBase({
     set({ extras: [...extras, { name: '', details: '' }] });
   };
 
-  const pickPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
+  /** Único camino para una foto nueva: la elegida, la soltada y la pegada. */
+  const acceptPhoto = async (file: File | null | undefined) => {
+    if (!file || !file.type.startsWith('image/')) return;
     // Vista previa inmediata desde el archivo local; el padre la reemplaza por
     // la URL de Cloudinary cuando termina de guardarla en la librería.
     set({ photo: await readAsDataURL(file), photoBox: null });
     onPhotoFile?.(p, file);
   };
 
+  const pickPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    await acceptPhoto(file);
+  };
+
+  const [dragOver, setDragOver] = React.useState(false);
+  /** Visor de la foto a tamaño grande. */
+  const [zoomOpen, setZoomOpen] = React.useState(false);
+
+  const onDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    await acceptPhoto(Array.from(e.dataTransfer.files).find((f) => f.type.startsWith('image/')));
+  };
+
+  const onDragOver = (e: React.DragEvent) => {
+    if (!Array.from(e.dataTransfer.types).includes('Files')) return;
+    e.preventDefault();
+    setDragOver(true);
+  };
+
+  /**
+   * Ctrl+V con el mouse encima, igual que en el catálogo del circular.
+   *
+   * Va por `document` y no por `onPaste` del recuadro porque un div no recibe
+   * el evento sin tener el foco, y pedir un click previo para poder pegar
+   * arruina el gesto. El puntero se guarda en un ref: marcar el hover en estado
+   * re-renderizaría la tarjeta cada vez que el mouse la cruza, y en una lista de
+   * 40 cartones eso se nota.
+   */
+  const hoverRef = React.useRef(false);
+  const acceptRef = React.useRef(acceptPhoto);
+  acceptRef.current = acceptPhoto;
+
+  React.useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      if (!hoverRef.current) return;
+      // Pegar dentro de un campo de texto es otra cosa.
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('input, textarea, [contenteditable="true"]')) return;
+
+      const item = Array.from(e.clipboardData?.items || []).find((i) =>
+        i.type.startsWith('image/')
+      );
+      const file = item?.getAsFile();
+      if (!file) return;
+      e.preventDefault();
+      void acceptRef.current(file);
+    };
+
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, []);
+
   return (
-    <Card variant="outlined">
+    <Card
+      id={anchorId}
+      variant="outlined"
+      sx={{
+        transition: 'box-shadow .3s, border-color .3s',
+        ...(highlighted && { borderColor: color, boxShadow: 4 }),
+        // Que el cartón no quede pegado al borde al traerlo con scroll.
+        scrollMarginTop: 96,
+      }}
+    >
       <CardContent>
         <Stack
           direction="row"
@@ -267,6 +344,7 @@ function ProductEditorCardBase({
                   label="Cant."
                   size="small"
                   type="number"
+                  disabled={!!p.freeOffer}
                   value={p.qty}
                   onChange={(e) => set({ qty: clampQty(e.target.value) })}
                   inputProps={{ min: 1 }}
@@ -275,6 +353,7 @@ function ProductEditorCardBase({
                   label="$"
                   size="small"
                   type="number"
+                  disabled={!!p.freeOffer}
                   value={p.dollars}
                   onChange={(e) => set({ dollars: clampDollars(e.target.value) })}
                   inputProps={{ min: 0 }}
@@ -283,6 +362,7 @@ function ProductEditorCardBase({
                   label="¢"
                   size="small"
                   type="number"
+                  disabled={!!p.freeOffer}
                   value={p.cents}
                   onChange={(e) => set({ cents: clampCents(e.target.value) })}
                   inputProps={{ min: 0, max: 99 }}
@@ -299,6 +379,70 @@ function ProductEditorCardBase({
                   <MenuItem value="">—</MenuItem>
                 </TextField>
               </Box>
+              {/* BOGO / gratis. Va como switch y no como un formato más del
+                  precio porque no tiene número: con el switch puesto, los campos
+                  de arriba dejan de aplicar y se apagan para que nadie los pelee. */}
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={1}
+                sx={{ mt: 0.75 }}
+                useFlexGap
+                flexWrap="wrap"
+              >
+                <FormControlLabel
+                  sx={{ mr: 0 }}
+                  control={
+                    <Switch
+                      size="small"
+                      checked={!!p.freeOffer}
+                      onChange={(e) =>
+                        set({ freeOffer: e.target.checked ? { buy: 1, free: 1 } : undefined })
+                      }
+                    />
+                  }
+                  label={
+                    <Typography variant="caption">Sin precio (BOGO / gratis)</Typography>
+                  }
+                />
+                {p.freeOffer && (
+                  <>
+                    <TextField
+                      label="Lleva"
+                      size="small"
+                      type="number"
+                      value={p.freeOffer.buy}
+                      onChange={(e) =>
+                        set({
+                          freeOffer: {
+                            buy: Math.max(0, Math.floor(Number(e.target.value)) || 0),
+                            free: p.freeOffer?.free || 1,
+                          },
+                        })
+                      }
+                      helperText="0 = gratis"
+                      inputProps={{ min: 0 }}
+                      sx={{ width: 96 }}
+                    />
+                    <TextField
+                      label="Gratis"
+                      size="small"
+                      type="number"
+                      value={p.freeOffer.free}
+                      onChange={(e) =>
+                        set({
+                          freeOffer: {
+                            buy: p.freeOffer?.buy ?? 1,
+                            free: Math.max(1, Math.floor(Number(e.target.value)) || 1),
+                          },
+                        })
+                      }
+                      inputProps={{ min: 1 }}
+                      sx={{ width: 96 }}
+                    />
+                  </>
+                )}
+              </Stack>
             </Box>
 
             <Typography
@@ -362,7 +506,26 @@ function ProductEditorCardBase({
               onChange={(e) => set({ conditions: e.target.value })}
             />
 
-            <Box>
+            <Box
+              onMouseEnter={() => {
+                hoverRef.current = true;
+              }}
+              onMouseLeave={() => {
+                hoverRef.current = false;
+                setDragOver(false);
+              }}
+              onDragOver={onDragOver}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={onDrop}
+              sx={{
+                borderRadius: 1,
+                p: 0.75,
+                mx: -0.75,
+                transition: 'background-color .15s, outline-color .15s',
+                outline: '2px dashed transparent',
+                ...(dragOver && { outlineColor: color, bgcolor: 'action.hover' }),
+              }}
+            >
               <Typography
                 variant="caption"
                 sx={labelSx}
@@ -395,22 +558,26 @@ function ProductEditorCardBase({
                 </Stack>
               ) : p.photo ? (
                 <Stack spacing={0.5}>
-                  <Box
-                    component="img"
-                    src={p.photo}
-                    alt=""
-                    sx={{
-                      opacity: photoLoading ? 0.45 : 1,
-                      maxHeight: 90,
-                      objectFit: 'contain',
-                      alignSelf: 'flex-start',
-                      borderRadius: 1,
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      bgcolor: 'background.paper',
-                      p: 0.5,
-                    }}
-                  />
+                  <Tooltip title="Ver la foto en grande">
+                    <Box
+                      component="img"
+                      src={p.photo}
+                      alt=""
+                      onClick={() => setZoomOpen(true)}
+                      sx={{
+                        opacity: photoLoading ? 0.45 : 1,
+                        maxHeight: 90,
+                        objectFit: 'contain',
+                        alignSelf: 'flex-start',
+                        borderRadius: 1,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        bgcolor: 'background.paper',
+                        p: 0.5,
+                        cursor: 'zoom-in',
+                      }}
+                    />
+                  </Tooltip>
                   {photoLoading && (
                     <Typography
                       variant="caption"
@@ -482,7 +649,9 @@ function ProductEditorCardBase({
                     variant="caption"
                     color="text.secondary"
                   >
-                    Sin foto.
+                    {dragOver
+                      ? 'Soltá la imagen acá.'
+                      : 'Sin foto. Arrastrá una imagen o pegá con Ctrl+V.'}
                   </Typography>
                   <Stack direction="row"
 spacing={1}>
@@ -511,12 +680,32 @@ spacing={1}>
                   se vuelve a ella con un click, sin gastar créditos. */}
               {versions && versions.length > 1 && onPickVersion && (
                 <Box sx={{ mt: 1 }}>
-                  <Typography
-                    variant="caption"
-                    sx={labelSx}
+                  <Stack
+                    direction="row"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    sx={{ gap: 1 }}
                   >
-                    Versiones guardadas ({versions.length})
-                  </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={labelSx}
+                    >
+                      Versiones guardadas ({versions.length})
+                    </Typography>
+                    {onForgetVersions && (
+                      <Tooltip title="Borrar de la librería las fotos guardadas de este producto">
+                        <Button
+                          size="small"
+                          color="error"
+                          startIcon={<DeleteOutlineRoundedIcon fontSize="small" />}
+                          onClick={() => onForgetVersions(p)}
+                          sx={{ textTransform: 'none', minWidth: 0, py: 0 }}
+                        >
+                          Borrar
+                        </Button>
+                      </Tooltip>
+                    )}
+                  </Stack>
                   <Stack
                     direction="row"
                     spacing={0.75}
@@ -557,6 +746,57 @@ spacing={1}>
           </Stack>
         </Box>
       </CardContent>
+
+      {/* Visor a tamaño grande.
+          El fondo a cuadros no es decorativo: estos recortes van sin fondo y el
+          cartón se imprime sobre blanco, así que contra blanco no se ve si quedó
+          un halo o un resto del flyer. Contra los cuadros salta a la vista. */}
+      <Dialog
+        open={zoomOpen}
+        onClose={() => setZoomOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogContent sx={{ position: 'relative', p: 0 }}>
+          <IconButton
+            aria-label="Cerrar"
+            onClick={() => setZoomOpen(false)}
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              zIndex: 1,
+              bgcolor: 'background.paper',
+              '&:hover': { bgcolor: 'background.paper' },
+            }}
+          >
+            <CloseRoundedIcon />
+          </IconButton>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: '50vh',
+              backgroundColor: '#fff',
+              backgroundImage:
+                'linear-gradient(45deg, #e9e9e9 25%, transparent 25%, transparent 75%, #e9e9e9 75%),' +
+                'linear-gradient(45deg, #e9e9e9 25%, transparent 25%, transparent 75%, #e9e9e9 75%)',
+              backgroundSize: '20px 20px',
+              backgroundPosition: '0 0, 10px 10px',
+            }}
+          >
+            {p.photo && (
+              <Box
+                component="img"
+                src={p.photo}
+                alt={p.name}
+                sx={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain' }}
+              />
+            )}
+          </Box>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

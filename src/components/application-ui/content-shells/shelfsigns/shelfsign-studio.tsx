@@ -41,6 +41,8 @@ export function ShelfSignStudio(): React.JSX.Element {
    * perdían el visor, "Recortar del flyer" y "Mejorar con IA".
    */
   const [flyer, setFlyer] = React.useState<FlyerState>(emptyFlyerState);
+  /** Cartón que la vista previa mandó a editar. Lo consume el paso 2 y se limpia. */
+  const [focusProduct, setFocusProduct] = React.useState<string | null>(null);
 
   // Las fechas se siembran en el cliente: calcularlas durante el render haría
   // que el HTML del servidor y el del navegador no coincidan.
@@ -52,6 +54,13 @@ export function ShelfSignStudio(): React.JSX.Element {
     (patch: Partial<ShelfSignConfig>) => setConfig((c) => ({ ...c, ...patch })),
     []
   );
+
+  const editProduct = React.useCallback((id: string) => {
+    setFocusProduct(id);
+    setStep(1);
+  }, []);
+
+  const clearFocus = React.useCallback(() => setFocusProduct(null), []);
 
   const patchFlyer = React.useCallback(
     (patch: Partial<FlyerState>) => setFlyer((f) => ({ ...f, ...patch })),
@@ -144,6 +153,8 @@ export function ShelfSignStudio(): React.JSX.Element {
             onStoreHint={setStoreHint}
             flyer={flyer}
             onFlyerChange={patchFlyer}
+            focusProductId={focusProduct}
+            onFocusHandled={clearFocus}
           />
         )}
         {step === 2 && (
@@ -153,6 +164,10 @@ export function ShelfSignStudio(): React.JSX.Element {
             products={products}
             storeHint={storeHint}
             onPatchProduct={patchProduct}
+            // La URL antes que el dataURL: el original en base64 pesa varios MB
+            // y la lupa lo usa como background-image.
+            flyerSrc={flyer.url || flyer.preview}
+            onEditProduct={editProduct}
           />
         )}
       </Box>

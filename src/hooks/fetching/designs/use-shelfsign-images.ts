@@ -117,3 +117,17 @@ export function useSaveProductImages() {
     onSuccess: invalidate,
   });
 }
+
+/**
+ * Borra de la librería todas las fotos guardadas de un producto.
+ *
+ * El backend sólo expone el borrado por slug: no hay forma de quitar UNA
+ * versión. Es todo o nada, y la UI lo dice antes de confirmar.
+ */
+export function useDeleteProductImage() {
+  const invalidate = useLibraryInvalidator();
+  return useMutation<void, unknown, string>({
+    mutationFn: (slug) => designsService.deleteProductImage(slug),
+    onSuccess: invalidate,
+  });
+}

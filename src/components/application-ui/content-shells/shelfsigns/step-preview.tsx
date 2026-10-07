@@ -1,5 +1,6 @@
 'use client';
 
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import PrintRoundedIcon from '@mui/icons-material/PrintRounded';
 import RestartAltRoundedIcon from '@mui/icons-material/RestartAltRounded';
 import {
@@ -10,19 +11,23 @@ import {
   Card,
   CardContent,
   CircularProgress,
+  IconButton,
   Stack,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import RangePickerField from '@/components/base/range-picker-field';
 import type { StoreHintDto } from '@/services/designs.service';
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { fmtOfferDate } from './dates';
+import { offerValidLines } from './dates';
+import { FlyerLens } from './flyer-lens';
 import { matchStoreByHint } from './store-match';
 import { paginate, Sheet } from './sheet';
+import { StickyColumn } from './sticky-column';
 import type { ShelfSignConfig, ShelfSignProduct } from './types';
 import { useActiveStores, useStoreGenericQr } from './use-shelfsign-data';
 
@@ -42,10 +47,27 @@ interface Props {
   storeHint?: StoreHintDto | null;
   /** Encuadre de la foto: se ajusta acá, donde el cartón ya está armado. */
   onPatchProduct: (id: string, patch: Partial<ShelfSignProduct>) => void;
+  /** El flyer del que salieron los cartones, para revisarlos contra él. */
+  flyerSrc?: string | null;
+  /** Saltar al paso 2 con ese cartón a la vista. */
+  onEditProduct?: (id: string) => void;
 }
 
 /** Zoom al que se muestra la hoja. Las puntas se compensan con él. */
 const PREVIEW_SCALE = 0.6;
+
+/**
+ * Medidas de una hoja ya escalada.
+ *
+ * `transform: scale` dibuja más chico pero NO achica el lugar que el elemento
+ * ocupa: la hoja seguía reservando sus 8.5in de ancho aunque se viera a 5.1in,
+ * y eso dejaba una franja muerta entre los cartones y el flyer. Acotando la caja
+ * a lo que realmente se ve, el flyer queda al lado.
+ */
+const SHEET_SCREEN_WIDTH = `${8.5 * PREVIEW_SCALE}in`;
+const SHEET_SCREEN_HEIGHT = `${11 * PREVIEW_SCALE}in`;
+/** Media hoja: dónde empieza el cartón de abajo. */
+const SIGN_SCREEN_HEIGHT = 5.5 * PREVIEW_SCALE;
 
 /**
  * Las hojas a imprimir se montan colgando de <body>, no del árbol de la página.
@@ -66,6 +88,8 @@ export function StepPreview({
   products,
   storeHint,
   onPatchProduct,
+  flyerSrc,
+  onEditProduct,
 }: Props): React.JSX.Element {
   const { stores, loadingStores } = useActiveStores();
   const { qrUrl, loadingQr, qrMissing } = useStoreGenericQr(config.storeId);
@@ -102,6 +126,7 @@ export function StepPreview({
   }, [qrUrl, config.qrUrl, onChange]);
 
   const pages = React.useMemo(() => paginate(products), [products]);
+
 
   const [photoMode, setPhotoMode] = React.useState<'move' | 'crop'>('move');
 
@@ -218,9 +243,8 @@ export function StepPreview({
                 variant="caption"
                 sx={{ display: 'block', mt: 0.5, fontWeight: 700, color: config.color }}
               >
-                {config.dateFrom && config.dateTo
-                  ? `${fmtOfferDate(config.dateFrom)} → ${fmtOfferDate(config.dateTo, true)}`
-                  : 'Sin fechas'}
+                {/* Lo mismo que va a salir impreso, incluido el caso de un solo día. */}
+                {offerValidLines(config.dateFrom, config.dateTo).join(' ') || 'Sin fechas'}
               </Typography>
             </Box>
 
@@ -344,7 +368,20 @@ export function StepPreview({
             </Typography>
           </Stack>
 
-          {pages.map((pair, i) => (
+          {/* Hojas y flyer a la par. El flyer queda fijo mientras se baja por
+              los cartones: revisarlos es compararlos contra el papel. */}
+          <Stack
+            direction={{ xs: 'column', lg: 'row' }}
+            spacing={3}
+            // `stretch` (y no `flex-start`): la columna del flyer tiene que
+            // tomar el alto de las hojas para saber hasta dónde acompañarlas.
+            alignItems="stretch"
+          >
+            <Stack
+              spacing={3}
+              sx={{ flexShrink: 0, minWidth: 0 }}
+            >
+              {pages.map((pair, i) => (
             <Box key={pair[0].id}>
               <Typography
                 variant="caption"
@@ -353,13 +390,21 @@ export function StepPreview({
               >
                 Hoja {i + 1} de {pages.length}
               </Typography>
-              <Box sx={{ overflowX: 'auto' }}>
+              <Box
+                sx={{
+                  overflowX: 'auto',
+                  width: SHEET_SCREEN_WIDTH,
+                  maxWidth: '100%',
+                  // Para colgar de acá el botón de editar de cada cartón.
+                  position: 'relative',
+                }}
+              >
                 <Box
                   sx={{
                     transform: `scale(${PREVIEW_SCALE})`,
                     transformOrigin: 'top left',
-                    width: '8.5in',
-                    height: '6.7in',
+                    width: SHEET_SCREEN_WIDTH,
+                    height: SHEET_SCREEN_HEIGHT,
                   }}
                 >
                   <Sheet
@@ -369,6 +414,32 @@ export function StepPreview({
                     edit={edit}
                   />
                 </Box>
+
+                {/* Editar este cartón. Va por fuera de la hoja escalada: adentro
+                    saldría al 60% y habría que compensarlo, y además el botón no
+                    tiene nada que hacer en el árbol de lo que se imprime. */}
+                {onEditProduct &&
+                  pair.map((p, half) => (
+                    <Tooltip
+                      key={`edit-${p.id}`}
+                      title={`Editar "${p.name || 'este cartón'}" en el paso 2`}
+                    >
+                      <IconButton
+                        size="small"
+                        onClick={() => onEditProduct(p.id)}
+                        sx={{
+                          position: 'absolute',
+                          left: 6,
+                          top: `calc(${half * SIGN_SCREEN_HEIGHT}in + 6px)`,
+                          bgcolor: 'background.paper',
+                          boxShadow: 2,
+                          '&:hover': { bgcolor: 'background.paper' },
+                        }}
+                      >
+                        <EditRoundedIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  ))}
               </Box>
 
               {/* Devolver la foto a su caja. Sólo aparece si se movió: hasta
@@ -411,7 +482,25 @@ export function StepPreview({
                   ))}
               </Stack>
             </Box>
-          ))}
+              ))}
+            </Stack>
+
+            {flyerSrc && (
+              <StickyColumn>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: 'block', mb: 0.5 }}
+                >
+                  Flyer · pasá el mouse por encima para agrandar
+                </Typography>
+                <FlyerLens
+                  src={flyerSrc}
+                  maxHeight={`min(${SHEET_SCREEN_HEIGHT}, calc(100vh - 140px))`}
+                />
+              </StickyColumn>
+            )}
+          </Stack>
         </Stack>
       )}
 

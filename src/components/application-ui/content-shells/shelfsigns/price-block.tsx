@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { priceValues } from './price';
+import { freePurchaseCondition, priceValues } from './price';
 import type { ShelfSignProduct } from './types';
 
 /**
@@ -22,7 +22,8 @@ interface Props {
 }
 
 export function PriceBlock({ product, color }: Props): React.JSX.Element {
-  const { qty, dollars, cents, unit, format } = priceValues(product);
+  const { qty, dollars, cents, unit, format, freeOffer } = priceValues(product);
+  const purchaseCondition = freePurchaseCondition(product);
 
   const big: React.CSSProperties = {
     fontWeight: 800,
@@ -31,6 +32,61 @@ export function PriceBlock({ product, color }: Props): React.JSX.Element {
     letterSpacing: '-5px',
     fontSize: 188,
   };
+
+  /* BUY 1 GET 2 FREE · FREE — sin número de precio.
+     El "FREE" lleva el peso visual que en los otros formatos lleva el número:
+     es lo que se lee de lejos. La condición ("WITH CLUB CARD", "LIMIT 4 OFFERS
+     PER FAMILY") sigue yendo con el nombre, como en cualquier otro cartón. */
+  if (format === 'free' && freeOffer) {
+    return (
+      <div style={{ marginTop: 10 }}>
+        {freeOffer.buy > 0 && (
+          <div
+            style={{
+              color,
+              fontWeight: 800,
+              fontSize: 54,
+              lineHeight: 1,
+              letterSpacing: '-2px',
+            }}
+          >
+            {`BUY ${freeOffer.buy} GET ${freeOffer.free}`}
+          </div>
+        )}
+        <div
+          style={{
+            color,
+            fontWeight: 800,
+            // Más chico que los 188 del número: FREE son cuatro letras anchas y
+            // a ese cuerpo se sale de la media hoja.
+            fontSize: 140,
+            lineHeight: 0.9,
+            letterSpacing: '-6px',
+          }}
+        >
+          FREE
+        </div>
+        {purchaseCondition && (
+          <div
+            style={{
+              color,
+              fontWeight: 800,
+              // Grande, pero por debajo del FREE: es la letra chica que decide
+              // si el cliente se lleva el producto o no, y a 11.5px entre el
+              // nombre no se lee desde el pasillo.
+              fontSize: 34,
+              lineHeight: 1.05,
+              letterSpacing: '-1px',
+              marginTop: 6,
+              maxWidth: '2.9in',
+            }}
+          >
+            {purchaseCondition}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   /* 2/$12.95 — múltiple. Con unidad explícita, prefijo apilado 4/$ · LB. · FOR */
   if (format === 'multi') {
