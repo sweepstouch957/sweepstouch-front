@@ -61,8 +61,8 @@ export const BUTTON_LINKS = [
   },
   {
     value: 'pdf',
-    label: 'Sólo el PDF del circular',
-    hint: 'Abre únicamente el circular (el link de circularss de la tienda primero; si no, el PDF cargado). Sin dashboard, sin botones.',
+    label: 'Circular en el linktree',
+    hint: 'La portada del linktree de la tienda con el circular abierto (el link de circularss primero; si no, el PDF cargado). Con sesión si el cliente la tiene.',
   },
   {
     value: 'custom',
