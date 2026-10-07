@@ -124,8 +124,11 @@ export type CatalogCleanupPlan = {
     saleUnit: number;
     offerCondition: number;
     maxPerCustomer: number;
+    minPerCustomer: number;
     name: number;
     counterOnly: number;
+    price: number;
+    originalPrice: number;
   };
   examples: Array<{ name: string; changes: Record<string, unknown> }>;
   modified?: number;
