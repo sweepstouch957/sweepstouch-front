@@ -117,6 +117,9 @@ export default function ListStatusCard({
   // Atenea lo audita página por página, y la revisión diaria deja lo dudoso en Agentes IA.
   const fix = useMutation({
     mutationFn: async () => {
+      // Hefesto primero: limpieza fija de lo guardado (precios "9$95", regular absurdo,
+      // "at the counter"/límite/compra mínima repetidos en la letra chica).
+      await circularService.catalogCleanup(storeSlug, true).catch(() => null);
       const v = await circularService.syncVisibility(storeSlug);
       if (s?.ruling?.hasFile) await circularService.runAudit(s.ruling.id);
       await circularService.runProductReview(storeSlug).catch(() => null);
@@ -403,6 +406,10 @@ export default function ListStatusCard({
             component="ul"
             sx={{ pl: 2.5, m: 0, '& li': { mb: 0.5 } }}
           >
+            <li>
+              <b>Hefesto</b> corrige de forma lo guardado: precios mal leídos ("9$95" → "$9.95"),
+              regulares absurdos fuera, letra chica sin repetir mostrador, límite o compra mínima.
+            </li>
             <li>
               <b>Temis</b> deja visibles sólo los productos de este flyer, oculta el resto y quita
               los repetidos.
