@@ -1,0 +1,195 @@
+/**
+ * Workspace › Diseño — modelo de dominio.
+ *
+ * Fase 1: todo vive en el store local (zustand + localStorage). Los nombres de
+ * campo son los que va a usar la API en fase 2, así que migrar es cambiar el
+ * origen de los datos, no el modelo.
+ */
+
+/* ── Roles ─────────────────────────────────────────────────────────────── */
+
+/**
+ * Sólo dos roles: Pedro y María son Admin y hacen todo (coordinan, auditan y
+ * pueden usar los botones del diseñador). No existen "Coordinador" y "Auditor"
+ * como personas separadas.
+ */
+export type DesignRole = 'admin' | 'designer';
+
+/** Área de auditoría del admin. Pedro mira el diseño; María, el contenido.
+ *  Sólo se usa para la autoría de los errores y su conteo por auditor. */
+export type AuditorArea = 'diseño' | 'contenido';
+
+export interface DesignUser {
+  id: string;
+  name: string;
+  role: DesignRole;
+  /** Sólo en admins: con qué autoría firma los errores de auditoría. */
+  area?: AuditorArea;
+  avatar?: string;
+  /** Cargo, cuando la persona viene del listado de empleados del panel. */
+  jobTitle?: string;
+}
+
+/* ── Estados del tablero ───────────────────────────────────────────────── */
+
+export type CardStatus =
+  | 'nuevo_requerimiento'
+  | 'productos_definidos'
+  | 'disenandose'
+  | 'on_hold'
+  | 'auditoria'
+  | 'errores_updates'
+  | 'esperando_aprobacion'
+  | 'finalizado'
+  | 'agendado';
+
+/* ── Tipo de tarjeta ───────────────────────────────────────────────────── */
+
+/**
+ * `mms_circular` es visualmente un MMS con una marca sutil y cuenta como MMS
+ * en métricas; se separa sólo para poder filtrarlo y para que la automatización
+ * semanal sepa qué generó.
+ */
+export type CardType = 'mms' | 'mms_circular' | 'especial';
+
+export type CardTag = 'lista_creada' | 'shelfsigns' | 'prioridad';
+
+/** Por qué una tarjeta entró a Errores/Updates. Se pide siempre al entrar. */
+export type ErrorCause = 'error_disenador' | 'update_cliente';
+
+/* ── Auditoría ─────────────────────────────────────────────────────────── */
+
+export interface AuditIssue {
+  id: string;
+  /** HTML: acepta texto e imágenes pegadas con Ctrl+V. */
+  description: string;
+  /** Auditor que lo marcó — habilita el conteo de errores por auditor. */
+  authorId: string;
+  authorName: string;
+  area: AuditorArea;
+  createdAt: string;
+  /** Ronda de auditoría en la que se detectó (1 = primera). */
+  round: number;
+}
+
+/* ── Tiempos ───────────────────────────────────────────────────────────── */
+
+/** Un tramo en On Hold. `end` en null = sigue pausada. */
+export interface HoldPeriod {
+  start: string;
+  end: string | null;
+}
+
+export interface CardTimestamps {
+  createdAt: string;
+  assignedAt: string | null;
+  designStartedAt: string | null;
+  sentToAuditAt: string | null;
+  approvedAt: string | null;
+  scheduledAt: string | null;
+}
+
+/** Entrada y salida de Errores/Updates: se registra, no se mide. */
+export interface ErrorPeriod {
+  cause: ErrorCause;
+  start: string;
+  end: string | null;
+}
+
+/* ── Adjuntos ──────────────────────────────────────────────────────────── */
+
+export interface CardAttachment {
+  id: string;
+  name: string;
+  /** Extensión normalizada: pdf, docx, xlsx, png… */
+  kind: string;
+  size: number;
+  /** Fase 1: dataURL o nombre; fase 2: URL de Drive. */
+  url: string;
+}
+
+/* ── Tarjeta ───────────────────────────────────────────────────────────── */
+
+export interface DesignCard {
+  id: string;
+  type: CardType;
+  status: CardStatus;
+
+  /* Obligatorios para poder crear la carpeta de Drive */
+  storeId: string;
+  storeName: string;
+  /** Autocompletada desde la tienda. Click = copiar. */
+  address: string;
+  /** Vigencia del flyer, NO las fechas de trabajo. */
+  promoStart: string;
+  promoEnd: string;
+  designerId: string | null;
+  designerName: string | null;
+
+  /* Manuales */
+  productCount: number;
+  tags: CardTag[];
+  /** HTML: texto enriquecido con imágenes pegadas. Sólo Coordinador lo edita. */
+  productList: string;
+  attachments: CardAttachment[];
+  /** Obligatorio en Diseño Especial: el pedido completo va escrito acá. */
+  brief: string;
+  /** Fotos de referencia del especial. */
+  briefImages: string[];
+  /** Quién pide el especial: cualquier empleado del panel. */
+  requesterId: string | null;
+  requesterName: string | null;
+
+  /* Automáticos */
+  /** = productCount cuando lleva la etiqueta Shelfsigns. */
+  shelfsignsCount: number;
+  /** Fase 2: PNGs en la subcarpeta tablets del Drive. Fase 1: mock. */
+  tabletVersions: number;
+  /** Fase 2: link real a Drive. */
+  folderUrl: string | null;
+
+  /* Duplicación */
+  isDuplicate: boolean;
+  duplicatedFromId: string | null;
+
+  /* Auditoría y ciclo */
+  auditIssues: AuditIssue[];
+  auditRound: number;
+  errorPeriods: ErrorPeriod[];
+  holdPeriods: HoldPeriod[];
+  timestamps: CardTimestamps;
+
+  /** Generada por la automatización semanal, no a mano. */
+  autoGenerated: boolean;
+}
+
+/* ── Automatización de Modalidad circular ──────────────────────────────── */
+
+/** 1 = lunes … 5 = viernes. Default lunes. */
+export type WeekDay = 1 | 2 | 3 | 4 | 5;
+
+export interface CircularGroup {
+  id: string;
+  name: string;
+  /** Día en que se generan las tarjetas de este grupo. */
+  day: WeekDay;
+  storeIds: string[];
+}
+
+export interface CircularConfig {
+  enabled: boolean;
+  /** Día global; cada grupo puede pisarlo con el suyo. */
+  defaultDay: WeekDay;
+  groups: CircularGroup[];
+  lastRunAt: string | null;
+}
+
+/* ── Tienda (forma reducida del módulo Stores) ─────────────────────────── */
+
+export interface DesignStore {
+  id: string;
+  name: string;
+  address: string;
+  image?: string;
+  active: boolean;
+}

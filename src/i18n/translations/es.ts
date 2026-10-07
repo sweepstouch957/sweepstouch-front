@@ -17,6 +17,8 @@ export const es = {
   "Create product": "Crear producto",
   "Create Store": "Crear tienda",
   "Circulars": "Circulares",
+  "Workspace": "Workspace",
+  "Diseño": "Diseño",
   "Designs Studio": "Designs Studio",
   "Flyers": "Flyers",
   "Shelfsigns": "Shelfsigns",

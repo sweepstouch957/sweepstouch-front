@@ -51,10 +51,32 @@ const CUTOUT_CONCURRENCY = 3;
 /** Más allá de esto /ai/upload rechaza el archivo (multer, 20 MB). */
 const MAX_UPLOAD_BYTES = 18 * 1024 * 1024;
 
+/**
+ * Estado del flyer subido.
+ *
+ * Vive en el studio y NO en este hook: el paso 2 se desmonta al cambiar de
+ * pestaña y con él moría el flyer. Al volver desaparecían la tarjeta "Flyer
+ * subido", "Recortar del flyer" y el "Mejorar con IA" de los productos cuya
+ * foto no es una URL de Cloudinary, aunque los cartones siguieran ahí.
+ */
+export interface FlyerState {
+  /** Original en dataURL. El visor y el recorte lo prefieren: resolución completa y sin CORS. */
+  preview: string | null;
+  /** Flyer en Cloudinary: el backend recorta desde acá, y lo usa "Mejorar con IA". */
+  url: string | null;
+  /** Línea de progreso / resumen bajo los botones de extracción. */
+  status: string;
+}
+
+export const emptyFlyerState = (): FlyerState => ({ preview: null, url: null, status: '' });
+
 interface Options {
   /** `replace` limpia la lista, `append` agrega los que van llegando. */
   onProducts: (items: ShelfSignProduct[], mode: 'replace' | 'append') => void;
   onPatchProduct: (id: string, patch: Partial<ShelfSignProduct>) => void;
+  /** Estado elevado al studio, para que sobreviva al cambio de pestaña. */
+  flyer: FlyerState;
+  onFlyerChange: (patch: Partial<FlyerState>) => void;
 }
 
 interface PhotoCounters {
@@ -76,13 +98,30 @@ async function mapLimit<T>(items: T[], limit: number, task: (item: T) => Promise
   await Promise.all(workers);
 }
 
-export function useFlyerExtraction({ onProducts, onPatchProduct }: Options) {
+export function useFlyerExtraction({
+  onProducts,
+  onPatchProduct,
+  flyer,
+  onFlyerChange,
+}: Options) {
   const [loading, setLoading] = React.useState(false);
-  const [status, setStatus] = React.useState('');
   const [error, setError] = React.useState('');
-  const [flyerPreview, setFlyerPreview] = React.useState<string | null>(null);
-  /** Flyer en Cloudinary: el backend recorta desde acá, y lo usa "Mejorar con IA". */
-  const [flyerUrl, setFlyerUrl] = React.useState<string | null>(null);
+  const { preview: flyerPreview, url: flyerUrl, status } = flyer;
+
+  // Por ref para que los setters queden estables: `analyze` y `resolvePhotos` se
+  // memorizan y no deben re-crearse cada vez que el studio renderiza.
+  const flyerChangeRef = React.useRef(onFlyerChange);
+  flyerChangeRef.current = onFlyerChange;
+  const setStatus = React.useCallback((v: string) => flyerChangeRef.current({ status: v }), []);
+  const setFlyerPreview = React.useCallback(
+    (v: string | null) => flyerChangeRef.current({ preview: v }),
+    []
+  );
+  const setFlyerUrl = React.useCallback(
+    (v: string | null) => flyerChangeRef.current({ url: v }),
+    []
+  );
+
   /** Cartones esperando su foto: el editor les muestra un skeleton. */
   const [pendingPhotoIds, setPendingPhotoIds] = React.useState<string[]>([]);
   /** Tienda que dice el flyer. El paso 3 la preselecciona; el diseñador manda. */

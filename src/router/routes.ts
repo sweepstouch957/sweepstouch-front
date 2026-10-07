@@ -138,6 +138,11 @@ export const routes = {
       utilities: '/admin/applications/utilities',
       'audience-share': '/admin/applications/audience-share',
     },
+    // Workspace — espacios de trabajo por equipo. Diseño gestiona la produccion
+    // de flyers MMS, shelfsigns y piezas especiales.
+    workspace: {
+      design: '/admin/workspace/design',
+    },
     // Designs Studio — herramientas del equipo de diseño. Flyers es un
     // placeholder; Shelfsigns genera los cartones de precio para góndola.
     designs: {

@@ -8,6 +8,7 @@ import ShelfSignPrintStyles from './print-styles';
 import { StepMaster } from './step-master';
 import { StepPreview } from './step-preview';
 import { StepProducts } from './step-products';
+import { emptyFlyerState, type FlyerState } from './use-flyer-extraction';
 import type { ShelfSignConfig, ShelfSignProduct } from './types';
 
 /**
@@ -34,6 +35,12 @@ export function ShelfSignStudio(): React.JSX.Element {
   const [products, setProducts] = React.useState<ShelfSignProduct[]>([]);
   /** Tienda leída del flyer. Vive acá porque la detecta el paso 2 y la usa el 3. */
   const [storeHint, setStoreHint] = React.useState<StoreHintDto | null>(null);
+  /**
+   * Flyer subido. Vive acá por la misma razón que `products`: el paso 2 se
+   * desmonta al cambiar de pestaña, y si el flyer viviera en él, al volver se
+   * perdían el visor, "Recortar del flyer" y "Mejorar con IA".
+   */
+  const [flyer, setFlyer] = React.useState<FlyerState>(emptyFlyerState);
 
   // Las fechas se siembran en el cliente: calcularlas durante el render haría
   // que el HTML del servidor y el del navegador no coincidan.
@@ -43,6 +50,11 @@ export function ShelfSignStudio(): React.JSX.Element {
 
   const patchConfig = React.useCallback(
     (patch: Partial<ShelfSignConfig>) => setConfig((c) => ({ ...c, ...patch })),
+    []
+  );
+
+  const patchFlyer = React.useCallback(
+    (patch: Partial<FlyerState>) => setFlyer((f) => ({ ...f, ...patch })),
     []
   );
 
@@ -130,6 +142,8 @@ export function ShelfSignStudio(): React.JSX.Element {
             onPatchProduct={patchProduct}
             onRemoveProduct={removeProduct}
             onStoreHint={setStoreHint}
+            flyer={flyer}
+            onFlyerChange={patchFlyer}
           />
         )}
         {step === 2 && (
@@ -138,6 +152,7 @@ export function ShelfSignStudio(): React.JSX.Element {
             onChange={patchConfig}
             products={products}
             storeHint={storeHint}
+            onPatchProduct={patchProduct}
           />
         )}
       </Box>

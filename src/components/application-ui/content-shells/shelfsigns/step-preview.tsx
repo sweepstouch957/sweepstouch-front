@@ -1,6 +1,7 @@
 'use client';
 
 import PrintRoundedIcon from '@mui/icons-material/PrintRounded';
+import RestartAltRoundedIcon from '@mui/icons-material/RestartAltRounded';
 import {
   Alert,
   Autocomplete,
@@ -11,6 +12,8 @@ import {
   CircularProgress,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from '@mui/material';
 import RangePickerField from '@/components/base/range-picker-field';
@@ -37,7 +40,12 @@ interface Props {
   products: ShelfSignProduct[];
   /** Lo que la IA leyó del encabezado del flyer. Preselecciona, no decide. */
   storeHint?: StoreHintDto | null;
+  /** Encuadre de la foto: se ajusta acá, donde el cartón ya está armado. */
+  onPatchProduct: (id: string, patch: Partial<ShelfSignProduct>) => void;
 }
+
+/** Zoom al que se muestra la hoja. Las puntas se compensan con él. */
+const PREVIEW_SCALE = 0.6;
 
 /**
  * Las hojas a imprimir se montan colgando de <body>, no del árbol de la página.
@@ -52,7 +60,13 @@ function PrintArea({ children }: { children: React.ReactNode }): React.JSX.Eleme
   return createPortal(<div className="ss-print-area">{children}</div>, document.body);
 }
 
-export function StepPreview({ config, onChange, products, storeHint }: Props): React.JSX.Element {
+export function StepPreview({
+  config,
+  onChange,
+  products,
+  storeHint,
+  onPatchProduct,
+}: Props): React.JSX.Element {
   const { stores, loadingStores } = useActiveStores();
   const { qrUrl, loadingQr, qrMissing } = useStoreGenericQr(config.storeId);
 
@@ -88,6 +102,13 @@ export function StepPreview({ config, onChange, products, storeHint }: Props): R
   }, [qrUrl, config.qrUrl, onChange]);
 
   const pages = React.useMemo(() => paginate(products), [products]);
+
+  const [photoMode, setPhotoMode] = React.useState<'move' | 'crop'>('move');
+
+  const edit = React.useMemo(
+    () => ({ scale: PREVIEW_SCALE, mode: photoMode, onChange: onPatchProduct }),
+    [photoMode, onPatchProduct]
+  );
 
   const missing: string[] = [];
   if (!products.length) missing.push('cargar productos');
@@ -297,6 +318,32 @@ export function StepPreview({ config, onChange, products, storeHint }: Props): R
           spacing={3}
           className="ss-no-print"
         >
+          <Stack
+            direction="row"
+            spacing={1.5}
+            alignItems="center"
+            flexWrap="wrap"
+            useFlexGap
+          >
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={photoMode}
+              onChange={(_, v) => v && setPhotoMode(v)}
+            >
+              <ToggleButton value="move">Mover y agrandar</ToggleButton>
+              <ToggleButton value="crop">Recortar</ToggleButton>
+            </ToggleButtonGroup>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+            >
+              {photoMode === 'move'
+                ? 'Arrastrá la foto para moverla; estirá desde las puntas para agrandarla. Se corta recién en el borde del cartón.'
+                : 'Arrastrá las puntas hacia adentro para comerle el borde a la foto. El producto no cambia de tamaño: sólo se le saca marco.'}
+            </Typography>
+          </Stack>
+
           {pages.map((pair, i) => (
             <Box key={pair[0].id}>
               <Typography
@@ -309,7 +356,7 @@ export function StepPreview({ config, onChange, products, storeHint }: Props): R
               <Box sx={{ overflowX: 'auto' }}>
                 <Box
                   sx={{
-                    transform: 'scale(0.6)',
+                    transform: `scale(${PREVIEW_SCALE})`,
                     transformOrigin: 'top left',
                     width: '8.5in',
                     height: '6.7in',
@@ -319,9 +366,50 @@ export function StepPreview({ config, onChange, products, storeHint }: Props): R
                     pair={pair}
                     config={config}
                     shadow
+                    edit={edit}
                   />
                 </Box>
               </Box>
+
+              {/* Devolver la foto a su caja. Sólo aparece si se movió: hasta
+                  entonces no hay nada que restablecer. */}
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{ mt: -1 }}
+              >
+                {pair
+                  .filter((p) => p.photoLayout || p.photoCrop)
+                  .map((p) => (
+                    <Stack
+                      key={p.id}
+                      direction="row"
+                      alignItems="center"
+                      spacing={0.5}
+                    >
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        noWrap
+                        sx={{ maxWidth: 140 }}
+                        title={p.name}
+                      >
+                        {p.name}
+                      </Typography>
+                      <Button
+                        size="small"
+                        startIcon={<RestartAltRoundedIcon />}
+                        disabled={!p.photoLayout && !p.photoCrop}
+                        onClick={() =>
+                          onPatchProduct(p.id, { photoLayout: undefined, photoCrop: undefined })
+                        }
+                        sx={{ textTransform: 'none' }}
+                      >
+                        Restablecer
+                      </Button>
+                    </Stack>
+                  ))}
+              </Stack>
             </Box>
           ))}
         </Stack>

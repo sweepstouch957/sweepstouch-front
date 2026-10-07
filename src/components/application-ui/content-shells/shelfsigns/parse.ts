@@ -49,7 +49,68 @@ export function toProducts(raw: unknown[] | undefined): ShelfSignProduct[] {
       photoBox: normalizePhotoBox(item?.photoBox),
     }))
     .map(withComputedSave)
+    .map(dropVipLabels)
     .map(dedupeShared);
+}
+
+/**
+ * Palabras que puede tener una etiqueta de VIP y nada más. Si la línea entera
+ * sale de acá y menciona VIP, es la etiqueta; si trae cualquier otra palabra
+ * ("WITH VIP CARD", "LIMIT 2 PER VIP CUSTOMER") dice algo más y se queda.
+ */
+const VIP_WORDS = new Set([
+  'vip',
+  'customer',
+  'customers',
+  'cliente',
+  'clientes',
+  'member',
+  'members',
+  'socio',
+  'socios',
+  'only',
+  'price',
+  'precio',
+  'solo',
+  'sólo',
+  'para',
+  'for',
+]);
+
+function isVipLabel(line: string): boolean {
+  const words = line
+    .toLowerCase()
+    .replace(/[^a-záéíóúüñ]+/g, ' ')
+    .split(' ')
+    .filter(Boolean);
+  return words.includes('vip') && words.every((w) => VIP_WORDS.has(w));
+}
+
+/**
+ * Saca "VIP CUSTOMER ONLY" y sus variantes del texto del cartón.
+ *
+ * El cartón ya lleva la franja VIP abajo, con el logo y el QR para hacerse
+ * socio: repetirlo bajo el nombre del producto no agrega nada y le come una
+ * línea. Algunos flyers lo imprimen y la IA lo trae como condición o como
+ * detalle, así que se limpia de los dos lados.
+ *
+ * Se hace al normalizar y no al dibujar: lo que el diseñador ve en el editor es
+ * lo que se imprime, y si alguna vez hace falta ponerlo, se escribe a mano.
+ */
+export function dropVipLabels(p: ShelfSignProduct): ShelfSignProduct {
+  const clean = (text: string) =>
+    (text || '')
+      .split('\n')
+      .filter((l) => !isVipLabel(l))
+      .join('\n');
+
+  return {
+    ...p,
+    details: clean(p.details),
+    details2: clean(p.details2),
+    conditions: clean(p.conditions),
+    extras: p.extras?.map((e) => ({ ...e, details: clean(e.details) })),
+  };
 }
 
 /** Tope de referencias por cartón: 1 principal + 4 alternativas. */

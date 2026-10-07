@@ -73,6 +73,8 @@ ${fontFaces}
 .ss-cutline {
   border-top: 3px dashed #b9b9b9;
   position: absolute;
+  /* Por encima de la foto de fondo: es la guía de corte de la hoja. */
+  z-index: 3;
   top: 0;
   left: 0;
   right: 0;
