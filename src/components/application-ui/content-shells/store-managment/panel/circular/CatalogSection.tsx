@@ -39,7 +39,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { applyCatalogOrder, moveCatalogItem } from './catalog-order';
-import { qk, useStoreCirculars } from './hooks';
+import { qk, useCatalogSummary, useStoreCirculars } from './hooks';
 import { MoreMenu } from './panelUi';
 import { imageFromPaste, PasteReplaceDialog, ProductEditorDialog } from './ProductImageTools';
 import { CATEGORIES, cell, fmtDate, ImagePreviewDialog, regularFromPrice } from './shared';
@@ -382,8 +382,31 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
         { duration: 8000 }
       );
   }, [rescanStatus.data, rescanWatch, qc, storeSlug]);
+  // Qué flyer o circular manda hoy: para verlo desde acá y rescanear SÓLO sus productos.
+  const summary = useCatalogSummary(storeSlug);
+  const ruling = summary.data?.ruling ?? null;
+  const openRuling = useMutation({
+    mutationFn: async () => {
+      if (!ruling) throw new Error('Sin flyer vigente');
+      return (await circularService.getPreviewImage(ruling.id)).url;
+    },
+    onSuccess: (url) => setImgPreview({ url, title: ruling?.title || 'Flyer vigente' }),
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo abrir el flyer'),
+  });
   const rescanPhotos = useMutation({
-    mutationFn: (mode: 'missing' | 'all') => circularService.rescanPhotos(storeSlug, mode),
+    mutationFn: async (mode: 'missing' | 'all' | 'flyer') => {
+      if (mode !== 'flyer') return circularService.rescanPhotos(storeSlug, mode);
+      // Sólo los productos del flyer/circular vigente (los que lo tienen como origen).
+      if (!ruling) throw new Error('No hay flyer ni circular vigente');
+      const r = await circularService.getCatalogAdmin(storeSlug, {
+        limit: 2000,
+        circularId: ruling.id,
+        when: 'live',
+      });
+      const ids = (r.items || []).map((p) => p._id);
+      if (!ids.length) throw new Error(`"${ruling.title}" no tiene productos en el catálogo`);
+      return circularService.rescanPhotos(storeSlug, 'ids', ids);
+    },
     onSuccess: (d) => {
       setRescanOpen(false);
       if (!d.job?.total && d.job?.finishedAt) {
@@ -393,7 +416,8 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
       setRescanWatch(true);
       toast.success('Iris está rescaneando las fotos… se van actualizando solas');
     },
-    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo rescanear'),
+    onError: (e: any) =>
+      toast.error(e?.response?.data?.error || e?.message || 'No se pudo rescanear'),
   });
 
   // "Completar marca / tamaño": relee el flyer o el circular sólo para los productos a los que
@@ -486,6 +510,47 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
         que tienen <strong>oferta</strong> y están <strong>visibles</strong>; los switches aplican
         al instante.
       </Alert>
+      {/* El flyer (o circular) que manda hoy: verlo y rescanear sólo SUS productos. */}
+      {ruling && (
+        <Stack
+          direction="row"
+          alignItems="center"
+          flexWrap="wrap"
+          gap={1}
+        >
+          <Chip
+            size="small"
+            color={ruling.kind === 'flyer' ? 'primary' : 'default'}
+            variant="outlined"
+            label={`${ruling.kind === 'flyer' ? 'Flyer vigente' : 'Circular vigente'}: ${
+              ruling.title
+            } · hasta ${fmtDate(ruling.endDate)} · ${ruling.uniqueProducts} productos`}
+            onClick={ruling.hasFile ? () => openRuling.mutate() : undefined}
+          />
+          {ruling.hasFile && (
+            <Button
+              size="small"
+              variant="text"
+              disabled={openRuling.isPending}
+              onClick={() => openRuling.mutate()}
+            >
+              {openRuling.isPending ? 'Abriendo…' : 'Ver flyer'}
+            </Button>
+          )}
+          <Button
+            size="small"
+            variant="text"
+            disabled={rescanRunning || rescanPhotos.isPending}
+            onClick={() => rescanPhotos.mutate('flyer')}
+          >
+            {rescanRunning
+              ? `Rescaneando… ${rescanStatus.data?.job?.done ?? 0}/${
+                  rescanStatus.data?.job?.total ?? 0
+                }`
+              : `Rescanear fotos del ${ruling.kind === 'flyer' ? 'flyer' : 'circular'}`}
+          </Button>
+        </Stack>
+      )}
       <Stack
         direction="row"
         flexWrap="wrap"
@@ -722,6 +787,16 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
           >
             Cancelar
           </Button>
+          {ruling && (
+            <Button
+              size="small"
+              variant="outlined"
+              disabled={rescanPhotos.isPending}
+              onClick={() => rescanPhotos.mutate('flyer')}
+            >
+              Sólo las del {ruling.kind === 'flyer' ? 'flyer' : 'circular'} vigente
+            </Button>
+          )}
           <Button
             size="small"
             variant="outlined"
