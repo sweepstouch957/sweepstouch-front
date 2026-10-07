@@ -111,10 +111,15 @@ export type CatalogSource = {
   id: string;
   title: string;
   kind: 'flyer' | 'circular';
-  when: 'live' | 'next';
+  /** past = venció hace poco (hasta 3 días): se puede elegir y se reabre hasta hoy. */
+  when: 'live' | 'next' | 'past';
   startDate: string;
   endDate: string;
+  /** Productos del catálogo que lo tienen como origen. */
   count: number;
+  /** Productos leídos en ese flyer/circular. */
+  products: number;
+  hasFile: boolean;
 };
 export type CatalogCleanupPlan = {
   ok: boolean;
@@ -880,15 +885,22 @@ export class CircularService {
   }
 
   /** Con flyer vigente: sólo queda visible lo que ese flyer cargó; todo lo demás se oculta. */
-  async hideCircularProducts(storeSlug: string): Promise<{
+  async hideCircularProducts(
+    storeSlug: string,
+    circularId?: string
+  ): Promise<{
     ok: boolean;
     flyer: string;
     when: 'live' | 'next';
+    revived: boolean;
     kept: number;
     hidden: number;
     shown: number;
   }> {
-    const res = await api.post(`/circulars/store/${storeSlug}/catalog/hide-circular`, null);
+    const res = await api.post(
+      `/circulars/store/${storeSlug}/catalog/hide-circular`,
+      circularId ? { circularId } : {}
+    );
     return res.data;
   }
 

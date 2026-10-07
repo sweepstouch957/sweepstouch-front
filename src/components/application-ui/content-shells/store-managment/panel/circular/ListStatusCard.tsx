@@ -19,11 +19,14 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControlLabel,
+  Radio,
+  RadioGroup,
   Skeleton,
   Stack,
   Typography,
 } from '@mui/material';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useCatalogSummary, useRefreshStoreData } from './hooks';
@@ -139,17 +142,35 @@ export default function ListStatusCard({
       toast.error(e?.response?.data?.error || 'No se pudo arrancar a los agentes'),
   });
 
-  // "Ocultar los del circular": lo único que queda visible es lo que el flyer vigente cargó.
+  // "Ocultar los del circular": la encargada elige con qué flyer (o circular) quedarse y todo
+  // lo demás se oculta. Por defecto el flyer con arte propio vigente; si no, el próximo.
   const [hideOpen, setHideOpen] = useState(false);
+  const [keepId, setKeepId] = useState('');
+  const sources = useQuery({
+    queryKey: ['catalog-sources', storeSlug],
+    queryFn: () => circularService.getCatalogSources(storeSlug),
+    enabled: hideOpen && !!storeSlug,
+    staleTime: 30_000,
+  });
+  const sourceList = sources.data?.sources || [];
+  const defaultKeep =
+    sourceList.find((x) => x.kind === 'flyer' && x.when === 'live')?.id ||
+    sourceList.find((x) => x.kind === 'flyer' && x.when === 'next')?.id ||
+    sourceList.find((x) => x.kind === 'flyer')?.id ||
+    sourceList[0]?.id ||
+    '';
+  const chosen = keepId || defaultKeep;
+  const chosenSrc = sourceList.find((x) => x.id === chosen);
   const hide = useMutation({
-    mutationFn: () => circularService.hideCircularProducts(storeSlug),
+    mutationFn: () => circularService.hideCircularProducts(storeSlug, chosen || undefined),
     onSuccess: (v) => {
       setHideOpen(false);
+      setKeepId('');
       refresh();
       toast.success(
-        `Sólo el flyer "${v.flyer}"${v.when === 'next' ? ' (programado)' : ''}: ${
-          v.kept
-        } productos del flyer · ${v.hidden} ocultados`,
+        `Sólo "${v.flyer}"${v.when === 'next' ? ' (programado)' : ''}${
+          v.revived ? ' (reabierto hasta hoy)' : ''
+        }: ${v.kept} productos · ${v.hidden} ocultados`,
         { duration: 8000 }
       );
     },
@@ -350,12 +371,64 @@ export default function ListStatusCard({
           Ocultar los del circular
         </DialogTitle>
         <DialogContent>
-          <Typography variant="body2">
-            Queda visible <b>sólo lo que trae el flyer con arte propio</b> (el vigente, o si no hay,
-            el próximo programado). Todo lo demás se oculta: circular semanal, lo leído del link de
-            circularss, lecturas viejas, cargado a mano. La única forma de que un producto se vea es
-            que el flyer lo tenga.
+          <Typography
+            variant="body2"
+            sx={{ mb: 1.5 }}
+          >
+            Elige <b>con qué quedarte</b>. Sólo sus productos quedan visibles; todo lo demás se
+            oculta (circular semanal, lo leído del link de circularss, lecturas viejas, cargado a
+            mano).
           </Typography>
+          {sources.isLoading ? (
+            <Skeleton
+              variant="rounded"
+              height={120}
+            />
+          ) : sourceList.length ? (
+            <RadioGroup
+              value={chosen}
+              onChange={(e) => setKeepId(e.target.value)}
+            >
+              {sourceList.map((x) => (
+                <FormControlLabel
+                  key={x.id}
+                  value={x.id}
+                  control={<Radio size="small" />}
+                  sx={{ alignItems: 'flex-start', mb: 0.75, mr: 0 }}
+                  label={
+                    <Box>
+                      <Typography
+                        variant="body2"
+                        fontWeight={700}
+                      >
+                        {x.kind === 'flyer' ? 'Flyer' : 'Circular'}: {x.title}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ textTransform: 'none', letterSpacing: 0 }}
+                      >
+                        {fmtDate(x.startDate)} → {fmtDate(x.endDate)} ·{' '}
+                        {x.when === 'live'
+                          ? 'vigente'
+                          : x.when === 'next'
+                            ? 'programado'
+                            : 'venció: se reabre hasta hoy'}{' '}
+                        · {x.products} leídos · {x.count} en el catálogo
+                      </Typography>
+                    </Box>
+                  }
+                />
+              ))}
+            </RadioGroup>
+          ) : (
+            <Typography
+              variant="body2"
+              color="warning.main"
+            >
+              Esta tienda no tiene flyer ni circular de los últimos días.
+            </Typography>
+          )}
           <Typography
             variant="caption"
             color="text.secondary"
@@ -375,10 +448,14 @@ export default function ListStatusCard({
           <Button
             variant="contained"
             color="warning"
-            disabled={hide.isPending}
+            disabled={hide.isPending || !chosen}
             onClick={() => hide.mutate()}
           >
-            {hide.isPending ? 'Ocultando…' : 'Ocultar'}
+            {hide.isPending
+              ? 'Ocultando…'
+              : chosenSrc
+                ? `Dejar sólo ${chosenSrc.products} de "${chosenSrc.title.slice(0, 28)}"`
+                : 'Ocultar'}
           </Button>
         </DialogActions>
       </Dialog>
