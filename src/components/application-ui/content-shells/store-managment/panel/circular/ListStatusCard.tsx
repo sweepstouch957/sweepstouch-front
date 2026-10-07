@@ -8,6 +8,7 @@
  */
 import { circularService } from '@/services/circular.service';
 import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
+import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import {
   alpha,
@@ -135,6 +136,23 @@ export default function ListStatusCard({
       toast.error(e?.response?.data?.error || 'No se pudo arrancar a los agentes'),
   });
 
+  // "Ocultar los del circular": lo único que queda visible es lo que el flyer vigente cargó.
+  const [hideOpen, setHideOpen] = useState(false);
+  const hide = useMutation({
+    mutationFn: () => circularService.hideCircularProducts(storeSlug),
+    onSuccess: (v) => {
+      setHideOpen(false);
+      refresh();
+      toast.success(
+        `Sólo el flyer "${v.flyer}": ${v.kept} visibles · ${v.hidden} ocultados${
+          v.trimmed ? ` · ${v.trimmed} quitados del flyer que no eran de él` : ''
+        }`,
+        { duration: 8000 }
+      );
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo ocultar'),
+  });
+
   if (q.isLoading || !s) {
     return (
       <Skeleton
@@ -234,6 +252,17 @@ export default function ListStatusCard({
               Que los agentes lo arreglen
             </Button>
           )}
+          {r?.kind === 'flyer' && (
+            <Button
+              size="small"
+              variant="outlined"
+              color="warning"
+              startIcon={<VisibilityOffOutlinedIcon />}
+              onClick={() => setHideOpen(true)}
+            >
+              Ocultar los del circular
+            </Button>
+          )}
           {s.pending > 0 && (
             <Button
               size="small"
@@ -306,6 +335,48 @@ export default function ListStatusCard({
         title={preview?.title}
         onClose={() => setPreview(null)}
       />
+
+      <Dialog
+        open={hideOpen}
+        onClose={hide.isPending ? undefined : () => setHideOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <VisibilityOffOutlinedIcon color="warning" />
+          Ocultar los del circular
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2">
+            Queda visible <b>sólo lo que cargó el flyer "{r?.title}"</b>. Todo lo demás (circular
+            semanal, lecturas viejas, cargado a mano) se oculta. La única forma de que un producto
+            se vea es que el flyer vigente lo tenga.
+          </Typography>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: 'block', mt: 1.5, textTransform: 'none', letterSpacing: 0 }}
+          >
+            No borra nada: lo oculto se puede volver a prender en Productos.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setHideOpen(false)}
+            disabled={hide.isPending}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            color="warning"
+            disabled={hide.isPending}
+            onClick={() => hide.mutate()}
+          >
+            {hide.isPending ? 'Ocultando…' : 'Ocultar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog
         open={fixOpen}

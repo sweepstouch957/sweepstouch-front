@@ -876,6 +876,21 @@ export class CircularService {
     return res.data;
   }
 
+  /** Con flyer vigente: sólo queda visible lo que ese flyer cargó; todo lo demás se oculta. */
+  async hideCircularProducts(
+    storeSlug: string
+  ): Promise<{
+    ok: boolean;
+    flyer: string;
+    kept: number;
+    hidden: number;
+    shown: number;
+    trimmed: number;
+  }> {
+    const res = await api.post(`/circulars/store/${storeSlug}/catalog/hide-circular`, null);
+    return res.data;
+  }
+
   /** Limpia con IA los recortes crudos del catálogo (y genera los sin foto). Background. */
   async cleanCatalogImages(
     storeSlug: string
