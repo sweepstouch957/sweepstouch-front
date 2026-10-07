@@ -144,9 +144,9 @@ export default function ListStatusCard({
       setHideOpen(false);
       refresh();
       toast.success(
-        `Sólo el flyer "${v.flyer}": ${v.kept} visibles · ${v.hidden} ocultados${
-          v.trimmed ? ` · ${v.trimmed} quitados del flyer que no eran de él` : ''
-        }`,
+        `Sólo el flyer "${v.flyer}"${v.when === 'next' ? ' (programado)' : ''}: ${
+          v.kept
+        } productos del flyer · ${v.hidden} ocultados`,
         { duration: 8000 }
       );
     },
@@ -252,7 +252,7 @@ export default function ListStatusCard({
               Que los agentes lo arreglen
             </Button>
           )}
-          {r?.kind === 'flyer' && (
+          {r && (
             <Button
               size="small"
               variant="outlined"
@@ -348,16 +348,18 @@ export default function ListStatusCard({
         </DialogTitle>
         <DialogContent>
           <Typography variant="body2">
-            Queda visible <b>sólo lo que cargó el flyer "{r?.title}"</b>. Todo lo demás (circular
-            semanal, lecturas viejas, cargado a mano) se oculta. La única forma de que un producto
-            se vea es que el flyer vigente lo tenga.
+            Queda visible <b>sólo lo que trae el flyer con arte propio</b> (el vigente, o si no hay,
+            el próximo programado). Todo lo demás se oculta: circular semanal, lo leído del link de
+            circularss, lecturas viejas, cargado a mano. La única forma de que un producto se vea es
+            que el flyer lo tenga.
           </Typography>
           <Typography
             variant="caption"
             color="text.secondary"
             sx={{ display: 'block', mt: 1.5, textTransform: 'none', letterSpacing: 0 }}
           >
-            No borra nada: lo oculto se puede volver a prender en Productos.
+            No borra nada. El circular semanal no los vuelve a prender; sólo un flyer que los
+            traiga, o prenderlos a mano en Productos.
           </Typography>
         </DialogContent>
         <DialogActions>

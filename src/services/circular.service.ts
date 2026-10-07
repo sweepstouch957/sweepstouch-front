@@ -877,15 +877,13 @@ export class CircularService {
   }
 
   /** Con flyer vigente: sólo queda visible lo que ese flyer cargó; todo lo demás se oculta. */
-  async hideCircularProducts(
-    storeSlug: string
-  ): Promise<{
+  async hideCircularProducts(storeSlug: string): Promise<{
     ok: boolean;
     flyer: string;
+    when: 'live' | 'next';
     kept: number;
     hidden: number;
     shown: number;
-    trimmed: number;
   }> {
     const res = await api.post(`/circulars/store/${storeSlug}/catalog/hide-circular`, null);
     return res.data;
