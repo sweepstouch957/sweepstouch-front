@@ -39,11 +39,36 @@ import { storeBrandOf, storeStreetOf } from './messaging/placeholders';
 
 /** Destinos de un botón. Espejo de BUTTON_LINKS en scheduler utils/mixed.js. */
 export const BUTTON_LINKS = [
-  { value: 'home', label: 'Dashboard del cliente (/me)', hint: 'Su inicio con sesión: ofertas, lista, puntos. Entra sin código.' },
-  { value: 'portada', label: 'Linktree con su sesión', hint: 'La portada pública de la tienda, ya logueado (#linklogin).' },
-  { value: 'list', label: 'Hacer su lista', hint: 'Su lista única para elegir ofertas. Sin productos en el catálogo el botón no sale.' },
-  { value: 'circular', label: 'Circular semanal', hint: 'El dashboard con el modal del circular abierto y "Ver mi lista".' },
-  { value: 'custom', label: 'Link personalizado…', hint: 'Una URL propia (promo, web de la tienda, etc.).' },
+  {
+    value: 'home',
+    label: 'Dashboard del cliente (/me)',
+    hint: 'Su inicio con sesión: ofertas, lista, puntos. Entra sin código.',
+  },
+  {
+    value: 'portada',
+    label: 'Linktree con su sesión',
+    hint: 'La portada pública de la tienda, ya logueado (#linklogin).',
+  },
+  {
+    value: 'list',
+    label: 'Hacer su lista',
+    hint: 'Su lista única para elegir ofertas. Sin productos en el catálogo el botón no sale.',
+  },
+  {
+    value: 'circular',
+    label: 'Circular semanal',
+    hint: 'El dashboard con el modal del circular abierto y "Ver mi lista".',
+  },
+  {
+    value: 'pdf',
+    label: 'Sólo el PDF del circular',
+    hint: 'Abre únicamente el circular (el link de circularss de la tienda primero; si no, el PDF cargado). Sin dashboard, sin botones.',
+  },
+  {
+    value: 'custom',
+    label: 'Link personalizado…',
+    hint: 'Una URL propia (promo, web de la tienda, etc.).',
+  },
 ] as const;
 export type ButtonLink = (typeof BUTTON_LINKS)[number]['value'];
 const isButtonLink = (v: unknown): v is ButtonLink => BUTTON_LINKS.some((b) => b.value === v);
@@ -60,6 +85,7 @@ const BUTTON_TEXT_BY_LINK: Record<ButtonLink, string> = {
   portada: 'See all deals',
   list: 'Make my list',
   circular: 'Weekly circular',
+  pdf: 'See the circular',
   custom: 'Learn more',
 };
 
@@ -136,7 +162,8 @@ const buttonsFromTemplate = (tpl: any): MixedButton[] => {
     if (list.length) return list;
   }
   const legacy: MixedButton[] = [];
-  if (tpl.listButton !== false) legacy.push({ text: tpl.listButtonText || BUTTON_TEXT_BY_LINK.list, link: 'list', url: '' });
+  if (tpl.listButton !== false)
+    legacy.push({ text: tpl.listButtonText || BUTTON_TEXT_BY_LINK.list, link: 'list', url: '' });
   legacy.push(
     tpl.buttonUrl
       ? { text: tpl.buttonText || DEFAULT_BUTTON.text, link: 'custom', url: tpl.buttonUrl }
@@ -178,7 +205,9 @@ export function mixedTemplateFromCustom(c: MixedRcsCustom): Record<string, unkno
     // Texto vacío = el mismo texto del SMS/MMS de la campaña.
     ...(c.body.trim() ? { body: c.body.trim() } : {}),
     // Sin botones a propósito → noButtons (sin la bandera el scheduler pondría el de ofertas).
-    ...(c.buttons.length === 0 ? { noButtons: true } : { buttons: buttons.length ? buttons : [{ text: DEFAULT_BUTTON.text, link: 'home' }] }),
+    ...(c.buttons.length === 0
+      ? { noButtons: true }
+      : { buttons: buttons.length ? buttons : [{ text: DEFAULT_BUTTON.text, link: 'home' }] }),
     ...(c.openIn === 'webview' ? { openIn: 'webview' } : {}),
     ...(c.productCards > 0 ? { productCards: c.productCards } : {}),
   };
@@ -443,7 +472,8 @@ export default function MixedRcsEditor({
     if (buttons.length >= MAX_BUTTONS) return;
     // Sugerencia: el primer destino que todavía no esté usado.
     const used = new Set(buttons.map((b) => b.link));
-    const next = (BUTTON_LINKS.find((l) => !used.has(l.value) && l.value !== 'custom')?.value ?? 'custom') as ButtonLink;
+    const next = (BUTTON_LINKS.find((l) => !used.has(l.value) && l.value !== 'custom')?.value ??
+      'custom') as ButtonLink;
     set({ buttons: [...buttons, { text: BUTTON_TEXT_BY_LINK[next], link: next, url: '' }] });
   };
   const removeButton = (i: number) => set({ buttons: buttons.filter((_b, j) => j !== i) });
@@ -461,7 +491,11 @@ export default function MixedRcsEditor({
     setTestState({ busy: true, msg: '', ok: false });
     try {
       await onSendTest(phoneDigits);
-      setTestState({ busy: false, ok: true, msg: `Prueba enviada a ${phone}. Llega en unos segundos.` });
+      setTestState({
+        busy: false,
+        ok: true,
+        msg: `Prueba enviada a ${phone}. Llega en unos segundos.`,
+      });
     } catch (e: any) {
       setTestState({
         busy: false,
@@ -634,7 +668,13 @@ export default function MixedRcsEditor({
                 : 'Sin botones: el RCS sale sólo con texto e imagen.'}
             </Typography>
           </Box>
-          <Tooltip title={buttons.length >= MAX_BUTTONS ? `Máximo ${MAX_BUTTONS} botones por tarjeta` : 'Agregar botón'}>
+          <Tooltip
+            title={
+              buttons.length >= MAX_BUTTONS
+                ? `Máximo ${MAX_BUTTONS} botones por tarjeta`
+                : 'Agregar botón'
+            }
+          >
             <span>
               <Button
                 size="small"
@@ -680,7 +720,9 @@ export default function MixedRcsEditor({
                   label="A dónde lleva"
                   value={b.link}
                   onChange={(e) => changeLink(i, e.target.value as ButtonLink)}
-                  helperText={listOff ? 'La tienda no tiene productos: este botón no saldrá.' : opt.hint}
+                  helperText={
+                    listOff ? 'La tienda no tiene productos: este botón no saldrá.' : opt.hint
+                  }
                   FormHelperTextProps={{ sx: listOff ? { color: 'warning.main' } : undefined }}
                 >
                   {BUTTON_LINKS.map((l) => (
@@ -715,7 +757,11 @@ export default function MixedRcsEditor({
                   value={b.url}
                   onChange={(e) => setButton(i, { url: e.target.value })}
                   error={badUrl}
-                  helperText={badUrl ? 'Link inválido: el botón no saldrá' : 'Sin link válido el botón no sale'}
+                  helperText={
+                    badUrl
+                      ? 'Link inválido: el botón no saldrá'
+                      : 'Sin link válido el botón no sale'
+                  }
                   sx={{ mt: 1.5 }}
                 />
               )}
@@ -766,7 +812,16 @@ export default function MixedRcsEditor({
               <Button
                 variant="contained"
                 size="small"
-                startIcon={testState.busy ? <CircularProgress size={14} color="inherit" /> : <SendIcon />}
+                startIcon={
+                  testState.busy ? (
+                    <CircularProgress
+                      size={14}
+                      color="inherit"
+                    />
+                  ) : (
+                    <SendIcon />
+                  )
+                }
                 disabled={testState.busy || phoneDigits.length < 10 || !smsText.trim()}
                 onClick={sendTest}
                 sx={{ minHeight: 40 }}
@@ -799,7 +854,12 @@ export default function MixedRcsEditor({
         <Accordion
           disableGutters
           elevation={0}
-          sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, '&:before': { display: 'none' } }}
+          sx={{
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 2,
+            '&:before': { display: 'none' },
+          }}
         >
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <Typography fontWeight={700}>Opciones avanzadas</Typography>
@@ -864,7 +924,9 @@ export default function MixedRcsEditor({
                   onChange={(e) => set({ openIn: e.target.value as MixedRcsCustom['openIn'] })}
                 >
                   <MenuItem value="browser">Navegador del teléfono (recomendado)</MenuItem>
-                  <MenuItem value="webview">Webview dentro de Mensajes (puede verse a media pantalla)</MenuItem>
+                  <MenuItem value="webview">
+                    Webview dentro de Mensajes (puede verse a media pantalla)
+                  </MenuItem>
                 </TextField>
                 <TextField
                   select
