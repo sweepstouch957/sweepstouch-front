@@ -1,12 +1,12 @@
 // components/campaigns/CreateCampaignForm.tsx
 'use client';
 
-import { circularService } from '@/services/circular.service';
-import { getStoreById } from '@/services/store.service';
-import { customerClient } from '@/services/customerService';
-import { campaignClient } from '@/services/campaing.service';
-import { uploadCampaignImage, type CampaignArtUpload } from '@/services/upload.service';
 import { useAuth } from '@/hooks/use-auth';
+import { campaignClient } from '@/services/campaing.service';
+import { circularService } from '@/services/circular.service';
+import { customerClient } from '@/services/customerService';
+import { getStoreById } from '@/services/store.service';
+import { uploadCampaignImage, type CampaignArtUpload } from '@/services/upload.service';
 import { Sms } from '@mui/icons-material';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import {
@@ -38,18 +38,21 @@ import MessagePreviewPanel from './messaging/MessagePreviewPanel';
 import PlaceholderChips from './messaging/PlaceholderChips';
 import MixedRcsEditor, {
   mixedCustomFromTemplate,
-  smsTemplateToRcsBody,
   MixedRcsPreview,
   mixedTemplateFromCustom,
+  smsTemplateToRcsBody,
   type MixedRcsCustom,
 } from './MixedRcsEditor';
 import { smartInsert } from './placeholderInsert';
+import ProductListField from './ProductListField';
 import CampaignTemplatePicker, { type AppliedTemplate } from './templates/CampaignTemplatePicker';
 import { useCampaignArtUpload } from './useCampaignArtUpload';
 
 interface CampaignFormInputs {
   title: string;
   description: string;
+  /** Lista de productos en texto (opcional): formato de la tienda, una línea por dato. */
+  productList?: string;
   content: string;
   type: string;
   startDate: Date;
@@ -230,6 +233,7 @@ export default function CreateCampaignForm({
     defaultValues: {
       title: initialValues?.title || '',
       description: initialValues?.description || '',
+      productList: (initialValues as any)?.productList || '',
       content: initialValues?.content || '',
       estimatedCost: initialValues?.estimatedCost || 0.0015,
       startDate: initialValues?.startDate ? new Date(initialValues.startDate) : new Date(),
@@ -306,20 +310,24 @@ export default function CreateCampaignForm({
       Array.from(
         new Set(
           mixedRecipients
-            .map((r) => String(typeof r === 'string' ? r : r?.phoneNumber || '').replace(/[^\d+]/g, ''))
+            .map((r) =>
+              String(typeof r === 'string' ? r : r?.phoneNumber || '').replace(/[^\d+]/g, '')
+            )
             .filter((p) => p.replace(/\D/g, '').length >= 10)
         )
       ),
     [mixedRecipients]
   );
 
+  // La tienda se carga siempre: el slug sirve al RCS mixto y a la vista previa de la lista.
   const mixedStore = useQuery({
     queryKey: ['campaign-form-store', storeId],
     queryFn: () => getStoreById(storeId as string),
-    enabled: !!storeId && channel === 'mixed',
+    enabled: !!storeId,
     staleTime: 5 * 60_000,
   });
   const mixedSlug = (mixedStore.data as any)?.slug as string | undefined;
+  const storeSlug = mixedSlug;
   const mixedCatalog = useQuery({
     queryKey: ['campaign-form-catalog', mixedSlug],
     queryFn: () => circularService.getStoreCatalog(mixedSlug as string),
@@ -356,7 +364,12 @@ export default function CreateCampaignForm({
     if (t.channel) setValue('channel', t.channel, { shouldDirty: true });
     // Piloto RCS: el cuerpo del RCS es el MISMO texto que el SMS (el saludo ya va adentro).
     if (t.channel === 'mixed') {
-      setMixedRcs((prev) => ({ ...prev, body: smsTemplateToRcsBody(t.content), greeting: '', title: prev.title || '#brand' }));
+      setMixedRcs((prev) => ({
+        ...prev,
+        body: smsTemplateToRcsBody(t.content),
+        greeting: '',
+        title: prev.title || '#brand',
+      }));
     }
     setSnackState({ open: true, message: `Plantilla aplicada: ${t.name}`, severity: 'success' });
     contentRef.current?.focus();
@@ -810,6 +823,25 @@ export default function CreateCampaignForm({
                 <Divider sx={{ my: 4 }} />
 
                 <Section
+                  title="Lista de productos (opcional)"
+                  hint="Pega la lista que manda la tienda (marca, nombre, tamaño, precio, REG., AT THE COUNTER). Si la pegas, manda sobre lo que lea la IA del arte: el arte sólo aporta las fotos."
+                >
+                  <Controller
+                    name="productList"
+                    control={control}
+                    render={({ field }) => (
+                      <ProductListField
+                        value={field.value || ''}
+                        onChange={field.onChange}
+                        storeSlug={storeSlug}
+                      />
+                    )}
+                  />
+                </Section>
+
+                <Divider sx={{ my: 4 }} />
+
+                <Section
                   title="Audiencia"
                   hint="A cuántos clientes de la tienda se le envía."
                 >
@@ -829,7 +861,9 @@ export default function CreateCampaignForm({
                         getOptionLabel={(o: any) =>
                           typeof o === 'string'
                             ? o
-                            : `${[o.firstName, o.lastName].filter(Boolean).join(' ') || 'Cliente'} · ${o.phoneNumber}`
+                            : `${
+                                [o.firstName, o.lastName].filter(Boolean).join(' ') || 'Cliente'
+                              } · ${o.phoneNumber}`
                         }
                         isOptionEqualToValue={(o: any, v: any) =>
                           String(o?.phoneNumber || o) === String(v?.phoneNumber || v)
@@ -845,7 +879,8 @@ export default function CreateCampaignForm({
                                 fontWeight={600}
                                 noWrap
                               >
-                                {[o.firstName, o.lastName].filter(Boolean).join(' ') || 'Sin nombre'}
+                                {[o.firstName, o.lastName].filter(Boolean).join(' ') ||
+                                  'Sin nombre'}
                                 {o.email ? ` · ${o.email}` : ''}
                               </Typography>
                               <Typography

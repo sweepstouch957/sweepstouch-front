@@ -94,6 +94,42 @@ export type StoreProfile = {
   lessons?: StoreLesson[];
   learnedAt?: string;
 };
+export type ParsedListProduct = {
+  name: string;
+  brand: string;
+  size: string;
+  presentation: string;
+  price: string;
+  originalPrice: string;
+  unit: string;
+  counterOnly: boolean;
+  limitPerFamily: number;
+  savings: string;
+  category: string;
+};
+export type CatalogSource = {
+  id: string;
+  title: string;
+  kind: 'flyer' | 'circular';
+  when: 'live' | 'next';
+  startDate: string;
+  endDate: string;
+  count: number;
+};
+export type CatalogCleanupPlan = {
+  ok: boolean;
+  scanned: number;
+  wouldChange: number;
+  counts: {
+    saleUnit: number;
+    offerCondition: number;
+    maxPerCustomer: number;
+    name: number;
+    counterOnly: number;
+  };
+  examples: Array<{ name: string; changes: Record<string, unknown> }>;
+  modified?: number;
+};
 export type CatalogSummary = {
   ok: boolean;
   total: number;
@@ -157,6 +193,11 @@ export interface StoreProduct {
   saleUnit?: string;
   /** Otros nombres con que la IA lee este producto; resuelven a esta ficha. */
   aliases?: string[];
+  /** Campos corregidos a mano: las relecturas no los pisan. */
+  manualFields?: string[];
+  /** La unidad se supuso (carne/marisco sin "LB" impreso). */
+  unitAssumed?: boolean;
+  circularId?: string | null;
   barcode?: string;
   category?: string;
   /** Departamento del circular con las palabras de la tienda (MEAT, PRODUCE…). */
@@ -595,7 +636,13 @@ export class CircularService {
   /** Catálogo del panel, paginado y buscable en el servidor (`limit` + `page` + `q`). */
   async getCatalogAdmin(
     storeSlug: string,
-    opts?: { page?: number; limit?: number; q?: string }
+    opts?: {
+      page?: number;
+      limit?: number;
+      q?: string;
+      circularId?: string;
+      when?: 'live' | 'next';
+    }
   ): Promise<{
     storeSlug: string;
     count: number;
@@ -610,8 +657,35 @@ export class CircularService {
       params: {
         ...(opts?.limit ? { limit: opts.limit, page: opts.page || 1 } : {}),
         ...(opts?.q?.trim() ? { q: opts.q.trim() } : {}),
+        // Panel por fuente: sólo los productos de ese flyer/circular (vigente o programado).
+        ...(opts?.circularId ? { circularId: opts.circularId, when: opts.when || 'live' } : {}),
       },
     });
+    return res.data;
+  }
+
+  /** Vista previa de la lista de productos en texto (al agendar una campaña). */
+  async parseProductList(
+    text: string,
+    storeSlug?: string
+  ): Promise<{ ok: boolean; count: number; products: ParsedListProduct[] }> {
+    const res = await api.post(`/circulars/campaign-import/parse-list`, { text, storeSlug });
+    return res.data;
+  }
+
+  /** Fuentes activas del catálogo (flyer/circular vigente o programado) con cuántos productos tiene cada una. */
+  async getCatalogSources(
+    storeSlug: string
+  ): Promise<{ ok: boolean; total: number; sources: CatalogSource[] }> {
+    const res = await api.get(`/circulars/store/${storeSlug}/catalog/sources`);
+    return res.data;
+  }
+
+  /** Limpieza fija de lo ya guardado: GET cuenta sin aplicar, POST aplica (nunca pisa lo corregido a mano). */
+  async catalogCleanup(storeSlug: string, apply: boolean): Promise<CatalogCleanupPlan> {
+    const res = apply
+      ? await api.post(`/circulars/store/${storeSlug}/catalog/cleanup`, {})
+      : await api.get(`/circulars/store/${storeSlug}/catalog/cleanup`);
     return res.data;
   }
 

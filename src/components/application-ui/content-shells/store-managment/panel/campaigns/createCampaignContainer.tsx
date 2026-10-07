@@ -101,6 +101,8 @@ export default function CampaignFormContainer({
             : data.imageRemoved
               ? ''
               : initialData?.sourceImagePublicId || '',
+          // Lista de productos en texto (opcional): manda sobre lo que lea el arte.
+          productList: String(data.productList || ''),
           thumbnailImage:
             uploadedThumb?.url || data.thumbnailImage || initialData?.thumbnailImage || null,
           thumbnailPublicId:
