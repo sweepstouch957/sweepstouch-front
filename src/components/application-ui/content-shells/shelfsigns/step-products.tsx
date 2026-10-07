@@ -44,7 +44,7 @@ import { demoProducts } from './constants';
 import { parseManualLine } from './parse';
 import { ProductEditorCard } from './product-editor-card';
 import type { ShelfSignProduct } from './types';
-import { useFlyerExtraction } from './use-flyer-extraction';
+import { useFlyerExtraction, type FlyerState } from './use-flyer-extraction';
 
 /**
  * Paso 2 — Productos: extracción con IA + revisión humana (obligatoria) o carga
@@ -60,6 +60,9 @@ interface Props {
   onRemoveProduct: (id: string) => void;
   /** La tienda que dice el flyer, para que el paso 3 la preseleccione. */
   onStoreHint?: (hint: StoreHintDto) => void;
+  /** Flyer subido. Lo guarda el studio: este paso se desmonta al cambiar de pestaña. */
+  flyer: FlyerState;
+  onFlyerChange: (patch: Partial<FlyerState>) => void;
 }
 
 export function StepProducts({
@@ -70,6 +73,8 @@ export function StepProducts({
   onPatchProduct,
   onRemoveProduct,
   onStoreHint,
+  flyer,
+  onFlyerChange,
 }: Props): React.JSX.Element {
   const fileRef = React.useRef<HTMLInputElement>(null);
   const [manualOpen, setManualOpen] = React.useState(false);
@@ -101,6 +106,8 @@ export function StepProducts({
   } = useFlyerExtraction({
     onProducts: handleProducts,
     onPatchProduct,
+    flyer,
+    onFlyerChange,
   });
 
   React.useEffect(() => {

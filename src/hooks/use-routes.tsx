@@ -9,6 +9,7 @@ import {
   CalendarMonthRounded,
   Campaign,
   DescriptionRounded,
+  DesignServicesRounded,
   Diversity3Rounded,
   EventRounded,
   GroupsRounded,
@@ -125,6 +126,19 @@ const toolsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Utilidades'), route: routes.admin.applications.utilities, icon: <TuneRounded /> },
     { title: t('Compartir base'), route: routes.admin.applications['audience-share'], icon: <ShareRounded /> },
   ], undefined, STAFF_ROLES);
+
+/**
+ * Workspace › Diseño: gestión de producción de flyers MMS. Reemplaza el
+ * tablero de Notion del equipo de diseño.
+ */
+const workspaceMenu = (t: (token: string) => string): MenuItem[] => [
+  {
+    title: t('Diseño'),
+    route: routes.admin.workspace.design,
+    icon: <DesignServicesRounded />,
+    roles: ['admin', 'design'],
+  },
+];
 
 const designsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(
@@ -350,6 +364,9 @@ export const useMenuItemsCollapsedShells = (
         workMenu,
       ],
     },
+    // Workspace es su propia sección: es un espacio de trabajo de equipo, no
+    // una herramienta suelta. Si el rol no llega, la sección se cae sola.
+    { title: t('Workspace'), subMenu: workspaceMenu(t) },
     // Lo que se produce y se le manda al súper.
     ...managementSections.filter((s) => !isAdminSection(s)),
     // Facturación, usuarios y soporte: una vez por semana, al pie.
@@ -362,6 +379,7 @@ export const useMenuItemsCollapsedShells = (
   return sections
     .map((section) => ({ ...section, subMenu: visible(section.subMenu || []) }))
     .filter((section) => section.subMenu.length > 0);
+
 };
 
 export default useMenuItemsCollapsedShells;

@@ -21,9 +21,15 @@ interface Props {
   config: ShelfSignConfig;
   /** Sombra en pantalla; en impresión se anula por CSS. */
   shadow?: boolean;
+  /** Encuadre y recorte de la foto. Sólo lo pasa la hoja de pantalla. */
+  edit?: {
+    scale: number;
+    mode: 'move' | 'crop';
+    onChange: (id: string, patch: Partial<ShelfSignProduct>) => void;
+  };
 }
 
-export function Sheet({ pair, config, shadow = false }: Props): React.JSX.Element {
+export function Sheet({ pair, config, shadow = false, edit }: Props): React.JSX.Element {
   return (
     <div
       className="ss-sheet"
@@ -32,6 +38,7 @@ export function Sheet({ pair, config, shadow = false }: Props): React.JSX.Elemen
       <ShelfSign
         product={pair[0]}
         config={config}
+        edit={edit}
       />
       {/* Producto impar: la mitad de abajo va vacía pero conserva la línea de
           corte, así la hoja se recorta igual que las demás. */}
@@ -40,6 +47,7 @@ export function Sheet({ pair, config, shadow = false }: Props): React.JSX.Elemen
           product={pair[1]}
           config={config}
           isBottom
+          edit={edit}
         />
       ) : (
         <div className="ss-sheet-half">

@@ -7,6 +7,8 @@
  * si el modelo se equivoca al clasificar, el cartón igual sale bien.
  */
 
+import type { PhotoCrop, PhotoLayout } from './photo-layout';
+
 export type PriceUnit = 'LB' | 'EA' | '';
 
 /** Recorte de la foto dentro del flyer, en porcentajes 0-100 de la imagen. */
@@ -54,6 +56,14 @@ export interface ShelfSignProduct {
   /** Foto ya recortada (dataURL) y la caja de la que salió. */
   photo: string | null;
   photoBox: PhotoBox | null;
+
+  /**
+   * Encuadre libre: saca la foto de su caja y la deja como capa movible y
+   * estirable sobre el cartón. `undefined` = la caja de siempre. Ver `photo-layout.ts`.
+   */
+  photoLayout?: PhotoLayout;
+  /** Qué parte de la foto se ve. `undefined` = entera. Siempre junto a `photoLayout`. */
+  photoCrop?: PhotoCrop;
 }
 
 /** Configuración de la plantilla master, común a todos los cartones. */
