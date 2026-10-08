@@ -277,7 +277,7 @@ export async function notifyBatteryAlerts(
 export async function getKioskScreenshot(
   storeId: string,
   identifier: string,
-): Promise<{ screenshotUrl?: string | null }> {
+): Promise<{ screenshotUrl?: string | null; capturedAt?: string | null }> {
   const res = await api.get(`/store/${storeId}/kiosk/screenshot/${encodeURIComponent(identifier)}`);
   return res.data;
 }

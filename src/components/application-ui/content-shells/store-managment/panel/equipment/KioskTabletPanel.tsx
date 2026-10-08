@@ -17,7 +17,7 @@ import {
 } from '@mui/icons-material';
 import toast from 'react-hot-toast';
 import { useKioskDevices, useDeviceAction, useGroupDeviceAction, useBatteryReport } from '@/hooks/fetching/kiosk/useKioskDevices';
-import { type KioskDevice, type DeviceActionName, notifyBatteryAlerts, getKioskScreenshot, clearKioskTag } from '@/services/kiosk.service';
+import { type KioskDevice, type DeviceActionName, notifyBatteryAlerts, getKioskScreenshot, clearKioskTag, deviceAction } from '@/services/kiosk.service';
 import { tint, tintBorder, type SemanticRole } from '@/theme/semantic';
 
 interface Props { storeId: string; }
@@ -37,6 +37,17 @@ interface ScreenshotState {
   url?: string;
   /** Errores de carga seguidos; al segundo se deja de insistir. */
   fails?: number;
+  /** Hora real de la foto (Last-Modified del blob). */
+  capturedAt?: string | null;
+}
+
+function capturedLabel(iso?: string | null): string {
+  if (!iso) return 'CAPTURA';
+  const secs = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
+  if (secs < 60) return `CAPTURA · HACE ${Math.max(secs, 0)} S`;
+  if (secs < 3600) return `CAPTURA · HACE ${Math.round(secs / 60)} MIN`;
+  const d = new Date(iso);
+  return `CAPTURA VIEJA · ${d.toLocaleDateString('es', { day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}`.toUpperCase();
 }
 
 /**
@@ -160,6 +171,7 @@ function TabletFramePreview({
   // Los kioscos van montados en horizontal (capturas 1340x800): ese es el
   // default; sólo una captura vertical lo gira.
   const [imgOrientation, setImgOrientation] = React.useState<'portrait' | 'landscape'>('landscape');
+  const [zoom, setZoom] = React.useState(false);
 
   // Detect screenshot orientation when URL changes
   React.useEffect(() => {
@@ -272,8 +284,29 @@ function TabletFramePreview({
                 src={screenshot.url}
                 alt="Captura de pantalla"
                 onError={onImgError}
-                style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                onClick={() => setZoom(true)}
+                title="Ver en grande"
+                style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', cursor: 'zoom-in' }}
               />
+              <Dialog open={zoom} onClose={() => setZoom(false)} maxWidth="lg" fullWidth>
+                <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1.5 }}>
+                  <Typography fontWeight={800} sx={{ flex: 1 }} noWrap>
+                    {cajaLabel(device.name)} · {capturedLabel(screenshot.capturedAt).toLowerCase()}
+                  </Typography>
+                  <IconButton size="small" onClick={() => setZoom(false)} aria-label="Cerrar">
+                    <Close fontSize="small" />
+                  </IconButton>
+                </DialogTitle>
+                <DialogContent sx={{ p: 0, bgcolor: '#000', display: 'flex', justifyContent: 'center' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={screenshot.url}
+                    alt={`Captura ${cajaLabel(device.name)}`}
+                    onClick={() => setZoom(false)}
+                    style={{ width: '100%', maxHeight: '80vh', objectFit: 'contain', display: 'block', cursor: 'zoom-out' }}
+                  />
+                </DialogContent>
+              </Dialog>
               {onClearScreenshot && (
                 <Tooltip title="Cerrar captura">
                   <Box
@@ -303,7 +336,7 @@ function TabletFramePreview({
               }}>
                 <Screenshot sx={{ fontSize: 9, color: '#a78bfa' }} />
                 <Typography sx={{ fontSize: '0.44rem', color: '#a78bfa', fontWeight: 700, letterSpacing: '0.05em' }}>
-                  CAPTURA EN VIVO
+                  {capturedLabel(screenshot.capturedAt)}
                 </Typography>
               </Box>
             </Box>
@@ -1278,18 +1311,6 @@ export function KioskTabletPanel({ storeId }: Props) {
     }
   }, [devices, selectedId]);
 
-  // Auto-populate screenshot from applicationScreenshot on device select
-  React.useEffect(() => {
-    if (!selectedId || !devices) return;
-    const device = devices.find(d => d.identifier === selectedId);
-    if (device?.applicationScreenshot && !screenshots[selectedId]) {
-      setScreenshots(prev => ({
-        ...prev,
-        [selectedId]: { status: 'ready', url: device.applicationScreenshot },
-      }));
-    }
-  }, [selectedId, devices]);
-
   const filteredDevices = React.useMemo(() => {
     if (!devices) return [];
     if (filter === 'online')  return devices.filter(d => d.online);
@@ -1307,18 +1328,61 @@ export function KioskTabletPanel({ storeId }: Props) {
     try {
       const resp = await getKioskScreenshot(storeId, identifier);
       const url: string | null = resp?.screenshotUrl ?? null;
+      const capturedAt = resp?.capturedAt ?? null;
       setScreenshots(prev => {
         const fails = fromError ? (prev[identifier]?.fails ?? 0) + 1 : 0;
         // Link fresco que igual no carga = no hay captura: no insistir.
         if (!url || fails > 1) return { ...prev, [identifier]: { status: 'idle' } };
-        return { ...prev, [identifier]: { status: 'ready', url, fails } };
+        return { ...prev, [identifier]: { status: 'ready', url, fails, capturedAt } };
       });
-      return !!url;
+      return { url, capturedAt };
     } catch {
       setScreenshots(prev => ({ ...prev, [identifier]: { status: 'idle' } }));
-      return false;
+      return { url: null, capturedAt: null };
     }
   }, [storeId]);
+
+  /* Espera la captura nueva: la tablet la sube en ~5-15 s y el blob se pisa,
+     así que se compara la hora de la foto contra la del pedido. */
+  const waitFreshCapture = React.useCallback(async (identifier: string, since: number) => {
+    setScreenshots(prev => ({ ...prev, [identifier]: { status: 'capturing' } }));
+    for (let i = 0; i < 8; i++) {
+      await new Promise(r => setTimeout(r, 4000));
+      try {
+        const resp = await getKioskScreenshot(storeId, identifier);
+        const at = resp?.capturedAt ? new Date(resp.capturedAt).getTime() : 0;
+        if (resp?.screenshotUrl && at >= since - 5000) {
+          setScreenshots(prev => ({
+            ...prev,
+            [identifier]: { status: 'ready', url: resp.screenshotUrl!, capturedAt: resp.capturedAt },
+          }));
+          return true;
+        }
+      } catch { /* reintenta */ }
+    }
+    // No respondió (apagada, sin red): se muestra la última que haya, con su fecha.
+    await refreshScreenshot(identifier);
+    toast.error('La tablet no mandó captura nueva — se muestra la última que hay');
+    return false;
+  }, [storeId, refreshScreenshot]);
+
+  /* Al abrir una tablet online se pide captura nueva sola (una vez por tablet):
+     la guardada puede tener meses. Offline: la última, con su fecha. */
+  const requestedCapture = React.useRef(new Set<string>());
+  React.useEffect(() => {
+    if (!selectedId || !devices) return;
+    const device = devices.find(d => d.identifier === selectedId);
+    if (!device || requestedCapture.current.has(selectedId)) return;
+    requestedCapture.current.add(selectedId);
+    if (device.online) {
+      const since = Date.now();
+      deviceAction(storeId, 'screenshot', selectedId)
+        .then(() => waitFreshCapture(selectedId, since))
+        .catch(() => refreshScreenshot(selectedId));
+    } else {
+      refreshScreenshot(selectedId);
+    }
+  }, [selectedId, devices, storeId, waitFreshCapture, refreshScreenshot]);
 
   /* ── Screenshot: fix — poll GET /screenshot/:identifier ~15s after action ── */
   const runAction = React.useCallback((identifier: string, action: DeviceActionName) => {
@@ -1335,6 +1399,7 @@ export function KioskTabletPanel({ storeId }: Props) {
       [identifier]: [entry, ...(prev[identifier] ?? [])].slice(0, 25),
     }));
     setLoadingDevice(p => ({ ...p, [identifier]: action }));
+    const startedAt = Date.now();
 
     actionMutation.mutate({ action, identifier }, {
       onSuccess: () => {
@@ -1347,17 +1412,7 @@ export function KioskTabletPanel({ storeId }: Props) {
           ),
         }));
 
-        // La tablet sube la captura en ~10-20 s y el blob se llama igual: se
-        // pide el link dos veces (cada link firmado es distinto, el <img> recarga).
-        if (action === 'screenshot') {
-          setScreenshots(prev => ({ ...prev, [identifier]: { status: 'capturing' } }));
-          setTimeout(() => {
-            refreshScreenshot(identifier).then(ok => {
-              if (!ok) toast.error('Captura no disponible aún — intenta de nuevo en unos segundos');
-            });
-          }, 10000);
-          setTimeout(() => { refreshScreenshot(identifier); }, 20000);
-        }
+        if (action === 'screenshot') waitFreshCapture(identifier, startedAt);
       },
       onError: (err: any) => {
         const msg = err?.response?.data?.error ?? err?.message ?? 'Error';
@@ -1371,7 +1426,7 @@ export function KioskTabletPanel({ storeId }: Props) {
         }));
       },
     });
-  }, [actionMutation, refreshScreenshot]);
+  }, [actionMutation, waitFreshCapture]);
 
   const handleAction = React.useCallback((identifier: string, action: DeviceActionName, confirmMsg?: string) => {
     if (confirmMsg) { setConfirmState({ open: true, identifier, action, message: confirmMsg }); return; }
