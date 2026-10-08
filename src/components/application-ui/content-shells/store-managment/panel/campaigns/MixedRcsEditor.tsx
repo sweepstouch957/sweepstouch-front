@@ -99,6 +99,8 @@ export type MixedRcsCustom = {
   buttons: MixedButton[];
   openIn: 'webview' | 'browser';
   productCards: number;
+  /** 'split' = la foto aparte y el texto con botones en otro mensaje (se ve entera en iPhone); 'card' = tarjeta. */
+  imageMode: 'split' | 'card';
 };
 
 /** Las líneas con #ahorro, #listlink o #address se borran solas (con su rótulo) si no hay dato. */
@@ -146,6 +148,8 @@ export const MIXED_RCS_DEFAULTS: MixedRcsCustom = {
   // Navegador: el webview de Mensajes abría a media pantalla (pedido del dueño, 5 oct 2026).
   openIn: 'browser',
   productCards: 0,
+  // Foto aparte (default 7 oct 2026): en iPhone la tarjeta recortaba el flyer.
+  imageMode: 'split',
 };
 
 /** Botones de un template guardado. Sin `buttons` (templates viejos) se arman del switch de lista + botón de ofertas. */
@@ -184,6 +188,7 @@ export const mixedCustomFromTemplate = (tpl: any): MixedRcsCustom =>
         buttons: buttonsFromTemplate(tpl),
         openIn: tpl.openIn === 'webview' ? 'webview' : 'browser',
         productCards: Math.min(9, Math.max(0, Number(tpl.productCards) || 0)),
+        imageMode: tpl.imageMode === 'card' ? 'card' : 'split',
       }
     : MIXED_RCS_DEFAULTS;
 
@@ -212,6 +217,7 @@ export function mixedTemplateFromCustom(c: MixedRcsCustom): Record<string, unkno
       : { buttons: buttons.length ? buttons : [{ text: DEFAULT_BUTTON.text, link: 'home' }] }),
     ...(c.openIn === 'webview' ? { openIn: 'webview' } : {}),
     ...(c.productCards > 0 ? { productCards: c.productCards } : {}),
+    ...(c.imageMode === 'card' ? { imageMode: 'card' } : {}),
   };
   return { type: 'MIXED', ...out };
 }
@@ -970,6 +976,25 @@ export default function MixedRcsEditor({
                   campaña de prueba antes del envío masivo.
                 </Alert>
               )}
+              <TextField
+                select
+                size="small"
+                fullWidth
+                label="Cómo viaja la imagen"
+                value={value.imageMode}
+                onChange={(e) => set({ imageMode: e.target.value as MixedRcsCustom['imageMode'] })}
+                disabled={value.productCards > 0}
+                helperText={
+                  value.productCards > 0
+                    ? 'Con carrusel la imagen va en la primera tarjeta'
+                    : value.imageMode === 'split'
+                      ? 'La foto sale sola (se ve entera en iPhone) y después el texto con los botones'
+                      : 'Tarjeta con la foto arriba: en iPhone puede salir recortada'
+                }
+              >
+                <MenuItem value="split">Foto aparte + texto con botones (recomendado)</MenuItem>
+                <MenuItem value="card">Tarjeta con la foto arriba</MenuItem>
+              </TextField>
               <Stack
                 direction="row"
                 justifyContent="flex-end"
