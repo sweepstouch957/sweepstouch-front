@@ -128,7 +128,9 @@ export const smsTemplateToRcsBody = (content: string) =>
     .replace(/#n(?!ame(?![a-zA-Z]))/g, '\n')
     .split('\n')
     .filter((line, i) => !(i === 0 && /#brand|#store/i.test(line)))
-    .map((line) => (/#(?:linklogin|linktree|link)(?![a-z])/i.test(line) ? TAP_BELOW : line))
+    .map((line) =>
+      /#(?:linklogin|linktreeclean|linktree|link)(?![a-z])/i.test(line) ? TAP_BELOW : line
+    )
     .join('\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
@@ -218,6 +220,10 @@ const TOKENS = [
   { key: '#name', label: 'Nombre del cliente' },
   { key: '#listlink', label: 'Link único de su lista' },
   { key: '#linklogin', label: 'Linktree con la sesión del cliente (sin código)' },
+  {
+    key: '#linktreeclean',
+    label: 'Linktree limpio: portada con sesión, circular abierto, sin correo',
+  },
   { key: '#ahorro', label: 'Ahorro de la semana' },
   { key: '#address', label: 'Sólo la dirección' },
   { key: '#brand', label: 'Nombre sin dirección' },
@@ -288,7 +294,7 @@ export function buildMixedPreview({
       .replace(/#ahorro/gi, vals['#ahorro'])
       .replace(/#listlink/gi, vals['#listlink'])
       .replace(/#address/gi, vals['#address'])
-      .replace(/#(?:linklogin|linktree|link)(?![a-z])/gi, 'swtrcs.com/s/YYYYYY')
+      .replace(/#(?:linklogin|linktreeclean|linktree|link)(?![a-z])/gi, 'swtrcs.com/s/YYYYYY')
       .replace(/#message/gi, smsText || 'Texto de la campaña')
       .replace(/\n{3,}/g, '\n\n')
       .trim();

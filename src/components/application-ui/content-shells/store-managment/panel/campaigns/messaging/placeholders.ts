@@ -37,6 +37,11 @@ export const PLACEHOLDERS: readonly PlaceholderDef[] = [
     key: '#linklogin',
     label: 'Linktree con sesión — entra sin código (link corto, vence en 30 días)',
   },
+  // Portada del linktree con sesión (saluda por nombre), el circular abierto y sin pedir correo.
+  {
+    key: '#linktreeclean',
+    label: 'Linktree limpio — portada con sesión, circular abierto, sin pedir correo (link corto)',
+  },
   { key: '#ahorro', label: 'Ahorro semanal de la tienda ($)' },
 ];
 
