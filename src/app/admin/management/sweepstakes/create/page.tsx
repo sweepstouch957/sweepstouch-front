@@ -76,11 +76,13 @@ function Page(): React.JSX.Element {
             zipCode: eventStore.zipCode,
           });
           eventStoreCreated = true;
-        } catch {
+        } catch (e: any) {
           // ponytail: alert y no snackbar — el onSuccess redirige y se comería
           // cualquier toast. Cambiar a snackbar si el redirect se demora.
           window.alert(
-            'El sorteo se creó, pero no se pudo crear la tienda del evento. Agregala desde Eventos con "Agregar existente".'
+            'El sorteo se creó, pero no se pudo crear la tienda del evento' +
+              ` (${e?.response?.data?.error || e?.message || 'error desconocido'}).` +
+              ' Agregala desde Eventos con "Agregar existente".'
           );
         }
       }

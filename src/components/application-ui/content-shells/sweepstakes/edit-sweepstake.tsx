@@ -41,6 +41,10 @@ function toFormValues(sweepstake: Sweepstakes): Partial<BriefFormValues> {
     winnersCount: sweepstake.winnersCount ?? 1,
     image: sweepstake.image || '',
     hasQr: !!sweepstake.hasQr,
+    // Sin printTicket guardado = lo de siempre: imprime salvo el opt-in genérico.
+    printTicket: (sweepstake as any).printTicket ?? (sweepstake as any).optinType !== 'generic',
+    ticketCopies: (sweepstake as any).ticketCopies || 1,
+    ticketTemplate: (sweepstake as any).ticketTemplate || '',
     optinType: (sweepstake as any).optinType || '',
     rules: sweepstake.rules || '',
     participationMessage: sweepstake.participationMessage || '',

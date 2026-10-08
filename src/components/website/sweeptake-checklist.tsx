@@ -169,6 +169,10 @@ export default function SweepstakeChecklist({ sweepstakeId }: Props) {
       endDate: sweepstake.endDate || null,
       image: (sweepstake.image as string) || '',
       hasQr: Boolean(sweepstake.hasQr),
+      // Sin printTicket guardado = lo de siempre: imprime salvo el opt-in genérico.
+      printTicket: (sweepstake as any).printTicket ?? (sweepstake as any).optinType !== 'generic',
+      ticketCopies: (sweepstake as any).ticketCopies || 1,
+      ticketTemplate: (sweepstake as any).ticketTemplate || '',
       // Sin esto, guardar el brief pisaría el optinType existente ('event'/'nsa'/'generic')
       optinType: ((sweepstake as any).optinType || '') as SweepstakeOptinType,
       rules: sweepstake.rules || '',

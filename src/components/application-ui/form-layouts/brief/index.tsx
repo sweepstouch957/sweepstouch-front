@@ -68,7 +68,7 @@ export const OPTIN_TYPE_OPTIONS: { value: SweepstakeOptinType; label: string; hi
   { value: 'generic', label: 'Genérico (promociones)', hint: 'Opt-in de promociones de la tienda' },
   { value: 'event', label: 'Evento — Owner / Employee', hint: 'Pregunta el rol ANTES de registrar' },
   { value: 'nsa', label: 'NSA — Owner/Manager · Seller/Brand', hint: 'Pregunta el rol DESPUÉS de registrar' },
-  { value: 'ceo', label: 'Evento de CEOs', hint: 'Sólo guarda el número en la tienda del evento: sin MMS ni ticket' },
+  { value: 'ceo', label: 'Evento de CEOs', hint: 'Sólo guarda el número en la tienda del evento: sin MMS (ticket opcional)' },
 ];
 
 /**
@@ -83,6 +83,28 @@ export type EventStoreDraft = {
   zipCode: string;
 };
 
+/**
+ * Ticket que imprime la tablet si el sorteo no trae uno propio. Mismo texto que
+ * el default de tablets-sweepstouch (libs/utils/rawBt.ts): si se cambia uno,
+ * cambiar el otro.
+ */
+export const DEFAULT_TICKET_TEMPLATE = [
+  '==============================',
+  '{store}',
+  '==============================',
+  'PHONE : {phone}',
+  'COUPON: {coupon}',
+  'DATE  : {date}',
+  'TIME  : {time}',
+  '==============================',
+  '{sweepstake}',
+  '==============================',
+  'GOOD LUCK',
+].join('\n');
+
+/** Opt-ins que por defecto no imprimen: el genérico nunca imprimió y el de CEOs sólo guarda el número. */
+const NO_TICKET_OPTIN_TYPES: SweepstakeOptinType[] = ['generic', 'ceo'];
+
 /** Tipos de opt-in que corren en un evento, no en una tienda existente. */
 export const EVENT_OPTIN_TYPES: SweepstakeOptinType[] = ['event', 'nsa', 'ceo'];
 
@@ -94,6 +116,10 @@ export type BriefFormValues = {
   winnersCount: number;
   image?: string;
   hasQr: boolean;
+  printTicket?: boolean;
+  ticketCopies?: number;
+  /** Vacío = DEFAULT_TICKET_TEMPLATE. */
+  ticketTemplate?: string;
   optinType?: SweepstakeOptinType;
   eventStore?: EventStoreDraft;
   rules?: string;
@@ -530,6 +556,9 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
       winnersCount: 1,
       image: '',
       hasQr: false,
+      printTicket: true,
+      ticketCopies: 1,
+      ticketTemplate: '',
       optinType: '',
       eventStore: { create: false, name: '', address: '', zipCode: '' },
       rules: '',
@@ -557,6 +586,9 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
         winnersCount: 1,
         image: '',
         hasQr: false,
+        printTicket: true,
+        ticketCopies: 1,
+        ticketTemplate: '',
         optinType: '',
         eventStore: { create: false, name: '', address: '', zipCode: '' },
         rules: '',
@@ -584,6 +616,7 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
   // Evento de CEOs: sin premios ni ticket; de la tienda sólo se pide el nombre.
   const isCeoOptin = optinTypeValue === 'ceo';
   const createEventStore = watch('eventStore.create');
+  const printTicketValue = watch('printTicket');
 
   // Snackbar
   const [snack, setSnack] = useState<{
@@ -964,28 +997,113 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
                   />
                 </Grid>
 
-                {/* QR Switch */}
+                {/* Ticket de la tablet */}
                 <Grid
                   item
                   xs={12}
                 >
                   <Controller
-                    name="hasQr"
+                    name="printTicket"
                     control={control}
                     render={({ field }) => (
                       <FormControlLabel
                         control={
                           <Switch
-                            checked={field.value}
+                            checked={!!field.value}
                             onChange={(e) => field.onChange(e.target.checked)}
                             color="primary"
                           />
                         }
-                        label="¿Tiene QR en Ticket?"
+                        label="Imprimir ticket en la tablet"
                       />
                     )}
                   />
                 </Grid>
+
+                {printTicketValue && (
+                  <>
+                    <Grid
+                      item
+                      xs={12}
+                      md={4}
+                    >
+                      <Controller
+                        name="ticketCopies"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            value={field.value ?? 1}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            select
+                            fullWidth
+                            label="Copias por registro"
+                          >
+                            {[1, 2, 3, 4, 5].map((n) => (
+                              <MenuItem
+                                key={n}
+                                value={n}
+                              >
+                                {n}
+                              </MenuItem>
+                            ))}
+                          </TextField>
+                        )}
+                      />
+                    </Grid>
+                    <Grid
+                      item
+                      xs={12}
+                      md={8}
+                    >
+                      <Controller
+                        name="hasQr"
+                        control={control}
+                        render={({ field }) => (
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                checked={field.value}
+                                onChange={(e) => field.onChange(e.target.checked)}
+                                color="primary"
+                              />
+                            }
+                            label="¿Tiene QR en Ticket?"
+                          />
+                        )}
+                      />
+                    </Grid>
+                    <Grid
+                      item
+                      xs={12}
+                    >
+                      <Controller
+                        name="ticketTemplate"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            value={field.value ?? ''}
+                            fullWidth
+                            multiline
+                            minRows={6}
+                            label="Texto del ticket"
+                            placeholder={DEFAULT_TICKET_TEMPLATE}
+                            helperText="Vacío = ticket por defecto. Variables: {store} {phone} {coupon} {date} {time} {sweepstake}"
+                            InputProps={{ sx: { fontFamily: 'monospace' } }}
+                          />
+                        )}
+                      />
+                      <Button
+                        size="small"
+                        sx={{ mt: 1 }}
+                        onClick={() => setValue('ticketTemplate', DEFAULT_TICKET_TEMPLATE)}
+                      >
+                        Cargar el de por defecto para editarlo
+                      </Button>
+                    </Grid>
+                  </>
+                )}
 
                 {/* Comportamiento del opt-in en la tablet/kiosko */}
                 <Grid
@@ -1006,6 +1124,7 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
                           // meter los números: se propone crearla de una vez.
                           if (mode === 'create') {
                             setValue('eventStore.create', EVENT_OPTIN_TYPES.includes(next));
+                            setValue('printTicket', !NO_TICKET_OPTIN_TYPES.includes(next));
                             if (!getValues('eventStore.name')) {
                               setValue('eventStore.name', getValues('name') || '');
                             }
@@ -1844,6 +1963,9 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
                     endDate: null,
                     image: '',
                     hasQr: false,
+                    printTicket: true,
+                    ticketCopies: 1,
+                    ticketTemplate: '',
                     optinType: '',
                     eventStore: { create: false, name: '', address: '', zipCode: '' },
                     rules: '',
