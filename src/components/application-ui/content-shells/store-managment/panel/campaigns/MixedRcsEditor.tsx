@@ -65,6 +65,11 @@ export const BUTTON_LINKS = [
     hint: 'La portada del linktree de la tienda con el circular abierto (el link de circularss primero; si no, el PDF cargado). Con sesión si el cliente la tiene.',
   },
   {
+    value: 'clean',
+    label: 'Linktree limpio',
+    hint: 'Igual que #linktreeclean: portada con su sesión y el circular abierto, sin pedir correo.',
+  },
+  {
     value: 'custom',
     label: 'Link personalizado…',
     hint: 'Una URL propia (promo, web de la tienda, etc.).',
@@ -86,6 +91,7 @@ const BUTTON_TEXT_BY_LINK: Record<ButtonLink, string> = {
   list: 'Make my list',
   circular: 'Weekly circular',
   pdf: 'See the circular',
+  clean: 'Weekly deals',
   custom: 'Learn more',
 };
 
