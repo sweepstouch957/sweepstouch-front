@@ -226,6 +226,7 @@ const supportMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Panel'), route: routes.admin.management.support.dashboard },
     { title: t('Tickets'), route: routes.admin.management.support.tickets },
     { title: t('Visitas'), route: routes.admin.management.support.visits },
+    { title: t('Control de materiales'), route: routes.admin.management.support.materials },
   ]);
 
 /** Facturación y QuickBooks. Es la URL que Intuit tiene registrada en el perfil de la app. */

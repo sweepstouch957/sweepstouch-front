@@ -248,6 +248,7 @@ export const routes = {
         dashboard: '/admin/dashboards/support',
         tickets: '/admin/management/support/tickets',
         visits: '/admin/management/support/visits',
+        materials: '/admin/management/support/materials',
       },
       departments: {
         listing: '/admin/management/departments',
