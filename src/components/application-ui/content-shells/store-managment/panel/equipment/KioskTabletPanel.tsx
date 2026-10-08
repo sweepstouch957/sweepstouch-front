@@ -35,6 +35,20 @@ interface ActivityEntry {
 interface ScreenshotState {
   status: 'idle' | 'capturing' | 'ready';
   url?: string;
+  /** Errores de carga seguidos; al segundo se deja de insistir. */
+  fails?: number;
+}
+
+/**
+ * Las tablets se nombran slug-de-la-tienda + caja ("..._caja08", "..-caja-1",
+ * "..._cajacs"). El slug ya es el de la tienda abierta: lo que sirve para
+ * ubicar la tablet es la caja.
+ */
+export function cajaLabel(name?: string): string {
+  const m = /caja[-_]?([a-z0-9]+)\s*$/i.exec(name || '');
+  if (!m) return name || 'Sin nombre';
+  const id = m[1];
+  return /^\d+$/.test(id) ? `Caja ${Number(id)}` : `Caja ${id.toUpperCase()}`;
 }
 
 /* ─── Battery helpers ─────────────────────────────────────────────────────── */
@@ -130,10 +144,13 @@ function TabletFramePreview({
   device,
   screenshot,
   onClearScreenshot,
+  onImgError,
 }: {
   device: KioskDevice;
   screenshot?: ScreenshotState;
   onClearScreenshot?: () => void;
+  /** El link de la captura es firmado y vence (~35 min): pedir uno fresco. */
+  onImgError?: () => void;
 }) {
   const bColor = screenBatteryColor(device.batteryLevel, device.isCharging);
   const [time, setTime] = React.useState(() =>
@@ -252,6 +269,7 @@ function TabletFramePreview({
               <img
                 src={screenshot.url}
                 alt="Captura de pantalla"
+                onError={onImgError}
                 style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
               />
               {onClearScreenshot && (
@@ -697,10 +715,10 @@ function DeviceListItem({ device, selected, onClick }: {
             fontSize: '0.73rem', fontWeight: 700,
             color: selected ? accentColor : t.palette.text.secondary,
           }}>
-            {device.name || 'Sin nombre'}
+            {cajaLabel(device.name)}
           </Typography>
-          <Typography noWrap sx={{ fontSize: '0.6rem', color: t.palette.text.disabled }}>
-            {device.model || device.brand || device.identifier.slice(0, 10)}
+          <Typography noWrap title={device.name} sx={{ fontSize: '0.6rem', color: t.palette.text.disabled }}>
+            {[device.model, device.serial].filter(Boolean).join(' · ') || device.identifier.slice(0, 10)}
           </Typography>
         </Box>
       </Stack>
@@ -762,13 +780,14 @@ function ConfirmDialog({ open, message, onConfirm, onClose }: {
 }
 
 /* ─── Device Detail View ──────────────────────────────────────────────────── */
-function DeviceDetailView({ device, onAction, loadingAction, activityLog, screenshot, onClearScreenshot }: {
+function DeviceDetailView({ device, onAction, loadingAction, activityLog, screenshot, onClearScreenshot, onImgError }: {
   device: KioskDevice;
   onAction: (id: string, action: DeviceActionName, confirm?: string) => void;
   loadingAction: DeviceActionName | null;
   activityLog: ActivityEntry[];
   screenshot?: ScreenshotState;
   onClearScreenshot?: () => void;
+  onImgError?: () => void;
 }) {
   const t = useTheme();
   const [showAdvanced, setShowAdvanced] = React.useState(false);
@@ -801,10 +820,13 @@ function DeviceDetailView({ device, onAction, loadingAction, activityLog, screen
           </Box>
           <Box flex={1} minWidth={0}>
             <Typography variant="subtitle1" fontWeight={800} noWrap sx={{ letterSpacing: '-0.02em', color: t.palette.text.primary }}>
-              {device.name || 'Sin nombre'}
+              {cajaLabel(device.name)}
             </Typography>
-            <Typography noWrap sx={{ fontSize: '0.72rem', color: t.palette.text.secondary }}>
-              {[device.model, device.brand].filter(Boolean).join(' · ')}
+            <Typography noWrap title={device.name} sx={{ fontSize: '0.72rem', color: t.palette.text.secondary }}>
+              {[device.model, device.brand, device.serial && `S/N ${device.serial}`].filter(Boolean).join(' · ')}
+            </Typography>
+            <Typography noWrap title={device.name} sx={{ fontSize: '0.62rem', color: t.palette.text.disabled, fontFamily: 'monospace' }}>
+              {device.name}
             </Typography>
           </Box>
           <Chip
@@ -830,7 +852,7 @@ function DeviceDetailView({ device, onAction, loadingAction, activityLog, screen
               ? 'radial-gradient(ellipse at center, rgba(15,23,42,0.8) 0%, rgba(8,12,24,0.95) 100%)'
               : alpha(t.palette.common.black, 0.03),
           }}>
-            <TabletFramePreview device={device} screenshot={screenshot} onClearScreenshot={onClearScreenshot} />
+            <TabletFramePreview device={device} screenshot={screenshot} onClearScreenshot={onClearScreenshot} onImgError={onImgError} />
           </Box>
         </Grid>
 
@@ -1168,7 +1190,7 @@ function BatteryAlertBanner({ storeId }: { storeId: string }) {
             }}>
               <BatteryAlert sx={{ fontSize: 14, color: 'error.main', flexShrink: 0 }} />
               <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: 'error.main', flex: 1 }}>
-                {d.name}
+                {cajaLabel(d.name)}
               </Typography>
               <Chip
                 label={`${d.batteryLevel}%`}
@@ -1277,6 +1299,25 @@ export function KioskTabletPanel({ storeId }: Props) {
   const online  = (devices ?? []).filter(d => d.online).length;
   const offline = (devices ?? []).filter(d => !d.online).length;
 
+  /* Pide el link firmado actual de la captura. Si vuelve a fallar (o no hay
+     captura) queda en idle y se ve la pantalla simulada, no una imagen rota. */
+  const refreshScreenshot = React.useCallback(async (identifier: string, fromError = false) => {
+    try {
+      const resp = await getKioskScreenshot(storeId, identifier);
+      const url: string | null = resp?.screenshotUrl ?? null;
+      setScreenshots(prev => {
+        const fails = fromError ? (prev[identifier]?.fails ?? 0) + 1 : 0;
+        // Link fresco que igual no carga = no hay captura: no insistir.
+        if (!url || fails > 1) return { ...prev, [identifier]: { status: 'idle' } };
+        return { ...prev, [identifier]: { status: 'ready', url, fails } };
+      });
+      return !!url;
+    } catch {
+      setScreenshots(prev => ({ ...prev, [identifier]: { status: 'idle' } }));
+      return false;
+    }
+  }, [storeId]);
+
   /* ── Screenshot: fix — poll GET /screenshot/:identifier ~15s after action ── */
   const runAction = React.useCallback((identifier: string, action: DeviceActionName) => {
     const entryId = `${Date.now()}-${Math.random()}`;
@@ -1304,23 +1345,16 @@ export function KioskTabletPanel({ storeId }: Props) {
           ),
         }));
 
-        // Screenshot fix: poll GET /screenshot/:identifier after 15s to get applicationScreenshot URL
+        // La tablet sube la captura en ~10-20 s y el blob se llama igual: se
+        // pide el link dos veces (cada link firmado es distinto, el <img> recarga).
         if (action === 'screenshot') {
           setScreenshots(prev => ({ ...prev, [identifier]: { status: 'capturing' } }));
-          setTimeout(async () => {
-            try {
-              const resp = await getKioskScreenshot(storeId, identifier);
-              const url: string | null = resp?.screenshotUrl ?? null;
-              if (url) {
-                setScreenshots(prev => ({ ...prev, [identifier]: { status: 'ready', url } }));
-              } else {
-                setScreenshots(prev => ({ ...prev, [identifier]: { status: 'idle' } }));
-                toast.error('Captura no disponible aún — intenta de nuevo en unos segundos');
-              }
-            } catch {
-              setScreenshots(prev => ({ ...prev, [identifier]: { status: 'idle' } }));
-            }
-          }, 15000);
+          setTimeout(() => {
+            refreshScreenshot(identifier).then(ok => {
+              if (!ok) toast.error('Captura no disponible aún — intenta de nuevo en unos segundos');
+            });
+          }, 10000);
+          setTimeout(() => { refreshScreenshot(identifier); }, 20000);
         }
       },
       onError: (err: any) => {
@@ -1335,7 +1369,7 @@ export function KioskTabletPanel({ storeId }: Props) {
         }));
       },
     });
-  }, [actionMutation, storeId]);
+  }, [actionMutation, refreshScreenshot]);
 
   const handleAction = React.useCallback((identifier: string, action: DeviceActionName, confirmMsg?: string) => {
     if (confirmMsg) { setConfirmState({ open: true, identifier, action, message: confirmMsg }); return; }
@@ -1560,6 +1594,7 @@ export function KioskTabletPanel({ storeId }: Props) {
               onClearScreenshot={() =>
                 setScreenshots(prev => ({ ...prev, [selectedDevice.identifier]: { status: 'idle' } }))
               }
+              onImgError={() => refreshScreenshot(selectedDevice.identifier, true)}
             />
           ) : (
             <Box sx={{
