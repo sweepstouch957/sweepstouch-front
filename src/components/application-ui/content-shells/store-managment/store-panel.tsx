@@ -1,5 +1,6 @@
 'use client';
 
+import { useKioskDevices } from '@/hooks/fetching/kiosk/useKioskDevices';
 import { useStoreManagementPage } from '@/hooks/pages/useStoreManagementPage';
 import { DEFAULT_INFOBIP_SENDER } from '@/services/store.service';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
@@ -36,6 +37,9 @@ const StoreManagementPage = () => {
     handleMMSNavigate,
     handleQuickOpen,
   } = useStoreManagementPage();
+  // Mismo query que la pestaña de equipos: el número son las tablets reales de
+  // Kiosk Manager, no la lista manual store.equipment (casi siempre vacía → "0").
+  const { data: kioskDevices } = useKioskDevices(store?.id || '');
 
   return (
     <Box
@@ -55,7 +59,7 @@ const StoreManagementPage = () => {
         accessCode={store?.accessCode}
         counts={{
           customers: store?.customerCount,
-          equipment: store?.equipment?.length ?? store?.equipmentTotal,
+          equipment: kioskDevices?.length || store?.equipment?.length || store?.equipmentTotal || undefined,
         }}
       />
 

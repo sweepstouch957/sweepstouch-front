@@ -157,7 +157,9 @@ function TabletFramePreview({
     new Date().toLocaleTimeString('es-HN', { hour: '2-digit', minute: '2-digit' }),
   );
   const [countdown, setCountdown] = React.useState<number | null>(null);
-  const [imgOrientation, setImgOrientation] = React.useState<'portrait' | 'landscape'>('portrait');
+  // Los kioscos van montados en horizontal (capturas 1340x800): ese es el
+  // default; sólo una captura vertical lo gira.
+  const [imgOrientation, setImgOrientation] = React.useState<'portrait' | 'landscape'>('landscape');
 
   // Detect screenshot orientation when URL changes
   React.useEffect(() => {
@@ -168,7 +170,7 @@ function TabletFramePreview({
       };
       img.src = screenshot.url;
     } else {
-      setImgOrientation('portrait');
+      setImgOrientation('landscape');
     }
   }, [screenshot?.url, screenshot?.status]);
 
@@ -196,7 +198,7 @@ function TabletFramePreview({
 
   const isLandscape = imgOrientation === 'landscape';
   // Portrait: 210×300 | Landscape: 320×220 — swap frame dims to match real orientation
-  const frameW = isLandscape ? 320 : 210;
+  const frameW = isLandscape ? 340 : 210;
   const frameH = isLandscape ? 220 : 300;
 
   return (

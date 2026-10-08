@@ -31,7 +31,7 @@ const securityHeaders = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://api.mapbox.com",
       "style-src 'self' 'unsafe-inline' https://api.mapbox.com",
-      "img-src 'self' data: blob: https://res.cloudinary.com https://*.cloudinary.com https://*.mapbox.com https://jsfpovyoaqucwigttyil.supabase.co",
+      "img-src 'self' data: blob: https://res.cloudinary.com https://*.cloudinary.com https://*.mapbox.com https://jsfpovyoaqucwigttyil.supabase.co https://klremote.blob.core.windows.net", // klremote = capturas de las tablets (Kiosk Manager)
       "font-src 'self' data: https://api.mapbox.com",
       // Videos de Ads (promos) subidos a Cloudinary: previsualización en el panel.
       "media-src 'self' blob: https://res.cloudinary.com https://*.cloudinary.com",
