@@ -13,6 +13,9 @@ export type CampaignCost = {
   messages: number;
   estimatedPrices: number;
   rcsPricePerMessage: number | null;
+  /** RCS split: fotos que salieron aparte del texto y lo que costaron (ya dentro del costo RCS). */
+  rcsImages?: number;
+  rcsImageCost?: number;
   rates: { sms: number; mms: number; rcs: number };
   channels: Array<{ channel: string; messages: number; cost: number; avgPerMessage: number }>;
 };
@@ -39,7 +42,9 @@ export function BillingCard({
       {collection}
       {cost && cost.channels.length > 0 && (
         <Stack gap={2}>
-          <Typography sx={{ fontSize: 14, fontWeight: 700, pt: 0.5 }}>Costo de envío (Infobip)</Typography>
+          <Typography sx={{ fontSize: 14, fontWeight: 700, pt: 0.5 }}>
+            Costo de envío (Infobip)
+          </Typography>
           <InfobipCost
             charged={charged}
             cost={cost}
@@ -47,7 +52,16 @@ export function BillingCard({
         </Stack>
       )}
       {!cost?.channels.length && (
-        <Typography sx={{ fontSize: 12, color: 'text.secondary', bgcolor: soft(theme), borderRadius: 2.5, px: 1.75, py: 1.5 }}>
+        <Typography
+          sx={{
+            fontSize: 12,
+            color: 'text.secondary',
+            bgcolor: soft(theme),
+            borderRadius: 2.5,
+            px: 1.75,
+            py: 1.5,
+          }}
+        >
           Infobip todavía no reportó el costo de los mensajes de esta campaña.
         </Typography>
       )}
@@ -60,14 +74,17 @@ function InfobipCost({ charged, cost }: { charged: number; cost: CampaignCost })
   const diff = charged - cost.totalCost;
   const maxMsgs = Math.max(1, ...cost.channels.map((c) => c.messages));
   const line = panelDivider(theme);
-  const perMsg = (c: number, m: number) => (m > 0 ? `$${(c / m).toFixed(c / m < 0.1 ? 4 : 3)}` : '—');
+  const perMsg = (c: number, m: number) =>
+    m > 0 ? `$${(c / m).toFixed(c / m < 0.1 ? 4 : 3)}` : '—';
 
   const cell = (label: string, value: string, role?: 'error' | 'success') => (
     <Stack
       gap={0.5}
       sx={{ bgcolor: role ? tint(theme, role) : 'background.paper', p: 1.75 }}
     >
-      <Typography sx={{ fontSize: 12, color: role ? toneText(theme, role) : 'text.secondary' }}>{label}</Typography>
+      <Typography sx={{ fontSize: 12, color: role ? toneText(theme, role) : 'text.secondary' }}>
+        {label}
+      </Typography>
       <Typography
         sx={{
           fontSize: 20,
@@ -86,15 +103,27 @@ function InfobipCost({ charged, cost }: { charged: number; cost: CampaignCost })
       <Typography sx={{ fontSize: 13, color: 'text.secondary', lineHeight: 1.5, mt: -1 }}>
         {diff < 0 ? (
           <>
-            Esta campaña <Box component="strong"
-sx={{ color: 'error.main' }}>deja una pérdida de {money(Math.abs(diff))}</Box>: a la
-            tienda se le cobran {money(charged)} y Infobip cobró {money(cost.totalCost)} por enviarla.
+            Esta campaña{' '}
+            <Box
+              component="strong"
+              sx={{ color: 'error.main' }}
+            >
+              deja una pérdida de {money(Math.abs(diff))}
+            </Box>
+            : a la tienda se le cobran {money(charged)} y Infobip cobró {money(cost.totalCost)} por
+            enviarla.
           </>
         ) : (
           <>
-            Esta campaña <Box component="strong"
-sx={{ color: 'success.main' }}>deja {money(diff)} de margen</Box>: a la tienda se le
-            cobran {money(charged)} y Infobip cobró {money(cost.totalCost)} por enviarla.
+            Esta campaña{' '}
+            <Box
+              component="strong"
+              sx={{ color: 'success.main' }}
+            >
+              deja {money(diff)} de margen
+            </Box>
+            : a la tienda se le cobran {money(charged)} y Infobip cobró {money(cost.totalCost)} por
+            enviarla.
           </>
         )}
       </Typography>
@@ -111,7 +140,11 @@ sx={{ color: 'success.main' }}>deja {money(diff)} de margen</Box>: a la tienda s
       >
         {cell('Cobrado', money(charged))}
         {cell('Costo Infobip', money(cost.totalCost))}
-        {cell('Diferencia', `${diff < 0 ? '−' : '+'}${money(Math.abs(diff))}`, diff < 0 ? 'error' : 'success')}
+        {cell(
+          'Diferencia',
+          `${diff < 0 ? '−' : '+'}${money(Math.abs(diff))}`,
+          diff < 0 ? 'error' : 'success'
+        )}
       </Box>
 
       <Box sx={{ overflowX: 'auto' }}>
@@ -148,7 +181,9 @@ sx={{ color: 'success.main' }}>deja {money(diff)} de margen</Box>: a la tienda s
               }}
             >
               <Stack gap={0.75}>
-                <Typography sx={{ fontWeight: 600, fontSize: 14 }}>{channelName(c.channel)}</Typography>
+                <Typography sx={{ fontWeight: 600, fontSize: 14 }}>
+                  {channelName(c.channel)}
+                </Typography>
                 <Bar
                   value={(c.messages / maxMsgs) * 100}
                   color={theme.palette.primary.main}
@@ -157,7 +192,9 @@ sx={{ color: 'success.main' }}>deja {money(diff)} de margen</Box>: a la tienda s
               </Stack>
               <Box sx={{ textAlign: 'right' }}>{num(c.messages)}</Box>
               <Box sx={{ textAlign: 'right', fontWeight: 600 }}>{money(c.cost)}</Box>
-              <Box sx={{ textAlign: 'right', color: 'text.secondary' }}>{perMsg(c.cost, c.messages)}</Box>
+              <Box sx={{ textAlign: 'right', color: 'text.secondary' }}>
+                {perMsg(c.cost, c.messages)}
+              </Box>
             </Box>
           ))}
           <Box
@@ -179,6 +216,22 @@ sx={{ color: 'success.main' }}>deja {money(diff)} de margen</Box>: a la tienda s
         </Box>
       </Box>
 
+      {(cost.rcsImages ?? 0) > 0 && (
+        <Stack
+          direction="row"
+          gap={1.25}
+          alignItems="flex-start"
+          sx={{ bgcolor: soft(theme), borderRadius: 2.5, px: 1.75, py: 1.5 }}
+        >
+          <InfoRoundedIcon sx={{ fontSize: 16, color: 'text.secondary', mt: '1px' }} />
+          <Typography sx={{ fontSize: 12, color: 'text.secondary', lineHeight: 1.5 }}>
+            El RCS salió en dos mensajes por cliente (la foto aparte y el texto con botones). El
+            costo RCS ya incluye {num(cost.rcsImages ?? 0)} fotos por{' '}
+            {money(cost.rcsImageCost ?? 0)}; por eso el &quot;por msj&quot; del RCS es por cliente.
+          </Typography>
+        </Stack>
+      )}
+
       {cost.estimatedPrices > 0 && (
         <Stack
           direction="row"
@@ -188,8 +241,9 @@ sx={{ color: 'success.main' }}>deja {money(diff)} de margen</Box>: a la tienda s
         >
           <InfoRoundedIcon sx={{ fontSize: 16, color: 'text.secondary', mt: '1px' }} />
           <Typography sx={{ fontSize: 12, color: 'text.secondary', lineHeight: 1.5 }}>
-            {num(cost.estimatedPrices)} mensajes aún sin precio de Infobip: se estimaron a tarifa (SMS $
-            {cost.rates.sms} · MMS ${cost.rates.mms} · RCS ${cost.rates.rcs}). El costo final puede cambiar.
+            {num(cost.estimatedPrices)} mensajes aún sin precio de Infobip: se estimaron a tarifa
+            (SMS ${cost.rates.sms} · MMS ${cost.rates.mms} · RCS ${cost.rates.rcs}). El costo final
+            puede cambiar.
           </Typography>
         </Stack>
       )}

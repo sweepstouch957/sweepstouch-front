@@ -694,7 +694,10 @@ class CampaignClient {
   ): Promise<NonSendersNearbyResponse> {
     const { businessType, ...rest } = params;
     const res = await api.get(`${AUDIENCE_BASE}/non-senders/nearby`, {
-      params: { ...rest, ...(businessType?.length ? { businessType: businessType.join(',') } : {}) },
+      params: {
+        ...rest,
+        ...(businessType?.length ? { businessType: businessType.join(',') } : {}),
+      },
     });
     return res.data as NonSendersNearbyResponse;
   }
@@ -712,10 +715,23 @@ class CampaignClient {
     return res.data as Campaing;
   }
 
-  async getFilterStats(params: Omit<FilterCampaignParams, 'page' | 'limit'>): Promise<FilterStatsResponse> {
-    const { status, startDate, endDate, storeId, title, type, deliveryRate, platform, circularss } = params;
+  async getFilterStats(
+    params: Omit<FilterCampaignParams, 'page' | 'limit'>
+  ): Promise<FilterStatsResponse> {
+    const { status, startDate, endDate, storeId, title, type, deliveryRate, platform, circularss } =
+      params;
     const res = await api.get('/campaigns/filter/stats', {
-      params: { status, startDate, endDate, storeId, title, type, deliveryRate, platform, circularss },
+      params: {
+        status,
+        startDate,
+        endDate,
+        storeId,
+        title,
+        type,
+        deliveryRate,
+        platform,
+        circularss,
+      },
     });
     return res.data as FilterStatsResponse;
   }
@@ -737,7 +753,20 @@ class CampaignClient {
     } = params;
 
     const res = await api.get('/campaigns/filter', {
-      params: { page, limit, status, startDate, endDate, storeId, title, storeName, type, deliveryRate, platform, circularss },
+      params: {
+        page,
+        limit,
+        status,
+        startDate,
+        endDate,
+        storeId,
+        title,
+        storeName,
+        type,
+        deliveryRate,
+        platform,
+        circularss,
+      },
     });
 
     return res.data;
@@ -764,7 +793,9 @@ class CampaignClient {
    *  Sólo cuenta los números SELECCIONADOS para RCS (piloto mixed / canal rcs). */
   async getRcsSummary(ids: string[]): Promise<Record<string, RcsCampaignSummary>> {
     if (!ids.length) return {};
-    const res = await api.get('/tracking/analytics/campaigns/rcs-summary', { params: { ids: ids.join(',') } });
+    const res = await api.get('/tracking/analytics/campaigns/rcs-summary', {
+      params: { ids: ids.join(',') },
+    });
     return res.data?.summary ?? {};
   }
 
@@ -793,13 +824,24 @@ class CampaignClient {
       clickToSeen?: number;
     };
     /** Sólo campañas mixed: el grupo SMS/MMS normal, para comparar contra RCS. */
-    sms?: { total: number; delivered: number; errors: number; queued: number; deliveryRate: number };
+    sms?: {
+      total: number;
+      delivered: number;
+      errors: number;
+      queued: number;
+      deliveryRate: number;
+    };
     clicks: { links: number; clickedLinks: number; totalClicks: number; clickRate: number };
     engagement: {
       /** Ventana de atribución: desde el envío hasta la siguiente campaña de la tienda (o hoy). */
       window?: { since: string; until: string; storeSlug: string | null };
       /** Cómo se atribuyó cada lista: por campaignId guardado, por click, o por tienda en la ventana. */
-      attribution?: { byCampaign: number; byClick: number; byStore: number; clickedCustomers: number };
+      attribution?: {
+        byCampaign: number;
+        byClick: number;
+        byStore: number;
+        clickedCustomers: number;
+      };
       lists: number;
       validatedLists: number;
       itemsInLists: number;
@@ -807,16 +849,33 @@ class CampaignClient {
       /** Ahorro estimado sumado de todas las listas ($). */
       estimatedSavings?: number;
       /** Lo que más agregaron a la lista (carrito). */
-      topListProducts?: Array<{ name: string; quantity: number; price?: string; uniqueCustomers: number }>;
+      topListProducts?: Array<{
+        name: string;
+        quantity: number;
+        price?: string;
+        uniqueCustomers: number;
+      }>;
       listsByDay?: Array<{ date: string; lists: number; validated: number }>;
-      surveys?: { total: number; quick: number; full: number; coupons: number; points: number; customers: number };
+      surveys?: {
+        total: number;
+        quick: number;
+        full: number;
+        coupons: number;
+        points: number;
+        customers: number;
+      };
       /** Leads: clientes nuevos de la tienda (registro propio) en la ventana. */
       newCustomers?: number;
       purchases: number;
       buyers: number;
       productsPurchased: number;
       pointsAwarded: number;
-      topProducts: Array<{ name: string; quantity: number; price?: number; uniqueCustomers: number }>;
+      topProducts: Array<{
+        name: string;
+        quantity: number;
+        price?: number;
+        uniqueCustomers: number;
+      }>;
     };
   }> {
     const res = await api.get(`/tracking/analytics/campaign/${campaignId}/rcs`);
@@ -836,12 +895,17 @@ class CampaignClient {
     estimatedPrices: number;
     /** Lo que sale UN mensaje RCS en esta campaña. null = no hubo RCS. */
     rcsPricePerMessage: number | null;
+    /** RCS split: fotos enviadas aparte y su costo (ya incluido en el del canal RCS). */
+    rcsImages?: number;
+    rcsImageCost?: number;
     rates: { sms: number; mms: number; rcs: number };
     channels: Array<{
       channel: string;
       messages: number;
       cost: number;
       rcsAttempts: number;
+      rcsImages?: number;
+      rcsImageCost?: number;
       estimated: number;
       avgPerMessage: number;
     }>;
@@ -890,10 +954,32 @@ class CampaignClient {
     campaignId: string,
     params: CampaignLogsQueryParams = {}
   ): Promise<CampaignLogsResponse> {
-    const { status, page = 1, limit = 20, sort = 'desc', search, from, to, channel, rcsFailed, rcsOutcome } = params;
+    const {
+      status,
+      page = 1,
+      limit = 20,
+      sort = 'desc',
+      search,
+      from,
+      to,
+      channel,
+      rcsFailed,
+      rcsOutcome,
+    } = params;
 
     const res = await api.get(`/tracking/campaigns/${campaignId}/logs`, {
-      params: { status, page, limit, sort, search, from, to, channel, rcsFailed: rcsFailed ? 1 : undefined, rcsOutcome },
+      params: {
+        status,
+        page,
+        limit,
+        sort,
+        search,
+        from,
+        to,
+        channel,
+        rcsFailed: rcsFailed ? 1 : undefined,
+        rcsOutcome,
+      },
     });
 
     return res.data as CampaignLogsResponse;
@@ -1052,7 +1138,7 @@ class CampaignClient {
   async syncCampaignMetrics(params?: {
     campaignId?: string;
     startDate?: string; // ISO date
-    endDate?: string;   // ISO date
+    endDate?: string; // ISO date
     includeZeroSent?: boolean;
   }) {
     const res = await api.post('/tracking/campaigns/update', {
@@ -1075,13 +1161,13 @@ class CampaignClient {
    */
   async getOptinMmsCount(params: {
     startDate: string;
-    endDate:   string;
-    storeId?:  string;
+    endDate: string;
+    storeId?: string;
   }): Promise<{ sent: number; skipped: number; total: number; estimatedCost: number }> {
     const res = await api.get('/sweepstakes/participants/optin-mms-count', {
       params: {
         startDate: params.startDate,
-        endDate:   params.endDate,
+        endDate: params.endDate,
         ...(params.storeId ? { storeId: params.storeId } : {}),
       },
     });
@@ -1089,31 +1175,36 @@ class CampaignClient {
     const sent = data.sent ?? 0;
     return {
       sent,
-      skipped:       data.skipped       ?? 0,
-      total:         data.total         ?? 0,
+      skipped: data.skipped ?? 0,
+      total: data.total ?? 0,
       estimatedCost: sent * 0.0585,
     };
   }
 
   async getOptinMmsCountGrouped(params: {
     startDate: string;
-    endDate:   string;
-  }): Promise<Record<string, { sent: number; skipped: number; total: number; estimatedCost: number }>> {
+    endDate: string;
+  }): Promise<
+    Record<string, { sent: number; skipped: number; total: number; estimatedCost: number }>
+  > {
     const res = await api.get('/sweepstakes/participants/optin-mms-count', {
       params: {
         startDate: params.startDate,
-        endDate:   params.endDate,
+        endDate: params.endDate,
         groupByStore: true,
       },
     });
     const storesMap = res.data?.stores || {};
-    const result: Record<string, { sent: number; skipped: number; total: number; estimatedCost: number }> = {};
+    const result: Record<
+      string,
+      { sent: number; skipped: number; total: number; estimatedCost: number }
+    > = {};
     for (const [storeId, data] of Object.entries(storesMap)) {
       const sent = (data as any).sent ?? 0;
       result[storeId] = {
         sent,
-        skipped:       (data as any).skipped       ?? 0,
-        total:         (data as any).total         ?? 0,
+        skipped: (data as any).skipped ?? 0,
+        total: (data as any).total ?? 0,
         estimatedCost: sent * 0.0585,
       };
     }
