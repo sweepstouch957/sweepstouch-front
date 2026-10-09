@@ -120,6 +120,10 @@ export type BriefFormValues = {
   ticketCopies?: number;
   /** Vacío = DEFAULT_TICKET_TEMPLATE. */
   ticketTemplate?: string;
+  /** Veces que un número puede participar. 0 = sin límite. */
+  maxEntries?: number;
+  /** Minutos de espera entre participaciones. '' = lo de siempre (QR 24h, resto 30 min). */
+  reentryMinutes?: number | '';
   optinType?: SweepstakeOptinType;
   eventStore?: EventStoreDraft;
   rules?: string;
@@ -559,6 +563,8 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
       printTicket: true,
       ticketCopies: 1,
       ticketTemplate: '',
+      maxEntries: 0,
+      reentryMinutes: '',
       optinType: '',
       eventStore: { create: false, name: '', address: '', zipCode: '' },
       rules: '',
@@ -589,6 +595,8 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
         printTicket: true,
         ticketCopies: 1,
         ticketTemplate: '',
+        maxEntries: 0,
+        reentryMinutes: '',
         optinType: '',
         eventStore: { create: false, name: '', address: '', zipCode: '' },
         rules: '',
@@ -811,6 +819,8 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
       image: finalImageUrl || (initialValues?.image ?? ''),
       startDate: values.startDate ? new Date(values.startDate).toISOString() : null,
       endDate: values.endDate ? new Date(values.endDate).toISOString() : null,
+      // Vacío = null en el backend = ventana de siempre.
+      reentryMinutes: (values.reentryMinutes === '' ? null : values.reentryMinutes) as any,
     };
 
     await onSubmit(payload);
@@ -1104,6 +1114,54 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
                     </Grid>
                   </>
                 )}
+
+                {/* Límites de participación por número */}
+                <Grid
+                  item
+                  xs={12}
+                  md={6}
+                >
+                  <Controller
+                    name="maxEntries"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        value={field.value ?? 0}
+                        onChange={(e) => field.onChange(Math.max(0, Number(e.target.value) || 0))}
+                        type="number"
+                        inputProps={{ min: 0 }}
+                        fullWidth
+                        label="Participaciones máximas por número"
+                        helperText="0 = sin límite. 1 = una sola vez."
+                      />
+                    )}
+                  />
+                </Grid>
+                <Grid
+                  item
+                  xs={12}
+                  md={6}
+                >
+                  <Controller
+                    name="reentryMinutes"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        value={field.value ?? ''}
+                        onChange={(e) =>
+                          field.onChange(e.target.value === '' ? '' : Math.max(0, Number(e.target.value) || 0))
+                        }
+                        type="number"
+                        inputProps={{ min: 0 }}
+                        fullWidth
+                        label="Espera para volver a participar (minutos)"
+                        helperText="Vacío = lo de siempre (QR 24 h, tablet 30 min). 1440 = un día."
+                      />
+                    )}
+                  />
+                </Grid>
 
                 {/* Comportamiento del opt-in en la tablet/kiosko */}
                 <Grid
@@ -1966,6 +2024,8 @@ export function BriefFormRHF({ mode, initialValues, onSubmit }: Props) {
                     printTicket: true,
                     ticketCopies: 1,
                     ticketTemplate: '',
+                    maxEntries: 0,
+                    reentryMinutes: '',
                     optinType: '',
                     eventStore: { create: false, name: '', address: '', zipCode: '' },
                     rules: '',
