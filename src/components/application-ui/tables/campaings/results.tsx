@@ -443,6 +443,7 @@ justifyContent="flex-end">
       <MixedSummaryBar
         summary={rcsSummary}
         mixedCount={mixedCount}
+        campaigns={campaigns.filter(isMixed)}
       />
 
       {/* Mobile: card grid */}

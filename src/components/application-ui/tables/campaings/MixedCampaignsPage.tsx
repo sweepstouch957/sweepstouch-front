@@ -192,7 +192,7 @@ export default function MixedCampaignsPage() {
       </Stack>
 
       <Box sx={{ mb: 1.5 }}>
-        <RcsKpis t={totals} />
+        <RcsKpis t={totals} campaigns={campaigns} />
       </Box>
 
       <PanelCard>

@@ -125,10 +125,30 @@ export function sumRcs(list: RcsCampaignSummary[]): RcsCampaignSummary {
 }
 
 /** Los 6 KPIs RCS con el kit del panel (mismo look que los KPIs de arriba del listado). */
-export function RcsKpis({ t }: { t: RcsCampaignSummary }) {
+export function RcsKpis({ t, campaigns }: { t: RcsCampaignSummary; campaigns?: Campaing[] }) {
   const pct = (n: number) => (t.picked > 0 ? `${Math.round((n / t.picked) * 100)}% de los elegidos` : undefined);
+  // Todos los canales, desde la propia campaña: `audience` = un mensaje por cliente
+  // (SMS/MMS o RCS a los elegidos) y `sent` = entregados de cualquier canal (el cron
+  // los cuenta sobre todos los logs). Lo que no es RCS entregado salió por SMS/MMS.
+  const sent = (campaigns ?? []).reduce((a, c) => a + (c.audience || 0), 0);
+  const delivered = (campaigns ?? []).reduce((a, c) => a + (c.sent || 0), 0);
   return (
     <KpiRow min={150}>
+      {sent > 0 && (
+        <>
+          <KpiCard
+            label="Mensajes enviados"
+            value={sent.toLocaleString()}
+            delta={`SMS/MMS ${Math.max(0, sent - t.picked).toLocaleString()} · RCS ${t.picked.toLocaleString()}`}
+          />
+          <KpiCard
+            label="Entregados (todos)"
+            value={delivered.toLocaleString()}
+            delta={`${rate(delivered, sent)} · SMS/MMS ${Math.max(0, delivered - t.rcsDelivered).toLocaleString()} · RCS ${t.rcsDelivered.toLocaleString()}`}
+            tone="success"
+          />
+        </>
+      )}
       <KpiCard
         label="Elegidos RCS"
         value={t.picked.toLocaleString()}
@@ -202,9 +222,12 @@ const COLLAPSE_KEY = 'campaigns.mixedBar.open';
 export function MixedSummaryBar({
   summary,
   mixedCount,
+  campaigns,
 }: {
   summary: Record<string, RcsCampaignSummary>;
   mixedCount: number;
+  /** Las campañas mixed de la página, para los totales de todos los canales. */
+  campaigns?: Campaing[];
 }) {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
@@ -274,7 +297,7 @@ export function MixedSummaryBar({
         unmountOnExit
       >
         <Box sx={{ px: 2, pb: 1.75 }}>
-          <RcsKpis t={t} />
+          <RcsKpis t={t} campaigns={campaigns} />
         </Box>
       </Collapse>
     </Box>
