@@ -42,6 +42,7 @@ import ScienceRoundedIcon from '@mui/icons-material/ScienceRounded';
 import TrendingUpRoundedIcon from '@mui/icons-material/TrendingUpRounded';
 import Button from '@mui/material/Button';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 /** $1.72M en vez de $1,720,000: en una tarjeta de KPI el orden de magnitud
     importa más que el centavo, y el número largo rompía la línea. */
@@ -503,18 +504,27 @@ const EMPTY_STATS: FilterStatsResponse = {
 ───────────────────────────────────────────*/
 function CampaignsGrid({ storeId, forceCards = false }: CampaignsGridProps) {
   const [showMetrics, setShowMetrics] = useState(false);
-  const [filters, setFilters] = useState({
-    status: '',
-    title: '',
-    storeName: '',
-    type: '',
-    platform: '',
-    circularss: '',
-    startDate: '',
-    endDate: '',
-    page: 1,
-    limit: 15,
-    storeId,
+  // En el listado general los filtros viven en la URL: recargar o compartir el
+  // link deja la misma vista. Dentro del panel de una tienda (storeId) no, ahí
+  // la URL ya la usa la pestaña (?tag=).
+  const router = useRouter();
+  const params = useSearchParams();
+  const syncUrl = !storeId;
+  const [filters, setFilters] = useState(() => {
+    const p = (k: string) => (syncUrl && params.get(k)) || '';
+    return {
+      status: p('status'),
+      title: p('title'),
+      storeName: p('storeName'),
+      type: p('type'),
+      platform: p('platform'),
+      circularss: p('circularss'),
+      startDate: p('startDate'),
+      endDate: p('endDate'),
+      page: Number(p('page')) || 1,
+      limit: Number(p('limit')) || 15,
+      storeId,
+    };
   });
   const { t } = useTranslation();
   const theme = useTheme();
@@ -558,7 +568,16 @@ function CampaignsGrid({ storeId, forceCards = false }: CampaignsGridProps) {
   // ✅ MUST be before any early return — Rules of Hooks
   const handleSetFilters = useCallback((next: typeof filters) => {
     setFilters(next);
-  }, []);
+    if (!syncUrl) return;
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(next)) {
+      if (k === 'storeId' || v === '' || v == null) continue;
+      if ((k === 'page' && v === 1) || (k === 'limit' && v === 15)) continue;
+      qs.set(k, String(v));
+    }
+    const q = qs.toString();
+    router.replace(q ? `?${q}` : window.location.pathname, { scroll: false });
+  }, [syncUrl, router]);
 
   if (isPending) {
     return (
