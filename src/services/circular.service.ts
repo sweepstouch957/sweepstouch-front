@@ -900,14 +900,14 @@ export class CircularService {
     return res.data;
   }
 
-  /** El último día del flyer vale hasta 23:59 NY: corre los fines mal cargados y rearma la lista. */
-  async fixEndOfDay(storeSlug: string): Promise<{
+  /** El último día del flyer vale hasta 23:59 NY. `until` (YYYY-MM-DD) = día que dice el arte para el último flyer. */
+  async fixEndOfDay(storeSlug: string, until?: string): Promise<{
     ok: boolean;
     fixed: Array<{ circularId: string; title: string; from: string; to: string; status: string; revived: boolean }>;
     shown: number;
     circularTitle: string;
   }> {
-    const res = await api.post(`/circulars/store/${storeSlug}/fix-end-of-day`);
+    const res = await api.post(`/circulars/store/${storeSlug}/fix-end-of-day`, until ? { until } : {});
     return res.data;
   }
 

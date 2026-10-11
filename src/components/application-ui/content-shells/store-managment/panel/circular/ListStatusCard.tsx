@@ -25,6 +25,7 @@ import {
   RadioGroup,
   Skeleton,
   Stack,
+  TextField,
   Typography,
 } from '@mui/material';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -164,9 +165,13 @@ export default function ListStatusCard({
   const chosenSrc = sourceList.find((x) => x.id === chosen);
   // El último día del flyer vale completo (hasta 23:59 NY). Si quedó cargado como "el 11 a las
   // 00:00" la lista se vacía antes de tiempo: esto lo corrige y vuelve a armar la lista.
+  const [endOpen, setEndOpen] = useState(false);
+  // Hoy en NY por defecto: el caso típico es "el flyer dice hasta hoy y ya no sale nada".
+  const [until, setUntil] = useState(() => new Date(Date.now() - 4 * 3600 * 1000).toISOString().slice(0, 10));
   const fixEnd = useMutation({
-    mutationFn: () => circularService.fixEndOfDay(storeSlug),
+    mutationFn: () => circularService.fixEndOfDay(storeSlug, until),
     onSuccess: (v) => {
+      setEndOpen(false);
       refresh();
       if (!v.fixed.length) toast.success('Las fechas ya terminan a las 23:59 de Nueva York: nada que corregir');
       else
@@ -391,10 +396,9 @@ export default function ListStatusCard({
             size="small"
             variant={r ? 'text' : 'contained'}
             color="warning"
-            disabled={fixEnd.isPending}
-            onClick={() => fixEnd.mutate()}
+            onClick={() => setEndOpen(true)}
           >
-            {fixEnd.isPending ? 'Corrigiendo…' : 'Corregir vigencia (hasta 23:59 NY)'}
+            Corregir vigencia
           </Button>
           <Button
             size="small"
@@ -459,6 +463,49 @@ export default function ListStatusCard({
         title={preview?.title}
         onClose={() => setPreview(null)}
       />
+
+      <Dialog
+        open={endOpen}
+        onClose={fixEnd.isPending ? undefined : () => setEndOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Corregir vigencia del flyer</DialogTitle>
+        <DialogContent>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ mb: 2 }}
+          >
+            ¿Hasta qué día dice el arte ("THRU …")? El último flyer queda vigente hasta ese día a
+            las 23:59 de Nueva York, recupera sus precios y la lista se vuelve a armar. Los agentes
+            guardan la corrección para leer bien la fecha la próxima vez.
+          </Typography>
+          <TextField
+            type="date"
+            label="Válido hasta"
+            value={until}
+            onChange={(e) => setUntil(e.target.value)}
+            fullWidth
+            InputLabelProps={{ shrink: true }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setEndOpen(false)}
+            disabled={fixEnd.isPending}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            disabled={!until || fixEnd.isPending}
+            onClick={() => fixEnd.mutate()}
+          >
+            {fixEnd.isPending ? 'Corrigiendo…' : 'Corregir'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog
         open={hideOpen}
