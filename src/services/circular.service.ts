@@ -900,6 +900,17 @@ export class CircularService {
     return res.data;
   }
 
+  /** El último día del flyer vale hasta 23:59 NY: corre los fines mal cargados y rearma la lista. */
+  async fixEndOfDay(storeSlug: string): Promise<{
+    ok: boolean;
+    fixed: Array<{ circularId: string; title: string; from: string; to: string; status: string; revived: boolean }>;
+    shown: number;
+    circularTitle: string;
+  }> {
+    const res = await api.post(`/circulars/store/${storeSlug}/fix-end-of-day`);
+    return res.data;
+  }
+
   /** Con flyer vigente: sólo queda visible lo que ese flyer cargó; todo lo demás se oculta. */
   async hideCircularProducts(
     storeSlug: string,

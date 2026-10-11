@@ -23,14 +23,12 @@ const isoToDateInput = (iso?: string) => {
   if (!iso) return '';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
-  return d.toISOString().slice(0, 10);
+  // Día en hora de las tiendas (NY, UTC-4): un fin 23:59 ET es 03:59 UTC del día siguiente.
+  return new Date(d.getTime() - 4 * 60 * 60 * 1000).toISOString().slice(0, 10);
 };
 
-const dateInputToIso = (value: string) => {
-  if (!value) return '';
-  const d = new Date(value + 'T00:00:00.000Z');
-  return d.toISOString();
-};
+// "YYYY-MM-DD" tal cual: el backend lo toma como el día completo en NY (hasta 23:59:59).
+const dateInputToIso = (value: string) => value;
 
 // pequeño helper para mostrar el tamaño en la lista del uploader
 const bytesToSize = (bytes: number) => {

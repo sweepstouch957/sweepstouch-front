@@ -162,6 +162,23 @@ export default function ListStatusCard({
     '';
   const chosen = keepId || defaultKeep;
   const chosenSrc = sourceList.find((x) => x.id === chosen);
+  // El último día del flyer vale completo (hasta 23:59 NY). Si quedó cargado como "el 11 a las
+  // 00:00" la lista se vacía antes de tiempo: esto lo corrige y vuelve a armar la lista.
+  const fixEnd = useMutation({
+    mutationFn: () => circularService.fixEndOfDay(storeSlug),
+    onSuccess: (v) => {
+      refresh();
+      if (!v.fixed.length) toast.success('Las fechas ya terminan a las 23:59 de Nueva York: nada que corregir');
+      else
+        toast.success(
+          `Vigencia corregida en ${v.fixed.length} (hasta las 23:59 NY)${
+            v.fixed.some((f) => f.revived) ? ' · productos de vuelta en la lista' : ''
+          }`,
+          { duration: 8000 }
+        );
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo corregir la vigencia'),
+  });
   const hide = useMutation({
     mutationFn: () => circularService.hideCircularProducts(storeSlug, chosen || undefined),
     onSuccess: (v) => {
@@ -370,6 +387,15 @@ export default function ListStatusCard({
               Ver los {s.pending} que esperan
             </Button>
           )}
+          <Button
+            size="small"
+            variant={r ? 'text' : 'contained'}
+            color="warning"
+            disabled={fixEnd.isPending}
+            onClick={() => fixEnd.mutate()}
+          >
+            {fixEnd.isPending ? 'Corrigiendo…' : 'Corregir vigencia (hasta 23:59 NY)'}
+          </Button>
           <Button
             size="small"
             variant="outlined"
