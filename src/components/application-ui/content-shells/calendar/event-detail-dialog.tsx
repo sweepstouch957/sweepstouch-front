@@ -173,6 +173,14 @@ export function EventDetailDialog({
               e.ownerName ? `${e.ownerName}${e.departmentName ? ` · ${e.departmentName}` : ''}` : ''
             }
           />
+          {e.source === 'event' && (
+            <Row
+              k="Creado por"
+              v={`${e.createdBy || '—'}${
+                e.createdAt ? ` · ${new Date(e.createdAt).toLocaleDateString('es')}` : ''
+              }`}
+            />
+          )}
           <Row
             k={e.stores.length > 1 ? `Tiendas (${e.stores.length})` : 'Tienda'}
             v={stores.length ? stores.join('\n') : 'Todas las tiendas de la red'}

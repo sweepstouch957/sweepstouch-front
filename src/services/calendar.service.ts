@@ -59,6 +59,7 @@ export interface CalendarEvent {
   stores: EventStore[];
   ownerId: string | null;
   ownerName: string;
+  createdBy?: string;
   departmentId: string | null;
   departmentName?: string;
   extraUserIds?: string[];
@@ -87,6 +88,8 @@ export interface EventPayload {
   report?: { numbers: number | null; note: string; evidence: string[] };
   ownerId?: string | null;
   ownerName?: string;
+  /** Quien lo carga (sólo al crear) */
+  createdBy?: string;
   /** false = guardar sin avisar a los involucrados */
   notify?: boolean;
 }

@@ -833,6 +833,7 @@ export function EventDrawer({
           : undefined,
       ownerId: editing?.ownerId ?? me?.id ?? null,
       ownerName: editing?.ownerName || me?.name || '',
+      ...(editing ? {} : { createdBy: me?.name || '' }),
       notify: v.notify,
     });
   };
