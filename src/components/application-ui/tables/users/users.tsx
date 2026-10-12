@@ -19,7 +19,7 @@ function Component({ onEditUser, onAssignDepartment }: UsersTableListingProps) {
   } = useQuery({
     queryKey: ['users'],
     // lean: el listado no usa user.store -> evita N populates de store en backend
-    queryFn: () => usersApi.getUsers({ lean: true }),
+    queryFn: () => usersApi.getUsers({ lean: true, active: 'all' }),
     staleTime: 1000 * 60 * 5, // Cache por 5 minutos
     refetchOnWindowFocus: false,
   });

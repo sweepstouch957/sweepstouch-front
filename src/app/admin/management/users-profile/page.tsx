@@ -159,7 +159,7 @@ export default function UserProfilePage() {
   /* ── Queries ── */
   const { data: allUsers = [], isLoading: loadingUsers } = useQuery({
     queryKey: ['users'],
-    queryFn: () => usersApi.getUsers({ lean: true }),
+    queryFn: () => usersApi.getUsers({ lean: true, active: 'all' }),
     staleTime: 120_000,
   });
 

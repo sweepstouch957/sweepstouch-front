@@ -27,6 +27,8 @@ type GetUsersParams = {
   lean?: boolean;
   /** Proyección: "firstName,lastName,role". Sin esto viaja el documento entero. */
   select?: string;
+  /** 'all' incluye ex-empleados desactivados (por defecto el backend los oculta) */
+  active?: 'all' | 'true' | 'false';
 };
 
 type FlexibleUserSearchParams = {
@@ -45,7 +47,8 @@ class UsersApi {
         page: params?.page ?? undefined,
         limit: params?.limit ?? undefined,
         lean: params?.lean ? 'true' : undefined,
-        select: params?.select ?? undefined
+        select: params?.select ?? undefined,
+        active: params?.active ?? undefined
       }
     });
 
