@@ -371,15 +371,17 @@ export function EventDetailDialog({
         >
           {own ? (
             <>
-              <Button
-                size="small"
-                variant="outlined"
-                color="inherit"
-                startIcon={<EditRoundedIcon fontSize="small" />}
-                onClick={onEdit}
-              >
-                Editar
-              </Button>
+              {e.canEdit && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<EditRoundedIcon fontSize="small" />}
+                  onClick={onEdit}
+                >
+                  Editar
+                </Button>
+              )}
               <Button
                 size="small"
                 variant="outlined"
@@ -390,15 +392,17 @@ export function EventDetailDialog({
               >
                 {notifying ? 'Enviando…' : 'Avisar a todos'}
               </Button>
-              <Button
-                size="small"
-                variant="outlined"
-                color="error"
-                startIcon={<DeleteOutlineRoundedIcon fontSize="small" />}
-                onClick={onDelete}
-              >
-                Eliminar
-              </Button>
+              {e.canEdit && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="error"
+                  startIcon={<DeleteOutlineRoundedIcon fontSize="small" />}
+                  onClick={onDelete}
+                >
+                  Eliminar
+                </Button>
+              )}
             </>
           ) : (
             <Button

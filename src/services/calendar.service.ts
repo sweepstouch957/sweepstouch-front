@@ -60,6 +60,8 @@ export interface CalendarEvent {
   ownerId: string | null;
   ownerName: string;
   createdBy?: string;
+  /** El backend lo calcula: admin o quien lo creó */
+  canEdit?: boolean;
   departmentId: string | null;
   departmentName?: string;
   extraUserIds?: string[];

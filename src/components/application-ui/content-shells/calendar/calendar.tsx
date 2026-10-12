@@ -230,7 +230,7 @@ function Calendar(): React.JSX.Element {
       setSelectedId(null);
       toast.success('Evento eliminado');
     },
-    onError: () => toast.error('No se pudo eliminar'),
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo eliminar'),
   });
   const notifyMut = useMutation({
     mutationFn: (id: string) => calendarService.notify(id),
