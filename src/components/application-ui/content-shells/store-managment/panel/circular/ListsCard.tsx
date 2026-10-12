@@ -4,12 +4,14 @@
  * Listas de compra por tienda (Store.listsEnabled / listsLinkUrl). Apagadas: el linktree no
  * muestra "haz tu lista", Mi cuenta esconde la pestaña y la tarjeta de lista, y el RCS del
  * piloto sale sin botón de lista. El link alternativo ocupa el lugar de la lista si existe.
+ * "¿Quiere lista?" = No (12 oct 2026): además los agentes (Hermes y compañía, arte de campaña,
+ * Revisión IA, Iris) no le cargan flyers ni productos — circular-service lo revisa.
  */
 
 import { PanelCard, SectionHeader } from '@/components/application-ui/content-shells/store-managment/panel-kit';
 import { updateStorePatch } from '@/services/store.service';
 import ChecklistRoundedIcon from '@mui/icons-material/ChecklistRounded';
-import { Box, Button, CircularProgress, FormControlLabel, Stack, Switch, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, FormControlLabel, Stack, Switch, TextField, Typography } from '@mui/material';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Controller, useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
@@ -35,7 +37,7 @@ export function ListsCard({
     mutationFn: (v: Values) =>
       updateStorePatch(storeId, { listsEnabled: v.listsEnabled, listsLinkUrl: v.listsLinkUrl.trim() }),
     onSuccess: (_r, v) => {
-      toast.success(v.listsEnabled ? 'Listas activas para esta tienda' : 'Listas ocultas para esta tienda');
+      toast.success(v.listsEnabled ? 'La tienda quiere lista: los agentes vuelven a cargar' : 'Sin lista: los agentes no cargarán flyers ni productos');
       reset({ listsEnabled: v.listsEnabled, listsLinkUrl: v.listsLinkUrl.trim() });
       qc.invalidateQueries({ queryKey: ['store', storeId] });
     },
@@ -46,8 +48,8 @@ export function ListsCard({
     <PanelCard sx={{ mb: 2 }}>
       <SectionHeader
         icon={<ChecklistRoundedIcon sx={{ fontSize: 20, color: 'primary.main' }} />}
-        title="Listas de compra"
-        hint="Si la tienda no quiere listas, se ocultan en el linktree, en Mi cuenta y en el RCS"
+        title="¿Quiere lista?"
+        hint="Con No: los agentes no cargan flyer ni productos, y la lista se oculta en el linktree, Mi cuenta y el RCS"
       />
       <Box
         component="form"
@@ -67,12 +69,17 @@ export function ListsCard({
               }
               label={
                 <Typography sx={{ fontSize: 14, fontWeight: 600 }}>
-                  {field.value ? 'Listas activas' : 'Sin listas en esta tienda'}
+                  {field.value ? 'Sí, quiere lista' : 'No quiere lista'}
                 </Typography>
               }
             />
           )}
         />
+        {!on && (
+          <Alert severity="warning" sx={{ borderRadius: 2 }}>
+            Los agentes no le cargarán flyers, arte de campaña ni productos a esta tienda, y la Revisión IA la salta.
+          </Alert>
+        )}
         <TextField
           {...register('listsLinkUrl', {
             validate: (v) =>

@@ -334,6 +334,12 @@ export default function StoreCircularPanel({
           storeSlug={storeSlug}
         />
       </Stack>
+      {/* "¿Quiere lista?" arriba de todo (12 oct 2026): con No, los agentes no le cargan nada. */}
+      <ListsCard
+        storeId={storeId}
+        listsEnabled={listsEnabled}
+        listsLinkUrl={listsLinkUrl}
+      />
       <Tabs
         value={tab}
         onChange={(_, v) => setTab(v)}
@@ -429,11 +435,6 @@ export default function StoreCircularPanel({
       )}
       {/* El teléfono de las listas va al final (pedido del 2 oct 2026). */}
       <Box sx={{ mt: 3 }}>
-        <ListsCard
-          storeId={storeId}
-          listsEnabled={listsEnabled}
-          listsLinkUrl={listsLinkUrl}
-        />
         <ListsPhoneCard
           storeId={storeId}
           listsPhone={listsPhone}
