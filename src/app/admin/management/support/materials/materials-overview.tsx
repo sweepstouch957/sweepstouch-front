@@ -2,12 +2,19 @@
 
 import * as api from '@/services/material-control.service';
 import AddRounded from '@mui/icons-material/AddRounded';
+import EditOutlined from '@mui/icons-material/EditOutlined';
 import HistoryRounded from '@mui/icons-material/HistoryRounded';
 import Inventory2Outlined from '@mui/icons-material/Inventory2Outlined';
 import {
   Box,
   Button,
   Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
+  Tooltip,
   MenuItem,
   Stack,
   Table,
@@ -39,6 +46,25 @@ export function InventoryView() {
     minimums: {},
   });
   const [initializeOpen, setInitializeOpen] = useState(false);
+  const [rename, setRename] = useState<{ id: string; name: string } | null>(null);
+  const renameMaterial = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!rename) return;
+    const name = rename.name.trim();
+    if (!name) {
+      reportError(new Error('Ingresa un nombre de material válido.'));
+      return;
+    }
+    if (materials.some((row) => row.id !== rename.id && row.nombre.trim().toLowerCase() === name.toLowerCase())) {
+      reportError(new Error('Ese material ya existe.'));
+      return;
+    }
+    await write(
+      () => api.patchMaterial(rename.id, { nombre: name }),
+      'Nombre del material actualizado.',
+      () => setRename(null)
+    );
+  };
   const [newMaterial, setNewMaterial] = useState<{ name: string; serial: api.SerialKind }>({
     name: '',
     serial: '',
@@ -167,12 +193,26 @@ export function InventoryView() {
                 {inventory.docs.map((row) => (
                   <TableRow key={row.id}>
                     <TableCell>
+                      <Stack direction="row"
+alignItems="center"
+spacing={1}>
                       <Typography
                         variant="body2"
                         fontWeight={600}
                       >
                         {row.nombre}
                       </Typography>
+                      <Tooltip title="Editar nombre">
+                        <IconButton
+                          size="small"
+                          disabled={busy}
+                          aria-label={`Editar nombre de ${row.nombre}`}
+                          onClick={() => setRename({ id: row.id, name: row.nombre })}
+                        >
+                          <EditOutlined fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      </Stack>
                     </TableCell>
                     <TableCell align="right">
                       <Typography
@@ -309,6 +349,38 @@ export function InventoryView() {
       >
         <MovementTable rows={recent} />
       </Section>
+      <Dialog
+        open={Boolean(rename)}
+        onClose={() => { if (!busy) setRename(null); }}
+        fullWidth
+        maxWidth="xs"
+      >
+        <Box component="form"
+onSubmit={renameMaterial}>
+          <DialogTitle>Editar nombre del material</DialogTitle>
+          <DialogContent>
+            <TextField
+              autoFocus
+              fullWidth
+              required
+              label="Nombre del material"
+              value={rename?.name || ''}
+              disabled={busy}
+              onChange={(event) => setRename((current) => current && { ...current, name: event.target.value })}
+              sx={{ mt: 1 }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button disabled={busy}
+onClick={() => setRename(null)}>Cancelar</Button>
+            <Button type="submit"
+variant="contained"
+disabled={busy || !rename?.name.trim()}>
+              Guardar nombre
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
       <ConfirmDialog
         open={initializeOpen}
         title="Inicializar catálogo"
