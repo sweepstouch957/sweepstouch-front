@@ -73,6 +73,11 @@ class MerchantService {
     return res.data?.user;
   }
 
+  /** Admin: set a new password for a user who forgot it */
+  async resetUserPassword(userId: string, newPassword: string): Promise<void> {
+    await api.patch(`/auth/users/${userId}/password`, { newPassword });
+  }
+
   /** Create/attach the merchant user from a store (backend auto-generates accessCode) */
   async backfillFromStore(storeId: string): Promise<any> {
     const res = await api.post(`/auth/admin/backfill-from-store/${storeId}`);

@@ -59,6 +59,8 @@ export default function EditUserDialog({ open, user, onClose, onUpdated }: EditU
     defaultValues: {},
   });
   const [saving, setSaving] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [resetting, setResetting] = useState(false);
   const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false,
     message: '',
@@ -95,7 +97,24 @@ export default function EditUserDialog({ open, user, onClose, onUpdated }: EditU
     }
   });
 
-  const userIdForAvatar = user._id || (user as any).id || '';
+  const handleResetPassword = async () => {
+    setResetting(true);
+    try {
+      await merchantService.resetUserPassword(user._id || (user as any).id, newPassword);
+      setSnack({ open: true, message: `Password updated for "${user.firstName}"`, severity: 'success' });
+      setNewPassword('');
+    } catch (err: any) {
+      setSnack({
+        open: true,
+        message: err?.response?.data?.message || 'Error resetting password',
+        severity: 'error',
+      });
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  const userIdForAvatar =user._id || (user as any).id || '';
   const accentColor = getAvatarColor(userIdForAvatar, chartPalette(theme));
 
   return (
@@ -238,6 +257,30 @@ export default function EditUserDialog({ open, user, onClose, onUpdated }: EditU
               />
             </Grid>
           </Grid>
+
+          {/* Reset password */}
+          <Divider sx={{ my: 2.5 }} />
+          <Typography variant="subtitle2" mb={1}>Reset password</Typography>
+          <Stack direction="row" spacing={1} alignItems="flex-start">
+            <TextField
+              label="New password"
+              size="small"
+              fullWidth
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              helperText="Min. 6 characters. Share it with the user."
+              autoComplete="new-password"
+            />
+            <Button
+              variant="outlined"
+              color="warning"
+              onClick={handleResetPassword}
+              disabled={resetting || newPassword.length < 6}
+              sx={{ borderRadius: 2, whiteSpace: 'nowrap', height: 40 }}
+            >
+              {resetting ? 'Saving…' : 'Set password'}
+            </Button>
+          </Stack>
 
           {/* Actions */}
           <Stack direction="row" spacing={1.5} justifyContent="flex-end" mt={3}>
