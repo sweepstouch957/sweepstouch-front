@@ -130,6 +130,8 @@ function Calendar(): React.JSX.Element {
   /** Pedido de Pedro: teñir los días con el pastel de su estación. */
   const [seasons, setSeasons] = useState(false);
   const [search, setSearch] = useState('');
+  /** Radar de Dirección: lo que lleva, creó o tiene sumado una persona */
+  const [person, setPerson] = useState<StaffOption | null>(null);
   const deferredSearch = useDeferredValue(search);
   const [showPast, setShowPast] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(searchParams.get('eventId'));
@@ -249,9 +251,13 @@ function Calendar(): React.JSX.Element {
         (e) =>
           (typeFilter === 'all' || e.type === typeFilter) &&
           inCategory(e, category) &&
-          (!q || searchText(e).includes(q))
+          (!q || searchText(e).includes(q)) &&
+          (!person ||
+            e.ownerId === person.id ||
+            e.createdById === person.id ||
+            !!e.extraUserIds?.includes(person.id))
       ),
-    [events, typeFilter, category, q]
+    [events, typeFilter, category, q, person]
   );
   const selected = useMemo(
     () => events.find((e) => e._id === selectedId) || null,
@@ -584,6 +590,21 @@ function Calendar(): React.JSX.Element {
               />
             )}
             sx={{ flex: '1 1 260px', minWidth: 220 }}
+          />
+          <Autocomplete
+            size="small"
+            options={staff}
+            value={person}
+            onChange={(_, v) => setPerson(v)}
+            getOptionLabel={(o) => o.name}
+            isOptionEqualToValue={(a, b) => a.id === b.id}
+            renderInput={(p) => (
+              <TextField
+                {...p}
+                placeholder="Todas las personas"
+              />
+            )}
+            sx={{ flex: '0 1 240px', minWidth: 200 }}
           />
         </Stack>
       </Card>
