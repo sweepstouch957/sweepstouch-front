@@ -1,6 +1,7 @@
 'use client';
 
 import * as api from '@/services/material-control.service';
+import { useKioskDevices } from '@/hooks/fetching/kiosk/useKioskDevices';
 import AddRounded from '@mui/icons-material/AddRounded';
 import DeleteOutlineRounded from '@mui/icons-material/DeleteOutlineRounded';
 import DevicesOutlined from '@mui/icons-material/DevicesOutlined';
@@ -426,6 +427,7 @@ function StoreDetails({
   onRegister: (id: string) => void;
 }) {
   const { scope, enabled, inventory, materials, busy } = useMaterials();
+  const tablets = useKioskDevices(store.store || '', enabled && active);
   const [expanded, setExpanded] = useState(false);
   const [page, setPage] = useState(1);
   const result = useQuery({
@@ -442,7 +444,15 @@ function StoreDetails({
     <PanelCard>
       <SectionHeader
         title={store.nombre}
-        hint={storeAddress(store)}
+        hint={
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ width: '100%', overflowWrap: 'anywhere' }}
+          >
+            {storeAddress(store)}
+          </Typography>
+        }
         icon={<StorefrontOutlined color="primary" />}
       />
       <Box
@@ -468,14 +478,26 @@ function StoreDetails({
                       }`
                   )
                   .join(' · ')
-              : 'Sin materiales instalados'}
+              : store.store
+                ? ''
+                : 'Sin materiales instalados'}
+            {store.store && (
+              <>
+                {installed.length > 0 && ' · '}
+                {tablets.isError
+                  ? 'Tablets: no disponible'
+                  : tablets.data
+                    ? `${tablets.data.length} ${tablets.data.length === 1 ? 'tablet' : 'tablets'}`
+                    : 'Tablets: cargando…'}
+              </>
+            )}
           </Typography>
           <Typography
             variant="caption"
             color="text.secondary"
             sx={{ display: 'block', mt: 0.5 }}
           >
-            Ver movimientos de esta tienda
+            Ver tablets y movimientos de esta tienda
           </Typography>
         </Box>
         {expanded && (
@@ -483,6 +505,48 @@ function StoreDetails({
             spacing={1.5}
             sx={{ mt: 2 }}
           >
+            {store.store && (
+              <Box>
+                <Typography variant="subtitle2"
+sx={{ mb: 1 }}>
+                  Tablets instaladas
+                </Typography>
+                <QueryFeedback pending={tablets.isPending}
+error={tablets.error}>
+                  <TableContainer>
+                    <Table size="small"
+aria-label={`Tablets de ${store.nombre}`}>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Nombre</TableCell>
+                          <TableCell>IMEI</TableCell>
+                          <TableCell>Serial</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {(tablets.data || []).map((tablet) => (
+                          <TableRow key={tablet.identifier}>
+                            <TableCell sx={{ overflowWrap: 'anywhere' }}>
+                              {tablet.name?.trim() || 'Sin nombre'}
+                            </TableCell>
+                            <TableCell>{tablet.imei?.trim() || 'No disponible'}</TableCell>
+                            <TableCell>{tablet.serial?.trim() || 'No disponible'}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                  {tablets.data?.length === 0 && (
+                    <Typography variant="body2"
+color="text.secondary"
+sx={{ mt: 1 }}>
+                      Sin tablets instaladas.
+                    </Typography>
+                  )}
+                </QueryFeedback>
+              </Box>
+            )}
+            <Typography variant="subtitle2">Movimientos de esta tienda</Typography>
             <QueryFeedback
               pending={result.isPending || result.isFetching}
               error={result.error}
@@ -643,14 +707,25 @@ export function StoresView({
           </Stack>
         )}
       </Section>
-      {visibleStores.map((store) => (
-        <StoreDetails
-          key={store.id}
-          store={store}
-          active={active}
-          onRegister={onRegister}
-        />
-      ))}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'repeat(2, minmax(0, 1fr))' },
+          gap: 2,
+          alignItems: 'start',
+          '& > section': { minWidth: 0 },
+          '& h2': { overflowWrap: 'anywhere', minWidth: 0 },
+        }}
+      >
+        {visibleStores.map((store) => (
+          <StoreDetails
+            key={store.id}
+            store={store}
+            active={active}
+            onRegister={onRegister}
+          />
+        ))}
+      </Box>
       {!visibleStores.length && (
         <PanelCard>
           <EmptyBlock

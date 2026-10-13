@@ -39,11 +39,11 @@ export const kioskKeys = {
 // ─── Devices ─────────────────────────────────────────────────────────────────
 
 /** Fetch all kiosk devices linked to this store account */
-export function useKioskDevices(storeId: string) {
+export function useKioskDevices(storeId: string, enabled = true) {
   return useQuery<KioskDevice[]>({
     queryKey: kioskKeys.devices(storeId),
     queryFn:  () => getKioskDevices(storeId),
-    enabled:  !!storeId,
+    enabled:  !!storeId && enabled,
     staleTime: 1000 * 60 * 2, // 2 min — devices status can change often
     refetchInterval: 1000 * 60 * 2, // auto-refresh every 2 min
   });
