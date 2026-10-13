@@ -432,7 +432,8 @@ function StoresField({ control }: { control: Control<FormValues> }) {
   const q = useDebouncedValue(input, 300);
   const { data, isFetching } = useQuery({
     queryKey: ['stores', 'calendar-search', q],
-    queryFn: () => getStores({ search: q, limit: 20, status: 'active' }),
+    // Sin filtro de estado: hay activaciones en tiendas nuevas/pendientes que aún no figuran "active"
+    queryFn: () => getStores({ search: q, limit: 20 }),
     staleTime: 60_000,
     enabled: q.length >= 2 && scope !== 'none',
   });
@@ -493,6 +494,7 @@ function StoresField({ control }: { control: Control<FormValues> }) {
                 value={one || null}
                 loading={isFetching}
                 filterOptions={(x) => x}
+                noOptionsText={input.trim().length < 2 ? 'Escribe al menos 2 letras' : 'No hay tiendas con ese nombre o dirección'}
                 isOptionEqualToValue={isSame}
                 getOptionLabel={(o) => o.storeName}
                 inputValue={input}
@@ -516,6 +518,7 @@ function StoresField({ control }: { control: Control<FormValues> }) {
                 value={field.value}
                 loading={isFetching}
                 filterOptions={(x) => x}
+                noOptionsText={input.trim().length < 2 ? 'Escribe al menos 2 letras' : 'No hay tiendas con ese nombre o dirección'}
                 isOptionEqualToValue={isSame}
                 getOptionLabel={(o) => o.storeName}
                 inputValue={input}
