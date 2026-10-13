@@ -36,7 +36,7 @@ import {
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import React, { useMemo, useState } from 'react';
-import { Controller, useForm, useWatch, type Control } from 'react-hook-form';
+import { Controller, useController, useForm, useWatch, type Control } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { EVENT_TYPES, STATUS_LABEL, todayKey, TYPE_KEYS } from './constants';
 
@@ -72,6 +72,7 @@ type FormValues = {
   scope: 'one' | 'many' | 'none';
   stores: EventStore[];
   extraUserIds: string[];
+  excludedUserIds: string[];
   cancelReason: string;
   numbers: string;
   reportNote: string;
@@ -670,82 +671,62 @@ function PeopleField({
   staff: StaffOption[];
   departmentName: (id?: string | null) => string;
 }) {
-  const extra = useWatch({ control, name: 'extraUserIds' });
-  const preview = useMemo(() => {
-    const ids = new Set<string>();
-    const out: { name: string; why: string }[] = [];
-    const add = (p: StaffOption | undefined, why: string) => {
-      if (p && !ids.has(p.id)) {
-        ids.add(p.id);
-        out.push({ name: p.name, why });
-      }
-    };
-    add(me || undefined, 'lo lleva');
+  const { field: extraF } = useController({ control, name: 'extraUserIds' });
+  const { field: exclF } = useController({ control, name: 'excludedUserIds' });
+
+  // Automáticos: quien lo lleva + su área + Dirección (misma regla que el backend)
+  const auto = useMemo(() => {
+    const out = new Map<string, string>();
+    if (me) out.set(me.id, 'lo lleva');
     if (me?.departmentId)
       for (const p of staff)
-        if (p.departmentId === me.departmentId)
-          add(p, departmentName(me.departmentId) || 'su área');
-    for (const p of staff) if (esDireccion(p.name)) add(p, 'Dirección');
-    for (const id of extra)
-      add(
-        staff.find((p) => p.id === id),
-        'sumado'
-      );
+        if (p.departmentId === me.departmentId && !out.has(p.id))
+          out.set(p.id, departmentName(me.departmentId) || 'su área');
+    for (const p of staff) if (esDireccion(p.name) && !out.has(p.id)) out.set(p.id, 'Dirección');
     return out;
-  }, [me, staff, extra, departmentName]);
+  }, [me, staff, departmentName]);
+
+  const excluded = new Set(exclF.value);
+  const selectedIds = [
+    ...[...auto.keys()].filter((id) => !excluded.has(id)),
+    ...extraF.value.filter((id) => !auto.has(id)),
+  ];
+  const byId = new Map(staff.map((p) => [p.id, p]));
+  const value = selectedIds.map((id) => byId.get(id)).filter(Boolean) as StaffOption[];
+  const why = (id: string) => auto.get(id) || 'sumado';
 
   return (
-    <>
-      <Controller
-        control={control}
-        name="extraUserIds"
-        render={({ field }) => (
-          <Autocomplete
-            multiple
+    <Autocomplete
+      multiple
+      size="small"
+      options={staff}
+      value={value}
+      getOptionLabel={(o) => o.name}
+      isOptionEqualToValue={(a, b) => a.id === b.id}
+      onChange={(_, v) => {
+        const ids = new Set(v.map((p) => p.id));
+        exclF.onChange([...auto.keys()].filter((id) => !ids.has(id)));
+        extraF.onChange([...ids].filter((id) => !auto.has(id)));
+      }}
+      renderTags={(tags, getTagProps) =>
+        tags.map((p, i) => (
+          <Chip
+            {...getTagProps({ index: i })}
+            key={p.id}
             size="small"
-            options={staff}
-            getOptionLabel={(o) => o.name}
-            value={staff.filter((p) => field.value.includes(p.id))}
-            onChange={(_, v) => field.onChange(v.map((p) => p.id))}
-            renderInput={(p) => (
-              <TextField
-                {...p}
-                label="Sumar personas"
-                placeholder="Además del área y Dirección…"
-              />
-            )}
+            label={`${p.name} · ${why(p.id)}`}
           />
-        )}
-      />
-      <Box>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-        >
-          Se avisará por WhatsApp y correo a:
-        </Typography>
-        <Stack
-          direction="row"
-          flexWrap="wrap"
-          gap={0.5}
-          sx={{ mt: 0.5 }}
-        >
-          {preview.map((p) => (
-            <Chip
-              key={p.name}
-              size="small"
-              label={`${p.name} · ${p.why}`}
-              variant="outlined"
-            />
-          ))}
-          {!preview.length && (
-            <Typography variant="caption">
-              Nadie todavía: elige quién lo lleva o suma personas.
-            </Typography>
-          )}
-        </Stack>
-      </Box>
-    </>
+        ))
+      }
+      renderInput={(p) => (
+        <TextField
+          {...p}
+          label="Involucrados"
+          placeholder="Buscar persona…"
+          helperText="Se les avisa por WhatsApp y correo. Quita o suma a quien quieras."
+        />
+      )}
+    />
   );
 }
 
@@ -777,6 +758,7 @@ export function EventDrawer({
             editing.stores.length === 0 ? 'none' : editing.stores.length === 1 ? 'one' : 'many',
           stores: editing.stores || [],
           extraUserIds: editing.extraUserIds || [],
+          excludedUserIds: editing.excludedUserIds || [],
           cancelReason: editing.cancelReason || '',
           numbers: editing.report?.numbers != null ? String(editing.report.numbers) : '',
           reportNote: editing.report?.note || '',
@@ -796,6 +778,7 @@ export function EventDrawer({
           scope: 'one',
           stores: [],
           extraUserIds: [],
+          excludedUserIds: [],
           cancelReason: '',
           numbers: '',
           reportNote: '',
@@ -825,6 +808,7 @@ export function EventDrawer({
       description: v.description.trim(),
       stores: v.scope === 'none' ? [] : v.stores,
       extraUserIds: v.extraUserIds,
+      excludedUserIds: v.excludedUserIds,
       cancelReason: v.status === 'cancelado' ? v.cancelReason.trim() : '',
       report:
         v.status === 'finalizado'

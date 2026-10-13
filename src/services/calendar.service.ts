@@ -65,6 +65,8 @@ export interface CalendarEvent {
   departmentId: string | null;
   departmentName?: string;
   extraUserIds?: string[];
+  /** Quitados a mano de los involucrados automáticos */
+  excludedUserIds?: string[];
   participants: EventParticipant[];
   cancelReason?: string;
   report?: EventReport;
@@ -86,6 +88,8 @@ export interface EventPayload {
   description?: string;
   stores?: EventStore[];
   extraUserIds?: string[];
+  /** Quitados a mano de los involucrados automáticos */
+  excludedUserIds?: string[];
   cancelReason?: string;
   report?: { numbers: number | null; note: string; evidence: string[] };
   ownerId?: string | null;
