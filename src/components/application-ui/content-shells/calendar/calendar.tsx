@@ -52,6 +52,7 @@ import {
   type Category,
 } from './constants';
 import type { StaffOption } from './event-drawer';
+import { DayDrawer } from './day-drawer';
 import { MonthView } from './month-view';
 import { NowStrip } from './now-strip';
 import { RankingView } from './ranking-view';
@@ -132,6 +133,8 @@ function Calendar(): React.JSX.Element {
   const [search, setSearch] = useState('');
   /** Radar de Dirección: lo que lleva, creó o tiene sumado una persona */
   const [person, setPerson] = useState<StaffOption | null>(null);
+  /** Día abierto en el drawer de eventos del día (clic en una celda del mes) */
+  const [day, setDay] = useState<string | null>(null);
   const deferredSearch = useDeferredValue(search);
   const [showPast, setShowPast] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(searchParams.get('eventId'));
@@ -639,7 +642,7 @@ function Calendar(): React.JSX.Element {
               onPickMonth={setMonth}
               onPrev={() => setMonth((m) => (m + 11) % 12)}
               onNext={() => setMonth((m) => (m + 1) % 12)}
-              onAddAt={(d) => setDialog({ editing: null, date: d })}
+              onAddAt={setDay}
               onOpen={openEvent}
               seasons={seasons}
             />
@@ -688,6 +691,19 @@ function Calendar(): React.JSX.Element {
         Eventos propios + tareas de Cowork con tienda + visitas de soporte técnico. Los avisos salen
         por WhatsApp (SweepsBot) y correo a quien lo lleva, a su área y a Dirección.
       </Typography>
+
+      {day && (
+        <DayDrawer
+          day={day}
+          events={filtered}
+          onClose={() => setDay(null)}
+          onOpen={openEvent}
+          onAdd={(d) => {
+            setDay(null);
+            setDialog({ editing: null, date: d });
+          }}
+        />
+      )}
 
       {selected && (
         <EventDetailDialog

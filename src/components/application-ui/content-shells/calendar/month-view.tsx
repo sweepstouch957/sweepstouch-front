@@ -27,6 +27,7 @@ interface Props {
   onPickMonth: (m: number) => void;
   onPrev: () => void;
   onNext: () => void;
+  /** Clic en un día: abre el drawer con los eventos de ese día */
   onAddAt: (key: string) => void;
   onOpen: (e: CalendarEvent) => void;
   /** Tinte pastel por estación en cada día. */
@@ -180,7 +181,7 @@ export const MonthView = React.memo(function MonthView({
           color="text.secondary"
         >
           {monthCount === 1 ? '1 evento este mes' : `${monthCount} eventos este mes`} · clic en un
-          día para agregar
+          día para ver sus eventos
         </Typography>
       </Stack>
 
@@ -206,7 +207,7 @@ export const MonthView = React.memo(function MonthView({
           <Box
             key={c.key}
             onClick={() => c.inMonth && onAddAt(c.key)}
-            title={c.inMonth ? 'Agregar evento' : undefined}
+            title={c.inMonth ? 'Ver eventos del día' : undefined}
             sx={{
               minHeight: { xs: 72, md: 104 },
               borderRadius: 2,
