@@ -1,4 +1,5 @@
 export const en = {
+  "Enviar reporte por correo": "Send report by email",
   "ACTIONS": "ACTIONS",
   "Actions": "Actions",
   "ADDRESS": "ADDRESS",

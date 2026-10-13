@@ -136,6 +136,7 @@ export const routes = {
       meetings: '/admin/applications/meetings',
       demos: '/admin/applications/demos',
       utilities: '/admin/applications/utilities',
+      'email-test': '/admin/applications/email-test',
       'audience-share': '/admin/applications/audience-share',
     },
     // Workspace — espacios de trabajo por equipo. Diseño gestiona la produccion

@@ -1,4 +1,5 @@
 export const es = {
+  "Enviar reporte por correo": "Enviar reporte por correo",
   "RCS Monitoring": "Monitoreo RCS",
   "ACTIONS": "ACCIONES",
   "Actions": "Acciones",

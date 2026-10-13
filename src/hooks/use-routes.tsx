@@ -12,6 +12,7 @@ import {
   DesignServicesRounded,
   Diversity3Rounded,
   EventRounded,
+  EmailOutlined,
   GroupsRounded,
   BalanceRounded,
   HandymanRounded,
@@ -48,7 +49,7 @@ import { routes } from 'src/router/routes';
  * cashier o una promotora veian el menu completo y cada click volvia 403.
  * Si se toca alla, se toca aca.
  */
-const STAFF_ROLES: UserRole[] = [
+export const STAFF_ROLES: UserRole[] = [
   'admin', 'general_manager', 'campaign_manager', 'design', 'marketing',
   'it', 'tecnico', 'support', 'billing', 'operations', 'assistant',
   'promotor_manager', 'merchant_manager',
@@ -115,6 +116,7 @@ const workItems = (t: (token: string) => string): MenuItem[] => [
  */
 const toolsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Herramientas'), <HandymanRounded />, [
+    { title: t('Enviar reporte por correo'), route: routes.admin.applications['email-test'], icon: <EmailOutlined />, roles: STAFF_ROLES },
     { title: t('Optin Cajeros'), route: routes.admin.applications['optin-cashiers'], icon: <PointOfSaleRounded /> },
     { title: t('Códigos QR'), route: routes.admin.management.qr, icon: <QrCode2Rounded /> },
     // El primo del QR: mismo destino (el linktree de la tienda), formato link.
