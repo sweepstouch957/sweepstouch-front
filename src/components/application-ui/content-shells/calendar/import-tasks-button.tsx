@@ -29,7 +29,7 @@ export function ImportTasksButton() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set());
-  const { data = [] } = useQuery({
+  const { data = [], isSuccess } = useQuery({
     queryKey: ['calendar', 'import-candidates'],
     queryFn: calendarService.importCandidates,
     retry: false,
@@ -45,7 +45,8 @@ export function ImportTasksButton() {
     onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo importar'),
   });
 
-  if (!data.length) return null;
+  // Sin permiso (403) o cargando → no se muestra. Admin sin pendientes → desactivado.
+  if (!isSuccess) return null;
 
   const toggle = (id: string) =>
     setPicked((s) => {
@@ -60,12 +61,13 @@ export function ImportTasksButton() {
         variant="outlined"
         color="inherit"
         startIcon={<CloudDownloadOutlinedIcon fontSize="small" />}
+        disabled={!data.length}
         onClick={() => {
           setPicked(new Set(data.map((t) => t._id)));
           setOpen(true);
         }}
       >
-        Traer del bot ({data.length})
+        {data.length ? `Traer del bot (${data.length})` : 'Nada que traer del bot'}
       </Button>
       <Dialog
         open={open}
