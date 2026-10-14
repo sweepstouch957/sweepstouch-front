@@ -83,8 +83,17 @@ export function ImportTasksButton() {
             sx={{ mb: 1 }}
           >
             Se crearon como tarea (por WhatsApp o en Cowork) y no están en el calendario. Desmarca
-            las que no sean eventos. Se agregan sin mandar avisos.
+            las que no sean eventos. Se agregan sin mandar avisos; las ya hechas (✓) entran como
+            confirmadas.
           </Typography>
+          <Button
+            size="small"
+            onClick={() =>
+              setPicked(picked.size === data.length ? new Set() : new Set(data.map((t) => t._id)))
+            }
+          >
+            {picked.size === data.length ? 'Desmarcar todas' : 'Marcar todas'}
+          </Button>
           <List dense>
             {data.map((t) => (
               <ListItemButton
@@ -101,7 +110,7 @@ export function ImportTasksButton() {
                   />
                 </ListItemIcon>
                 <ListItemText
-                  primary={t.title}
+                  primary={`${t.status === 'done' ? '✓ ' : ''}${t.title}`}
                   secondary={
                     <Box component="span">
                       {keyToDate(t.date).toLocaleDateString('es-US', {

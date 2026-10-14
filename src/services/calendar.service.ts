@@ -107,6 +107,8 @@ export interface ImportCandidate {
   identifier?: string;
   date: string;
   type: EventType;
+  /** done = ya hecha (entra como confirmado) */
+  status?: string;
   assigneeName?: string;
 }
 
