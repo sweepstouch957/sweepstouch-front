@@ -7,6 +7,9 @@ import { useEffect, useState } from 'react';
 import Results from './results';
 import { customerClient } from '@/services/customerService';
 import { useAuth } from '@/hooks/use-auth';
+import { api } from '@/libs/axios';
+import { getStoreById } from '@/services/store.service';
+import { listCashiers } from '@/services/cashier.service';
 
 interface CustomersGridProps {
   storeId: string;
@@ -60,6 +63,46 @@ function obfuscateLastTwoDigitsKeepFormat(input: string): string {
   chars[pos2] = rep2;
 
   return chars.join('');
+}
+
+const last10 = (p: string) => (p || '').replace(/\D/g, '').slice(-10);
+
+/** Cambia los últimos 3 dígitos al azar, evitando caer en otro número que sí está en la base. */
+function scrambleLastThreeDigits(input: string, taken: Set<string>): string {
+  const idx: number[] = [];
+  for (let i = 0; i < input.length; i++) if (/\d/.test(input[i])) idx.push(i);
+  if (idx.length < 3) return input;
+  const tail = idx.slice(-3);
+  const chars = input.split('');
+  let out = input;
+  for (let tries = 0; tries < 50 && (out === input || taken.has(last10(out))); tries++) {
+    const next = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
+    tail.forEach((pos, k) => { chars[pos] = next[k]; });
+    out = chars.join('');
+  }
+  return out;
+}
+
+/**
+ * Base parcial: los números VIP (cajeras, dueño, contactos) salen reales siempre,
+ * y se completa con reales al azar hasta el 20%; el resto lleva los últimos 3 dígitos cambiados.
+ * Los VIP que no están en la base se agregan igual, para que el dueño reconozca los suyos.
+ */
+export function buildPartialBase(phones: string[], vipPhones: string[]): string[] {
+  const vipByDigits = new Map(vipPhones.filter((p) => last10(p).length === 10).map((p) => [last10(p), p]));
+  const vip = new Set(vipByDigits.keys());
+  const inBase = new Set(phones.map(last10));
+  const extra = [...vipByDigits].filter(([d]) => !inBase.has(d)).map(([, p]) => p);
+  const all = [...phones, ...extra];
+  const realTarget = Math.max(Math.round(all.length * 0.2), 0);
+  const order = all.map((_, i) => i).sort(() => Math.random() - 0.5);
+  const real = new Set(order.filter((i) => vip.has(last10(all[i]))));
+  for (const i of order) {
+    if (real.size >= realTarget) break;
+    real.add(i);
+  }
+  const taken = new Set([...inBase, ...vip]);
+  return order.map((i) => (real.has(i) ? all[i] : scrambleLastThreeDigits(all[i], taken)));
 }
 
 /**
@@ -246,13 +289,67 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
     }
   }
 
+  async function handleExportParcial() {
+    try {
+      setExporting(true);
+      const [{ jsPDF }, autoTableModule, store, cashiers] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable'),
+        getStoreById(storeId),
+        listCashiers({ storeId, limit: 200 }),
+      ]);
+      const autoTable: any = (autoTableModule as any).default || (autoTableModule as any);
+
+      let allPhones: string[] = [];
+      for (let p = 1; p <= 2000; p++) {
+        const res: any = await customerClient.getCustomersByStore(storeId, p, 500);
+        const rows = res?.data || [];
+        allPhones = allPhones.concat(rows.map((c: any) => (c?.phoneNumber ?? '').toString()));
+        if (!res?.total || allPhones.length >= res.total || rows.length === 0) break;
+      }
+
+      const ownerIds = [store?.ownerId, (store as any)?.owner].filter(Boolean).join(',');
+      const owners: any = ownerIds
+        ? (await api.get('/auth/users', { params: { ids: ownerIds } }).catch(() => ({ data: [] }))).data
+        : [];
+      const vip = [
+        ...(cashiers?.data || []).map((c) => c.phoneNumber || c.phone || ''),
+        ...(Array.isArray(owners) ? owners : owners?.data || []).map((u: any) => u?.phoneNumber || ''),
+        ...((store as any)?.contactInfo || []).map((c: any) => c?.phone || ''),
+      ];
+
+      const doc = new jsPDF();
+      autoTable(doc, {
+        body: toColumns<string>(buildPartialBase(allPhones, vip), 4),
+        theme: 'plain',
+        styles: { fontSize: 10, textColor: [0, 0, 0] },
+      });
+      doc.save(`customers_phones_parcial_${slugifyName(storeName) || storeId}.pdf`);
+    } catch (err) {
+      console.error('Export parcial failed', err);
+      alert('No se pudo generar la base parcial. Revisa la consola para más detalles.');
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <Grid container
       spacing={2}>
       <Grid xs={12}>
+        <Box mb={1.5} display="flex" justifyContent="flex-end" gap={1}>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<PictureAsPdf />}
+            onClick={handleExportParcial}
+            disabled={exporting}
+            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+          >
+            {exporting ? 'Generando…' : 'Exportar base parcial'}
+          </Button>
         {/* Botón alterno SOLO para usuarios distintos de juancarlos@sweepstouch.com */}
         {!isJuan && (
-          <Box mb={1.5} display="flex" justifyContent="flex-end">
             <Button
               variant="outlined"
               size="small"
@@ -263,8 +360,8 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
             >
               {exporting ? 'Generando…' : 'Exportar datos'}
             </Button>
-          </Box>
         )}
+        </Box>
 
         <Results
           onExportPdf={isJuan ? handleExportPdf : (undefined as any)}
