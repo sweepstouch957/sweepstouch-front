@@ -839,6 +839,7 @@ export default function StoreInfo({ store }: { store: Store }) {
    */
   const tabletsInstaladas = store.equipment?.length ?? store.equipmentTotal ?? 0;
   const campanasEnviadas = campaignStats?.total ?? 0;
+  const contactos = (form as any).contactInfo || [];
   const chequeosSalud = [
     {
       ok: tabletsInstaladas > 0,
@@ -862,16 +863,16 @@ export default function StoreInfo({ store }: { store: Store }) {
       area: 'Contratos',
     },
     {
-      ok: Boolean(form.phoneNumber || form.email),
-      texto: form.phoneNumber || form.email
-        ? 'Contacto registrado'
-        : 'Sin teléfono ni email de contacto',
+      // Mismo dato que la tarjeta Contactos: el teléfono/email de la tienda no dice a quién llamar.
+      ok: contactos.length > 0,
+      texto: contactos.length > 0
+        ? `${contactos.length} contacto${contactos.length === 1 ? '' : 's'} registrado${contactos.length === 1 ? '' : 's'}`
+        : 'Sin dueño ni gerente de contacto',
       area: 'Contacto',
     },
   ];
   const pendientesSalud = chequeosSalud.filter((c) => !c.ok).length;
   const pauses = form.pauseHistory || [];
-  const contactos = (form as any).contactInfo || [];
 
   /* ── Edición por sección ──────────────────────────────────────────────────
      La página se lee como ficha y cada tarjeta se abre sola. Antes un botón
