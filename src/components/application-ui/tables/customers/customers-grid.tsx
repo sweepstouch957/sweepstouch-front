@@ -1,6 +1,19 @@
 'use client';
 
-import { Box, CircularProgress, Unstable_Grid2 as Grid, Typography, Button } from '@mui/material';
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControlLabel,
+  Unstable_Grid2 as Grid,
+  Radio,
+  RadioGroup,
+  Typography,
+} from '@mui/material';
 import { PictureAsPdf } from '@mui/icons-material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
@@ -10,6 +23,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { api } from '@/libs/axios';
 import { getStoreById } from '@/services/store.service';
 import { listCashiers } from '@/services/cashier.service';
+
+type ExportKind = 'completa' | 'parcial' | 'datos';
 
 interface CustomersGridProps {
   storeId: string;
@@ -132,6 +147,22 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
 
   const { user } = useAuth();
   const isJuan = user?.email === 'juancarlos@sweepstouch.com';
+  const [exportOpen, setExportOpen] = useState(false);
+  // La base completa sigue siendo sólo para Juan; el resto ve las versiones con números cambiados.
+  const exportOptions: { value: ExportKind; label: string; hint: string }[] = [
+    ...(isJuan
+      ? [{ value: 'completa' as const, label: 'Base completa', hint: 'Todos los números reales, una columna.' }]
+      : []),
+    {
+      value: 'parcial',
+      label: 'Base parcial',
+      hint: '80% con los últimos 3 dígitos cambiados; 20% real, incluidas cajeras, dueño y contactos de la tienda.',
+    },
+    ...(!isJuan
+      ? [{ value: 'datos' as const, label: 'Datos', hint: 'La mitad de los números con 2 dígitos cambiados.' }]
+      : []),
+  ];
+  const [exportKind, setExportKind] = useState<ExportKind>('parcial');
 
   const queryClient = useQueryClient();
 
@@ -337,34 +368,8 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
     <Grid container
       spacing={2}>
       <Grid xs={12}>
-        <Box mb={1.5} display="flex" justifyContent="flex-end" gap={1}>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<PictureAsPdf />}
-            onClick={handleExportParcial}
-            disabled={exporting}
-            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-          >
-            {exporting ? 'Generando…' : 'Exportar base parcial'}
-          </Button>
-        {/* Botón alterno SOLO para usuarios distintos de juancarlos@sweepstouch.com */}
-        {!isJuan && (
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<PictureAsPdf />}
-              onClick={handleExportDatos}
-              disabled={exporting}
-              sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
-            >
-              {exporting ? 'Generando…' : 'Exportar datos'}
-            </Button>
-        )}
-        </Box>
-
         <Results
-          onExportPdf={isJuan ? handleExportPdf : (undefined as any)}
+          onExportPdf={() => setExportOpen(true)}
           exporting={exporting}
           customers={data?.data || []}
           total={data?.total || 0}
@@ -388,6 +393,61 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
           togglingPhone={toggleActive.isPending ? (toggleActive.variables?.phoneNumber ?? null) : null}
         />
       </Grid>
+
+      <Dialog
+        open={exportOpen}
+        onClose={() => !exporting && setExportOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>Exportar PDF</DialogTitle>
+        <DialogContent>
+          <RadioGroup
+            value={exportKind}
+            onChange={(e) => setExportKind(e.target.value as ExportKind)}
+          >
+            {exportOptions.map((o) => (
+              <FormControlLabel
+                key={o.value}
+                value={o.value}
+                control={<Radio />}
+                sx={{ alignItems: 'flex-start', mb: 1.5, '& .MuiRadio-root': { pt: 0.25 } }}
+                label={
+                  <Box>
+                    <Typography fontWeight={600}>{o.label}</Typography>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                    >
+                      {o.hint}
+                    </Typography>
+                  </Box>
+                }
+              />
+            ))}
+          </RadioGroup>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setExportOpen(false)}
+            disabled={exporting}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={exporting ? <CircularProgress size={16}
+color="inherit" /> : <PictureAsPdf />}
+            disabled={exporting}
+            onClick={async () => {
+              await { completa: handleExportPdf, parcial: handleExportParcial, datos: handleExportDatos }[exportKind]();
+              setExportOpen(false);
+            }}
+          >
+            {exporting ? 'Generando…' : 'Exportar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Grid>
   );
 }
