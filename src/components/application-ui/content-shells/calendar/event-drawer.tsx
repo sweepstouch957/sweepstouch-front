@@ -3,6 +3,7 @@
 import { useDebouncedValue } from '@/hooks/useDebounceValue';
 import type {
   CalendarEvent,
+  ChecklistItem,
   EventPayload,
   EventStatus,
   EventStore,
@@ -10,10 +11,12 @@ import type {
 } from '@/services/calendar.service';
 import { getStores } from '@/services/store.service';
 import { uploadTaskEvidence } from '@/services/upload.service';
+import { ChecklistField } from './checklist-field';
 import AddPhotoAlternateRoundedIcon from '@mui/icons-material/AddPhotoAlternateRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import NotesRoundedIcon from '@mui/icons-material/NotesRounded';
+import ChecklistRoundedIcon from '@mui/icons-material/ChecklistRounded';
 import ScheduleRoundedIcon from '@mui/icons-material/ScheduleRounded';
 import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import {
@@ -73,6 +76,7 @@ type FormValues = {
   stores: EventStore[];
   extraUserIds: string[];
   excludedUserIds: string[];
+  checklist: ChecklistItem[];
   cancelReason: string;
   numbers: string;
   reportNote: string;
@@ -759,6 +763,7 @@ export function EventDrawer({
           stores: editing.stores || [],
           extraUserIds: editing.extraUserIds || [],
           excludedUserIds: editing.excludedUserIds || [],
+          checklist: editing.checklist || [],
           cancelReason: editing.cancelReason || '',
           numbers: editing.report?.numbers != null ? String(editing.report.numbers) : '',
           reportNote: editing.report?.note || '',
@@ -779,6 +784,7 @@ export function EventDrawer({
           stores: [],
           extraUserIds: [],
           excludedUserIds: [],
+          checklist: [],
           cancelReason: '',
           numbers: '',
           reportNote: '',
@@ -809,6 +815,7 @@ export function EventDrawer({
       stores: v.scope === 'none' ? [] : v.stores,
       extraUserIds: v.extraUserIds,
       excludedUserIds: v.excludedUserIds,
+      checklist: v.checklist,
       cancelReason: v.status === 'cancelado' ? v.cancelReason.trim() : '',
       report:
         v.status === 'finalizado'
@@ -941,6 +948,22 @@ export function EventDrawer({
             me={owner}
             staff={staff}
             departmentName={departmentName}
+          />
+        </Section>
+
+        <Section
+          icon={<ChecklistRoundedIcon fontSize="small" />}
+          title="Checklist (opcional)"
+        >
+          <Controller
+            control={control}
+            name="checklist"
+            render={({ field }) => (
+              <ChecklistField
+                value={field.value}
+                onChange={field.onChange}
+              />
+            )}
           />
         </Section>
 

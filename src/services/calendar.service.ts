@@ -68,6 +68,7 @@ export interface CalendarEvent {
   extraUserIds?: string[];
   /** Quitados a mano de los involucrados automáticos */
   excludedUserIds?: string[];
+  checklist?: ChecklistItem[];
   participants: EventParticipant[];
   cancelReason?: string;
   report?: EventReport;
@@ -76,6 +77,21 @@ export interface CalendarEvent {
   taskId?: string | null;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export type ChecklistStatus = 'pendiente' | 'listo' | 'emergencia';
+export interface ChecklistItem {
+  label: string;
+  status: ChecklistStatus;
+  note?: string;
+  /** URLs de fotos/archivos que prueban que quedó listo */
+  evidence?: string[];
+}
+
+export interface ChecklistTemplate {
+  _id: string;
+  name: string;
+  items: string[];
 }
 
 export interface EventPayload {
@@ -91,6 +107,7 @@ export interface EventPayload {
   extraUserIds?: string[];
   /** Quitados a mano de los involucrados automáticos */
   excludedUserIds?: string[];
+  checklist?: ChecklistItem[];
   cancelReason?: string;
   report?: { numbers: number | null; note: string; evidence: string[] };
   ownerId?: string | null;
@@ -165,6 +182,22 @@ export const calendarService = {
   importTasks: async (taskIds: string[]): Promise<{ created: number }> => {
     const { data } = await api.post(`${BASE}/import-tasks`, { taskIds });
     return data;
+  },
+
+  /** Plantillas de checklist (la primera vez el backend crea 3 de base). */
+  checklistTemplates: async (): Promise<ChecklistTemplate[]> => {
+    const { data } = await api.get(`${BASE}/checklist-templates`);
+    return data.data;
+  },
+
+  /** Crea o reemplaza por nombre: así se edita una plantilla. */
+  saveChecklistTemplate: async (t: { name: string; items: string[]; updatedBy?: string }) => {
+    const { data } = await api.put(`${BASE}/checklist-templates`, t);
+    return data.data as ChecklistTemplate;
+  },
+
+  removeChecklistTemplate: async (id: string) => {
+    await api.delete(`${BASE}/checklist-templates/${id}`);
   },
 
   seed: async (): Promise<{ created: number }> => {

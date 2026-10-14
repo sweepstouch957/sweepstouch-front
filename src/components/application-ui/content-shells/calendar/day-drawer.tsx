@@ -202,6 +202,20 @@ export function DayDrawer({
                     sx={{ fontSize: 12.5, fontWeight: 600 }}
                     noWrap
                   >
+                    {e.checklist?.length ? (
+                      <Box
+                        component="span"
+                        sx={{
+                          mr: 0.75,
+                          color: e.checklist.some((c) => c.status === 'emergencia')
+                            ? 'error.main'
+                            : 'text.secondary',
+                        }}
+                      >
+                        {e.checklist.some((c) => c.status === 'emergencia') ? '🚨' : '☑'}{' '}
+                        {e.checklist.filter((c) => c.status === 'listo').length}/{e.checklist.length}
+                      </Box>
+                    ) : null}
                     {e.ownerName || 'Sin responsable'}
                     {e.departmentName && (
                       <Box

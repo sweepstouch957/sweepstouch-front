@@ -195,6 +195,46 @@ export function EventDetailDialog({
             k="Descripción"
             v={e.description || '—'}
           />
+          {(e.checklist?.length ?? 0) > 0 && (
+            <Row
+              k={`Checklist (${e.checklist!.filter((c) => c.status === 'listo').length}/${e.checklist!.length})`}
+              v={
+                <Stack spacing={0.5}>
+                  {e.checklist!.map((c) => (
+                    <Typography
+                      key={c.label}
+                      sx={{
+                        fontSize: 13,
+                        fontWeight: c.status === 'emergencia' ? 700 : 400,
+                        color:
+                          c.status === 'emergencia'
+                            ? 'error.main'
+                            : c.status === 'listo'
+                              ? 'success.main'
+                              : 'text.primary',
+                      }}
+                    >
+                      {c.status === 'listo' ? '✅' : c.status === 'emergencia' ? '🚨' : '⏳'}{' '}
+                      {c.label}
+                      {c.note ? ` — ${c.note}` : ''}
+                      {(c.evidence || []).map((url, k) => (
+                        <Box
+                          key={url}
+                          component="a"
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          sx={{ ml: 0.75, fontSize: 12 }}
+                        >
+                          📎{k + 1}
+                        </Box>
+                      ))}
+                    </Typography>
+                  ))}
+                </Stack>
+              }
+            />
+          )}
           {e.participants?.length > 0 && (
             <Row
               k="Involucrados"
