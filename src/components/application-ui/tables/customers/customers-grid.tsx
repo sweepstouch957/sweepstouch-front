@@ -24,7 +24,7 @@ import { api } from '@/libs/axios';
 import { getStoreById } from '@/services/store.service';
 import { listCashiers } from '@/services/cashier.service';
 
-type ExportKind = 'completa' | 'parcial' | 'datos';
+type ExportKind = 'completa' | 'parcial';
 
 interface CustomersGridProps {
   storeId: string;
@@ -39,45 +39,6 @@ function slugifyName(s?: string) {
     .trim()
     .replace(/\s+/g, '_')                             // espacios -> _
     .toLowerCase();
-}
-
-/**
- * Utilidad: cambia exactamente DOS d\u00edgitos del string,
- * preservando posiciones no num\u00e9ricas (espacios, guiones, +, etc.).
- * NUEVA REGLA: No modifica los primeros 3 d\u00edgitos reales del n\u00famero.
- */
-function obfuscateLastTwoDigitsKeepFormat(input: string): string {
-  if (!input) return input;
-
-  // \u00cdndices (en el string) donde hay d\u00edgitos
-  const digitIdx: number[] = [];
-  for (let i = 0; i < input.length; i++) {
-    if (/\d/.test(input[i])) digitIdx.push(i);
-  }
-  // Si hay menos de 5 d\u00edgitos, podr\u00eda no haber 2 elegibles luego de los primeros 3
-  if (digitIdx.length < 2) return input;
-
-  // Elegibles = todos los d\u00edgitos excepto los 3 primeros por orden
-  const pos1 = digitIdx[digitIdx.length - 2];
-  const pos2 = digitIdx[digitIdx.length - 1];
-
-  const chars = input.split('');
-  const randomDigit = () => Math.floor(Math.random() * 10).toString();
-
-  // Reemplazos: intenta que no repitan exactamente el d\u00edgito anterior
-  const old1 = chars[pos1];
-  let rep1 = randomDigit();
-  let tries = 5;
-  while (tries-- > 0 && rep1 === old1) rep1 = randomDigit();
-  chars[pos1] = rep1;
-
-  const old2 = chars[pos2];
-  let rep2 = randomDigit();
-  tries = 5;
-  while (tries-- > 0 && rep2 === old2) rep2 = randomDigit();
-  chars[pos2] = rep2;
-
-  return chars.join('');
 }
 
 const last10 = (p: string) => (p || '').replace(/\D/g, '').slice(-10);
@@ -158,9 +119,6 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
       label: 'Base parcial',
       hint: '80% con los últimos 3 dígitos cambiados; 20% real, incluidas cajeras, dueño y contactos de la tienda.',
     },
-    ...(!isJuan
-      ? [{ value: 'datos' as const, label: 'Datos', hint: 'La mitad de los números con 2 dígitos cambiados.' }]
-      : []),
   ];
   const [exportKind, setExportKind] = useState<ExportKind>('parcial');
 
@@ -249,72 +207,6 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
     } catch (err) {
       console.error('Export PDF failed', err);
       alert('No se pudo generar el PDF. Revisa la consola para más detalles.');
-    } finally {
-      setExporting(false);
-    }
-  }
-
-  /**
-   * Exportación "Exportar datos" para NO-Juan:
-   * - Toma phoneNumber
-   * - Modifica 2 dígitos aleatorios por número, sin tocar los primeros 3 dígitos reales
-   * - Exporta en PDF con 4 columnas
-   */
-  async function handleExportDatos() {
-    try {
-      setExporting(true);
-
-      const [{ jsPDF }, autoTableModule] = await Promise.all([
-        import('jspdf'),
-        import('jspdf-autotable'),
-      ]);
-      const autoTable: any = (autoTableModule as any).default || (autoTableModule as any);
-
-      // Recolectar todos los phoneNumber
-      let allPhones: string[] = [];
-      let pageCursor = 1;
-      const pageSize = 500;
-
-      while (true) {
-        const res: any = await customerClient.getCustomersByStore(storeId, pageCursor, pageSize);
-        const pageData = (res?.data || []).map((c: any) => (c?.phoneNumber ?? '').toString());
-        allPhones = allPhones.concat(pageData);
-
-        if (!res?.total || allPhones.length >= res.total || (res?.data || []).length === 0) break;
-        pageCursor += 1;
-        if (pageCursor > 2000) break; // safety
-      }
-
-      // Ofuscar 2 dígitos por número (sin tocar los primeros 3 dígitos reales)
-      const shuffledIndexes = allPhones.map((_, index) => index);
-      for (let i = shuffledIndexes.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffledIndexes[i], shuffledIndexes[j]] = [shuffledIndexes[j], shuffledIndexes[i]];
-      }
-
-      const indexesToMask = new Set(shuffledIndexes.slice(0, Math.floor(allPhones.length / 2)));
-      const obfuscated = allPhones.map((phone, index) =>
-        indexesToMask.has(index) ? obfuscateLastTwoDigitsKeepFormat(phone) : phone
-      );
-
-      // Pasar a 4 columnas
-      const body = toColumns<string>(obfuscated, 4);
-
-      const safeName = slugifyName(storeName) || storeId || 'store';
-      const doc = new jsPDF();
-
-      autoTable(doc, {
-        body,
-        theme: 'plain',
-        styles: { fontSize: 10, textColor: [0, 0, 0] },
-        headStyles: { textColor: [0, 0, 0] },
-        // sin encabezados; solo valores en 4 columnas
-      });
-
-      doc.save(`customers_phones_masked_${safeName}.pdf`);
-    } catch (err) {
-      console.error('Export Datos failed', err);
-      alert('No se pudo generar el PDF de datos. Revisa la consola para más detalles.');
     } finally {
       setExporting(false);
     }
@@ -440,7 +332,7 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
 color="inherit" /> : <PictureAsPdf />}
             disabled={exporting}
             onClick={async () => {
-              await { completa: handleExportPdf, parcial: handleExportParcial, datos: handleExportDatos }[exportKind]();
+              await { completa: handleExportPdf, parcial: handleExportParcial }[exportKind]();
               setExportOpen(false);
             }}
           >
