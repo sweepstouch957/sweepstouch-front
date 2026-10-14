@@ -101,6 +101,15 @@ export interface EventPayload {
   notify?: boolean;
 }
 
+export interface ImportCandidate {
+  _id: string;
+  title: string;
+  identifier?: string;
+  date: string;
+  type: EventType;
+  assigneeName?: string;
+}
+
 /* ═══════════════ API ═══════════════ */
 
 const BASE = '/tasks/calendar';
@@ -142,6 +151,17 @@ export const calendarService = {
     message?: string
   ): Promise<{ sent: number; people: EventParticipant[] }> => {
     const { data } = await api.post(`${BASE}/events/${id}/notify`, { message });
+    return data;
+  },
+
+  /** Tareas que parecen eventos y aún no están en el calendario (sólo admin/Dirección: 403 si no). */
+  importCandidates: async (): Promise<ImportCandidate[]> => {
+    const { data } = await api.get(`${BASE}/import-candidates`);
+    return data.data;
+  },
+
+  importTasks: async (taskIds: string[]): Promise<{ created: number }> => {
+    const { data } = await api.post(`${BASE}/import-tasks`, { taskIds });
     return data;
   },
 

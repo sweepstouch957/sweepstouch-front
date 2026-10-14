@@ -53,6 +53,7 @@ import {
 } from './constants';
 import type { StaffOption } from './event-drawer';
 import { DayDrawer } from './day-drawer';
+import { ImportTasksButton } from './import-tasks-button';
 import { MonthView } from './month-view';
 import { NowStrip } from './now-strip';
 import { RankingView } from './ranking-view';
@@ -426,6 +427,7 @@ function Calendar(): React.JSX.Element {
             direction="row"
             spacing={1}
           >
+            <ImportTasksButton />
             <Button
               variant="outlined"
               color="inherit"
