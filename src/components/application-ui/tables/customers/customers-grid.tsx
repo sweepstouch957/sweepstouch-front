@@ -3,6 +3,7 @@
 import {
   Box,
   Button,
+  Checkbox,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -42,7 +43,20 @@ function slugifyName(s?: string) {
     .toLowerCase();
 }
 
-const last10 = (p: string) => (p || '').replace(/\D/g, '').slice(-10);
+// Origen del registro (SweepstakeParticipant.method / cupón de bienvenida).
+// Un cliente puede tener varios, por eso el desglose puede sumar más que el total.
+const METHOD_LABELS: Record<string, string> = {
+  cashier: 'Cajeras',
+  promotor: 'Promotoras',
+  referral: 'Referidos',
+  tablet: 'Tablet / kiosko',
+  qr: 'QR',
+  web: 'Web / linktree',
+  pinpad: 'Pinpad',
+  welcome: 'Bienvenida',
+};
+
+const last10 =(p: string) => (p || '').replace(/\D/g, '').slice(-10);
 
 /** Cambia los últimos 3 dígitos al azar, evitando caer en otro número que sí está en la base. */
 function scrambleLastThreeDigits(input: string, taken: Set<string>): string {
@@ -132,16 +146,19 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['customers', storeId] }),
   });
 
-  // Inactivar en bloque por fecha de alta: primero preview (dryRun), luego confirmar.
+  // Inactivar en bloque (fecha de alta y/o sólo base importada): primero preview (dryRun), luego confirmar.
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkDate, setBulkDate] = useState('');
+  const [keepSweepstouch, setKeepSweepstouch] = useState(true);
+  const bulkOpts = { before: bulkDate || undefined, keepSweepstouch };
+  const bulkReady = !!bulkDate || keepSweepstouch;
   const bulkPreview = useQuery({
-    queryKey: ['customers-deactivate-preview', storeId, bulkDate],
-    queryFn: () => customerClient.deactivateCustomersBefore(storeId, bulkDate, true),
-    enabled: bulkOpen && !!bulkDate,
+    queryKey: ['customers-deactivate-preview', storeId, bulkOpts],
+    queryFn: () => customerClient.deactivateCustomersBulk(storeId, { ...bulkOpts, dryRun: true }),
+    enabled: bulkOpen && bulkReady,
   });
   const bulkApply = useMutation({
-    mutationFn: () => customerClient.deactivateCustomersBefore(storeId, bulkDate, false),
+    mutationFn: () => customerClient.deactivateCustomersBulk(storeId, { ...bulkOpts, dryRun: false }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers', storeId] });
       setBulkOpen(false);
@@ -285,7 +302,7 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
           color="warning"
           onClick={() => setBulkOpen(true)}
         >
-          Inactivar por fecha
+          Inactivar en bloque
         </Button>
       </Grid>
       <Grid xs={12}>
@@ -376,31 +393,65 @@ color="inherit" /> : <PictureAsPdf />}
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle sx={{ fontWeight: 700 }}>Inactivar clientes por fecha</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>Inactivar clientes en bloque</DialogTitle>
         <DialogContent>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            mb={2}
-          >
-            Se inactivan los clientes activos que se registraron antes de esta fecha.
-          </Typography>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={keepSweepstouch}
+                onChange={(e) => setKeepSweepstouch(e.target.checked)}
+              />
+            }
+            label={
+              <Box>
+                <Typography fontWeight={600}>Conservar los metidos por Sweepstouch</Typography>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                >
+                  Cajeras, promotoras, referidos, tablet, QR, web y bienvenida. Sólo se inactiva la base importada.
+                </Typography>
+              </Box>
+            }
+            sx={{ alignItems: 'flex-start', mb: 2, '& .MuiCheckbox-root': { pt: 0.25 } }}
+          />
           <TextField
             type="date"
-            label="Creados antes de"
+            label="Creados antes de (opcional)"
             value={bulkDate}
             onChange={(e) => setBulkDate(e.target.value)}
             InputLabelProps={{ shrink: true }}
             fullWidth
           />
-          {bulkDate && (
+          {bulkReady && (
             <Box mt={2}>
               {bulkPreview.isFetching ? (
                 <CircularProgress size={20} />
               ) : bulkPreview.error ? (
-                <Typography color="error">No se pudo calcular el preview.</Typography>
+                <Typography color="error">No se pudo calcular el resumen.</Typography>
               ) : (
                 <>
+                  {bulkPreview.data?.sweepstouch && (
+                    <Box mb={1.5}>
+                      <Typography>
+                        Metidos por Sweepstouch (se conservan):{' '}
+                        <b>{bulkPreview.data.sweepstouch.total.toLocaleString()}</b>
+                      </Typography>
+                      {Object.entries(bulkPreview.data.sweepstouch.byMethod)
+                        .filter(([, n]) => n > 0)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([m, n]) => (
+                          <Typography
+                            key={m}
+                            variant="body2"
+                            color="text.secondary"
+                            pl={2}
+                          >
+                            {METHOD_LABELS[m] ?? m}: {n.toLocaleString()}
+                          </Typography>
+                        ))}
+                    </Box>
+                  )}
                   <Typography>
                     Se inactivarán: <b>{(bulkPreview.data?.matched ?? 0).toLocaleString()}</b>
                   </Typography>

@@ -98,13 +98,18 @@ class CustomerClient {
     return res.data;
   }
 
-  /** Inactiva en bloque los clientes activos creados antes de `before` (YYYY-MM-DD). dryRun sólo cuenta. */
-  async deactivateCustomersBefore(
+  /** Inactiva en bloque los activos de la tienda: creados antes de `before` (YYYY-MM-DD) y/o
+   *  sólo base importada (keepSweepstouch conserva cajeras, promotoras, referidos…). dryRun sólo cuenta. */
+  async deactivateCustomersBulk(
     storeId: string,
-    before: string,
-    dryRun: boolean
-  ): Promise<{ matched?: number; remaining?: number; deactivated?: number }> {
-    const res = await api.post(`/customers/store/${storeId}/deactivate-before`, { before, dryRun });
+    opts: { before?: string; keepSweepstouch?: boolean; dryRun: boolean }
+  ): Promise<{
+    matched?: number;
+    remaining?: number;
+    deactivated?: number;
+    sweepstouch?: { total: number; byMethod: Record<string, number> } | null;
+  }> {
+    const res = await api.post(`/customers/store/${storeId}/deactivate-bulk`, opts);
     return res.data;
   }
 
