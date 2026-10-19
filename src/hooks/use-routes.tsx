@@ -223,11 +223,13 @@ const promotorsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Tiendas candidatas'), route: routes.admin.management.promotors.featuredStores },
   ]);
 
-const supportMenu = (t: (token: string) => string): MenuItem =>
+const supportMenu = (t: (token: string) => string, includeSupport = true): MenuItem =>
   buildMenu(t('Soporte Técnico'), <BuildRounded />, [
-    { title: t('Panel'), route: routes.admin.management.support.dashboard },
-    { title: t('Tickets'), route: routes.admin.management.support.tickets },
-    { title: t('Visitas'), route: routes.admin.management.support.visits },
+    ...(includeSupport ? [
+      { title: t('Panel'), route: routes.admin.management.support.dashboard },
+      { title: t('Tickets'), route: routes.admin.management.support.tickets },
+      { title: t('Visitas'), route: routes.admin.management.support.visits },
+    ] : []),
     { title: t('Control de materiales'), route: routes.admin.management.support.materials },
   ]);
 
@@ -334,7 +336,10 @@ export const useMenuItemsCollapsedShells = (
    */
   const managementSections = MANAGEMENT_SECTIONS.map((section) => ({
     title: t(section.title),
-    subMenu: section.modules.filter((m) => allowed.has(m)).map((m) => m(t)),
+    // Materiales está disponible para cualquier cuenta con sesión iniciada.
+    subMenu: section.modules
+      .filter((m) => m === supportMenu || allowed.has(m))
+      .map((m) => m === supportMenu ? supportMenu(t, allowed.has(m)) : m(t)),
   }));
   const isAdminSection = (s: { title: string }) => s.title === t('Administración');
 
