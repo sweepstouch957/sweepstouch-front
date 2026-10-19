@@ -36,6 +36,7 @@ import {
 } from '@mui/material';
 import { useRef, useState } from 'react';
 import { storeBrandOf, storeStreetOf } from './messaging/placeholders';
+import RcsLayoutPicker from './rcs-layout/RcsLayoutPicker';
 
 /** Destinos de un botón. Espejo de BUTTON_LINKS en scheduler utils/mixed.js. */
 export const BUTTON_LINKS = [
@@ -328,122 +329,9 @@ export function buildMixedPreview({
   };
 }
 
-/** Sólo la tarjeta del RCS. Vive aparte para poder mostrarla junto a la del SMS/MMS en el
- *  mismo panel de vista previa, en vez de dos teléfonos sueltos en la pantalla. */
-export function MixedRcsPreview(input: MixedPreviewInput) {
-  const { imageSrc } = input;
-  const { greeting, body, title, cards, buttons, cardButton } = buildMixedPreview(input);
-
-  const btn = (label: string, key: string | number) => (
-    <Box
-      key={key}
-      sx={{ borderTop: '1px solid', borderColor: 'divider', py: 0.9, textAlign: 'center' }}
-    >
-      <Typography
-        variant="body2"
-        color="primary"
-        fontWeight={700}
-      >
-        {label}
-      </Typography>
-    </Box>
-  );
-
-  return (
-    <Stack
-      direction="row"
-      gap={1}
-      sx={{ overflowX: 'auto', pb: 0.5, alignItems: 'flex-start' }}
-    >
-      <Box
-        sx={{
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 3,
-          overflow: 'hidden',
-          bgcolor: 'background.paper',
-          width: cards.length ? 230 : '100%',
-          flexShrink: 0,
-        }}
-      >
-        {imageSrc && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={imageSrc}
-            alt=""
-            style={{
-              display: 'block',
-              width: '100%',
-              maxHeight: cards.length ? 150 : 260,
-              objectFit: 'cover',
-            }}
-          />
-        )}
-        <Box sx={{ p: 1.5 }}>
-          {imageSrc ? (
-            <>
-              {title && (
-                <Typography
-                  variant="subtitle2"
-                  fontWeight={700}
-                >
-                  {title}
-                </Typography>
-              )}
-              <Typography
-                variant="body2"
-                sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', mt: 0.5 }}
-              >
-                {body}
-              </Typography>
-            </>
-          ) : (
-            <Typography
-              variant="body2"
-              sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
-            >
-              {greeting ? `${greeting} ${body}` : body}
-            </Typography>
-          )}
-        </Box>
-        {buttons.map((b, i) => btn(b.text.trim(), i))}
-      </Box>
-      {cards.map((p, i) => (
-        <Box
-          key={i}
-          sx={{
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 3,
-            overflow: 'hidden',
-            bgcolor: 'background.paper',
-            width: 170,
-            flexShrink: 0,
-          }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={p.imageUrl}
-            alt=""
-            loading="lazy"
-            style={{ display: 'block', width: '100%', height: 150, objectFit: 'contain' }}
-          />
-          <Box sx={{ p: 1.25 }}>
-            <Typography
-              variant="body2"
-              fontWeight={700}
-              sx={{ wordBreak: 'break-word' }}
-            >
-              {p.name}
-              {p.price ? ` — ${p.price}` : ''}
-            </Typography>
-          </Box>
-          {cardButton && btn(cardButton.text.trim(), 'card')}
-        </Box>
-      ))}
-    </Stack>
-  );
-}
+/** Vista previa (dos burbujas / tarjeta alta / carrusel): vive en rcs-layout. Se re-exporta
+ *  para que el formulario la siga importando de acá. */
+export { default as MixedRcsPreview } from './rcs-layout/MixedRcsPreview';
 
 export default function MixedRcsEditor({
   value,
@@ -579,17 +467,21 @@ export default function MixedRcsEditor({
           ahorro. Cargá productos en Circular y Listas para activarlos.
         </Alert>
       )}
-      {!imageSrc && (
-        <Alert
-          severity="info"
-          sx={{ mb: 2 }}
-        >
-          La campaña no tiene imagen: el RCS sale como texto con botones. Con imagen sale como
-          tarjeta (la imagen siempre va).
-        </Alert>
-      )}
 
       <Stack gap={2}>
+        {/* ── Formato: 2 mensajes o tarjeta alta ───────────────────────────── */}
+        <RcsLayoutPicker
+          value={value.imageMode}
+          onChange={(imageMode) => set({ imageMode })}
+          disabledReason={
+            !imageSrc
+              ? 'Necesita la imagen de la campaña: sin imagen el RCS sale como texto con botones.'
+              : value.productCards > 0
+                ? 'Con carrusel de productos la imagen va en la primera tarjeta (quitá el carrusel en Opciones avanzadas para elegir).'
+                : undefined
+          }
+        />
+
         {/* ── Texto ─────────────────────────────────────────────────────────── */}
         <TextField
           size="small"
@@ -982,25 +874,6 @@ export default function MixedRcsEditor({
                   campaña de prueba antes del envío masivo.
                 </Alert>
               )}
-              <TextField
-                select
-                size="small"
-                fullWidth
-                label="Cómo viaja la imagen"
-                value={value.imageMode}
-                onChange={(e) => set({ imageMode: e.target.value as MixedRcsCustom['imageMode'] })}
-                disabled={value.productCards > 0}
-                helperText={
-                  value.productCards > 0
-                    ? 'Con carrusel la imagen va en la primera tarjeta'
-                    : value.imageMode === 'split'
-                      ? 'La foto sale sola (se ve entera en iPhone) y después el texto con los botones'
-                      : 'Tarjeta con la foto arriba: en iPhone puede salir recortada'
-                }
-              >
-                <MenuItem value="split">Foto aparte + texto con botones (recomendado)</MenuItem>
-                <MenuItem value="card">Tarjeta con la foto arriba</MenuItem>
-              </TextField>
               <Stack
                 direction="row"
                 justifyContent="flex-end"

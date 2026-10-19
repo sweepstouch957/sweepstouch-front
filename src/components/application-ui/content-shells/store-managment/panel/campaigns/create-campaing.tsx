@@ -1142,7 +1142,16 @@ export default function CreateCampaignForm({
                     >
                       Lo que ve un cliente elegido (ejemplo: Maria)
                     </Typography>
-                    <Box sx={{ p: 1.5, borderRadius: 4, bgcolor: 'action.hover' }}>
+                    {/* Fondo blanco como Mensajes: las burbujas son grises y sobre gris no se veían. */}
+                    <Box
+                      sx={{
+                        p: 1.5,
+                        borderRadius: 4,
+                        bgcolor: 'background.paper',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                      }}
+                    >
                       <MixedRcsPreview
                         value={mixedRcs}
                         smsText={content || ''}
