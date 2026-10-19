@@ -12,6 +12,7 @@ import {
   Unstable_Grid2 as Grid,
   Radio,
   RadioGroup,
+  TextField,
   Typography,
 } from '@mui/material';
 import { PictureAsPdf } from '@mui/icons-material';
@@ -129,6 +130,23 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
     mutationFn: ({ phoneNumber, active }: { phoneNumber: string; active: boolean }) =>
       customerClient.setCustomerActiveByPhone(phoneNumber, active),
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['customers', storeId] }),
+  });
+
+  // Inactivar en bloque por fecha de alta: primero preview (dryRun), luego confirmar.
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkDate, setBulkDate] = useState('');
+  const bulkPreview = useQuery({
+    queryKey: ['customers-deactivate-preview', storeId, bulkDate],
+    queryFn: () => customerClient.deactivateCustomersBefore(storeId, bulkDate, true),
+    enabled: bulkOpen && !!bulkDate,
+  });
+  const bulkApply = useMutation({
+    mutationFn: () => customerClient.deactivateCustomersBefore(storeId, bulkDate, false),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customers', storeId] });
+      setBulkOpen(false);
+      setBulkDate('');
+    },
   });
 
   const { data, isPending, error, refetch, isFetching } = useQuery({
@@ -259,6 +277,17 @@ export default function CustomersGrid({ storeId, storeName }: CustomersGridProps
   return (
     <Grid container
       spacing={2}>
+      <Grid xs={12}
+        display="flex"
+        justifyContent="flex-end">
+        <Button
+          variant="outlined"
+          color="warning"
+          onClick={() => setBulkOpen(true)}
+        >
+          Inactivar por fecha
+        </Button>
+      </Grid>
       <Grid xs={12}>
         <Results
           onExportPdf={() => setExportOpen(true)}
@@ -337,6 +366,74 @@ color="inherit" /> : <PictureAsPdf />}
             }}
           >
             {exporting ? 'Generando…' : 'Exportar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={bulkOpen}
+        onClose={() => !bulkApply.isPending && setBulkOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>Inactivar clientes por fecha</DialogTitle>
+        <DialogContent>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            mb={2}
+          >
+            Se inactivan los clientes activos que se registraron antes de esta fecha.
+          </Typography>
+          <TextField
+            type="date"
+            label="Creados antes de"
+            value={bulkDate}
+            onChange={(e) => setBulkDate(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            fullWidth
+          />
+          {bulkDate && (
+            <Box mt={2}>
+              {bulkPreview.isFetching ? (
+                <CircularProgress size={20} />
+              ) : bulkPreview.error ? (
+                <Typography color="error">No se pudo calcular el preview.</Typography>
+              ) : (
+                <>
+                  <Typography>
+                    Se inactivarán: <b>{(bulkPreview.data?.matched ?? 0).toLocaleString()}</b>
+                  </Typography>
+                  <Typography>
+                    Quedan activos: <b>{(bulkPreview.data?.remaining ?? 0).toLocaleString()}</b>
+                  </Typography>
+                </>
+              )}
+            </Box>
+          )}
+          {bulkApply.error && (
+            <Typography
+              color="error"
+              mt={1}
+            >
+              Error al inactivar.
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setBulkOpen(false)}
+            disabled={bulkApply.isPending}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            color="warning"
+            disabled={!bulkPreview.data?.matched || bulkPreview.isFetching || bulkApply.isPending}
+            onClick={() => bulkApply.mutate()}
+          >
+            {bulkApply.isPending ? 'Inactivando…' : `Inactivar ${(bulkPreview.data?.matched ?? 0).toLocaleString()}`}
           </Button>
         </DialogActions>
       </Dialog>

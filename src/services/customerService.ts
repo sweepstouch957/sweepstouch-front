@@ -98,6 +98,16 @@ class CustomerClient {
     return res.data;
   }
 
+  /** Inactiva en bloque los clientes activos creados antes de `before` (YYYY-MM-DD). dryRun sólo cuenta. */
+  async deactivateCustomersBefore(
+    storeId: string,
+    before: string,
+    dryRun: boolean
+  ): Promise<{ matched?: number; remaining?: number; deactivated?: number }> {
+    const res = await api.post(`/customers/store/${storeId}/deactivate-before`, { before, dryRun });
+    return res.data;
+  }
+
   /** Búsqueda paginada de clientes dentro de una tienda (por nombre o teléfono).
    *  Devuelve solo el arreglo `data` de la respuesta paginada. */
   async searchCustomersByStore(
