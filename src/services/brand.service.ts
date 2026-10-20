@@ -7,10 +7,13 @@ export interface Brand {
   slug?: string;
   image?: string;
   active?: boolean;
+  storesTotal?: number;
+  storesActive?: number;
+  createdAt?: string;
 }
 
 export const getBrands = async () => {
-  const res = await api.get('/store/meta/brand');
+  const res = await api.get('/store/meta/brand', { params: { limit: 0, withStores: 1 } });
   return res.data?.docs || res.data || [];
 };
 

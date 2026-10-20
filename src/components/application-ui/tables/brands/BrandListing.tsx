@@ -1,9 +1,10 @@
 'use client';
 
-import { Edit, SearchTwoTone } from '@mui/icons-material';
+import { Edit, FileDownloadOutlined, SearchTwoTone } from '@mui/icons-material';
 import {
   Avatar,
   Box,
+  Button,
   Card,
   Chip,
   IconButton,
@@ -15,6 +16,8 @@ import {
   TablePagination,
   TableRow,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography } from '@mui/material';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +25,10 @@ import { useBrands } from '@/hooks/fetching/brands/useBrands';
 import { Brand } from '@/services/brand.service';
 import { BrandCreationModal } from '@/components/admin/stores/BrandCreationModal';
 import { CircularProgress } from '@mui/material';
+import { exportBrandsExcel } from './exportBrandsExcel';
+
+type StatusFilter = 'all' | 'active' | 'inactive';
+const STATUS_LABEL: Record<StatusFilter, string> = { all: 'Todas', active: 'Activas', inactive: 'Inactivas' };
 
 export default function BrandListing() {
   const { t } = useTranslation();
@@ -31,15 +38,17 @@ export default function BrandListing() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState('');
+  const [status, setStatus] = useState<StatusFilter>('all');
   const [editBrand, setEditBrand] = useState<Brand | null>(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return brands;
-    return brands.filter(
-      (b) => (b.name || '').toLowerCase().includes(q) || (b.slug || '').toLowerCase().includes(q)
-    );
-  }, [brands, search]);
+    return brands.filter((b) => {
+      if (status === 'active' && b.active === false) return false;
+      if (status === 'inactive' && b.active !== false) return false;
+      return !q || (b.name || '').toLowerCase().includes(q) || (b.slug || '').toLowerCase().includes(q);
+    });
+  }, [brands, search, status]);
 
   const paged = useMemo(() => {
     const start = page * rowsPerPage;
@@ -82,6 +91,32 @@ export default function BrandListing() {
           }}
           sx={{ maxWidth: 420, flex: 1 }}
         />
+        <Box display="flex" alignItems="center" gap={1.5} flexWrap="wrap">
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={status}
+            onChange={(_, v: StatusFilter | null) => {
+              if (v) {
+                setStatus(v);
+                setPage(0);
+              }
+            }}
+          >
+            <ToggleButton value="all">Todas</ToggleButton>
+            <ToggleButton value="active">Activas</ToggleButton>
+            <ToggleButton value="inactive">Inactivas</ToggleButton>
+          </ToggleButtonGroup>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<FileDownloadOutlined />}
+            disabled={filtered.length === 0}
+            onClick={() => exportBrandsExcel(filtered, STATUS_LABEL[status])}
+          >
+            Exportar Excel ({filtered.length})
+          </Button>
+        </Box>
       </Box>
 
       <Box sx={{ overflowX: 'auto' }}>
@@ -92,6 +127,7 @@ export default function BrandListing() {
               <TableCell>{t('Name')}</TableCell>
               <TableCell>{t('Slug')}</TableCell>
               <TableCell>{t('Status')}</TableCell>
+              <TableCell align="center">Tiendas</TableCell>
               <TableCell align="right">{t('Actions')}</TableCell>
             </TableRow>
           </TableHead>
@@ -122,6 +158,14 @@ export default function BrandListing() {
                     <Chip label="Inactivo" color="error" size="small" />
                   )}
                 </TableCell>
+                <TableCell align="center">
+                  <Typography variant="body2" fontWeight={600}>
+                    {brand.storesActive ?? 0}
+                    <Typography component="span" variant="body2" color="text.secondary">
+                      {' '}/ {brand.storesTotal ?? 0}
+                    </Typography>
+                  </Typography>
+                </TableCell>
                 <TableCell align="right">
                   <IconButton
                     color="primary"
@@ -135,7 +179,7 @@ export default function BrandListing() {
             ))}
             {paged.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5}>
+                <TableCell colSpan={6}>
                   <Box py={6} display="flex" justifyContent="center" alignItems="center">
                     <Typography color="text.secondary">
                       {t('No results')}

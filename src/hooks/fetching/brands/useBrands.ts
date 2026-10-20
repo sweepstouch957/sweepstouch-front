@@ -5,7 +5,8 @@ export function useBrands() {
   return useQuery({
     queryKey: ['brands'],
     queryFn: async () => {
-      const res = await api.get('/store/meta/brand');
+      // limit=0 -> todas; withStores -> storesTotal/storesActive por marca
+      const res = await api.get('/store/meta/brand', { params: { limit: 0, withStores: 1 } });
       // Si la respuesta usa paginación (res.data.docs), retornamos docs. 
       // Si no, retornamos res.data directo.
       return res.data?.docs || res.data || [];
