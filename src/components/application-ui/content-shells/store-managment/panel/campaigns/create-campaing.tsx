@@ -31,7 +31,7 @@ import {
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import CampaignArtDropzone from './CampaignArtDropzone';
 import MessagePreviewPanel from './messaging/MessagePreviewPanel';
@@ -64,6 +64,9 @@ interface CampaignFormInputs {
   thumbnail?: string;
   thumbnailImage?: string;
   thumbnailPublicId?: string;
+  /** Imagen de la card RCS (mixed). Opcional: sin ella la card usa `image` (el flyer). */
+  rcsImage?: string | null;
+  rcsImagePublicId?: string | null;
   /** Al editar: se quitó el arte guardado (sin esto el contenedor volvía a poner el viejo). */
   imageRemoved?: boolean;
   /** Arte ya subido y comprimido al elegirlo (el contenedor no lo vuelve a subir). */
@@ -239,6 +242,8 @@ export default function CreateCampaignForm({
       startDate: initialValues?.startDate ? new Date(initialValues.startDate) : new Date(),
       linktree: initialValues?.linktree ?? false,
       channel: initialValues?.channel === 'mixed' ? 'mixed' : 'sms',
+      rcsImage: (initialValues as any)?.rcsImage || null,
+      rcsImagePublicId: (initialValues as any)?.rcsImagePublicId || null,
     },
     mode: 'onBlur',
   });
@@ -339,8 +344,29 @@ export default function CreateCampaignForm({
   // efecto y se REVOCA al cambiar de imagen o desmontar (en un useMemo quedaba vivo hasta
   // recargar la página). Sólo con el piloto marcado: sin él no hay vista previa.
   const [mixedPreviewImage, setMixedPreviewImage] = useState('');
+  const rcsImage = watch('rcsImage');
+  const [uploadingRcsImage, setUploadingRcsImage] = useState(false);
+  const pickRcsImage = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploadingRcsImage(true);
+    try {
+      const { url, public_id } = await uploadCampaignImage(file, 'campaign-rcs-cards');
+      setValue('rcsImage', url, { shouldDirty: true });
+      setValue('rcsImagePublicId', public_id, { shouldDirty: true });
+    } catch {
+      setSnackState({ open: true, message: 'No se pudo subir la miniatura RCS', severity: 'error' });
+    } finally {
+      setUploadingRcsImage(false);
+    }
+  };
   useEffect(() => {
     const f: any = (image as any)?.[0];
+    if (channel === 'mixed' && rcsImage) {
+      setMixedPreviewImage(rcsImage);
+      return undefined;
+    }
     if (channel === 'mixed' && f instanceof File) {
       const url = URL.createObjectURL(f);
       setMixedPreviewImage(url);
@@ -353,7 +379,7 @@ export default function CreateCampaignForm({
         ''
     );
     return undefined;
-  }, [image, channel, initialValues?.image]);
+  }, [image, channel, initialValues?.image, rcsImage]);
 
   // Plantilla elegida (de la tienda o base): carga título + texto (+ nota y canal si los
   // tiene). Nunca por defecto: sólo desde el botón Plantillas, que confirma si ya hay texto.
@@ -385,9 +411,9 @@ export default function CreateCampaignForm({
   const testPhone = String(user?.phone || user?.phoneNumber || '');
   const sendMixedTest = async (phone: string) => {
     if (!storeId) throw new Error('Guardá la tienda antes de probar');
-    let imageUrl: string = art.result?.url || mixedPreviewImage || '';
+    let imageUrl: string = rcsImage || art.result?.url || mixedPreviewImage || '';
     const f: any = (image as any)?.[0];
-    if (f instanceof File && !art.result?.url) imageUrl = (await uploadCampaignImage(f)).url;
+    if (!rcsImage && f instanceof File && !art.result?.url) imageUrl = (await uploadCampaignImage(f)).url;
     if (imageUrl.startsWith('blob:')) imageUrl = '';
     await campaignClient.sendMixedRcsTest({
       storeId,
@@ -1021,6 +1047,69 @@ export default function CreateCampaignForm({
                       title="Personalizar el RCS"
                       hint="Opcional. No cambia el SMS/MMS del resto ni el mensaje de respaldo. Mirá cómo queda en la vista previa."
                     >
+                      {/* Miniatura de la card RCS: el flyer sigue intacto en el MMS; acá sólo
+                          cambia la foto que va arriba del texto RCS. Sin ella, va el flyer. */}
+                      <Stack
+                        direction="row"
+                        spacing={1.5}
+                        alignItems="center"
+                        sx={{ mb: 2 }}
+                      >
+                        <Box
+                          component="img"
+                          src={mixedPreviewImage || undefined}
+                          alt="Imagen de la card RCS"
+                          sx={{
+                            width: 72,
+                            height: 72,
+                            objectFit: 'cover',
+                            borderRadius: 1.5,
+                            bgcolor: 'action.hover',
+                          }}
+                        />
+                        <Box flex={1}>
+                          <Typography
+                            variant="body2"
+                            fontWeight={700}
+                          >
+                            Imagen de la card RCS
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                          >
+                            {rcsImage
+                              ? 'Miniatura propia. El MMS sigue llevando el flyer.'
+                              : 'Opcional. Sin miniatura la card usa la imagen de campaña (el flyer).'}
+                          </Typography>
+                        </Box>
+                        <Button
+                          component="label"
+                          size="small"
+                          variant="outlined"
+                          disabled={uploadingRcsImage}
+                        >
+                          {uploadingRcsImage ? 'Subiendo…' : rcsImage ? 'Cambiar' : 'Subir miniatura'}
+                          <input
+                            hidden
+                            type="file"
+                            accept="image/*"
+                            onChange={pickRcsImage}
+                          />
+                        </Button>
+                        {rcsImage && (
+                          <Button
+                            size="small"
+                            color="error"
+                            onClick={() => {
+                              setValue('rcsImage', null, { shouldDirty: true });
+                              setValue('rcsImagePublicId', null, { shouldDirty: true });
+                            }}
+                          >
+                            Quitar
+                          </Button>
+                        )}
+                      </Stack>
                       <MixedRcsEditor
                         value={mixedRcs}
                         onChange={setMixedRcs}
