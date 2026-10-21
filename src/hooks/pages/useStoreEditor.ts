@@ -72,6 +72,8 @@ const buildPatch = (orig, curr) => {
     'slug',
     // Imagen propia de la tienda (no el logo de la marca)
     'image',
+    // Foto de la tienda física
+    'storePhoto',
   ];
 
   // contactInfo: array comparison via JSON
@@ -147,6 +149,7 @@ export function useStoreEditor(store) {
   const [form, setForm] = useState({
     name: store.name || '',
     image: store.image || '',
+    storePhoto: store.storePhoto || '',
     address: store.address || '',
     zipCode: store.zipCode || '',
     type: store.type || 'free',
@@ -294,6 +297,7 @@ export function useStoreEditor(store) {
     setForm({
       name: store.name || '',
       image: store.image || '',
+    storePhoto: store.storePhoto || '',
       address: store.address || '',
       zipCode: store.zipCode || '',
       type: store.type || 'free',

@@ -9,7 +9,7 @@ import { useStoreEditor } from '@/hooks/pages/useStoreEditor';
 import { usersApi } from '@/mocks/users';
 import { merchantService } from '@/services/merchant.service';
 import { Store } from '@/services/store.service';
-import { uploadPdfToS3 } from '@/services/upload.service';
+import { uploadCampaignImage, uploadPdfToS3 } from '@/services/upload.service';
 import {
   AddCircle,
   Autorenew,
@@ -31,6 +31,7 @@ import {
   PictureAsPdf,
   SaveRounded,
   SensorsRounded,
+  StorefrontRounded,
   VpnKeyRounded,
   WarningAmberRounded,
 } from '@mui/icons-material';
@@ -523,6 +524,23 @@ export default function StoreInfo({ store }: { store: Store }) {
     handleCancel,
     kioskUrl,
   } = useStoreEditor(store);
+
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  async function handlePickStorePhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const { url } = await uploadCampaignImage(file, 'store-photos');
+      setForm((s: any) => ({ ...s, storePhoto: url }));
+      setSnack({ open: true, msg: 'Foto lista. Guarda los cambios para aplicarla.', type: 'success' });
+    } catch {
+      setSnack({ open: true, msg: 'No se pudo subir la foto.', type: 'error' });
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
 
   // Pause History local states
   const [newPauseStart, setNewPauseStart] = useState('');
@@ -1136,6 +1154,64 @@ export default function StoreInfo({ store }: { store: Store }) {
                         type="email"
                         placeholder="tienda@correo.com"
                       />
+                    }
+                  />
+                  <DataField
+                    editing={enEdicion('identidad')}
+                    label="Foto de la tienda física"
+                    span={2}
+                    empty="Sin foto"
+                    value={
+                      form.storePhoto ? (
+                        <Box
+                          component="img"
+                          src={form.storePhoto}
+                          alt="Foto de la tienda"
+                          sx={{ width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 1.5 }}
+                        />
+                      ) : undefined
+                    }
+                    input={
+                      <Stack
+                        direction="row"
+                        spacing={1.5}
+                        alignItems="center"
+                      >
+                        {form.storePhoto && (
+                          <Box
+                            component="img"
+                            src={form.storePhoto}
+                            alt="Foto de la tienda"
+                            sx={{ width: 96, height: 64, objectFit: 'cover', borderRadius: 1 }}
+                          />
+                        )}
+                        <Button
+                          component="label"
+                          size="small"
+                          variant="outlined"
+                          disabled={uploadingPhoto}
+                          startIcon={
+                            uploadingPhoto ? <CircularProgress size={14} /> : <StorefrontRounded />
+                          }
+                        >
+                          {form.storePhoto ? 'Cambiar foto' : 'Subir foto'}
+                          <input
+                            hidden
+                            type="file"
+                            accept="image/*"
+                            onChange={handlePickStorePhoto}
+                          />
+                        </Button>
+                        {form.storePhoto && (
+                          <Button
+                            size="small"
+                            color="error"
+                            onClick={() => setForm((s: any) => ({ ...s, storePhoto: '' }))}
+                          >
+                            Quitar
+                          </Button>
+                        )}
+                      </Stack>
                     }
                   />
                   <DataField

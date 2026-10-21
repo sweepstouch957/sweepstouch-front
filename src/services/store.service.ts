@@ -130,6 +130,8 @@ export interface UpdateStoreBody {
   name?: string;
   /** Imagen de ESTA tienda. El logo de la marca vive en mmsTheme.logoUrl. */
   image?: string;
+  /** Foto de la tienda física (fachada). Cloudinary carpeta store-photos. */
+  storePhoto?: string;
   address?: string;
   zipCode?: string;
   type?: 'elite' | 'basic' | 'free';
