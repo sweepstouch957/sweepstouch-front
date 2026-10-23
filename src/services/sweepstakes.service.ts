@@ -810,6 +810,8 @@ export interface ReferralRewardConfig {
   bannerDesktopUrl?: string;
   bannerMobileUrl?: string;
   message?: string;
+  /** Texto que comparte el referidor (WhatsApp/SMS). {name} {store} {title} {minPurchase} {link} */
+  shareMessage?: string;
   terms?: string;
   referredBonusCoupon: boolean;
 }

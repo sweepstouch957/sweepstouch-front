@@ -43,6 +43,7 @@ const EMPTY: ReferralRewardConfig = {
   bannerDesktopUrl: '',
   bannerMobileUrl: '',
   message: '',
+  shareMessage: '',
   terms: '',
   referredBonusCoupon: true,
 };
@@ -208,6 +209,33 @@ const ReferralRewardsPanel = ({ storeId }: Props) => {
                     helperText="Vacío = mensaje por defecto. Admite {name} {store} {title} {code} {amount} {minPurchase} {terms}."
                   />
                 </Grid>
+
+                <Grid item xs={12}>
+
+                  <Label>Mensaje para compartir (WhatsApp / SMS)</Label>
+
+                  <TextField
+
+                    fullWidth
+
+                    multiline
+
+                    minRows={2}
+
+                    value={form.shareMessage || ''}
+
+                    onChange={(e) => set('shareMessage', e.target.value)}
+
+                    placeholder="🎁 Sign up at {store} with my code and earn {title} on your first purchase: {link}"
+
+                    sx={fieldSx}
+
+                    helperText="Lo que manda el cliente al compartir su link. Vacío = texto por defecto. Admite {name} {store} {title} {minPurchase} {link}."
+
+                  />
+
+                </Grid>
+
 
                 <Grid item xs={12} sm={6}>
                   <Label>Letra chica</Label>
