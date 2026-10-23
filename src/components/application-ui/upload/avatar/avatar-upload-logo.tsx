@@ -1,7 +1,7 @@
 import { DeleteOutlineRounded } from '@mui/icons-material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { Box, Button, CircularProgress, FormControl, Stack, Typography } from '@mui/material';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { DropzoneOptions, useDropzone } from 'react-dropzone';
 import { AvatarState } from 'src/components/base/styles/avatar';
 import { ButtonIcon } from 'src/components/base/styles/button-icon';
@@ -19,6 +19,11 @@ const AvatarUploadLogo = ({
 }: AvatarUploadLogoProps) => {
   const [avatar, setAvatar] = useState<string>(initialUrl);
   const [loading, setLoading] = useState<boolean>(false);
+  // La URL guardada suele llegar DESPUÉS del primer render (query): sin esto el preview
+  // quedaba vacío tras recargar aunque la imagen sí estuviera guardada.
+  useEffect(() => {
+    setAvatar(initialUrl);
+  }, [initialUrl]);
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
