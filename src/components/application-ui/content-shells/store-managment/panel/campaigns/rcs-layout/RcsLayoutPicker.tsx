@@ -17,12 +17,12 @@ const OPTIONS: { value: RcsImageMode; label: string; hint: string }[] = [
   {
     value: 'split',
     label: '2 mensajes',
-    hint: 'Primero la foto sola, después el texto con los botones. Se ve entera en iPhone.',
+    hint: 'Primero la foto sola, después el texto con los botones. Se ve entera en iPhone. Tocar la foto la abre en grande, NO abre el link.',
   },
   {
     value: 'card',
     label: 'Tarjeta alta',
-    hint: 'Una rich card con la foto arriba, el texto y los botones. En iPhone puede recortar la foto.',
+    hint: 'Una rich card con la foto arriba, el texto y los botones. Tocar la foto o el texto abre el link del primer botón (como Avery). En iPhone puede recortar la foto.',
   },
 ];
 
