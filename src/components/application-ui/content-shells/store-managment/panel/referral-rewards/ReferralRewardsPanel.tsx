@@ -40,7 +40,8 @@ const EMPTY: ReferralRewardConfig = {
   amount: 10,
   minPurchase: 100,
   imageUrl: '',
-  bannerUrl: '',
+  bannerDesktopUrl: '',
+  bannerMobileUrl: '',
   message: '',
   terms: '',
   referredBonusCoupon: true,
@@ -68,7 +69,8 @@ const ReferralRewardsPanel = ({ storeId }: Props) => {
 
   const [form, setForm] = useState<ReferralRewardConfig>(EMPTY);
   const [file, setFile] = useState<File | null>(null);
-  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerDesktopFile, setBannerDesktopFile] = useState<File | null>(null);
+  const [bannerMobileFile, setBannerMobileFile] = useState<File | null>(null);
   const [toast, setToast] = useState<{ msg: string; sev: 'success' | 'error' } | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -91,14 +93,17 @@ const ReferralRewardsPanel = ({ storeId }: Props) => {
     mutationFn: async () => {
       let imageUrl = form.imageUrl || '';
       if (file) imageUrl = (await uploadCampaignImage(file)).url;
-      let bannerUrl = form.bannerUrl || '';
-      if (bannerFile) bannerUrl = (await uploadCampaignImage(bannerFile)).url;
-      return referralRewardClient.upsertConfig({ ...form, imageUrl, bannerUrl, storeId });
+      let bannerDesktopUrl = form.bannerDesktopUrl || '';
+      if (bannerDesktopFile) bannerDesktopUrl = (await uploadCampaignImage(bannerDesktopFile)).url;
+      let bannerMobileUrl = form.bannerMobileUrl || '';
+      if (bannerMobileFile) bannerMobileUrl = (await uploadCampaignImage(bannerMobileFile)).url;
+      return referralRewardClient.upsertConfig({ ...form, imageUrl, bannerDesktopUrl, bannerMobileUrl, storeId });
     },
     onSuccess: () => {
       setToast({ msg: 'Recompensa guardada.', sev: 'success' });
       setFile(null);
-      setBannerFile(null);
+      setBannerDesktopFile(null);
+      setBannerMobileFile(null);
       qc.invalidateQueries({ queryKey: ['referral-reward-config', storeId] });
     },
     onError: () => setToast({ msg: 'No se pudo guardar.', sev: 'error' }),
@@ -237,13 +242,22 @@ const ReferralRewardsPanel = ({ storeId }: Props) => {
                   </Box>
                 </Grid>
 
-                <Grid item xs={12}>
-                  <Label>Banner de las páginas (registro, gracias y mis referidos)</Label>
+                <Grid item xs={12} sm={6}>
+                  <Label>Banner desktop (grande, horizontal)</Label>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                    Horizontal, tipo "Share the Savings". Si no hay, las páginas salen sin banner.
+                    Arriba de registro, gracias y mis referidos en pantalla ancha. Sin banner, las páginas salen sin él.
                   </Typography>
                   <Box sx={{ border: `1px dashed ${theme.palette.divider}`, borderRadius: 2, p: 1 }}>
-                    <AvatarUploadLogo label="Subir banner" initialUrl={form.bannerUrl || ''} onSelect={(f) => setBannerFile(f)} />
+                    <AvatarUploadLogo label="Subir banner desktop" initialUrl={form.bannerDesktopUrl || ''} onSelect={(f) => setBannerDesktopFile(f)} />
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Label>Banner mobile (vertical o cuadrado)</Label>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                    En celular. Si falta, se usa el de desktop.
+                  </Typography>
+                  <Box sx={{ border: `1px dashed ${theme.palette.divider}`, borderRadius: 2, p: 1 }}>
+                    <AvatarUploadLogo label="Subir banner mobile" initialUrl={form.bannerMobileUrl || ''} onSelect={(f) => setBannerMobileFile(f)} />
                   </Box>
                 </Grid>
 
