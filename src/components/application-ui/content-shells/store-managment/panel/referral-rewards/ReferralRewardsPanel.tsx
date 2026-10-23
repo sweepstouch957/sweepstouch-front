@@ -242,19 +242,19 @@ const ReferralRewardsPanel = ({ storeId }: Props) => {
                   </Box>
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
-                  <Label>Banner desktop (grande, horizontal)</Label>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                    Arriba de registro, gracias y mis referidos en pantalla ancha. Sin banner, las páginas salen sin él.
+                <Grid item xs={12}>
+                  <Label>Banner desktop (horizontal)</Label>
+                  <Typography variant="body2" color="text.secondary" sx={{ display: 'block', mb: 0.75, fontSize: 12, textTransform: 'none' }}>
+                    Va arriba en registro, gracias y mis referidos (pantalla ancha). Opcional.
                   </Typography>
                   <Box sx={{ border: `1px dashed ${theme.palette.divider}`, borderRadius: 2, p: 1 }}>
                     <AvatarUploadLogo label="Subir banner desktop" initialUrl={form.bannerDesktopUrl || ''} onSelect={(f) => setBannerDesktopFile(f)} />
                   </Box>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12}>
                   <Label>Banner mobile (vertical o cuadrado)</Label>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                    En celular. Si falta, se usa el de desktop.
+                  <Typography variant="body2" color="text.secondary" sx={{ display: 'block', mb: 0.75, fontSize: 12, textTransform: 'none' }}>
+                    Para celular. Si falta, se usa el de desktop.
                   </Typography>
                   <Box sx={{ border: `1px dashed ${theme.palette.divider}`, borderRadius: 2, p: 1 }}>
                     <AvatarUploadLogo label="Subir banner mobile" initialUrl={form.bannerMobileUrl || ''} onSelect={(f) => setBannerMobileFile(f)} />
