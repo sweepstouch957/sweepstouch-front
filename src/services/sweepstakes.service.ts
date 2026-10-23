@@ -814,6 +814,29 @@ export interface ReferralRewardConfig {
   shareMessage?: string;
   terms?: string;
   referredBonusCoupon: boolean;
+  /** Programa "invita a N amigos" desde /me (23 oct 2026). */
+  invitesRequired?: number;
+  validDays?: number;
+  allowRepeatPhones?: boolean;
+}
+
+export interface ReferralProgramReferrer {
+  customerId: string;
+  name: string;
+  phone: string;
+  invites: number;
+  rounds: number;
+  replied: number;
+  shopsYes: number;
+  shopsNo: number;
+  zips: number;
+  newCustomers: number;
+  lastAt: string;
+}
+export interface ReferralProgramStats {
+  ok: boolean;
+  referrers: ReferralProgramReferrer[];
+  totals: { invites: number; newCustomers: number; coupons: number; redeemed: number };
 }
 
 export interface ReferralRewardItem {
@@ -845,6 +868,11 @@ export class ReferralRewardClient {
 
   async toggleActive(storeId: string): Promise<{ success: boolean; active: boolean; config: ReferralRewardConfig }> {
     const res = await api.patch(`/sweepstakes/referral-reward/${storeId}/toggle`);
+    return res.data;
+  }
+
+  async programStats(storeId: string): Promise<ReferralProgramStats> {
+    const res = await api.get(`/sweepstakes/referral-reward/${storeId}/program/stats`);
     return res.data;
   }
 

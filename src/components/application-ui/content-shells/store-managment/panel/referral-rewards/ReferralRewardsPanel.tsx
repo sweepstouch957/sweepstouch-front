@@ -46,6 +46,9 @@ const EMPTY: ReferralRewardConfig = {
   shareMessage: '',
   terms: '',
   referredBonusCoupon: true,
+  invitesRequired: 5,
+  validDays: 30,
+  allowRepeatPhones: true,
 };
 
 const fieldSx = { '& .MuiOutlinedInput-root': { borderRadius: 2 } };
@@ -77,6 +80,10 @@ const ReferralRewardsPanel = ({ storeId }: Props) => {
   const { data, isLoading } = useQuery({
     queryKey: ['referral-reward-config', storeId],
     queryFn: () => referralRewardClient.getConfig(storeId),
+  });
+  const { data: stats } = useQuery({
+    queryKey: ['referral-program-stats', storeId],
+    queryFn: () => referralRewardClient.programStats(storeId),
   });
   const { data: rewards } = useQuery({
     queryKey: ['referral-reward-list', storeId],
@@ -147,8 +154,8 @@ const ReferralRewardsPanel = ({ storeId }: Props) => {
               )}
             </Stack>
             <Typography variant="caption" color="text.secondary">
-              El que comparte su link gana UN cupón la primera vez que alguien se registra con su código. Aunque traiga 3
-              personas, el cupón es uno solo. Le llega por MMS con la imagen.
+              Desde su Mi cuenta el cliente mete los teléfonos de N amigos y gana el cupón al instante (QR para la caja +
+              MMS con la imagen). El bot de WhatsApp escribe a cada amigo con su link y le pregunta si compra aquí.
             </Typography>
           </Box>
           <Stack direction="row" alignItems="center" spacing={1}>
@@ -263,6 +270,22 @@ const ReferralRewardsPanel = ({ storeId }: Props) => {
                   />
                 </Grid>
 
+                <Grid item xs={4}>
+                  <Label>Amigos por cupón</Label>
+                  <TextField fullWidth size="small" type="number" inputProps={{ min: 1, max: 10 }} sx={fieldSx} value={form.invitesRequired ?? 5} onChange={(e) => set('invitesRequired', Math.min(10, Math.max(1, Number(e.target.value) || 5)))} />
+                </Grid>
+                <Grid item xs={4}>
+                  <Label>Vigencia (días)</Label>
+                  <TextField fullWidth size="small" type="number" inputProps={{ min: 1 }} sx={fieldSx} value={form.validDays ?? 30} onChange={(e) => set('validDays', Math.max(1, Number(e.target.value) || 30))} />
+                </Grid>
+                <Grid item xs={4}>
+                  <Label>Números repetidos</Label>
+                  <FormControlLabel
+                    control={<Switch checked={form.allowRepeatPhones !== false} onChange={(e) => set('allowRepeatPhones', e.target.checked)} />}
+                    label={<Typography variant="caption">{form.allowRepeatPhones !== false ? 'Puede repetir' : 'Nuevos cada ronda'}</Typography>}
+                  />
+                </Grid>
+
                 <Grid item xs={12}>
                   <Label>Imagen del cupón (va en el MMS)</Label>
                   <Box sx={{ border: `1px dashed ${theme.palette.divider}`, borderRadius: 2, p: 1 }}>
@@ -338,6 +361,46 @@ const ReferralRewardsPanel = ({ storeId }: Props) => {
                 <Typography variant="subtitle2" fontWeight={800} sx={{ px: 1, pt: 0.5 }}>
                   Últimos ganadores
                 </Typography>
+                <Box sx={{ mb: 2 }}>
+                  <Stack direction="row" spacing={2} sx={{ mb: 1 }}>
+                    {[['Invitados', stats?.totals.invites ?? 0], ['Nuevos en la base', stats?.totals.newCustomers ?? 0], ['Cupones', stats?.totals.coupons ?? 0]].map(([k, v]) => (
+                      <Box key={String(k)}>
+                        <Typography variant="caption" color="text.secondary">{k}</Typography>
+                        <Typography fontWeight={800}>{v}</Typography>
+                      </Box>
+                    ))}
+                  </Stack>
+                  <Label>Quién trajo más gente</Label>
+                  {!stats?.referrers?.length ? (
+                    <Typography variant="caption" color="text.secondary">Nadie ha metido números todavía.</Typography>
+                  ) : (
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Referidor</TableCell>
+                          <TableCell align="right">Nros</TableCell>
+                          <TableCell align="right">Rondas</TableCell>
+                          <TableCell align="right">Compran aquí</TableCell>
+                          <TableCell align="right">No / ZIP</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {stats.referrers.slice(0, 15).map((r) => (
+                          <TableRow key={r.customerId}>
+                            <TableCell>
+                              <Typography variant="body2" fontWeight={700}>{r.name || '—'}</Typography>
+                              <Typography variant="caption" color="text.secondary">{r.phone}</Typography>
+                            </TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 800 }}>{r.invites}</TableCell>
+                            <TableCell align="right">{r.rounds}</TableCell>
+                            <TableCell align="right">{r.shopsYes}</TableCell>
+                            <TableCell align="right">{r.shopsNo} / {r.zips}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </Box>
                 {!rewards?.data?.length ? (
                   <Typography variant="caption" color="text.secondary" sx={{ px: 1, display: 'block', py: 1 }}>
                     Todavía nadie ganó el cupón en esta tienda.
