@@ -66,6 +66,7 @@ const buildPatch = (orig, curr) => {
     'billingLastPeriodEnd',
     'creditStatus',
     'circularssUrl',
+    'circularPriority',
     'kioskTabletStatus',
     'kioskTabletDate',
     'kioskTabletQuantity',
@@ -168,6 +169,7 @@ export function useStoreEditor(store) {
 
     // 🆕 opcional: circulars url (lo mandamos al backend si cambia)
     circularssUrl: store.circularssUrl ?? null,
+    circularPriority: store.circularPriority || 'circularss',
 
     billingNextDate: store.billingNextDate ?? null,
     billingLastPeriodEnd: store.billingLastPeriodEnd ?? null,
@@ -314,6 +316,7 @@ export function useStoreEditor(store) {
 
       // 🆕 opcional
       circularssUrl: store.circularssUrl ?? null,
+    circularPriority: store.circularPriority || 'circularss',
 
       billingNextDate: store.billingNextDate ?? null,
       billingLastPeriodEnd: store.billingLastPeriodEnd ?? null,

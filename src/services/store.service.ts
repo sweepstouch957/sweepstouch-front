@@ -68,6 +68,8 @@ export interface Store {
   startContractDate?: string | null; // ISO o null
   aniversaryStore?: Date | null;
   circularss?: boolean;
+  circularssUrl?: string | null;
+  circularPriority?: 'circularss' | 'panel';
   cancelContractDate?: string | null;
   cancelContractReason?: string;
   status?: 'active' | 'inactive' | 'suspended' | 'cancelled';
@@ -146,6 +148,8 @@ export interface UpdateStoreBody {
   startContractDate?: string | null; // ISO o null
   aniversaryStore?: Date | null;
   circularss?: boolean;
+  circularssUrl?: string | null;
+  circularPriority?: 'circularss' | 'panel';
   cancelContractDate?: string | null;
   cancelContractReason?: string;
   status?: 'active' | 'inactive' | 'suspended' | 'cancelled';

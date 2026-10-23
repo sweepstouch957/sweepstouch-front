@@ -16,6 +16,7 @@ const STORE_MANAGEMENT_TAGS = [
   { id: 'general-info', label: 'General Info' },
   { id: 'sweepstakes', label: 'Sweepstakes' },
   { id: 'welcome-coupons', label: 'Welcome Coupons' },
+  { id: 'referral-rewards', label: 'Referral Rewards' },
   { id: 'opt-in', label: 'Opt-in MMS' },
   { id: 'ads', label: 'Ads' },
   { id: 'qr', label: 'QR' },

@@ -797,5 +797,59 @@ export class WelcomeCouponClient {
 
 export const welcomeCouponClient = new WelcomeCouponClient();
 
+/* ===================== REFERRAL REWARDS (por tienda) ===================== */
+
+/** Recompensa al referidor: UN cupón ($X OFF) la primera vez que alguien se registra con su código. */
+export interface ReferralRewardConfig {
+  active: boolean;
+  title: string;
+  amount: number;
+  minPurchase: number;
+  imageUrl?: string;
+  message?: string;
+  terms?: string;
+  referredBonusCoupon: boolean;
+}
+
+export interface ReferralRewardItem {
+  _id: string;
+  code: string;
+  customer: string;
+  referredPhone?: string;
+  title?: string;
+  amount?: number;
+  minPurchase?: number;
+  status: 'pending' | 'redeemed' | 'cancelled';
+  mmsStatus?: 'sent' | 'failed' | 'skipped';
+  createdAt: string;
+  redeemedAt?: string;
+}
+
+export class ReferralRewardClient {
+  async getConfig(
+    storeId: string
+  ): Promise<{ success: boolean; config: ReferralRewardConfig | null; metrics: { awarded: number; redeemed: number } }> {
+    const res = await api.get(`/sweepstakes/referral-reward/${storeId}`);
+    return res.data;
+  }
+
+  async upsertConfig(data: ReferralRewardConfig & { storeId: string }): Promise<{ success: boolean; config: ReferralRewardConfig }> {
+    const res = await api.post('/sweepstakes/referral-reward', data);
+    return res.data;
+  }
+
+  async toggleActive(storeId: string): Promise<{ success: boolean; active: boolean; config: ReferralRewardConfig }> {
+    const res = await api.patch(`/sweepstakes/referral-reward/${storeId}/toggle`);
+    return res.data;
+  }
+
+  async listRewards(storeId: string, status?: string): Promise<{ success: boolean; count: number; data: ReferralRewardItem[] }> {
+    const res = await api.get(`/sweepstakes/referral-reward/${storeId}/rewards`, { params: status ? { status } : undefined });
+    return res.data;
+  }
+}
+
+export const referralRewardClient = new ReferralRewardClient();
+
 export const prizesClient = new PrizesClient();
 

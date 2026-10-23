@@ -57,6 +57,7 @@ const QrDuetMUI = lazy<any>(() => import('./panel/qr/QrContainer'));
 const StoreAudienceOverview = lazy<any>(() => import('./panel/sweepstakes/StoreAudienceOverview'));
 const StoreSweepstakeStats = lazy<any>(() => import('./panel/sweepstakes/StoreSweepstakeStats'));
 const WelcomeCouponsPanel = lazy<any>(() => import('./panel/welcome-coupons/WelcomeCouponsPanel'));
+const ReferralRewardsPanel = lazy<any>(() => import('./panel/referral-rewards/ReferralRewardsPanel'));
 const StoreBrandPanel = lazy<any>(() => import('./panel/brand/StoreBrandPanel'));
 const StoreCircularPanel = lazy<any>(() => import('./panel/circular/StoreCircularPanel'));
 
@@ -351,6 +352,9 @@ export const StoreContentRouter: FC<Props> = ({
 
     case 'welcome-coupons':
       return <WelcomeCouponsPanel storeId={storeId} />;
+
+    case 'referral-rewards':
+      return <ReferralRewardsPanel storeId={storeId} />;
 
     case 'opt-in':
       return <StoreOptinPanel storeId={storeId} />;

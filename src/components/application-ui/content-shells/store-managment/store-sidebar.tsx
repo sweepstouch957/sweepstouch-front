@@ -28,6 +28,7 @@ import {
   MenuBookOutlined,
 } from '@mui/icons-material';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalanceTwoTone';
+import CardGiftcardRounded from '@mui/icons-material/CardGiftcardRounded';
 import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
 import PeopleIcon from '@mui/icons-material/People';
 import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
@@ -96,6 +97,7 @@ const STORE_GROUPS: {
       { id: 'circular', label: 'Circular & Listas', icon: <MenuBookOutlined /> },
       { id: 'sweepstakes', label: 'Sorteos', icon: <RewardIcon /> },
       { id: 'welcome-coupons', label: 'Cupones de bienvenida', icon: <CouponIcon /> },
+      { id: 'referral-rewards', label: 'Recompensa por referidos', icon: <CardGiftcardRounded /> },
       { id: 'opt-in', label: 'Captación de opt-in', icon: <SmsIcon /> },
       { id: 'ads', label: 'Publicidad en kiosko', icon: <Analytics /> },
     ],
