@@ -174,7 +174,18 @@ export type Pipeline = {
   steps: AgentStep[];
   running: boolean;
   accuracy: number | null;
+  verification?: AuditVerification | null;
 };
+
+/** Veredicto final de Atenea: tras corregir, vuelve a leer el flyer y dice qué % coincide. */
+export interface AuditVerification {
+  accuracy: number;
+  checked: number;
+  matched: number;
+  pages: number;
+  mismatches: string[];
+  at: string;
+}
 
 export interface PageAudit {
   page: number;
@@ -831,9 +842,13 @@ export class CircularService {
   }
 
   /* ── Auditoría por página (agentes de revisión) ── */
-  async getAudit(
-    circularId: string
-  ): Promise<{ ok: boolean; running: boolean; accuracy: number | null; pages: PageAudit[] }> {
+  async getAudit(circularId: string): Promise<{
+    ok: boolean;
+    running: boolean;
+    accuracy: number | null;
+    pages: PageAudit[];
+    verification: AuditVerification | null;
+  }> {
     const res = await api.get(`/circulars/${circularId}/audit`);
     return res.data;
   }
@@ -901,13 +916,26 @@ export class CircularService {
   }
 
   /** El último día del flyer vale hasta 23:59 NY. `until` (YYYY-MM-DD) = día que dice el arte para el último flyer. */
-  async fixEndOfDay(storeSlug: string, until?: string): Promise<{
+  async fixEndOfDay(
+    storeSlug: string,
+    until?: string
+  ): Promise<{
     ok: boolean;
-    fixed: Array<{ circularId: string; title: string; from: string; to: string; status: string; revived: boolean }>;
+    fixed: Array<{
+      circularId: string;
+      title: string;
+      from: string;
+      to: string;
+      status: string;
+      revived: boolean;
+    }>;
     shown: number;
     circularTitle: string;
   }> {
-    const res = await api.post(`/circulars/store/${storeSlug}/fix-end-of-day`, until ? { until } : {});
+    const res = await api.post(
+      `/circulars/store/${storeSlug}/fix-end-of-day`,
+      until ? { until } : {}
+    );
     return res.data;
   }
 

@@ -96,6 +96,7 @@ export default function AgentsSection({
         running={!!audit.data?.running}
         pages={audit.data?.pages || []}
         accuracy={audit.data?.accuracy}
+        verification={audit.data?.verification}
         disabled={busy || rerunAudit.isPending}
         onRerun={rerunAudit.mutate}
       />
