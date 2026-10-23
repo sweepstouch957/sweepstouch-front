@@ -806,6 +806,8 @@ export interface ReferralRewardConfig {
   amount: number;
   minPurchase: number;
   imageUrl?: string;
+  /** Banner horizontal para las páginas del referidor (optin, gracias, mis referidos). */
+  bannerUrl?: string;
   message?: string;
   terms?: string;
   referredBonusCoupon: boolean;
