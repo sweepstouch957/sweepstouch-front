@@ -15,7 +15,9 @@ export type Confirm =
   | { kind: 'publish'; product: StoreProduct }
   | { kind: 'cancel'; product: StoreProduct };
 
-export type EditorTarget = { product: StoreProduct; flyerUrl: string };
+/** Producto a editar + imagen de SU origen. `fromCampaign` decide qué botón del editor la usa:
+ *  arte de campaña → "Recortar flyer"; circular semanal → "Recortar circular". */
+export type EditorTarget = { product: StoreProduct; flyerUrl: string; fromCampaign: boolean };
 
 export type AgentsOptions = {
   /** Argos: segunda pasada por secciones. */

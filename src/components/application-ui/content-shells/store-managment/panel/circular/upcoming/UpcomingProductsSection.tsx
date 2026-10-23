@@ -181,7 +181,10 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
         open={!!editor}
         product={editor?.product ?? null}
         storeSlug={storeSlug}
-        flyerUrl={editor?.flyerUrl || undefined}
+        // El arte del grupo va al botón que corresponde: antes un flyer de campaña caía en
+        // "Recortar circular" y "Recortar flyer" quedaba apagado (Paterson, oct 2026).
+        flyerUrl={editor && !editor.fromCampaign ? editor.flyerUrl || undefined : undefined}
+        campaignUrl={editor?.fromCampaign ? editor.flyerUrl || undefined : undefined}
         onClose={() => setEditor(null)}
         onSaved={refresh}
       />
@@ -204,9 +207,7 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
       <ConfirmDialog
         confirm={confirm}
         pending={act.isPending}
-        groupBannerAuto={
-          confirm?.kind === 'group' && !!bannerByDay.get(confirm.group.day)?.auto
-        }
+        groupBannerAuto={confirm?.kind === 'group' && !!bannerByDay.get(confirm.group.day)?.auto}
         onClose={() => setConfirm(null)}
         onConfirm={runConfirm}
       />

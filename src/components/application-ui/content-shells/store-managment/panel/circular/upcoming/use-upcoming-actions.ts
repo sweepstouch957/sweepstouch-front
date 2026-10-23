@@ -35,7 +35,11 @@ export function useUpcomingActions(storeSlug: string) {
     }: {
       product: StoreProduct;
       group: UpcomingGroup;
-    }): Promise<EditorTarget> => ({ product, flyerUrl: await flyerFor(group) }),
+    }): Promise<EditorTarget> => ({
+      product,
+      flyerUrl: await flyerFor(group),
+      fromCampaign: !!group.circular?.fromCampaign,
+    }),
   });
 
   const openArt = useMutation({
