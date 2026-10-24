@@ -15,14 +15,17 @@ import {
   FormControlLabel,
   Grid,
   Paper,
+  Skeleton,
   Snackbar,
   Stack,
   Switch,
+  Tab,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableRow,
+  Tabs,
   TextField,
   Typography,
   useTheme,
@@ -76,12 +79,13 @@ const ReferralRewardsPanel = ({ storeId }: Props) => {
   const [bannerDesktopFile, setBannerDesktopFile] = useState<File | null>(null);
   const [bannerMobileFile, setBannerMobileFile] = useState<File | null>(null);
   const [toast, setToast] = useState<{ msg: string; sev: 'success' | 'error' } | null>(null);
+  const [tab, setTab] = useState(0);
 
   const { data, isLoading } = useQuery({
     queryKey: ['referral-reward-config', storeId],
     queryFn: () => referralRewardClient.getConfig(storeId),
   });
-  const { data: stats } = useQuery({
+  const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['referral-program-stats', storeId],
     queryFn: () => referralRewardClient.programStats(storeId),
   });
@@ -167,8 +171,13 @@ const ReferralRewardsPanel = ({ storeId }: Props) => {
         </Stack>
       </Paper>
 
-      <Grid container spacing={2.5}>
-        <Grid item xs={12} lg={8}>
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2, '& .MuiTab-root': { textTransform: 'none', fontWeight: 700 } }}>
+        <Tab label="Configuración" />
+        <Tab label={`Resultados${stats?.totals.invites ? ` (${stats.totals.invites})` : ''}`} />
+      </Tabs>
+
+      {tab === 0 && (
+        <Box sx={{ maxWidth: 920 }}>
           <Card elevation={0} sx={{ borderRadius: 3, border: `1px solid ${theme.palette.divider}` }}>
             <CardContent sx={{ p: '24px !important' }}>
               <Grid container spacing={2}>
@@ -326,117 +335,130 @@ const ReferralRewardsPanel = ({ storeId }: Props) => {
               </Grid>
             </CardContent>
           </Card>
-        </Grid>
+        </Box>
+      )}
 
-        <Grid item xs={12} lg={4}>
-          <Stack spacing={2}>
-            <Card elevation={0} sx={{ borderRadius: 3, border: `1px solid ${theme.palette.divider}` }}>
-              <CardContent>
-                <Typography variant="subtitle2" fontWeight={800} mb={1}>
-                  Cupones
-                </Typography>
-                <Stack direction="row" spacing={3}>
-                  <Box>
-                    <Typography variant="h5" fontWeight={900}>
-                      {metrics?.awarded ?? 0}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Ganados
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="h5" fontWeight={900}>
-                      {metrics?.redeemed ?? 0}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Canjeados
-                    </Typography>
-                  </Box>
-                </Stack>
-              </CardContent>
-            </Card>
+      {tab === 1 && (
+        <Stack spacing={2.5}>
+          <Grid container spacing={2}>
+            {[
+              { k: 'Invitados', v: stats?.totals.invites, sub: 'teléfonos metidos' },
+              { k: 'Nuevos en la base', v: stats?.totals.newCustomers, sub: 'no estaban en la tienda' },
+              { k: 'Cupones ganados', v: stats?.totals.coupons ?? metrics?.awarded, sub: 'RF- emitidos' },
+              { k: 'Canjeados en caja', v: stats?.totals.redeemed ?? metrics?.redeemed, sub: 'quemados por cajera' },
+            ].map((m) => (
+              <Grid item xs={6} md={3} key={m.k}>
+                <Card elevation={0} sx={{ borderRadius: 3, border: `1px solid ${theme.palette.divider}` }}>
+                  <CardContent sx={{ p: '16px !important' }}>
+                    <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase' }}>{m.k}</Typography>
+                    {statsLoading ? (
+                      <Skeleton width={60} height={40} />
+                    ) : (
+                      <Typography variant="h4" fontWeight={900} lineHeight={1.2}>{m.v ?? 0}</Typography>
+                    )}
+                    <Typography variant="caption" color="text.secondary">{m.sub}</Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
 
-            <Card elevation={0} sx={{ borderRadius: 3, border: `1px solid ${theme.palette.divider}` }}>
-              <CardContent sx={{ p: '12px !important' }}>
-                <Typography variant="subtitle2" fontWeight={800} sx={{ px: 1, pt: 0.5 }}>
-                  Últimos ganadores
-                </Typography>
-                <Box sx={{ mb: 2 }}>
-                  <Stack direction="row" spacing={2} sx={{ mb: 1 }}>
-                    {[['Invitados', stats?.totals.invites ?? 0], ['Nuevos en la base', stats?.totals.newCustomers ?? 0], ['Cupones', stats?.totals.coupons ?? 0]].map(([k, v]) => (
-                      <Box key={String(k)}>
-                        <Typography variant="caption" color="text.secondary">{k}</Typography>
-                        <Typography fontWeight={800}>{v}</Typography>
-                      </Box>
-                    ))}
-                  </Stack>
-                  <Label>Quién trajo más gente</Label>
-                  {!stats?.referrers?.length ? (
-                    <Typography variant="caption" color="text.secondary">Nadie ha metido números todavía.</Typography>
+          <Grid container spacing={2.5}>
+            <Grid item xs={12} lg={7}>
+              <Card elevation={0} sx={{ borderRadius: 3, border: `1px solid ${theme.palette.divider}` }}>
+                <CardContent sx={{ p: '16px !important' }}>
+                  <Typography variant="subtitle2" fontWeight={800} mb={0.5}>Quién trajo más gente</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+                    Cada fila es un cliente que metió números. "Compran aquí" y "No" salen de lo que contestan al bot de WhatsApp.
+                  </Typography>
+                  {statsLoading ? (
+                    <Skeleton height={120} />
+                  ) : !stats?.referrers?.length ? (
+                    <Typography variant="body2" color="text.secondary">Nadie ha metido números todavía.</Typography>
                   ) : (
                     <Table size="small">
                       <TableHead>
                         <TableRow>
                           <TableCell>Referidor</TableCell>
-                          <TableCell align="right">Nros</TableCell>
+                          <TableCell align="right">Números</TableCell>
                           <TableCell align="right">Rondas</TableCell>
                           <TableCell align="right">Compran aquí</TableCell>
-                          <TableCell align="right">No / ZIP</TableCell>
+                          <TableCell align="right">No</TableCell>
+                          <TableCell align="right">ZIP</TableCell>
+                          <TableCell align="right">Nuevos</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {stats.referrers.slice(0, 15).map((r) => (
+                        {stats.referrers.slice(0, 25).map((r, i) => (
                           <TableRow key={r.customerId}>
                             <TableCell>
-                              <Typography variant="body2" fontWeight={700}>{r.name || '—'}</Typography>
-                              <Typography variant="caption" color="text.secondary">{r.phone}</Typography>
+                              <Stack direction="row" spacing={1} alignItems="center">
+                                <Chip size="small" label={`#${i + 1}`} sx={{ height: 20, fontSize: 11, fontWeight: 800 }} color={i === 0 ? 'primary' : 'default'} />
+                                <Box>
+                                  <Typography variant="body2" fontWeight={700}>{r.name || 'Sin nombre'}</Typography>
+                                  <Typography variant="caption" color="text.secondary">{r.phone}</Typography>
+                                </Box>
+                              </Stack>
                             </TableCell>
                             <TableCell align="right" sx={{ fontWeight: 800 }}>{r.invites}</TableCell>
                             <TableCell align="right">{r.rounds}</TableCell>
                             <TableCell align="right">{r.shopsYes}</TableCell>
-                            <TableCell align="right">{r.shopsNo} / {r.zips}</TableCell>
+                            <TableCell align="right">{r.shopsNo}</TableCell>
+                            <TableCell align="right">{r.zips}</TableCell>
+                            <TableCell align="right">{r.newCustomers}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
                   )}
-                </Box>
-                {!rewards?.data?.length ? (
-                  <Typography variant="caption" color="text.secondary" sx={{ px: 1, display: 'block', py: 1 }}>
-                    Todavía nadie ganó el cupón en esta tienda.
-                  </Typography>
-                ) : (
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Código</TableCell>
-                        <TableCell>Referido</TableCell>
-                        <TableCell>Estado</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {rewards.data.slice(0, 15).map((r) => (
-                        <TableRow key={r._id}>
-                          <TableCell sx={{ fontFamily: 'monospace', fontWeight: 700 }}>{r.code}</TableCell>
-                          <TableCell>{r.referredPhone || '—'}</TableCell>
-                          <TableCell>
-                            <Chip
-                              size="small"
-                              label={r.status === 'redeemed' ? 'Canjeado' : r.status === 'cancelled' ? 'Cancelado' : 'Pendiente'}
-                              color={r.status === 'redeemed' ? 'success' : 'default'}
-                              sx={{ height: 20, fontSize: 11 }}
-                            />
-                          </TableCell>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} lg={5}>
+              <Card elevation={0} sx={{ borderRadius: 3, border: `1px solid ${theme.palette.divider}` }}>
+                <CardContent sx={{ p: '16px !important' }}>
+                  <Typography variant="subtitle2" fontWeight={800} mb={1.5}>Cupones emitidos</Typography>
+                  {!rewards?.data?.length ? (
+                    <Typography variant="body2" color="text.secondary">Todavía nadie ganó el cupón en esta tienda.</Typography>
+                  ) : (
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Código</TableCell>
+                          <TableCell>Fecha</TableCell>
+                          <TableCell align="right">Estado</TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </Stack>
-        </Grid>
-      </Grid>
+                      </TableHead>
+                      <TableBody>
+                        {rewards.data.slice(0, 25).map((r: any) => (
+                          <TableRow key={r._id}>
+                            <TableCell sx={{ fontFamily: 'monospace', fontWeight: 700 }}>{r.code}</TableCell>
+                            <TableCell>
+                              <Typography variant="caption">{r.createdAt ? new Date(r.createdAt).toLocaleDateString('es', { day: '2-digit', month: 'short' }) : '—'}</Typography>
+                              {r.expiresAt && (
+                                <Typography variant="caption" color="text.secondary" display="block">vence {new Date(r.expiresAt).toLocaleDateString('es', { day: '2-digit', month: 'short' })}</Typography>
+                              )}
+                            </TableCell>
+                            <TableCell align="right">
+                              <Chip
+                                size="small"
+                                label={r.status === 'redeemed' ? 'Canjeado' : r.status === 'cancelled' ? 'Cancelado' : r.expiresAt && new Date(r.expiresAt) < new Date() ? 'Vencido' : 'Pendiente'}
+                                color={r.status === 'redeemed' ? 'success' : 'default'}
+                                sx={{ height: 20, fontSize: 11 }}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </Stack>
+      )}
 
       <Snackbar open={!!toast} autoHideDuration={3500} onClose={() => setToast(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         <Alert severity={toast?.sev || 'success'} onClose={() => setToast(null)}>
