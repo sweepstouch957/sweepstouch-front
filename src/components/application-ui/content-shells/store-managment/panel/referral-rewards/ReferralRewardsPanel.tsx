@@ -375,7 +375,7 @@ const ReferralRewardsPanel = ({ storeId }: Props) => {
           </Grid>
 
           <Grid container spacing={2.5} alignItems="stretch">
-            <Grid item xs={12} lg={7}>
+            <Grid item xs={12}>
               <Card elevation={0} sx={{ borderRadius: 3, border: `1px solid ${theme.palette.divider}`, height: '100%' }}>
                 <CardContent sx={{ p: '18px !important' }}>
                   <Stack direction="row" alignItems="center" justifyContent="space-between" mb={0.5}>
@@ -390,6 +390,7 @@ const ReferralRewardsPanel = ({ storeId }: Props) => {
                   ) : !stats?.referrers?.length ? (
                     <Typography variant="body2" color="text.secondary">Nadie ha metido números todavía.</Typography>
                   ) : (
+                    <Box sx={{ overflowX: 'auto' }}>
                     <Table size="small" sx={{ '& th': { textTransform: 'none', fontSize: 12, fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap', py: 1 }, '& td': { fontSize: 13.5, py: 1.25, whiteSpace: 'nowrap' } }}>
                       <TableHead>
                         <TableRow>
@@ -430,12 +431,13 @@ const ReferralRewardsPanel = ({ storeId }: Props) => {
                         ))}
                       </TableBody>
                     </Table>
+                    </Box>
                   )}
                 </CardContent>
               </Card>
             </Grid>
 
-            <Grid item xs={12} lg={5}>
+            <Grid item xs={12}>
               <Card elevation={0} sx={{ borderRadius: 3, border: `1px solid ${theme.palette.divider}`, height: '100%' }}>
                 <CardContent sx={{ p: '18px !important' }}>
                   <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
@@ -445,6 +447,7 @@ const ReferralRewardsPanel = ({ storeId }: Props) => {
                   {!rewards?.data?.length ? (
                     <Typography variant="body2" color="text.secondary">Todavía nadie ganó el cupón en esta tienda.</Typography>
                   ) : (
+                    <Box sx={{ overflowX: 'auto' }}>
                     <Table size="small" sx={{ '& th': { textTransform: 'none', fontSize: 12, fontWeight: 700, color: 'text.secondary', py: 1 }, '& td': { fontSize: 13, py: 1.1 } }}>
                       <TableHead>
                         <TableRow>
@@ -472,6 +475,7 @@ const ReferralRewardsPanel = ({ storeId }: Props) => {
                         })}
                       </TableBody>
                     </Table>
+                    </Box>
                   )}
                 </CardContent>
               </Card>
