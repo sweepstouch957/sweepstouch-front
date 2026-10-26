@@ -11,6 +11,10 @@ export const CLEANING = 'Limpiando con IA: solo el producto, sin precio ni fondo
 /** Valores del formulario del editor de producto (todo string salvo el switch). */
 export type ProductFormValues = {
   name: string;
+  // Marca y tamaño tal como los imprime el flyer. La IA a veces lee "US #1 GREEN GIANT"
+  // como marca (es el grado): acá se corrige.
+  brand: string;
+  size: string;
   price: string;
   regular: string;
   // Letra chica del flyer. La IA la lee, pero acá se corrige: es lo que evita el reclamo

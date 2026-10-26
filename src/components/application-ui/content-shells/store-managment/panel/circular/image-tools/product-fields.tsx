@@ -42,6 +42,26 @@ export function ProductFields({
         autoFocus={isNew}
         {...field(register, 'name')}
       />
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        gap={1}
+      >
+        <TextField
+          label="Marca"
+          size="small"
+          fullWidth
+          placeholder="Green Giant"
+          helperText="Vacío si el flyer no imprime marca."
+          {...field(register, 'brand')}
+        />
+        <TextField
+          label="Tamaño / presentación"
+          size="small"
+          fullWidth
+          placeholder="2 LB BAG"
+          {...field(register, 'size')}
+        />
+      </Stack>
       {!isNew && (
         <TextField
           label="Otros nombres con que lo leen"

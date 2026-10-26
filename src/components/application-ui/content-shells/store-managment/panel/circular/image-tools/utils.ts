@@ -41,6 +41,8 @@ export function productDefaults(product: StoreProduct | null): ProductFormValues
   const pend = pendingOf(product);
   return {
     name: product?.name ?? '',
+    brand: product?.brand ?? '',
+    size: product?.size ?? '',
     price: (pend ? pend.price : product?.price) ?? '',
     regular: (pend ? pend.originalPrice : product?.originalPrice) ?? '',
     pendingDay: pend ? toDayInput(pend.from) : '',
@@ -60,6 +62,8 @@ export function productBody(v: ProductFormValues, imageUrl: string) {
   const max = Number(v.maxPerCustomer);
   return {
     name: v.name.trim(),
+    brand: v.brand.trim(),
+    size: v.size.trim(),
     price: v.price.trim(),
     originalPrice: v.regular.trim(),
     imageUrl,
