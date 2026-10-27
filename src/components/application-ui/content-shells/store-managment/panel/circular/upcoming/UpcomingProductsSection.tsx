@@ -40,7 +40,7 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
   const [agentsFor, setAgentsFor] = useState<UpcomingGroup | null>(null);
 
   const upcoming = useUpcoming(storeSlug);
-  const { refresh, openEditor, openArt, agents, rephoto, patch, act } =
+  const { refresh, openEditor, openArt, agents, rephoto, patch, act, flyerOnly } =
     useUpcomingActions(storeSlug);
   const { mutate: patchMutate } = patch;
   const handlePatch = useCallback(
@@ -124,6 +124,9 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
         total={stats.total}
         nNew={stats.nNew}
         nextDay={groups[0]?.day}
+        flyerOnly={upcoming.data?.flyerOnly === true}
+        flyerOnlyBusy={flyerOnly.isPending}
+        onFlyerOnlyChange={flyerOnly.mutate}
       />
 
       {loading && (

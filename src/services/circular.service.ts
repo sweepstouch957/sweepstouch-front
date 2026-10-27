@@ -488,15 +488,27 @@ export class CircularService {
   /** Productos que todavía no salen (precio en `pending`), agrupados por día y origen. */
   async getUpcoming(storeSlug: string): Promise<{
     total: number;
+    flyerOnly: boolean;
     groups: UpcomingGroup[];
     banners: (StoreBanner & { day: string })[];
   }> {
     const res = await api.get(`/circulars/store/${storeSlug}/upcoming`);
     return {
       total: res.data?.total ?? 0,
+      flyerOnly: res.data?.flyerOnly === true,
       groups: res.data?.groups ?? [],
       banners: res.data?.banners ?? [],
     };
+  }
+
+  /** "Sólo flyer": on=true deja de cargar el circular semanal (y descarta lo que dejó
+   *  esperando fecha) hasta que se apague. */
+  async setFlyerOnly(
+    storeSlug: string,
+    on: boolean
+  ): Promise<{ flyerOnly: boolean; pendingRemoved?: number; pendingReverted?: number; hidden?: number }> {
+    const res = await api.patch(`/circulars/store/${storeSlug}/flyer-only`, { on });
+    return res.data;
   }
 
   /** Corrige el precio que VA a salir (no el de hoy) o mueve su fecha. */

@@ -8,7 +8,15 @@ import {
 } from '@/components/application-ui/content-shells/store-managment/panel-kit';
 import EventRoundedIcon from '@mui/icons-material/EventRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
-import { InputAdornment, Skeleton, Stack, TextField } from '@mui/material';
+import {
+  FormControlLabel,
+  InputAdornment,
+  Skeleton,
+  Stack,
+  Switch,
+  TextField,
+  Tooltip,
+} from '@mui/material';
 import { fmtDay, relDay } from './utils';
 
 type Props = {
@@ -19,6 +27,10 @@ type Props = {
   nNew: number;
   /** Día (YYYY-MM-DD) del próximo grupo que sale. */
   nextDay?: string;
+  /** Store.flyerOnly: el circular semanal no carga; aquí sólo sale lo de los flyers. */
+  flyerOnly: boolean;
+  flyerOnlyBusy: boolean;
+  onFlyerOnlyChange: (on: boolean) => void;
 };
 
 export default function UpcomingSummary({
@@ -28,6 +40,9 @@ export default function UpcomingSummary({
   total,
   nNew,
   nextDay,
+  flyerOnly,
+  flyerOnlyBusy,
+  onFlyerOnlyChange,
 }: Props) {
   return (
     <PanelCard>
@@ -39,23 +54,54 @@ export default function UpcomingSummary({
           />
         }
         title="Lo que sale pronto"
-        hint="Productos y banners ya cargados que el cliente todavía no ve. Revísalos antes de su fecha."
+        hint={
+          flyerOnly
+            ? 'Sólo flyer: el circular semanal no se está cargando. Aquí salen únicamente los productos de los flyers.'
+            : 'Productos y banners ya cargados que el cliente todavía no ve. Revísalos antes de su fecha.'
+        }
         action={
-          <TextField
-            size="small"
-            placeholder="Buscar producto"
-            value={query}
-            onChange={(e) => onQueryChange(e.target.value)}
-            sx={{ width: { xs: '100%', sm: 240 } }}
-            inputProps={{ 'aria-label': 'Buscar producto' }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchRoundedIcon fontSize="small" />
-                </InputAdornment>
-              ),
-            }}
-          />
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            alignItems={{ xs: 'stretch', sm: 'center' }}
+            gap={1.5}
+            sx={{ width: { xs: '100%', sm: 'auto' } }}
+          >
+            <Tooltip
+              title={
+                flyerOnly
+                  ? 'Apágalo para que el circular semanal vuelva a cargar productos'
+                  : 'Deja de cargar el circular semanal hasta que lo apagues. Lo que el circular ya dejó esperando fecha se quita.'
+              }
+            >
+              <FormControlLabel
+                sx={{ mr: 0, whiteSpace: 'nowrap' }}
+                control={
+                  <Switch
+                    size="small"
+                    checked={flyerOnly}
+                    disabled={loading || flyerOnlyBusy}
+                    onChange={(e) => onFlyerOnlyChange(e.target.checked)}
+                  />
+                }
+                label="Sólo flyer"
+              />
+            </Tooltip>
+            <TextField
+              size="small"
+              placeholder="Buscar producto"
+              value={query}
+              onChange={(e) => onQueryChange(e.target.value)}
+              sx={{ width: { xs: '100%', sm: 240 } }}
+              inputProps={{ 'aria-label': 'Buscar producto' }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Stack>
         }
       />
       {(loading || total > 0) && (
