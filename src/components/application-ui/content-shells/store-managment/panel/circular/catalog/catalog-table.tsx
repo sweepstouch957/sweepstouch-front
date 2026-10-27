@@ -65,14 +65,18 @@ function tableSx(width: number): SxProps<Theme> {
       overflowWrap: 'anywhere',
       textOverflow: 'clip',
     },
-    '& tr > :nth-child(1)': { width: 116 },
-    '& tr > :nth-child(2)': { width: '23%' },
-    '& tr > :nth-child(3), & tr > :nth-child(4)': { width: '12%' },
-    '& tr > :nth-child(5)': { width: '14%' },
-    '& tr > :nth-child(7), & tr > :nth-child(8)': { width: 66 },
-    '& tr > :nth-child(9)': { width: 40 },
-    ...(width <= 900
+    // Anchos sólo en modo tabla: en modo grilla ganaban (más específicos) al width:auto
+    // y dejaban cada celda al 12% de su columna → texto en vertical en tablet/mobile.
+    ...(width > 900
       ? {
+          '& tr > :nth-child(1)': { width: 116 },
+          '& tr > :nth-child(2)': { width: '23%' },
+          '& tr > :nth-child(3), & tr > :nth-child(4)': { width: '12%' },
+          '& tr > :nth-child(5)': { width: '14%' },
+          '& tr > :nth-child(7), & tr > :nth-child(8)': { width: 66 },
+          '& tr > :nth-child(9)': { width: 40 },
+        }
+      : {
           '& thead': { display: 'none' },
           '&, & tbody': { display: 'block' },
           '& tbody tr:not([data-rfd-placeholder-context-id])': {
@@ -100,8 +104,7 @@ function tableSx(width: number): SxProps<Theme> {
             color: 'text.secondary',
           },
           '& tbody td[colspan]': { gridColumn: '1 / -1' },
-        }
-      : {}),
+        }),
   };
 }
 
