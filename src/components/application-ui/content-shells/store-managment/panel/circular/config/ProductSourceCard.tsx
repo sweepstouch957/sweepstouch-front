@@ -11,6 +11,8 @@ import {
 } from '@/components/application-ui/content-shells/store-managment/panel-kit';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import { Box, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
+import { useState } from 'react';
+import { FlyerOnlyDialog } from './FlyerOnlyDialog';
 import { useFlyerOnly } from './use-flyer-only';
 
 export function ProductSourceCard({
@@ -25,17 +27,12 @@ export function ProductSourceCard({
   const save = useFlyerOnly(storeId, storeSlug);
   const shown = save.isPending ? !!save.variables : flyerOnly;
 
+  const [asking, setAsking] = useState(false);
+  // Prender pide confirmación (quita de Próximos lo del circular); apagar va directo.
   const onChange = (on: boolean) => {
     if (on === flyerOnly) return;
-    // ponytail: confirm nativo; prender borra las altas del circular que esperaban fecha.
-    if (
-      on &&
-      !window.confirm(
-        'Sólo flyer: se ocultan todos los productos del circular y se quita de Próximos lo que el circular dejó esperando fecha. El circular semanal deja de cargar. ¿Seguir?'
-      )
-    )
-      return;
-    save.mutate(on);
+    if (on) setAsking(true);
+    else save.mutate(false);
   };
 
   return (
@@ -68,6 +65,12 @@ export function ProductSourceCard({
             : 'Se cargan el circular semanal y los flyers. Cuando hay un flyer vigente, la lista es sólo ese flyer.'}
         </Typography>
       </Box>
+      <FlyerOnlyDialog
+        open={asking}
+        busy={save.isPending}
+        onClose={() => setAsking(false)}
+        onConfirm={() => save.mutate(true, { onSuccess: () => setAsking(false) })}
+      />
     </PanelCard>
   );
 }
