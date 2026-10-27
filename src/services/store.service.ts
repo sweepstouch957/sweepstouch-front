@@ -70,6 +70,8 @@ export interface Store {
   circularss?: boolean;
   circularssUrl?: string | null;
   circularPriority?: 'circularss' | 'panel';
+  /** Confirmación al registrarse en el sorteo/opt-in (default mms). */
+  optinConfirmation?: 'mms' | 'sms' | 'none';
   cancelContractDate?: string | null;
   cancelContractReason?: string;
   status?: 'active' | 'inactive' | 'suspended' | 'cancelled';
@@ -150,6 +152,8 @@ export interface UpdateStoreBody {
   circularss?: boolean;
   circularssUrl?: string | null;
   circularPriority?: 'circularss' | 'panel';
+  /** Confirmación al registrarse en el sorteo/opt-in (default mms). */
+  optinConfirmation?: 'mms' | 'sms' | 'none';
   cancelContractDate?: string | null;
   cancelContractReason?: string;
   status?: 'active' | 'inactive' | 'suspended' | 'cancelled';

@@ -360,6 +360,17 @@ export class SweepstakesClient {
     return res.data;
   }
 
+  // Audiencia por día / semana / mes. Respuesta: { totals, series: [{ key, newCustomers, existingCustomers, total }] }
+  async getParticipantsSeries(params: {
+    granularity: 'day' | 'week' | 'month';
+    from?: string;
+    to?: string;
+    storeId?: string;
+  }): Promise<any> {
+    const res = await api.get('/sweepstakes/participants/reports/series', { params });
+    return res.data;
+  }
+
   async getSweepstakes(filters?: { status?: string; name?: string }): Promise<Sweepstakes[]> {
     const res = await api.get('/sweepstakes', { params: filters });
     return res.data;

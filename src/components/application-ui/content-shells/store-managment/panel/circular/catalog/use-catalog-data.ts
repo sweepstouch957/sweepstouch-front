@@ -6,15 +6,21 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { qk, useStoreCirculars } from '../hooks';
 import { CATEGORIES } from '../shared';
-import { PAGE_SIZE } from './constants';
+import { PAGE_SIZE, type CatalogShow } from './constants';
 import { directImageOf, pickCurrent } from './utils';
 
 /** Paginado y buscado en el servidor: 50 por página. La clave incluye página y búsqueda;
  *  invalidar qk.catalog(storeSlug) sigue refrescando todas (prefijo). */
-export function useCatalogPage(storeSlug: string, page: number, search: string) {
+export function useCatalogPage(
+  storeSlug: string,
+  page: number,
+  search: string,
+  show?: CatalogShow
+) {
   return useQuery({
-    queryKey: [...qk.catalog(storeSlug), page, search.trim()],
-    queryFn: () => circularService.getCatalogAdmin(storeSlug, { page, limit: PAGE_SIZE, q: search }),
+    queryKey: [...qk.catalog(storeSlug), page, search.trim(), show || 'all'],
+    queryFn: () =>
+      circularService.getCatalogAdmin(storeSlug, { page, limit: PAGE_SIZE, q: search, show }),
     enabled: !!storeSlug,
     staleTime: 30_000,
     // Cada combinación página+búsqueda es una entrada de caché con 50 productos: se suelta

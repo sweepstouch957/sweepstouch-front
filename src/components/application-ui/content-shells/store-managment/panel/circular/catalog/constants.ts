@@ -21,6 +21,9 @@ export type UpcomingSummaryRow = {
 export type RescanMode = 'missing' | 'all' | 'flyer';
 export type SourceKind = 'flyer' | 'circular';
 
+/** Filtro de la tabla: sólo visibles, ocultos o los que esperan fecha (vacío = todos). */
+export type CatalogShow = 'visible' | 'hidden' | 'pending';
+
 /** Tag de origen del producto: flyer de campaña / circular / manual. */
 export const SOURCE_TAG: Record<string, { label: string; color: 'secondary' | 'primary' | 'default' }> =
   {

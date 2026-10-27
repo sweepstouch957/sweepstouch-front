@@ -21,13 +21,15 @@ import {
   Skeleton,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
 import { BarChart } from '@mui/x-charts/BarChart';
 import { campaignClient } from '@services/campaing.service';
-import type { YtdMonthlyResponse } from '@services/campaing.service';
+import type { ReportGranularity, SentSeriesResponse } from '@services/campaing.service';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { saveAs } from 'file-saver';
@@ -35,18 +37,12 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useTranslation } from 'react-i18next';
 
-type AudienceMonthlyResponse = {
-  year: number;
-  months: Array<{
-    month: string;
-    newCustomers: number;
-    existingCustomers: number;
-  }>;
+type AudienceSeriesResponse = {
+  totals: { newCustomers: number; existingCustomers: number; total: number };
+  series: Array<{ key: string; newCustomers: number; existingCustomers: number; total: number }>;
 };
 
 type YearlyReportsSectionProps = {
-  year: number;
-  onYearChange: (year: number) => void;
   storeId?: string;
 };
 
@@ -58,13 +54,77 @@ function n(v?: number) {
 const formatInt = (v: any) =>
   typeof v === 'number' ? v.toLocaleString() : typeof v === 'string' ? v : '—';
 
-function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSectionProps) {
+// Fecha local → "YYYY-MM-DD" (el backend corta los días en el TZ del negocio).
+const ymd = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+// Presets por granularidad: "last:N" (N días / semanas / meses incluyendo el actual) o "year:YYYY".
+const PRESETS: Record<ReportGranularity, Array<{ value: string; label: string }>> = {
+  day: [
+    { value: 'last:7', label: 'Últimos 7 días' },
+    { value: 'last:14', label: 'Últimos 14 días' },
+    { value: 'last:30', label: 'Últimos 30 días' },
+    { value: 'last:90', label: 'Últimos 90 días' },
+  ],
+  week: [
+    { value: 'last:4', label: 'Últimas 4 semanas' },
+    { value: 'last:8', label: 'Últimas 8 semanas' },
+    { value: 'last:12', label: 'Últimas 12 semanas' },
+    { value: 'last:26', label: 'Últimas 26 semanas' },
+    { value: 'last:52', label: 'Últimas 52 semanas' },
+  ],
+  month: [
+    { value: 'last:3', label: 'Últimos 3 meses' },
+    { value: 'last:6', label: 'Últimos 6 meses' },
+    { value: 'last:12', label: 'Últimos 12 meses' },
+  ],
+};
+const DEFAULT_PRESET: Record<ReportGranularity, string> = {
+  day: 'last:30',
+  week: 'last:12',
+  month: 'last:12',
+};
+
+function presetRange(g: ReportGranularity, preset: string): { from: string; to: string } {
+  const today = new Date();
+  const [kind, raw] = preset.split(':');
+  const num = Number(raw);
+  if (kind === 'year') {
+    const end = num === today.getFullYear() ? today : new Date(num, 11, 31);
+    return { from: `${num}-01-01`, to: ymd(end) };
+  }
+  const start = new Date(today);
+  if (g === 'day') start.setDate(start.getDate() - num + 1);
+  if (g === 'week') {
+    start.setDate(start.getDate() - ((start.getDay() + 6) % 7) - (num - 1) * 7); // lunes
+  }
+  if (g === 'month') start.setMonth(start.getMonth() - num + 1, 1);
+  return { from: ymd(start), to: ymd(today) };
+}
+
+function bucketLabel(key: string, g: ReportGranularity) {
+  const d = new Date(`${g === 'month' ? `${key}-01` : key}T00:00:00Z`);
+  if (g === 'month') {
+    return d.toLocaleDateString(undefined, { timeZone: 'UTC', month: 'short', year: '2-digit' });
+  }
+  const s = d.toLocaleDateString(undefined, { timeZone: 'UTC', day: '2-digit', month: 'short' });
+  return g === 'week' ? `Sem ${s}` : s;
+}
+
+const GRANULARITY_LABEL: Record<ReportGranularity, string> = {
+  day: 'Diario',
+  week: 'Semanal',
+  month: 'Mensual',
+};
+
+function YearlyReportsSection({ storeId }: YearlyReportsSectionProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const smUp = useMediaQuery(theme.breakpoints.up('sm'));
   const isDark = theme.palette.mode === 'dark';
   const { common } = theme.palette;
   const SWEEP_PINK = theme.palette.primary.main;
+  const RCS_COLOR = theme.palette.info.main;
 
   const cardHeaderSx = {
     px: 2.5,
@@ -79,7 +139,32 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
   } as const;
 
   // =====================
-  //  Queries generales (no dependen del año)
+  //  Filtros: granularidad + periodo (preset o fechas a mano)
+  // =====================
+  const [granularity, setGranularity] = useState<ReportGranularity>('month');
+  const [preset, setPreset] = useState<string>(DEFAULT_PRESET.month);
+  const [range, setRange] = useState(() => presetRange('month', DEFAULT_PRESET.month));
+
+  const applyPreset = (g: ReportGranularity, p: string) => {
+    setGranularity(g);
+    setPreset(p);
+    setRange(presetRange(g, p));
+  };
+  const setCustomDate = (field: 'from' | 'to', value: string) => {
+    if (!value) return;
+    setPreset('custom');
+    setRange((r) => ({ ...r, [field]: value }));
+  };
+
+  const currentYear = new Date().getFullYear();
+  const years: number[] = [];
+  for (let y = currentYear; y >= 2025; y -= 1) years.push(y);
+
+  const params = { granularity, from: range.from, to: range.to, storeId };
+  const periodLabel = `${range.from} → ${range.to}`;
+
+  // =====================
+  //  Queries generales (no dependen del periodo)
   // =====================
   const {
     data: sweepstakesCount,
@@ -102,126 +187,52 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
   });
 
   // =====================
-  //  Queries por año
+  //  Queries por periodo
   // =====================
-  const audienceQ = useQuery<AudienceMonthlyResponse>({
-    queryKey: ['reports', 'audience', { year }],
-    queryFn: () => sweepstakesClient.getMonthlyParticipants(year),
+  const messagesQ = useQuery<SentSeriesResponse>({
+    queryKey: ['reports', 'messages-series', params],
+    queryFn: () => campaignClient.getSentSeries(params),
     staleTime: 1000 * 60 * 10,
   });
 
-  const messagesQ = useQuery<YtdMonthlyResponse>({
-    queryKey: ['reports', 'messages-sent', { year, storeId: storeId ?? null }],
-    queryFn: () => campaignClient.getYtdMonthlyMessagesSent(storeId, year),
+  const audienceQ = useQuery<AudienceSeriesResponse>({
+    queryKey: ['reports', 'audience-series', params],
+    queryFn: () => sweepstakesClient.getParticipantsSeries(params),
     staleTime: 1000 * 60 * 10,
   });
 
   // =====================
-  //  Mensajes del mes actual (siempre año actual)
+  //  Mensajes
   // =====================
-  const currentDate = new Date();
-  const currentYear = currentDate.getFullYear();
-  const currentMonthNumber = currentDate.getMonth() + 1;
+  const msgSeries = messagesQ.data?.series ?? [];
+  const msgTotals = messagesQ.data?.totals ?? { sms: 0, mms: 0, rcs: 0, total: 0, campaigns: 0 };
+  const mLabels = msgSeries.map((s) => bucketLabel(s.key, granularity));
 
-  const messagesCurrentYearQ = useQuery<YtdMonthlyResponse>({
-    queryKey: [
-      'reports',
-      'messages-current-month',
-      { year: currentYear, storeId: storeId ?? null },
-    ],
-    queryFn: () => campaignClient.getYtdMonthlyMessagesSent(storeId, currentYear),
-    staleTime: 1000 * 60 * 10,
-  });
-
-  // Rango del chart principal: N meses atrás + mes actual
-  const [rangeMonths, setRangeMonths] = useState<number>(3);
-
-  // Año anterior solo si la ventana cruza de año
-  const messagesPrevYearQ = useQuery<YtdMonthlyResponse>({
-    queryKey: [
-      'reports',
-      'messages-prev-year',
-      { year: currentYear - 1, storeId: storeId ?? null },
-    ],
-    queryFn: () => campaignClient.getYtdMonthlyMessagesSent(storeId, currentYear - 1),
-    staleTime: 1000 * 60 * 10,
-    enabled: currentMonthNumber <= rangeMonths,
-  });
-
-  const monthsCurrentYear = messagesCurrentYearQ.data?.months ?? [];
-  const currentMonthData =
-    monthsCurrentYear.find((m: any) => m.monthNumber === currentMonthNumber) ?? null;
-
-  const currentMonthSentTotal = currentMonthData ? n((currentMonthData as any).audience) : 0;
-  const currentMonthSentSms = currentMonthData ? n((currentMonthData as any).audienceSms) : 0;
-  const currentMonthSentMms = currentMonthData ? n((currentMonthData as any).audienceMms) : 0;
-
-  const isLoadingCurrentMonth = messagesCurrentYearQ.isLoading;
+  // Último bucket (el actual) contra el promedio de los anteriores.
+  const lastMsg = msgSeries[msgSeries.length - 1];
+  const prevMsg = msgSeries.slice(0, -1);
+  const prevAvg = prevMsg.length ? prevMsg.reduce((a, b) => a + b.total, 0) / prevMsg.length : 0;
+  const deltaPct = lastMsg && prevAvg > 0 ? ((lastMsg.total - prevAvg) / prevAvg) * 100 : null;
+  const unit = { day: 'días', week: 'semanas', month: 'meses' }[granularity];
+  const currentLabel = { day: 'Hoy', week: 'Semana actual', month: 'Mes actual' }[granularity];
 
   // =====================
-  //  Chart principal: últimos N meses vs mes actual
+  //  Audiencia (participants)
   // =====================
-  const monthsPrevYear = messagesPrevYearQ.data?.months ?? [];
+  const audSeries = audienceQ.data?.series ?? [];
+  const aLabels = audSeries.map((s) => bucketLabel(s.key, granularity));
+  const aNew = audSeries.map((s) => n(s.newCustomers));
+  const aExisting = audSeries.map((s) => n(s.existingCustomers));
 
-  const rangeData = Array.from({ length: rangeMonths + 1 }, (_, i) => rangeMonths - i).map(
-    (back) => {
-      let m = currentMonthNumber - back;
-      let months = monthsCurrentYear;
-      let y = currentYear;
-      if (m <= 0) {
-        m += 12;
-        months = monthsPrevYear;
-        y = currentYear - 1;
-      }
-      const row: any = months.find((x: any) => x.monthNumber === m) ?? null;
-      return {
-        label: `${row?.monthName ?? m}${y !== currentYear ? ` '${String(y).slice(2)}` : ''}`,
-        sms: n(row?.audienceSms),
-        mms: n(row?.audienceMms),
-        total: n(row?.audience),
-        isCurrent: back === 0,
-      };
-    }
-  );
-
-  const isLoadingRange =
-    messagesCurrentYearQ.isLoading ||
-    (currentMonthNumber <= rangeMonths && messagesPrevYearQ.isLoading);
-  const prevAvg =
-    rangeData.slice(0, rangeMonths).reduce((a, b) => a + b.total, 0) / rangeMonths;
-  const currentTotal = rangeData[rangeData.length - 1].total;
-  const deltaPct = prevAvg > 0 ? ((currentTotal - prevAvg) / prevAvg) * 100 : null;
-
-  // =====================
-  //  Audience data (participants)
-  // =====================
-  const audienceMonths = audienceQ.data?.months ?? [];
-  const aLabels = audienceMonths.map((m) => m.month);
-  const aNew = audienceMonths.map((m) => n(m.newCustomers));
-  const aExisting = audienceMonths.map((m) => n(m.existingCustomers));
-
-  const sumNew = aNew.reduce((a, b) => a + b, 0);
-  const sumExisting = aExisting.reduce((a, b) => a + b, 0);
+  const sumNew = n(audienceQ.data?.totals.newCustomers);
+  const sumExisting = n(audienceQ.data?.totals.existingCustomers);
   const sumAudience = sumNew + sumExisting;
-
   const pctNew = sumAudience > 0 ? (sumNew / sumAudience) * 100 : 0;
   const pctExisting = sumAudience > 0 ? (sumExisting / sumAudience) * 100 : 0;
 
-  // =====================
-  //  Audience via mensajes (YTD)
-  // =====================
-  const msgMonths = messagesQ.data?.months ?? [];
-  const mLabels = msgMonths.map((m: any) => m.monthName);
-
-  const mSmsAudience = msgMonths.map((m: any) => n(m.audienceSms));
-  const mMmsAudience = msgMonths.map((m: any) => n(m.audienceMms));
-  const mTotalAudience = msgMonths.map((m: any) => n(m.audience));
-
-  const totalYtdAudience = n((messagesQ.data as any)?.totalYtdAudience);
-  const totalYtdAudienceSms = n((messagesQ.data as any)?.totalYtdAudienceSms);
-  const totalYtdAudienceMms = n((messagesQ.data as any)?.totalYtdAudienceMms);
-
   const isLoading = audienceQ.isLoading || messagesQ.isLoading;
+  const fileBase = `reports_${granularity}_${range.from}_${range.to}${storeId ? `_store_${storeId}` : ''}`;
+  const pct = (part: number) => (msgTotals.total > 0 ? ((part / msgTotals.total) * 100).toFixed(1) : '0.0');
 
   // =====================
   //  Export PDF
@@ -230,17 +241,11 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
     const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
 
     doc.setFontSize(16);
-    doc.text(`${t('Reports')} · ${year}`, 40, 48);
+    doc.text(`${t('Reports')} · ${t(GRANULARITY_LABEL[granularity])}`, 40, 48);
 
     doc.setFontSize(11);
     doc.setTextColor(80);
-    doc.text(
-      `${t('Crecimiento de Audiencia')} + ${t('Mensajes enviados en el año')} · ${
-        storeId ? `Store: ${storeId}` : t('Todas las tiendas')
-      }`,
-      40,
-      68
-    );
+    doc.text(`${periodLabel} · ${storeId ? `Store: ${storeId}` : t('Todas las tiendas')}`, 40, 68);
 
     doc.setTextColor(20);
     doc.setFontSize(13);
@@ -249,26 +254,19 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
     doc.setFontSize(11);
     doc.setTextColor(80);
     doc.text(
-      `${t('Total nuevos')}: ${sumNew.toLocaleString()} · ${t(
-        'Total existentes'
-      )}: ${sumExisting.toLocaleString()}`,
+      `${t('Total nuevos')}: ${sumNew.toLocaleString()} · ${t('Total existentes')}: ${sumExisting.toLocaleString()} · ${t('Nuevos')}: ${pctNew.toFixed(1)}%`,
       40,
       124
     );
-    doc.text(
-      `${t('Nuevos')}: ${pctNew.toFixed(1)}% · ${t('Existentes')}: ${pctExisting.toFixed(1)}%`,
-      40,
-      142
-    );
 
     autoTable(doc, {
-      startY: 160,
-      head: [[t('Mes'), t('Nuevos'), t('Existentes'), t('Total')]],
-      body: audienceMonths.map((m) => [
-        m.month,
-        n(m.newCustomers).toLocaleString(),
-        n(m.existingCustomers).toLocaleString(),
-        (n(m.newCustomers) + n(m.existingCustomers)).toLocaleString(),
+      startY: 140,
+      head: [[t('Periodo'), t('Nuevos'), t('Existentes'), t('Total')]],
+      body: audSeries.map((s) => [
+        bucketLabel(s.key, granularity),
+        n(s.newCustomers).toLocaleString(),
+        n(s.existingCustomers).toLocaleString(),
+        n(s.total).toLocaleString(),
       ]),
       styles: { fontSize: 9 },
       headStyles: { fillColor: [20, 20, 20] },
@@ -280,31 +278,32 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
 
     doc.setFontSize(13);
     doc.setTextColor(20);
-    doc.text(`${t('Mensajes enviados en el año')}`, 40, afterAudienceY);
+    doc.text(`${t('Mensajes enviados')}`, 40, afterAudienceY);
 
     doc.setFontSize(11);
     doc.setTextColor(80);
     doc.text(
-      `Total YTD Audience: ${totalYtdAudience.toLocaleString()} · SMS: ${totalYtdAudienceSms.toLocaleString()} · MMS: ${totalYtdAudienceMms.toLocaleString()}`,
+      `Total: ${msgTotals.total.toLocaleString()} · SMS: ${msgTotals.sms.toLocaleString()} · MMS: ${msgTotals.mms.toLocaleString()} · RCS: ${msgTotals.rcs.toLocaleString()} · ${t('Campañas')}: ${msgTotals.campaigns.toLocaleString()}`,
       40,
       afterAudienceY + 18
     );
 
     autoTable(doc, {
       startY: afterAudienceY + 34,
-      head: [[t('Mes'), 'Audience SMS', 'Audience MMS', 'Audience total']],
-      body: msgMonths.map((m: any) => [
-        m.monthName,
-        n(m.audienceSms).toLocaleString(),
-        n(m.audienceMms).toLocaleString(),
-        n(m.audience).toLocaleString(),
+      head: [[t('Periodo'), 'SMS', 'MMS', 'RCS', 'Total', t('Campañas')]],
+      body: msgSeries.map((s) => [
+        bucketLabel(s.key, granularity),
+        s.sms.toLocaleString(),
+        s.mms.toLocaleString(),
+        s.rcs.toLocaleString(),
+        s.total.toLocaleString(),
+        s.campaigns.toLocaleString(),
       ]),
       styles: { fontSize: 9 },
       headStyles: { fillColor: [20, 20, 20] },
     });
 
-    const blob = doc.output('blob');
-    saveAs(blob, `reports_${year}${storeId ? `_store_${storeId}` : ''}.pdf`);
+    saveAs(doc.output('blob'), `${fileBase}.pdf`);
   }
 
   // =====================
@@ -313,59 +312,40 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
   async function exportExcel() {
     const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
-
-    const wsAudienceData = [
-      ['Year', year],
+    const head = [
+      ['Granularity', granularity],
+      ['From', range.from],
+      ['To', range.to],
+      ...(storeId ? [['StoreId', storeId]] : []),
       [],
-      ['Month', 'New', 'Existing', 'Total'],
-      ...audienceMonths.map((m) => [
-        m.month,
-        n(m.newCustomers),
-        n(m.existingCustomers),
-        n(m.newCustomers) + n(m.existingCustomers),
-      ]),
-      [],
-      ['Totals', sumNew, sumExisting, sumAudience],
-      ['Percentages', pctNew, pctExisting, 100],
     ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(wsAudienceData), 'Audience Growth');
-
-    const wsAudienceMessagesData = [
-      ['Year', year],
-      ['Scope', (messagesQ.data as any)?.scope ?? 'all_stores'],
-      storeId ? ['StoreId', storeId] : [],
-      [],
-      ['Month', 'audienceSms', 'audienceMms', 'audienceTotal'],
-      ...msgMonths.map((m: any) => [
-        m.monthName,
-        n(m.audienceSms),
-        n(m.audienceMms),
-        n(m.audience),
-      ]),
-      [],
-      ['Totals Audience', totalYtdAudienceSms, totalYtdAudienceMms, totalYtdAudience],
-    ].filter((r) => r.length > 0);
 
     XLSX.utils.book_append_sheet(
       wb,
-      XLSX.utils.aoa_to_sheet(wsAudienceMessagesData),
-      'Audience via Messages YTD'
+      XLSX.utils.aoa_to_sheet([
+        ...head,
+        ['Period', 'New', 'Existing', 'Total'],
+        ...audSeries.map((s) => [s.key, n(s.newCustomers), n(s.existingCustomers), n(s.total)]),
+        [],
+        ['Totals', sumNew, sumExisting, sumAudience],
+      ]),
+      'Audience'
+    );
+
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.aoa_to_sheet([
+        ...head,
+        ['Period', 'SMS', 'MMS', 'RCS', 'Total', 'Campaigns'],
+        ...msgSeries.map((s) => [s.key, s.sms, s.mms, s.rcs, s.total, s.campaigns]),
+        [],
+        ['Totals', msgTotals.sms, msgTotals.mms, msgTotals.rcs, msgTotals.total, msgTotals.campaigns],
+      ]),
+      'Messages'
     );
 
     const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    saveAs(
-      new Blob([out], { type: 'application/octet-stream' }),
-      `reports_${year}${storeId ? `_store_${storeId}` : ''}.xlsx`
-    );
-  }
-
-  // =====================
-  //  Lista de años (2025 → año actual)
-  // =====================
-  const currentYearForSelect = new Date().getFullYear();
-  const years: number[] = [];
-  for (let y = 2025; y <= currentYearForSelect; y += 1) {
-    years.push(y);
+    saveAs(new Blob([out], { type: 'application/octet-stream' }), `${fileBase}.xlsx`);
   }
 
   const chartAxisSx = {
@@ -389,17 +369,23 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
     '.MuiChartsGrid-line': { stroke: theme.palette.divider },
   } as const;
 
+  const tickLabelStyle = {
+    fontSize: 11,
+    fontWeight: 700,
+    fill: theme.palette.text.secondary as string,
+  };
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-      {/* Header card */}
+      {/* Header card + filtros */}
       <Paper
         elevation={0}
         sx={cardSx}
       >
         <Stack
-          direction={{ xs: 'column', md: 'row' }}
+          direction={{ xs: 'column', lg: 'row' }}
           spacing={2}
-          alignItems={{ xs: 'flex-start', md: 'center' }}
+          alignItems={{ xs: 'flex-start', lg: 'center' }}
           justifyContent="space-between"
           sx={cardHeaderSx}
         >
@@ -425,49 +411,91 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
                 variant="subtitle1"
                 sx={{ fontWeight: 700, lineHeight: 1.2 }}
               >
-                {t('Resumen anual')} · {year}
+                {t('Resumen')} {t(GRANULARITY_LABEL[granularity]).toLowerCase()}
               </Typography>
               <Typography
                 variant="caption"
                 color="text.secondary"
               >
-                {storeId ? t('Por tienda') : t('Todas las tiendas')}
+                {periodLabel} · {storeId ? t('Por tienda') : t('Todas las tiendas')}
               </Typography>
             </Box>
-            <Chip
-              size="small"
-              label={storeId ? t('Por tienda') : t('Todas las tiendas')}
-              sx={{
-                fontWeight: 700,
-                borderRadius: 2,
-                color: SWEEP_PINK,
-                bgcolor: alpha(SWEEP_PINK, 0.1),
-              }}
-            />
           </Stack>
 
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
             spacing={1.5}
             alignItems={{ xs: 'stretch', sm: 'center' }}
+            flexWrap="wrap"
+            useFlexGap
           >
+            <ToggleButtonGroup
+              exclusive
+              size="small"
+              value={granularity}
+              onChange={(_, g: ReportGranularity | null) => g && applyPreset(g, DEFAULT_PRESET[g])}
+            >
+              {(['day', 'week', 'month'] as const).map((g) => (
+                <ToggleButton
+                  key={g}
+                  value={g}
+                  sx={{ px: 1.75, fontWeight: 700, textTransform: 'none' }}
+                >
+                  {t(GRANULARITY_LABEL[g])}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+
             <TextField
               select
               size="small"
-              label={t('Año')}
-              value={year}
-              onChange={(e) => onYearChange(Number(e.target.value))}
-              sx={{ minWidth: 120 }}
+              label={t('Periodo')}
+              value={preset}
+              onChange={(e) => e.target.value !== 'custom' && applyPreset(granularity, e.target.value)}
+              sx={{ minWidth: 190 }}
             >
+              {PRESETS[granularity].map((p) => (
+                <MenuItem
+                  key={p.value}
+                  value={p.value}
+                >
+                  {t(p.label)}
+                </MenuItem>
+              ))}
               {years.map((y) => (
                 <MenuItem
                   key={y}
-                  value={y}
+                  value={`year:${y}`}
                 >
-                  {y}
+                  {t('Año')} {y}
                 </MenuItem>
               ))}
+              <MenuItem
+                value="custom"
+                disabled
+              >
+                {t('Personalizado')}
+              </MenuItem>
             </TextField>
+
+            <TextField
+              type="date"
+              size="small"
+              label={t('Desde')}
+              value={range.from}
+              onChange={(e) => setCustomDate('from', e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              inputProps={{ max: range.to }}
+            />
+            <TextField
+              type="date"
+              size="small"
+              label={t('Hasta')}
+              value={range.to}
+              onChange={(e) => setCustomDate('to', e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              inputProps={{ min: range.from, max: ymd(new Date()) }}
+            />
 
             <Stack
               direction="row"
@@ -512,7 +540,7 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
         </Stack>
       </Paper>
 
-      {/* Chart principal: mensajes por mes con rango filtrable */}
+      {/* Chart principal: mensajes por bucket, SMS · MMS · RCS apilados */}
       <Paper
         elevation={0}
         sx={cardSx}
@@ -529,87 +557,64 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
               variant="subtitle2"
               fontWeight={700}
             >
-              {t('Mensajes por mes')} · SMS · MMS · Total
+              {t('Mensajes')} {t(GRANULARITY_LABEL[granularity]).toLowerCase()} · SMS · MMS · RCS
             </Typography>
             <Typography
               variant="caption"
               color="text.secondary"
             >
-              {t('Comparado contra el mes actual')}
+              {t('Audiencia enviada por periodo')}
             </Typography>
           </Box>
-          <Stack
-            direction="row"
-            spacing={1.5}
-            alignItems="center"
-          >
-            {!isLoadingRange && deltaPct !== null && (
-              <Chip
-                size="small"
-                label={`${deltaPct >= 0 ? '+' : ''}${deltaPct.toFixed(1)}% vs promedio ${rangeMonths} meses`}
-                sx={{
-                  fontWeight: 700,
-                  borderRadius: 2,
-                  color: deltaPct >= 0 ? theme.palette.success.main : theme.palette.error.main,
-                  bgcolor: alpha(
-                    deltaPct >= 0 ? theme.palette.success.main : theme.palette.error.main,
-                    0.1
-                  ),
-                }}
-              />
-            )}
-            <TextField
-              select
+          {!messagesQ.isLoading && deltaPct !== null && (
+            <Chip
               size="small"
-              label={t('Rango')}
-              value={rangeMonths}
-              onChange={(e) => setRangeMonths(Number(e.target.value))}
-              sx={{ minWidth: 160 }}
-            >
-              <MenuItem value={3}>{t('Últimos 3 meses')}</MenuItem>
-              <MenuItem value={6}>{t('Últimos 6 meses')}</MenuItem>
-              <MenuItem value={12}>{t('Últimos 12 meses')}</MenuItem>
-            </TextField>
-          </Stack>
+              label={`${t(currentLabel)}: ${deltaPct >= 0 ? '+' : ''}${deltaPct.toFixed(1)}% vs promedio ${prevMsg.length} ${unit}`}
+              sx={{
+                fontWeight: 700,
+                borderRadius: 2,
+                color: deltaPct >= 0 ? theme.palette.success.main : theme.palette.error.main,
+                bgcolor: alpha(
+                  deltaPct >= 0 ? theme.palette.success.main : theme.palette.error.main,
+                  0.1
+                ),
+              }}
+            />
+          )}
         </Stack>
         <Box sx={{ p: 2.5 }}>
-          {isLoadingRange ? (
+          {messagesQ.isLoading ? (
             <Skeleton
               variant="rectangular"
               height={360}
             />
+          ) : messagesQ.isError ? (
+            <Box sx={{ height: 360, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Typography color="error" variant="body2">{t('No se pudieron cargar los mensajes')}</Typography>
+            </Box>
           ) : (
             <BarChart
               height={360}
               margin={{ left: smUp ? 62 : 10, top: 46, right: smUp ? 24 : 10, bottom: 24 }}
-              xAxis={[
-                {
-                  scaleType: 'band',
-                  data: rangeData.map((m) =>
-                    m.isCurrent ? `${m.label} · ${t('actual')}` : m.label
-                  ),
-                  tickLabelStyle: {
-                    fontSize: 12,
-                    fontWeight: 700,
-                    fill: theme.palette.text.secondary as string,
-                  },
-                },
-              ]}
+              xAxis={[{ scaleType: 'band', data: mLabels, tickLabelStyle }]}
               series={[
                 {
                   label: 'SMS',
-                  data: rangeData.map((m) => m.sms),
+                  data: msgSeries.map((s) => s.sms),
+                  stack: 'msg',
                   color: isDark ? theme.palette.grey[300] : theme.palette.grey[500],
                 },
                 {
                   label: 'MMS',
-                  data: rangeData.map((m) => m.mms),
-                  color: isDark ? theme.palette.grey[500] : theme.palette.grey[700],
+                  data: msgSeries.map((s) => s.mms),
+                  stack: 'msg',
+                  color: SWEEP_PINK,
                 },
                 {
-                  label: 'Total',
-                  data: rangeData.map((m) => m.total),
-                  color: SWEEP_PINK,
+                  label: 'RCS',
+                  data: msgSeries.map((s) => s.rcs),
+                  stack: 'msg',
+                  color: RCS_COLOR,
                 },
               ]}
               sx={chartAxisSx}
@@ -618,7 +623,7 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
         </Box>
       </Paper>
 
-      {/* Global KPI cards */}
+      {/* KPI cards */}
       <Stack
         direction={{ xs: 'column', md: 'row' }}
         spacing={2}
@@ -715,7 +720,7 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
           </Box>
         </Paper>
 
-        {/* Mensajes del mes actual */}
+        {/* Mensajes del bucket actual (hoy / semana / mes) */}
         <Paper
           elevation={0}
           sx={{ ...cardSx, flex: 1 }}
@@ -741,11 +746,11 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
               variant="subtitle2"
               fontWeight={700}
             >
-              {t('Mensajes del mes actual')}
+              {t('Mensajes')} · {lastMsg ? bucketLabel(lastMsg.key, granularity) : t(currentLabel)}
             </Typography>
           </Stack>
           <Box sx={{ p: 2.5 }}>
-            {isLoadingCurrentMonth ? (
+            {messagesQ.isLoading ? (
               <Skeleton
                 height={44}
                 width={160}
@@ -759,13 +764,14 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
                   variant="h4"
                   sx={{ fontWeight: 900 }}
                 >
-                  {formatInt(currentMonthSentTotal)}
+                  {formatInt(n(lastMsg?.total))}
                 </Typography>
                 <Typography
                   variant="caption"
                   color="text.secondary"
                 >
-                  SMS: {formatInt(currentMonthSentSms)} · MMS: {formatInt(currentMonthSentMms)}
+                  SMS: {formatInt(n(lastMsg?.sms))} · MMS: {formatInt(n(lastMsg?.mms))} · RCS:{' '}
+                  {formatInt(n(lastMsg?.rcs))}
                 </Typography>
               </Stack>
             )}
@@ -773,7 +779,7 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
         </Paper>
       </Stack>
 
-      {/* Annual KPI summary */}
+      {/* Resumen del periodo */}
       <Paper
         elevation={0}
         sx={cardSx}
@@ -799,7 +805,7 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
             variant="subtitle2"
             fontWeight={700}
           >
-            {t('Resumen del año')} · {year}
+            {t('Resumen del periodo')} · {periodLabel}
           </Typography>
         </Stack>
         <Box sx={{ p: 2.5 }}>
@@ -837,8 +843,8 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
                     variant="body2"
                     color="text.secondary"
                   >
-                    {t('Nuevos')}: {pctNew.toFixed(1)}% · {t('Existentes')}:{' '}
-                    {pctExisting.toFixed(1)}%
+                    {t('Nuevos')}: {sumNew.toLocaleString()} ({pctNew.toFixed(1)}%) · {t('Existentes')}:{' '}
+                    {sumExisting.toLocaleString()} ({pctExisting.toFixed(1)}%)
                   </Typography>
                 </Stack>
               )}
@@ -856,7 +862,7 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
                 color="text.secondary"
                 sx={{ letterSpacing: 1 }}
               >
-                {t('Mensajes enviados en el año')}
+                {t('Mensajes enviados')}
               </Typography>
               {messagesQ.isLoading ? (
                 <Skeleton
@@ -874,14 +880,16 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
                     variant="h3"
                     sx={{ fontWeight: 950 }}
                   >
-                    {totalYtdAudience.toLocaleString()}
+                    {msgTotals.total.toLocaleString()}
                   </Typography>
                   <Typography
                     variant="body2"
                     color="text.secondary"
                   >
-                    SMS: {totalYtdAudienceSms.toLocaleString()} · MMS:{' '}
-                    {totalYtdAudienceMms.toLocaleString()}
+                    SMS: {msgTotals.sms.toLocaleString()} ({pct(msgTotals.sms)}%) · MMS:{' '}
+                    {msgTotals.mms.toLocaleString()} ({pct(msgTotals.mms)}%) · RCS:{' '}
+                    {msgTotals.rcs.toLocaleString()} ({pct(msgTotals.rcs)}%) · {t('Campañas')}:{' '}
+                    {msgTotals.campaigns.toLocaleString()}
                   </Typography>
                 </Stack>
               )}
@@ -900,7 +908,7 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
             variant="subtitle2"
             fontWeight={700}
           >
-            {t('Crecimiento de Audiencia')} · {year}
+            {t('Crecimiento de Audiencia')} · {t(GRANULARITY_LABEL[granularity])}
           </Typography>
           <Typography
             variant="caption"
@@ -915,27 +923,20 @@ function YearlyReportsSection({ year, onYearChange, storeId }: YearlyReportsSect
               variant="rectangular"
               height={320}
             />
-          ) : aLabels.length === 0 ? (
+          ) : sumAudience === 0 ? (
             <Box sx={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Typography color="text.secondary" variant="body2">No hay datos de audiencia para {year}</Typography>
+              <Typography color="text.secondary" variant="body2">
+                {t('No hay datos de audiencia para')} {periodLabel}
+              </Typography>
             </Box>
           ) : (
             <BarChart
               height={320}
               margin={{ left: smUp ? 62 : 10, top: 24, right: smUp ? 24 : 10, bottom: 24 }}
-              xAxis={[
-                {
-                  scaleType: 'band',
-                  data: aLabels,
-                  tickLabelStyle: {
-                    fill: theme.palette.text.secondary as string,
-                    fontWeight: 600,
-                  },
-                },
-              ]}
+              xAxis={[{ scaleType: 'band', data: aLabels, tickLabelStyle }]}
               series={[
-                { label: t('Nuevos'), data: aNew, color: SWEEP_PINK },
-                { label: t('Existentes'), data: aExisting, color: theme.palette.grey[500] },
+                { label: t('Nuevos'), data: aNew, stack: 'aud', color: SWEEP_PINK },
+                { label: t('Existentes'), data: aExisting, stack: 'aud', color: theme.palette.grey[500] },
               ]}
               sx={chartAxisSx}
             />

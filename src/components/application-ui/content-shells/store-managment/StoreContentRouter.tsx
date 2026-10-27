@@ -56,6 +56,7 @@ const StoreQuickbooksPanel = lazy<any>(() => import('./panel/quickbooks/StoreQui
 const QrDuetMUI = lazy<any>(() => import('./panel/qr/QrContainer'));
 const StoreAudienceOverview = lazy<any>(() => import('./panel/sweepstakes/StoreAudienceOverview'));
 const StoreSweepstakeStats = lazy<any>(() => import('./panel/sweepstakes/StoreSweepstakeStats'));
+const OptinConfirmationCard = lazy<any>(() => import('./panel/sweepstakes/OptinConfirmationCard'));
 const WelcomeCouponsPanel = lazy<any>(() => import('./panel/welcome-coupons/WelcomeCouponsPanel'));
 const ReferralRewardsPanel = lazy<any>(() => import('./panel/referral-rewards/ReferralRewardsPanel'));
 const StoreBrandPanel = lazy<any>(() => import('./panel/brand/StoreBrandPanel'));
@@ -341,6 +342,11 @@ export const StoreContentRouter: FC<Props> = ({
             Sorteo
           </Typography>
           <ActiveSweepstakeCard storeId={storeId} />
+          {store && (
+            <Box mt={4}>
+              <OptinConfirmationCard store={store} />
+            </Box>
+          )}
           <Box mt={4}>
             <StoreAudienceOverview storeId={storeId} />
           </Box>

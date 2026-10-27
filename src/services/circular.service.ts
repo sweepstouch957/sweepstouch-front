@@ -665,6 +665,8 @@ export class CircularService {
       q?: string;
       circularId?: string;
       when?: 'live' | 'next';
+      /** Panel: sólo visibles, sólo ocultos o sólo los que esperan fecha. */
+      show?: 'visible' | 'hidden' | 'pending';
     }
   ): Promise<{
     storeSlug: string;
@@ -680,6 +682,11 @@ export class CircularService {
       params: {
         ...(opts?.limit ? { limit: opts.limit, page: opts.page || 1 } : {}),
         ...(opts?.q?.trim() ? { q: opts.q.trim() } : {}),
+        ...(opts?.show === 'pending'
+          ? { pending: 'true' }
+          : opts?.show
+            ? { visible: String(opts.show === 'visible') }
+            : {}),
         // Panel por fuente: sólo los productos de ese flyer/circular (vigente o programado).
         ...(opts?.circularId ? { circularId: opts.circularId, when: opts.when || 'live' } : {}),
       },

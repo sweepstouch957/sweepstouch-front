@@ -3,13 +3,23 @@
 /** Búsqueda + acciones secundarias del catálogo. La principal (sincronizar visibilidad) va
  *  en la cabecera; lo demás (IA sobre el catálogo, borrar todo) va en un menú. */
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
-import { Button, InputAdornment, Stack, TextField } from '@mui/material';
+import { Button, Chip, InputAdornment, Stack, TextField } from '@mui/material';
 import { MoreMenu, type MoreMenuItem } from '../panelUi';
+import type { CatalogShow } from './constants';
 import { plural } from './utils';
+
+const SHOW_OPTIONS: { label: string; value: CatalogShow | undefined }[] = [
+  { label: 'Todos', value: undefined },
+  { label: 'Sólo visibles', value: 'visible' },
+  { label: 'Ocultos', value: 'hidden' },
+  { label: 'Esperan fecha', value: 'pending' },
+];
 
 export function CatalogToolbar({
   search,
   onSearch,
+  show,
+  onShow,
   missingRegular,
   filling,
   onFillRegulars,
@@ -18,6 +28,8 @@ export function CatalogToolbar({
 }: {
   search: string;
   onSearch: (v: string) => void;
+  show?: CatalogShow;
+  onShow: (v: CatalogShow | undefined) => void;
   /** Productos de la página sin precio regular (se calcula +25%). */
   missingRegular: number;
   filling: boolean;
@@ -47,6 +59,22 @@ export function CatalogToolbar({
         }}
         sx={{ width: { xs: '100%', sm: 280 } }}
       />
+      <Stack
+        direction="row"
+        gap={0.75}
+        flexWrap="wrap"
+      >
+        {SHOW_OPTIONS.map((o) => (
+          <Chip
+            key={o.label}
+            size="small"
+            label={o.label}
+            color={show === o.value ? 'primary' : 'default'}
+            variant={show === o.value ? 'filled' : 'outlined'}
+            onClick={() => onShow(o.value)}
+          />
+        ))}
+      </Stack>
       <Stack
         direction="row"
         flexWrap="wrap"

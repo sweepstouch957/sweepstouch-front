@@ -18,7 +18,7 @@ import { CatalogNotices } from './catalog-notices';
 import { CatalogTable } from './catalog-table';
 import { CatalogToolbar } from './catalog-toolbar';
 import { ClearCatalogDialog } from './clear-catalog-dialog';
-import { PAGE_SIZE, PASTE_HINT } from './constants';
+import { PAGE_SIZE, PASTE_HINT, type CatalogShow } from './constants';
 import { DeleteProductDialog } from './delete-product-dialog';
 import { FillDetailsDialog } from './fill-details-dialog';
 import { RescanPhotosDialog } from './rescan-photos-dialog';
@@ -44,8 +44,9 @@ type Dialog = 'clear' | 'sync' | 'rescan' | 'details' | null;
 export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [show, setShow] = useState<CatalogShow | undefined>();
   const deferredSearch = useDeferredValue(search);
-  const catalog = useCatalogPage(storeSlug, page, deferredSearch);
+  const catalog = useCatalogPage(storeSlug, page, deferredSearch, show);
   const categoryOptions = useCategoryOptions(storeSlug);
   const cleaning = !!catalog.data?.cleaning;
 
@@ -190,6 +191,11 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
             search={search}
             onSearch={(v) => {
               setSearch(v);
+              setPage(1);
+            }}
+            show={show}
+            onShow={(v) => {
+              setShow(v);
               setPage(1);
             }}
             missingRegular={missingRegular.length}

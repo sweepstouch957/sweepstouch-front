@@ -215,6 +215,32 @@ export interface YtdMonthlyMonth {
   audience: number;
 }
 
+export type ReportGranularity = 'day' | 'week' | 'month';
+
+export interface ReportSeriesParams {
+  granularity: ReportGranularity;
+  from?: string; // YYYY-MM-DD
+  to?: string;
+  storeId?: string;
+}
+
+export interface SentSeriesPoint {
+  key: string; // YYYY-MM-DD (día / lunes de la semana) o YYYY-MM
+  sms: number;
+  mms: number;
+  rcs: number;
+  total: number;
+  campaigns: number;
+}
+
+export interface SentSeriesResponse {
+  granularity: ReportGranularity;
+  from: string;
+  to: string;
+  totals: Omit<SentSeriesPoint, 'key'>;
+  series: SentSeriesPoint[];
+}
+
 export interface YtdMonthlyResponse {
   storeId: string | null;
   scope: 'by_store' | 'all_stores';
@@ -1004,6 +1030,11 @@ class CampaignClient {
 
     const res = await api.get(path, { params });
     return res.data as YtdMonthlyResponse;
+  }
+
+  async getSentSeries(params: ReportSeriesParams): Promise<SentSeriesResponse> {
+    const res = await api.get('/campaigns/messages/sent/series', { params });
+    return res.data as SentSeriesResponse;
   }
 
   /* ===================== ✅ AUDIENCE (CURRENT) ===================== */
