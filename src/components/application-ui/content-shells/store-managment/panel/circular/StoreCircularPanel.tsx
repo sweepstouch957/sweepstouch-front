@@ -43,6 +43,7 @@ export default function StoreCircularPanel({
   listsEnabled,
   listsLinkUrl,
   flyerOnly,
+  circularPriority,
 }: PanelProps) {
   const [tab, setTab] = useState<PanelTab>('circular');
   const openUpcoming = useCallback(() => setTab('upcoming'), []);
@@ -114,6 +115,10 @@ export default function StoreCircularPanel({
       {tab === 'config' && (
         <ConfigSection
           storeId={storeId}
+          storeSlug={storeSlug}
+          flyerOnly={flyerOnly}
+          circularssUrl={circularssUrl}
+          circularPriority={circularPriority}
           listsEnabled={listsEnabled}
           listsLinkUrl={listsLinkUrl}
           listsPhone={listsPhone}

@@ -29,6 +29,8 @@ export type PanelProps = {
   listsLinkUrl?: string;
   /** Store.flyerOnly: el circular semanal no carga; los productos salen sólo de flyers. */
   flyerOnly?: boolean;
+  /** Qué circular manda en el linktree (Store.circularPriority). */
+  circularPriority?: 'circularss' | 'panel';
 };
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });

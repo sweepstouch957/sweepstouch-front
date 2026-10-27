@@ -62,6 +62,45 @@ export function ProductFields({
           {...field(register, 'size')}
         />
       </Stack>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        gap={1}
+      >
+        <TextField
+          label="Categoría"
+          size="small"
+          fullWidth
+          placeholder="meat"
+          {...field(register, 'category')}
+        />
+        <TextField
+          label="Departamento"
+          size="small"
+          fullWidth
+          placeholder="Carnicería"
+          {...field(register, 'department')}
+        />
+      </Stack>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        gap={1}
+      >
+        <TextField
+          label="Unidad de venta"
+          size="small"
+          fullWidth
+          placeholder="lb, each, pack"
+          {...field(register, 'saleUnit')}
+        />
+        <TextField
+          label="Código de barras"
+          size="small"
+          fullWidth
+          placeholder="Opcional"
+          inputProps={{ inputMode: 'numeric' }}
+          {...field(register, 'barcode')}
+        />
+      </Stack>
       {!isNew && (
         <TextField
           label="Otros nombres con que lo leen"

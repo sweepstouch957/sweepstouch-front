@@ -255,6 +255,7 @@ export const StoreContentRouter: FC<Props> = ({
           listsEnabled={(store as any).listsEnabled !== false}
           listsLinkUrl={(store as any).listsLinkUrl || ''}
           flyerOnly={(store as any).flyerOnly === true}
+          circularPriority={store.circularPriority || 'circularss'}
         />
       );
 

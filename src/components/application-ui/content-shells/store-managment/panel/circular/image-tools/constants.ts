@@ -15,6 +15,10 @@ export type ProductFormValues = {
   // como marca (es el grado): acá se corrige.
   brand: string;
   size: string;
+  category: string;
+  department: string;
+  saleUnit: string;
+  barcode: string;
   price: string;
   regular: string;
   // Letra chica del flyer. La IA la lee, pero acá se corrige: es lo que evita el reclamo
