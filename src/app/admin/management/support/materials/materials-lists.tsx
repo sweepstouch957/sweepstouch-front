@@ -45,13 +45,15 @@ import {
   useDebouncedValue,
 } from './materials-shared';
 import { stateLabels, storeAddress, typeLabels } from './materials-utils';
+import { MaterialStoreSearch } from './materials-store-search';
 
 export function EquipmentView({ active }: { active: boolean }) {
-  const { scope, enabled, materials } = useMaterials();
+  const { scope, enabled, materials, stores } = useMaterials();
   const [filters, setFilters] = useState({
     query: '',
     material: '',
     state: '' as api.EquipmentState | '',
+    store: '',
     page: 1,
   });
   const query = useDebouncedValue(filters.query);
@@ -61,6 +63,7 @@ export function EquipmentView({ active }: { active: boolean }) {
     q: query || undefined,
     material: filters.material || undefined,
     estado: filters.state || undefined,
+    tiendaId: filters.store || undefined,
   };
   const result = useQuery({
     queryKey: [...scope, 'equipment', params],
@@ -127,6 +130,12 @@ export function EquipmentView({ active }: { active: boolean }) {
               </MenuItem>
             ))}
           </TextField>
+          <MaterialStoreSearch
+            stores={stores}
+            value={filters.store}
+            onChange={(store) => setFilters({ ...filters, store, page: 1 })}
+            helperText="Filtra los equipos del inventario por tienda."
+          />
         </Box>
       </Section>
       <Section
@@ -309,23 +318,12 @@ export function HistoryView({ active }: { active: boolean }) {
               </MenuItem>
             ))}
           </TextField>
-          <TextField
-            label="Tienda"
-            select
-            size="small"
+          <MaterialStoreSearch
+            stores={stores}
             value={filters.store}
-            onChange={(event) => setFilters({ ...filters, store: event.target.value, page: 1 })}
-          >
-            <MenuItem value="">Todas</MenuItem>
-            {stores.map((store) => (
-              <MenuItem
-                key={store.id}
-                value={store.id}
-              >
-                {store.nombre}
-              </MenuItem>
-            ))}
-          </TextField>
+            onChange={(store) => setFilters({ ...filters, store, page: 1 })}
+            helperText="Busca por nombre o dirección. Limpia la selección para ver todas las tiendas."
+          />
           <TextField
             label="Desde"
             type="date"

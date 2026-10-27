@@ -21,7 +21,9 @@ import { useMemo, useRef, useState, type FormEvent } from 'react';
 import { panelDivider } from 'src/components/application-ui/content-shells/store-managment/panel-kit';
 import { ButtonSoft } from 'src/components/base/styles/button-soft';
 import { useMaterials } from './materials-context';
+import { movementReason } from './materials-movement-utils';
 import { grid3, rowLayout, Section } from './materials-shared';
+import { MaterialStoreSearch } from './materials-store-search';
 import {
   localDate,
   movementItems,
@@ -31,19 +33,29 @@ import {
   typeLabels,
   type FormItem,
 } from './materials-utils';
+import { WarehouseImeis } from './materials-warehouse-imeis';
+
+const materialPriority: Record<string, number> = { tablet: 0, impresora: 1, router: 2 };
 
 export function MovementView({
+  active,
   selectedStore,
   setSelectedStore,
   type,
   setType,
 }: {
+  active: boolean;
   selectedStore: string;
   setSelectedStore: (value: string) => void;
   type: api.MovementKind;
   setType: (value: api.MovementKind) => void;
 }) {
   const { materials, stores, inventory, busy, write, reportError } = useMaterials();
+  const orderedMaterials = useMemo(
+    () =>
+      [...materials].sort((a, b) => (materialPriority[a.id] ?? 3) - (materialPriority[b.id] ?? 3)),
+    [materials]
+  );
   const materialById = useMemo(() => new Map(materials.map((row) => [row.id, row])), [materials]);
   const stockById = useMemo(
     () => new Map(inventory.docs.map((row) => [row.id, row.bodega])),
@@ -52,7 +64,7 @@ export function MovementView({
   const nextId = useRef(2);
   const makeItem = (id: number): FormItem => ({
     id,
-    material: materials[0]?.id || '',
+    material: orderedMaterials[0]?.id || '',
     quantity: 1,
     condition: 'buena',
     serialText: '',
@@ -62,6 +74,7 @@ export function MovementView({
     date: localDate(),
     reason: reasons[type][0],
     reasonType: type,
+    otherReason: '',
     person: '',
     note: '',
   });
@@ -71,7 +84,7 @@ export function MovementView({
     setItems(items.map((row) => (row.id === id ? { ...row, ...patch } : row)));
   const changeType = (value: api.MovementKind) => {
     setType(value);
-    setForm({ ...form, reason: reasons[value][0], reasonType: value });
+    setForm({ ...form, reason: reasons[value][0], reasonType: value, otherReason: '' });
   };
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -84,7 +97,7 @@ export function MovementView({
       payload = {
         tipo: type,
         fecha: form.date,
-        motivo: reason.trim(),
+        motivo: movementReason(reason, form.otherReason),
         responsable: form.person.trim(),
         tiendaId: type === 'entrada' ? null : selectedStore,
         nota: form.note.trim(),
@@ -98,7 +111,7 @@ export function MovementView({
       () => api.createMovement(payload),
       'Movimiento guardado.',
       () => {
-        setForm((current) => ({ ...current, note: '' }));
+        setForm((current) => ({ ...current, note: '', otherReason: '' }));
         setItems([makeItem(nextId.current++)]);
       }
     );
@@ -164,7 +177,7 @@ export function MovementView({
             </ToggleButton>
           ))}
         </ToggleButtonGroup>
-        <Box sx={grid3}>
+        <Box sx={{ ...grid3, alignItems: 'start' }}>
           <TextField
             label="Fecha"
             type="date"
@@ -175,23 +188,38 @@ export function MovementView({
             value={form.date}
             onChange={(event) => setForm({ ...form, date: event.target.value })}
           />
-          <TextField
-            label="Motivo"
-            select
-            size="small"
-            disabled={busy}
-            value={reason}
-            onChange={(event) => setForm({ ...form, reason: event.target.value, reasonType: type })}
-          >
-            {reasons[type].map((reason) => (
-              <MenuItem
-                key={reason}
-                value={reason}
-              >
-                {reason}
-              </MenuItem>
-            ))}
-          </TextField>
+          <Stack spacing={1.5}>
+            <TextField
+              label="Motivo"
+              select
+              size="small"
+              disabled={busy}
+              value={reason}
+              onChange={(event) =>
+                setForm({ ...form, reason: event.target.value, reasonType: type, otherReason: '' })
+              }
+            >
+              {reasons[type].map((reason) => (
+                <MenuItem
+                  key={reason}
+                  value={reason}
+                >
+                  {reason}
+                </MenuItem>
+              ))}
+            </TextField>
+            {reason === 'Otro' && (
+              <TextField
+                label="Especifica el motivo"
+                placeholder="Escribe el motivo del movimiento"
+                size="small"
+                required
+                disabled={busy}
+                value={form.otherReason}
+                onChange={(event) => setForm({ ...form, otherReason: event.target.value })}
+              />
+            )}
+          </Stack>
           <TextField
             label="Técnico / responsable"
             size="small"
@@ -202,30 +230,18 @@ export function MovementView({
           />
         </Box>
         {type !== 'entrada' && (
-          <TextField
-            label="Tienda"
-            select
-            size="small"
+          <MaterialStoreSearch
+            stores={stores}
             required
             disabled={busy}
             value={selectedStore}
-            onChange={(event) => setSelectedStore(event.target.value)}
+            onChange={setSelectedStore}
             helperText={
               selectedShop
                 ? storeAddress(selectedShop)
                 : 'Crea una tienda en la pestaña Tiendas si todavía no está registrada.'
             }
-          >
-            <MenuItem value="">Selecciona la tienda…</MenuItem>
-            {stores.map((store) => (
-              <MenuItem
-                key={store.id}
-                value={store.id}
-              >
-                {store.nombre}
-              </MenuItem>
-            ))}
-          </TextField>
+          />
         )}
         <Typography variant="subtitle2">Materiales</Typography>
         {items.map((item) => {
@@ -252,7 +268,7 @@ export function MovementView({
                   }
                 >
                   <MenuItem value="">Selecciona un material</MenuItem>
-                  {materials.map((row) => (
+                  {orderedMaterials.map((row) => (
                     <MenuItem
                       key={row.id}
                       value={row.id}
@@ -312,21 +328,45 @@ export function MovementView({
                 </Box>
               </Box>
               {material?.serie && (
-                <TextField
-                  label={material.serie === 'sim' ? 'Número de SIM e ICCID' : 'IMEI'}
-                  size="small"
-                  multiline
-                  minRows={2}
-                  required
-                  disabled={busy}
-                  value={item.serialText}
-                  onChange={(event) => updateItem(item.id, { serialText: event.target.value })}
-                  helperText={
-                    material.serie === 'sim'
-                      ? 'Un SIM por línea. Separa el ICCID opcional con coma o punto y coma.'
-                      : 'Un IMEI por línea, sin duplicados.'
-                  }
-                />
+                <Box sx={grid3}>
+                  <TextField
+                    label={
+                      material.serie === 'sim' ? 'Números de SIM e ICCID' : 'IMEI (uno o varios)'
+                    }
+                    size="small"
+                    multiline
+                    minRows={3}
+                    maxRows={6}
+                    placeholder={
+                      material.serie === 'sim'
+                        ? 'Un SIM por línea; ICCID opcional tras una coma'
+                        : 'Ejemplo:\n123456789012345\n123456789012346'
+                    }
+                    required
+                    disabled={busy}
+                    value={item.serialText}
+                    onChange={(event) => updateItem(item.id, { serialText: event.target.value })}
+                    helperText={
+                      material.serie === 'sim'
+                        ? 'Puedes pegar varios SIM a la vez, uno por línea. Separa el ICCID opcional con coma o punto y coma.'
+                        : 'Pega varios IMEI al mismo tiempo, uno por línea y sin duplicados. La cantidad se calcula automáticamente.'
+                    }
+                  />
+                  {type === 'salida' && material.id === 'tablet' && material.serie === 'imei' && (
+                    <WarehouseImeis
+                      active={active}
+                      materialId={material.id}
+                      serialText={item.serialText}
+                      disabled={busy}
+                      reservedImeis={items
+                        .filter((row) => row.id !== item.id && row.material === item.material)
+                        .flatMap((row) =>
+                          parseSeries(row.serialText, 'imei').map((serial) => serial.v)
+                        )}
+                      onChange={(serialText) => updateItem(item.id, { serialText })}
+                    />
+                  )}
+                </Box>
               )}
             </Stack>
           );

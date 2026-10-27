@@ -69,11 +69,12 @@ export default function MaterialsScreen() {
     []
   );
   const refresh = useCallback(
-    () =>
-      queryClient.invalidateQueries(
+    async () => {
+      await queryClient.invalidateQueries(
         { queryKey: scope, refetchType: 'active' },
         { throwOnError: true }
-      ),
+      );
+    },
     [queryClient, scope]
   );
   const write = useCallback(
@@ -254,6 +255,7 @@ export default function MaterialsScreen() {
                   {index === 0 && <InventoryView />}
                   {index === 1 && (
                     <MovementView
+                      active={tab === 1}
                       selectedStore={selectedStore}
                       setSelectedStore={setSelectedStore}
                       type={type}
