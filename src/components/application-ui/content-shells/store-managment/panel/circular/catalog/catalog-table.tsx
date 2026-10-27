@@ -1,7 +1,7 @@
 'use client';
 
 /** Tabla del catálogo con arrastre para ordenar. En contenedores angostos cada fila pasa a
- *  ser una grilla de 2–3 columnas con el rótulo arriba de cada dato. */
+ *  ser una tarjeta (rótulo arriba de cada dato); en tablet van 2 tarjetas por fila. */
 import type { StoreProduct } from '@/services/circular.service';
 import { DragDropContext, Droppable, type DropResult } from '@hello-pangea/dnd';
 import {
@@ -78,13 +78,32 @@ function tableSx(width: number): SxProps<Theme> {
         }
       : {
           '& thead': { display: 'none' },
-          '&, & tbody': { display: 'block' },
+          '&': { display: 'block' },
+          // Tablet (701–900): 2 productos por fila. Mobile / tablet chica: 1.
+          '& tbody':
+            width === 900
+              ? { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1.5, p: 1.5 }
+              : { display: 'block' },
+          '& tbody tr:has(td[colspan])': { gridColumn: '1 / -1' },
+          // Cada producto = tarjeta: foto + nombre arriba, campos abajo, papelera en la esquina.
           '& tbody tr:not([data-rfd-placeholder-context-id])': {
             display: 'grid',
-            gridTemplateColumns: `repeat(${width <= 420 ? 2 : 3}, minmax(0, 1fr))`,
-            borderBottom: '1px solid',
-            borderColor: 'divider',
+            position: 'relative',
+            columnGap: 1,
+            rowGap: 0.5,
             py: 1,
+            ...(width <= 420
+              ? {
+                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                  gridTemplateAreas: '"img prod" "of reg" "sav cat" "prom vis"',
+                }
+              : {
+                  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                  gridTemplateAreas: '"img prod prod" "of reg sav" "cat prom vis"',
+                }),
+            ...(width === 900
+              ? { border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.paper' }
+              : { borderBottom: '1px solid', borderColor: 'divider' }),
           },
           '& tbody tr > td': {
             display: 'block',
@@ -92,9 +111,16 @@ function tableSx(width: number): SxProps<Theme> {
             minWidth: 0,
             borderBottom: 0,
           },
-          '& tbody td:nth-of-type(2)': {
-            gridColumn: width <= 420 ? 'auto' : 'span 2',
-          },
+          ...Object.fromEntries(
+            ['img', 'prod', 'of', 'reg', 'sav', 'cat', 'prom', 'vis'].map((area, i) => [
+              `& tbody tr > td:nth-of-type(${i + 1}):not([colspan])`,
+              { gridArea: area },
+            ])
+          ),
+          '& tbody tr > td:nth-of-type(2)': { pr: 5 }, // aire para la papelera
+          '& tbody tr > td:nth-of-type(9)': { position: 'absolute', top: 4, right: 4, p: 0 },
+          // En 2 por fila el arrastre (lista vertical) no funciona: se ordena en pantalla grande.
+          ...(width === 900 ? { '& [aria-label^="Mover "]': { display: 'none' } } : {}),
           '& tbody td[data-label]::before': {
             content: 'attr(data-label)',
             display: 'block',
@@ -175,7 +201,7 @@ export function CatalogTable({
                     p={p}
                     index={index}
                     generating={isGeneratingImage(p, cleaning)}
-                    dragDisabled={dragDisabled}
+                    dragDisabled={dragDisabled || width === 900}
                     {...handlers}
                   />
                 ))}

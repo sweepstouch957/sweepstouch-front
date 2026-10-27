@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { widthBucket } from './utils';
 
-/** Ancho del contenedor de la tabla en rangos (420 / 900 / 1000). Sólo importa en qué rango
+/** Ancho del contenedor de la tabla en rangos (420 / 700 / 900 / 1000). Sólo importa en qué rango
  *  cae: guardar el número exacto re-renderizaba la tabla en cada píxel al redimensionar.
  *  Se usa en el componente que monta el contenedor (después del skeleton), así el
  *  observer siempre encuentra el elemento. */
