@@ -4,7 +4,13 @@ export interface TargetAudience {
   location: string;
   interests: string[];
 }
-export type CampaingStatus =  | 'completed' | 'draft' | 'progress' | 'cancelled' | 'scheduled' | 'active';
+export type CampaingStatus =
+  | 'completed'
+  | 'draft'
+  | 'progress'
+  | 'cancelled'
+  | 'scheduled'
+  | 'active';
 
 export interface AgeRange {
   min: number;
@@ -20,6 +26,10 @@ export interface Campaing {
   description: string;
   content: string;
   image: string;
+  /** Imagen propia de RCS; sin ella el piloto mixto usa el flyer. */
+  rcsImage?: string | null;
+  /** Miniatura del linktree (Pre-RCS), distinta del preview del archivo RCS. */
+  thumbnailImage?: string;
   /** Arte original pesado (el `image` es su copia < 500 KB para el MMS). */
   sourceImage?: string;
   sourceImagePublicId?: string;

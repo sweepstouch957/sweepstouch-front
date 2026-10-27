@@ -47,11 +47,21 @@ export function MessageCard({
   );
 }
 
-export function FlyerCard({ image, onOpen }: { image?: string; onOpen: () => void }) {
+export function FlyerCard({
+  image,
+  onOpen,
+  title = 'Flyer de la campaña',
+  compact = false,
+}: {
+  image?: string;
+  onOpen: () => void;
+  title?: string;
+  compact?: boolean;
+}) {
   const theme = useTheme();
   return (
     <StatsCard
-      title="Flyer de la campaña"
+      title={title}
       action={
         image ? (
           <Button
@@ -71,7 +81,7 @@ export function FlyerCard({ image, onOpen }: { image?: string; onOpen: () => voi
           borderRadius: 3,
           overflow: 'hidden',
           bgcolor: soft(theme),
-          height: { xs: 280, sm: 340 },
+          height: compact ? 160 : { xs: 280, sm: 340 },
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -81,18 +91,28 @@ export function FlyerCard({ image, onOpen }: { image?: string; onOpen: () => voi
           <Box
             component="img"
             src={image}
-            alt="Flyer de la campaña"
+            alt={title}
             sx={{ height: '100%', maxWidth: '100%', objectFit: 'contain', display: 'block' }}
           />
         ) : (
-          <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>Esta campaña no tiene flyer</Typography>
+          <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+            Esta campaña no tiene flyer
+          </Typography>
         )}
       </Box>
     </StatsCard>
   );
 }
 
-export function FlyerDialog({ open, image, onClose }: { open: boolean; image?: string; onClose: () => void }) {
+export function FlyerDialog({
+  open,
+  image,
+  onClose,
+}: {
+  open: boolean;
+  image?: string;
+  onClose: () => void;
+}) {
   const theme = useTheme();
   return (
     <Dialog

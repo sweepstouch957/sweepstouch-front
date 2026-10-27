@@ -5,12 +5,11 @@
  * Las secciones RCS (piloto, embudo, destinatarios) sólo aparecen si la campaña eligió
  * números para RCS; la actividad (clicks, listas, compras) sale para todas.
  */
-
 import { useCampaignById } from '@/hooks/fetching/campaigns/useCampaignById';
 import { campaignClient } from '@/services/campaing.service';
 import { qboService } from '@/services/qbo.service';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
-import { Box, Button, Link, Skeleton, Stack, Typography } from '@mui/material';
+import { Box, Button, Link, Skeleton, Stack, Tab, Tabs, Typography } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
 import NextLink from 'next/link';
@@ -30,8 +29,12 @@ import { SessionLinksCard } from './session-links-card';
 import { SummaryCard } from './summary-card';
 import { AutoGrid, StatTile } from './ui';
 
-const CampaignLogsModal = dynamic(() => import('@/components/CampaignLogsModal'), { loading: () => null });
-const CampaignResendModal = dynamic(() => import('@/components/CampaignResendModal'), { loading: () => null });
+const CampaignLogsModal = dynamic(() => import('@/components/CampaignLogsModal'), {
+  loading: () => null,
+});
+const CampaignResendModal = dynamic(() => import('@/components/CampaignResendModal'), {
+  loading: () => null,
+});
 
 type Modal = 'flyer' | 'logs-sent' | 'logs-failed' | 'resend' | null;
 
@@ -39,6 +42,8 @@ export default function CampaignStats({ campaignId }: { campaignId: string }) {
   const router = useRouter();
   const qc = useQueryClient();
   const [modal, setModal] = useState<Modal>(null);
+  const [previewChannel, setPreviewChannel] = useState<'mms' | 'rcs'>('mms');
+  const [previewImage, setPreviewImage] = useState<string>();
   const { data: campaign, isLoading, refetch } = useCampaignById(campaignId);
 
   // Lo FACTURADO a la tienda (campaign.cost) vs lo que COBRÓ Infobip, canal por canal.
@@ -58,7 +63,8 @@ export default function CampaignStats({ campaignId }: { campaignId: string }) {
     staleTime: 30_000,
     refetchInterval: (q) => {
       const d = q.state.data;
-      const settled = d?.ok && ['completed', 'cancelled'].includes(d.campaign?.status) && !d.messages?.queued;
+      const settled =
+        d?.ok && ['completed', 'cancelled'].includes(d.campaign?.status) && !d.messages?.queued;
       return settled ? false : 60_000;
     },
   });
@@ -83,7 +89,9 @@ export default function CampaignStats({ campaignId }: { campaignId: string }) {
   });
 
   // Cobro: factura de QuickBooks que la cobró + saldo total de la tienda.
-  const storeId = campaign ? String(typeof campaign.store === 'object' ? campaign.store?._id : campaign.store) : '';
+  const storeId = campaign
+    ? String(typeof campaign.store === 'object' ? campaign.store?._id : campaign.store)
+    : '';
   const { data: billing, isLoading: billingLoading } = useQuery({
     queryKey: ['qbo', 'campaign-billing', campaignId],
     queryFn: () => qboService.campaignBilling(campaignId),
@@ -109,28 +117,37 @@ export default function CampaignStats({ campaignId }: { campaignId: string }) {
       qc.invalidateQueries({ queryKey: ['campaign', 'logs', campaignId] });
       setTimeout(() => refetch(), 600);
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message || 'No se pudieron actualizar las métricas'),
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.message || 'No se pudieron actualizar las métricas'),
   });
 
   if (isLoading || !campaign) {
     return (
       <Stack gap={2.5}>
-        <Skeleton variant="rounded"
-height={104}
-sx={{ borderRadius: 4.5 }} />
+        <Skeleton
+          variant="rounded"
+          height={104}
+          sx={{ borderRadius: 4.5 }}
+        />
         <AutoGrid min={200}>
           {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i}
-variant="rounded"
-height={112}
-sx={{ borderRadius: 4 }} />
+            <Skeleton
+              key={i}
+              variant="rounded"
+              height={112}
+              sx={{ borderRadius: 4 }}
+            />
           ))}
         </AutoGrid>
-        <Skeleton variant="rounded"
-height={360}
-sx={{ borderRadius: 4.5 }} />
+        <Skeleton
+          variant="rounded"
+          height={360}
+          sx={{ borderRadius: 4.5 }}
+        />
         {!isLoading && (
-          <Typography sx={{ color: 'text.secondary', textAlign: 'center' }}>No se encontró la campaña.</Typography>
+          <Typography sx={{ color: 'text.secondary', textAlign: 'center' }}>
+            No se encontró la campaña.
+          </Typography>
         )}
       </Stack>
     );
@@ -154,6 +171,36 @@ sx={{ borderRadius: 4.5 }} />
   };
 
   const openResend = () => setModal('resend');
+  const template = campaign.rcsOptions?.contentTemplate;
+  const rcsCards = template?.type === 'CAROUSEL' ? template.contents ?? [] : [template?.content];
+  const previews: { content?: string; image?: string; thumbnail?: string }[] =
+    previewChannel === 'mms'
+      ? [{ content: campaign.content, image: campaign.image }]
+      : template?.type === 'CARD' || template?.type === 'CAROUSEL'
+        ? rcsCards.map((card: any) => ({
+            content: [card?.title, card?.description].filter(Boolean).join('\n\n'),
+            image: card?.media?.file?.url,
+            thumbnail: card?.media?.thumbnail?.url,
+          }))
+        : [
+            {
+              thumbnail: template?.thumbnail?.url,
+              content:
+                template?.type === 'TEXT'
+                  ? template.text
+                  : template?.type === 'FILE'
+                    ? undefined
+                    : [template?.greeting, template?.title, template?.body || campaign.content]
+                        .filter(Boolean)
+                        .join('\n\n'),
+              image:
+                template?.type === 'FILE'
+                  ? template.file?.url
+                  : template?.type === 'TEXT'
+                    ? undefined
+                    : campaign.image || campaign.rcsImage,
+            },
+          ];
 
   return (
     <Stack
@@ -197,6 +244,98 @@ sx={{ borderRadius: 4.5 }} />
         </Stack>
       </Stack>
 
+      <Tabs
+        value={previewChannel}
+        onChange={(_, value: 'mms' | 'rcs') => setPreviewChannel(value)}
+        aria-label="Vista previa por canal"
+      >
+        <Tab
+          value="mms"
+          label="MMS"
+          id="campaign-preview-tab-mms"
+          aria-controls="campaign-preview-panel-mms"
+        />
+        <Tab
+          value="rcs"
+          label="RCS"
+          id="campaign-preview-tab-rcs"
+          aria-controls="campaign-preview-panel-rcs"
+        />
+      </Tabs>
+      <Box
+        role="tabpanel"
+        id={`campaign-preview-panel-${previewChannel}`}
+        aria-labelledby={`campaign-preview-tab-${previewChannel}`}
+      >
+        {previewChannel === 'rcs' && !rcs ? (
+          <Typography color="text.secondary">Esta campaña no utilizó RCS.</Typography>
+        ) : (
+          <Stack gap={2.5}>
+            {previews.map((preview) => (
+              <Box
+                key={JSON.stringify([previewChannel, preview.content, preview.image])}
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${
+                    previewChannel === 'rcs' ? 260 : 420
+                  }px), 1fr))`,
+                  gap: 2,
+                  alignItems: 'start',
+                }}
+              >
+                <MessageCard
+                  content={preview.content}
+                  description={campaign.description}
+                >
+                  {previewChannel === 'mms' && (
+                    <AiSuggestions
+                      platform={campaign.platform}
+                      type={campaign.type}
+                      channels={channels}
+                      audience={audience}
+                      sent={sent}
+                      errors={errors}
+                    />
+                  )}
+                </MessageCard>
+                {previewChannel === 'rcs' && preview === previews[0] && campaign.rcsImage && (
+                  <FlyerCard
+                    title="Miniatura RCS"
+                    compact
+                    image={campaign.rcsImage}
+                    onOpen={() => {
+                      setPreviewImage(campaign.rcsImage || undefined);
+                      setModal('flyer');
+                    }}
+                  />
+                )}
+                {previewChannel === 'rcs' &&
+                  preview.thumbnail &&
+                  preview.thumbnail !== campaign.rcsImage && (
+                    <FlyerCard
+                      title="Miniatura del preview RCS"
+                      compact
+                      image={preview.thumbnail}
+                      onOpen={() => {
+                        setPreviewImage(preview.thumbnail);
+                        setModal('flyer');
+                      }}
+                    />
+                  )}
+                <FlyerCard
+                  title={previewChannel === 'rcs' ? 'Imagen RCS' : 'Flyer de la campaña'}
+                  image={preview.image}
+                  onOpen={() => {
+                    setPreviewImage(preview.image);
+                    setModal('flyer');
+                  }}
+                />
+              </Box>
+            ))}
+          </Stack>
+        )}
+      </Box>
+
       <SummaryCard
         campaign={campaign}
         errors={errors}
@@ -235,7 +374,9 @@ sx={{ borderRadius: 4.5 }} />
           <StatTile
             label="Costo real Infobip"
             value={money(realTotal)}
-            hint={`${charged - realTotal < 0 ? '−' : '+'}${money(Math.abs(charged - realTotal))} vs. lo cobrado`}
+            hint={`${charged - realTotal < 0 ? '−' : '+'}${money(
+              Math.abs(charged - realTotal)
+            )} vs. lo cobrado`}
             hintTone={charged - realTotal < 0 ? 'error' : 'success'}
           />
         )}
@@ -256,18 +397,18 @@ sx={{ borderRadius: 4.5 }} />
           onResend={openResend}
         />
         <BillingCard
-            charged={charged}
-            cost={realCost}
-            collection={
-              <CollectionBlock
-                charged={charged}
-                audience={audience}
-                billing={billing}
-                loading={billingLoading}
-                store={storeQbo}
-              />
-            }
-          />
+          charged={charged}
+          cost={realCost}
+          collection={
+            <CollectionBlock
+              charged={charged}
+              audience={audience}
+              billing={billing}
+              loading={billingLoading}
+              store={storeQbo}
+            />
+          }
+        />
       </AutoGrid>
 
       {sessionLinks?.applies && sessionLinks.total > 0 && (
@@ -302,33 +443,13 @@ sx={{ borderRadius: 4.5 }} />
         />
       )}
 
-      <AutoGrid
-        min={420}
-        gap={2.5}
-      >
-        <MessageCard
-          content={campaign.content}
-          description={campaign.description}
-        >
-          <AiSuggestions
-            platform={campaign.platform}
-            type={campaign.type}
-            channels={channels}
-            audience={audience}
-            sent={sent}
-            errors={errors}
-          />
-        </MessageCard>
-        <FlyerCard
-          image={campaign.image}
-          onOpen={() => setModal('flyer')}
-        />
-      </AutoGrid>
-
       <FlyerDialog
         open={modal === 'flyer'}
-        image={campaign.image}
-        onClose={() => setModal(null)}
+        image={previewImage || campaign.image}
+        onClose={() => {
+          setModal(null);
+          setPreviewImage(undefined);
+        }}
       />
       {(modal === 'logs-sent' || modal === 'logs-failed') && (
         <CampaignLogsModal
