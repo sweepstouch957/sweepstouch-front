@@ -1,7 +1,6 @@
 /** Helpers puros del estado de la lista (sin React). */
 import type {
   CampaignImportJob,
-  CatalogSource,
   CatalogSummary,
 } from '@/services/circular.service';
 import { fmtDate } from '../shared';
@@ -50,20 +49,3 @@ export function jobMessage(j: CampaignImportJob) {
   });
   return `"${j.title || 'La campaña'}" espera: la IA se quedó sin cuota, se reintenta sola a las ${at}`;
 }
-
-/** Por defecto el flyer con arte propio vigente; si no, el próximo; si no, lo primero. */
-export function defaultKeepId(sources: CatalogSource[]) {
-  return (
-    sources.find((x) => x.kind === 'flyer' && x.when === 'live')?.id ||
-    sources.find((x) => x.kind === 'flyer' && x.when === 'next')?.id ||
-    sources.find((x) => x.kind === 'flyer')?.id ||
-    sources[0]?.id ||
-    ''
-  );
-}
-
-export const WHEN_LABEL: Record<CatalogSource['when'], string> = {
-  live: 'vigente',
-  next: 'programado',
-  past: 'venció: se reabre hasta hoy',
-};

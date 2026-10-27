@@ -8,7 +8,7 @@ import { cell, fmtDate } from '../shared';
 import { miniChip, sourceTag, type ProductPatch } from './constants';
 
 /** Campo de texto que guarda al salir si cambió. */
-function BlurField({
+export function BlurField({
   value,
   placeholder,
   ariaLabel,

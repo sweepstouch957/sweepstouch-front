@@ -9,16 +9,6 @@ import { hasActiveJobs, type Ruling } from './utils';
 
 const errMsg = (e: any, fallback: string) => e?.response?.data?.error || fallback;
 
-/** Flyers y circulares entre los que se puede elegir con qué quedarse (sólo con el diálogo abierto). */
-export function useCatalogSources(storeSlug: string, enabled: boolean) {
-  return useQuery({
-    queryKey: ['catalog-sources', storeSlug],
-    queryFn: () => circularService.getCatalogSources(storeSlug),
-    enabled: enabled && !!storeSlug,
-    staleTime: 30_000,
-  });
-}
-
 // Importaciones de campañas de la semana: una fallida o atrasada se ve ACÁ, con Reintentar.
 // (5 oct: el flyer de Morris Ave falló por cuota de la IA y nadie lo vio hasta el día.)
 export function useImportJobs(storeSlug: string) {
@@ -102,19 +92,18 @@ export function useFixEndOfDay(storeSlug: string) {
   });
 }
 
-// "Ocultar los del circular": la encargada elige con qué flyer (o circular) quedarse y todo
-// lo demás se oculta.
+// "Ocultar los del circular": todo lo del circular se oculta para siempre y la tienda queda
+// sólo con flyer (Store.flyerOnly).
 export function useHideCircularProducts(storeSlug: string) {
   const refresh = useRefreshStoreData(storeSlug);
   return useMutation({
-    mutationFn: (keepId: string) =>
-      circularService.hideCircularProducts(storeSlug, keepId || undefined),
+    mutationFn: () => circularService.hideCircularProducts(storeSlug),
     onSuccess: (v) => {
       refresh();
       toast.success(
-        `Sólo "${v.flyer}"${v.when === 'next' ? ' (programado)' : ''}${
-          v.revived ? ' (reabierto hasta hoy)' : ''
-        }: ${v.kept} productos · ${v.hidden} ocultados`,
+        `Sólo flyer desde ahora${v.flyer ? ` · "${v.flyer}": ${v.kept} productos` : ''} · ${
+          v.hidden
+        } ocultados`,
         { duration: 8000 }
       );
     },

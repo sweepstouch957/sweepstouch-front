@@ -34,6 +34,7 @@ type Props = {
   agentsBusy: boolean;
   onEdit: (product: StoreProduct, group: UpcomingGroup) => void;
   onRephoto: (product: StoreProduct) => void;
+  onPatch: (id: string, body: { name?: string; brand?: string; size?: string }) => void;
   onPublishProduct: (product: StoreProduct) => void;
   onCancelProduct: (product: StoreProduct) => void;
   onPublishGroup: (group: UpcomingGroup) => void;
@@ -81,6 +82,7 @@ function UpcomingGroupCard({
   agentsBusy,
   onEdit,
   onRephoto,
+  onPatch,
   onPublishProduct,
   onCancelProduct,
   onPublishGroup,
@@ -246,6 +248,7 @@ function UpcomingGroupCard({
             rephotoing={rephotoingId === p._id}
             onEdit={edit}
             onRephoto={onRephoto}
+            onPatch={onPatch}
             onPublish={onPublishProduct}
             onCancel={onCancelProduct}
           />

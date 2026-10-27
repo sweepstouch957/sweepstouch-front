@@ -11,6 +11,7 @@ import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined
 import { Box, IconButton, Stack, Tooltip, Typography } from '@mui/material';
 import { memo, type ReactNode } from 'react';
 import { StatusPill } from '@/components/application-ui/content-shells/store-managment/panel-kit';
+import { BlurField } from '../catalog/product-cell';
 import { fineText } from './utils';
 
 type Props = {
@@ -20,6 +21,7 @@ type Props = {
   rephotoing: boolean;
   onEdit: (p: StoreProduct) => void;
   onRephoto: (p: StoreProduct) => void;
+  onPatch: (id: string, body: { name?: string; brand?: string; size?: string }) => void;
   onPublish: (p: StoreProduct) => void;
   onCancel: (p: StoreProduct) => void;
 };
@@ -60,6 +62,7 @@ function UpcomingProductCard({
   rephotoing,
   onEdit,
   onRephoto,
+  onPatch,
   onPublish,
   onCancel,
 }: Props) {
@@ -148,30 +151,32 @@ function UpcomingProductCard({
       </Box>
 
       <Box sx={{ p: 1.25, minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <Typography
-          variant="body2"
-          fontWeight={700}
-          title={p.name}
-          sx={{
-            lineHeight: 1.25,
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-            minHeight: '2.5em',
-          }}
+        {/* Todo editable antes de que salga: la encargada corrige lo que la IA leyó mal. */}
+        <BlurField
+          bold
+          value={p.name}
+          ariaLabel="Nombre del producto"
+          allowEmpty={false}
+          onSave={(name) => onPatch(p._id, { name })}
+        />
+        <Stack
+          direction="row"
+          gap={1}
+          sx={{ mt: 0.25 }}
         >
-          {p.name}
-        </Typography>
-        {(p.brand || p.size) && (
-          <Typography
-            color="text.secondary"
-            noWrap
-            sx={smallText}
-          >
-            {[p.brand, p.size].filter(Boolean).join(' · ')}
-          </Typography>
-        )}
+          <BlurField
+            value={p.brand ?? ''}
+            placeholder="marca"
+            ariaLabel="Marca"
+            onSave={(brand) => onPatch(p._id, { brand })}
+          />
+          <BlurField
+            value={p.size ?? ''}
+            placeholder="tamaño"
+            ariaLabel="Tamaño"
+            onSave={(size) => onPatch(p._id, { size })}
+          />
+        </Stack>
         <Stack
           direction="row"
           alignItems="baseline"
@@ -225,7 +230,7 @@ function UpcomingProductCard({
         >
           <Stack direction="row">
             <CardAction
-              title="Editar precio, fecha o recortar la foto del arte"
+              title="Editar todo: nombre, marca, precio, fecha, letra chica o foto"
               icon={<EditOutlinedIcon fontSize="small" />}
               onClick={edit}
               disabled={busy}

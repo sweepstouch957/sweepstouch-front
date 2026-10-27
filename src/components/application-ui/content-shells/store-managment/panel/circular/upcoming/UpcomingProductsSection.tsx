@@ -40,7 +40,14 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
   const [agentsFor, setAgentsFor] = useState<UpcomingGroup | null>(null);
 
   const upcoming = useUpcoming(storeSlug);
-  const { refresh, openEditor, openArt, agents, rephoto, act } = useUpcomingActions(storeSlug);
+  const { refresh, openEditor, openArt, agents, rephoto, patch, act } =
+    useUpcomingActions(storeSlug);
+  const { mutate: patchMutate } = patch;
+  const handlePatch = useCallback(
+    (id: string, body: { name?: string; brand?: string; size?: string }) =>
+      patchMutate({ id, body }),
+    [patchMutate]
+  );
   // `mutate` de React Query es estable: las cards memoizadas no se repintan por esto.
   const { mutate: editMutate } = openEditor;
   const { mutate: artMutate } = openArt;
@@ -168,6 +175,7 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
           agentsBusy={agents.isPending}
           onEdit={handleEdit}
           onRephoto={handleRephoto}
+          onPatch={handlePatch}
           onPublishProduct={handlePublishProduct}
           onCancelProduct={handleCancelProduct}
           onPublishGroup={handlePublishGroup}

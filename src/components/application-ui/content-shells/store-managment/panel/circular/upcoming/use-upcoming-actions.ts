@@ -93,6 +93,14 @@ export function useUpcomingActions(storeSlug: string) {
     onError: (e) => toast.error(errMsg(e, 'No se pudo rehacer la foto')),
   });
 
+  // Nombre, marca y tamaño editables en la card: lo corregido a mano queda protegido de relecturas.
+  const patch = useMutation({
+    mutationFn: ({ id, body }: { id: string; body: { name?: string; brand?: string; size?: string } }) =>
+      circularService.updateStoreProduct(id, body),
+    onSuccess: refresh,
+    onError: (e) => toast.error(errMsg(e, 'No se pudo guardar')),
+  });
+
   /** Publicar ya (grupo o producto) o que no salga. */
   const act = useMutation({
     mutationFn: async (c: Confirm) => {
@@ -118,5 +126,5 @@ export function useUpcomingActions(storeSlug: string) {
     onError: (e) => toast.error(errMsg(e, 'No se pudo completar')),
   });
 
-  return { refresh, openEditor, openArt, agents, rephoto, act };
+  return { refresh, openEditor, openArt, agents, rephoto, patch, act };
 }

@@ -28,7 +28,6 @@ import ImportJobAlerts from './ImportJobAlerts';
 import ListStatusKpis from './ListStatusKpis';
 import {
   useAgentsFix,
-  useCatalogSources,
   useFixEndOfDay,
   useHideCircularProducts,
   useImportJobs,
@@ -67,7 +66,6 @@ export default function ListStatusCard({
   const fix = useAgentsFix(storeSlug);
   const fixEnd = useFixEndOfDay(storeSlug);
   const hide = useHideCircularProducts(storeSlug);
-  const sources = useCatalogSources(storeSlug, dialog === 'hide');
 
   const jobs = useImportJobs(storeSlug);
   const { refetch: refetchJobs } = jobs;
@@ -122,7 +120,7 @@ export default function ListStatusCard({
       ? [
           {
             label: 'Ocultar los del circular',
-            hint: 'Elige con qué flyer quedarte: todo lo demás se oculta.',
+            hint: 'Para siempre: la tienda queda sólo con flyer.',
             onClick: () => setDialog('hide'),
           },
           {
@@ -226,11 +224,9 @@ export default function ListStatusCard({
 
       {dialog === 'hide' && (
         <HideCircularDialog
-          sources={sources.data?.sources || []}
-          loading={sources.isLoading}
           pending={hide.isPending}
           onClose={closeDialog}
-          onSubmit={(keepId) => hide.mutate(keepId, { onSuccess: closeDialog })}
+          onConfirm={() => hide.mutate(undefined, { onSuccess: closeDialog })}
         />
       )}
 
