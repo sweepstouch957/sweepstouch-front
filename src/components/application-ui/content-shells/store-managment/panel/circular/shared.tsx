@@ -27,6 +27,8 @@ export type PanelProps = {
   /** Listas de compra de la tienda (Store.listsEnabled / listsLinkUrl). */
   listsEnabled?: boolean;
   listsLinkUrl?: string;
+  /** Store.flyerOnly: el circular semanal no carga; los productos salen sólo de flyers. */
+  flyerOnly?: boolean;
 };
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });

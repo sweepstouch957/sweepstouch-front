@@ -101,21 +101,6 @@ export function useUpcomingActions(storeSlug: string) {
     onError: (e) => toast.error(errMsg(e, 'No se pudo guardar')),
   });
 
-  /** "Sólo flyer": prendido, el circular semanal no carga nada hasta que se apague. */
-  const flyerOnly = useMutation({
-    mutationFn: (on: boolean) => circularService.setFlyerOnly(storeSlug, on),
-    onSuccess: (d) => {
-      const dropped = (d.pendingRemoved || 0) + (d.pendingReverted || 0);
-      toast.success(
-        d.flyerOnly
-          ? `Sólo flyer: el circular ya no carga${dropped ? ` · ${dropped} del circular quitados de Próximos` : ''}`
-          : 'Circular semanal activado otra vez: el próximo circular vuelve a cargar'
-      );
-      refresh();
-    },
-    onError: (e) => toast.error(errMsg(e, 'No se pudo cambiar el modo sólo flyer')),
-  });
-
   /** Publicar ya (grupo o producto) o que no salga. */
   const act = useMutation({
     mutationFn: async (c: Confirm) => {
@@ -141,5 +126,5 @@ export function useUpcomingActions(storeSlug: string) {
     onError: (e) => toast.error(errMsg(e, 'No se pudo completar')),
   });
 
-  return { refresh, openEditor, openArt, agents, rephoto, patch, act, flyerOnly };
+  return { refresh, openEditor, openArt, agents, rephoto, patch, act };
 }

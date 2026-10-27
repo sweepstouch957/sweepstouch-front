@@ -254,6 +254,7 @@ export const StoreContentRouter: FC<Props> = ({
           listsPhoneEnabled={Boolean((store as any).listsPhoneEnabled)}
           listsEnabled={(store as any).listsEnabled !== false}
           listsLinkUrl={(store as any).listsLinkUrl || ''}
+          flyerOnly={(store as any).flyerOnly === true}
         />
       );
 

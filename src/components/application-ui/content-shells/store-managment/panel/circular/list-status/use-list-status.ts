@@ -91,22 +91,3 @@ export function useFixEndOfDay(storeSlug: string) {
     onError: (e: any) => toast.error(errMsg(e, 'No se pudo corregir la vigencia')),
   });
 }
-
-// "Ocultar los del circular": todo lo del circular se oculta para siempre y la tienda queda
-// sólo con flyer (Store.flyerOnly).
-export function useHideCircularProducts(storeSlug: string) {
-  const refresh = useRefreshStoreData(storeSlug);
-  return useMutation({
-    mutationFn: () => circularService.hideCircularProducts(storeSlug),
-    onSuccess: (v) => {
-      refresh();
-      toast.success(
-        `Sólo flyer desde ahora${v.flyer ? ` · "${v.flyer}": ${v.kept} productos` : ''} · ${
-          v.hidden
-        } ocultados`,
-        { duration: 8000 }
-      );
-    },
-    onError: (e: any) => toast.error(errMsg(e, 'No se pudo ocultar')),
-  });
-}

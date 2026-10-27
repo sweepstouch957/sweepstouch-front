@@ -4,25 +4,61 @@
  * Cabecera del panel: título, tienda, estado de "¿Quiere lista?" y vista previa, con las
  * pestañas abajo en la misma tarjeta (así el título no compite con el contenido).
  */
-import { Box, Chip, Stack, Tab, Tabs, Typography } from '@mui/material';
+import {
+  Box,
+  Chip,
+  Stack,
+  Tab,
+  Tabs,
+  ToggleButton,
+  ToggleButtonGroup,
+  Tooltip,
+  Typography,
+} from '@mui/material';
 import { memo } from 'react';
 import { PanelCard } from '../../../panel-kit';
 import PreRcsPreviewButton from '../preview';
 import { PANEL_TABS, type PanelTab } from './tabs';
+import { useFlyerOnly } from './use-flyer-only';
 
 type Props = {
   storeId: string;
   storeSlug: string;
   storeName?: string;
   listsEnabled?: boolean;
+  /** Store.flyerOnly: los productos salen sólo de flyers. */
+  flyerOnly?: boolean;
   tab: PanelTab;
   onTab: (tab: PanelTab) => void;
   /** Número junto a una pestaña (Próximos). */
   badges?: Partial<Record<PanelTab, number>>;
 };
 
-function PanelHeader({ storeId, storeSlug, storeName, listsEnabled, tab, onTab, badges }: Props) {
+function PanelHeader({
+  storeId,
+  storeSlug,
+  storeName,
+  listsEnabled,
+  flyerOnly,
+  tab,
+  onTab,
+  badges,
+}: Props) {
   const noList = listsEnabled === false;
+  const flyer = useFlyerOnly(storeId, storeSlug);
+  const shownFlyerOnly = flyer.isPending ? !!flyer.variables : !!flyerOnly;
+  const onSource = (on: boolean) => {
+    if (on === !!flyerOnly) return;
+    // ponytail: confirm nativo; prender borra las altas del circular que esperaban fecha.
+    if (
+      on &&
+      !window.confirm(
+        'Sólo flyer: se ocultan todos los productos del circular y se quita de Próximos lo que el circular dejó esperando fecha. El circular semanal deja de cargar. ¿Seguir?'
+      )
+    )
+      return;
+    flyer.mutate(on);
+  };
   return (
     <PanelCard sx={{ mb: 2 }}>
       <Stack
@@ -67,6 +103,33 @@ function PanelHeader({ storeId, storeSlug, storeName, listsEnabled, tab, onTab, 
               label={noList ? 'Sin lista · agentes pausados' : 'Con lista'}
               sx={{ height: 22, fontSize: 11.5, fontWeight: 700 }}
             />
+            {/* De dónde salen los productos: se decide SÓLO acá y aplica a todo (vigentes,
+                Próximos, Productos, cron). */}
+            <Tooltip
+              title={
+                shownFlyerOnly
+                  ? 'Sólo flyer: el circular semanal no carga ni muestra nada, ni hoy ni en Próximos.'
+                  : 'Se cargan el circular semanal y los flyers (el flyer manda cuando hay uno vigente).'
+              }
+            >
+              <ToggleButtonGroup
+                exclusive
+                size="small"
+                value={shownFlyerOnly ? 'flyer' : 'both'}
+                disabled={flyer.isPending}
+                onChange={(_e, v: 'flyer' | 'both' | null) => v && onSource(v === 'flyer')}
+                aria-label="De dónde salen los productos"
+                sx={{ '& .MuiToggleButton-root': { py: 0.1, px: 1.25, fontSize: 11.5, fontWeight: 700, textTransform: 'none' } }}
+              >
+                <ToggleButton value="both">Circular + flyer</ToggleButton>
+                <ToggleButton
+                  value="flyer"
+                  color="primary"
+                >
+                  Sólo flyer
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Tooltip>
           </Stack>
         </Box>
         {/* Ver la página tal cual la recibe el cliente. */}
