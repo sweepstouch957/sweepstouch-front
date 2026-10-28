@@ -193,6 +193,7 @@ export default function SweepstakeConfirmationRcs({ sweepstakeId, value, sweepst
               >
                 <input
                   ref={fileRef}
+                  aria-label="Subir miniatura del RCS"
                   type="file"
                   accept="image/png,image/jpeg,image/webp,image/gif"
                   hidden
