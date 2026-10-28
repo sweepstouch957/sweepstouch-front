@@ -29,6 +29,7 @@ import { BriefFormRHF, type SweepstakeOptinType } from '../application-ui/form-l
 import { DeadlineHeader } from '../application-ui/progress-indicators/dead-line';
 import { StepEditor } from '../application-ui/steppers/biref';
 import AvatarUploadLogo from '../application-ui/upload/avatar/avatar-upload-logo';
+import SweepstakeConfirmationRcs from './sweepstake-confirmation-rcs';
 
 export type ChecklistStepKey =
   | 'clientBrief'
@@ -253,6 +254,19 @@ export default function SweepstakeChecklist({ sweepstakeId }: Props) {
           )}
         </CardContent>
       </Card>
+
+      {/* ===== RCS de confirmación (web: tras el OTP + cupón QR) ===== */}
+      {sweepstake && (
+        <SweepstakeConfirmationRcs
+          sweepstakeId={sweepstakeId}
+          value={sweepstake.confirmationRcs}
+          sweepstakeName={sweepstake.name}
+          onSaved={async (msg, ok) => {
+            setSnack({ open: true, msg, sev: ok ? 'success' : 'error' });
+            if (ok) await refetchSweep();
+          }}
+        />
+      )}
 
       {/* ===== Stepper ===== */}
       <Card sx={{ borderRadius: 3 }}>
