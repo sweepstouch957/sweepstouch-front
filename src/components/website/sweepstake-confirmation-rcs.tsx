@@ -408,7 +408,7 @@ export default function SweepstakeConfirmationRcs({ sweepstakeId, value, sweepst
                   >
                     <TextField
                       label="Texto del botón"
-                      placeholder="Ver mi cupón"
+                      placeholder="Claim"
                       value={form.buttonText}
                       onChange={(e) => set('buttonText', e.target.value.slice(0, 25))}
                       helperText={`${form.buttonText?.length || 0}/25`}
@@ -510,7 +510,7 @@ function Section({ n, title, hint, children }: { n: number; title: string; hint:
 /** Tarjeta RCS como se ve en Google Messages, con datos de ejemplo en los placeholders. */
 function RcsPhonePreview({ form, fallbackTitle }: { form: ConfirmationRcs; fallbackTitle?: string }) {
   const text = fillSample(form.text);
-  const btn = form.buttonText || 'Ver mi cupón';
+  const btn = form.buttonText || 'Claim';
   return (
     <Box
       position={{ md: 'sticky' }}
