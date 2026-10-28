@@ -281,6 +281,8 @@ export const StoreContentRouter: FC<Props> = ({
           storeId={storeId}
           storeName={store.name}
           provider={store.provider}
+          slug={store.slug}
+          linktreeStoreSlug={store.linktreeStoreSlug}
         />
       );
 

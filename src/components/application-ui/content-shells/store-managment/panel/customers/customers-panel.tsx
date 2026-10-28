@@ -13,6 +13,7 @@ import NormalizeFormatModal from './normalize-format-modal';
 import BulkInactivateModal from './bulk-inactivate-modal';
 import AnalisisNumerosModal from './analisis-numeros-modal';
 import AuditoriaNumerosModal from './auditoria-numeros-modal';
+import LinktreeAliasCard from './linktree-alias-card';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   SettingsBackupRestoreRounded,
@@ -27,9 +28,11 @@ interface CustomersPanelProps {
   storeId: string;
   storeName?: string;
   provider?: string;
+  slug?: string;
+  linktreeStoreSlug?: string;
 }
 
-const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName, provider }) => {
+const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName, provider, slug, linktreeStoreSlug }) => {
   const [openImport, setOpenImport] = useState(false);
   const [openDepurar, setOpenDepurar] = useState(false);
   const [openReactivar, setOpenReactivar] = useState(false);
@@ -213,6 +216,12 @@ const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName, provider 
           ))}
         </Box>
       </Paper>
+
+      <LinktreeAliasCard
+        storeId={storeId}
+        slug={slug}
+        linktreeStoreSlug={linktreeStoreSlug}
+      />
 
       {/* Grid Principal */}
       <CustomersGrid

@@ -53,6 +53,8 @@ export interface Store {
   ownerId: string;
   description?: string;
   slug?: string;
+  /** Linktree de esta tienda abre el de otra (slug destino). Vacío = el propio. */
+  linktreeStoreSlug?: string;
   mmsTheme?: any;
   image: string;
   active: boolean;
@@ -131,6 +133,7 @@ export interface UpdateStoreBody {
   /** Listas de compra de la tienda; apagadas se ocultan en linktree, Mi cuenta y RCS. */
   listsEnabled?: boolean;
   listsLinkUrl?: string;
+  linktreeStoreSlug?: string;
   name?: string;
   /** Imagen de ESTA tienda. El logo de la marca vive en mmsTheme.logoUrl. */
   image?: string;
