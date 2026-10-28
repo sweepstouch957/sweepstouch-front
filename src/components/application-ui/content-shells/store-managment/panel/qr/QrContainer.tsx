@@ -2,6 +2,8 @@
 
 import {
   getStoreGenericQr,
+  getStoreWelcomeQr,
+  upsertStoreWelcomeQr,
   getSweepstakeOptinQr,
   upsertStoreGenericQr,
   upsertSweepstakeOptinQr,
@@ -10,6 +12,7 @@ import {
   type SweepstakeQr,
 } from '@/services/qr.service';
 import { sweepstakesClient } from '@/services/sweepstakes.service';
+import { useStoreById } from '@/hooks/fetching/stores/useStoreById';
 import { LinktreeShortCard } from './LinktreeShortCard';
 import {
   AutorenewRounded,
@@ -49,7 +52,7 @@ import * as React from 'react';
 import { useCallback, useState } from 'react';
 
 /* ──────────────────────────────────────────────────────── types */
-type PreviewTarget = { type: 'store'; doc: StoreQr } | { type: 'sweep'; doc: SweepstakeQr };
+type PreviewTarget = { type: 'store' | 'welcome'; doc: StoreQr } | { type: 'sweep'; doc: SweepstakeQr };
 
 /* ──────────────────────────────────────────────────────── helpers */
 async function downloadRemoteFile(url: string, filename?: string) {
@@ -326,6 +329,22 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
 
   const anyLoading = loadingStore || loadingSW || loadingSweepQr;
 
+  const { data: store, isLoading: loadingStoreDetails, isError: errorStoreDetails } = useStoreById(storeId);
+  const welcomeLink = store?.slug ? `https://st.sweepstouch.com/w?slug=${encodeURIComponent(store.slug)}` : undefined;
+  const { data: welcomeQr, isLoading: loadingWelcome, isError: errorWelcome, refetch: refetchWelcome } = useQuery({
+    queryKey: ['storeWelcomeQr', storeId],
+    queryFn: () => getStoreWelcomeQr(storeId),
+    enabled: Boolean(storeId),
+    retry: 1,
+  });
+  const genWelcomeMut = useMutation({
+    mutationFn: () => upsertStoreWelcomeQr(storeId),
+    onSuccess: (doc) => {
+      qc.setQueryData(['storeWelcomeQr', storeId], doc);
+    },
+  });
+  const welcomeImg = welcomeQr?.qr.secureUrl;
+
   /* theme-driven colors — follow customization dialog */
   const storeAccent = theme.palette.primary.main;
   const sweepAccent = theme.palette.success.main;
@@ -382,8 +401,8 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
         <Tooltip title="Refrescar todo">
           <span>
             <IconButton
-              onClick={() => { refetchStore(); refetchSW(); refetchSweepQr(); }}
-              disabled={anyLoading}
+              onClick={() => { refetchStore(); refetchSW(); refetchSweepQr(); refetchWelcome(); }}
+              disabled={anyLoading || loadingWelcome}
               sx={{ bgcolor: alpha(storeAccent, 0.06), '&:hover': { bgcolor: alpha(storeAccent, 0.12) } }}
             >
               {anyLoading ? <CircularProgress size={20} /> : <RefreshRounded />}
@@ -493,6 +512,121 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
                         variant="contained"
                         startIcon={<VisibilityRounded />}
                         onClick={() => setPreview({ type: 'store', doc: storeQr })}
+                        sx={{ borderRadius: 2, textTransform: 'none', background: storeGradient }}
+                      >
+                        Preview
+                      </Button>
+                    </>
+                  )}
+                </Stack>
+              </Box>
+            </Paper>
+          )}
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          {loadingWelcome || loadingStoreDetails ? (
+            <SkeletonQrCard />
+          ) : (
+            <Paper
+              variant="outlined"
+              sx={{
+                borderRadius: 3,
+                overflow: 'hidden',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                transition: 'border-color 0.2s, background-color 0.2s',
+                '&:hover': { borderColor: alpha(storeAccent, 0.35), bgcolor: alpha(storeAccent, 0.04) },
+              }}
+            >
+              <CardBanner
+                icon={<QrCode2Rounded />}
+                label="QR Genérico de la Tienda"
+                gradient={storeGradient}
+                badge={
+                  welcomeQr ? (
+                    <Chip label="Activo" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'common.white', fontWeight: 600, fontSize: 11 }} />
+                  ) : (
+                    <Chip label="Sin generar" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: 'common.white', fontWeight: 600, fontSize: 11 }} />
+                  )
+                }
+              />
+
+              <Box p={2.5} flex={1} display="flex" flexDirection="column">
+                <Box display="flex" justifyContent="center" mb={2.5}>
+                  <QrFrame src={welcomeImg} accentColor={storeAccent} />
+                </Box>
+
+                {/* Link */}
+                <Stack spacing={0.75} mb={2}>
+                  <Typography variant="caption" fontWeight={600} color="text.secondary" textTransform="uppercase" letterSpacing={0.6}>
+                    URL destino
+                  </Typography>
+                  <LinkChip href={welcomeLink || welcomeQr?.link} />
+                </Stack>
+
+                {/* Meta */}
+                {welcomeQr && (
+                  <Paper
+                    variant="outlined"
+                    sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(storeAccent, 0.03), mb: 2 }}
+                  >
+                    <Stack spacing={0.5}>
+                      <MetaRow label="Slug" value={welcomeQr.slug} />
+                      <MetaRow label="Formato" value={welcomeQr.qr.format?.toUpperCase()} />
+                      <MetaRow label="Actualizado" value={fmtDate(welcomeQr.updatedAt)} />
+                    </Stack>
+                  </Paper>
+                )}
+
+                <Box flex={1} />
+
+                {/* Error */}
+                {(errorWelcome || errorStoreDetails) && (
+                  <Alert severity="error" sx={{ mb: 1.5, borderRadius: 2 }}>
+                    Error al cargar el QR de bienvenida o los datos de la tienda
+                  </Alert>
+                )}
+
+                {genWelcomeMut.isError && (
+                  <Alert severity="error" sx={{ mb: 1.5, borderRadius: 2 }}>
+                    No se pudo generar y guardar el QR. Intenta nuevamente.
+                  </Alert>
+                )}
+                {!store?.slug && !errorStoreDetails && (
+                  <Alert severity="info" sx={{ mb: 1.5, borderRadius: 2 }}>
+                    Esta tienda necesita un slug para generar su QR de bienvenida.
+                  </Alert>
+                )}
+                {/* Actions */}
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap justifyContent="flex-end">
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={genWelcomeMut.isPending ? <CircularProgress size={14} /> : <AutorenewRounded />}
+                    onClick={() => genWelcomeMut.mutate()}
+                    disabled={genWelcomeMut.isPending || !welcomeLink}
+                    sx={{ borderRadius: 2, textTransform: 'none' }}
+                  >
+                    {welcomeQr ? 'Regenerar' : 'Generar QR'}
+                  </Button>
+                  {welcomeQr && welcomeImg && (
+                    <>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<DownloadRounded />}
+                        onClick={() => downloadRemoteFile(welcomeImg, `welcome-${welcomeQr.slug}.png`)}
+                        sx={{ borderRadius: 2, textTransform: 'none' }}
+                      >
+                        Descargar
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        startIcon={<VisibilityRounded />}
+                        onClick={() => setPreview({ type: 'welcome', doc: welcomeQr })}
                         sx={{ borderRadius: 2, textTransform: 'none', background: storeGradient }}
                       >
                         Preview
@@ -677,8 +811,8 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
         <DialogTitle sx={{ p: 0 }}>
           <CardBanner
             icon={<QrCode2Rounded />}
-            label={preview?.type === 'store' ? 'QR Genérico de la Tienda' : 'QR del Sorteo Activo'}
-            gradient={preview?.type === 'store' ? storeGradient : sweepGradient}
+            label={preview?.type === 'welcome' ? 'QR de Bienvenida (/w)' : preview?.type === 'store' ? 'QR Genérico de la Tienda' : 'QR del Sorteo Activo'}
+            gradient={preview?.type !== 'sweep' ? storeGradient : sweepGradient}
             badge={
               <IconButton size="small" onClick={() => setPreview(null)} sx={{ color: 'rgba(255,255,255,0.8)' }}>
                 <CloseRounded fontSize="small" />
@@ -691,7 +825,7 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
           {preview && (() => {
             const doc = preview.doc;
             const img = doc.qr.secureUrl || (doc.qr as any).url;
-            const accent = preview.type === 'store' ? storeAccent : sweepAccent;
+            const accent = preview.type !== 'sweep' ? storeAccent : sweepAccent;
 
             return (
               <Grid container spacing={3} alignItems="flex-start">
@@ -716,7 +850,7 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
                 {/* Meta */}
                 <Grid item xs={12} md={7}>
                   <Stack spacing={1.5}>
-                    {preview.type === 'store' ? (
+                    {preview.type !== 'sweep' ? (
                       <>
                         <Box>
                           <Typography variant="caption" color="text.secondary" textTransform="uppercase" letterSpacing={0.6} fontWeight={600}>Slug</Typography>
@@ -775,7 +909,7 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
           {preview && (() => {
             const doc = preview.doc;
             const img = doc.qr.secureUrl || (doc.qr as any).url;
-            const slug = preview.type === 'store' ? (doc as StoreQr).slug : (doc as SweepstakeQr).slug;
+            const slug = preview.type !== 'sweep' ? (doc as StoreQr).slug : (doc as SweepstakeQr).slug;
             const ext = String(doc.qr.format || 'png').toLowerCase() === 'svg' ? '.svg' : '.png';
             return (
               <>

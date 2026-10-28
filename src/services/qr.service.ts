@@ -163,6 +163,17 @@ export const upsertStoreGenericQr = async (storeId: string): Promise<{ success: 
   return data;
 };
 
+// QR /w independiente del QR genérico de la tienda.
+export const getStoreWelcomeQr = async (storeId: string): Promise<StoreQr | null> => {
+  const { data } = await api.get(`${basePath}/store/${storeId}/welcome`);
+  return data.data;
+};
+
+export const upsertStoreWelcomeQr = async (storeId: string): Promise<StoreQr> => {
+  const { data } = await api.post(`${basePath}/stores/${storeId}/welcome`);
+  return data.data;
+};
+
 // POST /qr/sweepstake/:sweepstakeId/store/ → genera QR opt-in del sorteo para una tienda
 export const upsertSweepstakeOptinQr = async (sweepstakeId: string, storeId: string): Promise<{ success: boolean; optin: SweepstakeQr }> => {
   const { data } = await api.post(`${basePath}/sweepstake/${sweepstakeId}/store/`, { storeId });
