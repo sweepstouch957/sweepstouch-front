@@ -79,7 +79,10 @@ export default function SweepstakeConfirmationRcs({ sweepstakeId, value, sweepst
   const fileRef = useRef<HTMLInputElement | null>(null);
   const textRef = useRef<HTMLTextAreaElement | null>(null);
 
-  useEffect(() => setForm({ ...EMPTY, ...value }), [value]);
+  // Un refetch del sorteo trae otro objeto con lo mismo: resetear sólo si cambió lo guardado
+  // (si no, volver a la pestaña borraba lo que estabas escribiendo).
+  const savedKey = JSON.stringify(value ?? null);
+  useEffect(() => setForm({ ...EMPTY, ...value }), [savedKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = <K extends keyof ConfirmationRcs>(k: K, v: ConfirmationRcs[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
