@@ -77,8 +77,6 @@ type Props = {
     paymentMethod: NonNullable<Store['paymentMethod']>;
     startContractDate: string | null;
     circularss: boolean;
-    circularssUrl?: string | null;
-    circularPriority?: 'circularss' | 'panel';
     cancelContractDate?: string | null;
     cancelContractReason?: string;
     status?: Store['status'];
@@ -802,46 +800,16 @@ export default function StoreGeneralForm({ form, edit, onChange, lng, lat, onReq
                 </Typography>
               }
             />
-            {form.circularss && (
-              <>
-                <TextField
-                  label="URL del circular"
-                  fullWidth
-                  size="small"
-                  value={(form as any).circularssUrl || ''}
-                  onChange={(e) => onChange('circularssUrl')({ value: e.target.value || null })}
-                  disabled={!edit}
-                  placeholder="https://..."
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LinkRounded sx={{ fontSize: 16, color: 'text.disabled' }} />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                {/* Apagado (default): manda la URL de arriba. Encendido: manda el PDF cargado en
-                    Circulares > Gestionar (con fecha). El otro queda de respaldo. */}
-                <FormControlLabel
-                  sx={{ ml: 0 }}
-                  control={
-                    <Switch
-                      checked={form.circularPriority === 'panel'}
-                      onChange={(e) =>
-                        onChange('circularPriority')({ value: e.target.checked ? 'panel' : 'circularss' })
-                      }
-                      disabled={!edit}
-                      size="small"
-                    />
-                  }
-                  label={
-                    <Typography variant="body2" fontSize={13}>
-                      Mostrar el circular cargado en el panel en vez de la URL
-                    </Typography>
-                  }
-                />
-              </>
-            )}
+            {/* El link de Circularss y qué circular manda se configuran en Circular & Listas →
+                Configuración (todo lo del circular en un solo lugar). */}
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              fontSize={12.5}
+            >
+              El link del circular y cuál manda en el linktree se configuran en Circular &amp;
+              Listas → Configuración.
+            </Typography>
           </Stack>
         </CollapsibleSection>
 

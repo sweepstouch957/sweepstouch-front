@@ -4,7 +4,14 @@
  * Cabecera del panel: título, tienda, estado de "¿Quiere lista?" y vista previa, con las
  * pestañas abajo en la misma tarjeta (así el título no compite con el contenido).
  */
-import { Box, Chip, Stack, Tab, Tabs, Typography } from '@mui/material';
+import {
+  Box,
+  Chip,
+  Stack,
+  Tab,
+  Tabs,
+  Typography,
+} from '@mui/material';
 import { memo } from 'react';
 import { PanelCard } from '../../../panel-kit';
 import PreRcsPreviewButton from '../preview';
@@ -15,13 +22,24 @@ type Props = {
   storeSlug: string;
   storeName?: string;
   listsEnabled?: boolean;
+  /** Store.flyerOnly: los productos salen sólo de flyers. */
+  flyerOnly?: boolean;
   tab: PanelTab;
   onTab: (tab: PanelTab) => void;
   /** Número junto a una pestaña (Próximos). */
   badges?: Partial<Record<PanelTab, number>>;
 };
 
-function PanelHeader({ storeId, storeSlug, storeName, listsEnabled, tab, onTab, badges }: Props) {
+function PanelHeader({
+  storeId,
+  storeSlug,
+  storeName,
+  listsEnabled,
+  flyerOnly,
+  tab,
+  onTab,
+  badges,
+}: Props) {
   const noList = listsEnabled === false;
   return (
     <PanelCard sx={{ mb: 2 }}>
@@ -65,6 +83,16 @@ function PanelHeader({ storeId, storeSlug, storeName, listsEnabled, tab, onTab, 
               color={noList ? 'warning' : 'success'}
               variant="outlined"
               label={noList ? 'Sin lista · agentes pausados' : 'Con lista'}
+              sx={{ height: 22, fontSize: 11.5, fontWeight: 700 }}
+            />
+            {/* De dónde salen los productos: se ve acá, se cambia en Configuración. */}
+            <Chip
+              size="small"
+              clickable
+              onClick={() => onTab('config')}
+              color={flyerOnly ? 'primary' : 'default'}
+              variant="outlined"
+              label={flyerOnly ? 'Sólo flyer' : 'Circular + flyer'}
               sx={{ height: 22, fontSize: 11.5, fontWeight: 700 }}
             />
           </Stack>

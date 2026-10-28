@@ -23,13 +23,11 @@ import { fmtDate, ImagePreviewDialog } from '../shared';
 import { KpiSkeleton } from '../skeletons';
 import AgentsFixDialog from './AgentsFixDialog';
 import FixEndDialog from './FixEndDialog';
-import HideCircularDialog from './HideCircularDialog';
 import ImportJobAlerts from './ImportJobAlerts';
 import ListStatusKpis from './ListStatusKpis';
 import {
   useAgentsFix,
   useFixEndOfDay,
-  useHideCircularProducts,
   useImportJobs,
   useRetryImportJob,
   useRulingPreview,
@@ -43,7 +41,7 @@ type Props = {
   onOpenAgents: () => void;
 };
 
-type DialogKind = 'fix' | 'hide' | 'end' | null;
+type DialogKind = 'fix' | 'end' | null;
 
 const TITLE = 'Lo que ve el cliente hoy';
 
@@ -65,7 +63,6 @@ export default function ListStatusCard({
   const openFlyer = useRulingPreview(openPreview);
   const fix = useAgentsFix(storeSlug);
   const fixEnd = useFixEndOfDay(storeSlug);
-  const hide = useHideCircularProducts(storeSlug);
 
   const jobs = useImportJobs(storeSlug);
   const { refetch: refetchJobs } = jobs;
@@ -118,11 +115,6 @@ export default function ListStatusCard({
       : []),
     ...(r
       ? [
-          {
-            label: 'Ocultar los del circular',
-            hint: 'Para siempre: la tienda queda sólo con flyer.',
-            onClick: () => setDialog('hide'),
-          },
           {
             label: 'Corregir vigencia',
             hint: 'Si el flyer dejó de verse antes de su último día (23:59 de Nueva York).',
@@ -219,14 +211,6 @@ export default function ListStatusCard({
           pending={fixEnd.isPending}
           onClose={closeDialog}
           onSubmit={(until) => fixEnd.mutate(until, { onSuccess: closeDialog })}
-        />
-      )}
-
-      {dialog === 'hide' && (
-        <HideCircularDialog
-          pending={hide.isPending}
-          onClose={closeDialog}
-          onConfirm={() => hide.mutate(undefined, { onSuccess: closeDialog })}
         />
       )}
 

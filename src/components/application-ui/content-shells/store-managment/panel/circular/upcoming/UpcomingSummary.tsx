@@ -9,13 +9,10 @@ import {
 import EventRoundedIcon from '@mui/icons-material/EventRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import {
-  FormControlLabel,
   InputAdornment,
   Skeleton,
   Stack,
-  Switch,
   TextField,
-  Tooltip,
 } from '@mui/material';
 import { fmtDay, relDay } from './utils';
 
@@ -27,10 +24,8 @@ type Props = {
   nNew: number;
   /** Día (YYYY-MM-DD) del próximo grupo que sale. */
   nextDay?: string;
-  /** Store.flyerOnly: el circular semanal no carga; aquí sólo sale lo de los flyers. */
+  /** Store.flyerOnly (se cambia en la cabecera): aquí sólo sale lo de los flyers. */
   flyerOnly: boolean;
-  flyerOnlyBusy: boolean;
-  onFlyerOnlyChange: (on: boolean) => void;
 };
 
 export default function UpcomingSummary({
@@ -41,8 +36,6 @@ export default function UpcomingSummary({
   nNew,
   nextDay,
   flyerOnly,
-  flyerOnlyBusy,
-  onFlyerOnlyChange,
 }: Props) {
   return (
     <PanelCard>
@@ -66,26 +59,6 @@ export default function UpcomingSummary({
             gap={1.5}
             sx={{ width: { xs: '100%', sm: 'auto' } }}
           >
-            <Tooltip
-              title={
-                flyerOnly
-                  ? 'Apágalo para que el circular semanal vuelva a cargar productos'
-                  : 'Deja de cargar el circular semanal hasta que lo apagues. Lo que el circular ya dejó esperando fecha se quita.'
-              }
-            >
-              <FormControlLabel
-                sx={{ mr: 0, whiteSpace: 'nowrap' }}
-                control={
-                  <Switch
-                    size="small"
-                    checked={flyerOnly}
-                    disabled={loading || flyerOnlyBusy}
-                    onChange={(e) => onFlyerOnlyChange(e.target.checked)}
-                  />
-                }
-                label="Sólo flyer"
-              />
-            </Tooltip>
             <TextField
               size="small"
               placeholder="Buscar producto"

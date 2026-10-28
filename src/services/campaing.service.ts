@@ -215,6 +215,21 @@ export interface YtdMonthlyMonth {
   audience: number;
 }
 
+export type WeeklyReportState = 'sent' | 'sent_fake' | 'pending' | 'no_email';
+
+export interface WeeklyReportStatus {
+  week: { startDate: string; endDate: string; timeZone: string };
+  totals: { stores: number; sent: number; sentFake: number; pending: number; noEmail: number };
+  stores: Array<{
+    storeId: string;
+    name: string;
+    email: string;
+    campaigns: number;
+    sentAt: string | null;
+    state: WeeklyReportState;
+  }>;
+}
+
 export type ReportGranularity = 'day' | 'week' | 'month';
 
 export interface ReportSeriesParams {
@@ -1030,6 +1045,21 @@ class CampaignClient {
 
     const res = await api.get(path, { params });
     return res.data as YtdMonthlyResponse;
+  }
+
+  /** Reporte semanal de la semana anterior: a qué tiendas les llegó y a cuáles no. */
+  async getWeeklyReportStatus(): Promise<WeeklyReportStatus> {
+    const res = await api.get('/campaigns/weekly-report/status');
+    return res.data as WeeklyReportStatus;
+  }
+
+  /** Sin storeId reintenta todas las pendientes; con storeId + force reenvía a esa tienda. */
+  async sendWeeklyReport(body: { storeId?: string; force?: boolean } = {}): Promise<{
+    sent: number;
+    results?: Array<{ storeId: string; sent?: boolean; skipped?: string; error?: string }>;
+  }> {
+    const res = await api.post('/campaigns/weekly-report/send', body);
+    return res.data;
   }
 
   async getSentSeries(params: ReportSeriesParams): Promise<SentSeriesResponse> {

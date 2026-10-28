@@ -111,6 +111,20 @@ export interface Sweepstakes {
   kioskBannerPortrait?: string;
   mainColor?: string;
   secondaryColor?: string;
+  /** RCS que le cae al participante al registrarse en la web (reemplaza al SMS). */
+  confirmationRcs?: ConfirmationRcs;
+}
+
+export interface ConfirmationRcs {
+  enabled: boolean;
+  imageUrl?: string;
+  title?: string;
+  /** Admite {name} {code} {referralCode}. */
+  text?: string;
+  buttonText?: string;
+  /** success = el botón abre su página de éxito con el QR (vale en otro navegador); url = buttonUrl. */
+  buttonAction?: 'success' | 'url';
+  buttonUrl?: string;
 }
 
 /** ===== Audience Windows ===== */
