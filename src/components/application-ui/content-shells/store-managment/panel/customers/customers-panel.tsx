@@ -14,6 +14,7 @@ import BulkInactivateModal from './bulk-inactivate-modal';
 import AnalisisNumerosModal from './analisis-numeros-modal';
 import AuditoriaNumerosModal from './auditoria-numeros-modal';
 import LinktreeAliasCard from './linktree-alias-card';
+import StoreFlyerCard from './store-flyer-card';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   SettingsBackupRestoreRounded,
@@ -216,6 +217,8 @@ const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName, provider,
           ))}
         </Box>
       </Paper>
+
+      <StoreFlyerCard storeId={storeId} />
 
       <LinktreeAliasCard
         storeId={storeId}
