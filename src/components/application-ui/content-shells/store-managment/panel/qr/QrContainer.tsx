@@ -542,7 +542,7 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
             >
               <CardBanner
                 icon={<QrCode2Rounded />}
-                label="QR Genérico de la Tienda"
+                label="QR para sorteo de fin de año"
                 gradient={storeGradient}
                 badge={
                   welcomeQr ? (
@@ -811,7 +811,7 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
         <DialogTitle sx={{ p: 0 }}>
           <CardBanner
             icon={<QrCode2Rounded />}
-            label={preview?.type === 'welcome' ? 'QR de Bienvenida (/w)' : preview?.type === 'store' ? 'QR Genérico de la Tienda' : 'QR del Sorteo Activo'}
+            label={preview?.type === 'welcome' ? 'QR para sorteo de fin de año' : preview?.type === 'store' ? 'QR Genérico de la Tienda' : 'QR del Sorteo Activo'}
             gradient={preview?.type !== 'sweep' ? storeGradient : sweepGradient}
             badge={
               <IconButton size="small" onClick={() => setPreview(null)} sx={{ color: 'rgba(255,255,255,0.8)' }}>
