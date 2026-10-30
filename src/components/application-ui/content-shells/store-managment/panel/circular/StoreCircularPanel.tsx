@@ -25,6 +25,7 @@ const tabSkeleton = () => (
 const UpcomingProductsSection = dynamic(() => import('./upcoming'), { ssr: false, loading: tabSkeleton });
 const CatalogSection = dynamic(() => import('./catalog'), { ssr: false, loading: tabSkeleton });
 const ListsSection = dynamic(() => import('./lists'), { ssr: false, loading: tabSkeleton });
+const PostcardSection = dynamic(() => import('./postcard'), { ssr: false, loading: tabSkeleton });
 const PurchasesSection = dynamic(() => import('./purchases'), { ssr: false, loading: tabSkeleton });
 const MessagesSection = dynamic(() => import('./messages'), { ssr: false, loading: tabSkeleton });
 const AgentsSection = dynamic(() => import('./agents'), { ssr: false, loading: tabSkeleton });
@@ -95,7 +96,8 @@ export default function StoreCircularPanel({
       {tab === 'upcoming' && <UpcomingProductsSection storeSlug={storeSlug} />}
       {tab === 'products' && <CatalogSection storeSlug={storeSlug} />}
       {tab === 'lists' && <ListsSection storeSlug={storeSlug} />}
-      {tab === 'purchases' && <PurchasesSection storeSlug={storeSlug} />}
+      {tab === 'postcard' && <PostcardSection storeSlug={storeSlug} />}
+      {tab === 'purchases' &&<PurchasesSection storeSlug={storeSlug} />}
       {tab === 'messages' && (
         <MessagesSection
           storeId={storeId}
