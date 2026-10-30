@@ -348,6 +348,15 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
   /* theme-driven colors — follow customization dialog */
   const storeAccent = theme.palette.primary.main;
   const sweepAccent = theme.palette.success.main;
+  const welcomeAccent = '#36454F';
+  const welcomeGradient = 'linear-gradient(135deg, #252D33 0%, #36454F 100%)';
+  const welcomeOutlineSx = {
+    borderRadius: 2,
+    textTransform: 'none',
+    color: theme.palette.mode === 'dark' ? 'grey.300' : welcomeAccent,
+    borderColor: theme.palette.mode === 'dark' ? 'grey.500' : welcomeAccent,
+    '&:hover': { borderColor: welcomeAccent, bgcolor: alpha(welcomeAccent, 0.08) },
+  };
 
   const storeGradient =
     theme.palette.mode === 'dark'
@@ -537,13 +546,13 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
                 display: 'flex',
                 flexDirection: 'column',
                 transition: 'border-color 0.2s, background-color 0.2s',
-                '&:hover': { borderColor: alpha(storeAccent, 0.35), bgcolor: alpha(storeAccent, 0.04) },
+                '&:hover': { borderColor: alpha(welcomeAccent, 0.35), bgcolor: alpha(welcomeAccent, 0.04) },
               }}
             >
               <CardBanner
                 icon={<QrCode2Rounded />}
-                label="QR para sorteo de fin de año"
-                gradient={storeGradient}
+                label="QR para Postcards"
+                gradient={welcomeGradient}
                 badge={
                   welcomeQr ? (
                     <Chip label="Activo" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'common.white', fontWeight: 600, fontSize: 11 }} />
@@ -555,7 +564,7 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
 
               <Box p={2.5} flex={1} display="flex" flexDirection="column">
                 <Box display="flex" justifyContent="center" mb={2.5}>
-                  <QrFrame src={welcomeImg} accentColor={storeAccent} />
+                  <QrFrame src={welcomeImg} accentColor={welcomeAccent} />
                 </Box>
 
                 {/* Link */}
@@ -570,7 +579,7 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
                 {welcomeQr && (
                   <Paper
                     variant="outlined"
-                    sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(storeAccent, 0.03), mb: 2 }}
+                    sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(welcomeAccent, 0.03), mb: 2 }}
                   >
                     <Stack spacing={0.5}>
                       <MetaRow label="Slug" value={welcomeQr.slug} />
@@ -607,7 +616,7 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
                     startIcon={genWelcomeMut.isPending ? <CircularProgress size={14} /> : <AutorenewRounded />}
                     onClick={() => genWelcomeMut.mutate()}
                     disabled={genWelcomeMut.isPending || !welcomeLink}
-                    sx={{ borderRadius: 2, textTransform: 'none' }}
+                    sx={welcomeOutlineSx}
                   >
                     {welcomeQr ? 'Regenerar' : 'Generar QR'}
                   </Button>
@@ -618,7 +627,7 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
                         variant="outlined"
                         startIcon={<DownloadRounded />}
                         onClick={() => downloadRemoteFile(welcomeImg, `welcome-${welcomeQr.slug}.png`)}
-                        sx={{ borderRadius: 2, textTransform: 'none' }}
+                        sx={welcomeOutlineSx}
                       >
                         Descargar
                       </Button>
@@ -627,7 +636,7 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
                         variant="contained"
                         startIcon={<VisibilityRounded />}
                         onClick={() => setPreview({ type: 'welcome', doc: welcomeQr })}
-                        sx={{ borderRadius: 2, textTransform: 'none', background: storeGradient }}
+                        sx={{ borderRadius: 2, textTransform: 'none', background: welcomeGradient }}
                       >
                         Preview
                       </Button>
@@ -811,8 +820,8 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
         <DialogTitle sx={{ p: 0 }}>
           <CardBanner
             icon={<QrCode2Rounded />}
-            label={preview?.type === 'welcome' ? 'QR para sorteo de fin de año' : preview?.type === 'store' ? 'QR Genérico de la Tienda' : 'QR del Sorteo Activo'}
-            gradient={preview?.type !== 'sweep' ? storeGradient : sweepGradient}
+            label={preview?.type === 'welcome' ? 'QR para Postcards' : preview?.type === 'store' ? 'QR Genérico de la Tienda' : 'QR del Sorteo Activo'}
+            gradient={preview?.type === 'welcome' ? welcomeGradient : preview?.type === 'store' ? storeGradient : sweepGradient}
             badge={
               <IconButton size="small" onClick={() => setPreview(null)} sx={{ color: 'rgba(255,255,255,0.8)' }}>
                 <CloseRounded fontSize="small" />
@@ -825,7 +834,7 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
           {preview && (() => {
             const doc = preview.doc;
             const img = doc.qr.secureUrl || (doc.qr as any).url;
-            const accent = preview.type !== 'sweep' ? storeAccent : sweepAccent;
+            const accent = preview.type === 'welcome' ? welcomeAccent : preview.type === 'store' ? storeAccent : sweepAccent;
 
             return (
               <Grid container spacing={3} alignItems="flex-start">
