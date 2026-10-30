@@ -2,6 +2,7 @@ import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import EventRoundedIcon from '@mui/icons-material/EventRounded';
 import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
+import MailOutlineRoundedIcon from '@mui/icons-material/MailOutlineRounded';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
@@ -14,6 +15,7 @@ export type PanelTab =
   | 'upcoming'
   | 'products'
   | 'lists'
+  | 'postcard'
   | 'purchases'
   | 'messages'
   | 'agents'
@@ -24,6 +26,7 @@ export const PANEL_TABS: { id: PanelTab; label: string; icon: ReactElement }[] =
   { id: 'upcoming', label: 'Próximos', icon: <EventRoundedIcon fontSize="small" /> },
   { id: 'products', label: 'Productos', icon: <Inventory2OutlinedIcon fontSize="small" /> },
   { id: 'lists', label: 'Listas', icon: <FactCheckOutlinedIcon fontSize="small" /> },
+  { id: 'postcard', label: 'Postcard', icon: <MailOutlineRoundedIcon fontSize="small" /> },
   { id: 'purchases', label: 'Compras', icon: <ReceiptLongRoundedIcon fontSize="small" /> },
   { id: 'messages', label: 'Mensajes', icon: <SmsOutlinedIcon fontSize="small" /> },
   { id: 'agents', label: 'Agentes IA', icon: <SmartToyOutlinedIcon fontSize="small" /> },
