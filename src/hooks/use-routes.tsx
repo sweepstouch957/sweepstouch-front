@@ -88,6 +88,7 @@ const buildMenu = (
 const dashboardsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Métricas'), <InsightsRounded />, [
     { title: t('Reportes'), route: routes.admin.dashboards.reports },
+    { title: t('Correo semanal a tiendas'), route: routes.admin.dashboards['weekly-report'] },
     { title: t('Sweepstakes'), route: routes.admin.dashboards.sweepstakes },
     { title: t('Mensajes enviados'), route: routes.admin.dashboards['messages-sent'] },
     { title: t('Audiencia'), route: routes.admin.dashboards.audience },

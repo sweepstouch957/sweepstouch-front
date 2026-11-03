@@ -111,6 +111,7 @@ export const routes = {
     index: '/admin/dashboards/reports',
     dashboards: {
       reports: '/admin/dashboards/reports',
+      'weekly-report': '/admin/dashboards/weekly-report',
       'messages-sent': '/admin/dashboards/messages-sent',
       sweepstakes: '/admin/dashboards/sweepstakes',
       'campaign-analytics': '/admin/dashboards/campaign-analytics',

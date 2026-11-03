@@ -14,8 +14,6 @@ import dynamic from 'next/dynamic';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-import WeeklyReportCard from '@/components/application-ui/reports/weekly-report-card';
-
 const YearlyReportsSection = dynamic(
   () => import('@/components/application-ui/reports/yearly-reports-section'),
   { ssr: false, loading: () => <LinearProgress sx={{ borderRadius: 1 }} /> }
@@ -63,10 +61,7 @@ export default function ReportsClient(): React.JSX.Element {
         </Box>
       </Stack>
 
-      <Stack spacing={2.5}>
-        <WeeklyReportCard />
-        <YearlyReportsSection />
-      </Stack>
+      <YearlyReportsSection />
     </Box>
   );
 }

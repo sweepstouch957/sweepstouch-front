@@ -219,6 +219,8 @@ export type WeeklyReportState = 'sent' | 'sent_fake' | 'pending' | 'no_email';
 
 export interface WeeklyReportStatus {
   week: { startDate: string; endDate: string; timeZone: string };
+  /** Lunes de cierre que se pueden elegir, de la última semana a la primera. */
+  weeks?: string[];
   totals: { stores: number; sent: number; sentFake: number; pending: number; noEmail: number };
   stores: Array<{
     storeId: string;
@@ -1048,13 +1050,14 @@ class CampaignClient {
   }
 
   /** Reporte semanal de la semana anterior: a qué tiendas les llegó y a cuáles no. */
-  async getWeeklyReportStatus(): Promise<WeeklyReportStatus> {
-    const res = await api.get('/campaigns/weekly-report/status');
+  async getWeeklyReportStatus(endDate?: string): Promise<WeeklyReportStatus> {
+    const res = await api.get('/campaigns/weekly-report/status', { params: endDate ? { endDate } : {} });
     return res.data as WeeklyReportStatus;
   }
 
-  /** Sin storeId reintenta todas las pendientes; con storeId + force reenvía a esa tienda. */
-  async sendWeeklyReport(body: { storeId?: string; force?: boolean } = {}): Promise<{
+  /** Sin storeId reintenta todas las pendientes; con storeId + force reenvía a esa tienda.
+   *  endDate = lunes de cierre de una semana anterior (sin él, la última). */
+  async sendWeeklyReport(body: { storeId?: string; force?: boolean; endDate?: string } = {}): Promise<{
     sent: number;
     results?: Array<{ storeId: string; sent?: boolean; skipped?: string; error?: string }>;
   }> {
