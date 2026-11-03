@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Zona para soltar el PDF del circular. Varios archivos = páginas (página 1, página 2…): se
+ * Zona para soltar el PDF o la imagen del circular. Varios archivos = páginas (página 1, página 2…): se
  * ordenan por nombre (natural) y se suben como un solo circular. Un archivo solo sigue por la
  * subida de siempre.
  */
@@ -31,12 +31,12 @@ export default function PdfDropzone({
     ? `${files.length} archivos (páginas), en este orden:`
     : file
       ? file.name
-      : 'Arrastra el PDF del circular (o sus páginas sueltas), o haz clic';
+      : 'Arrastra el PDF o la imagen del circular (o sus páginas sueltas), o haz clic';
   const hint = many
     ? `${mb(files.reduce((n, f) => n + f.size, 0))} en total · se leen en este orden como un solo circular`
     : file
       ? `${mb(file.size)} · la IA extrae los productos al agendar`
-      : 'El circular siempre es PDF. Si te lo mandan por páginas, suéltalas todas juntas. Las fotos del cliente van abajo, como referencia.';
+      : 'PDF o imagen (JPG, PNG). Si te lo mandan por páginas, suéltalas todas juntas. Las fotos de referencia del cliente van abajo.';
 
   return (
     <>
@@ -100,7 +100,7 @@ export default function PdfDropzone({
         <input
           hidden
           type="file"
-          accept="application/pdf"
+          accept="application/pdf,image/*"
           multiple
           onChange={(e) => {
             addFiles(e.target.files);

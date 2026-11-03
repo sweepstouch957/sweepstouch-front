@@ -107,7 +107,7 @@ export default function CircularSummary({
             <input
               hidden
               type="file"
-              accept="application/pdf"
+              accept="application/pdf,image/*"
               multiple
               onChange={(e) => {
                 const files = Array.from(e.target.files || []);
