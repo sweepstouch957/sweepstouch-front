@@ -500,6 +500,16 @@ export default function CashierDetailsDialog({
         )}
 
         {/* ===== Auditoría de Números ===== */}
+        {!!stats?.referrals?.length && <Box sx={{ mt: 3 }}>
+          <Typography variant="h6" gutterBottom>Teléfonos agregados por referidos</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Vinculados al código de esta cajera. Se muestran los últimos 500 del rango seleccionado.</Typography>
+          <TableContainer component={Paper}>
+            <Table size="small">
+              <TableHead><TableRow><TableCell>Teléfono</TableCell><TableCell>Código cajera</TableCell><TableCell>Fecha</TableCell><TableCell align="right">Puntos</TableCell></TableRow></TableHead>
+              <TableBody>{stats.referrals.map(contact => <TableRow key={contact.id}><TableCell>{contact.phone}</TableCell><TableCell>{contact.cashierCode}</TableCell><TableCell>{new Date(contact.date).toLocaleDateString('es')}</TableCell><TableCell align="right">{contact.points ? '+1' : 'Pendiente'}</TableCell></TableRow>)}</TableBody>
+            </Table>
+          </TableContainer>
+        </Box>}
         {phoneAudit && phoneAudit.totalRegistered > 0 && (
           <>
             <Divider sx={{ my: 2 }} />

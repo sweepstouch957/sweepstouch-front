@@ -59,6 +59,11 @@ export interface CashierCountResponse {
 }
 
 export interface CashierRankingItem {
+  referralNumbers?: number;
+  sweepstakesRegistrations?: number;
+  registrationPoints?: number;
+  totalPoints?: number;
+  referralPoints?: number;
   cashierId: string;
   name: string | null;
   email: string | null;
@@ -86,6 +91,9 @@ export interface CashierRankingResponse {
   dateRange: { startDate: string; endDate: string };
   filters: { storeId: string; active: string; q: string };
   totals?: {
+    totalPoints?: number;
+    registrationPoints?: number;
+    referralPoints?: number;
     participantsNew?: number;
     participantsFromListedCashiers?: number;
   };
@@ -102,6 +110,7 @@ export interface CashierRankingResponse {
 
 /** ✨ Stats por cajera (nuevo) */
 export type CashierStatsResponse = {
+  referrals?: Array<{ id: string; phone: string; cashierCode: string; date: string; storeSlug?: string; points: number }>;
   cashierId: string;
   range: { startDate: string; endDate: string };
   totals: {

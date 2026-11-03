@@ -51,6 +51,8 @@ type PhoneAudit = {
 };
 
 type Row = {
+  totalPoints?: number;
+  referralPoints?: number;
   cashierId: string;
   name: string | null;
   email: string | null;
@@ -184,6 +186,7 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
         __existing: r.existingNumbers,
       }))
       .sort((a: any, b: any) => {
+        if (Number.isFinite(a.totalPoints) && Number.isFinite(b.totalPoints)) return b.totalPoints - a.totalPoints;
         const aKey =
           Number.isFinite(a.__new) || Number.isFinite(a.__existing)
             ? toInt(a.__new, 0) + toInt(a.__existing, 0)
@@ -344,6 +347,7 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
               label={`Total cajeras: ${totalCashiers}`}
               size="small"
             />
+            {typeof data?.totals?.totalPoints === 'number' && <Chip size="small" label={`Puntos generales: ${data.totals.totalPoints.toLocaleString('es', { maximumFractionDigits: 1 })}`} sx={{ bgcolor: '#FFF0F7', color: '#E8127F', fontWeight: 800 }} />}
             {data?.phoneAudit && data.phoneAudit.totalRegistered > 0 && (
               <>
                 <Chip
@@ -408,6 +412,8 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
                   <TableCell>Nombre</TableCell>
                   <TableCell>Código</TableCell>
                   <TableCell align="right">Registros</TableCell>
+                  <TableCell align="right">Puntos generales</TableCell>
+                  <TableCell align="right">Puntos por referidos</TableCell>
                   <TableCell align="right"><PhoneIphoneRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />Tel. Audit</TableCell>
                   <TableCell align="center" sx={{ width: 80 }}></TableCell>
                 </TableRow>
@@ -432,6 +438,13 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
                     </TableCell>
                     <TableCell align="right">
                       <Typography variant="body2" fontWeight={700}>{toInt(r.count, 0)}</Typography>
+                      {r.referralNumbers > 0 && <Typography variant="caption" color="text.secondary">{r.referralNumbers} por referidos</Typography>}
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography variant="body2" fontWeight={800}>{typeof r.totalPoints === 'number' ? r.totalPoints.toLocaleString('es', { maximumFractionDigits: 1 }) : '—'} pts</Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Chip size="small" label={`+${toInt(r.referralPoints, 0)} pts`} sx={{ bgcolor: '#FFF0F7', color: '#E8127F', fontWeight: 800 }} />
                     </TableCell>
                     <TableCell align="right">
                       {r.phoneAudit ? (
@@ -465,7 +478,7 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
 
                 {!ranked.length && !isLoading && !isFetching && (
                   <TableRow>
-                    <TableCell colSpan={6}>
+                    <TableCell colSpan={8}>
                       <Typography
                         textAlign="center"
                         py={3}
@@ -478,7 +491,7 @@ const CashiersTable: React.FC<CashiersTableProps> = ({ storeId, active }) => {
               </TableBody>
               <TableFooter>
                 <TableRow>
-                  <TableCell colSpan={6}>
+                  <TableCell colSpan={8}>
                     <Stack
                       direction="row"
                       alignItems="center"
