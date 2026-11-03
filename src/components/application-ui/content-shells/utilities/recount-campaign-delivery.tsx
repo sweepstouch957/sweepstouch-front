@@ -33,7 +33,7 @@ const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
 
 /**
  * Recalcula la entrega de las campañas de un rango: los mensajes que Infobip marcó
- * UNDELIVERABLE_NOT_DELIVERED pasan a entregado (el estado real queda guardado aparte)
+ * UNDELIVERABLE_NOT_DELIVERED o EXPIRED pasan a entregado (el estado real queda guardado)
  * y se recalculan enviados, errores y % de entrega. Como el recálculo de costos, siempre
  * se simula primero.
  */
@@ -65,7 +65,7 @@ export function RecountCampaignDelivery() {
       <SectionHeader
         icon={<MarkEmailReadRoundedIcon />}
         title="Recalcular entrega de campañas"
-        hint="Cuenta como entregados los mensajes UNDELIVERABLE_NOT_DELIVERED"
+        hint="Cuenta como entregados los mensajes UNDELIVERABLE_NOT_DELIVERED y EXPIRED"
       />
 
       <Box sx={{ px: 2.25, pb: 2.25 }}>
