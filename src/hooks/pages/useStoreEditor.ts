@@ -1,7 +1,7 @@
 // src/hooks/useStoreEditor.js
 import { updateStorePatch } from '@/services/store.service';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { kioskUrl as buildKioskUrl } from 'src/utils/sweepstouch-urls';
 
 const isValidLngLat = (coords) => {
@@ -136,6 +136,66 @@ const buildPatch = (orig, curr) => {
   return patch;
 };
 
+// Campos del form a partir de la tienda (estado inicial, cancelar y refresco del server).
+const buildForm = (store) => ({
+  name: store.name || '',
+  image: store.image || '',
+  storePhoto: store.storePhoto || '',
+  address: store.address || '',
+  zipCode: store.zipCode || '',
+  type: store.type || 'free',
+  // Rubro del negocio (súper, restaurante, gimnasio…). `type` de arriba es el
+  // PLAN, no el rubro: son dos cosas distintas y se guardan aparte.
+  businessType: store.businessType || 'unknown',
+  active: !!store.active,
+  status: store.status || (store.active ? 'active' : 'inactive'),
+  inactiveReason: store.inactiveReason || '',
+  suspendedReason: store.suspendedReason || '',
+  email: store.email || '',
+  phoneNumber: store.phoneNumber || '',
+  provider: store.provider || 'infobip',
+  infobipSenderId: store.infobipSenderId || '',
+  infobipShortcode: store.infobipShortcode || '',
+
+  billingNextDate: store.billingNextDate ?? null,
+  billingLastPeriodEnd: store.billingLastPeriodEnd ?? null,
+  creditStatus: store.creditStatus || 'ok',
+
+  location: isValidLngLat(store?.location?.coordinates)
+    ? { type: 'Point', coordinates: [...store.location.coordinates] }
+    : undefined,
+
+  membershipType: store.membershipType ?? 'semanal',
+  paymentMethod: store.paymentMethod ?? 'card',
+  startContractDate: store.startContractDate ?? null,
+  aniversaryStore: store.aniversaryStore ?? null,
+  circularss: store.circularss ?? false,
+  cancelContractDate: store.cancelContractDate ?? null,
+  cancelContractReason: store.cancelContractReason || '',
+
+  // 🆕 Tablet / Kiosko
+  kioskTabletStatus: store.kioskTabletStatus ?? 'sin_instalar',
+  kioskTabletDate: store.kioskTabletDate ?? null,
+  kioskTabletQuantity: store.kioskTabletQuantity ?? null,
+
+  // 🆕 Social Links
+  socialLinks: {
+    facebook: store.socialLinks?.facebook ?? '',
+    instagram: store.socialLinks?.instagram ?? '',
+    website: store.socialLinks?.website ?? '',
+  },
+
+  // 🆕 Slug (editable)
+  slug: store.slug ?? '',
+
+  // 🆕 Contact Info
+  contactInfo: store.contactInfo ?? [],
+
+  // 🆕 Pause History & Contracts
+  pauseHistory: store.pauseHistory ?? [],
+  contracts: store.contracts ?? [],
+});
+
 export function useStoreEditor(store) {
   const [edit, setEdit] = useState(false);
   const [snack, setSnack] = useState<{
@@ -145,64 +205,18 @@ export function useStoreEditor(store) {
   }>({ open: false, msg: '', type: 'success' });
 
   // Prellenar el form con datos reales (evita defaults vacíos)
-  const [form, setForm] = useState({
-    name: store.name || '',
-    image: store.image || '',
-    storePhoto: store.storePhoto || '',
-    address: store.address || '',
-    zipCode: store.zipCode || '',
-    type: store.type || 'free',
-    // Rubro del negocio (súper, restaurante, gimnasio…). `type` de arriba es el
-    // PLAN, no el rubro: son dos cosas distintas y se guardan aparte.
-    businessType: store.businessType || 'unknown',
-    active: !!store.active,
-    status: store.status || (store.active ? 'active' : 'inactive'),
-    inactiveReason: store.inactiveReason || '',
-    suspendedReason: store.suspendedReason || '',
-    email: store.email || '',
-    phoneNumber: store.phoneNumber || '',
-    provider: store.provider || 'infobip',
-    infobipSenderId: store.infobipSenderId || '',
-    infobipShortcode: store.infobipShortcode || '',
+  const [form, setForm] = useState(() => buildForm(store));
+  // Lo que el form cargó. El patch compara contra esto y no contra `store`: si la tienda se
+  // refrescaba y el form no, un campo que cambió afuera (ej. el email) salía como "borrado".
+  const baseline = useRef(store);
 
-    billingNextDate: store.billingNextDate ?? null,
-    billingLastPeriodEnd: store.billingLastPeriodEnd ?? null,
-    creditStatus: store.creditStatus || 'ok',
-
-    location: isValidLngLat(store?.location?.coordinates)
-      ? { type: 'Point', coordinates: [...store.location.coordinates] }
-      : undefined,
-
-    membershipType: store.membershipType ?? 'semanal',
-    paymentMethod: store.paymentMethod ?? 'card',
-    startContractDate: store.startContractDate ?? null,
-    aniversaryStore: store.aniversaryStore ?? null,
-    circularss: store.circularss ?? false,
-    cancelContractDate: store.cancelContractDate ?? null,
-    cancelContractReason: store.cancelContractReason || '',
-
-    // 🆕 Tablet / Kiosko
-    kioskTabletStatus: store.kioskTabletStatus ?? 'sin_instalar',
-    kioskTabletDate: store.kioskTabletDate ?? null,
-    kioskTabletQuantity: store.kioskTabletQuantity ?? null,
-
-    // 🆕 Social Links
-    socialLinks: {
-      facebook: store.socialLinks?.facebook ?? '',
-      instagram: store.socialLinks?.instagram ?? '',
-      website: store.socialLinks?.website ?? '',
-    },
-
-    // 🆕 Slug (editable)
-    slug: store.slug ?? '',
-
-    // 🆕 Contact Info
-    contactInfo: store.contactInfo ?? [],
-
-    // 🆕 Pause History & Contracts
-    pauseHistory: store.pauseHistory ?? [],
-    contracts: store.contracts ?? [],
-  });
+  // Refresco del server: se toma salvo que haya una edición abierta (no pisar lo que se escribe).
+  useEffect(() => {
+    if (edit) return;
+    baseline.current = store;
+    setForm(buildForm(store));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store]);
 
   const kioskUrl = useMemo(() => buildKioskUrl(store.slug), [store.slug]);
 
@@ -251,6 +265,7 @@ export function useStoreEditor(store) {
     mutationFn: (body: any) => updateStorePatch(store._id, body),
     onSuccess: (resp) => {
       const updated: any = resp;
+      baseline.current = updated;
 
       // refresca form con lo que vino del server
       setForm((s) => ({
@@ -279,7 +294,7 @@ export function useStoreEditor(store) {
   });
 
   const handleSave = () => {
-    const patch = buildPatch(store, form);
+    const patch = buildPatch(baseline.current, form);
     if (Object.keys(patch).length === 0) {
       setSnack({ open: true, msg: 'No hay cambios por guardar.', type: 'success' });
       setEdit(false);
@@ -290,62 +305,8 @@ export function useStoreEditor(store) {
 
   const handleCancel = () => {
     // reset al estado original
-    setForm({
-      name: store.name || '',
-      image: store.image || '',
-    storePhoto: store.storePhoto || '',
-      address: store.address || '',
-      zipCode: store.zipCode || '',
-      type: store.type || 'free',
-      businessType: store.businessType || 'unknown',
-      active: !!store.active,
-      status: store.status || (store.active ? 'active' : 'inactive'),
-      inactiveReason: store.inactiveReason || '',
-      suspendedReason: store.suspendedReason || '',
-      email: store.email || '',
-      phoneNumber: store.phoneNumber || '',
-      provider: store.provider || 'infobip',
-      infobipSenderId: store.infobipSenderId || '',
-      infobipShortcode: store.infobipShortcode || '',
-
-      billingNextDate: store.billingNextDate ?? null,
-      billingLastPeriodEnd: store.billingLastPeriodEnd ?? null,
-      creditStatus: store.creditStatus || 'ok',
-
-      location: isValidLngLat(store?.location?.coordinates)
-        ? { type: 'Point', coordinates: [...store.location.coordinates] }
-        : undefined,
-
-      membershipType: store.membershipType ?? 'semanal',
-      paymentMethod: store.paymentMethod ?? 'card',
-      startContractDate: store.startContractDate ?? null,
-      aniversaryStore: store.aniversaryStore ?? null,
-      circularss: store.circularss ?? false,
-      cancelContractDate: store.cancelContractDate ?? null,
-      cancelContractReason: store.cancelContractReason || '',
-
-    // 🆕 Tablet / Kiosko
-    kioskTabletStatus: store.kioskTabletStatus ?? 'sin_instalar',
-    kioskTabletDate: store.kioskTabletDate ?? null,
-    kioskTabletQuantity: store.kioskTabletQuantity ?? null,
-
-    // 🆕 Social Links
-    socialLinks: {
-      facebook: store.socialLinks?.facebook ?? '',
-      instagram: store.socialLinks?.instagram ?? '',
-      website: store.socialLinks?.website ?? '',
-    },
-
-    // 🆕 Slug
-    slug: store.slug ?? '',
-
-    // 🆕 Contact Info
-    contactInfo: store.contactInfo ?? [],
-
-    // 🆕 Pause History & Contracts
-    pauseHistory: store.pauseHistory ?? [],
-    contracts: store.contracts ?? [],
-  });
+    baseline.current = store;
+    setForm(buildForm(store));
 
     setEdit(false);
   };
