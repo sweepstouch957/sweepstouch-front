@@ -67,6 +67,12 @@ export default function ListsAnalyticsPage() {
     enabled: !!storeSlug,
     refetchInterval: 60_000,
   });
+  const productRequests = useQuery({
+    queryKey: ['shopping-lists', 'product-requests', storeSlug],
+    queryFn: () => shoppingListsService.productRequests(storeSlug),
+    enabled: !!storeSlug,
+    refetchInterval: 60_000,
+  });
 
   const s = summary.data;
   const p = purchases.data;
@@ -417,6 +423,56 @@ sx={{ flexShrink: 0 }}>
                   </Stack>
                 </>
               )}
+            </Paper>
+          )}
+
+          {/* Productos pedidos desde Mi Toque */}
+          {(productRequests.data?.totals.requests ?? 0) > 0 && (
+            <Paper variant="outlined"
+sx={{ p: 2, borderRadius: 2, mb: 2.5 }}>
+              <Stack direction="row"
+alignItems="center"
+justifyContent="space-between"
+flexWrap="wrap"
+gap={1}
+sx={{ mb: 1.5 }}>
+                <Typography variant="subtitle2"
+fontWeight={700}>
+                  Productos pedidos (Mi Toque)
+                </Typography>
+                <Stack direction="row"
+gap={1}>
+                  <Chip size="small"
+label={`${productRequests.data!.totals.requests} pedidos`} />
+                  <Chip size="small"
+label={`${productRequests.data!.totals.last7d} esta semana`} />
+                </Stack>
+              </Stack>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={cell}>Producto</TableCell>
+                    <TableCell sx={cell}>Nacionalidades</TableCell>
+                    <TableCell sx={cell}
+align="right">Pedidos</TableCell>
+                    <TableCell sx={cell}
+align="right">Último</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {productRequests.data!.top.map((t) => (
+                    <TableRow key={t._id}
+hover>
+                      <TableCell sx={cell}>{t.product}</TableCell>
+                      <TableCell sx={{ ...cell, whiteSpace: 'normal' }}>{t.nationalities.join(', ') || '—'}</TableCell>
+                      <TableCell sx={cell}
+align="right">{t.count}</TableCell>
+                      <TableCell sx={cell}
+align="right">{new Date(t.lastAt).toLocaleDateString('es')}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </Paper>
           )}
 

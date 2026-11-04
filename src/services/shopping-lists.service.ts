@@ -162,7 +162,27 @@ export const shoppingListsService = {
     const { data } = await api.get(`${BASE}/list-admin/surveys`, { params: { storeSlug } });
     return data;
   },
+
+  /** Productos pedidos desde Mi Toque ("¿Qué producto de tu tierra no encuentras?"). */
+  productRequests: async (storeSlug: string): Promise<ProductRequestsResponse> => {
+    const { data } = await api.get(`${BASE}/list-admin/product-requests`, { params: { storeSlug } });
+    return data;
+  },
 };
+
+export interface ProductRequestsResponse {
+  ok: boolean;
+  totals: { requests: number; last7d: number; products: number };
+  top: Array<{ _id: string; product: string; count: number; nationalities: string[]; lastAt: string }>;
+  recent: Array<{
+    _id: string;
+    product: string;
+    nationality: string;
+    customerName: string;
+    customerPhone: string;
+    createdAt: string;
+  }>;
+}
 
 export interface SurveyResults {
   ok: boolean;
