@@ -14,6 +14,7 @@ import {
 import { sweepstakesClient } from '@/services/sweepstakes.service';
 import { useStoreById } from '@/hooks/fetching/stores/useStoreById';
 import { LinktreeShortCard } from './LinktreeShortCard';
+import { api } from '@/libs/axios';
 import {
   AutorenewRounded,
   CheckRounded,
@@ -221,6 +222,54 @@ function CardBanner({
       </Box>
       {badge}
     </Box>
+  );
+}
+
+/* ──────────────────────────────────────────────────────── Raspa y gana */
+/** QR impreso del Raspa y gana: fijo por tienda (…/raspa-y-gana?slug=), lo dibuja
+ *  tracking-service al vuelo. 404 = la tienda no tiene el raspa activo. */
+function RaspaQrCard({ slug }: { slug?: string }) {
+  const accent = '#FC0680';
+  const gradient = 'linear-gradient(135deg, #C3005F 0%, #FC0680 100%)';
+  const link = slug ? `https://links.sweepstouch.com/raspa-y-gana?slug=${encodeURIComponent(slug)}` : undefined;
+  const { data: img, isLoading, error } = useQuery({
+    queryKey: ['raspaQr', slug],
+    queryFn: async () => {
+      const { data } = await api.get(`/tracking/games/qr/${encodeURIComponent(slug as string)}`, { responseType: 'blob' });
+      return URL.createObjectURL(data as Blob);
+    },
+    enabled: Boolean(slug),
+    retry: false,
+    staleTime: Infinity,
+  });
+  const notActive = (error as any)?.response?.status === 404;
+  const outline = { borderRadius: 2, textTransform: 'none', color: accent, borderColor: accent } as const;
+  return (
+    <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <CardBanner icon={<QrCode2Rounded />} label="QR Raspa y gana (impreso)" gradient={gradient} />
+      <Box p={2.5} flex={1} display="flex" flexDirection="column">
+        <Box display="flex" justifyContent="center" mb={2.5}>
+          <QrFrame src={img} loading={isLoading} accentColor={accent} />
+        </Box>
+        <Stack spacing={0.75} mb={2}>
+          <Typography variant="caption" fontWeight={600} color="text.secondary" textTransform="uppercase" letterSpacing={0.6}>
+            URL destino
+          </Typography>
+          <LinkChip href={link} />
+        </Stack>
+        <Box flex={1} />
+        {!slug && <Alert severity="info" sx={{ mb: 1.5, borderRadius: 2 }}>Esta tienda necesita un slug.</Alert>}
+        {notActive && <Alert severity="warning" sx={{ mb: 1.5, borderRadius: 2 }}>Esta tienda no tiene Raspa y gana activo: actívalo en Juegos antes de imprimir.</Alert>}
+        {error && !notActive && <Alert severity="error" sx={{ mb: 1.5, borderRadius: 2 }}>No se pudo generar el QR.</Alert>}
+        {img && (
+          <Stack direction="row" justifyContent="flex-end">
+            <Button size="small" variant="outlined" startIcon={<DownloadRounded />} component="a" href={img} download={`raspa-y-gana-${slug}.png`} sx={outline}>
+              Descargar PNG
+            </Button>
+          </Stack>
+        )}
+      </Box>
+    </Paper>
   );
 }
 
@@ -646,6 +695,10 @@ export default function QrDuetMUI({ storeId }: QrDuetMUIProps) {
               </Box>
             </Paper>
           )}
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <RaspaQrCard slug={store?.slug} />
         </Grid>
 
         {/* ── Sweepstake QR Card ── */}
