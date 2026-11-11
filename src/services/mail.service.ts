@@ -13,11 +13,11 @@ export interface SendCampaignEmailInput {
 export interface SendCampaignEmailResponse {
   ok: boolean;
   storeId: string;
-  campaignId: string;
+  campaignId?: string;
   campaignIds?: string[];
   campaignsCount?: number;
   period?: { start: string; end: string; timeZone?: string };
-  reportDate: string;
+  reportDate?: string;
   result: Array<{
     email: string;
     status: 'sent' | 'queued' | 'scheduled' | 'rejected' | 'invalid';

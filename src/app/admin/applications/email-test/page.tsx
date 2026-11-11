@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/hooks/use-auth';
 import { STAFF_ROLES } from '@/hooks/use-routes';
+import { sendCampaignDeliverySummary } from '@/services/campaign-delivery-summary.service';
 import {
   sendCampaignEmail,
   sendHistoricalCampaignEmail,
@@ -57,6 +58,14 @@ function sendError(error: unknown): string {
       'Escribe el nombre del ganador de entre 1 y 200 caracteres, sin saltos de línea.',
     invalid_store_id: 'Selecciona una tienda válida.',
     invalid_email: 'Escribe un correo destinatario válido.',
+    invalid_report_period:
+      'Revisa las fechas y la zona horaria: el fin debe ser posterior al inicio y es exclusivo.',
+    invalid_other_services: 'Puedes agregar hasta 20 servicios adicionales.',
+    invalid_service_cost: 'El costo del servicio debe ser un número mayor o igual a cero.',
+    invalid_contact_name:
+      'El nombre del contacto debe tener hasta 200 caracteres y no contener saltos de línea.',
+    invalid_support_phone:
+      'El teléfono de soporte debe tener hasta 200 caracteres y no contener saltos de línea.',
     report_service_unavailable: 'Un servicio del backend no está disponible.',
     report_service_error: 'Falló la consulta de los datos del reporte.',
     mail_send_not_configured: 'El servicio de envío de reportes aún no está configurado.',
@@ -80,17 +89,53 @@ export default function Page() {
     <>
       <ReportSection />
       <ReportSection historical />
+      <ReportSection deliverySummary />
     </>
   );
 }
 
-function ReportSection({ historical = false }: { historical?: boolean }) {
+function ReportSection({
+  historical = false,
+  deliverySummary = false,
+}: {
+  historical?: boolean;
+  deliverySummary?: boolean;
+}) {
   const { user } = useAuth();
   const allowed = !!user && STAFF_ROLES.includes(user.role);
   const [selectedStore, setSelectedStore] = useState<Store | null>(null);
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState('Campaign Report');
   const [sorteoWinner, setSorteoWinner] = useState('');
+  const [contactName, setContactName] = useState('');
+  const [supportPhone, setSupportPhone] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [timeZone, setTimeZone] = useState('America/New_York');
+  let validTimeZone = true;
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone });
+  } catch {
+    validTimeZone = false;
+  }
+  const validPeriod =
+    ((!startDate && !endDate) || (!!startDate && !!endDate && startDate < endDate)) &&
+    !!timeZone &&
+    validTimeZone;
+  const [otherServices, setOtherServices] = useState<
+    Array<{ id: number; name: string; cost: string }>
+  >([]);
+  const serviceId = useRef(0);
+  const deliveryFieldsValid =
+    validPeriod &&
+    [contactName, supportPhone].every((value) => !value || validText(value)) &&
+    otherServices.every(
+      (service) =>
+        validText(service.name) &&
+        service.cost.trim() !== '' &&
+        Number.isFinite(Number(service.cost)) &&
+        Number(service.cost) >= 0
+    );
   const [search, setSearch] = useState('');
   const [options, setOptions] = useState<Store[]>([]);
   const [page, setPage] = useState(1);
@@ -154,7 +199,7 @@ function ReportSection({ historical = false }: { historical?: boolean }) {
       !selectedStore ||
       !validEmail(email) ||
       !validText(subject) ||
-      !validText(sorteoWinner)
+      (deliverySummary ? !deliveryFieldsValid : !validText(sorteoWinner))
     )
       return;
     sendingRef.current = true;
@@ -162,12 +207,27 @@ function ReportSection({ historical = false }: { historical?: boolean }) {
     clearFeedback();
     try {
       const send = historical ? sendHistoricalCampaignEmail : sendCampaignEmail;
-      const response = await send({
-        storeId: selectedStore._id,
-        to: email,
-        subject,
-        sorteo_winner: sorteoWinner,
-      });
+      const response = deliverySummary
+        ? await sendCampaignDeliverySummary({
+            storeId: selectedStore._id,
+            to: email,
+            subject,
+            contact_name: contactName,
+            support_phone: supportPhone,
+            startDate: startDate || undefined,
+            endDate: endDate || undefined,
+            timeZone,
+            other_services: otherServices.map((service) => ({
+              name: service.name,
+              cost: Number(service.cost),
+            })),
+          })
+        : await send({
+            storeId: selectedStore._id,
+            to: email,
+            subject,
+            sorteo_winner: sorteoWinner,
+          });
       const item = response.result?.[0];
       if (!item) throw new Error('El servicio no confirmó el envío');
       setResult(response);
@@ -207,15 +267,21 @@ function ReportSection({ historical = false }: { historical?: boolean }) {
         fontWeight={800}
         gutterBottom
       >
-        {historical ? 'Reporte histórico por tienda' : 'Enviar reporte por correo'}
+        {deliverySummary
+          ? 'Resumen de entregas y costos por tienda'
+          : historical
+            ? 'Reporte histórico por tienda'
+            : 'Enviar reporte por correo'}
       </Typography>
       <Typography
         color="text.secondary"
         sx={{ mb: 3 }}
       >
-        {historical
-          ? 'Selecciona una tienda para enviar en un solo correo los datos de todas sus campañas completadas hasta hoy, sin limitar el reporte a la última semana.'
-          : 'Se enviará un correo con los resultados de las campañas completadas de la tienda durante la semana anterior.'}
+        {deliverySummary
+          ? 'Envía el resumen de entregas, base actual de clientes y costos de las campañas completadas en el período elegido. Sin fechas se usa la semana anterior en Nueva York. Los datos se obtienen automáticamente para la tienda seleccionada.'
+          : historical
+            ? 'Selecciona una tienda para enviar en un solo correo los datos de todas sus campañas completadas hasta hoy, sin limitar el reporte a la última semana.'
+            : 'Se enviará un correo con los resultados de las campañas completadas de la tienda durante la semana anterior.'}
       </Typography>
       <Paper
         variant="outlined"
@@ -235,7 +301,11 @@ function ReportSection({ historical = false }: { historical?: boolean }) {
             isOptionEqualToValue={(a, b) => a._id === b._id}
             getOptionLabel={(store) => `${store.name} — ${store.address || 'Sin dirección'}`}
             onChange={(_, store) => {
-              if (store?._id !== selectedStore?._id) setSorteoWinner('');
+              if (store?._id !== selectedStore?._id) {
+                setSorteoWinner('');
+                setContactName('');
+                setOtherServices([]);
+              }
               setSelectedStore(store);
               clearFeedback();
             }}
@@ -310,20 +380,156 @@ function ReportSection({ historical = false }: { historical?: boolean }) {
             error={subject.length > 0 && !validText(subject)}
             helperText="Entre 1 y 200 caracteres, sin saltos de línea."
           />
-          <TextField
-            label="Nombre del ganador del sorteo"
-            value={sorteoWinner}
-            onChange={(event) => {
-              setSorteoWinner(event.target.value);
-              clearFeedback();
-            }}
-            inputProps={{ maxLength: 200 }}
-            required
-            fullWidth
-            disabled={sending}
-            error={sorteoWinner.length > 0 && !validText(sorteoWinner)}
-            helperText="Entre 1 y 200 caracteres, sin saltos de línea."
-          />
+          {!deliverySummary && (
+            <TextField
+              label="Nombre del ganador del sorteo"
+              value={sorteoWinner}
+              onChange={(event) => {
+                setSorteoWinner(event.target.value);
+                clearFeedback();
+              }}
+              inputProps={{ maxLength: 200 }}
+              required
+              fullWidth
+              disabled={sending}
+              error={sorteoWinner.length > 0 && !validText(sorteoWinner)}
+              helperText="Entre 1 y 200 caracteres, sin saltos de línea."
+            />
+          )}
+          {deliverySummary && (
+            <Stack spacing={2}>
+              <Typography variant="subtitle2">Período del reporte</Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+              >
+                Sin fechas se usa la semana anterior, de lunes a lunes, en la zona indicada. Solo se
+                incluyen campañas completadas. La base de clientes corresponde a su estado actual.
+              </Typography>
+              <TextField
+                label="Fecha inicial (incluida)"
+                type="date"
+                value={startDate}
+                disabled={sending}
+                InputLabelProps={{ shrink: true }}
+                required={!!endDate}
+                onChange={(event) => {
+                  setStartDate(event.target.value);
+                  clearFeedback();
+                }}
+              />
+              <TextField
+                label="Fecha final (excluida)"
+                type="date"
+                value={endDate}
+                disabled={sending}
+                InputLabelProps={{ shrink: true }}
+                required={!!startDate}
+                error={!!endDate && !!startDate && endDate <= startDate}
+                helperText="Las campañas de esta fecha no se incluyen. Completa ambas fechas o deja ambas vacías."
+                onChange={(event) => {
+                  setEndDate(event.target.value);
+                  clearFeedback();
+                }}
+              />
+              <TextField
+                label="Zona horaria"
+                value={timeZone}
+                required
+                disabled={sending}
+                error={!validTimeZone || !timeZone}
+                helperText="Por defecto: America/New_York. Usa un identificador válido, por ejemplo America/Tegucigalpa."
+                onChange={(event) => {
+                  setTimeZone(event.target.value);
+                  clearFeedback();
+                }}
+              />
+              <TextField
+                label="Nombre de contacto (opcional)"
+                value={contactName}
+                disabled={sending}
+                inputProps={{ maxLength: 200 }}
+                onChange={(event) => {
+                  setContactName(event.target.value);
+                  clearFeedback();
+                }}
+                helperText="Si lo dejas vacío, se usa el contacto registrado en la tienda."
+              />
+              <TextField
+                label="Teléfono de soporte (opcional)"
+                value={supportPhone}
+                disabled={sending}
+                inputProps={{ maxLength: 200 }}
+                onChange={(event) => {
+                  setSupportPhone(event.target.value);
+                  clearFeedback();
+                }}
+                helperText="Si lo dejas vacío, se usa la configuración del servidor."
+              />
+              <Typography variant="subtitle2">Otros servicios (opcional)</Typography>
+              {otherServices.map((service) => (
+                <Stack
+                  key={service.id}
+                  spacing={1}
+                >
+                  <TextField
+                    label="Nombre del servicio"
+                    required
+                    value={service.name}
+                    disabled={sending}
+                    inputProps={{ maxLength: 200 }}
+                    onChange={(event) => {
+                      setOtherServices((values) =>
+                        values.map((value) =>
+                          value.id === service.id ? { ...value, name: event.target.value } : value
+                        )
+                      );
+                      clearFeedback();
+                    }}
+                  />
+                  <TextField
+                    label="Costo"
+                    type="number"
+                    required
+                    value={service.cost}
+                    disabled={sending}
+                    inputProps={{ min: 0, step: '0.01' }}
+                    onChange={(event) => {
+                      setOtherServices((values) =>
+                        values.map((value) =>
+                          value.id === service.id ? { ...value, cost: event.target.value } : value
+                        )
+                      );
+                      clearFeedback();
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    disabled={sending}
+                    onClick={() => {
+                      setOtherServices((values) =>
+                        values.filter((value) => value.id !== service.id)
+                      );
+                      clearFeedback();
+                    }}
+                  >
+                    Quitar servicio
+                  </Button>
+                </Stack>
+              ))}
+              <Button
+                type="button"
+                disabled={sending || otherServices.length >= 20}
+                onClick={() => {
+                  const id = serviceId.current++;
+                  setOtherServices((values) => [...values, { id, name: '', cost: '' }]);
+                  clearFeedback();
+                }}
+              >
+                Agregar otro servicio
+              </Button>
+            </Stack>
+          )}
           <Button
             variant="contained"
             type="submit"
@@ -332,7 +538,7 @@ function ReportSection({ historical = false }: { historical?: boolean }) {
               !selectedStore ||
               !validEmail(email) ||
               !validText(subject) ||
-              !validText(sorteoWinner)
+              (deliverySummary ? !deliveryFieldsValid : !validText(sorteoWinner))
             }
             startIcon={
               sending ? (
@@ -345,7 +551,13 @@ function ReportSection({ historical = false }: { historical?: boolean }) {
               )
             }
           >
-            {sending ? 'Enviando…' : historical ? 'Enviar reporte histórico' : 'Enviar correo'}
+            {sending
+              ? 'Enviando…'
+              : deliverySummary
+                ? 'Enviar resumen de entregas'
+                : historical
+                  ? 'Enviar reporte histórico'
+                  : 'Enviar correo'}
           </Button>
           <Box aria-live="polite">
             {error && (
@@ -362,7 +574,9 @@ function ReportSection({ historical = false }: { historical?: boolean }) {
                   {statusLabels[item.status] || 'Estado del correo para'} {item.email} (
                   {item.status}).
                 </Typography>
-                <Typography variant="body2">Campaña: {result.campaignId}</Typography>
+                {result.campaignId && (
+                  <Typography variant="body2">Campaña: {result.campaignId}</Typography>
+                )}
                 {result.campaignsCount !== undefined && (
                   <Typography variant="body2">
                     Campañas incluidas: {result.campaignsCount}
@@ -373,7 +587,20 @@ function ReportSection({ historical = false }: { historical?: boolean }) {
                     Período: {result.period.start} a {result.period.end} (fin exclusivo)
                   </Typography>
                 )}
-                <Typography variant="body2">Fecha del reporte: {result.reportDate}</Typography>
+                {deliverySummary && result.period?.timeZone && (
+                  <Typography variant="body2">Zona horaria: {result.period.timeZone}</Typography>
+                )}
+                {deliverySummary && result.campaignIds?.length ? (
+                  <Typography
+                    variant="body2"
+                    sx={{ overflowWrap: 'anywhere' }}
+                  >
+                    Campañas: {result.campaignIds.join(', ')}
+                  </Typography>
+                ) : null}
+                {result.reportDate && (
+                  <Typography variant="body2">Fecha del reporte: {result.reportDate}</Typography>
+                )}
                 {item.queued_reason && (
                   <Typography variant="body2">Motivo de cola: {item.queued_reason}</Typography>
                 )}
@@ -382,7 +609,7 @@ function ReportSection({ historical = false }: { historical?: boolean }) {
           </Box>
         </Stack>
       </Paper>
-      {!historical && (
+      {!historical && !deliverySummary && (
         <BulkSend
           userId={user.id}
           busy={sending}
