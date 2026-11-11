@@ -7,6 +7,7 @@ import { kioskUrl, sweepstakeLandingUrl } from 'src/utils/sweepstouch-urls';
 import ContentCopyRounded from '@mui/icons-material/ContentCopyRounded';
 import DownloadRounded from '@mui/icons-material/DownloadRounded';
 import InsightsRounded from '@mui/icons-material/InsightsRounded';
+import LinkRounded from '@mui/icons-material/LinkRounded';
 import QrCode2Rounded from '@mui/icons-material/QrCode2Rounded';
 import StorefrontRounded from '@mui/icons-material/StorefrontRounded';
 import {
@@ -114,9 +115,10 @@ type Props = {
   exportingId: string | null;
   onCopy: (link: string) => void;
   onExport: (row: EventStoreRow) => void;
+  onLinkParent: (row: EventStoreRow) => void;
 };
 
-export default function EventStoresTable({ rows, exportingId, onCopy, onExport }: Props) {
+export default function EventStoresTable({ rows, exportingId, onCopy, onExport, onLinkParent }: Props) {
   return (
     <Table size="small">
       <TableHead>
@@ -200,6 +202,13 @@ export default function EventStoresTable({ rows, exportingId, onCopy, onExport }
                       noWrap
                     >
                       {row.store.address || '—'}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      color={row.parentStore ? 'primary' : 'text.disabled'}
+                      noWrap
+                    >
+                      {row.parentStore ? `Vendor: ${row.parentStore.name}` : 'Sin vendor ligado'}
                     </Typography>
                   </Stack>
                 </Stack>
@@ -328,6 +337,15 @@ export default function EventStoresTable({ rows, exportingId, onCopy, onExport }
                       </IconButton>
                     </Tooltip>
                   )}
+                  <Tooltip title={row.parentStore ? 'Cambiar tienda dueña (vendor)' : 'Ligar a tienda del vendor'}>
+                    <IconButton
+                      size="small"
+                      color={row.parentStore ? 'primary' : 'default'}
+                      onClick={() => onLinkParent(row)}
+                    >
+                      <LinkRounded fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
                   <Tooltip title="Exportar números (CSV)">
                     <Box component="span">
                       <IconButton

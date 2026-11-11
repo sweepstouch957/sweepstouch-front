@@ -608,6 +608,12 @@ export class SweepstakesClient {
     const res = await api.get('/sweepstakes/event-stores', { params: { days } });
     return res.data;
   }
+
+  /* PATCH /sweepstakes/event-stores/:storeId/parent — tienda del vendor dueña del evento (null desliga) */
+  async setEventStoreParent(eventStoreId: string, parentStoreId: string | null) {
+    const res = await api.patch(`/sweepstakes/event-stores/${eventStoreId}/parent`, { parentStoreId });
+    return res.data as { success: boolean };
+  }
 }
 
 export const sweepstakesClient = new SweepstakesClient();
@@ -628,6 +634,8 @@ export interface CreateEventStoreDto {
   phoneNumber?: string;
   /** Adopta una tienda que ya existe en vez de crear una: la marca como evento. */
   storeId?: string;
+  /** Tienda del vendor dueña del evento: lo ve en su panel con números en vivo. */
+  parentStoreId?: string;
 }
 
 export interface EventStoreRow {
@@ -641,7 +649,10 @@ export interface EventStoreRow {
     genericOptinLink?: string;
     genericQr?: { secureUrl?: string };
     createdAt?: string;
+    parentStoreId?: string | null;
   };
+  /** Tienda del vendor que ve este evento en su panel. */
+  parentStore: { _id: string; name: string; slug?: string } | null;
   sweepstake: {
     _id: string;
     name: string;

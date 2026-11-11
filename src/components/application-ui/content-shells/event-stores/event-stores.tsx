@@ -38,6 +38,7 @@ import { routes } from 'src/router/routes';
 import EventStoresMetrics from './event-stores-metrics';
 import EventStoresTable from './event-stores-table';
 import LinkStoreDialog from './link-store-dialog';
+import ParentStoreDialog from './parent-store-dialog';
 
 const RANGES = [7, 30, 90];
 
@@ -61,6 +62,7 @@ export default function EventStores(): React.JSX.Element {
   const [snack, setSnack] = useState<string | null>(null);
   const [exportingId, setExportingId] = useState<string | null>(null);
   const [linkOpen, setLinkOpen] = useState(false);
+  const [parentRow, setParentRow] = useState<EventStoreRow | null>(null);
 
   const { data, isLoading, isError, isFetching, refetch } = useEventStores(days);
   const rows = data?.rows ?? [];
@@ -209,6 +211,7 @@ export default function EventStores(): React.JSX.Element {
               exportingId={exportingId}
               onCopy={handleCopy}
               onExport={handleExport}
+              onLinkParent={setParentRow}
             />
           )}
         </Card>
@@ -217,6 +220,12 @@ export default function EventStores(): React.JSX.Element {
       <LinkStoreDialog
         open={linkOpen}
         onClose={() => setLinkOpen(false)}
+        onDone={setSnack}
+      />
+
+      <ParentStoreDialog
+        row={parentRow}
+        onClose={() => setParentRow(null)}
         onDone={setSnack}
       />
 
