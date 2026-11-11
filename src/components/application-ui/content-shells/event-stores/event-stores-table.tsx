@@ -6,6 +6,7 @@ import type { EventStoreRow } from '@/services/sweepstakes.service';
 import { kioskUrl, sweepstakeLandingUrl } from 'src/utils/sweepstouch-urls';
 import ContentCopyRounded from '@mui/icons-material/ContentCopyRounded';
 import DownloadRounded from '@mui/icons-material/DownloadRounded';
+import EditRounded from '@mui/icons-material/EditRounded';
 import InsightsRounded from '@mui/icons-material/InsightsRounded';
 import LinkRounded from '@mui/icons-material/LinkRounded';
 import QrCode2Rounded from '@mui/icons-material/QrCode2Rounded';
@@ -16,6 +17,7 @@ import {
   CircularProgress,
   IconButton,
   LinearProgress,
+  Link as MuiLink,
   Stack,
   Table,
   TableBody,
@@ -55,7 +57,7 @@ function fmt(d?: string | null, withTime = false): string {
   return format(parsed, withTime ? 'dd/MM/yyyy HH:mm' : 'dd/MM/yyyy');
 }
 
-/** Etiqueta + URL truncada + copiar. Dos de estas por fila. */
+/** Chip compacto: clic copia el link; la URL completa va en el tooltip. */
 function LinkRow({
   label,
   url,
@@ -68,45 +70,17 @@ function LinkRow({
   onCopy: (url: string) => void;
 }) {
   return (
-    <Stack
-      direction="row"
-      alignItems="center"
-      gap={0.75}
-    >
+    <Tooltip title={url || empty}>
       <Chip
         size="small"
         label={label}
         variant="outlined"
-        sx={{ height: 18, fontSize: 10, minWidth: 54 }}
+        disabled={!url}
+        icon={<ContentCopyRounded sx={{ fontSize: '13px !important' }} />}
+        onClick={url ? () => onCopy(url) : undefined}
+        sx={{ height: 22, fontSize: 11 }}
       />
-      {url ? (
-        <>
-          <Typography
-            variant="caption"
-            noWrap
-            sx={{ maxWidth: 170, color: 'text.secondary' }}
-            title={url}
-          >
-            {url}
-          </Typography>
-          <Tooltip title={`Copiar ${label}`}>
-            <IconButton
-              size="small"
-              onClick={() => onCopy(url)}
-            >
-              <ContentCopyRounded sx={{ fontSize: 13 }} />
-            </IconButton>
-          </Tooltip>
-        </>
-      ) : (
-        <Typography
-          variant="caption"
-          color="text.disabled"
-        >
-          {empty}
-        </Typography>
-      )}
-    </Stack>
+    </Tooltip>
   );
 }
 
@@ -120,7 +94,10 @@ type Props = {
 
 export default function EventStoresTable({ rows, exportingId, onCopy, onExport, onLinkParent }: Props) {
   return (
-    <Table size="small">
+    <Table
+      size="small"
+      sx={{ '& td, & th': { px: 1, verticalAlign: 'top' } }}
+    >
       <TableHead>
         <TableRow>
           <TableCell>Evento</TableCell>
@@ -154,12 +131,25 @@ export default function EventStoresTable({ rows, exportingId, onCopy, onExport, 
             >
               <TableCell>
                 <Stack gap={0.5}>
-                  <Typography
-                    variant="body2"
-                    fontWeight={700}
-                  >
-                    {row.sweepstake?.name || 'Sin sorteo asignado'}
-                  </Typography>
+                  {row.sweepstake ? (
+                    <MuiLink
+                      component={Link}
+                      href={routes.admin.management.sweepstakes.edit(row.sweepstake._id)}
+                      variant="body2"
+                      fontWeight={700}
+                      underline="hover"
+                      color="text.primary"
+                    >
+                      {row.sweepstake.name}
+                    </MuiLink>
+                  ) : (
+                    <Typography
+                      variant="body2"
+                      fontWeight={700}
+                    >
+                      Sin sorteo asignado
+                    </Typography>
+                  )}
                   <Stack
                     direction="row"
                     gap={0.5}
@@ -194,29 +184,57 @@ export default function EventStoresTable({ rows, exportingId, onCopy, onExport, 
                     fontSize="small"
                     color="action"
                   />
-                  <Stack minWidth={0}>
-                    <Typography variant="body2">{row.store.name}</Typography>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      noWrap
+                  <Stack
+                    minWidth={0}
+                    maxWidth={220}
+                  >
+                    <MuiLink
+                      component={Link}
+                      href={`/admin/management/stores/edit/${row.store._id}`}
+                      variant="body2"
+                      underline="hover"
+                      color="text.primary"
+                      sx={{ wordBreak: 'break-word' }}
                     >
-                      {row.store.address || '—'}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      color={row.parentStore ? 'primary' : 'text.disabled'}
-                      noWrap
-                    >
-                      {row.parentStore ? `Vendor: ${row.parentStore.name}` : 'Sin vendor ligado'}
-                    </Typography>
+                      {row.store.name}
+                    </MuiLink>
+                    {row.store.address && (
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                      >
+                        {row.store.address}
+                      </Typography>
+                    )}
+                    {row.parentStore ? (
+                      <MuiLink
+                        component={Link}
+                        href={`/admin/management/stores/edit/${row.parentStore._id}`}
+                        variant="caption"
+                        underline="hover"
+                      >
+                        Vendor: {row.parentStore.name}
+                      </MuiLink>
+                    ) : (
+                      <Typography
+                        variant="caption"
+                        color="text.disabled"
+                      >
+                        Sin vendor ligado
+                      </Typography>
+                    )}
                   </Stack>
                 </Stack>
               </TableCell>
 
               <TableCell>
-                <Typography variant="caption">
-                  {fmt(row.sweepstake?.startDate)} → {fmt(row.sweepstake?.endDate)}
+                <Typography
+                  variant="caption"
+                  component="div"
+                  whiteSpace="nowrap"
+                >
+                  {fmt(row.sweepstake?.startDate)}
+                  <br />→ {fmt(row.sweepstake?.endDate)}
                 </Typography>
               </TableCell>
 
@@ -229,7 +247,7 @@ export default function EventStoresTable({ rows, exportingId, onCopy, onExport, 
                 </Typography>
               </TableCell>
 
-              <TableCell sx={{ minWidth: 150 }}>
+              <TableCell sx={{ minWidth: 110 }}>
                 <Typography variant="caption">
                   {row.newUsers.toLocaleString()} · {row.existingUsers.toLocaleString()}
                 </Typography>
@@ -284,8 +302,11 @@ export default function EventStoresTable({ rows, exportingId, onCopy, onExport, 
 
               {/* Soporte técnico configura las tablets con el link de kiosko: va
                   visible, no escondido detrás de un ícono. */}
-              <TableCell sx={{ minWidth: 260 }}>
-                <Stack gap={0.5}>
+              <TableCell>
+                <Stack
+                  gap={0.5}
+                  alignItems="flex-start"
+                >
                   <LinkRow
                     label="Opt-in"
                     url={link}
@@ -311,8 +332,20 @@ export default function EventStoresTable({ rows, exportingId, onCopy, onExport, 
                 <Stack
                   direction="row"
                   justifyContent="flex-end"
-                  gap={0.5}
+                  flexWrap="wrap"
+                  gap={0.25}
+                  maxWidth={110}
+                  ml="auto"
                 >
+                  <Tooltip title="Editar tienda">
+                    <IconButton
+                      size="small"
+                      component={Link}
+                      href={`/admin/management/stores/edit/${row.store._id}`}
+                    >
+                      <EditRounded fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
                   {qrUrl && (
                     <Tooltip title="Abrir QR">
                       <IconButton
