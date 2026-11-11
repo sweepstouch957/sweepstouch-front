@@ -7,6 +7,7 @@ import { kioskUrl, sweepstakeLandingUrl } from 'src/utils/sweepstouch-urls';
 import ContentCopyRounded from '@mui/icons-material/ContentCopyRounded';
 import DownloadRounded from '@mui/icons-material/DownloadRounded';
 import EditRounded from '@mui/icons-material/EditRounded';
+import EditCalendarRounded from '@mui/icons-material/EditCalendarRounded';
 import InsightsRounded from '@mui/icons-material/InsightsRounded';
 import LinkRounded from '@mui/icons-material/LinkRounded';
 import QrCode2Rounded from '@mui/icons-material/QrCode2Rounded';
@@ -337,6 +338,18 @@ export default function EventStoresTable({ rows, exportingId, onCopy, onExport, 
                   maxWidth={110}
                   ml="auto"
                 >
+                  {row.sweepstake && (
+                    <Tooltip title="Editar evento (nombre, fechas, premios)">
+                      <IconButton
+                        size="small"
+                        color="primary"
+                        component={Link}
+                        href={routes.admin.management.sweepstakes.edit(row.sweepstake._id)}
+                      >
+                        <EditCalendarRounded fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
                   <Tooltip title="Editar tienda">
                     <IconButton
                       size="small"
