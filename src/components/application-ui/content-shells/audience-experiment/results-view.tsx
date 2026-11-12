@@ -1,4 +1,5 @@
 'use client';
+import { textHas } from '@/utils/text';
 
 import { useConfirm } from '@/components/base/confirm';
 
@@ -60,7 +61,7 @@ export function ResultsView({
   const [q, setQ] = useState('');
   const dq = useDeferredValue(q.trim().toLowerCase());
   const rows = useMemo(
-    () => result.stores.filter((t) => !dq || t.name?.toLowerCase().includes(dq)).slice(0, 300),
+    () => result.stores.filter((t) => !dq || textHas(t.name, dq)).slice(0, 300),
     [result.stores, dq]
   );
   const sum = (k: 'purged' | 'quota' | 'added' | 'today') => result.stores.reduce((a, s) => a + s[k], 0);

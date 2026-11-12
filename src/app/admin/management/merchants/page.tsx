@@ -1,4 +1,5 @@
 'use client';
+import { textHas } from '@/utils/text';
 
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -156,8 +157,8 @@ const DropZone: React.FC<DropZoneProps> = ({
     if (!query) return stores;
     const q = query.toLowerCase();
     return stores.filter(s =>
-      s.name.toLowerCase().includes(q) ||
-      (s.address && s.address.toLowerCase().includes(q))
+      textHas(s.name, q) ||
+      (s.address && textHas(s.address, q))
     );
   }, [stores, query]);
 
@@ -490,9 +491,9 @@ export default function MerchantsPage() {
     const q = search.toLowerCase();
     return (
       !q ||
-      m.firstName?.toLowerCase().includes(q) ||
-      m.lastName?.toLowerCase().includes(q) ||
-      m.email?.toLowerCase().includes(q) ||
+      textHas(m.firstName, q) ||
+      textHas(m.lastName, q) ||
+      textHas(m.email, q) ||
       m.phoneNumber?.includes(q)
     );
   });

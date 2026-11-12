@@ -1,4 +1,5 @@
 'use client';
+import { textHas } from '@/utils/text';
 
 import React, { FC, memo, useCallback, useMemo, useRef, useState } from 'react';
 import {
@@ -99,7 +100,7 @@ const DeptSection: FC<DeptSectionProps> = memo(({ dept, users, search, defaultOp
   const filtered = useMemo(() => {
     if (!search) return users;
     const q = search.toLowerCase();
-    return users.filter(u => `${u.firstName} ${u.lastName}`.toLowerCase().includes(q));
+    return users.filter(u => textHas(`${u.firstName} ${u.lastName}`, q));
   }, [users, search]);
 
   const toggle = useCallback(() => setOpen(v => !v), []);
@@ -230,13 +231,13 @@ function Page() {
   const filteredUnassigned = useMemo(() => {
     if (!userSearch) return unassignedUsers;
     const q = userSearch.toLowerCase();
-    return unassignedUsers.filter(u => `${u.firstName} ${u.lastName}`.toLowerCase().includes(q));
+    return unassignedUsers.filter(u => textHas(`${u.firstName} ${u.lastName}`, q));
   }, [unassignedUsers, userSearch]);
 
   const filteredDepts = useMemo(() => {
     if (!deptSearch) return departments;
     const q = deptSearch.toLowerCase();
-    return departments.filter(d => d.name.toLowerCase().includes(q));
+    return departments.filter(d => textHas(d.name, q));
   }, [departments, deptSearch]);
 
   const assignedCount = totalUsers - unassignedUsers.length;

@@ -1,4 +1,5 @@
 'use client';
+import { textHas } from '@/utils/text';
 
 import { useConfirm } from '@/components/base/confirm';
 
@@ -109,7 +110,7 @@ export default function WeeklyReportCard() {
     const term = search.trim().toLowerCase();
     return (q.data?.stores ?? [])
       .filter((s) => (filter === 'todo' ? true : filter === 'sent' ? s.state === 'sent' : s.state !== 'sent'))
-      .filter((s) => !term || s.name.toLowerCase().includes(term) || s.email.toLowerCase().includes(term));
+      .filter((s) => !term || textHas(s.name, term) || textHas(s.email, term));
   }, [q.data, filter, search]);
 
   const kpis: Array<{ label: string; value: number | undefined; hint: string; tone: Tone | 'primary'; icon: React.ReactNode; onClick?: () => void }> = [

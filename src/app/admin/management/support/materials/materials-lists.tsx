@@ -1,4 +1,5 @@
 'use client';
+import { textHas } from '@/utils/text';
 
 import * as api from '@/services/material-control.service';
 import { useKioskDevices } from '@/hooks/fetching/kiosk/useKioskDevices';
@@ -594,7 +595,7 @@ export function StoresView({
     zip: '',
   });
   const visibleStores = stores.filter((store) =>
-    `${store.nombre} ${storeAddress(store)}`.toLowerCase().includes(query.toLowerCase())
+    textHas(`${store.nombre} ${storeAddress(store)}`, query.toLowerCase())
   );
   const save = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

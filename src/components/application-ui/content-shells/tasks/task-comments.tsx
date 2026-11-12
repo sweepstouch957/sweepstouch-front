@@ -1,4 +1,5 @@
 'use client';
+import { textHas } from '@/utils/text';
 
 import { useAuth } from '@/hooks/use-auth';
 import { avatarSrc } from '@/utils/avatar';
@@ -157,7 +158,7 @@ export function TaskComments({
     return teamMembers
       .filter((u: any) => {
         const name = `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase();
-        return !q || name.includes(q) || (u.position || '').toLowerCase().includes(q);
+        return !q || name.includes(q) || textHas((u.position || ''), q);
       })
       .slice(0, 6);
   }, [mentionQuery, teamMembers]);

@@ -1,4 +1,5 @@
 'use client';
+import { textHas } from '@/utils/text';
 
 import { useAuth } from '@/hooks/use-auth';
 import { usersApi } from '@/mocks/users';
@@ -290,9 +291,9 @@ function Tasks(): React.JSX.Element {
       const q = deferredSearch.toLowerCase();
       filtered = filtered.filter(
         (t) =>
-          t.title.toLowerCase().includes(q) ||
-          t.description?.toLowerCase().includes(q) ||
-          t.identifier?.toLowerCase().includes(q)
+          textHas(t.title, q) ||
+          textHas(t.description, q) ||
+          textHas(t.identifier, q)
       );
     }
     if (priorityFilter !== 'all') filtered = filtered.filter((t) => t.priority === priorityFilter);

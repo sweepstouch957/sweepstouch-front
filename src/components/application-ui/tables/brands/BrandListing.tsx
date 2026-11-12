@@ -1,4 +1,5 @@
 'use client';
+import { textHas } from '@/utils/text';
 
 import { Edit, FileDownloadOutlined, SearchTwoTone } from '@mui/icons-material';
 import {
@@ -46,7 +47,7 @@ export default function BrandListing() {
     return brands.filter((b) => {
       if (status === 'active' && b.active === false) return false;
       if (status === 'inactive' && b.active !== false) return false;
-      return !q || (b.name || '').toLowerCase().includes(q) || (b.slug || '').toLowerCase().includes(q);
+      return !q || textHas((b.name || ''), q) || textHas((b.slug || ''), q);
     });
   }, [brands, search, status]);
 

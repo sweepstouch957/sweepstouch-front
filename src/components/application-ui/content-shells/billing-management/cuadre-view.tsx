@@ -1,4 +1,5 @@
 'use client';
+import { textHas } from '@/utils/text';
 
 import { fmtDate, money } from '@/components/application-ui/content-shells/qbo-receivables/constants';
 import { EmptyBlock } from '@/components/application-ui/content-shells/store-managment/panel-kit';
@@ -171,14 +172,14 @@ export function CuadreView() {
     let list: QboCuadreRow[] = data.stores;
     if (view === 'falta') list = list.filter((r) => r.status === 'falta');
     if (view === 'sobra') list = list.filter((r) => r.status === 'sobra');
-    if (q) list = list.filter((r) => r.storeName?.toLowerCase().includes(q) || r.customerName?.toLowerCase().includes(q));
+    if (q) list = list.filter((r) => textHas(r.storeName, q) || textHas(r.customerName, q));
     return list;
   }, [data, view, search]);
 
   const unlinked = useMemo(() => {
     if (!data) return [];
     const q = search.trim().toLowerCase();
-    return q ? data.unlinked.filter((u) => u.customerName?.toLowerCase().includes(q)) : data.unlinked;
+    return q ? data.unlinked.filter((u) => textHas(u.customerName, q)) : data.unlinked;
   }, [data, search]);
 
   if (isLoading) {

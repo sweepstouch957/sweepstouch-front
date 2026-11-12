@@ -1,4 +1,5 @@
 'use client';
+import { textHas } from '@/utils/text';
 
 import * as React from 'react';
 import {
@@ -460,7 +461,7 @@ export default function StoresReportModal({
     const q = query.trim().toLowerCase();
     let arr = rows;
     if (q) {
-      arr = arr.filter((r) => r.name.toLowerCase().includes(q));
+      arr = arr.filter((r) => textHas(r.name, q));
     }
 
     arr = [...arr].sort((a, b) => {

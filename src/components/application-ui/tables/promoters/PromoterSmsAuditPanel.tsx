@@ -1,4 +1,5 @@
 'use client';
+import { textHas } from '@/utils/text';
 /**
  * PromoterSmsAuditPanel.tsx
  * Auditoría de SMS para números registrados por promotoras.
@@ -206,7 +207,7 @@ export default function PromoterSmsAuditPanel({ promoterId, promoterName, startD
     return storeFiltered.filter((r) => {
       const matchSearch = !search ||
         r.phone.includes(search) ||
-        r.storeName.toLowerCase().includes(search.toLowerCase());
+        textHas(r.storeName, search.toLowerCase());
       const matchStatus = statusFilter === 'all' || r.smsStatus === statusFilter;
       return matchSearch && matchStatus;
     });

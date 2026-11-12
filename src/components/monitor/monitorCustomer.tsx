@@ -1,4 +1,5 @@
 'use client';
+import { textHas } from '@/utils/text';
 
 import * as React from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -102,7 +103,7 @@ export function CustomerSearch({ store, filters }: { store: StoreLite; filters: 
 
   const term = q.trim().toLowerCase();
   const list = (customers.data || [])
-    .filter((c) => !term || (c.customerName || '').toLowerCase().includes(term) || (c.customerPhone || '').includes(term))
+    .filter((c) => !term || textHas((c.customerName || ''), term) || (c.customerPhone || '').includes(term))
     .slice(0, 20);
 
   return (

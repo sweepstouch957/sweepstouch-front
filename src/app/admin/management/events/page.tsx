@@ -1,10 +1,6 @@
-'use client';
+import { redirect } from 'next/navigation';
 
-import React from 'react';
-import EventStores from 'src/components/application-ui/content-shells/event-stores/event-stores';
-
-function Page(): React.JSX.Element {
-  return <EventStores />;
+/** Eventos vive dentro de "Sorteos y eventos". Los links viejos siguen funcionando. */
+export default function Page() {
+  redirect('/admin/management/sweepstakes?vista=eventos');
 }
-
-export default Page;

@@ -1,3 +1,4 @@
+import { textHas } from '@/utils/text';
 import { avatarSrc } from '@/utils/avatar';
 import { draftTaskFromTitle } from '@/services/ai.service';
 import { EPIC_COLORS, epicService, type Epic } from '@/services/epic.service';
@@ -1627,7 +1628,7 @@ function EpicField({
       }}
       filterOptions={(options, state) => {
         const q = state.inputValue.trim().toLowerCase();
-        const hits = options.filter((o: any) => o.name.toLowerCase().includes(q));
+        const hits = options.filter((o: any) => textHas(o.name, q));
         if (q && !options.some((o: any) => o.name.toLowerCase() === q)) {
           return [...hits, { __create: true, inputValue: state.inputValue, name: state.inputValue } as any];
         }

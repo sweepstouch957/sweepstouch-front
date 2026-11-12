@@ -1,4 +1,5 @@
 'use client';
+import { textHas } from '@/utils/text';
 
 import type { CalendarEvent } from '@/services/calendar.service';
 import type { Store } from '@/services/store.service';
@@ -34,7 +35,7 @@ export const RankingView = React.memo(function RankingView({
     () =>
       stores
         .filter(
-          (s) => !q || `${s.name} ${s.address} ${s.phoneNumber || ''}`.toLowerCase().includes(q)
+          (s) => !q || textHas(`${s.name} ${s.address} ${s.phoneNumber || ''}`, q)
         )
         .map((s, i) => ({ s, i, evs: byStore[s._id] || [] })),
     [stores, q, byStore]

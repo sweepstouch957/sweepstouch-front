@@ -1,4 +1,5 @@
 'use client';
+import { textHas } from '@/utils/text';
 
 import { useState, useMemo } from 'react';
 import {
@@ -138,8 +139,8 @@ export default function ProductChart({ data, campaignProducts, isLoading }: Prop
   const filtered = search
     ? activeList.filter(
         (p) =>
-          p.product.toLowerCase().includes(search.toLowerCase()) ||
-          p.category?.toLowerCase().includes(search.toLowerCase())
+          textHas(p.product, search.toLowerCase()) ||
+          textHas(p.category, search.toLowerCase())
       )
     : activeList;
 

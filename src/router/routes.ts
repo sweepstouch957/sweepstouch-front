@@ -211,7 +211,7 @@ export const routes = {
       },
       // Módulo Eventos: tiendas NSA/tradeshow, que no salen en el listado de tiendas
       events: {
-        listing: '/admin/management/events',
+        listing: '/admin/management/sweepstakes?vista=eventos',
         create: '/admin/management/sweepstakes/create',
       },
       sweepstakes: {

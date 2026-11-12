@@ -1,4 +1,5 @@
 'use client';
+import { textHas } from '@/utils/text';
 
 import { useQboServices } from '@hooks/fetching/qbo/useQbo';
 import type { QboServiceStoreRow } from '@/services/qbo.service';
@@ -60,7 +61,7 @@ export function ServicesByStore({ range, onSelectStore }: Props) {
     const q = deferredSearch.trim().toLowerCase();
     if (!q) return all;
     return all.filter((r) =>
-      `${r.storeName ?? ''} ${r.customerName} ${r.storeSlug ?? ''}`.toLowerCase().includes(q)
+      textHas(`${r.storeName ?? ''} ${r.customerName} ${r.storeSlug ?? ''}`, q)
     );
   }, [services.data, deferredSearch]);
 

@@ -206,8 +206,8 @@ const circularsMenu = (t: (token: string) => string): MenuItem =>
 // casi lo mismo. Lo único distinto es su tienda, y eso se ve dentro de Eventos.
 const sweepstakesMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Sorteos y eventos'), <LocalPlayRounded />, [
-    { title: t('Sorteos'), route: routes.admin.management.sweepstakes.listing },
-    { title: t('Eventos'), route: routes.admin.management.events.listing },
+    // Sorteos y eventos comparten pantalla (interruptor arriba): un evento es un sorteo.
+    { title: t('Sorteos y eventos'), route: routes.admin.management.sweepstakes.listing },
     { title: t('Premios'), route: routes.admin.management.prizes.listing },
   ]);
 

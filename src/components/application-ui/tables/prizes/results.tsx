@@ -1,3 +1,4 @@
+import { textHas } from '@/utils/text';
 
 import { DeleteRounded, OpenInNewRounded, SearchTwoTone, AddRounded } from '@mui/icons-material';
 import {
@@ -65,7 +66,7 @@ export default function Results({ prizes, isLoading, refetch }: ResultsProps) {
     const list = Array.isArray(prizes) ? prizes : [];
     if (!q) return list;
     return list.filter(
-      (p) => (p.name || '').toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q)
+      (p) => textHas((p.name || ''), q) || textHas((p.description || ''), q)
     );
   }, [prizes, search]);
 

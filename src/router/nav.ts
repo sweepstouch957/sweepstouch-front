@@ -5,13 +5,7 @@
  */
 import type { MenuItem } from './menuItem';
 
-/** Sin acentos ni mayúsculas: "campana" encuentra "Campañas". */
-export const norm = (s: string) =>
-  String(s || '')
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .trim();
+export { norm } from '@/utils/text';
 
 /** La ruta es la página actual o un ancestro suyo (por segmento, no por texto). */
 export const matchRoute = (pathname: string, route?: string) =>

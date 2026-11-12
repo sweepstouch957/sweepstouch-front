@@ -1,4 +1,5 @@
 'use client';
+import { textHas } from '@/utils/text';
 
 /**
  * Próximos: productos que ya están en el catálogo pero salen en una fecha (vienen de una
@@ -76,7 +77,7 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
         ? groups
             .map((g) => ({
               ...g,
-              items: g.items.filter((p) => p.name.toLowerCase().includes(needle)),
+              items: g.items.filter((p) => textHas(p.name, needle)),
             }))
             .filter((g) => g.items.length)
         : groups,

@@ -1,4 +1,5 @@
 'use client';
+import { textHas } from '@/utils/text';
 
 import dynamic from 'next/dynamic';
 import NewShiftModal from '@/components/application-ui/dialogs/shift/modal';
@@ -149,7 +150,7 @@ const WorkStoresPage = () => {
     const lc = deferredSearch.toLowerCase();
     return all.filter((s) => {
       const count = s.customerCount || 0;
-      if (lc && !s.name.toLowerCase().includes(lc)) return false;
+      if (lc && !textHas(s.name, lc)) return false;
       if (statusFilter === 'active' && !s.active) return false;
       if (statusFilter === 'inactive' && s.active) return false;
       if (min !== null && count < min) return false;

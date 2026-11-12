@@ -1,4 +1,5 @@
 'use client';
+import { textHas } from '@/utils/text';
 
 import { useConfirm } from '@/components/base/confirm';
 
@@ -811,7 +812,7 @@ export default function ProjectsBoardPage() {
   /* ── Filter + paginate ── */
   const filtered = useMemo(() => {
     let result = projects;
-    if (query) result = result.filter((p) => p.name.toLowerCase().includes(query.toLowerCase()) || p.description?.toLowerCase().includes(query.toLowerCase()));
+    if (query) result = result.filter((p) => textHas(p.name, query.toLowerCase()) || textHas(p.description, query.toLowerCase()));
     if (statusFilter) result = result.filter((p) => p.workflowStatus === statusFilter);
     return result;
   }, [projects, query, statusFilter]);

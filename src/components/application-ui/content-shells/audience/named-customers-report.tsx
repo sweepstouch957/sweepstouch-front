@@ -1,4 +1,5 @@
 'use client';
+import { textHas } from '@/utils/text';
 
 /**
  * Qué tiendas tienen clientes con nombre.
@@ -114,8 +115,8 @@ export default function NamedCustomersReport(): React.JSX.Element {
     if (term) {
       all = all.filter(
         (r) =>
-          r.name.toLowerCase().includes(term) ||
-          r.slug.toLowerCase().includes(term) ||
+          textHas(r.name, term) ||
+          textHas(r.slug, term) ||
           r.storeId.includes(term)
       );
     }

@@ -1,4 +1,5 @@
 'use client';
+import { textHas } from '@/utils/text';
 
 /**
  * Columna de tiendas — el primer filtro de la pantalla.
@@ -184,7 +185,7 @@ export function StoreRail({
   const load = useMemo(() => storeLoad(people), [people]);
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    return needle ? load.filter((s) => s.name.toLowerCase().includes(needle)) : load;
+    return needle ? load.filter((s) => textHas(s.name, needle)) : load;
   }, [load, q]);
   const totalUrgent = load.reduce((n, s) => n + s.urgent, 0);
 

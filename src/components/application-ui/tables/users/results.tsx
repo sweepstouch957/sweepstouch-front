@@ -1,4 +1,5 @@
 'use client';
+import { textHas } from '@/utils/text';
 
 import { User } from '@/contexts/auth/user';
 import AdminPanelSettingsRoundedIcon from '@mui/icons-material/AdminPanelSettingsRounded';
@@ -185,7 +186,7 @@ const applyFilters = (users: User[], query: string, filters: Filters): User[] =>
     for (const property of ['email', 'name', 'firstName', 'lastName']) {
       const val = (user as any)?.[property];
       const text = Array.isArray(val) ? val.join(' ') : normalizeVal(val);
-      if (text.toLowerCase().includes(q)) return true;
+      if (textHas(text, q)) return true;
     }
     return false;
   });

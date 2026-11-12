@@ -18,7 +18,8 @@ import { createTheme } from 'src/theme';
 import { NextAppDirEmotionCacheProvider } from 'tss-react/next/appDir';
 import 'src/i18n/i18n';
 import 'src/global.css';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import type { Customization } from 'src/contexts/customization';
 
 const CUSTOMIZATION_STORAGE_KEY = 'uifort.customization';
@@ -49,6 +50,35 @@ const DEFAULT_QUERY_OPTIONS = {
   },
 } as const;
 
+/**
+ * Red de seguridad contra los errores mudos. Muchas pantallas no miran isError: si
+ * el servidor fallaba se veía una tabla vacía o un cero que parecían verdad, y un guardado
+ * que fallaba no decía nada. Esto avisa siempre, sin tocar pantalla por pantalla.
+ *
+ * - Cargas: un solo aviso a la vez (mismo id), sólo por caída de red o error del
+ *   servidor. Un 404/403 suele ser "todavía no existe" o "tu rol no llega", no un fallo.
+ * - Guardados: sólo si la pantalla no trae su propio onError, para no avisar dos veces.
+ */
+const errorText = (e: any) => e?.response?.data?.error || e?.response?.data?.message || '';
+const queryCache = () =>
+  new QueryCache({
+    onError: (e: any) => {
+      const status = e?.response?.status;
+      if (status && status < 500) return;
+      toast.error('No se pudo cargar parte de esta pantalla. Lo que falta no está vacío: recarga o inténtalo en un momento.', {
+        id: 'load-error',
+        duration: 6000,
+      });
+    },
+  });
+const mutationCache = () =>
+  new MutationCache({
+    onError: (e: any, _vars, _ctx, mutation) => {
+      if (mutation.options.onError) return;
+      toast.error(errorText(e) || 'No se pudo guardar. Inténtalo de nuevo.', { id: 'save-error' });
+    },
+  });
+
 const updateCustomization = (customization: Customization): void => {
   try {
     Cookies.set(CUSTOMIZATION_STORAGE_KEY, JSON.stringify(customization));
@@ -74,7 +104,11 @@ interface LayoutProps {
 
 export const Layout: FC<LayoutProps> = (props: LayoutProps) => {
   const { children, customization } = props;
-  const [queryClient] = useState(() => new QueryClient({ defaultOptions: DEFAULT_QUERY_OPTIONS }));
+  const [queryClient] = useState(() => new QueryClient({
+        defaultOptions: DEFAULT_QUERY_OPTIONS,
+        queryCache: queryCache(),
+        mutationCache: mutationCache(),
+      }));
 
   return (
     <NextAppDirEmotionCacheProvider options={{ key: 'uifort' }}>

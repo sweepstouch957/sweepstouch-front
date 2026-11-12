@@ -1,4 +1,5 @@
 'use client';
+import { textHas } from '@/utils/text';
 
 import { useStores } from '@/hooks/fetching/stores/useStores';
 import {
@@ -37,7 +38,7 @@ const MapboxMap = () => {
     return (
       stores?.filter((store) => {
         const count = store.customerCount || 0;
-        if (!store.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+        if (!textHas(store.name, searchTerm.toLowerCase())) return false;
         if (statusFilter === 'active' && !store.active) return false;
         if (statusFilter === 'inactive' && store.active) return false;
         if (min !== null && count < min) return false;

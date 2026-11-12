@@ -1,4 +1,5 @@
 'use client';
+import { textHas } from '@/utils/text';
 
 import { useStores } from '@/hooks/fetching/stores/useStores';
 import { shortLinkService, type LinktreeShortLink } from '@/services/short-link.service';
@@ -72,8 +73,8 @@ export default function ShortLinks(): React.JSX.Element {
     return all.filter(
       (l) =>
         l.storeSlug?.includes(q) ||
-        l.code.toLowerCase().includes(q) ||
-        (nameBySlug.get(l.storeSlug) || '').toLowerCase().includes(q)
+        textHas(l.code, q) ||
+        textHas((nameBySlug.get(l.storeSlug) || ''), q)
     );
   }, [data, deferredSearch, nameBySlug]);
 

@@ -1,4 +1,5 @@
 'use client';
+import { textHas } from '@/utils/text';
 /**
  * SmsAuditPanel.tsx
  * Auditoría de validación SMS para una tienda.
@@ -127,7 +128,7 @@ export default function SmsAuditPanel({ storeId, startDate, endDate }: Props) {
     return data.rows.filter((r) => {
       const matchSearch = !search ||
         r.phone.includes(search) ||
-        r.cashierName.toLowerCase().includes(search.toLowerCase());
+        textHas(r.cashierName, search.toLowerCase());
       const matchStatus = statusFilter === 'all' || r.smsStatus === statusFilter;
       return matchSearch && matchStatus;
     });
