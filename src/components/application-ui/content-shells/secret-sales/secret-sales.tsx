@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/base/confirm';
+
 import { useSecretSales } from '@/hooks/fetching/secret-sales/useSecretSales';
 import { useStores } from '@/hooks/fetching/stores/useStores';
 import { secretSaleService, type SecretSale } from '@/services/secret-sale.service';
@@ -41,6 +43,7 @@ const LeadsDialog = dynamic(() => import('./leads-dialog').then((m) => m.LeadsDi
  * esta misma pantalla.
  */
 export default function SecretSales(): React.JSX.Element {
+  const confirm = useConfirm();
   const qc = useQueryClient();
 
   const { data: stores, isPending: storesPending } = useStores();
@@ -111,11 +114,14 @@ export default function SecretSales(): React.JSX.Element {
   const handleDelete = useCallback(
     (sale: SecretSale) => {
       // Borra el flyer y sus contactos dejan de tener a qué apuntar: se pregunta.
-      if (window.confirm(`¿Eliminar "${sale.title}"? No se puede deshacer.`)) {
-        deleteMutation.mutate(sale);
-      }
+      void confirm({
+        title: `¿Eliminar «${sale.title}»?`,
+        description: 'Se borra el flyer y los contactos que dejó dejan de tener a qué apuntar. No se puede deshacer.',
+        severity: 'error',
+        confirmLabel: 'Eliminar',
+      }).then((ok) => ok && deleteMutation.mutate(sale));
     },
-    [deleteMutation]
+    [deleteMutation, confirm]
   );
 
   const handleEdit = useCallback((sale: SecretSale) => {

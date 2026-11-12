@@ -8,6 +8,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import Cookies from 'js-cookie';
 import Head from 'next/head';
 import { useState, type FC, type ReactNode } from 'react';
+import { ConfirmProvider } from 'src/components/base/confirm';
 import { RtlDirection } from 'src/components/base/rtl-direction';
 import { Toastr } from 'src/components/base/toastr';
 import { AuthProvider } from 'src/contexts/auth/auth-context';
@@ -113,7 +114,7 @@ export const Layout: FC<LayoutProps> = (props: LayoutProps) => {
                               display="flex"
                               minHeight="100vh"
                             >
-                              {children}
+                              <ConfirmProvider>{children}</ConfirmProvider>
                             </Box>
                             <Toastr />
                           </RtlDirection>

@@ -2,6 +2,7 @@
 
 import { Promo, PromoResults } from '@/components/application-ui/tables/promos/results';
 import ConfirmDialog from '@/components/base/confirm-dialog';
+import DataState from '@/components/base/data-state';
 import PageHeading from '@/components/base/page-heading';
 import { usePromos } from '@/hooks/fetching/promos/usePromos';
 import { useSweepstakes } from '@/hooks/fetching/sweepstakes/useSweepstakes';
@@ -108,12 +109,6 @@ height={14} />
     </Box>
   </Card>
 );
-
-// Static demo stores; no component state, hoisted to module scope.
-const stores = [
-  { _id: 't1', name: 'Tienda Principal', logo: 'https://via.placeholder.com/50' },
-  { _id: 't2', name: 'Sucursal Norte', logo: 'https://via.placeholder.com/50' },
-];
 
 export const PromoDashboard = ({ storeId }: PromoDashboardProps) => {
   const customization = useCustomization();
@@ -269,7 +264,8 @@ export const PromoDashboard = ({ storeId }: PromoDashboardProps) => {
         <PromoFiltersBar
           value={search}
           onChange={handleSearch}
-          onBulkByImage={setBulkImage}
+          // La acción masiva toca todas las tiendas: dentro de una tienda no se ofrece.
+          onBulkByImage={storeId ? undefined : setBulkImage}
           resultCount={promoData?.meta?.total}
         />
 
@@ -323,23 +319,12 @@ export const PromoDashboard = ({ storeId }: PromoDashboardProps) => {
             ))}
           </Card>
         ) : !promoData ? (
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              py: 10,
-              gap: 1,
-            }}
+          <DataState
+            error
+            onRetry={() => refetch()}
           >
-            <Campaign sx={{ fontSize: 48, color: 'text.disabled' }} />
-            <Typography
-              color="error"
-              fontWeight={500}
-            >
-              {t('Error loading promotions')}
-            </Typography>
-          </Box>
+            {null}
+          </DataState>
         ) : (
           <PromoResults
             promos={allPromos}
@@ -366,7 +351,6 @@ export const PromoDashboard = ({ storeId }: PromoDashboardProps) => {
         }}
         sweepstakes={sweepstakes || []}
         loadingSweepstakes={loadingSweepstakes}
-        stores={stores}
         storeId={storeId}
         promo={promo}
       />

@@ -3,18 +3,20 @@ import CheckBoxRoundedIcon from '@mui/icons-material/CheckBoxRounded';
 import IndeterminateCheckBoxRoundedIcon from '@mui/icons-material/IndeterminateCheckBoxRounded';
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
 import {
+  alpha,
   backdropClasses,
   createTheme,
   inputLabelClasses,
   tableCellClasses,
 } from '@mui/material';
+import type { Theme } from '@mui/material/styles';
 import type { Components } from '@mui/material/styles/components';
 import { BORDER_RADIUS, SPACING_UNIT } from '../utils';
 import { ThumbComponent } from './ThumbComponent';
 
 const muiTheme = createTheme();
 
-export const createComponents = (): Components => {
+export const createComponents = (): Components<Omit<Theme, 'components'>> => {
   return {
     MuiChartsLegend: {
       styleOverrides: {
@@ -77,29 +79,64 @@ export const createComponents = (): Components => {
         },
       },
     },
+    // Tablas de todo el panel: más densas (cabían 8 filas, ahora ~11), encabezado
+    // discreto que no compite con los datos, fila resaltada al pasar y números alineados.
     MuiTableCell: {
       styleOverrides: {
-        root: {
-          padding: '18px 14px',
+        root: ({ theme }) => ({
+          padding: '12px 14px',
+          borderBottomColor: alpha(theme.palette.divider, 0.7),
+          fontVariantNumeric: 'tabular-nums',
+        }),
+        sizeSmall: {
+          padding: '8px 12px',
         },
+      },
+    },
+    MuiTableRow: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          transition: 'background-color 120ms ease-out',
+          '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+          [`.MuiTableBody-root &:hover`]: {
+            backgroundColor: alpha(theme.palette.primary.main, 0.04),
+          },
+          [`.MuiTableBody-root &:last-of-type > .${tableCellClasses.root}`]: {
+            borderBottom: 0,
+          },
+        }),
+      },
+    },
+    MuiTableContainer: {
+      styleOverrides: {
+        // Una tabla ancha se desplaza dentro de su caja, no desborda la página.
+        root: { overflowX: 'auto' },
       },
     },
     MuiTableHead: {
       styleOverrides: {
-        root: {
+        root: ({ theme }) => ({
           borderBottom: 'none',
           [`& .${tableCellClasses.root}`]: {
-            fontSize: 13,
-            lineHeight: 1,
+            fontSize: 11.5,
+            fontWeight: 700,
+            lineHeight: 1.2,
+            letterSpacing: '0.05em',
             textTransform: 'uppercase',
-            paddingTop: 16,
-            paddingBottom: 16,
+            whiteSpace: 'nowrap',
+            color: theme.palette.text.secondary,
+            // Como imagen, no como color: los encabezados fijos (stickyHeader) conservan
+            // su fondo opaco y las filas no se transparentan al desplazar.
+            backgroundImage: `linear-gradient(${alpha(theme.palette.text.primary, theme.palette.mode === 'dark' ? 0.06 : 0.03)}, ${alpha(theme.palette.text.primary, theme.palette.mode === 'dark' ? 0.06 : 0.03)})`,
+            borderBottomColor: theme.palette.divider,
+            paddingTop: 11,
+            paddingBottom: 11,
           },
           [`& .${tableCellClasses.paddingCheckbox}`]: {
             paddingTop: 4,
             paddingBottom: 4,
           },
-        },
+        }),
       },
     },
     MuiDrawer: {
@@ -288,25 +325,54 @@ export const createComponents = (): Components => {
         },
       },
     },
+    // Diálogos de todo el panel: esquinas y borde propios, título con peso, y la barra de
+    // acciones separada del contenido. En teléfono ocupan casi todo el ancho.
+    MuiDialog: {
+      styleOverrides: {
+        paper: ({ theme }) => ({
+          borderRadius: BORDER_RADIUS * 2,
+          border: `1px solid ${theme.palette.divider}`,
+          backgroundImage: 'none',
+          [theme.breakpoints.down('sm')]: {
+            margin: 12,
+            width: 'calc(100% - 24px)',
+            maxHeight: 'calc(100% - 24px)',
+          },
+        }),
+        paperFullScreen: {
+          borderRadius: 0,
+          border: 0,
+          margin: 0,
+          width: '100%',
+          maxHeight: '100%',
+        },
+      },
+    },
     MuiDialogTitle: {
       styleOverrides: {
         root: {
-          padding: SPACING_UNIT * 2,
+          padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2.5}px`,
+          fontSize: 18,
+          fontWeight: 800,
+          lineHeight: 1.3,
         },
       },
     },
     MuiDialogContent: {
       styleOverrides: {
         root: {
-          padding: SPACING_UNIT * 2,
+          padding: `${SPACING_UNIT * 2}px ${SPACING_UNIT * 2.5}px`,
         },
       },
     },
     MuiDialogActions: {
       styleOverrides: {
-        root: {
-          padding: SPACING_UNIT * 2,
-        },
+        root: ({ theme }) => ({
+          padding: `${SPACING_UNIT * 1.5}px ${SPACING_UNIT * 2.5}px`,
+          gap: SPACING_UNIT / 2,
+          borderTop: `1px solid ${theme.palette.divider}`,
+          backgroundColor: alpha(theme.palette.text.primary, theme.palette.mode === 'dark' ? 0.04 : 0.02),
+        }),
       },
     },
     MuiFormHelperText: {
@@ -465,13 +531,62 @@ export const createComponents = (): Components => {
         },
       },
     },
+    // Steppers: paso actual marcado con anillo, hechos en verde, línea que se llena.
     MuiStepLabel: {
       styleOverrides: {
-        label: {
+        label: ({ theme }) => ({
           fontWeight: 600,
           fontSize: 14,
-          marginTop: `12px !important`,
-        },
+          color: theme.palette.text.secondary,
+          '&.Mui-active': { fontWeight: 800, color: theme.palette.text.primary },
+          '&.Mui-completed': { fontWeight: 600, color: theme.palette.text.primary },
+          '&.MuiStepLabel-alternativeLabel': { marginTop: 10 },
+        }),
+      },
+    },
+    MuiStepIcon: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          width: 28,
+          height: 28,
+          color: alpha(theme.palette.text.primary, 0.14),
+          '& .MuiStepIcon-text': { fontWeight: 700, fill: theme.palette.text.secondary },
+          '&.Mui-active': {
+            color: theme.palette.primary.main,
+            borderRadius: '50%',
+            boxShadow: `0 0 0 4px ${alpha(theme.palette.primary.main, 0.18)}`,
+            '& .MuiStepIcon-text': { fill: theme.palette.primary.contrastText },
+          },
+          '&.Mui-completed': { color: theme.palette.success.main },
+          '&.Mui-error': { color: theme.palette.error.main },
+        }),
+      },
+    },
+    MuiStepConnector: {
+      styleOverrides: {
+        line: ({ theme }) => ({
+          borderColor: alpha(theme.palette.text.primary, 0.14),
+          borderTopWidth: 2,
+          borderLeftWidth: 2,
+          borderRadius: 2,
+          transition: 'border-color 200ms ease-out',
+        }),
+        root: ({ theme }) => ({
+          '&.Mui-active .MuiStepConnector-line, &.Mui-completed .MuiStepConnector-line': {
+            borderColor: theme.palette.success.main,
+          },
+          // El ícono ahora mide 28: la línea se centra con él.
+          '&.MuiStepConnector-alternativeLabel': { top: 13 },
+          '&.MuiStepConnector-vertical': { marginLeft: 13 },
+        }),
+      },
+    },
+    MuiStepContent: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          marginLeft: 13,
+          borderLeft: `2px solid ${alpha(theme.palette.text.primary, 0.14)}`,
+        }),
       },
     },
     MuiTab: {

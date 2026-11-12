@@ -31,7 +31,7 @@ import { useEffect, useState } from 'react';
 
 export default function PostcardSection({ storeSlug }: { storeSlug: string }) {
   const qc = useQueryClient();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['postcard', storeSlug],
     queryFn: () => postcardService.get(storeSlug),
   });
@@ -77,6 +77,16 @@ export default function PostcardSection({ storeSlug }: { storeSlug: string }) {
   }
 
   if (isLoading) return <CircularProgress />;
+  // Sin la lista cargada no se muestra el formulario: guardar aquí borraba el postcard real.
+  if (isError || !data)
+    return (
+      <Alert
+        severity="error"
+        action={<Button onClick={() => refetch()}>Reintentar</Button>}
+      >
+        No se pudo cargar el postcard de la tienda.
+      </Alert>
+    );
 
   return (
     <PanelCard>

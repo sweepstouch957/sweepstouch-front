@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/base/confirm';
+
 /**
  * Flyer actual a mano (campaign-service StoreFlyer): cambia el flyer del linktree sin mandar
  * campaña. Sin flyer manual (o vencido, o con una campaña más nueva) sale el de la última campaña.
@@ -17,6 +19,7 @@ type StoreFlyer = { image: string; title?: string; expiresAt?: string | null; up
 const errorMsg = (e: any) => e?.response?.data?.error || 'No se pudo guardar';
 
 export default function StoreFlyerCard({ storeId }: { storeId: string }) {
+  const confirm = useConfirm();
   const qc = useQueryClient();
   const key = ['store-flyer', storeId];
   const { data: flyer } = useQuery({
@@ -154,7 +157,13 @@ export default function StoreFlyerCard({ storeId }: { storeId: string }) {
               <Button
                 color="inherit"
                 disabled={remove.isPending}
-                onClick={() => remove.mutate()}
+                onClick={() =>
+                  void confirm({
+                    title: '¿Quitar la imagen de la tienda?',
+                    description: 'El linktree vuelve a mostrar el arte de la última campaña.',
+                    confirmLabel: 'Quitar',
+                  }).then((ok) => ok && remove.mutate())
+                }
                 sx={{ borderRadius: 2, textTransform: 'none' }}
               >
                 Quitar (usar la de la última campaña)

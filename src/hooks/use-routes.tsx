@@ -16,6 +16,7 @@ import {
   GroupsRounded,
   BalanceRounded,
   HandymanRounded,
+  HomeRounded,
   InsightsRounded,
   LinkRounded,
   WhatsApp,
@@ -89,12 +90,11 @@ const dashboardsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Métricas'), <InsightsRounded />, [
     { title: t('Reportes'), route: routes.admin.dashboards.reports },
     { title: t('Correo semanal a tiendas'), route: routes.admin.dashboards['weekly-report'] },
-    { title: t('Sweepstakes'), route: routes.admin.dashboards.sweepstakes },
+    { title: t('Sorteos'), route: routes.admin.dashboards.sweepstakes },
     { title: t('Mensajes enviados'), route: routes.admin.dashboards['messages-sent'] },
     { title: t('Audiencia'), route: routes.admin.dashboards.audience },
     { title: t('Listas Pre-RCS'), route: routes.admin.dashboards['lists-analytics'] },
     { title: t('Promotoras'), route: routes.admin.management.promotors.metrics },
-    { title: t('Facturación'), route: routes.admin.dashboards.billing },
   ], undefined, STAFF_ROLES);
 
 /**
@@ -145,7 +145,7 @@ const workspaceMenu = (t: (token: string) => string): MenuItem[] => [
 
 const designsMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(
-    t('Designs Studio'),
+    t('Estudio de diseño'),
     <BrushRounded />,
     [
       { title: t('Flyers'), route: routes.admin.designs.flyers },
@@ -188,10 +188,10 @@ const campaignsMenu = (t: (token: string) => string): MenuItem =>
     },
     // Ads era un módulo entero para una sola página. Los `roles` replican
     // exactamente quién lo veía cuando estaba arriba: admin, dirección y marketing.
-    { title: t('Ads'), route: routes.admin.management.promos.listing, icon: <AdsClickOutlined />, roles: [...ADMIN_ACCESS_ROLES, 'marketing'] },
+    { title: t('Anuncios'), route: routes.admin.management.promos.listing, icon: <AdsClickOutlined />, roles: [...ADMIN_ACCESS_ROLES, 'marketing'] },
     // Secret Sales: el flyer que se desbloquea escaneando el QR de la tienda.
     // Mismos roles que Ads — es la misma gente que arma las piezas.
-    { title: t('Secret Sales'), route: routes.admin.management.promos['secret-sales'], icon: <LockOpenRounded />, roles: [...ADMIN_ACCESS_ROLES, 'marketing'] },
+    { title: t('Ventas secretas'), route: routes.admin.management.promos['secret-sales'], icon: <LockOpenRounded />, roles: [...ADMIN_ACCESS_ROLES, 'marketing'] },
   ]);
 
 const circularsMenu = (t: (token: string) => string): MenuItem =>
@@ -205,8 +205,8 @@ const circularsMenu = (t: (token: string) => string): MenuItem =>
 // 'event'/'nsa'. Como módulo aparte quedaban dos entradas pegadas diciendo
 // casi lo mismo. Lo único distinto es su tienda, y eso se ve dentro de Eventos.
 const sweepstakesMenu = (t: (token: string) => string): MenuItem =>
-  buildMenu(t('Sweepstakes'), <LocalPlayRounded />, [
-    { title: t('Listado'), route: routes.admin.management.sweepstakes.listing },
+  buildMenu(t('Sorteos y eventos'), <LocalPlayRounded />, [
+    { title: t('Sorteos'), route: routes.admin.management.sweepstakes.listing },
     { title: t('Eventos'), route: routes.admin.management.events.listing },
     { title: t('Premios'), route: routes.admin.management.prizes.listing },
   ]);
@@ -237,6 +237,7 @@ const supportMenu = (t: (token: string) => string, includeSupport = true): MenuI
 /** Facturación y QuickBooks. Es la URL que Intuit tiene registrada en el perfil de la app. */
 const billingMenu = (t: (token: string) => string): MenuItem =>
   buildMenu(t('Facturación'), <AccountBalanceRounded />, [
+    { title: t('Resumen'), route: routes.admin.dashboards.billing, icon: <InsightsRounded /> },
     { title: t('Cartera'), route: routes.admin.management['billing-receivables'], icon: <ReceiptLongRounded /> },
     { title: t('Cuadre'), route: routes.admin.management['billing-cuadre'], icon: <BalanceRounded /> },
     { title: t('Prefacturas'), route: routes.admin.management['billing-drafts'], icon: <PendingActionsRounded /> },
@@ -362,7 +363,9 @@ export const useMenuItemsCollapsedShells = (
       title: t('Panel'),
       subMenu: [
         // El gateway permite merchant en /api/ai, no en el resto del staff-only.
-        buildMenu(t('AI Assistant'), <SmartToyRoundedIcon />, aiSubItems, undefined, [
+        // Inicio: números del día y todos los módulos. Es a donde se llega al entrar.
+        buildMenu(t('Inicio'), <HomeRounded />, [], routes.admin.home),
+        buildMenu(t('Asistente IA'), <SmartToyRoundedIcon />, aiSubItems, undefined, [
           ...STAFF_ROLES,
           'merchant',
         ]),

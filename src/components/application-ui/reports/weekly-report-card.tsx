@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/base/confirm';
+
 /** Correo semanal a tiendas (reporte de los lunes): elegir la semana, ver a quién le llegó,
  *  a quién le falta el correo, y enviarlo a mano sin esperar al cron de cada hora. */
 import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
@@ -62,6 +64,7 @@ const weekLabel = (end: string) => {
 };
 
 export default function WeeklyReportCard() {
+  const confirm = useConfirm();
   const theme = useTheme();
   const qc = useQueryClient();
   // '' = la última semana (la del cron); si no, el lunes de cierre de una anterior.
@@ -191,7 +194,15 @@ export default function WeeklyReportCard() {
               startIcon={busyId === 'all' ? <CircularProgress size={14}
 color="inherit" /> : <SendRoundedIcon />}
               disabled={!t?.pending || send.isPending}
-              onClick={() => send.mutate({})}
+              onClick={() =>
+                void confirm({
+                  title: '¿Enviar los reportes semanales listos?',
+                  description: 'Sale un correo a cada tienda con su reporte de la semana.',
+                  details: [['Correos que salen', `${t?.pending ?? 0} tiendas`]],
+                  severity: 'primary',
+                  confirmLabel: `Enviar ${t?.pending ?? 0} correos`,
+                }).then((ok) => ok && send.mutate({}))
+              }
               sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700, whiteSpace: 'nowrap' }}
             >
               Enviar listos{t?.pending ? ` (${t.pending})` : ''}
@@ -413,7 +424,17 @@ height={36} />
                           busyId === s.storeId ? <CircularProgress size={12}
 color="inherit" /> : <SendRoundedIcon sx={{ fontSize: 15 }} />
                         }
-                        onClick={() => send.mutate({ storeId: s.storeId, force: s.state === 'sent' })}
+                        onClick={() => {
+                          const go = () => send.mutate({ storeId: s.storeId, force: s.state === 'sent' });
+                          // Reenviar manda un segundo correo a la tienda: se pregunta. El primero, no.
+                          if (s.state !== 'sent') return go();
+                          void confirm({
+                            title: `¿Reenviar el reporte a ${s.name}?`,
+                            description: `Ya se envió a ${s.email}. Le llega otra vez el mismo correo.`,
+                            severity: 'primary',
+                            confirmLabel: 'Reenviar',
+                          }).then((ok) => ok && go());
+                        }}
                         sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2 }}
                       >
                         {s.state === 'sent' ? 'Reenviar' : 'Enviar'}

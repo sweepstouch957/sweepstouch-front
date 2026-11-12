@@ -3,6 +3,8 @@ import {
   alpha,
   Box,
   Collapse,
+  IconButton,
+  InputBase,
   List,
   ListItemIcon,
   ListItemText,
@@ -12,7 +14,10 @@ import {
   Theme,
   useMediaQuery } from '@mui/material';
 
-import React, { FC, useState } from 'react';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
+import React, { FC, useEffect, useMemo, useState } from 'react';
+import { bestRoute, matchRoute, menuModules, norm } from 'src/router/nav';
 import { RouterLink } from 'src/components/base/router-link';
 import { usePathname } from 'src/hooks/use-pathname';
 import { MenuItem } from 'src/router/menuItem';
@@ -21,6 +26,8 @@ import { neutral } from 'src/theme/colors';
 
 interface NavItemProps {
   item: MenuItem;
+  /** Lo decide el padre entre hermanos; si no viene, se calcula con la ruta propia. */
+  selected?: boolean;
 }
 
 /**
@@ -108,13 +115,20 @@ const SubMenu = styled(List)<ListProps<'div', { component: 'div' }>>(({ theme })
   },
 }));
 
-const NavItem: React.FC<NavItemProps> = ({ item }) => {
+const NavItem: React.FC<NavItemProps> = ({ item, selected }) => {
   const { title, icon, route, subMenu } = item;
   const pathname = usePathname();
-  const isActive = route && pathname.includes(route);
-  const isSubMenuActive = subMenu?.some((sub) => sub.route && pathname.includes(sub.route));
+  // Con `includes`, "/stores" quedaba encendido también en "/stores/brands".
+  // "/admin" (Inicio) sólo cuenta exacto: si no, estaría activo en todo el panel.
+  const isActive = selected ?? (route === '/admin' ? pathname === route : matchRoute(pathname, route));
+  const activeChild = bestRoute(pathname, (subMenu || []).map((sub) => sub.route));
+  const isSubMenuActive = !!activeChild;
 
   const [open, setOpen] = useState(isSubMenuActive);
+  // Al llegar por un link o por el buscador, el módulo de la página se abre solo.
+  useEffect(() => {
+    if (isSubMenuActive) setOpen(true);
+  }, [isSubMenuActive]);
 
   const handleToggle = () => {
     if (subMenu) {
@@ -162,6 +176,7 @@ const NavItem: React.FC<NavItemProps> = ({ item }) => {
               <NavItem
                 key={subItem.title}
                 item={subItem}
+                selected={subItem.route === activeChild}
               />
             ))}
           </SubMenu>
@@ -179,10 +194,87 @@ const EMPTY_MENU_ITEMS: MenuItem[] = [];
 
 export const SidebarNavMenu: FC<SidebarNavMenuProps> = ({ menuItems = EMPTY_MENU_ITEMS }) => {
   const mdUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('md'));
+  const pathname = usePathname();
+  const [filter, setFilter] = useState('');
+  const q = norm(filter);
+  const found = useMemo(
+    () =>
+      q
+        ? menuModules(menuItems)
+            .flatMap((m) => m.pages)
+            .filter((p) => q.split(/s+/).every((w) => norm(`${p.module} ${p.title} ${p.section}`).includes(w)))
+        : [],
+    [q, menuItems]
+  );
 
   return (
     <Box>
-      {menuItems.map((menuItem) => (
+      <Box sx={{ px: 1.5, pt: 1.25, pb: 0.5, position: 'sticky', top: 0, zIndex: 3, background: neutral[900] }}>
+        <InputBase
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          onKeyDown={(e) => e.key === 'Escape' && setFilter('')}
+          placeholder="Filtrar el menú…"
+          inputProps={{ 'aria-label': 'Filtrar el menú' }}
+          startAdornment={<SearchRoundedIcon sx={{ fontSize: 16, mr: 0.75, opacity: 0.6 }} />}
+          endAdornment={
+            filter ? (
+              <IconButton
+                size="small"
+                aria-label="Borrar filtro"
+                onClick={() => setFilter('')}
+                sx={{ p: 0.25, color: 'inherit' }}
+              >
+                <CloseRoundedIcon sx={{ fontSize: 14 }} />
+              </IconButton>
+            ) : undefined
+          }
+          sx={{
+            width: '100%',
+            height: 32,
+            px: 1.1,
+            fontSize: 12.5,
+            borderRadius: '10px',
+            color: neutral[200],
+            background: alpha(neutral[500], 0.1),
+            border: `1px solid ${alpha(neutral[500], 0.14)}`,
+            '&.Mui-focused': { borderColor: alpha(neutral[300], 0.45) },
+            '& input::placeholder': { color: neutral[400], opacity: 0.9 },
+          }}
+        />
+      </Box>
+
+      {q && (
+        <List
+          component="nav"
+          aria-label="Resultados del menú"
+          disablePadding
+          sx={{ px: 1.5, pb: 1 }}
+        >
+          {found.length === 0 && (
+            <Box sx={{ px: 1.25, py: 1.5, fontSize: 12.5, color: neutral[400] }}>
+              Nada con «{filter.trim()}». Prueba Ctrl+K para buscar tiendas.
+            </Box>
+          )}
+          {found.map((p) => (
+            <ListItemButtonWrapper
+              key={p.route}
+              selected={matchRoute(pathname, p.route) && p.route !== '/admin'}
+              //@ts-ignore
+              component={RouterLink}
+              href={p.route}
+            >
+              {p.icon && <ListItemIcon>{p.icon}</ListItemIcon>}
+              <ListItemText
+                disableTypography
+                primary={p.module ? `${p.module} · ${p.title}` : p.title}
+              />
+            </ListItemButtonWrapper>
+          ))}
+        </List>
+      )}
+
+      {!q && menuItems.map((menuItem) => (
         <div key={menuItem.title}>
           <List
             component="nav"

@@ -82,6 +82,9 @@ export default function AuditoriaNumerosModal({ open, storeId, storeName, onClos
     if (!open) return;
     let alive = true;
     setLoading(true);
+    // Se borra la estimación anterior: si la nueva falla, el botón no debe ofrecer
+    // el costo de un alcance y cobrar el otro.
+    setEstimate(null);
     customerClient
       .auditPhones({ storeId, dryRun: true, scope })
       .then((d) => {

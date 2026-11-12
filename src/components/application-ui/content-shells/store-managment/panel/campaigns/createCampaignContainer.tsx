@@ -7,19 +7,11 @@ import {
   uploadCampaignImage,
   type CampaignArtUpload,
 } from '@/services/upload.service';
-import {
-  Alert,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Snackbar,
-} from '@mui/material';
+import ConfirmDialog from '@/components/base/confirm-dialog';
+import { Alert, Snackbar } from '@mui/material';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
-import CreateCampaignForm from './create-campaing';
+import CreateCampaignForm, { nyTime } from './create-campaing';
 
 interface CampaignFormContainerProps {
   storeId: string;
@@ -146,14 +138,27 @@ export default function CampaignFormContainer({
       setErrorOpen(true);
       setConfirmOpen(false);
     },
-    onSettled: (data, error) => {
-      console.log('🎯 Mutation settled:', { data, error });
-    },
   });
 
   const handleSubmit = (data: any) => {
     setFormData(data);
     setConfirmOpen(true);
+  };
+
+  // Lo que de verdad va a salir: el backend manda a toda la audiencia activa, salvo
+  // destinatarios puntuales del piloto mixto.
+  const recipients = formData?.rcsOptions?.contentTemplate?.recipients;
+  const audience =
+    Array.isArray(recipients) && recipients.length ? recipients.length : totalAudience;
+  const hasArt =
+    !formData?.imageRemoved &&
+    Boolean(formData?.image?.length || formData?.imageUrl || initialData?.image);
+  const summary = {
+    audience,
+    type:
+      formData?.channel === 'mixed' ? 'Mixta (SMS/MMS + RCS)' : hasArt ? 'MMS (con imagen)' : 'SMS',
+    cost: (Number(formData?.estimatedCost) || 0) * audience,
+    past: !!formData?.startDate && new Date(formData.startDate).getTime() < Date.now(),
   };
 
   const confirmAndSend = () => {
@@ -174,33 +179,33 @@ export default function CampaignFormContainer({
         storeId={storeId}
       />
 
-      <Dialog
+      <ConfirmDialog
         open={confirmOpen}
+        severity="primary"
+        title={isEditing ? 'Guardar cambios de la campaña' : 'Agendar campaña'}
+        details={
+          formData
+            ? [
+                ['Campaña', formData.title || '—'],
+                ['Tipo', summary.type],
+                ['Se envía a', `${summary.audience.toLocaleString()} clientes`],
+                ['Cuándo', formData.startDate ? `${nyTime(formData.startDate)} (hora NY)` : '—'],
+                ['Costo estimado', `$${summary.cost.toFixed(2)}`],
+              ]
+            : undefined
+        }
+        description={
+          summary.past ? (
+            <Alert severity="warning">Esa hora ya pasó: la campaña saldría de inmediato.</Alert>
+          ) : undefined
+        }
+        confirmLabel={
+          mutation.isPending ? 'Subiendo y guardando…' : isEditing ? 'Guardar cambios' : 'Agendar campaña'
+        }
+        loading={mutation.isPending}
+        onConfirm={confirmAndSend}
         onClose={() => setConfirmOpen(false)}
-      >
-        <DialogTitle>Confirmar {isEditing ? 'edición' : 'creación'}</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            ¿Estás seguro de que deseas {isEditing ? 'editar' : 'crear'} esta campaña?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => setConfirmOpen(false)}
-            color="secondary"
-          >
-            Cancelar
-          </Button>
-          <Button
-            onClick={confirmAndSend}
-            color="primary"
-            variant="contained"
-            disabled={mutation.isPending}
-          >
-            {mutation.isPending ? 'Subiendo y guardando…' : 'Confirmar'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      />
 
       <Snackbar
         open={successOpen}

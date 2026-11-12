@@ -11,7 +11,9 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import toast from 'react-hot-toast';
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -57,6 +59,7 @@ export function StoreBillingPanel({ storeId, storeName, pricing }: Props) {
     data: balanceResp,
     isLoading: balanceLoading,
     isFetching: balanceFetching,
+    isError: balanceError,
   } = useQuery({
     queryKey: billingQK.storeBalance(storeId),
     queryFn: () => billingService.getStoreBalance(storeId).then((r) => r.data),
@@ -66,6 +69,7 @@ export function StoreBillingPanel({ storeId, storeName, pricing }: Props) {
     data: invoicesResp,
     isLoading: invoicesLoading,
     isFetching: invoicesFetching,
+    isError: invoicesError,
   } = useQuery({
     queryKey: billingQK.storeInvoices(storeId),
     queryFn: () => billingService.listStoreInvoices(storeId).then((r) => r.data),
@@ -77,6 +81,9 @@ export function StoreBillingPanel({ storeId, storeName, pricing }: Props) {
   const refreshing = balanceFetching || invoicesFetching;
 
   // --------- Mutations ---------
+  // Antes un fallo dejaba el diálogo abierto sin decir nada.
+  const fail = (what: string) => (e: any) =>
+    toast.error(`${what}: ${e?.response?.data?.error || e?.message || 'inténtalo de nuevo'}`);
 
   const createInvoice = useMutation({
     mutationFn: ({ payload, file }: { payload: CreateInvoicePayload; file?: File }) =>
@@ -85,7 +92,9 @@ export function StoreBillingPanel({ storeId, storeName, pricing }: Props) {
       qc.invalidateQueries({ queryKey: billingQK.storeBalance(storeId) });
       qc.invalidateQueries({ queryKey: billingQK.storeInvoices(storeId) });
       setOpenNew(false);
+      toast.success('Factura creada');
     },
+    onError: fail('No se pudo crear la factura'),
   });
 
   const registerPayment = useMutation({
@@ -95,7 +104,9 @@ export function StoreBillingPanel({ storeId, storeName, pricing }: Props) {
       qc.invalidateQueries({ queryKey: billingQK.storeBalance(storeId) });
       qc.invalidateQueries({ queryKey: billingQK.storeInvoices(storeId) });
       setPaymentDialog({ open: false });
+      toast.success('Pago registrado');
     },
+    onError: fail('No se pudo registrar el pago'),
   });
 
   const handleRefresh = () => {
@@ -146,7 +157,7 @@ pricing={pricing} />
                   variant="caption"
                   color="text.secondary"
                 >
-                  {storeName ? `Store: ${storeName} · ID: ${storeId}` : `Store ID: ${storeId}`}
+                  {storeName || 'Facturas y pagos registrados a mano'}
                 </Typography>
               </Box>
 
@@ -195,13 +206,23 @@ pricing={pricing} />
             </Box>
           )}
 
-          <BillingSummaryCards
-            totalInvoiced={balance?.totalInvoiced ?? 0}
-            totalPaid={balance?.totalPaid ?? 0}
-            totalPending={balance?.totalPending ?? 0}
-            currency={currency}
-            maxDaysOverdue={balance?.maxDaysOverdue ?? 0}
-          />
+          {/* Sin esto un fallo mostraba $0 facturado / $0 pendiente como si fuera verdad. */}
+          {balanceError ? (
+            <Alert
+              severity="error"
+              action={<Button onClick={handleRefresh}>Reintentar</Button>}
+            >
+              No se pudo cargar el saldo de la tienda.
+            </Alert>
+          ) : (
+            <BillingSummaryCards
+              totalInvoiced={balance?.totalInvoiced ?? 0}
+              totalPaid={balance?.totalPaid ?? 0}
+              totalPending={balance?.totalPending ?? 0}
+              currency={currency}
+              maxDaysOverdue={balance?.maxDaysOverdue ?? 0}
+            />
+          )}
         </CardContent>
       </Card>
 
@@ -222,6 +243,15 @@ pricing={pricing} />
           {invoicesLoading ? (
             <Box p={3}>
               <LinearProgress />
+            </Box>
+          ) : invoicesError ? (
+            <Box p={3}>
+              <Alert
+                severity="error"
+                action={<Button onClick={handleRefresh}>Reintentar</Button>}
+              >
+                No se pudieron cargar las facturas.
+              </Alert>
             </Box>
           ) : invoices.length === 0 ? (
             <Box p={3}>

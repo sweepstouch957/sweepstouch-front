@@ -140,7 +140,8 @@ export default function AnalisisNumerosModal({ open, storeId, onClose, onDone }:
     }
   }
 
-  const rows = result?.rows ?? [];
+  // La tabla sigue a los chips: antes se apagaba una clase y sus filas seguían ahí.
+  const rows = (result?.rows ?? []).filter((r) => selected.includes(r.class));
   const selectedPurgeable = selected.filter((c) => c !== 'watch');
   const toPurge = selectedPurgeable.reduce((acc, c) => acc + (result?.totals?.[c] ?? 0), 0);
 
@@ -177,7 +178,11 @@ export default function AnalisisNumerosModal({ open, storeId, onClose, onDone }:
             type="number"
             size="small"
             value={windowDays}
-            onChange={(e) => setWindowDays(Number(e.target.value))}
+            // Cambiar un parámetro borra el análisis: "Quitar" sólo aplica lo que está a la vista.
+            onChange={(e) => {
+              setWindowDays(Number(e.target.value));
+              setResult(null);
+            }}
             helperText="90 = últimos 3 meses"
             sx={{ width: 180 }}
           />
@@ -186,7 +191,10 @@ export default function AnalisisNumerosModal({ open, storeId, onClose, onDone }:
             type="number"
             size="small"
             value={minFailures}
-            onChange={(e) => setMinFailures(Number(e.target.value))}
+            onChange={(e) => {
+              setMinFailures(Number(e.target.value));
+              setResult(null);
+            }}
             helperText="Para contar como reincidente"
             sx={{ width: 180 }}
           />

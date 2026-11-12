@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/base/confirm';
+
 import { FC, useMemo, useState } from 'react';
 import { Controller, useForm, useWatch, type Control, type UseFormRegister } from 'react-hook-form';
 import {
@@ -62,6 +64,7 @@ interface DepartmentManagerProps {
 
 const DepartmentManager: FC<DepartmentManagerProps> = ({ open, onClose }) => {
   const theme = useTheme();
+  const confirm = useConfirm();
   const isDark = theme.palette.mode === 'dark';
   const queryClient = useQueryClient();
 
@@ -347,7 +350,14 @@ const DepartmentManager: FC<DepartmentManagerProps> = ({ open, onClose }) => {
                     <IconButton
                       size="small"
                       color="error"
-                      onClick={() => deleteMutation.mutate(dept._id)}
+                      onClick={() =>
+                        void confirm({
+                          title: `¿Eliminar el área «${dept.name}»?`,
+                          description: 'Las tareas y personas que la usan se quedan sin área. No se puede deshacer.',
+                          severity: 'error',
+                          confirmLabel: 'Eliminar área',
+                        }).then((ok) => ok && deleteMutation.mutate(dept._id))
+                      }
                     >
                       <DeleteRoundedIcon sx={{ fontSize: 16 }} />
                     </IconButton>

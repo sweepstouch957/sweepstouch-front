@@ -97,7 +97,7 @@ export default function StepAudience({ b }: { b: RcsBuilderApi }) {
         <FormControlLabel
           value="limit"
           control={<Radio size="small" />}
-          label="Primeros N de la base — prueba, se envía ahora"
+          label="Primeros N clientes de la base — les llega de verdad y se envía ahora"
         />
         {b.audMode === 'limit' && (
           <TextField

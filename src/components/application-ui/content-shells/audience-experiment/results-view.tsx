@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/base/confirm';
+
 import {
   EmptyBlock,
   KpiCard,
@@ -52,6 +54,7 @@ export function ResultsView({
   undoing: boolean;
   onUndo: (storeId: string, period?: string) => void;
 }) {
+  const confirm = useConfirm();
   const theme = useTheme();
   const line = panelDivider(theme);
   const [q, setQ] = useState('');
@@ -217,9 +220,15 @@ export function ResultsView({
                               size="small"
                               disabled={undoing}
                               onClick={() => {
-                                if (window.confirm(`¿Quitar ${num(t.added)} referidos de ${t.name} (${result.period})?`)) {
-                                  onUndo(t.storeId, result.period);
-                                }
+                                void confirm({
+                                  title: '¿Quitar los referidos repuestos?',
+                                  details: [
+                                    ['Tienda', t.name],
+                                    ['Periodo', result.period],
+                                    ['Se quitan', `${num(t.added)} clientes`],
+                                  ],
+                                  confirmLabel: 'Quitar',
+                                }).then((ok) => ok && onUndo(t.storeId, result.period));
                               }}
                               aria-label="Deshacer"
                             >

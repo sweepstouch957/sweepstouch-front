@@ -85,6 +85,7 @@ export default function AgentsSection({
         step={2}
         profile={profile.data?.profile}
         loading={profile.isLoading}
+        failed={profile.isError}
         onSaveRules={saveRules.mutateAsync}
         onAddLesson={addLesson.mutateAsync}
         onRemoveLesson={removeLesson.mutate}

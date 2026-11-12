@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/base/confirm';
+
 /**
  * Ficha de la persona — la columna derecha, siempre a la vista.
  *
@@ -116,6 +118,7 @@ function RequestCard({
   onToggle: () => void;
   onChanged: () => void;
 }) {
+  const confirm = useConfirm();
   const theme = useTheme();
   const qc = useQueryClient();
   const isList = row.kind === 'list';
@@ -297,16 +300,18 @@ function RequestCard({
                           size="small"
                           disabled={busy || outOfStock.has(it.name)}
                           onClick={() => {
-                            if (
-                              !window.confirm(
-                                `¿"${it.name}" se agotó en la tienda? Deja de ofrecerse a TODOS los clientes.`
-                              )
-                            )
-                              return;
-                            void run(async () => {
-                              await orderAdminService.markOutOfStock(row.storeSlug, it.name);
-                              setOutOfStock((prev) => new Set(prev).add(it.name));
-                            }, `"${it.name}" quedó agotado en la tienda`);
+                            void confirm({
+                              title: `¿«${it.name}» se agotó en la tienda?`,
+                              description: 'Deja de ofrecerse a TODOS los clientes de la tienda, no sólo a este.',
+                              confirmLabel: 'Marcar agotado',
+                            }).then(
+                              (ok) =>
+                                ok &&
+                                run(async () => {
+                                  await orderAdminService.markOutOfStock(row.storeSlug, it.name);
+                                  setOutOfStock((prev) => new Set(prev).add(it.name));
+                                }, `"${it.name}" quedó agotado en la tienda`)
+                            );
                           }}
                         >
                           <RemoveShoppingCartRounded sx={{ fontSize: 18 }} />
@@ -319,10 +324,17 @@ function RequestCard({
                           disabled={busy}
                           sx={{ textTransform: 'none', minWidth: 0 }}
                           onClick={() => {
-                            if (!window.confirm(`¿"${it.name}" no había? Se le reembolsa esa línea.`)) return;
-                            void run(
-                              () => orderAdminService.markUnavailable(o._id, i),
-                              'Producto marcado como no disponible'
+                            void confirm({
+                              title: `¿«${it.name}» no había?`,
+                              description: 'Se quita del pedido y al cliente se le reembolsa esa línea.',
+                              confirmLabel: 'No había, reembolsar',
+                            }).then(
+                              (ok) =>
+                                ok &&
+                                run(
+                                  () => orderAdminService.markUnavailable(o._id, i),
+                                  'Producto marcado como no disponible'
+                                )
                             );
                           }}
                         >
@@ -401,10 +413,19 @@ function RequestCard({
                     disabled={busy}
                     sx={{ textTransform: 'none', fontWeight: 700 }}
                     onClick={() => {
-                      if (!window.confirm('¿Cancelar este pedido? El cliente recibe el aviso.')) return;
-                      void run(
-                        () => orderAdminService.setFulfillment(o._id, 'cancelled'),
-                        'Pedido cancelado'
+                      void confirm({
+                        title: '¿Cancelar este pedido?',
+                        description: 'El cliente recibe el aviso de cancelación. No se puede reabrir.',
+                        severity: 'error',
+                        confirmLabel: 'Cancelar pedido',
+                        cancelLabel: 'Volver',
+                      }).then(
+                        (ok) =>
+                          ok &&
+                          run(
+                            () => orderAdminService.setFulfillment(o._id, 'cancelled'),
+                            'Pedido cancelado'
+                          )
                       );
                     }}
                   >

@@ -37,13 +37,19 @@ export type StorePricing = {
 
 type Props = { storeId: string; pricing?: StorePricing | null };
 
-/** '' → null, para que el backend vuelva a la tarifa estándar. */
-const toNum = (v: string) => {
-  const t = v.trim();
+/**
+ * '' → null, para que el backend vuelva a la tarifa estándar. Lo que no es un
+ * número devuelve NaN y bloquea el guardado: antes "0,05" se guardaba como vacío
+ * y la tienda volvía a la tarifa estándar sin avisar.
+ * `decimalComma` sólo en precios ("0,05"); en audiencia/monto una coma es de miles.
+ */
+const toNum = (v: string, decimalComma = false) => {
+  const t = decimalComma ? v.trim().replace(',', '.') : v.trim();
   if (t === '') return null;
   const n = Number(t);
-  return Number.isFinite(n) && n >= 0 ? n : null;
+  return Number.isFinite(n) && n >= 0 ? n : NaN;
 };
+const bad = (v: string, decimalComma = false) => Number.isNaN(toNum(v, decimalComma));
 
 const toText = (v: number | null | undefined) =>
   v == null || !Number.isFinite(Number(v)) ? '' : String(v);
@@ -79,8 +85,8 @@ export function StorePricingCard({ storeId, pricing }: Props) {
     mutationFn: () =>
       updateStorePatch(storeId, {
         pricing: {
-          smsPrice: toNum(sms),
-          mmsPrice: toNum(mms),
+          smsPrice: toNum(sms, true),
+          mmsPrice: toNum(mms, true),
           flatRateThreshold: toNum(threshold),
           flatRateAmount: toNum(flat),
           flatRateMode: mode,
@@ -103,7 +109,8 @@ export function StorePricingCard({ storeId, pricing }: Props) {
   // Un umbral sin importe (o al revés) no aplica nunca: mejor decirlo que
   // dejar a alguien esperando una tarifa plana que no va a pasar.
   const halfFlat = Boolean(toNum(threshold)) !== Boolean(toNum(flat));
-  const hasCustom = [sms, mms, threshold, flat].some((v) => toNum(v) != null);
+  const hasCustom = [sms, mms, threshold, flat].some((v) => v.trim() !== '');
+  const invalid = bad(sms, true) || bad(mms, true) || bad(threshold) || bad(flat);
 
   return (
     <PanelCard sx={{ mb: 2 }}>
@@ -141,7 +148,8 @@ sx={{ mb: 2 }}>
             value={sms}
             onChange={(e) => setSms(e.target.value)}
             placeholder={String(STANDARD_RATES.SMS)}
-            helperText={`Estándar $${STANDARD_RATES.SMS}`}
+            error={bad(sms, true)}
+            helperText={bad(sms, true) ? 'Sólo números, ej. 0.019' : `Estándar $${STANDARD_RATES.SMS}`}
             size="small"
             fullWidth
             InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
@@ -151,7 +159,8 @@ sx={{ mb: 2 }}>
             value={mms}
             onChange={(e) => setMms(e.target.value)}
             placeholder={String(STANDARD_RATES.MMS)}
-            helperText={`Estándar $${STANDARD_RATES.MMS}`}
+            error={bad(mms, true)}
+            helperText={bad(mms, true) ? 'Sólo números, ej. 0.05' : `Estándar $${STANDARD_RATES.MMS}`}
             size="small"
             fullWidth
             InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
@@ -179,6 +188,8 @@ gap={1.5}>
             value={threshold}
             onChange={(e) => setThreshold(e.target.value)}
             placeholder="15000"
+            error={bad(threshold)}
+            helperText={bad(threshold) ? 'Sólo números, sin comas: 15000' : undefined}
             size="small"
             fullWidth
           />
@@ -187,6 +198,8 @@ gap={1.5}>
             value={flat}
             onChange={(e) => setFlat(e.target.value)}
             placeholder="750"
+            error={bad(flat)}
+            helperText={bad(flat) ? 'Sólo números, sin comas: 750' : undefined}
             size="small"
             fullWidth
             InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
@@ -257,7 +270,7 @@ justifyContent="flex-end">
             variant="contained"
             size="small"
             onClick={() => save.mutate()}
-            disabled={save.isPending}
+            disabled={save.isPending || invalid}
           >
             {save.isPending ? 'Guardando…' : 'Guardar tarifas'}
           </Button>

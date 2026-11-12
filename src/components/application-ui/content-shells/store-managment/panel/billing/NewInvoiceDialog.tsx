@@ -64,7 +64,7 @@ export function NewInvoiceDialog({ open, loading, onClose, onSubmit }: Props) {
         <Button onClick={onClose}>Cancelar</Button>
         <Button
           onClick={handleSubmit}
-          disabled={loading}
+          disabled={loading || !(Number(amount) > 0) || !desc.trim()}
           variant="contained"
         >
           Crear

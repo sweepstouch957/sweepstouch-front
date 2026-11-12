@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/base/confirm';
+
 import { useAuth } from '@/hooks/use-auth';
 import { usersApi } from '@/mocks/users';
 import {
@@ -114,6 +116,7 @@ function exportCsv(events: CalendarEvent[], year: number) {
 }
 
 function Calendar(): React.JSX.Element {
+  const confirm = useConfirm();
   const customization = useCustomization();
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
@@ -716,7 +719,12 @@ function Calendar(): React.JSX.Element {
             setSelectedId(null);
           }}
           onDelete={() => {
-            if (window.confirm('¿Eliminar este evento?')) deleteMut.mutate(selected._id);
+            void confirm({
+              title: '¿Eliminar este evento?',
+              description: `«${selected.title || 'Evento'}» se borra del calendario de todos. No se puede deshacer.`,
+              severity: 'error',
+              confirmLabel: 'Eliminar',
+            }).then((ok) => ok && deleteMut.mutate(selected._id));
           }}
           onNotify={() => notifyMut.mutate(selected._id)}
           onOpenLink={(link) => push(link)}

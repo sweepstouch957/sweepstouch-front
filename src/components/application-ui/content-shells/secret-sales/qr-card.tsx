@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/base/confirm';
+
 import { useSecretSaleQr } from '@/hooks/fetching/secret-sales/useSecretSales';
 import { downloadRemoteFile } from '@/services/download.service';
 import { secretSaleService } from '@/services/secret-sale.service';
@@ -40,6 +42,7 @@ interface Props {
  * eso acá no hay botón de "generar": llega hecho.
  */
 export function QrCard({ storeId, storeName }: Props) {
+  const confirm = useConfirm();
   const theme = useTheme();
   const qc = useQueryClient();
   const { data, isPending, error } = useSecretSaleQr(storeId);
@@ -62,9 +65,12 @@ export function QrCard({ storeId, storeName }: Props) {
   const askRegenerate = () => {
     // Regenerar cambia la imagen: el QR impreso que hay pegado en la tienda
     // sigue funcionando (el link no cambia), pero no es una acción de rutina.
-    if (window.confirm('El QR actual ya está impreso. ¿Rehacer la imagen igual?')) {
-      regenerate.mutate();
-    }
+    void confirm({
+      title: '¿Rehacer la imagen del QR?',
+      description: 'El QR impreso que ya está en la tienda sigue funcionando: el link no cambia, sólo la imagen.',
+      severity: 'primary',
+      confirmLabel: 'Rehacer imagen',
+    }).then((ok) => ok && regenerate.mutate());
   };
 
   // 409 del backend: la tienda todavía no tiene slug, así que no tiene link público.

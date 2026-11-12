@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/base/confirm';
+
 import {
   calendarService,
   type ChecklistItem,
@@ -48,6 +50,7 @@ export function ChecklistField({
   onChange: (v: ChecklistItem[]) => void;
 }) {
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const [draft, setDraft] = useState('');
   const [uploading, setUploading] = useState<number | null>(null);
   const [lastTemplate, setLastTemplate] = useState('');
@@ -135,7 +138,12 @@ export function ChecklistField({
             label={`${t.name} (${t.items.length})`}
             onClick={() => applyTemplate(t.name, t.items)}
             onDelete={() => {
-              if (window.confirm(`¿Borrar la plantilla "${t.name}"?`)) removeMut.mutate(t._id);
+              void confirm({
+                title: `¿Borrar la plantilla «${t.name}»?`,
+                description: `Tiene ${t.items.length} punto(s). Los eventos que ya la usaron no cambian.`,
+                severity: 'error',
+                confirmLabel: 'Borrar',
+              }).then((ok) => ok && removeMut.mutate(t._id));
             }}
           />
         ))}

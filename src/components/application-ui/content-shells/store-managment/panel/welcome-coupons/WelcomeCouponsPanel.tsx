@@ -82,11 +82,14 @@ const WelcomeCouponsPanel = ({ storeId }: WelcomeCouponsPanelProps) => {
       severity: 'success',
    });
 
-   const { data: configData, isLoading: isLoadingConfig } = useQuery({
+   const { data: configData, isLoading: isLoadingConfig, error: configError, refetch: refetchConfig } = useQuery({
       queryKey: ['welcome-coupon-config', storeId],
       queryFn: () => welcomeCouponClient.getConfig(storeId),
-      retry: 2,
+      // 404 = la tienda aún no tiene cupón: no es un fallo, no se reintenta.
+      retry: (n, e: any) => e?.response?.status !== 404 && n < 2,
    });
+   // Fallo real de carga: guardar con el formulario vacío pisaría el cupón que ya existe.
+   const loadFailed = Boolean(configError) && (configError as any)?.response?.status !== 404;
 
    const { data: metricsData } = useQuery({
       queryKey: ['welcome-coupon-metrics', storeId],
@@ -130,12 +133,12 @@ const WelcomeCouponsPanel = ({ storeId }: WelcomeCouponsPanelProps) => {
          });
       },
       onSuccess: () => {
-         setToast({ open: true, message: 'Settings saved.', severity: 'success' });
+         setToast({ open: true, message: 'Cupón guardado.', severity: 'success' });
          queryClient.invalidateQueries({ queryKey: ['welcome-coupon-config', storeId] });
          setSelectedFile(null);
       },
-      onError: () => {
-         setToast({ open: true, message: 'Request failed.', severity: 'error' });
+      onError: (e: any) => {
+         setToast({ open: true, message: e?.response?.data?.error || 'No se pudo guardar el cupón.', severity: 'error' });
       },
    });
 
@@ -143,9 +146,19 @@ const WelcomeCouponsPanel = ({ storeId }: WelcomeCouponsPanelProps) => {
       mutationFn: () => welcomeCouponClient.toggleActive(storeId),
       onSuccess: (data) => {
          setActive(data.active);
-         setToast({ open: true, message: data.active ? 'Activated' : 'Paused', severity: 'success' });
+         setToast({ open: true, message: data.active ? 'Cupón activado' : 'Cupón pausado', severity: 'success' });
          queryClient.invalidateQueries({ queryKey: ['welcome-coupon-config', storeId] });
       },
+      // Sin cupón guardado el interruptor fallaba en silencio.
+      onError: (e: any) =>
+         setToast({
+            open: true,
+            message:
+               e?.response?.status === 404
+                  ? 'Primero guarda el cupón; después lo puedes activar.'
+                  : 'No se pudo cambiar el estado.',
+            severity: 'error',
+         }),
    });
 
    if (isLoadingConfig && !configData) {
@@ -182,6 +195,12 @@ const WelcomeCouponsPanel = ({ storeId }: WelcomeCouponsPanelProps) => {
                         </Stack>
                      </Stack>
                   </Paper>
+
+                  {loadFailed && (
+                     <Alert severity="error" sx={{ mb: 2 }} action={<Button onClick={() => refetchConfig()}>Reintentar</Button>}>
+                        No se pudo cargar el cupón de esta tienda. No se puede guardar hasta que cargue.
+                     </Alert>
+                  )}
 
                   <Grid container spacing={2.5}>
                      {/* 📊 Compact Metrics */}
@@ -323,7 +342,7 @@ const WelcomeCouponsPanel = ({ storeId }: WelcomeCouponsPanelProps) => {
                                        variant="contained"
                                        fullWidth
                                        onClick={() => upsertMutation.mutate()}
-                                       disabled={upsertMutation.isPending}
+                                       disabled={upsertMutation.isPending || loadFailed}
                                        sx={{
                                           textTransform: 'none',
                                           borderRadius: 1.5,

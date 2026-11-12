@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/base/confirm';
+
 /**
  * Ficha de una solicitud — el detalle del CRM.
  *
@@ -103,6 +105,7 @@ export function OrderDrawer({
   /** Se llama después de cada acción para refrescar la matriz. */
   onChanged: () => void;
 }): React.JSX.Element {
+  const confirm = useConfirm();
   const theme = useTheme();
   const qc = useQueryClient();
   const isList = row?.kind === 'list';
@@ -386,12 +389,17 @@ export function OrderDrawer({
                       color="error"
                       disabled={!!busy}
                       onClick={() => {
-                        if (!window.confirm('¿Cancelar este pedido? El cliente recibe el aviso.')) return;
-                        void run(
+                        void confirm({
+                          title: '¿Cancelar este pedido?',
+                          description: 'El cliente recibe el aviso de cancelación. No se puede reabrir.',
+                          severity: 'error',
+                          confirmLabel: 'Cancelar pedido',
+                          cancelLabel: 'Volver',
+                        }).then((ok) => ok && run(
                           'cancel',
                           () => orderAdminService.setFulfillment(o._id, 'cancelled'),
                           'Pedido cancelado'
-                        );
+                        ));
                       }}
                     >
                       Cancelar pedido
@@ -487,12 +495,15 @@ export function OrderDrawer({
                               color="warning"
                               disabled={!!busy || unavailable.isPending}
                               onClick={() => {
-                                if (!window.confirm(`¿"${it.name}" no había? Se le reembolsa esa línea.`)) return;
-                                void run(
+                                void confirm({
+                                  title: `¿«${it.name}» no había?`,
+                                  description: 'Se quita del pedido y al cliente se le reembolsa esa línea.',
+                                  confirmLabel: 'No había, reembolsar',
+                                }).then((ok) => ok && run(
                                   'item',
                                   () => unavailable.mutateAsync(i),
                                   'Producto marcado como no disponible'
-                                );
+                                ));
                               }}
                             >
                               No había

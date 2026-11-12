@@ -108,7 +108,8 @@ export const routes = {
     pricing: '/pricing',
   },
   admin: {
-    index: '/admin/dashboards/reports',
+    index: '/admin',
+    home: '/admin',
     dashboards: {
       reports: '/admin/dashboards/reports',
       'weekly-report': '/admin/dashboards/weekly-report',

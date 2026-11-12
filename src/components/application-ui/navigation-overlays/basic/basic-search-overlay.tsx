@@ -1,25 +1,27 @@
-import AutoAwesomeRounded from '@mui/icons-material/AutoAwesomeRounded';
-import BoltRounded from '@mui/icons-material/BoltRounded';
-import ChevronRightTwoToneIcon from '@mui/icons-material/ChevronRightTwoTone';
-import CloseIcon from '@mui/icons-material/Close';
-import SearchTwoToneIcon from '@mui/icons-material/SearchTwoTone';
-import SearchOffTwoToneIcon from '@mui/icons-material/SearchOffTwoTone';
-import StoreRoundedIcon from '@mui/icons-material/StoreRounded';
-import CampaignRoundedIcon from '@mui/icons-material/CampaignRounded';
-import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
-import AssignmentRoundedIcon from '@mui/icons-material/AssignmentRounded';
-import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
-import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded';
-import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
-import BarChartRoundedIcon from '@mui/icons-material/BarChartRounded';
-import MapRoundedIcon from '@mui/icons-material/MapRounded';
-import RedeemRoundedIcon from '@mui/icons-material/RedeemRounded';
-import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
+/**
+ * Buscador global (Ctrl+K).
+ *
+ * Antes filtraba 24 páginas escritas a mano y en inglés, varias con la ruta rota.
+ * Ahora busca en TODO lo que el rol puede abrir (sale del mismo menú de la barra
+ * lateral), sin distinguir acentos, y también tiendas por nombre para ir directo a
+ * su panel. Flechas para moverse, Enter para abrir, Tab para preguntarle a la IA.
+ */
+import { useStoreSearch } from '@/hooks/fetching/stores/useStoreSearch';
+import { useAuth } from '@/hooks/use-auth';
+import useMenuItemsCollapsedShells from '@/hooks/use-routes';
+import { menuModules, norm } from '@/router/nav';
+import { searchWithAI, type AISearchResult } from '@/services/ai.service';
 import AddCircleOutlineRoundedIcon from '@mui/icons-material/AddCircleOutlineRounded';
-import ViewKanbanRoundedIcon from '@mui/icons-material/ViewKanbanRounded';
-import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
+import AutoAwesomeRounded from '@mui/icons-material/AutoAwesomeRounded';
 import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
+import CloseIcon from '@mui/icons-material/Close';
+import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
+import KeyboardReturnRoundedIcon from '@mui/icons-material/KeyboardReturnRounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
+import SearchOffTwoToneIcon from '@mui/icons-material/SearchOffTwoTone';
+import SearchTwoToneIcon from '@mui/icons-material/SearchTwoTone';
+import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
+import StoreRoundedIcon from '@mui/icons-material/StoreRounded';
 import TaskAltRoundedIcon from '@mui/icons-material/TaskAltRounded';
 import {
   alpha,
@@ -32,11 +34,9 @@ import {
   Divider,
   IconButton,
   InputAdornment,
-  List,
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  ListSubheader,
   OutlinedInput,
   Skeleton,
   Stack,
@@ -45,69 +45,33 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import React, { FC, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { searchWithAI, type AISearchResult } from '@/services/ai.service';
-import { tint, type SemanticRole } from 'src/theme/semantic';
+import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { tint } from 'src/theme/semantic';
 
-/* ═══════════ Route-based search items ═══════════ */
-interface SearchItem {
+type Result = {
+  key: string;
+  group: 'Tiendas' | 'Acciones' | 'Páginas';
   title: string;
-  description: string;
+  hint: string;
   route: string;
-  category: 'navigation' | 'management' | 'actions' | 'tools';
   icon: React.ReactNode;
-  keywords: string[];
-}
+};
 
-const searchItems: SearchItem[] = [
-  // ─── Navigation
-  { title: 'Dashboard', description: 'Reports & analytics overview', route: '/admin/dashboards/reports', category: 'navigation', icon: <DashboardRoundedIcon fontSize="small" />, keywords: ['home', 'main', 'overview', 'inicio'] },
-  { title: 'Messages Sent', description: 'Track message delivery stats', route: '/admin/dashboards/messages-sent', category: 'navigation', icon: <BarChartRoundedIcon fontSize="small" />, keywords: ['sms', 'mms', 'delivery', 'metrics'] },
-  { title: 'Audience', description: 'Customer audience insights', route: '/admin/dashboards/audience', category: 'navigation', icon: <PeopleRoundedIcon fontSize="small" />, keywords: ['customers', 'reach', 'organic'] },
-  { title: 'Billing', description: 'Financial overview', route: '/admin/dashboards/billing', category: 'navigation', icon: <DescriptionRoundedIcon fontSize="small" />, keywords: ['invoices', 'payments', 'money'] },
-
-  // ─── Management
-  { title: 'Stores', description: 'Manage all store locations', route: '/admin/management/stores', category: 'management', icon: <StoreRoundedIcon fontSize="small" />, keywords: ['tiendas', 'locations', 'shops'] },
-  { title: 'Create Store', description: 'Register a new store', route: '/admin/management/stores/create', category: 'management', icon: <AddCircleOutlineRoundedIcon fontSize="small" />, keywords: ['new', 'add', 'crear tienda'] },
-  { title: 'Campaigns', description: 'View all campaigns', route: '/admin/management/campaings', category: 'management', icon: <CampaignRoundedIcon fontSize="small" />, keywords: ['campañas', 'marketing', 'blast'] },
-  { title: 'Create Campaign', description: 'Launch a new campaign', route: '/admin/management/campaings/create', category: 'actions', icon: <AddCircleOutlineRoundedIcon fontSize="small" />, keywords: ['new campaign', 'crear campaña', 'launch'] },
-  { title: 'MMS Generator', description: 'Generate rich media messages', route: '/admin/management/mms', category: 'management', icon: <CampaignRoundedIcon fontSize="small" />, keywords: ['flyers', 'images', 'media'] },
-  { title: 'Send Test Message', description: 'Test a campaign before launch', route: '/admin/management/campaings/send-test', category: 'actions', icon: <CampaignRoundedIcon fontSize="small" />, keywords: ['test', 'preview', 'prueba'] },
-  { title: 'Sweepstakes', description: 'Manage sweepstakes & prizes', route: '/admin/management/sweepstakes', category: 'management', icon: <RedeemRoundedIcon fontSize="small" />, keywords: ['sorteos', 'prizes', 'premios', 'rewards'] },
-  { title: 'Users', description: 'Manage team members', route: '/admin/management/users-listing', category: 'management', icon: <PeopleRoundedIcon fontSize="small" />, keywords: ['team', 'users', 'members', 'usuarios'] },
-  { title: 'Merchants', description: 'Manage merchant accounts', route: '/admin/management/merchants', category: 'management', icon: <PeopleRoundedIcon fontSize="small" />, keywords: ['comerciantes', 'vendors'] },
-  { title: 'Promoters', description: 'Manage promoter staff', route: '/admin/management/promotors', category: 'management', icon: <PeopleRoundedIcon fontSize="small" />, keywords: ['impulsadoras', 'promotoras', 'staff'] },
-  { title: 'Contracts', description: 'Store contracts & agreements', route: '/admin/management/stores/contracts', category: 'management', icon: <DescriptionRoundedIcon fontSize="small" />, keywords: ['contratos', 'legal'] },
-  { title: 'Circulars', description: 'Manage store circulars', route: '/admin/management/circulars/manage', category: 'management', icon: <DescriptionRoundedIcon fontSize="small" />, keywords: ['circulares', 'flyers'] },
-  { title: 'Ads', description: 'Manage advertisements', route: '/admin/management/ads', category: 'management', icon: <CampaignRoundedIcon fontSize="small" />, keywords: ['promos', 'advertisements', 'anuncios'] },
-
-  // ─── Tools
-  { title: 'Projects Board', description: 'Kanban board for team tasks', route: '/admin/applications/projects-board', category: 'tools', icon: <ViewKanbanRoundedIcon fontSize="small" />, keywords: ['kanban', 'board', 'projects', 'jira', 'tablero'] },
-  { title: 'Tasks', description: 'View & manage all tasks', route: '/admin/applications/tasks', category: 'tools', icon: <AssignmentRoundedIcon fontSize="small" />, keywords: ['tareas', 'todo', 'assignments'] },
-  { title: 'Calendar', description: 'Schedule & appointments', route: '/admin/applications/calendar', category: 'tools', icon: <CalendarMonthRoundedIcon fontSize="small" />, keywords: ['agenda', 'schedule', 'citas'] },
-  { title: 'Store Maps', description: 'Geographic store visualization', route: '/admin/applications/maps', category: 'tools', icon: <MapRoundedIcon fontSize="small" />, keywords: ['mapa', 'locations', 'geography'] },
-  { title: 'My Account', description: 'Profile, CV upload, settings', route: '/admin/management/account', category: 'tools', icon: <AccountCircleRoundedIcon fontSize="small" />, keywords: ['profile', 'settings', 'account', 'perfil', 'cv'] },
-  { title: 'AI Assistant', description: 'Chat with the AI assistant', route: '/admin/applications/ai-assistant', category: 'tools', icon: <SmartToyRoundedIcon fontSize="small" />, keywords: ['chat', 'ai', 'assistant', 'claude'] },
+/** Acciones que no son un ítem del menú (crear es un botón, no una sección). */
+const ACTIONS: { title: string; hint: string; route: string; needs: string; words: string }[] = [
+  { title: 'Nueva campaña', hint: 'Elegir tienda y armar el mensaje', route: '/admin/management/campaings/create', needs: '/admin/management/campaings', words: 'crear campana sms mms rcs enviar' },
+  { title: 'Enviar prueba', hint: 'Probar un mensaje antes de agendarlo', route: '/admin/management/campaings/send-test', needs: '/admin/management/campaings', words: 'test prueba mensaje' },
+  { title: 'Crear tienda', hint: 'Registrar una tienda nueva', route: '/admin/management/stores/create', needs: '/admin/management/stores', words: 'nueva tienda alta registrar' },
+  { title: 'Mi cuenta', hint: 'Perfil y contraseña', route: '/admin/management/account', needs: '', words: 'perfil password clave cuenta' },
 ];
 
-const CATEGORY_LABELS: Record<string, string> = {
-  navigation: '📊 Dashboards',
-  management: '⚙️ Management',
-  actions: '⚡ Quick Actions',
-  tools: '🛠 Tools & Apps',
-};
-
-const CATEGORY_ROLES: Record<string, SemanticRole> = {
-  navigation: 'primary',
-  management: 'success',
-  actions: 'warning',
-  tools: 'info',
-};
-
-/* ─── Simple markdown for AI answers ─── */
+/* ─── Markdown mínimo para las respuestas de la IA ─── */
 function renderSimpleMarkdown(text: string) {
   return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/\*([^*]+)\*/g, '<em>$1</em>')
     .replace(/`([^`]+)`/g, '<code style="background:rgba(0,0,0,0.06);padding:1px 4px;border-radius:3px;font-size:12px">$1</code>')
@@ -124,6 +88,7 @@ interface BasicSpotlightSearchProps {
 export const BasicSpotlightSearch: FC<BasicSpotlightSearchProps> = (props) => {
   const { onClose, open = false, ...other } = props;
   const [searchTerm, setSearchTerm] = useState('');
+  const [cursor, setCursor] = useState(0);
   const [aiMode, setAiMode] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState<AISearchResult | null>(null);
@@ -132,40 +97,63 @@ export const BasicSpotlightSearch: FC<BasicSpotlightSearchProps> = (props) => {
   const { push } = useRouter();
   const isDark = theme.palette.mode === 'dark';
   const accent = theme.palette.primary.main;
+  const listRef = useRef<HTMLDivElement>(null);
 
-  const filtered = useMemo(() => {
-    if (aiMode || !searchTerm.trim()) return [];
-    const q = searchTerm.toLowerCase();
-    return searchItems.filter(
-      (item) =>
-        item.title.toLowerCase().includes(q) ||
-        item.description.toLowerCase().includes(q) ||
-        item.keywords.some((k) => k.includes(q))
-    );
-  }, [searchTerm, aiMode]);
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  const menu = useMenuItemsCollapsedShells(t, (user?.role || '') as any);
+  const pages = useMemo(() => menuModules(menu).flatMap((m) => m.pages), [menu]);
 
-  // Group by category
-  const grouped = useMemo(() => {
-    const groups: Record<string, SearchItem[]> = {};
-    for (const item of filtered) {
-      if (!groups[item.category]) groups[item.category] = [];
-      groups[item.category].push(item);
+  const q = norm(searchTerm);
+  const stores = useStoreSearch(searchTerm, { limit: 6, enabled: open && !aiMode });
+
+  const results = useMemo<Result[]>(() => {
+    if (aiMode) return [];
+    const canOpen = (prefix: string) => !prefix || pages.some((p) => p.route.startsWith(prefix));
+    const actions = ACTIONS.filter((a) => canOpen(a.needs));
+
+    // Sin texto: lo de todos los días, no una lista de 60 páginas.
+    if (!q) {
+      return [
+        { key: 'home', group: 'Páginas', title: 'Inicio', hint: 'Números del día y todos los módulos', route: '/admin', icon: <HomeRoundedIcon fontSize="small" /> },
+        ...actions.slice(0, 3).map<Result>((a) => ({ key: a.route, group: 'Acciones', title: a.title, hint: a.hint, route: a.route, icon: <AddCircleOutlineRoundedIcon fontSize="small" /> })),
+        ...pages
+          .filter((p) => /tiendas|campa|tareas/.test(norm(p.module || p.title)) && /listado|tareas/.test(norm(p.title)))
+          .map<Result>((p) => ({ key: p.route, group: 'Páginas', title: p.module ? `${p.module} · ${p.title}` : p.title, hint: p.section, route: p.route, icon: p.icon })),
+      ];
     }
-    return groups;
-  }, [filtered]);
 
-  // Suggested items when no search term
-  const suggestions = useMemo(
-    () => [
-      searchItems.find((i) => i.title === 'Dashboard')!,
-      searchItems.find((i) => i.title === 'Campaigns')!,
-      searchItems.find((i) => i.title === 'Stores')!,
-      searchItems.find((i) => i.title === 'Projects Board')!,
-      searchItems.find((i) => i.title === 'Tasks')!,
-      searchItems.find((i) => i.title === 'AI Assistant')!,
-    ].filter(Boolean),
-    []
-  );
+    const words = q.split(/\s+/);
+    const hit = (text: string) => words.every((w) => text.includes(w));
+    return [
+      ...(q.length >= 2 ? stores.options : []).map<Result>((s: any) => ({
+        key: `store-${s._id || s.id}`,
+        group: 'Tiendas',
+        title: s.name,
+        hint: s.address || 'Abrir el panel de la tienda',
+        route: `/admin/management/stores/edit/${s._id || s.id}`,
+        icon: <StoreRoundedIcon fontSize="small" />,
+      })),
+      ...actions
+        .filter((a) => hit(norm(`${a.title} ${a.words}`)))
+        .map<Result>((a) => ({ key: a.route, group: 'Acciones', title: a.title, hint: a.hint, route: a.route, icon: <AddCircleOutlineRoundedIcon fontSize="small" /> })),
+      ...pages
+        .filter((p) => hit(norm(`${p.module} ${p.title} ${p.section}`)))
+        .map<Result>((p) => ({
+          key: p.route,
+          group: 'Páginas',
+          title: p.module ? `${p.module} · ${p.title}` : p.title,
+          hint: p.section,
+          route: p.route,
+          icon: p.icon,
+        })),
+    ];
+  }, [aiMode, q, pages, stores.options]);
+
+  useEffect(() => setCursor(0), [q, aiMode]);
+  useEffect(() => {
+    listRef.current?.querySelector(`[data-i="${cursor}"]`)?.scrollIntoView({ block: 'nearest' });
+  }, [cursor]);
 
   const handleNavigate = (route: string) => {
     push(route);
@@ -179,25 +167,29 @@ export const BasicSpotlightSearch: FC<BasicSpotlightSearchProps> = (props) => {
     setAiLoading(true);
     setAiResult(null);
     try {
-      const result = await searchWithAI(searchTerm);
-      setAiResult(result);
+      setAiResult(await searchWithAI(searchTerm));
     } catch (err: any) {
-      setAiResult({ type: 'answer', answer: `Error: ${err?.message || 'Failed to connect to AI'}` });
+      setAiResult({ type: 'answer', answer: `No se pudo consultar a la IA: ${err?.message || 'sin conexión'}` });
     } finally {
       setAiLoading(false);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && aiMode) {
-      e.preventDefault();
-      handleAISearch();
-    }
-    // Tab toggles AI mode
     if (e.key === 'Tab') {
       e.preventDefault();
       setAiMode((prev) => !prev);
       setAiResult(null);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (aiMode) void handleAISearch();
+      else if (results[cursor]) handleNavigate(results[cursor].route);
+    } else if (e.key === 'ArrowDown' && results.length) {
+      e.preventDefault();
+      setCursor((c) => (c + 1) % results.length);
+    } else if (e.key === 'ArrowUp' && results.length) {
+      e.preventDefault();
+      setCursor((c) => (c - 1 + results.length) % results.length);
     }
   };
 
@@ -207,6 +199,8 @@ export const BasicSpotlightSearch: FC<BasicSpotlightSearchProps> = (props) => {
     setAiMode(false);
     onClose?.();
   };
+
+  const searchingStores = !aiMode && q.length >= 2 && stores.loading;
 
   return (
     <Dialog
@@ -220,14 +214,12 @@ export const BasicSpotlightSearch: FC<BasicSpotlightSearchProps> = (props) => {
         '.MuiDialog-container': {
           alignItems: 'flex-start',
           pt: { xs: 0, md: 4, lg: 6 },
-          maxHeight: { xs: 'unset', md: 600 },
+          maxHeight: { xs: 'unset', md: 620 },
           height: { xs: '100%', md: '80%' },
         },
         '.MuiPaper-root': {
           borderRadius: { xs: 0, md: 3 },
-          border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
-          bgcolor: isDark ? alpha(theme.palette.background.paper, 0.95) : 'background.paper',
-          backdropFilter: 'blur(20px)',
+          bgcolor: isDark ? alpha(theme.palette.background.paper, 0.97) : 'background.paper',
         },
       }}
       {...other}
@@ -242,30 +234,50 @@ export const BasicSpotlightSearch: FC<BasicSpotlightSearchProps> = (props) => {
           }}
           autoFocus
           margin="none"
-          id="search"
           type="text"
           autoComplete="off"
           fullWidth
-          placeholder={aiMode ? 'Ask AI: create tasks, find data, navigate...' : 'Search pages, actions, tools...'}
+          inputProps={{ 'aria-label': 'Buscar en el panel' }}
+          placeholder={
+            aiMode
+              ? 'Pregúntale a la IA: crea tareas, busca datos…'
+              : 'Busca una tienda, una pantalla o una acción…'
+          }
           value={searchTerm}
-          onChange={(e) => { setSearchTerm(e.target.value); if (!aiMode) setAiResult(null); }}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            if (!aiMode) setAiResult(null);
+          }}
           onKeyDown={handleKeyDown}
           startAdornment={
             <InputAdornment position="start">
-              {aiMode
-                ? <SmartToyRoundedIcon sx={{ color: accent, fontSize: 22 }} />
-                : <SearchTwoToneIcon sx={{ color: 'primary.main', fontSize: 22 }} />
-              }
+              {aiMode ? (
+                <SmartToyRoundedIcon sx={{ color: accent, fontSize: 22 }} />
+              ) : searchingStores ? (
+                <CircularProgress size={20} />
+              ) : (
+                <SearchTwoToneIcon sx={{ color: 'primary.main', fontSize: 22 }} />
+              )}
             </InputAdornment>
           }
           endAdornment={
             <InputAdornment position="end">
-              <Stack direction="row" spacing={0.5} alignItems="center">
-                {/* AI toggle button */}
-                <Tooltip title={aiMode ? 'Switch to Search (Tab)' : 'Switch to AI (Tab)'} arrow>
+              <Stack
+                direction="row"
+                spacing={0.5}
+                alignItems="center"
+              >
+                <Tooltip
+                  title={aiMode ? 'Volver a buscar (Tab)' : 'Preguntar a la IA (Tab)'}
+                  arrow
+                >
                   <IconButton
                     size="small"
-                    onClick={() => { setAiMode((p) => !p); setAiResult(null); }}
+                    aria-label={aiMode ? 'Volver a buscar' : 'Preguntar a la IA'}
+                    onClick={() => {
+                      setAiMode((p) => !p);
+                      setAiResult(null);
+                    }}
                     sx={{
                       borderRadius: 1.5,
                       bgcolor: aiMode ? alpha(accent, 0.12) : 'transparent',
@@ -277,22 +289,16 @@ export const BasicSpotlightSearch: FC<BasicSpotlightSearchProps> = (props) => {
                     <SmartToyRoundedIcon sx={{ fontSize: 18 }} />
                   </IconButton>
                 </Tooltip>
-                {!searchTerm && (
-                  <Chip
-                    label="TAB"
-                    size="small"
-                    variant="outlined"
-                    sx={{ height: 22, fontSize: 10, fontWeight: 700, opacity: 0.4, borderRadius: 1 }}
-                  />
-                )}
                 <IconButton
                   size="small"
                   onClick={() => {
-                    if (searchTerm) { setSearchTerm(''); setAiResult(null); }
-                    else handleClose();
+                    if (searchTerm) {
+                      setSearchTerm('');
+                      setAiResult(null);
+                    } else handleClose();
                   }}
                   sx={{ mr: 0.5 }}
-                  aria-label="close search"
+                  aria-label={searchTerm ? 'Borrar búsqueda' : 'Cerrar'}
                 >
                   <CloseIcon fontSize="small" />
                 </IconButton>
@@ -302,41 +308,65 @@ export const BasicSpotlightSearch: FC<BasicSpotlightSearchProps> = (props) => {
         />
       </DialogTitle>
 
-      {/* Mode indicator */}
       {aiMode && (
         <Box sx={{ px: 2, py: 0.5, bgcolor: alpha(accent, 0.04), borderBottom: `1px solid ${alpha(accent, 0.1)}` }}>
-          <Typography variant="caption" sx={{ color: accent, fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 }}>
-            <AutoAwesomeRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />
-            AI Mode: Ask anything or paste meeting notes to create tasks
+          <Typography
+            variant="caption"
+            sx={{ color: accent, fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 }}
+          >
+            <AutoAwesomeRounded
+              fontSize="small"
+              sx={{ mr: 1, verticalAlign: 'middle' }}
+            />
+            Modo IA: pregunta lo que sea o pega notas de una reunión para crear tareas
           </Typography>
         </Box>
       )}
 
       <Divider />
-      <DialogContent sx={{ overflowX: 'hidden', p: 0 }}>
-
-        {/* ═══ AI MODE ═══ */}
+      <DialogContent
+        ref={listRef}
+        sx={{ overflowX: 'hidden', p: 0 }}
+      >
+        {/* ═══ IA ═══ */}
         {aiMode && (
           <>
-            {/* Loading state */}
             {aiLoading && (
-              <Stack spacing={1.5} p={3} alignItems="center">
-                <CircularProgress size={28} sx={{ color: accent }} />
-                <Typography variant="body2" color="text.secondary" fontSize={13}>
-                  Thinking...
+              <Stack
+                spacing={1.5}
+                p={3}
+                alignItems="center"
+              >
+                <CircularProgress
+                  size={28}
+                  sx={{ color: accent }}
+                />
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  fontSize={13}
+                >
+                  Pensando…
                 </Typography>
-                <Stack spacing={1} width="100%">
-                  <Skeleton variant="rounded" height={16} width="80%" />
-                  <Skeleton variant="rounded" height={16} width="60%" />
-                  <Skeleton variant="rounded" height={16} width="70%" />
+                <Stack
+                  spacing={1}
+                  width="100%"
+                >
+                  <Skeleton variant="rounded"
+height={16}
+width="80%" />
+                  <Skeleton variant="rounded"
+height={16}
+width="60%" />
+                  <Skeleton variant="rounded"
+height={16}
+width="70%" />
                 </Stack>
               </Stack>
             )}
 
-            {/* AI Result */}
             {aiResult && !aiLoading && (
               <Box p={2}>
-                {/* Answer text */}
                 {aiResult.answer && (
                   <Box
                     sx={{
@@ -355,7 +385,6 @@ export const BasicSpotlightSearch: FC<BasicSpotlightSearchProps> = (props) => {
                   />
                 )}
 
-                {/* Navigation link */}
                 {aiResult.route && (
                   <ListItemButton
                     onClick={() => handleNavigate(aiResult.route!)}
@@ -366,226 +395,219 @@ export const BasicSpotlightSearch: FC<BasicSpotlightSearchProps> = (props) => {
                       mb: 1,
                       bgcolor: alpha(accent, 0.06),
                       border: `1px solid ${alpha(accent, 0.15)}`,
-                      '&:hover': { bgcolor: alpha(accent, 0.12), transform: 'translateX(4px)' },
-                      transition: 'all 0.15s',
+                      '&:hover': { bgcolor: alpha(accent, 0.12) },
                     }}
                   >
                     <ListItemIcon sx={{ minWidth: 36, color: accent }}>
                       <OpenInNewRoundedIcon fontSize="small" />
                     </ListItemIcon>
                     <ListItemText
-                      primary={aiResult.routeTitle || 'Navigate'}
+                      primary={aiResult.routeTitle || 'Abrir'}
                       secondary={aiResult.route}
                       primaryTypographyProps={{ variant: 'subtitle2', fontWeight: 700, color: accent }}
                       secondaryTypographyProps={{ variant: 'caption', color: 'text.secondary', fontSize: 11 }}
                     />
-                    <ChevronRightTwoToneIcon sx={{ opacity: 0.5, fontSize: 18 }} />
                   </ListItemButton>
                 )}
 
-                {/* Action results (created tasks, etc.) */}
-                {aiResult.actions?.flatMap((action, i) => (
-                  action.result?.success ? [(
-                  <ListItemButton
-                    key={i}
-                    onClick={() => {
-                      if (action.result?.projectId) {
-                        handleNavigate(`/admin/applications/tasks?projectId=${action.result.projectId}`);
-                      }
-                    }}
-                    sx={{
-                      py: 1,
-                      px: 2,
-                      borderRadius: 2,
-                      mb: 0.5,
-                      bgcolor: tint(theme, 'success', 0.06),
-                      border: `1px solid ${alpha(theme.palette.success.main, 0.15)}`,
-                      '&:hover': { bgcolor: tint(theme, 'success', 0.12) },
-                    }}
-                  >
-                    <ListItemIcon sx={{ minWidth: 32 }}>
-                      <TaskAltRoundedIcon sx={{ color: 'success.main', fontSize: 20 }} />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={action.result?.message || 'Action completed'}
-                      primaryTypographyProps={{ variant: 'body2', fontWeight: 600, fontSize: 12 }}
-                    />
-                    <CheckCircleOutlineRoundedIcon sx={{ color: 'success.main', fontSize: 16, opacity: 0.7 }} />
-                  </ListItemButton>
-                  )] : []
-                ))}
-
-                {/* Token usage */}
-                {(aiResult.inputTokens || aiResult.outputTokens) && (
-                  <Typography variant="caption" color="text.disabled" fontSize={10} mt={1} display="block" textAlign="right">
-                    Tokens: {aiResult.inputTokens} in / {aiResult.outputTokens} out
-                  </Typography>
+                {aiResult.actions?.flatMap((action, i) =>
+                  action.result?.success
+                    ? [
+                        <ListItemButton
+                          key={i}
+                          onClick={() => {
+                            if (action.result?.projectId) {
+                              handleNavigate(`/admin/applications/tasks?projectId=${action.result.projectId}`);
+                            }
+                          }}
+                          sx={{
+                            py: 1,
+                            px: 2,
+                            borderRadius: 2,
+                            mb: 0.5,
+                            bgcolor: tint(theme, 'success', 0.06),
+                            border: `1px solid ${alpha(theme.palette.success.main, 0.15)}`,
+                            '&:hover': { bgcolor: tint(theme, 'success', 0.12) },
+                          }}
+                        >
+                          <ListItemIcon sx={{ minWidth: 32 }}>
+                            <TaskAltRoundedIcon sx={{ color: 'success.main', fontSize: 20 }} />
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={action.result?.message || 'Acción completada'}
+                            primaryTypographyProps={{ variant: 'body2', fontWeight: 600, fontSize: 12 }}
+                          />
+                          <CheckCircleOutlineRoundedIcon sx={{ color: 'success.main', fontSize: 16, opacity: 0.7 }} />
+                        </ListItemButton>,
+                      ]
+                    : []
                 )}
               </Box>
             )}
 
-            {/* Prompt when no result yet */}
-            {!aiResult && !aiLoading && !searchTerm.trim() && (
-              <Stack minHeight={120} justifyContent="center" alignItems="center" spacing={1} py={4}>
+            {!aiResult && !aiLoading && (
+              <Stack
+                minHeight={120}
+                justifyContent="center"
+                alignItems="center"
+                spacing={1}
+                py={4}
+                px={2}
+                textAlign="center"
+              >
                 <SmartToyRoundedIcon sx={{ fontSize: 36, color: alpha(accent, 0.3) }} />
-                <Typography variant="body2" color="text.secondary" fontWeight={600} fontSize={13}>
-                  Ask me anything about Sweepstouch
-                </Typography>
-                <Stack spacing={0.5} alignItems="center">
-                  <Typography variant="caption" color="text.disabled" fontSize={11}>
-                    "Create a task for Allan to review campaigns"
+                {searchTerm.trim() ? (
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    fontSize={13}
+                  >
+                    Pulsa <strong>Enter</strong> para preguntar
                   </Typography>
-                  <Typography variant="caption" color="text.disabled" fontSize={11}>
-                    "How many active stores do we have?"
-                  </Typography>
-                  <Typography variant="caption" color="text.disabled" fontSize={11}>
-                    "Show me Super Supermarket"
-                  </Typography>
-                </Stack>
-              </Stack>
-            )}
-
-            {/* Prompt when query typed but not submitted */}
-            {!aiResult && !aiLoading && searchTerm.trim() && (
-              <Stack minHeight={80} justifyContent="center" alignItems="center" py={3}>
-                <Typography variant="body2" color="text.secondary" fontSize={13}>
-                  Press <strong>Enter</strong> to ask AI
-                </Typography>
+                ) : (
+                  <>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      fontWeight={600}
+                      fontSize={13}
+                    >
+                      Pregunta lo que sea sobre Sweepstouch
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      fontSize={11.5}
+                    >
+                      «Crea una tarea para revisar las campañas» · «¿Cuántas tiendas activas hay?»
+                    </Typography>
+                  </>
+                )}
               </Stack>
             )}
           </>
         )}
 
-        {/* ═══ NORMAL SEARCH MODE ═══ */}
-        {!aiMode && (
-          <>
-            {/* ─── Results ─── */}
-            {searchTerm.trim() && filtered.length > 0 && (
-              <>
-                {Object.entries(grouped).map(([category, items]) => (
-                  <List
-                    key={category}
-                    dense
-                    disablePadding
-                    subheader={
-                      <ListSubheader
-                        component="div"
-                        sx={{
-                          lineHeight: '36px',
-                          fontSize: 11,
-                          fontWeight: 800,
-                          textTransform: 'uppercase',
-                          letterSpacing: 1,
-                          color: CATEGORY_ROLES[category] ? `${CATEGORY_ROLES[category]}.main` : 'text.secondary',
-                          bgcolor: 'transparent',
-                        }}
-                      >
-                        {CATEGORY_LABELS[category] || category}
-                      </ListSubheader>
-                    }
-                  >
-                    {items.map((item) => (
-                      <ListItemButton
-                        key={item.route}
-                        onClick={() => handleNavigate(item.route)}
-                        sx={{
-                          py: 1.2,
-                          px: 2.5,
-                          borderRadius: 1,
-                          mx: 1,
-                          mb: 0.5,
-                          transition: 'all 0.15s',
-                          '&:hover': {
-                            bgcolor: tint(theme, CATEGORY_ROLES[category] ?? 'primary', 0.08),
-                            transform: 'translateX(4px)',
-                          },
-                        }}
-                      >
-                        <ListItemIcon sx={{ minWidth: 36, color: `${CATEGORY_ROLES[category] ?? 'primary'}.main` }}>
-                          {item.icon}
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={item.title}
-                          secondary={item.description}
-                          primaryTypographyProps={{ variant: 'subtitle2', fontWeight: 700 }}
-                          secondaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
-                        />
-                        <ChevronRightTwoToneIcon sx={{ opacity: 0.3, fontSize: 18 }} />
-                      </ListItemButton>
-                    ))}
-                  </List>
-                ))}
-              </>
-            )}
-
-            {/* ─── No results ─── */}
-            {searchTerm.trim() && filtered.length === 0 && (
-              <Stack minHeight={164} justifyContent="center" alignItems="center" spacing={1} py={4}>
-                <SearchOffTwoToneIcon sx={{ fontSize: 42, color: 'neutral.400' }} />
-                <Typography variant="h6" fontWeight={700}>No results found</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Try AI mode (Tab) for smarter search
-                </Typography>
-              </Stack>
-            )}
-
-            {/* ─── Suggestions (no search term) ─── */}
-            {!searchTerm.trim() && (
-              <List
-                dense
-                disablePadding
-                subheader={
-                  <ListSubheader
-                    component="div"
+        {/* ═══ BÚSQUEDA ═══ */}
+        {!aiMode && results.length > 0 && (
+          <Box
+            role="listbox"
+            aria-label="Resultados"
+            sx={{ py: 0.75 }}
+          >
+            {results.map((r, i) => (
+              <React.Fragment key={r.key}>
+                {(i === 0 || results[i - 1].group !== r.group) && (
+                  <Typography
                     sx={{
-                      lineHeight: '36px',
-                      fontSize: 11,
-                      fontWeight: 800,
-                      textTransform: 'uppercase',
-                      letterSpacing: 1,
-                      color: 'text.secondary',
-                      bgcolor: 'transparent',
-                    }}
-                  >
-                    <BoltRounded fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />
-                    Quick navigation
-                  </ListSubheader>
-                }
-              >
-                {suggestions.map((item) => (
-                  <ListItemButton
-                    key={item.route}
-                    onClick={() => handleNavigate(item.route)}
-                    sx={{
-                      py: 1.2,
                       px: 2.5,
-                      borderRadius: 1,
-                      mx: 1,
-                      mb: 0.5,
-                      transition: 'all 0.15s',
-                      '&:hover': {
-                        bgcolor: alpha(theme.palette.primary.main, 0.06),
-                        transform: 'translateX(4px)',
-                      },
+                      pt: 1.25,
+                      pb: 0.5,
+                      fontSize: 10.5,
+                      fontWeight: 800,
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      color: 'text.secondary',
                     }}
                   >
-                    <ListItemIcon sx={{ minWidth: 36, color: 'primary.main' }}>
-                      {item.icon}
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={item.title}
-                      secondary={item.description}
-                      primaryTypographyProps={{ variant: 'subtitle2', fontWeight: 700 }}
-                      secondaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
-                    />
-                    <ChevronRightTwoToneIcon sx={{ opacity: 0.3, fontSize: 18 }} />
-                  </ListItemButton>
-                ))}
-              </List>
-            )}
-          </>
+                    {r.group}
+                  </Typography>
+                )}
+                <ListItemButton
+                  role="option"
+                  aria-selected={i === cursor}
+                  data-i={i}
+                  selected={i === cursor}
+                  onMouseMove={() => i !== cursor && setCursor(i)}
+                  onClick={() => handleNavigate(r.route)}
+                  sx={{ py: 0.9, px: 1.5, mx: 1, borderRadius: 1.5 }}
+                >
+                  <ListItemIcon
+                    sx={{
+                      minWidth: 38,
+                      color: r.group === 'Tiendas' ? 'success.main' : r.group === 'Acciones' ? 'warning.main' : 'primary.main',
+                      '& .MuiSvgIcon-root': { fontSize: 20 },
+                    }}
+                  >
+                    {r.icon}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={r.title}
+                    secondary={r.hint}
+                    primaryTypographyProps={{ variant: 'subtitle2', fontWeight: 700, noWrap: true }}
+                    secondaryTypographyProps={{ variant: 'caption', color: 'text.secondary', noWrap: true }}
+                  />
+                  {i === cursor && (
+                    <KeyboardReturnRoundedIcon sx={{ fontSize: 16, color: 'text.secondary', flexShrink: 0 }} />
+                  )}
+                </ListItemButton>
+              </React.Fragment>
+            ))}
+          </Box>
+        )}
+
+        {!aiMode && q && results.length === 0 && !searchingStores && (
+          <Stack
+            minHeight={164}
+            justifyContent="center"
+            alignItems="center"
+            spacing={1}
+            py={4}
+            px={2}
+            textAlign="center"
+          >
+            <SearchOffTwoToneIcon sx={{ fontSize: 42, color: 'text.disabled' }} />
+            <Typography fontWeight={700}>Nada con «{searchTerm.trim()}»</Typography>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+            >
+              Prueba con el nombre de la tienda o de la pantalla, o pulsa Tab para preguntarle a la IA.
+            </Typography>
+          </Stack>
         )}
       </DialogContent>
+
+      {!aiMode && (
+        <Stack
+          direction="row"
+          gap={1}
+          sx={{
+            px: 2,
+            py: 1,
+            borderTop: '1px solid',
+            borderColor: 'divider',
+            display: { xs: 'none', sm: 'flex' },
+          }}
+        >
+          {[
+            ['↑ ↓', 'moverse'],
+            ['Enter', 'abrir'],
+            ['Tab', 'IA'],
+            ['Esc', 'cerrar'],
+          ].map(([k, label]) => (
+            <Stack
+              key={k}
+              direction="row"
+              alignItems="center"
+              gap={0.5}
+            >
+              <Chip
+                label={k}
+                size="small"
+                variant="outlined"
+                sx={{ height: 20, fontSize: 10, fontWeight: 700, borderRadius: 1 }}
+              />
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                {label}
+              </Typography>
+            </Stack>
+          ))}
+        </Stack>
+      )}
     </Dialog>
   );
 };

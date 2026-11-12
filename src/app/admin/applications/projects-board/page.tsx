@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/base/confirm';
+
 import {
   useState,
   useMemo,
@@ -736,6 +738,7 @@ function CreateProjectButton({
 /* ══════════════════════════════════════════════════════════════════ */
 
 export default function ProjectsBoardPage() {
+  const confirm = useConfirm();
   const customization = useCustomization();
   const theme = useTheme();
   const mdUp = useMediaQuery(theme.breakpoints.up('md'));
@@ -1111,7 +1114,14 @@ export default function ProjectsBoardPage() {
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Delete" arrow>
-                            <IconButton size="small" color="error" onClick={() => deleteProjectMut.mutate(project._id)}>
+                            <IconButton size="small" color="error" onClick={() =>
+                              void confirm({
+                                title: `¿Eliminar el proyecto «${project.name}»?`,
+                                description: 'Se borra el proyecto con su tablero y sus tareas. No se puede deshacer.',
+                                severity: 'error',
+                                confirmLabel: 'Eliminar proyecto',
+                              }).then((ok) => ok && deleteProjectMut.mutate(project._id))
+                            }>
                               <DeleteTwoToneIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>

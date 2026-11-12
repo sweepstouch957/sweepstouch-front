@@ -187,6 +187,17 @@ function Section({
  * es una sola lectura de arriba abajo; el RCS del piloto va aparte porque es opcional y
  * largo. Con cuatro pestañas había que adivinar dónde estaba cada cosa.
  */
+/** Hora de Nueva York (la que usa el listado y el scheduler) de un instante. */
+export const nyTime = (d: Date | string) =>
+  new Date(d).toLocaleString('es', {
+    timeZone: 'America/New_York',
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+
 const STEPS = [
   { key: 'mensaje', label: 'Mensaje' },
   { key: 'rcs', label: 'RCS (piloto)' },
@@ -249,7 +260,6 @@ export default function CreateCampaignForm({
   });
   const channel = watch('channel');
 
-  const [useFullAudience, setUseFullAudience] = useState(!initialValues?.customAudience);
   const [step, setStep] = useState<StepKey>('mensaje');
   // Vista previa: una sola, con pestañas. Antes había dos teléfonos a la vez en pantalla
   // (el del SMS/MMS y el del RCS) y no se entendía cuál era cuál.
@@ -272,7 +282,6 @@ export default function CreateCampaignForm({
   const image = watch('image');
   const content = watch('content');
   const estimatedCost = watch('estimatedCost');
-  const customAudience = watch('customAudience');
   const startDate = watch('startDate');
   const shortenerDomains = useMemo(() => findShortenerDomains(content || ''), [content]);
   const hasShortenerLinks = shortenerDomains.length > 0;
@@ -427,6 +436,17 @@ export default function CreateCampaignForm({
 
   // Sólo en mixed se manda rcsOptions (conservando mixedRatio al editar). En "sms" no se
   // toca: el payload queda idéntico al de siempre.
+  // Un campo inválido puede estar en la pestaña oculta: se vuelve a "Mensaje" y se dice cuál falta.
+  const onInvalid = (errs: Record<string, any>) => {
+    setStep('mensaje');
+    const first = Object.values(errs)[0] as any;
+    setSnackState({
+      open: true,
+      severity: 'error',
+      message: first?.message || 'Revisa los campos marcados en rojo.',
+    });
+  };
+
   const submit = (raw: CampaignFormInputs) => {
     const data = art.result ? { ...raw, uploadedArt: art.result } : raw;
     if (data.channel !== 'mixed') return onSubmit(data);
@@ -452,9 +472,7 @@ export default function CreateCampaignForm({
   const audienceCount =
     channel === 'mixed' && recipientPhones.length
       ? recipientPhones.length
-      : useFullAudience
-        ? totalAudience
-        : Number(customAudience) || 0;
+      : totalAudience;
   // Mientras se optimiza la imagen no se crea: saldría con la subida a medias.
   const canSubmit = !isPhoneMissing && !hasShortenerLinks && !art.busy;
 
@@ -464,7 +482,7 @@ export default function CreateCampaignForm({
 
   return (
     <Box>
-      <form onSubmit={handleSubmit(submit)}>
+      <form onSubmit={handleSubmit(submit, onInvalid)}>
         <Grid
           container
           spacing={3}
@@ -613,12 +631,28 @@ export default function CreateCampaignForm({
                       <Controller
                         name="startDate"
                         control={control}
-                        rules={{ required: 'Start date is required' }}
-                        render={({ field }) => (
+                        rules={{
+                          required: 'Falta la fecha y hora de envío',
+                          validate: (v) =>
+                            isEditing ||
+                            (v && new Date(v).getTime() > Date.now() - 60_000) ||
+                            'La fecha de envío ya pasó: elige una hora futura',
+                        }}
+                        render={({ field, fieldState }) => (
                           <DateTimePicker
                             {...field}
+                            disablePast={!isEditing}
                             label="Fecha y hora de envío"
                             sx={{ width: '100%' }}
+                            slotProps={{
+                              textField: {
+                                error: !!fieldState.error,
+                                // La hora se elige en la del navegador; el listado muestra la de NY.
+                                helperText:
+                                  fieldState.error?.message ||
+                                  (field.value ? `= ${nyTime(field.value)} hora de Nueva York` : ''),
+                              },
+                            }}
                           />
                         )}
                       />
@@ -656,7 +690,7 @@ export default function CreateCampaignForm({
                       <Controller
                         name="content"
                         control={control}
-                        rules={{ required: 'Message content is required' }}
+                        rules={{ required: 'Falta el texto del mensaje' }}
                         render={({ field }) => {
                           const handleChange = (e: any) => {
                             const value = e.target.value || '';
@@ -933,50 +967,16 @@ export default function CreateCampaignForm({
                       />
                     </Box>
                   )}
-                  <Stack
-                    direction={{ xs: 'column', sm: 'row' }}
-                    alignItems={{ sm: 'center' }}
-                    spacing={2}
-                    sx={
-                      channel === 'mixed' && recipientPhones.length
-                        ? { opacity: 0.5, pointerEvents: 'none' }
-                        : undefined
-                    }
+                  {/* Antes había "Cuántos clientes": el backend nunca lo usó (calcula la
+                      audiencia solo y manda a todos los activos), así que el número era falso. */}
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
                   >
-                    <FormControlLabel
-                      sx={{ mr: 0 }}
-                      control={
-                        <Checkbox
-                          checked={useFullAudience}
-                          onChange={(e) => {
-                            setUseFullAudience(e.target.checked);
-                            if (e.target.checked) {
-                              setValue('customAudience', undefined);
-                            }
-                          }}
-                        />
-                      }
-                      label={`Toda la audiencia (${totalAudience.toLocaleString()} clientes)`}
-                    />
-
-                    {!useFullAudience && (
-                      <Controller
-                        name="customAudience"
-                        control={control}
-                        render={({ field }) => (
-                          <TextField
-                            {...field}
-                            type="number"
-                            label="Cuántos clientes"
-                            size="small"
-                            sx={{ maxWidth: 220 }}
-                            inputProps={{ min: 1, max: totalAudience }}
-                            helperText={`Máximo ${totalAudience.toLocaleString()}`}
-                          />
-                        )}
-                      />
-                    )}
-                  </Stack>
+                    {channel === 'mixed' && recipientPhones.length
+                      ? `Sale sólo a ${recipientPhones.length} destinatario(s) elegidos arriba.`
+                      : `Se envía a toda la audiencia activa de la tienda (${totalAudience.toLocaleString()} clientes).`}
+                  </Typography>
                 </Section>
               </Box>
 
@@ -1343,12 +1343,6 @@ export default function CreateCampaignForm({
             gap={1.5}
             sx={{ flex: { xs: '1 1 100%', sm: '0 0 auto' } }}
           >
-            <Button
-              variant="outlined"
-              sx={{ minHeight: 44, flex: { xs: 1, sm: 'none' } }}
-            >
-              Borrador
-            </Button>
             <Button
               variant="contained"
               type="submit"

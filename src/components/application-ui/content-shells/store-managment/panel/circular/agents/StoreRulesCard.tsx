@@ -8,6 +8,7 @@
 import type { StoreLesson, StoreProfile } from '@/services/circular.service';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import {
+  Alert,
   Box,
   Button,
   Chip,
@@ -26,6 +27,8 @@ type Props = {
   step: number;
   profile?: StoreProfile;
   loading: boolean;
+  /** El perfil no cargó: no se muestra el campo vacío, que al salir pisaría las reglas reales. */
+  failed?: boolean;
   /** Rechaza si falla (el toast lo pone la mutación). */
   onSaveRules: (rules: string) => Promise<unknown>;
   onAddLesson: (text: string) => Promise<unknown>;
@@ -180,6 +183,7 @@ export default function StoreRulesCard({
   step,
   profile,
   loading,
+  failed,
   onSaveRules,
   onAddLesson,
   onRemoveLesson,
@@ -199,6 +203,10 @@ export default function StoreRulesCard({
             variant="rounded"
             height={104}
           />
+        ) : failed ? (
+          <Alert severity="error">
+            No se pudieron cargar las reglas de la tienda. Recarga la página antes de editarlas.
+          </Alert>
         ) : (
           <RulesForm
             rules={profile?.rules ?? ''}

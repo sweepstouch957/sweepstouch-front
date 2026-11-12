@@ -74,7 +74,7 @@ export const Header: FC<HeaderProps> = (props) => {
   // Ctrl+M keyboard shortcut to open search
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'm') {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'm')) {
         e.preventDefault();
         dialog.handleOpen();
       }
@@ -184,7 +184,7 @@ export const Header: FC<HeaderProps> = (props) => {
                   textOverflow: 'ellipsis',
                 }}
               >
-                Buscar tiendas, campañas, cajeras, tablets…
+                Buscar una tienda, una pantalla o una acción…
               </Box>
               <Box
                 component="span"
@@ -201,12 +201,12 @@ export const Header: FC<HeaderProps> = (props) => {
                   py: 0.25,
                 }}
               >
-                Ctrl+M
+                Ctrl+K
               </Box>
             </Box>
           ) : (
             <Tooltip
-              title="Buscar (Ctrl+M)"
+              title="Buscar (Ctrl+K)"
               arrow
             >
               <IconButton

@@ -263,8 +263,8 @@ export function useCreateCashier(options?: {
   return useMutation({
     mutationFn: (payload: CashierCreatePayload) => createCashier(payload),
     onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ['cashiers', 'list'] });
-      qc.invalidateQueries({ queryKey: ['cashiers', 'count'] });
+      // Todo 'cashiers': la tabla lee de 'ranking', no de 'list', y no se refrescaba.
+      qc.invalidateQueries({ queryKey: ['cashiers'] });
       options?.onSuccess?.(data);
     },
     onError: options?.onError,

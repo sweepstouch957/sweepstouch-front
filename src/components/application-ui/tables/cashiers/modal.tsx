@@ -5,6 +5,7 @@ import {
   useCashierRewards,
   useMarkRewardPaid,
 } from '@/hooks/fetching/cashiers/useCashierRewards';
+import ConfirmDialog from '@/components/base/confirm-dialog';
 import { useCashierStats } from '@/services/cashier.service';
 import type { CashierProgress, CashierReward } from '@/services/rewards.service';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -119,13 +120,11 @@ export default function CashierDetailsDialog({
 
   const markPaidMut = useMarkRewardPaid();
 
-  // ✅ La mutación recibe SOLO el rewardId (según tu servicio)
-  const onMarkPaid = async (rewardId: string) => {
-    try {
-      await markPaidMut.mutateAsync(rewardId);
-    } catch {
-      /* noop; la invalidación ya sucede en onSuccess */
-    }
+  // Marcar pagada es dinero y no se deshace desde el panel: se confirma antes.
+  const [payTarget, setPayTarget] = React.useState<CashierReward | null>(null);
+  const confirmPaid = () => {
+    if (!payTarget) return;
+    markPaidMut.mutate(payTarget._id, { onSuccess: () => setPayTarget(null) });
   };
 
   // Fallback para la card "Desde …" si no recibes sinceNov3Totals:
@@ -757,9 +756,12 @@ export default function CashierDetailsDialog({
                             variant="contained"
                             startIcon={<PaidIcon />}
                             disabled={paid || markPaidMut.isPending}
-                            onClick={() => onMarkPaid(rw._id)}
+                            onClick={() => {
+                              markPaidMut.reset();
+                              setPayTarget(rw);
+                            }}
                           >
-                            {markPaidMut.isPending ? 'Guardando…' : 'Marcar pagada'}
+                            Marcar pagada
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -789,6 +791,38 @@ export default function CashierDetailsDialog({
         </Button>
         <Button onClick={onClose} variant="contained" color="inherit">Cerrar</Button>
       </DialogActions>
+      <ConfirmDialog
+        open={Boolean(payTarget)}
+        severity="primary"
+        title="¿Marcar recompensa como pagada?"
+        description={
+          <Stack gap={1}>
+            <Typography variant="body2">
+              {cashierName || 'Cajera'} · hito de{' '}
+              {payTarget?.countAtAchievement?.toLocaleString() ?? '—'} participaciones, logrado el{' '}
+              {fmtDateTime(payTarget?.achievedAt)}.
+            </Typography>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+            >
+              Queda registrada como pagada hoy y no se puede deshacer desde el panel.
+            </Typography>
+            {markPaidMut.isError && (
+              <Typography
+                variant="body2"
+                color="error"
+              >
+                No se pudo guardar. Inténtalo de nuevo.
+              </Typography>
+            )}
+          </Stack>
+        }
+        confirmLabel="Sí, ya se pagó"
+        loading={markPaidMut.isPending}
+        onConfirm={confirmPaid}
+        onClose={() => setPayTarget(null)}
+      />
     </Dialog>
   );
 }

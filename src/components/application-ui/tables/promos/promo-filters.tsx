@@ -41,7 +41,7 @@ interface Props {
   value: PromoFilterValues;
   onChange: (next: PromoFilterValues) => void;
   /** Abre la herramienta de acciones masivas con la URL ya cargada */
-  onBulkByImage: (imageUrl: string) => void;
+  onBulkByImage?: (imageUrl: string) => void;
   resultCount?: number;
 }
 
@@ -180,7 +180,7 @@ export const PromoFiltersBar = ({ value, onChange, onBulkByImage, resultCount }:
         }}
       />
 
-      <Tooltip
+      {onBulkByImage && <Tooltip
         title={
           imageUrl.trim()
             ? t('Replace or remove this image everywhere it is used')
@@ -212,7 +212,7 @@ export const PromoFiltersBar = ({ value, onChange, onBulkByImage, resultCount }:
             {t('Fix in bulk')}
           </Button>
         </Box>
-      </Tooltip>
+      </Tooltip>}
     </Stack>
   );
 

@@ -1,9 +1,12 @@
 'use client';
 
+import { useStoreSearch } from '@/hooks/fetching/stores/useStoreSearch';
 import { promoService } from '@/services/promo.service';
+import type { Store } from '@/services/store.service';
 import { Sweepstakes } from '@/services/sweepstakes.service';
 import {
   Alert,
+  Autocomplete,
   Button,
   Dialog,
   DialogActions,
@@ -32,7 +35,6 @@ interface CreateOrEditPromoModalProps {
   open: boolean;
   onClose: () => void;
   sweepstakes: Sweepstakes[];
-  stores: { _id: string; name: string }[];
   loadingSweepstakes?: boolean;
   storeId?: string;
   promo?: any; // ✅ promo precargado desde tabla
@@ -42,7 +44,6 @@ export const CreateOrEditPromoModal: React.FC<CreateOrEditPromoModalProps> = ({
   open,
   onClose,
   sweepstakes,
-  stores,
   loadingSweepstakes,
   storeId,
   promo,
@@ -50,6 +51,8 @@ export const CreateOrEditPromoModal: React.FC<CreateOrEditPromoModalProps> = ({
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const isEdit = Boolean(promo);
+  const [storeTerm, setStoreTerm] = useState('');
+  const storeSearch = useStoreSearch(storeTerm, { status: 'active' });
 
   const [uploadingImage, setUploadingImage] = useState(false);
   const [snack, setSnack] = useState({
@@ -117,7 +120,9 @@ export const CreateOrEditPromoModal: React.FC<CreateOrEditPromoModalProps> = ({
       };
 
       if (isEdit) {
-        if (formData.category === 'generic') {
+        // Dentro de una tienda se edita SÓLO el anuncio de esa tienda. Antes, si era
+        // genérico, el cambio se iba a todas las tiendas del sorteo sin avisar.
+        if (formData.category === 'generic' && !storeId) {
           return promoService.updatePromosBySweepstake(formData.sweepstakeId, payload);
         } else {
           delete payload.sweepstakeId;
@@ -167,6 +172,15 @@ export const CreateOrEditPromoModal: React.FC<CreateOrEditPromoModalProps> = ({
   });
 
   const handleSubmit = () => {
+    const missing =
+      !storeId && !isEdit && formData.category === 'generic' && !formData.sweepstakeId
+        ? 'Elige el sorteo'
+        : !storeId && !isEdit && formData.category === 'custom' && !formData.storeId
+          ? 'Elige la tienda'
+          : formData.endDate < formData.startDate
+            ? 'La fecha de fin es anterior a la de inicio'
+            : '';
+    if (missing) return setSnack({ open: true, message: missing, severity: 'error' });
     if (!formData.imageMobile) {
       return setSnack({
         open: true,
@@ -202,6 +216,18 @@ export const CreateOrEditPromoModal: React.FC<CreateOrEditPromoModalProps> = ({
             spacing={2}
             mt={1}
           >
+            {isEdit && formData.category === 'generic' && (
+              <Alert severity={storeId ? 'info' : 'warning'}>
+                {storeId
+                  ? 'Anuncio genérico de un sorteo: aquí sólo cambias el de esta tienda.'
+                  : `Anuncio genérico: el cambio se aplica a todas las tiendas del sorteo${
+                      sweepstakes.find((s) => s.id === formData.sweepstakeId)?.name
+                        ? ` «${sweepstakes.find((s) => s.id === formData.sweepstakeId)?.name}»`
+                        : ''
+                    }, en tablet, app y kiosco.`}
+              </Alert>
+            )}
+
             <TextField
               label="Título"
               value={formData.title}
@@ -267,25 +293,27 @@ export const CreateOrEditPromoModal: React.FC<CreateOrEditPromoModalProps> = ({
               </FormControl>
             )}
 
-            {!storeId && formData.category === 'custom' && (
-              <FormControl fullWidth>
-                <InputLabel id="store-label">Tienda</InputLabel>
-                <Select
-                  labelId="store-label"
-                  value={formData.storeId}
-                  onChange={(e) => handleChange('storeId', e.target.value)}
-                  label="Tienda"
-                >
-                  {stores.map((s) => (
-                    <MenuItem
-                      key={s._id}
-                      value={s._id}
-                    >
-                      {s.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+            {!storeId && !isEdit && formData.category === 'custom' && (
+              <Autocomplete<Store>
+                options={storeSearch.options}
+                loading={storeSearch.loading}
+                filterOptions={(x) => x}
+                getOptionLabel={(o) => o.name || ''}
+                isOptionEqualToValue={(a, b) => (a._id || a.id) === (b._id || b.id)}
+                onInputChange={(_, v) => setStoreTerm(v)}
+                onChange={(_, v) => handleChange('storeId', v?._id || v?.id || '')}
+                noOptionsText={
+                  storeTerm.trim().length < 2 ? 'Escribe el nombre de la tienda' : 'Sin resultados'
+                }
+                loadingText="Buscando…"
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Tienda"
+                    placeholder="Escribe el nombre de la tienda"
+                  />
+                )}
+              />
             )}
 
             <TextField

@@ -37,6 +37,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import React, { useEffect, useMemo, useState } from 'react';
 import CampaignArtDropzone from './CampaignArtDropzone';
+import { nyTime } from './create-campaing';
 
 const SlideUp = React.forwardRef(function T(
   props: TransitionProps & { children: React.ReactElement<unknown> },
@@ -125,6 +126,8 @@ export default function QuickCampaignDialog({
     if (!startDate) {
       const d = new Date();
       d.setHours(9, 0, 0, 0);
+      // Las 9:00 de hoy ya pasaron → saldría de inmediato: se propone mañana.
+      if (d.getTime() < Date.now()) d.setDate(d.getDate() + 1);
       setStart(d);
     }
     if (!endDate) {
@@ -765,7 +768,7 @@ export default function QuickCampaignDialog({
                 )
               }
               onClick={() => setConfirm(true)}
-              disabled={mutation.isPending}
+              disabled={mutation.isPending || !String(previewContent || '').trim()}
               sx={{ px: 2.5, borderRadius: 1.5 }}
             >
               {mutation.isPending ? 'Creando…' : 'Crear campaña'}
@@ -794,6 +797,11 @@ export default function QuickCampaignDialog({
             </strong>
             {' · '}
             <strong>{totalAudience.toLocaleString()} clientes</strong>
+            <br />
+            Se envía: <strong>{startDate ? `${nyTime(startDate)} (hora NY)` : '—'}</strong>
+            {startDate && startDate.getTime() < Date.now()
+              ? ' · esa hora ya pasó, sale de inmediato'
+              : ''}
           </Typography>
         </DialogContent>
         <DialogActions>
