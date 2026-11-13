@@ -15,6 +15,8 @@ export function BlurField({
   onSave,
   allowEmpty = true,
   bold = false,
+  fullWidth = false,
+  inputStyle,
 }: {
   value: string;
   placeholder?: string;
@@ -22,22 +24,55 @@ export function BlurField({
   onSave: (v: string) => void;
   allowEmpty?: boolean;
   bold?: boolean;
+  fullWidth?: boolean;
+  /** Estilo del texto (precio grande, tachado…). */
+  inputStyle?: React.CSSProperties;
 }) {
   return (
     <TextField
+      // Si el servidor trae otro valor (relectura, otra persona), el campo lo toma: sin
+      // la key se quedaba mostrando lo viejo y parecía que no había guardado.
+      key={value}
       size="small"
       variant="standard"
       defaultValue={value}
       placeholder={placeholder}
-      fullWidth={bold}
+      fullWidth={bold || fullWidth}
       multiline={bold}
+      title="Clic para editar · Enter guarda · Esc deshace"
       inputProps={{
         'aria-label': ariaLabel,
-        style: bold ? { fontWeight: 600 } : { fontSize: 12 },
+        style: { ...(bold ? { fontWeight: 600 } : { fontSize: 12 }), ...inputStyle },
+      }}
+      // Antes era una raya casi invisible y nadie sabía que se podía escribir ahí.
+      sx={{
+        '& .MuiInputBase-root': {
+          px: 0.5,
+          mx: -0.5,
+          borderRadius: 1,
+          transition: 'background-color 120ms ease-out, box-shadow 120ms ease-out',
+          '&:hover': { bgcolor: 'action.hover', cursor: 'text' },
+          '&.Mui-focused': {
+            bgcolor: 'background.paper',
+            boxShadow: (t) => `0 0 0 2px ${t.palette.primary.main}`,
+          },
+          '&::before, &::after': { display: 'none' },
+        },
+      }}
+      onKeyDown={(e) => {
+        const el = e.target as HTMLInputElement;
+        if (e.key === 'Escape') {
+          el.value = value;
+          el.blur();
+        } else if (e.key === 'Enter' && !(bold && e.shiftKey)) {
+          e.preventDefault();
+          el.blur();
+        }
       }}
       onBlur={(e) => {
         const v = e.target.value.trim();
         if ((allowEmpty || v) && v !== value) onSave(v);
+        else if (!allowEmpty && !v) e.target.value = value;
       }}
     />
   );

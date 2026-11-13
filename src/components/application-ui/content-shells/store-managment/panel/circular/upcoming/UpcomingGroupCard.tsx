@@ -34,7 +34,7 @@ type Props = {
   agentsBusy: boolean;
   onEdit: (product: StoreProduct, group: UpcomingGroup) => void;
   onRephoto: (product: StoreProduct) => void;
-  onPatch: (id: string, body: { name?: string; brand?: string; size?: string }) => void;
+  onPatch: (id: string, body: { name?: string; brand?: string; size?: string; price?: string; originalPrice?: string }) => void;
   onPublishProduct: (product: StoreProduct) => void;
   onCancelProduct: (product: StoreProduct) => void;
   onPublishGroup: (group: UpcomingGroup) => void;

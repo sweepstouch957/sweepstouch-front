@@ -45,7 +45,7 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
     useUpcomingActions(storeSlug);
   const { mutate: patchMutate } = patch;
   const handlePatch = useCallback(
-    (id: string, body: { name?: string; brand?: string; size?: string }) =>
+    (id: string, body: { name?: string; brand?: string; size?: string; price?: string; originalPrice?: string }) =>
       patchMutate({ id, body }),
     [patchMutate]
   );

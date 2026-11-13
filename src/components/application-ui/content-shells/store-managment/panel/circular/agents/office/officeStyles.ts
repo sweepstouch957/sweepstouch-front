@@ -13,10 +13,14 @@ export const OFFICE_CSS = `
   .walker { transition-property: transform; transition-timing-function: linear; }
   .screen { animation: glow 1.4s ease-in-out infinite; }
   @keyframes glow { 0%,100% { opacity: .85 } 50% { opacity: 1 } }
+  .book { animation: bookFloat 2.6s ease-in-out infinite; }
+  .book.on { animation-duration: 1.1s; }
+  .aura { animation: glow 1s ease-in-out infinite; }
+  @keyframes bookFloat { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-2.5px) } }
   .blink { animation: glow .8s ease-in-out infinite; }
   .steam { animation: steam 2.2s ease-in-out infinite; }
   @keyframes steam { 0% { opacity: 0; transform: translateY(2px) } 50% { opacity: 1 } 100% { opacity: 0; transform: translateY(-4px) } }
   .bubble { animation: pop .25s ease both; }
   @keyframes pop { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
-  @media (prefers-reduced-motion: reduce) { .ch *, .walker, .screen, .steam, .blink { animation: none !important; transition: none !important } }
+  @media (prefers-reduced-motion: reduce) { .ch *, .book, .aura, .walker, .screen, .steam, .blink { animation: none !important; transition: none !important } }
 `;

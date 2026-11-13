@@ -21,7 +21,7 @@ type Props = {
   rephotoing: boolean;
   onEdit: (p: StoreProduct) => void;
   onRephoto: (p: StoreProduct) => void;
-  onPatch: (id: string, body: { name?: string; brand?: string; size?: string }) => void;
+  onPatch: (id: string, body: { name?: string; brand?: string; size?: string; price?: string; originalPrice?: string }) => void;
   onPublish: (p: StoreProduct) => void;
   onCancel: (p: StoreProduct) => void;
 };
@@ -183,26 +183,28 @@ function UpcomingProductCard({
           gap={0.75}
           sx={{ mt: 0.5, minWidth: 0 }}
         >
-          <Typography
-            variant="h6"
-            fontWeight={800}
-            color="primary.main"
-            lineHeight={1.1}
-            noWrap
-            sx={{ fontVariantNumeric: 'tabular-nums' }}
-          >
-            {pend?.price || '—'}
-          </Typography>
-          {pend?.originalPrice && (
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              noWrap
-              sx={{ textDecoration: 'line-through' }}
-            >
-              {pend.originalPrice}
-            </Typography>
-          )}
+          {/* El precio mal leído es el reclamo #1: se corrige acá, sin abrir el editor. */}
+          <Box sx={{ flex: '1 1 55%', minWidth: 0, color: 'primary.main' }}>
+            <BlurField
+              fullWidth
+              value={pend?.price ?? ''}
+              placeholder="precio"
+              ariaLabel={`Precio que va a salir de ${p.name}`}
+              allowEmpty={false}
+              inputStyle={{ fontSize: 18, fontWeight: 800, color: 'inherit', fontVariantNumeric: 'tabular-nums' }}
+              onSave={(price) => onPatch(p._id, { price })}
+            />
+          </Box>
+          <Box sx={{ flex: '1 1 45%', minWidth: 0 }}>
+            <BlurField
+              fullWidth
+              value={pend?.originalPrice ?? ''}
+              placeholder="regular"
+              ariaLabel={`Precio regular de ${p.name}`}
+              inputStyle={{ fontSize: 13, textDecoration: pend?.originalPrice ? 'line-through' : 'none' }}
+              onSave={(originalPrice) => onPatch(p._id, { originalPrice })}
+            />
+          </Box>
         </Stack>
         {changes && (
           <Typography

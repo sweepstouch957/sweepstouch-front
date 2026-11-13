@@ -95,9 +95,27 @@ export function useUpcomingActions(storeSlug: string) {
 
   // Nombre, marca y tamaño editables en la card: lo corregido a mano queda protegido de relecturas.
   const patch = useMutation({
-    mutationFn: ({ id, body }: { id: string; body: { name?: string; brand?: string; size?: string } }) =>
-      circularService.updateStoreProduct(id, body),
-    onSuccess: refresh,
+    mutationFn: ({ id, body }: { id: string; body: { name?: string; brand?: string; size?: string; price?: string; originalPrice?: string } }) =>
+      // Precio y regular de un próximo viven en `pending` (lo que VA a salir): si se
+      // guardaran en el precio de hoy, el día de la fecha el pendiente los pisaría.
+      {
+        const { price, originalPrice, ...rest } = body;
+        const jobs: Promise<unknown>[] = [];
+        if (Object.keys(rest).length) jobs.push(circularService.updateStoreProduct(id, rest));
+        if (price !== undefined || originalPrice !== undefined) {
+          jobs.push(
+            circularService.updatePending(id, {
+              ...(price !== undefined ? { price } : {}),
+              ...(originalPrice !== undefined ? { originalPrice } : {}),
+            })
+          );
+        }
+        return Promise.all(jobs);
+      },
+    onSuccess: () => {
+      toast.success('Guardado', { id: 'upcoming-saved', duration: 1500 });
+      refresh();
+    },
     onError: (e) => toast.error(errMsg(e, 'No se pudo guardar')),
   });
 

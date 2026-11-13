@@ -15,6 +15,7 @@ import {
 import { memo } from 'react';
 import { PanelCard } from '../../../panel-kit';
 import PreRcsPreviewButton from '../preview';
+import CurrentArt from './CurrentArt';
 import { PANEL_TABS, type PanelTab } from './tabs';
 
 type Props = {
@@ -103,6 +104,13 @@ function PanelHeader({
           storeSlug={storeSlug}
         />
       </Stack>
+      {/* Circular y flyer vigentes: se ven desde cualquier pestaña. */}
+      <CurrentArt
+        storeId={storeId}
+        storeSlug={storeSlug}
+        storeName={storeName}
+        onTab={onTab}
+      />
       <Tabs
         value={tab}
         onChange={(_, v: PanelTab) => onTab(v)}

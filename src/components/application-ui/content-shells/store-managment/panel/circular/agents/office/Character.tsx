@@ -1,6 +1,10 @@
 'use client';
 
-/** Un robot de la oficina: personaje SVG propio, con su accesorio y el estado sobre la cabeza. */
+/**
+ * Un agente de la oficina: mago de estilo anime, diseño propio (no es un personaje de
+ * ninguna serie). Capa corta del color del agente, grimorio que flota y brilla mientras
+ * trabaja, su accesorio y el estado sobre la cabeza.
+ */
 import { memo } from 'react';
 import type { AgentStatus } from '../constants';
 import { ART, LOOK, type Accessory } from './palette';
@@ -201,121 +205,219 @@ function Character({
         ry={4}
         fill={ART.shade}
       />
-      {/* piernas */}
+      {/* aura: sólo mientras trabaja */}
+      {typing && (
+        <ellipse
+          className="aura"
+          cx={0}
+          cy={-1}
+          rx={15}
+          ry={5.5}
+          fill="none"
+          stroke={L.shirt}
+          strokeWidth={1.4}
+        />
+      )}
+      {/* piernas: botas altas */}
       <g className="leg l">
-        <rect
-          x={-7}
-          y={-15}
-          width={6}
-          height={15}
-          rx={2}
-          fill={ART.pants}
-        />
-        <rect
-          x={-8}
-          y={-2}
-          width={8}
-          height={4}
-          rx={1.5}
-          fill={ART.shoes}
-        />
+        <rect x={-6.5}
+y={-13}
+width={5.5}
+height={11}
+rx={2}
+fill={ART.pants} />
+        <path d="M-7.5-5 h7.5 v5 q0 2 -2 2 h-5.5 q-1.5 0 -1.5-1.5z"
+fill={ART.boot} />
+        <rect x={-7.5}
+y={-5.5}
+width={7.5}
+height={1.6}
+rx={0.8}
+fill={ART.trim} />
       </g>
       <g className="leg r">
-        <rect
-          x={1}
-          y={-15}
-          width={6}
-          height={15}
-          rx={2}
-          fill={ART.pants}
-        />
-        <rect
-          x={0}
-          y={-2}
-          width={8}
-          height={4}
-          rx={1.5}
-          fill={ART.shoes}
-        />
+        <rect x={1}
+y={-13}
+width={5.5}
+height={11}
+rx={2}
+fill={ART.pants} />
+        <path d="M0-5 h7.5 v5.5 q0 1.5 -1.5 1.5 h-5.5 q-2 0 -2-2z"
+fill={ART.boot} />
+        <rect x={0}
+y={-5.5}
+width={7.5}
+height={1.6}
+rx={0.8}
+fill={ART.trim} />
       </g>
-      {/* cuerpo */}
-      <rect
-        x={-10}
-        y={-32}
-        width={20}
-        height={19}
-        rx={5}
-        fill={L.shirt}
-      />
-      <rect
-        x={-4}
-        y={-32}
-        width={8}
-        height={19}
-        fill={ART.shine}
-      />
+      {/* túnica */}
+      <path d="M-8.5-31 h17 l2 19 q-10.5 3.5 -21 0z"
+fill={ART.robe} />
+      <path d="M-1.2-31 h2.4 l1 20 h-4.4z"
+fill={L.shirt}
+opacity={0.9} />
+      <rect x={-9.5}
+y={-20}
+width={19}
+height={2.4}
+rx={1.2}
+fill={ART.trim} />
+      <circle cx={0}
+cy={-18.8}
+r={1.9}
+fill={ART.gem}
+stroke={ART.trim}
+strokeWidth={0.6} />
       {/* brazos */}
       <g className="arm l">
-        <rect
-          x={-14}
-          y={-30}
-          width={5}
-          height={14}
-          rx={2.5}
-          fill={L.shirt}
-        />
-        <circle
-          cx={-11.5}
-          cy={-16}
-          r={3}
-          fill={L.skin}
-        />
+        <rect x={-13.5}
+y={-29}
+width={5}
+height={13}
+rx={2.5}
+fill={ART.robe} />
+        <rect x={-13.8}
+y={-19.5}
+width={5.6}
+height={2}
+rx={1}
+fill={ART.trim} />
+        <circle cx={-11}
+cy={-15}
+r={2.8}
+fill={L.skin} />
       </g>
       <g className="arm r">
-        <rect
-          x={9}
-          y={-30}
-          width={5}
-          height={14}
-          rx={2.5}
-          fill={L.shirt}
-        />
-        <circle
-          cx={11.5}
-          cy={-16}
-          r={3}
-          fill={L.skin}
-        />
+        <rect x={8.5}
+y={-29}
+width={5}
+height={13}
+rx={2.5}
+fill={ART.robe} />
+        <rect x={8.2}
+y={-19.5}
+width={5.6}
+height={2}
+rx={1}
+fill={ART.trim} />
+        <circle cx={11}
+cy={-15}
+r={2.8}
+fill={L.skin} />
+      </g>
+      {/* capa corta del color del agente, con ribete dorado */}
+      <path
+        d="M-12.5-33 Q0-37.5 12.5-33 L14.5-23.5 Q7-26.5 0-23 Q-7-26.5 -14.5-23.5Z"
+        fill={L.shirt}
+        stroke={ART.trim}
+        strokeWidth={0.9}
+        strokeLinejoin="round"
+      />
+      <path d="M-12.5-33 Q0-37.5 12.5-33 L11.5-30.5 Q0-34.5 -11.5-30.5Z"
+fill={ART.shine} />
+      {/* grimorio: flota al lado y brilla mientras trabaja */}
+      <g className={typing ? 'book on' : 'book'}>
+        {typing && <circle cx={18.5}
+cy={-27}
+r={7}
+fill={L.shirt}
+opacity={0.28}
+className="blink" />}
+        <path d="M13.5-31.5 l5 1.6 v9 l-5-1.6z"
+fill={ART.page}
+stroke={L.hair}
+strokeWidth={0.7} />
+        <path d="M23.5-31.5 l-5 1.6 v9 l5-1.6z"
+fill={ART.page}
+stroke={L.hair}
+strokeWidth={0.7} />
+        <path d="M14.6-28.6 l2.8.9 M14.6-26.4 l2.8.9 M22.4-28.6 l-2.8.9 M22.4-26.4 l-2.8.9"
+stroke={L.shirt}
+strokeWidth={0.6} />
       </g>
       {/* cabeza */}
-      <circle
-        cx={0}
-        cy={-42}
-        r={11}
-        fill={L.skin}
-      />
+      <circle cx={0}
+cy={-42}
+r={11.5}
+fill={L.skin} />
+      {/* pelo de punta, atrás y flequillo */}
       <path
-        d="M-11-44 Q-10-55 0-55 Q10-55 11-44 Q6-50 0-49 Q-6-50 -11-44Z"
+        d="M-12.5-41 L-15.5-49 L-11-48 L-12.5-57 L-6.5-52.5 L-4-60.5 L0-53.5 L4.5-61 L6.5-52.5 L12.5-57.5 L11-48 L15.5-49.5 L12.5-41 Q9-50 0-50 Q-9-50 -12.5-41Z"
         fill={L.hair}
       />
-      <circle
-        cx={-4}
-        cy={-42}
-        r={1.6}
-        fill={ART.eye}
-      />
-      <circle
-        cx={4}
-        cy={-42}
-        r={1.6}
-        fill={ART.eye}
-      />
+      <path d="M-11.5-44.5 Q-8-50.5 -4.5-45.5 L-2.5-49.5 L0-44.5 L2.5-49.5 L4.5-45.5 Q8-50.5 11.5-44.5 Q7-52 0-52 Q-7-52 -11.5-44.5Z"
+fill={L.hair} />
+      <path d="M-7-55.5 Q-3-58 1-56"
+stroke={ART.hairShine}
+strokeWidth={1.1}
+fill="none"
+strokeLinecap="round" />
+      {/* ojos grandes de anime: iris del color del agente y dos brillos */}
+      <path d="M-7.6-45.6 Q-4.6-47.4 -1.8-45.6"
+stroke={ART.eye}
+strokeWidth={1.2}
+fill="none"
+strokeLinecap="round" />
+      <path d="M1.8-45.6 Q4.6-47.4 7.6-45.6"
+stroke={ART.eye}
+strokeWidth={1.2}
+fill="none"
+strokeLinecap="round" />
+      <ellipse cx={-4.6}
+cy={-41.8}
+rx={2.5}
+ry={3.3}
+fill={ART.eye} />
+      <ellipse cx={4.6}
+cy={-41.8}
+rx={2.5}
+ry={3.3}
+fill={ART.eye} />
+      <ellipse cx={-4.6}
+cy={-41.1}
+rx={1.7}
+ry={2.3}
+fill={L.shirt} />
+      <ellipse cx={4.6}
+cy={-41.1}
+rx={1.7}
+ry={2.3}
+fill={L.shirt} />
+      <circle cx={-5.4}
+cy={-43.1}
+r={0.95}
+fill={ART.paper} />
+      <circle cx={3.8}
+cy={-43.1}
+r={0.95}
+fill={ART.paper} />
+      <circle cx={-3.8}
+cy={-40.3}
+r={0.45}
+fill={ART.paper} />
+      <circle cx={5.4}
+cy={-40.3}
+r={0.45}
+fill={ART.paper} />
+      {/* rubor y boca */}
+      <ellipse cx={-7.6}
+cy={-37.6}
+rx={1.9}
+ry={1}
+fill={ART.blush} />
+      <ellipse cx={7.6}
+cy={-37.6}
+rx={1.9}
+ry={1}
+fill={ART.blush} />
       <path
-        d="M-3-37 Q0-35 3-37"
+        d={typing ? 'M-2-36.6 Q0-33.6 2-36.6Z' : 'M-2.2-36.4 Q0-34.6 2.2-36.4'}
         stroke={ART.mouth}
-        strokeWidth={1.2}
-        fill="none"
+        strokeWidth={1.1}
+        fill={typing ? ART.mouth : 'none'}
         strokeLinecap="round"
+        strokeLinejoin="round"
       />
       <AccessoryArt
         acc={L.acc}
@@ -354,7 +456,7 @@ export const CharacterThumb = memo(function CharacterThumb({
     <svg
       width={width}
       height={height}
-      viewBox="-16 -62 32 66"
+      viewBox="-18 -64 44 68"
       aria-hidden
     >
       <Character

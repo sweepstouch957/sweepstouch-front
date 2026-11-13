@@ -48,7 +48,25 @@ export function PriceCell({
       data-label={label}
     >
       <TextField
-        key={pend ? `pend-${pend.from}` : 'today'}
+        // La key lleva el valor: si el servidor trae otro precio, el campo lo muestra.
+        key={`${pend ? `pend-${pend.from}` : 'today'}-${(pend ? pend[field] : today) ?? ''}`}
+        title="Clic para editar · Enter guarda · Esc deshace"
+        onKeyDown={(e) => {
+          const el = e.target as HTMLInputElement;
+          if (e.key === 'Escape') {
+            el.value = String((pend ? pend[field] : today) ?? '');
+            el.blur();
+          } else if (e.key === 'Enter') el.blur();
+        }}
+        sx={{
+          '& .MuiInputBase-root': {
+            px: 0.5,
+            borderRadius: 1,
+            '&:hover': { bgcolor: 'action.hover' },
+            '&.Mui-focused': { boxShadow: (t) => `0 0 0 2px ${t.palette.primary.main}` },
+            '&::before, &::after': { display: 'none' },
+          },
+        }}
         size="small"
         variant="standard"
         label={pend ? `Sale el ${fmtDate(pend.from)}` : undefined}

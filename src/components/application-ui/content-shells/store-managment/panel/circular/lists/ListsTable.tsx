@@ -1,43 +1,37 @@
 'use client';
 
-import { EmptyBlock } from '@/components/application-ui/content-shells/store-managment/panel-kit';
 import type { AdminShoppingList } from '@/services/shopping-lists.service';
-import { Box, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
+import { Box, LinearProgress, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import { cell } from '../shared';
 import ListRow, { type ListRowActions } from './ListRow';
 
 const COLUMNS: ReadonlyArray<[label: string, right?: boolean]> = [
-  ['QR'],
   ['Cliente'],
-  ['Items', true],
-  ['Puntos', true],
   ['Estado'],
+  ['Productos', true],
+  ['Puntos', true],
   ['Creada'],
+  ['Vence'],
   ['Acciones', true],
 ];
 
 export default function ListsTable({
   items,
-  validating,
+  busy,
   extending,
-  reopening,
   ...actions
 }: ListRowActions & {
   items: AdminShoppingList[];
-  validating: boolean;
-  extending: boolean;
-  reopening: boolean;
+  /** Refrescando (cambio de página o de búsqueda): barra fina, la tabla no desaparece. */
+  busy: boolean;
+  /** QR de la lista a la que se le está corriendo la vigencia. */
+  extending: string | null;
 }) {
-  if (!items.length) {
-    return (
-      <EmptyBlock
-        title="Sin listas"
-        hint="Cuando un cliente arme su lista Pre-RCS en esta tienda, aparece acá para validarla."
-      />
-    );
-  }
   return (
-    <Box sx={{ overflowX: 'auto' }}>
+    <Box sx={{ overflowX: 'auto', position: 'relative' }}>
+      {busy && (
+        <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, zIndex: 1 }} />
+      )}
       <Table size="small">
         <TableHead>
           <TableRow>
@@ -57,9 +51,7 @@ export default function ListsTable({
             <ListRow
               key={l._id}
               list={l}
-              validating={validating}
-              extending={extending}
-              reopening={reopening}
+              extending={extending === l.qrCode}
               {...actions}
             />
           ))}
