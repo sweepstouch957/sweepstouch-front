@@ -1,7 +1,5 @@
 'use client';
 
-import { kioskUrl, linktreeUrl } from 'src/utils/sweepstouch-urls';
-
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import LinkRoundedIcon from '@mui/icons-material/LinkRounded';
 import SmsRoundedIcon from '@mui/icons-material/SmsRounded';
@@ -19,15 +17,14 @@ import {
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import SendTestMessagePage from 'src/app/admin/management/campaings/send-test/page';
+import SendTestMessage from 'src/components/application-ui/content-shells/campaign-send-test/SendTestMessage';
 import { routes } from 'src/router/routes';
+import { kioskUrl, linktreeUrl } from 'src/utils/sweepstouch-urls';
 
 // Tiendas de demo fijas: la página muestra el kiosko y el linktree reales
 // dentro de un iframe para que se vea cómo queda.
 const OPTIN_CASHIERS_URL = kioskUrl('merchant-r-street-lar-azul-55-barueri-sp');
-const LINKTREE_URL = linktreeUrl(
-  'food-universe-marketplace-498-e-30th-st-paterson-nj-07504'
-);
+const LINKTREE_URL = linktreeUrl('food-universe-marketplace-498-e-30th-st-paterson-nj-07504');
 const DEFAULT_TEST_STORE_NAME = 'Tienda de prueba super real';
 const iframeScale = {
   xs: 0.58,
@@ -162,9 +159,7 @@ export default function OptinCashiersPage() {
               width: isPhoneView
                 ? { xs: 'min(100%, 330px)', sm: 'min(100%, 360px)', lg: 'min(100%, 380px)' }
                 : '100%',
-              height: isPhoneView
-                ? { xs: '100%', sm: '100%', lg: 'min(100%, 980px)' }
-                : '100%',
+              height: isPhoneView ? { xs: '100%', sm: '100%', lg: 'min(100%, 980px)' } : '100%',
               minHeight: 0,
               maxHeight: isPhoneView ? 980 : 920,
               maxWidth: isPhoneView ? 380 : 1390,
@@ -241,7 +236,7 @@ export default function OptinCashiersPage() {
                         bgcolor: (theme) => theme.palette.background.default,
                       }}
                     >
-                      <SendTestMessagePage defaultStoreName={DEFAULT_TEST_STORE_NAME} />
+                      <SendTestMessage defaultStoreName={DEFAULT_TEST_STORE_NAME} />
                     </Box>
                   ) : (
                     <Box
