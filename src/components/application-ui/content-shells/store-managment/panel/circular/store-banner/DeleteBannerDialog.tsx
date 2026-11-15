@@ -1,8 +1,15 @@
 'use client';
 
 /** Confirmación propia: nada de window.confirm del navegador. */
-import type { StoreBanner } from '@/services/circular.service';
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material';
+import type { StoreBanner } from '@/services/circular';
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Typography,
+} from '@mui/material';
 
 export default function DeleteBannerDialog({
   banner,

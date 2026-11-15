@@ -2,7 +2,7 @@
 
 /** Celda "Producto": nombre, marca y tamaño editables + chips de letra chica, departamento,
  *  origen y fecha de entrada. */
-import type { StoreProduct } from '@/services/circular.service';
+import type { StoreProduct } from '@/services/circular';
 import { Chip, Stack, TableCell, TextField } from '@mui/material';
 import { cell, fmtDate } from '../shared';
 import { miniChip, sourceTag, type ProductPatch } from './constants';

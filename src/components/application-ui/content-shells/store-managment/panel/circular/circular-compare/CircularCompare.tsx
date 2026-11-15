@@ -15,13 +15,13 @@ import {
 import CompareArrowsRoundedIcon from '@mui/icons-material/CompareArrowsRounded';
 import { Button, Collapse, Stack, Typography } from '@mui/material';
 import { useCallback, useMemo, useState } from 'react';
+import { diffProducts, pickTodayAndNext, type DiffKind } from '../domain/circulars';
 import { useStoreCirculars } from '../hooks';
 import { fmtDate } from '../shared';
 import CompareColumn from './CompareColumn';
 import DiffChips from './DiffChips';
 import DiffTable from './DiffTable';
 import { useCircularDetail } from './use-circular-detail';
-import { diffProducts, pickTodayAndNext, type DiffKind } from './utils';
 
 type Props = {
   storeSlug: string;

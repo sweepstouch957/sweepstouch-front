@@ -2,7 +2,7 @@
 
 /** Tabla del catálogo con arrastre para ordenar. En contenedores angostos cada fila pasa a
  *  ser una tarjeta (rótulo arriba de cada dato); en tablet van 2 tarjetas por fila. */
-import type { StoreProduct } from '@/services/circular.service';
+import type { StoreProduct } from '@/services/circular';
 import { DragDropContext, Droppable, type DropResult } from '@hello-pangea/dnd';
 import {
   Box,
@@ -18,11 +18,11 @@ import {
   type Theme,
 } from '@mui/material';
 import { EmptyBlock } from '../../../panel-kit';
+import { isGeneratingImage } from '../domain/catalog';
 import { cell } from '../shared';
 import { CatalogRow, type CatalogRowProps } from './catalog-row';
 import { DRAG_INSTRUCTIONS } from './constants';
 import { useWidthBucket } from './use-width-bucket';
-import { isGeneratingImage } from './utils';
 
 type RowHandlers = Pick<
   CatalogRowProps,
@@ -82,7 +82,12 @@ function tableSx(width: number): SxProps<Theme> {
           // Tablet (701–900): 2 productos por fila. Mobile / tablet chica: 1.
           '& tbody':
             width === 900
-              ? { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1.5, p: 1.5 }
+              ? {
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                  gap: 1.5,
+                  p: 1.5,
+                }
               : { display: 'block' },
           '& tbody tr:has(td[colspan])': { gridColumn: '1 / -1' },
           // Cada producto = tarjeta: foto + nombre arriba, campos abajo, papelera en la esquina.
@@ -102,7 +107,12 @@ function tableSx(width: number): SxProps<Theme> {
                   gridTemplateAreas: '"img prod prod" "of reg sav" "cat prom vis"',
                 }),
             ...(width === 900
-              ? { border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.paper' }
+              ? {
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                  bgcolor: 'background.paper',
+                }
               : { borderBottom: '1px solid', borderColor: 'divider' }),
           },
           '& tbody tr > td': {

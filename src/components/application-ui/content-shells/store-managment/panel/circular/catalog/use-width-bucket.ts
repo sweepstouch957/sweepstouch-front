@@ -13,7 +13,9 @@ export function useWidthBucket<T extends HTMLElement>() {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const observer = new ResizeObserver(([entry]) => setWidth(widthBucket(entry.contentRect.width)));
+    const observer = new ResizeObserver(([entry]) =>
+      setWidth(widthBucket(entry.contentRect.width))
+    );
     observer.observe(el);
     return () => observer.disconnect();
   }, []);

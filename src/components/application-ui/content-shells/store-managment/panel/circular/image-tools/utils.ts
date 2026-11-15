@@ -1,4 +1,4 @@
-import type { StoreProduct } from '@/services/circular.service';
+import type { StoreProduct } from '@/services/circular';
 import type { ProductFormValues } from './constants';
 
 /** Imagen dentro de un evento de pegado (captura de pantalla, "copiar imagen"…). */
@@ -24,9 +24,6 @@ export const isTypingTarget = (t: EventTarget | null) => {
   const el = t as HTMLElement | null;
   return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
 };
-
-export const errMsg = (e: any, fallback: string) =>
-  e?.response?.data?.error || e?.message || fallback;
 
 /** ISO → "YYYY-MM-DD" del día en la hora de las tiendas (lo que muestra un <input type=date>). */
 export const toDayInput = (iso: string) =>

@@ -19,7 +19,12 @@ export function expiryText(iso?: string | null) {
   if (!iso) return '—';
   const diff = new Date(iso).getTime() - Date.now();
   const abs = Math.abs(diff);
-  const n = abs < 3600_000 ? `${Math.max(1, Math.round(abs / 60_000))} min` : abs < 86_400_000 ? `${Math.round(abs / 3600_000)} h` : `${Math.round(abs / 86_400_000)} d`;
+  const n =
+    abs < 3600_000
+      ? `${Math.max(1, Math.round(abs / 60_000))} min`
+      : abs < 86_400_000
+        ? `${Math.round(abs / 3600_000)} h`
+        : `${Math.round(abs / 86_400_000)} d`;
   return diff >= 0 ? `en ${n}` : `hace ${n}`;
 }
 
@@ -30,7 +35,14 @@ function ListRow({ list: l, extending, onOpen, onValidate, onExtend, onReopen }:
     <TableRow
       hover
       tabIndex={0}
-      sx={{ cursor: 'pointer', '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: -2 } }}
+      sx={{
+        cursor: 'pointer',
+        '&:focus-visible': {
+          outline: '2px solid',
+          outlineColor: 'primary.main',
+          outlineOffset: -2,
+        },
+      }}
       onClick={() => onOpen(l)}
       onKeyDown={(e) => e.key === 'Enter' && onOpen(l)}
     >

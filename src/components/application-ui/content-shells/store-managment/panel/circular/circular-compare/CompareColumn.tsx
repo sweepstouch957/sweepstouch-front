@@ -1,11 +1,11 @@
 'use client';
 
-import type { Circular } from '@/services/circular.service';
+import type { Circular } from '@/services/circular';
 import { Box, Typography } from '@mui/material';
 import { memo } from 'react';
+import { isFlyer } from '../domain/circulars';
 import { productCount } from '../hooks';
 import { circularLabel, fmtDate } from '../shared';
-import { isFlyer } from './utils';
 
 /** Una columna del comparativo: qué rige ese día, fechas, productos y tipo. */
 function CompareColumn({

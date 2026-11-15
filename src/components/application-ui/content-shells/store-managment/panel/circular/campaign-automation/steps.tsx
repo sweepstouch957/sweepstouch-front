@@ -1,5 +1,5 @@
 /** Pasos del flujo de la campaña: lógica pura (sin React Query), los íconos van como JSX. */
-import type { CampaignImportJob } from '@/services/circular.service';
+import type { CampaignImportJob } from '@/services/circular';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import CampaignRoundedIcon from '@mui/icons-material/CampaignRounded';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';

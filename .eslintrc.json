@@ -17,5 +17,71 @@
     "react-hooks/rules-of-hooks": "off",
     "react/display-name": "off",
     "import/no-named-as-default-member": "off"
-  }
+  },
+  "overrides": [
+    {
+      "files": [
+        "src/components/application-ui/content-shells/store-managment/panel/circular/domain/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "react",
+                  "react-dom",
+                  "@mui/*",
+                  "@tanstack/*",
+                  "react-hot-toast",
+                  "axios",
+                  "@/libs/*",
+                  "next/*"
+                ],
+                "message": "domain/ es lógica pura: sin React, UI, HTTP ni frameworks (ver README del módulo)."
+              },
+              {
+                "group": [
+                  "../*/**",
+                  "!../domain/**"
+                ],
+                "message": "domain/ no depende de las secciones de UI."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/components/application-ui/content-shells/store-managment/panel/circular/**/*.tsx"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@tanstack/react-query",
+                "message": "Los componentes no consultan datos: usa el hook de la sección (use-*.ts)."
+              },
+              {
+                "name": "react-hot-toast",
+                "message": "El toast va en la mutación del hook, no en el componente."
+              },
+              {
+                "name": "axios",
+                "message": "HTTP sólo en src/services/* vía @/libs/axios."
+              },
+              {
+                "name": "@/libs/axios",
+                "message": "HTTP sólo en src/services/*."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }

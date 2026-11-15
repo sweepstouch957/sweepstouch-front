@@ -5,7 +5,7 @@
  * circular se hace EN EL SERVIDOR (caja en %): el flyer es de otro origen y un canvas del
  * navegador quedaría bloqueado por CORS.
  */
-import { circularService } from '@/services/circular.service';
+import { circularService } from '@/services/circular';
 import { uploadCampaignImage } from '@/services/upload.service';
 import type { PctBox } from './constants';
 

@@ -1,7 +1,7 @@
 'use client';
 
 /** Ficha del circular: nombre, estado, de dónde vino, fechas, productos y archivos. */
-import type { Circular } from '@/services/circular.service';
+import type { Circular } from '@/services/circular';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
@@ -124,8 +124,8 @@ export default function CircularSummary({
           variant="outlined"
           sx={{ mt: 1.5, py: 0 }}
         >
-          Borrador: no sale en el linktree. Sus productos se ven en las listas sólo si los cargas
-          al catálogo.
+          Borrador: no sale en el linktree. Sus productos se ven en las listas sólo si los cargas al
+          catálogo.
         </Alert>
       )}
     </Box>

@@ -2,7 +2,7 @@
 
 /** Historial de banners en lista (antes: tabla con scroll lateral). */
 import { EmptyBlock } from '@/components/application-ui/content-shells/store-managment/panel-kit';
-import type { StoreBanner } from '@/services/circular.service';
+import type { StoreBanner } from '@/services/circular';
 import { Box, Button, Stack, Typography } from '@mui/material';
 import { useState } from 'react';
 import { ListRowsSkeleton } from '../skeletons';

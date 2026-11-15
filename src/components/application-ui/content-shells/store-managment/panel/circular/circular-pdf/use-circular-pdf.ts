@@ -1,17 +1,12 @@
 'use client';
 
 /** Mutaciones del bloque "Subir el circular": traer del link, agendar y las del historial. */
-import { circularService, type Circular } from '@/services/circular.service';
+import { circularService, type Circular } from '@/services/circular';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import toast from 'react-hot-toast';
-import {
-  qk,
-  useCircularBusy,
-  useCircularPreview,
-  useExtractProducts,
-  useLoadCatalog,
-} from '../hooks';
+import { useCircularBusy, useCircularPreview, useExtractProducts, useLoadCatalog } from '../hooks';
+import { circularKeys } from '../query-keys';
 import { AUTO_EXTRACT, type ScheduleValues } from './utils';
 
 /** Baja el PDF de la semana desde el link de la tienda y arranca la extracción. */
@@ -21,7 +16,7 @@ export function useImportFromLink(storeSlug: string) {
   return useMutation({
     mutationFn: () => circularService.importFromStoreUrl(storeSlug),
     onSuccess: (d: any) => {
-      qc.invalidateQueries({ queryKey: qk.circulars(storeSlug) });
+      qc.invalidateQueries({ queryKey: circularKeys.circulars(storeSlug) });
       toast.success('Circular de la semana importado — extrayendo productos con IA…');
       if (d?.circular?._id) extract.mutate({ id: d.circular._id, max: AUTO_EXTRACT });
     },
@@ -49,7 +44,7 @@ export function useScheduleCircular(storeSlug: string) {
       return circularService.schedule(base);
     },
     onSuccess: (d: any, { values }) => {
-      qc.invalidateQueries({ queryKey: qk.circulars(storeSlug) });
+      qc.invalidateQueries({ queryKey: circularKeys.circulars(storeSlug) });
       // Con archivo la extracción arranca sola: antes quedaba agendado con 0 productos.
       if (values.files.length && d?.circular?._id) {
         toast.success('Circular subido — extrayendo productos con IA…');

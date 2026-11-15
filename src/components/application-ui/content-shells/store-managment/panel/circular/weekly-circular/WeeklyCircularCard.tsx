@@ -108,7 +108,7 @@ export default function WeeklyCircularCard({ storeId, storeSlug, storeName, onPr
           circular={circular}
           label={circularLabel(circular, storeSlug, storeName)}
           receivedFromCampaign={
-            job?.result?.circularId === circular._id ? (job?.result?.added ?? 0) : null
+            job?.result?.circularId === circular._id ? job?.result?.added ?? 0 : null
           }
           addingPages={appendPages.isPending}
           disabled={busy}

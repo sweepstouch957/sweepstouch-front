@@ -2,19 +2,20 @@
 
 /** Productos: el catálogo de la tienda (lo que ve el cliente en sus listas).
  *  Contenedor: es el único que conoce React Query; lo demás recibe datos y callbacks. */
-import type { StoreProduct } from '@/services/circular.service';
+import type { StoreProduct } from '@/services/circular';
 import type { DropResult } from '@hello-pangea/dnd';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import { Box, Button, LinearProgress, Stack, Tooltip, Typography } from '@mui/material';
 import { useCallback, useDeferredValue, useMemo, useState } from 'react';
 import { PanelCard, SectionHeader } from '../../../panel-kit';
+import { buildUpcomingSummary, isGeneratingImage, missingRegularOf } from '../domain/catalog';
 import { useCatalogSummary } from '../hooks';
 import type { MoreMenuItem } from '../panelUi';
 import { PasteReplaceDialog, ProductEditorDialog } from '../ProductImageTools';
 import { ImagePreviewDialog } from '../shared';
 import { CatalogRowsSkeleton } from '../skeletons';
-import { applyCatalogOrder, moveCatalogItem } from './catalog-order';
 import { CatalogNotices } from './catalog-notices';
+import { applyCatalogOrder, moveCatalogItem } from './catalog-order';
 import { CatalogTable } from './catalog-table';
 import { CatalogToolbar } from './catalog-toolbar';
 import { ClearCatalogDialog } from './clear-catalog-dialog';
@@ -37,7 +38,6 @@ import {
   useSyncVisibility,
 } from './use-catalog-mutations';
 import { useRowPaste } from './use-row-paste';
-import { buildUpcomingSummary, isGeneratingImage, missingRegularOf } from './utils';
 
 type Dialog = 'clear' | 'sync' | 'rescan' | 'details' | null;
 
@@ -73,7 +73,10 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
 
   // Qué flyer o circular manda hoy: para verlo desde acá y rescanear SÓLO sus productos.
   const ruling = useCatalogSummary(storeSlug).data?.ruling ?? null;
-  const openPreview = useCallback((url: string, title: string) => setImgPreview({ url, title }), []);
+  const openPreview = useCallback(
+    (url: string, title: string) => setImgPreview({ url, title }),
+    []
+  );
   const openRuling = useOpenRuling(ruling, openPreview);
   const rescan = useRescanPhotos(storeSlug, ruling);
   const details = useFillDetails(storeSlug);
@@ -227,7 +230,10 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
             onDragEnd={handleDragEnd}
             empty={
               deferredSearch.trim()
-                ? { title: 'Nada coincide con la búsqueda.', hint: 'Prueba con otro nombre o marca.' }
+                ? {
+                    title: 'Nada coincide con la búsqueda.',
+                    hint: 'Prueba con otro nombre o marca.',
+                  }
                 : {
                     title: 'Sin productos en el catálogo.',
                     hint: 'Carga un circular o usa "+ Agregar producto" para empezar.',

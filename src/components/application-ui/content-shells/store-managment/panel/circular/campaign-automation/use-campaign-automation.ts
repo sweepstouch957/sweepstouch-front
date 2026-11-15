@@ -1,11 +1,12 @@
 'use client';
 
 /** Mutaciones de la automatización de campaña. Los toasts viven acá. */
-import { circularService, type Circular } from '@/services/circular.service';
+import { circularService, type Circular } from '@/services/circular';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { qk, useRefreshStoreData } from '../hooks';
+import { useRefreshStoreData } from '../hooks';
+import { circularKeys } from '../query-keys';
 
 const errMsg = (e: any, fallback: string) => e?.response?.data?.error || fallback;
 
@@ -53,7 +54,7 @@ export function useRetryCampaignImport(campaignId?: string) {
       circularService.retryCampaignImport(input),
     onSuccess: () => {
       toast.success('Reintentando: te avisamos en la campana cuando termine.');
-      qc.invalidateQueries({ queryKey: qk.campaignImport(campaignId) });
+      qc.invalidateQueries({ queryKey: circularKeys.campaignImport(campaignId) });
     },
     onError: (e: any) => toast.error(errMsg(e, 'No se pudo reintentar')),
   });

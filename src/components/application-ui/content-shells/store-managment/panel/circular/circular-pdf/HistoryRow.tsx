@@ -1,7 +1,7 @@
 'use client';
 
 /** Una fila del historial de circulares: nombre, fechas, productos, estado y acciones. */
-import type { Circular } from '@/services/circular.service';
+import type { Circular } from '@/services/circular';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';

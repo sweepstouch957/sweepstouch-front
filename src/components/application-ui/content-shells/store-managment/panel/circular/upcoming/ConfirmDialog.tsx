@@ -24,9 +24,9 @@ function message(c: Confirm, groupBannerAuto: boolean) {
   }
   return c.product.pending?.isNew
     ? `"${c.product.name}" es nuevo: se borra del catálogo y no va a salir.`
-    : `"${c.product.name}" se queda con su precio de hoy (${
-        c.product.price || '—'
-      }); el cambio a ${c.product.pending?.price || '—'} se descarta.`;
+    : `"${c.product.name}" se queda con su precio de hoy (${c.product.price || '—'}); el cambio a ${
+        c.product.pending?.price || '—'
+      } se descarta.`;
 }
 
 export default function ConfirmDialog({

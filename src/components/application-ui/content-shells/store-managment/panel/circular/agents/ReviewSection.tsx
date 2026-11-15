@@ -8,7 +8,7 @@ import {
   KpiCard,
   KpiRow,
 } from '@/components/application-ui/content-shells/store-managment/panel-kit';
-import type { ProductReviewState } from '@/services/circular.service';
+import type { ProductReviewState } from '@/services/circular';
 import { Button, LinearProgress, Stack, Typography } from '@mui/material';
 import { fmtDate } from '../shared';
 import { KpiSkeleton } from '../skeletons';

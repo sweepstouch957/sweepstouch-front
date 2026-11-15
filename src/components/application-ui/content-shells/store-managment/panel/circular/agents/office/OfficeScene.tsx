@@ -1,7 +1,7 @@
 'use client';
 
 /** El plano SVG de la oficina: sala fija + muebles y personajes ordenados por profundidad. */
-import type { Pipeline } from '@/services/circular.service';
+import type { Pipeline } from '@/services/circular';
 import type { ReactElement } from 'react';
 import type { AgentStatus } from '../constants';
 import AgentWalker from './AgentWalker';

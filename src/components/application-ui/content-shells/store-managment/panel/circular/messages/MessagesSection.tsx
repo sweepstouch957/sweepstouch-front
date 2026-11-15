@@ -8,12 +8,12 @@
  * tienda con flyer activo pero sin PDF quedaba con el botón apagado (19 oct 2026). El flyer
  * activo va primero: es lo que el cliente ve hoy ("flyer gana").
  */
-import TestMmsShoppingListModal from '@/components/mms/TestMmsShoppingListModal';
 import {
   EmptyBlock,
   PanelCard,
   SectionHeader,
 } from '@/components/application-ui/content-shells/store-managment/panel-kit';
+import TestMmsShoppingListModal from '@/components/mms/TestMmsShoppingListModal';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import SmsOutlinedIcon from '@mui/icons-material/SmsOutlined';
 import { Alert, Box, Button, Skeleton, Stack } from '@mui/material';

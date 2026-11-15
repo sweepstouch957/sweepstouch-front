@@ -1,11 +1,13 @@
 'use client';
 
 /** Queries y mutaciones propias del estado de la lista. Los toasts viven acá. */
-import { circularService } from '@/services/circular.service';
+import { circularService } from '@/services/circular';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { hasActiveJobs } from '../domain/import-jobs';
 import { useRefreshStoreData } from '../hooks';
-import { hasActiveJobs, type Ruling } from './utils';
+import { circularKeys } from '../query-keys';
+import { type Ruling } from './utils';
 
 const errMsg = (e: any, fallback: string) => e?.response?.data?.error || fallback;
 
@@ -13,7 +15,7 @@ const errMsg = (e: any, fallback: string) => e?.response?.data?.error || fallbac
 // (5 oct: el flyer de Morris Ave falló por cuota de la IA y nadie lo vio hasta el día.)
 export function useImportJobs(storeSlug: string) {
   return useQuery({
-    queryKey: ['import-jobs', storeSlug],
+    queryKey: circularKeys.importJobs(storeSlug),
     queryFn: () => circularService.getImportJobs(storeSlug),
     enabled: !!storeSlug,
     refetchInterval: (query) => (hasActiveJobs(query.state.data?.jobs) ? 5000 : false),
@@ -25,7 +27,9 @@ export function useRetryImportJob(onDone: () => void) {
     mutationFn: (id: string) => circularService.retryImportJob(id),
     onSuccess: () => {
       onDone();
-      toast.success('Reintentando: los robots vuelven a leer el arte. Se ve avanzar en la oficina.');
+      toast.success(
+        'Reintentando: los robots vuelven a leer el arte. Se ve avanzar en la oficina.'
+      );
     },
     onError: (e: any) => toast.error(errMsg(e, 'No se pudo reintentar')),
   });

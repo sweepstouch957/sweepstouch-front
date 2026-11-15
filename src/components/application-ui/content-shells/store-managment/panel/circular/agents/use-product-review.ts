@@ -5,15 +5,14 @@
  * qué arregló solo y qué quedó para decidir. Corre sola todos los días antes de las
  * campañas de las 6; acá también se corre a mano.
  */
-import { circularService } from '@/services/circular.service';
+import { circularService } from '@/services/circular';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { qk } from '../hooks';
-import { agentKeys } from './constants';
+import { circularKeys } from '../query-keys';
 
 export function useProductReview(storeSlug: string) {
   return useQuery({
-    queryKey: agentKeys.review(storeSlug),
+    queryKey: circularKeys.review(storeSlug),
     queryFn: () => circularService.getProductReview(storeSlug),
     refetchInterval: (query) =>
       query.state.data?.run && !query.state.data.run.finishedAt ? 4000 : false,
@@ -31,7 +30,7 @@ export function useRunProductReview(storeSlug: string, from: 'card' | 'office' =
           ? 'Revisando el circular… te avisan en la campana cuando terminen.'
           : 'Revisando… tarda unos minutos; te avisa en la campana.'
       );
-      void qc.invalidateQueries({ queryKey: agentKeys.review(storeSlug) });
+      void qc.invalidateQueries({ queryKey: circularKeys.review(storeSlug) });
     },
     onError: (e: any) =>
       toast.error(
@@ -44,10 +43,10 @@ export function useRunProductReview(storeSlug: string, from: 'card' | 'office' =
 /** Aplicar / ignorar: cada cambio aplicado también toca el catálogo. */
 export function useReviewActions(storeSlug: string) {
   const qc = useQueryClient();
-  const refresh = () => qc.invalidateQueries({ queryKey: agentKeys.review(storeSlug) });
+  const refresh = () => qc.invalidateQueries({ queryKey: circularKeys.review(storeSlug) });
   const refreshCatalog = () => {
     void refresh();
-    void qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) });
+    void qc.invalidateQueries({ queryKey: circularKeys.catalog(storeSlug) });
   };
   const applySafe = useMutation({
     mutationFn: () => circularService.applySafeReviews(storeSlug),

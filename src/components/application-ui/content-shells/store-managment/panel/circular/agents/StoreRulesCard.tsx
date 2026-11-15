@@ -5,7 +5,7 @@
  * auditar, Gauche al rescanear fotos), lecciones de lo que salió mal y los departamentos que
  * aprendió Noelle. Antes vivía mezclado con las indicaciones de una sola extracción.
  */
-import type { StoreLesson, StoreProfile } from '@/services/circular.service';
+import type { StoreLesson, StoreProfile } from '@/services/circular';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import {
   Alert,

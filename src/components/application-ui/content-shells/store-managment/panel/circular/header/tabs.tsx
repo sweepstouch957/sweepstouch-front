@@ -45,7 +45,12 @@ export const PANEL_GROUPS: {
   icon: ReactElement;
   tabs: { id: PanelTab; label: string }[];
 }[] = [
-  { id: 'circular', label: 'Circular', icon: <CalendarMonthRoundedIcon fontSize="small" />, tabs: [{ id: 'circular', label: 'Circular' }] },
+  {
+    id: 'circular',
+    label: 'Circular',
+    icon: <CalendarMonthRoundedIcon fontSize="small" />,
+    tabs: [{ id: 'circular', label: 'Circular' }],
+  },
   {
     id: 'products',
     label: 'Productos',
@@ -65,7 +70,12 @@ export const PANEL_GROUPS: {
       { id: 'messages', label: 'Mensajes' },
     ],
   },
-  { id: 'agents', label: 'Agentes IA', icon: <SmartToyOutlinedIcon fontSize="small" />, tabs: [{ id: 'agents', label: 'Agentes IA' }] },
+  {
+    id: 'agents',
+    label: 'Agentes IA',
+    icon: <SmartToyOutlinedIcon fontSize="small" />,
+    tabs: [{ id: 'agents', label: 'Agentes IA' }],
+  },
   {
     id: 'settings',
     label: 'Ajustes',

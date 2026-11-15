@@ -123,7 +123,9 @@ export default function CampaignAutomationCard({
           <MoreMenu
             items={[
               {
-                label: fixList.isPending ? 'Arreglando la lista…' : 'Arreglar productos de la lista',
+                label: fixList.isPending
+                  ? 'Arreglando la lista…'
+                  : 'Arreglar productos de la lista',
                 hint: 'Si la lista muestra productos de un flyer viejo o le faltan los del vigente: deja visibles sólo los del flyer de hoy.',
                 disabled: fixList.isPending || busy,
                 onClick: () => fixList.mutate(),
@@ -198,7 +200,9 @@ export default function CampaignAutomationCard({
               actions={
                 <Button
                   variant="outlined"
-                  onClick={() => onPreview(liveFlyer.fileUrl, liveFlyer.title || 'Flyer de campaña')}
+                  onClick={() =>
+                    onPreview(liveFlyer.fileUrl, liveFlyer.title || 'Flyer de campaña')
+                  }
                 >
                   Ver flyer
                 </Button>

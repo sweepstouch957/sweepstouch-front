@@ -10,7 +10,6 @@
  * las fotos por `Controller`). `useAiGuidance` lo envuelve con estado propio para quien no
  * tiene un formulario.
  */
-import { uploadCampaignImage } from '@/services/upload.service';
 import AddPhotoAlternateOutlinedIcon from '@mui/icons-material/AddPhotoAlternateOutlined';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import {
@@ -22,24 +21,11 @@ import {
   Typography,
   type TextFieldProps,
 } from '@mui/material';
-import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
-import toast from 'react-hot-toast';
+import { MAX_REFERENCE_IMAGES, useUploadReferences } from './use-upload-references';
 
 export const MAX_GUIDANCE_CHARS = 500;
-export const MAX_REFERENCE_IMAGES = 5;
-
-/** Sube fotos de referencia (hasta 5 en total) y devuelve sus URLs. */
-function useUploadReferences() {
-  return useMutation({
-    mutationFn: async (files: File[]) => {
-      const urls: string[] = [];
-      for (const f of files) urls.push((await uploadCampaignImage(f, 'circular-refs')).url);
-      return urls;
-    },
-    onError: () => toast.error('No se pudo subir la foto de referencia'),
-  });
-}
+export { MAX_REFERENCE_IMAGES };
 
 function ReferencePhotos({
   value,

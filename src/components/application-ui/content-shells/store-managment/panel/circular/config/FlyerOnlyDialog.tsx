@@ -81,8 +81,7 @@ export function FlyerOnlyDialog({
           severity="info"
           sx={{ mt: 2, borderRadius: 2 }}
         >
-          No se borra nada que ya esté en la lista. Puedes volver a Circular + flyer cuando
-          quieras.
+          No se borra nada que ya esté en la lista. Puedes volver a Circular + flyer cuando quieras.
         </Alert>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>

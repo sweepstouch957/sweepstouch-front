@@ -1,10 +1,11 @@
 'use client';
 
 /** "¿De dónde salen los productos?" (Store.flyerOnly): el único lugar donde se cambia. */
-import { circularService } from '@/services/circular.service';
+import { circularService } from '@/services/circular';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { useRefreshStoreData } from '../hooks';
+import { circularKeys } from '../query-keys';
 
 export function useFlyerOnly(storeId: string, storeSlug: string) {
   const qc = useQueryClient();
@@ -21,7 +22,7 @@ export function useFlyerOnly(storeId: string, storeSlug: string) {
           : 'Circular + flyer: el circular vigente vuelve a cargar',
         { duration: 8000 }
       );
-      qc.invalidateQueries({ queryKey: ['store', storeId] });
+      qc.invalidateQueries({ queryKey: circularKeys.store(storeId) });
       refresh();
     },
     onError: (e: any) =>

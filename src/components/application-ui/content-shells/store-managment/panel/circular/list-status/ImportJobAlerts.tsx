@@ -1,6 +1,6 @@
 'use client';
 
-import type { CampaignImportJob } from '@/services/circular.service';
+import type { CampaignImportJob } from '@/services/circular';
 import { Alert, Button, Stack, Typography } from '@mui/material';
 import { memo } from 'react';
 import { jobMessage } from './utils';

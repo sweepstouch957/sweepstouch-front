@@ -4,7 +4,8 @@
 import { updateStorePatch } from '@/services/store.service';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { digits } from './utils';
+import { digits } from '../domain/phone';
+import { circularKeys } from '../query-keys';
 
 export type ListsValues = { listsEnabled: boolean; listsLinkUrl: string };
 export type ListsPhoneValues = { listsPhone: string; listsPhoneEnabled: boolean };
@@ -26,7 +27,7 @@ export function useSaveListsSettings(storeId: string) {
           ? 'La tienda quiere lista: los agentes vuelven a cargar'
           : 'Sin lista: los agentes no cargarán flyers ni productos'
       );
-      qc.invalidateQueries({ queryKey: ['store', storeId] });
+      qc.invalidateQueries({ queryKey: circularKeys.store(storeId) });
     },
     onError: (e: any) => toast.error(errorMsg(e)),
   });
@@ -47,7 +48,7 @@ export function useSaveListsPhone(storeId: string) {
           ? 'Número guardado: ya sale en el bot'
           : 'Guardado: el bot no muestra el número'
       );
-      qc.invalidateQueries({ queryKey: ['store', storeId] });
+      qc.invalidateQueries({ queryKey: circularKeys.store(storeId) });
     },
     onError: (e: any) => toast.error(errorMsg(e)),
   });

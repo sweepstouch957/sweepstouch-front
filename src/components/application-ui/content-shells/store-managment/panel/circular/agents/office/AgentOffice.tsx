@@ -11,7 +11,7 @@
  * Presentacional: la bitácora y las acciones (guardar instrucción, arrancar la revisión)
  * llegan del contenedor; acá sólo vive el estado de la escena.
  */
-import type { Pipeline } from '@/services/circular.service';
+import type { Pipeline } from '@/services/circular';
 import { Box, Chip, CircularProgress, Stack, Typography, useTheme } from '@mui/material';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { ORDER, TEAM } from '../constants';

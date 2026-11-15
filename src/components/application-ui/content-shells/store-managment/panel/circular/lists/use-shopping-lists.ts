@@ -17,7 +17,7 @@ export function useShoppingLists(
     enabled: !!storeSlug,
   });
   const lists = useQuery({
-    queryKey: [...shoppingListsQK.lists(storeSlug, status), opts.q, opts.page, opts.limit],
+    queryKey: shoppingListsQK.listsPage(storeSlug, status, opts.q, opts.page, opts.limit),
     queryFn: () =>
       shoppingListsService.lists({
         storeSlug,
@@ -40,7 +40,7 @@ export function useShoppingLists(
  */
 export function useShoppingListActions() {
   const qc = useQueryClient();
-  const refresh = () => qc.invalidateQueries({ queryKey: ['shopping-lists'] });
+  const refresh = () => qc.invalidateQueries({ queryKey: shoppingListsQK.all() });
 
   const validate = useMutation({
     mutationFn: (v: { qrCode: string; items?: string[] }) =>

@@ -1,7 +1,7 @@
 'use client';
 
 /** Vida de la oficina: quién camina a dónde, el turno de paseo y los globos de respuesta. */
-import type { Pipeline } from '@/services/circular.service';
+import type { Pipeline } from '@/services/circular';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ORDER, type AgentStatus } from '../constants';
 import { BESIDE, DESK, iso, POI, SEAT, type Pt } from './geometry';

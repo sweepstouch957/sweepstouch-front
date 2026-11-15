@@ -1,14 +1,14 @@
 'use client';
 
 /** Perfil de la tienda para los agentes: reglas fijas, lecciones y departamentos aprendidos. */
-import { circularService } from '@/services/circular.service';
+import { circularService } from '@/services/circular';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { agentKeys } from './constants';
+import { circularKeys } from '../query-keys';
 
 export function useStoreProfile(storeSlug: string) {
   return useQuery({
-    queryKey: agentKeys.profile(storeSlug),
+    queryKey: circularKeys.profile(storeSlug),
     queryFn: () => circularService.getStoreProfile(storeSlug),
     staleTime: 60_000,
   });
@@ -20,7 +20,7 @@ export function useSaveStoreRules(storeSlug: string) {
   return useMutation({
     mutationFn: (rules: string) => circularService.saveStoreRules(storeSlug, rules),
     onSuccess: (d) => {
-      qc.setQueryData(agentKeys.profile(storeSlug), d);
+      qc.setQueryData(circularKeys.profile(storeSlug), d);
       toast.success('Reglas de la tienda guardadas');
     },
     onError: () => toast.error('No se pudieron guardar las reglas'),
@@ -34,7 +34,7 @@ export function useAddStoreLesson(storeSlug: string) {
     mutationFn: (text: string) => circularService.addStoreLesson(storeSlug, text),
     onSuccess: () => {
       toast.success('Lección guardada: los agentes la leen en la próxima lectura');
-      void qc.invalidateQueries({ queryKey: agentKeys.profile(storeSlug) });
+      void qc.invalidateQueries({ queryKey: circularKeys.profile(storeSlug) });
     },
     onError: () => toast.error('No se pudo guardar la lección'),
   });
@@ -47,7 +47,7 @@ export function useSendInstruction(storeSlug: string) {
   return useMutation({
     mutationFn: ({ text, agent }: { text: string; agent?: string }) =>
       circularService.addStoreLesson(storeSlug, text, agent),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: agentKeys.profile(storeSlug) }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: circularKeys.profile(storeSlug) }),
     onError: () => toast.error('No se pudo guardar la instrucción'),
   });
 }
@@ -56,7 +56,7 @@ export function useRemoveStoreLesson(storeSlug: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (index: number) => circularService.removeStoreLesson(storeSlug, index),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: agentKeys.profile(storeSlug) }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: circularKeys.profile(storeSlug) }),
     onError: () => toast.error('No se pudo borrar la lección'),
   });
 }

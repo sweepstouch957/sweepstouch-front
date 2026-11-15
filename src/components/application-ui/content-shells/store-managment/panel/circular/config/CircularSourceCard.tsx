@@ -9,7 +9,6 @@ import {
   PanelCard,
   SectionHeader,
 } from '@/components/application-ui/content-shells/store-managment/panel-kit';
-import { updateStorePatch } from '@/services/store.service';
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import {
   Box,
@@ -20,11 +19,8 @@ import {
   Switch,
   TextField,
 } from '@mui/material';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import toast from 'react-hot-toast';
 import { Controller, useForm } from 'react-hook-form';
-
-type Values = { circularssUrl: string; panelFirst: boolean };
+import { useSaveCircularSource, type CircularSourceValues as Values } from './use-circular-source';
 
 export function CircularSourceCard({
   storeId,
@@ -35,23 +31,10 @@ export function CircularSourceCard({
   circularssUrl?: string;
   circularPriority?: 'circularss' | 'panel';
 }) {
-  const qc = useQueryClient();
   const { control, register, handleSubmit, formState, reset } = useForm<Values>({
     defaultValues: { circularssUrl, panelFirst: circularPriority === 'panel' },
   });
-  const save = useMutation({
-    mutationFn: (v: Values) =>
-      updateStorePatch(storeId, {
-        circularssUrl: v.circularssUrl.trim() || null,
-        circularPriority: v.panelFirst ? 'panel' : 'circularss',
-      } as any),
-    onSuccess: (_r, v) => {
-      toast.success('Circular semanal guardado');
-      reset({ ...v, circularssUrl: v.circularssUrl.trim() });
-      qc.invalidateQueries({ queryKey: ['store', storeId] });
-    },
-    onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo guardar'),
-  });
+  const save = useSaveCircularSource(storeId);
   const { ref, ...urlField } = register('circularssUrl', {
     validate: (v) => !v.trim() || /^https?:\/\//i.test(v.trim()) || 'Debe empezar con http(s)://',
   });
@@ -65,7 +48,11 @@ export function CircularSourceCard({
       />
       <Box
         component="form"
-        onSubmit={handleSubmit((v) => save.mutate(v))}
+        onSubmit={handleSubmit((v) =>
+          save.mutate(v, {
+            onSuccess: () => reset({ ...v, circularssUrl: v.circularssUrl.trim() }),
+          })
+        )}
         sx={{ p: 2.25, display: 'grid', gap: 1.5 }}
       >
         <TextField

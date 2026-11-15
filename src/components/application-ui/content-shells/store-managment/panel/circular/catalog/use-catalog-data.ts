@@ -1,16 +1,17 @@
 'use client';
 
 /** Lecturas del catálogo: la página de productos, las categorías y las imágenes para recortar. */
-import { circularService, type Circular } from '@/services/circular.service';
+import { circularService, type Circular } from '@/services/circular';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import { qk, useStoreCirculars } from '../hooks';
+import { directImageOf, pickCurrent } from '../domain/circulars';
+import { useStoreCirculars } from '../hooks';
+import { circularKeys } from '../query-keys';
 import { CATEGORIES } from '../shared';
 import { PAGE_SIZE, type CatalogShow } from './constants';
-import { directImageOf, pickCurrent } from './utils';
 
 /** Paginado y buscado en el servidor: 50 por página. La clave incluye página y búsqueda;
- *  invalidar qk.catalog(storeSlug) sigue refrescando todas (prefijo). */
+ *  invalidar circularKeys.catalog(storeSlug) sigue refrescando todas (prefijo). */
 export function useCatalogPage(
   storeSlug: string,
   page: number,
@@ -18,7 +19,7 @@ export function useCatalogPage(
   show?: CatalogShow
 ) {
   return useQuery({
-    queryKey: [...qk.catalog(storeSlug), page, search.trim(), show || 'all'],
+    queryKey: circularKeys.catalogPage(storeSlug, page, search.trim(), show || 'all'),
     queryFn: () =>
       circularService.getCatalogAdmin(storeSlug, { page, limit: PAGE_SIZE, q: search, show }),
     enabled: !!storeSlug,
@@ -37,7 +38,7 @@ export function useCatalogPage(
  *  escribir una nueva ahí mismo. */
 export function useCategoryOptions(storeSlug: string) {
   const q = useQuery({
-    queryKey: qk.categories(storeSlug),
+    queryKey: circularKeys.categories(storeSlug),
     queryFn: () => circularService.getStoreCategories(storeSlug),
     enabled: !!storeSlug,
     staleTime: 60_000,
@@ -54,7 +55,7 @@ export function useEditorSources(storeSlug: string, editorOpen: boolean) {
   // Imagen del circular para "Recortar circular". Sólo se resuelve al abrir el editor:
   // si el circular es PDF, el servidor renderiza la primera página una vez y la cachea.
   const flyer = useQuery({
-    queryKey: qk.flyer(storeSlug),
+    queryKey: circularKeys.flyer(storeSlug),
     enabled: editorOpen && !!storeSlug,
     staleTime: 10 * 60_000,
     queryFn: async () => {

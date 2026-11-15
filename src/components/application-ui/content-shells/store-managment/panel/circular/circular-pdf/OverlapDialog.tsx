@@ -1,7 +1,14 @@
 'use client';
 
 /** Ya hay un circular en esas fechas: sobrescribir borra ese y deja el nuevo. */
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material';
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Typography,
+} from '@mui/material';
 import { fmtDate } from '../shared';
 import type { OverlapInfo } from './utils';
 

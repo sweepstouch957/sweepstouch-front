@@ -397,6 +397,10 @@ Lo que el proyecto todavía no tiene y debería, en orden de impacto:
 ## Referencias dentro del repo
 
 - Feature modelo completa: `src/components/application-ui/content-shells/tasks/`
+- Feature grande por capas (vista → hooks → `domain/` → service por subdominio, query keys
+  únicas, barreras de ESLint y pruebas de dominio): `content-shells/store-managment/panel/circular/`
+  — ver su `README.md`
+- Service partido por subdominio: `src/services/circular/`
 - Service modelo: `src/services/department.service.ts`
 - Hook de fetching modelo: `src/hooks/fetching/stores/useStoreById.ts`
 - Zustand modelo: `src/store/notificationsStore.ts`

@@ -1,5 +1,5 @@
 /** Tipos, constantes y formateadores puros de la pestaña Próximos. */
-import type { StoreBanner, StoreProduct, UpcomingGroup } from '@/services/circular.service';
+import type { StoreBanner, StoreProduct, UpcomingGroup } from '@/services/circular';
 
 const TZ = 'America/New_York';
 const DAY = 24 * 60 * 60 * 1000;
@@ -63,21 +63,6 @@ export function relDay(day: string) {
 /** "23 oct → 29 oct": el fin del banner es exclusivo, se muestra el último día que corre. */
 export const bannerRange = (b: UpcomingBanner) =>
   `${fmtShort(b.startDate)} → ${fmtShort(new Date(+new Date(b.endDate) - 1).toISOString())}`;
-
-export const errMsg = (e: any, fallback: string) =>
-  e?.response?.data?.error || e?.message || fallback;
-
-/** Letra chica que va a salir: caja, mostrador, condición de la oferta. */
-export function fineText(p: StoreProduct) {
-  const pend = p.pending;
-  return [
-    (pend?.packQty ?? 0) > 1 ? `Caja ${pend?.packQty} ${pend?.packUnit}` : '',
-    p.counterOnly ? 'Mostrador' : '',
-    p.offerCondition,
-  ]
-    .filter(Boolean)
-    .join(' · ');
-}
 
 /** Título legible del origen del grupo (campaña o circular). */
 export const originLabel = (c: NonNullable<UpcomingGroup['circular']>) =>

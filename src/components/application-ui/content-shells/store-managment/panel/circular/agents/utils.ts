@@ -1,5 +1,5 @@
 /** Helpers puros de la pestaña Agentes IA (sin React). */
-import type { Pipeline } from '@/services/circular.service';
+import type { Pipeline } from '@/services/circular';
 import type { AgentStatus, Tone } from './constants';
 
 /** Efectividad de la lectura → color: ≥95 bien, ≥85 mirar, menos = revisar. */

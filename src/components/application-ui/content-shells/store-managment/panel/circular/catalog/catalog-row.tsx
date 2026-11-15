@@ -1,6 +1,6 @@
 'use client';
 
-import type { StoreProduct } from '@/services/circular.service';
+import type { StoreProduct } from '@/services/circular';
 import { cloudinaryThumb } from '@/utils/cloudinary';
 import { Draggable } from '@hello-pangea/dnd';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
@@ -159,7 +159,11 @@ export const CatalogRow = memo(function CatalogRow({
               gap={0.5}
             >
               <Tooltip
-                title={dragDisabled ? 'Guardando orden…' : 'Arrastrar para cambiar el orden de las listas'}
+                title={
+                  dragDisabled
+                    ? 'Guardando orden…'
+                    : 'Arrastrar para cambiar el orden de las listas'
+                }
               >
                 <IconButton
                   {...dragProvided.dragHandleProps}

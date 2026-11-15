@@ -48,8 +48,8 @@ export function ClearCatalogDialog({
           color="text.secondary"
           sx={{ mb: 1.5 }}
         >
-          Se borra el catálogo completo de esta tienda ({count} productos) y desaparecen de la
-          lista del cliente. No se puede deshacer.
+          Se borra el catálogo completo de esta tienda ({count} productos) y desaparecen de la lista
+          del cliente. No se puede deshacer.
         </Typography>
         <Controller
           name="circulars"

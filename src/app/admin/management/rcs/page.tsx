@@ -21,7 +21,7 @@ import { useTranslation } from 'react-i18next';
 import PageHeading from 'src/components/base/page-heading';
 import { useCustomization } from 'src/hooks/use-customization';
 import { useStores } from '@/hooks/useStores';
-import { CircularService, Circular } from '@/services/circular.service';
+import { circularService, type Circular } from '@/services/circular';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -49,7 +49,6 @@ const CAT_LABEL: Record<string, string> = {
 };
 const displayCat = (c: string) => CAT_LABEL[c] ?? c.charAt(0).toUpperCase() + c.slice(1);
 
-const circularService = new CircularService();
 
 // ─── Step Badge ──────────────────────────────────────────────────────────────
 

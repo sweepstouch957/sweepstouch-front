@@ -1,28 +1,21 @@
 'use client';
 
 /** Un día de salida: cuándo sale, de dónde viene (campaña o circular) y sus productos. */
-import Image from 'next/image';
 import {
   PanelCard,
   panelDivider,
 } from '@/components/application-ui/content-shells/store-managment/panel-kit';
-import type { StoreProduct, UpcomingGroup } from '@/services/circular.service';
+import type { StoreProduct, UpcomingGroup } from '@/services/circular';
 import { cloudinaryThumb } from '@/utils/cloudinary';
 import CampaignRoundedIcon from '@mui/icons-material/CampaignRounded';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import RocketLaunchOutlinedIcon from '@mui/icons-material/RocketLaunchOutlined';
 import { alpha, Box, Button, Chip, Stack, Tooltip, Typography } from '@mui/material';
+import Image from 'next/image';
 import { memo, useCallback, useState } from 'react';
 import { MoreMenu } from '../panelUi';
 import UpcomingProductCard from './UpcomingProductCard';
-import {
-  fmtDay,
-  fmtMonth,
-  GROUP_PREVIEW,
-  originLabel,
-  relDay,
-  type UpcomingBanner,
-} from './utils';
+import { fmtDay, fmtMonth, GROUP_PREVIEW, originLabel, relDay, type UpcomingBanner } from './utils';
 
 type Props = {
   group: UpcomingGroup;
@@ -35,7 +28,10 @@ type Props = {
   agentsBusy: boolean;
   onEdit: (product: StoreProduct, group: UpcomingGroup) => void;
   onRephoto: (product: StoreProduct) => void;
-  onPatch: (id: string, body: { name?: string; brand?: string; size?: string; price?: string; originalPrice?: string }) => void;
+  onPatch: (
+    id: string,
+    body: { name?: string; brand?: string; size?: string; price?: string; originalPrice?: string }
+  ) => void;
   onPublishProduct: (product: StoreProduct) => void;
   onCancelProduct: (product: StoreProduct) => void;
   onPublishGroup: (group: UpcomingGroup) => void;

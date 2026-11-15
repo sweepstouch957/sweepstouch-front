@@ -4,13 +4,14 @@
  * Lógica de las herramientas de imagen: mutaciones (con sus toasts) y el "banco de trabajo"
  * de la imagen del editor (subir, pegar, recortar, limpiar, generar, rescanear).
  */
-import { circularService, type StoreProduct } from '@/services/circular.service';
+import { circularService, type StoreProduct } from '@/services/circular';
 import { useMutation } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import { errMsg } from '../domain/errors';
 import { CLEANING, type CropSource, type PctBox, type ProductFormValues } from './constants';
 import { aiClean, hostImage } from './image-api';
-import { errMsg, imageFromPaste, pendingOf, productBody, toDayInput } from './utils';
+import { imageFromPaste, pendingOf, productBody, toDayInput } from './utils';
 
 /* ─────────────── Pegar sobre una fila ─────────────── */
 
@@ -186,7 +187,9 @@ export function useImageWorkbench({
         onCropped();
       },
       fail:
-        cropping === 'campaign' ? 'No se pudo recortar el flyer' : 'No se pudo recortar el circular',
+        cropping === 'campaign'
+          ? 'No se pudo recortar el flyer'
+          : 'No se pudo recortar el circular',
     });
 
   const rescan = () =>

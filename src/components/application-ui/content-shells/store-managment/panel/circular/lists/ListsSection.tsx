@@ -56,7 +56,10 @@ export default function ListsSection({ storeSlug }: { storeSlug: string }) {
         details: [
           ['Cliente', who(l)],
           ['Lista', l.qrCode],
-          ['Productos que se validan', `${picked ? picked.length : l.totalItems} de ${l.totalItems}`],
+          [
+            'Productos que se validan',
+            `${picked ? picked.length : l.totalItems} de ${l.totalItems}`,
+          ],
         ],
         severity: 'primary',
         confirmLabel: 'Validar y acreditar',

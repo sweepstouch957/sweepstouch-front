@@ -7,7 +7,7 @@
  * fechas/título y se borra. Contenedor: queries y mutaciones; las piezas reciben props.
  */
 import { PanelCard } from '@/components/application-ui/content-shells/store-managment/panel-kit';
-import type { StoreBanner } from '@/services/circular.service';
+import type { StoreBanner } from '@/services/circular';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import { Box, Button, LinearProgress, Stack, Typography } from '@mui/material';
 import { useState } from 'react';

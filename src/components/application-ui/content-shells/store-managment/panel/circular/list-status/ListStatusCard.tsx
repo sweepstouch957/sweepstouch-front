@@ -17,6 +17,7 @@ import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import { Box, Button, Chip, Stack } from '@mui/material';
 import { useCallback, useMemo, useState } from 'react';
+import { jobsNeedingAttention } from '../domain/import-jobs';
 import { useCatalogSummary } from '../hooks';
 import { MoreMenu, type MoreMenuItem } from '../panelUi';
 import { fmtDate, ImagePreviewDialog } from '../shared';
@@ -32,7 +33,6 @@ import {
   useRetryImportJob,
   useRulingPreview,
 } from './use-list-status';
-import { jobsNeedingAttention } from './utils';
 
 type Props = {
   storeSlug: string;

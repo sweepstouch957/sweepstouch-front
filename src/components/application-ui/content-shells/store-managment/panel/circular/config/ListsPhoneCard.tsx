@@ -21,9 +21,9 @@ import {
   Typography,
 } from '@mui/material';
 import { Controller, useForm, useWatch, type Control } from 'react-hook-form';
+import { digits, prettyPhone, validateListsPhone } from '../domain/phone';
 import { Label } from '../panelUi';
 import { useSaveListsPhone, type ListsPhoneValues } from './use-lists-settings';
-import { digits, prettyPhone, validateListsPhone } from './utils';
 
 /** Cómo sale al final del mensaje del bot. */
 function Preview({ control }: { control: Control<ListsPhoneValues> }) {
@@ -41,7 +41,9 @@ function Preview({ control }: { control: Control<ListsPhoneValues> }) {
       }}
     >
       {ok
-        ? `…\n3️⃣ Just browsing\n\n📞 Questions about your list? Contact the store: ${prettyPhone(phone)}`
+        ? `…\n3️⃣ Just browsing\n\n📞 Questions about your list? Contact the store: ${prettyPhone(
+            phone
+          )}`
         : 'Apagado: el bot no muestra ningún número de la tienda.'}
     </Box>
   );

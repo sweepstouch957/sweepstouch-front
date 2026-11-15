@@ -2,11 +2,11 @@
 
 /** Trabajos largos del catálogo que corren en el backend y se siguen por sondeo:
  *  rescanear fotos (Gauche) y completar marca / tamaño. */
-import { circularService, type CatalogSummary } from '@/services/circular.service';
+import { circularService, type CatalogSummary } from '@/services/circular';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { qk } from '../hooks';
+import { circularKeys } from '../query-keys';
 import type { RescanMode, SourceKind } from './constants';
 
 type Ruling = CatalogSummary['ruling'];
@@ -21,7 +21,7 @@ export function useRescanPhotos(storeSlug: string, ruling: Ruling) {
   const qc = useQueryClient();
   const [watch, setWatch] = useState(false);
   const status = useQuery({
-    queryKey: ['catalog-rescan', storeSlug],
+    queryKey: circularKeys.rescanJob(storeSlug),
     queryFn: () => circularService.rescanPhotosStatus(storeSlug),
     enabled: watch,
     refetchInterval: (q) => (q.state.data?.job && !q.state.data.job.finishedAt ? 3000 : false),
@@ -36,7 +36,7 @@ export function useRescanPhotos(storeSlug: string, ruling: Ruling) {
     const done = j?.done ?? 0;
     if (done !== seen.current) {
       seen.current = done;
-      qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) });
+      qc.invalidateQueries({ queryKey: circularKeys.catalog(storeSlug) });
     }
     if (!j?.finishedAt) return;
     setWatch(false);
@@ -85,7 +85,7 @@ export function useFillDetails(storeSlug: string) {
   const qc = useQueryClient();
   const [watch, setWatch] = useState(false);
   const status = useQuery({
-    queryKey: ['catalog-details', storeSlug],
+    queryKey: circularKeys.detailsJob(storeSlug),
     queryFn: () => circularService.fillDetailsStatus(storeSlug),
     enabled: watch,
     refetchInterval: (q) => (q.state.data?.job && !q.state.data.job.finishedAt ? 3000 : false),
@@ -101,7 +101,7 @@ export function useFillDetails(storeSlug: string) {
         `Marca y tamaño: ${j.updated} de ${j.total} productos completados leyendo "${j.circularTitle}"`,
         { duration: 7000 }
       );
-    qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) });
+    qc.invalidateQueries({ queryKey: circularKeys.catalog(storeSlug) });
   }, [status.data, watch, qc, storeSlug]);
 
   const start = useMutation({

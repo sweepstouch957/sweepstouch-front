@@ -1,12 +1,12 @@
 'use client';
 
 /** Escrituras del catálogo: cada una con su toast y sus invalidaciones. */
-import { circularService, type StoreProduct } from '@/services/circular.service';
+import { circularService, type StoreProduct } from '@/services/circular';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { qk } from '../hooks';
-import { regularFromPrice } from '../shared';
+import { regularFromPrice } from '../domain/prices';
+import { circularKeys } from '../query-keys';
 import type { PendingPatch, ProductPatch, SourceKind } from './constants';
 import { plural } from './utils';
 
@@ -16,7 +16,7 @@ const apiError = (e: any, fallback: string) => e?.response?.data?.error || fallb
 export function useRefreshCatalog(storeSlug: string) {
   const qc = useQueryClient();
   return useCallback(
-    () => qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) }),
+    () => qc.invalidateQueries({ queryKey: circularKeys.catalog(storeSlug) }),
     [qc, storeSlug]
   );
 }
@@ -27,7 +27,7 @@ export function useProductPatches(storeSlug: string) {
   const { mutate: patchMutate } = useMutation({
     mutationFn: ({ id, body }: { id: string; body: ProductPatch }) =>
       circularService.updateStoreProduct(id, body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: circularKeys.catalog(storeSlug) }),
     onError: (e: any) => toast.error(apiError(e, 'No se pudo guardar')),
   });
   // Producto con precio esperando fecha: la celda edita el que VA a salir (pending), por la
@@ -36,8 +36,8 @@ export function useProductPatches(storeSlug: string) {
     mutationFn: ({ id, body }: { id: string; body: PendingPatch }) =>
       circularService.updatePending(id, body),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) });
-      qc.invalidateQueries({ queryKey: qk.upcoming(storeSlug) });
+      qc.invalidateQueries({ queryKey: circularKeys.catalog(storeSlug) });
+      qc.invalidateQueries({ queryKey: circularKeys.upcoming(storeSlug) });
     },
     onError: (e: any) => toast.error(apiError(e, 'No se pudo guardar el precio futuro')),
   });
@@ -53,7 +53,7 @@ export function useProductPatches(storeSlug: string) {
   const onCategory = useCallback(
     (id: string, category: string) => {
       patchMutate({ id, body: { category } });
-      qc.invalidateQueries({ queryKey: qk.categories(storeSlug) });
+      qc.invalidateQueries({ queryKey: circularKeys.categories(storeSlug) });
     },
     [patchMutate, qc, storeSlug]
   );
@@ -69,14 +69,14 @@ export function useSaveOrder() {
       circularService.saveCatalogOrder(store, ids, offset || 0),
     onMutate: async (order) => {
       setPendingOrder(order);
-      await qc.cancelQueries({ queryKey: qk.catalog(order.store) });
+      await qc.cancelQueries({ queryKey: circularKeys.catalog(order.store) });
     },
     onSuccess: () => toast.success('Orden guardado para las listas.'),
     onError: (error: Error) => toast.error(error.message || 'No se pudo guardar el orden.'),
     onSettled: async (_data, _error, order) => {
       try {
         // Reload even on partial failure: the screen must reflect what the backend actually saved.
-        await qc.invalidateQueries({ queryKey: qk.catalog(order.store) });
+        await qc.invalidateQueries({ queryKey: circularKeys.catalog(order.store) });
       } finally {
         setPendingOrder(null);
       }
@@ -91,7 +91,7 @@ export function useRemoveProduct(storeSlug: string) {
     mutationFn: (id: string) => circularService.deleteStoreProduct(id),
     onSuccess: () => {
       toast.success('Producto eliminado');
-      qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) });
+      qc.invalidateQueries({ queryKey: circularKeys.catalog(storeSlug) });
     },
     onError: (e: any) => toast.error(apiError(e, 'No se pudo eliminar')),
   });
@@ -118,7 +118,7 @@ export function useCleanImages(storeSlug: string) {
       );
       // El refetchInterval del catálogo (mientras `cleaning`) ya lo va refrescando: estos
       // dos son el respaldo si el flag se apaga antes de que caigan las últimas fotos.
-      const refresh = () => qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) });
+      const refresh = () => qc.invalidateQueries({ queryKey: circularKeys.catalog(storeSlug) });
       lateTimers.current.forEach(clearTimeout);
       lateTimers.current = [setTimeout(refresh, 60_000), setTimeout(refresh, 180_000)];
     },
@@ -137,8 +137,8 @@ export function useClearCatalog(storeSlug: string) {
           d.circulars ? ` · ${d.circulars} circular(es) vaciado(s)` : ''
         }`
       );
-      qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) });
-      qc.invalidateQueries({ queryKey: qk.circulars(storeSlug) });
+      qc.invalidateQueries({ queryKey: circularKeys.catalog(storeSlug) });
+      qc.invalidateQueries({ queryKey: circularKeys.circulars(storeSlug) });
     },
     onError: (e: any) => toast.error(apiError(e, 'No se pudo borrar')),
   });
@@ -159,7 +159,7 @@ export function useSyncVisibility(storeSlug: string) {
               d.hidden
             } productos ocultados`
       );
-      qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) });
+      qc.invalidateQueries({ queryKey: circularKeys.catalog(storeSlug) });
     },
     onError: (e: any) => toast.error(apiError(e, 'No se pudo sincronizar la visibilidad')),
   });
@@ -180,13 +180,17 @@ export function useFillRegulars(storeSlug: string) {
     },
     onSuccess: (n) => {
       toast.success(
-        `${n} precio${plural(n, '', 's')} regular${plural(n, '', 'es')} calculado${plural(n, '', 's')}`
+        `${n} precio${plural(n, '', 's')} regular${plural(n, '', 'es')} calculado${plural(
+          n,
+          '',
+          's'
+        )}`
       );
-      qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) });
+      qc.invalidateQueries({ queryKey: circularKeys.catalog(storeSlug) });
     },
     onError: (e: any) => {
       toast.error(apiError(e, 'No se pudieron calcular todos'));
-      qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) });
+      qc.invalidateQueries({ queryKey: circularKeys.catalog(storeSlug) });
     },
   });
 }

@@ -1,5 +1,5 @@
 /** Helpers puros del banner de las listas: fechas en hora del Este, estado y valores del form. */
-import type { StoreBanner } from '@/services/circular.service';
+import type { StoreBanner } from '@/services/circular';
 
 export const HISTORY_PREVIEW = 4;
 
@@ -9,19 +9,6 @@ export const toDay = (iso?: string) =>
   iso ? new Date(iso).toLocaleDateString('en-CA', { timeZone: TZ }) : '';
 const today = () => toDay(new Date().toISOString());
 const plusDays = (n: number) => toDay(new Date(Date.now() + n * 86_400_000).toISOString());
-
-export type BannerStatus = {
-  label: string;
-  color: 'success' | 'info' | 'default' | 'warning';
-};
-
-export const bannerStatus = (b: StoreBanner, activeId?: string): BannerStatus => {
-  const now = Date.now();
-  if (b._id === activeId) return { label: 'Vigente', color: 'success' };
-  if (+new Date(b.startDate) > now) return { label: 'Programado', color: 'info' };
-  if (+new Date(b.endDate) < now) return { label: 'Vencido', color: 'default' };
-  return { label: 'Tapado por uno más nuevo', color: 'warning' };
-};
 
 export type BannerValues = {
   imageUrl: string;
@@ -41,8 +28,6 @@ export const bannerDefaults = (b?: StoreBanner | null): BannerValues =>
         endDate: toDay(b.endDate),
       }
     : { imageUrl: '', title: '', startDate: today(), endDate: plusDays(6) };
-
-export const validRange = (start?: string, end?: string) => !!start && !!end && end >= start;
 
 // Marco 3:1 común a vigente, formulario e historial: todos los banners se ven con la misma forma.
 export const bannerFrame = {

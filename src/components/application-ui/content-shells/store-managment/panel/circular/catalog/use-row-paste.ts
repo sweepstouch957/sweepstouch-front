@@ -1,6 +1,6 @@
 'use client';
 
-import type { StoreProduct } from '@/services/circular.service';
+import type { StoreProduct } from '@/services/circular';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { imageFromPaste } from '../ProductImageTools';

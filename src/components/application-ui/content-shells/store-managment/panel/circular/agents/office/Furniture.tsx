@@ -202,14 +202,7 @@ export const Plant = memo(function Plant({ x, y }: { x: number; y: number }) {
 });
 
 /** Fogata: donde se juntan los que esperan. */
-export const Coffee = memo(function Coffee({
-  x,
-  y,
-}: {
-  x: number;
-  y: number;
-  pal: OfficePalette;
-}) {
+export const Coffee = memo(function Coffee({ x, y }: { x: number; y: number; pal: OfficePalette }) {
   const p = iso(x + 0.5, y + 0.4);
   return (
     <g transform={`translate(${p.x},${p.y})`}>

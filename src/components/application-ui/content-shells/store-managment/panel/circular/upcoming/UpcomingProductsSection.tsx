@@ -1,5 +1,4 @@
 'use client';
-import { textHas } from '@/utils/text';
 
 /**
  * Próximos: productos que ya están en el catálogo pero salen en una fecha (vienen de una
@@ -13,7 +12,8 @@ import {
   EmptyBlock,
   PanelCard,
 } from '@/components/application-ui/content-shells/store-managment/panel-kit';
-import type { StoreProduct, UpcomingGroup } from '@/services/circular.service';
+import type { StoreProduct, UpcomingGroup } from '@/services/circular';
+import { textHas } from '@/utils/text';
 import EventRoundedIcon from '@mui/icons-material/EventRounded';
 import { Box, Stack } from '@mui/material';
 import { useCallback, useDeferredValue, useMemo, useState } from 'react';
@@ -45,8 +45,10 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
     useUpcomingActions(storeSlug);
   const { mutate: patchMutate } = patch;
   const handlePatch = useCallback(
-    (id: string, body: { name?: string; brand?: string; size?: string; price?: string; originalPrice?: string }) =>
-      patchMutate({ id, body }),
+    (
+      id: string,
+      body: { name?: string; brand?: string; size?: string; price?: string; originalPrice?: string }
+    ) => patchMutate({ id, body }),
     [patchMutate]
   );
   // `mutate` de React Query es estable: las cards memoizadas no se repintan por esto.

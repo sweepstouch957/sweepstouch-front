@@ -1,10 +1,10 @@
 'use client';
 
 /** Historial de circulares: los primeros 4 y "Ver todos" para el resto. */
-import type { Circular } from '@/services/circular.service';
+import { EmptyBlock } from '@/components/application-ui/content-shells/store-managment/panel-kit';
+import type { Circular } from '@/services/circular';
 import { Box, Button, Stack, Typography } from '@mui/material';
 import { useState } from 'react';
-import { EmptyBlock } from '@/components/application-ui/content-shells/store-managment/panel-kit';
 import { circularLabel } from '../shared';
 import { ListRowsSkeleton } from '../skeletons';
 import HistoryRow from './HistoryRow';

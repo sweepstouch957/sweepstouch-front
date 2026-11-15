@@ -33,7 +33,9 @@ export default function PdfDropzone({
       ? file.name
       : 'Arrastra el PDF o la imagen del circular (o sus páginas sueltas), o haz clic';
   const hint = many
-    ? `${mb(files.reduce((n, f) => n + f.size, 0))} en total · se leen en este orden como un solo circular`
+    ? `${mb(
+        files.reduce((n, f) => n + f.size, 0)
+      )} en total · se leen en este orden como un solo circular`
     : file
       ? `${mb(file.size)} · la IA extrae los productos al agendar`
       : 'PDF o imagen (JPG, PNG). Si te lo mandan por páginas, suéltalas todas juntas. Las fotos de referencia del cliente van abajo.';

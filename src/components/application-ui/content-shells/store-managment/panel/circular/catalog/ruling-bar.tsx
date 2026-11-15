@@ -1,7 +1,7 @@
 'use client';
 
 /** El flyer (o circular) que manda hoy: verlo y rescanear sólo SUS productos. */
-import type { CatalogSummary } from '@/services/circular.service';
+import type { CatalogSummary } from '@/services/circular';
 import { Button, Chip, Stack } from '@mui/material';
 import { fmtDate } from '../shared';
 

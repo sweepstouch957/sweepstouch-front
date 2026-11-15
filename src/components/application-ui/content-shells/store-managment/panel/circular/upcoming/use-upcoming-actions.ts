@@ -4,15 +4,12 @@
  * Mutaciones de la pestaña Próximos. Los toasts viven acá; cerrar diálogos o abrir el editor
  * lo decide el contenedor con el `onSuccess` de cada llamada.
  */
-import {
-  circularService,
-  type StoreProduct,
-  type UpcomingGroup,
-} from '@/services/circular.service';
+import { circularService, type StoreProduct, type UpcomingGroup } from '@/services/circular';
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { errMsg } from '../domain/errors';
 import { useRefreshStoreData } from '../hooks';
-import { errMsg, type AgentsOptions, type Confirm, type EditorTarget } from './utils';
+import { type AgentsOptions, type Confirm, type EditorTarget } from './utils';
 
 // Imagen para recortar: la del arte/circular del que salió ESTE producto (no el vigente).
 // Si es PDF se pide la portada renderizada (queda cacheada en el servidor).
@@ -95,7 +92,19 @@ export function useUpcomingActions(storeSlug: string) {
 
   // Nombre, marca y tamaño editables en la card: lo corregido a mano queda protegido de relecturas.
   const patch = useMutation({
-    mutationFn: ({ id, body }: { id: string; body: { name?: string; brand?: string; size?: string; price?: string; originalPrice?: string } }) =>
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: string;
+      body: {
+        name?: string;
+        brand?: string;
+        size?: string;
+        price?: string;
+        originalPrice?: string;
+      };
+    }) =>
       // Precio y regular de un próximo viven en `pending` (lo que VA a salir): si se
       // guardaran en el precio de hoy, el día de la fecha el pendiente los pisaría.
       {

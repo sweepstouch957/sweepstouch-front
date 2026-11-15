@@ -1,7 +1,7 @@
 'use client';
 
 /** Paso 3 · Auditoría por página (Vanessa): % de acierto por página y lo que corrigió sola. */
-import type { AuditVerification, PageAudit } from '@/services/circular.service';
+import type { AuditVerification, PageAudit } from '@/services/circular';
 import { Box, Button, Chip, CircularProgress, Stack, Tooltip, Typography } from '@mui/material';
 import { memo } from 'react';
 import AgentCard, { EmptyLine } from './AgentCard';

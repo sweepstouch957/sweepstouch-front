@@ -1,19 +1,19 @@
 'use client';
 
 /** Bitácora de los robots y auditoría por página: queries, mutación y sincronía con el resto. */
-import { circularService, type Circular, type Pipeline } from '@/services/circular.service';
+import { circularService, type Circular, type Pipeline } from '@/services/circular';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { qk, useRefreshStoreData, useStoreCirculars } from '../hooks';
-import { agentKeys } from './constants';
+import { useRefreshStoreData, useStoreCirculars } from '../hooks';
+import { circularKeys } from '../query-keys';
 import { lastStepAt } from './utils';
 
 /** Bitácora de un circular. Quieto se sondea cada 15 s: un job puede arrancar desde Productos
  *  ("Completar marca/tamaño", "Rescanear fotos") o desde el cron, y la oficina debe verlo. */
 export function usePipeline(id?: string) {
   return useQuery({
-    queryKey: agentKeys.pipeline(id),
+    queryKey: circularKeys.pipeline(id),
     queryFn: () => circularService.getPipeline(id!),
     enabled: !!id,
     refetchInterval: (q) => (q.state.data?.running ? 3000 : 15_000),
@@ -47,7 +47,7 @@ export function useActivePipeline(storeSlug: string) {
 /** Auditoría por página: % de efectividad de la extracción y correcciones hechas. */
 export function useCircularAudit(circular: Circular | null) {
   return useQuery({
-    queryKey: agentKeys.audit(circular?._id),
+    queryKey: circularKeys.audit(circular?._id),
     queryFn: () => circularService.getAudit(circular!._id),
     enabled: !!circular?._id && !!circular?.fileUrl,
     refetchInterval: (q) => (q.state.data?.running ? 4000 : false),
@@ -89,8 +89,8 @@ export function usePipelineSync(data: Pipeline | null, storeSlug: string, enable
     // Mientras corre, cada novedad refresca sólo circular + catálogo (lo que cambia página a
     // página); el refresco completo (próximos, banners…) va una vez al terminar.
     if (data.running && sig !== lastSig.current && lastSig.current) {
-      qc.invalidateQueries({ queryKey: qk.circulars(storeSlug) });
-      qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) });
+      qc.invalidateQueries({ queryKey: circularKeys.circulars(storeSlug) });
+      qc.invalidateQueries({ queryKey: circularKeys.catalog(storeSlug) });
     }
     lastSig.current = sig;
     if (wasRunning.current && !data.running) {

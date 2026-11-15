@@ -22,7 +22,8 @@ import {
   Typography,
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
-import { fmtDate, money, parsePriceNum, statusChip } from '../shared';
+import { parsePriceNum } from '../domain/prices';
+import { fmtDate, money, statusChip } from '../shared';
 import { expiryText } from './ListRow';
 
 /** ISO → valor de <input type="datetime-local"> en hora local. */
@@ -252,7 +253,11 @@ export default function ListDetailDialog({
                   </Box>
                   <Typography
                     variant="body2"
-                    sx={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', fontWeight: 600 }}
+                    sx={{
+                      fontVariantNumeric: 'tabular-nums',
+                      whiteSpace: 'nowrap',
+                      fontWeight: 600,
+                    }}
                   >
                     {it.price || '—'}
                   </Typography>

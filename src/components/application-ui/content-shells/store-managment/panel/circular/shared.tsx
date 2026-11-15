@@ -39,28 +39,13 @@ export const money = (v: number | null | undefined) => usd.format(Number(v ?? 0)
 // Un solo formateador (crear uno por llamada en listas largas se nota).
 // Las fechas de circulares/campañas son días de la tienda (Este): se muestran en esa zona,
 // no en la del navegador (en Honduras, UTC-6, el 2 oct a las 00:00 ET se veía como 1 oct).
-const dateFmt = new Intl.DateTimeFormat('es', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'America/New_York' });
+const dateFmt = new Intl.DateTimeFormat('es', {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'America/New_York',
+});
 export const fmtDate = (iso?: string | null) => (iso ? dateFmt.format(new Date(iso)) : '—');
-
-/** Precio por unidad desde el string del flyer: "$2.99", "99¢/lb", "2/$5". */
-export function parsePriceNum(price?: string | null): number {
-  if (!price) return 0;
-  const s = String(price);
-  const multi = s.match(/(\d+)\s*\/\s*\$?([\d.]+)/);
-  if (multi) {
-    const n = parseInt(multi[1], 10);
-    const t = parseFloat(multi[2]);
-    return n > 0 ? t / n : t;
-  }
-  if (s.includes('¢')) return (parseFloat(s.replace(/[^0-9.]/g, '')) || 0) / 100;
-  return parseFloat(s.replace(/[^0-9.]/g, '')) || 0;
-}
-
-/** Regular estimado = oferta × 1.25 — misma regla que circular-service. */
-export function regularFromPrice(price?: string | null): string | null {
-  const unit = parsePriceNum(price);
-  return unit > 0 ? `$${(unit * 1.25).toFixed(2)}` : null;
-}
 
 export const STATUS_CHIP: Record<
   string,

@@ -1,7 +1,7 @@
 'use client';
 
 /** Pegar sobre una fila: confirmar el reemplazo de la imagen de un producto con lo pegado (Ctrl+V). */
-import type { StoreProduct } from '@/services/circular.service';
+import type { StoreProduct } from '@/services/circular';
 import {
   Box,
   Button,

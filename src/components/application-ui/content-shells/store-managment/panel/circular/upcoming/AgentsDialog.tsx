@@ -4,7 +4,7 @@
  * Poner a los agentes a trabajar sobre un flyer que todavía no salió. Se monta al abrir
  * (`{group && <AgentsDialog/>}`): el form arranca con sus valores por defecto cada vez.
  */
-import type { UpcomingGroup } from '@/services/circular.service';
+import type { UpcomingGroup } from '@/services/circular';
 import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
 import {
   Button,
@@ -101,8 +101,8 @@ export default function AgentsDialog({
           variant="body2"
           sx={{ mt: 1.5 }}
         >
-          <b>Vanessa</b> coteja precios, nombres y letra chica contra el arte. Lo seguro lo
-          corrige; lo dudoso queda en Agentes IA para decidir.
+          <b>Vanessa</b> coteja precios, nombres y letra chica contra el arte. Lo seguro lo corrige;
+          lo dudoso queda en Agentes IA para decidir.
         </Typography>
         <AgentCheck
           field={register('photos')}

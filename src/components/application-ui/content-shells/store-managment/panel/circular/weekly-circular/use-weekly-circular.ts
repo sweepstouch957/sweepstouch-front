@@ -1,10 +1,10 @@
 'use client';
 
-import { circularService } from '@/services/circular.service';
+import { circularService } from '@/services/circular';
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { useRefreshStoreData } from '../hooks';
 import { sortFilesByName } from '../circular-pdf/utils';
+import { useRefreshStoreData } from '../hooks';
 
 /**
  * Llegaron páginas después (o alguna falló al subir): se agregan al final del circular, una
@@ -21,7 +21,9 @@ export function useAppendPages(storeSlug: string) {
     },
     onSuccess: (n) => {
       toast.success(
-        `${n} página${n === 1 ? '' : 's'} agregada${n === 1 ? '' : 's'}. Vuelve a extraer para leerlas.`
+        `${n} página${n === 1 ? '' : 's'} agregada${
+          n === 1 ? '' : 's'
+        }. Vuelve a extraer para leerlas.`
       );
       refreshAll();
     },

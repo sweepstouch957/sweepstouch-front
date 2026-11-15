@@ -3,9 +3,10 @@
 /** Celda de precio editable (oferta / regular / ahorro). Con precio esperando fecha, edita el
  *  FUTURO (pending) y el de hoy se muestra abajo, sólo lectura. Sin pendiente, edita el de hoy
  *  como siempre. */
-import type { StoreProduct } from '@/services/circular.service';
+import type { StoreProduct } from '@/services/circular';
 import { Button, TableCell, TextField, Tooltip, Typography } from '@mui/material';
-import { cell, fmtDate, regularFromPrice } from '../shared';
+import { regularFromPrice } from '../domain/prices';
+import { cell, fmtDate } from '../shared';
 import type { PendingPatch, ProductPatch } from './constants';
 
 type PriceField = 'price' | 'originalPrice' | 'savings';
@@ -40,7 +41,9 @@ export function PriceCell({
   };
   // Sin regular: se estima con la misma regla del backend (+25%)
   const estimate =
-    field === 'originalPrice' && !pend && !p.originalPrice?.trim() ? regularFromPrice(p.price) : null;
+    field === 'originalPrice' && !pend && !p.originalPrice?.trim()
+      ? regularFromPrice(p.price)
+      : null;
 
   return (
     <TableCell

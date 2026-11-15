@@ -1,14 +1,14 @@
 'use client';
 
-import type { CatalogSummary } from '@/services/circular.service';
+import type { CatalogSummary } from '@/services/circular';
 import { ChoiceDialog, type ChoiceOption } from './choice-dialog';
 import type { RescanMode } from './constants';
 
 const NOTE = (
   <>
-    &quot;Sólo las malas&quot; = sin foto o con recorte crudo. &quot;Todas&quot; rehace también
-    las que ya están limpias (útil si quedaron con el vecino o con varios productos). Para una
-    sola foto, ábrela con el lápiz y usa &quot;Rescanear foto&quot;.
+    &quot;Sólo las malas&quot; = sin foto o con recorte crudo. &quot;Todas&quot; rehace también las
+    que ya están limpias (útil si quedaron con el vecino o con varios productos). Para una sola
+    foto, ábrela con el lápiz y usa &quot;Rescanear foto&quot;.
   </>
 );
 

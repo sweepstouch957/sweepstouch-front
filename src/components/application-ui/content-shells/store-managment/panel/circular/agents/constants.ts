@@ -3,15 +3,7 @@
  * etiquetas. Un solo lugar para lo que antes estaba repetido entre la oficina, la bitácora
  * y las tarjetas.
  */
-import type { Pipeline, ProductReviewItem } from '@/services/circular.service';
-
-/** Claves de esta pestaña (las compartidas con otras secciones viven en `../hooks` → `qk`). */
-export const agentKeys = {
-  pipeline: (circularId?: string | null) => ['circular-pipeline', circularId] as const,
-  audit: (circularId?: string) => ['circular-audit', circularId] as const,
-  profile: (storeSlug: string) => ['store-profile', storeSlug] as const,
-  review: (storeSlug: string) => ['product-review', storeSlug] as const,
-};
+import type { Pipeline, ProductReviewItem } from '@/services/circular';
 
 export type AgentStatus = 'waiting' | 'running' | 'done' | 'error';
 export type Tone = 'success' | 'warning' | 'error';

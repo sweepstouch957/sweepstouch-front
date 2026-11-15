@@ -1,7 +1,7 @@
 'use client';
 
 /** Hablando con el elegido: qué hace, qué está haciendo ahora y desde cuándo. */
-import type { AgentStep, Pipeline } from '@/services/circular.service';
+import type { AgentStep, Pipeline } from '@/services/circular';
 import { alpha, Box, Chip, Stack, Typography } from '@mui/material';
 import { AGENT_STATUS, DETAIL, type AgentStatus } from '../constants';
 import { fmtStamp } from '../utils';

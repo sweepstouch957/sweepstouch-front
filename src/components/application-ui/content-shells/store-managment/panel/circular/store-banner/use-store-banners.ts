@@ -1,11 +1,12 @@
 'use client';
 
 /** Datos del banner de las listas: la query (con sondeo sólo mientras la IA trabaja) y sus mutaciones. */
-import { circularService } from '@/services/circular.service';
+import { circularService } from '@/services/circular';
 import { uploadCampaignImage } from '@/services/upload.service';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { qk, useCampaignImportJob, useCircularBusy, useLastCampaignArt } from '../hooks';
+import { useCampaignImportJob, useCircularBusy, useLastCampaignArt } from '../hooks';
+import { circularKeys } from '../query-keys';
 import type { BannerValues } from './utils';
 
 const errorText = (e: any, fallback: string) => e?.response?.data?.error || fallback;
@@ -19,7 +20,7 @@ export function useStoreBanners(storeSlug: string, storeId?: string) {
   // campaña): recién ahí se consulta seguido. Antes era cada 20 s siempre.
   const aiWorking = busy || job.data?.status === 'queued' || job.data?.status === 'running';
   const banners = useQuery({
-    queryKey: qk.banners(storeSlug),
+    queryKey: circularKeys.banners(storeSlug),
     queryFn: () => circularService.getStoreBanners(storeSlug),
     enabled: !!storeSlug,
     staleTime: 30_000,
@@ -40,7 +41,7 @@ export function useBannerFromFlyer(storeSlug: string) {
     mutationFn: (sourceUrl?: string) => circularService.bannerFromFlyer(storeSlug, sourceUrl),
     onSuccess: () => {
       toast.success('Banner sacado del flyer');
-      qc.invalidateQueries({ queryKey: qk.banners(storeSlug) });
+      qc.invalidateQueries({ queryKey: circularKeys.banners(storeSlug) });
     },
     onError: (e: any) => toast.error(errorText(e, 'No se pudo sacar el banner')),
   });
@@ -62,7 +63,7 @@ export function useSaveBanner(storeSlug: string) {
       ),
     onSuccess: (_d, { id }) => {
       toast.success(id ? 'Banner actualizado' : 'Banner guardado');
-      qc.invalidateQueries({ queryKey: qk.banners(storeSlug) });
+      qc.invalidateQueries({ queryKey: circularKeys.banners(storeSlug) });
     },
     onError: (e: any) => toast.error(errorText(e, 'No se pudo guardar el banner')),
   });
@@ -74,7 +75,7 @@ export function useDeleteBanner(storeSlug: string) {
     mutationFn: (id: string) => circularService.deleteStoreBanner(id),
     onSuccess: () => {
       toast.success('Banner eliminado');
-      qc.invalidateQueries({ queryKey: qk.banners(storeSlug) });
+      qc.invalidateQueries({ queryKey: circularKeys.banners(storeSlug) });
     },
     onError: (e: any) => toast.error(errorText(e, 'No se pudo eliminar')),
   });

@@ -23,9 +23,16 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { Controller, useForm, useWatch, type Control, type FormState, type UseFormRegister } from 'react-hook-form';
+import {
+  Controller,
+  useForm,
+  useWatch,
+  type Control,
+  type FormState,
+  type UseFormRegister,
+} from 'react-hook-form';
+import { validateListsLink } from '../domain/phone';
 import { useSaveListsSettings, type ListsValues } from './use-lists-settings';
-import { validateListsLink } from './utils';
 
 /** Lo que sólo aparece con "No quiere lista". Observa el switch acá para no repintar la tarjeta. */
 function NoListExtras({

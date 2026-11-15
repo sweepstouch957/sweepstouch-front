@@ -1,7 +1,7 @@
 'use client';
 
 /** Paso 1 · Los robots del circular: la oficina y, plegada, la bitácora en texto. */
-import type { Pipeline } from '@/services/circular.service';
+import type { Pipeline } from '@/services/circular';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import { Accordion, AccordionDetails, AccordionSummary, Stack, Typography } from '@mui/material';
 import type { ComponentProps } from 'react';

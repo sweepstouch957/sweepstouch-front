@@ -7,12 +7,19 @@
  * calidad de la lectura (efectividad de la auditoría, repetidos, sin foto) con acceso
  * directo a donde se corrige.
  */
-import { circularService, type Circular } from '@/services/circular.service';
 import CampaignRoundedIcon from '@mui/icons-material/CampaignRounded';
 import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
 import ZoomInRoundedIcon from '@mui/icons-material/ZoomInRounded';
-import { Box, ButtonBase, Chip, Skeleton, Stack, Tooltip, Typography, useTheme } from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
+import {
+  Box,
+  ButtonBase,
+  Chip,
+  Skeleton,
+  Stack,
+  Tooltip,
+  Typography,
+  useTheme,
+} from '@mui/material';
 import { memo, useState, type ReactNode } from 'react';
 import { tint } from 'src/theme/semantic';
 import { panelBorder } from '../../../panel-kit';
@@ -20,7 +27,6 @@ import { useCircularAudit } from '../agents/use-pipeline';
 import { accuracyTone } from '../agents/utils';
 import {
   productCount,
-  qk,
   useCatalogSummary,
   useCircularPreview,
   useLastCampaignArt,
@@ -28,24 +34,19 @@ import {
 } from '../hooks';
 import { circularLabel, ImagePreviewDialog } from '../shared';
 import type { PanelTab } from './tabs';
+import { useCircularThumb } from './use-circular-thumb';
 
-const day = new Intl.DateTimeFormat('es', { day: 'numeric', month: 'short', timeZone: 'America/New_York' });
+const day = new Intl.DateTimeFormat('es', {
+  day: 'numeric',
+  month: 'short',
+  timeZone: 'America/New_York',
+});
 const range = (a?: string | null, b?: string | null) =>
-  a && b ? `${day.format(new Date(a))} – ${day.format(new Date(b))}` : a ? `desde ${day.format(new Date(a))}` : '';
-
-const isImage = (url?: string) => /\.(png|jpe?g|webp)(\?|$)/i.test(url || '');
-
-/** Miniatura del circular: imagen directa o, si es PDF, la portada que cachea el servidor. */
-function useCircularThumb(c: Circular | null) {
-  const direct = c?.previewImageUrl || (isImage(c?.fileUrl) ? c?.fileUrl : '');
-  const q = useQuery({
-    queryKey: [...qk.circular(c?._id), 'thumb'],
-    queryFn: () => circularService.getPreviewImage(c!._id).then((r) => r.url).catch(() => ''),
-    enabled: !!c?._id && !direct && !!c?.fileUrl,
-    staleTime: 60 * 60_000,
-  });
-  return direct || q.data || '';
-}
+  a && b
+    ? `${day.format(new Date(a))} – ${day.format(new Date(b))}`
+    : a
+      ? `desde ${day.format(new Date(a))}`
+      : '';
 
 function Piece({
   kind,
@@ -114,7 +115,14 @@ function Piece({
           alignItems="center"
           gap={0.75}
         >
-          <Typography sx={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.06em', color: 'text.secondary' }}>
+          <Typography
+            sx={{
+              fontSize: 10.5,
+              fontWeight: 800,
+              letterSpacing: '0.06em',
+              color: 'text.secondary',
+            }}
+          >
             {kind.toUpperCase()}
           </Typography>
           {ruling && (
@@ -130,7 +138,12 @@ function Piece({
         </Stack>
         <Typography
           noWrap
-          sx={{ fontSize: 13.5, fontWeight: 700, lineHeight: 1.3, color: empty ? 'text.secondary' : 'text.primary' }}
+          sx={{
+            fontSize: 13.5,
+            fontWeight: 700,
+            lineHeight: 1.3,
+            color: empty ? 'text.secondary' : 'text.primary',
+          }}
         >
           {title}
         </Typography>
@@ -141,7 +154,11 @@ function Piece({
           {meta}
         </Typography>
       </Box>
-      {onOpen && <ZoomInRoundedIcon sx={{ fontSize: 18, color: 'text.disabled', ml: 'auto', flexShrink: 0 }} />}
+      {onOpen && (
+        <ZoomInRoundedIcon
+          sx={{ fontSize: 18, color: 'text.disabled', ml: 'auto', flexShrink: 0 }}
+        />
+      )}
     </>
   );
   const sx = {
@@ -216,7 +233,10 @@ function CurrentArt({
           title={current ? circularLabel(current, storeSlug, storeName) : 'Sin circular vigente'}
           meta={
             current
-              ? [range(current.startDate, current.endDate), `${productCount(current).toLocaleString('es')} productos`]
+              ? [
+                  range(current.startDate, current.endDate),
+                  `${productCount(current).toLocaleString('es')} productos`,
+                ]
                   .filter(Boolean)
                   .join(' · ')
               : 'Súbelo en la pestaña Circular'
@@ -233,12 +253,21 @@ function CurrentArt({
           title={flyer.image ? flyerTitle : 'Sin flyer de campaña'}
           meta={
             flyer.image
-              ? [flyer.campaign?.startDate ? `enviado ${day.format(new Date(flyer.campaign.startDate))}` : '', 'última campaña con arte']
+              ? [
+                  flyer.campaign?.startDate
+                    ? `enviado ${day.format(new Date(flyer.campaign.startDate))}`
+                    : '',
+                  'última campaña con arte',
+                ]
                   .filter(Boolean)
                   .join(' · ')
               : 'Aparece al agendar una campaña con arte'
           }
-          onOpen={flyer.image ? () => setPreview({ url: flyer.source || flyer.image, title: flyerTitle }) : undefined}
+          onOpen={
+            flyer.image
+              ? () => setPreview({ url: flyer.source || flyer.image, title: flyerTitle })
+              : undefined
+          }
         />
 
         {/* Calidad de lo que ve el cliente: cada dato lleva a donde se corrige. */}

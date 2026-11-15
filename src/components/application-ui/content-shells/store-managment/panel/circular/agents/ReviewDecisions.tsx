@@ -1,7 +1,7 @@
 'use client';
 
 /** "Para decidir": lo que el flyer muestra distinto a lo guardado, fila por fila. */
-import type { ProductReviewItem } from '@/services/circular.service';
+import type { ProductReviewItem } from '@/services/circular';
 import {
   Box,
   Button,

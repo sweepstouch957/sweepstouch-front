@@ -9,9 +9,10 @@ import EventAvailableOutlinedIcon from '@mui/icons-material/EventAvailableOutlin
 import { Box, Button, Stack, TextField, Typography } from '@mui/material';
 import { Controller, useForm, useWatch, type Control, type UseFormRegister } from 'react-hook-form';
 import { AiGuidanceFields } from '../AiGuidanceFields';
+import { isBadRange } from '../domain/dates';
 import PdfDropzone from './PdfDropzone';
 import { blockSx } from './styles';
-import { isBadRange, scheduleDefaults, type ScheduleValues } from './utils';
+import { scheduleDefaults, type ScheduleValues } from './utils';
 
 export default function ScheduleForm({
   pending,

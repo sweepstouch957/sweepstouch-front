@@ -8,12 +8,7 @@ import {
 } from '@/components/application-ui/content-shells/store-managment/panel-kit';
 import EventRoundedIcon from '@mui/icons-material/EventRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
-import {
-  InputAdornment,
-  Skeleton,
-  Stack,
-  TextField,
-} from '@mui/material';
+import { InputAdornment, Skeleton, Stack, TextField } from '@mui/material';
 import { fmtDay, relDay } from './utils';
 
 type Props = {

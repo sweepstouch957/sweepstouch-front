@@ -33,8 +33,6 @@ export function scheduleDefaults(): ScheduleValues {
   return { title: '', start, end, files: [], guidance: '', referenceImages: [] };
 }
 
-export const isBadRange = (start?: string, end?: string) => !!start && !!end && end < start;
-
 export const mb = (bytes: number) => `${(bytes / 1048576).toFixed(1)} MB`;
 
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });

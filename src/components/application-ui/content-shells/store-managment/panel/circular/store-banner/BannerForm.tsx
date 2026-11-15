@@ -4,11 +4,12 @@
  * Alta / edición de un banner. El formulario es dueño de sus campos; el padre lo monta con
  * `key` por banner (y lo vuelve a montar al guardar), así los valores por defecto alcanzan.
  */
-import type { StoreBanner } from '@/services/circular.service';
+import type { StoreBanner } from '@/services/circular';
 import { Box, Button, Stack, TextField, Typography } from '@mui/material';
 import { Controller, useForm, useWatch, type Control, type UseFormRegister } from 'react-hook-form';
+import { validRange } from '../domain/dates';
 import BannerImagePicker from './BannerImagePicker';
-import { bannerDefaults, blockSx, validRange, type BannerValues } from './utils';
+import { bannerDefaults, blockSx, type BannerValues } from './utils';
 
 export default function BannerForm({
   editing,

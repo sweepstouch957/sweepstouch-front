@@ -1,7 +1,7 @@
 'use client';
 
 /** Columna de datos del editor de producto. Campos no controlados (register): cero re-renders al tipear. */
-import type { StorePendingPrice } from '@/services/circular.service';
+import type { StorePendingPrice } from '@/services/circular';
 import { Alert, FormControlLabel, Stack, Switch, TextField } from '@mui/material';
 import { Controller, useFormContext, type UseFormRegister } from 'react-hook-form';
 import type { ProductFormValues } from './constants';

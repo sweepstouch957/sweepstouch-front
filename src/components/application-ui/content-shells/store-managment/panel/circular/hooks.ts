@@ -9,29 +9,12 @@
  * corriendo) sin pasar props de arriba abajo.
  */
 import { campaignClient } from '@/services/campaing.service';
-import { circularService, type Circular } from '@/services/circular.service';
+import { circularService, type Circular } from '@/services/circular';
 import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import toast from 'react-hot-toast';
-
-export const qk = {
-  circulars: (slug: string) => ['store-circulars', slug] as const,
-  catalog: (slug: string) => ['store-catalog-admin', slug] as const,
-  categories: (slug: string) => ['store-categories', slug] as const,
-  upcoming: (slug: string) => ['store-upcoming', slug] as const,
-  banners: (slug: string) => ['store-banners', slug] as const,
-  flyer: (slug: string) => ['store-flyer-image', slug] as const,
-  lastCampaign: (storeId: string) => ['store-last-campaign-image', storeId] as const,
-  campaignImport: (campaignId?: string) => ['campaign-import', campaignId] as const,
-  catalogSummary: (slug: string) => ['store-catalog-summary', slug] as const,
-  circular: (id?: string) => ['circular', id] as const,
-};
-
-const mk = {
-  extract: (slug: string) => ['circular-extract', slug],
-  addMissing: (slug: string) => ['circular-add-missing', slug],
-  loadCatalog: (slug: string) => ['circular-load-catalog', slug],
-};
+import { splitStoreCirculars } from './domain/circulars';
+import { circularKeys, circularMutationKeys } from './query-keys';
 
 // Lo que cambia por acciones de la persona (y se invalida al hacerlas) no necesita
 // re-pedirse cada vez que se cambia de pestaña o vuelve el foco a la ventana.
@@ -43,32 +26,19 @@ export const productCount = (c?: Circular | null) => c?.productCount ?? c?.produ
 /** Circulares de la tienda (lista resumida) + los que usa la pantalla. */
 export function useStoreCirculars(storeSlug: string) {
   const query = useQuery({
-    queryKey: qk.circulars(storeSlug),
+    queryKey: circularKeys.circulars(storeSlug),
     queryFn: () => circularService.getByStoreSummary(storeSlug),
     enabled: !!storeSlug,
     staleTime: FRESH,
   });
-  const derived = useMemo(() => {
-    const all: Circular[] = query.data?.items ?? [];
-    // El arte de una campaña NO es un circular: es un flyer (va aparte, en Automático).
-    // El circular de la semana es siempre el PDF.
-    const isFlyer = (c: Circular) => c.fileKey === 'campaign' || !!c.campaign;
-    const items = all.filter((c) => !isFlyer(c));
-    const flyers = all.filter(isFlyer);
-    // Vigente = el activo; si no hay, el próximo agendado. "Arriba" también cae al último.
-    const current =
-      items.find((c) => c.status === 'active') ||
-      items.find((c) => c.status === 'scheduled') ||
-      null;
-    return { items, flyers, current, top: current || items[0] || null, hasCurrent: !!current };
-  }, [query.data]);
+  const derived = useMemo(() => splitStoreCirculars(query.data?.items ?? []), [query.data]);
   return { ...derived, isLoading: query.isLoading };
 }
 
 /** Última campaña CON arte (misma query para la automatización y el banner). */
 export function useLastCampaignArt(storeId?: string) {
   const q = useQuery({
-    queryKey: qk.lastCampaign(storeId || ''),
+    queryKey: circularKeys.lastCampaign(storeId || ''),
     queryFn: () =>
       campaignClient.getLastCampaign(storeId as string, { withImage: true }).catch(() => null),
     enabled: !!storeId,
@@ -88,7 +58,7 @@ export function useLastCampaignArt(storeId?: string) {
 /** Import automático de la campaña: se consulta seguido sólo mientras está en cola o corriendo. */
 export function useCampaignImportJob(campaignId?: string) {
   return useQuery({
-    queryKey: qk.campaignImport(campaignId),
+    queryKey: circularKeys.campaignImport(campaignId),
     queryFn: () => circularService.getCampaignImport(campaignId!).catch(() => null),
     enabled: !!campaignId,
     staleTime: 15_000,
@@ -102,7 +72,7 @@ export function useCampaignImportJob(campaignId?: string) {
 /** Productos y banners que salen en una fecha (pestaña Próximos). */
 export function useUpcoming(storeSlug: string) {
   return useQuery({
-    queryKey: qk.upcoming(storeSlug),
+    queryKey: circularKeys.upcoming(storeSlug),
     queryFn: () => circularService.getUpcoming(storeSlug),
     enabled: !!storeSlug,
     staleTime: FRESH,
@@ -116,7 +86,7 @@ export function useUpcoming(storeSlug: string) {
  *  re-renderiza cuando cambian los productos, y el sondeo se apaga fuera de sus pestañas. */
 export function useUpcomingCount(storeSlug: string, poll: boolean) {
   const q = useQuery({
-    queryKey: qk.upcoming(storeSlug),
+    queryKey: circularKeys.upcoming(storeSlug),
     queryFn: () => circularService.getUpcoming(storeSlug),
     enabled: !!storeSlug,
     staleTime: FRESH,
@@ -130,7 +100,7 @@ export function useUpcomingCount(storeSlug: string, poll: boolean) {
 /** Cuántos productos ve el cliente hoy: visibles / ocultos / esperando fecha + qué rige. */
 export function useCatalogSummary(storeSlug: string) {
   return useQuery({
-    queryKey: qk.catalogSummary(storeSlug),
+    queryKey: circularKeys.catalogSummary(storeSlug),
     queryFn: () => circularService.getCatalogSummary(storeSlug),
     enabled: !!storeSlug,
     staleTime: FRESH,
@@ -142,20 +112,20 @@ export function useCatalogSummary(storeSlug: string) {
 export function useRefreshStoreData(storeSlug: string) {
   const qc = useQueryClient();
   return () => {
-    qc.invalidateQueries({ queryKey: qk.circulars(storeSlug) });
-    qc.invalidateQueries({ queryKey: ['circular'] });
-    qc.invalidateQueries({ queryKey: qk.catalog(storeSlug) });
-    qc.invalidateQueries({ queryKey: qk.catalogSummary(storeSlug) });
-    qc.invalidateQueries({ queryKey: qk.upcoming(storeSlug) });
-    qc.invalidateQueries({ queryKey: qk.banners(storeSlug) });
+    qc.invalidateQueries({ queryKey: circularKeys.circulars(storeSlug) });
+    qc.invalidateQueries({ queryKey: circularKeys.allCirculars() });
+    qc.invalidateQueries({ queryKey: circularKeys.catalog(storeSlug) });
+    qc.invalidateQueries({ queryKey: circularKeys.catalogSummary(storeSlug) });
+    qc.invalidateQueries({ queryKey: circularKeys.upcoming(storeSlug) });
+    qc.invalidateQueries({ queryKey: circularKeys.banners(storeSlug) });
   };
 }
 
 /** ¿Hay una extracción/carga corriendo en cualquier sección? */
 export function useCircularBusy(storeSlug: string) {
-  const extracting = useIsMutating({ mutationKey: mk.extract(storeSlug) }) > 0;
-  const adding = useIsMutating({ mutationKey: mk.addMissing(storeSlug) }) > 0;
-  const loading = useIsMutating({ mutationKey: mk.loadCatalog(storeSlug) }) > 0;
+  const extracting = useIsMutating({ mutationKey: circularMutationKeys.extract(storeSlug) }) > 0;
+  const adding = useIsMutating({ mutationKey: circularMutationKeys.addMissing(storeSlug) }) > 0;
+  const loading = useIsMutating({ mutationKey: circularMutationKeys.loadCatalog(storeSlug) }) > 0;
   return { extracting, adding, loading, busy: extracting || adding };
 }
 
@@ -165,7 +135,7 @@ const serverError = (e: any) => e?.response?.data?.error || `error ${e?.response
 export function useExtractProducts(storeSlug: string) {
   const refresh = useRefreshStoreData(storeSlug);
   return useMutation({
-    mutationKey: mk.extract(storeSlug),
+    mutationKey: circularMutationKeys.extract(storeSlug),
     mutationFn: ({
       id,
       max,
@@ -210,7 +180,7 @@ export function useExtractProducts(storeSlug: string) {
 export function useLoadCatalog(storeSlug: string) {
   const refresh = useRefreshStoreData(storeSlug);
   return useMutation({
-    mutationKey: mk.loadCatalog(storeSlug),
+    mutationKey: circularMutationKeys.loadCatalog(storeSlug),
     mutationFn: (id: string) => circularService.loadCatalogFromCircular(id),
     onSuccess: (d) => {
       toast.success(
@@ -229,7 +199,7 @@ export function useLoadCatalog(storeSlug: string) {
 export function useAddMissing(storeSlug: string) {
   const refresh = useRefreshStoreData(storeSlug);
   return useMutation({
-    mutationKey: mk.addMissing(storeSlug),
+    mutationKey: circularMutationKeys.addMissing(storeSlug),
     mutationFn: (id: string) => circularService.addMissingProducts(id),
     onSuccess: (d) => {
       toast.success(

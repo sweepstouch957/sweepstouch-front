@@ -1,8 +1,8 @@
 'use client';
 
 /** Card de un producto que espera su fecha: foto, precio que va a salir, letra chica, acciones. */
-import Image from 'next/image';
-import type { StoreProduct } from '@/services/circular.service';
+import { StatusPill } from '@/components/application-ui/content-shells/store-managment/panel-kit';
+import type { StoreProduct } from '@/services/circular';
 import { cloudinaryThumb } from '@/utils/cloudinary';
 import CameraswitchOutlinedIcon from '@mui/icons-material/CameraswitchOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
@@ -10,10 +10,10 @@ import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 import RocketLaunchOutlinedIcon from '@mui/icons-material/RocketLaunchOutlined';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import { Box, IconButton, Stack, Tooltip, Typography } from '@mui/material';
+import Image from 'next/image';
 import { memo, type ReactNode } from 'react';
-import { StatusPill } from '@/components/application-ui/content-shells/store-managment/panel-kit';
 import { BlurField } from '../catalog/product-cell';
-import { fineText } from './utils';
+import { fineText } from '../domain/catalog';
 
 type Props = {
   product: StoreProduct;
@@ -22,7 +22,10 @@ type Props = {
   rephotoing: boolean;
   onEdit: (p: StoreProduct) => void;
   onRephoto: (p: StoreProduct) => void;
-  onPatch: (id: string, body: { name?: string; brand?: string; size?: string; price?: string; originalPrice?: string }) => void;
+  onPatch: (
+    id: string,
+    body: { name?: string; brand?: string; size?: string; price?: string; originalPrice?: string }
+  ) => void;
   onPublish: (p: StoreProduct) => void;
   onCancel: (p: StoreProduct) => void;
 };
@@ -195,7 +198,12 @@ function UpcomingProductCard({
               placeholder="precio"
               ariaLabel={`Precio que va a salir de ${p.name}`}
               allowEmpty={false}
-              inputStyle={{ fontSize: 18, fontWeight: 800, color: 'inherit', fontVariantNumeric: 'tabular-nums' }}
+              inputStyle={{
+                fontSize: 18,
+                fontWeight: 800,
+                color: 'inherit',
+                fontVariantNumeric: 'tabular-nums',
+              }}
               onSave={(price) => onPatch(p._id, { price })}
             />
           </Box>
@@ -205,7 +213,10 @@ function UpcomingProductCard({
               value={pend?.originalPrice ?? ''}
               placeholder="regular"
               ariaLabel={`Precio regular de ${p.name}`}
-              inputStyle={{ fontSize: 13, textDecoration: pend?.originalPrice ? 'line-through' : 'none' }}
+              inputStyle={{
+                fontSize: 13,
+                textDecoration: pend?.originalPrice ? 'line-through' : 'none',
+              }}
               onSave={(originalPrice) => onPatch(p._id, { originalPrice })}
             />
           </Box>

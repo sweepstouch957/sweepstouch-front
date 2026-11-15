@@ -1,7 +1,7 @@
 'use client';
 
 /** Quién es quién: una ficha por agente con su estado; click = elegirlo en la oficina. */
-import type { Pipeline } from '@/services/circular.service';
+import type { Pipeline } from '@/services/circular';
 import { alpha, Box, ButtonBase, Typography } from '@mui/material';
 import { memo } from 'react';
 import { AGENT_STATUS, type AgentStatus } from '../constants';

@@ -5,7 +5,7 @@
  * (o del flyer de la campaña) o generada con IA, y quitar fondo.
  * El formulario vive acá (react-hook-form); la imagen, en useImageWorkbench.
  */
-import type { StoreProduct } from '@/services/circular.service';
+import type { StoreProduct } from '@/services/circular';
 import {
   Button,
   Dialog,

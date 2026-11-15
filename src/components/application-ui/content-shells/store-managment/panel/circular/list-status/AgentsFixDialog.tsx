@@ -55,12 +55,12 @@ export default function AgentsFixDialog({
             o compra mínima.
           </li>
           <li>
-            <b>Yami</b> deja visibles sólo los productos de este flyer, oculta el resto y quita
-            los repetidos.
+            <b>Yami</b> deja visibles sólo los productos de este flyer, oculta el resto y quita los
+            repetidos.
           </li>
           <li>
-            <b>Vanessa</b> vuelve a leer el arte página por página y coteja precios, nombres y
-            letra chica. Lo dudoso queda para decidir en Agentes IA.
+            <b>Vanessa</b> vuelve a leer el arte página por página y coteja precios, nombres y letra
+            chica. Lo dudoso queda para decidir en Agentes IA.
           </li>
           <li>
             <b>Gauche</b> rehace las fotos que falten o no se parezcan.

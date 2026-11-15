@@ -1,7 +1,7 @@
 'use client';
 
 /** Una fila del historial de banners: miniatura, título, fechas, estado y acciones. */
-import type { StoreBanner } from '@/services/circular.service';
+import type { StoreBanner } from '@/services/circular';
 import { cloudinaryThumb } from '@/utils/cloudinary';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
@@ -9,9 +9,10 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { Box, Chip, IconButton, Stack, Tooltip, Typography } from '@mui/material';
 import { memo } from 'react';
+import { bannerStatus } from '../domain/banners';
 import { Meta } from '../panelUi';
 import { fmtDate } from '../shared';
-import { bannerFrame, bannerStatus } from './utils';
+import { bannerFrame } from './utils';
 
 function BannerRow({
   banner: b,

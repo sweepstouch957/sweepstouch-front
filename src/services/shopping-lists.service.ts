@@ -153,7 +153,10 @@ export const shoppingListsService = {
     return data;
   },
 
-  timeline: async (storeSlug: string, days = 30): Promise<{ ok: boolean; days: ListsTimelineDay[] }> => {
+  timeline: async (
+    storeSlug: string,
+    days = 30
+  ): Promise<{ ok: boolean; days: ListsTimelineDay[] }> => {
     const { data } = await api.get(`${BASE}/list-admin/timeline`, { params: { storeSlug, days } });
     return data;
   },
@@ -165,7 +168,9 @@ export const shoppingListsService = {
 
   /** Productos pedidos desde Mi Toque ("¿Qué producto de tu tierra no encuentras?"). */
   productRequests: async (storeSlug: string): Promise<ProductRequestsResponse> => {
-    const { data } = await api.get(`${BASE}/list-admin/product-requests`, { params: { storeSlug } });
+    const { data } = await api.get(`${BASE}/list-admin/product-requests`, {
+      params: { storeSlug },
+    });
     return data;
   },
 };
@@ -173,7 +178,13 @@ export const shoppingListsService = {
 export interface ProductRequestsResponse {
   ok: boolean;
   totals: { requests: number; last7d: number; products: number };
-  top: Array<{ _id: string; product: string; count: number; nationalities: string[]; lastAt: string }>;
+  top: Array<{
+    _id: string;
+    product: string;
+    count: number;
+    nationalities: string[];
+    lastAt: string;
+  }>;
   recent: Array<{
     _id: string;
     product: string;
@@ -211,6 +222,14 @@ export interface ListsTimelineDay {
 }
 
 export const shoppingListsQK = {
+  all: () => ['shopping-lists'] as const,
+  listsPage: (
+    storeSlug: string,
+    status: string | undefined,
+    q: string | undefined,
+    page: number | undefined,
+    limit: number | undefined
+  ) => ['shopping-lists', storeSlug, status ?? 'all', '', q, page, limit] as const,
   lists: (storeSlug: string, status?: string, q?: string) =>
     ['shopping-lists', storeSlug, status ?? 'all', q ?? ''] as const,
   summary: (storeSlug: string) => ['shopping-lists', 'summary', storeSlug] as const,

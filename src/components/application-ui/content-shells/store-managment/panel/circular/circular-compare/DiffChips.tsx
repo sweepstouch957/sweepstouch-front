@@ -2,9 +2,13 @@
 
 import { Chip, Stack } from '@mui/material';
 import { memo } from 'react';
-import type { Diff, DiffKind } from './utils';
+import { type Diff, type DiffKind } from '../domain/circulars';
 
-const KINDS: { kind: DiffKind; color: 'warning' | 'success' | 'default'; label: (n: number) => string }[] = [
+const KINDS: {
+  kind: DiffKind;
+  color: 'warning' | 'success' | 'default';
+  label: (n: number) => string;
+}[] = [
   { kind: 'changed', color: 'warning', label: (n) => `${n} cambian de precio` },
   { kind: 'added', color: 'success', label: (n) => `${n} nuevos` },
   { kind: 'removed', color: 'default', label: (n) => `${n} salen` },

@@ -1,6 +1,6 @@
 'use client';
 
-import type { StoreProduct } from '@/services/circular.service';
+import type { StoreProduct } from '@/services/circular';
 import {
   Button,
   Dialog,

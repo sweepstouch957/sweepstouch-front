@@ -1,7 +1,7 @@
 'use client';
 
 import { panelDivider } from '@/components/application-ui/content-shells/store-managment/panel-kit';
-import type { CatalogSummary } from '@/services/circular.service';
+import type { CatalogSummary } from '@/services/circular';
 import { Box, Stack, Typography, useTheme } from '@mui/material';
 import { memo } from 'react';
 import { rulingKind, sourceSummary } from './utils';
@@ -107,7 +107,9 @@ function ListStatusKpis({ summary: s }: { summary: CatalogSummary }) {
       <Stat
         label="Ocultos"
         value={String(s.hidden)}
-        sub={s.hidden ? 'no están en el flyer vigente o se apagaron a mano' : 'todo el catálogo se ve'}
+        sub={
+          s.hidden ? 'no están en el flyer vigente o se apagaron a mano' : 'todo el catálogo se ve'
+        }
       />
       <Stat
         label="Esperan su fecha"

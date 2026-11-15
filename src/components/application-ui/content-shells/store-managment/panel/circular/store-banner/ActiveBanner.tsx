@@ -1,7 +1,7 @@
 'use client';
 
 /** "Lo que ve el cliente hoy": el banner vigente, o el aviso de que no hay ninguno. */
-import type { StoreBanner } from '@/services/circular.service';
+import type { StoreBanner } from '@/services/circular';
 import { cloudinaryThumb } from '@/utils/cloudinary';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';

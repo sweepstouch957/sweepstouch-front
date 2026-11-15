@@ -5,10 +5,11 @@
  * circular PDF y una tienda con flyer activo pero sin PDF quedaba con el botón apagado
  * (19 oct 2026). El flyer activo va primero: es lo que el cliente ve hoy ("flyer gana").
  */
-import { circularService, type Circular } from '@/services/circular.service';
+import { circularService, type Circular } from '@/services/circular';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { productCount, qk, useStoreCirculars } from '../hooks';
+import { productCount, useStoreCirculars } from '../hooks';
+import { circularKeys } from '../query-keys';
 import type { MessageSource } from './constants';
 
 export function useMessageSource(storeSlug: string) {
@@ -31,7 +32,7 @@ export function useMessageSource(storeSlug: string) {
   const active = picked?.c || null;
 
   const full = useQuery({
-    queryKey: qk.circular(active?._id),
+    queryKey: circularKeys.circular(active?._id),
     queryFn: () => circularService.getCircular(active!._id),
     // Al abrir la pestaña (no al abrir el modal): así el envío nunca sale con 0 productos.
     enabled: !!active?._id,

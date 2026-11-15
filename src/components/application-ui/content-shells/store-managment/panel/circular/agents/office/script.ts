@@ -1,5 +1,5 @@
 /** Lo que dicen los robots en sus globos, armado desde la bitácora real. */
-import type { AgentStep, Pipeline } from '@/services/circular.service';
+import type { AgentStep, Pipeline } from '@/services/circular';
 import { ORDER } from '../constants';
 
 // Repertorio de cada estado: el mensaje real de la bitácora va primero y el remate le da voz

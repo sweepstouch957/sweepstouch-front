@@ -4,8 +4,8 @@
  *  de imágenes en curso. */
 import { Alert, CircularProgress, Stack } from '@mui/material';
 import { memo } from 'react';
+import { type UpcomingSummaryRow } from '../domain/catalog';
 import { fmtDate } from '../shared';
-import type { UpcomingSummaryRow } from './constants';
 import { plural } from './utils';
 
 export const CatalogNotices = memo(function CatalogNotices({

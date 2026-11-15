@@ -1,7 +1,15 @@
 'use client';
 
 import type { AdminShoppingList } from '@/services/shopping-lists.service';
-import { Box, LinearProgress, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
+import {
+  Box,
+  LinearProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+} from '@mui/material';
 import { cell } from '../shared';
 import ListRow, { type ListRowActions } from './ListRow';
 
@@ -30,7 +38,9 @@ export default function ListsTable({
   return (
     <Box sx={{ overflowX: 'auto', position: 'relative' }}>
       {busy && (
-        <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, zIndex: 1 }} />
+        <LinearProgress
+          sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, zIndex: 1 }}
+        />
       )}
       <Table size="small">
         <TableHead>

@@ -2,7 +2,8 @@
 
 import { Box, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import { memo } from 'react';
-import { MAX_ROWS, type DiffRow } from './utils';
+import { type DiffRow } from '../domain/circulars';
+import { MAX_ROWS } from './utils';
 
 /** Productos de un grupo del comparativo (hasta MAX_ROWS). */
 function DiffTable({ rows }: { rows: DiffRow[] }) {
@@ -10,33 +11,33 @@ function DiffTable({ rows }: { rows: DiffRow[] }) {
     <>
       <Box sx={{ overflowX: 'auto' }}>
         <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell>Producto</TableCell>
-            <TableCell align="right">Hoy</TableCell>
-            <TableCell align="right">Después</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {rows.slice(0, MAX_ROWS).map((r, i) => (
-            <TableRow key={`${r.name}-${i}`}>
-              <TableCell>{r.name}</TableCell>
-              <TableCell
-                align="right"
-                sx={{ color: 'text.secondary' }}
-              >
-                {r.from || '—'}
-              </TableCell>
-              <TableCell
-                align="right"
-                sx={{ fontWeight: 700 }}
-              >
-                {r.to || '—'}
-              </TableCell>
+          <TableHead>
+            <TableRow>
+              <TableCell>Producto</TableCell>
+              <TableCell align="right">Hoy</TableCell>
+              <TableCell align="right">Después</TableCell>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHead>
+          <TableBody>
+            {rows.slice(0, MAX_ROWS).map((r, i) => (
+              <TableRow key={`${r.name}-${i}`}>
+                <TableCell>{r.name}</TableCell>
+                <TableCell
+                  align="right"
+                  sx={{ color: 'text.secondary' }}
+                >
+                  {r.from || '—'}
+                </TableCell>
+                <TableCell
+                  align="right"
+                  sx={{ fontWeight: 700 }}
+                >
+                  {r.to || '—'}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </Box>
       {rows.length > MAX_ROWS && (
         <Typography

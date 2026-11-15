@@ -2,7 +2,7 @@
 
 // Bitácora de los robots del circular: quién va, qué hizo y dónde se trabó. Se consulta cada
 // 3 s mientras alguno esté en marcha; después queda como resumen del último proceso.
-import type { AgentStep, Pipeline } from '@/services/circular.service';
+import type { AgentStep, Pipeline } from '@/services/circular';
 import { alpha, Box, Chip, CircularProgress, Stack, Typography } from '@mui/material';
 import { memo } from 'react';
 import { AGENT_STATUS } from './constants';
